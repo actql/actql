@@ -33,9 +33,9 @@ test('bounded relation catalog and journal match the complete independent identi
     assert.equal(cid(value.catalog_preimage), value.catalog_cid);
     assert.equal(cid(value.journal_preimage), value.journal_cid);
   }
-  assert.deepEqual(load(prefix + 'fixture.json'), expected.ordered);
+  assert.deepEqual(load(prefix + 'pre-completion-fixture.json'), expected.ordered);
   assert.deepEqual(load(prefix + 'pre-order-fixture.json'), expected.current);
-  assert.deepEqual(load(prefix + 'catalog.json'), JSON.parse(expected.ordered.catalog_preimage));
+  assert.deepEqual(load(prefix + 'pre-completion-catalog.json'), JSON.parse(expected.ordered.catalog_preimage));
   assert.deepEqual(load(prefix + 'pre-order-catalog.json'), JSON.parse(expected.current.catalog_preimage));
   const issuer = readFileSync(new URL('../src/run_publication_host/client_local_normalization.mbt', import.meta.url), 'utf8');
   assert(issuer.includes('"' + expected.current.catalog_cid + '"'));
@@ -75,7 +75,7 @@ test('all six preceding catalogs keep their complete distinct bytes and identiti
 
 test('resolved Sort extends the same bounded relation catalogue without hiding real completion', () => {
   const body = JSON.parse(expected.ordered.catalog_preimage);
-  const schema = load(prefix + 'catalog.schema.json');
+  const schema = load(prefix + 'pre-completion-catalog.schema.json');
   assert.equal(schema.additionalProperties, false);
   assert.deepEqual(schema.required.toSorted(), Object.keys(body).toSorted());
   for (const key of ['applicability', 'profile', 'version']) assert.deepEqual(schema.properties[key], {const: body[key]});
@@ -90,4 +90,41 @@ test('resolved Sort extends the same bounded relation catalogue without hiding r
   assert.deepEqual(body, JSON.parse(expected.current.catalog_preimage));
   assert.notEqual(expected.ordered.catalog_cid, expected.current.catalog_cid);
   assert.notEqual(expected.ordered.journal_cid, expected.current.journal_cid);
+});
+
+const completed = {
+  "catalog_preimage": "{\"applicability\":{\"additional_group_prefix\":\"none\",\"aggregate_functions\":[\"count\",\"count_if\",\"max\",\"min\"],\"audit_work_limit\":10000,\"checked_auxiliary_nodes\":[\"membership_list\"],\"checked_operations\":[\"derive\",\"filter\",\"group\",\"select\",\"sort\",\"take\",\"values\"],\"effect_kind\":\"none\",\"expression_nodes\":[\"$param\",\"abs\",\"acos\",\"acosh\",\"add\",\"and\",\"array\",\"asin\",\"asinh\",\"atan\",\"atan2\",\"atanh\",\"between\",\"byte_length\",\"case\",\"cast\",\"cbrt\",\"chr\",\"coalesce\",\"concat\",\"concat_strict\",\"contains\",\"cos\",\"cosh\",\"date_add\",\"date_diff\",\"date_trunc\",\"decimal_divide\",\"divide\",\"empty_array\",\"ends_with\",\"eq\",\"exp\",\"field\",\"floor\",\"greatest\",\"gt\",\"gte\",\"if\",\"in\",\"instr\",\"is_distinct_from\",\"is_false\",\"is_null\",\"is_true\",\"is_unknown\",\"least\",\"left\",\"len\",\"literal\",\"ln\",\"log\",\"log10\",\"lower\",\"lpad\",\"lt\",\"lte\",\"ltrim\",\"modulo\",\"multiply\",\"negate\",\"neq\",\"not\",\"not_in\",\"not_null\",\"nullif\",\"object\",\"or\",\"pow\",\"property\",\"quantize\",\"repeat\",\"replace\",\"reverse\",\"right\",\"round\",\"rpad\",\"rtrim\",\"safe_add\",\"safe_divide\",\"safe_multiply\",\"safe_negate\",\"safe_subtract\",\"sign\",\"sin\",\"sinh\",\"split\",\"sqrt\",\"starts_with\",\"strpos\",\"subscript\",\"substring\",\"subtract\",\"tan\",\"tanh\",\"timestamp_add\",\"timestamp_sub\",\"translate\",\"trim\",\"trunc\",\"try_decimal\",\"try_number\",\"typed_literal\",\"unicode\",\"upper\",\"utf8_truncate\"],\"group_key_selection\":\"authored\",\"max_source_inputs\":1,\"max_stages\":3,\"normalization_journal_limits\":{\"max_depth\":8,\"max_nodes\":32,\"max_wire_bytes\":1024},\"parameter_declarations\":\"none-or-all-supplied-original-values\",\"proof\":\"original-checked-owner-audit\",\"sort_appended_identity_terms\":\"original-owned-semantic-journal-entry\",\"sort_empty\":\"original-identity-no-new-order\",\"sort_resolution\":\"original-same-pipeline-step-covered-candidate-key-or-existing-total\",\"source_selection\":\"explicit\",\"take_count_minimum\":1,\"take_maximum\":9007199254740991,\"take_offset_minimum\":0,\"take_parameter_resolution\":\"original-same-pipeline-step-SafeInteger-supplied-owner\"},\"profile\":\"actql-effect-free-local-completion-free/0.1\",\"rules\":[{\"authored\":\"canonical JSON of the original authored Sort array\",\"canonical\":\"original authored keys in priority followed by actual missing selected candidate-key fields ascending with nulls last\",\"id\":\"sort.candidate_key_completion\",\"path\":\"original decoded Program Sort body\",\"requires\":\"original same-pipeline same-step SortOrder and selected candidate-key proof with nonzero appended_count\"}],\"version\":\"actql-normalization-rule-catalog/0.1\"}",
+  "catalog_cid": "sha256:43da977432e59fa094193c21ef4a11ba10de94f54400ef2576d6293b12500a57",
+  "journal_preimage": "{\"entries\":[{\"authored\":\"[{\\\"dir\\\":\\\"asc\\\",\\\"field\\\":\\\"n\\\",\\\"nulls\\\":\\\"last\\\"}]\",\"canonical\":\"[{\\\"dir\\\":\\\"asc\\\",\\\"field\\\":\\\"n\\\",\\\"nulls\\\":\\\"last\\\"},{\\\"dir\\\":\\\"asc\\\",\\\"field\\\":\\\"key\\\",\\\"nulls\\\":\\\"last\\\"}]\",\"path\":\"$.stages[0].steps[2].sort\",\"rule\":\"sort.candidate_key_completion\"}],\"rule_catalog_cid\":\"sha256:43da977432e59fa094193c21ef4a11ba10de94f54400ef2576d6293b12500a57\",\"version\":\"actql-normalization-journal/0.1\"}",
+  "journal_cid": "sha256:e4285d4c0c7eab9889e52a5d3774575846c7dd2ddf221f2e41ff8a95786f0847"
+};
+
+test('actual Sort completion uses its frozen rule and complete independent journal preimage', () => {
+  assert.equal(cid(completed.catalog_preimage), completed.catalog_cid);
+  assert.equal(cid(completed.journal_preimage), completed.journal_cid);
+  assert.deepEqual(load(prefix + 'fixture.json'), completed);
+  const body = JSON.parse(completed.catalog_preimage);
+  assert.deepEqual(load(prefix + 'catalog.json'), body);
+  const schema = load(prefix + 'catalog.schema.json');
+  assert.deepEqual(schema.properties.rules, {const: body.rules});
+  assert.equal(schema.additionalProperties, false);
+  assert.equal(body.rules.length, 1);
+  assert.equal(body.rules[0].id, 'sort.candidate_key_completion');
+  const issuer = readFileSync(new URL('../src/run_publication_host/client_local_normalization.mbt', import.meta.url), 'utf8');
+  assert(issuer.includes('"' + completed.catalog_cid + '"'));
+  const journal = JSON.parse(completed.journal_preimage);
+  assert.equal(journal.rule_catalog_cid, completed.catalog_cid);
+  assert.equal(journal.entries.length, 1);
+  assert.equal(journal.entries[0].rule, body.rules[0].id);
+  assert.equal(journal.entries[0].path, '$.stages[0].steps[2].sort');
+  assert.deepEqual(JSON.parse(journal.entries[0].canonical), [
+    {dir: 'asc', field: 'n', nulls: 'last'},
+    {dir: 'asc', field: 'key', nulls: 'last'},
+  ]);
+  const prior = JSON.parse(expected.ordered.catalog_preimage);
+  body.rules = [];
+  delete body.applicability.normalization_journal_limits;
+  body.applicability.sort_appended_identity_terms = prior.applicability.sort_appended_identity_terms;
+  assert.deepEqual(body, prior);
+  assert.notEqual(completed.catalog_cid, expected.ordered.catalog_cid);
 });

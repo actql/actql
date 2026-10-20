@@ -358,6 +358,16 @@ pub fn local_completion_free_inventory_work(LocalCompletionFreeInventory) -> Int
 
 pub fn local_program_completion_free_inventory(CheckedProgram) -> Result[LocalCompletionFreeInventory, CompletionFreeInventoryIssue]
 
+pub fn local_program_sort_normalization_inventory(CheckedProgram) -> Result[LocalSortNormalizationInventory?, CompletionFreeInventoryIssue]
+
+pub fn local_sort_normalization_entry_at(LocalSortNormalizationInventory, Int) -> (String, String, String)?
+
+pub fn local_sort_normalization_entry_count(LocalSortNormalizationInventory) -> Int
+
+pub fn local_sort_normalization_inventory_matches(LocalSortNormalizationInventory, CheckedProgram) -> Bool
+
+pub fn local_sort_normalization_inventory_work(LocalSortNormalizationInventory) -> Int
+
 pub fn local_update_completion_free_inventory_matches(LocalUpdateCompletionFreeInventory, EffectProgramStaticCandidate) -> Bool
 
 pub fn local_update_completion_free_inventory_work(LocalUpdateCompletionFreeInventory) -> Int
@@ -1136,6 +1146,8 @@ pub(all) enum LocalDependencyBodyKind {
   SourceViewContract(Int)
   RegistryContract(Int)
 } derive(Eq, @debug.Debug)
+
+type LocalSortNormalizationInventory
 
 type LocalUpdateCompletionFreeInventory
 

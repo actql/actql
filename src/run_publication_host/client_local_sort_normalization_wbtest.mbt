@@ -10,7 +10,14 @@ fn local_sort_normalization(
   owner : PreparedClientProgram,
 ) -> ClientLocalNormalization raise {
   let issued = issue_prepared_client_local_normalization(owner).unwrap()
-  assert_true(@checked.local_completion_free_inventory_uses_sort(issued.audit))
+  assert_true(
+    @checked.local_completion_free_inventory_uses_sort(
+      match issued.audit {
+        CompletionFree(value) => value
+        SortCompletion(_) => fail("completion-free original expected")
+      },
+    ),
+  )
   assert_eq(
     @publication.run_evidence_value_json(
       prepared_client_local_normalization_evidence(owner, issued).unwrap(),
@@ -94,7 +101,7 @@ test "original Group key ordering composes with Take on multiple actual rows" {
 }
 
 ///|
-test "actual appended Group identity requires its semantic journal rather than an empty substitute" {
+test "actual appended Group identity still refuses the completion-free inventory" {
   let document =
     #|{"version":"actql/0.1","id":"local.completed-sort","stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"key":{"type":"string","nullable":false}},"rows":[{"key":"a"},{"key":"b"}]},"as":"input"},{"group":{"by":["key"],"aggregates":{"n":{"fn":"count"}}}},{"sort":[{"field":"n","dir":"asc","nulls":"last"}],"as":"selected"}],"results":{"rows":{"from":"selected","fields":["key","n"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}
   let original = local_group_original_document(document)
@@ -108,8 +115,10 @@ test "actual appended Group identity requires its semantic journal rather than a
   }
   assert_eq(@pipeline.sort_completion_count(completion), 1)
   assert_true(
-    issue_prepared_client_local_normalization(original)
-    is Err(Inventory(CompletionObserved)),
+    @checked.local_program_completion_free_inventory(
+      @strategy.graph_program(original.graph),
+    )
+    is Err(CompletionObserved),
   )
   assert_true(original.local_normalization is None)
 }

@@ -11,9 +11,15 @@ pub(all) enum ClientLocalNormalizationIssue {
 /// Original preparation owns the completion inventory and its issued bytes.
 /// The normative journal preimage has no additional Program binding fields;
 /// this opaque projection and the original materials chain own those links.
+priv enum ClientLocalNormalizationInventory {
+  CompletionFree(@checked.LocalCompletionFreeInventory)
+  SortCompletion(@checked.LocalSortNormalizationInventory)
+}
+
+///|
 struct ClientLocalNormalization {
   preparation : PreparedClientProgram
-  audit : @checked.LocalCompletionFreeInventory
+  audit : ClientLocalNormalizationInventory
   evidence : @publication.RunEvidenceValue
 }
 
@@ -23,7 +29,7 @@ pub fn client_local_completion_free_catalog_cid() -> String {
 }
 
 ///|
-fn local_normalization_catalog_cid(
+fn local_completion_free_catalog_cid(
   inventory : @checked.LocalCompletionFreeInventory,
 ) -> String {
   if @checked.local_completion_free_inventory_uses_sort(inventory) {
@@ -57,6 +63,68 @@ fn local_normalization_catalog_cid(
 }
 
 ///|
+fn local_normalization_catalog_cid(
+  inventory : ClientLocalNormalizationInventory,
+) -> String {
+  match inventory {
+    CompletionFree(value) => local_completion_free_catalog_cid(value)
+    SortCompletion(_) =>
+      "sha256:43da977432e59fa094193c21ef4a11ba10de94f54400ef2576d6293b12500a57"
+  }
+}
+
+///|
+fn local_normalization_inventory_matches(
+  inventory : ClientLocalNormalizationInventory,
+  owner : @checked.CheckedProgram,
+) -> Bool {
+  match inventory {
+    CompletionFree(value) =>
+      @checked.local_completion_free_inventory_matches(value, owner)
+    SortCompletion(value) =>
+      @checked.local_sort_normalization_inventory_matches(value, owner)
+  }
+}
+
+///|
+fn local_sort_normalization_journal_body(
+  inventory : @checked.LocalSortNormalizationInventory,
+  catalog_cid : String,
+) -> Result[String, ClientLocalNormalizationIssue] {
+  try {
+    let writer = @encode.writer(1024, 32, 8)
+    @encode.begin_object(writer)
+    @encode.key(writer, "entries")
+    @encode.begin_array(writer)
+    for index in 0..<@checked.local_sort_normalization_entry_count(inventory) {
+      guard @checked.local_sort_normalization_entry_at(inventory, index)
+        is Some((path, authored, canonical)) else {
+        return Err(ForeignPreparation)
+      }
+      @encode.begin_object(writer)
+      @encode.key(writer, "authored")
+      @encode.string_value(writer, authored)
+      @encode.key(writer, "canonical")
+      @encode.string_value(writer, canonical)
+      @encode.key(writer, "path")
+      @encode.string_value(writer, path)
+      @encode.key(writer, "rule")
+      @encode.string_value(writer, "sort.candidate_key_completion")
+      @encode.end_object(writer)
+    }
+    @encode.end_array(writer)
+    @encode.key(writer, "rule_catalog_cid")
+    @encode.string_value(writer, catalog_cid)
+    @encode.key(writer, "version")
+    @encode.string_value(writer, "actql-normalization-journal/0.1")
+    @encode.end_object(writer)
+    Ok(@encode.finish(writer))
+  } catch {
+    _ => Err(Evidence(@publication.RunEvidenceEncoding))
+  }
+}
+
+///|
 /// Issue only from the inventory retained by the original checked preparation.
 /// No parse, compile, Source acquisition or physical Effect operation occurs.
 pub fn issue_prepared_client_local_normalization(
@@ -69,16 +137,29 @@ pub fn issue_prepared_client_local_normalization(
     }
     return Ok(original)
   }
-  let inventory = match
-    @checked.local_program_completion_free_inventory(
-      @strategy.graph_program(owner.graph),
-    ) {
-    Ok(value) => value
+  let program = @strategy.graph_program(owner.graph)
+  let inventory : ClientLocalNormalizationInventory = match
+    @checked.local_program_sort_normalization_inventory(program) {
+    Ok(Some(value)) => SortCompletion(value)
+    Ok(None) =>
+      match @checked.local_program_completion_free_inventory(program) {
+        Ok(value) => CompletionFree(value)
+        Err(issue) => return Err(Inventory(issue))
+      }
     Err(issue) => return Err(Inventory(issue))
   }
-  let wire = "{\"entries\":[],\"rule_catalog_cid\":\"" +
-    local_normalization_catalog_cid(inventory) +
-    "\",\"version\":\"actql-normalization-journal/0.1\"}"
+  let catalog_cid = local_normalization_catalog_cid(inventory)
+  let wire = match inventory {
+    CompletionFree(_) =>
+      "{\"entries\":[],\"rule_catalog_cid\":\"" +
+      catalog_cid +
+      "\",\"version\":\"actql-normalization-journal/0.1\"}"
+    SortCompletion(value) =>
+      match local_sort_normalization_journal_body(value, catalog_cid) {
+        Ok(wire) => wire
+        Err(issue) => return Err(issue)
+      }
+  }
   let journal = match
     @publication.seal_run_evidence_value(
       "normalization_journal", wire, 1024, 32, 8,
@@ -106,7 +187,7 @@ pub fn prepared_client_local_normalization_evidence(
   if !physical_equal(owner, value.preparation) ||
     !(owner.local_normalization is Some(original) &&
     physical_equal(original, value)) ||
-    !@checked.local_completion_free_inventory_matches(
+    !local_normalization_inventory_matches(
       value.audit,
       @strategy.graph_program(owner.graph),
     ) {

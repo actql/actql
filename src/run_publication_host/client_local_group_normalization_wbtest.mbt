@@ -17,7 +17,12 @@ fn local_group_normalization(
     local_group_journal,
   )
   assert_true(
-    @checked.local_completion_free_inventory_uses_groups(issued.audit),
+    @checked.local_completion_free_inventory_uses_groups(
+      match issued.audit {
+        CompletionFree(value) => value
+        SortCompletion(_) => fail("completion-free original expected")
+      },
+    ),
   )
   issued
 }
@@ -183,7 +188,7 @@ test "authored Group keys fields distinct and filters retain the original checke
 }
 
 ///|
-// These original sequences contain Values, Group and field-only projection.
+// These original sequences contain Values, Group, checked Derive and projection.
 // Only the original dynamic Group bindings receive expression contexts; a
 // count-only Group is not an expression kernel.
 fn local_group_generated(
@@ -199,7 +204,8 @@ fn local_group_generated(
           @lower.kernel_count_group(kernel) is Some(_) ||
           @lower.kernel_is_projection(kernel) ||
           @lower.kernel_take(kernel) is Some(_) ||
-          @lower.kernel_is_sort(kernel),
+          @lower.kernel_is_sort(kernel) ||
+          @relation.operation(@lower.kernel_checked(kernel)) is @relation.Derive,
         )
         if @relation.binding_count(@lower.kernel_checked(kernel)) > 0 {
           contexts.push(local_group_context(sequence, index))

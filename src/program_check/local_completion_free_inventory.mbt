@@ -1,6 +1,7 @@
 ///|
 priv enum LocalCompletionFreeAudit {
   Complete(Int, @parameters.BoundValues?, Bool, Bool, Bool, Bool, Bool)
+  SortCompleted(Int, Array[LocalSortNormalizationEntry])
   ProfileNotInstalled
   CompletionObserved
 }
@@ -34,6 +35,17 @@ fn audit_local_completion_free_sort(
   pipeline : @pipeline.CheckedPipeline,
   step : Int,
   available : Int,
+) -> Result[Int, LocalSortAuditIssue] {
+  audit_local_sort(operation, pipeline, step, available, None)
+}
+
+///|
+fn audit_local_sort(
+  operation : @relation.CheckedOperation,
+  pipeline : @pipeline.CheckedPipeline,
+  step : Int,
+  available : Int,
+  entries : Array[LocalSortNormalizationEntry]?,
 ) -> Result[Int, LocalSortAuditIssue] {
   if available <= 0 || @relation.operation(operation) != @relation.Sort {
     return Err(ProfileNotInstalled)
@@ -73,7 +85,7 @@ fn audit_local_completion_free_sort(
   }
   match @pipeline.sort_order_strategy(order) {
     CandidateKey(completion) => {
-      if @pipeline.sort_completion_count(completion) != 0 {
+      if @pipeline.sort_completion_count(completion) != 0 && entries is None {
         return Err(CompletionObserved)
       }
       let key = @pipeline.sort_completion_key(completion)
@@ -82,6 +94,16 @@ fn audit_local_completion_free_sort(
           return Err(ProfileNotInstalled)
         }
         remaining -= 1
+      }
+      if @pipeline.sort_completion_count(completion) != 0 {
+        guard entries is Some(entries) else { return Err(CompletionObserved) }
+        match local_sort_normalization_entry(operation, order, remaining) {
+          Some((entry, left)) => {
+            remaining = left
+            entries.push(entry)
+          }
+          None => return Err(ProfileNotInstalled)
+        }
       }
     }
     ExistingTotal(prior) => {
@@ -404,6 +426,7 @@ fn audit_local_completion_free_units(
   let mut groups = false
   let mut takes = false
   let mut sorts = false
+  let sort_entries : Array[LocalSortNormalizationEntry] = []
   let sources : Array[(Int, Int)] = []
   let mut roots = 0
   for unit in units {
@@ -447,8 +470,12 @@ fn audit_local_completion_free_units(
             Filter | Select | Derive => ()
             Sort => {
               match
-                audit_local_completion_free_sort(
-                  operation, pipeline, index, remaining,
+                audit_local_sort(
+                  operation,
+                  pipeline,
+                  index,
+                  remaining,
+                  Some(sort_entries),
                 ) {
                 Ok(left) => remaining = left
                 Err(CompletionObserved) => return CompletionObserved
@@ -536,6 +563,12 @@ fn audit_local_completion_free_units(
   if roots != 1 {
     return ProfileNotInstalled
   }
+  if !sort_entries.is_empty() {
+    guard canonical_local_sort_entries(sort_entries, remaining) is Some(left) else {
+      return ProfileNotInstalled
+    }
+    return SortCompleted(10000 - left, sort_entries)
+  }
   Complete(
     10000 - remaining,
     supplied_parameters,
@@ -575,7 +608,7 @@ pub fn local_program_completion_free_inventory(
         sorts,
       })
     ProfileNotInstalled => Err(ProfileNotInstalled)
-    CompletionObserved => Err(CompletionObserved)
+    CompletionObserved | SortCompleted(_, _) => Err(CompletionObserved)
   }
 }
 

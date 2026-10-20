@@ -141,9 +141,22 @@
     "take_parameter_resolution": "original-same-pipeline-step-SafeInteger-supplied-owner",
     "sort_empty": "original-identity-no-new-order",
     "sort_resolution": "original-same-pipeline-step-covered-candidate-key-or-existing-total",
-    "sort_appended_identity_terms": "requires-semantic-journal-not-completion-free"
+    "sort_appended_identity_terms": "original-owned-semantic-journal-entry",
+    "normalization_journal_limits": {
+      "max_wire_bytes": 1024,
+      "max_nodes": 32,
+      "max_depth": 8
+    }
   },
   "profile": "actql-effect-free-local-completion-free/0.1",
-  "rules": [],
+  "rules": [
+    {
+      "id": "sort.candidate_key_completion",
+      "path": "original decoded Program Sort body",
+      "authored": "canonical JSON of the original authored Sort array",
+      "canonical": "original authored keys in priority followed by actual missing selected candidate-key fields ascending with nulls last",
+      "requires": "original same-pipeline same-step SortOrder and selected candidate-key proof with nonzero appended_count"
+    }
+  ],
   "version": "actql-normalization-rule-catalog/0.1"
 }
