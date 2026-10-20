@@ -676,12 +676,22 @@ their separate cleanup. A close-only retry neither repeats a partial write or
 sync nor regenerates a key or Content object.
 
 The Host retains the unstarted admission before fallible start/take, and takes
-one original Run Ledger. The two Source reads and the generated managed DAG
+one original Run Ledger. The Source reads and the generated managed DAG
 borrow that same Ledger internally. The existing physical Ledger equality at
 capture transfer remains mandatory. Independent Source-only children, equal
 limits, copied prepared values or a fresh scalar Ledger cannot replace it.
 Currentness and the existing mutable-resource/park fence both apply before
 preparation and after callbacks. Account and read/send authority stay separate.
+
+The shared Source/Compute limit projection follows the checked capture-prefix
+count, including a single installed RowSource. Declaration, capture, transport
+and workspace arrays must match that original count; each capture must retain
+the corresponding checked QueryRequirement. All captured inputs stay retained
+beside the generated Compute suffix. The source-free entry requires empty
+Source arrays rather than silently treating a missing acquisition as free.
+This projection remains managed demand, not a physical supplier or read grant.
+The separate local Mock Model purpose retains its own supported shape and
+early original Scope; extending plain Source bookkeeping does not issue it.
 
 Partial initialization retains the same admission even when no Run view was
 returned. If Resource proves that neither the imported child nor its origin

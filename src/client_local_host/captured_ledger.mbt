@@ -512,12 +512,13 @@ fn multi_captured_capacity_limits_owned(
       )
   }
   let count = @strategy.graph_task_count(graph)
-  if @strategy.graph_captured_prefix(graph) != 2 ||
-    capacities.length() != 2 ||
-    count < 3 ||
+  let captured = @strategy.graph_captured_prefix(graph)
+  if captured < 1 ||
+    captured > count ||
+    capacities.length() != captured ||
     count > 32 ||
-    transport_bytes.length() != 2 ||
-    transport_execution_bytes.length() != 2 {
+    transport_bytes.length() != captured ||
+    transport_execution_bytes.length() != captured {
     return None
   }
   guard prepare_client_local_sequences_owned(
@@ -532,7 +533,7 @@ fn multi_captured_capacity_limits_owned(
   // input occurrence. A branching graph can have more ports than tasks; do not
   // merge repeated producers' ports or discount later correspondence reads.
   let mut input_ports = 0L
-  for task in 2..<count {
+  for task in captured..<count {
     guard @strategy.graph_task_input_count(graph, task) is Some(inputs) &&
       inputs >= 0 &&
       inputs.to_int64() <= 9223372036854775807L - input_ports else {
@@ -546,7 +547,7 @@ fn multi_captured_capacity_limits_owned(
   }
   let mut transfer = transfer_envelopes * 1000000L
   let mut execution_capacity = 536870912L
-  for index in 0..<2 {
+  for index in 0..<captured {
     let (capture_retained, capture_execution) = capacities[index]
     if capture_retained < 0L ||
       capture_execution < 0L ||
@@ -570,7 +571,7 @@ fn multi_captured_capacity_limits_owned(
   }
   let native_retained = retained
   retained = 0L
-  for task in 2..<count {
+  for task in captured..<count {
     guard @execution.generated_sequence_capacity(
         sequences[task],
         execution,
@@ -959,10 +960,13 @@ fn multi_captured_installed_limits_owned(
   fragment_body : String?,
   ordered_body : String?,
 ) -> @resources.LedgerLimits? {
-  if capacities.length() != 2 {
+  let captured = @strategy.graph_captured_prefix(
+    installed_managed_owner_graph(owner),
+  )
+  if captured < 1 || capacities.length() != captured {
     return None
   }
-  for index in 0..<2 {
+  for index in 0..<captured {
     let requirement = match owner {
       Pure(prepared) =>
         prepare_local_query_requirement(
