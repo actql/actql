@@ -75,7 +75,7 @@ test('missing adopted Reviewer leaves current Account available without recreati
   const before=await f.snapshot(['reviewer.pem']);
   const accountOnly=await initializeOrdinaryMockAccount({...f.options,explicitSelection:false});
   assert.deepEqual(accountOnly.profile,previous);
-  assert.deepEqual(accountOnly.authorization,{accountConfig:first.configurationPath});
+  assert.deepEqual(accountOnly.authorization,{accountConfig:first.configurationPath,siteKey:'local-mock'});
   assert.equal(accountOnly.reviewer,undefined);
   assert.deepEqual(accountOnly.evidenceKey.key,first.evidenceKey.key);
   assert.equal(f.calls.admitted.at(-1),restricted,'the current Deny is still admitted, not replaced');

@@ -260,7 +260,8 @@ async function initialize({moon, root, principal, subject, sources, modelTasks, 
         publicKeyCid: intent.signingPublicKey.cid, signingResource: intent.reviewerResource,
         privateKey: reviewerKey});
     },
-    authorization: Object.freeze(reviewerKey === undefined ? {accountConfig: configPath} : {accountConfig: configPath, siteKey: 'local-mock',
+    // The original control connection is independent of signing capability.
+    authorization: Object.freeze(reviewerKey === undefined ? {accountConfig: configPath, siteKey: 'local-mock'} : {accountConfig: configPath, siteKey: 'local-mock',
       reviewers: Object.freeze([Object.freeze({keyId: 'local-mock-reviewer', reviewerId: 'local-mock',
         principalId: principal, publicKey})]), reviewReaders: Object.freeze([principal]),
       // Existing Checkpoint construction admits PKCS8 input itself. Preserve
