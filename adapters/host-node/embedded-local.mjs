@@ -2518,7 +2518,7 @@ async function openInstalledHost(originalInstallation, preparation) {
           }
           const recovered = await recoverEffectCapture(ref, signal);
           if (recovered.materials === undefined || recovered.originalSubmittedIntent === undefined ||
-              recovered.computation.preview.identity !== view.requiredArtifact.cid) {
+              control.effectComputationPreviewSemanticCid(recovered.computation.preview) !== view.requiredArtifact.cid) {
             throw clientOperationError('LocalSigningOriginalConflict');
           }
           const current = () => {
