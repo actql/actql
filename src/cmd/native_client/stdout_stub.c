@@ -33,6 +33,7 @@ void actql_native_client_report_failure(moonbit_bytes_t bytes, int32_t length) {
   fflush(stderr);
 }
 void actql_native_client_exit_failure(void) { exit(1); }
+void actql_native_client_exit_argument_failure(void) { exit(2); }
 
 void actql_native_client_fail(moonbit_bytes_t bytes, int32_t length) {
   if (length >= 0) fwrite(bytes, 1, (size_t)length, stderr);

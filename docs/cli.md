@@ -188,7 +188,12 @@ actually used, from its record. See [Plans and pushdown](guides/plans-and-pushdo
 | `--json` | Print the Run state as data instead of the human summary |
 
 `run` publishes Results and reports the Run state; it does not stream rows.
-Read them with `result` or deliver them to files.
+Read them with `result` or deliver them to files. `run --output` writes the sole
+Result as JSONL; repeated `--deliver` entries select their own formats.
+`run --receipt` exports the original Run receipt, independently of per-delivery
+receipts. Existing destinations are not replaced. If export or delivery fails
+after admission, inspect the reported original Run instead of resubmitting the
+Program; files already delivered are not rolled back.
 
 All three commands accept `--connectors`, `--model-tasks` and `--lock` to
 override the configured files, and `--bindings <file>` for pre-bound inputs.
@@ -307,6 +312,10 @@ actql schema
 syntax and `schema` the JSON schema of the Program model. Agents use these
 instead of guessing.
 
+`schema` writes the registered Program JSON Schema as one JSON object followed
+by a newline. It does not inspect a database, select a project, initialize a
+Local Host or create a Run. It works in an empty directory without credentials.
+
 ## Integrity
 
 ```text
@@ -357,6 +366,15 @@ when sharing output.
 | `2` | The command line is invalid |
 
 Errors carry a stable `ACTQL_E_*` code in both the human output and the JSON.
+When a command fails before a Run exists, `--json` writes one diagnostic
+object such as `{"code":"ACTQL_E_PARAMETER_MISSING","message":"A required declared parameter has no supplied value or default."}`
+to stderr and leaves stdout empty. Human diagnostics expose the same code and
+message. `ACTQL_E_PARAMETER_INVALID` reports an original supplied-value type or
+constraint rejection; neither code causes a second preparation or submission.
+Diagnostics omit parameter values and authored Program text. A separate cleanup
+failure remains a separate `ACTQL_E_CLEANUP_PENDING` diagnostic; it does not
+erase the primary failure or establish cleanup completion. A real Run retains
+its existing Run state, terminal outcome and delivery reports.
 Unknown commands, unknown options and extra arguments are errors; options may
 come before or after the Program path.
 

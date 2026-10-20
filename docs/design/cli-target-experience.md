@@ -206,3 +206,12 @@ Options may appear before or after positionals. An option value is never reinter
 `check` returns 0 for a valid template (including missing bindings or unsupported runtime profiles), and 1 for semantic invalidity. `run` requires all initial bindings and runtime support. `explain` reports missing inputs without executing. Argument errors return 2.
 `0` otherwise means the CLI command completed and produced or updated the requested Run state. A Run may therefore be `waiting_checkpoint`, `needs_reconciliation`, or `failed` with exit code `0`; automation should use `run --json` and `status <run> --json`.
 `1` means execution of the CLI operation itself failed. `2` means the command line is invalid. Diagnostics use stable `ACTQL_E_*` codes; human output includes the code and message, while `--json` exposes the structured Run state and its terminal outcome.
+
+For a command rejected before any Run exists, JSON diagnostics are
+`{"code":"ACTQL_E_...","message":"..."}` objects on stderr, with empty stdout.
+They are presentation, without a fabricated Run, artifact kind, version or CID.
+The Native caller projects the original typed preparation diagnostic, retaining
+only its closed classification across the existing Read return. It never
+rechecks a rejected Program or infers a code from internal reason strings.
+Primary and cleanup failures remain distinct; successful stdout and real Run
+contracts retain their existing meaning.

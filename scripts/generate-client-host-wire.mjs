@@ -32,6 +32,26 @@ const exports = ['SubmissionEpoch', 'SubmissionRef', 'SubmissionOutcome', 'Submi
   'CancellationLookup', 'OperationAttemptRef', 'CancellationAttempt', 'RequestCancellation',
   'ResourceListing', 'ResourceInspection', 'ResourcePeek', 'ResultDescription', 'OwnerRef', 'OwnerCursor', 'OwnerObservations'];
 
+// Public language discovery exports the complete existing Program schema,
+// including its metadata and local definitions. The validator projection below
+// intentionally discards annotations and cannot serve as the discovery body.
+export function nativeProgramSchema(protocol) {
+  const original = protocol?.artifact_schemas?.executable_plan?.properties
+    ?.execution_material?.properties?.program;
+  if (original === null || typeof original !== 'object' || Array.isArray(original)) {
+    throw new Error('MissingProgramSchema');
+  }
+  const body = JSON.stringify(original);
+  if (Buffer.byteLength(body, 'utf8') > 1048576) {
+    throw new Error('NativeProgramSchemaOutputLimit');
+  }
+  return '// Generated from the registered Program JSON Schema. Do not edit.\n' +
+    '// Run: node scripts/generate-client-host-wire.mjs --write\n' +
+    '// DATA for language discovery; this does not admit a Program or issue authority.\n\n' +
+    '///|\nfn generated_program_schema() -> String {\n  ' +
+    JSON.stringify(body) + '\n}\n';
+}
+
 export function projectClientHostOptionalFields(registry) {
   const fieldsByOperation = registry.request_optional_fields;
   if (fieldsByOperation === null || typeof fieldsByOperation !== 'object' ||
@@ -195,6 +215,7 @@ async function main() {
     'utf8'));
   const outputs = buildClientHostWire(registry, protocol);
   const files = [
+    ['src/cmd/native_client/program_schema.generated.mbt', nativeProgramSchema(protocol)],
     ['packages/client-wire/client-host.generated.js', outputs.module],
     ['packages/client-wire/client-host.generated.d.ts', outputs.types],
     ['packages/sdk/internal/checkpoint-answer-contract.generated.mjs', outputs.checkpointAnswers],

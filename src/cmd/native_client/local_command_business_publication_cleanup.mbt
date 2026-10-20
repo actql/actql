@@ -55,6 +55,7 @@ fn LocalCommandBusinessOriginal::close_publication_children(
   self.publication_commit_failure = None
   self.publication_cleanup_failure = None
   self.publication_result = None
+  self.run_receipt_original = None
   self.publication_retired = true
   Ok(())
 }

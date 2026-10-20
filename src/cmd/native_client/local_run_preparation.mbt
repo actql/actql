@@ -18,11 +18,15 @@ fn local_prepare_submitted_run_program(
     source_catalog=Some(@checked.source_catalog_contracts(catalog)),
     model_tasks=@checked.checking_environment_model_tasks(environment),
   ).unwrap_or_else(() => stop("InvalidLocalQueryContext"))
-  @local_host.prepare_native_client_submitted_program(
-    intent,
-    environment,
-    Some(context),
-    [],
-    @run_host.client_standard_effect_computation_limits(),
-  ).unwrap_or_else(() => stop("LocalPreparationNotReady"))
+  match
+    @local_host.prepare_native_client_submitted_program(
+      intent,
+      environment,
+      Some(context),
+      [],
+      @run_host.client_standard_effect_computation_limits(),
+    ) {
+    Ok(value) => value
+    Err(issue) => local_stop_submitted_preparation(issue)
+  }
 }
