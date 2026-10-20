@@ -346,6 +346,8 @@ pub fn local_completion_free_inventory_parameters_supplied(LocalCompletionFreeIn
 
 pub fn local_completion_free_inventory_uses_checked_expressions(LocalCompletionFreeInventory) -> Bool
 
+pub fn local_completion_free_inventory_uses_distinct(LocalCompletionFreeInventory) -> Bool
+
 pub fn local_completion_free_inventory_uses_explicit_cast(LocalCompletionFreeInventory) -> Bool
 
 pub fn local_completion_free_inventory_uses_groups(LocalCompletionFreeInventory) -> Bool
@@ -365,6 +367,8 @@ pub fn local_sort_normalization_entry_at(LocalSortNormalizationInventory, Int) -
 pub fn local_sort_normalization_entry_count(LocalSortNormalizationInventory) -> Int
 
 pub fn local_sort_normalization_inventory_matches(LocalSortNormalizationInventory, CheckedProgram) -> Bool
+
+pub fn local_sort_normalization_inventory_uses_distinct(LocalSortNormalizationInventory) -> Bool
 
 pub fn local_sort_normalization_inventory_work(LocalSortNormalizationInventory) -> Int
 

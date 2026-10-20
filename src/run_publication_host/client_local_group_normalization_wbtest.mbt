@@ -100,14 +100,16 @@ test "Group normalization retains original argument completion and unsupported r
     is Err(Inventory(CompletionObserved)),
   )
   assert_true(implicit_else.local_normalization is None)
-  let uncovered_relation = local_explicit_cast_original(
-    text="SELECT DISTINCT COUNT(*) AS n",
+  let unsupported_relation = local_group_original_document(
+    (
+      #|{"version":"actql/0.1","id":"local.unsupported-drop","stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false},"other":{"type":"number","nullable":false}},"rows":[{"id":1,"other":2}]},"as":"input"},{"drop":["other"],"as":"selected"}],"results":{"rows":{"from":"selected","fields":["id"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}
+    ),
   )
   assert_true(
-    issue_prepared_client_local_normalization(uncovered_relation)
+    issue_prepared_client_local_normalization(unsupported_relation)
     is Err(Inventory(ProfileNotInstalled)),
   )
-  assert_true(uncovered_relation.local_normalization is None)
+  assert_true(unsupported_relation.local_normalization is None)
 }
 
 ///|
@@ -188,7 +190,8 @@ test "authored Group keys fields distinct and filters retain the original checke
 }
 
 ///|
-// These original sequences contain Values, Group, checked Derive and projection.
+// These original sequences contain Values, Group, checked Derive, projection and
+// whole-row or original keyed DISTINCT.
 // Only the original dynamic Group bindings receive expression contexts; a
 // count-only Group is not an expression kernel.
 fn local_group_generated(
@@ -205,6 +208,7 @@ fn local_group_generated(
           @lower.kernel_is_projection(kernel) ||
           @lower.kernel_take(kernel) is Some(_) ||
           @lower.kernel_is_sort(kernel) ||
+          @lower.kernel_is_distinct(kernel) ||
           @relation.operation(@lower.kernel_checked(kernel)) is @relation.Derive,
         )
         if @relation.binding_count(@lower.kernel_checked(kernel)) > 0 {

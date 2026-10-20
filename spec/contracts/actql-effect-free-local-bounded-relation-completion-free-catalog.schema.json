@@ -24,6 +24,7 @@
         ],
         "checked_operations": [
           "derive",
+          "distinct",
           "filter",
           "group",
           "select",
@@ -157,7 +158,10 @@
           "max_wire_bytes": 1024,
           "max_nodes": 32,
           "max_depth": 8
-        }
+        },
+        "distinct_scope": "original-same-pipeline-step-whole-row-or-authored-required-key-projection",
+        "distinct_input": "complete-original-row-and-presence-admission-remains-with-execution",
+        "distinct_order": "existing-first-occurrence-no-new-total-order"
       }
     },
     "profile": {
