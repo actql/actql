@@ -254,7 +254,8 @@ fn local_module_relation_obligation_segment(
     if managed_provider_accepts(provider, sequence) {
       guard provider.infer_relation_prefix
         is Some((prefix, boundary, input_execution, input_measurement)) &&
-        boundary > 0 && step < boundary &&
+        boundary > 0 &&
+        step < boundary &&
         physical_equal(
           @execution.generated_sequence_owner(prefix),
           @execution.generated_sequence_owner(sequence),
@@ -262,7 +263,8 @@ fn local_module_relation_obligation_segment(
         @execution.select_generated_sequence_step(sequence, boundary)
         is Some(model) &&
         @execution.generated_sequence_step_at(model, 0)
-        is Some(@lower.InferBoundary(actual)) && actual == boundary &&
+        is Some(@lower.InferBoundary(actual)) &&
+        actual == boundary &&
         @execution.generated_sequence_step_count(prefix) == boundary else {
         return None
       }
@@ -275,7 +277,14 @@ fn local_module_relation_obligation_segment(
       return Some((prefix, input_execution, input_measurement, []))
     }
   }
-  Some((sequence, installed.execution, installed.measurement, installed.managed_providers))
+  Some(
+    (
+      sequence,
+      installed.execution,
+      installed.measurement,
+      installed.managed_providers,
+    ),
+  )
 }
 
 ///|
@@ -565,7 +574,9 @@ fn local_bounded_relation_check(
   check : LocalBoundedRelationCheck,
 ) -> Bool {
   guard local_module_relation_obligation_segment(installed, slot, required_step)
-    is Some((sequence, execution, measurement, family)) else { return false }
+    is Some((sequence, execution, measurement, family)) else {
+    return false
+  }
   let count = @execution.generated_sequence_step_count(sequence)
   let mut position = -1
   for index in 0..<count {
@@ -644,21 +655,12 @@ fn local_bounded_relation_check(
   }
   if count > 1 &&
     !managed_provider_accepts(
-      selected_relation_provider(
-        execution,
-        measurement,
-        family~,
-      ),
+      selected_relation_provider(execution, measurement, family~),
       sequence,
     ) {
     return false
   }
-  bounded_relation_step_provider(
-    selected,
-    execution,
-    measurement,
-  )
-  is Some(_)
+  bounded_relation_step_provider(selected, execution, measurement) is Some(_)
 }
 
 ///|

@@ -202,7 +202,13 @@ pub fn managed_provider_with_inputs(
     @execution.SequenceExecutionLimits,
   ) -> Result[ManagedProviderExecution, @connector.FixedComputeIssue],
 ) -> ManagedProvider {
-  { accepts, capacity, start, start_numeric: None, infer_relation_prefix: None, }
+  {
+    accepts,
+    capacity,
+    start,
+    start_numeric: None,
+    infer_relation_prefix: None,
+  }
 }
 
 ///|

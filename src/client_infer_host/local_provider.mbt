@@ -224,7 +224,11 @@ pub fn composed_local_provider(
       occurrence,
     )
     @local.managed_provider_with_infer_relation_prefix(
-      provider, prefix, step, limits.input, limits.measurement,
+      provider,
+      prefix,
+      step,
+      limits.input,
+      limits.measurement,
     )
   } else {
     provider
