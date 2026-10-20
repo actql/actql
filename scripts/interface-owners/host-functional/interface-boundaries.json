@@ -11004,7 +11004,7 @@
     {
       "module": "adapters/host-node/acquired-effect-sources.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "ece102028e4cb25ead176f488b450f8d60001ffa4c80f48fffdc63ff35e70f0a",
+      "sha256": "335a847c8ef3e20468cb78707da7a236801a67094523cc9baf902615dec294c5",
       "role": "physical-io",
       "owner": "Existing checked Source/Run acquisition Owners and installed physical Source adapter",
       "exports": [
@@ -11021,7 +11021,8 @@
             "registry",
             "values",
             "fragment",
-            "ordered"
+            "ordered",
+            "requestIdentity"
           ],
           "async": false
         },
@@ -11051,6 +11052,41 @@
         },
         {
           "name": "prepareInstalledAcquiredEffectLedger/ledger/ledger#3",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledAcquiredEffectLedger/prepareInstalledAcquiredEffectLedger",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledAcquiredEffectLedger/prepareInstalledAcquiredEffectLedger#2",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledAcquiredEffectLedger/prepareInstalledAcquiredEffectLedger#3",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledAcquiredEffectLedger/prepareInstalledAcquiredEffectLedger#4",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledAcquiredEffectLedger/prepareInstalledAcquiredEffectLedger#5",
           "parameters": [
             "value"
           ],
@@ -11222,6 +11258,78 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "prepareInstalledAcquiredEffectLedger/prepareInstalledAcquiredEffectLedger",
+            "prepareInstalledAcquiredEffectLedger/prepareInstalledAcquiredEffectLedger#2",
+            "prepareInstalledAcquiredEffectLedger/prepareInstalledAcquiredEffectLedger#3",
+            "prepareInstalledAcquiredEffectLedger/prepareInstalledAcquiredEffectLedger#4",
+            "prepareInstalledAcquiredEffectLedger/prepareInstalledAcquiredEffectLedger#5"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "Responsibility stays with the existing normal Host, Resource, Source, Model,"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "Inputs are the checked Effect preparation and compilation, allowed Run,"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "Identity is retained with the same Host, installation and Run."
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "Ownership of Source capture, Model work and file requests is separate."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "Synchronization captures each private operation and its receiver before later"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "Failure preserves the original constructor, Source, Model, FileHandle, write,"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "Cancellation prevents new work but does not make cleanup require current"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "Resources include the retained preparation, compilation, definition, request,"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "Extension remains private to the installed Host and the existing typed"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "Verification distinguishes the real Row Effect factory's original-binding and"
               }
             ]
           }
@@ -70580,21 +70688,6 @@
           "async": false
         },
         {
-          "name": "prepareOrdinarySourceManagedInstallation/view/init:prepareEffectLocalMockModelRun/init:prepareEffectLocalMockModelRun",
-          "parameters": [
-            "prepared",
-            "model"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinarySourceManagedInstallation/view/init:prepareEffectRun/init:prepareEffectRun",
-          "parameters": [
-            "prepared"
-          ],
-          "async": false
-        },
-        {
           "name": "prepareOrdinarySourceManagedInstallation/view/init:close/init:close",
           "parameters": [],
           "async": true
@@ -70617,6 +70710,21 @@
           "parameters": [
             "receipt",
             "body"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinarySourceManagedInstallation/view/init:prepareEffectLocalMockModelRun/init:prepareEffectLocalMockModelRun",
+          "parameters": [
+            "prepared",
+            "model"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinarySourceManagedInstallation/view/init:prepareEffectRun/init:prepareEffectRun",
+          "parameters": [
+            "prepared"
           ],
           "async": false
         },
@@ -72760,9 +72868,9 @@
   ],
   "counts": {
     "modules": 161,
-    "operations": 4084,
+    "operations": 4089,
     "exports": 1011,
-    "explicitContractGroups": 223
+    "explicitContractGroups": 224
   },
   "scope": "The original supplied modules and explicitly added Project Task/profile installation modules are source/reference facets, not a reassignment of Coordinator/Transfer, process, Connector, Credential, Store or semantic implementation ownership."
 }
