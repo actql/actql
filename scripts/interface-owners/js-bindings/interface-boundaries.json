@@ -47734,7 +47734,7 @@
     {
       "module": "adapters/host-node/infer-operation.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "20b3cbacb5cf14771e0caae6c76eb1675bdbb84217bb48757733ac72c1afa923",
+      "sha256": "ade06ea4a1cb352530d752e712f84fcb4ef6a5c0a3bf659c81e99e462360ad42",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -49231,6 +49231,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Inputs and outputs"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_composed_infer_bridge.mbt",
+                "anchor": "pub fn client_program_composed_infer_local_provider("
               }
             ],
             "identity": [
@@ -49241,6 +49245,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Identity"
+              },
+              {
+                "path": "src/connectors/local/module.mbt",
+                "anchor": "fn local_module_relation_obligation_segment("
               }
             ],
             "ownership": [
@@ -49251,6 +49259,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Ownership"
+              },
+              {
+                "path": "src/connectors/local/managed_provider.mbt",
+                "anchor": "infer_relation_prefix : ("
               }
             ],
             "synchronization": [
@@ -49291,6 +49303,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Resources"
+              },
+              {
+                "path": "src/client_infer_host/local_provider.mbt",
+                "anchor": "provider, prefix, step, limits.input, limits.measurement,"
               }
             ],
             "extension": [
@@ -49315,6 +49331,10 @@
               {
                 "path": "scripts/js-compiler-binding-runtime.test.mjs",
                 "anchor": "actual pinned MoonBit Result"
+              },
+              {
+                "path": "src/client_infer_host/local_provider_wbtest.mbt",
+                "anchor": "test \"Local retains the original INFER Result prefix before a later independent projection\" {"
               }
             ]
           }
