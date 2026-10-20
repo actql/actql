@@ -13,12 +13,13 @@ priv struct LocalProjectConfiguration {
 fn local_project_absolute_path(
   directory : String,
   selected : String,
+  ordinary_file? : Bool = false,
 ) -> String raise ClientStop {
   if (directory != "/" && !local_product_path(directory)) ||
-    directory.contains("\\") ||
+    (!ordinary_file && directory.contains("\\")) ||
     selected.is_empty() ||
     selected.length() > 4096 ||
-    selected.contains("\\") ||
+    (!ordinary_file && selected.contains("\\")) ||
     selected.contains("\u{0000}") {
     stop("InvalidProjectConfigurationPath")
   }

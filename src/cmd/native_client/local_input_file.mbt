@@ -21,9 +21,9 @@ fn local_input_file_location(
       let current = @env.current_dir().unwrap_or_else(() => {
         stop("LocalInputDirectoryUnavailable")
       })
-      local_project_absolute_path(current, root)
+      local_project_absolute_path(current, root, ordinary_file=true)
     }
-    local_project_absolute_path(directory, selected)
+    local_project_absolute_path(directory, selected, ordinary_file=true)
   } catch {
     ClientStop(_) => stop("InvalidLocalInputPath")
   }

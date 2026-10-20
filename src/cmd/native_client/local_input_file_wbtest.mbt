@@ -10,6 +10,16 @@ test "ordinary input paths preserve the selected Root and exact basename" {
   let top = local_input_file_location("/project", "/parameters.json")
   assert_eq(top.root, "/")
   assert_eq(top.name, "parameters.json")
+  let ordinary = local_input_file_location("/project", "parameters\\copy.json")
+  assert_eq(ordinary.root, "/project")
+  assert_eq(ordinary.name, "parameters\\copy.json")
+  let project_rejected = try {
+    ignore(local_project_absolute_path("/project", "parameters\\copy.json"))
+    false
+  } catch {
+    ClientStop(_) => true
+  }
+  assert_true(project_rejected)
   assert_true(command_preparation_invocation.val is None)
 }
 
