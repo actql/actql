@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {openNodeInferOperation} from './infer-operation.mjs';
+import {openNodeInferOperation,startCompleteInferObservation} from './infer-operation.mjs';
 import {retainInferOriginalReadInstallation} from './infer-original-installation.mjs';
 
 // Actual operation code, explicit Common/Resource ports. These DATA amounts
@@ -253,4 +253,46 @@ test('ordinary original publication captures only an own data callback before cl
   Object.defineProperty(f.preparation,'publicationCapacity',{get(){assert.fail('not an original data callback');}});
   assert.throws(()=>openNodeInferOperation(f.options),/InferOriginalPublicationCapacityUnavailable/);
   assert.deepEqual(f.calls,[]);
+});
+
+test('complete original observation consumes the same single Model publication borrow without a Ledger',()=>{
+  const f=ordinaryFixture(),operation=openNodeInferOperation(f.options);
+  operation.reserveOriginalPublicationCapacity();
+  assert.strictEqual(startCompleteInferObservation({moon:f.options.moon,operations:[operation],...limits}),f.issued);
+  assert.equal(f.calls.filter(x=>x==='issue').length,1);
+  assert.equal(operation.releaseOriginalPublicationCapacity(),true);
+  assert.equal(operation.cleanup(),true);
+});
+
+test('complete original observation rejects foreign copied missing mixed and alternate Ledger owners',()=>{
+  const f=ordinaryFixture(),operation=openNodeInferOperation(f.options),other=ordinaryFixture();
+  const sibling=openNodeInferOperation(other.options);
+  f.options.moon.clientProgramStartCompleteInferObservationIssuance=()=>assert.fail('not the original issuer');
+  assert.throws(()=>startCompleteInferObservation({moon:f.options.moon,operations:[operation],...limits}),
+    /InferOriginalPublicationCapacityUnavailable/);
+  operation.reserveOriginalPublicationCapacity();
+  for(const options of [{operations:[operation],ledger:{}},{operations:[operation,sibling]},
+    {operations:[operation],content:{}},{operations:[{...operation}]},{operations:[{}]}]) {
+    assert.throws(()=>startCompleteInferObservation({moon:f.options.moon,...limits,...options}),
+      /InferOriginalPublicationCapacityUnavailable|ForeignInferOperation/);
+  }
+  assert.equal(f.calls.includes('issue'),false);
+  operation.releaseOriginalPublicationCapacity();
+  assert.equal(operation.cleanup(),true);assert.equal(sibling.cleanup(),true);
+});
+
+test('complete legacy observation preserves its explicit metadata Ledger and issuer',()=>{
+  const active={},ledger={},issued={};let calls=0;
+  const moon={
+    clientProgramStartComposedInferExecution:()=>({$tag:1,_0:active}),
+    clientProgramStartCompleteInferObservationIssuance(owners,original,n,bytes,work) {
+      assert.deepEqual(owners,[active]);assert.strictEqual(original,ledger);
+      assert.deepEqual([n,bytes,work],[1,4096,3]);calls++;return {$tag:1,_0:issued};
+    },
+    clientProgramInferExecutionStopped:()=>true,
+    clientProgramCleanupInferExecution:()=>({$tag:1,_0:true}),
+  };
+  const operation=openNodeInferOperation({moon,graph:{},provider:{},composedInput:{}});
+  assert.strictEqual(startCompleteInferObservation({moon,operations:[operation],ledger,...limits}),issued);
+  assert.equal(calls,1);assert.equal(operation.cleanup(),true);
 });

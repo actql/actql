@@ -1,0 +1,107 @@
+import assert from 'node:assert/strict';
+import test from 'node:test';
+import {readFileSync} from 'node:fs';
+import {compileFunction} from 'node:vm';
+import {parse} from 'acorn';
+import {checked} from '../host-common/runtime-result.mjs';
+
+const source=readFileSync(new URL('./installed-composed-infer-run.mjs',import.meta.url),'utf8');
+const ast=parse(source,{ecmaVersion:'latest',sourceType:'module'});
+const run=ast.body.map(node=>node.declaration??node).find(node=>node.type==='FunctionDeclaration'&&node.id.name==='runInstalledComposedInfers');
+const cleanup=run.body.body.find(node=>node.type==='FunctionDeclaration'&&node.id.name==='cleanup');
+const issuance=run.body.body.find(node=>node.type==='ExpressionStatement'&&
+  node.expression.type==='AssignmentExpression'&&node.expression.left.name==='issuance');
+assert.ok(cleanup);assert.ok(issuance);
+// Execute the installed caller's exact cleanup and issuer-selection statements
+// with explicit Core/physical ports. This is not a funded or installed Host.
+const construct=compileFunction(`
+  let {children,originalPreparation,modelController}=context;
+  let released=false,pendingSetup,holding,publication,issuance,execution,restoredSource,sourceContinuation;
+  let closeAttempted=false;
+  ${source.slice(cleanup.start,cleanup.end)}
+  return {cleanup,pending:()=>!released};`,['context','checked']);
+const selectIssuance=compileFunction(`return (${source.slice(issuance.expression.right.start,issuance.expression.right.end)});`,
+  ['children','originalPreparation','input','moon','calls','startCompleteInferObservation','checked']);
+
+function fixture(count=1) {
+  const events=[],flags={aliases:false,release:false,issue:undefined,blockedAliases:new Set()};
+  const children=Array.from({length:count},(_,index)=>{
+    let borrowed=true,closed=false;
+    const operation={publicationCapacityPending:()=>borrowed,
+      releaseOriginalPublicationCapacity() {
+        events.push(`release${index}`);
+        if(flags.release)borrowed=false;
+        return flags.release;
+      }};
+    const physical={
+      async retirePublication() {
+        events.push(`aliases${index}`);
+        if(flags.issue!==undefined)throw flags.issue;
+        return flags.aliases&&!flags.blockedAliases.has(index);
+      },
+      async close() {events.push(`close${index}`);closed=!borrowed;return closed;},
+      async cleanup() {events.push(`cleanup${index}`);closed=!borrowed;return closed;},
+      cleanupPending:()=>!closed};
+    return {operation,capture:{custody:physical}};
+  });
+  const owner=construct({children,modelController:{},originalPreparation:{async retire(){events.push('parent');return true;}}},checked);
+  return {owner,events,flags,children};
+}
+
+test('composed original cleanup retires publication aliases and exact borrow before parent Model cleanup',async()=>{
+  const f=fixture();
+  assert.equal(await f.owner.cleanup(),false);
+  assert.deepEqual(f.events,['aliases0']);assert.equal(f.owner.pending(),true);
+  f.flags.aliases=true;
+  assert.equal(await f.owner.cleanup(),false);
+  assert.deepEqual(f.events,['aliases0','aliases0','release0']);
+  f.flags.release=true;
+  assert.equal(await f.owner.cleanup(),true);
+  assert.deepEqual(f.events,['aliases0','aliases0','release0','aliases0','release0','close0','parent']);
+  assert.equal(f.owner.pending(),false);
+  const before=f.events.slice();assert.equal(await f.owner.cleanup(),true);
+  assert.deepEqual(f.events,before,'retirement does not repeat after successful owner cleanup');
+});
+
+test('composed original cleanup retains failed alias retirement and retries that same owner',async()=>{
+  const f=fixture(),issue=new Error('OriginalPublicationStillOwned');f.flags.issue=issue;
+  await assert.rejects(f.owner.cleanup(),error=>error===issue);
+  assert.deepEqual(f.events,['aliases0']);assert.equal(f.owner.pending(),true);
+  f.flags.issue=undefined;f.flags.aliases=true;f.flags.release=true;
+  assert.equal(await f.owner.cleanup(),true);
+  assert.deepEqual(f.events,['aliases0','aliases0','release0','close0','parent']);
+});
+
+test('composed cleanup retires each sibling publication borrow independently',async()=>{
+  const f=fixture(2);f.flags.aliases=true;f.flags.release=true;
+  assert.equal(await f.owner.cleanup(),true);
+  assert.deepEqual(f.events,['aliases0','release0','close0','aliases1','release1','close1','parent']);
+});
+
+test('composed cleanup keeps a pending original without blocking independent sibling retirement',async()=>{
+  const f=fixture(2);f.flags.aliases=true;f.flags.release=true;f.flags.blockedAliases.add(0);
+  assert.equal(await f.owner.cleanup(),false);
+  assert.deepEqual(f.events,['aliases0','aliases1','release1','close1']);
+  assert.equal(f.owner.pending(),true);
+  f.flags.blockedAliases.clear();
+  assert.equal(await f.owner.cleanup(),true);
+  assert.deepEqual(f.events,['aliases0','aliases1','release1','close1','aliases0','release0','close0','parent']);
+});
+
+test('composed original issuer selection does not forward the Source Ledger as publication funding',()=>{
+  const operation={},children=[{operation}],input={ledger:{source:true}};
+  const selected=selectIssuance(children,{},input,{
+    clientProgramInferPublicationLedger(){assert.fail('never issue a replacement Ledger');}},1,args=>args,checked);
+  assert.strictEqual(selected.operations[0],operation);
+  assert.equal(selected.ledger,undefined);
+  assert.deepEqual([selected.maxSlots,selected.maxWireBytes,selected.maxWork],[1,16384,3]);
+});
+
+test('composed legacy issuer selection retains its existing explicit metadata Ledger',()=>{
+  const ledger={},children=[{operation:{}}];let issued=0;
+  const selected=selectIssuance(children,undefined,{ledger:{}},{
+    clientProgramInferPublicationLedger(retained,work) {
+      assert.equal(retained,262272n);assert.equal(work,3);issued++;return {$tag:1,_0:ledger};}},
+    1,args=>args,checked);
+  assert.strictEqual(selected.ledger,ledger);assert.equal(issued,1);
+});

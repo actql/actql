@@ -520,6 +520,12 @@ one from matching bounds. Missing or refused selection has no fallback. The
 borrow remains until the existing publication children retire; pending release
 keeps parent cleanup pending. Dedicated legacy callers retain their original
 installation selection and the same Common reservation checks.
+
+The composed caller selects original observation issuance from the same
+registered operation, never from the Source Ledger or copied operation fields.
+Its publication aliases retire before the exact borrow is released and before
+Model cleanup. A pending sibling retains its own custody without preventing
+independent siblings from retiring theirs.
 The continuation recognizes this no-I/O preparation through the same live
 Core Mock installation and its retained Provider, not a Host flag or Provider
 name alone. External Providers retain their existing egress requirement;
