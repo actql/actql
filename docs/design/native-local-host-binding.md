@@ -39,7 +39,11 @@ receiver rechecks each copied row against those original field contracts and
 keeps the same Session/Store through receipt and cleanup. Material completion
 ends the payload reader; a separate current output decision and one actual
 stdout write/flush produce the table receipt without reopening the reader.
-A partial write, lost flush acknowledgement or failed current check never
+The finite Native selection holds seven installation files plus config and
+environment, with Account separately retained by the same initialization Owner.
+The corresponding nine-file selection and ten-file Product intake retain their
+existing byte/node/depth limits; these counts issue no permission or resource
+credit. A partial write, lost flush acknowledgement or failed current check never
 repeats output. Older installations missing the selected Material original
 refuse before submission instead of acquiring it through a read operation.
 
