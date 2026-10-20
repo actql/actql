@@ -32,6 +32,13 @@ The Journal's existing-Run lookup does not issue a replacement Run or invoke
 that new-Run capability check. An Account-only Host has no held Checkpoint
 settlement service; the original Run Journal retains its physical-stop duties.
 
+Optional Source diagnostics use the installed Host observer and the same
+durable Run reference, including acquired Effect computation. A Source start
+means the original adapter is being called after its current admission; using
+an already retained capture or refusing that admission is not another start.
+Diagnostic delivery never supplies read authority, permission or a physical
+cleanup acknowledgement.
+
 The [OSS authorization behavior draft](oss-host-authorization.md) details Local
 configuration, immediate/deferred adapters, CLI resolution and crash recovery.
 Its pending product choices are not changes to current defaults.

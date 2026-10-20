@@ -8,7 +8,7 @@
   "declarations": [
     {
       "module": "adapters/host-node/acquired-effect-computation.mjs",
-      "sha256": "d472ef175fe8ac924d359b27ab520e37a6b436de6987d83e93067bcc28752595",
+      "sha256": "718f852f8c76420a9562721ed2616e0f6657aa4c8662ac25f6e26e3b3dff2eab",
       "exports": [
         "openAcquiredEffectComputation"
       ],
@@ -4448,7 +4448,7 @@
     },
     {
       "module": "adapters/host-node/embedded-local.mjs",
-      "sha256": "eb8281226c56b2754723b013ef0c296c0ec29b2d5f8c8f1df63d17cfe62f0134",
+      "sha256": "86467993cec8de3c681ec81bfddafc73176f9656b61a469f1c4703ce78e6d57a",
       "exports": [
         "admitOriginalHostRootFormat",
         "assertInitialControlHostPreparation",
@@ -5377,6 +5377,14 @@
         },
         {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation#2",
+          "parameters": [
+            "event",
+            "detail"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation#3",
           "parameters": [
             "execution"
           ],
@@ -9585,6 +9593,82 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation#3"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Optional Source diagnostics use the installed Host observer and the same"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "observe: (event, detail) => diagnostic(event,"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "{...detail, ref: facts.ref}), sourceContinuation,"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/acquired-effect-computation.mjs",
+                "anchor": "captures.push(captured);"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/acquired-effect-computation.mjs",
+                "anchor": "admission?.enter();"
+              },
+              {
+                "path": "adapters/host-node/acquired-effect-computation.mjs",
+                "anchor": "Only this original adapter call starts a new Source attempt."
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/acquired-effect-computation.mjs",
+                "anchor": "recovery = ended.recovery;"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/acquired-effect-computation.mjs",
+                "anchor": "sourceAccess: source.access, signal,"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "cleanup acknowledgement."
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "an already retained capture or refusing that admission is not another start."
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/effect-source-observation.actual.test.mjs",
+                "anchor": "test('actual Mock Effect Source attempts retain the same public Run correlation'"
+              },
+              {
+                "path": "adapters/host-node/acquired-effect-computation.test.mjs",
+                "anchor": "'a refused original admission is not a Source attempt'"
+              }
+            ]
+          }
         }
       ],
       "imports": [
@@ -11780,8 +11864,8 @@
   ],
   "counts": {
     "modules": 16,
-    "operations": 745,
+    "operations": 746,
     "exports": 92,
-    "explicitContractGroups": 41
+    "explicitContractGroups": 42
   }
 }

@@ -340,8 +340,6 @@ export async function openAcquiredEffectComputation({moon, owner, acquired,
     }
     for (const source of sources) {
       current();
-      diagnostic('acquisition_started', {task: source.occurrence.task,
-        selection: source.preparedSource.selection});
       const acquisition = acquisitionEndHandoff();
       let captured;
       current();
@@ -363,6 +361,10 @@ export async function openAcquiredEffectComputation({moon, owner, acquired,
       admission?.enter();
       current();
       try {
+        // Only this original adapter call starts a new Source attempt. A
+        // retained capture or a refused admission must not invent another.
+        diagnostic('acquisition_started', {task: source.occurrence.task,
+          selection: source.preparedSource.selection});
         captured = await source.adapter.open({preparedEffect: acquired.prepared,
           registry, values, fragment, ordered, sourceAccess: source.access, signal,
           preparedSource: source.preparedSource, occurrence: source.occurrence,
