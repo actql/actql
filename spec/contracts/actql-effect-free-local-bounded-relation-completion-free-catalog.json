@@ -15,10 +15,12 @@
       "append",
       "derive",
       "distinct",
+      "drop",
       "except",
       "filter",
       "group",
       "intersect",
+      "rename",
       "select",
       "sort",
       "take",
@@ -168,10 +170,25 @@
       "supplied",
       "default"
     ],
-    "parameter_default_correspondence": "same-original-BoundValues-declaration-name-type-and-checked-default-value"
+    "parameter_default_correspondence": "same-original-BoundValues-declaration-name-type-and-checked-default-value",
+    "projection_expansion": "original-same-pipeline-step-CheckedOperation-complete-schema-and-owned-projection; actual-authored-path-and-semantic-journal-entry"
   },
   "profile": "actql-effect-free-local-completion-free/0.1",
   "rules": [
+    {
+      "id": "relation.drop_projection",
+      "path": "original decoded Program drop body",
+      "authored": "canonical JSON of the original authored drop body",
+      "canonical": "canonical JSON of existing REL.select params from the original checked projection in canonical input-name order",
+      "requires": "original same-pipeline same-step CheckedOperation and its complete checked input schema; no caller mapping or replacement declaration"
+    },
+    {
+      "id": "relation.rename_projection",
+      "path": "original decoded Program rename body",
+      "authored": "canonical JSON of the original authored rename body",
+      "canonical": "canonical JSON of existing REL.select params from the original checked projection in canonical input-name order",
+      "requires": "original same-pipeline same-step CheckedOperation and its complete checked input schema; no caller mapping or replacement declaration"
+    },
     {
       "id": "sort.candidate_key_completion",
       "path": "original decoded Program Sort body",

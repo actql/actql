@@ -24,11 +24,11 @@ test('combined original SET and Default capability has complete independent iden
     assert.equal(hash(value.catalog_preimage),value.catalog_cid);
     assert.equal(hash(value.journal_preimage),value.journal_cid);
   }
-  assert.deepEqual(load('fixture.json'),expected);
+  assert.deepEqual(load('pre-projection-fixture.json'),expected);
   assert.deepEqual(load('default-set-sort-fixture.json'),sorted);
   const body=JSON.parse(expected.catalog_preimage);
-  assert.deepEqual(load('catalog.json'),body);
-  const schema=load('catalog.schema.json');
+  assert.deepEqual(load('pre-projection-catalog.json'),body);
+  const schema=load('pre-projection-catalog.schema.json');
   assert.equal(schema.additionalProperties,false);
   assert.deepEqual(schema.properties.applicability,{const:body.applicability});
   assert.deepEqual(schema.properties.rules,{const:body.rules});
@@ -53,7 +53,7 @@ test('both complete preceding capabilities remain exact and independently select
   a.parameter_declarations='none-or-all-supplied-original-values';
   a.take_parameter_resolution='original-same-pipeline-step-SafeInteger-supplied-owner';
   assert.deepEqual(body,JSON.parse(prior.catalog_preimage));
-  const schema=load('catalog.schema.json');schema.properties.applicability={const:body.applicability};
+  const schema=load('pre-projection-catalog.schema.json');schema.properties.applicability={const:body.applicability};
   assert.deepEqual(schema,load('pre-defaulted-set-catalog.schema.json'));
   const noSet=JSON.parse(expected.catalog_preimage);
   for(const key of ['binary_set_scope','binary_set_roots','binary_set_rows','append_order','set_duplicates','set_order','binary_set_stage_scope'])delete noSet.applicability[key];

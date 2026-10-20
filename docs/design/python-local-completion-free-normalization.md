@@ -231,3 +231,30 @@ from its nominal audit. Every lowered stage still shares the one original
 BoundValues; the extension does not flatten stages, replace typed alignment or
 supply a multi-task execution coordinator. Actual Sort completions retain their
 original paths and nonempty entries in this revision as well.
+
+The projection revision connects the existing checked `rename` and `drop`
+operations. Their complete input schema determines an explicit `REL.select`
+projection, so these are actual source expansions rather than fixed scalar
+semantics or Parameter default resolution. The nominal inventory retains the
+original checked operation, its decoded Program occurrence and its immutable
+projection. It emits the original authored body and canonical `REL.select`
+parameters under the corresponding frozen projection rule. A caller mapping,
+equal schema, equal output or successful check cannot issue that occurrence.
+
+Authored empty rename and drop remain distinct operations and retain their
+expansion entries. Repeated removal names remain in the authored body without
+duplicating output columns. Both authored object keys and checked projection
+fields use the existing code-unit order; Unicode names and typed contracts are
+not repaired or re-admitted. Unknown fields, duplicate output names and removal
+of every field from a nonempty schema still fail in the original checker.
+
+The same closed catalogue covers projection with the previously admitted
+Default, supplied Parameter, scalar, Group, Take, DISTINCT and Set operations.
+Actual Sort completions remain separate owned entries in the same journal;
+projection cannot replace them with empty evidence. Earlier catalogue bodies,
+schemas and independent preimages remain intact for preparations without a
+projection expansion. Work, text and path traversal use the existing audit
+budget, and the existing journal byte/node/depth limits refuse atomically.
+The retained operation, source/schema aliases, bounded authored/canonical
+strings, original path/cursor views and paired writers overlap during
+preparation. Reference retirement is not a physical cleanup acknowledgement.

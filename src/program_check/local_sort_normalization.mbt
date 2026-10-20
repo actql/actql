@@ -2,14 +2,14 @@
 // These are owned completion occurrences, not a journal admitted from DATA.
 priv struct LocalSortNormalizationEntry {
   operation : @relation.CheckedOperation
-  order : @pipeline.SortOrder
+  order : @pipeline.SortOrder?
   path : String
   authored : String
   canonical : String
 }
 
 ///|
-/// Retains the original checked Program and only its actual Sort completions.
+/// Retains the original checked Program and its actual completion occurrences.
 /// The completion-free inventory remains a separate, strict subset.
 struct LocalSortNormalizationInventory {
   owner : CheckedProgram
@@ -151,7 +151,7 @@ fn local_sort_normalization_entry(
       (
         {
           operation,
-          order,
+          order: Some(order),
           path,
           authored: @encode.finish(authored),
           canonical: @encode.finish(canonical),
@@ -165,8 +165,8 @@ fn local_sort_normalization_entry(
 }
 
 ///|
-// Each original occurrence has one path and the same frozen rule. Sorting the
-// unique paths therefore gives the required full journal tuple order.
+// Each original operation has one unique path. Sorting these paths therefore
+// gives the full journal tuple order even when their frozen rules differ.
 fn canonical_local_sort_entries(
   entries : Array[LocalSortNormalizationEntry],
   available : Int,
@@ -263,13 +263,52 @@ pub fn local_sort_normalization_entry_at(
   value : LocalSortNormalizationInventory,
   index : Int,
 ) -> (String, String, String)? {
-  guard value.entries.get(index) is Some(entry) &&
-    @pipeline.sort_order_consumer(entry.order).operation
-    is @pipeline.Unary(original) &&
-    physical_equal(original, entry.operation) else {
-    return None
+  guard value.entries.get(index) is Some(entry) else { return None }
+  match entry.order {
+    Some(order) =>
+      if !(@pipeline.sort_order_consumer(order).operation
+        is @pipeline.Unary(original) &&
+        physical_equal(original, entry.operation)) {
+        return None
+      }
+    None =>
+      match @relation.operation(entry.operation) {
+        Rename | Drop => ()
+        _ => return None
+      }
   }
   Some((entry.path, entry.authored, entry.canonical))
+}
+
+///|
+/// Rule metadata from the same owned occurrence, never a caller-selected rule.
+pub fn local_sort_normalization_entry_rule_at(
+  value : LocalSortNormalizationInventory,
+  index : Int,
+) -> String? {
+  guard local_sort_normalization_entry_at(value, index) is Some(_) &&
+    value.entries.get(index) is Some(entry) else {
+    return None
+  }
+  Some(
+    match entry.order {
+      Some(_) => "sort.candidate_key_completion"
+      None =>
+        match @relation.operation(entry.operation) {
+          Rename => "relation.rename_projection"
+          Drop => "relation.drop_projection"
+          _ => return None
+        }
+    },
+  )
+}
+
+///|
+/// Catalogue metadata from actual original projection occurrences.
+pub fn local_sort_normalization_inventory_uses_projection(
+  value : LocalSortNormalizationInventory,
+) -> Bool {
+  value.entries.any(entry => entry.order is None)
 }
 
 ///|

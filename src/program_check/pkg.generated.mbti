@@ -370,11 +370,15 @@ pub fn local_sort_normalization_entry_at(LocalSortNormalizationInventory, Int) -
 
 pub fn local_sort_normalization_entry_count(LocalSortNormalizationInventory) -> Int
 
+pub fn local_sort_normalization_entry_rule_at(LocalSortNormalizationInventory, Int) -> String?
+
 pub fn local_sort_normalization_inventory_matches(LocalSortNormalizationInventory, CheckedProgram) -> Bool
 
 pub fn local_sort_normalization_inventory_parameters_defaulted(LocalSortNormalizationInventory) -> Bool
 
 pub fn local_sort_normalization_inventory_uses_distinct(LocalSortNormalizationInventory) -> Bool
+
+pub fn local_sort_normalization_inventory_uses_projection(LocalSortNormalizationInventory) -> Bool
 
 pub fn local_sort_normalization_inventory_uses_set(LocalSortNormalizationInventory) -> Bool
 

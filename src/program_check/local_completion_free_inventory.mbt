@@ -656,6 +656,16 @@ fn audit_local_completion_free_units(
         @pipeline.Unary(operation) => {
           match @relation.operation(operation) {
             Filter | Select | Derive => ()
+            Rename | Drop => {
+              guard local_projection_normalization_entry(
+                  operation, index, remaining,
+                )
+                is Some((entry, left)) else {
+                return ProfileNotInstalled
+              }
+              remaining = left
+              sort_entries.push(entry)
+            }
             Distinct => {
               guard audit_local_completion_free_distinct(
                   operation, pipeline, index, remaining,

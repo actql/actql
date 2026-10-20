@@ -87,7 +87,11 @@ fn local_normalization_catalog_cid(
   match inventory {
     CompletionFree(value) => local_completion_free_catalog_cid(value)
     SortCompletion(value) =>
-      if @checked.local_sort_normalization_inventory_parameters_defaulted(value) {
+      if @checked.local_sort_normalization_inventory_uses_projection(value) {
+        "sha256:eaaf8fc464b5079e782f5dbcbdd7ef0c8b2934ef0a01c7e465907f8c6f850923"
+      } else if @checked.local_sort_normalization_inventory_parameters_defaulted(
+          value,
+        ) {
         if @checked.local_sort_normalization_inventory_uses_set(value) {
           local_default_set_catalog_cid()
         } else {
@@ -139,7 +143,11 @@ fn local_sort_normalization_journal_body(
       @encode.key(writer, "path")
       @encode.string_value(writer, path)
       @encode.key(writer, "rule")
-      @encode.string_value(writer, "sort.candidate_key_completion")
+      guard @checked.local_sort_normalization_entry_rule_at(inventory, index)
+        is Some(rule) else {
+        return Err(ForeignPreparation)
+      }
+      @encode.string_value(writer, rule)
       @encode.end_object(writer)
     }
     @encode.end_array(writer)
