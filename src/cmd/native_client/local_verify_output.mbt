@@ -25,7 +25,8 @@ fn local_output_verification_path(
   let absolute = local_project_absolute_path(directory, value) catch {
     ClientStop(_) => stop("InvalidOutputVerificationPath")
   }
-  if local_product_selected_location(Some(absolute), None).directory_name.length() > 128 {
+  if local_product_selected_location(Some(absolute), None).directory_name.length() >
+    128 {
     stop("InvalidOutputVerificationPath")
   }
   absolute
