@@ -101,7 +101,7 @@ pub fn produce_submission_projection(nonce : Int64, handle : Int) -> Int {
   if record.kind == 3 {
     return produce_submission_append(value, record, configuration)
   }
-  if record.kind == 4 || record.kind == 5 {
+  if record.kind == 4 || record.kind == 5 || record.kind == 6 {
     return produce_submission_lookup(value, record, configuration)
   }
   if record.produced {
@@ -210,12 +210,15 @@ pub fn submission_projection_length(nonce : Int64, handle : Int) -> Int {
   if record.output_closed {
     return -5
   }
-  if record.kind == 3 || record.kind == 4 || record.kind == 5 {
+  if record.kind == 3 ||
+    record.kind == 4 ||
+    record.kind == 5 ||
+    record.kind == 6 {
     guard value.run_configurations.get(record.configuration)
       is Some(configuration) else {
       return -2
     }
-    let current = if record.kind == 4 || record.kind == 5 {
+    let current = if record.kind == 4 || record.kind == 5 || record.kind == 6 {
       submission_lookup_current(value, record, configuration)
     } else {
       submission_append_current(value, record, configuration)
