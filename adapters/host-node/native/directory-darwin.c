@@ -237,6 +237,8 @@ static napi_value close_directory(napi_env env, napi_callback_info info) {
       napi_object_freeze(env, result) != napi_ok) return NULL;
   return result;
 }
+#include "../../connectors/local/site/root-filesystem.inc"
+
 static napi_value initialize(napi_env env, napi_value exports) {
   directory_owner *owner = calloc(1, sizeof(*owner));
   if (!owner) return unavailable(env, "HostJournalDirectoryAllocationUnavailable");
@@ -249,7 +251,7 @@ static napi_value initialize(napi_env env, napi_value exports) {
     if (napi_create_function(env, names[index], NAPI_AUTO_LENGTH, callbacks[index], owner, &function) != napi_ok ||
         napi_set_named_property(env, exports, names[index], function) != napi_ok) return NULL;
   }
-  if (napi_object_freeze(env, exports) != napi_ok) return NULL;
+  if (!initialize_local_files(env, exports) || napi_object_freeze(env, exports) != napi_ok) return NULL;
   /* This selected native module/owner remains process-lived. Successful child
    * close retires only that child, never its loaded image or shared backing. */
   return exports;
