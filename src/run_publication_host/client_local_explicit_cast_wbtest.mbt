@@ -146,7 +146,7 @@ test "explicit CAST does not waive actual completion or uninstalled relation ope
   )
   assert_true(implicit_else.local_normalization is None)
   let unsupported = local_explicit_cast_original(
-    text="SELECT CAST(ABS(-1) AS NUMBER) AS value ORDER BY value ASC NULLS FIRST",
+    text="SELECT DISTINCT CAST(ABS(-1) AS NUMBER) AS value",
   )
   assert_true(
     issue_prepared_client_local_normalization(unsupported)

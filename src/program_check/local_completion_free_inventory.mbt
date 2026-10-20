@@ -1,6 +1,6 @@
 ///|
 priv enum LocalCompletionFreeAudit {
-  Complete(Int, @parameters.BoundValues?, Bool, Bool, Bool, Bool)
+  Complete(Int, @parameters.BoundValues?, Bool, Bool, Bool, Bool, Bool)
   ProfileNotInstalled
   CompletionObserved
 }
@@ -16,6 +16,76 @@ struct LocalCompletionFreeInventory {
   checked_expressions : Bool
   groups : Bool
   takes : Bool
+  sorts : Bool
+}
+
+///|
+priv enum LocalSortAuditIssue {
+  ProfileNotInstalled
+  CompletionObserved
+}
+
+///|
+// A resolved order is not permission to manufacture a completion-free journal.
+// Only original identity sorts, covered candidate keys, and retained total-order
+// witnesses require no appended source terms. Real key completion stays explicit.
+fn audit_local_completion_free_sort(
+  operation : @relation.CheckedOperation,
+  pipeline : @pipeline.CheckedPipeline,
+  step : Int,
+  available : Int,
+) -> Result[Int, LocalSortAuditIssue] {
+  if available <= 0 || @relation.operation(operation) != @relation.Sort {
+    return Err(ProfileNotInstalled)
+  }
+  guard @pipeline.step_at(pipeline, step)
+    is Some({ operation: @pipeline.Unary(original), .. }) &&
+    physical_equal(original, operation) else {
+    return Err(ProfileNotInstalled)
+  }
+  let mut remaining = available - 1
+  let terms = @relation.sort_term_count(operation)
+  for index in 0..<terms {
+    if remaining <= 0 || @relation.sort_term_at(operation, index) is None {
+      return Err(ProfileNotInstalled)
+    }
+    remaining -= 1
+  }
+  // The checked empty operation preserves its input and creates no new order.
+  if terms == 0 {
+    return Ok(remaining)
+  }
+  if remaining <= 0 {
+    return Err(ProfileNotInstalled)
+  }
+  remaining -= 1
+  guard @pipeline.sort_order(pipeline, step) is Some(order) &&
+    physical_equal(@pipeline.sort_order_pipeline(order), pipeline) &&
+    @pipeline.sort_order_step(order) == step else {
+    return Err(ProfileNotInstalled)
+  }
+  match @pipeline.sort_order_strategy(order) {
+    CandidateKey(completion) => {
+      if @pipeline.sort_completion_count(completion) != 0 {
+        return Err(CompletionObserved)
+      }
+      let key = @pipeline.sort_completion_key(completion)
+      for index in 0..<@evidence.key_field_count(key) {
+        if remaining <= 0 || @evidence.key_field_at(key, index) is None {
+          return Err(ProfileNotInstalled)
+        }
+        remaining -= 1
+      }
+    }
+    ExistingTotal(prior) => {
+      guard @pipeline.order_tie_break(@pipeline.sort_order_evidence(order))
+        is Some(original) &&
+        physical_equal(original, prior) else {
+        return Err(ProfileNotInstalled)
+      }
+    }
+  }
+  Ok(remaining)
 }
 
 ///|
@@ -324,6 +394,7 @@ fn audit_local_completion_free_units(
   let mut checked_expressions = false
   let mut groups = false
   let mut takes = false
+  let mut sorts = false
   let sources : Array[(Int, Int)] = []
   let mut roots = 0
   for unit in units {
@@ -365,6 +436,17 @@ fn audit_local_completion_free_units(
         @pipeline.Unary(operation) => {
           match @relation.operation(operation) {
             Filter | Select | Derive => ()
+            Sort => {
+              match
+                audit_local_completion_free_sort(
+                  operation, pipeline, index, remaining,
+                ) {
+                Ok(left) => remaining = left
+                Err(CompletionObserved) => return CompletionObserved
+                Err(ProfileNotInstalled) => return ProfileNotInstalled
+              }
+              sorts = true
+            }
             Take => {
               guard audit_local_completion_free_take(
                   operation,
@@ -452,6 +534,7 @@ fn audit_local_completion_free_units(
     checked_expressions,
     groups,
     takes,
+    sorts,
   )
 }
 
@@ -469,7 +552,8 @@ pub fn local_program_completion_free_inventory(
       explicit_cast,
       checked_expressions,
       groups,
-      takes
+      takes,
+      sorts
     ) =>
       Ok({
         owner,
@@ -479,6 +563,7 @@ pub fn local_program_completion_free_inventory(
         checked_expressions,
         groups,
         takes,
+        sorts,
       })
     ProfileNotInstalled => Err(ProfileNotInstalled)
     CompletionObserved => Err(CompletionObserved)
@@ -538,4 +623,12 @@ pub fn local_completion_free_inventory_uses_take(
   inventory : LocalCompletionFreeInventory,
 ) -> Bool {
   inventory.takes
+}
+
+///|
+/// Original order evidence, without an invented tie-break or a completion ACK.
+pub fn local_completion_free_inventory_uses_sort(
+  inventory : LocalCompletionFreeInventory,
+) -> Bool {
+  inventory.sorts
 }

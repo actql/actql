@@ -95,14 +95,14 @@ test "Group normalization retains original argument completion and unsupported r
     is Err(Inventory(CompletionObserved)),
   )
   assert_true(implicit_else.local_normalization is None)
-  let uncovered_sort = local_explicit_cast_original(
-    text="SELECT COUNT(*) AS n ORDER BY n ASC NULLS FIRST",
+  let uncovered_relation = local_explicit_cast_original(
+    text="SELECT DISTINCT COUNT(*) AS n",
   )
   assert_true(
-    issue_prepared_client_local_normalization(uncovered_sort)
+    issue_prepared_client_local_normalization(uncovered_relation)
     is Err(Inventory(ProfileNotInstalled)),
   )
-  assert_true(uncovered_sort.local_normalization is None)
+  assert_true(uncovered_relation.local_normalization is None)
 }
 
 ///|
@@ -198,7 +198,8 @@ fn local_group_generated(
           @lower.kernel_group(kernel) is Some(_) ||
           @lower.kernel_count_group(kernel) is Some(_) ||
           @lower.kernel_is_projection(kernel) ||
-          @lower.kernel_take(kernel) is Some(_),
+          @lower.kernel_take(kernel) is Some(_) ||
+          @lower.kernel_is_sort(kernel),
         )
         if @relation.binding_count(@lower.kernel_checked(kernel)) > 0 {
           contexts.push(local_group_context(sequence, index))
