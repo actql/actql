@@ -34,8 +34,8 @@ fn sdk_terminal_observe(
     return -33
   }
   match
-    terminal.observe_from_store(
-      context.preflight,
+    terminal.observe_for_source(
+      context.source,
       context.current.account,
       context.finite,
       context.sdk.read,
@@ -200,8 +200,8 @@ fn sdk_terminal_prepare_output(
     return -30
   }
   let terminal = match
-    encoding.prepare_terminal_from_store(
-      context.preflight,
+    encoding.prepare_terminal_for_source(
+      context.source,
       context.current.account,
       context.finite,
       context.sdk.read,

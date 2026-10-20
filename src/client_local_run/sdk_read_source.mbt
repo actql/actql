@@ -317,3 +317,22 @@ fn LocalSDKReadSource::validate_finite_original(
       }
   }
 }
+
+///|
+/// Reuse the original checked live entry. This projection grants no authority.
+pub fn local_sdk_read_source(
+  preflight : LocalPublicationPreflight,
+) -> LocalSDKReadSource {
+  live_sdk_read_source(preflight)
+}
+
+///|
+/// Evaluate the independent current Account for this original read source.
+/// Actual same-Host/Store/FD currentness remains with the physical caller.
+pub fn validate_local_sdk_read_source_current(
+  source : LocalSDKReadSource,
+  account : @authorization.AdmittedAccountConfiguration,
+  result_name : String,
+) -> Result[Unit, LocalSDKReadOriginalsIssue] {
+  source.validate_current(account, result_name)
+}

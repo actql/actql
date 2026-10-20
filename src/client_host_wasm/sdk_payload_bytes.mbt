@@ -40,8 +40,8 @@ fn sdk_payload_access_current(
     required_text(observed, "observed_at") is Some(at) else {
     return Err(-30)
   }
-  @local_run.validate_local_sdk_payload_encoding_current(
-    context.preflight,
+  @local_run.validate_local_sdk_payload_encoding_source_current(
+    context.source,
     context.current.account,
     context.finite,
     context.sdk.read,

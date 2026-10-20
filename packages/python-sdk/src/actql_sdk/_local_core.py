@@ -1891,8 +1891,17 @@ class LocalCore:
     def reserve_publication_commit_export(self, publication: _Output, *,
                                           cleanup: Callable[[], bool]) -> _Output:
         """Read the original validated candidate; grants no Store permission."""
+        return self._reserve_publication_read_export(publication, 'publication', cleanup)
+
+    def reserve_saved_result_export(self, original: _Output, *,
+                                    cleanup: Callable[[], bool]) -> _Output:
+        """Borrow the nominal saved-read Owner; Core refuses other lookups."""
+        return self._reserve_publication_read_export(original, 'submission_lookup', cleanup)
+
+    def _reserve_publication_read_export(self, publication: _Output, family: str,
+                                         cleanup: Callable[[], bool]) -> _Output:
         with self._lock:
-            self._owned_output(publication, 'publication')
+            self._owned_output(publication, family)
             if self._closing:
                 raise RuntimeError('Local Core is closing')
             ticket = self._next_ticket

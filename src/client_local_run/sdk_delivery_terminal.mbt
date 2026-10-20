@@ -27,9 +27,9 @@ pub(all) enum LocalSDKDeliveryTerminalIssue[E] {
 /// Reuse sink completion and delivery issuance after the original streaming
 /// head/current/availability are observed. Preparing these bytes makes no
 /// Store mutation, durable acknowledgement or Run terminal transition.
-pub fn[E] LocalSDKPayloadEncoding::prepare_terminal_from_store(
+pub fn[E] LocalSDKPayloadEncoding::prepare_terminal_for_source(
   self : LocalSDKPayloadEncoding,
-  preflight : LocalPublicationPreflight,
+  source : LocalSDKReadSource,
   account : @authorization.AdmittedAccountConfiguration,
   finite : @host.ClientLocalRunPolicyOriginal,
   selection : @publication.LocalSDKResultReadSelection,
@@ -45,8 +45,8 @@ pub fn[E] LocalSDKPayloadEncoding::prepare_terminal_from_store(
   current : () -> Result[Unit, E],
 ) -> Result[LocalSDKDeliveryTerminal, LocalSDKDeliveryTerminalIssue[E]] {
   match
-    validate_local_sdk_payload_encoding_current(
-      preflight,
+    validate_local_sdk_payload_encoding_source_current(
+      source,
       account,
       finite,
       selection,
@@ -211,9 +211,9 @@ pub fn[E] LocalSDKDeliveryTerminal::storage_from_store(
 /// Validate only the actually saved successor/receipt through existing lookup
 /// and success-evidence Owners. Query failure remains distinct from absence;
 /// lookup grants no write retry, payload replay or execution permission.
-pub fn[E] LocalSDKDeliveryTerminal::observe_from_store(
+pub fn[E] LocalSDKDeliveryTerminal::observe_for_source(
   self : LocalSDKDeliveryTerminal,
-  preflight : LocalPublicationPreflight,
+  source : LocalSDKReadSource,
   account : @authorization.AdmittedAccountConfiguration,
   finite : @host.ClientLocalRunPolicyOriginal,
   selection : @publication.LocalSDKResultReadSelection,
@@ -228,8 +228,8 @@ pub fn[E] LocalSDKDeliveryTerminal::observe_from_store(
   current : () -> Result[Unit, E],
 ) -> Result[Unit, LocalSDKDeliveryTerminalIssue[E]] {
   let saved = match
-    observe_local_sdk_read_delivery_from_store(
-      preflight, account, finite, selection, host_adoption_cid, owner, view, result_name,
+    observe_local_sdk_read_delivery_for_source(
+      source, account, finite, selection, host_adoption_cid, owner, view, result_name,
       format, attempt_id, max_results, read, current,
     ) {
     Ok(saved) => saved
@@ -265,4 +265,76 @@ pub fn[E] LocalSDKDeliveryTerminal::observe_from_store(
     Err(issue) => Err(Query(issue))
     Ok(_) => Ok(())
   }
+}
+
+///|
+/// Existing live-run entry preserves its original preflight/current checks.
+pub fn[E] LocalSDKPayloadEncoding::prepare_terminal_from_store(
+  self : LocalSDKPayloadEncoding,
+  preflight : LocalPublicationPreflight,
+  account : @authorization.AdmittedAccountConfiguration,
+  finite : @host.ClientLocalRunPolicyOriginal,
+  selection : @publication.LocalSDKResultReadSelection,
+  host_adoption_cid : String,
+  owner : @publication.PublicationCommitPreparation,
+  view : @publication.PublicationCommitReadView,
+  result_name : String,
+  format : String,
+  attempt_id : String,
+  observed_at : String,
+  max_results : Int,
+  read : (String, String) -> Result[@host.ClientJournalPhysicalRow?, E],
+  current : () -> Result[Unit, E],
+) -> Result[LocalSDKDeliveryTerminal, LocalSDKDeliveryTerminalIssue[E]] {
+  self.prepare_terminal_for_source(
+    live_sdk_read_source(preflight),
+    account,
+    finite,
+    selection,
+    host_adoption_cid,
+    owner,
+    view,
+    result_name,
+    format,
+    attempt_id,
+    observed_at,
+    max_results,
+    read,
+    current,
+  )
+}
+
+///|
+/// Existing live-run entry preserves its original preflight/current checks.
+pub fn[E] LocalSDKDeliveryTerminal::observe_from_store(
+  self : LocalSDKDeliveryTerminal,
+  preflight : LocalPublicationPreflight,
+  account : @authorization.AdmittedAccountConfiguration,
+  finite : @host.ClientLocalRunPolicyOriginal,
+  selection : @publication.LocalSDKResultReadSelection,
+  host_adoption_cid : String,
+  owner : @publication.PublicationCommitPreparation,
+  view : @publication.PublicationCommitReadView,
+  result_name : String,
+  format : String,
+  attempt_id : String,
+  max_results : Int,
+  read : (String, String) -> Result[@host.ClientJournalPhysicalRow?, E],
+  current : () -> Result[Unit, E],
+) -> Result[Unit, LocalSDKDeliveryTerminalIssue[E]] {
+  self.observe_for_source(
+    live_sdk_read_source(preflight),
+    account,
+    finite,
+    selection,
+    host_adoption_cid,
+    owner,
+    view,
+    result_name,
+    format,
+    attempt_id,
+    max_results,
+    read,
+    current,
+  )
 }

@@ -363,3 +363,124 @@ test "saved SDK source rejects a later valid finite Policy with another adoption
   )
   (fixture.cleanup)()
 }
+
+///|
+// Existing schema, framing, sink and terminal Owners, using only the saved
+// read origin. The Store supplier is a typed double, not a physical COMMIT.
+test "saved SDK source reaches existing payload codecs and terminal observation" {
+  let fixture = sdk_read_fixture(bound_scope=true)
+  defer (fixture.cleanup)()
+  let source = sdk_saved_source(fixture).unwrap()
+  let (key, packet) = sdk_delivery_evidence(fixture)
+  let first : LocalSDKReadDeliveryPreparation = prepare_local_sdk_read_delivery_for_source(
+    source,
+    fixture.account,
+    fixture.original,
+    fixture.selection,
+    "sha256:" + "a".repeat(64),
+    fixture.owner,
+    fixture.view,
+    "answer",
+    "jsonl",
+    "sdk-read-original",
+    "2026-10-13T00:00:04.000Z",
+    16,
+    (table, _) => {
+      let result : Result[@host.ClientJournalPhysicalRow?, String] = if table ==
+        "client_local_read_evidence" {
+        Ok(Some({ key, revision: 0L, body: packet, }))
+      } else {
+        Ok(None)
+      }
+      result
+    },
+    () => Ok(()),
+  ).unwrap()
+  let rows = sdk_payload_codec_rows(fixture)
+  let read : (String, String) -> Result[@host.ClientJournalPhysicalRow?, String] = (
+    table,
+    key,
+  ) => Ok(rows.get(table + "|" + key))
+  let encoding = prepare_local_sdk_payload_encoding_for_source(
+    source,
+    fixture.account,
+    fixture.original,
+    fixture.selection,
+    "sha256:" + "a".repeat(64),
+    fixture.owner,
+    fixture.view,
+    first,
+    "answer",
+    "jsonl",
+    "sdk-read-original",
+    "2026-10-13T00:00:05.000Z",
+    16,
+    65536,
+    65536,
+    read,
+    () => Ok(()),
+  ).unwrap()
+  assert_eq(encoding.feed(b"[{\"n\":1}]", true), Ok(b"{\"n\":1}\n"))
+  assert_eq(encoding.confirm_chunk(), Ok(8L))
+  let terminal = encoding
+    .prepare_terminal_for_source(
+      source,
+      fixture.account,
+      fixture.original,
+      fixture.selection,
+      "sha256:" + "a".repeat(64),
+      fixture.owner,
+      fixture.view,
+      "answer",
+      "jsonl",
+      "sdk-read-original",
+      "2026-10-13T00:00:06.000Z",
+      16,
+      read,
+      () => Ok(()),
+    )
+    .unwrap()
+  assert_true(terminal.storage_from_store(read, () => Ok(())) is Ok(_))
+  assert_true(
+    terminal.observe_for_source(
+      source,
+      fixture.account,
+      fixture.original,
+      fixture.selection,
+      "sha256:" + "a".repeat(64),
+      fixture.owner,
+      fixture.view,
+      "answer",
+      "jsonl",
+      "sdk-read-original",
+      16,
+      read,
+      () => Ok(()),
+    )
+    is Err(UnresolvedOriginal),
+  )
+  sdk_terminal_saved_rows(rows, terminal)
+  assert_true(
+    terminal.observe_for_source(
+      source,
+      fixture.account,
+      fixture.original,
+      fixture.selection,
+      "sha256:" + "a".repeat(64),
+      fixture.owner,
+      fixture.view,
+      "answer",
+      "jsonl",
+      "sdk-read-original",
+      16,
+      read,
+      () => Ok(()),
+    )
+    is Ok(_),
+  )
+  assert_true(
+    @publication.publication_contract_json(terminal.receipt).contains(
+      sdk_payload_expected_delivery_hash,
+    ),
+  )
+}

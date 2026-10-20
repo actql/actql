@@ -7,7 +7,7 @@ priv struct StoredSavedResultRead {
   result_name : String
   fences : Array[(String, String, Int64, Bytes)]
   mut source : @local_run.LocalSDKReadSource?
-  mut finite : @host.ClientLocalRunPolicyOriginal?
+  finite : @host.ClientLocalRunPolicyOriginal?
   mut owner : @publication.PublicationCommitPreparation?
   mut view : @publication.PublicationCommitReadView?
   mut observed : Bool
