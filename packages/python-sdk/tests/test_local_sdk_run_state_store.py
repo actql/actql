@@ -22,6 +22,71 @@ SAVED_STATE = b'{"opaque":"same original Core saved state","revision":0}'
 
 
 class SDKRunStateStoreTests(unittest.IsolatedAsyncioTestCase):
+    async def test_confirmed_response_guard_and_transfer_share_original_read_frame(self):
+        with TemporaryDirectory() as directory:
+            host, core, client, run, store, key, calls, _, observe = await self.bridge(directory)
+            original = core._call
+            entered = []
+            confirmed = []
+            def guarded(family, name, *args):
+                if family == 'publication_commit_export' and name == 'confirm_sdk_run_state':
+                    confirmed.append(core._journal_callbacks(host._configuration.current.ticket).reader)
+                if family == 'publication' and name == 'validate_run':
+                    callbacks = core._journal_callbacks(host._configuration.current.ticket)
+                    if callbacks.check_current() != 0:
+                        return -41
+                    entered.append(callbacks.reader)
+                return original(family, name, *args)
+            core._call = guarded
+            states = []
+            def consume(raw):
+                core.validate_publication_run(
+                    host._commit_projections[0]._publication,
+                    run.handle, host._configuration.handle)
+                self.assertEqual(calls.count('confirm_sdk_run_state'), 1)
+                self.assertFalse(host.close())
+                self.assertFalse(host._closing)
+                states.append(raw)
+            observe(consume)
+            self.assertEqual(states, [wire_bytes(fixture.STATE)])
+            self.assertEqual(store.read(key).payload, SAVED_STATE)
+            self.assertEqual(len(confirmed), 1)
+            self.assertIsNot(entered[0], confirmed[0])
+            self.assertIs(entered[-1], confirmed[0])
+            self.assertIsNone(core._journal_callbacks(host._configuration.current.ticket).reader)
+            with self.assertRaises(ValueError):
+                entered[-1].current()
+            await client.aclose()
+            self.assertTrue(core._closed)
+
+    async def test_final_original_run_guard_refusal_does_not_publish_confirmed_bytes(self):
+        with TemporaryDirectory() as directory:
+            host, core, client, run, store, key, calls, _, observe = await self.bridge(directory)
+            original = core._call
+            def refuse(family, name, *args):
+                if (family == 'publication' and name == 'validate_run'
+                        and calls.count('confirm_sdk_run_state') == 1):
+                    callbacks = core._journal_callbacks(host._configuration.current.ticket)
+                    self.assertEqual(callbacks.check_current(), 0)
+                    return -2
+                return original(family, name, *args)
+            core._call = refuse
+            states = []
+            def consume(raw):
+                core.validate_publication_run(host._commit_projections[0]._publication,
+                    run.handle, host._configuration.handle)
+                states.append(raw)
+            with self.assertRaises(LocalCoreError):
+                observe(consume)
+            self.assertEqual(states, [])
+            self.assertEqual(calls.count('confirm_sdk_run_state'), 1)
+            self.assertEqual(store.read(key).payload, SAVED_STATE)
+            held = host._run_state_custody[run.handle]
+            self.assertTrue(held.write_attempted)
+            self.assertIs(core._loans[held.output.ticket], held.output)
+            await client.aclose()
+            self.assertTrue(core._closed)
+
     async def bridge(self, directory):
         case = fixture.PublicRunObservationTests()
         self.addCleanup(case.doCleanups)

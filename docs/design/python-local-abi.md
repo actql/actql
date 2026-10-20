@@ -52,6 +52,10 @@ physical Host validates the prior row inside the fenced transaction and rereads
 the exact committed successor before exposing public wire. A lost response keeps
 the same input/output for lookup and cleanup; it never repeats that write or
 dispatches the Run. Parent close remains BUSY during an active state callback.
+Saved-row confirmation, the final original Run guard and response transfer share
+the same entered physical journal snapshot. Leaving that snapshot does not make
+its normal current guard usable later; a refused guard retains the same output
+and cleanup duty without exposing the candidate response.
 
 Private scalar ABI 75 adds the SDK observation preparation, prior-row validation
 and saved-row confirmation entrances. Their generated declarations and compiled

@@ -568,12 +568,15 @@ class InstalledLocalHost:
                 # Physical COMMIT and candidate fields are not confirmation.
                 # This same output rechecks the exact saved successor under a
                 # fresh original Store/current frame, including after reply loss.
-                installation.binding.inspect(lambda _:
-                    self._core.confirm_publication_sdk_run_state(output, configuration.handle))
                 raw = candidate['state'].encode('utf-8')
-                if consume(raw) is not None:
-                    raise ValueError('Invalid synchronous original SDK state consumer')
-                observation._validate_facts()
+                def confirm_and_consume(_: _Output) -> None:
+                    self._core.confirm_publication_sdk_run_state(output, configuration.handle)
+                    # The response's original Run guard and bounded transfer
+                    # still need this same entered physical journal snapshot.
+                    if consume(raw) is not None:
+                        raise ValueError('Invalid synchronous original SDK state consumer')
+                    observation._validate_facts()
+                installation.binding.inspect(confirm_and_consume)
             if not self._core.close_publication_commit_export(output):
                 raise LocalProductCleanupPending(self)
             held.output = None
