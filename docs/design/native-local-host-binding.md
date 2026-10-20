@@ -103,8 +103,10 @@ otherwise denied authority.
 Ordinary reconnection is retained-only. It cannot create a state child, stage
 an absent account copy or initialize a database, key or epoch. Only the explicit
 adoption operation may continue a matching unfinished initialization. The
-operator must first select a private configuration root; configured physical
-libraries are not loaded from an untrusted discovery root.
+trusted default query caller may perform the first initialization described
+above only when the installation is genuinely absent. It selects the ordinary
+private configuration root; an explicit configuration must likewise have a
+trusted private root before its physical libraries are loaded.
 
 ## Initialization and interrupted adoption
 
