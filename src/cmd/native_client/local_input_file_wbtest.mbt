@@ -14,6 +14,18 @@ test "ordinary input paths preserve the selected Root and exact basename" {
 }
 
 ///|
+test "ordinary input paths preserve an explicitly relative input root" {
+  let current = @env.current_dir().unwrap()
+  let selected = local_input_file_location(".", "parameters.json")
+  assert_eq(selected.root, current)
+  assert_eq(selected.name, "parameters.json")
+  let nested = local_input_file_location("input directory", "params é.json")
+  assert_eq(nested.root, current + "/input directory")
+  assert_eq(nested.name, "params é.json")
+  assert_true(command_preparation_invocation.val is None)
+}
+
+///|
 test "ordinary input paths refuse invalid and overbound metadata before IO" {
   for
     value in [
