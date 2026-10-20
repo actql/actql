@@ -29,13 +29,20 @@ fn sdk_run_state_current(
   output : StoredPublicationCommitExport,
   run : Int,
   current_configuration : Int,
-) -> Result[(@publication.PublicationCommitPreparation, @publication.PublicationCommitReadView), Int] {
+) -> Result[
+  (
+    @publication.PublicationCommitPreparation,
+    @publication.PublicationCommitReadView,
+  ),
+  Int,
+] {
   guard value.publications.get(output.publication) is Some(parent) &&
     value.run_configurations.get(current_configuration) is Some(current) &&
     current.sdk is Some(_) &&
     value.publication_preflights.get(parent.preflight)
     is Some({ closing: false, preflight: Some(preflight), .. }) &&
-    parent.observation_checked && !parent.observation_failed &&
+    parent.observation_checked &&
+    !parent.observation_failed &&
     parent.observation_index is Some(index) &&
     parent.observation_publisher is Some(publisher) else {
     return Err(-32)
@@ -43,19 +50,11 @@ fn sdk_run_state_current(
   if output.closing || output.output_closed {
     return Err(-5)
   }
-  let code = validate_publication_run(value.nonce, output.publication, run, current_configuration)
-  if code != 0 {
-    return Err(code)
-  }
-  match run_configuration_current(value, current) {
-    Err(code) => return Err(code)
-    Ok(_) => ()
-  }
-  if @local_run.validate_local_preflight_run_read_current(preflight, current.account) is Err(_) {
-    return Err(-35)
-  }
-  let code = publication_observation_publisher(
-    value, parent, publisher, current_configuration, Some(index),
+  let code = validate_publication_run(
+    value.nonce,
+    output.publication,
+    run,
+    current_configuration,
   )
   if code != 0 {
     return Err(code)
@@ -64,7 +63,32 @@ fn sdk_run_state_current(
     Err(code) => return Err(code)
     Ok(_) => ()
   }
-  if @local_run.validate_local_preflight_run_read_current(preflight, current.account) is Err(_) {
+  if @local_run.validate_local_preflight_run_read_current(
+      preflight,
+      current.account,
+    )
+    is Err(_) {
+    return Err(-35)
+  }
+  let code = publication_observation_publisher(
+    value,
+    parent,
+    publisher,
+    current_configuration,
+    Some(index),
+  )
+  if code != 0 {
+    return Err(code)
+  }
+  match run_configuration_current(value, current) {
+    Err(code) => return Err(code)
+    Ok(_) => ()
+  }
+  if @local_run.validate_local_preflight_run_read_current(
+      preflight,
+      current.account,
+    )
+    is Err(_) {
     return Err(-35)
   }
   publication_commit_export_view(value, parent, current.account)
@@ -81,7 +105,8 @@ fn sdk_run_state_candidate(
   input : @buffers.BufferSlot,
   current_configuration : Int,
 ) -> Result[(@publication.PublicationContract, String), Int] {
-  let (owner, view) = match sdk_run_state_current(value, output, run, current_configuration) {
+  let (owner, view) = match
+    sdk_run_state_current(value, output, run, current_configuration) {
     Ok(value) => value
     Err(code) => return Err(code)
   }
@@ -91,20 +116,30 @@ fn sdk_run_state_candidate(
     @decode.required(fields, "payloads") is Ok(payloads_cursor) &&
     @decode.elements(payloads_cursor) is Ok(payloads) &&
     value.publications.get(output.publication) is Some(parent) &&
-    payloads.length() == parent.publications.length() && payloads.length() <= 8 else {
+    payloads.length() == parent.publications.length() &&
+    payloads.length() <= 8 else {
     return Err(-30)
   }
   let selected : Array[(Int, Int, @publication.PublicationContract)] = []
   for payload in payloads {
-    guard @decode.closed_object(payload, ["record", "result", "binding"]) is Ok(fields) else {
+    guard @decode.closed_object(payload, ["record", "result", "binding"])
+      is Ok(fields) else {
       return Err(-30)
     }
     let integer = name => {
-      @decode.lookup(fields, name).bind(value => @decode.safe_integer(value).to_option())
+      @decode.lookup(fields, name).bind(value => {
+        @decode.safe_integer(value).to_option()
+      })
     }
-    guard integer("record") is Some(record) && record > 0L && record < 2147483648L &&
-      integer("result") is Some(result) && result >= 0L && result < 2147483648L &&
-      integer("binding") is Some(binding) && binding >= 0L && binding < 2147483648L else {
+    guard integer("record") is Some(record) &&
+      record > 0L &&
+      record < 2147483648L &&
+      integer("result") is Some(result) &&
+      result >= 0L &&
+      result < 2147483648L &&
+      integer("binding") is Some(binding) &&
+      binding >= 0L &&
+      binding < 2147483648L else {
       return Err(-30)
     }
     let record = record.to_int()
@@ -114,7 +149,12 @@ fn sdk_run_state_candidate(
       return Err(-30)
     }
     let code = validate_publication_commit_payload_binding(
-      value.nonce, output.publication, record, current_configuration, result, binding,
+      value.nonce,
+      output.publication,
+      record,
+      current_configuration,
+      result,
+      binding,
     )
     if code != 0 {
       return Err(code)
@@ -126,7 +166,8 @@ fn sdk_run_state_candidate(
     selected.push((record, result, original))
   }
   let manifest = match owner.view_contract(view, 2) {
-    Ok(value) if @publication.publication_contract_name(value) == "result_manifest" => value
+    Ok(value) if @publication.publication_contract_name(value) ==
+      "result_manifest" => value
     _ => return Err(-32)
   }
   let names = match @publication.manifest_result_names(manifest) {
@@ -140,11 +181,19 @@ fn sdk_run_state_candidate(
       Ok(value) => value
       Err(_) => return Err(-32)
     }
-    if !selected.any(item => @publication.publication_contract_identity(item.2) ==
-        materials.read.durable_result_binding_cid) {
+    if !selected.any(item => {
+        @publication.publication_contract_identity(item.2) ==
+        materials.read.durable_result_binding_cid
+      }) {
       return Err(-32)
     }
-    match @publication.result_read_availability(manifest, name, materials.retention, at) {
+    match
+      @publication.result_read_availability(
+        manifest,
+        name,
+        materials.retention,
+        at,
+      ) {
       Ok("available") => {
         states.push("available")
         reasons.push("confirmed_present")
@@ -156,17 +205,29 @@ fn sdk_run_state_candidate(
       _ => return Err(-32)
     }
   }
-  let (plan, _) = match sdk_run_state_snapshot(value, run, current_configuration) {
+  let (plan, _) = match
+    sdk_run_state_snapshot(value, run, current_configuration) {
     Ok(value) => value
     Err(code) => return Err(code)
   }
-  let run_id = match @publication.run_definition_run_id(@local_run.local_run_definition(plan)) {
+  let run_id = match
+    @publication.run_definition_run_id(@local_run.local_run_definition(plan)) {
     Ok(value) => value
     Err(_) => return Err(-32)
   }
-  let wire = match @publication.issue_succeeded_run_state_wire(
-    run_id, at, names, names, states, reasons, names.map(_ => at), 65536, 8192, 64,
-  ) {
+  let wire = match
+    @publication.issue_succeeded_run_state_wire(
+      run_id,
+      at,
+      names,
+      names,
+      states,
+      reasons,
+      names.map(_ => at),
+      65536,
+      8192,
+      64,
+    ) {
     Ok(value) => value
     Err(_) => return Err(-32)
   }
@@ -201,39 +262,50 @@ pub fn produce_publication_sdk_run_state(
   }
   output.invoked = true
   output.projection = Some(SDKRunState(input, run))
-  let borrow = match @buffers.borrow_buffer(value.pool, slot, () => {
-    physical_reader_stop(physical, handle) == 0
-  }) {
+  let borrow = match
+    @buffers.borrow_buffer(value.pool, slot, () => {
+      physical_reader_stop(physical, handle) == 0
+    }) {
     Ok(value) => value
     Err(issue) => return issue_code(issue)
   }
   output.state_borrow = Some(borrow)
-  let (manifest, wire) = match sdk_run_state_candidate(value, output, run, slot, current_configuration) {
+  let (manifest, wire) = match
+    sdk_run_state_candidate(value, output, run, slot, current_configuration) {
     Ok(value) => value
     Err(code) => return code
   }
-  let (plan, snapshot) = match sdk_run_state_snapshot(value, run, current_configuration) {
+  let (plan, snapshot) = match
+    sdk_run_state_snapshot(value, run, current_configuration) {
     Ok(value) => value
     Err(code) => return code
   }
-  let update = match @host.prepare_client_saved_run_state_update(
-    snapshot, @local_run.local_run_request(plan), @local_run.local_run_definition(plan), manifest, wire,
-  ) {
+  let update = match
+    @host.prepare_client_saved_run_state_update(
+      snapshot,
+      @local_run.local_run_request(plan),
+      @local_run.local_run_definition(plan),
+      manifest,
+      wire,
+    ) {
     Ok(value) => value
     Err(_) => return -35
   }
   output.sdk_run_state_update = Some(update)
-  let (key, prior, revision, body) = @host.client_saved_run_state_update_row(update)
+  let (key, prior, revision, body) = @host.client_saved_run_state_update_row(
+    update,
+  )
   let writer = @encode.writer(1048576, 16, 1) catch { _ => return -34 }
   let packet = try {
     @encode.begin_object(writer)
-    for (name, text) in [
-      ("body", @utf8.decode(body)),
-      ("key", key),
-      ("kind", if prior == revision { "retained" } else { "replace" }),
-      ("revision", prior.to_string()),
-      ("state", @host.client_saved_run_state_update_candidate_wire(update)),
-    ] {
+    for
+      (name, text) in [
+        ("body", @utf8.decode(body)),
+        ("key", key),
+        ("kind", if prior == revision { "retained" } else { "replace" }),
+        ("revision", prior.to_string()),
+        ("state", @host.client_saved_run_state_update_candidate_wire(update)),
+      ] {
       @encode.key(writer, name)
       @encode.string_value(writer, text)
     }
@@ -242,7 +314,9 @@ pub fn produce_publication_sdk_run_state(
   } catch {
     _ => return -34
   }
-  let code = status(@buffers.supply_buffer_output(value.pool, output.slot, @utf8.encode(packet)))
+  let code = status(
+    @buffers.supply_buffer_output(value.pool, output.slot, @utf8.encode(packet)),
+  )
   if code != 0 {
     return code
   }
@@ -258,17 +332,20 @@ fn sdk_run_state_validate(
   committed : Bool,
 ) -> Int {
   guard selected(nonce) is Some(value) &&
-    value.commit_exports.get(handle) is Some(output) && output.produced &&
+    value.commit_exports.get(handle) is Some(output) &&
+    output.produced &&
     output.projection is Some(SDKRunState(input, run)) &&
     output.sdk_run_state_update is Some(update) &&
     value.copies.get(input) is Some((slot, _)) else {
     return -2
   }
-  match sdk_run_state_candidate(value, output, run, slot, current_configuration) {
+  match
+    sdk_run_state_candidate(value, output, run, slot, current_configuration) {
     Err(code) => return code
     Ok(_) => ()
   }
-  let (_, snapshot) = match sdk_run_state_snapshot(value, run, current_configuration) {
+  let (_, snapshot) = match
+    sdk_run_state_snapshot(value, run, current_configuration) {
     Ok(value) => value
     Err(code) => return code
   }
@@ -276,7 +353,10 @@ fn sdk_run_state_validate(
     if @host.confirm_client_saved_run_state_update(update, snapshot) is Err(_) {
       return -35
     }
-  } else if @host.validate_client_saved_run_state_update_original(update, snapshot) is Err(_) {
+  } else if @host.validate_client_saved_run_state_update_original(
+      update, snapshot,
+    )
+    is Err(_) {
     return -35
   }
   match sdk_run_state_current(value, output, run, current_configuration) {
@@ -287,12 +367,20 @@ fn sdk_run_state_validate(
 
 ///|
 #export_name("actql_publication_commit_export_validate_sdk_run_state")
-pub fn validate_publication_sdk_run_state(nonce : Int64, handle : Int, current_configuration : Int) -> Int {
+pub fn validate_publication_sdk_run_state(
+  nonce : Int64,
+  handle : Int,
+  current_configuration : Int,
+) -> Int {
   sdk_run_state_validate(nonce, handle, current_configuration, false)
 }
 
 ///|
 #export_name("actql_publication_commit_export_confirm_sdk_run_state")
-pub fn confirm_publication_sdk_run_state(nonce : Int64, handle : Int, current_configuration : Int) -> Int {
+pub fn confirm_publication_sdk_run_state(
+  nonce : Int64,
+  handle : Int,
+  current_configuration : Int,
+) -> Int {
   sdk_run_state_validate(nonce, handle, current_configuration, true)
 }

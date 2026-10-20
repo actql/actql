@@ -34,12 +34,14 @@ pub fn prepare_client_saved_run_state_update(
   state_wire : String,
 ) -> Result[ClientSavedRunStateUpdate, ClientSavedRunStateUpdateIssue] {
   guard snapshot.inspection is Some(original) &&
-    snapshot.run is Some(_) && snapshot.record.run_admission is Some(_) else {
+    snapshot.run is Some(_) &&
+    snapshot.record.run_admission is Some(_) else {
     return Err(OriginalUnavailable)
   }
   let definition_cid = @publication.publication_contract_identity(definition)
   if client_request_identity_relation(original.request, request) != SameRequest ||
-    @publication.publication_contract_identity(original.definition) != definition_cid {
+    @publication.publication_contract_identity(original.definition) !=
+    definition_cid {
     return Err(ForeignRun)
   }
   // Absence is historical absence, never issuance of a new zero counter.
@@ -57,9 +59,15 @@ pub fn prepare_client_saved_run_state_update(
         Ok(value) => value
         Err(issue) => return Err(State(issue))
       }
-      let observation = match @publication.prepare_run_state_observation(
-        state.state_wire(), run_id, revision, 65536, 8192, 64,
-      ) {
+      let observation = match
+        @publication.prepare_run_state_observation(
+          state.state_wire(),
+          run_id,
+          revision,
+          65536,
+          8192,
+          64,
+        ) {
         Ok(value) => value
         Err(issue) => return Err(Observation(issue))
       }
@@ -67,9 +75,12 @@ pub fn prepare_client_saved_run_state_update(
         observation.wire(revision).to_option() != Some(state.state_wire()) {
         return Err(OriginalUnavailable)
       }
-      let same_manifest = match prepare_client_run_state_original(
-        definition, manifest, state.state_wire(),
-      ) {
+      let same_manifest = match
+        prepare_client_run_state_original(
+          definition,
+          manifest,
+          state.state_wire(),
+        ) {
         Ok(value) => value.wire() == state.wire()
         Err(_) => false
       }
@@ -80,9 +91,10 @@ pub fn prepare_client_saved_run_state_update(
     }
     _ => return Err(OriginalUnavailable)
   }
-  let observation = match @publication.prepare_run_state_observation(
-    state_wire, run_id, revision, 65536, 8192, 64,
-  ) {
+  let observation = match
+    @publication.prepare_run_state_observation(
+      state_wire, run_id, revision, 65536, 8192, 64,
+    ) {
     Ok(value) => value
     Err(issue) => return Err(Observation(issue))
   }
@@ -94,11 +106,14 @@ pub fn prepare_client_saved_run_state_update(
   // changes do not create another metadata write or observation revision.
   if next == revision && prior is Some(state) {
     return Ok({
-      request, definition_cid, key: snapshot.submission.key,
+      request,
+      definition_cid,
+      key: snapshot.submission.key,
       prior_revision: snapshot.submission.revision,
       prior_body: snapshot.submission.body,
       revision: snapshot.submission.revision,
-      body: snapshot.submission.body, state,
+      body: snapshot.submission.body,
+      state,
     })
   }
   if snapshot.submission.revision == 9223372036854775807L {
@@ -108,24 +123,32 @@ pub fn prepare_client_saved_run_state_update(
     Ok(value) => value
     Err(issue) => return Err(Observation(issue))
   }
-  let state = match prepare_client_run_state_original(definition, manifest, wire) {
+  let state = match
+    prepare_client_run_state_original(definition, manifest, wire) {
     Ok(value) => value
     Err(issue) => return Err(State(issue))
   }
   let record = snapshot.record
-  let body = match client_submitted_intent_journal_row_body(
-    client_submission_reference_record_wire(record.reference), record.intent,
-    run_admission=record.run_admission, run_state_original=Some(state.wire()),
-    run_state_observation=Some((next, Some(observation.key()))),
-  ) {
+  let body = match
+    client_submitted_intent_journal_row_body(
+      client_submission_reference_record_wire(record.reference),
+      record.intent,
+      run_admission=record.run_admission,
+      run_state_original=Some(state.wire()),
+      run_state_observation=Some((next, Some(observation.key()))),
+    ) {
     Ok(value) => value
     Err(issue) => return Err(Encoding(issue))
   }
   Ok({
-    request, definition_cid, key: snapshot.submission.key,
+    request,
+    definition_cid,
+    key: snapshot.submission.key,
     prior_revision: snapshot.submission.revision,
     prior_body: snapshot.submission.body,
-    revision: snapshot.submission.revision + 1L, body, state,
+    revision: snapshot.submission.revision + 1L,
+    body,
+    state,
   })
 }
 
@@ -154,8 +177,10 @@ pub fn validate_client_saved_run_state_update_original(
   guard snapshot.inspection is Some(original) && snapshot.run is Some(_) else {
     return Err(OriginalUnavailable)
   }
-  if client_request_identity_relation(update.request, original.request) != SameRequest ||
-    @publication.publication_contract_identity(original.definition) != update.definition_cid {
+  if client_request_identity_relation(update.request, original.request) !=
+    SameRequest ||
+    @publication.publication_contract_identity(original.definition) !=
+    update.definition_cid {
     return Err(ForeignRun)
   }
   if snapshot.submission.key != update.key ||
@@ -176,8 +201,10 @@ pub fn confirm_client_saved_run_state_update(
   guard snapshot.inspection is Some(original) && snapshot.run is Some(_) else {
     return Err(OriginalUnavailable)
   }
-  if client_request_identity_relation(update.request, original.request) != SameRequest ||
-    @publication.publication_contract_identity(original.definition) != update.definition_cid {
+  if client_request_identity_relation(update.request, original.request) !=
+    SameRequest ||
+    @publication.publication_contract_identity(original.definition) !=
+    update.definition_cid {
     return Err(ForeignRun)
   }
   if snapshot.submission.key != update.key ||
