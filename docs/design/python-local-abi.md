@@ -2722,7 +2722,7 @@ zero-capacity provider. Source/module/ABI, target, Engine settings, exact native
 library and compiled-image hashes remain bound together. A mismatching image
 is refused; it does not trigger JIT compilation or another runtime at load.
 
-The selected platform pool has one function table with a finite 1768-element
+The selected platform pool has one function table with a finite 1808-element
 ceiling, matching the packaged Core's declared minimum and maximum. This is
 module-to-engine correspondence, not an ActQL language limit or additional
 managed capacity. The compiler and artifact producer bind the exact recipe,
