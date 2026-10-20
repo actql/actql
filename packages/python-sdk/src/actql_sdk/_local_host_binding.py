@@ -134,6 +134,9 @@ class OriginalHostBinding:
                     wire, cleanup=lambda: True, stopped=lambda _: True))
                 assert self._input is not None
                 original_input = self._input
+                for start in range(0, len(wire), 16384):
+                    core.fill_input(original_input, start, min(16384, len(wire) - start))
+                core.seal_input(original_input)
                 self._current = self._reserve(lambda: core.reserve_host_current(
                     original_input, store=self._store, current=self._physical_current,
                     cleanup=lambda: not self._active))

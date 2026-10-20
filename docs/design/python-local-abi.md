@@ -19,10 +19,48 @@ The source decoder preserves raw JSON strings and keys, including Unicode and
 NULL. It distinguishes parsing limits from malformed input. Sealing a transfer
 does not check a Program or admit a Run.
 
+Store observation retains exact raw rows in unsealed input loans. A stored CID
+reference is raw address text, not a JSON document. These loans expose no parsed
+source-node capability. The separately bounded closed observation envelope quotes
+those unchanged bytes and is sealed before the existing Core checks its scope,
+references and complete stored chain. Both raw rows and the envelope use in-order
+fills of at most 16 KiB. Failed transfer keeps the original loans and workspace;
+closing them neither repeats the Store read nor acknowledges a durable commit.
+
 An allocation is retired before cleanup. Readers must acknowledge physical stop
 before their exact borrow is returned. Failed stop or cleanup retains the same
 handle and allocation for retry. The pool's reservation is settled only after all
 allocations are released. Closing a pool blocks further admission immediately.
+
+## Durable SDK Run observations
+
+Fresh Local acceptance issues the existing observation counter/key marker in the
+same submitted ready row as its original Run admission. The accepted Run/control
+revision remains separate. Historical marker absence remains unavailable; it is
+never interpreted as a new zero counter during lookup or restoration.
+
+The Wasm SDK observation port uses the original complete stored publication,
+current Run-read authority and current Sealed payload/reader bindings. The
+retention Owner independently selects availability. These observations create no
+Result-read grant or delivery attempt. The lower publication observation port
+continues to report unknown availability when those independent facts are absent.
+
+The existing RunState observation Owner derives the semantic key and bounded
+revision from the same retained submitted row. A changed fact proposes one
+metadata CAS; a clock-only reobservation reuses the exact saved original. The
+physical Host validates the prior row inside the fenced transaction and rereads
+the exact committed successor before exposing public wire. A lost response keeps
+the same input/output for lookup and cleanup; it never repeats that write or
+dispatches the Run. Parent close remains BUSY during an active state callback.
+Saved-row confirmation, the final original Run guard and response transfer share
+the same entered physical journal snapshot. Leaving that snapshot does not make
+its normal current guard usable later; a refused guard retains the same output
+and cleanup duty without exposing the candidate response.
+
+Private scalar ABI 75 adds the SDK observation preparation, prior-row validation
+and saved-row confirmation entrances. Their generated declarations and compiled
+module must agree. The Client wire and journal formats retain their existing 0.1
+contracts, including legacy absent bytes in the generic row encoder.
 
 ## Instance-private Wasm facade
 
@@ -1830,6 +1868,17 @@ SQLite/parser workspace and other concurrently retained inputs still require
 their existing separate reservations. This port's finite collector allowance
 is not a claim of complete global memory accounting.
 
+The ordinary installed Host separately selects at most 16,384 namespace or
+publication queries per inspected transaction. This work ceiling includes
+repeated exact reads and end probes; it does not increase the Store's 1,024
+persisted-row capacity, 1 MiB row bound or 8 MiB cumulative-copy bound. The Core
+may validate the same saved original at several stages of one observation, so
+persisted row count is not a bound on that operation's query work. The existing
+outer operation fuel remains independent. Exhaustion latches the same failed
+transaction and refuses CAS; there is no budget refill, reopened inspection or
+resend within it. Private callers that omit the work selection retain the old
+query ceiling equal to their configured row count.
+
 The first connected profile validates Effect-free, checkpoint-free saved rows
 and a completely observed empty cancellation inventory. Missing custody is not
 initialized. Nonempty cancellation, checkpoint or Effect-original paths are
@@ -1842,8 +1891,9 @@ and Submission revisions. Preparing and unresolved history remain distinct.
 Successful private inspection is neither a COMMIT acknowledgement nor dispatch,
 physical-start, retry, publication, Result-read or resource-release authority.
 Store ACK, the public Local Client, restoration and externally installed wheel
-acceptance remain separate required product connections. Default 100M fuel and
-existing capacity bounds are unchanged. Earlier private ABI modules are refused
+acceptance remain separate required product connections. The raw diagnostic
+retains its 100M lifetime fuel; the ordinary Host uses the operation policy below.
+Existing capacity bounds are unchanged. Earlier private ABI modules are refused
 by the loader and installed manifest; no repository/Node/CLI fallback exists.
 
 ## First-adoption bootstrap metadata
@@ -1864,7 +1914,8 @@ borrow is returned; failure keeps the same handle for explicit cleanup retry.
 The trusted installed Host uses this metadata only for explicit first adoption.
 Reopen, attach and resume restore the saved originals and never regenerate their
 policy, expiry or identity from current defaults. Installed component selection
-remains lazy, exact-cohort and exact-ABI. Default 100M fuel, existing capacity
+remains lazy, exact-cohort and exact-ABI. The raw diagnostic retains its 100M
+lifetime fuel; ordinary operations use the policy below. Existing capacity
 bounds and independent public Local/wheel/Store-ACK acceptance are unchanged.
 
 Saved originals are read through the existing `LocalFileRoot` physical Owner.
@@ -1942,8 +1993,9 @@ two fixed CIDs, bounded by that serialized input's size plus 256 bytes. Separate
 holding covers both 262KiB raw-row copies. Full close succeeds at output cleanup
 before returning the original input borrow; failure retains the same ticket and
 parent. No global memory, full Host adoption, public Local, runtime/wheel or
-Store-ACK completion follows from this component connection. The default 100M
-fuel and original Root limits are unchanged.
+Store-ACK completion follows from this component connection. Raw diagnostic
+100M lifetime fuel and original Root limits are unchanged; ordinary Host fuel
+follows the operation policy below.
 
 Private ABI51 adds `actql_run_install_current_configuration` for product
 assembly. It uses the original live `actql_current_*` material and only the
@@ -2355,6 +2407,126 @@ is no initialization-record close that could acknowledge process-global Runtime
 storage on Engine deletion or arena retirement. That storage remains the
 existing process/runtime Owner's responsibility through actual process stop.
 
+### Original interpreter startup input service
+
+The Python Host's selected initial input service binds the actual CPython
+3.12.12 interpreter and its RAW, MEM and OBJ allocator callbacks and contexts.
+It observes those original services without replacing an allocator or calling
+raw allocation/free callbacks on Python objects. The selected filesystem codec
+is UTF-8 with surrogateescape. Same-process, original-thread, interpreter,
+build and allocator correspondence is checked before and after the bounded
+state-directory encoding. The exact str receiver uses its immutable builtin
+UTF-8/surrogateescape encoding primitive, not an ambient replaceable filesystem
+helper. Exact text is retained alongside its encoded bytes;
+PathLike callbacks and unbounded input copies are not part of this entrance.
+
+An attempted copy is not retried after failure. The same error retains the
+input carrier. Retiring this bounded input only spends that carrier; retained
+byte aliases, interpreter pools, shared modules and process-lived controls do
+not acquire a physical retirement acknowledgment or reusable byte credit.
+These controls remain separate from backed Native/worker/VM resources and
+execution delegation. Initial input service admission cannot authorize cohort
+discovery, loader work or a worker when their complete original supply and
+import/binding overlap are absent. The ordinary Host factory retains the same
+initial carrier on that unavailable outcome.
+
+The public Local method establishes this input original before importing the
+Local Host assembly. Its lightweight funding-error port does not import the
+concrete Core or distribution readers. The factory adopts the same captured
+input once, without recopying or constructing another baseline. A foreign input
+or repeated adoption refuses. A partial Host import retains its original cause
+on that carrier and spends normal preparation; cleanup-only input retirement
+does not acknowledge shared module or interpreter-pool retirement. This orders
+the initial-input-to-Host-assembly edge, not the whole public SDK import prelude
+or the separate Native/worker supplier.
+
+### Python initial Native managed entrance
+
+The selected Python Runtime initializer checks the same entrance's actual
+managed original before invoking its emitted Moon initializer. Missing,
+partial or restored supply refuses without consuming the Runtime attempt.
+Runtime current also retains that physical-current condition; a successful
+initializer cannot detach from its original allocator lifetime. This private
+check issues neither an initial platform original nor Worker capacity. The
+unselected Runtime initializer retains its existing behavior.
+
+The Python purpose uses a distinct opaque initial-platform original in the
+existing Bootstrap Owner. It cannot consume or reinterpret the Native command
+original. Its typed entrance reuses the same pinned MI217 physical mapping,
+metadata registration, exclusive payload, default selection and partial-return
+implementation. The selection reader must confirm the same actual interpreter,
+process, original thread, component/recipe and initial generation before the
+physical entrance observes allocator state. A later Host adopts that lifetime;
+it does not issue another baseline or reservation.
+
+Automatic allocator or Moon initialization must not precede this entrance. The
+private Python runtime derivation changes only the exact pinned object's one MI
+constructor registration into ordinary private data, preserving its instructions,
+symbols, relocations and TLS. Its selected link must reject remaining static
+initializers. The physical entrance also refuses an already initialized MI
+object before mapping; an empty arena inventory alone cannot make it fresh.
+The original command/toolchain object and explicit diagnostic interfaces retain
+their existing initialization meaning.
+
+The mapping and its metadata, alignment, options, default and partial state
+remain with that original. Restoring the previous default does not retire the
+mapping, registration, escaped allocations or process lifetime, and cannot fund
+another Host. This mechanism supplies no loader/prelude coverage by itself.
+Actual outside-arena initial services and their complete simultaneous envelope
+must precede load; the interpreter input service, worker, VM and business
+admissions remain separate. A type declaration or diagnostic finite selection
+does not supply a missing ordinary operational original.
+
+The private Python component's explicit entry captures its actual interpreter
+and Python thread identities, original process/thread, and all three allocator
+callback sets. It retains one static attempted/partial carrier before MI
+mapping and registration. Its finite supplied initial-control facility has no
+caller capacity arguments; exhaustion is not permission to grow or reissue it.
+Normal current rechecks that same interpreter/thread generation, callbacks,
+loader conditions and physical managed original. Foreign/copy/fork observations
+cannot acquire or restore the original. Cleanup of the original partial attempt
+does not depend on its failed normal-current view.
+
+Only the explicitly selected Python producer variant compiles this entrance
+and fences the Runtime initializer. It derives the exact pinned MI object,
+requires a constructor-free link, and permits only its closed CPython imports
+to resolve from the selected interpreter. Other unresolved imports remain link
+errors. The source/recipe identities and original compiler inputs stay bound
+to that component. Loading or compiling this variant does not cover the
+preceding loader/prelude, complete outside-arena startup, or Worker/VM demand;
+the ordinary factory still needs those separate actual suppliers.
+
+Python binds this selected entrance through a separately generated closed ABI,
+without requiring its symbols on the older diagnostic component. Its startup
+caller retains the same interpreter preparation, library and persistent output
+slot. All error/slot storage precedes acquisition. Reply loss never repeats
+begin; only restoration of the published same original can be attempted.
+Duplicate refusal grants no custody of the first receiver's original. A new
+reentrant refusal cannot be masked by an outer success, including during
+cleanup, while cleanup after an earlier failure remains available.
+
+Retiring bounded startup-input DATA does not retire or recreate its interpreter
+service. The Native caller retains that same service and its callbacks until
+its own separate lifetime ends. Default restoration, input retirement and
+mapping/module/process retirement have distinct meanings and carriers.
+
+### Bounded private worker selections
+
+The installed worker preparation ports accept exact path text, rather than
+caller-provided Path or PathLike behavior. Each selected path has a nonempty
+4096-character pre-copy ceiling and the existing 4096-byte filesystem-encoding
+ceiling. Only admitted text is converted to an internal Path. The original
+executable, link correspondence, file identity and digest checks still precede
+spawn; accepting path text does not acquire a file or issue worker funding.
+
+The selected environment has at most four entries, restricted to LANG, LC_ALL,
+LC_CTYPE and TMPDIR without duplicates. Value length is checked before UTF-8
+copying, followed by the existing 4096-byte limit. Invalid selections refuse
+before consuming the slot or creating process descriptors. Missing original
+funding continues to refuse before selection processing. These bounds constrain
+startup DATA; they neither reserve interpreter heap nor acknowledge any process,
+domain, descriptor or runtime retirement.
+
 The private compiler transport projects the same domain's material before
 process preparation. The original Native Owner then binds the live child
 frame, channel and captured backing descriptor; the material alone cannot
@@ -2470,3 +2642,110 @@ selected. The separate trusted control envelope remains explicit; this does
 not assert that all Python/loader/OS allocations are paid from the arena.
 The final producer and ordinary Local factory keep their existing physical
 and normal-supplier refusals until those independent owners are complete.
+
+### Ordinary Python Host resources
+
+The ordinary Host follows the trusted platform boundary. Its public factory
+loads the integrity-checked installed Core and actually acquires the selected
+Config, Engine, Store, linear memory, File roots and durable byte Store. Missing
+or inconsistent installed components still refuse; there is no raw-module,
+Remote or diagnostic-resource fallback. Allocation failure is a real failure,
+and partial acquisition retains the same cleanup carrier.
+
+The existing Resource Ledger accounts for managed work, transfer/copy bytes,
+retained bytes and concurrent holdings. Those limits are not a Native extent,
+reserved CPython heap, worker delegation or hard RSS guarantee. Shared modules
+and allocator caches remain platform-owned. Any selected native arena, worker
+or zero-copy buffer still requires its actual original acquisition and release;
+these ordinary limits cannot satisfy an imported-VM or worker-funding port.
+
+The default logical Root permits 512 MiB of retained values and 576 MiB of
+execution allowance. The existing Local Compute configuration quotes a
+512 MiB execution ceiling and at least 200,000,000 retained bytes even for a
+single Values task. The additional 64 MiB of execution allowance keeps Core,
+transfer and setup reservations concurrent on that same Root. Transfer remains
+bounded to 64 MiB, including the selected 12 MiB pool; planning work is one
+million and attempts and holdings are each limited to 4096. These are finite
+admission ceilings, not a reservation of platform memory or a guarantee that
+every valid Program fits. Actual allocation failure and an insufficient Root
+still refuse through their existing Owners, without replacing the Root,
+discarding retained users or retrying an uncertain operation.
+
+Normal initialization does not consume the private CPython initial-preparation
+carrier or require an exact patch build, allocator callback census, prior
+imports or a one-shot process history. That explicit private mechanism retains
+its original lifetime for callers that selected it. The normal factory copies
+the documented trusted state-directory option, including PathLike, once before
+component acquisition and preserves its spelling and encoded path bound.
+Reopen uses the existing durable installation validation, locks and saved Run
+originals; it neither recreates missing authority nor retries uncertain work.
+
+The ordinary image recipe explicitly selects `runtime_allocation: "platform"`
+and the existing pinned Wasmtime dependency. Its provider fields are absent
+originals, represented by null, rather than a fabricated Native holding or a
+zero-capacity provider. Source/module/ABI, target, Engine settings, exact native
+library and compiled-image hashes remain bound together. A mismatching image
+is refused; it does not trigger JIT compilation or another runtime at load.
+
+The existing maintainer compiler may prepare that ordinary image using actual
+platform Config/pool/Engine/Module handles. It closes those handles and does
+not create a Wasm instance, business permission or worker funding. Packaging
+binds the artifact digest into the matching SDK wheel and retains the declared
+Wasmtime dependency. It does not ship an unused private runtime, import an
+unused Host-capacity declaration or claim installed execution from compilation.
+The original arena-backed recipe, private provider-link checks and strong
+same-image physical verifier remain distinct and unchanged in meaning.
+
+The ordinary factory supplies 128 transfer descriptors, counting both live
+slots and concurrent borrowers. Setup, saved Run observations and the original
+Result reader can coexist in that finite allowance; the transfer pool remains
+12 MiB. This is a managed descriptor limit, not a byte reservation or an
+all-history fit guarantee. Exhaustion refuses without replacing the pool or
+discarding a borrower. Retirement still requires the original stop and cleanup
+acknowledgments. Explicit diagnostic factory limits remain independent.
+
+### Ordinary Host operation fuel
+
+The ordinary installed factory uses a finite 1,000,000,000-instruction fuel
+allowance for initialization and bootstrap together. Each subsequent admitted
+outer Host operation has a finite 16,000,000,000-instruction allowance so that
+bounded preparation, saved-original validation and admission share one budget.
+Initialization does not receive a second budget
+when the same factory begins bootstrap. These are runtime execution ceilings,
+not capacity reservations, permission or a guarantee that every input fits.
+The prior single 100M lifetime allowance does not cover ordinary initialization
+of the complete packaged contracts. The raw diagnostic retains that original
+lifetime policy; its evidence does not establish ordinary operation acceptance.
+
+The serialized Host boundary installs fuel before new work only. Every private
+ABI call, callback and nested phase shares that operation's remaining fuel.
+Each already bounded Result delivery advance is an admitted phase: accepting
+the previous chunk, checking current state and offering the next chunk share
+one allowance. Backpressure does not keep an operation active between advances.
+Run work, rows, calls, transfer, retained values and durable history remain
+cumulative under their existing Owners; fresh instruction fuel resets none of
+them. The Engine and compiled-image configuration still consumes fuel and its
+identity is unchanged by this runtime policy.
+
+An exhausted operation fails once and fences further normal Core work. It is
+not refueled, retried, recreated or resent. Explicit same-original cleanup has
+an independent finite 100,000,000-instruction allowance per outer close attempt.
+Nested cleanup shares the current allowance, including when cleanup occurs
+inside an active normal operation. Cleanup may only execute existing close
+methods and cannot revive normal work, issue authority, acknowledge uncertain
+COMMIT or infer release. Failed or pending cleanup retains its original handles
+and carrier. A later explicit close attempt remains cleanup-only and preserves
+all actual child, alias, FD, Store, Engine and parent acknowledgement boundaries.
+
+Ordinary Result capture and commit preparation advance at most 256 existing
+Owner work units per Host yield. The same current and authorization checks
+still surround every advance, and the original cumulative work, workspace and
+instruction ceilings remain in force. Batching reduces repeated transport and
+current-check overhead; it neither refreshes fuel nor retries a failed phase.
+
+Once original installation files and the four metadata outputs are validated
+through the same Host binding, the consumed bootstrap output and its input are
+closed through their original Core loans before later Run transfers begin.
+This returns only their transfer allowance. Saved files, metadata originals,
+the Store, current fences and actual physical owners remain retained. A refused
+close keeps the same partial installation and cannot trigger another bootstrap.

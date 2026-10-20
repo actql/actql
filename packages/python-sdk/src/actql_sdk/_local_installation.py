@@ -206,14 +206,17 @@ class OriginalLocalInstallation:
                 if native_store is not None:
                     store = native_store.open(core, self._path / 'state' / 'client.sqlite3',
                         state, new_file=db_file, max_records=1024,
-                        max_record_bytes=1048576, max_payload_bytes=8388608)
+                        max_record_bytes=1048576, max_payload_bytes=8388608,
+                        max_inspection_queries=16384)
                 elif fresh:
                     assert db_file is not None
                     store = LocalByteStore.initialize_owned_file(self._path / 'state' / 'client.sqlite3',
-                        state, db_file, max_records=1024, max_record_bytes=1048576, max_payload_bytes=8388608)
+                        state, db_file, max_records=1024, max_record_bytes=1048576,
+                        max_payload_bytes=8388608, max_inspection_queries=16384)
                 else:
                     store = LocalByteStore(self._path / 'state' / 'client.sqlite3',
-                        max_records=1024, max_record_bytes=1048576, max_payload_bytes=8388608)
+                        max_records=1024, max_record_bytes=1048576,
+                        max_payload_bytes=8388608, max_inspection_queries=16384)
                 self._store = store
                 self._observe_roots()
                 initial_rows: tuple[ByteWrite, ...] = ()
@@ -248,6 +251,18 @@ class OriginalLocalInstallation:
                     self._binding = failure.cleanup_binding
                     raise
                 self._binding.inspect(lambda _: None)
+                if fresh:
+                    # The same saved files and four original metadata outputs
+                    # now own the installation. Retire only the consumed
+                    # bootstrap transport before later Run transfers overlap it.
+                    closed = (core.close_sdk_bootstrap(bootstrap) if sdk_finite
+                              else core.close_bootstrap(bootstrap))
+                    if not closed:
+                        raise ValueError('Original bootstrap transfer cleanup remains pending')
+                    self._outputs.remove(('bootstrap_sdk' if sdk_finite else 'bootstrap', bootstrap))
+                    if not core.close_input(packet_input):
+                        raise ValueError('Original bootstrap input cleanup remains pending')
+                    self._inputs.remove(packet_input)
         except BaseException as failure:
             if isinstance(failure, LocalStorageInitializationError):
                 self._store = failure.cleanup_store

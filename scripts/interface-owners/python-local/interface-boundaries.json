@@ -4860,7 +4860,8 @@
             "_compiled_image",
             "_host_capacity_bytes",
             "_physical_holding",
-            "_child_control"
+            "_child_control",
+            "_ordinary_host"
           ]
         },
         {
@@ -4887,6 +4888,13 @@
           "parameters": [
             "self",
             "ticket"
+          ]
+        },
+        {
+          "async": false,
+          "name": "LocalCore/_close_core",
+          "parameters": [
+            "self"
           ]
         },
         {
@@ -4918,7 +4926,15 @@
             "slots",
             "_host_capacity_bytes",
             "_physical_holding",
-            "_child_control"
+            "_child_control",
+            "_ordinary_host"
+          ]
+        },
+        {
+          "async": false,
+          "name": "LocalCore/_host_cleanup",
+          "parameters": [
+            "self"
           ]
         },
         {
@@ -4936,6 +4952,14 @@
           "parameters": [
             "self",
             "value"
+          ]
+        },
+        {
+          "async": false,
+          "name": "LocalCore/_host_operation",
+          "parameters": [
+            "self",
+            "initial"
           ]
         },
         {
@@ -5161,6 +5185,16 @@
             "self",
             "value",
             "current_configuration"
+          ]
+        },
+        {
+          "async": false,
+          "name": "LocalCore/_publication_sdk_run_state_step",
+          "parameters": [
+            "self",
+            "value",
+            "current_configuration",
+            "operation"
           ]
         },
         {
@@ -5769,6 +5803,15 @@
         },
         {
           "async": false,
+          "name": "LocalCore/confirm_publication_sdk_run_state",
+          "parameters": [
+            "self",
+            "value",
+            "current_configuration"
+          ]
+        },
+        {
+          "async": false,
           "name": "LocalCore/confirm_sdk_publication_binding",
           "parameters": [
             "self",
@@ -6301,6 +6344,17 @@
             "current_configuration",
             "ordinal",
             "field"
+          ]
+        },
+        {
+          "async": false,
+          "name": "LocalCore/produce_publication_sdk_run_state",
+          "parameters": [
+            "self",
+            "value",
+            "original_run",
+            "source",
+            "current_configuration"
           ]
         },
         {
@@ -7132,6 +7186,15 @@
         },
         {
           "async": false,
+          "name": "LocalCore/validate_publication_sdk_run_state",
+          "parameters": [
+            "self",
+            "value",
+            "current_configuration"
+          ]
+        },
+        {
+          "async": false,
           "name": "LocalCore/validate_sdk_publication_binding",
           "parameters": [
             "self",
@@ -7311,7 +7374,7 @@
           ]
         }
       ],
-      "sha256": "457ae5b958534fe864560004691fb7dc7d3a3976608c8a478dff343e51c1bdb7",
+      "sha256": "aecc298cfcc9e026093cf43f3610f7795ec77cda8e27f65ae242f772ea310ff2",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -7322,11 +7385,14 @@
             "LocalCore/_call",
             "LocalCore/_check",
             "LocalCore/_cleanup",
+            "LocalCore/_close_core",
             "LocalCore/_close_output",
             "LocalCore/_dispose",
             "LocalCore/_from_installed_image",
+            "LocalCore/_host_cleanup",
             "LocalCore/_host_current_call",
             "LocalCore/_host_current_ready",
+            "LocalCore/_host_operation",
             "LocalCore/_journal_begin",
             "LocalCore/_journal_byte",
             "LocalCore/_journal_callbacks",
@@ -8163,6 +8229,14 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Instance-private Wasm facade"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Ordinary Python Host resources"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Ordinary Host operation fuel"
               }
             ],
             "inputsOutputs": [
@@ -8749,6 +8823,14 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Instance-private Wasm facade"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "def _state_directory_option("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The serialized Host boundary installs fuel before new work only."
               }
             ],
             "identity": [
@@ -8763,6 +8845,14 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "Handles are never serialized Client references"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "Reopen uses the existing durable installation validation, locks and saved Run"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The prior single 100M lifetime allowance does not cover ordinary initialization"
               }
             ],
             "ownership": [
@@ -8777,6 +8867,14 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "Failed stop or cleanup retains the same"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "these ordinary limits cannot satisfy an imported-VM or worker-funding port."
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "and carrier. A later explicit close attempt remains cleanup-only and preserves"
               }
             ],
             "synchronization": [
@@ -8787,6 +8885,14 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
                 "anchor": "class LocalCore:"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "Capture the documented trusted PathLike once before acquisition."
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "ABI call, callback and nested phase shares that operation's remaining fuel."
               }
             ],
             "failure": [
@@ -8801,6 +8907,14 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Interrupted physical bridge calls"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "or inconsistent installed components still refuse; there is no raw-module,"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "An exhausted operation fails once and fences further normal Core work. It is"
               }
             ],
             "cancellation": [
@@ -8811,6 +8925,14 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
                 "anchor": "class LocalCore:"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_public_factory.py",
+                "anchor": "def test_pending_constructor_keeps_cleanup_only_client_without_profile_io("
+              },
+              {
+                "path": "scripts/test_python_local_host_fuel.py",
+                "anchor": "def test_cancellation_does_not_ack_or_replenish_the_interrupted_scope("
               }
             ],
             "resources": [
@@ -8825,6 +8947,14 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Transfer custody"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "Managed work/copy allowances, not reserved heap or a hard RSS ceiling."
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "outer Host operation has a finite 16,000,000,000-instruction allowance"
               }
             ],
             "extension": [
@@ -8835,6 +8965,14 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
                 "anchor": "class LocalCore:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "its original lifetime for callers that selected it."
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "lifetime policy; its evidence does not establish ordinary operation acceptance."
               }
             ],
             "verification": [
@@ -8853,6 +8991,14 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
                 "anchor": "class LocalCore:"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_public_factory.py",
+                "anchor": "def test_normal_engine_allocation_failure_does_not_create_store_or_fallback("
+              },
+              {
+                "path": "scripts/test_python_local_host_fuel.py",
+                "anchor": "def test_actual_exhaustion_fences_normal_work_and_allows_only_separate_cleanup("
               }
             ]
           }
@@ -11634,6 +11780,133 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "LocalCore/_publication_sdk_run_state_step",
+            "LocalCore/confirm_publication_sdk_run_state",
+            "LocalCore/produce_publication_sdk_run_state",
+            "LocalCore/validate_publication_sdk_run_state"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Durable SDK Run observations"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
+                "anchor": "    def produce_publication_sdk_run_state("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Durable SDK Run observations"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
+                "anchor": "    def produce_publication_sdk_run_state("
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Durable SDK Run observations"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
+                "anchor": "    def produce_publication_sdk_run_state("
+              },
+              {
+                "path": "src/run_publication_host/client_saved_run_state_update.mbt",
+                "anchor": "pub fn prepare_client_saved_run_state_update("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Durable SDK Run observations"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
+                "anchor": "    def produce_publication_sdk_run_state("
+              },
+              {
+                "path": "src/client_host_wasm/sdk_run_state.mbt",
+                "anchor": "pub fn produce_publication_sdk_run_state("
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Durable SDK Run observations"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
+                "anchor": "    def produce_publication_sdk_run_state("
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Durable SDK Run observations"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
+                "anchor": "    def produce_publication_sdk_run_state("
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "        lost response permits same-output lookup, never another write or Run."
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Durable SDK Run observations"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
+                "anchor": "    def produce_publication_sdk_run_state("
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Durable SDK Run observations"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
+                "anchor": "    def produce_publication_sdk_run_state("
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Durable SDK Run observations"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_core.py",
+                "anchor": "    def produce_publication_sdk_run_state("
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Durable SDK Run observations"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_sdk_run_state_store.py",
+                "anchor": "class SDKRunStateStoreTests("
+              },
+              {
+                "path": "src/client_local_run/sdk_run_state_update_wbtest.mbt",
+                "anchor": "fn sdk_state_snapshot("
+              }
+            ]
+          }
         }
       ]
     },
@@ -12463,6 +12736,7 @@
         "Any",
         "DUCKDB_VERSION",
         "LOCAL_CORE_ABI",
+        "LocalComponentReadCleanupPending",
         "LocalComponents",
         "LocalInstallationError",
         "Path",
@@ -12485,8 +12759,9 @@
         "sys"
       ],
       "imports": [
-        "._local_core",
         "._local_image_recipe",
+        "._local_wasm_abi",
+        "._local_worker_slot",
         "__future__",
         "dataclasses",
         "hashlib",
@@ -12503,6 +12778,19 @@
       "module": "packages/python-sdk/src/actql_sdk/_local_distribution.py",
       "responsibilityFacet": "primary",
       "operations": [
+        {
+          "async": false,
+          "name": "LocalComponentReadCleanupPending",
+          "parameters": []
+        },
+        {
+          "async": false,
+          "name": "LocalComponentReadCleanupPending/__init__",
+          "parameters": [
+            "self",
+            "descriptor"
+          ]
+        },
         {
           "async": false,
           "name": "LocalComponents",
@@ -12588,7 +12876,7 @@
           ]
         }
       ],
-      "sha256": "670b4c29bb2597f9085926324bf82449105928ec4aafb231de0d13c24833f006",
+      "sha256": "08f246d8ae61fa23f2cd414ee29f9bf3fae07988a6a89ab5c869f34611c16256",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -13516,6 +13804,22 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_distribution.py",
                 "anchor": "def _read_file(path: Path, *, maximum: int, expected: int | None = None,"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_distribution.py",
+                "anchor": "def test_installed_reader_keeps_fd_custody_without_buffered_handoff("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_distribution.py",
+                "anchor": "def test_input_construction_failure_closes_the_same_actual_fd("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_distribution.py",
+                "anchor": "def test_input_close_loss_keeps_original_and_never_closes_reused_number("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_distribution.py",
+                "anchor": "def test_input_primary_and_unconfirmed_close_retain_both_original_causes("
               }
             ]
           }
@@ -13802,6 +14106,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Execution boundary"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The ordinary image recipe explicitly selects"
               }
             ],
             "inputsOutputs": [
@@ -13812,6 +14120,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Execution boundary"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_image_recipe.py",
+                "anchor": "runtime_allocation: str = 'native-owned'"
               }
             ],
             "identity": [
@@ -13826,6 +14138,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "Handles are never serialized Client references"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "and compiled-image hashes remain bound together."
               }
             ],
             "ownership": [
@@ -13840,6 +14156,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "Failed stop or cleanup retains the same"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "and the existing pinned Wasmtime dependency."
               }
             ],
             "synchronization": [
@@ -13850,6 +14170,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_distribution.py",
                 "anchor": "def installed_local_components() -> LocalComponents:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The existing maintainer compiler may prepare that ordinary image using actual"
               }
             ],
             "failure": [
@@ -13864,6 +14188,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Interrupted physical bridge calls"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "is refused; it does not trigger JIT compilation or another runtime at load."
               }
             ],
             "cancellation": [
@@ -13874,6 +14202,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_distribution.py",
                 "anchor": "def installed_local_components() -> LocalComponents:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "platform Config/pool/Engine/Module handles. It closes those handles and does"
               }
             ],
             "resources": [
@@ -13888,6 +14220,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Transfer custody"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "zero-capacity provider. Source/module/ABI, target, Engine settings, exact native"
               }
             ],
             "extension": [
@@ -13898,6 +14234,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_distribution.py",
                 "anchor": "def installed_local_components() -> LocalComponents:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "same-image physical verifier remain distinct and unchanged in meaning."
               }
             ],
             "verification": [
@@ -13916,6 +14256,14 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_distribution.py",
                 "anchor": "def installed_local_components() -> LocalComponents:"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_image_recipe.py",
+                "anchor": "def test_platform_and_owned_image_descriptors_are_not_interchangeable("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_distribution.py",
+                "anchor": "def test_platform_binding_requires_same_recipe_without_a_fabricated_capacity("
               }
             ]
           }
@@ -14171,6 +14519,153 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_distribution.py",
                 "anchor": "\"\"\"Installed component integrity; no admission, policy or execution permission.\"\"\""
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "LocalComponentReadCleanupPending",
+            "LocalComponentReadCleanupPending/__init__"
+          ],
+          "exports": [
+            "LocalComponentReadCleanupPending"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_distribution.py",
+                "anchor": "class LocalComponentReadCleanupPending(LocalInstallationError):"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Execution boundary"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_distribution.py",
+                "anchor": "class LocalComponentReadCleanupPending(LocalInstallationError):"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Execution boundary"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Execution boundary"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_distribution.py",
+                "anchor": "class LocalComponentReadCleanupPending(LocalInstallationError):"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "Handles are never serialized Client references"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Execution boundary"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_distribution.py",
+                "anchor": "class LocalComponentReadCleanupPending(LocalInstallationError):"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "Failed stop or cleanup retains the same"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Execution boundary"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_distribution.py",
+                "anchor": "class LocalComponentReadCleanupPending(LocalInstallationError):"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Execution boundary"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_distribution.py",
+                "anchor": "class LocalComponentReadCleanupPending(LocalInstallationError):"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Interrupted physical bridge calls"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Execution boundary"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_distribution.py",
+                "anchor": "class LocalComponentReadCleanupPending(LocalInstallationError):"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Execution boundary"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_distribution.py",
+                "anchor": "class LocalComponentReadCleanupPending(LocalInstallationError):"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Transfer custody"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Execution boundary"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_distribution.py",
+                "anchor": "class LocalComponentReadCleanupPending(LocalInstallationError):"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/python-sdk/tests/test_local_artifact_producer.py",
+                "anchor": "def test_fixed_originals_copy_and_stage_through_existing_recipe_without_engine_loading("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_capacity_original.py",
+                "anchor": "def test_exact_original_bytes_and_existing_six_field_projection("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_distribution.py",
+                "anchor": "def test_exact_installed_component_paths_without_engine_import("
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_distribution.py",
+                "anchor": "class LocalComponentReadCleanupPending(LocalInstallationError):"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_distribution.py",
+                "anchor": "def test_input_close_loss_keeps_original_and_never_closes_reused_number("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_distribution.py",
+                "anchor": "def test_input_primary_and_unconfirmed_close_retain_both_original_causes("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_public_factory.py",
+                "anchor": "def test_public_factory_keeps_original_component_fd_cleanup_failure("
               }
             ]
           }
@@ -17701,8 +18196,7 @@
         "dataclass",
         "hashlib",
         "json",
-        "metadata",
-        "resources"
+        "metadata"
       ],
       "imports": [
         "._local_distribution",
@@ -17764,6 +18258,13 @@
         },
         {
           "async": false,
+          "name": "_platform_runtime_library",
+          "parameters": [
+            "recipe"
+          ]
+        },
+        {
+          "async": false,
           "name": "_selected_engine_settings",
           "parameters": [
             "recipe"
@@ -17805,7 +18306,7 @@
           ]
         }
       ],
-      "sha256": "29f14d0692bfb5b3b6d09053c5d2a6539e22d4c6e3d27c8b7cacbf22f885f286",
+      "sha256": "9e7d5eee280d393dbd02be53f2d877af64af232c82f498b3cb52402c5b289c6b",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -18471,7 +18972,8 @@
         },
         {
           "operations": [
-            "_installed_runtime_library"
+            "_installed_runtime_library",
+            "_platform_runtime_library"
           ],
           "exports": [],
           "attributes": {
@@ -18483,6 +18985,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Exact Native capture into Compute"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The ordinary image recipe explicitly selects"
               }
             ],
             "inputsOutputs": [
@@ -18493,6 +18999,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Exact Native capture into Compute"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_image_recipe.py",
+                "anchor": "runtime_allocation: str = 'native-owned'"
               }
             ],
             "identity": [
@@ -18507,6 +19017,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "Handles are never serialized Client references"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "and compiled-image hashes remain bound together."
               }
             ],
             "ownership": [
@@ -18521,6 +19035,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "Failed stop or cleanup retains the same"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "and the existing pinned Wasmtime dependency."
               }
             ],
             "synchronization": [
@@ -18531,6 +19049,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_engine.py",
                 "anchor": "def _installed_runtime_library(components: LocalComponents, *, native: bool = False) -> Path:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The existing maintainer compiler may prepare that ordinary image using actual"
               }
             ],
             "failure": [
@@ -18545,6 +19067,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Interrupted physical bridge calls"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "is refused; it does not trigger JIT compilation or another runtime at load."
               }
             ],
             "cancellation": [
@@ -18555,6 +19081,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_engine.py",
                 "anchor": "def _installed_runtime_library(components: LocalComponents, *, native: bool = False) -> Path:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "platform Config/pool/Engine/Module handles. It closes those handles and does"
               }
             ],
             "resources": [
@@ -18569,6 +19099,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Transfer custody"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "zero-capacity provider. Source/module/ABI, target, Engine settings, exact native"
               }
             ],
             "extension": [
@@ -18579,6 +19113,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_engine.py",
                 "anchor": "def _installed_runtime_library(components: LocalComponents, *, native: bool = False) -> Path:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "same-image physical verifier remain distinct and unchanged in meaning."
               }
             ],
             "verification": [
@@ -18597,6 +19135,18 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_engine.py",
                 "anchor": "def _installed_runtime_library(components: LocalComponents, *, native: bool = False) -> Path:"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_image_recipe.py",
+                "anchor": "def test_platform_and_owned_image_descriptors_are_not_interchangeable("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_distribution.py",
+                "anchor": "def test_platform_binding_requires_same_recipe_without_a_fabricated_capacity("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_installed_image.py",
+                "anchor": "def test_platform_library_integrity_precedes_importing_its_package("
               }
             ]
           }
@@ -19148,8 +19698,7 @@
             "dataclass",
             "hashlib",
             "json",
-            "metadata",
-            "resources"
+            "metadata"
           ],
           "attributes": {
             "responsibility": [
@@ -22772,7 +23321,7 @@
           ]
         }
       ],
-      "sha256": "9ef7147a66bb2f22c4b098c4a413db07dcf66e9a89777ccb94b8639599312ef5",
+      "sha256": "9498c6b78abc1d3bf2fcb08afcd53be08f304ad71f2daf0b8295fe53434b3021",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -23907,8 +24456,8 @@
         "json"
       ],
       "imports": [
-        "._local_core",
         "._local_distribution",
+        "._local_wasm_abi",
         "__future__",
         "dataclasses",
         "hashlib",
@@ -23923,6 +24472,13 @@
           "async": false,
           "name": "_SelectedImageRecipe",
           "parameters": []
+        },
+        {
+          "async": false,
+          "name": "_SelectedImageRecipe/owned_provider",
+          "parameters": [
+            "self"
+          ]
         },
         {
           "async": false,
@@ -23959,14 +24515,15 @@
           ]
         }
       ],
-      "sha256": "d9d53854f0129eb17238f6cdbb02ed0197ed46a95939086fed5e5579a6f3a2c3",
+      "sha256": "4e3d1f1a6e15c66944a7c95ec8293b0ae1b6117169dcd974177729e3c4ee6119",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
         {
           "operations": [
             "_SelectedImageRecipe",
-            "_SelectedImageRecipe/validate"
+            "_SelectedImageRecipe/validate",
+            "_SelectedImageRecipe/owned_provider"
           ],
           "exports": [],
           "attributes": {
@@ -23978,6 +24535,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Execution boundary"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The ordinary image recipe explicitly selects"
               }
             ],
             "inputsOutputs": [
@@ -23988,6 +24549,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Execution boundary"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_image_recipe.py",
+                "anchor": "runtime_allocation: str = 'native-owned'"
               }
             ],
             "identity": [
@@ -24002,6 +24567,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "Handles are never serialized Client references"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "and compiled-image hashes remain bound together."
               }
             ],
             "ownership": [
@@ -24016,6 +24585,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "Failed stop or cleanup retains the same"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "and the existing pinned Wasmtime dependency."
               }
             ],
             "synchronization": [
@@ -24026,6 +24599,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_image_recipe.py",
                 "anchor": "class _SelectedImageRecipe:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The existing maintainer compiler may prepare that ordinary image using actual"
               }
             ],
             "failure": [
@@ -24040,6 +24617,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Interrupted physical bridge calls"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "is refused; it does not trigger JIT compilation or another runtime at load."
               }
             ],
             "cancellation": [
@@ -24050,6 +24631,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_image_recipe.py",
                 "anchor": "class _SelectedImageRecipe:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "platform Config/pool/Engine/Module handles. It closes those handles and does"
               }
             ],
             "resources": [
@@ -24064,6 +24649,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Transfer custody"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "zero-capacity provider. Source/module/ABI, target, Engine settings, exact native"
               }
             ],
             "extension": [
@@ -24074,6 +24663,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_image_recipe.py",
                 "anchor": "class _SelectedImageRecipe:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "same-image physical verifier remain distinct and unchanged in meaning."
               }
             ],
             "verification": [
@@ -24092,6 +24685,14 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_image_recipe.py",
                 "anchor": "class _SelectedImageRecipe:"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_image_recipe.py",
+                "anchor": "def test_platform_and_owned_image_descriptors_are_not_interchangeable("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_distribution.py",
+                "anchor": "def test_platform_binding_requires_same_recipe_without_a_fabricated_capacity("
               }
             ]
           }
@@ -24803,7 +25404,7 @@
           ]
         }
       ],
-      "sha256": "fd8f5b23a92a9c13219001cd0174f923da6e741738bb4fe4ac95f997cbac8b69",
+      "sha256": "df7fc1f17d156747b85217b870745295de4e17daab42286fe544bd8b6788e629",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -25775,7 +26376,8 @@
           "async": false,
           "name": "_OriginalBackingCustody/_enter",
           "parameters": [
-            "self"
+            "self",
+            "require_initial"
           ]
         },
         {
@@ -25856,7 +26458,7 @@
           "parameters": []
         }
       ],
-      "sha256": "f9e7076523b4b6d4bd8910e9face589f921b5fa3c6eadeadddac92981e206c2f",
+      "sha256": "218f9a5b7dad3ab2b520790f3e295029e91f43fda2602714698cedac25d3c407",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -25913,6 +26515,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Transfer custody"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_backing_custody.py",
+                "anchor": "require_initial: bool = False"
               }
             ],
             "identity": [
@@ -25927,6 +26533,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "Handles are never serialized Client references"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_control_custody.py",
+                "anchor": "self._python_initial_original.require_control_current()"
               }
             ],
             "ownership": [
@@ -25951,6 +26561,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_native_backing_custody.py",
                 "anchor": "class _OriginalBackingCustody:"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_control_custody.py",
+                "anchor": "Keep the Host exclusion while observing this same Runtime."
               }
             ],
             "failure": [
@@ -25965,6 +26579,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Interrupted physical bridge calls"
+              },
+              {
+                "path": "docs/design/native-local-host-binding.md",
+                "anchor": "Leaving an already entered scope and returning the stopped original loan"
               }
             ],
             "cancellation": [
@@ -25989,6 +26607,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Transfer custody"
+              },
+              {
+                "path": "docs/design/native-local-host-binding.md",
+                "anchor": "The same Python-specific initial currentness also precedes original backing"
               }
             ],
             "extension": [
@@ -26017,6 +26639,18 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_native_backing_custody.py",
                 "anchor": "class _OriginalBackingCustody:"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_native_backing_custody.py",
+                "anchor": "test_python_initial_refusal_precedes_original_backing_borrow"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_native_backing_custody.py",
+                "anchor": "test_python_initial_refusal_blocks_backing_use_but_not_original_return"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_native_backing_custody.py",
+                "anchor": "test_python_initial_refusal_keeps_entered_scope_leave_and_same_return"
               }
             ]
           }
@@ -26596,6 +27230,7 @@
         "Any",
         "NoReturn",
         "POINTER",
+        "TYPE_CHECKING",
         "Thread",
         "annotations",
         "bind_native",
@@ -26610,6 +27245,7 @@
         "getpid"
       ],
       "imports": [
+        "._local_native_initial_custody",
         "._local_native_shim_abi",
         "._local_worker_slot",
         "__future__",
@@ -26623,75 +27259,77 @@
       "responsibilityFacet": "primary",
       "operations": [
         {
+          "async": false,
           "name": "_OriginalArenaFact",
-          "parameters": [],
-          "async": false
+          "parameters": []
         },
         {
+          "async": false,
           "name": "_OriginalControlCustody",
-          "parameters": [],
-          "async": false
+          "parameters": []
         },
         {
+          "async": false,
           "name": "_OriginalControlCustody/__copy__",
           "parameters": [
             "self"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "_OriginalControlCustody/__deepcopy__",
           "parameters": [
             "self",
             "memo"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "_OriginalControlCustody/__reduce__",
           "parameters": [
             "self"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "_OriginalControlCustody/_drop",
           "parameters": [
             "self",
             "slot"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "_OriginalControlCustody/_empty_original",
           "parameters": [
             "cls",
             "functions"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "_OriginalControlCustody/_enter",
           "parameters": [
-            "self"
-          ],
-          "async": false
+            "self",
+            "require_initial"
+          ]
         },
         {
+          "async": false,
           "name": "_OriginalControlCustody/_fact",
           "parameters": [
             "self"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "_OriginalControlCustody/_mark_unknown",
           "parameters": [
             "self"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "_OriginalControlCustody/_prepare_original",
           "parameters": [
             "cls",
@@ -26706,76 +27344,76 @@
             "transfer",
             "retained",
             "execution",
-            "envelope"
-          ],
-          "async": false
+            "envelope",
+            "_python_initial"
+          ]
         },
         {
+          "async": false,
           "name": "_OriginalControlCustody/_take_original_reply",
           "parameters": [
             "cls",
             "functions",
             "owning_reply"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "_OriginalControlCustody/acquire_fd",
           "parameters": [
             "self",
             "descriptor"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "_OriginalControlCustody/close",
           "parameters": [
             "self"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "_OriginalControlCustody/current",
           "parameters": [
             "self"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "_OriginalControlError",
-          "parameters": [],
-          "async": false
+          "parameters": []
         },
         {
+          "async": false,
           "name": "_OriginalControlError/__init__",
           "parameters": [
             "self",
             "host",
             "unknown",
             "fact"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "_OriginalControlFunctions",
-          "parameters": [],
-          "async": false
+          "parameters": []
         },
         {
+          "async": false,
           "name": "_OriginalControlFunctions/__init__",
           "parameters": [
             "self",
             "library"
-          ],
-          "async": false
+          ]
         },
         {
+          "async": false,
           "name": "_new_control_slots",
-          "parameters": [],
-          "async": false
+          "parameters": []
         }
       ],
-      "sha256": "9e140b34327ea6b7bd297e1bcd58d6aacb4fc76716d95e0d68843a86eae0b5d6",
+      "sha256": "a271e57f4e1000fb371ae1baf425f19344dbd159a09360fc18b76978d849be83",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -26988,6 +27626,14 @@
               {
                 "path": "packages/python-local-runtime/native/pre-root/README.md",
                 "anchor": "## Private compiler parent assembly"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_control_custody.py",
+                "anchor": "_python_initial: _OriginalPythonNativeInitial | None = None"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_control_custody.py",
+                "anchor": "require_initial: bool = False"
               }
             ],
             "identity": [
@@ -27006,6 +27652,10 @@
               {
                 "path": "packages/python-local-runtime/native/pre-root/README.md",
                 "anchor": "## Private compiler parent assembly"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_control_custody.py",
+                "anchor": "self._python_initial_original.require_control_current()"
               }
             ],
             "ownership": [
@@ -27024,6 +27674,10 @@
               {
                 "path": "packages/python-local-runtime/native/pre-root/README.md",
                 "anchor": "## Private compiler parent assembly"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_control_custody.py",
+                "anchor": "host._python_initial_original = _python_initial"
               }
             ],
             "synchronization": [
@@ -27038,6 +27692,10 @@
               {
                 "path": "packages/python-local-runtime/native/pre-root/README.md",
                 "anchor": "## Private compiler parent assembly"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_control_custody.py",
+                "anchor": "Keep the Host exclusion while observing this same Runtime."
               }
             ],
             "failure": [
@@ -27056,6 +27714,10 @@
               {
                 "path": "packages/python-local-runtime/native/pre-root/README.md",
                 "anchor": "## Private compiler parent assembly"
+              },
+              {
+                "path": "docs/design/native-local-host-binding.md",
+                "anchor": "Leaving an already entered scope and returning the stopped original loan"
               }
             ],
             "cancellation": [
@@ -27088,6 +27750,14 @@
               {
                 "path": "packages/python-local-runtime/native/pre-root/README.md",
                 "anchor": "## Private compiler parent assembly"
+              },
+              {
+                "path": "docs/design/native-local-host-binding.md",
+                "anchor": "Declared Host limits still"
+              },
+              {
+                "path": "docs/design/native-local-host-binding.md",
+                "anchor": "The same Python-specific initial currentness also precedes original backing"
               }
             ],
             "extension": [
@@ -27132,6 +27802,22 @@
               {
                 "path": "scripts/fixtures/python-native-compiler-parent.py",
                 "anchor": "parent=compiler._acquire_compiler_parent(value,selected,fd)"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_native_control_custody.py",
+                "anchor": "test_python_host_keeps_initial_until_both_original_host_references_close"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_native_backing_custody.py",
+                "anchor": "test_python_initial_refusal_precedes_original_backing_borrow"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_native_backing_custody.py",
+                "anchor": "test_python_initial_refusal_blocks_backing_use_but_not_original_return"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_native_backing_custody.py",
+                "anchor": "test_python_initial_refusal_keeps_entered_scope_leave_and_same_return"
               }
             ]
           }
@@ -27601,7 +28287,8 @@
             "c_void_p",
             "current_thread",
             "dataclass",
-            "getpid"
+            "getpid",
+            "TYPE_CHECKING"
           ],
           "attributes": {
             "responsibility": [
@@ -37087,7 +37774,7 @@
           ]
         }
       ],
-      "sha256": "eb2fd291e8a52104b0414c3144b3b8d03cc39540c1242e2cc273efafb7bde053",
+      "sha256": "e2c0dc88932d3f03fdbf9b7b8a1a844edaf68d3725c0d714e0e37af929fd6e1c",
       "role": "generated-binding",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -41606,6 +42293,7 @@
             "max_records",
             "max_record_bytes",
             "max_payload_bytes",
+            "max_inspection_queries",
             "new_file"
           ]
         },
@@ -41629,11 +42317,12 @@
             "max_records",
             "max_record_bytes",
             "max_payload_bytes",
+            "max_inspection_queries",
             "new_file"
           ]
         }
       ],
-      "sha256": "3fba45121d47bc7dd772f57a6af261182b5d439959f39282a68861ff52779c98",
+      "sha256": "3bf59ffc4aaa5970873ab3305efd33d8070ee3b62830c4cee7042c108019bbdd",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -43750,7 +44439,7 @@
           ]
         }
       ],
-      "sha256": "de676540610e12b993ad830e46166bf97d88e6161ff05027356fb4c95e4d1d2b",
+      "sha256": "2671a4a68eef83abebc7e6724e8ab644f788f67a7684c2240f517a9e637117ea",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -44834,6 +45523,7 @@
         "SDKPayloadReaderCleanupPending",
         "SDKReadEvidenceCleanupPending",
         "StoredBytes",
+        "TYPE_CHECKING",
         "TypeVar",
         "annotations",
         "content_cid",
@@ -44852,11 +45542,11 @@
       ],
       "imports": [
         ".",
-        "._local_capacity_original",
         "._local_commit_projection",
         "._local_core",
         "._local_distribution",
         "._local_files",
+        "._local_initial_preparation",
         "._local_installation",
         "._local_native_store",
         "._local_observation_transfer",
@@ -45072,6 +45762,13 @@
         },
         {
           "async": false,
+          "name": "InstalledLocalHost/_close_originals",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
           "name": "InstalledLocalHost/_close_projection",
           "parameters": [
             "self",
@@ -45232,6 +45929,15 @@
           "parameters": [
             "self",
             "held"
+          ]
+        },
+        {
+          "async": true,
+          "name": "InstalledLocalHost/_open_operation",
+          "parameters": [
+            "self",
+            "operation",
+            "body"
           ]
         },
         {
@@ -45486,6 +46192,20 @@
         },
         {
           "async": false,
+          "name": "InstalledLocalHost/_profile",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
+          "name": "InstalledLocalHost/_profile/original_scope",
+          "parameters": [
+            "current"
+          ]
+        },
+        {
+          "async": false,
           "name": "InstalledLocalHost/_project_epoch",
           "parameters": [
             "self",
@@ -45527,6 +46247,37 @@
             "projection",
             "request",
             "consume"
+          ]
+        },
+        {
+          "async": false,
+          "name": "InstalledLocalHost/_project_original_sdk_run_state",
+          "parameters": [
+            "self",
+            "run",
+            "projection",
+            "consume"
+          ]
+        },
+        {
+          "async": false,
+          "name": "InstalledLocalHost/_project_original_sdk_run_state/confirm_and_consume",
+          "parameters": [
+            "_"
+          ]
+        },
+        {
+          "async": false,
+          "name": "InstalledLocalHost/_project_original_sdk_run_state/inspect",
+          "parameters": [
+            "reader"
+          ]
+        },
+        {
+          "async": false,
+          "name": "InstalledLocalHost/_project_original_sdk_run_state/inspect/validate",
+          "parameters": [
+            "_"
           ]
         },
         {
@@ -45764,7 +46515,9 @@
           "name": "InstalledLocalHost/installed",
           "parameters": [
             "cls",
-            "resources"
+            "state_dir",
+            "resources",
+            "_initial_preparation"
           ]
         },
         {
@@ -45781,13 +46534,6 @@
           "name": "InstalledLocalHost/profile",
           "parameters": [
             "self"
-          ]
-        },
-        {
-          "async": false,
-          "name": "InstalledLocalHost/profile/original_scope",
-          "parameters": [
-            "current"
           ]
         },
         {
@@ -45815,11 +46561,35 @@
         },
         {
           "async": false,
+          "name": "_RunStateCustody",
+          "parameters": []
+        },
+        {
+          "async": false,
           "name": "_default_directory",
           "parameters": []
+        },
+        {
+          "async": false,
+          "name": "_ordinary_core_limits",
+          "parameters": []
+        },
+        {
+          "async": false,
+          "name": "_private_state_directory",
+          "parameters": [
+            "directory"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_state_directory_option",
+          "parameters": [
+            "value"
+          ]
         }
       ],
-      "sha256": "f9f81f80ba504469e12e9cb13e3e027cba5c92b0c44eeba7cf7e6c7ed5a36ef0",
+      "sha256": "1e395cf3d334c46ca1488a7856136f5deb71bfe2414282fd6cfe3755577113a7",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -45848,6 +46618,7 @@
             "InstalledLocalHost/_bind_original_publication/produce",
             "InstalledLocalHost/_capture_original_results",
             "InstalledLocalHost/_close_original_allocation_child",
+            "InstalledLocalHost/_close_originals",
             "InstalledLocalHost/_close_projection",
             "InstalledLocalHost/_commit_original_run_rows",
             "InstalledLocalHost/_commit_original_run_rows/inspect",
@@ -45869,6 +46640,7 @@
             "InstalledLocalHost/_observe_original_payload_transition",
             "InstalledLocalHost/_observe_original_payload_transition/consume",
             "InstalledLocalHost/_observe_original_payload_writing",
+            "InstalledLocalHost/_open_operation",
             "InstalledLocalHost/_open_original_payload_area",
             "InstalledLocalHost/_open_original_payload_reader",
             "InstalledLocalHost/_open_original_payload_reader/acquire",
@@ -45899,6 +46671,8 @@
             "InstalledLocalHost/_prepare_original_publication/authorize",
             "InstalledLocalHost/_prepare_original_publication/current",
             "InstalledLocalHost/_prepare_original_store_observation",
+            "InstalledLocalHost/_profile",
+            "InstalledLocalHost/_profile/original_scope",
             "InstalledLocalHost/_project_epoch",
             "InstalledLocalHost/_project_epoch/project",
             "InstalledLocalHost/_project_original_observed_index",
@@ -45937,7 +46711,8 @@
             "InstalledLocalHost/installed",
             "InstalledLocalHost/open",
             "InstalledLocalHost/profile",
-            "InstalledLocalHost/profile/original_scope"
+            "_ordinary_core_limits",
+            "_state_directory_option"
           ],
           "exports": [
             "InstalledLocalHost"
@@ -45951,6 +46726,18 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Original execution Owner restoration"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Original interpreter startup input service"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Ordinary Python Host resources"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Ordinary Host operation fuel"
               }
             ],
             "inputsOutputs": [
@@ -45961,6 +46748,18 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Original execution Owner restoration"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Original interpreter startup input service"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "def _state_directory_option("
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The serialized Host boundary installs fuel before new work only."
               }
             ],
             "identity": [
@@ -45975,6 +46774,18 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "Handles are never serialized Client references"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Original interpreter startup input service"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "Reopen uses the existing durable installation validation, locks and saved Run"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The prior single 100M lifetime allowance does not cover ordinary initialization"
               }
             ],
             "ownership": [
@@ -45989,6 +46800,18 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "Failed stop or cleanup retains the same"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Original interpreter startup input service"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "these ordinary limits cannot satisfy an imported-VM or worker-funding port."
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "and carrier. A later explicit close attempt remains cleanup-only and preserves"
               }
             ],
             "synchronization": [
@@ -45999,6 +46822,18 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
                 "anchor": "class InstalledLocalHost:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Original interpreter startup input service"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "Capture the documented trusted PathLike once before acquisition."
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "ABI call, callback and nested phase shares that operation's remaining fuel."
               }
             ],
             "failure": [
@@ -46013,6 +46848,18 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Interrupted physical bridge calls"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Original interpreter startup input service"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "or inconsistent installed components still refuse; there is no raw-module,"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "An exhausted operation fails once and fences further normal Core work. It is"
               }
             ],
             "cancellation": [
@@ -46023,6 +46870,18 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
                 "anchor": "class InstalledLocalHost:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Original interpreter startup input service"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_public_factory.py",
+                "anchor": "def test_pending_constructor_keeps_cleanup_only_client_without_profile_io("
+              },
+              {
+                "path": "scripts/test_python_local_host_fuel.py",
+                "anchor": "def test_cancellation_does_not_ack_or_replenish_the_interrupted_scope("
               }
             ],
             "resources": [
@@ -46037,6 +46896,18 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Transfer custody"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Original interpreter startup input service"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "Managed work/copy allowances, not reserved heap or a hard RSS ceiling."
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "outer Host operation has a finite 16,000,000,000-instruction allowance"
               }
             ],
             "extension": [
@@ -46047,6 +46918,18 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
                 "anchor": "class InstalledLocalHost:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Original interpreter startup input service"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "its original lifetime for callers that selected it."
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "lifetime policy; its evidence does not establish ordinary operation acceptance."
               }
             ],
             "verification": [
@@ -46065,6 +46948,18 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
                 "anchor": "class InstalledLocalHost:"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_initial_preparation.py",
+                "anchor": "def test_ordinary_factory_does_not_require_the_private_initial_carrier("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_public_factory.py",
+                "anchor": "def test_normal_engine_allocation_failure_does_not_create_store_or_fallback("
+              },
+              {
+                "path": "scripts/test_python_local_host_fuel.py",
+                "anchor": "def test_actual_exhaustion_fences_normal_work_and_allows_only_separate_cleanup("
               }
             ]
           }
@@ -46470,7 +47365,8 @@
         },
         {
           "operations": [
-            "_default_directory"
+            "_default_directory",
+            "_private_state_directory"
           ],
           "exports": [],
           "attributes": {
@@ -46644,6 +47540,7 @@
             "SDKPayloadReaderCleanupPending",
             "SDKReadEvidenceCleanupPending",
             "StoredBytes",
+            "TYPE_CHECKING",
             "TypeVar",
             "annotations",
             "content_cid",
@@ -46753,6 +47650,134 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
                 "anchor": "\"\"\"Installed Local assembly over the original Core/File/Store Owners."
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "InstalledLocalHost/_project_original_sdk_run_state",
+            "InstalledLocalHost/_project_original_sdk_run_state/inspect",
+            "InstalledLocalHost/_project_original_sdk_run_state/inspect/validate",
+            "_RunStateCustody",
+            "InstalledLocalHost/_project_original_sdk_run_state/confirm_and_consume"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Durable SDK Run observations"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "    def _project_original_sdk_run_state("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Durable SDK Run observations"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "    def _project_original_sdk_run_state("
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Durable SDK Run observations"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "    def _project_original_sdk_run_state("
+              },
+              {
+                "path": "src/run_publication_host/client_saved_run_state_update.mbt",
+                "anchor": "pub fn prepare_client_saved_run_state_update("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Durable SDK Run observations"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "    def _project_original_sdk_run_state("
+              },
+              {
+                "path": "src/client_host_wasm/sdk_run_state.mbt",
+                "anchor": "pub fn produce_publication_sdk_run_state("
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Durable SDK Run observations"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "    def _project_original_sdk_run_state("
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Durable SDK Run observations"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "    def _project_original_sdk_run_state("
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "        lost response permits same-output lookup, never another write or Run."
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Durable SDK Run observations"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "    def _project_original_sdk_run_state("
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Durable SDK Run observations"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "    def _project_original_sdk_run_state("
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Durable SDK Run observations"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_product.py",
+                "anchor": "    def _project_original_sdk_run_state("
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "## Durable SDK Run observations"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_sdk_run_state_store.py",
+                "anchor": "class SDKRunStateStoreTests("
+              },
+              {
+                "path": "src/client_local_run/sdk_run_state_update_wbtest.mbt",
+                "anchor": "fn sdk_state_snapshot("
               }
             ]
           }
@@ -47191,6 +48216,13 @@
         },
         {
           "async": false,
+          "name": "OriginalLocalResponseStream/_close_original",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
           "name": "OriginalLocalResponseStream/_nominal",
           "parameters": [
             "self"
@@ -47204,7 +48236,7 @@
           ]
         }
       ],
-      "sha256": "048171c90309c13dea215a64ca74a3f82daa450eaa739a9a8cd556685cd8aa1d",
+      "sha256": "a0b792770534a7384b0d037222fa8c6e22ae61f9f9c00c9e9e33bb706374cfce",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -47342,6 +48374,7 @@
             "OriginalLocalResponseStream/__init__",
             "OriginalLocalResponseStream/_chunks",
             "OriginalLocalResponseStream/_close",
+            "OriginalLocalResponseStream/_close_original",
             "OriginalLocalResponseStream/_nominal",
             "OriginalLocalResponseStream/aclose"
           ],
@@ -47357,6 +48390,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Transfer custody"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Ordinary Host operation fuel"
               }
             ],
             "inputsOutputs": [
@@ -47367,6 +48404,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Transfer custody"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The serialized Host boundary installs fuel before new work only."
               }
             ],
             "identity": [
@@ -47381,6 +48422,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "Handles are never serialized Client references"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The prior single 100M lifetime allowance does not cover ordinary initialization"
               }
             ],
             "ownership": [
@@ -47395,6 +48440,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "Failed stop or cleanup retains the same"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "and carrier. A later explicit close attempt remains cleanup-only and preserves"
               }
             ],
             "synchronization": [
@@ -47405,6 +48454,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_response.py",
                 "anchor": "class OriginalLocalResponseStream(httpx.AsyncByteStream):"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "ABI call, callback and nested phase shares that operation's remaining fuel."
               }
             ],
             "failure": [
@@ -47419,6 +48472,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Interrupted physical bridge calls"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "An exhausted operation fails once and fences further normal Core work. It is"
               }
             ],
             "cancellation": [
@@ -47429,6 +48486,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_response.py",
                 "anchor": "class OriginalLocalResponseStream(httpx.AsyncByteStream):"
+              },
+              {
+                "path": "scripts/test_python_local_host_fuel.py",
+                "anchor": "def test_cancellation_does_not_ack_or_replenish_the_interrupted_scope("
               }
             ],
             "resources": [
@@ -47443,6 +48504,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Transfer custody"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "outer Host operation has a finite 16,000,000,000-instruction allowance"
               }
             ],
             "extension": [
@@ -47453,6 +48518,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_response.py",
                 "anchor": "class OriginalLocalResponseStream(httpx.AsyncByteStream):"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "lifetime policy; its evidence does not establish ordinary operation acceptance."
               }
             ],
             "verification": [
@@ -47463,6 +48532,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_response.py",
                 "anchor": "class OriginalLocalResponseStream(httpx.AsyncByteStream):"
+              },
+              {
+                "path": "scripts/test_python_local_host_fuel.py",
+                "anchor": "def test_actual_exhaustion_fences_normal_work_and_allows_only_separate_cleanup("
               }
             ]
           }
@@ -50998,6 +52071,13 @@
         },
         {
           "async": false,
+          "name": "OriginalLocalSDKResponseStream/_close_original",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
           "name": "OriginalLocalSDKResponseStream/_new_clock",
           "parameters": [
             "self"
@@ -51012,13 +52092,20 @@
         },
         {
           "async": true,
+          "name": "OriginalLocalSDKResponseStream/_original_chunks",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": true,
           "name": "OriginalLocalSDKResponseStream/aclose",
           "parameters": [
             "self"
           ]
         }
       ],
-      "sha256": "7ce1c19e8bcc91b8cf436fcbf721db3d198218204a518408cf18f38eee21e448",
+      "sha256": "85af88ae20f9e356f110962f76ddec9f99b1700b6a3dfb4b51b21e327c770162",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -51157,8 +52244,10 @@
             "OriginalLocalSDKResponseStream/_chunks",
             "OriginalLocalSDKResponseStream/_close",
             "OriginalLocalSDKResponseStream/_close_clock",
+            "OriginalLocalSDKResponseStream/_close_original",
             "OriginalLocalSDKResponseStream/_new_clock",
             "OriginalLocalSDKResponseStream/_nominal",
+            "OriginalLocalSDKResponseStream/_original_chunks",
             "OriginalLocalSDKResponseStream/aclose"
           ],
           "exports": [
@@ -51173,6 +52262,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Original Sealed Result binding transport"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Ordinary Host operation fuel"
               }
             ],
             "inputsOutputs": [
@@ -51183,6 +52276,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Original Sealed Result binding transport"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The serialized Host boundary installs fuel before new work only."
               }
             ],
             "identity": [
@@ -51197,6 +52294,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "Handles are never serialized Client references"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "The prior single 100M lifetime allowance does not cover ordinary initialization"
               }
             ],
             "ownership": [
@@ -51211,6 +52312,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "Failed stop or cleanup retains the same"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "and carrier. A later explicit close attempt remains cleanup-only and preserves"
               }
             ],
             "synchronization": [
@@ -51221,6 +52326,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_sdk_response.py",
                 "anchor": "class OriginalLocalSDKResponseStream(httpx.AsyncByteStream):"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "ABI call, callback and nested phase shares that operation's remaining fuel."
               }
             ],
             "failure": [
@@ -51235,6 +52344,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Interrupted physical bridge calls"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "An exhausted operation fails once and fences further normal Core work. It is"
               }
             ],
             "cancellation": [
@@ -51245,6 +52358,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_sdk_response.py",
                 "anchor": "class OriginalLocalSDKResponseStream(httpx.AsyncByteStream):"
+              },
+              {
+                "path": "scripts/test_python_local_host_fuel.py",
+                "anchor": "def test_cancellation_does_not_ack_or_replenish_the_interrupted_scope("
               }
             ],
             "resources": [
@@ -51259,6 +52376,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Transfer custody"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "outer Host operation has a finite 16,000,000,000-instruction allowance"
               }
             ],
             "extension": [
@@ -51269,6 +52390,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_sdk_response.py",
                 "anchor": "class OriginalLocalSDKResponseStream(httpx.AsyncByteStream):"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "lifetime policy; its evidence does not establish ordinary operation acceptance."
               }
             ],
             "verification": [
@@ -51279,6 +52404,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_sdk_response.py",
                 "anchor": "class OriginalLocalSDKResponseStream(httpx.AsyncByteStream):"
+              },
+              {
+                "path": "scripts/test_python_local_host_fuel.py",
+                "anchor": "def test_actual_exhaustion_fences_normal_work_and_allows_only_separate_cleanup("
               }
             ]
           }
@@ -52471,6 +53600,7 @@
             "max_records",
             "max_record_bytes",
             "max_payload_bytes",
+            "max_inspection_queries",
             "_new_file"
           ]
         },
@@ -52654,7 +53784,8 @@
             "path",
             "max_records",
             "max_record_bytes",
-            "max_payload_bytes"
+            "max_payload_bytes",
+            "max_inspection_queries"
           ]
         },
         {
@@ -52914,7 +54045,8 @@
             "original",
             "max_records",
             "max_record_bytes",
-            "max_payload_bytes"
+            "max_payload_bytes",
+            "max_inspection_queries"
           ]
         },
         {
@@ -53182,7 +54314,7 @@
           "parameters": []
         }
       ],
-      "sha256": "15ce9b4427e52c44d307676f10b93841df96ad0434b93ae0e3773cf269e10a2d",
+      "sha256": "0e66f067d0cca8e5c16801317b3512dc63539937c2fef9b3cf7be94351d6920f",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -56389,7 +57521,7 @@
       "module": "packages/python-sdk/src/actql_sdk/_local_wasm_abi.py",
       "responsibilityFacet": "primary",
       "operations": [],
-      "sha256": "c4172da04ea7fa634051b0fc45a0c567cc6947668661652297992098b2304359",
+      "sha256": "131a81617db08610d4a293e233cee71cc6b041af50d9012e0f00928a15893de6",
       "role": "generated-binding",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -59793,6 +60925,7 @@
         "LocalWorkerFundingPending",
         "LocalWorkerFundingUnavailable",
         "OriginalWorkerFunding",
+        "TYPE_CHECKING",
         "abstractmethod",
         "annotations"
       ],
@@ -59823,6 +60956,15 @@
           "async": false,
           "name": "LocalWorkerFundingUnavailable",
           "parameters": []
+        },
+        {
+          "async": false,
+          "name": "LocalWorkerFundingUnavailable/__init__",
+          "parameters": [
+            "self",
+            "message",
+            "cleanup_preparation"
+          ]
         },
         {
           "async": false,
@@ -60043,7 +61185,7 @@
           ]
         }
       ],
-      "sha256": "38482c62825a7f92c2086a9ffb2762c7349be739ca695775e9237ad559af006c",
+      "sha256": "1c4d25a0e4fbe8c79e01e74f2442f966cbfdebedbbed3271d63564b809d50e1a",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -60173,7 +61315,7 @@
               },
               {
                 "path": "packages/python-sdk/tests/test_local_public_factory.py",
-                "anchor": "def test_unadopted_capacity_refuses_before_module_capture_vm_directory_or_fallback("
+                "anchor": "def test_normal_engine_allocation_failure_does_not_create_store_or_fallback("
               },
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_worker_funding.py",
@@ -60184,7 +61326,8 @@
         },
         {
           "operations": [
-            "LocalWorkerFundingUnavailable"
+            "LocalWorkerFundingUnavailable",
+            "LocalWorkerFundingUnavailable/__init__"
           ],
           "exports": [
             "LocalWorkerFundingUnavailable"
@@ -60198,6 +61341,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Managed task custody"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Original interpreter startup input service"
               }
             ],
             "inputsOutputs": [
@@ -60208,6 +61355,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Managed task custody"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Original interpreter startup input service"
               }
             ],
             "identity": [
@@ -60222,6 +61373,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "Handles are never serialized Client references"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Original interpreter startup input service"
               }
             ],
             "ownership": [
@@ -60236,6 +61391,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "Failed stop or cleanup retains the same"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Original interpreter startup input service"
               }
             ],
             "synchronization": [
@@ -60246,6 +61405,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_worker_funding.py",
                 "anchor": "class LocalWorkerFundingUnavailable(RuntimeError):"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Original interpreter startup input service"
               }
             ],
             "failure": [
@@ -60260,6 +61423,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Interrupted physical bridge calls"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Original interpreter startup input service"
               }
             ],
             "cancellation": [
@@ -60270,6 +61437,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_worker_funding.py",
                 "anchor": "class LocalWorkerFundingUnavailable(RuntimeError):"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Original interpreter startup input service"
               }
             ],
             "resources": [
@@ -60284,6 +61455,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Transfer custody"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Original interpreter startup input service"
               }
             ],
             "extension": [
@@ -60294,6 +61469,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_worker_funding.py",
                 "anchor": "class LocalWorkerFundingUnavailable(RuntimeError):"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Original interpreter startup input service"
               }
             ],
             "verification": [
@@ -60307,11 +61486,15 @@
               },
               {
                 "path": "packages/python-sdk/tests/test_local_public_factory.py",
-                "anchor": "def test_unadopted_capacity_refuses_before_module_capture_vm_directory_or_fallback("
+                "anchor": "def test_normal_engine_allocation_failure_does_not_create_store_or_fallback("
               },
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_worker_funding.py",
                 "anchor": "class LocalWorkerFundingUnavailable(RuntimeError):"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_initial_preparation.py",
+                "anchor": "def test_ordinary_factory_does_not_require_the_private_initial_carrier("
               }
             ]
           }
@@ -60452,7 +61635,7 @@
               },
               {
                 "path": "packages/python-sdk/tests/test_local_public_factory.py",
-                "anchor": "def test_unadopted_capacity_refuses_before_module_capture_vm_directory_or_fallback("
+                "anchor": "def test_normal_engine_allocation_failure_does_not_create_store_or_fallback("
               },
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_worker_funding.py",
@@ -60597,7 +61780,7 @@
               },
               {
                 "path": "packages/python-sdk/tests/test_local_public_factory.py",
-                "anchor": "def test_unadopted_capacity_refuses_before_module_capture_vm_directory_or_fallback("
+                "anchor": "def test_normal_engine_allocation_failure_does_not_create_store_or_fallback("
               },
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_worker_funding.py",
@@ -60615,6 +61798,7 @@
             "Any",
             "LocalComponents",
             "LocalCoreResources",
+            "TYPE_CHECKING",
             "abstractmethod",
             "annotations"
           ],
@@ -60706,7 +61890,7 @@
               },
               {
                 "path": "packages/python-sdk/tests/test_local_public_factory.py",
-                "anchor": "def test_unadopted_capacity_refuses_before_module_capture_vm_directory_or_fallback("
+                "anchor": "def test_normal_engine_allocation_failure_does_not_create_store_or_fallback("
               },
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_worker_funding.py",
@@ -61507,7 +62691,7 @@
           ]
         }
       ],
-      "sha256": "9eab3ceccf681be118c4a88baf94bb6a9bcb40b27a5ed6976852446f3acdee9f",
+      "sha256": "2d4b008aacaddb970fd570c12b46f02557d14ed16724123e8d12fe9c57e400cf",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -61685,6 +62869,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Managed task custody"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Bounded private worker selections"
               }
             ],
             "inputsOutputs": [
@@ -61695,6 +62883,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Managed task custody"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Bounded private worker selections"
               }
             ],
             "identity": [
@@ -61709,6 +62901,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "Handles are never serialized Client references"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Bounded private worker selections"
               }
             ],
             "ownership": [
@@ -61723,6 +62919,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "Failed stop or cleanup retains the same"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Bounded private worker selections"
               }
             ],
             "synchronization": [
@@ -61733,6 +62933,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_worker_process.py",
                 "anchor": "class OriginalWorkerProcess:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Bounded private worker selections"
               }
             ],
             "failure": [
@@ -61747,6 +62951,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Interrupted physical bridge calls"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Bounded private worker selections"
               }
             ],
             "cancellation": [
@@ -61757,6 +62965,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_worker_process.py",
                 "anchor": "class OriginalWorkerProcess:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Bounded private worker selections"
               }
             ],
             "resources": [
@@ -61771,6 +62983,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Transfer custody"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Bounded private worker selections"
               }
             ],
             "extension": [
@@ -61781,6 +62997,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_worker_process.py",
                 "anchor": "class OriginalWorkerProcess:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Bounded private worker selections"
               }
             ],
             "verification": [
@@ -61807,6 +63027,10 @@
               {
                 "path": "packages/python-sdk/tests/test_local_worker_process.py",
                 "anchor": "def test_spawn_current_callback_cannot_reenter_original_spawn_or_preparation("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_worker_selection.py",
+                "anchor": "class WorkerSelectionTests(unittest.TestCase):"
               }
             ]
           }
@@ -62230,9 +63454,16 @@
           "parameters": [
             "self"
           ]
+        },
+        {
+          "async": false,
+          "name": "_bounded_original_path_text",
+          "parameters": [
+            "value"
+          ]
         }
       ],
-      "sha256": "a31b574158d48ea93fc3e4406950220a2cd3ad54cfb6530fd079782b4035518b",
+      "sha256": "ab96772fac91a807849a2acbe3ee33b9e29d7299271dc12466f9008aae97d71d",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -62398,6 +63629,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Managed task custody"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Bounded private worker selections"
               }
             ],
             "inputsOutputs": [
@@ -62408,6 +63643,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Managed task custody"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Bounded private worker selections"
               }
             ],
             "identity": [
@@ -62422,6 +63661,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "Handles are never serialized Client references"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Bounded private worker selections"
               }
             ],
             "ownership": [
@@ -62436,6 +63679,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "Failed stop or cleanup retains the same"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Bounded private worker selections"
               }
             ],
             "synchronization": [
@@ -62446,6 +63693,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_worker_slot.py",
                 "anchor": "class OriginalWorkerSlot:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Bounded private worker selections"
               }
             ],
             "failure": [
@@ -62460,6 +63711,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Interrupted physical bridge calls"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Bounded private worker selections"
               }
             ],
             "cancellation": [
@@ -62470,6 +63725,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_worker_slot.py",
                 "anchor": "class OriginalWorkerSlot:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Bounded private worker selections"
               }
             ],
             "resources": [
@@ -62484,6 +63743,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Transfer custody"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Bounded private worker selections"
               }
             ],
             "extension": [
@@ -62494,6 +63757,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_worker_slot.py",
                 "anchor": "class OriginalWorkerSlot:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Bounded private worker selections"
               }
             ],
             "verification": [
@@ -62512,6 +63779,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_worker_slot.py",
                 "anchor": "class OriginalWorkerSlot:"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_worker_selection.py",
+                "anchor": "class WorkerSelectionTests(unittest.TestCase):"
               }
             ]
           }
@@ -62761,6 +64032,118 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_worker_slot.py",
                 "anchor": "\"\"\"Native executor-slot physical primitives for an originally funded worker."
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "_bounded_original_path_text"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Bounded private worker selections"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_worker_slot.py",
+                "anchor": "def _bounded_original_path_text(value: object) -> str:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Bounded private worker selections"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_worker_slot.py",
+                "anchor": "def _bounded_original_path_text(value: object) -> str:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Bounded private worker selections"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_worker_slot.py",
+                "anchor": "def _bounded_original_path_text(value: object) -> str:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Bounded private worker selections"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_worker_slot.py",
+                "anchor": "def _bounded_original_path_text(value: object) -> str:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Bounded private worker selections"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_worker_slot.py",
+                "anchor": "def _bounded_original_path_text(value: object) -> str:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Bounded private worker selections"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_worker_slot.py",
+                "anchor": "def _bounded_original_path_text(value: object) -> str:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Bounded private worker selections"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_worker_slot.py",
+                "anchor": "def _bounded_original_path_text(value: object) -> str:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Bounded private worker selections"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_worker_slot.py",
+                "anchor": "def _bounded_original_path_text(value: object) -> str:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Bounded private worker selections"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_worker_slot.py",
+                "anchor": "def _bounded_original_path_text(value: object) -> str:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/python-sdk/tests/test_local_worker_selection.py",
+                "anchor": "def test_path_objects_cannot_run_callbacks_during_selection("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_worker_selection.py",
+                "anchor": "def test_raw_path_bound_precedes_filesystem_encoding("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_worker_selection.py",
+                "anchor": "def test_encoded_path_boundary_preserves_exact_selected_bytes("
               }
             ]
           }
@@ -64241,6 +65624,830 @@
               {
                 "path": "src/platform_native/installed_arena_control/read_crypto_cleanup_original_wbtest.mbt",
                 "anchor": "test \"Read Crypto cleanup does not turn unclaimed closing or copied carriers into an entered original\""
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "exports": [
+        "NoReturn",
+        "annotations",
+        "ctypes",
+        "current_thread",
+        "os",
+        "sys"
+      ],
+      "imports": [
+        "._local_worker_funding",
+        "__future__",
+        "ctypes",
+        "os",
+        "sys",
+        "threading",
+        "typing"
+      ],
+      "module": "packages/python-sdk/src/actql_sdk/_local_initial_preparation.py",
+      "operations": [
+        {
+          "async": false,
+          "name": "_Allocator",
+          "parameters": []
+        },
+        {
+          "async": false,
+          "name": "_OriginalPythonPreparation",
+          "parameters": []
+        },
+        {
+          "async": false,
+          "name": "_OriginalPythonPreparation/__copy__",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_OriginalPythonPreparation/__deepcopy__",
+          "parameters": [
+            "self",
+            "memo"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_OriginalPythonPreparation/__init__",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_OriginalPythonPreparation/__reduce__",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_OriginalPythonPreparation/adopt_captured_state_dir",
+          "parameters": [
+            "self",
+            "value"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_OriginalPythonPreparation/begin_native_attempt",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_OriginalPythonPreparation/capture_state_dir",
+          "parameters": [
+            "self",
+            "value"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_OriginalPythonPreparation/require_cleanup_service",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_OriginalPythonPreparation/require_current",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_OriginalPythonPreparation/require_service_current",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_OriginalPythonPreparation/retain_import_failure",
+          "parameters": [
+            "self",
+            "failure"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_OriginalPythonPreparation/retire_input",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_PythonPreparationPending",
+          "parameters": []
+        },
+        {
+          "async": false,
+          "name": "_PythonPreparationPending/__init__",
+          "parameters": [
+            "self",
+            "original"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_allocator_snapshot",
+          "parameters": []
+        },
+        {
+          "async": false,
+          "name": "_capture_initial_preparation",
+          "parameters": [
+            "state_dir"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_interpreter",
+          "parameters": []
+        }
+      ],
+      "sha256": "e845e0b64db067c6dbeae7cd687923807f146d11d874095ca27b04304a9a8b30",
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "E / existing Python Host initial preparation and Resource Owners",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "_Allocator",
+            "_OriginalPythonPreparation",
+            "_OriginalPythonPreparation/__copy__",
+            "_OriginalPythonPreparation/__deepcopy__",
+            "_OriginalPythonPreparation/__init__",
+            "_OriginalPythonPreparation/__reduce__",
+            "_OriginalPythonPreparation/adopt_captured_state_dir",
+            "_OriginalPythonPreparation/begin_native_attempt",
+            "_OriginalPythonPreparation/capture_state_dir",
+            "_OriginalPythonPreparation/require_cleanup_service",
+            "_OriginalPythonPreparation/require_current",
+            "_OriginalPythonPreparation/require_service_current",
+            "_OriginalPythonPreparation/retain_import_failure",
+            "_OriginalPythonPreparation/retire_input",
+            "_PythonPreparationPending",
+            "_PythonPreparationPending/__init__",
+            "_allocator_snapshot",
+            "_capture_initial_preparation",
+            "_interpreter"
+          ],
+          "exports": [
+            "NoReturn",
+            "annotations",
+            "ctypes",
+            "current_thread",
+            "os",
+            "sys"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Original interpreter startup input service"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_initial_preparation.py",
+                "anchor": "class _OriginalPythonPreparation:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Original interpreter startup input service"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_initial_preparation.py",
+                "anchor": "class _OriginalPythonPreparation:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Original interpreter startup input service"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_initial_preparation.py",
+                "anchor": "class _OriginalPythonPreparation:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Original interpreter startup input service"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_initial_preparation.py",
+                "anchor": "class _OriginalPythonPreparation:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Original interpreter startup input service"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_initial_preparation.py",
+                "anchor": "class _OriginalPythonPreparation:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Original interpreter startup input service"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_initial_preparation.py",
+                "anchor": "class _OriginalPythonPreparation:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Original interpreter startup input service"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_initial_preparation.py",
+                "anchor": "class _OriginalPythonPreparation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Original interpreter startup input service"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_initial_preparation.py",
+                "anchor": "class _OriginalPythonPreparation:"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "### Original interpreter startup input service"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_initial_preparation.py",
+                "anchor": "class _OriginalPythonPreparation:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/python-sdk/tests/test_local_initial_preparation.py",
+                "anchor": "def test_actual_interpreter_allocator_domains_and_bounded_copy("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_initial_preparation.py",
+                "anchor": "def test_post_copy_failure_keeps_same_original_and_forbids_retry("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_initial_preparation.py",
+                "anchor": "def test_ordinary_factory_does_not_require_the_private_initial_carrier("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_initial_preparation.py",
+                "anchor": "def test_ambient_fsencode_substitution_cannot_change_original_bytes("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_initial_preparation.py",
+                "anchor": "def test_closed_codec_preserves_unicode_surrogateescape_and_byte_boundary("
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "exports": [
+        "Any",
+        "ORIGINS",
+        "PARAMETERS",
+        "POINTER",
+        "SIGNATURES",
+        "bind",
+        "bind_group",
+        "c_bool",
+        "c_double",
+        "c_int",
+        "c_int32",
+        "c_int64",
+        "c_size_t",
+        "c_ubyte",
+        "c_uint16",
+        "c_uint64",
+        "c_void_p"
+      ],
+      "imports": [
+        "ctypes",
+        "typing"
+      ],
+      "module": "packages/python-sdk/src/actql_sdk/_local_native_initial_abi.py",
+      "operations": [
+        {
+          "async": false,
+          "name": "bind",
+          "parameters": [
+            "library",
+            "symbol"
+          ]
+        },
+        {
+          "async": false,
+          "name": "bind_group",
+          "parameters": [
+            "library",
+            "prefix",
+            "names"
+          ]
+        }
+      ],
+      "sha256": "58a3a123275c648febb9fb5b81ad3c5b2b3eebd8c6160161787343407c895cb0",
+      "responsibilityFacet": "primary",
+      "role": "generated-binding",
+      "owner": "E / existing Python Local Host, Native Bootstrap and original Runtime custody Owners",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "bind",
+            "bind_group"
+          ],
+          "exports": [
+            "Any",
+            "ORIGINS",
+            "PARAMETERS",
+            "POINTER",
+            "SIGNATURES",
+            "bind",
+            "bind_group",
+            "c_bool",
+            "c_double",
+            "c_int",
+            "c_int32",
+            "c_int64",
+            "c_size_t",
+            "c_ubyte",
+            "c_uint16",
+            "c_uint64",
+            "c_void_p"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "scripts/generate-local-native-shim-bindings.py",
+                "anchor": "INITIAL_SYMBOLS"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "Python binds this selected entrance through a separately generated closed ABI"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_initial_abi.py",
+                "anchor": "SIGNATURES:"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_initial_abi.py",
+                "anchor": "PARAMETERS ="
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_initial_abi.py",
+                "anchor": "ORIGINS ="
+              },
+              {
+                "path": "src/platform_native/host_bootstrap/python_initial_platform.c",
+                "anchor": "original == &python_original"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "Duplicate refusal grants no custody of the first receiver"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_initial_abi.py",
+                "anchor": "already selected library"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "actual interpreter"
+              },
+              {
+                "path": "src/platform_native/host_bootstrap/python_initial_platform.c",
+                "anchor": "PyGILState_Check"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "All error/slot storage precedes acquisition"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_initial_abi.py",
+                "anchor": "arguments, result = SIGNATURES[symbol]"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "only restoration of the published same original can be attempted"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "This mechanism supplies no loader/prelude coverage by itself"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "worker, VM and business"
+              }
+            ],
+            "extension": [
+              {
+                "path": "scripts/generate-local-native-shim-bindings.py",
+                "anchor": "--python-initial"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "without requiring its symbols on the older diagnostic component"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/python-sdk/tests/test_local_native_initial_custody.py",
+                "anchor": "test_selected_generated_abi_and_default_signature_tables"
+              },
+              {
+                "path": "scripts/interface-generation-freshness.mjs",
+                "anchor": "pythonInitialABI"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "exports": [
+        "Any",
+        "Callable",
+        "NoReturn",
+        "PyDLL",
+        "TYPE_CHECKING",
+        "Thread",
+        "annotations",
+        "bind",
+        "bind_control",
+        "byref",
+        "c_void_p",
+        "current_thread",
+        "getpid"
+      ],
+      "imports": [
+        "._local_initial_preparation",
+        "._local_native_control_custody",
+        "._local_native_initial_abi",
+        "._local_native_shim_abi",
+        "__future__",
+        "ctypes",
+        "os",
+        "threading",
+        "typing"
+      ],
+      "module": "packages/python-sdk/src/actql_sdk/_local_native_initial_custody.py",
+      "operations": [
+        {
+          "async": false,
+          "name": "_OriginalPythonNativeInitial",
+          "parameters": []
+        },
+        {
+          "async": false,
+          "name": "_OriginalPythonNativeInitial/__copy__",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_OriginalPythonNativeInitial/__deepcopy__",
+          "parameters": [
+            "self",
+            "memo"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_OriginalPythonNativeInitial/__reduce__",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_OriginalPythonNativeInitial/_bind_control_host",
+          "parameters": [
+            "self",
+            "host"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_OriginalPythonNativeInitial/_require_receiver",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_OriginalPythonNativeInitial/initialize_control",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_OriginalPythonNativeInitial/prepare",
+          "parameters": [
+            "cls",
+            "initial",
+            "functions"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_OriginalPythonNativeInitial/require_control_current",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_OriginalPythonNativeInitial/require_current",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_OriginalPythonNativeInitial/restore_default",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_PythonNativeInitialFunctions",
+          "parameters": []
+        },
+        {
+          "async": false,
+          "name": "_PythonNativeInitialFunctions/__init__",
+          "parameters": [
+            "self",
+            "library"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_PythonNativeInitialPending",
+          "parameters": []
+        },
+        {
+          "async": false,
+          "name": "_PythonNativeInitialPending/__init__",
+          "parameters": [
+            "self",
+            "original"
+          ]
+        }
+      ],
+      "sha256": "9f1b98eefe1b989af94c536b015517568c007783841e1307474cf0b5a59492db",
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "E / existing Python Local Host, Native Bootstrap and original Runtime custody Owners",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "_OriginalPythonNativeInitial",
+            "_OriginalPythonNativeInitial/__copy__",
+            "_OriginalPythonNativeInitial/__deepcopy__",
+            "_OriginalPythonNativeInitial/__reduce__",
+            "_OriginalPythonNativeInitial/_bind_control_host",
+            "_OriginalPythonNativeInitial/_require_receiver",
+            "_OriginalPythonNativeInitial/initialize_control",
+            "_OriginalPythonNativeInitial/prepare",
+            "_OriginalPythonNativeInitial/require_control_current",
+            "_OriginalPythonNativeInitial/require_current",
+            "_OriginalPythonNativeInitial/restore_default",
+            "_PythonNativeInitialFunctions",
+            "_PythonNativeInitialFunctions/__init__",
+            "_PythonNativeInitialPending",
+            "_PythonNativeInitialPending/__init__"
+          ],
+          "exports": [
+            "Any",
+            "Callable",
+            "NoReturn",
+            "PyDLL",
+            "TYPE_CHECKING",
+            "Thread",
+            "annotations",
+            "bind",
+            "bind_control",
+            "byref",
+            "c_void_p",
+            "current_thread",
+            "getpid"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_initial_custody.py",
+                "anchor": "class _OriginalPythonNativeInitial:"
+              },
+              {
+                "path": "docs/design/native-local-host-binding.md",
+                "anchor": "### Python initial control continuation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_initial_custody.py",
+                "anchor": "def prepare("
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_initial_custody.py",
+                "anchor": "def initialize_control(self)"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_initial_custody.py",
+                "anchor": "def require_control_current(self)"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_initial_custody.py",
+                "anchor": "def _bind_control_host("
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_initial_custody.py",
+                "anchor": "self._original is not self"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_initial_custody.py",
+                "anchor": "self._process != getpid()"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_initial_custody.py",
+                "anchor": "self._thread is not current_thread()"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_initial_custody.py",
+                "anchor": "host._functions.library is not self._functions.library"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_initial_custody.py",
+                "anchor": "original._runtime_slot = c_void_p()"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_initial_custody.py",
+                "anchor": "original._pending = _PythonNativeInitialPending(original)"
+              },
+              {
+                "path": "docs/design/native-local-host-binding.md",
+                "anchor": "carrier retains those original references"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_initial_custody.py",
+                "anchor": "self._control_host = host"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_initial_custody.py",
+                "anchor": "if self._busy:"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_initial_custody.py",
+                "anchor": "self._runtime_attempted = True"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_initial_custody.py",
+                "anchor": "self._call_failed or self._unknown"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_initial_custody.py",
+                "anchor": "self._unknown = True"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_initial_custody.py",
+                "anchor": "if failure is not self._pending:"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "Reply loss never repeats"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_initial_custody.py",
+                "anchor": "self._control_host is not None and not self._control_host._closed"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_initial_custody.py",
+                "anchor": "except BaseException as failure:"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_initial_custody.py",
+                "anchor": "def restore_default(self)"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "cleanup after an earlier failure remains available"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/native-local-host-binding.md",
+                "anchor": "This continuation issues no"
+              },
+              {
+                "path": "docs/design/native-local-host-binding.md",
+                "anchor": "Restoring the managed default does not close a Runtime"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_initial_custody.py",
+                "anchor": "self._functions.library"
+              },
+              {
+                "path": "docs/design/native-local-host-binding.md",
+                "anchor": "Declared Host limits still"
+              }
+            ],
+            "extension": [
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_initial_custody.py",
+                "anchor": "from ._local_native_initial_abi import bind"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_native_initial_custody.py",
+                "anchor": "from ._local_native_shim_abi import bind as bind_control"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "without requiring its symbols on the older diagnostic component"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/python-sdk/tests/test_local_native_initial_custody.py",
+                "anchor": "test_actual_same_initial_original_enters_control_once"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_native_initial_custody.py",
+                "anchor": "test_actual_same_python_original_and_native_custody"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_native_control_custody.py",
+                "anchor": "test_python_host_keeps_initial_until_both_original_host_references_close"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_native_control_custody.py",
+                "anchor": "test_python_lost_host_preparation_retains_initial_and_same_partial_reply"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_native_control_custody.py",
+                "anchor": "test_python_host_rejects_foreign_component_and_unavailable_current_before_prepare"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_native_control_custody.py",
+                "anchor": "test_python_normal_current_failure_keeps_same_host_cleanup"
               }
             ]
           }

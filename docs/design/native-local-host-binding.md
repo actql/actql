@@ -2194,3 +2194,43 @@ of the actual binding, initial-control, heap, current or cleanup facts: the
 selected Native caller must obtain those from its same original provider before
 using the Library. A component built for another source or target cannot supply
 that correspondence.
+
+### Python initial control continuation
+
+The selected Python initial carrier invokes the existing component's control
+initializer only after its same Native managed original is current. Its Runtime
+out-slot and error carrier precede that call and remain on the same original
+through partial initialization or reply loss. The call is one-shot; a failed
+observation cannot initialize again or replace the Runtime. Normal current
+checks require both original lifetimes on the original interpreter thread.
+
+Restoring the managed default does not close a Runtime, module, mapping or
+escaped allocation. The carrier retains those original references and their
+separate duties even after normal use refuses. This continuation issues no
+Host, parent, Ledger, Worker or VM and does not supply the separate loader,
+prelude, installation or business resource admissions.
+
+The Python-specific Host preparation adopts that same initialized component
+and retains the initial carrier before the first Native Host preparation call.
+The initial carrier retains the single Host attempt in return, including its
+partial reply after a lost response. Foreign components and unavailable Runtime
+currentness refuse before preparation. Closing or refusing that Host never
+reissues the startup original.
+
+Default restoration remains pending until both original Host references have
+received their existing close acknowledgement, including outstanding physical
+cleanup. Normal Host current and FD acquisition still require the original
+initial currentness; the same Host's existing cleanup remains reachable after
+normal use refuses. Its close acknowledgement does not retire the retained
+Runtime, module, mapping or interpreter lifetime. Declared Host limits still
+require their separate actual backing and do not come from initial-control
+service identity or successful Runtime initialization.
+
+The same Python-specific initial currentness also precedes original backing
+borrowing, backing-current observation and new physical scope entry. The Host
+holds its existing call exclusion during that observation. A refused current
+check cannot invoke the foreign backing operation or create a replacement
+loan. Leaving an already entered scope and returning the stopped original loan
+remain cleanup operations through their existing Native Owner; neither needs
+to revive normal initial currentness. Those acknowledgements remain distinct
+from Host close, default restoration and process-lived allocator retirement.

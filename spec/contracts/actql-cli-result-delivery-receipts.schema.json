@@ -1,0 +1,152 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CLI Result delivery receipt file",
+  "oneOf": [
+    {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://smooth.dev/schemas/actql-result-delivery-receipt-0.1.json",
+      "title": "actql-result-delivery-receipt-0.1",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "run_definition_cid",
+        "invocation_cid",
+        "result_manifest_cid",
+        "result_name",
+        "result_artifact_cid",
+        "serialization_contract_cid",
+        "delivered_byte_count",
+        "delivered_sha256",
+        "authorization_context_cid",
+        "egress_admission_cid",
+        "result_delivery_receipt_cid"
+      ],
+      "properties": {
+        "version": {
+          "const": "actql-result-delivery-receipt/0.1"
+        },
+        "run_definition_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "invocation_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "result_manifest_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "result_name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "result_artifact_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "serialization_contract_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "delivered_byte_count": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "delivered_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "authorization_context_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "egress_admission_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "result_delivery_receipt_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      }
+    },
+    {
+      "type": "array",
+      "maxItems": 16,
+      "items": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "https://smooth.dev/schemas/actql-result-delivery-receipt-0.1.json",
+        "title": "actql-result-delivery-receipt-0.1",
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "version",
+          "run_definition_cid",
+          "invocation_cid",
+          "result_manifest_cid",
+          "result_name",
+          "result_artifact_cid",
+          "serialization_contract_cid",
+          "delivered_byte_count",
+          "delivered_sha256",
+          "authorization_context_cid",
+          "egress_admission_cid",
+          "result_delivery_receipt_cid"
+        ],
+        "properties": {
+          "version": {
+            "const": "actql-result-delivery-receipt/0.1"
+          },
+          "run_definition_cid": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          },
+          "invocation_cid": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          },
+          "result_manifest_cid": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          },
+          "result_name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "result_artifact_cid": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          },
+          "serialization_contract_cid": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          },
+          "delivered_byte_count": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "delivered_sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "authorization_context_cid": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          },
+          "egress_admission_cid": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          },
+          "result_delivery_receipt_cid": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          }
+        }
+      }
+    }
+  ]
+}

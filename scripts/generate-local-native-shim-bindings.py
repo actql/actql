@@ -14,13 +14,19 @@ ROOT = Path(__file__).resolve().parents[1]
 ENTRY = Path('src/platform_native/installed_arena_entry')
 OUTPUT = Path('packages/python-sdk/src/actql_sdk/_local_native_shim_abi.py')
 HEADER = ENTRY / 'shim_abi.generated.h'
+INITIAL_OUTPUT = Path('packages/python-sdk/src/actql_sdk/_local_native_initial_abi.py')
+INITIAL_HEADER = ENTRY / 'python_initial_abi.generated.h'
+INITIAL_SOURCE = Path('src/platform_native/host_bootstrap/python_initial_platform.c')
+INITIAL_SYMBOLS = frozenset('actql_native_python_initial_platform_' + name
+                            for name in ('begin_into', 'current', 'restore'))
 SHIMS = ('control', 'backing', 'domain', 'domain_read', 'worker_selection',
          'original_read', 'live_channel', 'process', 'sqlite', 'sqlite_database',
          'packaged_product', 'runtime_initialization', 'local_journal', 'local_host_resources',
          'local_adoption', 'read_crypto')
 SCALARS = {'int': 'c_int', 'int32_t': 'c_int32', 'int64_t': 'c_int64',
            'uint64_t': 'c_uint64', 'size_t': 'c_size_t', 'uint16_t': 'c_uint16',
-           'uint8_t': 'c_ubyte', 'unsigned char': 'c_ubyte', 'double': 'c_double'}
+           'uint8_t': 'c_ubyte', 'unsigned char': 'c_ubyte', 'double': 'c_double',
+           'bool': 'c_bool'}
 
 
 def ctype(text: str) -> str:
@@ -48,10 +54,10 @@ def source_path(shim: str) -> Path:
     return ENTRY / (shim + '_shim.c')
 
 
-def declarations(root: Path = ROOT):
+def declarations(root: Path = ROOT, *, python_initial: bool = False):
     declarations = {}
-    for shim in SHIMS:
-        path = source_path(shim)
+    paths = (INITIAL_SOURCE,) if python_initial else tuple(source_path(shim) for shim in SHIMS)
+    for path in paths:
         original = (root / path).read_text()
         source = original
         # Expand only the local, named operation macros already used by these
@@ -69,9 +75,12 @@ def declarations(root: Path = ROOT):
                     result = re.sub(r'\b' + parameter + r'\b', argument, result)
                 return result
             source = re.sub(r'^' + name + r'\(([^()]*)\)', expand, source, flags=re.M)
-        pattern = r'^((?:int32_t|int64_t|uint64_t|int|size_t))\s+(actql_\w+)\s*\(([^()]*)\)\s*\{'
+        results = 'int32_t|int64_t|uint64_t|int|size_t' + ('|bool' if python_initial else '')
+        pattern = r'^((?:' + results + r'))\s+(actql_\w+)\s*\(([^()]*)\)\s*\{'
         for match in re.finditer(pattern, source, re.M):
             result, symbol, arguments = match.groups()
+            if python_initial and symbol not in INITIAL_SYMBOLS:
+                continue
             parameters = []
             for argument in arguments.split(','):
                 argument = argument.strip()
@@ -93,15 +102,17 @@ def declarations(root: Path = ROOT):
                                     original[:position].count('\n') + 1)
     if not declarations:
         raise ValueError('No private Native declarations found')
+    if python_initial and set(declarations) != INITIAL_SYMBOLS:
+        raise ValueError('Selected Python initial Native declarations changed')
     return declarations
 
 
-def render(root: Path = ROOT) -> str:
+def render(root: Path = ROOT, *, python_initial: bool = False) -> str:
     lines = ['"""Generated from named existing C shim definitions; do not edit."""',
-             'from ctypes import POINTER, c_int, c_int32, c_int64, c_uint64, c_size_t, c_uint16, c_ubyte, c_void_p, c_double',
+             'from ctypes import POINTER, c_int, c_int32, c_int64, c_uint64, c_size_t, c_uint16, c_ubyte, c_void_p, c_double' + (', c_bool' if python_initial else ''),
              'from typing import Any',
              '', 'SIGNATURES: dict[str, tuple[list[Any], Any]] = {']
-    entries = declarations(root)
+    entries = declarations(root, python_initial=python_initial)
     for symbol, (result, parameters, _, _) in sorted(entries.items()):
         lines.append('    ' + repr(symbol) + ': ([' + ', '.join(p[2] for p in parameters) + '], ' + ctype(result) + '),')
     lines += ['}', '', 'PARAMETERS = {']
@@ -121,12 +132,13 @@ def render(root: Path = ROOT) -> str:
     return '\n'.join(lines)
 
 
-def render_header(root: Path = ROOT) -> str:
+def render_header(root: Path = ROOT, *, python_initial: bool = False) -> str:
+    guard = 'ACTQL_PRIVATE_PYTHON_INITIAL_ABI_GENERATED_H' if python_initial else 'ACTQL_PRIVATE_SHIM_ABI_GENERATED_H'
     lines = ['/* Generated from the existing named C shim definitions. */',
-             '#ifndef ACTQL_PRIVATE_SHIM_ABI_GENERATED_H',
-             '#define ACTQL_PRIVATE_SHIM_ABI_GENERATED_H']
-    lines += ['#include "' + shim + '_shim.h"' for shim in SHIMS]
-    for symbol, (result, parameters, _, _) in sorted(declarations(root).items()):
+             '#ifndef ' + guard, '#define ' + guard]
+    lines += (['#include "../host_bootstrap/python_initial_platform.h"'] if python_initial else
+              ['#include "' + shim + '_shim.h"' for shim in SHIMS])
+    for symbol, (result, parameters, _, _) in sorted(declarations(root, python_initial=python_initial).items()):
         args = ', '.join(native_type + ' ' + name for name, native_type, _ in parameters) or 'void'
         lines.append(result + ' ' + symbol + '(' + args + ');')
     return '\n'.join([*lines, '#endif', ''])
@@ -135,12 +147,17 @@ def render_header(root: Path = ROOT) -> str:
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--check', action='store_true')
+    parser.add_argument('--python-initial', action='store_true',
+                        help='Only the explicitly selected private Python initial-entry ABI')
     args = parser.parse_args()
-    for relative, rendered in ((OUTPUT, render()), (HEADER, render_header())):
+    outputs = (INITIAL_OUTPUT, INITIAL_HEADER) if args.python_initial else (OUTPUT, HEADER)
+    for relative, rendered in zip(outputs, (render(python_initial=args.python_initial),
+                                          render_header(python_initial=args.python_initial))):
         path = ROOT / relative
         if args.check:
             if path.read_text() != rendered:
                 raise SystemExit('Private Native shim binding is stale: ' + str(relative))
         else:
             path.write_text(rendered)
-    print('Private Native shim C/ctypes declarations are current: ' + str(len(declarations())))
+    print('Private Native shim C/ctypes declarations are current: ' +
+          str(len(declarations(python_initial=args.python_initial))))

@@ -62,7 +62,9 @@ pub fn prepare_local_submitted_input(
     Ok(cursor) => cursor
     Err(_) => return Err(SubmittedInput(@host.InvalidEnvelope))
   }
-  guard @decode.closed_object(cursor, ["kind", "input", "parameters"])
+  guard @decode.closed_object(cursor, [
+      "kind", "input", "parameters", "stopBefore", "readOnly",
+    ])
     is Ok(root) &&
     @decode.required(root, "kind") is Ok(kind_cursor) &&
     @decode.text(kind_cursor) is Ok(kind) &&

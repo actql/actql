@@ -10,6 +10,10 @@ from pathlib import Path
 import subprocess
 import sys
 import zipfile
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from actql_sdk._local_image_recipe import _SelectedImageRecipe
 
 from python_release_cohort import read_cohort
 from python_interface_inventory import wheel_source_correspondence
@@ -76,7 +80,8 @@ def wheel_metadata(path: Path, name: str, version: str) -> None:
             raise ValueError('Python facade/SDK wheel contains a native engine')
 
 
-def runtime_wheel_components(wheel: Path, artifact: Path, stage: Path) -> dict[str, str]:
+def runtime_wheel_components(wheel: Path, artifact: Path, stage: Path, *,
+                             selected_recipe: _SelectedImageRecipe | None = None) -> dict[str, str]:
     """Match the shipped resource bytes to the same verified original artifact."""
     with zipfile.ZipFile(wheel) as archive:
         for name in ('artifact.json', 'engine-recipe.json', 'client_host_wasm.cwasm',
@@ -94,6 +99,26 @@ def runtime_wheel_components(wheel: Path, artifact: Path, stage: Path) -> dict[s
                 raise ValueError('Python runtime wheel component digest mismatch')
         package = stage / 'src/actql_local_runtime'
         private = package / '_wasmtime'
+        allocation = 'native-owned'
+        if selected_recipe is not None:
+            from actql_sdk._local_image_recipe import _SelectedImageRecipe, _recipe_from_original
+            if type(selected_recipe) is not _SelectedImageRecipe:
+                raise ValueError('Unavailable original runtime wheel recipe')
+            actual = _recipe_from_original((artifact / 'engine-recipe.json').read_bytes(),
+                source_sha=selected_recipe.source_sha, package_version=selected_recipe.package_version,
+                module_sha256=selected_recipe.module_sha256)
+            if actual != selected_recipe:
+                raise ValueError('Runtime wheel recipe differs from its original')
+            allocation = selected_recipe.runtime_allocation
+        if allocation == 'platform':
+            if private.exists() or private.is_symlink():
+                raise ValueError('Ordinary runtime wheel must use its declared Wasmtime dependency')
+            license_name = 'actql_local_runtime/WASMTIME-LICENSE'
+            if archive.read(license_name) != (package / 'WASMTIME-LICENSE').read_bytes():
+                raise ValueError('Ordinary runtime license bytes differ')
+            if any(name.startswith('actql_local_runtime/_wasmtime/') for name in archive.namelist()):
+                raise ValueError('Ordinary runtime wheel contains a private runtime')
+            return {}
         if not private.is_dir() or private.is_symlink():
             raise ValueError('Python runtime stage has no original private bindings')
         expected = [package / 'WASMTIME-LICENSE'] + sorted(path for path in private.rglob('*') if path.is_file())
@@ -144,8 +169,8 @@ def copy_source(source: str, original: Path, target: Path) -> None:
     target.write_bytes(expected)
 
 
-def build(artifact: Path, destination: Path, *, bindings_source: Path,
-          native_libraries: Path) -> dict[str, object]:
+def build(artifact: Path, destination: Path, *, bindings_source: Path | None = None,
+          native_libraries: Path | None = None) -> dict[str, object]:
     if subprocess.check_output(['git', 'status', '--porcelain'], cwd=ROOT):
         raise ValueError('Build Python wheels from committed clean source')
     source = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip()
@@ -163,7 +188,8 @@ def build(artifact: Path, destination: Path, *, bindings_source: Path,
     components = recipe.verify_artifact(artifact)
     artifact_digest = sha256(artifact / 'artifact.json')
     artifact_body = json.loads((artifact / 'artifact.json').read_bytes())
-    capacity = host_capacity_original(source, components)
+    capacity = (None if components.image_recipe.runtime_allocation == 'platform'
+                else host_capacity_original(source, components))
     destination.mkdir()
     stages = destination / 'stages'
     stages.mkdir()
@@ -184,12 +210,17 @@ def build(artifact: Path, destination: Path, *, bindings_source: Path,
         for name in tracked:
             path = ROOT / name
             copy_source(source, path, stage / path.relative_to(original))
-    binding = (json.dumps({'source_sha': source, 'package_version': version,
-        'core_abi': artifact_body['core_abi'], 'artifact_sha256': artifact_digest,
-        'host_capacity_sha256': hashlib.sha256(capacity).hexdigest()},
+    binding_body = {'source_sha': source, 'package_version': version,
+        'core_abi': artifact_body['core_abi'], 'artifact_sha256': artifact_digest}
+    if capacity is None:
+        binding_body['runtime_allocation'] = 'platform'
+    else:
+        binding_body['host_capacity_sha256'] = hashlib.sha256(capacity).hexdigest()
+    binding = (json.dumps(binding_body,
         sort_keys=True, indent=2) + '\n').encode('ascii')
     (stages / 'python-sdk/src/actql_sdk/_local_release_binding.json').write_bytes(binding)
-    (stages / 'python-sdk/src/actql_sdk/_local_host_capacity.json').write_bytes(capacity)
+    if capacity is not None:
+        (stages / 'python-sdk/src/actql_sdk/_local_host_capacity.json').write_bytes(capacity)
     wheels = destination / 'wheels'
     wheels.mkdir()
     records = []
@@ -207,9 +238,11 @@ def build(artifact: Path, destination: Path, *, bindings_source: Path,
         verified_components = None
         if distribution == 'actql-sdk':
             sdk_runtime_binding(wheel, binding)
-            sdk_host_capacity(wheel, capacity)
+            if capacity is not None:
+                sdk_host_capacity(wheel, capacity)
         if distribution == 'actql-local-runtime':
-            verified_components = runtime_wheel_components(wheel, artifact, runtime)
+            verified_components = runtime_wheel_components(wheel, artifact, runtime,
+                selected_recipe=components.image_recipe)
         wheel_source_correspondence(ROOT, wheel,
             'packages/' + package + '/pyproject.toml', source, verified_components)
         records.append({'distribution': distribution, 'file': wheel.name,
@@ -227,7 +260,7 @@ def build(artifact: Path, destination: Path, *, bindings_source: Path,
         'platform': artifact_body['platform'], 'core_abi': artifact_body['core_abi'],
         'module_sha256': components.module_sha256, 'duckdb_sha256': components.duckdb_sha256,
         'image_sha256': components.image_sha256, 'engine_recipe_sha256': components.engine_recipe_sha256,
-        'host_capacity_sha256': hashlib.sha256(capacity).hexdigest(),
+        'host_capacity_sha256': None if capacity is None else hashlib.sha256(capacity).hexdigest(),
         'wheels': records, 'runtime_executed': False, 'public_local_accepted': False,
         'recovery_accepted': False, 'published': False}
     (destination / 'cohort.json').write_text(json.dumps(result, indent=2) + '\n')
@@ -238,8 +271,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--artifact-directory', type=Path, required=True)
     parser.add_argument('--destination', type=Path, required=True)
-    parser.add_argument('--bindings-source', type=Path, required=True)
-    parser.add_argument('--native-libraries', type=Path, required=True)
+    parser.add_argument('--bindings-source', type=Path)
+    parser.add_argument('--native-libraries', type=Path)
     arguments = parser.parse_args()
     print(json.dumps(build(arguments.artifact_directory, arguments.destination,
         bindings_source=arguments.bindings_source, native_libraries=arguments.native_libraries)))
