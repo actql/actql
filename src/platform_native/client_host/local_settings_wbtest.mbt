@@ -337,7 +337,7 @@ test "Native Local selection rejects duplicate escape and over-budget originals 
       [account],
       ["../settings"],
       ["same.json", "same.json"],
-      ["a", "b", "c", "d", "e", "f", "g", "h", "i"],
+      ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j"],
     ] {
     assert_true(
       begin_native_local_host_adoption(

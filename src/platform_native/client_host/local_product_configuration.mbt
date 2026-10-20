@@ -156,7 +156,7 @@ fn begin_native_local_product_configuration_original(
         Ok(Some(_)) => return Err(CustodyLost)
         Err(issue) => return Err(Filesystem(issue))
       }
-      for index in 0..<9 {
+      for index in 0..<10 {
         for suffix in [".claim", ".custody"] {
           match
             parent.inspect_generation(
