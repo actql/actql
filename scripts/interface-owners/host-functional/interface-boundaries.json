@@ -71209,6 +71209,1208 @@
           }
         }
       ]
+    },
+    {
+      "module": "adapters/host-node/mock-file-target.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "7ffef6e4109ab623a46db51997d839707cfa8904f3ed5e816c0555b259df8acb",
+      "exports": [
+        "createMockFileTarget"
+      ],
+      "operations": [
+        {
+          "name": "createMockFileTarget",
+          "parameters": [
+            "dataPath",
+            "maxBytes",
+            "assertCurrent",
+            "io"
+          ],
+          "async": false
+        },
+        {
+          "name": "createMockFileTarget/closeFor",
+          "parameters": [
+            "original"
+          ],
+          "async": false
+        },
+        {
+          "name": "createMockFileTarget/closeFor/closeFor",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createMockFileTarget/closeFor/closeFor#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createMockFileTarget/createMockFileTarget",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "createMockFileTarget/current",
+          "parameters": [
+            "signal"
+          ],
+          "async": false
+        },
+        {
+          "name": "createMockFileTarget/init:close/init:close",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createMockFileTarget/init:close/init:close/init:close",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createMockFileTarget/init:close/init:close/init:close#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createMockFileTarget/makeChild",
+          "parameters": [
+            "perform",
+            "signal",
+            "checkCurrent",
+            "runOriginal"
+          ],
+          "async": false
+        },
+        {
+          "name": "createMockFileTarget/makeChild/acquire",
+          "parameters": [
+            "path",
+            "flags",
+            "mode",
+            "ownsPath"
+          ],
+          "async": true
+        },
+        {
+          "name": "createMockFileTarget/makeChild/call/call",
+          "parameters": [
+            "slot",
+            "name",
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "createMockFileTarget/makeChild/child/init:prepare/init:prepare",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createMockFileTarget/makeChild/child/init:prepare/init:prepare/init:prepare",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createMockFileTarget/makeChild/childCurrent/childCurrent",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createMockFileTarget/makeChild/cleanup",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createMockFileTarget/makeChild/cleanup/cleanup",
+          "parameters": [
+            "slot"
+          ],
+          "async": false
+        },
+        {
+          "name": "createMockFileTarget/makeChild/cleanup/cleanup#2",
+          "parameters": [
+            "other"
+          ],
+          "async": false
+        },
+        {
+          "name": "createMockFileTarget/makeChild/cleanup/cleanup#3",
+          "parameters": [
+            "slot"
+          ],
+          "async": false
+        },
+        {
+          "name": "createMockFileTarget/makeChild/drain/drain",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createMockFileTarget/makeChild/drain/drain/drain",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createMockFileTarget/makeChild/drain/drain/drain#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createMockFileTarget/makeChild/method",
+          "parameters": [
+            "slot",
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "createMockFileTarget/makeChild/originalPath",
+          "parameters": [
+            "slot"
+          ],
+          "async": true
+        },
+        {
+          "name": "createMockFileTarget/makeChild/read",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createMockFileTarget/makeChild/remember/remember",
+          "parameters": [
+            "cause"
+          ],
+          "async": false
+        },
+        {
+          "name": "createMockFileTarget/makeChild/status/status",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createMockFileTarget/makeChild/unchanged",
+          "parameters": [
+            "slot",
+            "before"
+          ],
+          "async": true
+        },
+        {
+          "name": "createMockFileTarget/physical/physical",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "createMockFileTarget/readChild",
+          "parameters": [
+            "authorize",
+            "consume",
+            "signal",
+            "checkCurrent",
+            "runOriginal"
+          ],
+          "async": false
+        },
+        {
+          "name": "createMockFileTarget/readChild/readChild",
+          "parameters": [
+            "read",
+            "current"
+          ],
+          "async": true
+        },
+        {
+          "name": "createMockFileTarget/scope",
+          "parameters": [
+            "original"
+          ],
+          "async": false
+        },
+        {
+          "name": "createMockFileTarget/status/status",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createMockFileTarget/statusFor/statusFor",
+          "parameters": [
+            "original"
+          ],
+          "async": false
+        },
+        {
+          "name": "createMockFileTarget/statusFor/statusFor/count/count",
+          "parameters": [
+            "child"
+          ],
+          "async": false
+        },
+        {
+          "name": "createMockFileTarget/updateChild",
+          "parameters": [
+            "authorize",
+            "replace",
+            "signal",
+            "checkCurrent",
+            "runOriginal"
+          ],
+          "async": false
+        },
+        {
+          "name": "createMockFileTarget/updateChild/updateChild",
+          "parameters": [
+            "acquire",
+            "call",
+            "read",
+            "unchanged",
+            "originalPath",
+            "current"
+          ],
+          "async": true
+        },
+        {
+          "name": "fail/fail",
+          "parameters": [
+            "code",
+            "cause"
+          ],
+          "async": false
+        },
+        {
+          "name": "identity/identity",
+          "parameters": [
+            "info"
+          ],
+          "async": false
+        },
+        {
+          "name": "sameFile/sameFile",
+          "parameters": [
+            "a",
+            "b"
+          ],
+          "async": false
+        },
+        {
+          "name": "sameIdentity/sameIdentity",
+          "parameters": [
+            "a",
+            "b"
+          ],
+          "async": false
+        },
+        {
+          "name": "synchronous/synchronous",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "synchronous/synchronous/synchronous",
+          "parameters": [],
+          "async": false
+        }
+      ],
+      "imports": [
+        "node:crypto",
+        "node:fs",
+        "node:fs/promises",
+        "node:path"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "role": "physical-io",
+      "owner": "Existing Project Mock / Row Effect / physical file custody owners",
+      "rationale": "The same checked Mapping, original Run and current Account decision govern the actual Mock file target. Original FD, temporary-file and writer-lock custody are separate from logical Effect outcome; bounds, callback shapes and profile labels supply no grant or physical ACK.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createMockFileTarget",
+            "createMockFileTarget/closeFor",
+            "createMockFileTarget/closeFor/closeFor",
+            "createMockFileTarget/closeFor/closeFor#2",
+            "createMockFileTarget/createMockFileTarget",
+            "createMockFileTarget/current",
+            "createMockFileTarget/init:close/init:close",
+            "createMockFileTarget/init:close/init:close/init:close",
+            "createMockFileTarget/init:close/init:close/init:close#2",
+            "createMockFileTarget/makeChild",
+            "createMockFileTarget/makeChild/acquire",
+            "createMockFileTarget/makeChild/call/call",
+            "createMockFileTarget/makeChild/child/init:prepare/init:prepare",
+            "createMockFileTarget/makeChild/child/init:prepare/init:prepare/init:prepare",
+            "createMockFileTarget/makeChild/childCurrent/childCurrent",
+            "createMockFileTarget/makeChild/cleanup",
+            "createMockFileTarget/makeChild/cleanup/cleanup",
+            "createMockFileTarget/makeChild/cleanup/cleanup#2",
+            "createMockFileTarget/makeChild/cleanup/cleanup#3",
+            "createMockFileTarget/makeChild/drain/drain",
+            "createMockFileTarget/makeChild/drain/drain/drain",
+            "createMockFileTarget/makeChild/drain/drain/drain#2",
+            "createMockFileTarget/makeChild/method",
+            "createMockFileTarget/makeChild/originalPath",
+            "createMockFileTarget/makeChild/read",
+            "createMockFileTarget/makeChild/remember/remember",
+            "createMockFileTarget/makeChild/status/status",
+            "createMockFileTarget/makeChild/unchanged",
+            "createMockFileTarget/physical/physical",
+            "createMockFileTarget/readChild",
+            "createMockFileTarget/readChild/readChild",
+            "createMockFileTarget/scope",
+            "createMockFileTarget/status/status",
+            "createMockFileTarget/statusFor/statusFor",
+            "createMockFileTarget/statusFor/statusFor/count/count",
+            "createMockFileTarget/updateChild",
+            "createMockFileTarget/updateChild/updateChild",
+            "fail/fail",
+            "identity/identity",
+            "sameFile/sameFile",
+            "sameIdentity/sameIdentity",
+            "synchronous/synchronous",
+            "synchronous/synchronous/synchronous"
+          ],
+          "exports": [
+            "createMockFileTarget"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/mock-file-target.mjs",
+                "anchor": "// Physical file custody for the installed Mock Row Effect."
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/mock-file-target.mjs",
+                "anchor": "export function createMockFileTarget({dataPath, maxBytes, assertCurrent,"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/mock-file-target.mjs",
+                "anchor": "const children = new Set(), childOriginals = new WeakMap(), runScopes = new WeakMap();"
+              },
+              {
+                "path": "adapters/host-node/mock-file-target.mjs",
+                "anchor": "const sameFile = (a, b) => sameIdentity(a, b) &&"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/mock-file-target.mjs",
+                "anchor": "slots.push(slot);"
+              },
+              {
+                "path": "adapters/host-node/mock-file-target.mjs",
+                "anchor": "method(slot, 'close');"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/mock-file-target.mjs",
+                "anchor": "constants.O_WRONLY | constants.O_CREAT | constants.O_EXCL | constants.O_NOFOLLOW,"
+              },
+              {
+                "path": "adapters/host-node/mock-file-target.mjs",
+                "anchor": "if (retained.flight !== undefined) return retained.flight;"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/mock-file-target.mjs",
+                "anchor": "if (flight === undefined) flight = Promise.resolve().then(() => {"
+              },
+              {
+                "path": "adapters/host-node/mock-file-target.mjs",
+                "anchor": "// Keep writer exclusion while ANY original FD has not acknowledged close."
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/mock-file-target.mjs",
+                "anchor": "signal?.throwIfAborted();"
+              },
+              {
+                "path": "adapters/host-node/mock-file-target.mjs",
+                "anchor": "stopping = true;"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/mock-file-target.mjs",
+                "anchor": "const bytes = Buffer.alloc(size);"
+              },
+              {
+                "path": "adapters/host-node/mock-file-target.mjs",
+                "anchor": "if (slots.some(slot => slot.pathPending)) return false;"
+              },
+              {
+                "path": "docs/spec/execution.md",
+                "anchor": "### Ordinary Embedded Host trust and resources"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/mock-file-target.mjs",
+                "anchor": "// A Run cannot acknowledge, stop or retire another Run's actual children."
+              },
+              {
+                "path": "docs/spec/execution.md",
+                "anchor": "### Effect preview, approval, and application"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/mock-file-target.test.mjs",
+                "anchor": "test('Mock file Run close retires only its original children and keeps a sibling usable'"
+              },
+              {
+                "path": "adapters/host-node/mock-file-target.test.mjs",
+                "anchor": "test('Mock Run close waits for the original late FD acquisition before its physical ACK'"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "adapters/host-node/installed-mock-row-effect.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "4d2d115e42397640ca482db47e25a00722db34345aa7332620d7054ee672bd86",
+      "exports": [
+        "installPreparedProjectMockEffects",
+        "observeInstalledMockEffectResources"
+      ],
+      "operations": [
+        {
+          "name": "changes/changes",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "changes/changes/changes",
+          "parameters": [
+            "text"
+          ],
+          "async": false
+        },
+        {
+          "name": "cid/cid",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "closed/closed",
+          "parameters": [
+            "value",
+            "keys"
+          ],
+          "async": false
+        },
+        {
+          "name": "fail/fail",
+          "parameters": [
+            "code",
+            "cause"
+          ],
+          "async": false
+        },
+        {
+          "name": "hash/hash",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectMockEffects",
+          "parameters": [
+            "moon",
+            "mockPreparation",
+            "baseEnvironmentWire",
+            "authorizationFor",
+            "principalId",
+            "runtimeBundleCid",
+            "bindingCid",
+            "ledgerRoot",
+            "assertCurrent",
+            "effectResources",
+            "io"
+          ],
+          "async": true
+        },
+        {
+          "name": "installPreparedProjectMockEffects/aliases/aliases",
+          "parameters": [
+            "alias"
+          ],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectMockEffects/call/call",
+          "parameters": [
+            "name",
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectMockEffects/current",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectMockEffects/current/current",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectMockEffects/installPreparedProjectMockEffects",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectMockEffects/methods/methods",
+          "parameters": [
+            "name",
+            "port"
+          ],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectMockEffects/resourceMethods/resourceMethods",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectMockEffects/resources/resources",
+          "parameters": [
+            "name",
+            "method"
+          ],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectMockEffects/resources/resources/resources",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "mockRowEffectDriver",
+          "parameters": [
+            "bundle",
+            "mapping",
+            "bindingCid",
+            "principalId",
+            "authorization",
+            "current",
+            "call",
+            "resources",
+            "io"
+          ],
+          "async": false
+        },
+        {
+          "name": "mockRowEffectDriver/admit",
+          "parameters": [
+            "bytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "mockRowEffectDriver/consume",
+          "parameters": [
+            "kind",
+            "supplied",
+            "selected"
+          ],
+          "async": false
+        },
+        {
+          "name": "mockRowEffectDriver/decisionCurrent",
+          "parameters": [
+            "decision",
+            "kind"
+          ],
+          "async": false
+        },
+        {
+          "name": "mockRowEffectDriver/describe",
+          "parameters": [
+            "member",
+            "runInvocationCid",
+            "dispatchRequestCid",
+            "runOriginal"
+          ],
+          "async": false
+        },
+        {
+          "name": "mockRowEffectDriver/describe/describe",
+          "parameters": [
+            "name",
+            "maximum"
+          ],
+          "async": false
+        },
+        {
+          "name": "mockRowEffectDriver/description",
+          "parameters": [
+            "value",
+            "runOriginal"
+          ],
+          "async": false
+        },
+        {
+          "name": "mockRowEffectDriver/driver/driver",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "mockRowEffectDriver/driver/driver#2",
+          "parameters": [
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "mockRowEffectDriver/driver/driver#3",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "mockRowEffectDriver/driver/init:observeTargets/init:observeTargets",
+          "parameters": [
+            "member",
+            "entries",
+            "selected",
+            "authorizationForRow",
+            "signal",
+            "runOriginal"
+          ],
+          "async": true
+        },
+        {
+          "name": "mockRowEffectDriver/driver/init:observeTargets/init:observeTargets/child/child",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "mockRowEffectDriver/driver/init:observeTargets/init:observeTargets/child/init:authorize/init:authorize",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "mockRowEffectDriver/driver/init:observeTargets/init:observeTargets/child/init:consume/init:consume",
+          "parameters": [
+            "bytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "mockRowEffectDriver/driver/init:prepareRequest/init:prepareRequest",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "mockRowEffectDriver/driver/init:project/init:project",
+          "parameters": [
+            "request",
+            "observation"
+          ],
+          "async": false
+        },
+        {
+          "name": "mockRowEffectDriver/driver/init:recheckRequests/init:recheckRequests",
+          "parameters": [
+            "member",
+            "entries",
+            "selected",
+            "runOriginal"
+          ],
+          "async": false
+        },
+        {
+          "name": "mockRowEffectDriver/driver/init:recoveryEntry/init:recoveryEntry",
+          "parameters": [
+            "entries"
+          ],
+          "async": false
+        },
+        {
+          "name": "mockRowEffectDriver/driver/init:recoveryEntry/init:recoveryEntry/data/data",
+          "parameters": [
+            "entry"
+          ],
+          "async": false
+        },
+        {
+          "name": "mockRowEffectDriver/driver/init:requestFacts/init:requestFacts",
+          "parameters": [
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "mockRowEffectDriver/driver/init:send/init:send",
+          "parameters": [
+            "member",
+            "request",
+            "selected",
+            "supplied",
+            "signal",
+            "runOriginal"
+          ],
+          "async": true
+        },
+        {
+          "name": "mockRowEffectDriver/driver/init:send/init:send/child/child",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "mockRowEffectDriver/driver/init:send/init:send/child/init:authorize/init:authorize",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "mockRowEffectDriver/driver/init:send/init:send/child/init:replace/init:replace",
+          "parameters": [
+            "bytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "mockRowEffectDriver/issue",
+          "parameters": [
+            "kind",
+            "operation",
+            "decision",
+            "resource",
+            "runInvocationCid",
+            "dispatchRequestCid",
+            "subjectCid",
+            "maxUses"
+          ],
+          "async": false
+        },
+        {
+          "name": "mockRowEffectDriver/memberCurrent",
+          "parameters": [
+            "member"
+          ],
+          "async": false
+        },
+        {
+          "name": "mockRowEffectDriver/observe",
+          "parameters": [
+            "document",
+            "target"
+          ],
+          "async": false
+        },
+        {
+          "name": "mockRowEffectDriver/own",
+          "parameters": [
+            "request",
+            "runOriginal"
+          ],
+          "async": false
+        },
+        {
+          "name": "mockRowEffectDriver/readChild",
+          "parameters": [
+            "member",
+            "selector",
+            "value",
+            "selected",
+            "authorizationForRow",
+            "signal",
+            "runOriginal"
+          ],
+          "async": false
+        },
+        {
+          "name": "mockRowEffectDriver/readChild/init:authorize/init:authorize",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "mockRowEffectDriver/readChild/init:consume/init:consume",
+          "parameters": [
+            "bytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "mockRowEffectDriver/readChild/readChild",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "mockRowEffectDriver/recover/recover",
+          "parameters": [
+            "durable",
+            "recorded",
+            "body",
+            "memberIndexes",
+            "runOriginal"
+          ],
+          "async": false
+        },
+        {
+          "name": "mockRowEffectDriver/recover/recover/entries/entries",
+          "parameters": [
+            "entry"
+          ],
+          "async": false
+        },
+        {
+          "name": "mockRowEffectDriver/recover/recover/requests/requests",
+          "parameters": [
+            "record"
+          ],
+          "async": false
+        },
+        {
+          "name": "mockRowEffectDriver/recover/recover/selected/selected",
+          "parameters": [
+            "_",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "mockRowEffectDriver/requestFrom",
+          "parameters": [
+            "record",
+            "runOriginal"
+          ],
+          "async": false
+        },
+        {
+          "name": "mockRowEffectDriver/resourceObservation/init:closeFor/init:closeFor",
+          "parameters": [
+            "runOriginal"
+          ],
+          "async": false
+        },
+        {
+          "name": "mockRowEffectDriver/resourceObservation/init:limits/init:limits",
+          "parameters": [
+            "runOriginal"
+          ],
+          "async": false
+        },
+        {
+          "name": "mockRowEffectDriver/resourceObservation/init:statusFor/init:statusFor",
+          "parameters": [
+            "runOriginal"
+          ],
+          "async": false
+        },
+        {
+          "name": "mockRowEffectDriver/retainRun",
+          "parameters": [
+            "runOriginal"
+          ],
+          "async": false
+        },
+        {
+          "name": "mockRowEffectDriver/retireChild",
+          "parameters": [
+            "child",
+            "failed",
+            "primary"
+          ],
+          "async": true
+        },
+        {
+          "name": "mockRowEffectDriver/runCurrent",
+          "parameters": [
+            "runOriginal"
+          ],
+          "async": false
+        },
+        {
+          "name": "mockRowEffectDriver/site/site",
+          "parameters": [
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "mockRowEffectDriver/site/site#2",
+          "parameters": [
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "mockRowEffectDriver/useCurrent/useCurrent",
+          "parameters": [
+            "use"
+          ],
+          "async": false
+        },
+        {
+          "name": "observeInstalledMockEffectResources",
+          "parameters": [
+            "effect"
+          ],
+          "async": false
+        },
+        {
+          "name": "synchronous/synchronous",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "synchronous/synchronous/synchronous",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "wire/wire",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "../../packages/sdk/host-port.mjs",
+        "../host-common/authorization-gate.mjs",
+        "../host-common/runtime-result.mjs",
+        "./installed-effect-inventory.mjs",
+        "./installed-row-effect.mjs",
+        "./installed-row-source.mjs",
+        "./mock-file-target.mjs",
+        "node:crypto"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "role": "physical-io",
+      "owner": "Existing Project Mock / Row Effect / physical file custody owners",
+      "rationale": "The same checked Mapping, original Run and current Account decision govern the actual Mock file target. Original FD, temporary-file and writer-lock custody are separate from logical Effect outcome; bounds, callback shapes and profile labels supply no grant or physical ACK.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "changes/changes",
+            "changes/changes/changes",
+            "cid/cid",
+            "closed/closed",
+            "fail/fail",
+            "hash/hash",
+            "installPreparedProjectMockEffects",
+            "installPreparedProjectMockEffects/aliases/aliases",
+            "installPreparedProjectMockEffects/call/call",
+            "installPreparedProjectMockEffects/current",
+            "installPreparedProjectMockEffects/current/current",
+            "installPreparedProjectMockEffects/installPreparedProjectMockEffects",
+            "installPreparedProjectMockEffects/methods/methods",
+            "installPreparedProjectMockEffects/resourceMethods/resourceMethods",
+            "installPreparedProjectMockEffects/resources/resources",
+            "installPreparedProjectMockEffects/resources/resources/resources",
+            "mockRowEffectDriver",
+            "mockRowEffectDriver/admit",
+            "mockRowEffectDriver/consume",
+            "mockRowEffectDriver/decisionCurrent",
+            "mockRowEffectDriver/describe",
+            "mockRowEffectDriver/describe/describe",
+            "mockRowEffectDriver/description",
+            "mockRowEffectDriver/driver/driver",
+            "mockRowEffectDriver/driver/driver#2",
+            "mockRowEffectDriver/driver/driver#3",
+            "mockRowEffectDriver/driver/init:observeTargets/init:observeTargets",
+            "mockRowEffectDriver/driver/init:observeTargets/init:observeTargets/child/child",
+            "mockRowEffectDriver/driver/init:observeTargets/init:observeTargets/child/init:authorize/init:authorize",
+            "mockRowEffectDriver/driver/init:observeTargets/init:observeTargets/child/init:consume/init:consume",
+            "mockRowEffectDriver/driver/init:prepareRequest/init:prepareRequest",
+            "mockRowEffectDriver/driver/init:project/init:project",
+            "mockRowEffectDriver/driver/init:recheckRequests/init:recheckRequests",
+            "mockRowEffectDriver/driver/init:recoveryEntry/init:recoveryEntry",
+            "mockRowEffectDriver/driver/init:recoveryEntry/init:recoveryEntry/data/data",
+            "mockRowEffectDriver/driver/init:requestFacts/init:requestFacts",
+            "mockRowEffectDriver/driver/init:send/init:send",
+            "mockRowEffectDriver/driver/init:send/init:send/child/child",
+            "mockRowEffectDriver/driver/init:send/init:send/child/init:authorize/init:authorize",
+            "mockRowEffectDriver/driver/init:send/init:send/child/init:replace/init:replace",
+            "mockRowEffectDriver/issue",
+            "mockRowEffectDriver/memberCurrent",
+            "mockRowEffectDriver/observe",
+            "mockRowEffectDriver/own",
+            "mockRowEffectDriver/readChild",
+            "mockRowEffectDriver/readChild/init:authorize/init:authorize",
+            "mockRowEffectDriver/readChild/init:consume/init:consume",
+            "mockRowEffectDriver/readChild/readChild",
+            "mockRowEffectDriver/recover/recover",
+            "mockRowEffectDriver/recover/recover/entries/entries",
+            "mockRowEffectDriver/recover/recover/requests/requests",
+            "mockRowEffectDriver/recover/recover/selected/selected",
+            "mockRowEffectDriver/requestFrom",
+            "mockRowEffectDriver/resourceObservation/init:closeFor/init:closeFor",
+            "mockRowEffectDriver/resourceObservation/init:limits/init:limits",
+            "mockRowEffectDriver/resourceObservation/init:statusFor/init:statusFor",
+            "mockRowEffectDriver/retainRun",
+            "mockRowEffectDriver/retireChild",
+            "mockRowEffectDriver/runCurrent",
+            "mockRowEffectDriver/site/site",
+            "mockRowEffectDriver/site/site#2",
+            "mockRowEffectDriver/useCurrent/useCurrent",
+            "observeInstalledMockEffectResources",
+            "synchronous/synchronous",
+            "synchronous/synchronous/synchronous",
+            "wire/wire"
+          ],
+          "exports": [
+            "installPreparedProjectMockEffects",
+            "observeInstalledMockEffectResources"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/installed-mock-row-effect.mjs",
+                "anchor": "// The explicit Project Mock's real file UPDATE, through the existing Row"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-mock-row-effect.mjs",
+                "anchor": "export async function installPreparedProjectMockEffects({moon, mockPreparation,"
+              },
+              {
+                "path": "src/client_row_source_host/mock_churn_risk_target.mbt",
+                "anchor": "pub fn prepare_mock_churn_risk_target_update("
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-mock-row-effect.mjs",
+                "anchor": "const original = installations.get(effect);"
+              },
+              {
+                "path": "adapters/host-node/installed-mock-row-effect.mjs",
+                "anchor": "descriptions.set(value, Object.freeze({runInvocationCid, dispatchRequestCid, runOriginal}));"
+              },
+              {
+                "path": "src/client_row_source_host/mock_churn_risk_target.mbt",
+                "anchor": "pub fn observe_mock_churn_risk_target("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-mock-row-effect.mjs",
+                "anchor": "installations.set(installed, resourceObservation);"
+              },
+              {
+                "path": "adapters/host-node/installed-mock-row-effect.mjs",
+                "anchor": "const resources = Object.freeze(Object.fromEntries(Object.entries(resourceMethods)"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "const bindRunResources = (facts, members) => {"
+              },
+              {
+                "path": "adapters/host-node/installed-mock-row-effect.mjs",
+                "anchor": "synchronous(resources.assertCurrent(runOriginal));"
+              },
+              {
+                "path": "adapters/host-node/mock-file-target.mjs",
+                "anchor": "await physical.rename(temporary.path, dataPath);"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-mock-row-effect.mjs",
+                "anchor": "if (observed.versionCid !== record.version || wire(observed.before) !== wire(record.before)) {"
+              },
+              {
+                "path": "adapters/host-node/installed-mock-row-effect.mjs",
+                "anchor": "cleanupHandle: Object.freeze({status: child.status, retry: child.retry})});"
+              },
+              {
+                "path": "adapters/host-node/mock-file-target.mjs",
+                "anchor": "// cleanup never retries this operation or manufactures a successful ACK."
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-mock-row-effect.mjs",
+                "anchor": "const child = file.updateChild({signal, runOriginal,"
+              },
+              {
+                "path": "adapters/host-node/installed-mock-row-effect.mjs",
+                "anchor": "function retainRun(runOriginal) {"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/installed-mock-row-effect.mjs",
+                "anchor": "const targetLimits = Object.freeze({maxFileBytes: 1048576, maxRows: 100,"
+              },
+              {
+                "path": "adapters/host-node/installed-mock-row-effect.mjs",
+                "anchor": "statusFor(runOriginal) {return file.statusFor(retainRun(runOriginal));},"
+              },
+              {
+                "path": "docs/spec/execution.md",
+                "anchor": "### Ordinary Embedded Host trust and resources"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/installed-mock-row-effect.mjs",
+                "anchor": "// approval, replacement Run or permission derived from a profile is supplied."
+              },
+              {
+                "path": "docs/design/host-authorization.md",
+                "anchor": "## Explicit initial Local Mock profile"
+              },
+              {
+                "path": "src/client_row_source_host/mock_churn_risk_target.mbt",
+                "anchor": "pub fn admit_mock_churn_risk_target_document("
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_row_source_host/mock_churn_risk_target_wbtest.mbt",
+                "anchor": "test "
+              },
+              {
+                "path": "adapters/host-node/mock-file-target.test.mjs",
+                "anchor": "test('Mock target authorization refusal opens no FD and never changes the file'"
+              },
+              {
+                "path": "adapters/host-node/fixtures/mock-project-effect-public.mjs",
+                "anchor": "function checkReview(review, summary, ref) {"
+              }
+            ]
+          }
+        }
+      ]
     }
   ],
   "generated": [],
@@ -71221,10 +72423,10 @@
     "Whole-distribution or installed-cohort completion"
   ],
   "counts": {
-    "modules": 159,
-    "operations": 3924,
-    "exports": 1007,
-    "explicitContractGroups": 206
+    "modules": 161,
+    "operations": 4077,
+    "exports": 1011,
+    "explicitContractGroups": 219
   },
   "scope": "The original supplied modules and explicitly added Project Task/profile installation modules are source/reference facets, not a reassignment of Coordinator/Transfer, process, Connector, Credential, Store or semantic implementation ownership."
 }
