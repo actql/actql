@@ -5,7 +5,9 @@
 #define LOCAL_NAME_BYTES 1024
 #define LOCAL_ROOT_BYTES 4096
 #define LOCAL_READ_BYTES 65536
-#define LOCAL_DEPTH 128
+/* The public reader ceiling counts relative path components. Its directory
+ * iterator and final file add two physical child levels under that path. */
+#define LOCAL_DEPTH 130
 
 typedef struct local_fs_owner { napi_type_tag tag; } local_fs_owner;
 typedef struct local_fs_original {
@@ -196,6 +198,23 @@ static napi_value local_fs_stat(napi_env env, napi_callback_info info) {
       napi_object_freeze(env, result) != napi_ok) return NULL;
   return result;
 }
+static napi_value local_fs_entry_kind(napi_env env, napi_callback_info info) {
+  napi_value args[2], result; size_t count = 2; void *data = NULL;
+  char name[LOCAL_NAME_BYTES + 1]; struct stat status;
+  if (napi_get_cb_info(env, info, &count, args, NULL, &data) != napi_ok || count != 2 || !data ||
+      !local_fs_text(env, args[1], name, LOCAL_NAME_BYTES, false, false))
+    return unavailable(env, "InvalidLocalFileChild");
+  local_fs_original *parent = local_fs_argument(env, args[0], data);
+  if (!local_fs_current(parent) || !parent->directory)
+    return unavailable(env, "LocalFileOriginalChanged");
+  if (fstatat(parent->descriptor, name, &status, AT_SYMLINK_NOFOLLOW) != 0)
+    return unavailable(env, "LocalFileEntryUnavailable");
+  /* This observation selects an open operation, not identity or authority.
+   * The subsequent descriptor acquisition independently checks its kind. */
+  const char *kind = S_ISREG(status.st_mode) ? "file" : S_ISDIR(status.st_mode) ? "directory"
+    : S_ISLNK(status.st_mode) ? "symlink" : "other";
+  return napi_create_string_utf8(env, kind, NAPI_AUTO_LENGTH, &result) == napi_ok ? result : NULL;
+}
 static napi_value local_fs_next(napi_env env, napi_callback_info info) {
   local_fs_original *original = local_fs_one(env, info); napi_value result;
   if (!local_fs_current(original) || !original->stream)
@@ -266,9 +285,9 @@ static bool initialize_local_files(napi_env env, napi_value exports) {
   if (!owner) {unavailable(env, "LocalFileAllocationFailed"); return false;}
   owner->tag.lower = (uint64_t)(uintptr_t)owner; owner->tag.upper = UINT64_C(0x414354514c46494c);
   const char *names[] = {"openFileRoot", "openFileDirectory", "openRootFile", "fileRootCurrent",
-    "fileRootStat", "fileRootNext", "fileRootRead", "fileRootClose"};
+    "fileRootStat", "fileRootNext", "fileRootRead", "fileRootClose", "fileRootEntryKind"};
   napi_callback callbacks[] = {local_fs_open_root, local_fs_open_directory, local_fs_open_file,
-    local_fs_check, local_fs_stat, local_fs_next, local_fs_read, local_fs_close};
+    local_fs_check, local_fs_stat, local_fs_next, local_fs_read, local_fs_close, local_fs_entry_kind};
   for (size_t index = 0; index < sizeof(callbacks) / sizeof(callbacks[0]); index++) {
     napi_value function;
     if (napi_create_function(env, names[index], NAPI_AUTO_LENGTH, callbacks[index], owner, &function) != napi_ok ||
