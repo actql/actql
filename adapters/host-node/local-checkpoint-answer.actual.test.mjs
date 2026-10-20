@@ -76,11 +76,15 @@ test('actual Local Mock answers its original Checkpoint after reopen and applies
   } catch (cause) {
     primary = cause; firstFailedStep = activeStep;
     t.diagnostic(JSON.stringify({firstFailedStep, code: cause.code, message: cause.message,
-      cause: cause.cause?.message}));
+      stack: cause.stack, cause: cause.cause?.message}));
   } finally {
     try {await client?.close();}
-    catch (cause) {primary = primary === undefined ? cause :
-      new AggregateError([primary, cause], 'Original Checkpoint answer and Host cleanup failed');}
+    catch (cause) {
+      t.diagnostic(JSON.stringify({cleanupCode: cause.code, cleanupMessage: cause.message,
+        cleanupStack: cause.stack, pending: cause.cleanupHandle?.status?.()}));
+      primary = primary === undefined ? cause :
+        new AggregateError([primary, cause], 'Original Checkpoint answer and Host cleanup failed');
+    }
     finally {process.chdir(cwd);}
   }
   if (primary !== undefined) throw primary;
