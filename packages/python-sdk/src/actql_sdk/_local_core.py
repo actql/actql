@@ -1276,6 +1276,54 @@ class LocalCore:
             self._loans[ticket] = value
             return value
 
+    def reserve_client_check(self, environment: int, configuration: int, source: _Input,
+                             kind: int, *, cleanup: Callable[[], bool]) -> _Output:
+        """Retain same-Host reporting custody before the actual Common call."""
+        with self._lock:
+            self._owned_input(source)
+            if (self._closing or type(environment) is not int or not 0 < environment < 2**31
+                    or type(configuration) is not int or not 0 < configuration < 2**31
+                    or type(kind) is not int or kind not in (0, 1) or not callable(cleanup)):
+                raise ValueError('Invalid original Local Check reservation')
+            ticket = self._next_ticket
+            if ticket >= 2**31:
+                raise RuntimeError('Local Core input identity exhausted')
+            self._next_ticket += 1
+            limit = 1_048_576
+            self._inputs[ticket] = _PhysicalInput(b'', cleanup, lambda _: True)
+            allowance = (2 * limit + sys.getsizeof(bytearray()) + sys.getsizeof(b'')
+                         + sys.getsizeof(_Output(self._identity, ticket, 0, limit, 'check')))
+            handle = self._call('check', 'reserve', environment, configuration,
+                                source.handle, kind, ticket, allowance)
+            if handle <= 0:
+                del self._inputs[ticket]
+                raise LocalCoreError('reserve_client_check', handle)
+            value = _Output(self._identity, ticket, handle, limit, 'check')
+            self._loans[ticket] = value
+            return value
+
+    def produce_client_check(self, value: _Output, current: _Output) -> None:
+        with self._lock:
+            self._owned_output(value, 'check')
+            self._host_current_ready(current)
+            self._check('current_client_check', self._call(
+                'check', 'current', value.handle, current.handle))
+            self._check('produce_client_check', self._call('check', 'produce', value.handle))
+
+    def read_client_check(self, value: _Output, current: _Output) -> bytes:
+        with self._lock:
+            self._host_current_ready(current)
+            self._owned_output(value, 'check')
+            self._check('current_client_check', self._call(
+                'check', 'current', value.handle, current.handle))
+            raw = self._read_output(value, 'check', 'length')
+            self._check('current_client_check', self._call(
+                'check', 'current', value.handle, current.handle))
+            return raw
+
+    def close_client_check(self, value: _Output) -> bool:
+        return self._close_output(value, 'check', 'close')
+
     def reserve_bootstrap(self, source: _Input, *, cleanup: Callable[[], bool]) -> _Output:
         """Borrow original root/clock bytes for first-adoption metadata only.
 

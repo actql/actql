@@ -32,6 +32,41 @@ before their exact borrow is returned. Failed stop or cleanup retains the same
 handle and allocation for retry. The pool's reservation is settled only after all
 allocations are released. Closing a pool blocks further admission immediately.
 
+## Public Local Check reporting
+
+The ordinary Local transport routes `Client.check` to the existing Common
+authoring checker. It does not infer a public verdict from preparation counts,
+exceptions, a Run admission or physical execution. A Check never reserves a
+Submission, runs a Task, reads Source rows or starts Compute, Model or Effect.
+
+The private scalar ABI 77 `actql_check_*` child retains the original installed Environment,
+current Host configuration and captured request loan before entering the
+checker. Metadata and report production are one-shot calls with independent
+output custody. Both recheck the same physical Host before and after Common;
+the Python copy remains inside that original entered observation. Parent
+configuration and Environment close refuse while any such child is retained.
+Partial production and failed output/input return retain their exact handles
+for explicit child-first cleanup, including after an interrupted invocation.
+
+The trusted Python reporting adapter issues keyed, role-separated revisions of
+exact received bytes and a keyed context reference. The context binds the
+actual compiler, both generated reporting schema identities, audience,
+connection, requested scope, admitted public policy/profile selections and
+visible aliases. The Common metadata projection omits the private Environment
+CID and hidden Source inventory. A missing Source publication supplier exposes
+no aliases and provides no complete-namespace proof; protected resolution stays
+unresolved rather than becoming proof of absence. None of these reporting
+references grants permission or authorizes a later Run.
+
+The existing SDK validates the returned schema and binds diagnostic locations
+to the captured input. The Local bridge additionally checks context, scope,
+document roles, revisions and byte lengths against that invocation. Completed
+reports are bound by that metadata; failed and unavailable outcomes also retain
+the original attempt correlation. Response transport has a separately bounded
+Check allowance while preserving the smaller existing metadata-response limit.
+It does not turn a report into a reusable checked Program or bypass ordinary
+submission checking and current authorization.
+
 ## Durable SDK Run observations
 
 Fresh Local acceptance issues the existing observation counter/key marker in the
