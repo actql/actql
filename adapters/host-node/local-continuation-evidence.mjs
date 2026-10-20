@@ -167,7 +167,7 @@ export async function loadPrivateEvidenceKey(stateDirectory) {
 // an Account/Reviewer/Effect permission. An immutable intent precedes the key
 // write; interrupted/lost material is loaded or refused, never regenerated.
 export async function preparePrivateEvidenceKeyInstallation(stateDirectory,
-  {storeDirectory, storeAuthorityCid, preparedOwnership, assertCurrent}) {
+  {storeDirectory, storeAuthorityCid, preparedOwnership, assertCurrent, assertFirstInitialization}) {
   const current = () => {
     assertCurrent();
     assertOriginalPreparedLocalPublicationStoreOwnership(preparedOwnership, storeDirectory);
@@ -195,11 +195,13 @@ export async function preparePrivateEvidenceKeyInstallation(stateDirectory,
   if (intentWire === undefined) {
     if (adoptedWire !== undefined) fail('PrivateEvidenceKeyUnavailable');
     try {
+      assertFirstInitialization();
       await assertOriginalPreparedLocalPublicationStoreFirstInitialization(preparedOwnership, storeDirectory);
     } catch (cause) {
       // Old no-key Stores remain usable for plain Results. They do not gain
       // an unproved first-adoption right merely because the key is absent.
-      if (cause?.code === 'PublicationStoreFirstInitializationUnavailable') return undefined;
+      if (cause?.code === 'PublicationStoreFirstInitializationUnavailable' ||
+          cause?.code === 'PrivateEvidenceFirstInitializationUnavailable') return undefined;
       throw cause;
     }
     current();

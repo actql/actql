@@ -1120,7 +1120,8 @@ async function openInstalledHost(originalInstallation, preparation) {
     if (preparation !== undefined) {
       // query.all() captures its caller input before awaiting submission.
       // Bind the separate Result control original before exposing the client;
-      // Store/key/payload construction itself remains lazy below.
+      // The same initialization selects its private-evidence key here;
+      // Store/payload construction itself remains lazy below.
       await preparation.prepareResultPublication();
       if (originalSourcePreparation === undefined) await preparation.prepareManagedCompute();
     }

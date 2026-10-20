@@ -643,7 +643,10 @@ Private derivation evidence still requires its original purpose-confined key;
 a no-key Result Store cannot infer key initialization from a missing file.
 The ordinary Host selects its real 32-byte random AEAD key during the existing
 Store initialization, without a Mock Account, Reviewer or signer prerequisite.
-The same prepared Store Owner must positively establish first initialization.
+The same initializer's actual Root creation and prepared Store admission must
+positively establish first initialization; absent Store and key directories in
+an existing installation cannot supply it. Key selection completes before the
+ordinary client is exposed, even if no query will open the lazy Store.
 An owner-only immutable intent precedes the key write, and adoption records the
 same key generation and Store contract after the actual Store opens. Reopen
 validates and durably reconciles those originals without rewriting the key.

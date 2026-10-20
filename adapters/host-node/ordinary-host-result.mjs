@@ -9,7 +9,7 @@ import {preparePrivateEvidenceKeyInstallation} from './local-continuation-eviden
 export function prepareOrdinaryHostResult(originals, subject, requirements) {
   const journal = ordinaryHostJournalInstallation(originals);
   let closing = false, closed = false, attempted = false, store, storeClose;
-  let openFlight, closeFlight, cleanup, cleanupStatus, cleanupRetry, failure;
+  let openFlight, keyFlight, closeFlight, cleanup, cleanupStatus, cleanupRetry, failure;
   let keyInstallation;
   let contentEvidenceStore;
   let keyOperationPending = false;
@@ -34,6 +34,7 @@ export function prepareOrdinaryHostResult(originals, subject, requirements) {
     if (closeFlight !== undefined) return closeFlight;
     closing = true;
     const flight = Promise.resolve().then(async () => {
+      if (keyFlight !== undefined) {try {await keyFlight;} catch {}}
       if (openFlight !== undefined) {try {await openFlight;} catch {}}
       if (failure !== undefined && cleanup === undefined) {
         cleanup = failure.cleanupHandle;
@@ -63,7 +64,49 @@ export function prepareOrdinaryHostResult(originals, subject, requirements) {
     closeFlight = flight;
     try {return await flight;} finally {if (closeFlight === flight) closeFlight = undefined;}
   }
+  function retainFailure(cause) {
+    if (cause?.cleanupHandle === undefined && cause?.cleanupPending !== true) keyOperationPending = false;
+    // Keep the acquired child's original carrier, not this view's wrapper;
+    // otherwise its cleanup would recursively wait for itself.
+    failure ??= cause;
+    const error = Object.assign(new Error('HostResultPublicationCleanupPending', {cause}),
+      {code: 'HostResultPublicationCleanupPending', cleanupPending: true});
+    error.cleanupHandle = Object.freeze({status, retry: close});
+    return error;
+  }
+  function initializeKey() {
+    if (keyFlight !== undefined) return keyFlight;
+    keyFlight = Promise.resolve().then(async () => {
+      try {
+        current();
+        if (subject.privateEvidenceKey !== undefined) return;
+        const originalOwnership = journal.privateEvidenceInitializationOwnership();
+        if (!keyDutyRetained) {
+          journal.retainPrivateEvidenceInitialization(keyDuty); keyDutyRetained = true;
+        }
+        keyOperationPending = true;
+        keyInstallation = await preparePrivateEvidenceKeyInstallation(join(subject.root, 'checkpoints'), {
+          storeDirectory: join(subject.root, 'publication'), storeAuthorityCid: subject.storeAuthorityCid,
+          preparedOwnership: originalOwnership,
+          assertCurrent: () => {current(); journal.assertInitializationCurrent();},
+          assertFirstInitialization: () => journal.assertPrivateEvidenceFirstInitialization(),
+        });
+        keyOperationPending = false;
+        current();
+      } catch (cause) {
+        if (cause?.cleanupHandle === undefined && cause?.cleanupPending !== true) keyOperationPending = false;
+        failure ??= cause;
+        throw cause;
+      }
+    });
+    return keyFlight;
+  }
   const view = Object.freeze({assertCurrent: current, close,
+    initialize() {
+      if (this !== view) throw new TypeError('ForeignInstalledHostPublicationStore');
+      current();
+      return initializeKey().catch(cause => {throw retainFailure(cause);});
+    },
     assertContentCurrent() {
       if (this !== view) throw new TypeError('ForeignInstalledHostPublicationStore');
       current();
@@ -124,18 +167,7 @@ export function prepareOrdinaryHostResult(originals, subject, requirements) {
       const flight = Promise.resolve().then(async () => {
         try {
           current();
-          if (subject.privateEvidenceKey === undefined) {
-            if (!keyDutyRetained) {
-              journal.retainPrivateEvidenceInitialization(keyDuty); keyDutyRetained = true;
-            }
-            keyOperationPending = true;
-            keyInstallation = await preparePrivateEvidenceKeyInstallation(join(subject.root, 'checkpoints'), {
-              storeDirectory: options.directory, storeAuthorityCid: subject.storeAuthorityCid,
-              preparedOwnership: originalOwnership,
-              assertCurrent: () => {current(); journal.assertInitializationCurrent();},
-            });
-            keyOperationPending = false;
-          }
+          await initializeKey();
           current();
           store = await openLocalPublicationStore({...options,
             privateEvidenceKey: subject.privateEvidenceKey ?? keyInstallation?.key}, control, undefined, undefined,
@@ -153,12 +185,7 @@ export function prepareOrdinaryHostResult(originals, subject, requirements) {
           keyInstallation?.key.fill(0);
           current(); return store;
         } catch (cause) {
-          if (cause?.cleanupHandle === undefined && cause?.cleanupPending !== true) keyOperationPending = false;
-          failure = cause;
-          const error = Object.assign(new Error('HostResultPublicationCleanupPending', {cause}),
-            {code: 'HostResultPublicationCleanupPending', cleanupPending: true});
-          error.cleanupHandle = Object.freeze({status, retry: close});
-          throw error;
+          throw retainFailure(cause);
         }
       });
       openFlight = flight; return flight;

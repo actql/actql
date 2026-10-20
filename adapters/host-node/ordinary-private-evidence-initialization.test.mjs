@@ -26,7 +26,8 @@ async function fixture(root, forwardOwnership = true) {
   const directory = join(root, 'checkpoints'), storeDirectory = join(root, 'publication');
   const preparedOwnership = forwardOwnership ? journal.publicationOwnership() : undefined;
   return {root, directory, journal, originals, options: {storeDirectory, storeAuthorityCid: authority,
-    preparedOwnership, assertCurrent: () => journal.assertInitializationCurrent()},
+    preparedOwnership, assertCurrent: () => journal.assertInitializationCurrent(),
+    assertFirstInitialization: () => journal.assertPrivateEvidenceFirstInitialization()},
   async prepare() {
     key = await preparePrivateEvidenceKeyInstallation(directory, this.options); return key;
   }, async adopt() {
@@ -76,6 +77,21 @@ test('ordinary adopted key loss refuses without regenerating from absence or its
   } finally {await reopened.close();}
 });
 
+test('ordinary lost Store and key directories cannot become another first key initialization', async () => {
+  const first = await fixture();
+  try {await first.prepare(); await first.adopt();} finally {await first.close();}
+  const publication = join(first.root, 'publication');
+  await rename(publication, publication + '.test-owned-original');
+  await rename(first.directory, first.directory + '.test-owned-original');
+  const reopened = await fixture(first.root);
+  try {
+    assert.equal(await reopened.prepare(), undefined);
+    await assert.rejects(stat(reopened.directory), {code: 'ENOENT'});
+    assert.equal((await stat(join(first.directory + '.test-owned-original', PRIVATE_EVIDENCE_KEY_FILE))).size, 32);
+    assert.equal((await stat(join(publication + '.test-owned-original', 'store.json'))).isFile(), true);
+  } finally {await reopened.close();}
+});
+
 test('ordinary interrupted key setup cannot generate a replacement for missing original material', async () => {
   const first = await fixture();
   try {await first.prepare();} finally {await first.close();}
@@ -120,6 +136,7 @@ test('ordinary no-key Store stays open for Results but refuses Content before pr
   const view = prepareOrdinaryHostResult(reopened.originals,
     {root: reopened.root, control, storeAuthorityCid: authority}, () => assert.fail('No business Run'));
   try {
+    await view.initialize();
     const store = await view.openStore({directory: join(reopened.root, 'publication'), storeAuthorityCid: authority,
       capacityBytes: 1048576, maxObjectBytes: 65536, maxObjects: 32,
       maxContractNodes: 1000, maxContractDepth: 64}, control);
@@ -264,7 +281,7 @@ test('ordinary Journal retains the same exclusion until a partial key FD closes 
   const view = prepare(f.originals, subject, () => assert.fail('No business Run'));
   let held;
   try {
-    await assert.rejects(view.openStore({directory: join(f.root, 'publication'), storeAuthorityCid: authority}, control),
+    await assert.rejects(view.initialize(),
       error => {held = error; return error.code === 'HostResultPublicationCleanupPending';});
     const owner = await readFile(ownerPath);
     const afterJournal = await f.journal.close();

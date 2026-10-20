@@ -47,8 +47,12 @@ function close(state) {
   return flight;
 }
 export async function prepareHostResultPublicationInstallation(originals) {
-  if (!explicitStartup) return prepareOrdinaryHostResult(originals,
-    readHostResultPublicationPreparation(originals), readHostResultPublicationRunRequirements);
+  if (!explicitStartup) {
+    const original = prepareOrdinaryHostResult(originals,
+      readHostResultPublicationPreparation(originals), readHostResultPublicationRunRequirements);
+    await original.initialize();
+    return original;
+  }
   const original = await invoke(0, [originals]);
   if (original === undefined) unavailable();
   const state = {original, originals, closing: false, closed: false, flight: undefined};

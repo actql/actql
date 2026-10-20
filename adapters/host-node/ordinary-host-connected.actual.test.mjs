@@ -108,13 +108,18 @@ test('ordinary actual Content reopens its saved Run and adopted key without gene
   try {
     const options = {mode: 'local', owner: 'local', installation: {directory: root}};
     client = await connectEmbeddedLocal(options);
+    const keyPath = join(root, 'checkpoints', 'private-evidence.key');
+    savedKey = await readFile(keyPath);
+    assert.equal(savedKey.length, 32, 'ordinary initialization selects the real key before any query');
+    await client.close(); client = undefined;
+    client = await connectEmbeddedLocal(options);
+    assert.deepEqual(await readFile(keyPath), savedKey, 'an unused Host reopen retains the same initial generation');
     const execution = await client.startSource("SELECT 2 AS id\n" +
       "|> SERIALIZE FORMAT CSV PRESERVE ORDER OPTIONS (name = 'saved.csv', " +
       "header = TRUE, null_marker = r'\\N', max_rows = 3, max_bytes = 128)\n|> RESULT file;", {format: 'aql'});
     const before = await execution.wait(); assert.equal(before.status, 'succeeded');
     const rows = await execution.result('file').all(), ref = structuredClone(execution.ref);
-    const keyPath = join(root, 'checkpoints', 'private-evidence.key');
-    savedKey = await readFile(keyPath);
+    assert.deepEqual(await readFile(keyPath), savedKey);
     const intent = await readFile(join(root, 'checkpoints', 'private-evidence-initialization.json'));
     const adopted = await readFile(join(root, 'checkpoints', 'private-evidence-adopted.json'));
     await client.close(); client = undefined;

@@ -28,6 +28,7 @@ export function prepareOrdinaryHostJournal(originals) {
   let journalClose, openingFailure, openingCleanup, openingStatus, openingRetry;
   let ownershipForwarded = false, flight, openingFlight, ownershipFlight;
   let privateEvidenceInitialization, privateEvidenceStatus;
+  let rootFormatAdmission;
   const current = () => {
     if (closing || closed || originals.installation !== installation || installation.root !== root) {
       throw Object.assign(new Error('HostJournalPreparationUnavailable'), {code: 'HostJournalPreparationUnavailable'});
@@ -114,7 +115,9 @@ export function prepareOrdinaryHostJournal(originals) {
   const view = Object.freeze({assertCurrent: current, close,
     async admitRootFormat(directory) {
       current(); if (directory !== root) throw new TypeError('ForeignInstalledHostRoot');
-      await admitHostRootFormat(root); current();
+      const admission = await admitHostRootFormat(root);
+      rootFormatAdmission ??= admission;
+      current();
       // The same exclusion also serializes explicitly authorized first
       // setup, before its external configuration/key files are created.
       await retainOwnership(); current();
@@ -158,6 +161,22 @@ export function prepareOrdinaryHostJournal(originals) {
     assertInitializationCurrent() {
       current();
       assertOriginalPreparedLocalPublicationStoreOwnership(ownership, join(root, 'publication'));
+    },
+    privateEvidenceInitializationOwnership() {
+      current();
+      assertOriginalPreparedLocalPublicationStoreOwnership(ownership, join(root, 'publication'));
+      return ownership;
+    },
+    assertPrivateEvidenceFirstInitialization() {
+      current();
+      assertOriginalPreparedLocalPublicationStoreOwnership(ownership, join(root, 'publication'));
+      // This initializer's actual marker creation, not absent key/Store
+      // directories, establishes the first setup. A saved intent separately
+      // resumes its original generation on later installations.
+      if (rootFormatAdmission !== 'new') {
+        throw Object.assign(new Error('PrivateEvidenceFirstInitializationUnavailable'),
+          {code: 'PrivateEvidenceFirstInitializationUnavailable'});
+      }
     },
     retainPrivateEvidenceInitialization(duty) {
       current();
