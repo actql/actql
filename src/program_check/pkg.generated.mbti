@@ -350,6 +350,8 @@ pub fn local_completion_free_inventory_uses_explicit_cast(LocalCompletionFreeInv
 
 pub fn local_completion_free_inventory_uses_groups(LocalCompletionFreeInventory) -> Bool
 
+pub fn local_completion_free_inventory_uses_sort(LocalCompletionFreeInventory) -> Bool
+
 pub fn local_completion_free_inventory_uses_take(LocalCompletionFreeInventory) -> Bool
 
 pub fn local_completion_free_inventory_work(LocalCompletionFreeInventory) -> Int

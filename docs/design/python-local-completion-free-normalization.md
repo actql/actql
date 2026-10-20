@@ -69,6 +69,23 @@ physical currentness obligations still apply. One catalog covers Take with the
 preceding checked scalar, cast, supplied Parameter and selected Group forms;
 preparations without Take retain all six preceding catalog/journal identities.
 
+The same bounded-relation catalogue has an order-aware revision. Its audit uses
+the original checked pipeline, step and `SortOrder`, retaining authored direction
+and null placement. An empty Sort is the existing identity operation. A nonempty
+Sort is completion-free only when the original eligible candidate key is already
+covered, or the checked strategy retains an admitted total input-order witness.
+It does not infer a key from values or treat physical enumeration as that witness.
+The latter strategy identifies the new Sort producer and retains the prior
+owned order only as a tie dependency, rather than copying the prior full order.
+
+Appending an actual missing identity term is semantic completion and still needs
+its proper normalization entry; it cannot receive this empty journal. Connecting
+that record remains implementation work, not a language restriction on Sort.
+Every term, resolution and covered key component consumes the existing audit
+budget. The complete pre-order catalogue, schema and fixture are retained, and
+preparations without Sort keep all seven preceding catalogue/journal identities.
+No new Host profile, wire version, permission or sorting evaluator is introduced.
+
 SQL/Pipe CASE without ELSE keeps that field absent in the Common form. The
 original parsed source distinguishes its synthetic END-anchored NULL from an
 authored ELSE NULL. Preserving this distinction lets the existing Common

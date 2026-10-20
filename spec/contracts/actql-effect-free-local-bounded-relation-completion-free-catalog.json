@@ -16,6 +16,7 @@
       "filter",
       "group",
       "select",
+      "sort",
       "take",
       "values"
     ],
@@ -135,9 +136,12 @@
     "proof": "original-checked-owner-audit",
     "source_selection": "explicit",
     "take_count_minimum": 1,
-    "take_offset_minimum": 0,
     "take_maximum": 9007199254740991,
-    "take_parameter_resolution": "original-same-pipeline-step-SafeInteger-supplied-owner"
+    "take_offset_minimum": 0,
+    "take_parameter_resolution": "original-same-pipeline-step-SafeInteger-supplied-owner",
+    "sort_empty": "original-identity-no-new-order",
+    "sort_resolution": "original-same-pipeline-step-covered-candidate-key-or-existing-total",
+    "sort_appended_identity_terms": "requires-semantic-journal-not-completion-free"
   },
   "profile": "actql-effect-free-local-completion-free/0.1",
   "rules": [],
