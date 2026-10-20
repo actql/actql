@@ -2267,8 +2267,12 @@ async function openInstalledHost(originalInstallation, preparation) {
       return {requested, resultNames, acquired, acquisitionCount: count, effectful: true};
     }
     const acquisitionCount = moon.clientProgramAcquisitionCount(preparedProgram);
-    const keyedAcquisition = typeof moon.clientProgramSelectSingleKeyedAcquisition === 'function'
-      ? checked(moon.clientProgramSelectSingleKeyedAcquisition(preparedProgram)) : undefined;
+    // Reuse the actual checked selection retained before Content admission.
+    // Selecting again constructs another handle, not the child original bound
+    // into this Run's managed preparation.
+    const keyedAcquisition = earlyContentPlans.get(preparedProgram)?.keyedAcquisition ??
+      (typeof moon.clientProgramSelectSingleKeyedAcquisition === 'function'
+        ? checked(moon.clientProgramSelectSingleKeyedAcquisition(preparedProgram)) : undefined);
     const acquired = acquisitionCount > 0;
     if (acquired) {
       if (sourceProfile === undefined) throw clientOperationError('ClientProgramNeedsInputs');
@@ -3097,7 +3101,7 @@ async function openInstalledHost(originalInstallation, preparation) {
       const early = earlyContentPlans.get(submission.preparedProgram);
       if (early === undefined) throw clientOperationError('InstalledContentRunPreparationUnavailable');
       runContent.prepareManagedKeyedRun({preparedProgram: submission.preparedProgram,
-        plan: early.plan, request: requested});
+        plan: early.plan, request: requested, keyedAcquisition: early.keyedAcquisition});
     } else if (acquisitionCount > 0 && typeof sourceProfile?.prepareManagedRun === 'function') {
       // The actual same Host's early admission is only being claimed here,
       // not issued after compilation or reconstructed from graph limits.
@@ -3473,7 +3477,7 @@ async function openInstalledHost(originalInstallation, preparation) {
     prepareSubmit, submit, lookupRequest: lookupHeld, checkSubmissionInput: check,
     bindOwnedRequest,
     admitPreparedSubmission: preparation === undefined ? undefined : submission => {
-      const {requested, acquisitionCount, effectful} = requestOf(submission);
+      const {requested, acquisitionCount, keyedAcquisition, effectful} = requestOf(submission);
       const selection = inferSelections.get(submission.preparedProgram);
       if (effectful) {
         if (mockEffectObservation === undefined || acquisitionCount !== 2 ||
@@ -3492,7 +3496,7 @@ async function openInstalledHost(originalInstallation, preparation) {
         // Content has its own pre-admitted prefix and real Store writers. A
         // Result service or Source/Model allowance cannot supply that work.
         if (selection !== undefined || acquisitionCount !== 0 &&
-            (moon.clientProgramSelectSingleKeyedAcquisition(submission.preparedProgram) === undefined ||
+            (keyedAcquisition === undefined ||
               typeof sourceProfile?.prepareManagedContentRun !== 'function')) {
           throw clientOperationError('InstalledContentRunPreparationUnsupported');
         }
@@ -3504,12 +3508,13 @@ async function openInstalledHost(originalInstallation, preparation) {
         let early = earlyContentPlans.get(submission.preparedProgram);
         if (early === undefined) {
           early = {requestId: submission.requestId,
+            keyedAcquisition,
             plan: planFor(submission, retained?.runDefinition.wire, requested)};
           earlyContentPlans.set(submission.preparedProgram, early);
         }
         if (acquisitionCount === 0) runContent.prepareRun({preparedProgram: submission.preparedProgram, plan: early.plan});
         else runContent.prepareManagedKeyedRun({preparedProgram: submission.preparedProgram,
-          plan: early.plan, request: requested});
+          plan: early.plan, request: requested, keyedAcquisition: early.keyedAcquisition});
         return;
       }
       preparation.admitResultPublicationRun(submission.preparedProgram);

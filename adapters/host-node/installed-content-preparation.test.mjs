@@ -18,6 +18,7 @@ function fixture(keyed = false) {
   const run = installNodeContentRun({moon: {
     clientRequestScopeCid: value => value.scope,
     clientRequestIntentCid: value => value.intent,
+    clientProgramKeyedAcquisitionMatchesProgram: (value, program) => value === acquisition && program === preparedProgram,
     clientProgramAcquisitionCount(value) {assert.strictEqual(value, preparedProgram); return acquisitions;},
     clientProgramAcquisitionLedger(attempts, holdings, transfer, retained, execution, planning) {
       assert.deepEqual([attempts, holdings, transfer, retained, execution, planning], [1, 0, 0n, 13n, 19n, 0]);
@@ -42,6 +43,7 @@ function fixture(keyed = false) {
     assert.strictEqual(prepared, preparedProgram); assert.strictEqual(actualRequest, request);
     assert.equal(recipe.task, 0); assert.equal(recipe.step, 1);
     assert.equal(recipe.prefixRetainedBytes, 13n); assert.equal(recipe.prefixExecutionBytes, 19n);
+    assert.strictEqual(recipe.keyedAcquisition, acquisition);
     assert.equal(Object.isFrozen(recipe), true);
     retainedRecipe = recipe; keyedPreparations++;
     if (keyedFailure !== undefined) throw keyedFailure;
@@ -56,7 +58,7 @@ function fixture(keyed = false) {
     failCurrentAt(count, error) {failAt = count; currentFailure = error;},
     failConstruction(error) {constructionFailure = error;},
     acquisitions(count) {acquisitions = count;},
-    request, ledger, direct, acquisition, capacity,
+    request, ledger, direct, acquisition, keyedAcquisition: acquisition, capacity,
     keyedCounts: () => ({keyedPreparations, keyedBorrows}),
     failKeyed(error) {keyedFailure = error;}};
 }
@@ -80,6 +82,18 @@ test('ordinary keyed Content reuses a checked request projection without reissui
   assert.throws(() => f.run.prepareManagedKeyedRun({...f,
     request: {...f.request, intent: 'sha256:' + 'c'.repeat(64)}}), {message: 'ForeignInstalledContentRun'});
   assert.deepEqual(f.counts(), {ledgerCount: 0, quotes: 1});
+});
+
+test('ordinary keyed Content refuses a foreign selection before admission and never replaces its original', () => {
+  const f = fixture(true);
+  assert.throws(() => f.run.prepareManagedKeyedRun({...f, keyedAcquisition: {}}),
+    {message: 'ForeignInstalledContentRun'});
+  assert.deepEqual(f.keyedCounts(), {keyedPreparations: 0, keyedBorrows: 0});
+  f.run.prepareManagedKeyedRun(f);
+  assert.throws(() => f.run.prepareManagedKeyedRun({...f, keyedAcquisition: {...f.keyedAcquisition}}),
+    {message: 'ForeignInstalledContentRun'});
+  assert.strictEqual(f.run.prepareKeyedLedger({...f, capturedContent: true}), f.ledger);
+  assert.deepEqual(f.keyedCounts(), {keyedPreparations: 1, keyedBorrows: 1});
 });
 
 test('ordinary keyed Content never obtains a scalar fallback before its actual preparation', () => {

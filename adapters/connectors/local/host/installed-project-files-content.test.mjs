@@ -68,7 +68,8 @@ async function fixture({changedAfterFactory=false,failBegin=false,denied=false,s
   const calls=[],raws=[];
   const moon={
     clientProgramLocalFileTimestamp:()=>'',clientProgramResourceReferenceIssuer:()=>({}),
-    clientProgramSelectSingleKeyedAcquisition:value=>{assert.strictEqual(value,prepared);return ok(keyed);},
+    clientProgramSelectSingleKeyedAcquisition:()=>{throw new Error('Must retain the original checked keyed selection');},
+    clientProgramKeyedAcquisitionMatchesProgram:(value,owner)=>value===keyed&&owner===prepared,
     clientProgramKeyedDirectAcquisitionCoordinates:()=>({_0:0,_1:0}),
     clientProgramPrepareLocalQueryRequirement:()=>ok({}),clientProgramQueryRequirementSourceRef:()=> 'local:files',
     clientProgramKeyedAcquisitionSourceEvidenceFacts:()=>ok(['local:contents']),
@@ -103,7 +104,12 @@ async function fixture({changedAfterFactory=false,failBegin=false,denied=false,s
     }};
   const decision={action:'dispatch',boundary:'acquisition',contextCid,
     tuple:{connection:'local',resource:'contents',operation:'read'}};
-  const authorization={context:{contextCid},issued:value=>!denied&&value===decision};
+  const authorization={context:{contextCid},assertAccountCurrent(value){
+    assert.strictEqual(this,authorization);
+    if(denied||value!==decision)throw Object.assign(new Error('LocalFilesReadGrantNotAuthorized'),
+      {code:'LocalFilesReadGrantNotAuthorized'});
+    calls.push('original-account-current');
+  }};
   const install=factory(createHash,canonicalJson,checked,runtimeOptionalField,readFile,moduleUrl,
     async value=>{options=value;return{connectorBindings:[],admitsSource:()=>true};},
     ()=>({wire:'{}'}),()=> '{}',async cause=>cause,AcquisitionOpenError,openLocalFileRoot);
@@ -115,12 +121,13 @@ async function fixture({changedAfterFactory=false,failBegin=false,denied=false,s
   nativeFilesystem.fileRootClose=handle=>closeAllowed?Reflect.apply(native.fileRootClose,native,[handle]):{outcome:'pending',errno:0};
   const profile=await install({moon,preparation:{originalsForRuntime:()=>bundle},sourceManaged,
     baseEnvironmentWire:'{}',authorizationFor:async()=>authorization,nativeFilesystem});
-  const recipe=Object.freeze({registry:'registry',values:'values',task:0,step:1,prefixRetainedBytes:1n,prefixExecutionBytes:1n});
+  const recipe=Object.freeze({registry:'registry',values:'values',task:0,step:1,keyedAcquisition:keyed,
+    prefixRetainedBytes:1n,prefixExecutionBytes:1n});
   const keyedRequest={};
   const resource={$actql_ref:'resource',version:'actql-resource-ref/0.1',provider_namespace:'local',
     resource_kind:'file',provider_identity_cid:scopeCid,authority_scope_cid:contextCid,
     boundary_cid:scopeCid,identity_cid:cid({root_scope:scopeCid,path:'one.txt'})};
-  return{profile,options,prepared,request,keyed,recipe,keyedRequest,read,resource,version,bytes,calls,raws,decision,
+  return{profile,options,prepared,request,keyed,recipe,keyedRequest,read,resource,version,bytes,calls,raws,decision,authorization,
     acknowledgeClose(){closeAllowed=true;},get nativeReads(){return nativeReads;},
     get retired(){return retired;},
     prepare:()=>profile.prepareManagedContentRun(prepared,request,recipe),
@@ -141,6 +148,15 @@ async function fixture({changedAfterFactory=false,failBegin=false,denied=false,s
     }};
 }
 
+test('Local Content installer selects the existing Run-owned capture before keyed dispatch',async()=>{
+  const f=await fixture();
+  assert.equal(f.profile.sources.length,1);
+  assert.equal(f.profile.sources[0].requiresRunContentCapture,true);
+  f.prepare();
+  assert.deepEqual(f.calls.slice(0,3),['original','admission','begin']);
+  await f.profile.close();
+});
+
 test('Local Content caller retains original admission, actual native bytes and same reference/version row',async()=>{
   const f=await fixture();f.prepare();assert.deepEqual(f.calls.slice(0,3),['original','admission','begin']);
   assert.strictEqual(f.prepareRead(),f.read);
@@ -158,6 +174,21 @@ test('Local Content grant requires original Account decision and exact tuple',as
   for(const changed of [{decision:{...f.decision}},{operation:'write'},{resource:'foreign'},{maxUses:0}])
     assert.throws(()=>f.options.site.issueReadGrant({...fields,...changed}),{code:'LocalFilesReadGrantNotAuthorized'});
   await f.profile.close();
+});
+test('Local Content grant captures the same Account fence and never treats a copied Allow as original',async()=>{
+  const f=await fixture();let replacement=0;
+  f.authorization.assertAccountCurrent=()=>{replacement++;};
+  const fields={operation:'read',decision:f.decision,resource:'contents',
+    runInvocationCid:'sha256:'+'c'.repeat(64),dispatchRequestCid:'sha256:'+'d'.repeat(64),maxUses:1};
+  f.options.site.issueReadGrant(fields);
+  assert.equal(f.calls.filter(name=>name==='original-account-current').length,1);
+  assert.equal(replacement,0);
+  assert.throws(()=>f.options.site.issueReadGrant({...fields,decision:{...f.decision}}),
+    {code:'LocalFilesReadGrantNotAuthorized'});
+  const denied=await fixture({denied:true});
+  assert.throws(()=>denied.options.site.issueReadGrant({...fields,decision:denied.decision}),
+    {code:'LocalFilesReadGrantNotAuthorized'});
+  await f.profile.close();await denied.profile.close();
 });
 test('Local Content ledger borrows only the same prepared recipe and declared raw transport',async()=>{
   const f=await fixture();f.prepare();

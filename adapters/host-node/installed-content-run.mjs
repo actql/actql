@@ -266,7 +266,7 @@ export function installNodeContentRun({moon, core, registry, values, fragment, o
   // The selected existing Source owner creates the same-Run Content parent
   // before durable admission or I/O. This finite prefix recipe is DATA; the
   // callback must retain its real Resource original and partial cleanup.
-  run.prepareManagedKeyedRun = ({preparedProgram, plan, request}) => {
+  run.prepareManagedKeyedRun = ({preparedProgram, plan, request, keyedAcquisition}) => {
     if (!preparedRunRequired || typeof assertRunCurrent !== 'function' ||
         typeof prepareKeyedManagedRun !== 'function' || typeof borrowKeyedManagedLedger !== 'function') {
       throw new TypeError('InstalledContentRunPreparationUnavailable');
@@ -276,13 +276,17 @@ export function installNodeContentRun({moon, core, registry, values, fragment, o
     if (plan.kind !== 'serialization' || plan.serializationGraph === undefined) {
       throw new TypeError('InstalledContentRunPreparationUnsupported');
     }
+    if (keyedAcquisition === undefined ||
+        moon.clientProgramKeyedAcquisitionMatchesProgram(keyedAcquisition, preparedProgram) !== true) {
+      throw new TypeError('ForeignInstalledContentRun');
+    }
     const prior = preparedKeyedRuns.get(preparedProgram);
     if (prior !== undefined) {
       // requestOf may reproject the same checked immutable request value.
       // This only selects an already retained preparation; it cannot issue
       // another admission. The typed borrower still checks the original Run.
       const scope = prior.request === request ? undefined : moon.clientRequestScopeCid(request);
-      if (prior.plan !== plan || prior.request !== request &&
+      if (prior.plan !== plan || prior.keyedAcquisition !== keyedAcquisition || prior.request !== request &&
           (typeof scope !== 'string' || !/^sha256:[0-9a-f]{64}$/u.test(scope) ||
             scope !== moon.clientRequestScopeCid(prior.request) ||
             moon.clientRequestIntentCid(request) !== moon.clientRequestIntentCid(prior.request))) {
@@ -293,13 +297,13 @@ export function installNodeContentRun({moon, core, registry, values, fragment, o
     }
     if (preparedRunCount === 4096) throw new TypeError('InstalledContentRunLimit');
     preparedRunCount++;
-    const original = {plan, request, recipe: undefined, failure: undefined};
+    const original = {plan, request, keyedAcquisition, recipe: undefined, failure: undefined};
     preparedKeyedRuns.set(preparedProgram, original);
     try {
       const {task, step} = plan.serializationGraph;
       const prefix = control.prefixCapacity(preparedProgram, task, step,
         bodies, prefixLimits, workspace, true);
-      original.recipe = Object.freeze({...bodies, task, step,
+      original.recipe = Object.freeze({...bodies, task, step, keyedAcquisition,
         prefixRetainedBytes: prefix.retainedBytes, prefixExecutionBytes: prefix.executionBytes});
       if (prepareKeyedManagedRun(preparedProgram, request, original.recipe) !== undefined) {
         throw new TypeError('InstalledContentRunPreparationUnavailable');
