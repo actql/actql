@@ -47,3 +47,21 @@ test('ordinary Mock Model uses its separate purpose and the same original unpubl
   assert.equal(ports.cancelUnpublished(), 0);
   assert.equal(runtime.ordinaryManagedRunStatus(original).stopped, true);
 });
+
+test('ordinary Content ports keep their original purpose and physical-child cleanup', () => {
+  const prepared = {};
+  let childPending = true;
+  const original = runtime.retainOrdinaryManagedRun(prepared, requirements,
+    () => {}, () => childPending, 'local-content');
+  assert.equal(runtime.prepareOriginalManagedRunPorts(original, prepared), null);
+  assert.equal(runtime.prepareOriginalLocalMockModelRunPorts(original, prepared), null);
+  assert.equal(runtime.prepareOriginalLocalContentRunPorts(original, {}), null);
+  const ports = runtime.prepareOriginalLocalContentRunPorts(original, prepared);
+  assert.equal(runtime.prepareOriginalLocalContentRunPorts(original, prepared), null);
+  assert.equal(ports.status(0), 0);
+  assert.equal(zero(ports), 0);
+  assert.equal(ports.status(2), -42);
+  childPending = false;
+  assert.equal(ports.status(2), 0);
+  assert.equal(runtime.prepareOriginalLocalContentRunPorts(original, prepared), null);
+});

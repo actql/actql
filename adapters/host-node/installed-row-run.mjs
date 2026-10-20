@@ -8,10 +8,21 @@ import {setImmediate as yieldEventLoop} from 'node:timers/promises';
 const fail = code => { throw Object.assign(new Error(code), {code}); };
 
 export function startInstalledRowRun({moon, acquisition, nonce, ledger,
-  capacity, keyed = false, originalRead}) {
+  capacity, keyed = false, originalRead, originalKeyedRead}) {
   if (keyed && ledger === undefined) fail('InstalledKeyedSourceLedgerRequired');
   const reportCapacity = capacity?.listingReport;
   const providerCapacity = capacity?.provider;
+  if (originalKeyedRead !== undefined) {
+    if (!keyed || ledger === undefined || originalRead !== undefined ||
+        reportCapacity !== undefined || providerCapacity !== undefined) {
+      fail('InstalledKeyedSourceRunLedgerRequired');
+    }
+    if (['clientProgramInstalledKeyedSourceReadCheckLedger',
+      'clientProgramInstalledKeyedSourceReadStartRows',
+      'clientProgramInstalledKeyedSourceReadRetire']
+      .some(name => typeof moon[name] !== 'function')) fail('InstalledKeyedSourceReadUnavailable');
+    checked(moon.clientProgramInstalledKeyedSourceReadCheckLedger(originalKeyedRead, ledger));
+  }
   if (originalRead !== undefined) {
     if (ledger === undefined || keyed || reportCapacity !== undefined || providerCapacity !== undefined) {
       fail('InstalledSourceRunLedgerRequired');
@@ -40,7 +51,11 @@ export function startInstalledRowRun({moon, acquisition, nonce, ledger,
   const settled = new Set();
   let transportStopped = false;
   let transportRecovery;
-  const run = checked(keyed
+  const run = checked(originalKeyedRead !== undefined
+    ? moon.clientProgramInstalledKeyedSourceReadStartRows(originalKeyedRead, acquisition,
+      nonce, attempt => settled.has(attempt), capacity.transferBytes,
+      capacity.executionBytes, () => transportStopped)
+    : keyed
     ? moon.clientProgramKeyedRowStartAccounted(acquisition, nonce,
       attempt => settled.has(attempt), ledger, capacity.transferBytes,
       capacity.executionBytes, () => transportStopped)
@@ -95,6 +110,7 @@ export function startInstalledRowRun({moon, acquisition, nonce, ledger,
       fail('InstalledSourceCleanupPending');
     }
     if (originalRead !== undefined) checked(moon.clientProgramInstalledSourceReadRetire(originalRead));
+    if (originalKeyedRead !== undefined) checked(moon.clientProgramInstalledKeyedSourceReadRetire(originalKeyedRead));
     closed = true;
     reader = readerRead = readerStop = readerObserve = undefined;
     if (readerStopFailure !== undefined) throw readerStopFailure;

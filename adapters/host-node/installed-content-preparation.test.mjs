@@ -2,12 +2,14 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {installNodeContentRun} from './installed-content-run.mjs';
 
-function fixture() {
+function fixture(keyed = false) {
   const preparedProgram = Object.freeze({}), compiled = Object.freeze({});
   const plan = Object.freeze({kind: 'serialization', compiled,
     serializationGraph: Object.freeze({task: 0, step: 1}), runDefinition: Object.freeze({})});
   let currentFailure, constructionFailure, ledgerCount = 0, acquisitions = 0, quotes = 0;
   let currentCalls = 0, failAt;
+  const request = {}, ledger = {}, direct = {}, acquisition = {}, capacity = {};
+  let retainedRecipe, keyedPreparations = 0, keyedBorrows = 0, keyedFailure;
   const current = () => {
     currentCalls++;
     if (currentFailure !== undefined && (failAt === undefined || currentCalls === failAt)) throw currentFailure;
@@ -32,13 +34,61 @@ function fixture() {
       assert.strictEqual(value, compiled); assert.strictEqual(program, preparedProgram);
     }},
   }, registry: '{}', values: '{}', ownerPrincipal: 'fixture', preparedRunRequired: true,
-  assertRunCurrent: current});
+  assertRunCurrent: current,
+  ...(keyed ? {prepareKeyedManagedRun(prepared, actualRequest, recipe) {
+    assert.strictEqual(prepared, preparedProgram); assert.strictEqual(actualRequest, request);
+    assert.equal(recipe.task, 0); assert.equal(recipe.step, 1);
+    assert.equal(recipe.prefixRetainedBytes, 13n); assert.equal(recipe.prefixExecutionBytes, 19n);
+    assert.equal(Object.isFrozen(recipe), true);
+    retainedRecipe = recipe; keyedPreparations++;
+    if (keyedFailure !== undefined) throw keyedFailure;
+  }, borrowKeyedManagedLedger(prepared, actualRequest, recipe, actualDirect, actualAcquisition, actualCapacity) {
+    assert.strictEqual(prepared, preparedProgram); assert.strictEqual(actualRequest, request);
+    assert.strictEqual(recipe, retainedRecipe); assert.strictEqual(actualDirect, direct);
+    assert.strictEqual(actualAcquisition, acquisition); assert.strictEqual(actualCapacity, capacity);
+    keyedBorrows++; return ledger;
+  }} : {})});
   return {run, preparedProgram, plan, counts: () => ({ledgerCount, quotes}),
     failCurrent(error) {currentFailure = error;},
     failCurrentAt(count, error) {failAt = count; currentFailure = error;},
     failConstruction(error) {constructionFailure = error;},
-    acquisitions(count) {acquisitions = count;}};
+    acquisitions(count) {acquisitions = count;},
+    request, ledger, direct, acquisition, capacity,
+    keyedCounts: () => ({keyedPreparations, keyedBorrows}),
+    failKeyed(error) {keyedFailure = error;}};
 }
+
+test('ordinary keyed Content borrows its admitted original Run without a standalone Ledger', () => {
+  const f = fixture(true);
+  f.run.prepareManagedKeyedRun(f); f.run.prepareManagedKeyedRun(f);
+  assert.strictEqual(f.run.prepareKeyedLedger({...f, capturedContent: true}), f.ledger);
+  assert.deepEqual(f.counts(), {ledgerCount: 0, quotes: 1});
+  assert.deepEqual(f.keyedCounts(), {keyedPreparations: 1, keyedBorrows: 1});
+  assert.throws(() => f.run.prepareManagedKeyedRun({...f, request: {}}), {message: 'ForeignInstalledContentRun'});
+  assert.throws(() => f.run.prepareKeyedLedger({...f, plan: {...f.plan}, capturedContent: true}),
+    {message: 'InstalledContentRunPreparationUnavailable'});
+});
+
+test('ordinary keyed Content never obtains a scalar fallback before its actual preparation', () => {
+  const f = fixture(true);
+  assert.throws(() => f.run.prepareKeyedLedger({...f, capturedContent: true}),
+    {message: 'InstalledContentRunPreparationUnavailable'});
+  const missing = fixture();
+  assert.throws(() => missing.run.prepareManagedKeyedRun(missing),
+    {message: 'InstalledContentRunPreparationUnavailable'});
+  assert.deepEqual(f.counts(), {ledgerCount: 0, quotes: 0});
+  assert.deepEqual(missing.counts(), {ledgerCount: 0, quotes: 0});
+});
+
+test('ordinary keyed Content retains the original preparation failure without reissuing', () => {
+  const f = fixture(true), failure = new Error('partial Content admission');
+  f.failKeyed(failure);
+  assert.throws(() => f.run.prepareManagedKeyedRun(f), error => error === failure);
+  f.failKeyed(undefined);
+  assert.throws(() => f.run.prepareManagedKeyedRun(f), error => error === failure);
+  assert.deepEqual(f.keyedCounts(), {keyedPreparations: 1, keyedBorrows: 0});
+  assert.deepEqual(f.counts(), {ledgerCount: 0, quotes: 1});
+});
 
 test('ordinary Content prepares the same checked Run once and refuses a copied plan', () => {
   const f = fixture();

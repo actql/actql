@@ -52,6 +52,12 @@ let original_node_local_mock_model_run_supplier : OriginalNodeSourceChildSupplie
 )
 
 ///|
+let original_node_local_content_run_supplier : OriginalNodeSourceChildSupplier = capture_original_node_managed_run_supplier(
+  original_node_source_module_loader(original_node_source_module_url()),
+  "prepareOriginalLocalContentRunPorts",
+)
+
+///|
 extern "js" fn original_node_managed_run_ports(
   supplier : OriginalNodeSourceChildSupplier,
   original : OriginalNodeManagedRunReference,
@@ -108,6 +114,32 @@ pub fn[P] prepare_node_local_mock_model_run_admission(
         )
       },
       purpose=LocalMockModel,
+    )
+  })
+}
+
+///|
+// A purpose-confined consumer of the same ordinary Host's actual service.
+// Missing Content supply does not borrow either of the other fixed ports.
+pub fn[P] prepare_node_local_content_run_admission(
+  original : OriginalNodeManagedRunReference,
+  prepared : P,
+) -> Result[NodeManagedRunAdmission[P], ImportedChildLedgerIssue] {
+  let ports = original_node_managed_run_ports(
+    original_node_local_content_run_supplier,
+    original,
+    original_node_managed_prepared_identity(prepared),
+  )
+  prepare_node_original_child_ports(ports).map(child => {
+    prepare_node_managed_run_original(
+      child,
+      prepared,
+      () => {
+        imported_child_status(
+          abort_original_node_managed_run_unpublished(ports),
+        )
+      },
+      purpose=LocalContent,
     )
   })
 }

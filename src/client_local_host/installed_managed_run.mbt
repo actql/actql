@@ -12,6 +12,10 @@ priv enum ClientInstalledManagedRunOriginal {
     ],
     @publication_host.PreparedClientEffectComputation
   )
+  ContentManaged(
+    @resources.NodeManagedRunAdmission[@publication_host.PreparedClientProgram],
+    @publication_host.PreparedClientProgram
+  )
 }
 
 ///|
@@ -21,6 +25,8 @@ struct ClientInstalledManagedRun {
   request : @publication_host.ClientRequestIdentity
   mut ledger : @resources.Ledger?
   reads : Array[ClientInstalledSourceRead?]
+  mut keyed : ClientInstalledManagedKeyedPreparation?
+  keyed_reads : Array[ClientInstalledKeyedSourceRead]
 }
 
 ///|
@@ -346,6 +352,7 @@ fn installed_managed_run_owner(
   match value.preparation {
     PureManaged(_, prepared) => Pure(prepared)
     EffectManaged(_, prepared) => Effect(prepared)
+    ContentManaged(_, prepared) => Pure(prepared)
   }
 }
 
@@ -379,11 +386,14 @@ fn new_installed_managed_run_owned(
           match preparation {
             PureManaged(_, prepared) => Pure(prepared)
             EffectManaged(_, prepared) => Effect(prepared)
+            ContentManaged(_, prepared) => Pure(prepared)
           },
         ),
       ),
       None,
     ),
+    keyed: None,
+    keyed_reads: [],
   }
   value.original = Some(value)
   value
@@ -402,6 +412,13 @@ fn require_installed_managed_run(
       check_installed_managed_run_admission(admission, prepared, ledger)
     EffectManaged(admission, prepared) =>
       check_installed_managed_run_admission(admission, prepared, ledger)
+    ContentManaged(admission, prepared) =>
+      match
+        @resources.check_node_local_content_run_preparation(admission, prepared) {
+        Err(issue) => Err(issue)
+        Ok(_) =>
+          check_installed_managed_run_admission(admission, prepared, ledger)
+      }
   }
   match checked {
     Err(issue) => return Err(Resource(issue))
@@ -433,7 +450,12 @@ pub fn check_installed_managed_run(
   prepared : @publication_host.PreparedClientProgram,
   request : @publication_host.ClientRequestIdentity,
 ) -> Result[Unit, ClientInstalledManagedRunIssue] {
-  guard value.preparation is PureManaged(_, original) &&
+  let selected = match value.preparation {
+    PureManaged(_, prepared) => Some(prepared)
+    ContentManaged(_, prepared) => Some(prepared)
+    EffectManaged(_, _) => None
+  }
+  guard selected is Some(original) &&
     physical_equal(original, prepared) &&
     value.request == request else {
     return Err(ForeignOriginal)
@@ -516,7 +538,19 @@ fn prepare_installed_managed_run_ledger_owned(
     Ok(ledger) => ledger
   }
   let owner = installed_managed_run_owner(value)
-  let required = if value.reads.is_empty() {
+  if capacities.length() != value.reads.length() ||
+    transport_bytes.length() != capacities.length() ||
+    transport_execution_bytes.length() != capacities.length() {
+    return Err(Unsupported)
+  }
+  let required = if value.keyed is Some(keyed) {
+    guard capacities.length() == 1 else { return Err(Unsupported) }
+    guard owner is Pure(prepared) else { return Err(Unsupported) }
+    installed_managed_keyed_content_limits(
+      keyed, prepared, capacities[0], transport_bytes[0], transport_execution_bytes[0],
+      registry_body, values_body, fragment_body, ordered_body,
+    )
+  } else if value.reads.is_empty() {
     if !capacities.is_empty() ||
       !transport_bytes.is_empty() ||
       !transport_execution_bytes.is_empty() {
@@ -640,6 +674,11 @@ pub fn retire_installed_managed_run(
       return Err(CleanupPending)
     }
   }
+  for read in value.keyed_reads {
+    if !read.retired {
+      return Err(CleanupPending)
+    }
+  }
   // Use the original admission's complete cleanup path too. It retains an
   // early read bootstrap when later Scope construction did not return a view;
   // successful child cleanup cannot strand that same initialization token.
@@ -648,6 +687,8 @@ pub fn retire_installed_managed_run(
       @resources.cleanup_node_managed_run_admission(admission)
     EffectManaged(admission, _) =>
       @resources.cleanup_node_managed_run_admission(admission)
+    ContentManaged(admission, _) =>
+      @resources.cleanup_node_managed_run_admission(admission)
   }
   match cleaned {
     Err(issue) => return Err(Resource(issue))
@@ -655,5 +696,7 @@ pub fn retire_installed_managed_run(
   }
   value.ledger = None
   value.reads.clear()
+  value.keyed_reads.clear()
+  value.keyed = None
   Ok(())
 }

@@ -433,9 +433,31 @@ export function readManagedComputeRunRequirements(originals, checkedPrepared) {
     retainedBytes: limits[4], executionBytes: limits[5]});
 }
 
-// A fixed ordinary Host entry for the separate no-I/O Mock purpose. The Core
-// checks this preparation's exact compiled Run/definition/occurrence/graph;
-// passing bounds DATA or a Source/Compute original cannot issue that purpose.
+// Only the same Host's nominal checked Content preparation can project these
+// managed limits. This DATA does not issue its separate Resource original.
+export function readLocalContentRunRequirements(originals, prepared, selected) {
+  assertSourceManagedHostPreparation(originals);
+  originalSourceManagedHostRequest(originals, prepared);
+  const moon = originals.installation.projectRuntime;
+  if (originals.installation.projectSourcePreparation === undefined ||
+      typeof moon?.clientProgramInstalledManagedKeyedContentCheckPreparation !== 'function' ||
+      typeof moon?.clientProgramInstalledManagedKeyedContentRequirements !== 'function') {
+    throw clientOperationError('InstalledContentRunPreparationUnavailable');
+  }
+  checked(moon.clientProgramInstalledManagedKeyedContentCheckPreparation(selected, prepared));
+  const limits = moon.clientProgramInstalledManagedKeyedContentRequirements(selected);
+  if (!Array.isArray(limits) || limits.length !== 6 ||
+      limits.some(value => typeof value !== 'bigint' || value < 0n) ||
+      limits.slice(0, 3).some(value => value > 2147483647n)) {
+    throw clientOperationError('InvalidHostRuntimeResult');
+  }
+  assertSourceManagedHostPreparation(originals);
+  originalSourceManagedHostRequest(originals, prepared);
+  return Object.freeze({planningWork: Number(limits[0]), attempts: Number(limits[1]),
+    holdings: Number(limits[2]), transferBytes: limits[3], retainedBytes: limits[4], executionBytes: limits[5]});
+}
+
+// Mock preparation remains a distinct operational purpose on the same Host.
 export function readLocalMockModelRunRequirements(originals, prepared, model) {
   assertSourceManagedHostPreparation(originals);
   originalSourceManagedHostRequest(originals, prepared);
@@ -2530,6 +2552,19 @@ async function openInstalledHost(originalInstallation, preparation) {
     preparedRunRequired: preparation !== undefined,
     assertRunCurrent: preparation === undefined ? undefined
       : preparation.assertContentRunCurrent.bind(preparation),
+    prepareKeyedManagedRun: preparation === undefined ? undefined : (prepared, request, recipe) => {
+      if (typeof sourceProfile?.prepareManagedContentRun !== 'function') {
+        throw clientOperationError('InstalledContentRunPreparationUnavailable');
+      }
+      return sourceProfile.prepareManagedContentRun(prepared, request, recipe);
+    },
+    borrowKeyedManagedLedger: preparation === undefined ? undefined : (prepared, request, recipe,
+      direct, keyed, capacity) => {
+      if (typeof sourceProfile?.managedContentLedger !== 'function') {
+        throw clientOperationError('InstalledContentRunPreparationUnavailable');
+      }
+      return sourceProfile.managedContentLedger(prepared, request, recipe, direct, keyed, capacity);
+    },
     faultInjection: authorization?.faultInjection});
   const runInfer = installNodeInferRun({moon, core: runtimeCore(moon), fragment, ordered,
     registry, values, selections: inferSelections, namespaceId, authorityScopeCid,
@@ -3055,6 +3090,12 @@ async function openInstalledHost(originalInstallation, preparation) {
       sourceProfile.prepareManagedMockModelRun(submission.preparedProgram, requested,
         control, early.plan, selectedModel,
         () => preparation.modelPublicationCapacity(submission.preparedProgram));
+    } else if (acquisitionCount > 0 &&
+        moon.clientProgramSerializationOccurrences(submission.preparedProgram).length !== 0) {
+      const early = earlyContentPlans.get(submission.preparedProgram);
+      if (early === undefined) throw clientOperationError('InstalledContentRunPreparationUnavailable');
+      runContent.prepareManagedKeyedRun({preparedProgram: submission.preparedProgram,
+        plan: early.plan, request: requested});
     } else if (acquisitionCount > 0 && typeof sourceProfile?.prepareManagedRun === 'function') {
       // The actual same Host's early admission is only being claimed here,
       // not issued after compilation or reconstructed from graph limits.
@@ -3448,7 +3489,9 @@ async function openInstalledHost(originalInstallation, preparation) {
       if (moon.clientProgramSerializationOccurrences(submission.preparedProgram).length !== 0) {
         // Content has its own pre-admitted prefix and real Store writers. A
         // Result service or Source/Model allowance cannot supply that work.
-        if (selection !== undefined || acquisitionCount !== 0) {
+        if (selection !== undefined || acquisitionCount !== 0 &&
+            (moon.clientProgramSelectSingleKeyedAcquisition(submission.preparedProgram) === undefined ||
+              typeof sourceProfile?.prepareManagedContentRun !== 'function')) {
           throw clientOperationError('InstalledContentRunPreparationUnsupported');
         }
         preparation.admitResultPublicationRun(submission.preparedProgram);
@@ -3462,7 +3505,9 @@ async function openInstalledHost(originalInstallation, preparation) {
             plan: planFor(submission, retained?.runDefinition.wire, requested)};
           earlyContentPlans.set(submission.preparedProgram, early);
         }
-        runContent.prepareRun({preparedProgram: submission.preparedProgram, plan: early.plan});
+        if (acquisitionCount === 0) runContent.prepareRun({preparedProgram: submission.preparedProgram, plan: early.plan});
+        else runContent.prepareManagedKeyedRun({preparedProgram: submission.preparedProgram,
+          plan: early.plan, request: requested});
         return;
       }
       preparation.admitResultPublicationRun(submission.preparedProgram);

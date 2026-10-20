@@ -3,14 +3,15 @@ import test from 'node:test';
 import {mkdtemp, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
-import {prepareOrdinarySourceManagedInstallation} from './ordinary-source-managed.mjs';
+import {prepareOrdinarySourceManagedInstallation,
+  prepareOrdinaryProjectSourceManagedInstallation} from './ordinary-source-managed.mjs';
 import runtime from './ordinary-node-resource-runtime.cjs';
 
-async function fixture(source = true) {
+async function fixture(source = true, project = false) {
   const root = await mkdtemp(join(tmpdir(), 'actql-ordinary-source-'));
   const dataPath = join(root, 'data.json');
   await writeFile(dataPath, '{"original":1}');
-  const originals = {}, prepared = {}, request = {}, body = {}, declarations = [{}, {}];
+  const originals = {}, prepared = {}, request = {}, body = {}, declarations = [{}, {}], selected = {};
   const bundle = Object.freeze({dataPath, sources: declarations.map(declaration => ({declaration}))});
   let current = true;
   const quotes = {pure: 0, effect: 0};
@@ -24,13 +25,62 @@ async function fixture(source = true) {
     effectRequirements: () => {quotes.effect++; return {planningWork: 100,
       attempts: 10, holdings: 10, transferBytes: 10000n, retainedBytes: 10000n, executionBytes: 10000n};},
     mockRequirements: () => ({planningWork: 100, attempts: 10, holdings: 10,
-      transferBytes: 10000n, retainedBytes: 10000n, executionBytes: 10000n})};
-  const view = await prepareOrdinarySourceManagedInstallation(originals, callbacks, source);
+      transferBytes: 10000n, retainedBytes: 10000n, executionBytes: 10000n}),
+    contentRequirements(value, actualPrepared, actualSelected) {
+      assert.strictEqual(value, originals); assert.strictEqual(actualPrepared, prepared);
+      assert.strictEqual(actualSelected, selected);
+      return {planningWork: 100, attempts: 2, holdings: 10,
+        transferBytes: 10000n, retainedBytes: 10000n, executionBytes: 10000n};
+    }};
+  const view = project ? await prepareOrdinaryProjectSourceManagedInstallation(originals, callbacks)
+    : await prepareOrdinarySourceManagedInstallation(originals, callbacks, source);
   const receipt = view.beforeSourceSnapshot('aql', 'text', {});
   view.bindSourceSnapshot(receipt, body);
   view.bindSourceRequest(receipt, body, request);
-  return {view, prepared, declarations, dataPath, receipt, quotes, setCurrent(value) {current = value;}};
+  return {view, prepared, selected, declarations, dataPath, receipt, quotes, setCurrent(value) {current = value;}};
 }
+
+test('ordinary Content owns one purpose and retains the same keyed physical close through current refusal', async () => {
+  const f = await fixture(true, true);
+  const original = f.view.prepareContentRun(f.prepared, f.selected);
+  assert.strictEqual(f.view.prepareContentRun(f.prepared, f.selected), original);
+  assert.throws(() => f.view.prepareRun(f.prepared), {code: 'ForeignInstalledModelPreparation'});
+  assert.throws(() => f.view.prepareContentRun(f.prepared, {}), {code: 'ForeignInstalledModelPreparation'});
+  const ports = runtime.prepareOriginalLocalContentRunPorts(original, f.prepared);
+  assert.equal(ports.status(0), 0);
+  const request = {}, child = f.view.prepareKeyedRead(f.prepared, f.declarations[0], original, request);
+  assert.throws(() => f.view.prepareKeyedRead(f.prepared, {}, original, {}), {code: 'InstalledSourcePreparationMismatch'});
+  assert.throws(() => f.view.prepareKeyedRead(f.prepared, f.declarations[0], {}, {}), {code: 'InstalledSourcePreparationMismatch'});
+  assert.throws(() => f.view.prepareKeyedRead(f.prepared, f.declarations[0], original, request), {code: 'InstalledSourcePreparationMismatch'});
+  let pending = true, calls = 0;
+  const physical = {close() {assert.strictEqual(this, physical); calls++; return {pending};}, status() {return {pending};}};
+  child.retainChild(physical);
+  physical.close = () => assert.fail('replacement close must not be adopted');
+  f.view.finishSourceProducer(f.receipt, 'returned');
+  f.setCurrent(false);
+  assert.throws(() => f.view.assertCurrent(), /original-current/);
+  assert.equal(ports.report(0, 0, 0, 0n, 0n, 0n, 0n, 0n, 0n, 0n), 0);
+  assert.equal(ports.status(2), -42);
+  assert.equal((await child.close()).pending, true);
+  pending = false;
+  assert.equal((await child.close()).pending, false);
+  assert.equal(calls, 2);
+  assert.equal(ports.status(2), 0);
+  assert.equal((await f.view.close()).pending, false);
+});
+
+test('ordinary keyed physical child history is not refilled by close', async () => {
+  const f = await fixture(true, true);
+  const original = f.view.prepareContentRun(f.prepared, f.selected);
+  for (let index = 0; index < 2; index++) {
+    const child = f.view.prepareKeyedRead(f.prepared, f.declarations[0], original, {});
+    assert.equal((await child.close()).pending, false);
+  }
+  assert.throws(() => f.view.prepareKeyedRead(f.prepared, f.declarations[0], original, {}),
+    {code: 'InstalledSourcePreparationMismatch'});
+  f.view.finishSourceProducer(f.receipt, 'failed');
+  assert.equal((await f.view.close()).pending, false);
+});
 
 test('ordinary two-Source acquisition uses distinct actual readers and one managed Run', async () => {
   const f = await fixture(), original = f.view.prepareRun(f.prepared);

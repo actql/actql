@@ -19,6 +19,46 @@ pub fn prepare_keyed_captured_local_installed_ledger(
   infer? : (Int, Int, Int64, Int64)? = None,
   captured_content? : Bool = false,
 ) -> @resources.Ledger? {
+  keyed_captured_local_installed_limits(
+    prepared,
+    direct,
+    keyed,
+    keyed_capacity,
+    transport_bytes,
+    transport_execution_bytes,
+    max_bytes,
+    max_work,
+    registry_body,
+    values_body,
+    fragment_body,
+    ordered_body,
+    serialization~,
+    infer~,
+    captured_content~,
+  ).bind(limits => @resources.create_ledger(limits).to_option())
+}
+
+///|
+// Shared demand calculation for the existing standalone entry and the
+// same-original managed Run borrower. Quoting never publishes another Ledger
+// or supplies physical backing, permission, or a child cleanup acknowledgement.
+fn keyed_captured_local_installed_limits(
+  prepared : @publication_host.PreparedClientProgram,
+  direct : ClientInstalledCaptureCapacity,
+  keyed : @publication_host.ClientKeyedAcquisition,
+  keyed_capacity : @row_source_host.RowKeyedCapacity,
+  transport_bytes : Array[Int64],
+  transport_execution_bytes : Array[Int64],
+  max_bytes : Int,
+  max_work : Int,
+  registry_body : String,
+  values_body : String,
+  fragment_body : String?,
+  ordered_body : String?,
+  serialization? : (Int, Int, Int64, Int64)? = None,
+  infer? : (Int, Int, Int64, Int64)? = None,
+  captured_content? : Bool = false,
+) -> @resources.LedgerLimits? {
   guard @publication_host.client_keyed_acquisition_matches_program(
       keyed, prepared,
     ) &&
@@ -210,12 +250,12 @@ pub fn prepare_keyed_captured_local_installed_ledger(
     }
     transfer += bytes * multiplier
   }
-  @resources.create_ledger({
+  Some({
     planning_work: limits.planning_work,
     attempts: count + key_runs.to_int() + (if captured_content { 2 } else { 1 }),
     holdings: count + key_runs.to_int() + 1,
     transfer_bytes: transfer,
     retained_bytes: retained,
     execution_bytes: executing,
-  }).to_option()
+  })
 }

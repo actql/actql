@@ -105,11 +105,11 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
     resourceRuntime.assertOrdinaryManagedRunCurrent(run.original, prepared);
     return run;
   }
-  function prepareRun(prepared, purpose, model, effectful = false) {
+  function prepareRun(prepared, purpose, model, effectful = false, content) {
     current();
     const old = runs.get(prepared);
     if (old !== undefined) {
-      if (old.purpose !== purpose || old.model !== model || old.effectful !== effectful) {
+      if (old.purpose !== purpose || old.model !== model || old.effectful !== effectful || old.content !== content) {
         fail('ForeignInstalledModelPreparation');
       }
       return runFor(prepared).original;
@@ -117,15 +117,18 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
     const request = callbacks.request(originals, prepared);
     const producer = [...producers].find(value => value.request === request && !value.finished);
     if (producer === undefined || runs.size === 4096) fail('ForeignInstalledSourceProducer');
-    const run = {prepared, request, producer, purpose, model, effectful, original: undefined,
+    const run = {prepared, request, producer, purpose, model, effectful, content, original: undefined,
       children: [], fileIdentity: undefined};
     runs.set(prepared, run);
     // A failed quote remains attached to this one preparation. It cannot be
     // retried under a different purpose or replaced by another original.
-    const required = purpose === 'local-mock-model'
+    const required = purpose === 'local-content'
+      ? callbacks.contentRequirements(originals, prepared, content)
+      : purpose === 'local-mock-model'
       ? callbacks.mockRequirements(originals, prepared, model)
       : effectful ? callbacks.effectRequirements(originals, prepared)
       : callbacks.requirements(originals, prepared);
+    run.required = required;
     run.original = resourceRuntime.retainOrdinaryManagedRun(prepared, required,
       () => {current(); if (run.producer.request !== request) fail('ForeignInstalledSourceProducer');},
       () => run.children.some(child => child.flight !== undefined || !child.closed), purpose);
@@ -218,6 +221,10 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
     prepareRun(prepared) {
       return prepareRun(prepared, 'source-compute', undefined);
     },
+    prepareContentRun(prepared, selected) {
+      if (!project || typeof callbacks.contentRequirements !== 'function') fail('InstalledContentRunPreparationUnavailable');
+      return prepareRun(prepared, 'local-content', undefined, false, selected);
+    },
     prepareEffectRun(prepared) {
       return prepareRun(prepared, 'source-compute', undefined, true);
     },
@@ -254,6 +261,28 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
         }} : {readOriginalBytes: () => readBytes(run, child)}),
         close: () => closeChild(child),
         status: () => Object.freeze({pending: !child.closed || child.flight !== undefined})});
+    },
+    prepareKeyedRead(prepared, declaration, originalRun, request) {
+      const run = runFor(prepared);
+      if (!project || run.purpose !== 'local-content' || run.original !== originalRun ||
+          !bundle.sources.some(source => source.declaration === declaration) ||
+          request === null || typeof request !== 'object' ||
+          run.children.length >= run.required.attempts ||
+          run.children.some(child => child.request === request)) fail('InstalledSourcePreparationMismatch');
+      const child = {request, attempted: false, closed: false, bytes: undefined, flight: undefined,
+        closing: false, cleanup: undefined, cleanupStatus: undefined, cleanupRetry: undefined,
+        reader: undefined, readerClose: undefined, readerStatus: undefined,
+        readerCloseSeen: false, readerStatusSeen: false, readerCloseAcknowledged: false};
+      run.children.push(child);
+      return Object.freeze({originalSource: Object.freeze({}), retainChild(actual) {
+        if (child.closed || child.closing || actual === null ||
+            typeof actual !== 'object' && typeof actual !== 'function' ||
+            child.reader !== undefined && child.reader !== actual) fail('InstalledSourcePreparationMismatch');
+        child.reader = actual;
+        captureReader(child);
+        runFor(prepared);
+      }, close: () => closeChild(child),
+      status: () => Object.freeze({pending: !child.closed || child.flight !== undefined})});
     },
     async close() {
       if (closed) return status();

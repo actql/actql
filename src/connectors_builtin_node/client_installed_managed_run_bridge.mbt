@@ -273,3 +273,173 @@ pub fn client_program_installed_managed_run_retire(
 ) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue] {
   @client_local_host.retire_installed_managed_run(value)
 }
+
+///|
+// The ordinary Content purpose is distinct from both Source-only and Mock
+// Model ports. This consumes the same actual installer original; no number,
+// public packet or existing Ledger can construct it.
+#export_name("clientProgramNodeLocalContentRunPrepare")
+pub fn client_program_node_local_content_run_prepare(
+  original : @resources.OriginalNodeManagedRunReference,
+  prepared : @publication_host.PreparedClientProgram,
+) -> Result[
+  @resources.NodeManagedRunAdmission[@publication_host.PreparedClientProgram],
+  @resources.ImportedChildLedgerIssue,
+] {
+  @resources.prepare_node_local_content_run_admission(original, prepared)
+}
+
+///|
+#export_name("clientProgramInstalledManagedKeyedContentPrepare")
+pub fn client_program_installed_managed_keyed_content_prepare(
+  prepared : @publication_host.PreparedClientProgram,
+  direct : @client_local_host.ClientInstalledCaptureCapacity,
+  keyed : @publication_host.ClientKeyedAcquisition,
+  declaration : @client_row_source_host.RowDeclaration,
+  max_page_bytes : Int,
+  max_text_bytes : Int,
+  row_work : Int,
+  transport_bytes : Array[Int64],
+  transport_execution_bytes : Array[Int64],
+  max_bytes : Int,
+  max_work : Int,
+  registry_body : String,
+  values_body : String,
+  fragment_body : String?,
+  ordered_body : String?,
+  task : Int,
+  step : Int,
+  prefix_retained_bytes : Int64,
+  prefix_execution_bytes : Int64,
+) -> Result[
+  @client_local_host.ClientInstalledManagedKeyedPreparation,
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  @client_local_host.prepare_installed_managed_keyed_content(
+    prepared,
+    direct,
+    keyed,
+    declaration,
+    client_keyed_row_limits(max_page_bytes, max_text_bytes, row_work),
+    transport_bytes,
+    transport_execution_bytes,
+    max_bytes,
+    max_work,
+    registry_body,
+    values_body,
+    fragment_body,
+    ordered_body,
+    task,
+    step,
+    prefix_retained_bytes,
+    prefix_execution_bytes,
+  )
+}
+
+///|
+#export_name("clientProgramInstalledManagedKeyedContentRequirements")
+pub fn client_program_installed_managed_keyed_content_requirements(
+  value : @client_local_host.ClientInstalledManagedKeyedPreparation,
+) -> Array[Int64] {
+  @client_local_host.installed_managed_keyed_content_requirements(value)
+}
+
+///|
+#export_name("clientProgramInstalledManagedKeyedContentCheckPreparation")
+pub fn client_program_installed_managed_keyed_content_check_preparation(
+  value : @client_local_host.ClientInstalledManagedKeyedPreparation,
+  prepared : @publication_host.PreparedClientProgram,
+) -> Result[Unit, @client_local_host.ClientInstalledManagedRunIssue] {
+  @client_local_host.check_installed_managed_keyed_content_preparation(
+    value, prepared,
+  )
+}
+
+///|
+#export_name("clientProgramInstalledManagedKeyedContentRunBegin")
+pub fn client_program_installed_managed_keyed_content_run_begin(
+  admission : @resources.NodeManagedRunAdmission[
+    @publication_host.PreparedClientProgram,
+  ],
+  prepared : @publication_host.PreparedClientProgram,
+  request : @publication_host.ClientRequestIdentity,
+  selected : @client_local_host.ClientInstalledManagedKeyedPreparation,
+) -> Result[
+  @client_local_host.ClientInstalledManagedRun,
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  @client_local_host.begin_installed_managed_keyed_content_run(
+    admission, prepared, request, selected,
+  )
+}
+
+///|
+#export_name("clientProgramInstalledManagedKeyedSourceRead")
+pub fn client_program_installed_managed_keyed_source_read(
+  value : @client_local_host.ClientInstalledManagedRun,
+  keyed : @publication_host.ClientKeyedAcquisition,
+  request : @publication_host.ClientKeyedRequest,
+  declaration : @client_row_source_host.RowDeclaration,
+) -> Result[
+  @client_local_host.ClientInstalledKeyedSourceRead,
+  @client_local_host.ClientInstalledSourceReadIssue,
+] {
+  @client_local_host.begin_installed_managed_keyed_source_read(
+    value, keyed, request, declaration,
+  )
+}
+
+///|
+#export_name("clientProgramInstalledKeyedSourceReadCheckCurrent")
+pub fn client_program_installed_keyed_source_read_check_current(
+  value : @client_local_host.ClientInstalledKeyedSourceRead,
+) -> Result[Unit, @client_local_host.ClientInstalledSourceReadIssue] {
+  @client_local_host.check_installed_keyed_source_read_current(value)
+}
+
+///|
+#export_name("clientProgramInstalledKeyedSourceReadCheckLedger")
+pub fn client_program_installed_keyed_source_read_check_ledger(
+  value : @client_local_host.ClientInstalledKeyedSourceRead,
+  ledger : @resources.Ledger,
+) -> Result[Unit, @client_local_host.ClientInstalledSourceReadIssue] {
+  @client_local_host.check_installed_keyed_source_read_ledger(value, ledger)
+}
+
+///|
+#export_name("clientProgramInstalledKeyedSourceReadAcquisition")
+pub fn client_program_installed_keyed_source_read_acquisition(
+  value : @client_local_host.ClientInstalledKeyedSourceRead,
+) -> Result[
+  @client_row_source_host.RowKeyedAcquisition,
+  @client_local_host.ClientInstalledSourceReadIssue,
+] {
+  @client_local_host.installed_keyed_source_read_acquisition(value)
+}
+
+///|
+#export_name("clientProgramInstalledKeyedSourceReadStartRows")
+pub fn client_program_installed_keyed_source_read_start_rows(
+  value : @client_local_host.ClientInstalledKeyedSourceRead,
+  acquisition : @client_row_source_host.RowKeyedAcquisition,
+  nonce : String,
+  original_stop : (@client_row_source_host.RowAttempt) -> Bool,
+  transfer_bytes : Int64,
+  execution_bytes : Int64,
+  cleanup_confirmed : (@client_row_source_host.RowAttempt) -> Bool,
+) -> Result[
+  @client_row_source_host.RowRun,
+  @client_local_host.ClientInstalledSourceReadIssue,
+] {
+  @client_local_host.start_installed_keyed_source_read_rows(
+    value, acquisition, nonce, original_stop, transfer_bytes, execution_bytes, cleanup_confirmed,
+  )
+}
+
+///|
+#export_name("clientProgramInstalledKeyedSourceReadRetire")
+pub fn client_program_installed_keyed_source_read_retire(
+  value : @client_local_host.ClientInstalledKeyedSourceRead,
+) -> Result[Unit, @client_local_host.ClientInstalledSourceReadIssue] {
+  @client_local_host.retire_installed_keyed_source_read(value)
+}

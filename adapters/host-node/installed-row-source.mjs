@@ -957,7 +957,8 @@ export async function createInstalledRowSource({moon, declaration,
   readPages, bindingCid, limits, referenceIssuer, listingPolicy, captureContent,
   listingReportCapacity, prepareAcquisition, directReadIdentity,
   prepareRead, grantBeforeBegin = false, originalSourceAccess, providerReader,
-  prepareSourceRead, readAsset, originalPageLimits}) {
+  prepareSourceRead, prepareKeyedSourceRead, closeKeyedSourceRead,
+  readAsset, originalPageLimits}) {
   // Trusted installation compatibility only: preserve an existing provider
   // identity and ordering while this one Owner retains preparation, current
   // authorization, RowRun, capture and failure cleanup. No wire selects this
@@ -981,6 +982,13 @@ export async function createInstalledRowSource({moon, declaration,
   // Public packets/configuration cannot replace either after preparation.
   // The declaration is DATA; Core still reserves on the original Run Ledger.
   let originalReader;
+  if ((prepareKeyedSourceRead !== undefined || closeKeyedSourceRead !== undefined) &&
+      (typeof prepareKeyedSourceRead !== 'function' || typeof closeKeyedSourceRead !== 'function' ||
+        providerReader !== undefined || listingReportCapacity !== undefined ||
+        ['clientProgramInstalledKeyedSourceReadCheckCurrent',
+          'clientProgramInstalledKeyedSourceReadAcquisition',
+          'clientProgramInstalledKeyedSourceReadRetire']
+          .some(name => typeof moon?.[name] !== 'function'))) fail('InstalledKeyedSourceReadUnavailable');
   if (prepareSourceRead !== undefined && (typeof prepareSourceRead !== 'function' ||
       providerReader !== undefined || listingReportCapacity !== undefined ||
       ['clientProgramInstalledSourceReadCheckCurrent', 'clientProgramInstalledSourceReadBindProgram',
@@ -1407,6 +1415,18 @@ export async function createInstalledRowSource({moon, declaration,
     if (originalReader !== undefined) fail('InstalledProviderSourceUnavailable');
     const state = {started: false, closeFailed: false, recovery: undefined};
     let session;
+    let originalKeyedRead, originalClosed = prepareKeyedSourceRead === undefined;
+    const closeOriginal = async () => {
+      if (originalClosed) return;
+      if (originalKeyedRead === undefined) return;
+      const observed = await closeKeyedSourceRead(originalKeyedRead);
+      const pending = observed !== null && typeof observed === 'object'
+        ? Object.getOwnPropertyDescriptor(observed, 'pending') : undefined;
+      if (pending === undefined || !Object.hasOwn(pending, 'value') || pending.value !== false) {
+        fail('InstalledSourceCleanupPending');
+      }
+      originalClosed = true;
+    };
     let deadline;
     const budgetAbort = new AbortController();
     signal = signal === undefined ? budgetAbort.signal : AbortSignal.any([signal, budgetAbort.signal]);
@@ -1437,9 +1457,19 @@ export async function createInstalledRowSource({moon, declaration,
           !facts.every(text) || !sourceRefs.has(facts[0])) {
         fail('InstalledSourceEvidenceFactsUnavailable');
       }
-      const acquisition = checked(moon.clientProgramKeyedRowPrepareAcquisition(
-        keyedAcquisition, request, declaration, limits.maxPageBytes,
-        limits.maxPageBytes, 1000000));
+      if (prepareKeyedSourceRead !== undefined) {
+        if (preparedEffect !== undefined || preparedKeyed === undefined ||
+            !keyedPreparations.has(preparedKeyed)) fail('InstalledSourcePreparationMismatch');
+        // The same installing Source retains its physical-child duty before
+        // returning this Core original. Preserve it before current/getter use.
+        originalKeyedRead = prepareKeyedSourceRead(Object.freeze({
+          checkedOwner: preparedProgram, keyedAcquisition, request, declaration}));
+        checked(moon.clientProgramInstalledKeyedSourceReadCheckCurrent(originalKeyedRead));
+      }
+      const acquisition = checked(originalKeyedRead === undefined
+        ? moon.clientProgramKeyedRowPrepareAcquisition(keyedAcquisition, request,
+          declaration, limits.maxPageBytes, limits.maxPageBytes, 1000000)
+        : moon.clientProgramInstalledKeyedSourceReadAcquisition(originalKeyedRead));
       const [resource, ...columns] = checked(
         moon.clientProgramKeyedRowTarget(acquisition));
       const physicalBinding = physicalTarget(resource, columns);
@@ -1451,7 +1481,7 @@ export async function createInstalledRowSource({moon, declaration,
       }
       const nonce = randomUUID();
       session = startInstalledRowRun({moon, acquisition, nonce, ledger,
-        keyed: true, capacity: {transferBytes: maxTransferBytes,
+        keyed: true, originalKeyedRead, capacity: {transferBytes: maxTransferBytes,
           executionBytes: BigInt(limits.maxPageBytes)}});
       const {run} = session;
       // Encode only under the common acquisition's workspace reservation.
@@ -1483,6 +1513,8 @@ export async function createInstalledRowSource({moon, declaration,
       let sendIndex = 0;
       await readPages({resource, columns, requestWire, operation,
         signal, verifyRead,
+        rowRun: Object.freeze({acquisition, run, requestId: nonce, runInvocationCid, dispatchRequestCid,
+          ...(originalKeyedRead === undefined ? {} : {originalKeyedRead})}),
         capturedResourcePath: capturedResourcePath === undefined ? undefined : async () => {
           await verifyRead();
           signal?.throwIfAborted();
@@ -1551,6 +1583,10 @@ export async function createInstalledRowSource({moon, declaration,
             BigInt(body.byteLength), 0n, observedMs()));
           return charge;
         },
+        // Received native file bytes use this original RowRun's pending
+        // ticket before the subsequent encoded row is charged. A lookup
+        // verification count is not a physical-byte observation or a grant.
+        consumeObservation: charge => checked(moon.clientProgramRowSourceConsumeObservationCharge(run, charge)),
         // The Site must await admission before returning protocol completion.
         consumePage: (rows, {charge} = {}) => {
           const body = Buffer.from(JSON.stringify(rows), 'utf8');
@@ -1571,7 +1607,7 @@ export async function createInstalledRowSource({moon, declaration,
         // Only the actual installed successful capture can enter assembly.
         acceptLookup: lookup => checked(moon.clientProgramKeyedLookupAcceptCapture(
           lookup, keyedAcquisition, request, capture)),
-        close: session.close});
+        async close() {session.close(); await closeOriginal();}});
     } catch (error) {
       if (session !== undefined) {
         moon.clientProgramKeyedRequestFailIO(request);
@@ -1586,6 +1622,25 @@ export async function createInstalledRowSource({moon, declaration,
           try { await end.recovery.close(); } catch { /* Keep pending custody. */ }
         }
         session.closeAfterFailure(state, end.recovery);
+      }
+      if (originalKeyedRead !== undefined) {
+        const rowRecovery = state.recovery;
+        let cleaned = false;
+        const cleanup = async () => {
+          if (cleaned) return true;
+          if (rowRecovery !== undefined &&
+              (await rowRecovery.cleanup() === false || rowRecovery.cleanupPending())) return false;
+          if (session === undefined) checked(moon.clientProgramInstalledKeyedSourceReadRetire(originalKeyedRead));
+          await closeOriginal();
+          cleaned = true;
+          return true;
+        };
+        try {await cleanup();} catch { /* Retain the same original duty below. */ }
+        if (!cleaned) {
+          state.closeFailed = true;
+          state.recovery = Object.freeze({close: () => rowRecovery?.close(),
+            cleanup, cleanupPending: () => !cleaned});
+        }
       }
       // Do not let an inner transport outcome bypass this RowRun's pending
       // retention/cleanup responsibility through acquisitionFailure's reuse.

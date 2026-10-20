@@ -12,7 +12,7 @@ function retainOrdinaryManagedRun(prepared, requirements, assertCurrent,
   childrenPending, purpose = 'source-compute') {
   if (prepared === null || typeof prepared !== 'object' ||
       typeof assertCurrent !== 'function' || typeof childrenPending !== 'function' ||
-      !['source-compute', 'local-mock-model'].includes(purpose)) unavailable();
+      !['source-compute', 'local-mock-model', 'local-content'].includes(purpose)) unavailable();
   const quotas = ['planningWork', 'attempts', 'holdings', 'transferBytes', 'retainedBytes', 'executionBytes']
     .map((name, index) => {
       const amount = requirements[name];
@@ -86,6 +86,7 @@ module.exports = {retainOrdinaryManagedRun,
   },
   prepareOriginalManagedRunPorts(original, prepared) {return ports(original, prepared, 'source-compute');},
   prepareOriginalLocalMockModelRunPorts(original, prepared) {return ports(original, prepared, 'local-mock-model');},
+  prepareOriginalLocalContentRunPorts(original, prepared) {return ports(original, prepared, 'local-content');},
   // Source children of the shared parent never import another Ledger. The
   // legacy Source-only entry remains unavailable on this ordinary bridge.
   prepareOriginalSourceChildPorts() {return null;},

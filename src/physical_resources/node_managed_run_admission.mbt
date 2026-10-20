@@ -5,6 +5,7 @@
 priv enum NodeManagedRunPurpose {
   SourceCompute
   LocalMockModel
+  LocalContent
 }
 
 ///|
@@ -331,6 +332,24 @@ pub fn[P] check_node_source_compute_run_preparation(
     Ok(_) => ()
   }
   if value.purpose is SourceCompute {
+    Ok(())
+  } else {
+    Err(Unavailable)
+  }
+}
+
+///|
+// Content is not a conversion of a Source/Compute or Mock Model admission.
+// The same ordinary Host must issue this purpose before the keyed acquisition.
+pub fn[P] check_node_local_content_run_preparation(
+  value : NodeManagedRunAdmission[P],
+  prepared : P,
+) -> Result[Unit, ImportedChildLedgerIssue] {
+  match check_node_managed_run_preparation(value, prepared) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  if value.purpose is LocalContent {
     Ok(())
   } else {
     Err(Unavailable)

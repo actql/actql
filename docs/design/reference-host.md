@@ -673,6 +673,23 @@ started durable Run is observed, not regenerated under a new preparation.
 Acquired or Model-composed shapes require their own connected same-Run path;
 their absence is a backend gap, not an authored-language restriction.
 
+For a selected Local keyed Content path, the ordinary Source installation
+retains a separate Content-purpose Resource original before durable business
+admission. Its checked preparation combines the Direct capture, bounded keyed
+requests, lookup assembly and Content prefix on one Run Ledger. Source-only
+and Mock Model originals cannot be converted into this purpose. The actual
+Direct acquisition is rechecked against that same prepared Program and its
+original RowRun before the Ledger is borrowed; there is no standalone Ledger
+fallback. Each keyed request receives its own nominal child, with cumulative
+history that close cannot refill. The installed Source retains its acquired
+native reader before a fallible current check, and its physical recovery must
+finish before capture cleanup and the parent original can retire. Received
+file bytes consume their original RowRun observation ticket before the next
+encoded row is charged. Neither a lookup counter nor a captured path grants
+read authority or acknowledges physical cleanup. Model-composed Content and
+other unsupported backend shapes remain separate connections, not language
+restrictions.
+
 This preparation grants no key, Account, Content reference or Result authority.
 Private derivation evidence still requires its original purpose-confined key;
 a no-key Result Store cannot infer key initialization from a missing file.

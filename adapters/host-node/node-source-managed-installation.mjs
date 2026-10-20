@@ -8,7 +8,7 @@ import {assertSourceManagedHostPreparation, prepareInstalledMockSourcePreparatio
   originalSourceManagedHostRequest, sourceManagedSubmittedIntentCid,
   managedComputeSubmittedIntentCid, readSourceManagedRunRequirements, readManagedComputeRunRequirements,
   readSourceManagedEffectRunRequirements,
-  readLocalMockModelRunRequirements}
+  readLocalMockModelRunRequirements, readLocalContentRunRequirements}
   from './embedded-local.mjs';
 
 // The actual ordinary prefix or the unchanged preload initializes this ESM
@@ -149,6 +149,7 @@ export function prepareProjectSourceManagedInstallation(originals) {
     read: readInstalledProjectSourcePreparation, request: originalSourceManagedHostRequest,
     intent: sourceManagedSubmittedIntentCid, requirements: readSourceManagedRunRequirements,
     effectRequirements: readSourceManagedEffectRunRequirements,
+    contentRequirements: readLocalContentRunRequirements,
   });
 }
 
