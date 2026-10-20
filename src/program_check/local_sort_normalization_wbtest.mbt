@@ -36,10 +36,13 @@ test "actual original Sort completion has its own inventory and cannot become co
   assert_eq(local_sort_normalization_entry_count(inventory), 1)
   let entry = inventory.entries[0]
   assert_true(physical_equal(entry.operation, operation))
+  guard entry.order is Some(original_order) else {
+    fail("actual Sort completion must retain its original order witness")
+  }
   assert_true(
-    physical_equal(@pipeline.sort_order_pipeline(entry.order), pipeline),
+    physical_equal(@pipeline.sort_order_pipeline(original_order), pipeline),
   )
-  assert_eq(@pipeline.sort_order_step(entry.order), step)
+  assert_eq(@pipeline.sort_order_step(original_order), step)
   let (path, authored, canonical) = local_sort_normalization_entry_at(
     inventory, 0,
   ).unwrap()

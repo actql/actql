@@ -20,7 +20,7 @@ const expected = {
   }
 };
 const prefix = 'actql-effect-free-local-bounded-relation-completion-free-';
-const load = name => JSON.parse(readFileSync(new URL('../spec/contracts/' + prefix + name, import.meta.url), 'utf8'));
+const load = name => JSON.parse(readFileSync(new URL('../spec/contracts/' + prefix + (['catalog.json', 'catalog.schema.json', 'fixture.json'].includes(name) ? 'pre-dedupe-' + name : name), import.meta.url), 'utf8'));
 const cid = wire => 'sha256:' + createHash('sha256').update(wire, 'utf8').digest('hex');
 const canonical = value => value === null || typeof value !== 'object' ? JSON.stringify(value)
   : Array.isArray(value) ? '[' + value.map(canonical).join(',') + ']'
