@@ -2533,7 +2533,7 @@ export async function installRemoteCheckpoints({root, namespaceId,
       for (const [resource, operation] of [['run', 'read'], ['run', 'resolve'], [signingResource, 'sign']]) {
         signal?.throwIfAborted();
         const decision = await gate.authorize('preparation',
-          {connection: 'local-host', resource, operation},
+          {connection: siteKey, resource, operation},
           {subjectCid: original.view.checkpointCid, signal});
         if (decision.action !== 'dispatch') throw new ExecutionAuthorizationError(decision);
         decisions.push(decision);
