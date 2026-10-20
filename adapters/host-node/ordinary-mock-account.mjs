@@ -30,6 +30,8 @@ async function initialize({moon, root, principal, subject, sources, modelTasks, 
   const policyOriginal = moon.clientLocalSigningBootstrapOriginal;
   const bootstrapIssue = moon.clientLocalSigningBootstrapIssue;
   const publicKeyOriginal = moon.clientLocalSigningPublicKeyOriginal;
+  const profileKnown = moon.clientProgramLocalMockAccountProfileKnown;
+  if (typeof profileKnown !== 'function') fail('InvalidHostRuntimeResult');
   const directory = join(root, 'mock-account');
   const intentPath = join(directory, 'initialization.json');
   const receiptPath = join(directory, 'adopted.json');
@@ -37,7 +39,7 @@ async function initialize({moon, root, principal, subject, sources, modelTasks, 
   const reviewerPath = join(directory, 'reviewer.pem'), hostPath = join(directory, 'host.pem');
   const evidencePath = join(directory, 'continuation.key');
   const profile = moon.clientProgramLocalMockAccountProfile();
-  const identity = Object.freeze({id: runtimeField(profile, 0), version: runtimeField(profile, 1),
+  let identity = Object.freeze({id: runtimeField(profile, 0), version: runtimeField(profile, 1),
     cid: runtimeField(profile, 2)});
   if (Object.values(identity).some(value => typeof value !== 'string')) fail('InvalidHostRuntimeResult');
   const subjectCid = contentCid({principal, ...subject});
@@ -138,9 +140,15 @@ async function initialize({moon, root, principal, subject, sources, modelTasks, 
     await createOriginal(intentPath, intentWire);
   }
   const intent = parse(intentWire);
-  if (intent.subjectCid !== subjectCid || canonicalJson(intent.profile) !== canonicalJson(identity) ||
+  if (intent.subjectCid !== subjectCid || intent.profile === null || typeof intent.profile !== 'object' ||
+      Array.isArray(intent.profile) || Object.keys(intent.profile).sort().join('\0') !== 'cid\0id\0version' ||
+      ![intent.profile.id, intent.profile.version, intent.profile.cid].every(value => typeof value === 'string') ||
+      Reflect.apply(profileKnown, moon, [intent.profile.id, intent.profile.version, intent.profile.cid]) !== true ||
       typeof intent.attempt !== 'string' || typeof intent.configuration !== 'string' ||
       contentCid(parse(intent.configuration)) !== intent.configurationCid) fail('LocalMockInstallationChanged');
+  // A known predecessor keeps its original adopted configuration and receipt.
+  // This is neither migration nor permission to initialize missing saved state.
+  identity = Object.freeze({...intent.profile});
   const receiptFields = {attempt: intent.attempt, subjectCid,
     profile: identity, configurationCid: intent.configurationCid,
     reviewerResource: intent.reviewerResource, intentCid: bytesCid(Buffer.from(intentWire))};

@@ -19,6 +19,23 @@ pub fn client_program_local_mock_account_profile() -> (
 }
 
 ///|
+/// Recognize a saved policy identity, without upgrading its Account or
+/// authenticating installation custody. First initialization uses the current
+/// profile; reopen keeps the exact known original from its durable intent.
+#export_name("clientProgramLocalMockAccountProfileKnown")
+pub fn client_program_local_mock_account_profile_known(
+  profile_id : String,
+  profile_version : String,
+  profile_cid : String,
+) -> Bool {
+  @authorization.is_known_local_mock_profile({
+    profile_id,
+    profile_version,
+    profile_cid,
+  })
+}
+
+///|
 #export_name("clientProgramLocalMockAccountConfiguration")
 pub fn client_program_local_mock_account_configuration(
   account_id : String,

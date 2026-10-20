@@ -1899,7 +1899,7 @@ never re-materialized to restore removed or restricted grants. The
 configuration document is `actql-execution-account-config/0.1`, whose wire form
 and exact overlap rule are bound by the [Run protocol](protocols/run.md#account-config).
 
-<!-- requirement-block: policy-routing.standard-local-bootstrap policy-routing.mock-request-protection-target -->
+<!-- requirement-block: policy-routing.standard-local-bootstrap -->
 A standard Local Host without an authored `account_config` MUST materialize
 and durably adopt the explicit bootstrap profile that allows pure computation,
 reads from configured connections and INFER through registered ModelTasks,
@@ -1912,14 +1912,22 @@ All ordinary credential, egress, resource, currentness and approval checks
 remain required. An unreadable, invalid or revoked configuration is refused,
 not treated as absence or a request to restore the bootstrap profile.
 
+<!-- requirement-block: policy-routing.mock-result-original-binding policy-routing.mock-request-protection-target -->
 For trusted explicit initial Local Mock selection, the limited shared profile is
 `actql-local-mock` version `0.1`, with original body CID
-`sha256:fe8f88f3465a18456678bf9bf32943dcc4e4a8654b6d449f0c6af174fffd7e3a`.
+`sha256:5d1edcd4312874f4621a96fa5d6a73b4015952cab8db0f6950a1622dcf0ab36f`.
 Its [Common body and materializer](../../src/execution_authorization/local_mock_profile.mbt)
 instantiate only finite principal/connection/resource/operation tuples for the
 same selected Project and actual Mock installation: selected Source reads,
 exact Mock Task inference/answer retention, original Local request/control,
-and purpose-confined signing. The selected UPDATE uses `delegate`, never
+and purpose-confined signing. The actual Local control connection retains
+`run` operations `cancel`, `publish`, `read`, `resolve` and `submit`.
+The established default Result uses the exact `result/answer` resource and
+`read` operation, independently of `run/read` and Source reads. Each use MUST
+retain the actual same-Run preparation or committed Result, installation and
+current authority. This finite default scope does not authorize another Named
+Result, an alias, a caller-supplied name list or a live backend.
+The selected UPDATE uses `delegate`, never
 automatic approval. The original Host request-protection `write` tuple is
 distinct from a Source or Effect target and MUST NOT name either in its place.
 Profile bytes, aliases and equal CIDs do not establish a Mock backend or current
@@ -1929,6 +1937,13 @@ confirmation and durable adoption precede protected use; current operator
 configuration remains authoritative, and missing adopted state is not regrant
 or rekey permission. Missing signer blocks signing/approval, not independently
 permitted read/inference. Saved Runs retain their originals.
+
+<!-- requirement-block: policy-routing.mock-profile-original-recovery -->
+The predecessor profile body CID
+`sha256:fe8f88f3465a18456678bf9bf32943dcc4e4a8654b6d449f0c6af174fffd7e3a`
+and its issued configurations remain exact historical originals. Recognizing
+that identity on reopen MUST NOT expand its grants, rewrite its adoption or
+regenerate missing keys/configuration; an authorized migration is separate.
 
 <!-- requirement-block: policy-routing.a-technical-decision-failure-must-not-dispatch-or-record-a-rejection -->
 Initial denial and later denial are distinct. A denial or technical decision
