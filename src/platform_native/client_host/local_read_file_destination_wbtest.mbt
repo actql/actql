@@ -28,11 +28,13 @@ test "File destination acknowledges actual Writer and rechecks completed origina
   )
   assert_true(destination.finish())
   let (count, digest) = destination.verify_completed(original).unwrap()
-  assert_eq(count, 9L)
-  assert_eq(digest, @sha.hex(@sha.digest(b"[{\"x\":1}]")))
   assert_false(destination.finish())
   destination.close().unwrap()
   destination.close().unwrap()
+  assert_eq(count, 9L)
+  assert_eq(
+    digest, "45fa679977289675167a1e277c1febba4c59b00c64853a8462116f46f1a5f4f7",
+  )
   assert_true(
     destination.root is None &&
     destination.writer is None &&
@@ -60,9 +62,11 @@ test "File destination uses actual ordinary names without truncation or normaliz
   )
   assert_true(destination.finish())
   let (count, digest) = destination.verify_completed(original).unwrap()
-  assert_eq(count, 8L)
-  assert_eq(digest, @sha.hex(@sha.digest(b"ordinary")))
   destination.close().unwrap()
+  assert_eq(count, 8L)
+  assert_eq(
+    digest, "03822375f2aca5e53d66838a3e803183e0c1a7921da8e4056d3341ea95777cd9",
+  )
 }
 
 ///|
