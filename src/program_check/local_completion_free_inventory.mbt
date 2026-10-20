@@ -59,6 +59,29 @@ priv enum LocalCompletionFreeAudit {
     Bool,
     Bool
   )
+  JoinComplete(
+    Int,
+    @parameters.BoundValues?,
+    Bool,
+    Bool,
+    Bool,
+    Bool,
+    Bool,
+    Bool,
+    Bool,
+    Bool,
+    Bool,
+    Bool
+  )
+  JoinSortCompleted(
+    Int,
+    Array[LocalSortNormalizationEntry],
+    Bool,
+    Bool,
+    Bool,
+    Bool,
+    Bool
+  )
   ProfileNotInstalled
   CompletionObserved
 }
@@ -80,10 +103,16 @@ struct LocalCompletionFreeInventory {
   sets : Bool
   dedupes : Bool
   assertions : Bool
+  joins : Bool
 }
 
 ///|
 fn local_audit_uses_distinct(audit : LocalCompletionFreeAudit) -> Bool {
+  match audit {
+    JoinComplete(_, _, _, _, _, _, _, value, _, _, _, _)
+    | JoinSortCompleted(_, _, value, _, _, _, _) => return value
+    _ => ()
+  }
   match audit {
     DistinctComplete(_, _, _, _, _, _, _, _) | DistinctSortCompleted(_, _, _) =>
       true
@@ -100,6 +129,11 @@ fn local_audit_uses_distinct(audit : LocalCompletionFreeAudit) -> Bool {
 ///|
 fn local_audit_uses_set(audit : LocalCompletionFreeAudit) -> Bool {
   match audit {
+    JoinComplete(_, _, _, _, _, _, _, _, value, _, _, _)
+    | JoinSortCompleted(_, _, _, value, _, _, _) => return value
+    _ => ()
+  }
+  match audit {
     SetComplete(_, _, _, _, _, _, _, _, _) | SetSortCompleted(_, _, _, _) =>
       true
     DedupeComplete(_, _, _, _, _, _, _, _, sets, _)
@@ -112,6 +146,11 @@ fn local_audit_uses_set(audit : LocalCompletionFreeAudit) -> Bool {
 
 ///|
 fn local_audit_uses_dedupe(audit : LocalCompletionFreeAudit) -> Bool {
+  match audit {
+    JoinComplete(_, _, _, _, _, _, _, _, _, value, _, _)
+    | JoinSortCompleted(_, _, _, _, value, _, _) => return value
+    _ => ()
+  }
   match audit {
     DedupeComplete(_, _, _, _, _, _, _, _, _, _)
     | DedupeSortCompleted(_, _, _, _, _) => true
@@ -586,7 +625,8 @@ fn audit_local_completion_free_units(
         }
         remaining -= 1
         match @pipeline.step_at(unit.pipeline, index).unwrap().operation {
-          @pipeline.Append(..) | @pipeline.Set(..) => original_binary = true
+          @pipeline.Append(..) | @pipeline.Set(..) | @pipeline.Join(..) =>
+            original_binary = true
           _ => ()
         }
       }
@@ -660,6 +700,7 @@ fn audit_local_completion_free_units(
   let mut sets = false
   let mut dedupes = false
   let mut assertions = false
+  let mut joins = false
   let sort_entries : Array[LocalSortNormalizationEntry] = []
   let sources : Array[(Int, Int)] = []
   let mut roots = 0
@@ -697,6 +738,21 @@ fn audit_local_completion_free_units(
       let step = @pipeline.step_at(pipeline, index).unwrap()
       match step.operation {
         @pipeline.Values(_) => roots += 1
+        @pipeline.Join(..) => {
+          guard audit_local_completion_free_join(
+              step.operation,
+              pipeline,
+              index,
+              bound_parameters,
+              @context.stage_requirement_operations(requirements),
+              remaining,
+            )
+            is Some(left) else {
+            return ProfileNotInstalled
+          }
+          remaining = left
+          joins = true
+        }
         @pipeline.Append(..) | @pipeline.Set(..) => {
           guard audit_local_completion_free_binary(
               step.operation,
@@ -845,14 +901,24 @@ fn audit_local_completion_free_units(
       }
     }
   }
-  if roots < 1 || (roots != 1 && !sets) {
+  if roots < 1 || (roots != 1 && !sets && !joins) {
     return ProfileNotInstalled
   }
   if !sort_entries.is_empty() {
     guard canonical_local_sort_entries(sort_entries, remaining) is Some(left) else {
       return ProfileNotInstalled
     }
-    return if assertions {
+    return if joins {
+      JoinSortCompleted(
+        10000 - left,
+        sort_entries,
+        distincts,
+        sets,
+        dedupes,
+        assertions,
+        defaulted_parameters,
+      )
+    } else if assertions {
       AssertionSortCompleted(
         10000 - left,
         sort_entries,
@@ -881,6 +947,22 @@ fn audit_local_completion_free_units(
     } else {
       SortCompleted(10000 - left, sort_entries, defaulted_parameters)
     }
+  }
+  if joins {
+    return JoinComplete(
+      10000 - remaining,
+      bound_parameters,
+      explicit_cast,
+      checked_expressions,
+      groups,
+      takes,
+      sorts,
+      distincts,
+      sets,
+      dedupes,
+      assertions,
+      defaulted_parameters,
+    )
   }
   if assertions {
     return AssertionComplete(
@@ -1011,6 +1093,20 @@ pub fn local_program_completion_free_inventory(
       _,
       _,
       defaulted_parameters
+    )
+    | JoinComplete(
+      work,
+      bound_parameters,
+      explicit_cast,
+      checked_expressions,
+      groups,
+      takes,
+      sorts,
+      _,
+      _,
+      _,
+      _,
+      defaulted_parameters
     ) =>
       Ok({
         owner,
@@ -1025,8 +1121,10 @@ pub fn local_program_completion_free_inventory(
         distincts: local_audit_uses_distinct(owner.local_completion_free_audit),
         sets: local_audit_uses_set(owner.local_completion_free_audit),
         dedupes: local_audit_uses_dedupe(owner.local_completion_free_audit),
-        assertions: owner.local_completion_free_audit
-        is AssertionComplete(_, _, _, _, _, _, _, _, _, _, _),
+        assertions: local_audit_uses_assertions(
+          owner.local_completion_free_audit,
+        ),
+        joins: local_audit_uses_join(owner.local_completion_free_audit),
       })
     ProfileNotInstalled => Err(ProfileNotInstalled)
     CompletionObserved
@@ -1034,7 +1132,8 @@ pub fn local_program_completion_free_inventory(
     | DistinctSortCompleted(_, _, _)
     | SetSortCompleted(_, _, _, _)
     | DedupeSortCompleted(_, _, _, _, _)
-    | AssertionSortCompleted(_, _, _, _, _, _) => Err(CompletionObserved)
+    | AssertionSortCompleted(_, _, _, _, _, _)
+    | JoinSortCompleted(_, _, _, _, _, _, _) => Err(CompletionObserved)
   }
 }
 
@@ -1139,4 +1238,32 @@ pub fn local_completion_free_inventory_uses_assertions(
   inventory : LocalCompletionFreeInventory,
 ) -> Bool {
   inventory.assertions
+}
+
+///|
+fn local_audit_uses_assertions(audit : LocalCompletionFreeAudit) -> Bool {
+  match audit {
+    AssertionComplete(_, _, _, _, _, _, _, _, _, _, _)
+    | AssertionSortCompleted(_, _, _, _, _, _) => true
+    JoinComplete(_, _, _, _, _, _, _, _, _, _, value, _)
+    | JoinSortCompleted(_, _, _, _, _, value, _) => value
+    _ => false
+  }
+}
+
+///|
+fn local_audit_uses_join(audit : LocalCompletionFreeAudit) -> Bool {
+  match audit {
+    JoinComplete(_, _, _, _, _, _, _, _, _, _, _, _)
+    | JoinSortCompleted(_, _, _, _, _, _, _) => true
+    _ => false
+  }
+}
+
+///|
+/// Original checked keyed-Join metadata, not a row, capacity or Source grant.
+pub fn local_completion_free_inventory_uses_join(
+  inventory : LocalCompletionFreeInventory,
+) -> Bool {
+  inventory.joins
 }

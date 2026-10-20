@@ -358,6 +358,8 @@ pub fn local_completion_free_inventory_uses_explicit_cast(LocalCompletionFreeInv
 
 pub fn local_completion_free_inventory_uses_groups(LocalCompletionFreeInventory) -> Bool
 
+pub fn local_completion_free_inventory_uses_join(LocalCompletionFreeInventory) -> Bool
+
 pub fn local_completion_free_inventory_uses_set(LocalCompletionFreeInventory) -> Bool
 
 pub fn local_completion_free_inventory_uses_sort(LocalCompletionFreeInventory) -> Bool
@@ -385,6 +387,8 @@ pub fn local_sort_normalization_inventory_uses_assertions(LocalSortNormalization
 pub fn local_sort_normalization_inventory_uses_dedupe(LocalSortNormalizationInventory) -> Bool
 
 pub fn local_sort_normalization_inventory_uses_distinct(LocalSortNormalizationInventory) -> Bool
+
+pub fn local_sort_normalization_inventory_uses_join(LocalSortNormalizationInventory) -> Bool
 
 pub fn local_sort_normalization_inventory_uses_projection(LocalSortNormalizationInventory) -> Bool
 

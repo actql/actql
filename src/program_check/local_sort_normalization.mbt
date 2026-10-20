@@ -19,6 +19,7 @@ struct LocalSortNormalizationInventory {
   sets : Bool
   dedupes : Bool
   assertions : Bool
+  joins : Bool
   defaulted_parameters : Bool
 }
 
@@ -218,12 +219,14 @@ pub fn local_program_sort_normalization_inventory(
     | DistinctComplete(_, _, _, _, _, _, _, _)
     | SetComplete(_, _, _, _, _, _, _, _, _)
     | DedupeComplete(_, _, _, _, _, _, _, _, _, _)
-    | AssertionComplete(_, _, _, _, _, _, _, _, _, _, _) => Ok(None)
+    | AssertionComplete(_, _, _, _, _, _, _, _, _, _, _)
+    | JoinComplete(_, _, _, _, _, _, _, _, _, _, _, _) => Ok(None)
     SortCompleted(work, entries, defaulted_parameters)
     | DistinctSortCompleted(work, entries, defaulted_parameters)
     | SetSortCompleted(work, entries, _, defaulted_parameters)
     | DedupeSortCompleted(work, entries, _, _, defaulted_parameters)
-    | AssertionSortCompleted(work, entries, _, _, _, defaulted_parameters) =>
+    | AssertionSortCompleted(work, entries, _, _, _, defaulted_parameters)
+    | JoinSortCompleted(work, entries, _, _, _, _, defaulted_parameters) =>
       Ok(
         Some({
           owner,
@@ -232,8 +235,10 @@ pub fn local_program_sort_normalization_inventory(
           defaulted_parameters,
           sets: local_audit_uses_set(owner.local_completion_free_audit),
           dedupes: local_audit_uses_dedupe(owner.local_completion_free_audit),
-          assertions: owner.local_completion_free_audit
-          is AssertionSortCompleted(_, _, _, _, _, _),
+          assertions: local_audit_uses_assertions(
+            owner.local_completion_free_audit,
+          ),
+          joins: local_audit_uses_join(owner.local_completion_free_audit),
           distincts: local_audit_uses_distinct(
             owner.local_completion_free_audit,
           ),
@@ -358,4 +363,12 @@ pub fn local_sort_normalization_inventory_uses_assertions(
   value : LocalSortNormalizationInventory,
 ) -> Bool {
   value.assertions
+}
+
+///|
+/// Original keyed-Join metadata alongside actual retained completion entries.
+pub fn local_sort_normalization_inventory_uses_join(
+  value : LocalSortNormalizationInventory,
+) -> Bool {
+  value.joins
 }

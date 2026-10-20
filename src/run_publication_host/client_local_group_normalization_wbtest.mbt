@@ -187,7 +187,7 @@ test "authored Group keys fields distinct and filters retain the original checke
 
 ///|
 // These original sequences contain Values, Group, checked Derive, projection and
-// whole-row or original keyed DISTINCT, checked Dedupe and atomic assertions.
+// whole-row or original keyed DISTINCT, checked Dedupe, keyed Join and atomic assertions.
 // Only the original dynamic Group bindings receive expression contexts; a
 // count-only Group is not an expression kernel.
 fn local_group_generated(
@@ -196,7 +196,7 @@ fn local_group_generated(
   let contexts : Array[@execution.FragmentRuntimeContext] = []
   for index in 0..<@lower.sequence_count(sequence) {
     match @lower.sequence_step(sequence, index).unwrap() {
-      ValuesStep(_) | AppendStep(_) | SetStep(_) => ()
+      ValuesStep(_) | AppendStep(_) | SetStep(_) | JoinStep(_) => ()
       RowStep(kernel) => {
         assert_true(
           @lower.kernel_group(kernel) is Some(_) ||
