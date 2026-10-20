@@ -112,8 +112,8 @@ fn issue_client_serialization_effect_plan(
         max_depth,
         include_results=false,
       )
-      .map(Some)
-      .map_err(Generation)
+      .map(value => Some(value))
+      .map_err(issue => Generation(issue))
   }
   let serialization = match
     issue_acquired_client_serialization_plan_graph(

@@ -42,5 +42,7 @@ pub fn client_program_compile_local_effects_with_source_free_policy_body(
     100000,
     100,
     source_free_policy=Some(policy),
-  ).map_err(Compilation)
+  ).map_err(issue => {
+    ClientProgramEffectCompilationBridgeIssue::Compilation(issue)
+  })
 }
