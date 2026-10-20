@@ -136,10 +136,40 @@ fn mock_churn_risk_document_rows(
   bytes : Bytes,
   max_work : Int,
 ) -> Result[Array[Array[@admitted.CheckedValue]], RowSourceIssue] {
+  mock_churn_risk_selected_document(
+    read.schema,
+    read.columns,
+    read.page_limits,
+    read.values,
+    selected,
+    salesforce,
+    snowflake,
+    bytes,
+    max_work,
+  ).map(value => value.0)
+}
+
+///|
+// Shared bounded DATA admission for the original reader and conditional file
+// writer. This does not construct a read attempt or consume a byte ticket.
+// Each physical caller retains its own authorization, backing and cleanup.
+fn mock_churn_risk_selected_document(
+  selected_schema : @schema.Schema,
+  columns : Array[String],
+  bounds : RowPageLimits,
+  values : @admitted.Limits,
+  selected : RowDeclaration,
+  salesforce : RowDeclaration,
+  snowflake : RowDeclaration,
+  bytes : Bytes,
+  max_work : Int,
+) -> Result[
+  (Array[Array[@admitted.CheckedValue]], @decode.Cursor),
+  RowSourceIssue,
+] {
   try {
     let work = Ref(max_work)
     mock_rows_work(work, bytes.length())
-    let bounds = read.page_limits
     if bytes.length() > bounds.max_bytes {
       raise MockRowsStop(InvalidPage)
     }
@@ -219,7 +249,7 @@ fn mock_churn_risk_document_rows(
           let cell = mock_rows_field(fields, name)
           let full = @schema.lookup_reference(schema, name).unwrap().contract
           let target = if physical_equal(declaration, selected) {
-            @schema.lookup_reference(read.schema, name)
+            @schema.lookup_reference(selected_schema, name)
             .map(field => field.contract)
             .unwrap_or(full)
           } else {
@@ -235,19 +265,18 @@ fn mock_churn_risk_document_rows(
           let span = @decode.cursor_span(cell)
           mock_rows_work(work, span.end_byte - span.start_byte + 1)
           let cell = if target.shape is @contract.Signed64 {
-            mock_rows_int64(cell, bytes, read.values)
+            mock_rows_int64(cell, bytes, values)
           } else {
             cell
           }
-          let value = @admitted.admit(target, cell, read.values).unwrap_or_else(() => {
-              raise MockRowsStop(Value(name))
-            },
-          )
+          let value = @admitted.admit(target, cell, values).unwrap_or_else(() => {
+            raise MockRowsStop(Value(name))
+          })
           checked[name] = value
         }
         if physical_equal(declaration, selected) {
           let values = []
-          for name in read.columns {
+          for name in columns {
             values.push(
               checked
               .get(name)
@@ -258,7 +287,7 @@ fn mock_churn_risk_document_rows(
         }
       }
     }
-    Ok(selected_rows)
+    Ok((selected_rows, root))
   } catch {
     MockRowsStop(issue) => Err(issue)
   }

@@ -1199,6 +1199,16 @@ pub fn client_program_local_values_unit_source_json(@run_publication_host.Prepar
 
 pub fn client_program_mock_churn_risk_accept_charged_document(@client_row_source_host.RowRun, @client_row_source_host.RowPageCharge, @client_row_source_host.RowAcquisition, @client_row_source_host.RowDeclaration, @client_row_source_host.RowDeclaration, Bytes, Int) -> Result[Int, @client_row_source_host.RowHostIssue]
 
+pub fn client_program_mock_churn_risk_admit_target_document(@client_row_source_host.RowDeclaration, @client_row_source_host.RowDeclaration, Bytes, Int, Int, Int, Int, Int) -> Result[@client_row_source_host.MockTargetDocument, @client_row_source_host.RowSourceIssue]
+
+pub fn client_program_mock_churn_risk_observe_target(@client_row_source_host.MockTargetDocument, @client_row_source_host.RowDeclaration, String) -> Result[@client_row_source_host.MockTargetRow, @client_row_source_host.RowSourceIssue]
+
+pub fn client_program_mock_churn_risk_prepare_target_update(@client_row_source_host.MockTargetDocument, @client_row_source_host.MockTargetRow, String, String, Int) -> Result[Bytes, @client_row_source_host.RowSourceIssue]
+
+pub fn client_program_mock_churn_risk_target_before(@client_row_source_host.MockTargetRow) -> String?
+
+pub fn client_program_mock_churn_risk_target_version(@client_row_source_host.MockTargetRow) -> String?
+
 pub fn client_program_mock_churn_risk_update_mapping(@client_row_source_host.RowDeclaration) -> Result[String, @client_row_source_host.RowMappingIssue]
 
 pub fn client_program_multi_captured_ledger_usage(@physical_resources.Ledger) -> Array[Int64]
