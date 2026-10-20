@@ -259,7 +259,9 @@ export async function installPreparedProjectLocalFiles({moon,preparation,sourceM
       reads:new Map(),retired:false,failed:false,failure:undefined};
     runs.set(prepared,run);
     try{
-      const keyed=checked(moon.clientProgramSelectSingleKeyedAcquisition(prepared));
+      const keyed=recipe.keyedAcquisition;
+      if(keyed===undefined||moon.clientProgramKeyedAcquisitionMatchesProgram(keyed,prepared)!==true)
+        fail('ForeignLocalFilesContentPreparation');
       const coordinates=moon.clientProgramKeyedDirectAcquisitionCoordinates(keyed);
       const stage=runtimeOptionalField(coordinates,0),input=runtimeOptionalField(coordinates,1);
       if(!Number.isSafeInteger(stage)||!Number.isSafeInteger(input))fail('LocalFilesContentPreparationUnavailable');
@@ -335,6 +337,8 @@ export async function installPreparedProjectLocalFiles({moon,preparation,sourceM
     for(const entry of bundle.sources){
       current();
       const authorization=await authorizationFor(entry.connection);current();
+      const assertAccountCurrent=authorization.assertAccountCurrent;
+      if(typeof assertAccountCurrent!=='function')fail('LocalFilesAuthorizationUnavailable');
       const declared=JSON.parse(entry.wire),environment=rowSourceCheckEnvironment(baseEnvironmentWire,declared);
       const known=new Set(),preparedRuns=new WeakMap();
       const issuer=moon.clientProgramResourceReferenceIssuer((kind,wire)=>kind==='file'&&known.has(wire),()=>{
@@ -359,8 +363,11 @@ export async function installPreparedProjectLocalFiles({moon,preparation,sourceM
                 !/^sha256:[0-9a-f]{64}$/u.test(dispatchRequestCid)||!positive(maxUses)||
                 decision?.action!=='dispatch'||decision.boundary!=='acquisition'||
                 decision.tuple?.connection!==entry.connection||decision.tuple?.resource!==resource||
-                decision.tuple?.operation!=='read'||!authorization.issued(decision)||
+                decision.tuple?.operation!=='read'||
                 decision.contextCid!==authorization.context.contextCid)fail('LocalFilesReadGrantNotAuthorized');
+            // The original Account gate verifies its own decision and current
+            // configuration; a copied tuple or historical Allow is not a grant.
+            Reflect.apply(assertAccountCurrent,authorization,[decision]);
             return Object.freeze({runInvocationCid,dispatchRequestCid});
           },
           async close(){for(const run of runs.values())for(const read of run.reads.values())
@@ -500,7 +507,9 @@ export async function installPreparedProjectLocalFiles({moon,preparation,sourceM
         return Object.freeze({name:alias.name,sourceRef:view.source_ref,sourceViewContractCid:view.view_cid,
           schemaContractCid:view.carrier_schema_cid});
       }));
-      sources.push(Object.freeze({...adapter,queryAliases,
+      // Keyed Local contents are captured by the existing Run-owned Store
+      // frame. Dispatch must retain that frame before opening file bytes.
+      sources.push(Object.freeze({...adapter,queryAliases,requiresRunContentCapture:true,
         async prepare(facts){const prepared=await adapter.prepare(facts);
           preparedRuns.set(prepared,sameRun(facts.preparedEffect??facts.preparedProgram));return prepared;},
         ledgerCapacity(prepared){const run=preparedRuns.get(prepared);

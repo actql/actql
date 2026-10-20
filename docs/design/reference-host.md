@@ -690,6 +690,13 @@ read authority or acknowledges physical cleanup. Model-composed Content and
 other unsupported backend shapes remain separate connections, not language
 restrictions.
 
+The Host retains the first checked keyed selection in its original Content
+preparation and forwards that same handle through the Source recipe and later
+dispatch. Reselecting an equivalent operation is not the original child bound
+to the managed Run. The Local Source explicitly selects Run-owned Content
+capture before file I/O. Its read grant uses the same Account gate's captured
+current-decision fence and receiver, not a second evaluator or a copied Allow.
+
 Task splitting does not replace this original inventory: the JOIN and Serialize
 may have different task ordinals. The checked same-owner dependency path, not
 ordinal equality, binds the selected barrier. Prefix preparation retains its
