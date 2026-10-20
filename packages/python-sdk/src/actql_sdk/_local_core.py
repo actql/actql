@@ -840,6 +840,10 @@ class LocalCore:
                 yield
                 if callbacks.failure is not None:
                     raise callbacks.failure
+            except Exception as error:
+                if callbacks.failure is not None and callbacks.failure is not error:
+                    raise callbacks.failure from error
+                raise
             finally:
                 callbacks.reader = None
 
