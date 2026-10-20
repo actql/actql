@@ -114,6 +114,7 @@ fn local_command_source_free_business_profile(
       // The original business provisioning attempt and declared task attempts
       // occur once. Scope changes and child close do not refill them.
       attempts: original.attempts + 1 + limits.attempts,
+      holdings: original.holdings + limits.holdings,
       transfer_bytes: original.transfer_bytes + limits.transfer_bytes,
       execution_bytes: arena,
     },
