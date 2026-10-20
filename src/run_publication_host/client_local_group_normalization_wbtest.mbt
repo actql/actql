@@ -98,7 +98,7 @@ test "Group normalization retains original argument completion and unsupported r
   assert_true(implicit_else.local_normalization is None)
   let unsupported_relation = local_group_original_document(
     (
-      #|{"version":"actql/0.1","id":"local.unsupported-assert","stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false},"other":{"type":"number","nullable":false}},"rows":[{"id":1,"other":2}]},"as":"input"},{"assert_rows":{"unique_by":["id"]},"as":"selected"}],"results":{"rows":{"from":"selected","fields":["id"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}
+      #|{"version":"actql/0.1","id":"local.unsupported-cross-join","stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false},"other":{"type":"number","nullable":false}},"rows":[{"id":1,"other":2}]},"as":"input"},{"cross_join":{"with":"input","right_rows":"one","max_output_rows":1,"select":{"id":"left.id"}},"as":"selected"}],"results":{"rows":{"from":"selected","fields":["id"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}
     ),
   )
   assert_true(
@@ -187,7 +187,7 @@ test "authored Group keys fields distinct and filters retain the original checke
 
 ///|
 // These original sequences contain Values, Group, checked Derive, projection and
-// whole-row or original keyed DISTINCT and checked Dedupe.
+// whole-row or original keyed DISTINCT, checked Dedupe and atomic assertions.
 // Only the original dynamic Group bindings receive expression contexts; a
 // count-only Group is not an expression kernel.
 fn local_group_generated(
@@ -206,6 +206,8 @@ fn local_group_generated(
           @lower.kernel_is_sort(kernel) ||
           @lower.kernel_is_distinct(kernel) ||
           @lower.kernel_is_dedupe(kernel) ||
+          @relation.operation(@lower.kernel_checked(kernel))
+          is @relation.AssertRows ||
           @relation.operation(@lower.kernel_checked(kernel)) is @relation.Derive,
         )
         if @relation.binding_count(@lower.kernel_checked(kernel)) > 0 {

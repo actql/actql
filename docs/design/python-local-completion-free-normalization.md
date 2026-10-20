@@ -275,3 +275,19 @@ without Dedupe keep their prior catalogue and journal bytes, and the complete
 preceding catalogue, schema and independent preimages remain retained. Original
 Default/Supplied binding, current authorization, complete row admission, execution
 limits and Run material custody remain with their existing Owners.
+
+The assertion revision covers the existing checked `assert_rows` operation in
+this same closed catalogue. The audit retains the original pipeline step,
+unchanged schema, predicate or indexed authored key occurrences, and both
+atomic assertion and consumption obligations. It charges the complete metadata
+traversal to the existing work limit without copying the key collection.
+
+This capability is not a successful assertion proof. The existing physical
+execution must reject false or unknown predicates, NULL or missing keys and
+duplicate tuples before publishing output or satisfying a dependent key proof.
+Successful rows retain their bytes, shape, order and identity; checking a
+nullable key does not narrow its contract. Unconsumed assertion branches remain
+planning failures. Fixed assertion laws add no Source journal entry, while
+actual Sort and projection completions retain their original entries. Programs
+without assertions retain all earlier catalogue and journal bytes. The complete
+preceding catalogue, schema and independent preimages remain intact.
