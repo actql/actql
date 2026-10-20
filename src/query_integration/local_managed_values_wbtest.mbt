@@ -137,7 +137,9 @@ test "Local managed zero-input values stop after bounded cell work" {
   (operations.settle)().unwrap()
   assert_true((operations.cleanup_refresh)())
   assert_false(@strategy.captured_task_completed(run, 2))
+  assert_true(@strategy.captured_dag_failure(run) is None)
   @strategy.stop_captured_dag(run)
+  assert_true(@strategy.captured_dag_failure(run) is None)
   for task in 0..<4 {
     @strategy.close_captured_task_output(run, task)
   }
