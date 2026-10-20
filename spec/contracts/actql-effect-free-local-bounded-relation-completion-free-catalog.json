@@ -13,6 +13,7 @@
     ],
     "checked_operations": [
       "append",
+      "dedupe_rows",
       "derive",
       "distinct",
       "drop",
@@ -171,7 +172,12 @@
       "default"
     ],
     "parameter_default_correspondence": "same-original-BoundValues-declaration-name-type-and-checked-default-value",
-    "projection_expansion": "original-same-pipeline-step-CheckedOperation-complete-schema-and-owned-projection; actual-authored-path-and-semantic-journal-entry"
+    "projection_expansion": "original-same-pipeline-step-CheckedOperation-complete-schema-and-owned-projection; actual-authored-path-and-semantic-journal-entry",
+    "dedupe_scope": "original-same-pipeline-step-checked-operation-schema-and-indexed-key-order-occurrences",
+    "dedupe_keys": "authored-repeats-and-empty-global-partition-retained",
+    "dedupe_selection": "existing-first-by-authored-order; unresolved-top-tie-fails-even-identical-rows",
+    "dedupe_order": "existing-canonical-typed-group-key-order-null-first",
+    "dedupe_journal": "fixed-operation-laws-are-not-Source-completion; actual-Sort-and-projection-entries-retained"
   },
   "profile": "actql-effect-free-local-completion-free/0.1",
   "rules": [

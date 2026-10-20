@@ -258,3 +258,20 @@ budget, and the existing journal byte/node/depth limits refuse atomically.
 The retained operation, source/schema aliases, bounded authored/canonical
 strings, original path/cursor views and paired writers overlap during
 preparation. Reference retirement is not a physical cleanup acknowledgement.
+
+The Dedupe revision admits the existing checked `dedupe_rows` operation through
+the same bounded original audit. Its indexed keys and order terms retain every
+authored occurrence, including repeated keys and an empty global partition. The
+audit checks the original operation, pipeline step, schema and decoded cursors;
+an equal operation from another preparation is insufficient. Field and source
+traversal use the existing work limit without copying the key or order arrays.
+
+First-row selection by the stated order, canonical typed group order and failure
+on an unresolved top tie remain existing execution laws. Even identical tied
+rows fail; empty input produces no survivor. These laws create no Source journal
+entry. Actual Sort completions and rename/drop expansions in the same Program
+retain their original nonempty entries under the new closed catalogue. Programs
+without Dedupe keep their prior catalogue and journal bytes, and the complete
+preceding catalogue, schema and independent preimages remain retained. Original
+Default/Supplied binding, current authorization, complete row admission, execution
+limits and Run material custody remain with their existing Owners.

@@ -32,6 +32,9 @@ pub fn client_local_completion_free_catalog_cid() -> String {
 fn local_completion_free_catalog_cid(
   inventory : @checked.LocalCompletionFreeInventory,
 ) -> String {
+  if @checked.local_completion_free_inventory_uses_dedupe(inventory) {
+    return local_dedupe_catalog_cid()
+  }
   if @checked.local_completion_free_inventory_parameters_defaulted(inventory) {
     return if @checked.local_completion_free_inventory_uses_set(inventory) {
       local_default_set_catalog_cid()
@@ -76,6 +79,11 @@ fn local_completion_free_catalog_cid(
 }
 
 ///|
+fn local_dedupe_catalog_cid() -> String {
+  "sha256:0837ef2d59853872ac03acf1ab6cb7351a253377f0cd27b219d3bd94c790191e"
+}
+
+///|
 fn local_default_parameter_catalog_cid() -> String {
   "sha256:096c228635c4a08bbe7080f3447a9ca35b439fdb5113a17b0cca2b7735a55d2d"
 }
@@ -87,7 +95,11 @@ fn local_normalization_catalog_cid(
   match inventory {
     CompletionFree(value) => local_completion_free_catalog_cid(value)
     SortCompletion(value) =>
-      if @checked.local_sort_normalization_inventory_uses_projection(value) {
+      if @checked.local_sort_normalization_inventory_uses_dedupe(value) {
+        local_dedupe_catalog_cid()
+      } else if @checked.local_sort_normalization_inventory_uses_projection(
+          value,
+        ) {
         "sha256:eaaf8fc464b5079e782f5dbcbdd7ef0c8b2934ef0a01c7e465907f8c6f850923"
       } else if @checked.local_sort_normalization_inventory_parameters_defaulted(
           value,

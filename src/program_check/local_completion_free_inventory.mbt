@@ -25,6 +25,19 @@ priv enum LocalCompletionFreeAudit {
     Bool
   )
   SetSortCompleted(Int, Array[LocalSortNormalizationEntry], Bool, Bool)
+  DedupeComplete(
+    Int,
+    @parameters.BoundValues?,
+    Bool,
+    Bool,
+    Bool,
+    Bool,
+    Bool,
+    Bool,
+    Bool,
+    Bool
+  )
+  DedupeSortCompleted(Int, Array[LocalSortNormalizationEntry], Bool, Bool, Bool)
   ProfileNotInstalled
   CompletionObserved
 }
@@ -44,6 +57,7 @@ struct LocalCompletionFreeInventory {
   sorts : Bool
   distincts : Bool
   sets : Bool
+  dedupes : Bool
 }
 
 ///|
@@ -53,6 +67,8 @@ fn local_audit_uses_distinct(audit : LocalCompletionFreeAudit) -> Bool {
       true
     SetComplete(_, _, _, _, _, _, _, distincts, _)
     | SetSortCompleted(_, _, distincts, _) => distincts
+    DedupeComplete(_, _, _, _, _, _, _, distincts, _, _)
+    | DedupeSortCompleted(_, _, distincts, _, _) => distincts
     _ => false
   }
 }
@@ -62,6 +78,17 @@ fn local_audit_uses_set(audit : LocalCompletionFreeAudit) -> Bool {
   match audit {
     SetComplete(_, _, _, _, _, _, _, _, _) | SetSortCompleted(_, _, _, _) =>
       true
+    DedupeComplete(_, _, _, _, _, _, _, _, sets, _)
+    | DedupeSortCompleted(_, _, _, sets, _) => sets
+    _ => false
+  }
+}
+
+///|
+fn local_audit_uses_dedupe(audit : LocalCompletionFreeAudit) -> Bool {
+  match audit {
+    DedupeComplete(_, _, _, _, _, _, _, _, _, _)
+    | DedupeSortCompleted(_, _, _, _, _) => true
     _ => false
   }
 }
@@ -603,6 +630,7 @@ fn audit_local_completion_free_units(
   let mut sorts = false
   let mut distincts = false
   let mut sets = false
+  let mut dedupes = false
   let sort_entries : Array[LocalSortNormalizationEntry] = []
   let sources : Array[(Int, Int)] = []
   let mut roots = 0
@@ -675,6 +703,16 @@ fn audit_local_completion_free_units(
               }
               remaining = left
               distincts = true
+            }
+            DedupeRows => {
+              guard audit_local_completion_free_dedupe(
+                  operation, pipeline, index, remaining,
+                )
+                is Some(left) else {
+                return ProfileNotInstalled
+              }
+              remaining = left
+              dedupes = true
             }
             Sort => {
               match
@@ -775,7 +813,15 @@ fn audit_local_completion_free_units(
     guard canonical_local_sort_entries(sort_entries, remaining) is Some(left) else {
       return ProfileNotInstalled
     }
-    return if sets {
+    return if dedupes {
+      DedupeSortCompleted(
+        10000 - left,
+        sort_entries,
+        distincts,
+        sets,
+        defaulted_parameters,
+      )
+    } else if sets {
       SetSortCompleted(
         10000 - left,
         sort_entries,
@@ -787,6 +833,20 @@ fn audit_local_completion_free_units(
     } else {
       SortCompleted(10000 - left, sort_entries, defaulted_parameters)
     }
+  }
+  if dedupes {
+    return DedupeComplete(
+      10000 - remaining,
+      bound_parameters,
+      explicit_cast,
+      checked_expressions,
+      groups,
+      takes,
+      sorts,
+      distincts,
+      sets,
+      defaulted_parameters,
+    )
   }
   if sets {
     return SetComplete(
@@ -863,6 +923,18 @@ pub fn local_program_completion_free_inventory(
       sorts,
       _,
       defaulted_parameters
+    )
+    | DedupeComplete(
+      work,
+      bound_parameters,
+      explicit_cast,
+      checked_expressions,
+      groups,
+      takes,
+      sorts,
+      _,
+      _,
+      defaulted_parameters
     ) =>
       Ok({
         owner,
@@ -876,12 +948,14 @@ pub fn local_program_completion_free_inventory(
         sorts,
         distincts: local_audit_uses_distinct(owner.local_completion_free_audit),
         sets: local_audit_uses_set(owner.local_completion_free_audit),
+        dedupes: local_audit_uses_dedupe(owner.local_completion_free_audit),
       })
     ProfileNotInstalled => Err(ProfileNotInstalled)
     CompletionObserved
     | SortCompleted(_, _, _)
     | DistinctSortCompleted(_, _, _)
-    | SetSortCompleted(_, _, _, _) => Err(CompletionObserved)
+    | SetSortCompleted(_, _, _, _)
+    | DedupeSortCompleted(_, _, _, _, _) => Err(CompletionObserved)
   }
 }
 
@@ -898,6 +972,14 @@ pub fn local_completion_free_inventory_work(
   inventory : LocalCompletionFreeInventory,
 ) -> Int {
   inventory.audited_work
+}
+
+///|
+/// Capability metadata from the same nominal checked audit, never caller input.
+pub fn local_completion_free_inventory_uses_dedupe(
+  inventory : LocalCompletionFreeInventory,
+) -> Bool {
+  inventory.dedupes
 }
 
 ///|

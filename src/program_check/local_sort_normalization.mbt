@@ -17,6 +17,7 @@ struct LocalSortNormalizationInventory {
   entries : Array[LocalSortNormalizationEntry]
   distincts : Bool
   sets : Bool
+  dedupes : Bool
   defaulted_parameters : Bool
 }
 
@@ -214,10 +215,12 @@ pub fn local_program_sort_normalization_inventory(
   match owner.local_completion_free_audit {
     Complete(_, _, _, _, _, _, _, _)
     | DistinctComplete(_, _, _, _, _, _, _, _)
-    | SetComplete(_, _, _, _, _, _, _, _, _) => Ok(None)
+    | SetComplete(_, _, _, _, _, _, _, _, _)
+    | DedupeComplete(_, _, _, _, _, _, _, _, _, _) => Ok(None)
     SortCompleted(work, entries, defaulted_parameters)
     | DistinctSortCompleted(work, entries, defaulted_parameters)
-    | SetSortCompleted(work, entries, _, defaulted_parameters) =>
+    | SetSortCompleted(work, entries, _, defaulted_parameters)
+    | DedupeSortCompleted(work, entries, _, _, defaulted_parameters) =>
       Ok(
         Some({
           owner,
@@ -225,6 +228,7 @@ pub fn local_program_sort_normalization_inventory(
           entries,
           defaulted_parameters,
           sets: local_audit_uses_set(owner.local_completion_free_audit),
+          dedupes: local_audit_uses_dedupe(owner.local_completion_free_audit),
           distincts: local_audit_uses_distinct(
             owner.local_completion_free_audit,
           ),
@@ -333,4 +337,12 @@ pub fn local_sort_normalization_inventory_uses_set(
   value : LocalSortNormalizationInventory,
 ) -> Bool {
   value.sets
+}
+
+///|
+/// Dedupe capability is independent of the retained real completion entries.
+pub fn local_sort_normalization_inventory_uses_dedupe(
+  value : LocalSortNormalizationInventory,
+) -> Bool {
+  value.dedupes
 }
