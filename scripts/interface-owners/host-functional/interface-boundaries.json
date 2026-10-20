@@ -15676,7 +15676,7 @@
     {
       "module": "adapters/host-node/client-effect-run.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "a8fb0ea1a2ddd22a26d96f6b9666c80bd76cbe8ada16afd3c268530d8cc57f28",
+      "sha256": "d29f2a1e9045ad1e8348caba7525a2bf7fa34f31be0fd62ce7bb67269c418f83",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
@@ -15707,6 +15707,7 @@
             "prepareExecution",
             "execute",
             "prepareDefinition",
+            "assertRequestedStopAvailable",
             "inferPlanFor",
             "resultPolicyOriginalFor",
             "validateInstallation",

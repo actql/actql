@@ -4448,7 +4448,7 @@
     },
     {
       "module": "adapters/host-node/embedded-local.mjs",
-      "sha256": "b2905098472538c376504361d9f8a68d973c44341f0f77edf7bfe55adcc2ac79",
+      "sha256": "eb8281226c56b2754723b013ef0c296c0ec29b2d5f8c8f1df63d17cfe62f0134",
       "exports": [
         "admitOriginalHostRootFormat",
         "assertInitialControlHostPreparation",
@@ -5331,6 +5331,11 @@
             "queryTime",
             "identity"
           ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/effectRun/init:assertRequestedStopAvailable/init:assertRequestedStopAvailable",
+          "parameters": [],
           "async": false
         },
         {
@@ -9504,6 +9509,82 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/effectRun/init:assertRequestedStopAvailable/init:assertRequestedStopAvailable"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "For a newly selected Run, an original submitted request for a commit stop"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/client-effect-run.mjs",
+                "anchor": "prepareDefinition, assertRequestedStopAvailable,"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "assertRequestedStopAvailable() {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/client-effect-run.mjs",
+                "anchor": "requestedStop = moon.clientSubmittedIntentRequestsCommitStop(intent);"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/client-effect-run.mjs",
+                "anchor": "const accepted = await journal.admitOrLookupDefinition(identity, {"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-effect-run.mjs",
+                "anchor": "if (requestedStop) assertRequestedStopAvailable?.();"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "clientOperationError('RequestedEffectStopUnavailable'));"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "settlement service; the original Run Journal retains its physical-stop duties."
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "it does not start Source/Compute work merely to discover the missing signer."
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The Journal's existing-Run lookup does not issue a replacement Run or invoke"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/account-only-effect-stop.actual.test.mjs",
+                "anchor": "test('Account-only actual Host refuses a requested Effect stop"
+              },
+              {
+                "path": "adapters/host-node/local-checkpoint-answer.actual.test.mjs",
+                "anchor": "test('actual Local Mock answers its original Checkpoint after reopen"
+              }
+            ]
+          }
         }
       ],
       "imports": [
@@ -11699,8 +11780,8 @@
   ],
   "counts": {
     "modules": 16,
-    "operations": 744,
+    "operations": 745,
     "exports": 92,
-    "explicitContractGroups": 40
+    "explicitContractGroups": 41
   }
 }
