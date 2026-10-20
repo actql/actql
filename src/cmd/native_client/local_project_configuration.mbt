@@ -14,6 +14,7 @@ fn local_project_absolute_path(
   directory : String,
   selected : String,
   ordinary_file? : Bool = false,
+  ordinary_directory? : Bool = false,
 ) -> String raise ClientStop {
   if (directory != "/" && !local_product_path(directory)) ||
     (!ordinary_file && directory.contains("\\")) ||
@@ -42,7 +43,8 @@ fn local_project_absolute_path(
     }
   }
   let absolute = "/" + parts.join("/")
-  if !local_product_path(absolute) {
+  if !(ordinary_file && ordinary_directory && absolute == "/") &&
+    !local_product_path(absolute) {
     stop("InvalidProjectConfigurationPath")
   }
   absolute

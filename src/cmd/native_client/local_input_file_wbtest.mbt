@@ -36,6 +36,28 @@ test "ordinary input paths preserve an explicitly relative input root" {
 }
 
 ///|
+test "ordinary input directories normalize absolute and relative spellings consistently" {
+  for root in ["/existing/dir", "/existing/dir/", "/existing/./dir//"] {
+    let selected = local_input_file_location(root, "parameters.json")
+    assert_eq(selected.root, "/existing/dir")
+    assert_eq(selected.name, "parameters.json")
+  }
+  let current = @env.current_dir().unwrap()
+  let relative = local_input_file_location("./", "parameters.json")
+  assert_eq(relative.root, current)
+  let top = local_input_file_location("/", "parameters.json")
+  assert_eq(top.root, "/")
+  let refused = try {
+    ignore(local_project_absolute_path("/existing/dir/", "parameters.json"))
+    false
+  } catch {
+    ClientStop(_) => true
+  }
+  assert_true(refused)
+  assert_true(command_preparation_invocation.val is None)
+}
+
+///|
 test "ordinary input paths refuse invalid and overbound metadata before IO" {
   for
     value in [

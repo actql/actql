@@ -15,14 +15,20 @@ fn local_input_file_location(
     stop("InvalidLocalInputPath")
   }
   let absolute = try {
-    let directory = if root.has_prefix("/") {
-      root
+    let base = if root.has_prefix("/") {
+      "/"
     } else {
       let current = @env.current_dir().unwrap_or_else(() => {
         stop("LocalInputDirectoryUnavailable")
       })
-      local_project_absolute_path(current, root, ordinary_file=true)
+      current
     }
+    let directory = local_project_absolute_path(
+      base,
+      root,
+      ordinary_file=true,
+      ordinary_directory=true,
+    )
     local_project_absolute_path(directory, selected, ordinary_file=true)
   } catch {
     ClientStop(_) => stop("InvalidLocalInputPath")
