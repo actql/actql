@@ -223,6 +223,11 @@ partial failure still uses an array with zero or one object. Each destination
 has its own outcome and receipt. Exporting the array does not certify aggregate
 success or roll back files, and retrying receipt export must not resend output.
 `run --receipt` remains a Run receipt.
+Native Local file delivery creates each destination exclusively. Repeating the
+same Run, Result, format and destination inspects the existing attempt first:
+a completed output must still match its original file identity and bytes;
+unresolved attempts are not resent. Existing unrelated files are not replaced.
+Receipt export also uses exclusive creation, so choose an absent receipt path.
 
 ```sh
 actql result run_… --deliver answer=jsonl:answer.jsonl --deliver answer=csv:answer.csv --receipt deliveries.json

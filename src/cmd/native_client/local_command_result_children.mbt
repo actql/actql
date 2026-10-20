@@ -1,4 +1,36 @@
 ///|
+// Both parent retirement and sequential File delivery use the same return
+// ordering. Reconciling only the lower bridge would lose the Store's mirror;
+// closing children first would refuse an outstanding original return.
+fn LocalCommandBusinessOriginal::close_result_children_after_return(
+  business : LocalCommandBusinessOriginal,
+) -> Result[Unit, LocalCommandPreparationIssue] {
+  // The Store retains its own return mirror and any unexposed Result child.
+  // Recover through that same owner before lower-level scope recovery can
+  // consume the physical return without acknowledging the Store's duty.
+  if business.store is Some(store) {
+    match store.reconcile_original_return() {
+      Err(issue) => return Err(CommandBusinessStore(issue))
+      Ok(_) => ()
+    }
+  }
+  // A Store open can fail before Work exists. Reconcile the same outstanding
+  // route before either its publication children or failed DB are retired.
+  if business.operation is Some(operation) {
+    match operation.pending_scope() {
+      Err(issue) => return Err(CommandStoreOperation(issue))
+      Ok(true) =>
+        match operation.retry_scope_cleanup() {
+          Err(issue) => return Err(CommandStoreOperation(issue))
+          Ok(_) => ()
+        }
+      Ok(false) => ()
+    }
+  }
+  business.close_result_children()
+}
+
+///|
 // The original Result/Store methods enter and return their own Read/SQL
 // scopes. Do not wrap the whole close in another Store/SQL flight. The parent
 // has already reconciled the same pending return before reaching this method.
@@ -46,6 +78,14 @@ fn LocalCommandBusinessOriginal::close_result_children(
         }
         return Err(CommandBusinessResult(issue))
       }
+      Ok(_) => ()
+    }
+  }
+  // Keep the independent output Writer/Root until the same session and Store
+  // return have acknowledged. A constructor-only failure still owns this duty.
+  if self.result_binding is Some(binding) {
+    match binding.close_file_output() {
+      Err(issue) => return Err(CommandBusinessFileOutput(issue))
       Ok(_) => ()
     }
   }

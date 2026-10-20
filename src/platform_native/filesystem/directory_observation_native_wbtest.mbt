@@ -25,10 +25,13 @@ fn directory_observation_fixture(name : String) -> String raise {
 test "directory observation compares the same named and opened original" {
   let root = open_root(directory_observation_fixture("exact")).unwrap()
   let original = root.observe_directory().unwrap()
+  let identity = original.identity().unwrap()
   original.check_current().unwrap()
   original.check_current().unwrap()
+  assert_eq(original.identity().unwrap(), identity)
   root.close().unwrap()
   assert_true(original.check_current() is Err(GenerationMismatch))
+  assert_true(original.identity() is Err(GenerationMismatch))
 }
 
 ///|
@@ -44,6 +47,7 @@ test "directory observation refuses renamed and replaced original namespace" {
   let original = root.observe_directory().unwrap()
   assert_true(test_directory_replacement(root))
   assert_true(original.check_current() is Err(GenerationMismatch))
+  assert_true(original.identity() is Err(GenerationMismatch))
   assert_true(root.observe_directory() is Err(GenerationMismatch))
   root.close().unwrap()
 }
@@ -54,6 +58,7 @@ test "directory observation refuses a changed original mode" {
   let original = root.observe_directory().unwrap()
   assert_true(test_directory_mode(root, 0o750))
   assert_true(original.check_current() is Err(GenerationMismatch))
+  assert_true(original.identity() is Err(GenerationMismatch))
   root.close().unwrap()
 }
 
