@@ -25404,7 +25404,7 @@
           ]
         }
       ],
-      "sha256": "91504d053f25d886932f0a3d982832d1b5b514233187561f145599d4ea8b132b",
+      "sha256": "df7fc1f17d156747b85217b870745295de4e17daab42286fe544bd8b6788e629",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -42293,6 +42293,7 @@
             "max_records",
             "max_record_bytes",
             "max_payload_bytes",
+            "max_inspection_queries",
             "new_file"
           ]
         },
@@ -42316,11 +42317,12 @@
             "max_records",
             "max_record_bytes",
             "max_payload_bytes",
+            "max_inspection_queries",
             "new_file"
           ]
         }
       ],
-      "sha256": "3fba45121d47bc7dd772f57a6af261182b5d439959f39282a68861ff52779c98",
+      "sha256": "3bf59ffc4aaa5970873ab3305efd33d8070ee3b62830c4cee7042c108019bbdd",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -53590,6 +53592,7 @@
             "max_records",
             "max_record_bytes",
             "max_payload_bytes",
+            "max_inspection_queries",
             "_new_file"
           ]
         },
@@ -53773,7 +53776,8 @@
             "path",
             "max_records",
             "max_record_bytes",
-            "max_payload_bytes"
+            "max_payload_bytes",
+            "max_inspection_queries"
           ]
         },
         {
@@ -54033,7 +54037,8 @@
             "original",
             "max_records",
             "max_record_bytes",
-            "max_payload_bytes"
+            "max_payload_bytes",
+            "max_inspection_queries"
           ]
         },
         {
@@ -54301,7 +54306,7 @@
           "parameters": []
         }
       ],
-      "sha256": "15ce9b4427e52c44d307676f10b93841df96ad0434b93ae0e3773cf269e10a2d",
+      "sha256": "0e66f067d0cca8e5c16801317b3512dc63539937c2fef9b3cf7be94351d6920f",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
