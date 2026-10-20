@@ -46261,6 +46261,13 @@
         },
         {
           "async": false,
+          "name": "InstalledLocalHost/_project_original_sdk_run_state/confirm_and_consume",
+          "parameters": [
+            "_"
+          ]
+        },
+        {
+          "async": false,
           "name": "InstalledLocalHost/_project_original_sdk_run_state/inspect",
           "parameters": [
             "reader"
@@ -46582,7 +46589,7 @@
           ]
         }
       ],
-      "sha256": "11f9ee7fdb8125065050c6e99b44cdf0eb2b0150250b4783cacee724215733cf",
+      "sha256": "fe9d68d88bfa225b26078a3c0bee824912935eb43e28c4e0f06cc9b47ca60ff7",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -47652,7 +47659,8 @@
             "InstalledLocalHost/_project_original_sdk_run_state",
             "InstalledLocalHost/_project_original_sdk_run_state/inspect",
             "InstalledLocalHost/_project_original_sdk_run_state/inspect/validate",
-            "_RunStateCustody"
+            "_RunStateCustody",
+            "InstalledLocalHost/_project_original_sdk_run_state/confirm_and_consume"
           ],
           "exports": [],
           "attributes": {
