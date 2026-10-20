@@ -8596,16 +8596,25 @@
     {
       "module": "adapters/host-common/run-state-access.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "e6b45e08ec21b4f1bc29d2c14cfc1fb4f4ce3fde9a8dab98acb94dece033d1d1",
+      "sha256": "65fb6518faeea245e18c3624f56fa598cf1c37250a4f72c35e18e07d65283e60",
       "role": "physical-io",
       "owner": "Existing Result access/delivery/publication Owners and physical read/sink adapter",
       "exports": [
         "RunStateAccessError",
+        "authorizeRunStateRequest",
         "inspectAuthorizedRunState",
         "installRunStateAuthority",
         "installRunStateService"
       ],
       "operations": [
+        {
+          "name": "authorizeRunStateRequest",
+          "parameters": [
+            "service",
+            "request"
+          ],
+          "async": true
+        },
         {
           "name": "exactKeys/exactKeys",
           "parameters": [
@@ -8729,13 +8738,15 @@
             "observedAt",
             "positive/positive",
             "unavailableFrom",
-            "validateRequest"
+            "validateRequest",
+            "authorizeRunStateRequest"
           ],
           "exports": [
             "RunStateAccessError",
             "inspectAuthorizedRunState",
             "installRunStateAuthority",
-            "installRunStateService"
+            "installRunStateService",
+            "authorizeRunStateRequest"
           ],
           "attributes": {
             "responsibility": [
@@ -8750,6 +8761,10 @@
               {
                 "path": "src/run_publication/pkg.generated.mbti",
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "## Read-only current Run projection"
               }
             ],
             "inputsOutputs": [
@@ -8764,6 +8779,14 @@
               {
                 "path": "docs/spec/protocols/artifacts.md",
                 "anchor": "### Result delivery"
+              },
+              {
+                "path": "adapters/host-node/client-run-state.mjs",
+                "anchor": "export function installNodeClientRunStateObservation"
+              },
+              {
+                "path": "adapters/host-node/client-run-state.mjs",
+                "anchor": "export async function observeClientRunState"
               }
             ],
             "identity": [
@@ -8778,6 +8801,14 @@
               {
                 "path": "src/run_publication/pkg.generated.mbti",
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
+              },
+              {
+                "path": "adapters/host-node/client-run-state.mjs",
+                "anchor": "observeOriginalClientRequestJournalCustody(journal)"
+              },
+              {
+                "path": "adapters/host-node/client-run-state.mjs",
+                "anchor": "const original = lookup.call(journal"
               }
             ],
             "ownership": [
@@ -8792,6 +8823,14 @@
               {
                 "path": "docs/design/result-description.md",
                 "anchor": "# Committed Result descriptions"
+              },
+              {
+                "path": "adapters/host-node/client-run-state.mjs",
+                "anchor": "const state = await inspectAuthorizedRunState"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "const expected = runStateFrames.get(frame);"
               }
             ],
             "synchronization": [
@@ -8806,6 +8845,14 @@
               {
                 "path": "src/run_publication/pkg.generated.mbti",
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
+              },
+              {
+                "path": "adapters/host-node/client-run-state.mjs",
+                "anchor": "publish.call(journal, original, state"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "state_revision = ? AND state_observation_key IS ?"
               }
             ],
             "failure": [
@@ -8820,6 +8867,14 @@
               {
                 "path": "src/run_publication/pkg.generated.mbti",
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
+              },
+              {
+                "path": "adapters/host-node/client-run-state.mjs",
+                "anchor": "error?.code !== 'RunStateObservationChanged'"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "'ClientRunStateObservationUnknown'"
               }
             ],
             "cancellation": [
@@ -8834,6 +8889,14 @@
               {
                 "path": "docs/spec/protocols/artifacts.md",
                 "anchor": "### Result delivery"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "cancellationRequested: current.cancellationRequested"
+              },
+              {
+                "path": "adapters/host-node/client-run-state-fallback.test.mjs",
+                "anchor": "state.control.cancellation_requested, true"
               }
             ],
             "resources": [
@@ -8848,6 +8911,14 @@
               {
                 "path": "docs/design/result-description.md",
                 "anchor": "# Committed Result descriptions"
+              },
+              {
+                "path": "adapters/host-node/client-run-state.mjs",
+                "anchor": "attempt < 8"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "ensureOpen();"
               }
             ],
             "extension": [
@@ -8862,6 +8933,14 @@
               {
                 "path": "docs/spec/protocols/artifacts.md",
                 "anchor": "### Result delivery"
+              },
+              {
+                "path": "adapters/host-node/client-http.mjs",
+                "anchor": "observeClientRunState(runStateObservation, stateService"
+              },
+              {
+                "path": "adapters/host-node/in-process-client.mjs",
+                "anchor": "observeClientRunState(runStateObservation, stateService"
               }
             ],
             "verification": [
@@ -8872,6 +8951,14 @@
               {
                 "path": "src/run_publication/pkg.generated.mbti",
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
+              },
+              {
+                "path": "adapters/host-node/client-run-state-fallback.test.mjs",
+                "anchor": "test('fallback propagates uncertain observation COMMIT"
+              },
+              {
+                "path": "adapters/host-node/client-program-bridge.test.mjs",
+                "anchor": "journal: lookupJournal, requestControl: moon, publicationControl: control"
               }
             ]
           }
@@ -16238,7 +16325,7 @@
     {
       "module": "adapters/host-node/client-http.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "366a0c703c0e227c013f41d7f39febfe19ace157ab0af8451375ab87a17b58ac",
+      "sha256": "a1f904cec1e910d77819f9351586862670625f07d1ec03a5cc877f820efc8254",
       "role": "physical-io",
       "owner": "Existing Client Host admission/read services and physical Node ingress",
       "exports": [
@@ -16262,6 +16349,7 @@
             "authorizeConnection",
             "workspaceForPrincipal",
             "stateService",
+            "runStateObservation",
             "resultService",
             "negotiate",
             "submit",
@@ -16706,9 +16794,9 @@
       "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred.",
       "imports": [
         "../../packages/client-wire/index.mjs",
-        "../host-common/run-state-access.mjs",
         "./client-authentication-observation.mjs",
         "./client-check.mjs",
+        "./client-run-state.mjs",
         "./client-submit.mjs",
         "./loopback-http.mjs",
         "./result-access.mjs"
@@ -30556,7 +30644,7 @@
     {
       "module": "adapters/host-node/in-process-client.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "44e9476253c5e03c65355a03dc1e03df6aba068697b211ddfcbc7115936a96e2",
+      "sha256": "5d3297c5f8a1020d70e8c3cb71e526bdd20ac9cec53ea5b628ad2c00013be043",
       "role": "physical-io",
       "owner": "Existing Client Host admission/read services and physical Node ingress",
       "exports": [
@@ -30579,6 +30667,7 @@
             "attach",
             "lookupRequest",
             "stateService",
+            "runStateObservation",
             "resultService",
             "observeRun",
             "observeOwners",
@@ -30884,10 +30973,10 @@
       "imports": [
         "../../packages/client-wire/index.mjs",
         "../../packages/sdk/index.mjs",
-        "../host-common/run-state-access.mjs",
         "./client-authentication-observation.mjs",
         "./client-check.mjs",
         "./client-http.mjs",
+        "./client-run-state.mjs",
         "./client-submit.mjs",
         "./in-process-result.mjs",
         "./result-access.mjs"
@@ -73807,6 +73896,162 @@
         }
       ],
       "referenceQualification": "Private original Local Mock Reviewer connection. Checked metadata and explicit-port tests do not issue authority, physical resources or installed acceptance."
+    },
+    {
+      "module": "adapters/host-node/client-run-state.mjs",
+      "sha256": "7cd8dec354f48e08d845a1e0101d534b6491e205013f9fbf9e662db94a59e6fc",
+      "exports": [
+        "installNodeClientRunStateObservation",
+        "observeClientRunState"
+      ],
+      "operations": [
+        {
+          "name": "fail/fail",
+          "parameters": [
+            "code"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeClientRunStateObservation",
+          "parameters": [
+            "journal",
+            "requestControl",
+            "publicationControl"
+          ],
+          "async": false
+        },
+        {
+          "name": "observeClientRunState",
+          "parameters": [
+            "observation",
+            "service",
+            "request"
+          ],
+          "async": true
+        }
+      ],
+      "imports": [
+        "../host-common/run-state-access.mjs",
+        "./client-request-journal.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "Existing request Journal and Common Run-state observation; original row/CAS/confirmed COMMIT, not Store-derived revision or authority",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "fail/fail",
+            "installNodeClientRunStateObservation",
+            "observeClientRunState"
+          ],
+          "exports": [
+            "installNodeClientRunStateObservation",
+            "observeClientRunState"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "## Read-only current Run projection"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/client-run-state.mjs",
+                "anchor": "export function installNodeClientRunStateObservation"
+              },
+              {
+                "path": "adapters/host-node/client-run-state.mjs",
+                "anchor": "export async function observeClientRunState"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/client-run-state.mjs",
+                "anchor": "observeOriginalClientRequestJournalCustody(journal)"
+              },
+              {
+                "path": "adapters/host-node/client-run-state.mjs",
+                "anchor": "const original = lookup.call(journal"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/client-run-state.mjs",
+                "anchor": "const state = await inspectAuthorizedRunState"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "const expected = runStateFrames.get(frame);"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-run-state.mjs",
+                "anchor": "publish.call(journal, original, state"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "state_revision = ? AND state_observation_key IS ?"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/client-run-state.mjs",
+                "anchor": "error?.code !== 'RunStateObservationChanged'"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "'ClientRunStateObservationUnknown'"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "cancellationRequested: current.cancellationRequested"
+              },
+              {
+                "path": "adapters/host-node/client-run-state-fallback.test.mjs",
+                "anchor": "state.control.cancellation_requested, true"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/client-run-state.mjs",
+                "anchor": "attempt < 8"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "ensureOpen();"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/client-http.mjs",
+                "anchor": "observeClientRunState(runStateObservation, stateService"
+              },
+              {
+                "path": "adapters/host-node/in-process-client.mjs",
+                "anchor": "observeClientRunState(runStateObservation, stateService"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-run-state-fallback.test.mjs",
+                "anchor": "test('fallback propagates uncertain observation COMMIT"
+              },
+              {
+                "path": "adapters/host-node/client-program-bridge.test.mjs",
+                "anchor": "journal: lookupJournal, requestControl: moon, publicationControl: control"
+              }
+            ]
+          }
+        }
+      ]
     }
   ],
   "generated": [],
@@ -73819,10 +74064,10 @@
     "Whole-distribution or installed-cohort completion"
   ],
   "counts": {
-    "modules": 162,
-    "operations": 4127,
-    "exports": 1015,
-    "explicitContractGroups": 231
+    "modules": 163,
+    "operations": 4131,
+    "exports": 1018,
+    "explicitContractGroups": 232
   },
   "scope": "The original supplied modules and explicitly added Project Task/profile installation modules are source/reference facets, not a reassignment of Coordinator/Transfer, process, Connector, Credential, Store or semantic implementation ownership."
 }
