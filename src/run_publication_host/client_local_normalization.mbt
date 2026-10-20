@@ -23,6 +23,17 @@ pub fn client_local_completion_free_catalog_cid() -> String {
 }
 
 ///|
+fn local_normalization_catalog_cid(
+  inventory : @checked.LocalCompletionFreeInventory,
+) -> String {
+  if @checked.local_completion_free_inventory_parameters_supplied(inventory) {
+    "sha256:105e716b0494553cf970393a550ece0553787fb1967ee01f245ea607b03d0fe1"
+  } else {
+    client_local_completion_free_catalog_cid()
+  }
+}
+
+///|
 /// Issue only from the inventory retained by the original checked preparation.
 /// No parse, compile, Source acquisition or physical Effect operation occurs.
 pub fn issue_prepared_client_local_normalization(
@@ -43,7 +54,7 @@ pub fn issue_prepared_client_local_normalization(
     Err(issue) => return Err(Inventory(issue))
   }
   let wire = "{\"entries\":[],\"rule_catalog_cid\":\"" +
-    client_local_completion_free_catalog_cid() +
+    local_normalization_catalog_cid(inventory) +
     "\",\"version\":\"actql-normalization-journal/0.1\"}"
   let journal = match
     @publication.seal_run_evidence_value(
@@ -96,7 +107,7 @@ pub fn restore_prepared_client_local_normalization(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  if catalog_cid != client_local_completion_free_catalog_cid() {
+  if catalog_cid != local_normalization_catalog_cid(original.audit) {
     return Err(ForeignCatalog)
   }
   if wire != @publication.run_evidence_value_json(expected) {

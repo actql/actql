@@ -9,13 +9,32 @@ The original common checked Program performs a separate bounded audit of the
 selected Source owners and typed operation/expression owners. The installed
 slice covers one explicit Source or Values root, at most three stages, Filter,
 Select and Derive, including ordinary typed add, subtract and multiply. It does
-not install parameter/default or Invocation Binding completion, template
+not install default or Invocation Binding completion, template
 completion, implicit NULL, sole-view selection, other operations or additional
 roots. Those paths remain explicitly refused for this publication profile;
 ordinary checker success does not imply an empty completion inventory. Exhausted
 audit work cannot issue evidence. These are bounded implementation applicability
 limits, not new restrictions on language semantics or the overall Python Local
 product's completion conditions.
+
+Explicitly supplied Parameters use a second closed catalog under the same Local
+profile, `actql-effect-free-local-supplied-parameters-completion-free-catalog.json`.
+The audit retains the original complete `BoundValues` owner and requires every
+binding's actual origin to be `Supplied`, together with the same declaration
+owner and original stage identities. It admits the existing typed `$param` node;
+it does not insert a value or complete a declaration. Equal effective-value CIDs
+cannot distinguish a default from a supplied value and therefore cannot select
+this alternative. Existing unused-declaration refusal remains with the original
+Program reference owner. Explicitly supplied nullable values remain NULL, and
+Signed64 values retain their exact checked representation.
+
+The parameter-free catalog and journal bytes remain unchanged. The supplied
+alternative has its own complete catalog and journal identities, with the same
+empty-entry journal shape, version and bounded audit. Restoration selects the
+catalog from the retained nominal inventory; a saved CID or caller flag cannot
+issue that inventory. The additional retained binding alias and audit traversal
+remain part of the preparation lifetime and managed work, not physical cleanup
+or execution authority.
 
 Only the original Effect-free preparation can issue and retain the empty journal.
 The nominal inventory retains the original checked owner; the cached projection
