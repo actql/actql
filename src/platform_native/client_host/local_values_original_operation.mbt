@@ -133,7 +133,8 @@ fn[T] NativeLocalValuesOriginalAccess::in_original_read(
     // first Journal read or write. Start/claim retain their later checks after
     // durable boundaries. Do not add an entry check immediately before that
     // same observation, or retain an Allow between calls or SQL operations.
-    let result = match call(operations, direct_current) {
+    let result : Result[T, NativeClientValuesWorkIssue] = match
+      call(operations, direct_current) {
       Err(Journal(AuthorizationDenied) | Start(AuthorizationDenied)) =>
         Err(AuthorizationDenied)
       result => result
