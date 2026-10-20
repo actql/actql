@@ -103,20 +103,25 @@ pub fn client_program_issue_store_collection_reference(
   }
   if @check_environment.command_target_resource_kind(
       @check_environment.store_command_target(pair),
-    ) != "file_collection" {
+    ) !=
+    "file_collection" {
     return Err(ContractMismatch)
   }
   guard client_store_command_resource_identity(pair) is Some(identity) &&
-    client_store_reference_cursor(resource_wire, max_bytes, max_nodes, max_depth)
+    client_store_reference_cursor(
+      resource_wire, max_bytes, max_nodes, max_depth,
+    )
     is Some(resource) &&
     @decode.open_object(resource) is Ok(body) &&
     @decode.lookup(body, "identity_cid") is Some(actual) &&
-    @decode.text(actual) is Ok(actual_identity) && actual_identity == identity else {
+    @decode.text(actual) is Ok(actual_identity) &&
+    actual_identity == identity else {
     return Err(InvalidIdentity)
   }
-  let contract_wire =
-    "{\"nullable\":false,\"resource_kind\":\"file_collection\",\"type\":\"resource_ref\"}"
-  guard client_store_reference_cursor(contract_wire, max_bytes, max_nodes, max_depth)
+  let contract_wire = "{\"nullable\":false,\"resource_kind\":\"file_collection\",\"type\":\"resource_ref\"}"
+  guard client_store_reference_cursor(
+      contract_wire, max_bytes, max_nodes, max_depth,
+    )
     is Some(cursor) &&
     @parameter_contract.read_checked(cursor, {
       max_nodes,

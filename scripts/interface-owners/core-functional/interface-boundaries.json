@@ -170,7 +170,7 @@
     },
     {
       "module": "adapters/host-common/runtime-core.mjs",
-      "sha256": "440555d389aa40dafbb69631f16a398fc8a70c4fa7d70df62cda341873d72559",
+      "sha256": "d3bf765b1e13181a794f0d3e54cdc7b1b5fd3f956a1278f496b06b9504bdf219",
       "role": "physical-io",
       "exports": [
         "contentCaptureControl",
@@ -4196,6 +4196,56 @@
             "preview",
             "source"
           ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:recoverEffectCommandContent/init:recoverEffectCommandContent",
+          "parameters": [
+            "compiled",
+            "prepared",
+            "definition",
+            "captured",
+            "preview",
+            "invocation",
+            "source",
+            "storeAuthorityCid",
+            "generationIndex",
+            "memberIndex",
+            "row",
+            "inputName",
+            "candidate",
+            "issued",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:recoverEffectCommandContent/init:recoverEffectCommandContent/current/current",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:recoverEffectCommandContent/init:recoverEffectCommandContent/init:matchesIssued/init:matchesIssued",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:recoverEffectCommandContent/init:recoverEffectCommandContent/init:recoverEffectCommandContent",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:recoverEffectCommandContent/init:recoverEffectCommandContent/init:release/init:release",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:recoverEffectCommandContent/init:recoverEffectCommandContent/init:wire/init:wire",
+          "parameters": [],
           "async": false
         },
         {
@@ -9000,6 +9050,119 @@
               {
                 "path": "docs/design/embedded-host-trust-boundary.md",
                 "anchor": "Verification distinguishes the real Row Effect factory's original-binding and"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "publicationControl/init:recoverEffectCommandContent/init:recoverEffectCommandContent",
+            "publicationControl/init:recoverEffectCommandContent/init:recoverEffectCommandContent/current/current",
+            "publicationControl/init:recoverEffectCommandContent/init:recoverEffectCommandContent/init:matchesIssued/init:matchesIssued",
+            "publicationControl/init:recoverEffectCommandContent/init:recoverEffectCommandContent/init:recoverEffectCommandContent",
+            "publicationControl/init:recoverEffectCommandContent/init:recoverEffectCommandContent/init:release/init:release",
+            "publicationControl/init:recoverEffectCommandContent/init:recoverEffectCommandContent/init:wire/init:wire"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "recoverEffectCommandContent({compiled, prepared, definition, captured, preview,"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Saved Command Content"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "moon.clientProgramRecoverEffectCommandContent("
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Saved Command Content"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const run = compiledContent(compiled);"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Saved Command Content"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "let retained = original;"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Saved Command Content"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "retained === original;"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Saved Command Content"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "Recovered Effect Content unavailable"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Saved Command Content"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "moon.clientProgramRecoveredEffectCommandContentRelease(view);"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Saved Command Content"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "issuanceLimits(limits,"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Saved Command Content"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "computationPreviewTokens.get(preview)"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Saved Command Content"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/run_publication/content_generation_recovery_test.mbt",
+                "anchor": "test \"saved Content generation needs original identity"
+              },
+              {
+                "path": "adapters/host-node/recovered-command-content.test.mjs",
+                "anchor": "test('recovered Command retains the same Store original"
               }
             ]
           }

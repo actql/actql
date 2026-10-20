@@ -44,9 +44,17 @@ pub fn readmit_client_effect_command_content(
   max_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
-) -> Result[RecoveredClientEffectCommandContent, ClientEffectCommandContentIssue] {
-  if member_index < 0 || row < 0 || max_fields < 0 || max_work < 0 ||
-    max_bytes < 0 || max_nodes < 0 || max_depth < 0 {
+) -> Result[
+  RecoveredClientEffectCommandContent,
+  ClientEffectCommandContentIssue,
+] {
+  if member_index < 0 ||
+    row < 0 ||
+    max_fields < 0 ||
+    max_work < 0 ||
+    max_bytes < 0 ||
+    max_nodes < 0 ||
+    max_depth < 0 {
     return Err(InvalidLimits)
   }
   if client_compiled_effect_program(run, owner) is None ||
@@ -66,9 +74,10 @@ pub fn readmit_client_effect_command_content(
     @publication.effect_preview_member_kind(preview, member_index) ==
     Some("command") &&
     @publication.captured_effect_source_result_from_capture(
-      preview, member_index, invocation, source, captured, store_authority_cid,
-      max_bytes, max_nodes, max_depth,
-    ) is Ok(_) else {
+      preview, member_index, invocation, source, captured, store_authority_cid, max_bytes,
+      max_nodes, max_depth,
+    )
+    is Ok(_) else {
     return Err(ForeignInput)
   }
   let commands = @stage_results.effect_static_candidate_command_inputs(
@@ -78,9 +87,10 @@ pub fn readmit_client_effect_command_content(
   if max_work == 0 || count > max_work - 1 || input_name.length() > max_work {
     return Err(Limit)
   }
-  let command = match @stage_results.effect_command_input_for_member(
-    commands, member_index, max_work,
-  ) {
+  let command = match
+    @stage_results.effect_command_input_for_member(
+      commands, member_index, max_work,
+    ) {
     Ok(Some(value)) => value
     Ok(None) => return Err(MissingContentInput)
     Err(issue) => return Err(Command(issue))
@@ -110,7 +120,8 @@ pub fn readmit_client_effect_command_content(
   }
   guard @publication.effect_preview_row_intended_value_wire(
       preview, member_index, row,
-    ) is Some(row_wire) &&
+    )
+    is Some(row_wire) &&
     parse_plan_identity_value(row_wire, max_bytes, max_nodes, max_depth)
     is Some(value) &&
     @canonical.object_field(value, input_name) is Some(expected) &&
@@ -119,7 +130,9 @@ pub fn readmit_client_effect_command_content(
   }
   let expected_wire = @canonical.stringify_value(
     expected, max_bytes, max_nodes, max_depth,
-  ) catch { _ => return Err(Limit) }
+  ) catch {
+    _ => return Err(Limit)
+  }
   if expected_wire != @values.reference_wire(reference) {
     return Err(ForeignInput)
   }
@@ -127,11 +140,18 @@ pub fn readmit_client_effect_command_content(
     physical_equal(component.owner, run.owner) else {
     return Err(ForeignInput)
   }
-  let generation = match @publication.readmit_captured_generated_content_observation(
-    captured, definition, run.template, component.output.node_id,
-    component.output.logical_cid, store_authority_cid, generation_index,
-    candidate, content,
-  ) {
+  let generation = match
+    @publication.readmit_captured_generated_content_observation(
+      captured,
+      definition,
+      run.template,
+      component.output.node_id,
+      component.output.logical_cid,
+      store_authority_cid,
+      generation_index,
+      candidate,
+      content,
+    ) {
     Ok(value) => value
     Err(_) => return Err(ForeignInput)
   }
@@ -143,14 +163,31 @@ pub fn readmit_client_effect_command_content(
     is Some(derivation) &&
     @publication.bound_content_generation_value(generation) is Some(evidence) &&
     readmit_client_serialization_generation_evidence(
-      run, definition, @publication.run_evidence_value_identity(evidence), input,
-      derivation, evidence, candidate, content,
-    ) is Ok(_) else {
+      run,
+      definition,
+      @publication.run_evidence_value_identity(evidence),
+      input,
+      derivation,
+      evidence,
+      candidate,
+      content,
+    )
+    is Ok(_) else {
     return Err(ForeignInput)
   }
   let result : RecoveredClientEffectCommandContent = {
-    original: Some({ run, owner, definition, captured, preview, generation,
-      reference, member_index, row, input_name, }),
+    original: Some({
+      run,
+      owner,
+      definition,
+      captured,
+      preview,
+      generation,
+      reference,
+      member_index,
+      row,
+      input_name,
+    }),
   }
   if !recovered_client_effect_command_content_current(result) {
     return Err(Unavailable)
@@ -182,11 +219,13 @@ pub fn recovered_client_effect_command_content_matches(
   input_name : String,
 ) -> Bool {
   guard value.original is Some(original) else { return false }
-  physical_equal(original.run, run) && physical_equal(original.owner, owner) &&
+  physical_equal(original.run, run) &&
+  physical_equal(original.owner, owner) &&
   physical_equal(original.definition, definition) &&
   physical_equal(original.captured, captured) &&
   physical_equal(original.preview, preview) &&
-  original.member_index == member_index && original.row == row &&
+  original.member_index == member_index &&
+  original.row == row &&
   original.input_name == input_name &&
   recovered_client_effect_command_content_current(value)
 }
@@ -197,7 +236,9 @@ pub fn recovered_client_effect_command_content_matches_issued(
   content : @values.CheckedValue,
 ) -> Bool {
   guard value.original is Some(original) &&
-    content.value is @values.Reference(reference) else { return false }
+    content.value is @values.Reference(reference) else {
+    return false
+  }
   physical_equal(reference, original.reference) &&
   recovered_client_effect_command_content_current(value)
 }

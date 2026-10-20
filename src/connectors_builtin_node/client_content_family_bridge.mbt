@@ -12,7 +12,13 @@ pub fn client_program_open_source_free_family_effect_host(
   providers : Array[@local.ManagedProvider],
 ) -> ClientLocalEffectHost? {
   open_client_source_free_family_effect_host(
-    prepared, registry, values, fragment, ordered, providers, None,
+    prepared,
+    registry,
+    values,
+    fragment,
+    ordered,
+    providers,
+    None,
   )
 }
 
@@ -29,7 +35,12 @@ pub fn client_program_open_source_free_family_effect_host_at_query_time(
   providers : Array[@local.ManagedProvider],
 ) -> ClientLocalEffectHost? {
   open_client_source_free_family_effect_host(
-    prepared, registry, values, fragment, ordered, providers,
+    prepared,
+    registry,
+    values,
+    fragment,
+    ordered,
+    providers,
     Some((original, request)),
   )
 }
@@ -61,8 +72,7 @@ fn open_client_source_free_family_effect_host(
   }
   let (execution, measurement) = client_program_local_execution_limits()
   guard @client_local_host.client_effect_family_ledger_limits(
-      computation, registry, values, fragment, ordered, execution, measurement,
-      providers,
+      computation, registry, values, fragment, ordered, execution, measurement, providers,
     )
     is Some(limits) else {
     return None

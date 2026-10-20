@@ -404,7 +404,9 @@ pub fn readmit_captured_generated_content_observation(
   candidate : StoredGeneratedContentReference,
   content : @admitted.CheckedValue,
 ) -> Result[BoundContentGeneration, RunEvidenceValueIssue] {
-  let issue = RunEvidenceReferenceMismatch("content_generation.captured_recovery")
+  let issue = RunEvidenceReferenceMismatch(
+    "content_generation.captured_recovery",
+  )
   guard captured_content_generation_storage(
       captured, definition, store_authority_cid, index,
     )
@@ -416,11 +418,12 @@ pub fn readmit_captured_generated_content_observation(
     return Err(issue)
   }
   let proofs = []
-  for (proof, name) in [
-    (2, "content_input_artifact"),
-    (0, "content_evidence"),
-    (1, "content_generation"),
-  ] {
+  for
+    (proof, name) in [
+      (2, "content_input_artifact"),
+      (0, "content_evidence"),
+      (1, "content_generation"),
+    ] {
     guard content_capture_proof(record, proof) is Some((body, _)) else {
       return Err(issue)
     }

@@ -4077,7 +4077,7 @@
     },
     {
       "module": "adapters/host-node/installed-row-effect.mjs",
-      "sha256": "6cd0ef2a2ca994af335e3317b60b07707dfbbb593f51c367c831da594e741e2d",
+      "sha256": "0a622c0955e402419bdc38dc9ae04738322be02d668877a35c8e7a3051e10821",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral installed row/Command Effect hooks; original capture/Preview/Ledger/apply/publication owners retain authority",
@@ -4314,7 +4314,8 @@
             "installation",
             "continuationBinding",
             "suppliedLimits",
-            "effectResources"
+            "effectResources",
+            "issueOriginalCollectionReference"
           ],
           "async": true
         },
@@ -4585,6 +4586,7 @@
             "storedResults",
             "signal",
             "targetReads",
+            "contentOwner",
             "own",
             "ownInputs",
             "ownChildren",
@@ -4603,7 +4605,7 @@
         {
           "name": "createRowEffectStage/captureStage/captureStage",
           "parameters": [
-            "entry"
+            "member"
           ],
           "async": false
         },
@@ -4625,20 +4627,27 @@
         {
           "name": "createRowEffectStage/captureStage/captureStage#2",
           "parameters": [
-            "entry",
-            "row"
+            "entry"
           ],
           "async": false
         },
         {
           "name": "createRowEffectStage/captureStage/captureStage#3",
           "parameters": [
-            "member"
+            "entry",
+            "row"
           ],
           "async": false
         },
         {
           "name": "createRowEffectStage/captureStage/captureStage#4",
+          "parameters": [
+            "member"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/captureStage/captureStage#5",
           "parameters": [
             "member",
             "index"
@@ -4646,19 +4655,19 @@
           "async": false
         },
         {
-          "name": "createRowEffectStage/captureStage/captureStage#5",
+          "name": "createRowEffectStage/captureStage/captureStage#6",
           "parameters": [],
           "async": true
         },
         {
-          "name": "createRowEffectStage/captureStage/captureStage#6",
+          "name": "createRowEffectStage/captureStage/captureStage#7",
           "parameters": [
             "member"
           ],
           "async": false
         },
         {
-          "name": "createRowEffectStage/captureStage/captureStage#7",
+          "name": "createRowEffectStage/captureStage/captureStage#8",
           "parameters": [],
           "async": true
         },
@@ -4816,6 +4825,13 @@
           "parameters": [
             "member",
             "memberIndex"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/captureStage/targets/targets",
+          "parameters": [
+            "member"
           ],
           "async": false
         },
@@ -5215,6 +5231,82 @@
           "async": false
         },
         {
+          "name": "createRowEffectStage/prepareRecovered/finish/finish",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/prepareRecovered/finish/finish/finish",
+          "parameters": [
+            "member",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/prepareRecovered/finish/finish/finish/finish",
+          "parameters": [
+            "claim"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/prepareRecovered/finish/finish/finish#2",
+          "parameters": [
+            "refreshSignal"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/prepareRecovered/finish/finish/finish#3",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createRowEffectStage/prepareRecovered/finish/finish/finish#4",
+          "parameters": [
+            "member"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/prepareRecovered/finish/finish/finish#5",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/prepareRecovered/finish/finish/finish#6",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/prepareRecovered/finish/finish/previewRows/previewRows",
+          "parameters": [
+            "member"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/prepareRecovered/finish/finish/reconcileStoredResponses/reconcileStoredResponses",
+          "parameters": [
+            "claims",
+            "ledgerPreview"
+          ],
+          "async": true
+        },
+        {
+          "name": "createRowEffectStage/prepareRecovered/finish/finish/reconcileStoredResponses/reconcileStoredResponses/recovery/recovery",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createRowEffectStage/prepareRecovered/finish/finish/reconcileStoredResponses/reconcileStoredResponses/recovery/recovery#2",
+          "parameters": [
+            "stored"
+          ],
+          "async": false
+        },
+        {
           "name": "createRowEffectStage/prepareRecovered/ledgerOwner/init:cleanup/init:cleanup",
           "parameters": [],
           "async": true
@@ -5230,6 +5322,14 @@
           "async": false
         },
         {
+          "name": "createRowEffectStage/prepareRecovered/memberIndexes/memberIndexes",
+          "parameters": [
+            "member",
+            "index"
+          ],
+          "async": false
+        },
+        {
           "name": "createRowEffectStage/prepareRecovered/prepareRecovered",
           "parameters": [
             "dispatch",
@@ -5238,73 +5338,19 @@
           "async": false
         },
         {
-          "name": "createRowEffectStage/prepareRecovered/prepareRecovered/prepareRecovered",
-          "parameters": [
-            "claim"
-          ],
-          "async": false
-        },
-        {
           "name": "createRowEffectStage/prepareRecovered/prepareRecovered#2",
-          "parameters": [
-            "member",
-            "index"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/prepareRecovered/prepareRecovered#3",
-          "parameters": [
-            "refreshSignal"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/prepareRecovered/prepareRecovered#4",
           "parameters": [],
           "async": true
         },
         {
-          "name": "createRowEffectStage/prepareRecovered/prepareRecovered#5",
-          "parameters": [
-            "member"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/prepareRecovered/prepareRecovered#6",
+          "name": "createRowEffectStage/prepareRecovered/recoveryPending/recoveryPending",
           "parameters": [],
           "async": false
         },
         {
-          "name": "createRowEffectStage/prepareRecovered/prepareRecovered#7",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/prepareRecovered/previewRows/previewRows",
+          "name": "createRowEffectStage/prepareRecovered/recoveryPending/recoveryPending/recoveryPending",
           "parameters": [
-            "member"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/prepareRecovered/reconcileStoredResponses/reconcileStoredResponses",
-          "parameters": [
-            "claims",
-            "ledgerPreview"
-          ],
-          "async": true
-        },
-        {
-          "name": "createRowEffectStage/prepareRecovered/reconcileStoredResponses/reconcileStoredResponses/recovery/recovery",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "createRowEffectStage/prepareRecovered/reconcileStoredResponses/reconcileStoredResponses/recovery/recovery#2",
-          "parameters": [
-            "stored"
+            "child"
           ],
           "async": false
         },
@@ -5312,6 +5358,11 @@
           "name": "createRowEffectStage/prepareRecovered/releaseLedger/releaseLedger",
           "parameters": [],
           "async": false
+        },
+        {
+          "name": "createRowEffectStage/prepareRecovered/releaseRecoveryChildren/releaseRecoveryChildren",
+          "parameters": [],
+          "async": true
         },
         {
           "name": "createRowEffectStage/readDecision/readDecision",
@@ -5331,7 +5382,9 @@
             "body",
             "durable",
             "recorded",
-            "previewWire"
+            "previewWire",
+            "runInvocationCid",
+            "dispatches"
           ],
           "async": false
         },
@@ -5964,16 +6017,6 @@
             "createRowEffectStage/prepareRecovered/ledgerOwner/ledgerOwner",
             "createRowEffectStage/prepareRecovered/prepareRecovered",
             "createRowEffectStage/prepareRecovered/prepareRecovered#2",
-            "createRowEffectStage/prepareRecovered/prepareRecovered#3",
-            "createRowEffectStage/prepareRecovered/prepareRecovered#4",
-            "createRowEffectStage/prepareRecovered/prepareRecovered#5",
-            "createRowEffectStage/prepareRecovered/prepareRecovered#6",
-            "createRowEffectStage/prepareRecovered/prepareRecovered#7",
-            "createRowEffectStage/prepareRecovered/prepareRecovered/prepareRecovered",
-            "createRowEffectStage/prepareRecovered/previewRows/previewRows",
-            "createRowEffectStage/prepareRecovered/reconcileStoredResponses/reconcileStoredResponses",
-            "createRowEffectStage/prepareRecovered/reconcileStoredResponses/reconcileStoredResponses/recovery/recovery",
-            "createRowEffectStage/prepareRecovered/reconcileStoredResponses/reconcileStoredResponses/recovery/recovery#2",
             "createRowEffectStage/prepareRecovered/releaseLedger/releaseLedger",
             "createRowEffectStage/readDecision/readDecision",
             "createRowEffectStage/recoveredEntries/recoveredEntries",
@@ -6020,7 +6063,18 @@
             "retainInstalledRowEffectAdapter",
             "sameValue/sameValue",
             "targeted/targeted",
-            "text/text"
+            "text/text",
+            "createRowEffectStage/prepareRecovered/finish/finish/finish",
+            "createRowEffectStage/prepareRecovered/finish/finish/finish/finish",
+            "createRowEffectStage/prepareRecovered/finish/finish/finish#2",
+            "createRowEffectStage/prepareRecovered/finish/finish/finish#3",
+            "createRowEffectStage/prepareRecovered/finish/finish/finish#4",
+            "createRowEffectStage/prepareRecovered/finish/finish/finish#5",
+            "createRowEffectStage/prepareRecovered/finish/finish/finish#6",
+            "createRowEffectStage/prepareRecovered/finish/finish/previewRows/previewRows",
+            "createRowEffectStage/prepareRecovered/finish/finish/reconcileStoredResponses/reconcileStoredResponses",
+            "createRowEffectStage/prepareRecovered/finish/finish/reconcileStoredResponses/reconcileStoredResponses/recovery/recovery",
+            "createRowEffectStage/prepareRecovered/finish/finish/reconcileStoredResponses/reconcileStoredResponses/recovery/recovery#2"
           ],
           "exports": [
             "composeInstalledRowEffectOwners",
@@ -7030,6 +7084,223 @@
               {
                 "path": "docs/design/embedded-host-trust-boundary.md",
                 "anchor": "Verification distinguishes the real Row Effect factory's original-binding and"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createRowEffectStage/captureStage/captureStage#8",
+            "createRowEffectStage/captureStage/targets/targets"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "let publishedTargets;"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Preparation, compilation and saved selection"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "moon.clientProgramEffectPublishedStoreBinding("
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Preparation, compilation and saved selection"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "owner.issueOriginalCollectionReference(pair, limits.maxWork)"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Preparation, compilation and saved selection"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "moon.clientProgramBindEffectCommandTarget("
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Preparation, compilation and saved selection"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "assertCurrent?.();"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Preparation, compilation and saved selection"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "InstalledEffectPublishedTargetUnavailable"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Preparation, compilation and saved selection"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "ownInputs(releaseInputs);"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Preparation, compilation and saved selection"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "maxGroupingWork: limits.maxWork"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Preparation, compilation and saved selection"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "publishedTargets === undefined"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Preparation, compilation and saved selection"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors_builtin_node/client_store_collection_reference_wbtest.mbt",
+                "anchor": "test "
+              },
+              {
+                "path": "adapters/host-node/source-store-publication.test.mjs",
+                "anchor": "test('ordinary publication owns STORE targets"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createRowEffectStage/prepareRecovered/finish/finish",
+            "createRowEffectStage/prepareRecovered/memberIndexes/memberIndexes",
+            "createRowEffectStage/prepareRecovered/recoveryPending/recoveryPending",
+            "createRowEffectStage/prepareRecovered/recoveryPending/recoveryPending/recoveryPending",
+            "createRowEffectStage/prepareRecovered/releaseRecoveryChildren/releaseRecoveryChildren"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "prepareRecoveredContentChild"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Saved Command Content"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "prepareRecoveredContentChild"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Saved Command Content"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "prepareRecoveredContentChild"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Saved Command Content"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "prepareRecoveredContentChild"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Saved Command Content"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "prepareRecoveredContentChild"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Saved Command Content"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "prepareRecoveredContentChild"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Saved Command Content"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "prepareRecoveredContentChild"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Saved Command Content"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "prepareRecoveredContentChild"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Saved Command Content"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "prepareRecoveredContentChild"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Saved Command Content"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/recovered-effect-parent-custody.test.mjs",
+                "anchor": "test('selected recovered Content stays in the original parent"
               }
             ]
           }

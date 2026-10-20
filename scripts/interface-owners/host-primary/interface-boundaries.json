@@ -8,7 +8,7 @@
   "declarations": [
     {
       "module": "adapters/host-node/acquired-effect-computation.mjs",
-      "sha256": "718f852f8c76420a9562721ed2616e0f6657aa4c8662ac25f6e26e3b3dff2eab",
+      "sha256": "fe958a78bb73412579b6df19f3400b5eaed6bf79f53361cbb8bd8754fcd048e7",
       "exports": [
         "openAcquiredEffectComputation"
       ],
@@ -4448,7 +4448,7 @@
     },
     {
       "module": "adapters/host-node/embedded-local.mjs",
-      "sha256": "e369be9016a149ec708f91972b7f22b16337001378f30822e4418690221205b9",
+      "sha256": "7fa0b735cd820db6e6fec3739483c091c6680c80978c9cad6a7f579e8fdaacd1",
       "exports": [
         "admitOriginalHostRootFormat",
         "assertInitialControlHostPreparation",
@@ -4705,11 +4705,35 @@
           "async": false
         },
         {
+          "name": "connectEmbeddedLocal/preparation/init:installProjectEffects/init:installProjectEffects",
+          "parameters": [
+            "runtime",
+            "baseEnvironmentWire",
+            "authorizationFor",
+            "principalId",
+            "effectResources",
+            "sourceBindings"
+          ],
+          "async": true
+        },
+        {
+          "name": "connectEmbeddedLocal/preparation/init:installProjectEffects/init:installProjectEffects/init:installProjectEffects",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "connectEmbeddedLocal/preparation/init:installProjectSources/init:installProjectSources",
           "parameters": [
             "runtime",
             "baseEnvironmentWire",
             "authorizationFor"
+          ],
+          "async": false
+        },
+        {
+          "name": "connectEmbeddedLocal/preparation/init:localFilesEffectLimits/init:localFilesEffectLimits",
+          "parameters": [
+            "runtime"
           ],
           "async": false
         },
@@ -4940,6 +4964,13 @@
           "async": false
         },
         {
+          "name": "openInstalledHost/assertLocalFileEffectRunOriginal",
+          "parameters": [
+            "original"
+          ],
+          "async": false
+        },
+        {
           "name": "openInstalledHost/assertMockEffectRunOriginal",
           "parameters": [
             "original"
@@ -5029,6 +5060,22 @@
           "name": "openInstalledHost/closeHostRequestJournal",
           "parameters": [],
           "async": false
+        },
+        {
+          "name": "openInstalledHost/combined/combined",
+          "parameters": [
+            "effect"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/combined/combined#2",
+          "parameters": [
+            "effect",
+            "_options",
+            "retain"
+          ],
+          "async": true
         },
         {
           "name": "openInstalledHost/hostConnection/hostConnection",
@@ -6461,6 +6508,27 @@
           "async": false
         },
         {
+          "name": "openInstalledHost/localFileEffectResources/init:assertCurrent/init:assertCurrent",
+          "parameters": [
+            "original"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/localFileEffectResources/init:bindRunOriginal/init:bindRunOriginal",
+          "parameters": [
+            "facts"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/localFileEffectResources/init:limits/init:limits",
+          "parameters": [
+            "original"
+          ],
+          "async": false
+        },
+        {
           "name": "openInstalledHost/mockEffectResources/init:assertCurrent/init:assertCurrent",
           "parameters": [
             "original"
@@ -6510,6 +6578,16 @@
         {
           "name": "openInstalledHost/openInstalledHost#10",
           "parameters": [
+            "key",
+            "bytes",
+            "frame",
+            "signal"
+          ],
+          "async": true
+        },
+        {
+          "name": "openInstalledHost/openInstalledHost#11",
+          "parameters": [
             "ref"
           ],
           "async": false
@@ -6521,20 +6599,20 @@
         },
         {
           "name": "openInstalledHost/openInstalledHost#3",
-          "parameters": [],
+          "parameters": [
+            "effect"
+          ],
           "async": false
         },
         {
           "name": "openInstalledHost/openInstalledHost#4",
-          "parameters": [
-            "value"
-          ],
+          "parameters": [],
           "async": false
         },
         {
           "name": "openInstalledHost/openInstalledHost#5",
           "parameters": [
-            "facts"
+            "value"
           ],
           "async": false
         },
@@ -6555,20 +6633,22 @@
         {
           "name": "openInstalledHost/openInstalledHost#8",
           "parameters": [
-            "event",
-            "detail"
+            "facts"
           ],
           "async": false
         },
         {
           "name": "openInstalledHost/openInstalledHost#9",
           "parameters": [
-            "key",
-            "bytes",
-            "frame",
-            "signal"
+            "event",
+            "detail"
           ],
-          "async": true
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/projectEffects/projectEffects",
+          "parameters": [],
+          "async": false
         },
         {
           "name": "openInstalledHost/recoveredInstalledEffect",
@@ -10011,9 +10091,124 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "connectEmbeddedLocal/preparation/init:installProjectEffects/init:installProjectEffects",
+            "connectEmbeddedLocal/preparation/init:installProjectEffects/init:installProjectEffects/init:installProjectEffects",
+            "connectEmbeddedLocal/preparation/init:localFilesEffectLimits/init:localFilesEffectLimits",
+            "openInstalledHost/assertLocalFileEffectRunOriginal",
+            "openInstalledHost/combined/combined",
+            "openInstalledHost/combined/combined#2",
+            "openInstalledHost/localFileEffectResources/init:assertCurrent/init:assertCurrent",
+            "openInstalledHost/localFileEffectResources/init:bindRunOriginal/init:bindRunOriginal",
+            "openInstalledHost/localFileEffectResources/init:limits/init:limits",
+            "openInstalledHost/openInstalledHost#11",
+            "openInstalledHost/projectEffects/projectEffects"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "localFileEffectResources"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "localFileEffectResources"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "localFileEffectResources"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "localFileEffectResources"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "localFileEffectResources"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "localFileEffectResources"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "localFileEffectResources"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "localFileEffectResources"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "localFileEffectResources"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/local-file-effect-host-original.test.mjs",
+                "anchor": "test('Local Effect Host binds the winning original Journal"
+              }
+            ]
+          }
         }
       ],
       "imports": [
+        "../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js",
         "../../_build/native/directory-darwin-arm64.node",
         "../../_build/native/directory-darwin-x64.node",
         "../../packages/client-wire/index.mjs",
@@ -10021,6 +10216,7 @@
         "../../packages/local-node/_build/native/directory-darwin-x64.node",
         "../../packages/sdk/host-port.mjs",
         "../../packages/sdk/internal/private-source-preparation.mjs",
+        "../connectors/local/host/installed-project-file-effects.mjs",
         "../connectors/local/host/installed-project-files.mjs",
         "../host-common/authorization-gate.mjs",
         "../host-common/compiler-binding.generated.mjs",
@@ -10113,9 +10309,7 @@
         "node:url"
       ],
       "compilerFields": [],
-      "unresolvedSyntax": [
-        "runtime-dependent module dependency requires original owner/artifact mapping"
-      ],
+      "unresolvedSyntax": [],
       "referenceQualification": "Existing Host/Source/Resource and compiler-binding responsibilities only. Declaration coverage and explicit-port tests do not issue capacity, authority, cleanup ACK or installed acceptance."
     },
     {
@@ -10351,7 +10545,7 @@
     },
     {
       "module": "adapters/host-node/installed-keyed-content-capture.mjs",
-      "sha256": "ed59d3b180595a40d021bd3c70ffd66ab517065fb37c10a8bba5cad53daad8b6",
+      "sha256": "c7c9a2089530fda48981f33e3d874607ef7bc9a024d1b64c6e530448919a333b",
       "exports": [
         "installRunKeyedContentCapture"
       ],
@@ -10457,6 +10651,19 @@
         },
         {
           "name": "installRunKeyedContentCapture/cleanup/cleanup/cleanup#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installRunKeyedContentCapture/init:consumeContent/init:consumeContent",
+          "parameters": [
+            "binding",
+            "accept"
+          ],
+          "async": false
+        },
+        {
+          "name": "installRunKeyedContentCapture/init:consumeContent/init:consumeContent/init:assertCurrent/init:assertCurrent",
           "parameters": [],
           "async": false
         },
@@ -10786,6 +10993,111 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "installRunKeyedContentCapture/init:consumeContent/init:consumeContent",
+            "installRunKeyedContentCapture/init:consumeContent/init:consumeContent/init:assertCurrent/init:assertCurrent"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/installed-keyed-content-capture.mjs",
+                "anchor": "consumeContent(binding, accept)"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-keyed-content-capture.mjs",
+                "anchor": "consumeContent(binding, accept)"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-keyed-content-capture.mjs",
+                "anchor": "consumeContent(binding, accept)"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-keyed-content-capture.mjs",
+                "anchor": "consumeContent(binding, accept)"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-keyed-content-capture.mjs",
+                "anchor": "consumeContent(binding, accept)"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-keyed-content-capture.mjs",
+                "anchor": "consumeContent(binding, accept)"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-keyed-content-capture.mjs",
+                "anchor": "consumeContent(binding, accept)"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/installed-keyed-content-capture.mjs",
+                "anchor": "consumeContent(binding, accept)"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/installed-keyed-content-capture.mjs",
+                "anchor": "consumeContent(binding, accept)"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/stored-content-consumption.test.mjs",
+                "anchor": "test('stored Content checks the same current selection"
+              }
+            ]
+          }
         }
       ],
       "imports": [
@@ -10799,7 +11111,7 @@
     },
     {
       "module": "adapters/host-node/local-values-plan.mjs",
-      "sha256": "3d3e84932758e6c931fd4398323bdb30dc3bd197ffcd04bc4100a4a844b748e6",
+      "sha256": "99aa8bf1e11944e0ab8eed9c60ea191eeeb69b80d9a0121705393d8dbfb2ba6d",
       "exports": [
         "acquiredEffectPublicationAdmission",
         "acquiredEffectPublicationPlan",
@@ -10818,6 +11130,7 @@
         "selectInstalledSerializationGraph",
         "serializationTaskPublicationPlan",
         "serializationTaskRunAdmission",
+        "sourceFreeContentEffectPublicationPlan",
         "sourceFreeEffectPublicationPlan",
         "sourceFreeInferEffectPublicationPlan",
         "sourceFreePlanOriginal",
@@ -11240,6 +11553,15 @@
           "name": "serializationTaskRunAdmission",
           "parameters": [
             "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "sourceFreeContentEffectPublicationPlan",
+          "parameters": [
+            "acquired",
+            "compiled",
+            "generation"
           ],
           "async": false
         },
@@ -11695,6 +12017,112 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "## Original query evaluation time"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "sourceFreeContentEffectPublicationPlan"
+          ],
+          "exports": [
+            "sourceFreeContentEffectPublicationPlan"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "sourceFreeContentEffectPublicationPlan"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "sourceFreeContentEffectPublicationPlan"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "sourceFreeContentEffectPublicationPlan"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "sourceFreeContentEffectPublicationPlan"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "sourceFreeContentEffectPublicationPlan"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "sourceFreeContentEffectPublicationPlan"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "sourceFreeContentEffectPublicationPlan"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "sourceFreeContentEffectPublicationPlan"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/local-values-plan.mjs",
+                "anchor": "sourceFreeContentEffectPublicationPlan"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors_builtin_node/client_source_free_effect_content_wbtest.mbt",
+                "anchor": "test \"source-free Content Effect compiler requires"
               }
             ]
           }
