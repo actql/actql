@@ -18,6 +18,7 @@ struct LocalSortNormalizationInventory {
   distincts : Bool
   sets : Bool
   dedupes : Bool
+  assertions : Bool
   defaulted_parameters : Bool
 }
 
@@ -216,11 +217,13 @@ pub fn local_program_sort_normalization_inventory(
     Complete(_, _, _, _, _, _, _, _)
     | DistinctComplete(_, _, _, _, _, _, _, _)
     | SetComplete(_, _, _, _, _, _, _, _, _)
-    | DedupeComplete(_, _, _, _, _, _, _, _, _, _) => Ok(None)
+    | DedupeComplete(_, _, _, _, _, _, _, _, _, _)
+    | AssertionComplete(_, _, _, _, _, _, _, _, _, _, _) => Ok(None)
     SortCompleted(work, entries, defaulted_parameters)
     | DistinctSortCompleted(work, entries, defaulted_parameters)
     | SetSortCompleted(work, entries, _, defaulted_parameters)
-    | DedupeSortCompleted(work, entries, _, _, defaulted_parameters) =>
+    | DedupeSortCompleted(work, entries, _, _, defaulted_parameters)
+    | AssertionSortCompleted(work, entries, _, _, _, defaulted_parameters) =>
       Ok(
         Some({
           owner,
@@ -229,6 +232,8 @@ pub fn local_program_sort_normalization_inventory(
           defaulted_parameters,
           sets: local_audit_uses_set(owner.local_completion_free_audit),
           dedupes: local_audit_uses_dedupe(owner.local_completion_free_audit),
+          assertions: owner.local_completion_free_audit
+          is AssertionSortCompleted(_, _, _, _, _, _),
           distincts: local_audit_uses_distinct(
             owner.local_completion_free_audit,
           ),
@@ -345,4 +350,12 @@ pub fn local_sort_normalization_inventory_uses_dedupe(
   value : LocalSortNormalizationInventory,
 ) -> Bool {
   value.dedupes
+}
+
+///|
+/// Original assertion capability; actual validation stays with execution.
+pub fn local_sort_normalization_inventory_uses_assertions(
+  value : LocalSortNormalizationInventory,
+) -> Bool {
+  value.assertions
 }

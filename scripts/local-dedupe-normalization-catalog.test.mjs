@@ -32,8 +32,8 @@ test('dedupe catalogue and empty journal match independent complete canonical pr
     assert.equal(canonical(JSON.parse(f.catalog_preimage)), f.catalog_preimage);
     assert.equal(canonical(JSON.parse(f.journal_preimage)), f.journal_preimage);
   }
-  assert.deepEqual(load('fixture.json'), expected.dedupe);
-  assert.deepEqual(load('catalog.json'), JSON.parse(expected.dedupe.catalog_preimage));
+  assert.deepEqual(load('pre-assertion-fixture.json'), expected.dedupe);
+  assert.deepEqual(load('pre-assertion-catalog.json'), JSON.parse(expected.dedupe.catalog_preimage));
   assert.deepEqual(load('pre-dedupe-fixture.json'), expected.previous);
   assert.deepEqual(load('pre-dedupe-catalog.json'), JSON.parse(expected.previous.catalog_preimage));
 });
@@ -47,7 +47,7 @@ test('one closed dedupe capability preserves the complete projection Default SET
   body.applicability.checked_operations = body.applicability.checked_operations.filter(x => x !== 'dedupe_rows');
   for (const key of ['dedupe_scope', 'dedupe_keys', 'dedupe_selection', 'dedupe_order', 'dedupe_journal']) delete body.applicability[key];
   assert.deepEqual(body, JSON.parse(expected.previous.catalog_preimage));
-  const schema = load('catalog.schema.json');
+  const schema = load('pre-assertion-catalog.schema.json');
   assert.equal(schema.additionalProperties, false);
   assert.deepEqual(schema.required.toSorted(), Object.keys(body).toSorted());
   schema.properties.applicability = {const: body.applicability};
