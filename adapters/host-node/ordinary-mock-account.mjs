@@ -27,6 +27,9 @@ async function initialize({moon, root, principal, subject, sources, modelTasks, 
   updateTarget, explicitSelection, assertExclusiveCurrent, operatorAuthorization}) {
   assertExclusiveCurrent();
   if (operatorAuthorization !== undefined) return undefined;
+  const policyOriginal = moon.clientLocalSigningBootstrapOriginal;
+  const bootstrapIssue = moon.clientLocalSigningBootstrapIssue;
+  const publicKeyOriginal = moon.clientLocalSigningPublicKeyOriginal;
   const directory = join(root, 'mock-account');
   const intentPath = join(directory, 'initialization.json');
   const receiptPath = join(directory, 'adopted.json');
@@ -117,9 +120,21 @@ async function initialize({moon, root, principal, subject, sources, modelTasks, 
     // The private, owner-only intent is also the original durable key record.
     // Recovery copies THESE exact purpose-confined originals, never generates
     // replacement keys after an interrupted external-file creation.
+    let signingPolicy, signingPublicKey;
+    if (typeof policyOriginal === 'function' && typeof bootstrapIssue === 'function' &&
+        typeof publicKeyOriginal === 'function') {
+      const original = Reflect.apply(policyOriginal, moon, []);
+      signingPolicy = {wire: runtimeField(original, 0), cid: runtimeField(original, 1)};
+      const raw32 = Buffer.from(reviewer.publicKey.export({format: 'jwk'}).x, 'base64url');
+      const key = checked(Reflect.apply(publicKeyOriginal, moon, [raw32]));
+      signingPublicKey = {wire: runtimeField(key, 0), cid: runtimeField(key, 1)};
+      if (typeof signingPolicy.wire !== 'string' || typeof signingPolicy.cid !== 'string') {
+        fail('InvalidHostRuntimeResult');
+      }
+    }
     intentWire = canonicalJson({attempt: randomUUID(), profile: identity, subjectCid, accountId,
       configuration, configurationCid: contentCid(parse(configuration)), reviewerResource,
-      reviewerPem, hostPem, evidence: randomBytes(32).toString('base64')});
+      reviewerPem, hostPem, evidence: randomBytes(32).toString('base64'), signingPolicy, signingPublicKey});
     await createOriginal(intentPath, intentWire);
   }
   const intent = parse(intentWire);
@@ -160,6 +175,7 @@ async function initialize({moon, root, principal, subject, sources, modelTasks, 
   const evidence = Buffer.from(intent.evidence, 'base64');
   if (evidence.length !== 32) fail('LocalMockInstallationChanged');
   assertExclusiveCurrent();
+  let adoptedStore, adoptedStoreStatus;
   return Object.freeze({profile: identity, subjectCid, configurationPath: configPath,
     adoptStore(store) {
       if (adoptionFlight !== undefined) return adoptionFlight;
@@ -179,8 +195,52 @@ async function initialize({moon, root, principal, subject, sources, modelTasks, 
         if (adoptedWire !== undefined && receipt !== adoptedWire) fail('LocalMockInstallationChanged');
         await createOriginal(receiptPath, receipt);
         adoptedWire = receipt;
+        adoptedStore = store;
+        adoptedStoreStatus = status;
       });
       return adoptionFlight;
+    },
+    async assertSigningCurrent(store) {
+      assertExclusiveCurrent();
+      if (store !== adoptedStore || adoptedWire === undefined ||
+          Reflect.apply(adoptedStoreStatus, store, []).closed !== false ||
+          await readOptional(intentPath) !== intentWire ||
+          await readOptional(receiptPath) !== adoptedWire) fail('LocalMockInstallationChanged');
+      for (const [path, wire] of expected) {
+        if (await readOptional(path) !== wire) fail('LocalMockAdoptedStateMissing');
+      }
+      const storeWire = await readOptional(storeContractPath);
+      if (storeWire === undefined || adoptedWire !== canonicalJson({...receiptFields,
+        storeContractCid: bytesCid(Buffer.from(storeWire))})) fail('LocalMockInstallationChanged');
+      assertExclusiveCurrent();
+      if (Reflect.apply(adoptedStoreStatus, store, []).closed !== false) fail('LocalMockInstallationChanged');
+    },
+    // This closure belongs to the actual initializer and SAME adopted Store.
+    // Saved policy absence is not repaired from the packaged getter on cold
+    // open. The candidate is DATA; the Checkpoint owner must still authenticate
+    // its original subject/current authority and durably claim before signing.
+    signingOriginal(store, sampledAt, validUntil) {
+      assertExclusiveCurrent();
+      if (store !== adoptedStore || adoptedWire === undefined ||
+          intent.signingPolicy === undefined || intent.signingPublicKey === undefined ||
+          typeof bootstrapIssue !== 'function' || typeof publicKeyOriginal !== 'function') {
+        fail('CheckpointSignerUnavailable');
+      }
+      const raw32 = Buffer.from(createPublicKey(reviewerKey).export({format: 'jwk'}).x, 'base64url');
+      const key = checked(Reflect.apply(publicKeyOriginal, moon, [raw32]));
+      if (intent.signingPublicKey.wire !== runtimeField(key, 0) ||
+          intent.signingPublicKey.cid !== runtimeField(key, 1)) fail('LocalMockInstallationChanged');
+      const intentCid = bytesCid(Buffer.from(intentWire));
+      const issue = checked(Reflect.apply(bootstrapIssue, moon, [
+        intent.signingPolicy.wire, intent.signingPolicy.cid, intentCid, sampledAt, validUntil]));
+      return Object.freeze({policyWire: intent.signingPolicy.wire, policyCid: intent.signingPolicy.cid,
+        initializationIntentCid: intentCid, adoptionCid: bytesCid(Buffer.from(adoptedWire)),
+        issuer: runtimeField(issue, 0), sampledAt: runtimeField(issue, 1),
+        expiresAt: runtimeField(issue, 2), maxUses: runtimeField(issue, 3),
+        principal, accountId: intent.accountId, keyId: 'local-mock-reviewer',
+        reviewerId: 'local-mock', keyGenerationCid: bytesCid(Buffer.from(intent.reviewerPem)),
+        publicKeyCid: intent.signingPublicKey.cid, signingResource: intent.reviewerResource,
+        privateKey: reviewerKey});
     },
     authorization: Object.freeze({accountConfig: configPath, siteKey: 'local-mock',
       reviewers: Object.freeze([Object.freeze({keyId: 'local-mock-reviewer', reviewerId: 'local-mock',

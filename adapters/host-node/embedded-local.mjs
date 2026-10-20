@@ -142,6 +142,7 @@ import {createLocalRetainedStore} from '../store-local/files.mjs';
 import {installLocalRetainedStore, installLocalSnapshotStore} from
   '../local-node/retained-store.mjs';
 import {installRemoteCheckpoints} from './client-checkpoints.mjs';
+import {createLocalCheckpointAnswer} from './local-checkpoint-answer.mjs';
 import {installClientOwnerObservations} from './client-owner-observations.mjs';
 import {installClientStaticPlan} from './client-interactive-plan.mjs';
 import {installClientRunInspect} from './client-run-inspect.mjs';
@@ -596,6 +597,7 @@ async function openInstalledHost(originalInstallation, preparation) {
   let projectTasks;
   let mockModels;
   let mockAccount;
+  let localCheckpointAnswer, localSigningMetadata;
   let store;
   let mockEffectObservation;
   let mockEffectObservationMethods;
@@ -664,6 +666,9 @@ async function openInstalledHost(originalInstallation, preparation) {
     mockEffectRuns.clear();
     mockEffectOriginals = new WeakMap();
     mockEffectObservation = mockEffectObservationMethods = undefined;
+    localSigningMetadata?.retireMetadataView();
+    localSigningMetadata = localCheckpointAnswer = undefined;
+    mockAccount = undefined;
   }
   function retireModelRuntime() {
     if (modelRuntimeView !== undefined) {
@@ -2492,6 +2497,49 @@ async function openInstalledHost(originalInstallation, preparation) {
         binding.storeAuthorityCid === storeAuthorityCid},
     async () => moon);
   };
+  const answerLocalCheckpoint = (summary, decision, signal) => {
+    assertProjectRuntime();
+    if (mode !== 'local' || mockAccount === undefined) {
+      throw clientOperationError('CheckpointSignerUnavailable');
+    }
+    preparation.assertResultPublicationCurrent();
+    if (localCheckpointAnswer === undefined) {
+      localSigningMetadata ??= runtimeCore(moon).localSigningMetadata();
+      localCheckpointAnswer = createLocalCheckpointAnswer({moon, checkpoints, mockAccount, store,
+        authorityScopeCid, principalId, metadata: localSigningMetadata,
+        assertCurrent() {
+          assertProjectRuntime(); preparation.assertResultPublicationCurrent();
+        },
+        async loadRunOriginal(view, signal) {
+          const ref = {namespaceId, authorityScopeCid, runDefinitionCid: view.runDefinitionCid};
+          const retained = journal.lookupRunDefinition(ref, moon, control);
+          if (retained === undefined || retained.cancellationRequested) {
+            throw clientOperationError('LocalSigningOriginalConflict');
+          }
+          const recovered = await recoverEffectCapture(ref, signal);
+          if (recovered.materials === undefined || recovered.originalSubmittedIntent === undefined ||
+              recovered.computation.preview.identity !== view.requiredArtifact.cid) {
+            throw clientOperationError('LocalSigningOriginalConflict');
+          }
+          const current = () => {
+            assertProjectRuntime(); preparation.assertResultPublicationCurrent();
+            recovered.originalSubmittedIntent.assertCurrent();
+            recovered.assertUpdateSelectionCurrent?.();
+            const next = journal.lookupRunDefinition(ref, moon, control);
+            if (next === undefined || next.cancellationRequested || next.revision !== retained.revision ||
+                next.runDefinition.wire !== retained.runDefinition.wire) {
+              throw clientOperationError('LocalSigningOriginalConflict');
+            }
+          };
+          current();
+          return Object.freeze({materials: recovered.materials,
+            requestIdentity: recovered.requestIdentity,
+            referenceWire: recovered.originalSubmittedIntent.referenceWire,
+            invocation: recovered.computation.invocation, assertCurrent: current});
+        }});
+    }
+    return localCheckpointAnswer(summary, decision, signal);
+  };
   const openEffectTargetReads = async (facts, {signal, resume, activeResume, journalPort,
     allowDefer = true} = {}) => {
     const selected = installedEffect === undefined ? effectInstallation : selectedInstalledEffect(facts);
@@ -4067,8 +4115,10 @@ async function openInstalledHost(originalInstallation, preparation) {
   if (requestPreparation !== selectedRequestPreparation) {
     throw clientOperationError('InstalledSourcePreparationChanged');
   }
-  const port = observation === undefined && requestPreparation === undefined ? ingress : Object.freeze({
+  const port = observation === undefined && requestPreparation === undefined &&
+    mockAccount === undefined ? ingress : Object.freeze({
     ...(requestPreparation === undefined ? {} : {[sourcePreparationPort]: requestPreparation}),
+    ...(mockAccount === undefined ? {} : {answerCheckpoint: answerLocalCheckpoint}),
     perform: (operation, request, signal) => observation === undefined
       ? ingress.perform(operation, request, signal)
       : observation.run(operation, undefined, () => ingress.perform(operation, request, signal)),
@@ -4148,6 +4198,17 @@ async function openInstalledHost(originalInstallation, preparation) {
     const bootstrapPort = Object.freeze({
       ...(originalRequestPreparation === undefined ? {} :
         {[sourcePreparationPort]: originalRequestPreparation}),
+      ...(originalSourcePreparation === undefined ? {} : {
+        async answerCheckpoint(summary, decision, signal) {
+          if (modelRuntimeClosing) throw clientOperationError('ClientHostClosing');
+          const opened = await activate();
+          if (opened !== host || modelRuntimeClosing ||
+              typeof opened.port.answerCheckpoint !== 'function') {
+            throw clientOperationError('CheckpointSignerUnavailable');
+          }
+          return Reflect.apply(opened.port.answerCheckpoint, opened.port, [summary, decision, signal]);
+        },
+      }),
       async perform(operation, request, signal) {
         if (modelRuntimeClosing) throw clientOperationError('ClientHostClosing');
         return bootstrapIngress.perform(operation,request,signal);

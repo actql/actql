@@ -126,6 +126,21 @@ Providers or fall back to them after a Mock error. One approval can discharge
 coincident review restrictions on the same Preview; a changed target or Preview
 needs its applicable new approval.
 
+The ordinary Local Mock Host retains its packaged finite signing policy and
+canonical Reviewer public-key original in the initial durable intent. Adoption
+binds those originals to the same Store and private-key generation. A missing
+saved policy or key is not filled from a later runtime getter. The SDK's default
+answer port selects an original Checkpoint from that Host; it neither exports
+the key nor accepts an arbitrary signing preimage. Run-read, resolve and key-sign
+authority are checked before key observation and around asynchronous work.
+The same Checkpoint Journal retains the original decision, clock sample, expiry
+and purpose-bound operation, then commits each exact preimage's one-use claim
+before native signing. A claimed or uncertain outcome cannot be replaced by a
+new decision, attempt, grant or use. Returning saved bytes validates the same
+original binding and signature without signing again. This signature is not
+an Effect send permit: the existing signed Resolution admission and current
+Preview/target/authorization checks still precede application.
+
 Freshness is an ordinary exclusive creation/adoption operation. Persist the
 existing initialization intent before separate file creation, create without
 overwriting operator content, and confirm the concrete generated configuration

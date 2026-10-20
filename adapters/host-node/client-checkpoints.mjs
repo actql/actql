@@ -2515,6 +2515,48 @@ export async function installRemoteCheckpoints({root, namespaceId,
         ...(rows.length > bounded ? {next: page.at(-1).cursor} : {})});
     },
 
+    // The ordinary Local default signs only an explicitly selected original
+    // Checkpoint, never arbitrary caller DATA. These current decisions are
+    // distinct from the Effect Delegate/approval and the actual key/use claim.
+    async localSigningContext({principalId, summary, signingResource, signal}) {
+      if (principalId !== ownerPrincipal || !answerers.has(principalId) ||
+          !readers.has(principalId) || typeof signingResource !== 'string') {
+        fail('CheckpointAnswerDenied');
+      }
+      const original = journal.originalCheckpointForSigning(summary?.checkpointCid);
+      if (original.view.kind !== 'effect_set' || original.view.prepareAttemptId !== null ||
+          original.view.closure !== 'open' ||
+          canonicalValueJson(await summaryOf(original.view)) !== canonicalValueJson(summary)) {
+        fail('LocalSigningOriginalConflict');
+      }
+      const decisions = [];
+      for (const [resource, operation] of [['run', 'read'], ['run', 'resolve'], [signingResource, 'sign']]) {
+        signal?.throwIfAborted();
+        const decision = await gate.authorize('preparation',
+          {connection: 'local-host', resource, operation},
+          {subjectCid: original.view.checkpointCid, signal});
+        if (decision.action !== 'dispatch') throw new ExecutionAuthorizationError(decision);
+        decisions.push(decision);
+      }
+      const assertCurrent = () => {
+        signal?.throwIfAborted();
+        if (closed) fail('ClientHostClosing');
+        gate.assertConfigurationCurrent();
+        for (const decision of decisions) gate.assertAccountCurrent(decision);
+        const current = journal.originalCheckpointForSigning(original.view.checkpointCid);
+        if (current.wire !== original.wire || current.view.closure !== 'open') {
+          fail('LocalSigningOriginalConflict');
+        }
+        const state = journal.getRunState(original.view.runId);
+        if (state?.status !== 'waiting_checkpoint' || state.cancelRequested === true) {
+          fail('LocalSigningOriginalConflict');
+        }
+      };
+      assertCurrent();
+      return Object.freeze({...original, configurationCid: gate.configurationCid,
+        assertCurrent});
+    },
+
     async reviewCheckpoint({principalId, checkpointCid, maxBytes, signal}) {
       if (!readers.has(principalId)) fail('CheckpointReviewDenied');
       const view = journal.inspect(checkpointCid);

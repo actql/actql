@@ -727,6 +727,8 @@ pub fn[Store, E] client_local_adopted_current_account(ClientLocalAdoptedHostMate
 
 pub fn client_local_authority_scope_body(@execution_authorization.AdmittedAccountConfiguration, String, String, String) -> Result[Bytes, ClientLocalAuthorityScopeIssue]
 
+pub fn client_local_checkpoint_effect_subject(ClientEffectRunMaterials, String, String) -> Result[(String, String), ClientLocalCheckpointProofIssue]
+
 pub fn client_local_completion_free_catalog_cid() -> String
 
 pub fn client_local_configuration_custody_body(Bytes, (UInt64, UInt64, Int64)) -> Result[Bytes, ClientLocalOriginalCodecIssue]
@@ -1682,6 +1684,8 @@ pub fn prepare_client_keyed_capture_left_read(ClientKeyedAcquisition, @execution
 pub fn prepare_client_keyed_lookup_join_inputs(ClientKeyedLookupInput, @execution_relation.GeneratedSequence) -> Result[(@execution_relation.GeneratedSequence, @execution_relation.ProducerRead, @execution_relation.SuppliedRelationRead), ClientKeyedRequestIssue]
 
 pub fn prepare_client_keyed_serialization_inputs(PreparedClientProgram, ClientKeyedLookupInput, @execution_query.CapturedInputSource, @physical_resources.Ledger, @execution_relation.GeneratedSequence) -> Result[(@execution_relation.ProducerRead, @execution_relation.SuppliedRelationRead), ClientKeyedRequestIssue]
+
+pub fn prepare_client_local_checkpoint_proof(String, String) -> Result[ClientLocalCheckpointProof, ClientLocalCheckpointProofIssue]
 
 pub fn prepare_client_model_read(ClientModelReadScope, Int64, Int64) -> Result[ClientModelReadPreparation, ClientModelReadPreparationIssue]
 
@@ -2945,6 +2949,17 @@ pub(all) enum ClientLocalAdoptionCurrentObservation[Store] {
 pub(all) enum ClientLocalAuthorityScopeIssue {
   InvalidInput
   Encoding
+} derive(Eq, @debug.Debug)
+
+type ClientLocalCheckpointProof
+pub fn ClientLocalCheckpointProof::actor(Self) -> String
+pub fn ClientLocalCheckpointProof::preimage(Self) -> String
+pub fn ClientLocalCheckpointProof::seal(Self, String, String) -> Result[String, ClientLocalCheckpointProofIssue]
+
+pub(all) enum ClientLocalCheckpointProofIssue {
+  Checkpoint(@checkpoint_runtime.CheckpointIssue)
+  Resolution(@checkpoint_runtime.ResolutionIssue)
+  ForeignOriginal
 } derive(Eq, @debug.Debug)
 
 pub(all) struct ClientLocalInitialSigningPayloadFields {

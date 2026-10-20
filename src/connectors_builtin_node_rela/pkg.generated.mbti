@@ -121,6 +121,20 @@ pub fn client_installation_preparation_use_projection(@remote_credential.Install
 
 pub fn client_installation_preparation_use_wire(@remote_credential.InstallationPreparationCredentialUse) -> String raise NodeHostFailure
 
+pub fn client_local_checkpoint_proof_actor(@run_publication_host.ClientLocalCheckpointProof) -> String
+
+pub fn client_local_checkpoint_proof_effect_subject(@run_publication_host.ClientEffectRunMaterials, String, String) -> Result[(String, String), @run_publication_host.ClientLocalCheckpointProofIssue]
+
+pub fn client_local_checkpoint_proof_preimage(@run_publication_host.ClientLocalCheckpointProof) -> String
+
+pub fn client_local_checkpoint_proof_prepare(String, String) -> Result[@run_publication_host.ClientLocalCheckpointProof, @run_publication_host.ClientLocalCheckpointProofIssue]
+
+pub fn client_local_checkpoint_proof_seal(@run_publication_host.ClientLocalCheckpointProof, String, String) -> Result[String, @run_publication_host.ClientLocalCheckpointProofIssue]
+
+pub fn client_local_signing_bootstrap_issue(String, String, String, Int64, Int64) -> Result[(String, Int64, Int64, Int), @run_publication_host.ClientLocalSigningBootstrapIssueError]
+
+pub fn client_local_signing_bootstrap_original() -> (String, String)
+
 pub fn client_local_signing_grant_admit(String, String) -> @remote_credential.LocalSigningCredentialGrant raise NodeHostFailure
 
 pub fn client_local_signing_grant_cid(@remote_credential.LocalSigningCredentialGrant) -> String
@@ -132,6 +146,8 @@ pub fn client_local_signing_grant_max_uses(@remote_credential.LocalSigningCreden
 pub fn client_local_signing_grant_scope(@remote_credential.LocalSigningCredentialGrant) -> @remote_credential.LocalSigningCredentialScope
 
 pub fn client_local_signing_grant_wire(@remote_credential.LocalSigningCredentialGrant) -> String raise NodeHostFailure
+
+pub fn client_local_signing_public_key_original(Bytes) -> Result[(String, String), @remote_credential.LocalSigningPublicKeyIssue]
 
 pub fn client_local_signing_use_admit(@remote_credential.LocalSigningCredentialGrant, String, String) -> @remote_credential.LocalSigningCredentialUse raise NodeHostFailure
 
