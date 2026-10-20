@@ -91,6 +91,8 @@ pub fn admit_client_request_identity_record(String, String, String, String, Stri
 
 pub fn admit_client_request_identity_record_wire(String) -> Result[ClientRequestIdentity, ClientRequestIdentityIssue]
 
+pub fn admit_client_result_delivery_receipts(String) -> Result[ClientResultDeliveryReceipts, ClientResultDeliveryReceiptIssue]
+
 pub fn admit_client_retained_task_input(@remote_site_protocol.RemoteInputBinding, ClientRetainedInputProducer, @remote_transfer.RemoteTransferRecord, @remote_transfer.RemoteTransferDestinationReceipt, String, ClientRetainedInputCurrent, Int) -> Result[ClientRetainedTaskInput, ClientRetainedTaskInputIssue]
 
 pub fn admit_client_retained_task_route(@remote_site_protocol.RemoteInputBinding, ClientRetainedInputEdge, @remote_site_protocol.DispatchRequest, Int, Int, Int, Int64) -> Result[ClientRetainedTaskRoute, ClientRetainedTaskInputIssue]
@@ -976,6 +978,8 @@ pub fn client_request_scope_cid(ClientRequestIdentity) -> String
 pub fn client_requested_effect_stop_intent_cid(ClientRequestedEffectStop) -> String
 
 pub fn client_requested_effect_stop_lifetime(ClientRequestedEffectStop) -> Result[(String, String), ClientRequestedEffectStopIssue]
+
+pub fn client_result_delivery_receipt_file(Array[String], Int) -> Result[String, ClientResultDeliveryReceiptIssue]
 
 pub fn client_result_plan_cid(ClientResultPlanIdentity) -> String
 
@@ -3572,6 +3576,18 @@ pub(all) enum ClientRequestedEffectStopIssue {
   RestoredPreview(@effect_program_binding.EffectProgramRunPreviewIssue)
   Checkpoint(@checkpoint_runtime.CheckpointIssue)
 }
+
+pub(all) enum ClientResultDeliveryReceiptIssue {
+  InvalidContainer
+  InvalidReceipt(Int, @run_publication.PublicationContractIssue)
+  InvalidOutputDigest
+  OutputMismatch
+} derive(Eq, @debug.Debug)
+
+type ClientResultDeliveryReceipts
+pub fn ClientResultDeliveryReceipts::count(Self) -> Int
+pub fn ClientResultDeliveryReceipts::is_collection(Self) -> Bool
+pub fn ClientResultDeliveryReceipts::matching_identities(Self, Int64, String) -> Result[Array[String], ClientResultDeliveryReceiptIssue]
 
 pub(all) enum ClientResultPlanAdmissionIssue {
   Issue(ClientResultPlanIssue)

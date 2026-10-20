@@ -883,6 +883,23 @@ A Run Receipt proves which logical Results the Run produced; a delivery receipt
 proves which canonical bytes were later released. Modifying either the delivered
 bytes or any bound receipt field MUST make delivery verification fail.
 
+The CLI receipt-file container is separate from this closed receipt object.
+For one requested Result delivery, `result --receipt` MUST preserve the canonical
+object bytes and existing self-CID. For multiple requested deliveries it MUST
+export a bounded ordered JSON array of successful per-delivery receipt objects,
+remaining an array after a partial outcome with zero or one successful delivery.
+The array introduces no kind, version, aggregate CID, aggregate success or atomic
+rollback. Export failure MUST NOT resend any output or erase an Unknown outcome.
+`run --receipt` remains a Run receipt.
+
+`verify output` MUST admit every supplied object and its existing self-CID before
+accepting any match. It MUST match both the observed byte count and SHA256 of one
+explicit file, reject invalid unrelated members and zero matches, and report all
+matching existing receipt identities when equal bytes match several receipts.
+Other valid members are not verification of files that were not supplied. The
+container preserves order and occurrences; identity reporting MAY deduplicate
+identical members. This integrity operation creates no authority or physical ACK.
+
 <a id="reference-admission"></a>
 
 ### Content generation evidence
