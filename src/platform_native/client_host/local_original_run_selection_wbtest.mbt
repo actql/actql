@@ -67,6 +67,7 @@ fn original_selection_fixture(
   nonce : String,
   run_id : String,
   created_at? : String? = None,
+  retain_plan? : Bool = true,
 ) -> (
   NativeClientSubmissionReference,
   @host.ClientRequestIdentity,
@@ -160,10 +161,22 @@ fn original_selection_fixture(
   |> ignore
   original_selection_checked(
     host,
-    journal.accept_submitted_run(
-      epoch, reference, preparation, request, compiled, definition, scope, true,
-      1001.0,
-    ),
+    if retain_plan {
+      journal.accept_submitted_run(
+        epoch, reference, preparation, request, compiled, definition, scope, true,
+        1001.0,
+      )
+    } else {
+      journal.accept_original_submitted_run(
+        epoch,
+        reference,
+        @host.client_submitted_intent_cid(intent),
+        request,
+        definition,
+        scope,
+        true,
+      )
+    },
     "accept_submitted_run",
     original_selection_journal_kind,
   )

@@ -11,6 +11,20 @@ fn normalize_native_program_arguments(
   if operation == "run" {
     ignore(native_requested_stop_before(child))
   }
+  if operation == "explain" && optional(child, "run") is Some(id) {
+    if id.is_empty() || @utf8.encode(id).length() > 4096 {
+      stop("InvalidLocalSavedPlanSelection")
+    }
+    for
+      field in [
+        "program", "program-file", "format", "parameters-file", "params", "parameter-declarations-file",
+      ] {
+      if optional(child, field) is Some(_) {
+        stop("ConflictingLocalSavedPlanSelection")
+      }
+    }
+    return // Saved bytes never resolve another Program or current parameters.
+  }
   match (optional(child, "program"), optional(child, "program-file")) {
     (Some(_), Some(_)) => stop("ConflictingProgramInputs")
     (Some(path), None) => {

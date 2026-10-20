@@ -829,10 +829,15 @@ fn command() -> @argparse.Command {
         "explain",
         flags=[@argparse.FlagArg("json")],
         positionals=[
-          @argparse.PositionArg("program", conflicts_with=["program-file"]),
+          @argparse.PositionArg("program", conflicts_with=[
+            "program-file", "run",
+          ]),
         ],
         options=[
-          @argparse.OptionArg("program-file", conflicts_with=["program"]),
+          @argparse.OptionArg("program-file", conflicts_with=["program", "run"]),
+          @argparse.OptionArg("run", conflicts_with=[
+            "program", "program-file", "format", "parameters-file", "params", "parameter-declarations-file",
+          ]),
           @argparse.OptionArg("format"),
           @argparse.OptionArg("parameters-file", conflicts_with=["params"]),
           @argparse.OptionArg("params", conflicts_with=["parameters-file"]),
