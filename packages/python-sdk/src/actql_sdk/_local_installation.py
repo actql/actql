@@ -206,14 +206,17 @@ class OriginalLocalInstallation:
                 if native_store is not None:
                     store = native_store.open(core, self._path / 'state' / 'client.sqlite3',
                         state, new_file=db_file, max_records=1024,
-                        max_record_bytes=1048576, max_payload_bytes=8388608)
+                        max_record_bytes=1048576, max_payload_bytes=8388608,
+                        max_inspection_queries=16384)
                 elif fresh:
                     assert db_file is not None
                     store = LocalByteStore.initialize_owned_file(self._path / 'state' / 'client.sqlite3',
-                        state, db_file, max_records=1024, max_record_bytes=1048576, max_payload_bytes=8388608)
+                        state, db_file, max_records=1024, max_record_bytes=1048576,
+                        max_payload_bytes=8388608, max_inspection_queries=16384)
                 else:
                     store = LocalByteStore(self._path / 'state' / 'client.sqlite3',
-                        max_records=1024, max_record_bytes=1048576, max_payload_bytes=8388608)
+                        max_records=1024, max_record_bytes=1048576,
+                        max_payload_bytes=8388608, max_inspection_queries=16384)
                 self._store = store
                 self._observe_roots()
                 initial_rows: tuple[ByteWrite, ...] = ()

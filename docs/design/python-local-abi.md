@@ -1864,6 +1864,17 @@ SQLite/parser workspace and other concurrently retained inputs still require
 their existing separate reservations. This port's finite collector allowance
 is not a claim of complete global memory accounting.
 
+The ordinary installed Host separately selects at most 16,384 namespace or
+publication queries per inspected transaction. This work ceiling includes
+repeated exact reads and end probes; it does not increase the Store's 1,024
+persisted-row capacity, 1 MiB row bound or 8 MiB cumulative-copy bound. The Core
+may validate the same saved original at several stages of one observation, so
+persisted row count is not a bound on that operation's query work. The existing
+outer operation fuel remains independent. Exhaustion latches the same failed
+transaction and refuses CAS; there is no budget refill, reopened inspection or
+resend within it. Private callers that omit the work selection retain the old
+query ceiling equal to their configured row count.
+
 The first connected profile validates Effect-free, checkpoint-free saved rows
 and a completely observed empty cancellation inventory. Missing custody is not
 initialized. Nonempty cancellation, checkpoint or Effect-original paths are
