@@ -20,12 +20,17 @@ test "holder channel preserves a busy original Current before later review ticks
   let primary = try {
     assert_true(channel.send("effect-review original-tick"))
     assert_false(channel.send("current original-request"))
-    let (selected, bytes) = channel.pending_frame.unwrap()
+    guard channel.pending_frame is Some((selected, bytes)) else {
+      fail("busy selected Current was dropped")
+    }
     assert_eq(selected, "current original-request")
     assert_eq(bytes, @utf8.encode("current original-request\n"))
     assert_eq(channel.offset, 0)
     assert_false(channel.send("effect-review later-tick"))
-    assert_eq(channel.pending_frame.unwrap().0, selected)
+    guard channel.pending_frame is Some((pending, _)) else {
+      fail("later tick lost the original Current")
+    }
+    assert_eq(pending, selected)
     assert_eq(
       duplex_test_read_ffi(channel.inspection_descriptor),
       @utf8.encode("effect-review original-tick\n"),
