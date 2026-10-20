@@ -193,6 +193,25 @@ class LocalHostCurrentTests(unittest.TestCase):
         self.assertIsNone(core._journal_callbacks(2).reader)
         self.assertTrue(core.close_host_current(loan))
 
+    def test_callback_primary_survives_a_derived_core_failure_from_the_same_frame(self):
+        core, source, loan, store, _, _, _ = self.bridge()
+        failure = OSError('original physical query refused')
+        derived = LocalCoreError('produce_publication_sdk_run_state', -41)
+        def action(reader):
+            with core.host_current_frame(loan, reader):
+                callbacks = core._journal_callbacks(2)
+                callbacks._fail(failure)
+                raise derived
+        with self.assertRaises(OSError) as caught:
+            self.inside(store, action)
+        self.assertIs(caught.exception, failure)
+        self.assertIs(caught.exception.__cause__, derived)
+        self.assertIs(core._journal_callbacks(2).failure, failure)
+        self.assertIsNone(core._journal_callbacks(2).reader)
+        self.assertIs(core._loans[source.ticket], source)
+        self.assertIs(core._loans[loan.ticket], loan)
+        self.assertTrue(core.close_host_current(loan))
+
     def test_closed_scalar_loader_and_namespace_revision_width_remain_exact(self):
         assert_current_local_abi(self, LOCAL_CORE_ABI)
         self.assertEqual(_CURRENT_SIGNATURES, {

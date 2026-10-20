@@ -12,7 +12,7 @@ import json
 from pathlib import Path
 from typing import Any
 
-from ._local_core import LOCAL_CORE_ABI
+from ._local_wasm_abi import LOCAL_CORE_ABI
 from ._local_distribution import LocalInstallationError, WASMTIME_VERSION, _closed, _hex, _pairs, _read_file
 
 
@@ -25,20 +25,34 @@ class _SelectedImageRecipe:
     engine_body: bytes
     image_bytes_limit: int
     runtime_library_bytes: int
-    provider_library_sha256: str
-    provider_library_bytes: int
+    provider_library_sha256: str | None
+    provider_library_bytes: int | None
+    runtime_allocation: str = 'native-owned'
+
+    def owned_provider(self) -> tuple[str, int]:
+        """Only the explicit arena-backed selection has a Native provider."""
+        digest, size = self.provider_library_sha256, self.provider_library_bytes
+        if (self.runtime_allocation != 'native-owned' or not _hex(digest, 64)
+                or type(size) is not int or size <= 0):
+            raise LocalInstallationError('Selected image has no owned Native provider')
+        assert isinstance(digest, str)
+        return digest, size
 
     def validate(self) -> None:
         if (not _hex(self.source_sha, 40) or type(self.package_version) is not str
                 or not self.package_version or not _hex(self.module_sha256, 64)
                 or not _hex(self.runtime_library_sha256, 64)
-                or not _hex(self.provider_library_sha256, 64)
                 or type(self.engine_body) is not bytes
                 or not 0 < len(self.engine_body) <= 65536
                 or type(self.image_bytes_limit) is not int or self.image_bytes_limit <= 0
-                or type(self.runtime_library_bytes) is not int or self.runtime_library_bytes <= 0
-                or type(self.provider_library_bytes) is not int or self.provider_library_bytes <= 0):
+                or type(self.runtime_library_bytes) is not int or self.runtime_library_bytes <= 0):
             raise LocalInstallationError('Unavailable selected Local image recipe')
+        if self.runtime_allocation == 'native-owned':
+            self.owned_provider()
+        elif (self.runtime_allocation != 'platform'
+                or self.provider_library_sha256 is not None
+                or self.provider_library_bytes is not None):
+            raise LocalInstallationError('Invalid platform runtime allocation selection')
         try:
             body = _closed(json.loads(self.engine_body, object_pairs_hook=_pairs), (
                 'target', 'cpu_features', 'consume_fuel', 'strategy',
@@ -83,9 +97,10 @@ def _image_descriptor(body: Any, recipe: _SelectedImageRecipe) -> dict[str, Any]
     if type(recipe) is not _SelectedImageRecipe:
         raise LocalInstallationError('Unavailable selected Local image recipe')
     recipe.validate()
-    item = _closed(body, ('source_sha', 'package_version', 'module_sha256',
+    fields = ('source_sha', 'package_version', 'module_sha256',
         'core_abi', 'wasmtime_version', 'runtime_library_sha256', 'provider_library_sha256', 'platform',
-        'engine_body', 'engine_sha256', 'file', 'bytes', 'sha256'))
+        'engine_body', 'engine_sha256', 'file', 'bytes', 'sha256')
+    item = _closed(body, fields + (('runtime_allocation',) if recipe.runtime_allocation == 'platform' else ()))
     expected = json.loads(recipe.engine_body, object_pairs_hook=_pairs)
     # Compare exact canonical bytes too: JSON equality alone identifies True
     # and 1 in Python, which is not this closed engine-setting contract.
@@ -100,6 +115,7 @@ def _image_descriptor(body: Any, recipe: _SelectedImageRecipe) -> dict[str, Any]
             or item['wasmtime_version'] != WASMTIME_VERSION
             or item['runtime_library_sha256'] != recipe.runtime_library_sha256
             or item['provider_library_sha256'] != recipe.provider_library_sha256
+            or item.get('runtime_allocation', 'native-owned') != recipe.runtime_allocation
             or item['platform'] != 'darwin-arm64' or encoded != original
             or item['engine_sha256'] != hashlib.sha256(original).hexdigest()
             or item['file'] != 'client_host_wasm.cwasm'
@@ -136,17 +152,23 @@ def _recipe_from_original(original: bytes, *, source_sha: str,
     if type(original) is not bytes or not 0 < len(original) <= 65536:
         raise LocalInstallationError('Unavailable original Local image recipe')
     try:
-        body = _closed(json.loads(original, object_pairs_hook=_pairs), (
+        decoded = json.loads(original, object_pairs_hook=_pairs)
+        fields = (
             'wasmtime_version', 'runtime_library_sha256', 'runtime_library_bytes',
             'provider_library_sha256', 'provider_library_bytes',
-            'engine_body', 'image_bytes_limit'))
+            'engine_body', 'image_bytes_limit')
+        platform = type(decoded) is dict and 'runtime_allocation' in decoded
+        body = _closed(decoded, fields + (('runtime_allocation',) if platform else ()))
+        if platform and body['runtime_allocation'] != 'platform':
+            raise LocalInstallationError('Unknown ordinary runtime allocation selection')
         if body['wasmtime_version'] != WASMTIME_VERSION:
             raise LocalInstallationError('Incompatible original Local image recipe')
         recipe = _SelectedImageRecipe(source_sha, package_version, module_sha256,
             body['runtime_library_sha256'], json.dumps(body['engine_body'], sort_keys=True,
                 separators=(',', ':'), ensure_ascii=True, allow_nan=False).encode('ascii'),
             body['image_bytes_limit'], body['runtime_library_bytes'],
-            body['provider_library_sha256'], body['provider_library_bytes'])
+            body['provider_library_sha256'], body['provider_library_bytes'],
+            'platform' if platform else 'native-owned')
         recipe.validate()
         return recipe
     except (ValueError, UnicodeError, RecursionError) as original_error:

@@ -80,7 +80,7 @@ class _OriginalBackingCustody:
         # Allocate the same-loan failure carrier before Core can issue a loan.
         # Unknown reply reporting then retains these slots without allocation.
         borrow._unknown_carrier = _OriginalBackingError(borrow, unknown=True)
-        owner._enter()
+        owner._enter(require_initial=True)
         if owner._closed or owner._original.value is None:
             owner._busy = False
             raise ValueError('Original Host is retired')
@@ -146,13 +146,13 @@ class _OriginalBackingCustody:
         if self._reply.value is not None:
             raise self._mark_unknown()
 
-    def _enter(self) -> None:
+    def _enter(self, *, require_initial: bool = False) -> None:
         if self._unknown is not None:
             raise self._unknown
-        self._owner._enter()
+        self._owner._enter(require_initial=require_initial)
 
     def current(self) -> _OriginalArenaFact:
-        self._enter()
+        self._enter(require_initial=True)
         if self._closed or self._loan.value is None:
             self._owner._busy = False
             raise ValueError('Original backing loan is retired')
@@ -200,7 +200,7 @@ class _OriginalBackingCustody:
     def _change_physical_scope(self, operation: int) -> None:
         if type(operation) is not int or operation not in (4, 5):
             raise ValueError('Invalid original physical scope operation')
-        self._enter()
+        self._enter(require_initial=operation == 4)
         if self._closed or self._loan.value is None:
             self._owner._busy = False
             raise ValueError('Original backing loan is retired')

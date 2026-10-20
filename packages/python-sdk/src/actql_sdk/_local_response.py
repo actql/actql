@@ -75,6 +75,10 @@ class OriginalLocalResponseStream(httpx.AsyncByteStream):
             self._reading = False
 
     def _close(self) -> bool:
+        with self._host._core._host_cleanup():
+            return self._close_original()
+
+    def _close_original(self) -> bool:
         """Release only after the original iterator is physically stopped."""
         self._nominal()
         self._closing = True

@@ -12,6 +12,51 @@ fn submitted_input(
 }
 
 ///|
+test "submitted optional restrictions remain on the same original preparation" {
+  let body = "\"kind\":\"aql\",\"input\":{\"format\":\"sql\",\"text\":\"SELECT 1 AS n\"},\"parameters\":null"
+  let old = submitted_input("{" + body + "}").unwrap()
+  let original_cid = @host.client_submitted_intent_cid(old.intent)
+  for
+    (suffix, read_only, stop) in [
+      (",\"readOnly\":true", true, false),
+      (",\"stopBefore\":\"commit\"", false, true),
+      (",\"stopBefore\":\"commit\",\"readOnly\":true", true, true),
+    ] {
+    let value = submitted_input("{" + body + suffix + "}").unwrap()
+    assert_eq(
+      @host.client_submitted_intent_requests_read_only(value.intent),
+      read_only,
+    )
+    assert_eq(
+      @host.client_submitted_intent_requests_commit_stop(value.intent),
+      stop,
+    )
+    assert_false(
+      @host.client_submitted_intent_cid(value.intent) == original_cid,
+    )
+    assert_eq(
+      @host.prepared_client_result_count(local_prepared_program(value.input)),
+      1,
+    )
+  }
+}
+
+///|
+test "submitted restriction false null and foreign spellings refuse before preparation" {
+  let body = "\"kind\":\"aql\",\"input\":{\"format\":\"sql\",\"text\":\"SELECT 1 AS n\"},\"parameters\":null"
+  for
+    suffix in [
+      ",\"readOnly\":false", ",\"readOnly\":null", ",\"readonly\":true", ",\"read_only\":true",
+      ",\"stopBefore\":null",
+    ] {
+    assert_true(
+      submitted_input("{" + body + suffix + "}")
+      is Err(SubmittedInput(@host.InvalidEnvelope)),
+    )
+  }
+}
+
+///|
 test "submitted structured Program and explicit SQL AQL share original preparation Owner" {
   for
     wire in [

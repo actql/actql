@@ -83,6 +83,8 @@ class OriginalHostBindingTests(unittest.TestCase):
                 return result
             if name == 'reserve':
                 return 200 + (args[0] if family != 'current' else args[1])
+            if family == 'buffer' and name in ('fill', 'seal'):
+                return 0
             if family == 'current' and name in ('bind', 'validate'):
                 ticket = args[0] - 200
                 self.assertIsNotNone(core._journal_callbacks(ticket).reader)
@@ -100,6 +102,30 @@ class OriginalHostBindingTests(unittest.TestCase):
             return value
         binding = factory() if create else None
         return path, store, core, epoch, source, state, tuple(expected), calls, codes, factory, binding
+
+    def test_original_current_input_is_completed_before_acquisition(self):
+        _, _, _, _, _, _, _, calls, _, _, binding = self.fixture()
+        original = binding._input
+        assert original is not None
+        transfers = [(name, args) for family, name, args in calls
+                     if family == 'buffer' and name in ('fill', 'seal')]
+        self.assertEqual(transfers, [('fill', (original.handle, 0, original.length)),
+                                     ('seal', (original.handle,))])
+        sealed = next(i for i, call in enumerate(calls) if call[:2] == ('buffer', 'seal'))
+        acquired = next(i for i, call in enumerate(calls) if call[:2] == ('current', 'reserve'))
+        self.assertLess(sealed, acquired)
+
+    def test_incomplete_original_transfer_retains_same_input_without_current_acquisition(self):
+        _, _, core, _, _, _, _, calls, codes, factory, _ = self.fixture(create=False)
+        codes['buffer', 'fill'] = LocalCoreError('fill', -9)
+        with self.assertRaises(LocalHostBindingCleanupPending) as raised:
+            factory()
+        binding = raised.exception.cleanup_binding
+        assert binding._input is not None
+        self.assertIs(core._loans[binding._input.ticket], binding._input)
+        self.assertIsNone(binding._current)
+        self.assertFalse(any(call[:2] == ('current', 'reserve') for call in calls))
+        self.assertTrue(binding.close())
 
     def test_same_original_store_snapshot_and_exact_bytes_without_writes_or_execution(self):
         _, store, core, _, source, _, _, calls, _, _, binding = self.fixture()

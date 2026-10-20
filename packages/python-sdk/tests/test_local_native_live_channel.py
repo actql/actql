@@ -43,10 +43,10 @@ class ChannelFixture:
         self.supplier.physical = self.supplier.delegation = self.domain
         self.supplier.ledger = self.host
         self.funding = case.prepare()
-        self.slot = OriginalWorkerSlot(self.funding, Path('/installed/slot'))
+        self.slot = OriginalWorkerSlot(self.funding, '/installed/slot')
         if before_process is not None: before_process(self)
         self.process = OriginalWorkerProcess(self.funding, self.slot,
-            executable=Path('/installed/python'), executable_image=Path('/installed/python'),
+            executable='/installed/python', executable_image='/installed/python',
             executable_link=None, executable_bytes=8192, executable_sha256='a' * 64,
             environment=(('LANG', 'C.UTF-8'),))
         for name, options in (

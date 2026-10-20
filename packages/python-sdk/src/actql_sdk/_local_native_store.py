@@ -57,6 +57,7 @@ class _OriginalNativeStoreSelection:
 
     def open(self, core: LocalCore, path: Path, root: LocalFileRoot, *,
              max_records: int, max_record_bytes: int, max_payload_bytes: int,
+             max_inspection_queries: int | None = None,
              new_file: _PayloadFile | None = None) -> LocalByteStore:
         # Core serializes its original installation. This is lifecycle identity
         # only, not a current Account/publisher/Run permission decision.
@@ -65,6 +66,7 @@ class _OriginalNativeStoreSelection:
             store = _open_original_native_store(path, root, library=self._library,
                 functions=self._functions, read=self._read, max_records=max_records,
                 max_record_bytes=max_record_bytes, max_payload_bytes=max_payload_bytes,
+                max_inspection_queries=max_inspection_queries,
                 new_file=new_file)
             try:
                 self.require_core(core)
@@ -79,6 +81,7 @@ def _open_original_native_store(path: Path, root: LocalFileRoot, *,
                                 read: _OriginalDomainReadFunctions,
                                 max_records: int, max_record_bytes: int,
                                 max_payload_bytes: int,
+                                max_inspection_queries: int | None = None,
                                 new_file: _PayloadFile | None = None) -> LocalByteStore:
     """Same original File root/Database; restore is existing-only, never repair.
 
@@ -98,7 +101,8 @@ def _open_original_native_store(path: Path, root: LocalFileRoot, *,
     store = LocalByteStore.__new__(LocalByteStore)
     store._prepare_physical_path(path, max_records=max_records,
                                 max_record_bytes=max_record_bytes,
-                                max_payload_bytes=max_payload_bytes)
+                                max_payload_bytes=max_payload_bytes,
+                                max_inspection_queries=max_inspection_queries)
     path = store._physical_path
     with root._lock:
         directory = os.fstat(root._open())

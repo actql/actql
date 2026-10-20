@@ -6,6 +6,7 @@ priv enum PublicationCommitExportProjection {
   Schema(Int, Int)
   ObservedIndex(Int)
   ObservedRunState(Int)
+  SDKRunState(Int, Int)
   SDKReadOriginal(Int, Int, Int, Int)
   SDKReadEvidence(Int, Int, Int)
   SDKReadGrant(Int, Int, Int)
@@ -40,6 +41,7 @@ priv struct StoredPublicationCommitExport {
   mut sdk_payload_confirmed : Int64?
   mut sdk_payload_record : (Int, Int, Int)?
   mut sdk_payload_terminal : @local_run.LocalSDKDeliveryTerminal?
+  mut sdk_run_state_update : @host.ClientSavedRunStateUpdate?
 }
 
 ///|
@@ -106,6 +108,7 @@ pub fn reserve_publication_commit_export(
     sdk_payload_confirmed: None,
     sdk_payload_record: None,
     sdk_payload_terminal: None,
+    sdk_run_state_update: None,
   }
   value.copies[handle] = (slot, physical_ticket)
   value.next_handle += 1

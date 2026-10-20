@@ -36,7 +36,7 @@ class SDKStartAssemblyTests(unittest.TestCase):
         def call(family, name, *args):
             if family == 'material' and name == 'reserve':
                 self.assertEqual(args[0], run.handle)
-                self.assertIn(args[1], (9, 7, 8))
+                self.assertIn(args[1], (9, 5, 7, 8))
                 handle = 100 + args[2]
                 kinds[handle] = args[1]
                 return handle
@@ -49,6 +49,12 @@ class SDKStartAssemblyTests(unittest.TestCase):
                 code = failures.get((kind, name))
                 if isinstance(code, BaseException): raise code
                 if code is not None: return code
+                if kind == 5:
+                    if name == 'produce':
+                        self.assertEqual((actual().payload, actual().generation), (BINDING, 1))
+                        return 0
+                    if name == 'close': return core._cleanup(handle - 100)
+                    raise AssertionError((kind, name))
                 if name == 'produce':
                     row = actual()
                     self.assertEqual((row.payload, row.generation), (before, revision))
@@ -103,6 +109,45 @@ class SDKStartAssemblyTests(unittest.TestCase):
             self.assertNotIn(host._step_outputs[0].ticket, core._inputs)
             self.assertIs(core._loans[host._step_outputs[0].ticket], host._step_outputs[0])
             self.assertTrue(host.close())
+
+    def test_original_normalization_is_produced_and_retired_before_dispatch(self):
+        with TemporaryDirectory(prefix='actql-sdk-normalization-') as directory:
+            host, _, run, events, _ = self.host(Path(directory))
+            host._configure_original_compute(run)
+            self.assertEqual(events.count((5, 'produce')), 1)
+            self.assertEqual(events.count((5, 'close')), 1)
+            self.assertLess(events.index((9, 'confirm_sdk_publication')), events.index((5, 'produce')))
+            self.assertLess(events.index((5, 'close')), events.index((7, 'produce')))
+            self.assertFalse(any(name in ('validate_sdk_start', 'confirm_sdk_start')
+                                 for kind, name in events if kind == 5))
+            self.assertTrue(host.close())
+
+    def test_original_normalization_failure_keeps_same_loan_without_dispatch(self):
+        with TemporaryDirectory(prefix='actql-sdk-normalization-') as directory:
+            host, core, run, events, failures = self.host(Path(directory))
+            failures[5, 'produce'] = -34
+            with self.assertRaises(LocalCoreError): host._configure_original_compute(run)
+            output = host._step_outputs[0]
+            self.assertIs(core._loans[output.ticket], output)
+            self.assertEqual(events.count((5, 'produce')), 1)
+            self.assertFalse(any(kind in (7, 8, 'run', 'compute') for kind, _ in events))
+            self.assertEqual((self.row(host).payload, self.row(host).generation), (BINDING, 1))
+            self.assertTrue(host.close())
+
+    def test_normalization_transport_pending_keeps_same_cleanup_before_dispatch(self):
+        with TemporaryDirectory(prefix='actql-sdk-normalization-') as directory:
+            host, core, run, events, failures = self.host(Path(directory))
+            failures[5, 'close'] = -9
+            from actql_sdk._local_product import LocalProductCleanupPending
+            with self.assertRaises(LocalProductCleanupPending): host._configure_original_compute(run)
+            output = host._step_outputs[0]
+            self.assertIs(core._loans[output.ticket], output)
+            self.assertFalse(host.close())
+            self.assertIs(host._step_outputs[0], output)
+            self.assertFalse(any(kind in (7, 8, 'run', 'compute') for kind, _ in events))
+            del failures[5, 'close']
+            self.assertTrue(host.close())
+            self.assertEqual(events.count((5, 'produce')), 1)
 
     def test_dispatch_commit_reply_loss_keeps_original_step_and_prevents_claim(self):
         with TemporaryDirectory(prefix='actql-sdk-start-') as directory:
