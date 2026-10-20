@@ -82,6 +82,7 @@ pub(all) enum UnaryOperator {
   SafeNegate
   TryDecimal
   Quantize(String)
+  TryNumber
 } derive(Eq, Debug)
 
 ///|
@@ -345,6 +346,7 @@ fn expression_tag(
     | "vector_concat"
     | "cast"
     | "try_decimal"
+    | "try_number"
     | "quantize"
     | "decimal_divide"
     | "if"
@@ -410,7 +412,7 @@ fn expression_children(
         @decode.lookup(obj, "right").unwrap(),
       ]
     }
-    "cast" | "try_decimal" | "quantize" => {
+    "cast" | "try_decimal" | "quantize" | "try_number" => {
       let obj = @decode.open_object(body).unwrap()
       [@decode.lookup(obj, "value").unwrap()]
     }
@@ -1073,6 +1075,7 @@ fn lower_typed_expression_measured(
         "reverse" => Unary(Reverse, args[0])
         "cast" => Cast(args[0])
         "try_decimal" => Unary(TryDecimal, args[0])
+        "try_number" => Unary(TryNumber, args[0])
         "decimal_divide" => {
           let obj = @decode.open_object(body).unwrap()
           let mode = @decode.text(@decode.lookup(obj, "rounding").unwrap()).unwrap()

@@ -75,12 +75,12 @@
     "window_events",
     "window_group"
   ],
-  "expression_contract_cid": "sha256:6ccd3d3e87cf65610f96b81ce3a11844f1d12a6bee3166df66726a3c11e571f8",
+  "expression_contract_cid": "sha256:6ab2396dc413fa604854f6586ec957203ccf23392c52f254dfd7b3c0c6dcbe7f",
   "expression_text_grammar_sha256": "03a408a9a071b5af85c51ba22e3e340559953073accbaa0f5d043a0c2640f187",
   "expression_text_rules_sha256": "d1e79cdfab1210815bdbe75bb0fedd8558f7063c852bbc7ff6efd828fb37c678",
   "structural_text_grammar_sha256": "0f6a0337a350348efbe20e23fe658ce1e56297d407ba9dac3ec2eaf008849a56",
   "structural_text_rules_sha256": "5d2f2432181664678b364fc97c3545d1740b004cd7b073c4bf0d8181c30dcaae",
   "query_text_grammar_sha256": "8003bbe27c9606818404fcfa707b29fb5daa18dea12b5c2b0eaed2739328d615",
-  "query_text_rules_sha256": "c8f3548cff9534083f670f1b66e9daadf156cf3296578b611f1f4d9a8e7caf7d",
-  "grammar_manifest_cid": "sha256:6478ebc4ffe1e551c3afa978d18a615e884d368a51ef16f50ffe2c7e83abd5ce"
+  "query_text_rules_sha256": "4795e75a69cba974684f4cf1880b93c91cd5bc47b4a0de28e135c50fc2d225fc",
+  "grammar_manifest_cid": "sha256:9980929e04782b8e94d3bfb043f4b8b5fe5f46b3ffe9e45a565610ac1e6aeef6"
 }

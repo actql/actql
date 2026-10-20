@@ -277,6 +277,7 @@ fn scalar_call(
     "TIMESTAMP_SUB" => ("TIMESTAMP_SUB", "timestamp_sub", 2, 2)
     "DATE_TRUNC" => ("DATE_TRUNC", "date_trunc", 2, 2)
     "TO_NUMBER" => ("TO_NUMBER", "to_number", 1, 1)
+    "TRY_NUMBER" => ("TRY_NUMBER", "try_number", 1, 1)
     "TO_STRING" => ("TO_STRING", "to_string", 1, 1)
     "TO_BOOLEAN" => ("TO_BOOLEAN", "to_boolean", 1, 1)
     "TO_TIMESTAMP" => ("TO_TIMESTAMP", "to_timestamp", 1, 1)
@@ -975,6 +976,11 @@ fn append_resolved(
                   nodes[args[0]],
                 ])
                 lowering.form("negate", lowering.form("floor", negative))
+              } else if name == "try_number" {
+                lowering.form(
+                  name,
+                  lowering.object([("value", nodes[args[0]])]),
+                )
               } else if name == "substring" {
                 let fields = [
                   ("value", nodes[args[0]]),

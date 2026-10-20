@@ -32,7 +32,7 @@
       "ordered_bindings": {
         "file": "spec/contracts/actql-aoa.json",
         "pointer": "/execution_contracts/REL.derive.ordered",
-        "cid": "sha256:5b4ee880ddd9508e0e1b9f0208ce921eb4ac8b5456830c31ba06b827d812d954"
+        "cid": "sha256:9997cffed1724f14f3b7263bced2eff14f3a6a844e23c7fb4b12087fdeff39b8"
       }
     }
   },
