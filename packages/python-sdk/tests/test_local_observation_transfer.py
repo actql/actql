@@ -23,7 +23,8 @@ class ObservationTransferTests(unittest.TestCase):
         core, parent, publisher, projection, calls, state, _, _, _ = original_fixture.OriginalCommitStoreCallerTests.bridge(self)
         core._retired = False
         state.update(workspace=0, reserve_input=0, fill=0, seal=0, prepare=0,
-                     borrow=False, cleanup_input=True, cleanup_workspace=True, trap=None)
+                     borrow=False, cleanup_input=True, cleanup_workspace=True, trap=None,
+                     require_json_seal=False, bounded_fill=False)
         original_call = core._call
         handles, packets = {}, []
         def call(family, name, *args):
@@ -41,6 +42,13 @@ class ObservationTransferTests(unittest.TestCase):
                     handles[handle] = ticket
                     return handle
                 if name in ('fill', 'seal'):
+                    if name == 'fill' and state['bounded_fill'] and args[2] > 16384:
+                        return -6
+                    if name == 'seal' and state['require_json_seal']:
+                        try:
+                            json.loads(core._inputs[handles[args[0]]].payload)
+                        except (ValueError, UnicodeError):
+                            return -8
                     return state[name]
                 if name in ('prepare_lookup', 'prepare_observation'):
                     self.assertEqual((args[0], args[2], args[3]), (23, 17, 31))
@@ -62,6 +70,42 @@ class ObservationTransferTests(unittest.TestCase):
             cleanup=lambda: state['cleanup_input'], stopped=lambda _: not state['borrow'],
             workspace_cleanup=lambda: state['cleanup_workspace'], workspace_stopped=lambda: True)
         return core, parent, publisher, transfer, calls, state, packets
+
+    def test_raw_cid_reference_is_retained_without_json_admission_before_closed_packet(self):
+        core, _, _, transfer, calls, state, packets = self.bridge()
+        state['require_json_seal'] = True
+        transfer.reserve()
+        reference = transfer.retain_source(self.reference)
+        index = transfer.retain_source(self.index)
+        self.assertFalse(any(name == 'seal' for _, name, _ in calls))
+        self.assertIs(core._loans[reference.ticket], reference)
+        transfer.transfer_lookup_inputs(reference, index)
+        self.assertEqual(json.loads(packets[0]), {
+            'identity': self.reference.decode(), 'index': self.index.decode()})
+        self.assertEqual(sum(name == 'seal' for _, name, _ in calls), 1)
+        state['borrow'] = False
+        self.assertTrue(transfer.close())
+
+    def test_original_rows_and_envelope_use_in_order_bounded_fill_chunks(self):
+        core, _, _, transfer, calls, state, packets = self.bridge(source=40000, packet=50000)
+        state['bounded_fill'] = state['require_json_seal'] = True
+        raw = b'{"text":"' + b'x' * 17000 + b'"}'
+        transfer.reserve()
+        reference = transfer.retain_source(self.reference)
+        index = transfer.retain_source(raw)
+        transfer.transfer_lookup_inputs(reference, index)
+        self.assertEqual(json.loads(packets[0])['index'].encode(), raw)
+        fills = [args for _, name, args in calls if name == 'fill']
+        for value in (reference, index, transfer.pending_input):
+            chunks = [(start, count) for handle, start, count in fills if handle == value.handle]
+            offset = 0
+            for start, count in chunks:
+                self.assertEqual(start, offset)
+                self.assertLessEqual(count, 16384)
+                offset += count
+            self.assertEqual(offset, value.length)
+        state['borrow'] = False
+        self.assertTrue(transfer.close())
 
     def test_original_unicode_crlf_null_and_large_number_bytes_roundtrip_without_identity_parse(self):
         core, parent, publisher, transfer, calls, state, packets = self.bridge()

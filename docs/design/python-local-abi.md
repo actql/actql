@@ -19,6 +19,14 @@ The source decoder preserves raw JSON strings and keys, including Unicode and
 NULL. It distinguishes parsing limits from malformed input. Sealing a transfer
 does not check a Program or admit a Run.
 
+Store observation retains exact raw rows in unsealed input loans. A stored CID
+reference is raw address text, not a JSON document. These loans expose no parsed
+source-node capability. The separately bounded closed observation envelope quotes
+those unchanged bytes and is sealed before the existing Core checks its scope,
+references and complete stored chain. Both raw rows and the envelope use in-order
+fills of at most 16 KiB. Failed transfer keeps the original loans and workspace;
+closing them neither repeats the Store read nor acknowledges a durable commit.
+
 An allocation is retired before cleanup. Readers must acknowledge physical stop
 before their exact borrow is returned. Failed stop or cleanup retains the same
 handle and allocation for retry. The pool's reservation is settled only after all
