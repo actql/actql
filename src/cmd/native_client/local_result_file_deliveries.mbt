@@ -65,47 +65,49 @@ fn local_result_file_deliveries(
   for index in 0..<delivery.files.length() {
     let destination = delivery.files[index]
     let result_name = selected_names[index]
-    let binding = if index == 0 {
-      actual.binding
-    } else {
-      actual.capture.bind_result_file_read_policy_for_run_in_original_read(
-        actual.policy,
-        actual.original.reference(),
-        actual.original.request(),
-        @env.now().to_double(),
-        "file-read.json",
-      )
-      |> local_result_read_value
-    }
-    let parameters = binding.disclosure_parameters() |> local_result_read_value
-    let attempt_id = local_result_file_attempt(
-      selected,
-      settings.principal,
-      parameters.purpose,
-      result_name,
-      destination,
-    )
-    let request : @local_result.NativeResultAccessRequest = {
-      namespace_id: selected.namespace_id,
-      authority_scope_cid: actual.scope,
-      run_definition_cid: selected.run_definition_cid,
-      principal_id: settings.principal,
-      purpose: parameters.purpose,
-      result_name,
-      format: destination.format,
-      attempt_id,
-    }
-    let current = () => {
-      local_delivery_lookup_allowed(
-        host,
-        settings,
-        crypto,
-        actual.scope,
-        result_name,
-        capture=Some(actual.capture),
-      )
-    }
+    let mut attempt_id = ""
     let outcome = try {
+      let binding = if index == 0 {
+        actual.binding
+      } else {
+        actual.capture.bind_result_file_read_policy_for_run_in_original_read(
+          actual.policy,
+          actual.original.reference(),
+          actual.original.request(),
+          @env.now().to_double(),
+          "file-read.json",
+        )
+        |> local_result_read_value
+      }
+      let parameters = binding.disclosure_parameters()
+        |> local_result_read_value
+      attempt_id = local_result_file_attempt(
+        selected,
+        settings.principal,
+        parameters.purpose,
+        result_name,
+        destination,
+      )
+      let request : @local_result.NativeResultAccessRequest = {
+        namespace_id: selected.namespace_id,
+        authority_scope_cid: actual.scope,
+        run_definition_cid: selected.run_definition_cid,
+        principal_id: settings.principal,
+        purpose: parameters.purpose,
+        result_name,
+        format: destination.format,
+        attempt_id,
+      }
+      let current = () => {
+        local_delivery_lookup_allowed(
+          host,
+          settings,
+          crypto,
+          actual.scope,
+          result_name,
+          capture=Some(actual.capture),
+        )
+      }
       if !current() {
         stop("LocalReadAuthorizationDenied")
       }
@@ -136,7 +138,16 @@ fn local_result_file_deliveries(
     // A failed cleanup keeps all originals and stops before any further open.
     command_preparation_result(business.close_result_children())
     let fields : Map[String, Json] = Map::from_array([
-      ("delivery_id", Json::string(attempt_id)),
+      (
+        "delivery_id",
+        Json::string(
+          if attempt_id.is_empty() {
+            "requested-" + index.to_string()
+          } else {
+            attempt_id
+          },
+        ),
+      ),
       ("run_id", Json::string(required(child, "run"))),
       (
         "request",
@@ -149,7 +160,7 @@ fn local_result_file_deliveries(
           ]),
         ),
       ),
-      ("attempt", Json::number(1)),
+      ("attempt", Json::number(if attempt_id.is_empty() { 0 } else { 1 })),
     ])
     match outcome {
       Ok(wire) => {
