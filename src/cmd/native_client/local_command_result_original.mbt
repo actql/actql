@@ -51,7 +51,13 @@ fn LocalCommandPreparationOriginal::prepare_original_result(
     self.primary is None else {
     stop("LocalReadOriginalCustodyUnavailable")
   }
-  local_result_stdout_only(child)
+  let directory = @env.current_dir().unwrap_or_else(() => {
+    stop("ProjectConfigurationDirectoryUnavailable")
+  })
+  let delivery = local_result_delivery_selection(child, directory)
+  if delivery.files.is_empty() {
+    local_result_stdout_only(child)
+  }
   ignore(local_result_format(child))
   let configuration = local_check_original_text(
     local_result_host_value(
@@ -125,13 +131,26 @@ fn LocalCommandPreparationOriginal::prepare_original_result(
     ),
     "Run policy",
   )
-  let binding = match
+  let selected_read = if delivery.files.is_empty() {
     capture.bind_result_read_policy_for_run_in_original_read(
       policy,
       original.reference(),
       original.request(),
       @env.now().to_double(),
-    ) {
+    )
+  } else {
+    if !settings.installation_files.contains("file-read.json") {
+      stop("LocalResultFileOriginalNotSelected")
+    }
+    capture.bind_result_file_read_policy_for_run_in_original_read(
+      policy,
+      original.reference(),
+      original.request(),
+      @env.now().to_double(),
+      "file-read.json",
+    )
+  }
+  let binding = match selected_read {
     Ok(value) => value
     Err(issue) => stop(local_read_issue(issue))
   }

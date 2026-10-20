@@ -1399,6 +1399,7 @@ fn execute_and_write_native_reply(
   pending_reply : Ref[String?],
 ) -> Unit raise ClientStop {
   command_check_invalid_exit.val = false
+  command_result_delivery_failed.val = false
   // Integrity verification reads explicit files and does not acquire a Host,
   // resolve a project, create an installation or grant payload access.
   if matches.subcommand is Some(("verify", child)) {
@@ -1489,6 +1490,9 @@ fn main {
   if local_finish_output_verification() is Err(_) {
     fail_command("OutputVerificationCleanupPending")
   }
+  if local_finish_result_receipt() is Err(_) {
+    fail_command("ResultReceiptCleanupPending")
+  }
   let command_cleanup = local_finish_command_preparation()
   let command_closed = command_cleanup is Ok(_)
   let crypto_closed = if command_closed {
@@ -1530,7 +1534,7 @@ fn main {
   command_initial_control_keep_alive(control)
   // The invalid report has already been written/flushed, and all original
   // child cleanup has acknowledged. Run-state outcomes never set this flag.
-  if command_check_invalid_exit.val {
+  if command_check_invalid_exit.val || command_result_delivery_failed.val {
     exit_failure_ffi()
   }
 }

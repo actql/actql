@@ -75,6 +75,36 @@ Native Local CLI. These are implementation requirements, not claims that Local
 execution or Provider approval has passed public acceptance. The existing
 Native Remote CLI, its wire contracts and distribution remain intact.
 
+## Original file Result delivery
+
+An explicit `result --output` or repeated `--deliver` selection uses an
+independent adopted File read original. It does not redirect a stdout or
+Material grant. The original Run, committed Manifest, physical Store and
+current Run/named-Result authority are checked before acquiring the destination.
+First initialization retains the File selection alongside the unchanged stdout
+and Material originals; existing installations lacking it remain unavailable.
+
+The caller retains the actual parent observation and exclusive staging Writer
+before fallible work. Read/egress preimages bind the destination path, parent
+identity and Writer identity. The sink acknowledges only actual append and
+seal operations; partial writes, uncertain close and failed current checks keep
+the same cleanup duties and never authorize another send. The final name is
+created exclusively, and existing files are never overwritten.
+
+A private stable attempt correlation binds the original request, Run, format
+and canonical destination. Lookup precedes Writer creation. A prior unresolved
+attempt refuses; a prior success is reused only after the same authenticated
+Journal evidence, Store receipt, current authority, parent/file identities and
+actual bounded byte count and hash match. This comparison does not reconstruct
+a Writer from saved inode DATA or issue another payload read.
+
+Per-delivery session and file children acknowledge before the next destination
+opens. Receipt export uses a separate bounded exclusive Writer after those
+children; a failed export cannot undo or resend outputs. A multi-delivery
+receipt file preserves the authored order of successful existing receipt
+objects without claiming an atomic aggregate outcome. Business success,
+physical cleanup and unresolved delivery remain separate observations.
+
 ## Ordinary product startup boundary
 
 The [ordinary Embedded Host contract](../spec/execution.md#initial-node-control-preparation)

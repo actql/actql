@@ -137,21 +137,7 @@ fn NativeLocalHostConnection::validate_read_evidence(
     Ok(None) => return Err(CustodyLost)
     Err(issue) => return Err(issue)
   }
-  let egress = match
-    local_read_evidence_object(
-      @utf8.encode(egress_wire),
-      [
-        "attempt_id", "authority_scope_cid", "authorization_context_cid", "data_ceiling_cid",
-        "domain", "effective_data_policy_cid", "expires_at", "format", "material_generation_cid",
-        "max_bytes", "max_uses", "principal_id", "public_index_entry_cid", "purpose",
-        "read_original_cid", "result_artifact_cid", "result_definition_cid", "result_manifest_cid",
-        "result_name", "run_definition_cid", "sink", "material_receiver_cid", "result_schema_cid",
-        "ordering_evidence_cid", "destination_path", "destination_name", "destination_staging_name",
-        "destination_parent_device", "destination_parent_inode", "destination_writer_device",
-        "destination_writer_inode",
-      ],
-      16384,
-    ) {
+  let egress = match local_read_egress_fields(egress_wire) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
@@ -746,4 +732,26 @@ fn NativeLocalReadPolicyBinding::retain_read_admission_with_operations(
     Err(TransactionUnknown) => Err(Journal(TransactionUnknown))
     Err(issue) => Err(authority_refusal.unwrap_or(Journal(issue)))
   }
+}
+
+///|
+// Closed archive inverse shared with completed File verification. No live
+// receiver or authority is constructed by decoding these saved fields.
+fn local_read_egress_fields(
+  wire : String,
+) -> Result[@decode.ObjectView, NativeClientRunJournalIssue] {
+  local_read_evidence_object(
+    @utf8.encode(wire),
+    [
+      "attempt_id", "authority_scope_cid", "authorization_context_cid", "data_ceiling_cid",
+      "domain", "effective_data_policy_cid", "expires_at", "format", "material_generation_cid",
+      "max_bytes", "max_uses", "principal_id", "public_index_entry_cid", "purpose",
+      "read_original_cid", "result_artifact_cid", "result_definition_cid", "result_manifest_cid",
+      "result_name", "run_definition_cid", "sink", "material_receiver_cid", "result_schema_cid",
+      "ordering_evidence_cid", "destination_path", "destination_name", "destination_staging_name",
+      "destination_parent_device", "destination_parent_inode", "destination_writer_device",
+      "destination_writer_inode",
+    ],
+    16384,
+  )
 }

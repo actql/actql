@@ -49,6 +49,14 @@ fn LocalCommandBusinessOriginal::close_result_children(
       Ok(_) => ()
     }
   }
+  // Keep the independent output Writer/Root until the same session and Store
+  // return have acknowledged. A constructor-only failure still owns this duty.
+  if self.result_binding is Some(binding) {
+    match binding.close_file_output() {
+      Err(issue) => return Err(CommandBusinessFileOutput(issue))
+      Ok(_) => ()
+    }
+  }
   // Both Result close entrances return only after the original Store return.
   // Keep even closed aliases until that acknowledgement; no poll/receipt or
   // payload reopen is performed by this cleanup path.

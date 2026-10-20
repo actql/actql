@@ -14,6 +14,8 @@ priv struct NativeLocalReadFileDestination {
   mut parent_identity : @filesystem.NativeFileOwnership?
   mut writer : @filesystem.Writer?
   mut writer_failure : @filesystem.NativeWriterOpenFailure?
+  mut reader : @filesystem.Reader?
+  mut reader_failure : @filesystem.NativeReaderOpenFailure?
   mut generation : @filesystem.NativeFileGeneration?
   mut primary : @filesystem.NativeFilesystemIssue?
   mut write_attempted : Bool
@@ -43,6 +45,8 @@ fn local_read_file_destination(
     parent_identity: None,
     writer: None,
     writer_failure: None,
+    reader: None,
+    reader_failure: None,
     generation: None,
     primary: None,
     write_attempted: false,
@@ -277,6 +281,18 @@ fn NativeLocalReadFileDestination::close(
     return Ok(())
   }
   self.closing = true
+  if self.reader_failure is Some(original) {
+    match original.retry_cleanup() {
+      Ok(_) => self.reader_failure = None
+      Err(issue) => return Err(issue)
+    }
+  }
+  if self.reader is Some(reader) {
+    match reader.close() {
+      Ok(_) => self.reader = None
+      Err(issue) => return Err(issue)
+    }
+  }
   if self.writer_failure is Some(original) {
     match original.retry_cleanup() {
       Ok(_) => self.writer_failure = None
@@ -309,4 +325,84 @@ fn NativeLocalReadFileDestination::close(
   self.parent_observation = None
   self.closed = true
   Ok(())
+}
+
+///|
+// Re-observe the actual completed file. Saved identity DATA never reconstitutes
+// a Writer or permits another append; a failed read retains its original child.
+fn NativeLocalReadFileDestination::verify_completed(
+  self : NativeLocalReadFileDestination,
+  saved : NativeLocalReadFileOriginal,
+) -> Result[(Int64, String), @filesystem.NativeFilesystemIssue] {
+  guard !self.closing &&
+    !self.closed &&
+    self.primary is None &&
+    self.reader is None &&
+    self.reader_failure is None &&
+    self.path == saved.path &&
+    self.name == saved.name &&
+    self.root is Some(root) &&
+    self.parent_observation is Some(observation) else {
+    return Err(@filesystem.GenerationMismatch)
+  }
+  let parent = match observation.identity() {
+    Ok(value) => value
+    Err(issue) => return Err(self.remember(issue))
+  }
+  if parent.device.to_string() != saved.parent_device ||
+    parent.inode.to_string() != saved.parent_inode {
+    return Err(self.remember(@filesystem.GenerationMismatch))
+  }
+  let generation = match root.inspect_generation(self.name) {
+    Ok(Some(value)) if value.size >= 0L &&
+      value.size <= self.max_bytes.to_int64() &&
+      value.device.to_string() == saved.writer_device &&
+      value.inode.to_string() == saved.writer_inode => value
+    Ok(_) => return Err(self.remember(@filesystem.GenerationMismatch))
+    Err(issue) => return Err(self.remember(issue))
+  }
+  let reader = match root.open_reader_with_custody(self.name, generation) {
+    Ok(value) => value
+    Err(original) => {
+      self.reader_failure = Some(original)
+      return Err(self.remember(original.issue()))
+    }
+  }
+  self.reader = Some(reader)
+  let digest = @sha.hasher()
+  let mut count = 0L
+  let mut complete = false
+  for _ in 0..<(generation.size + 1L).to_int() {
+    let chunk = match reader.next(16384) {
+      Ok(value) => value
+      Err(issue) => return Err(self.remember(issue))
+    }
+    if chunk.bytes.length().to_int64() > generation.size - count ||
+      (chunk.bytes.is_empty() && !chunk.eof) {
+      return Err(self.remember(@filesystem.GenerationMismatch))
+    }
+    @sha.update(digest, chunk.bytes) catch {
+      _ => return Err(self.remember(@filesystem.GenerationMismatch))
+    }
+    count += chunk.bytes.length().to_int64()
+    if chunk.eof {
+      complete = true
+      break
+    }
+  }
+  if !complete ||
+    count != generation.size ||
+    reader.finish() is Err(_) ||
+    !root.verify_generation(self.name, generation) ||
+    !(observation.identity() is Ok(actual) && actual == parent) {
+    return Err(self.remember(@filesystem.GenerationMismatch))
+  }
+  let hash = @sha.finish_hex(digest) catch {
+    _ => return Err(self.remember(@filesystem.GenerationMismatch))
+  }
+  match reader.close() {
+    Ok(_) => self.reader = None
+    Err(issue) => return Err(self.remember(issue))
+  }
+  Ok((count, hash))
 }
