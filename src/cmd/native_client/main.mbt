@@ -1524,13 +1524,8 @@ fn main {
     false
   } catch {
     ClientStop(message) => {
-      let (code, original_message) = local_command_primary_diagnostic(message)
       let bytes = @utf8.encode(
-        local_command_diagnostic_text(
-          code,
-          original_message,
-          command_diagnostic_json.val,
-        ),
+        local_command_failure_text(message, command_diagnostic_json.val),
       )
       report_failure_ffi(bytes, bytes.length())
       true

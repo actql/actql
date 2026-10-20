@@ -165,3 +165,20 @@ test "A pending return cannot erase the typed primary and cleanup is a separate 
   assert_false(human.contains("\n"))
   local_command_diagnostic_reset()
 }
+
+///|
+test "Pre-Run presentation never reinterprets or truncates a legacy recovery carrier" {
+  local_command_diagnostic_reset()
+  let original = StringBuilder()
+  original.write_string("original Unknown metadata: ")
+  for _ in 0..<1000 {
+    original.write_string("run-ref/ACTQL_E_PARAMETER_INVALID/\"preserve\"\n")
+  }
+  let original = original.to_string()
+  for json in [false, true] {
+    assert_eq(
+      local_command_failure_text(original, json),
+      "actql-native-client: " + original,
+    )
+  }
+}
