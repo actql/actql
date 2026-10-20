@@ -16,6 +16,7 @@ priv struct NativeLocalReadFileDestination {
   mut writer_failure : @filesystem.NativeWriterOpenFailure?
   mut generation : @filesystem.NativeFileGeneration?
   mut primary : @filesystem.NativeFilesystemIssue?
+  mut write_attempted : Bool
   mut finish_attempted : Bool
   mut closing : Bool
   mut closed : Bool
@@ -43,6 +44,7 @@ fn local_read_file_destination(
     writer_failure: None,
     generation: None,
     primary: None,
+    write_attempted: false,
     finish_attempted: false,
     closing: false,
     closed: false,
@@ -216,6 +218,7 @@ fn NativeLocalReadFileDestination::append(
     return @result_access.SinkChunkFailed(0, 0)
   }
   let before = writer.written()
+  self.write_attempted = true
   match writer.append(bytes) {
     Ok(_) => @result_access.SinkChunkConfirmed
     Err(issue) => {
@@ -265,9 +268,10 @@ fn NativeLocalReadFileDestination::finish(
 }
 
 ///|
-// A failed output retains its actual names for inspection. This cleanup does
-// not delete a partial destination, resend bytes, retry a consumed descriptor
-// or certify a delivery receipt. Parent retirement follows the child's ACK.
+// A payload/finish attempt retains its actual names for inspection. Before
+// either attempt, the same empty private staging file can be cancelled through
+// its original Writer. Neither path resends bytes, retries a consumed FD or
+// certifies a delivery receipt. Parent retirement follows the child's ACK.
 fn NativeLocalReadFileDestination::close(
   self : NativeLocalReadFileDestination,
 ) -> Result[Unit, @filesystem.NativeFilesystemIssue] {
@@ -282,7 +286,12 @@ fn NativeLocalReadFileDestination::close(
     }
   }
   if self.writer is Some(writer) {
-    match writer.close_retaining_files() {
+    let closed = if self.write_attempted || self.finish_attempted {
+      writer.close_retaining_files()
+    } else {
+      writer.cancel()
+    }
+    match closed {
       Ok(_) => self.writer = None
       Err(issue) => return Err(issue)
     }
