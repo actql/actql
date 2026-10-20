@@ -78,13 +78,31 @@ It does not infer a key from values or treat physical enumeration as that witnes
 The latter strategy identifies the new Sort producer and retains the prior
 owned order only as a tie dependency, rather than copying the prior full order.
 
-Appending an actual missing identity term is semantic completion and still needs
-its proper normalization entry; it cannot receive this empty journal. Connecting
-that record remains implementation work, not a language restriction on Sort.
-Every term, resolution and covered key component consumes the existing audit
-budget. The complete pre-order catalogue, schema and fixture are retained, and
-preparations without Sort keep all seven preceding catalogue/journal identities.
-No new Host profile, wire version, permission or sorting evaluator is introduced.
+Appending an actual missing identity term is semantic completion and cannot
+receive this empty journal. The same bounded-relation catalogue has a revision
+with the frozen `sort.candidate_key_completion` rule. A separate nominal
+inventory retains each actual original operation and `SortOrder`, the decoded
+Program path, its authored Sort array and its completed canonical array. The
+legacy completion-free inventory continues to refuse those occurrences.
+
+The existing preparation issuer selects that inventory directly from the
+original precomputed audit. It emits the existing four-field entries, ordered
+by original path, under the corresponding catalogue CID. The original authored
+terms retain their priority, direction and null placement; only the actual
+missing selected-key fields are appended ascending with nulls last. Saved
+journal restoration still requires the exact retained preparation and issued
+bytes. Equal bodies, copied preparations and an empty journal cannot substitute
+for the original occurrence.
+
+Every term, resolution, covered key component, emitted text and path comparison
+consumes the existing audit budget. The existing journal limits of 1,024 bytes,
+32 nodes and depth 8 remain bounded implementation limits; a larger journal
+refuses atomically without truncation or an empty-evidence fallback. This does
+not impose a language restriction on Sort or claim complete Sort coverage.
+The complete pre-completion catalogue, schema and fixture are retained. A Sort
+without actual appended terms keeps that prior identity; preparations without
+Sort retain all seven earlier catalogue/journal identities. No new Host profile,
+wire version, permission or sorting evaluator is introduced.
 
 SQL/Pipe CASE without ELSE keeps that field absent in the Common form. The
 original parsed source distinguishes its synthetic END-anchored NULL from an

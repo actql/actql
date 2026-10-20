@@ -10,7 +10,14 @@ fn local_take_normalization(
   owner : PreparedClientProgram,
 ) -> ClientLocalNormalization raise {
   let issued = issue_prepared_client_local_normalization(owner).unwrap()
-  assert_true(@checked.local_completion_free_inventory_uses_take(issued.audit))
+  assert_true(
+    @checked.local_completion_free_inventory_uses_take(
+      match issued.audit {
+        CompletionFree(value) => value
+        SortCompletion(_) => fail("completion-free original expected")
+      },
+    ),
+  )
   assert_eq(
     @publication.run_evidence_value_json(
       prepared_client_local_normalization_evidence(owner, issued).unwrap(),
