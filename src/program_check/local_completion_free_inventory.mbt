@@ -1,6 +1,6 @@
 ///|
 priv enum LocalCompletionFreeAudit {
-  Complete(Int, @parameters.BoundValues?)
+  Complete(Int, @parameters.BoundValues?, Bool)
   ProfileNotInstalled
   CompletionObserved
 }
@@ -12,6 +12,7 @@ struct LocalCompletionFreeInventory {
   owner : CheckedProgram
   audited_work : Int
   supplied_parameters : @parameters.BoundValues?
+  explicit_cast : Bool
 }
 
 ///|
@@ -78,6 +79,7 @@ fn audit_local_completion_free_units(
     }
     Some(values)
   }
+  let mut explicit_cast = false
   let sources : Array[(Int, Int)] = []
   let mut roots = 0
   for unit in units {
@@ -135,6 +137,7 @@ fn audit_local_completion_free_units(
               match @typing.node_form(expression, node).unwrap() {
                 ImplicitNull => return CompletionObserved
                 Expression("template", _) => return CompletionObserved
+                Expression("cast", _) => explicit_cast = true
                 Expression("$param", _) =>
                   if supplied_parameters is None {
                     return ProfileNotInstalled
@@ -170,7 +173,7 @@ fn audit_local_completion_free_units(
   if roots != 1 {
     return ProfileNotInstalled
   }
-  Complete(10000 - remaining, supplied_parameters)
+  Complete(10000 - remaining, supplied_parameters, explicit_cast)
 }
 
 ///|
@@ -181,8 +184,8 @@ pub fn local_program_completion_free_inventory(
     return Err(ProfileNotInstalled)
   }
   match owner.local_completion_free_audit {
-    Complete(work, supplied_parameters) =>
-      Ok({ owner, audited_work: work, supplied_parameters, })
+    Complete(work, supplied_parameters, explicit_cast) =>
+      Ok({ owner, audited_work: work, supplied_parameters, explicit_cast, })
     ProfileNotInstalled => Err(ProfileNotInstalled)
     CompletionObserved => Err(CompletionObserved)
   }
@@ -209,4 +212,12 @@ pub fn local_completion_free_inventory_parameters_supplied(
   inventory : LocalCompletionFreeInventory,
 ) -> Bool {
   inventory.supplied_parameters is Some(_)
+}
+
+///|
+/// Metadata from the original checked expression traversal, not caller input.
+pub fn local_completion_free_inventory_uses_explicit_cast(
+  inventory : LocalCompletionFreeInventory,
+) -> Bool {
+  inventory.explicit_cast
 }
