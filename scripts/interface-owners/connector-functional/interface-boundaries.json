@@ -7499,7 +7499,7 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "one original Run Ledger. The two Source reads and the generated managed DAG"
+                "anchor": "one original Run Ledger. The Source reads and the generated managed DAG"
               }
             ],
             "synchronization": [
@@ -8077,7 +8077,7 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "one original Run Ledger. The two Source reads and the generated managed DAG"
+                "anchor": "one original Run Ledger. The Source reads and the generated managed DAG"
               }
             ],
             "extension": [
