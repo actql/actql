@@ -278,7 +278,16 @@ export function installNodeContentRun({moon, core, registry, values, fragment, o
     }
     const prior = preparedKeyedRuns.get(preparedProgram);
     if (prior !== undefined) {
-      if (prior.plan !== plan || prior.request !== request) throw new TypeError('ForeignInstalledContentRun');
+      // requestOf may reproject the same checked immutable request value.
+      // This only selects an already retained preparation; it cannot issue
+      // another admission. The typed borrower still checks the original Run.
+      const scope = prior.request === request ? undefined : moon.clientRequestScopeCid(request);
+      if (prior.plan !== plan || prior.request !== request &&
+          (typeof scope !== 'string' || !/^sha256:[0-9a-f]{64}$/u.test(scope) ||
+            scope !== moon.clientRequestScopeCid(prior.request) ||
+            moon.clientRequestIntentCid(request) !== moon.clientRequestIntentCid(prior.request))) {
+        throw new TypeError('ForeignInstalledContentRun');
+      }
       if (prior.failure !== undefined) throw prior.failure;
       return;
     }

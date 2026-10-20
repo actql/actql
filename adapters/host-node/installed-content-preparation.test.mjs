@@ -8,13 +8,16 @@ function fixture(keyed = false) {
     serializationGraph: Object.freeze({task: 0, step: 1}), runDefinition: Object.freeze({})});
   let currentFailure, constructionFailure, ledgerCount = 0, acquisitions = 0, quotes = 0;
   let currentCalls = 0, failAt;
-  const request = {}, ledger = {}, direct = {}, acquisition = {}, capacity = {};
+  const request = {scope: 'sha256:' + 'a'.repeat(64), intent: 'sha256:' + 'b'.repeat(64)},
+    ledger = {}, direct = {}, acquisition = {}, capacity = {};
   let retainedRecipe, keyedPreparations = 0, keyedBorrows = 0, keyedFailure;
   const current = () => {
     currentCalls++;
     if (currentFailure !== undefined && (failAt === undefined || currentCalls === failAt)) throw currentFailure;
   };
   const run = installNodeContentRun({moon: {
+    clientRequestScopeCid: value => value.scope,
+    clientRequestIntentCid: value => value.intent,
     clientProgramAcquisitionCount(value) {assert.strictEqual(value, preparedProgram); return acquisitions;},
     clientProgramAcquisitionLedger(attempts, holdings, transfer, retained, execution, planning) {
       assert.deepEqual([attempts, holdings, transfer, retained, execution, planning], [1, 0, 0n, 13n, 19n, 0]);
@@ -67,6 +70,16 @@ test('ordinary keyed Content borrows its admitted original Run without a standal
   assert.throws(() => f.run.prepareManagedKeyedRun({...f, request: {}}), {message: 'ForeignInstalledContentRun'});
   assert.throws(() => f.run.prepareKeyedLedger({...f, plan: {...f.plan}, capturedContent: true}),
     {message: 'InstalledContentRunPreparationUnavailable'});
+});
+
+test('ordinary keyed Content reuses a checked request projection without reissuing the original', () => {
+  const f = fixture(true);
+  f.run.prepareManagedKeyedRun(f);
+  f.run.prepareManagedKeyedRun({...f, request: {...f.request}});
+  assert.deepEqual(f.keyedCounts(), {keyedPreparations: 1, keyedBorrows: 0});
+  assert.throws(() => f.run.prepareManagedKeyedRun({...f,
+    request: {...f.request, intent: 'sha256:' + 'c'.repeat(64)}}), {message: 'ForeignInstalledContentRun'});
+  assert.deepEqual(f.counts(), {ledgerCount: 0, quotes: 1});
 });
 
 test('ordinary keyed Content never obtains a scalar fallback before its actual preparation', () => {
