@@ -28,15 +28,30 @@ export function createMockFileTarget({dataPath, maxBytes, assertCurrent,
   }
   const physical = Object.freeze(Object.fromEntries(
     ['open', 'lstat', 'unlink', 'rename'].map(name => [name, io[name].bind(io)])));
-  const children = new Set();
+  const children = new Set(), childOriginals = new WeakMap(), runScopes = new WeakMap();
   let closing = false, closeFlight;
+  function scope(original) {
+    if (original === null || typeof original !== 'object') fail('InvalidMockFileRunOriginal');
+    let retained = runScopes.get(original);
+    if (retained === undefined) {
+      retained = {closing: false, flight: undefined};
+      runScopes.set(original, retained);
+    }
+    return retained;
+  }
   function current(signal) {
     if (closing) fail('MockFileTargetClosing');
     signal?.throwIfAborted();
     synchronous(assertCurrent());
   }
-  function makeChild(perform, signal, checkCurrent) {
-    const childCurrent = () => {current(signal); synchronous(checkCurrent?.());};
+  function makeChild(perform, signal, checkCurrent, runOriginal) {
+    const retained = runOriginal === undefined ? undefined : scope(runOriginal);
+    const childCurrent = () => {
+      current(signal);
+      if (retained?.closing) fail('MockFileRunClosing');
+      synchronous(checkCurrent?.());
+    };
+    if (retained?.closing) fail('MockFileRunClosing');
     const slots = [];
     let flight, cleanupFlight, released = false, stopping = false;
     let firstFailure, latestFailure, failureSeen = false;
@@ -155,9 +170,10 @@ export function createMockFileTarget({dataPath, maxBytes, assertCurrent,
         return flight;
       }});
     children.add(child);
+    if (runOriginal !== undefined) childOriginals.set(child, runOriginal);
     return child;
   }
-  function readChild({authorize, consume, signal, assertCurrent: checkCurrent}) {
+  function readChild({authorize, consume, signal, assertCurrent: checkCurrent, runOriginal}) {
     if (typeof authorize !== 'function' || typeof consume !== 'function' ||
         (checkCurrent !== undefined && typeof checkCurrent !== 'function')) fail('InvalidMockFileRead');
     current(signal);
@@ -172,9 +188,9 @@ export function createMockFileTarget({dataPath, maxBytes, assertCurrent,
       if (value instanceof Promise) fail('InvalidMockTargetProjection');
       current();
       return value;
-    }, signal, checkCurrent);
+    }, signal, checkCurrent, runOriginal);
   }
-  function updateChild({authorize, replace, signal, assertCurrent: checkCurrent}) {
+  function updateChild({authorize, replace, signal, assertCurrent: checkCurrent, runOriginal}) {
     if (typeof authorize !== 'function' || typeof replace !== 'function' ||
         (checkCurrent !== undefined && typeof checkCurrent !== 'function')) fail('InvalidMockFileUpdate');
     current(signal);
@@ -216,11 +232,31 @@ export function createMockFileTarget({dataPath, maxBytes, assertCurrent,
       await call(directory, 'sync');
       current();
       return Object.freeze({bytes: output.length});
-    }, signal, checkCurrent);
+    }, signal, checkCurrent, runOriginal);
   }
   const status = () => Object.freeze({pending: children.size !== 0,
     children: children.size, closing});
-  return Object.freeze({readChild, updateChild, status,
+  const statusFor = original => {
+    const retained = scope(original);
+    const count = [...children].filter(child => childOriginals.get(child) === original).length;
+    return Object.freeze({pending: count !== 0, children: count, closing: retained.closing});
+  };
+  function closeFor(original) {
+    const retained = scope(original);
+    retained.closing = true;
+    if (retained.flight !== undefined) return retained.flight;
+    retained.flight = (async () => {
+      // A Run cannot acknowledge, stop or retire another Run's actual children.
+      for (const child of [...children]) {
+        if (childOriginals.get(child) === original) await child.release();
+      }
+      const observed = statusFor(original);
+      if (observed.pending) fail('MockFileCleanupPending');
+      return observed;
+    })().finally(() => {retained.flight = undefined;});
+    return retained.flight;
+  }
+  return Object.freeze({readChild, updateChild, status, statusFor, closeFor,
     close() {
       closing = true;
       if (closeFlight !== undefined) return closeFlight;

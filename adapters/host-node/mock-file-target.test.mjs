@@ -251,3 +251,91 @@ test('Mock current fences cannot be replaced by Boolean or asynchronous success'
   assert.equal(opens, 0);
   await f.finish();
 });
+
+test('Mock file Run close retires only its original children and keeps a sibling usable', async () => {
+  const f = await fixture();
+  // These are explicit scope identities for this physical-owner test, not
+  // admitted Common Run handles, an Account decision or resource issuers.
+  const firstRun = Object.freeze({}), secondRun = Object.freeze({});
+  const makeRead = runOriginal => f.target.readChild({runOriginal,
+    authorize() {}, consume: bytes => bytes.toString('utf8')});
+  const first = makeRead(firstRun), second = makeRead(secondRun);
+  assert.equal(await first.prepare(), original);
+  assert.equal(await second.prepare(), original);
+  assert.equal(f.target.status().children, 2);
+  assert.equal((await f.target.closeFor(firstRun)).pending, false);
+  assert.equal(first.status().pending, false);
+  assert.equal(second.status().pending, true);
+  assert.equal(f.target.statusFor(firstRun).children, 0);
+  assert.equal(f.target.statusFor(secondRun).children, 1);
+  assert.equal(f.target.status().closing, false);
+  assert.throws(() => makeRead(firstRun), {code: 'MockFileRunClosing'});
+  const later = makeRead(secondRun);
+  assert.equal(await later.prepare(), original);
+  assert.equal((await later.release()).pending, false);
+  assert.equal((await f.target.closeFor(secondRun)).pending, false);
+  await f.finish();
+});
+
+test('Mock per-Run pending original close is independent and survives current loss', async () => {
+  let held, closes = 0, replacements = 0, current = true;
+  const f = await fixture({assertCurrent() {
+    if (!current) throw new Error('OriginalHostNoLongerCurrent');
+  }, io: {...io, async open(...args) {
+    const file = await open(...args);
+    if (held === undefined) {
+      held = file;
+      const close = file.close;
+      file.close = async function () {
+        if (++closes === 1) return false;
+        return Reflect.apply(close, this, []);
+      };
+    }
+    return file;
+  }}});
+  const firstRun = Object.freeze({}), secondRun = Object.freeze({});
+  const makeRead = runOriginal => f.target.readChild({runOriginal,
+    authorize() {}, consume: bytes => bytes.toString('utf8')});
+  const first = makeRead(firstRun), second = makeRead(secondRun);
+  await first.prepare(); await second.prepare();
+  held.close = () => {replacements++; assert.fail('ReplacementIsNotOriginalAck');};
+  current = false;
+  await assert.rejects(f.target.closeFor(firstRun), {code: 'MockFileCleanupPending'});
+  assert.equal(f.target.statusFor(firstRun).pending, true);
+  assert.equal(f.target.statusFor(secondRun).pending, true);
+  assert.equal((await f.target.closeFor(secondRun)).pending, false);
+  assert.equal(first.status().pending, true);
+  assert.equal((await f.target.closeFor(firstRun)).pending, false);
+  assert.equal(closes, 2); assert.equal(replacements, 0);
+  await f.finish();
+});
+
+test('Mock Run close waits for the original late FD acquisition before its physical ACK', async () => {
+  let start, release, closes = 0;
+  const started = new Promise(resolve => {start = resolve;});
+  const paused = new Promise(resolve => {release = resolve;});
+  const f = await fixture({io: {...io, async open(...args) {
+    const file = await open(...args), close = file.close;
+    file.close = function () {closes++; return Reflect.apply(close, this, []);};
+    start(); await paused;
+    return file;
+  }}});
+  const runOriginal = Object.freeze({});
+  const child = f.target.readChild({runOriginal, authorize() {},
+    consume() {assert.fail('NoReadAfterRunClose');}});
+  const prepared = child.prepare();
+  // Observe the original rejection before allowing close to finish.
+  const refused = assert.rejects(prepared, {code: 'MockFileRunClosing'});
+  await started;
+  const closing = f.target.closeFor(runOriginal);
+  assert.equal(f.target.closeFor(runOriginal), closing);
+  await Promise.resolve();
+  assert.equal(f.target.statusFor(runOriginal).pending, true);
+  assert.equal(closes, 0);
+  release();
+  await refused;
+  assert.equal((await closing).pending, false);
+  assert.equal(child.status().pending, false);
+  assert.equal(closes, 1);
+  await f.finish();
+});
