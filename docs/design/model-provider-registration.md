@@ -508,6 +508,10 @@ Scope before either Source creates a child. Both captures, the Local DAG and
 the no-I/O Mock component borrow this one Run Ledger. Local remains the task
 scheduler; the component does not invent an asynchronous Provider or egress
 notification merely to enter a physical-provider path.
+The continuation recognizes this no-I/O preparation through the same live
+Core Mock installation and its retained Provider, not a Host flag or Provider
+name alone. External Providers retain their existing egress requirement;
+current Account, Entry and Run authorization is required on both paths.
 
 The read descriptor is issued later, synchronously when Local passes the
 actual prefix inputs to the Model component. Its snapshot must include the
@@ -532,6 +536,10 @@ The Model child settles its read only after its own cleanup; the Run's final
 census/bootstrap retirement also waits for the other children. Closing one
 Source, dropping a JavaScript reference or retiring that read cannot acknowledge
 its sibling or the whole Run.
+After the Model owner confirms its original cleanup, the parent drops its
+read alias instead of stopping or settling that spent descriptor again. A
+never-consumed read still follows its original preparation cleanup path;
+pending or failed Model cleanup cannot produce the completed observation.
 
 The existing Model Owner admits the selected `task`/`answers` document against
 the same original public Task declaration's output Contract. `default` and

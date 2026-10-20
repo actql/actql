@@ -22,6 +22,7 @@ function fixture({afterFactoryFailure,readFailure}={}){
   const calls=[],prepared={},request={},compiled={},runDefinition={},graph={},occurrence={};
   const records=new Map(),original={},admission={},value={},scope={},read={};
   const sources=[],closedSources=new Set(),sourceReady=[true,true],sourceCloseCalls=[0,0];
+  const reclaimedReads=new WeakSet();
   let issued=false;
   const current=()=>{calls.push('current');if(issued&&afterFactoryFailure)throw afterFactoryFailure;};
   const fail=code=>{throw Object.assign(new Error(code),{code});};
@@ -46,16 +47,23 @@ function fixture({afterFactoryFailure,readFailure}={}){
     assert.strictEqual(c,compiled);assert.strictEqual(d,runDefinition);
     assert.strictEqual(g,graph);assert.strictEqual(s,scope);calls.push('read');
     if(readFailure)throw readFailure;return read;
-  },stopCheckedClientInferOriginalReadPreparation(){calls.push('stop-read');},
-  settleCheckedClientInferOriginalReadPreparation(){calls.push('settle-read');},
+  },stopCheckedClientInferOriginalReadPreparation(){
+    if(reclaimedReads.has(read))throw new Error('SpentClaim');
+    calls.push('stop-read');
+  },
+  settleCheckedClientInferOriginalReadPreparation(){
+    if(reclaimedReads.has(read))throw new Error('SpentClaim');
+    calls.push('settle-read');
+  },
   finishCheckedClientInferOriginalReadScope(){calls.push('finish-scope');return true;}};
-  const api=new Function('current','records','fail','checked','sourceManaged','moon','runtimeField','sources','closedSources',
+  const api=new Function('current','records','fail','checked','sourceManaged','moon','runtimeField','sources','closedSources','inferOriginalReadCleanupComplete',
     'let closing=false;'+slices+';return {prepareManagedMockModelRun,modelPreparation,close,closeSource};')(
-      current,records,fail,checked,sourceManaged,moon,(value,index)=>value[index],sources,closedSources);
+      current,records,fail,checked,sourceManaged,moon,(value,index)=>value[index],sources,closedSources,
+      value=>reclaimedReads.has(value));
   sources.push(...[0,1].map(index=>({close:()=>api.closeSource(index)})));
   const plan={compiled,runDefinition},selection={graph,occurrence};
   return{...api,calls,records,prepared,request,plan,selection,control,original,admission,value,scope,
-    sourceReady,sourceCloseCalls,
+    sourceReady,sourceCloseCalls,originalReadReclaimed:()=>reclaimedReads.add(read),
     begin(){api.prepareManagedMockModelRun(prepared,request,control,plan,selection);},
     attachSources(){
       records.get(prepared).reads=[0,1].map(index=>({raw:{index},value:{index},closed:false,
@@ -133,4 +141,20 @@ test('Mock close keeps both originals until Source and Model cleanup acknowledge
   await f.close();
   assert.deepEqual(f.sourceCloseCalls,[2,1]);
   assert.equal(f.calls.filter(call=>call==='retire-parent').length,1);
+});
+
+test('Mock retirement does not stop or settle the same read after its original consumer cleanup',async()=>{
+  const f=fixture();f.begin();f.attachSources();
+  const preparation=f.modelPreparation(f.prepared,f.plan);
+  preparation.retain();preparation.prepareRead();
+  // This explicit port models the fixed operation Owner's observation after
+  // its actual Core cleanup. It is not a public setter or a new physical ACK.
+  f.originalReadReclaimed();
+  assert.equal(await preparation.retire(),true);
+  assert.equal(f.calls.includes('stop-read'),false);
+  assert.equal(f.calls.includes('settle-read'),false);
+  assert.equal(f.calls.filter(value=>value==='finish-scope').length,1);
+  assert.equal(f.calls.filter(value=>value==='retire-parent').length,1);
+  await f.close();
+  assert.deepEqual(f.sourceCloseCalls,[1,1]);
 });

@@ -8,6 +8,7 @@ import {createInstalledRowSource, rowSourceCheckEnvironment} from './installed-r
 import {composeInstalledCheckEnvironment} from './installed-check-environment.mjs';
 import {contentCid} from './local-account-config.mjs';
 import {retainInstalledHostInitializationFailure} from './installed-host-cleanup.mjs';
+import {inferOriginalReadCleanupComplete} from './infer-operation.mjs';
 
 const fail = code => {throw Object.assign(new Error(code), {code});};
 const mockRealization = 'installed-multi-acquired';
@@ -244,6 +245,12 @@ export async function installPreparedProjectMockSources({moon, mockPreparation,
   }
   function retireModelRead(model) {
     if (model.read === undefined) return;
+    if (inferOriginalReadCleanupComplete(model.read)) {
+      // The same operation already received Core's successful cleanup. Drop
+      // only this alias; a second settlement would spend the original twice.
+      model.read = undefined;
+      return;
+    }
     model.control.stopCheckedClientInferOriginalReadPreparation(model.compiled,
       model.runDefinition, model.graph, model.scope, model.read);
     model.control.settleCheckedClientInferOriginalReadPreparation(model.compiled,
