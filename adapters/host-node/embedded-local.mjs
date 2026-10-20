@@ -69,6 +69,8 @@ import {prepareInstalledProjectMock, installPreparedProjectMockSources, installe
   from './installed-project-mock.mjs';
 import {prepareInstalledProjectLocalFiles, installPreparedProjectLocalFiles, LOCAL_FILES_DEFAULT_LIMITS}
   from '../connectors/local/host/installed-project-files.mjs';
+import {installPreparedProjectLocalFileEffects}
+  from '../connectors/local/host/installed-project-file-effects.mjs';
 import {installPreparedProjectMockEffects, observeInstalledMockEffectResources}
   from './installed-mock-row-effect.mjs';
 import {installedRuntimeBundleCid} from './source-profile-json.mjs';
@@ -715,6 +717,8 @@ async function openInstalledHost(originalInstallation, preparation) {
   let mockEffectObservationMethods;
   const mockEffectRuns = new Map();
   let mockEffectOriginals = new WeakMap();
+  const localFileEffectRuns = new Map();
+  let localFileEffectOriginals = new WeakMap();
   // Nominal association in this SAME Host, not a capacity pool or Run Owner.
   // A key is an actual Common-issued Scope; its value is retired only after
   // that Scope's original Common cleanup succeeds.
@@ -782,6 +786,10 @@ async function openInstalledHost(originalInstallation, preparation) {
     // references, not another physical ACK or a Source/Model capacity credit.
     mockEffectRuns.clear();
     mockEffectOriginals = new WeakMap();
+    // The installed Effect has already closed its actual read/write children.
+    // These remaining original Run associations are managed references only.
+    localFileEffectRuns.clear();
+    localFileEffectOriginals = new WeakMap();
     mockEffectObservation = mockEffectObservationMethods = undefined;
     localSigningMetadata?.retireMetadataView();
     localSigningMetadata = localCheckpointAnswer = undefined;
@@ -1007,6 +1015,60 @@ async function openInstalledHost(originalInstallation, preparation) {
       if (retained.limits === undefined) throw clientOperationError('InstalledMockEffectResourcesUnavailable');
       return retained.limits;
     },
+  });
+  function assertLocalFileEffectRunOriginal(original) {
+    assertProjectRuntime();
+    preparation.assertResultPublicationCurrent();
+    const retained = localFileEffectOriginals.get(original);
+    if (retained === undefined || localFileEffectRuns.get(retained.prepared) !== retained) {
+      throw clientOperationError('ForeignInstalledLocalFileEffectRun');
+    }
+    return retained;
+  }
+  const localFileEffectResources = Object.freeze({
+    bindRunOriginal(facts) {
+      assertProjectRuntime();
+      preparation.assertResultPublicationCurrent();
+      const actual = facts.recovered ?? facts;
+      const prepared = actual.prepared, allowed = actual.allowed, definition = actual.definition;
+      const identity = actual.requestIdentity ?? actual.identity;
+      if (prepared === undefined || allowed === undefined || definition === undefined || identity === undefined) {
+        throw clientOperationError('InstalledLocalFileEffectResourcesUnavailable');
+      }
+      const requestId = moon.clientRequestCallerId(identity);
+      const definitionCid = moon.strategyPublicationContractIdentity(definition);
+      const definitionWire = moon.strategyPublicationContractJson(definition);
+      const saved = journal.lookupOwnedDefinition({namespaceId, authorityScopeCid,
+        requestId, runDefinitionCid: definitionCid}, moon, control);
+      const evidence = saved?.runAdmissionEvidence;
+      if (moon.clientRequestAuthorityScopeCid(identity) !== authorityScopeCid ||
+          saved?.runDefinition?.identity !== definitionCid ||
+          saved.runDefinition.wire !== definitionWire ||
+          evidence?.prepared !== moon.strategyRunEvidenceJson(
+            moon.clientProgramAllowedEffectRunPrepared(allowed)) ||
+          evidence?.authorization !== moon.strategyRunEvidenceJson(
+            moon.clientProgramAllowedEffectRunAuthorization(allowed))) {
+        throw clientOperationError('ForeignInstalledLocalFileEffectRun');
+      }
+      // A validated saved Run may have new local handles after reopen. Common
+      // checks their nominal prepared/allowed/definition relationship; matching
+      // strings alone cannot bind a copied handle or issue another Run/Ledger.
+      const checkedRun = checked(moon.clientProgramBindCompiledEffectRun(prepared, allowed, definition));
+      let retained = localFileEffectRuns.get(prepared);
+      if (retained === undefined) {
+        if (localFileEffectRuns.size === 4096) throw clientOperationError('InstalledLocalFileEffectRunLimit');
+        retained = {prepared, checkedRun, requestId, definitionWire,
+          original: Object.freeze({}), limits: preparation.localFilesEffectLimits(moon)};
+        localFileEffectRuns.set(prepared, retained);
+        localFileEffectOriginals.set(retained.original, retained);
+      } else if (retained.requestId !== requestId || retained.definitionWire !== definitionWire) {
+        throw clientOperationError('ForeignInstalledLocalFileEffectRun');
+      } else retained.checkedRun = checkedRun;
+      assertLocalFileEffectRunOriginal(retained.original);
+      return retained.original;
+    },
+    assertCurrent(original) {assertLocalFileEffectRunOriginal(original);},
+    limits(original) {return assertLocalFileEffectRunOriginal(original).limits;},
   });
   function selectedInstalledEffect({prepared, compilation, updateTargetSelections}) {
     const selections = updateTargetSelections ?? updateTargetOriginals?.selectionsOf(prepared);
@@ -5015,6 +5077,35 @@ export async function connectEmbeddedLocal(options, initialEntry) {
       assertSourceManagedInstallationCurrent(sourceManaged, originals);
       return installPreparedProjectLocalFiles({moon, preparation: projectSourcePreparation,
         sourceManaged, baseEnvironmentWire, authorizationFor, nativeFilesystem: localProjectFilesystem()});
+    },
+    localFilesEffectLimits(runtime) {
+      if (runtime !== moon || projectSourcePreparation === undefined || mockPreparation !== undefined) {
+        throw clientOperationError('ForeignInstalledProjectSourcePreparation');
+      }
+      assertSourceManagedInstallationCurrent(sourceManaged, originals);
+      const bundle = projectSourcePreparation.originalsForRuntime(moon);
+      // These supported request ceilings are derived from the retained Local
+      // installation and existing Effect limits, not physical backing or Allow.
+      // Each connector still enforces its own original entry's file ceiling.
+      let maxFileBytes = 0;
+      for (const entry of bundle.sources) maxFileBytes = Math.max(maxFileBytes, entry.limits.maxFileBytes);
+      return Object.freeze({maxFileBytes,
+        maxRows: 100, maxRequestBytes: 100000, maxResponseBytes: 65536, maxEffects: 16});
+    },
+    async installProjectEffects(runtime, baseEnvironmentWire, authorizationFor, principalId,
+      effectResources, sourceBindings) {
+      if (runtime !== moon || projectSourcePreparation === undefined || mockPreparation !== undefined) {
+        throw clientOperationError('ForeignInstalledProjectSourcePreparation');
+      }
+      assertSourceManagedInstallationCurrent(sourceManaged, originals);
+      const nativeFilesystem = localProjectFilesystem();
+      const runtimeBundleCid = await installedRuntimeBundleCid(runtimeUrl);
+      assertSourceManagedInstallationCurrent(sourceManaged, originals);
+      return installPreparedProjectLocalFileEffects({moon, preparation: projectSourcePreparation,
+        sourceManaged, baseEnvironmentWire, authorizationFor, principalId, sourceBindings,
+        runtimeBundleCid, ledgerRoot: join(originalInstallation.root, 'state', 'effects', 'ledger'),
+        nativeFilesystem, effectResources,
+        assertCurrent: () => assertSourceManagedInstallationCurrent(sourceManaged, originals)});
     },
     installMockSources(runtime, baseEnvironmentWire, authorizationFor) {
       if (runtime !== moon || mockPreparation === undefined) {
