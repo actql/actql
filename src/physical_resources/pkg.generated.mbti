@@ -74,6 +74,8 @@ pub fn[P, C] check_backed_execution_delegation_current(BackedExecutionRegion[P, 
 
 pub fn check_imported_original_child_ledger(ImportedChildLedger, Ledger) -> Result[Unit, ImportedChildLedgerIssue]
 
+pub fn[P] check_node_local_content_run_preparation(NodeManagedRunAdmission[P], P) -> Result[Unit, ImportedChildLedgerIssue]
+
 pub fn[P] check_node_local_mock_model_run_preparation(NodeManagedRunAdmission[P], P) -> Result[Unit, ImportedChildLedgerIssue]
 
 pub fn[P] check_node_managed_run_admission(NodeManagedRunAdmission[P], Ledger) -> Result[Unit, ImportedChildLedgerIssue]
@@ -237,6 +239,8 @@ pub fn[T] park_original_resource_consumer_for_state_write(FundedReadConsumer[T],
 pub fn[P, C, R] prepare_backed_original_child_ledger(BackedExecutionLiveProjection[P, C, R], R) -> Result[ImportedChildLedger, ImportedChildLedgerIssue]
 
 pub fn prepare_imported_child_ledger(Int64) -> Result[ImportedChildLedger, ImportedChildLedgerIssue]
+
+pub fn[P] prepare_node_local_content_run_admission(OriginalNodeManagedRunReference, P) -> Result[NodeManagedRunAdmission[P], ImportedChildLedgerIssue]
 
 pub fn[P] prepare_node_local_mock_model_run_admission(OriginalNodeManagedRunReference, P) -> Result[NodeManagedRunAdmission[P], ImportedChildLedgerIssue]
 

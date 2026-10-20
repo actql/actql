@@ -958,7 +958,7 @@ export async function createInstalledRowSource({moon, declaration,
   listingReportCapacity, prepareAcquisition, directReadIdentity,
   prepareRead, grantBeforeBegin = false, originalSourceAccess, providerReader,
   prepareSourceRead, prepareKeyedSourceRead, closeKeyedSourceRead,
-  readAsset, originalPageLimits}) {
+  originalKeyedTransport, readAsset, originalPageLimits}) {
   // Trusted installation compatibility only: preserve an existing provider
   // identity and ordering while this one Owner retains preparation, current
   // authorization, RowRun, capture and failure cleanup. No wire selects this
@@ -1066,6 +1066,24 @@ export async function createInstalledRowSource({moon, declaration,
     fail('InvalidInstalledRowSourceLimits');
   }
   const maxTransferBytes = BigInt(limits.maxPages) * BigInt(limits.maxPageBytes);
+  let keyedTransferBytes = maxTransferBytes, keyedExecutionBytes = BigInt(limits.maxPageBytes);
+  if (originalKeyedTransport !== undefined) {
+    // Fixed installing Source limits, not a public packet, grant or Resource
+    // original. Actual same-Run admission must cover this complete transport
+    // workspace, including collected native bytes beside encoding/capture.
+    if (prepareKeyedSourceRead === undefined || originalKeyedTransport === null ||
+        typeof originalKeyedTransport !== 'object' || nodeTypes.isProxy(originalKeyedTransport)) {
+      fail('InvalidInstalledKeyedTransportLimits');
+    }
+    const fields = Object.getOwnPropertyDescriptors(originalKeyedTransport);
+    if (Reflect.ownKeys(fields).length !== 2 || ['transferBytes', 'executionBytes'].some(name =>
+      !Object.hasOwn(fields[name] ?? {}, 'value') || typeof fields[name].value !== 'bigint' ||
+      fields[name].value < 0n || fields[name].value > 9223372036854775807n)) {
+      fail('InvalidInstalledKeyedTransportLimits');
+    }
+    keyedTransferBytes = fields.transferBytes.value;
+    keyedExecutionBytes = fields.executionBytes.value;
+  }
   // A plural Source can expose separately registered metadata/content reads.
   // Copy its closed Resource->operation binding once; a Run's selected view
   // cannot substitute another operation or inherit a missing view's grant.
@@ -1481,8 +1499,8 @@ export async function createInstalledRowSource({moon, declaration,
       }
       const nonce = randomUUID();
       session = startInstalledRowRun({moon, acquisition, nonce, ledger,
-        keyed: true, originalKeyedRead, capacity: {transferBytes: maxTransferBytes,
-          executionBytes: BigInt(limits.maxPageBytes)}});
+        keyed: true, originalKeyedRead, capacity: {transferBytes: keyedTransferBytes,
+          executionBytes: keyedExecutionBytes}});
       const {run} = session;
       // Encode only under the common acquisition's workspace reservation.
       const requestWire = checked(
@@ -2083,8 +2101,8 @@ export async function createInstalledRowSource({moon, declaration,
       }
       const capacity = checked(moon.clientProgramKeyedRowPrepareCapacity(keyedAcquisition,
         declaration, limits.maxPageBytes, limits.maxPageBytes, maxWork));
-      return Object.freeze({capacity, transferBytes: maxTransferBytes,
-        executionBytes: BigInt(limits.maxPageBytes), maxBytes: limits.maxPageBytes, maxWork});
+      return Object.freeze({capacity, transferBytes: keyedTransferBytes,
+        executionBytes: keyedExecutionBytes, maxBytes: limits.maxPageBytes, maxWork});
     },
     prepare, prepareKeyed, verifyKeyedRead, keyedRecoveryBinding, open, openCapture, openKeyed, openKeyedLookup,
     close: () => site.close(),

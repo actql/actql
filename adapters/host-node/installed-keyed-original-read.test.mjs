@@ -6,9 +6,11 @@ import {AcquisitionOpenError} from '../host-common/acquisition-outcome.mjs';
 // Explicit Core/physical ports exercise the actual installed adapter. They do
 // not supply a nominal Common admission or qualify an installed filesystem Run.
 const ok = value => ({$tag: 1, _0: value});
-async function fixture({failCurrent = false, failReader = false} = {}) {
+async function fixture({failCurrent = false, failReader = false, transport} = {}) {
   const preparedProgram = {}, keyedAcquisition = {}, request = {}, declaration = {}, ledger = {};
   const original = {}, acquisition = {}, run = {}, capture = {}, calls = [];
+  const expectedTransfer = Object.getOwnPropertyDescriptor(transport ?? {}, 'transferBytes')?.value ?? 2048n;
+  const expectedExecution = Object.getOwnPropertyDescriptor(transport ?? {}, 'executionBytes')?.value ?? 1024n;
   const currentFailure = new Error('original-current'), readerFailure = new Error('original-reader');
   let pendingTicket, cleanupConfirmed, physicalAcknowledged = !failReader, finished = false;
   const physicalRecovery = Object.freeze({close() {calls.push('physical-stop');},
@@ -35,6 +37,8 @@ async function fixture({failCurrent = false, failReader = false} = {}) {
     },
     clientProgramInstalledKeyedSourceReadStartRows(value, selected, nonce, stopped, transfer, execution, confirmed) {
       assert.strictEqual(value, original); assert.strictEqual(selected, acquisition);
+      assert.equal(transfer, expectedTransfer);
+      assert.equal(execution, expectedExecution);
       cleanupConfirmed = confirmed; calls.push('start'); return ok(run);
     },
     clientProgramInstalledKeyedSourceReadRetire(value) {assert.strictEqual(value, original); calls.push('retire'); return ok(undefined);},
@@ -78,6 +82,7 @@ async function fixture({failCurrent = false, failReader = false} = {}) {
     authorization: {authorize: async () => ({action: 'dispatch'}), context: {contextCid: 'context'}},
     physicalTarget: () => ({root: 'original'}),
     limits: {maxPages: 2, maxPageBytes: 1024, maxPageRows: 4, maxCaptureRows: 4},
+    originalKeyedTransport: transport,
     prepareKeyedSourceRead(args) {
       assert.strictEqual(args.checkedOwner, preparedProgram); assert.strictEqual(args.keyedAcquisition, keyedAcquisition);
       assert.strictEqual(args.request, request); assert.strictEqual(args.declaration, declaration);
@@ -99,8 +104,28 @@ async function fixture({failCurrent = false, failReader = false} = {}) {
   const selected = await adapter.prepareKeyed({preparedProgram, keyedAcquisition, requestIdentity: {}});
   return {calls, currentFailure, readerFailure, get finished() {return finished;},
     acknowledgePhysical() {physicalAcknowledged = true;},
+    capacity: () => adapter.keyedLedgerCapacity(keyedAcquisition),
     open: () => adapter.openKeyed({preparedProgram, keyedAcquisition, request, ledger, preparedKeyed: selected.prepared})};
 }
+
+test('installed keyed native transport keeps its full captured workspace beside page limits', async () => {
+  const transport = {transferBytes: 65536n, executionBytes: 131072n};
+  const f = await fixture({transport});
+  assert.equal(f.capacity().transferBytes, 65536n);
+  assert.equal(f.capacity().executionBytes, 131072n);
+  transport.transferBytes = 1n; transport.executionBytes = 1n;
+  const acquired = await f.open(); await acquired.close();
+  assert.equal(f.capacity().executionBytes, 131072n);
+});
+
+test('installed keyed transport rejects accessor or out-of-range limits before acquisition', async () => {
+  let getters = 0;
+  await assert.rejects(fixture({transport: {get transferBytes() {getters++; return 1n;}, executionBytes: 1n}}),
+    {code: 'InvalidInstalledKeyedTransportLimits'});
+  await assert.rejects(fixture({transport: {transferBytes: 1n, executionBytes: 9223372036854775808n}}),
+    {code: 'InvalidInstalledKeyedTransportLimits'});
+  assert.equal(getters, 0);
+});
 
 test('installed keyed original drives its same RowRun and consumes native bytes before encoded rows', async () => {
   const f = await fixture(), acquired = await f.open();

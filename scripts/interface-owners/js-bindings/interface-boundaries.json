@@ -37414,7 +37414,7 @@
     {
       "module": "adapters/host-node/embedded-local.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "86467993cec8de3c681ec81bfddafc73176f9656b61a469f1c4703ce78e6d57a",
+      "sha256": "4a467eb2c6b987b97052a41070d789cea93889b8285f3221f2aae17be17c21ed",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -37444,6 +37444,7 @@
         "readInitialControlHostInput",
         "readInstalledMockPreparation",
         "readInstalledProjectSourcePreparation",
+        "readLocalContentRunRequirements",
         "readLocalMockModelRunRequirements",
         "readManagedComputeRunRequirements",
         "readSourceManagedEffectRunRequirements",
@@ -38994,6 +38995,27 @@
           "async": false
         },
         {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/runContent/runContent#2",
+          "parameters": [
+            "prepared",
+            "request",
+            "recipe"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/runContent/runContent#3",
+          "parameters": [
+            "prepared",
+            "request",
+            "recipe",
+            "direct",
+            "keyed",
+            "capacity"
+          ],
+          "async": false
+        },
+        {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/runIdOf/runIdOf",
           "parameters": [
             "accepted"
@@ -39742,6 +39764,29 @@
           "name": "readInstalledProjectSourcePreparation",
           "parameters": [
             "originals"
+          ],
+          "async": false
+        },
+        {
+          "name": "readLocalContentRunRequirements",
+          "parameters": [
+            "originals",
+            "prepared",
+            "selected"
+          ],
+          "async": false
+        },
+        {
+          "name": "readLocalContentRunRequirements/readLocalContentRunRequirements",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "readLocalContentRunRequirements/readLocalContentRunRequirements#2",
+          "parameters": [
+            "value"
           ],
           "async": false
         },
@@ -45486,6 +45531,80 @@
               {
                 "path": "adapters/host-node/acquired-effect-computation.test.mjs",
                 "anchor": "'a refused original admission is not a Source attempt'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/runContent/runContent#2",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/runContent/runContent#3",
+            "readLocalContentRunRequirements",
+            "readLocalContentRunRequirements/readLocalContentRunRequirements",
+            "readLocalContentRunRequirements/readLocalContentRunRequirements#2"
+          ],
+          "exports": [
+            "readLocalContentRunRequirements"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "For a selected Local keyed Content path, the ordinary Source installation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "export function readLocalContentRunRequirements(originals, prepared, selected) {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "checked(moon.clientProgramInstalledManagedKeyedContentCheckPreparation(selected, prepared));"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const early = earlyContentPlans.get(submission.preparedProgram);"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "runContent.prepareManagedKeyedRun({preparedProgram: submission.preparedProgram,"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "throw clientOperationError('InstalledContentRunPreparationUnavailable');"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "anchor": "export async function retainInstalledHostInitializationFailure"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_local_host/installed_managed_keyed_content.mbt",
+                "anchor": "pub fn installed_managed_keyed_content_requirements("
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "other unsupported backend shapes remain separate connections, not language"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-content-preparation.test.mjs",
+                "anchor": "test('ordinary keyed Content borrows its admitted original Run without a standalone Ledger'"
               }
             ]
           }
@@ -62396,7 +62515,7 @@
     {
       "module": "adapters/host-node/installed-row-run.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "ce595e0e2636206f43edc0502e96ac71eba35942fd8bd5d9518121034a57a036",
+      "sha256": "38dc09523834613feb0592739321187eb904676289f2214a4fe1e79471a4d560",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -62419,7 +62538,8 @@
             "ledger",
             "capacity",
             "keyed",
-            "originalRead"
+            "originalRead",
+            "originalKeyedRead"
           ],
           "async": false
         },
@@ -62565,9 +62685,7 @@
         },
         {
           "name": "startInstalledRowRun/run/run#4",
-          "parameters": [
-            "attempt"
-          ],
+          "parameters": [],
           "async": false
         },
         {
@@ -62592,6 +62710,20 @@
           "async": false
         },
         {
+          "name": "startInstalledRowRun/run/run#8",
+          "parameters": [
+            "attempt"
+          ],
+          "async": false
+        },
+        {
+          "name": "startInstalledRowRun/run/run#9",
+          "parameters": [
+            "attempt"
+          ],
+          "async": false
+        },
+        {
           "name": "startInstalledRowRun/startInstalledRowRun",
           "parameters": [
             "name"
@@ -62600,6 +62732,13 @@
         },
         {
           "name": "startInstalledRowRun/startInstalledRowRun#2",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "startInstalledRowRun/startInstalledRowRun#3",
           "parameters": [
             "name"
           ],
@@ -63165,6 +63304,76 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "startInstalledRowRun/run/run#8",
+            "startInstalledRowRun/run/run#9",
+            "startInstalledRowRun/startInstalledRowRun#3"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "For a selected Local keyed Content path, the ordinary Source installation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-row-run.mjs",
+                "anchor": "capacity, keyed = false, originalRead, originalKeyedRead}) {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-row-run.mjs",
+                "anchor": "checked(moon.clientProgramInstalledKeyedSourceReadCheckLedger(originalKeyedRead, ledger));"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-row-run.mjs",
+                "anchor": "moon.clientProgramInstalledKeyedSourceReadStartRows(originalKeyedRead, acquisition,"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-row-run.mjs",
+                "anchor": "if (!checked(moon.clientProgramRowSourceCaptureCleanup(run))) {"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-row-run.mjs",
+                "anchor": "fail('InstalledSourceCleanupPending');"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-row-run.mjs",
+                "anchor": "function closeAfterFailure(state, recovery) {"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_local_host/installed_managed_keyed_content.mbt",
+                "anchor": "pub fn start_installed_keyed_source_read_rows("
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "other unsupported backend shapes remain separate connections, not language"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-row-run.test.mjs",
+                "anchor": "test('keyed original enters only its same Run Ledger and retires after the original capture cleanup'"
+              }
+            ]
+          }
         }
       ],
       "imports": [
@@ -63178,7 +63387,7 @@
     {
       "module": "adapters/host-node/installed-row-source.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "c29afeba07184ab54eb096895eefde3fc7b5c49d30ed36580609d705f90a3b88",
+      "sha256": "c4df751b4beba307a3a97503ab7d847e1611e35a886b3cc0d21cac0994a9fa2d",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -63248,6 +63457,9 @@
             "originalSourceAccess",
             "providerReader",
             "prepareSourceRead",
+            "prepareKeyedSourceRead",
+            "closeKeyedSourceRead",
+            "originalKeyedTransport",
             "readAsset",
             "originalPageLimits"
           ],
@@ -63344,6 +63556,21 @@
         },
         {
           "name": "createInstalledRowSource/createInstalledRowSource#10",
+          "parameters": [
+            "resource",
+            "operation"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/createInstalledRowSource#11",
+          "parameters": [
+            "sourceRef"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/createInstalledRowSource#12",
           "parameters": [],
           "async": false
         },
@@ -63385,22 +63612,21 @@
         {
           "name": "createInstalledRowSource/createInstalledRowSource#7",
           "parameters": [
-            "key"
+            "name"
           ],
           "async": false
         },
         {
           "name": "createInstalledRowSource/createInstalledRowSource#8",
           "parameters": [
-            "resource",
-            "operation"
+            "key"
           ],
           "async": false
         },
         {
           "name": "createInstalledRowSource/createInstalledRowSource#9",
           "parameters": [
-            "sourceRef"
+            "name"
           ],
           "async": false
         },
@@ -63483,6 +63709,21 @@
           "async": true
         },
         {
+          "name": "createInstalledRowSource/openKeyed/cleanup/cleanup",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createInstalledRowSource/openKeyed/closeOriginal/closeOriginal",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createInstalledRowSource/openKeyed/init:close/init:close",
+          "parameters": [],
+          "async": true
+        },
+        {
           "name": "createInstalledRowSource/openKeyed/observedMs/observedMs",
           "parameters": [],
           "async": false
@@ -63494,6 +63735,23 @@
         },
         {
           "name": "createInstalledRowSource/openKeyed/openKeyed/expire/expire",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/openKeyed/openKeyed#10",
+          "parameters": [
+            "lookup"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/openKeyed/openKeyed#11",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/openKeyed/openKeyed#12",
           "parameters": [],
           "async": false
         },
@@ -63528,14 +63786,16 @@
         {
           "name": "createInstalledRowSource/openKeyed/openKeyed#6",
           "parameters": [
-            "rows",
             "charge"
           ],
           "async": false
         },
         {
           "name": "createInstalledRowSource/openKeyed/openKeyed#7",
-          "parameters": [],
+          "parameters": [
+            "rows",
+            "charge"
+          ],
           "async": false
         },
         {
@@ -63545,9 +63805,7 @@
         },
         {
           "name": "createInstalledRowSource/openKeyed/openKeyed#9",
-          "parameters": [
-            "lookup"
-          ],
+          "parameters": [],
           "async": false
         },
         {
@@ -66601,6 +66859,148 @@
               {
                 "path": "adapters/host-node/installed-source-read-row-run.test.mjs",
                 "anchor": "Source-only scope cannot replace a missing Run Ledger or rescue an unavailable typed consumer"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createInstalledRowSource/createInstalledRowSource#11",
+            "createInstalledRowSource/openKeyed/cleanup/cleanup",
+            "createInstalledRowSource/openKeyed/closeOriginal/closeOriginal",
+            "createInstalledRowSource/openKeyed/init:close/init:close",
+            "createInstalledRowSource/openKeyed/openKeyed#10",
+            "createInstalledRowSource/openKeyed/openKeyed#11",
+            "createInstalledRowSource/openKeyed/openKeyed#12"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "For a selected Local keyed Content path, the ordinary Source installation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "prepareSourceRead, prepareKeyedSourceRead, closeKeyedSourceRead,"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "checked(moon.clientProgramInstalledKeyedSourceReadCheckCurrent(originalKeyedRead));"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "originalKeyedRead = prepareKeyedSourceRead(Object.freeze({"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "consumeObservation: charge => checked(moon.clientProgramRowSourceConsumeObservationCharge(run, charge)),"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "const rowRecovery = state.recovery;"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "const closeOriginal = async () => {"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_local_host/installed_managed_keyed_content.mbt",
+                "anchor": "pub fn check_installed_keyed_source_read_ledger("
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "other unsupported backend shapes remain separate connections, not language"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-keyed-original-read.test.mjs",
+                "anchor": "test('installed keyed failure retains the same physical recovery before Core and parent retirement'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createInstalledRowSource/createInstalledRowSource#12"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "For a selected Local keyed Content path, the ordinary Source installation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "prepareSourceRead, prepareKeyedSourceRead, closeKeyedSourceRead,"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "checked(moon.clientProgramInstalledKeyedSourceReadCheckCurrent(originalKeyedRead));"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "originalKeyedRead = prepareKeyedSourceRead(Object.freeze({"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "consumeObservation: charge => checked(moon.clientProgramRowSourceConsumeObservationCharge(run, charge)),"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "const rowRecovery = state.recovery;"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "const closeOriginal = async () => {"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_local_host/installed_managed_keyed_content.mbt",
+                "anchor": "pub fn check_installed_keyed_source_read_ledger("
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "other unsupported backend shapes remain separate connections, not language"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-keyed-original-read.test.mjs",
+                "anchor": "test('installed keyed failure retains the same physical recovery before Core and parent retirement'"
               }
             ]
           }
@@ -125159,8 +125559,8 @@
   ],
   "counts": {
     "modules": 58,
-    "operations": 3588,
-    "exports": 568,
-    "explicitContractGroups": 791
+    "operations": 3604,
+    "exports": 569,
+    "explicitContractGroups": 795
   }
 }

@@ -49,6 +49,10 @@ pub fn begin_installed_effect_managed_run(@physical_resources.NodeManagedRunAdmi
 
 pub fn begin_installed_effect_mock_model_managed_run(@physical_resources.NodeManagedRunAdmission[@run_publication_host.PreparedClientEffectComputation], @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity, @run_publication_host.ClientCompiledRun, @run_publication_host.ClientEffectCompilation, @run_publication.PublicationContract, @run_publication_host.ClientInferPlanGraph, Int64, Int64, Int, Int, Int) -> Result[(ClientInstalledManagedRun, @run_publication_host.ClientModelReadScope), ClientInstalledManagedRunIssue]
 
+pub fn begin_installed_managed_keyed_content_run(@physical_resources.NodeManagedRunAdmission[@run_publication_host.PreparedClientProgram], @run_publication_host.PreparedClientProgram, @run_publication_host.ClientRequestIdentity, ClientInstalledManagedKeyedPreparation) -> Result[ClientInstalledManagedRun, ClientInstalledManagedRunIssue]
+
+pub fn begin_installed_managed_keyed_source_read(ClientInstalledManagedRun, @run_publication_host.ClientKeyedAcquisition, @run_publication_host.ClientKeyedRequest, @client_row_source_host.RowDeclaration) -> Result[ClientInstalledKeyedSourceRead, ClientInstalledSourceReadIssue]
+
 pub fn begin_installed_managed_run(@physical_resources.NodeManagedRunAdmission[@run_publication_host.PreparedClientProgram], @run_publication_host.PreparedClientProgram, @run_publication_host.ClientRequestIdentity) -> Result[ClientInstalledManagedRun, ClientInstalledManagedRunIssue]
 
 pub fn begin_installed_managed_run_source_read(ClientInstalledManagedRun, Int) -> Result[ClientInstalledSourceRead, ClientInstalledManagedRunIssue]
@@ -66,6 +70,12 @@ pub fn cancel_client_infer_input(ClientInferInputExecution) -> Bool
 pub fn cancel_client_serialization_prefix(ClientSerializationPrefix) -> Bool
 
 pub fn check_installed_effect_managed_run(ClientInstalledManagedRun, @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity) -> Result[Unit, ClientInstalledManagedRunIssue]
+
+pub fn check_installed_keyed_source_read_current(ClientInstalledKeyedSourceRead) -> Result[Unit, ClientInstalledSourceReadIssue]
+
+pub fn check_installed_keyed_source_read_ledger(ClientInstalledKeyedSourceRead, @physical_resources.Ledger) -> Result[Unit, ClientInstalledSourceReadIssue]
+
+pub fn check_installed_managed_keyed_content_preparation(ClientInstalledManagedKeyedPreparation, @run_publication_host.PreparedClientProgram) -> Result[Unit, ClientInstalledManagedRunIssue]
 
 pub fn check_installed_managed_run(ClientInstalledManagedRun, @run_publication_host.PreparedClientProgram, @run_publication_host.ClientRequestIdentity) -> Result[Unit, ClientInstalledManagedRunIssue]
 
@@ -191,7 +201,11 @@ pub fn installed_effect_managed_run_requirements(@run_publication_host.PreparedC
 
 pub fn installed_effect_mock_model_run_requirements(@run_publication_host.PreparedClientEffectComputation, Array[@client_row_source_host.RowDeclaration], String, String, Array[Int64], Array[Int64], String, String, String?, String?) -> Result[Array[Int64], ClientInstalledManagedRunIssue]
 
+pub fn installed_keyed_source_read_acquisition(ClientInstalledKeyedSourceRead) -> Result[@client_row_source_host.RowKeyedAcquisition, ClientInstalledSourceReadIssue]
+
 pub fn installed_listing_row_capture_capacity(@client_row_source_host.RowAcquisition, @execution_relation.ExecutionCapacity?) -> ClientInstalledCaptureCapacity?
+
+pub fn installed_managed_keyed_content_requirements(ClientInstalledManagedKeyedPreparation) -> Array[Int64]
 
 pub fn installed_managed_run_requirements(@run_publication_host.PreparedClientProgram, Array[@client_row_source_host.RowDeclaration], String, String, Array[Int64], Array[Int64], String, String, String?, String?) -> Result[Array[Int64], ClientInstalledManagedRunIssue]
 
@@ -281,6 +295,8 @@ pub fn prepare_effect_local_query_requirement_at_query_time(@run_publication_hos
 
 pub fn prepare_installed_effect_managed_run_ledger(ClientInstalledManagedRun, @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity, Array[ClientInstalledCaptureCapacity], Array[Int64], Array[Int64], String, String, String?, String?) -> Result[@physical_resources.Ledger, ClientInstalledManagedRunIssue]
 
+pub fn prepare_installed_managed_keyed_content(@run_publication_host.PreparedClientProgram, ClientInstalledCaptureCapacity, @run_publication_host.ClientKeyedAcquisition, @client_row_source_host.RowDeclaration, @client_row_source_host.RowKeyedLimits, Array[Int64], Array[Int64], Int, Int, String, String, String?, String?, Int, Int, Int64, Int64) -> Result[ClientInstalledManagedKeyedPreparation, ClientInstalledManagedRunIssue]
+
 pub fn prepare_installed_managed_run_ledger(ClientInstalledManagedRun, @run_publication_host.PreparedClientProgram, @run_publication_host.ClientRequestIdentity, Array[ClientInstalledCaptureCapacity], Array[Int64], Array[Int64], String, String, String?, String?) -> Result[@physical_resources.Ledger, ClientInstalledManagedRunIssue]
 
 pub fn prepare_keyed_captured_local_installed_ledger(@run_publication_host.PreparedClientProgram, ClientInstalledCaptureCapacity, @run_publication_host.ClientKeyedAcquisition, @client_row_source_host.RowKeyedCapacity, Array[Int64], Array[Int64], Int, Int, String, String, String?, String?, serialization? : (Int, Int, Int64, Int64)?, infer? : (Int, Int, Int64, Int64)?, captured_content? : Bool) -> @physical_resources.Ledger?
@@ -318,6 +334,8 @@ pub fn restore_accounted_client_source_capture(@query_planning.QueryRequirement,
 pub fn restore_client_source_capture(@query_planning.QueryRequirement, String, String, String, String, Array[String], () -> Bool, reference_issuer? : @value_admission.ReferenceIssuer) -> Result[ClientSourceCapture, ClientSourceCaptureIssue]
 
 pub fn retain_accounted_client_source_capture_task(ClientAccountedSourceCapture, @physical_strategy.CapturedDAG, Int) -> Result[Unit, ClientSourceCaptureIssue]
+
+pub fn retire_installed_keyed_source_read(ClientInstalledKeyedSourceRead) -> Result[Unit, ClientInstalledSourceReadIssue]
 
 pub fn retire_installed_managed_run(ClientInstalledManagedRun) -> Result[Unit, ClientInstalledManagedRunIssue]
 
@@ -378,6 +396,8 @@ pub fn start_client_restored_serialized_infer_input(@run_publication_host.Prepar
 pub fn start_client_serialization_prefix(@run_publication_host.PreparedClientProgram, Int, Int, String, String, String?, String?, @execution_relation.SequenceExecutionLimits, @execution_relation.FixedInputGuardMeasureLimits, @physical_resources.Ledger, workspace? : @execution_relation.ExecutionCapacity?) -> Result[ClientSerializationPrefix, ClientSerializationPrefixIssue]
 
 pub fn start_client_serialized_infer_input(@run_publication_host.ClientInferOccurrence, @execution_relation.GeneratedSequence, Int, @execution_relation.CompletedOutput, @execution_relation.SequenceExecutionLimits, @execution_relation.FixedInputGuardMeasureLimits, @execution_relation.InferPreparationLimits) -> Result[ClientInferInputExecution, ClientInferInputIssue]
+
+pub fn start_installed_keyed_source_read_rows(ClientInstalledKeyedSourceRead, @client_row_source_host.RowKeyedAcquisition, String, (@client_row_source_host.RowAttempt) -> Bool, Int64, Int64, (@client_row_source_host.RowAttempt) -> Bool) -> Result[@client_row_source_host.RowRun, ClientInstalledSourceReadIssue]
 
 pub fn start_installed_source_read_listing_rows(ClientInstalledSourceRead, @client_row_source_host.RowAcquisition, @execution_relation.ExecutionCapacity?, String, (@client_row_source_host.RowAttempt) -> Bool, Int64, Int64) -> Result[@client_row_source_host.RowRun, ClientInstalledSourceReadIssue]
 
@@ -451,6 +471,10 @@ pub(all) enum ClientInferRetainedInputIssue {
 }
 
 type ClientInstalledCaptureCapacity
+
+type ClientInstalledKeyedSourceRead
+
+type ClientInstalledManagedKeyedPreparation
 
 type ClientInstalledManagedRun
 

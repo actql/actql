@@ -4448,7 +4448,7 @@
     },
     {
       "module": "adapters/host-node/embedded-local.mjs",
-      "sha256": "86467993cec8de3c681ec81bfddafc73176f9656b61a469f1c4703ce78e6d57a",
+      "sha256": "4a467eb2c6b987b97052a41070d789cea93889b8285f3221f2aae17be17c21ed",
       "exports": [
         "admitOriginalHostRootFormat",
         "assertInitialControlHostPreparation",
@@ -4476,6 +4476,7 @@
         "readInitialControlHostInput",
         "readInstalledMockPreparation",
         "readInstalledProjectSourcePreparation",
+        "readLocalContentRunRequirements",
         "readLocalMockModelRunRequirements",
         "readManagedComputeRunRequirements",
         "readSourceManagedEffectRunRequirements",
@@ -6026,6 +6027,27 @@
           "async": false
         },
         {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/runContent/runContent#2",
+          "parameters": [
+            "prepared",
+            "request",
+            "recipe"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/runContent/runContent#3",
+          "parameters": [
+            "prepared",
+            "request",
+            "recipe",
+            "direct",
+            "keyed",
+            "capacity"
+          ],
+          "async": false
+        },
+        {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/runIdOf/runIdOf",
           "parameters": [
             "accepted"
@@ -6774,6 +6796,29 @@
           "name": "readInstalledProjectSourcePreparation",
           "parameters": [
             "originals"
+          ],
+          "async": false
+        },
+        {
+          "name": "readLocalContentRunRequirements",
+          "parameters": [
+            "originals",
+            "prepared",
+            "selected"
+          ],
+          "async": false
+        },
+        {
+          "name": "readLocalContentRunRequirements/readLocalContentRunRequirements",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "readLocalContentRunRequirements/readLocalContentRunRequirements#2",
+          "parameters": [
+            "value"
           ],
           "async": false
         },
@@ -9669,6 +9714,80 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/runContent/runContent#2",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/runContent/runContent#3",
+            "readLocalContentRunRequirements",
+            "readLocalContentRunRequirements/readLocalContentRunRequirements",
+            "readLocalContentRunRequirements/readLocalContentRunRequirements#2"
+          ],
+          "exports": [
+            "readLocalContentRunRequirements"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "For a selected Local keyed Content path, the ordinary Source installation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "export function readLocalContentRunRequirements(originals, prepared, selected) {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "checked(moon.clientProgramInstalledManagedKeyedContentCheckPreparation(selected, prepared));"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const early = earlyContentPlans.get(submission.preparedProgram);"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "runContent.prepareManagedKeyedRun({preparedProgram: submission.preparedProgram,"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "throw clientOperationError('InstalledContentRunPreparationUnavailable');"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-host-cleanup.mjs",
+                "anchor": "export async function retainInstalledHostInitializationFailure"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_local_host/installed_managed_keyed_content.mbt",
+                "anchor": "pub fn installed_managed_keyed_content_requirements("
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "other unsupported backend shapes remain separate connections, not language"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-content-preparation.test.mjs",
+                "anchor": "test('ordinary keyed Content borrows its admitted original Run without a standalone Ledger'"
+              }
+            ]
+          }
         }
       ],
       "imports": [
@@ -11864,8 +11983,8 @@
   ],
   "counts": {
     "modules": 16,
-    "operations": 746,
-    "exports": 92,
-    "explicitContractGroups": 42
+    "operations": 751,
+    "exports": 93,
+    "explicitContractGroups": 43
   }
 }

@@ -37286,7 +37286,7 @@
     {
       "module": "adapters/host-node/installed-content-run.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "6e305d1c63e1b7aeedb2d26384157feea0216b4d4b71e093152b8751120b1f0d",
+      "sha256": "dedfb5c0d2b542d029197b778e59f3e7677decc091af7a4d1a3f0a9b35bc9092",
       "role": "physical-io",
       "owner": "Existing Content/Reference/completion/publication Owners and physical Store writer",
       "exports": [
@@ -37310,7 +37310,9 @@
             "authorize",
             "faultInjection",
             "assertRunCurrent",
-            "preparedRunRequired"
+            "preparedRunRequired",
+            "prepareKeyedManagedRun",
+            "borrowKeyedManagedLedger"
           ],
           "async": false
         },
@@ -37539,12 +37541,21 @@
         {
           "name": "installNodeContentRun/installNodeContentRun#2",
           "parameters": [
-            "options"
+            "preparedProgram",
+            "plan",
+            "request"
           ],
           "async": false
         },
         {
           "name": "installNodeContentRun/installNodeContentRun#3",
+          "parameters": [
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeContentRun/installNodeContentRun#4",
           "parameters": [
             "preparedProgram",
             "plan",
@@ -37560,14 +37571,14 @@
           "async": true
         },
         {
-          "name": "installNodeContentRun/installNodeContentRun#4",
+          "name": "installNodeContentRun/installNodeContentRun#5",
           "parameters": [
             "options"
           ],
           "async": false
         },
         {
-          "name": "installNodeContentRun/installNodeContentRun#5",
+          "name": "installNodeContentRun/installNodeContentRun#6",
           "parameters": [
             "prepared",
             "plan",
@@ -37579,7 +37590,7 @@
           "async": false
         },
         {
-          "name": "installNodeContentRun/installNodeContentRun#6",
+          "name": "installNodeContentRun/installNodeContentRun#7",
           "parameters": [
             "preparedProgram",
             "plan",
@@ -37588,7 +37599,7 @@
           "async": false
         },
         {
-          "name": "installNodeContentRun/installNodeContentRun#7",
+          "name": "installNodeContentRun/installNodeContentRun#8",
           "parameters": [
             "preparedProgram",
             "plan",
@@ -37600,7 +37611,7 @@
           "async": false
         },
         {
-          "name": "installNodeContentRun/installNodeContentRun#8",
+          "name": "installNodeContentRun/installNodeContentRun#9",
           "parameters": [
             "preparedProgram",
             "preparedEffect",
@@ -37909,6 +37920,74 @@
               {
                 "path": "adapters/host-node/installed-content-cleanup-ack.test.mjs",
                 "anchor": "test('installed Content cleanup retains a real prepared object until the same release ACK'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "installNodeContentRun/installNodeContentRun#9"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "For a selected Local keyed Content path, the ordinary Source installation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-content-run.mjs",
+                "anchor": "run.prepareManagedKeyedRun = ({preparedProgram, plan, request}) => {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-content-run.mjs",
+                "anchor": "scope !== moon.clientRequestScopeCid(prior.request)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-content-run.mjs",
+                "anchor": "preparedKeyedRuns.set(preparedProgram, original);"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-content-run.mjs",
+                "anchor": "prepareKeyedManagedRun(preparedProgram, request, original.recipe)"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-content-run.mjs",
+                "anchor": "catch (cause) {original.failure = cause; throw cause;}"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-content-run.mjs",
+                "anchor": "const cleanup = () => {"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/installed-content-run.mjs",
+                "anchor": "prefixRetainedBytes: prefix.retainedBytes, prefixExecutionBytes: prefix.executionBytes"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "other unsupported backend shapes remain separate connections, not language"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-content-preparation.test.mjs",
+                "anchor": "test('ordinary keyed Content retains the original preparation failure without reissuing'"
               }
             ]
           }
@@ -54847,7 +54926,7 @@
     },
     {
       "module": "adapters/host-node/node-source-managed-installation.mjs",
-      "sha256": "6171159a5814a50f075970a970bb0787f23f6fb4241f42fdba51aebf309c5b61",
+      "sha256": "c7a739acbc4c96a46f45b2003f691521578a50378cfeabae3f6b168ea885f688",
       "exports": [
         "assertManagedComputeInstallationCurrent",
         "assertManagedComputePreparationCurrent",
@@ -71079,7 +71158,7 @@
     },
     {
       "module": "adapters/host-node/ordinary-source-managed.mjs",
-      "sha256": "7634def79fe037a99f4b48441aa05092915d1bc25a26cbc4a2b3de59dab5e7bc",
+      "sha256": "bb663ec26e4e907f5365f23ec0a95833e55070bd5965b97a25f151edb34ea3c8",
       "exports": [
         "assertOrdinarySourcePreparationCurrent",
         "prepareOrdinaryProjectSourceManagedInstallation",
@@ -71156,7 +71235,8 @@
             "prepared",
             "purpose",
             "model",
-            "effectful"
+            "effectful",
+            "content"
           ],
           "async": false
         },
@@ -71307,6 +71387,14 @@
           "async": false
         },
         {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareContentRun/init:prepareContentRun",
+          "parameters": [
+            "prepared",
+            "selected"
+          ],
+          "async": false
+        },
+        {
           "name": "prepareOrdinaryManagedInstallation/view/init:prepareEffectLocalMockModelRun/init:prepareEffectLocalMockModelRun",
           "parameters": [
             "prepared",
@@ -71318,6 +71406,47 @@
           "name": "prepareOrdinaryManagedInstallation/view/init:prepareEffectRun/init:prepareEffectRun",
           "parameters": [
             "prepared"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareKeyedRead/init:prepareKeyedRead",
+          "parameters": [
+            "prepared",
+            "declaration",
+            "originalRun",
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareKeyedRead/init:prepareKeyedRead/init:prepareKeyedRead",
+          "parameters": [
+            "source"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareKeyedRead/init:prepareKeyedRead/init:prepareKeyedRead#2",
+          "parameters": [
+            "child"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareKeyedRead/init:prepareKeyedRead/init:prepareKeyedRead#3",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareKeyedRead/init:prepareKeyedRead/init:prepareKeyedRead#4",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/view/init:prepareKeyedRead/init:prepareKeyedRead/init:retainChild/init:retainChild",
+          "parameters": [
+            "actual"
           ],
           "async": false
         },
@@ -71764,15 +71893,90 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "prepareOrdinaryManagedInstallation/view/init:prepareContentRun/init:prepareContentRun",
+            "prepareOrdinaryManagedInstallation/view/init:prepareKeyedRead/init:prepareKeyedRead",
+            "prepareOrdinaryManagedInstallation/view/init:prepareKeyedRead/init:prepareKeyedRead/init:prepareKeyedRead",
+            "prepareOrdinaryManagedInstallation/view/init:prepareKeyedRead/init:prepareKeyedRead/init:prepareKeyedRead#2",
+            "prepareOrdinaryManagedInstallation/view/init:prepareKeyedRead/init:prepareKeyedRead/init:prepareKeyedRead#3",
+            "prepareOrdinaryManagedInstallation/view/init:prepareKeyedRead/init:prepareKeyedRead/init:prepareKeyedRead#4",
+            "prepareOrdinaryManagedInstallation/view/init:prepareKeyedRead/init:prepareKeyedRead/init:retainChild/init:retainChild"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "For a selected Local keyed Content path, the ordinary Source installation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "prepareKeyedRead(prepared, declaration, originalRun, request) {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "run.purpose !== 'local-content' || run.original !== originalRun"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "child.reader = actual;"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "captureReader(child);"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "fail('InstalledSourcePreparationMismatch');"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "async function closeChild(child) {"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "run.children.length >= run.required.attempts"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "other unsupported backend shapes remain separate connections, not language"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/ordinary-source-managed.test.mjs",
+                "anchor": "test('ordinary Content owns one purpose and retains the same keyed physical close through current refusal'"
+              }
+            ]
+          }
         }
       ]
     },
     {
       "module": "adapters/host-node/ordinary-node-resource-runtime.cjs",
-      "sha256": "b4771f6256d9e6cc4cd2161d60b520b4ce3b376fa8f35abb966a0725dd5e931c",
+      "sha256": "6f15012067305fba4e08af7f1a3b4edacd581a23ee2daafc35afc02c33fe3d10",
       "exports": [
         "commonjs:assertOrdinaryManagedRunCurrent",
         "commonjs:ordinaryManagedRunStatus",
+        "commonjs:prepareOriginalLocalContentRunPorts",
         "commonjs:prepareOriginalLocalMockModelRunPorts",
         "commonjs:prepareOriginalManagedRunPorts",
         "commonjs:prepareOriginalSourceChildPorts",
@@ -71791,6 +71995,14 @@
           "name": "init:ordinaryManagedRunStatus/init:ordinaryManagedRunStatus",
           "parameters": [
             "original"
+          ],
+          "async": false
+        },
+        {
+          "name": "init:prepareOriginalLocalContentRunPorts/init:prepareOriginalLocalContentRunPorts",
+          "parameters": [
+            "original",
+            "prepared"
           ],
           "async": false
         },
@@ -72014,6 +72226,76 @@
               {
                 "path": "adapters/host-node/ordinary-node-resource-runtime.test.mjs",
                 "anchor": "test('ordinary"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "init:prepareOriginalLocalContentRunPorts/init:prepareOriginalLocalContentRunPorts"
+          ],
+          "exports": [
+            "commonjs:prepareOriginalLocalContentRunPorts"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "For a selected Local keyed Content path, the ordinary Source installation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/ordinary-node-resource-runtime.cjs",
+                "anchor": "prepareOriginalLocalContentRunPorts(original, prepared) {return ports(original, prepared, 'local-content');}"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/ordinary-node-resource-runtime.cjs",
+                "anchor": "state.purpose !== purpose"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/ordinary-node-resource-runtime.cjs",
+                "anchor": "runs.set(original, {prepared, quotas: freeze(quotas), assertCurrent, childrenPending, purpose,"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/ordinary-node-resource-runtime.cjs",
+                "anchor": "state.portsTaken = true;"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/ordinary-node-resource-runtime.cjs",
+                "anchor": "state.retiring = true;"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/ordinary-node-resource-runtime.cjs",
+                "anchor": "state.childrenPending()"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/ordinary-node-resource-runtime.cjs",
+                "anchor": "heldBytes + reservedRetention > q[4]"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "other unsupported backend shapes remain separate connections, not language"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/ordinary-node-resource-runtime.test.mjs",
+                "anchor": "test('ordinary Content ports keep their original purpose and physical-child cleanup'"
               }
             ]
           }
@@ -74066,9 +74348,9 @@
   ],
   "counts": {
     "modules": 163,
-    "operations": 4131,
-    "exports": 1018,
-    "explicitContractGroups": 232
+    "operations": 4140,
+    "exports": 1019,
+    "explicitContractGroups": 235
   },
   "scope": "The original supplied modules and explicitly added Project Task/profile installation modules are source/reference facets, not a reassignment of Coordinator/Transfer, process, Connector, Credential, Store or semantic implementation ownership."
 }
