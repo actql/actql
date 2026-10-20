@@ -56,8 +56,7 @@ fn normalize_native_query_arguments(
   ignore(required(child, "query"))
   for
     name in [
-      "program-file", "parameter-declarations-file", "stop-before", "request-id",
-      "submission-ref-file", "operation-attempt-id",
+      "program-file", "stop-before", "request-id", "submission-ref-file", "operation-attempt-id",
     ] {
     if child.values.contains(name) {
       stop("ConflictingQuickQuerySelection")

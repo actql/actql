@@ -103,6 +103,14 @@ fn LocalCommandPreparationOriginal::prepare_business_submission(
     is Computation(prepared) else {
     stop("LocalBusinessProgramUnavailable")
   }
+  // Admit the existing normalization profile on this exact checked owner
+  // before activating business operations or allocating a durable attempt.
+  // The later submission join reads this same retained original; unsupported
+  // defaults or completions cannot become an empty normalization journal.
+  @run_host.issue_prepared_client_local_normalization(prepared).unwrap_or_else(() => {
+    stop("LocalOriginalNormalizationNotInstalled")
+  })
+  |> ignore
   let assets = runtime.assets
   command_preparation_result(self.require_business_program(prepared, assets))
   |> ignore
