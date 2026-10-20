@@ -830,13 +830,14 @@ class InstalledLocalHost:
             self._run_rows.append((run, output))
             installation.binding.inspect(lambda _: self._core.produce_material(output))
             self._commit_original_run_rows(output)
-            admission = self._read_original_saved_admission(run)
             # The immutable row Owner/input remain in Core. These consumed
-            # buffers need not overlap the later dispatch/Compute/Result phase.
+            # transports need not overlap the fresh saved-admission lookup.
+            # Neither retirement is the Store or admission acknowledgement.
             if not self._core.retire_material_output(output):
                 raise LocalProductCleanupPending(self)
             if not self._core.retire_submission_append_output(observed):
                 raise LocalProductCleanupPending(self)
+            admission = self._read_original_saved_admission(run)
             self._pending_run_write = None
             return run, admission
 

@@ -16,7 +16,7 @@ from actql_sdk._local_commit_projection import OriginalCommitProjection
 from actql_sdk._values import wire_bytes
 import test_local_product_operation_port as operation_fixture
 
-STATE = {'version': 'actql-run-state/0.1', 'run_id': 'original-owned-run',
+STATE = {'version': 'actql-run-state/0.1', 'run_id': 'original-owned-run', 'revision': 0,
     'status': 'succeeded', 'updated_at': '2026-09-17T00:00:03.000Z',
     'next_action': {'kind': 'refresh_availability', 'results': ['answer']},
     'result_available': False, 'result_availability': {'answer': {
