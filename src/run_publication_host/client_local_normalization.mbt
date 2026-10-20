@@ -32,6 +32,9 @@ pub fn client_local_completion_free_catalog_cid() -> String {
 fn local_completion_free_catalog_cid(
   inventory : @checked.LocalCompletionFreeInventory,
 ) -> String {
+  if @checked.local_completion_free_inventory_uses_distinct(inventory) {
+    return "sha256:4cbc2466af84dc925b7e79c91c0a7a19a2a16873bb6e7975e8f6855a954831d8"
+  }
   if @checked.local_completion_free_inventory_uses_sort(inventory) {
     return "sha256:aa08e331a77f389359583e74ce6d7c801ad76a21d13520e55571f71a237ff24e"
   }
@@ -68,8 +71,12 @@ fn local_normalization_catalog_cid(
 ) -> String {
   match inventory {
     CompletionFree(value) => local_completion_free_catalog_cid(value)
-    SortCompletion(_) =>
-      "sha256:43da977432e59fa094193c21ef4a11ba10de94f54400ef2576d6293b12500a57"
+    SortCompletion(value) =>
+      if @checked.local_sort_normalization_inventory_uses_distinct(value) {
+        "sha256:4cbc2466af84dc925b7e79c91c0a7a19a2a16873bb6e7975e8f6855a954831d8"
+      } else {
+        "sha256:43da977432e59fa094193c21ef4a11ba10de94f54400ef2576d6293b12500a57"
+      }
   }
 }
 

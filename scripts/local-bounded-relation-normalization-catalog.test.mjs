@@ -102,10 +102,10 @@ const completed = {
 test('actual Sort completion uses its frozen rule and complete independent journal preimage', () => {
   assert.equal(cid(completed.catalog_preimage), completed.catalog_cid);
   assert.equal(cid(completed.journal_preimage), completed.journal_cid);
-  assert.deepEqual(load(prefix + 'fixture.json'), completed);
+  assert.deepEqual(load(prefix + 'pre-distinct-fixture.json'), completed);
   const body = JSON.parse(completed.catalog_preimage);
-  assert.deepEqual(load(prefix + 'catalog.json'), body);
-  const schema = load(prefix + 'catalog.schema.json');
+  assert.deepEqual(load(prefix + 'pre-distinct-catalog.json'), body);
+  const schema = load(prefix + 'pre-distinct-catalog.schema.json');
   assert.deepEqual(schema.properties.rules, {const: body.rules});
   assert.equal(schema.additionalProperties, false);
   assert.equal(body.rules.length, 1);
@@ -127,4 +127,37 @@ test('actual Sort completion uses its frozen rule and complete independent journ
   body.applicability.sort_appended_identity_terms = prior.applicability.sort_appended_identity_terms;
   assert.deepEqual(body, prior);
   assert.notEqual(completed.catalog_cid, expected.ordered.catalog_cid);
+});
+
+const distinct = {
+  "catalog_preimage": "{\"applicability\":{\"additional_group_prefix\":\"none\",\"aggregate_functions\":[\"count\",\"count_if\",\"max\",\"min\"],\"audit_work_limit\":10000,\"checked_auxiliary_nodes\":[\"membership_list\"],\"checked_operations\":[\"derive\",\"distinct\",\"filter\",\"group\",\"select\",\"sort\",\"take\",\"values\"],\"distinct_input\":\"complete-original-row-and-presence-admission-remains-with-execution\",\"distinct_order\":\"existing-first-occurrence-no-new-total-order\",\"distinct_scope\":\"original-same-pipeline-step-whole-row-or-authored-required-key-projection\",\"effect_kind\":\"none\",\"expression_nodes\":[\"$param\",\"abs\",\"acos\",\"acosh\",\"add\",\"and\",\"array\",\"asin\",\"asinh\",\"atan\",\"atan2\",\"atanh\",\"between\",\"byte_length\",\"case\",\"cast\",\"cbrt\",\"chr\",\"coalesce\",\"concat\",\"concat_strict\",\"contains\",\"cos\",\"cosh\",\"date_add\",\"date_diff\",\"date_trunc\",\"decimal_divide\",\"divide\",\"empty_array\",\"ends_with\",\"eq\",\"exp\",\"field\",\"floor\",\"greatest\",\"gt\",\"gte\",\"if\",\"in\",\"instr\",\"is_distinct_from\",\"is_false\",\"is_null\",\"is_true\",\"is_unknown\",\"least\",\"left\",\"len\",\"literal\",\"ln\",\"log\",\"log10\",\"lower\",\"lpad\",\"lt\",\"lte\",\"ltrim\",\"modulo\",\"multiply\",\"negate\",\"neq\",\"not\",\"not_in\",\"not_null\",\"nullif\",\"object\",\"or\",\"pow\",\"property\",\"quantize\",\"repeat\",\"replace\",\"reverse\",\"right\",\"round\",\"rpad\",\"rtrim\",\"safe_add\",\"safe_divide\",\"safe_multiply\",\"safe_negate\",\"safe_subtract\",\"sign\",\"sin\",\"sinh\",\"split\",\"sqrt\",\"starts_with\",\"strpos\",\"subscript\",\"substring\",\"subtract\",\"tan\",\"tanh\",\"timestamp_add\",\"timestamp_sub\",\"translate\",\"trim\",\"trunc\",\"try_decimal\",\"try_number\",\"typed_literal\",\"unicode\",\"upper\",\"utf8_truncate\"],\"group_key_selection\":\"authored\",\"max_source_inputs\":1,\"max_stages\":3,\"normalization_journal_limits\":{\"max_depth\":8,\"max_nodes\":32,\"max_wire_bytes\":1024},\"parameter_declarations\":\"none-or-all-supplied-original-values\",\"proof\":\"original-checked-owner-audit\",\"sort_appended_identity_terms\":\"original-owned-semantic-journal-entry\",\"sort_empty\":\"original-identity-no-new-order\",\"sort_resolution\":\"original-same-pipeline-step-covered-candidate-key-or-existing-total\",\"source_selection\":\"explicit\",\"take_count_minimum\":1,\"take_maximum\":9007199254740991,\"take_offset_minimum\":0,\"take_parameter_resolution\":\"original-same-pipeline-step-SafeInteger-supplied-owner\"},\"profile\":\"actql-effect-free-local-completion-free/0.1\",\"rules\":[{\"authored\":\"canonical JSON of the original authored Sort array\",\"canonical\":\"original authored keys in priority followed by actual missing selected candidate-key fields ascending with nulls last\",\"id\":\"sort.candidate_key_completion\",\"path\":\"original decoded Program Sort body\",\"requires\":\"original same-pipeline same-step SortOrder and selected candidate-key proof with nonzero appended_count\"}],\"version\":\"actql-normalization-rule-catalog/0.1\"}",
+  "catalog_cid": "sha256:4cbc2466af84dc925b7e79c91c0a7a19a2a16873bb6e7975e8f6855a954831d8",
+  "journal_preimage": "{\"entries\":[],\"rule_catalog_cid\":\"sha256:4cbc2466af84dc925b7e79c91c0a7a19a2a16873bb6e7975e8f6855a954831d8\",\"version\":\"actql-normalization-journal/0.1\"}",
+  "journal_cid": "sha256:ddf6bca88c86504be01ba9c34baa5391d8cea27028475268c24ef2b3fdce0031"
+};
+
+test('original DISTINCT extends only the existing bounded catalogue and keeps real Sort entries', () => {
+  assert.equal(cid(distinct.catalog_preimage), distinct.catalog_cid);
+  assert.equal(cid(distinct.journal_preimage), distinct.journal_cid);
+  assert.deepEqual(load(prefix + 'fixture.json'), distinct);
+  const body = JSON.parse(distinct.catalog_preimage);
+  assert.deepEqual(load(prefix + 'catalog.json'), body);
+  const schema = load(prefix + 'catalog.schema.json');
+  assert.equal(schema.additionalProperties, false);
+  assert.deepEqual(schema.properties.applicability, {const: body.applicability});
+  assert.deepEqual(schema.properties.rules, {const: body.rules});
+  assert.deepEqual(body.rules, JSON.parse(completed.catalog_preimage).rules);
+  assert.deepEqual(body.applicability.normalization_journal_limits, {max_depth:8,max_nodes:32,max_wire_bytes:1024});
+  assert.equal(body.applicability.distinct_scope, 'original-same-pipeline-step-whole-row-or-authored-required-key-projection');
+  assert.equal(body.applicability.distinct_input, 'complete-original-row-and-presence-admission-remains-with-execution');
+  assert.equal(body.applicability.distinct_order, 'existing-first-occurrence-no-new-total-order');
+  for (const key of ['distinct_scope','distinct_input','distinct_order']) delete body.applicability[key];
+  body.applicability.checked_operations = body.applicability.checked_operations.filter(x => x !== 'distinct');
+  assert.deepEqual(body, JSON.parse(completed.catalog_preimage));
+  const journal = JSON.parse(distinct.journal_preimage);
+  assert.deepEqual(journal.entries, []);
+  assert.equal(journal.rule_catalog_cid, distinct.catalog_cid);
+  assert.notEqual(distinct.catalog_cid, completed.catalog_cid);
+  const issuer = readFileSync(new URL('../src/run_publication_host/client_local_normalization.mbt', import.meta.url), 'utf8');
+  for (const value of [completed, distinct]) assert(issuer.includes('"' + value.catalog_cid + '"'));
 });

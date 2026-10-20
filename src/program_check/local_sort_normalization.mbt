@@ -15,6 +15,7 @@ struct LocalSortNormalizationInventory {
   owner : CheckedProgram
   audited_work : Int
   entries : Array[LocalSortNormalizationEntry]
+  distincts : Bool
 }
 
 ///|
@@ -209,9 +210,19 @@ pub fn local_program_sort_normalization_inventory(
     return Err(ProfileNotInstalled)
   }
   match owner.local_completion_free_audit {
-    Complete(_, _, _, _, _, _, _) => Ok(None)
-    SortCompleted(work, entries) =>
-      Ok(Some({ owner, audited_work: work, entries, }))
+    Complete(_, _, _, _, _, _, _) | DistinctComplete(_, _, _, _, _, _, _) =>
+      Ok(None)
+    SortCompleted(work, entries) | DistinctSortCompleted(work, entries) =>
+      Ok(
+        Some({
+          owner,
+          audited_work: work,
+          entries,
+          distincts: local_audit_uses_distinct(
+            owner.local_completion_free_audit,
+          ),
+        }),
+      )
     CompletionObserved => Err(CompletionObserved)
     ProfileNotInstalled => Err(ProfileNotInstalled)
   }
@@ -252,4 +263,12 @@ pub fn local_sort_normalization_entry_at(
     return None
   }
   Some((entry.path, entry.authored, entry.canonical))
+}
+
+///|
+/// Metadata of the same original audit, including its actual completion entries.
+pub fn local_sort_normalization_inventory_uses_distinct(
+  value : LocalSortNormalizationInventory,
+) -> Bool {
+  value.distincts
 }

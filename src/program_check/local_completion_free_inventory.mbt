@@ -1,7 +1,9 @@
 ///|
 priv enum LocalCompletionFreeAudit {
   Complete(Int, @parameters.BoundValues?, Bool, Bool, Bool, Bool, Bool)
+  DistinctComplete(Int, @parameters.BoundValues?, Bool, Bool, Bool, Bool, Bool)
   SortCompleted(Int, Array[LocalSortNormalizationEntry])
+  DistinctSortCompleted(Int, Array[LocalSortNormalizationEntry])
   ProfileNotInstalled
   CompletionObserved
 }
@@ -18,6 +20,104 @@ struct LocalCompletionFreeInventory {
   groups : Bool
   takes : Bool
   sorts : Bool
+  distincts : Bool
+}
+
+///|
+fn local_audit_uses_distinct(audit : LocalCompletionFreeAudit) -> Bool {
+  match audit {
+    DistinctComplete(_, _, _, _, _, _, _) | DistinctSortCompleted(_, _) => true
+    _ => false
+  }
+}
+
+///|
+// Inspect only the original checked occurrence. Whole-row DISTINCT preserves
+// the input schema; keyed DISTINCT projects its original Required references.
+// Complete row admission, equality, first occurrence and presence remain with
+// their existing execution owners, not this normalization inventory.
+fn audit_local_completion_free_distinct(
+  operation : @relation.CheckedOperation,
+  pipeline : @pipeline.CheckedPipeline,
+  step : Int,
+  available : Int,
+) -> Int? {
+  guard available > 0 &&
+    @relation.operation(operation) == @relation.Distinct &&
+    @pipeline.step_at(pipeline, step) is Some(original) &&
+    original.operation is @pipeline.Unary(checked) &&
+    physical_equal(checked, operation) else {
+    return None
+  }
+  let input = @relation.input_schema(operation)
+  let output = @relation.output_schema(operation)
+  guard @pipeline.step_schema(original) is Some(schema) &&
+    physical_equal(schema, output) else {
+    return None
+  }
+  let mut remaining = available - 1
+  match @relation.row_operation(operation) {
+    Some(DistinctRows) => {
+      guard physical_equal(input, output) &&
+        @relation.projection_field_count(operation) == 0 else {
+        return None
+      }
+      for index in 0..<@schema.field_count(input) {
+        if remaining <= 0 || @schema.field_at(input, index) is None {
+          return None
+        }
+        remaining -= 1
+      }
+    }
+    Some(DistinctKeys(keys)) => {
+      guard !keys.is_empty() &&
+        keys.length() == @schema.field_count(output) &&
+        keys.length() == @relation.projection_field_count(operation) else {
+        return None
+      }
+      for index in 0..<keys.length() {
+        if remaining <= 0 {
+          return None
+        }
+        remaining -= 1
+        let key = keys[index]
+        guard @relation.projection_field_at(operation, index)
+          is Some(projection) &&
+          projection.input == key.field &&
+          projection.output == key.field else {
+          return None
+        }
+        let name = @schema.reference_name(key.field)
+        let mut width = @schema.field_count(input)
+        while width > 0 {
+          if remaining <= 0 || name.length() > remaining - 1 {
+            return None
+          }
+          remaining -= name.length() + 1
+          width /= 2
+        }
+        width = @schema.field_count(output)
+        while width > 0 {
+          if remaining <= 0 || name.length() > remaining - 1 {
+            return None
+          }
+          remaining -= name.length() + 1
+          width /= 2
+        }
+        // Schema storage is canonical, while the authored key priority may
+        // differ. Resolve both original schema members by their checked name.
+        guard @schema.lookup_reference(input, name) is Some(original_field) &&
+          @schema.lookup_reference(output, name) is Some(field) &&
+          original_field.presence is @schema.Required &&
+          field.presence is @schema.Required &&
+          physical_equal(field.contract, original_field.contract) else {
+          return None
+        }
+      }
+    }
+    _ => return None
+  }
+  Some(remaining)
 }
 
 ///|
@@ -426,6 +526,7 @@ fn audit_local_completion_free_units(
   let mut groups = false
   let mut takes = false
   let mut sorts = false
+  let mut distincts = false
   let sort_entries : Array[LocalSortNormalizationEntry] = []
   let sources : Array[(Int, Int)] = []
   let mut roots = 0
@@ -468,6 +569,16 @@ fn audit_local_completion_free_units(
         @pipeline.Unary(operation) => {
           match @relation.operation(operation) {
             Filter | Select | Derive => ()
+            Distinct => {
+              guard audit_local_completion_free_distinct(
+                  operation, pipeline, index, remaining,
+                )
+                is Some(left) else {
+                return ProfileNotInstalled
+              }
+              remaining = left
+              distincts = true
+            }
             Sort => {
               match
                 audit_local_sort(
@@ -567,7 +678,22 @@ fn audit_local_completion_free_units(
     guard canonical_local_sort_entries(sort_entries, remaining) is Some(left) else {
       return ProfileNotInstalled
     }
-    return SortCompleted(10000 - left, sort_entries)
+    return if distincts {
+      DistinctSortCompleted(10000 - left, sort_entries)
+    } else {
+      SortCompleted(10000 - left, sort_entries)
+    }
+  }
+  if distincts {
+    return DistinctComplete(
+      10000 - remaining,
+      supplied_parameters,
+      explicit_cast,
+      checked_expressions,
+      groups,
+      takes,
+      sorts,
+    )
   }
   Complete(
     10000 - remaining,
@@ -596,6 +722,15 @@ pub fn local_program_completion_free_inventory(
       groups,
       takes,
       sorts
+    )
+    | DistinctComplete(
+      work,
+      supplied_parameters,
+      explicit_cast,
+      checked_expressions,
+      groups,
+      takes,
+      sorts
     ) =>
       Ok({
         owner,
@@ -606,9 +741,11 @@ pub fn local_program_completion_free_inventory(
         groups,
         takes,
         sorts,
+        distincts: local_audit_uses_distinct(owner.local_completion_free_audit),
       })
     ProfileNotInstalled => Err(ProfileNotInstalled)
-    CompletionObserved | SortCompleted(_, _) => Err(CompletionObserved)
+    CompletionObserved | SortCompleted(_, _) | DistinctSortCompleted(_, _) =>
+      Err(CompletionObserved)
   }
 }
 
@@ -673,4 +810,12 @@ pub fn local_completion_free_inventory_uses_sort(
   inventory : LocalCompletionFreeInventory,
 ) -> Bool {
   inventory.sorts
+}
+
+///|
+/// Original audited DISTINCT metadata; not a caller profile or row-admission fact.
+pub fn local_completion_free_inventory_uses_distinct(
+  inventory : LocalCompletionFreeInventory,
+) -> Bool {
+  inventory.distincts
 }
