@@ -11,6 +11,7 @@ import {composeInstalledCheckEnvironment} from '../../../host-node/installed-che
 import {retainInstalledHostInitializationFailure} from '../../../host-node/installed-host-cleanup.mjs';
 import {AcquisitionOpenError} from '../../../host-common/acquisition-outcome.mjs';
 import {openLocalFileRoot} from '../site/root-filesystem.mjs';
+import {localFileStoreDeclaration} from './local-file-store-declaration.mjs';
 
 const fail = code => {throw Object.assign(new Error(code), {code});};
 const canonical = value => canonicalJson(value, {dataKeys: true});
@@ -81,7 +82,9 @@ function restoreDeclaration(call, connection, rootPath, versionMode, limits) {
   lookup_capacity:{version:'actql-lookup-capacity/0.1',completeness:'complete_per_requested_key',
     max_rows_per_key:1,max_pages_per_request:limits.maxPages,max_response_bytes_per_page:limits.maxPageBytes}});
   const declaration = restore();
-  return Object.freeze({declaration,wire:call('clientProgramRowSourceDeclarationJson',declaration),scopeCid,versionCid});
+  const store=localFileStoreDeclaration(call('clientProgramRowSourceDeclarationJson',declaration),
+    {connectorId:connection,rootPath,maxBytes:131072});
+  return Object.freeze({declaration,wire:store.declarationWire,scopeCid,versionCid});
 }
 
 // Same original Project/connection declaration, before Root acquisition.

@@ -439,7 +439,7 @@ export async function createInstalledRowEffect({moon, mappings = [], commands = 
   environmentWire, connectorId, connectorRegistration, connectorRevision,
   connection, site, authorization, runtimeBundleCid, bindingCid, driver,
   ledgerRoot, installation, continuationBinding = bindingCid,
-  limits: suppliedLimits, effectResources}) {
+  limits: suppliedLimits, effectResources, issueOriginalCollectionReference}) {
   const resources = captureEffectResources(effectResources);
   const limits = Object.freeze({...defaultLimits, ...suppliedLimits});
   const owned = checkDriver(driver);
@@ -454,6 +454,7 @@ export async function createInstalledRowEffect({moon, mappings = [], commands = 
       !text(connection) || typeof site?.issueEffectGrant !== 'function' ||
       typeof site.issueReadGrant !== 'function' ||
       typeof authorization?.authorize !== 'function' ||
+      !optionalFunction(issueOriginalCollectionReference) ||
       !cidPattern.test(runtimeBundleCid ?? '') ||
       !text(bindingCid) || !text(continuationBinding) || !text(ledgerRoot)) {
     fail('InvalidInstalledRowEffect');
@@ -493,7 +494,8 @@ export async function createInstalledRowEffect({moon, mappings = [], commands = 
   return createRowEffectStage([Object.freeze({moon, limits, owned, profile,
     installed, installedCommands, environmentWire, connectorId,
     connectorRegistration, connectorRevision, connection, site, authorization,
-    runtimeBundleCid, bindingCid, ledgerRoot, continuationBinding, resources})], environmentWire);
+    runtimeBundleCid, bindingCid, ledgerRoot, continuationBinding, resources,
+    issueOriginalCollectionReference})], environmentWire);
 }
 
 // Each physical occurrence retains its own admitted installation. Shared Run,
@@ -1380,7 +1382,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
   async function captureStage({control, store, execution, checkedHost,
     prepared, identity, plan, previewContext, unit, members,
     runInvocationCid, dispatches, requestScope, storedResults, signal,
-    targetReads, own, ownInputs, ownChildren, assertCurrent}) {
+    targetReads, contentOwner, own, ownInputs, ownChildren, assertCurrent}) {
     assertCurrent?.();
     const inputs = checked(moon.clientProgramPinEffectSources(checkedHost,
       limits.maxPinnedResults));
@@ -1437,8 +1439,35 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
           checkedHost, inputs, index, sourceLimits, limits.maxWork)));
       }
     }
+    let publishedTargets;
+    if (typeof moon.clientProgramEffectPublishedStoreBinding === 'function') {
+      let selected = false;
+      const targets = members.map(member => {
+        const pair = checked(moon.clientProgramEffectPublishedStoreBinding(
+          inputs, member.memberIndex, limits.maxWork));
+        if (pair === undefined) return undefined;
+        const owner = ownerOf(member);
+        if (member.kind !== 'command' ||
+            typeof owner.issueOriginalCollectionReference !== 'function' ||
+            typeof moon.clientProgramBindEffectCommandTarget !== 'function') {
+          fail('InstalledEffectPublishedTargetUnavailable');
+        }
+        assertCurrent?.();
+        const reference = owner.issueOriginalCollectionReference(pair, limits.maxWork);
+        assertCurrent?.();
+        const target = checked(moon.clientProgramBindEffectCommandTarget(
+          inputs, member.memberIndex, pair, reference, limits.maxWork));
+        selected = true;
+        return target;
+      });
+      if (selected) publishedTargets = Object.freeze(targets);
+    } else if (members.some(member =>
+      typeof ownerOf(member).issueOriginalCollectionReference === 'function')) {
+      fail('InstalledEffectPublishedTargetUnavailable');
+    }
     const sourceSet = await preparePinnedEffectSourceSet({moon,
       ...(commandWorkspaces.length ? {commandWorkspaces: Object.freeze([...commandWorkspaces])} : {}),
+      ...(publishedTargets === undefined ? {} : {publishedTargets}),
       onCommandKey(memberIndex, key) { commandKeys[memberIndex] = key; },
       checkedOwner: prepared, execution, inputs,
       maxMembers: members.length,
@@ -1520,6 +1549,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
           if (requestChildren.length >= limits.maxRows) fail('InstalledRowEffectRowLimit');
           const context = {member, value: row.value, selector: row.selector,
             current: description, content: commandContentRow(contentOf, rowIndex), signal,
+            ...(contentOwner === undefined ? {} : {contentOwner}),
             ...resourceFields(member),
             ...(guarded(member.kind) ? {rowIndex, assertCurrent,
               authorizationForRow: () => reads[index].authorizationForRow(rowIndex)} :
@@ -1703,7 +1733,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
   async function prepareCaptured(facts) {
     assertPrepared(facts ?? {});
     const {moon: runMoon, control, store, execution, checkedHost, prepared,
-      identity, definition, compilation, signal, targetReads} = facts ?? {};
+      identity, definition, compilation, signal, targetReads, contentOwner} = facts ?? {};
     const plan = facts?.publicationPlan ?? facts?.plan;
     if (runMoon !== moon || !plan || !execution || !checkedHost ||
         !prepared || !identity || ((definition === undefined ||
@@ -1738,7 +1768,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
       return await captureStage({control, store, execution, checkedHost,
         prepared, identity, plan, previewContext, unit, members,
         runInvocationCid, dispatches, requestScope, storedResults, signal,
-        targetReads, assertCurrent, own: value => { sourceSet = value; },
+        targetReads, contentOwner, assertCurrent, own: value => { sourceSet = value; },
         ownChildren: value => { requestChildren = value; },
         ownInputs: release => { releaseInputs = release; }});
     } catch (error) {

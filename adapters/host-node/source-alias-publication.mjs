@@ -140,7 +140,7 @@ export function splitSourceAliasProfile(profile) {
 }
 
 export function sourceAliasPublication(moon, environment, aliases = [], tableWrites = [],
-  {namespace, selectorNamespace, installedSources = [], updateTargets = []} = {}) {
+  {namespace, selectorNamespace, installedSources = [], updateTargets = [], storeTargets = []} = {}) {
   // Own even manually assembled metadata before validating or retaining it.
   aliases = splitSourceAliasProfile({queryAliases: aliases}).queryAliases;
   if (!Array.isArray(tableWrites) || tableWrites.length > 1024 ||
@@ -163,9 +163,26 @@ export function sourceAliasPublication(moon, environment, aliases = [], tableWri
     }
     return Object.freeze({...entry});
   }));
+  if (!Array.isArray(storeTargets) || storeTargets.length > 1024 ||
+      Buffer.byteLength(JSON.stringify(storeTargets)) > 1024 * 1024) {
+    throw new TypeError('InvalidPublicStoreTargetPublication');
+  }
+  storeTargets = Object.freeze(storeTargets.map(entry => {
+    if (entry === null || typeof entry !== 'object' || Array.isArray(entry) ||
+        Object.keys(entry).sort().join('\0') !== 'installationBindingCid\0installationOwnerCid\0name\0targetRef' ||
+        typeof entry.name !== 'string' || entry.name.length === 0 ||
+        entry.name.length > 1024 || !entry.name.isWellFormed() ||
+        typeof entry.targetRef !== 'string' || entry.targetRef.length === 0 ||
+        entry.targetRef.length > 4096 || !entry.targetRef.isWellFormed() ||
+        !cid(entry.installationBindingCid) || !cid(entry.installationOwnerCid)) {
+      throw new TypeError('InvalidPublicStoreTargetPublication');
+    }
+    return Object.freeze({...entry});
+  }));
   const publication = Object.freeze({
     environmentCid: moon.clientProgramCheckingEnvironmentCid(environment),
     aliases, ...(updateTargets.length === 0 ? {} : {updateTargets}),
+    ...(storeTargets.length === 0 ? {} : {storeTargets}),
     ...(tableWrites.length === 0 ? {} : {
       tableWrites: Object.freeze(tableWrites.map(binding => Object.freeze({
         ...binding, expectedTable: binding.expectedTable === null ? null :
