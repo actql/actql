@@ -76,6 +76,17 @@ export function installRunStateService(configuration) {
   return service;
 }
 
+// The public Journal-backed observer authorizes before reading its original
+// request row. This is the same gate as internal publication inspection.
+export async function authorizeRunStateRequest(service, request) {
+  const installed = services.get(service) ?? fail('ForeignRunStateService');
+  validateRequest(request);
+  if (await installed.authority.authorizeRunState(Object.freeze({
+    stage: 'request', indexKey: Object.freeze({...request.indexKey}),
+    principalId: request.principalId, purpose: request.purpose,
+  })) !== true) fail('RunStateAccessDenied');
+}
+
 function validateRequest(request) {
   if (!exactKeys(request, ['indexKey', 'principalId', 'purpose']) ||
       !exactKeys(request.indexKey, [

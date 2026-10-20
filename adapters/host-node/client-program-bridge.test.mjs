@@ -24,6 +24,7 @@ import {composeInstalledCheckEnvironment} from
   './installed-check-environment.mjs';
 import {installNodeClientRequestLookup} from './client-request-lookup.mjs';
 import {installNodeClientRunAttach} from './client-run-attach.mjs';
+import {installNodeClientRunStateObservation} from './client-run-state.mjs';
 import {installNodeClientRunStart} from './client-run-start.mjs';
 import {createClientHttpHandler} from './client-http.mjs';
 import {installNodeClientEffectProgramPreparation,
@@ -2385,6 +2386,9 @@ test('public Values submit computes and reads its real Local Result',
               authorityScopeCid: cid('a')} : undefined,
         }),
         stateService, resultService: service,
+        runStateObservation: installNodeClientRunStateObservation({
+          journal: lookupJournal, requestControl: moon, publicationControl: control,
+        }),
       }));
       await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
       try {

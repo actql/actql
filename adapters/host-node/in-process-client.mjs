@@ -13,8 +13,7 @@ import {clientWorkspaceMatches, validCheckpointPage, validCheckpointReview, vali
   validSubmissionAttempt, validNamedSubmissionAttempt, validSubmissionLookup} from
   '../../packages/client-wire/index.mjs';
 import {validWireEffectfulStaticPlanViewShape, validWirePlanViewShape, validWireRunViewShape, validWireRunPlanViewShape} from '../../packages/client-wire/index.mjs';
-import {inspectAuthorizedRunState} from
-  '../host-common/run-state-access.mjs';
+import {observeClientRunState} from './client-run-state.mjs';
 import {inspectAuthorizedDeliveryAttempt, describeAuthorizedResult} from './result-access.mjs';
 import {authorizedLocalResultFrames} from './in-process-result.mjs';
 import {publicClientErrorCode, publicClientErrorStatus} from './client-http.mjs';
@@ -68,7 +67,7 @@ function publicResultRows(response) {
 export function createNodeInProcessClientHost({
   authenticate, authorizeConnection, workspaceForPrincipal, negotiate, prepareSubmit, submit, submitIntent, submitNamedIntent, lookupSubmission,
   bindOwnedRequest,
-  attach, lookupRequest, stateService, resultService, observeRun, observeOwners, wait,
+  attach, lookupRequest, stateService, runStateObservation, resultService, observeRun, observeOwners, wait,
   cancel, lookupCancellation, cancelRequest, reconcile, checkpoints, checkpointReview, resolve,
   resources, inspectResource, peekResource, check, plan, inspectRun, runPlan, maxRowBytes, observe,
   performInstalledRequest,
@@ -208,7 +207,7 @@ export function createNodeInProcessClientHost({
       }
       if (operation === 'status' || operation === 'wait') {
         const state = operation === 'status' && observeRun === undefined
-          ? await inspectAuthorizedRunState(stateService, {
+          ? await observeClientRunState(runStateObservation, stateService, {
             indexKey: ref, principalId, purpose: 'inspect',
           }) : await invoke(operation === 'status' ? observeRun : wait);
         if (!validRunState(state)) fail('InvalidClientHostRunState');
