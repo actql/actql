@@ -24,7 +24,8 @@ from ._local_journal_port import _JournalCallbacks
 from ._local_storage import _NamespaceReader, LocalByteStore
 from ._local_native_holding import _NativeHoldingLease
 
-_NORMAL_HOST_OPERATION_FUEL = 1_000_000_000
+_NORMAL_HOST_BOOTSTRAP_FUEL = 1_000_000_000
+_NORMAL_HOST_OPERATION_FUEL = 4_000_000_000
 _NORMAL_HOST_CLEANUP_FUEL = 100_000_000
 
 
@@ -361,7 +362,7 @@ class LocalCore:
                  else _checked_installed_image_file(components))
         return cls(None, digest=components.module_sha256, transfer_capacity=transfer_capacity,
                    resources=resources, slots=slots, _compiled_image=image,
-                   fuel=_NORMAL_HOST_OPERATION_FUEL if _ordinary_host else 100_000_000,
+                   fuel=_NORMAL_HOST_BOOTSTRAP_FUEL if _ordinary_host else 100_000_000,
                    _ordinary_host=_ordinary_host,
                    _host_capacity_bytes=_host_capacity_bytes, _physical_holding=_physical_holding,
                    _child_control=_child_control)
@@ -398,7 +399,7 @@ class LocalCore:
             raise ValueError('Ordinary Host fuel requires the installed image')
         if _compiled_image is not None:
             _compiled_image.recipe.validate()
-            expected_fuel = _NORMAL_HOST_OPERATION_FUEL if _ordinary_host else 100_000_000
+            expected_fuel = _NORMAL_HOST_BOOTSTRAP_FUEL if _ordinary_host else 100_000_000
             if fuel != expected_fuel:
                 raise ValueError('Installed Local image requires the original instruction fuel')
         if _physical_holding is not None and (type(_physical_holding) is not _NativeHoldingLease

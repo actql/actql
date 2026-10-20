@@ -248,6 +248,18 @@ class OriginalLocalInstallation:
                     self._binding = failure.cleanup_binding
                     raise
                 self._binding.inspect(lambda _: None)
+                if fresh:
+                    # The same saved files and four original metadata outputs
+                    # now own the installation. Retire only the consumed
+                    # bootstrap transport before later Run transfers overlap it.
+                    closed = (core.close_sdk_bootstrap(bootstrap) if sdk_finite
+                              else core.close_bootstrap(bootstrap))
+                    if not closed:
+                        raise ValueError('Original bootstrap transfer cleanup remains pending')
+                    self._outputs.remove(('bootstrap_sdk' if sdk_finite else 'bootstrap', bootstrap))
+                    if not core.close_input(packet_input):
+                        raise ValueError('Original bootstrap input cleanup remains pending')
+                    self._inputs.remove(packet_input)
         except BaseException as failure:
             if isinstance(failure, LocalStorageInitializationError):
                 self._store = failure.cleanup_store

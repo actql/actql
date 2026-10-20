@@ -2638,8 +2638,10 @@ same-image physical verifier remain distinct and unchanged in meaning.
 ### Ordinary Host operation fuel
 
 The ordinary installed factory uses a finite 1,000,000,000-instruction fuel
-allowance for initialization and bootstrap together, and for each subsequent
-admitted outer Host operation. Initialization does not receive a second budget
+allowance for initialization and bootstrap together. Each subsequent admitted
+outer Host operation has a finite 4,000,000,000-instruction allowance so that
+bounded preparation, saved-original validation and admission share one budget.
+Initialization does not receive a second budget
 when the same factory begins bootstrap. These are runtime execution ceilings,
 not capacity reservations, permission or a guarantee that every input fits.
 The prior single 100M lifetime allowance does not cover ordinary initialization
@@ -2665,3 +2667,10 @@ methods and cannot revive normal work, issue authority, acknowledge uncertain
 COMMIT or infer release. Failed or pending cleanup retains its original handles
 and carrier. A later explicit close attempt remains cleanup-only and preserves
 all actual child, alias, FD, Store, Engine and parent acknowledgement boundaries.
+
+Once original installation files and the four metadata outputs are validated
+through the same Host binding, the consumed bootstrap output and its input are
+closed through their original Core loans before later Run transfers begin.
+This returns only their transfer allowance. Saved files, metadata originals,
+the Store, current fences and actual physical owners remain retained. A refused
+close keeps the same partial installation and cannot trigger another bootstrap.

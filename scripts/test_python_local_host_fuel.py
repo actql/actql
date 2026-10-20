@@ -4,7 +4,8 @@ import unittest
 
 import wasmtime
 
-from actql_sdk._local_core import LocalCore, _NORMAL_HOST_OPERATION_FUEL, _NORMAL_HOST_CLEANUP_FUEL
+from actql_sdk._local_core import (LocalCore, _NORMAL_HOST_BOOTSTRAP_FUEL,
+                                   _NORMAL_HOST_OPERATION_FUEL, _NORMAL_HOST_CLEANUP_FUEL)
 
 
 class LocalHostFuelTests(unittest.TestCase):
@@ -13,7 +14,7 @@ class LocalHostFuelTests(unittest.TestCase):
         config.consume_fuel = True
         engine = wasmtime.Engine(config)
         store = wasmtime.Store(engine)
-        store.set_fuel(_NORMAL_HOST_OPERATION_FUEL)
+        store.set_fuel(_NORMAL_HOST_BOOTSTRAP_FUEL)
         module = wasmtime.Module(engine, '''(module
           (func (export "actql_probe_value") (param i64) (result i32) i32.const 7)
           (func (export "actql_probe_exhaust") (param i64) (result i32)
@@ -53,9 +54,9 @@ class LocalHostFuelTests(unittest.TestCase):
 
     def test_initial_factory_keeps_constructor_consumption_and_cannot_begin_again(self):
         core = self.core()
-        core._store.set_fuel(_NORMAL_HOST_OPERATION_FUEL - 123)
+        core._store.set_fuel(_NORMAL_HOST_BOOTSTRAP_FUEL - 123)
         with core._host_operation(initial=True):
-            self.assertEqual(core._store.get_fuel(), _NORMAL_HOST_OPERATION_FUEL - 123)
+            self.assertEqual(core._store.get_fuel(), _NORMAL_HOST_BOOTSTRAP_FUEL - 123)
             self.assertEqual(core._call('probe', 'value'), 7)
         with self.assertRaises(RuntimeError):
             with core._host_operation(initial=True):
