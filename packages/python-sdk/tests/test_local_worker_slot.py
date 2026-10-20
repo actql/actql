@@ -28,7 +28,7 @@ class WorkerSlotTests(unittest.TestCase):
             wrapper = patch('actql_sdk._local_worker_slot.' + name, **options)
             value = wrapper.start(); self.addCleanup(wrapper.stop)
             setattr(self, name.replace('.', '_'), value)
-        self.slot = OriginalWorkerSlot(self.funding, self.path)
+        self.slot = OriginalWorkerSlot(self.funding, str(self.path))
     def test_missing_funding_and_unselected_path_refuse_without_kernel_io(self):
         with self.assertRaises(LocalWorkerFundingUnavailable): OriginalWorkerSlot(None, self.path)
         with self.assertRaises(ValueError): OriginalWorkerSlot(self.funding, Path('relative'))

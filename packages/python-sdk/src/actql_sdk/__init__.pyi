@@ -2,6 +2,7 @@ from dataclasses import dataclass as _dataclass
 from collections.abc import AsyncIterator, Awaitable, Callable, Iterator, Mapping
 from typing import Any, Generic, Literal, Protocol, TypeAlias, TypeVar, overload
 from ssl import SSLContext
+from os import PathLike as _PathLike
 from ._run_state import RunState as RunState
 from ._check_observation import CheckReport as CheckReport, CheckReason as CheckReason
 from httpx import AsyncBaseTransport
@@ -74,7 +75,7 @@ class Signer:
 
 class AsyncClient:
     @classmethod
-    async def open(cls, *, signer: Signer | None = ...) -> AsyncClient: ...
+    async def open(cls, *, state_dir: str | _PathLike[str] | None = ..., signer: Signer | None = ...) -> AsyncClient: ...
     @classmethod
     async def connect(cls, endpoint: str, token: Token = ..., *, workspace_id: str | None = ..., durability: Literal["durable", "volatile"] = ..., verify: bool | SSLContext = ..., timeout: float = ..., transport: AsyncBaseTransport | None = ..., signer: Signer | None = ...) -> AsyncClient: ...
     @property
@@ -141,7 +142,7 @@ class AsyncReader(AsyncIterator[_T]):
 
 class Client:
     @classmethod
-    def open(cls, *, signer: Signer | None = ...) -> Client: ...
+    def open(cls, *, state_dir: str | _PathLike[str] | None = ..., signer: Signer | None = ...) -> Client: ...
     @classmethod
     def connect(cls, endpoint: str, token: Token = ..., *, workspace_id: str | None = ..., durability: Literal["durable", "volatile"] = ..., verify: bool | SSLContext = ..., timeout: float = ..., transport: AsyncBaseTransport | None = ..., signer: Signer | None = ...) -> Client: ...
     @property

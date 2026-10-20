@@ -221,6 +221,7 @@ class WaitSyncTests(unittest.TestCase):
 class LocalWaitRefusalTests(unittest.IsolatedAsyncioTestCase):
     async def test_missing_local_condition_supplier_never_falls_through_to_status(self):
         # A source-only entry counter, not an installed Host or a Core grant.
+        from contextlib import nullcontext
         from threading import RLock
         from types import SimpleNamespace
         from unittest.mock import Mock, patch
@@ -228,7 +229,7 @@ class LocalWaitRefusalTests(unittest.IsolatedAsyncioTestCase):
         from actql_sdk._values import wire_bytes
         host = object.__new__(InstalledLocalHost)
         host._physical_work = []
-        host._core = SimpleNamespace(_lock=RLock())
+        host._core = SimpleNamespace(_lock=RLock(), _host_operation=nullcontext)
         select = Mock(side_effect=AssertionError('No original Run lookup is permitted'))
         with patch.object(host, '_active'), patch.object(host, '_select_original_run', select):
             for until, since in [(None, 0), (None, 7), ('checkpoint', None), ('checkpoint', 7)]:

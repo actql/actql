@@ -7,14 +7,19 @@ numerical profile is adopted here. Missing inputs refuse before physical start.
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from ._local_core import LocalCoreResources
-from ._local_distribution import LocalComponents
+if TYPE_CHECKING:
+    from ._local_core import LocalCoreResources
+    from ._local_distribution import LocalComponents
 
 
 class LocalWorkerFundingUnavailable(RuntimeError):
     """No complete original funding; spawn/DLL/Config/Engine must not start."""
+
+    def __init__(self, message: str, *, cleanup_preparation: object | None = None) -> None:
+        self.cleanup_preparation = cleanup_preparation
+        super().__init__(message)
 
 
 class LocalWorkerFundingPending(RuntimeError):
@@ -108,6 +113,10 @@ class OriginalWorkerFunding:
     def __init__(self, components: LocalComponents, supplier: _WorkerFundingSupplier | None,
                  *, limits: LocalCoreResources | None, retained: int | None,
                  execution: int | None) -> None:
+        # The unavailable-error port is part of the small initial prelude.
+        # Load the actual concrete resource types only at this funded caller.
+        from ._local_core import LocalCoreResources
+        from ._local_distribution import LocalComponents
         # Numbers and declarations never replace an actual installed supplier.
         if (type(components) is not LocalComponents or not isinstance(supplier, _WorkerFundingSupplier)
                 or type(limits) is not LocalCoreResources or not limits.valid()

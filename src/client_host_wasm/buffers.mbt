@@ -327,12 +327,13 @@ pub fn open(
     Err(_) => return -4
     Ok(capacity) => capacity
   }
-  // The trusted physical supplier funds bootstrap before constructing the VM.
-  // Project its separately declared Host lifetime allowance onto this same
-  // Root; this reservation cannot retroactively fund an unknown bootstrap.
+  // An explicit backed Host may project its separately held lifetime onto
+  // this Root. This reservation is allowance accounting, not an allocation
+  // or evidence about earlier runtime initialization.
   let host_capacity = if host_capacity_bytes == 0L {
-    // Raw buffer diagnostics cover their declared subset only. The installed
-    // product must supply its adopted baseline before physical initialization.
+    // Ordinary platform-managed initialization owns no whole-runtime arena.
+    // Real VM/transfer allowances remain above/below; an imported VM or native
+    // holding still uses its distinct original-backed entrance.
     None
   } else {
     match @resources.reserve_shared_capacity(root, host_capacity_bytes) {

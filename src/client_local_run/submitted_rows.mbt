@@ -125,6 +125,7 @@ pub fn prepare_local_submitted_run_rows(
       reference_wire,
       intent,
       run_admission=Some((plan.request, local_run_definition_cid(plan), 0L)),
+      run_state_observation=Some((0L, None)),
     ) {
     Ok(value) => value
     Err(issue) => return Err(Encoding(issue))

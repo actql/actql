@@ -426,8 +426,11 @@ pub fn retire_publication_observation(nonce : Int64, handle : Int) -> Int {
     .values()
     .any(child => {
       child.publication == handle &&
-      (child.projection is Some(ObservedIndex(_)) ||
-      child.projection is Some(ObservedRunState(_)))
+      (
+        child.projection is Some(ObservedIndex(_)) ||
+        child.projection is Some(ObservedRunState(_)) ||
+        child.projection is Some(SDKRunState(_, _))
+      )
     }) {
     return -9
   }

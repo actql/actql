@@ -2,12 +2,17 @@
 import copy
 from ctypes import c_void_p
 import pickle
+import os
+from threading import current_thread
 from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
 
 from actql_sdk._local_native_control_custody import (
     _OriginalControlCustody, _OriginalControlError, _OriginalControlFunctions,
+)
+from actql_sdk._local_native_initial_custody import (
+    _OriginalPythonNativeInitial, _PythonNativeInitialPending,
 )
 
 
@@ -86,6 +91,21 @@ class Fixture:
 
 
 class OriginalControlCustodyTests(unittest.TestCase):
+    def python_initial(self, fixture):
+        # ABI-port fixture only: no actual Native Runtime, allocator original
+        # or operational supplier is issued by these controlled callbacks.
+        value = _OriginalPythonNativeInitial.__new__(_OriginalPythonNativeInitial)
+        value._original = value
+        value._process, value._thread = os.getpid(), current_thread()
+        value._functions = SimpleNamespace(library=fixture.library,
+            restore=Function(lambda _: fixture.events.append(('restore_initial',)) or 1))
+        value._control_host = None
+        value._initial = SimpleNamespace(require_cleanup_service=lambda: None)
+        value._slot = c_void_p(99)
+        value._busy = value._call_failed = value._unknown = value._restored = False
+        value._pending = _PythonNativeInitialPending(value)
+        return value
+
     def prepare(self, fixture, **changes):
         arguments = dict(source='a' * 40, recipe=b'r' * 32, generation=1, size=65536,
                          work=2, attempts=1, holdings=1, transfer=0, retained=0,
@@ -113,6 +133,79 @@ class OriginalControlCustodyTests(unittest.TestCase):
         self.assertIsNone(host._borrowed_fd)
         host.close()
         self.assertTrue(host._closed)
+
+    def test_python_host_keeps_initial_until_both_original_host_references_close(self):
+        f = Fixture(); self.preparation(f)
+        initial = self.python_initial(f)
+        with patch.object(_OriginalPythonNativeInitial, 'require_control_current'):
+            host = self.prepare(f, _python_initial=initial)
+            self.assertIs(initial._control_host, host)
+            self.assertIs(host._python_initial_original, initial)
+            with self.assertRaises(_PythonNativeInitialPending):
+                initial.restore_default()
+            self.assertNotIn(('restore_initial',), f.events)
+            f.pending = True
+            with self.assertRaises(_OriginalControlError):
+                host.close()
+            with self.assertRaises(_PythonNativeInitialPending):
+                initial.restore_default()
+            self.assertFalse(host._closed)
+            f.pending = False
+            host.close()
+            initial.restore_default()
+            self.assertTrue(initial._restored)
+            self.assertEqual(f.events.count(('physical_close', 101)), 1)
+            self.assertEqual(f.events.count(('restore_initial',)), 1)
+            # Closing/refusing one Host is not a fresh startup baseline.
+            with self.assertRaisesRegex(ValueError, 'already attempted'):
+                self.prepare(f, _python_initial=initial)
+            self.assertEqual(sum(x[0] == 'prepare' for x in f.events), 1)
+
+    def test_python_lost_host_preparation_retains_initial_and_same_partial_reply(self):
+        f = Fixture(); self.preparation(f, fault=OSError('lost Host preparation'))
+        initial = self.python_initial(f)
+        with patch.object(_OriginalPythonNativeInitial, 'require_control_current'):
+            with self.assertRaises(_OriginalControlError) as failure:
+                self.prepare(f, _python_initial=initial)
+            host = failure.exception.cleanup_host
+            self.assertIs(initial._control_host, host)
+            self.assertEqual(host._incoming.value, 11)
+            with self.assertRaises(_PythonNativeInitialPending):
+                initial.restore_default()
+            with self.assertRaises(_OriginalControlError):
+                host.close()
+            self.assertEqual(f.events, [('prepare', 1, 65536)])
+
+    def test_python_host_rejects_foreign_component_and_unavailable_current_before_prepare(self):
+        f = Fixture(); self.preparation(f)
+        initial = self.python_initial(Fixture())
+        with patch.object(_OriginalPythonNativeInitial, 'require_control_current') as current:
+            with self.assertRaisesRegex(ValueError, 'Foreign original Python'):
+                self.prepare(f, _python_initial=initial)
+            current.assert_not_called()
+        initial = self.python_initial(f)
+        with patch.object(_OriginalPythonNativeInitial, 'require_control_current',
+                          side_effect=ValueError('Original Runtime unavailable')):
+            with self.assertRaisesRegex(ValueError, 'Runtime unavailable'):
+                self.prepare(f, _python_initial=initial)
+        self.assertEqual(f.events, [])
+        self.assertIsNone(initial._control_host)
+
+    def test_python_normal_current_failure_keeps_same_host_cleanup(self):
+        f = Fixture(); self.preparation(f)
+        initial = self.python_initial(f)
+        with patch.object(_OriginalPythonNativeInitial, 'require_control_current'):
+            host = self.prepare(f, _python_initial=initial)
+        with patch.object(_OriginalPythonNativeInitial, 'require_control_current',
+                          side_effect=ValueError('Original normal current changed')):
+            with self.assertRaisesRegex(ValueError, 'normal current changed'):
+                host.current()
+            # Same original cleanup does not revive normal current or invoke
+            # another prepare/acquire merely to dispose of retained references.
+            host.close()
+        self.assertTrue(host._closed)
+        self.assertNotIn(('current', 101), f.events)
+        self.assertEqual(f.events.count(('physical_close', 101)), 1)
 
     def test_lost_preparation_keeps_same_reply_and_never_calls_acquire_or_capture(self):
         f = Fixture(); primary = OSError('lost prepare reply'); self.preparation(f, fault=primary)

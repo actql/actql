@@ -15,14 +15,14 @@ RAW = b'{"original":"e\xcc\x81/~\\r\\n","null":null,"absent":{}}'
 
 
 class ProductPayloadIntentTests(unittest.TestCase):
-    def host(self, path):
+    def host(self, path, *, request_maximum='1024', foreign_request=False):
         fixture = result_fixture.SDKResultAssemblyTests()
         self.addCleanup(fixture.doCleanups)
         host, core, compute, preflight, publisher, calls, _ = fixture.host(path)
         results = host._execute_original_tasks(compute, preflight, publisher)
         publication = host._capture_original_results(compute, preflight, results)
         previous = core._call
-        requests, records, metadata, begun, confirmed = {}, {}, {}, set(), set()
+        requests, request_wires, records, metadata, begun, confirmed = {}, {}, {}, {}, set(), set()
         faults = {}
         def input_bytes(handle):
             for value in core._loans.values():
@@ -31,6 +31,8 @@ class ProductPayloadIntentTests(unittest.TestCase):
             self.fail('Missing original physical input')
         def call(family, name, *args):
             if family not in ('payload_request', 'payload_record'):
+                if family == 'buffer' and name == 'byte' and args[0] in request_wires:
+                    return request_wires[args[0]][args[1]]
                 if family == 'buffer' and name == 'byte' and args[0] in records:
                     return RAW[args[1]]
                 return previous(family, name, *args)
@@ -48,10 +50,22 @@ class ProductPayloadIntentTests(unittest.TestCase):
                 records[handle] = (args[1], args[0])
                 return handle
             if family == 'payload_request':
+                if name == 'length': return len(request_wires[args[0]])
                 if name == 'close':
                     self.assertFalse(any(request == args[0] for _, request in records.values()))
                     return core._cleanup(requests.pop(args[0]))
                 self.assertEqual(name, 'produce')
+                original = metadata[args[0]]
+                request_wires[args[0]] = json.dumps({
+                    'version': 'actql-publication-payload-request/0.1',
+                    'store_authority_cid': ('sha256:' + 'f' * 64 if foreign_request
+                                            else original['store_authority_cid']),
+                    'material_generation_cid': original['material_generation_cid'],
+                    'max_bytes': request_maximum, 'row_count': '1',
+                    **{key: 'sha256:' + 'c' * 64 for key in (
+                        'durable_codec_cid', 'logical_relation_cid', 'ordering_evidence_cid',
+                        'publication_attempt_cid', 'result_definition_cid', 'result_schema_cid')},
+                }).encode()
                 return 0
             if name == 'length': return len(RAW)
             if name == 'begin':
@@ -72,6 +86,34 @@ class ProductPayloadIntentTests(unittest.TestCase):
             return 0
         core._call = call
         return host, core, publication, calls, faults
+
+    def test_exact_original_request_amount_is_distinct_from_physical_store_limit(self):
+        with TemporaryDirectory(prefix='actql-payload-request-amount-') as directory:
+            host, core, publication, calls, _ = self.host(Path(directory))
+            held = host._prepare_original_payload(publication, 0)
+            self.assertEqual(held.maximum, 1024)
+            self.assertLess(held.maximum, host._installation._store._max_record_bytes)
+            reserve = next(args for family, name, args in calls
+                           if family == 'payload_request' and name == 'reserve')
+            source = next(value for value in core._loans.values() if value.handle == reserve[2])
+            self.assertEqual(json.loads(core._inputs[source.ticket].payload)['max_payload_bytes'],
+                             host._installation._store._max_record_bytes)
+            self.assertEqual(sum(family == 'payload_request' and name == 'produce'
+                                 for family, name, _ in calls), 1)
+            self.assertTrue(host.close())
+
+    def test_foreign_or_over_limit_original_request_retains_loan_before_record_or_capacity(self):
+        for options in ({'foreign_request': True}, {'request_maximum': '1048577'}):
+            with self.subTest(options=options), TemporaryDirectory(prefix='actql-payload-request-refused-') as directory:
+                host, core, publication, calls, _ = self.host(Path(directory), **options)
+                with self.assertRaises(ValueError): host._prepare_original_payload(publication, 0)
+                held = host._payloads[0]
+                self.assertEqual(held.maximum, 0)
+                self.assertIsNone(held.record)
+                self.assertIs(core._loans[held.request.ticket], held.request)
+                self.assertFalse(any(family == 'payload_record' for family, _, _ in calls))
+                self.assertFalse(host._payload_capacity_attempts)
+                self.assertTrue(host.close())
 
     def row(self, host, held):
         store = host._installation._store

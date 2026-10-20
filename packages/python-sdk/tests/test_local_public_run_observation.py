@@ -16,7 +16,7 @@ from actql_sdk._local_commit_projection import OriginalCommitProjection
 from actql_sdk._values import wire_bytes
 import test_local_product_operation_port as operation_fixture
 
-STATE = {'version': 'actql-run-state/0.1', 'run_id': 'original-owned-run',
+STATE = {'version': 'actql-run-state/0.1', 'run_id': 'original-owned-run', 'revision': 0,
     'status': 'succeeded', 'updated_at': '2026-09-17T00:00:03.000Z',
     'next_action': {'kind': 'refresh_availability', 'results': ['answer']},
     'result_available': False, 'result_availability': {'answer': {
@@ -54,11 +54,12 @@ class PublicRunObservationTests(unittest.IsolatedAsyncioTestCase):
                 return core._cleanup(ticket)
             return previous(family, name, *args)
         core._call = call
-        def project(candidate, consume):
+        def project(original_run, candidate, consume):
+            self.assertIs(original_run, run)
             self.assertIs(candidate, projection)
             calls.append(('opaque_fixture', 'state', ()))
             consume(supplied['wire'])
-        selected = patch.object(host, '_project_original_run_state', side_effect=project)
+        selected = patch.object(host, '_project_original_sdk_run_state', side_effect=project)
         selected.start()
         self.addCleanup(selected.stop)
         # This public-wire fixture supplies opaque Core state only. The real
@@ -88,9 +89,10 @@ class PublicRunObservationTests(unittest.IsolatedAsyncioTestCase):
             before = len(events)
             self.assertEqual((await execution.status()).to_dict(), STATE)
             self.assertEqual((await execution.wait()).to_dict(), STATE)
-            self.assertEqual(sum(name == 'inspect' for _, name in events[before:]), 2)
-            self.assertEqual(sum(name == 'validate_run' for _, name, _ in calls), 4)
-            self.assertEqual(sum(name == 'lookup' for _, name, _ in calls), 2)
+            self.assertEqual((await execution.wait(until='terminal')).to_dict(), STATE)
+            self.assertEqual(sum(name == 'inspect' for _, name in events[before:]), 3)
+            self.assertEqual(sum(name == 'validate_run' for _, name, _ in calls), 6)
+            self.assertEqual(sum(name == 'lookup' for _, name, _ in calls), 3)
             self.assertIs(host._run_loans[0], run)
             self.assertFalse(host._response_streams)
             self.assertFalse(any(family in ('source', 'task', 'compute') for family, _ in events[before:]))
@@ -174,4 +176,5 @@ class SyncPublicRunObservationTests(unittest.TestCase):
                 fixture.publication(host, core, execution._execution)
                 self.assertEqual(execution.status().to_dict(), STATE)
                 self.assertEqual(execution.wait().to_dict(), STATE)
+                self.assertEqual(execution.wait(until='terminal').to_dict(), STATE)
             self.assertTrue(core._closed)

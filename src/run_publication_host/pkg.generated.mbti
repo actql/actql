@@ -1057,6 +1057,10 @@ pub fn client_run_journal_append_rows(ClientRunJournalAppend) -> (String, Bytes,
 
 pub fn client_run_journal_row_body(ClientRunJournalEncoding, local_run_policy_originals? : String?, run_observation_originals? : String?) -> Result[Bytes, ClientJournalEncodingIssue]
 
+pub fn client_saved_run_state_update_candidate_wire(ClientSavedRunStateUpdate) -> String
+
+pub fn client_saved_run_state_update_row(ClientSavedRunStateUpdate) -> (String, Int64, Int64, Bytes)
+
 pub fn client_saved_submission_admission_wire(ClientSavedSubmissionSnapshot) -> Result[String, ClientSavedSubmissionViewIssue]
 
 pub fn client_saved_submission_record(ClientSavedSubmissionSnapshot) -> ClientSubmittedJournalEncoding
@@ -1280,6 +1284,8 @@ pub fn complete_client_serialization_generation(ClientCompiledRun, @run_publicat
 pub fn complete_client_serialization_output(ClientSerializationInput, @run_publication.GeneratedContentReference, @value_admission.CheckedValue, () -> Bool, @execution_relation.ValueLimits, Int) -> Result[@execution_relation.CompletedOutput, ClientSerializationOutputIssue]
 
 pub fn confirm_client_run_cancellation(ClientRunCancellationFacts) -> Bool
+
+pub fn confirm_client_saved_run_state_update(ClientSavedRunStateUpdate, ClientSavedSubmissionSnapshot) -> Result[String, ClientSavedRunStateUpdateIssue]
 
 pub fn consume_client_model_resource_invalidation(@physical_resources.OriginalResourceInvalidationRequest[ClientModelReadOrigin], @physical_resources.OriginalResourcePark[ClientModelReadOrigin], ClientModelReadScope, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph) -> Result[Unit, ClientModelReadPreparationIssue]
 
@@ -1743,6 +1749,8 @@ pub fn prepare_client_run_start(ClientRequestIdentity, ClientRequestIdentity, @r
 
 pub fn prepare_client_run_state_original(@run_publication.PublicationContract, @run_publication.PublicationContract, String) -> Result[ClientRunStateOriginal, ClientJournalDecodingIssue]
 
+pub fn prepare_client_saved_run_state_update(ClientSavedSubmissionSnapshot, ClientRequestIdentity, @run_publication.PublicationContract, @run_publication.PublicationContract, String) -> Result[ClientSavedRunStateUpdate, ClientSavedRunStateUpdateIssue]
+
 pub fn prepare_client_serialization(PreparedClientProgram, Int, Int, max_work~ : Int) -> Result[@lowering_relation.PreparedSerialization, ClientSerializationPreparationIssue]
 
 pub fn prepare_client_source_computation(ClientSubmittedIntent, @program_check.CheckEnvironment, String) -> Result[ClientSourcePreparation, ClientSourcePreparationIssue]
@@ -2078,6 +2086,8 @@ pub fn validate_client_retained_input_transfer_current(ClientRetainedInputProduc
 pub fn validate_client_retained_task_input_current(ClientRetainedTaskInput, ClientRetainedInputCurrent) -> Result[Unit, ClientRetainedTaskInputIssue]
 
 pub fn validate_client_run_binding(ClientRequestIdentity, PreparedClientProgram, ClientCompiledRun, @run_publication.PublicationContract) -> Result[Unit, ClientRunBindingIssue]
+
+pub fn validate_client_saved_run_state_update_original(ClientSavedRunStateUpdate, ClientSavedSubmissionSnapshot) -> Result[Unit, ClientSavedRunStateUpdateIssue]
 
 pub fn validate_client_submitted_retained_run(ClientSubmissionReferenceRecord, (ClientRequestIdentity, String, Int64), ClientRequestIdentity, @run_publication.PublicationContract, Int64) -> Result[Unit, ClientJournalDecodingIssue]
 
@@ -3862,6 +3872,26 @@ pub(all) enum ClientRunStartIssue {
 type ClientRunStateOriginal
 pub fn ClientRunStateOriginal::state_wire(Self) -> String
 pub fn ClientRunStateOriginal::wire(Self) -> String
+
+pub struct ClientSavedRunStateUpdate {
+  request : ClientRequestIdentity
+  definition_cid : String
+  key : String
+  prior_revision : Int64
+  prior_body : Bytes
+  revision : Int64
+  body : Bytes
+  state : ClientRunStateOriginal
+}
+
+pub(all) enum ClientSavedRunStateUpdateIssue {
+  OriginalUnavailable
+  ForeignRun
+  RevisionExhausted
+  Observation(@run_publication.RunStateObservationIssue)
+  State(ClientJournalDecodingIssue)
+  Encoding(ClientJournalEncodingIssue)
+} derive(Eq, @debug.Debug)
 
 pub struct ClientSavedSubmissionSnapshot {
   record : ClientSubmittedJournalEncoding

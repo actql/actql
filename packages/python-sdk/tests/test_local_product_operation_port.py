@@ -27,8 +27,8 @@ PORT_INTENT = b'{"kind":"aql","input":{"text":"/*\xf0\x9f\x98\x80*/\\r\\nSELECT 
 
 
 class LocalOperationPortTests(unittest.IsolatedAsyncioTestCase):
-    def host(self, path):
-        selected = patch.object(input_fixture, 'INTENT', PORT_INTENT)
+    def host(self, path, intent=PORT_INTENT):
+        selected = patch.object(input_fixture, 'INTENT', intent)
         selected.start()
         self.addCleanup(selected.stop)
         fixture = assembly_fixture.FiniteRunAssemblyTests()
@@ -83,6 +83,33 @@ class LocalOperationPortTests(unittest.IsolatedAsyncioTestCase):
             self.assertIs(host._pending_run_write, host._row_outputs[-1])
             self.assertFalse(any(family in ('journal', 'compute', 'task', 'publication') for family, _ in events))
             await client.aclose()
+
+    async def test_original_optional_restrictions_reach_same_admission_and_fingerprint(self):
+        for choices in ({'readOnly': True}, {'stopBefore': 'commit'},
+                        {'stopBefore': 'commit', 'readOnly': True}):
+            with self.subTest(choices=choices), TemporaryDirectory(prefix='actql-operation-choice-') as directory:
+                original = json.loads(PORT_INTENT) | choices
+                expected = json.dumps(original, ensure_ascii=False, separators=(',', ':')).encode()
+                host, core, events, _ = self.host(Path(directory), expected)
+                client = await AsyncClient._connect_local(host)
+                options = {}
+                if 'readOnly' in choices:
+                    options['read_only'] = choices['readOnly']
+                if 'stopBefore' in choices:
+                    options['stop_before'] = choices['stopBefore']
+                with patch.object(host, '_accept_original', wraps=host._accept_original) as accept:
+                    result = await client.start_source(original['input']['text'], format='sql',
+                        parameters=original['parameters'],
+                        submission_ref=client.new_submission(nonce='original'),
+                        attempt_id='original-invocation', **options)
+                self.assertEqual(accept.call_count, 1)
+                self.assertEqual(json.loads(accept.call_args.args[1]), original)
+                preimage = json.dumps({'intent': original, 'version': 'actql-submitted-intent/0.1'},
+                    ensure_ascii=False, sort_keys=True, separators=(',', ':')).encode()
+                self.assertEqual(result.submission['intentCid'], 'sha256:' + hashlib.sha256(preimage).hexdigest())
+                self.assertEqual(events.count(('run', 'prepare_sdk')), 1)
+                await client.aclose()
+                self.assertTrue(core._closed)
 
     async def test_cancelled_public_start_keeps_worker_response_and_run_until_actual_stop(self):
         with TemporaryDirectory(prefix='actql-operation-worker-') as directory:
