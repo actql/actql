@@ -125,6 +125,16 @@ receipt file preserves the authored order of successful existing receipt
 objects without claiming an atomic aggregate outcome. Business success,
 physical cleanup and unresolved delivery remain separate observations.
 
+A public Program `run` submits once before forwarding any requested output to
+the same saved-Result/File path. Input representation and output encoding remain
+separate; `--output` selects JSONL while each `--deliver` item selects its format.
+The Run receipt is the existing commit view's original `run_receipt` contract,
+retained by the same accepted publication observation. Export rechecks independent
+current RunRead and excludes Host/Store namespaces. It does not issue another
+receipt, substitute a Result delivery receipt, certify aggregate output success,
+or make an uncommitted/Unknown Run committed. The original observation and every
+partial export child remain with existing command cleanup until their own ACKs.
+
 ## Ordinary product startup boundary
 
 The [ordinary Embedded Host contract](../spec/execution.md#initial-node-control-preparation)

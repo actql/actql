@@ -36,6 +36,7 @@ priv struct LocalCommandBusinessOriginal {
   mut publication_cleanup_failure : @local_publication.NativeCapturedRunPublicationCancellationIssue?
   mut publication_attempted : Bool
   mut publication_result : @local_publication.NativeRunPublicationResult?
+  mut run_receipt_original : @local_host.NativeLocalObservedRunState?
   mut publication_retired : Bool
   // Retain the original payload path before poll/return/close can fail.
   // These aliases do not acknowledge a Store, domain or delivery receipt.

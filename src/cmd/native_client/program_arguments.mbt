@@ -10,6 +10,12 @@ fn normalize_native_program_arguments(
   }
   if operation == "run" {
     ignore(native_requested_stop_before(child))
+    let directory = @env.current_dir().unwrap_or_else(() => {
+      stop("ProjectConfigurationDirectoryUnavailable")
+    })
+    ignore(
+      local_result_delivery_selection(child, directory, run_presentation=true),
+    )
   }
   if operation == "explain" && optional(child, "run") is Some(id) {
     if id.is_empty() || @utf8.encode(id).length() > 4096 {

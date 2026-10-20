@@ -188,6 +188,7 @@ fn prepare_local_command_preparation_original(
       publication_cleanup_failure: None,
       publication_attempted: false,
       publication_result: None,
+      run_receipt_original: None,
       publication_retired: false,
       result_binding: None,
       result_service: None,
