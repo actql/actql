@@ -92,7 +92,7 @@ import {installedRunWaitDecision, issueInstalledRunObservationKey,
 import {installedEffectIdentity, installedEffectPaths, loadInstalledEffects,
   publishInstalledEffectProfile} from
   './installed-effect.mjs';
-import {installedEffectFor, installedUpdateTargets} from './installed-effect-inventory.mjs';
+import {composeInstalledEffects, installedEffectFor, installedUpdateTargets} from './installed-effect-inventory.mjs';
 import {installedRowEffectDescriptors, validateInstalledUpdateOwnerSelections}
   from './installed-row-effect.mjs';
 import {installUpdateTargetOriginals} from './installed-update-originals.mjs';
@@ -1099,6 +1099,25 @@ async function openInstalledHost(originalInstallation, preparation) {
     if (!mockSourceInstallation) {
       installedEffect = await loadInstalledEffects(selectedEffectPaths, {root, principalId, moon,
         runtimeUrl, baseEnvironmentWire, resolveSecret: resolveEffectSecret, connectorTable});
+      if (installationSourcePreparation !== undefined) {
+        const projectEffects = await preparation.installProjectEffects(moon, baseEnvironmentWire,
+          () => createLocalAuthorizationGate({...authorization, principal: principalId}),
+          principalId, localFileEffectResources, sourceProfile.connectorBindings);
+        if (installedEffect === undefined) installedEffect = projectEffects;
+        else {
+          // Both returned inventories own their original installations. Reuse
+          // the existing composition/cleanup path without loading profiles or
+          // reconstructing another Site from matching selector DATA.
+          const inventories = [installedEffect, projectEffects];
+          const combined = await composeInstalledEffects(
+            inventories.flatMap(effect => effect.effects ?? [effect]),
+            {moon, baseEnvironmentWire}, async (effect, _options, retain) => {
+              retain(effect); return effect;
+            });
+          installedEffect = Object.freeze({...combined, queryStoreTargets: Object.freeze(
+            inventories.flatMap(effect => effect.queryStoreTargets ?? []))});
+        }
+      }
     } else {
       if (selectedEffectPaths.length !== 0 || effectInstallation !== undefined) {
         throw clientOperationError('InstalledMockEffectProfileConflict');
@@ -2810,6 +2829,7 @@ async function openInstalledHost(originalInstallation, preparation) {
             openComputation: async ({retainComputationOwner} = {}) => {
               facts.assertUpdateSelectionCurrent?.();
               if (inferSelections.has(facts.prepared) ||
+                  moon.clientProgramEffectSerializationOccurrences(facts.prepared).length > 0 ||
                   moon.clientProgramEffectAcquisitionCount(facts.prepared) > 0) {
                 let ownedModelToken;
                 try {
@@ -2944,8 +2964,9 @@ async function openInstalledHost(originalInstallation, preparation) {
         catch (cause) { throw clientOperationError('ClientProgramUnsupported', cause); }
       },
       resultPolicyOriginalFor: prepared => {
-        if (!inferSelections.has(prepared) ||
-            moon.clientProgramEffectAcquisitionCount(prepared) !== 0) {
+        if (moon.clientProgramEffectAcquisitionCount(prepared) !== 0 ||
+            !inferSelections.has(prepared) &&
+              moon.clientProgramEffectSerializationOccurrences(prepared).length === 0) {
           return undefined;
         }
         if (installedResultDataPolicy === undefined) {
@@ -2981,6 +3002,7 @@ async function openInstalledHost(originalInstallation, preparation) {
           storeAuthorityCid, now, resultDataPolicy: retainedResultDataPolicy,
           queryTimePreparation, queryTime, identity};
         return inferSelections.has(prepared) ||
+          moon.clientProgramEffectSerializationOccurrences(prepared).length > 0 ||
           moon.clientProgramEffectAcquisitionCount(prepared) > 0
           ? acquiredEffectPublicationAdmission(options)
           : sourceFreeEffectPublicationPlan(options);

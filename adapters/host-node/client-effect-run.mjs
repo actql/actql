@@ -75,6 +75,7 @@ export function installNodeClientEffectRun({moon,
   };
   const handles = new WeakMap();
   const compilations = new WeakMap();
+  const contentPolicies = new WeakMap();
   const compile = prepared => {
     if (prepared === null || typeof prepared !== 'object') throw denied();
     let compilation = compilations.get(prepared) ?? updateTargetOriginals?.compilationFor(prepared);
@@ -83,12 +84,28 @@ export function installNodeClientEffectRun({moon,
       return compilation;
     }
     const infer = inferPlanFor?.(prepared);
-    const outcome = infer === undefined
+    let contentPolicy;
+    if (infer === undefined && typeof moon.clientProgramEffectSerializationOccurrences === 'function' &&
+        moon.clientProgramEffectAcquisitionCount(prepared) === 0 &&
+        moon.clientProgramEffectSerializationOccurrences(prepared).length > 0) {
+      contentPolicy = resultPolicyOriginalFor?.(prepared);
+    }
+    let outcome;
+    if (contentPolicy !== undefined) {
+      if (contentPolicy?.kind !== 'data_policy' || typeof contentPolicy.cid !== 'string' ||
+          typeof contentPolicy.wire !== 'string' ||
+          typeof moon.clientProgramCompileLocalEffectsWithSourceFreePolicyBody !== 'function') {
+        throw new TypeError('InvalidHostResultDataPolicy');
+      }
+      outcome = moon.clientProgramCompileLocalEffectsWithSourceFreePolicyBody(prepared,
+        contentPolicy.cid, contentPolicy.wire, limits.maxWireBytes, limits.maxNodes, limits.maxDepth);
+    } else outcome = infer === undefined
       ? moon.clientProgramCompileLocalEffects(prepared)
       : moon.clientProgramCompileLocalEffectsWithInfer(prepared, infer);
     if (moon.clientProgramEffectCompilationIssueCode(outcome) ===
         'unsupported_program') throw unsupported();
     compilation = checked(outcome);
+    if (contentPolicy !== undefined) contentPolicies.set(prepared, contentPolicy);
     validateInstallation?.({prepared, compilation});
     compilations.set(prepared, compilation);
     return compilation;
@@ -183,7 +200,7 @@ export function installNodeClientEffectRun({moon,
             : queryTimeCall(2, [queryTimePreparation]);
           // The installed Host selects an actual Result policy original before
           // this new Run is recorded. A retained Run reuses its saved original.
-          const resultPolicyOriginal = resultPolicyOriginalFor?.(prepared);
+          const resultPolicyOriginal = contentPolicies.get(prepared) ?? resultPolicyOriginalFor?.(prepared);
           const allowed = checked(moon.clientProgramIssueAllowedEffectRun(
             compiled(), policy.executionContextCid, policy.hostPolicyCid,
             policy.expiresAt));
