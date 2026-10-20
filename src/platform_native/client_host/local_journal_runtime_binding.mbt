@@ -128,3 +128,28 @@ pub fn NativeLocalJournalCapture::require_packaged_runtime_upgrade_in_original_r
     }
   })
 }
+
+///|
+/// The original selected cohort needs no historical replacement pair. Keep
+/// the existing pure no-pair result after actual Runtime/current observation;
+/// historical pair routes still require their unsupported original witness.
+pub fn NativeLocalJournalCapture::runtime_submission_assets_in_original_read(
+  self : NativeLocalJournalCapture,
+  reference : NativeClientSubmissionReference,
+  preparation : NativeClientSubmittedPreparation,
+  max_work : Int,
+) -> Result[NativeLocalRuntimeSubmission, NativeLocalAdoptionIssue] {
+  self.with_runtime_binding_access((host, access) => {
+    guard host.packaged_runtime is Some(binding) &&
+      local_runtime_binding_current_with_access(binding, access) else {
+      return Err(CustodyLost)
+    }
+    if binding.pair is Some(_) {
+      return Err(UnsupportedPreparation)
+    }
+    // This exact existing branch performs no SQL, epoch or Runtime acquisition.
+    host.packaged_runtime_assets_for_submission(
+      reference, preparation, max_work,
+    )
+  })
+}

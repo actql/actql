@@ -78,6 +78,25 @@ class LocalHostFilePinsTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 pins.original_bytes(copy.copy(value))
 
+    def test_group_current_requires_exact_members_before_physical_observation(self):
+        _, _, _, pins = self.fixture()
+        original = pins.read_original('account.json', max_bytes=11)
+        _, _, _, foreign = self.fixture()
+        other = foreign.read_original('account.json', max_bytes=11)
+        self.assertIsNone(pins.require_current_originals((original,)))
+        with patch.object(pins._root, 'observe_original',
+                          side_effect=AssertionError('Invalid member reached observation')):
+            for candidate in (copy.copy(original), other):
+                with self.subTest(candidate=candidate), self.assertRaises(ValueError):
+                    pins.require_current_originals((candidate,))
+            with self.assertRaises(ValueError):
+                copy.copy(pins).require_current_originals((original,))
+            with self.assertRaises(ValueError):
+                pins.require_current_originals((original,) * 3)
+        self.assertTrue(pins.close())
+        with self.assertRaises(ValueError):
+            pins.require_current_originals((original,))
+
     def test_failed_acquisition_preserves_same_reader_for_explicit_cleanup(self):
         path, root, _, pins = self.fixture()
         with patch('actql_sdk._local_files.os.fstat', side_effect=OSError('original observation unknown')):

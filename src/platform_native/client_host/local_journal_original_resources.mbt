@@ -8,6 +8,8 @@ priv struct NativeLocalJournalOriginalResources {
   read : @arena.InstalledArenaOriginalRead
   mut active_phase : @arena.InstalledArenaLocalHostPhase?
   mut interrupted : Bool
+  // One existing original flight, retained through a failed switch.
+  mut store_operation : NativeLocalStoreOperationReceiver?
 }
 
 ///|
@@ -34,9 +36,11 @@ pub fn prepare_native_local_journal_capture_with_original_resources(
       read,
       active_phase: None,
       interrupted: false,
+      store_operation: None,
     }),
     command_preparation_journal: false,
     initial_signing: None,
+    read_callback_active: false,
     read_operation_issue: None,
     opening_database: None,
     opening_physical_failure: None,
@@ -128,6 +132,30 @@ fn[T] NativeLocalJournalOriginalResources::stage(
 ///|
 // Cleanup retries only this original pending leave, never the protected stage.
 fn NativeLocalJournalOriginalResources::finish_pending_leave(
+  self : NativeLocalJournalOriginalResources,
+) -> Result[Unit, NativeLocalAdoptionIssue] {
+  if self.store_operation is Some(_) {
+    return Err(OriginalResourceScopePending)
+  }
+  self.finish_owned_pending_leave()
+}
+
+///|
+// The same flight alone may recover its pending original phase. A refused
+// second receiver cannot retire the first receiver's Read, SQL or business.
+fn NativeLocalJournalOriginalResources::finish_pending_store_leave(
+  self : NativeLocalJournalOriginalResources,
+  receiver : NativeLocalStoreOperationReceiver,
+) -> Result[Unit, NativeLocalAdoptionIssue] {
+  guard self.store_operation is Some(original) &&
+    physical_equal(original, receiver) else {
+    return Err(OriginalResourceScopePending)
+  }
+  self.finish_owned_pending_leave()
+}
+
+///|
+fn NativeLocalJournalOriginalResources::finish_owned_pending_leave(
   self : NativeLocalJournalOriginalResources,
 ) -> Result[Unit, NativeLocalAdoptionIssue] {
   if self.active_phase is Some(_) {

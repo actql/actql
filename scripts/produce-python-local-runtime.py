@@ -22,7 +22,7 @@ from typing import Any, cast
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'packages/python-sdk/src'))
 from actql_sdk._local_wasm_abi import LOCAL_CORE_ABI  # noqa: E402
-from actql_sdk._local_distribution import WASMTIME_VERSION, _pairs, _read_file, _valid_image_header  # noqa: E402
+from actql_sdk._local_distribution import WASMTIME_VERSION, DUCKDB_VERSION, _pairs, _read_file, _valid_image_header  # noqa: E402
 from actql_sdk._local_image_recipe import _SelectedImageRecipe, _recipe_from_original  # noqa: E402
 
 _spec = importlib.util.spec_from_file_location(
@@ -214,11 +214,12 @@ def physical_core_cohort(selected: _SelectedImageRecipe, image_sha256: str) -> d
             and all(c in '0123456789abcdef' for c in image_sha256),
             'Original selected-image physical cohort is unavailable')
     selected.validate()
+    provider_digest, _ = selected.owned_provider()
     return {'execution_kind': 'selected_precompiled_image',
         'module_sha256': selected.module_sha256, 'image_sha256': image_sha256,
         'engine_sha256': hashlib.sha256(selected.engine_body).hexdigest(),
         'runtime_library_sha256': selected.runtime_library_sha256,
-        'provider_library_sha256': selected.provider_library_sha256}
+        'provider_library_sha256': provider_digest}
 
 
 def verify_original_core(root: Path, core: dict[str, Any], source: str) -> str:
@@ -270,9 +271,10 @@ def verify_original_image(image: dict[str, Any], selected: _SelectedImageRecipe,
     original fields, recipe, bytes and binary-target checks. This does not load
     a DLL, issue final components or accept a compiler receipt as physical work.
     """
-    require(set(image) == {'source_sha', 'module_sha256', 'core_abi', 'wasmtime_version',
+    fields = {'source_sha', 'module_sha256', 'core_abi', 'wasmtime_version',
         'runtime_library_sha256', 'provider_library_sha256', 'engine_sha256', 'image', 'image_sha256',
-        'compiled', 'runtime_executed', 'public_local_acceptance'},
+        'compiled', 'runtime_executed', 'public_local_acceptance'}
+    require(set(image) == fields | ({'runtime_allocation'} if selected.runtime_allocation == 'platform' else set()),
         'Select the original compiled-image production receipt')
     engine_hash = hashlib.sha256(selected.engine_body).hexdigest()
     require(image['source_sha'] == source and image['module_sha256'] == digest
@@ -280,6 +282,7 @@ def verify_original_image(image: dict[str, Any], selected: _SelectedImageRecipe,
         and image['wasmtime_version'] == WASMTIME_VERSION
         and image['runtime_library_sha256'] == selected.runtime_library_sha256
         and image['provider_library_sha256'] == selected.provider_library_sha256
+        and image.get('runtime_allocation', 'native-owned') == selected.runtime_allocation
         and image['engine_sha256'] == engine_hash and image['compiled'] is True
         and image['runtime_executed'] is False and image['public_local_acceptance'] is False,
         'Compiled image receipt does not match the selected original recipe')
@@ -293,6 +296,81 @@ def verify_original_image(image: dict[str, Any], selected: _SelectedImageRecipe,
                         expected=image_size, digest=image_hash, prefix=20)
     require(_valid_image_header(header, image_size), 'Incompatible original image binary target')
     return image_path, image_item
+
+
+def produce_platform(core_receipt: Path, duckdb_receipt: Path,
+                     image_receipt: Path, destination: Path) -> dict[str, object]:
+    """Prepare ordinary components, never relabel a private physical receipt.
+
+    The actual module/compiler/link and image belong to this exact source.
+    The unchanged standalone DuckDB library keeps its original receipt/source;
+    packaging does not promote that execution to this Host or a public Run.
+    """
+    source = clean_source()
+    core, core_hash = read_receipt(core_receipt)
+    digest = verify_original_module(ROOT, core, source)
+    image, image_hash = read_receipt(image_receipt)
+    duckdb, duckdb_hash = read_receipt(duckdb_receipt)
+    require(set(duckdb) == {'source_sha', 'library', 'library_sha256', 'library_version',
+        'python', 'platform', 'machine', 'tests', 'success', 'module_source',
+        'workspace_selection', 'public_local_acceptance', 'wheel_acceptance'},
+        'Select the original standalone DuckDB component receipt')
+    require(duckdb['success'] is True and type(duckdb['tests']) is int and duckdb['tests'] == 20
+        and duckdb['machine'] == 'arm64' and duckdb['module_source'] is None
+        and duckdb['workspace_selection'] is False and duckdb['public_local_acceptance'] is False
+        and duckdb['wheel_acceptance'] is False and duckdb['library_version'] == DUCKDB_VERSION,
+        'Standalone DuckDB original component does not match')
+    original = recipe.image_recipe_original(ROOT, source, runtime_allocation='platform')
+    version = recipe.read_cohort(ROOT)
+    selected = _recipe_from_original(original, source_sha=source,
+        package_version=version, module_sha256=digest)
+    image_path, image_item = verify_original_image(image, selected, source, digest)
+    module, library = Path(core['module']), Path(duckdb['library'])
+    recipe_path = ROOT / 'packages/python-local-runtime/selected-platform-image-recipe.json'
+    recipe_hash = hashlib.sha256(original).hexdigest()
+    image_body = {'source_sha': source, 'package_version': version,
+        'module_sha256': digest, 'core_abi': LOCAL_CORE_ABI,
+        'wasmtime_version': WASMTIME_VERSION, 'runtime_allocation': 'platform',
+        'runtime_library_sha256': selected.runtime_library_sha256,
+        'provider_library_sha256': None, 'platform': 'darwin-arm64',
+        'engine_body': json.loads(selected.engine_body),
+        'engine_sha256': hashlib.sha256(selected.engine_body).hexdigest(), **image_item}
+    notices = recipe.notice_originals()
+    notice_hashes = {name: hashlib.sha256(_read_file(path, maximum=1024 * 1024)).hexdigest()
+                     for name, path in notices.items()}
+    body = {'source_sha': source, 'package_version': version, 'platform': 'darwin-arm64',
+        'core_abi': LOCAL_CORE_ABI, 'wasmtime_version': WASMTIME_VERSION,
+        'module': component(module, digest, 32 * 1024 * 1024, 'client_host_wasm.wasm'),
+        'duckdb': component(library, duckdb['library_sha256'], 128 * 1024 * 1024, 'libduckdb.dylib'),
+        'duckdb_version': DUCKDB_VERSION, 'notices': notice_hashes,
+        'compiled_image': image_body,
+        'engine_recipe': component(recipe_path, recipe_hash, 65536, 'engine-recipe.json')}
+    recipe.library_target(library)
+    destination.mkdir()
+    copies = {'client_host_wasm.wasm': (module, 32 * 1024 * 1024, digest),
+        'client_host_wasm.cwasm': (image_path, selected.image_bytes_limit, image_item['sha256']),
+        'engine-recipe.json': (recipe_path, 65536, recipe_hash),
+        'libduckdb.dylib': (library, 128 * 1024 * 1024, duckdb['library_sha256'])}
+    copies.update({name: (path, 1024 * 1024, notice_hashes[name]) for name, path in notices.items()})
+    for name, (path, maximum, checksum) in copies.items():
+        copy_original(path, destination / name, maximum, checksum)
+    wire = (json.dumps(body, indent=2) + '\n').encode('utf-8')
+    require(len(wire) <= 65536, 'Ordinary component manifest exceeds its limit')
+    (destination / 'artifact.json').write_bytes(wire)
+    recipe.verify_artifact(destination)
+    require(clean_source() == source and read_receipt(core_receipt)[1] == core_hash
+        and read_receipt(duckdb_receipt)[1] == duckdb_hash
+        and read_receipt(image_receipt)[1] == image_hash,
+        'Ordinary component inputs changed during preparation')
+    result: dict[str, object] = {'scope': 'ordinary_platform_components_only',
+        'source_sha': source, 'package_version': version, 'core_abi': LOCAL_CORE_ABI,
+        'artifact_sha256': hashlib.sha256(wire).hexdigest(),
+        'core_receipt_sha256': core_hash, 'image_receipt_sha256': image_hash,
+        'duckdb_receipt_sha256': duckdb_hash, 'duckdb_execution_source': duckdb['source_sha'],
+        'artifact': body, 'runtime_executed': False, 'wheel_built': False,
+        'public_local_accepted': False}
+    (destination / 'producer.json').write_text(json.dumps(result, indent=2) + '\n')
+    return result
 
 
 def produce(core_receipt: Path, duckdb_receipt: Path, image_receipt: Path, destination: Path) -> dict[str, object]:
@@ -330,7 +408,7 @@ def produce(core_receipt: Path, duckdb_receipt: Path, image_receipt: Path, desti
     selected = _recipe_from_original(original, source_sha=source,
         package_version=sdk['version'], module_sha256=digest)
     image_path, image_item = verify_original_image(image, selected, source, digest)
-    require(core['contract']['cohort'] == physical_core_cohort(selected, image_item['sha256']),
+    require(core['contract']['cohort'] == physical_core_cohort(selected, cast(str, image_item['sha256'])),
             'Core physical observations differ from the original compiled image')
     engine_hash = hashlib.sha256(selected.engine_body).hexdigest()
     image_body = {'source_sha': source, 'package_version': sdk['version'],
@@ -393,6 +471,7 @@ if __name__ == '__main__':
     parser.add_argument('--image-receipt', type=Path)
     parser.add_argument('--destination', type=Path, required=True)
     parser.add_argument('--record-module-original', action='store_true')
+    parser.add_argument('--platform-runtime', action='store_true')
     parser.add_argument('--source')
     parser.add_argument('--compiled-source')
     parser.add_argument('--module', type=Path)
@@ -400,6 +479,8 @@ if __name__ == '__main__':
     parser.add_argument('--moon-home', type=Path)
     args = parser.parse_args()
     if args.record_module_original:
+        if args.platform_runtime:
+            parser.error('Module correspondence does not select a runtime')
         if (not all((args.source, args.compiled_source, args.module, args.link_response, args.moon_home))
                 or any((args.core_receipt, args.duckdb_receipt, args.image_receipt))):
             parser.error('Select only the exact source/module/compiler/link originals')
@@ -419,4 +500,6 @@ if __name__ == '__main__':
         if (not all((args.core_receipt, args.duckdb_receipt, args.image_receipt))
                 or any((args.source, args.compiled_source, args.module, args.link_response, args.moon_home))):
             parser.error('Select all three original physical/component receipts')
-        print(json.dumps(produce(args.core_receipt, args.duckdb_receipt, args.image_receipt, args.destination)))
+        selected_producer = produce_platform if args.platform_runtime else produce
+        print(json.dumps(selected_producer(args.core_receipt, args.duckdb_receipt,
+            args.image_receipt, args.destination)))

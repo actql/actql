@@ -92,7 +92,7 @@ fn[Store, E] publication_binding_saved_rows(
   run : @host.ClientJournalPhysicalRow,
   submitted : @host.ClientJournalPhysicalRow,
 ) -> Result[
-  (@host.ClientRunJournalEncoding, String?),
+  (@host.ClientRunJournalEncoding, String?, String?),
   LocalRunPublicationBindingIssue[E],
 ] {
   match
@@ -111,11 +111,11 @@ fn[Store, E] publication_binding_saved_rows(
     Err(issue) => return Err(SavedRows(issue))
   }
   let decoded = match
-    @host.decode_client_run_journal_row_with_local_policy(run.body) {
+    @host.decode_client_run_journal_row_with_observation_originals(run.body) {
     Ok(value) => value
     Err(_) => return Err(CustodyLost)
   }
-  let (encoding, _) = decoded
+  let (encoding, _, _) = decoded
   if encoding.cancellation_requested ||
     encoding.checkpoint is Some(_) ||
     encoding.effect_material_originals is Some(_) {
@@ -184,7 +184,7 @@ pub fn[Store, E] prepare_local_run_publication_binding(
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
-  let (encoding, finite_policy) = match
+  let (encoding, finite_policy, observation_originals) = match
     publication_binding_saved_rows(original, run, submitted) {
     Ok(value) => value
     Err(issue) => return Err(issue)
@@ -216,6 +216,7 @@ pub fn[Store, E] prepare_local_run_publication_binding(
         publication_policy_originals: Some(policy),
       },
       local_run_policy_originals=finite_policy,
+      run_observation_originals=observation_originals,
     ) {
     Ok(value) => value
     Err(issue) => return Err(Encoding(issue))
@@ -298,7 +299,7 @@ pub fn[Store, E] validate_local_run_publication_binding_original(
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
-  let (encoding, _) = match
+  let (encoding, _, _) = match
     publication_binding_saved_rows(original, run, submitted) {
     Ok(value) => value
     Err(issue) => return Err(issue)

@@ -39,6 +39,7 @@ pub(all) enum NativeDirectoryMemberKind {
 
 type NativeDirectoryObservation
 pub fn NativeDirectoryObservation::check_current(Self) -> Result[Unit, NativeFilesystemIssue]
+pub fn NativeDirectoryObservation::identity(Self) -> Result[NativeFileOwnership, NativeFilesystemIssue]
 
 pub(all) struct NativeFileChunk {
   bytes : Bytes
@@ -127,11 +128,13 @@ pub fn Root::create_directory(Self, String) -> Result[NativeFileOwnership, Nativ
 pub fn Root::create_writer(Self, String, Int64) -> Result[Writer, NativeFilesystemIssue]
 pub fn Root::create_writer_with_custody(Self, String, Int64) -> Result[Writer, NativeWriterOpenFailure]
 pub fn Root::inspect_directory(Self, String) -> Result[NativeFileOwnership?, NativeFilesystemIssue]
+pub fn Root::inspect_file_generation(Self, String) -> Result[NativeFileGeneration?, NativeFilesystemIssue]
 pub fn Root::inspect_generation(Self, String) -> Result[NativeFileGeneration?, NativeFilesystemIssue]
 pub fn Root::observe_directory(Self) -> Result[NativeDirectoryObservation, NativeFilesystemIssue]
 pub fn Root::observe_file(Self, String) -> Result[NativeFileObservation, NativeFilesystemIssue]
 pub fn Root::open_child(Self, String) -> Result[Self, NativeFilesystemIssue]
 pub fn Root::open_child_with_custody(Self, String) -> Result[Self, NativeRootOpenFailure]
+pub fn Root::open_file_reader_with_custody(Self, String, NativeFileGeneration) -> Result[Reader, NativeReaderOpenFailure]
 pub fn Root::open_reader(Self, String, NativeFileGeneration) -> Result[Reader, NativeFilesystemIssue]
 pub fn Root::open_reader_with_custody(Self, String, NativeFileGeneration) -> Result[Reader, NativeReaderOpenFailure]
 pub fn Root::private_ownership(Self) -> Result[NativeFileOwnership, NativeFilesystemIssue]
@@ -140,6 +143,7 @@ pub fn Root::remove_directory(Self, String, NativeFileOwnership) -> Result[Bool,
 pub fn Root::require_current_original_read(Self) -> Result[Unit, NativeFilesystemIssue]
 pub fn Root::restore_private_file_projection(Self, Bytes) -> Result[PrivateFileProjection, NativeFilesystemIssue]
 pub fn Root::sync_directory(Self) -> Result[Unit, NativeFilesystemIssue]
+pub fn Root::verify_file_generation(Self, String, NativeFileGeneration) -> Bool
 pub fn Root::verify_generation(Self, String, NativeFileGeneration) -> Bool
 
 type Writer
@@ -151,6 +155,7 @@ pub fn Writer::close_retaining_files(Self) -> Result[Unit, NativeFilesystemIssue
 pub fn Writer::is_sealed(Self) -> Bool
 pub fn Writer::ownership(Self) -> NativeFileOwnership
 pub fn Writer::seal(Self, String) -> Result[NativeFileGeneration, NativeFilesystemIssue]
+pub fn Writer::seal_file(Self, String) -> Result[NativeFileGeneration, NativeFilesystemIssue]
 pub fn Writer::written(Self) -> Int64
 
 // Type aliases

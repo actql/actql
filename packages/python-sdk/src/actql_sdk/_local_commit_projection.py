@@ -30,6 +30,7 @@ class OriginalCommitProjection:
             raise ValueError('Invalid original Local commit projection')
         with core._lock:
             core._publication_configuration(publication, current_configuration)
+        self._saved = False
         self._core = core
         self._publication = publication
         self._configuration = current_configuration
@@ -37,6 +38,34 @@ class OriginalCommitProjection:
         self._outputs: list[_Output] = []
         self._projecting = False
         self._closing = False
+
+    @classmethod
+    def from_saved_read(cls, core: LocalCore, original: _Output,
+                        current_configuration: int, *,
+                        cleanup: Callable[[], bool]) -> 'OriginalCommitProjection':
+        """Borrow the same nominal saved-read parent; create no live publication.
+
+        Construction is nominal only. Every use still enters the actual Host
+        Store frame and Core's current/snapshot checks. This variant cannot
+        project publication writes or authorize a publisher.
+        """
+        if (cls is not OriginalCommitProjection or type(core) is not LocalCore
+                or not callable(cleanup) or type(current_configuration) is not int
+                or not 0 < current_configuration < 2**31):
+            raise ValueError('Invalid original saved read projection')
+        with core._lock:
+            core._owned_output(original, 'submission_lookup')
+            value = cls.__new__(cls)
+            value._saved = True
+            value._core, value._publication = core, original
+            value._configuration, value._cleanup = current_configuration, cleanup
+            value._outputs = []
+            value._projecting = value._closing = False
+            return value
+
+    def _require_live(self) -> None:
+        if self._saved:
+            raise ValueError('Saved read cannot issue a live publication operation')
 
     @property
     def pending_outputs(self) -> tuple[_Output, ...]:
@@ -59,6 +88,7 @@ class OriginalCommitProjection:
             self._outputs.pop()
 
     def count(self) -> int:
+        self._require_live()
         with self._core._lock:
             self._ready()
             return self._core.publication_commit_material_count(
@@ -75,6 +105,7 @@ class OriginalCommitProjection:
             return sum(self._storage_counts()) + 1
 
     def _storage_counts(self) -> tuple[int, int]:
+        self._require_live()
         materials = self._core.publication_commit_material_count(
             self._publication, self._configuration)
         results = self._core.publication_commit_result_count(
@@ -121,6 +152,7 @@ class OriginalCommitProjection:
 
     def authorize_commit(self, publisher: _Output) -> None:
         """Call the original publisher stage; no grant, write or ACK is made."""
+        self._require_live()
         with self._core._lock:
             self._ready()
             self._core.authorize_publisher(
@@ -136,8 +168,12 @@ class OriginalCommitProjection:
         """
         with self._core._lock:
             self._current()
-            self._core.validate_publication_commit_payload_binding(
-                self._publication, record, self._configuration, result, binding_index)
+            if self._saved:
+                self._core.validate_saved_payload_binding(
+                    self._publication, record, self._configuration, result, binding_index)
+            else:
+                self._core.validate_publication_commit_payload_binding(
+                    self._publication, record, self._configuration, result, binding_index)
 
     def project_contract(self, ordinal: int, consume: Callable[[ByteWrite], object], *,
                          expected_generation: int | None = None) -> None:
@@ -178,6 +214,7 @@ class OriginalCommitProjection:
                     field: Literal['request', 'attempt'] | None) -> None:
         if not callable(consume):
             raise ValueError('Invalid original Local index lookup consumer')
+        self._require_live()
         with self._core._lock:
             self._ready()
             self._projecting = True
@@ -219,6 +256,7 @@ class OriginalCommitProjection:
         """
         if not callable(consume):
             raise ValueError('Invalid original observed index consumer')
+        self._require_live()
         with self._core._lock:
             self._ready()
             self._projecting = True
@@ -240,6 +278,7 @@ class OriginalCommitProjection:
         """
         if not callable(consume):
             raise ValueError('Invalid original Run observation consumer')
+        self._require_live()
         with self._core._lock:
             self._core._owned_input(observed_at)
             self._ready()
@@ -458,7 +497,10 @@ class OriginalCommitProjection:
         """
         if self._closing or (self._outputs and not self._projecting):
             raise RuntimeError('Local commit projection is closing or cleanup is pending')
-        self._core._publication_configuration(self._publication, self._configuration)
+        if self._saved:
+            self._core._owned_output(self._publication, 'submission_lookup')
+        else:
+            self._core._publication_configuration(self._publication, self._configuration)
         for output in self._outputs:
             self._core._owned_output(output, 'publication_commit_export')
 
@@ -470,6 +512,7 @@ class OriginalCommitProjection:
                 or (generation is not None and (type(generation) is not int
                                                 or not 0 <= generation < 2**63 - 1))):
             raise ValueError('Invalid original Local commit projection controls')
+        self._require_live()
         with self._core._lock:
             self._ready()
             self._projecting = True
@@ -485,8 +528,9 @@ class OriginalCommitProjection:
                 self._projecting = False
 
     def _output(self) -> _Output:
-        value = self._core.reserve_publication_commit_export(
-            self._publication, cleanup=self._cleanup)
+        value = (self._core.reserve_saved_result_export(self._publication, cleanup=self._cleanup)
+                 if self._saved else self._core.reserve_publication_commit_export(
+                     self._publication, cleanup=self._cleanup))
         self._outputs.append(value)
         return value
 

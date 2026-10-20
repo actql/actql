@@ -83,15 +83,39 @@ pub fn produce_payload_binding(
   if !parent.confirmed ||
     !(@payload.publication_payload_record_state(original) is Sealed) ||
     @payload.publication_payload_record_generation(original) is None ||
-    @payload.publication_payload_record_revision(original) != child.revision ||
-    !payload_record_current(value, parent, current_configuration) {
+    @payload.publication_payload_record_revision(original) != child.revision {
     return -32
+  }
+  let saved_binding = if parent.source is SavedResult(_, _) {
+    match saved_payload_binding(value, parent, current_configuration) {
+      Ok(binding) => Some(binding)
+      Err(code) => return code
+    }
+  } else {
+    if !payload_record_current(value, parent, current_configuration) {
+      return -32
+    }
+    None
   }
   if child.produced {
     return 0
   }
   if child.invoked {
     return -33
+  }
+  if saved_binding is Some(binding) {
+    child.invoked = true
+    let code = status(
+      @buffers.supply_buffer_output(
+        value.pool,
+        child.slot,
+        @utf8.encode(@publication.publication_contract_json(binding)),
+      ),
+    )
+    if code == 0 {
+      child.produced = true
+    }
+    return code
   }
   guard value.payload_requests.get(parent.request) is Some(request) &&
     value.publications.get(request.publication) is Some(publication) &&

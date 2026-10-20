@@ -184,7 +184,7 @@ pub fn read_bounded_text_file_with_custody(
   diagnostic_ceiling? : Int? = None,
 ) -> Result[String, NativeBoundedTextFailure] {
   read_bounded_text_file_selected(
-    root_path, name, max_bytes, trim_newline, diagnostic_ceiling, false,
+    root_path, name, max_bytes, trim_newline, diagnostic_ceiling, false, false,
   )
 }
 
@@ -207,6 +207,46 @@ pub fn read_bounded_text_file_in_current_read_context_with_custody(
     trim_newline,
     Some(diagnostic_ceiling),
     true,
+    false,
+  )
+}
+
+///|
+/// Read one ordinary basename under the same original Root/Reader and bounded
+/// UTF-8 algorithm. The caller splits a selected path before this operation;
+/// separators, traversal and NUL remain invalid. No internal object-name
+/// grammar, physical permission or replacement input is inferred.
+pub fn read_bounded_ordinary_text_file_with_custody(
+  root_path : String,
+  name : String,
+  max_bytes : Int64,
+  trim_newline? : Bool = false,
+  diagnostic_ceiling? : Int? = None,
+) -> Result[String, NativeBoundedTextFailure] {
+  read_bounded_text_file_selected(
+    root_path, name, max_bytes, trim_newline, diagnostic_ceiling, false, true,
+  )
+}
+
+///|
+/// The entered Read variant retains the same failed constructor/Reader/Root
+/// until their actual child-first cleanup. This does not acquire a scope or
+/// widen the caller's original input, work or diagnostic ceiling.
+pub fn read_bounded_ordinary_text_file_in_current_read_context_with_custody(
+  root_path : String,
+  name : String,
+  max_bytes : Int64,
+  diagnostic_ceiling : Int,
+  trim_newline? : Bool = false,
+) -> Result[String, NativeBoundedTextFailure] {
+  read_bounded_text_file_selected(
+    root_path,
+    name,
+    max_bytes,
+    trim_newline,
+    Some(diagnostic_ceiling),
+    true,
+    true,
   )
 }
 
@@ -218,6 +258,7 @@ fn read_bounded_text_file_selected(
   trim_newline : Bool,
   diagnostic_ceiling : Int?,
   scoped : Bool,
+  ordinary_name : Bool,
 ) -> Result[String, NativeBoundedTextFailure] {
   if max_bytes <= 0L || (diagnostic_ceiling is Some(limit) && limit <= 0) {
     return Err(bounded_text_failure(InvalidLimit))
@@ -241,7 +282,12 @@ fn read_bounded_text_file_selected(
       return Err(failure)
     }
   }
-  let generation = match root.inspect_generation(name) {
+  let generation = match
+    (if ordinary_name {
+      root.inspect_file_generation(name)
+    } else {
+      root.inspect_generation(name)
+    }) {
     Ok(Some(value)) => value
     Ok(None) =>
       return Err(
@@ -263,7 +309,12 @@ fn read_bounded_text_file_selected(
       ),
     )
   }
-  let reader = match root.open_reader_with_custody(name, generation) {
+  let reader = match
+    (if ordinary_name {
+      root.open_file_reader_with_custody(name, generation)
+    } else {
+      root.open_reader_with_custody(name, generation)
+    }) {
     Ok(value) => value
     Err(rejected) => {
       let failure : NativeBoundedTextFailure = {

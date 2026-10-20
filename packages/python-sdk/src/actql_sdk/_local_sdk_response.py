@@ -69,6 +69,23 @@ class OriginalLocalSDKResponseStream(httpx.AsyncByteStream):
         return True
 
     async def _chunks(self) -> AsyncGenerator[bytes, None]:
+        # Each existing bounded delivery advance shares one allowance across
+        # its private accept/offer calls. No budget is held across backpressure
+        # or replenished by a private getter/callback.
+        iterator = self._original_chunks()
+        try:
+            while True:
+                with self._host._core._host_operation():
+                    try:
+                        payload = await anext(iterator)
+                    except StopAsyncIteration:
+                        return
+                yield payload
+        finally:
+            with self._host._core._host_cleanup():
+                await iterator.aclose()
+
+    async def _original_chunks(self) -> AsyncGenerator[bytes, None]:
         self._reading = True
         try:
             while True:
@@ -102,6 +119,10 @@ class OriginalLocalSDKResponseStream(httpx.AsyncByteStream):
             self._reading = False
 
     def _close(self) -> bool:
+        with self._host._core._host_cleanup():
+            return self._close_original()
+
+    def _close_original(self) -> bool:
         """Release the original children only; no Run cancel or Store replay."""
         self._nominal()
         self._closing = True

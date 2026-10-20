@@ -231,6 +231,7 @@ fn NativeClientRunJournal::verify_submission_locked(
   reference : NativeClientSubmissionReference,
   authority_scope_cid : String,
   current_authorization : Bool,
+  reads? : NativeClientJournalReadAccess? = None,
 ) -> Result[@scope.SubmissionEpochValidity, NativeClientRunJournalIssue] {
   if !physical_equal(self.database, authority.database) {
     return Err(InvalidSubmission)
@@ -240,6 +241,7 @@ fn NativeClientRunJournal::verify_submission_locked(
     reference.epoch,
     authority_scope_cid,
     current_authorization,
+    reads~,
   )
   .map_err(issue => Epoch(issue))
 }
@@ -248,6 +250,7 @@ fn NativeClientRunJournal::verify_submission_locked(
 fn NativeClientRunJournal::retained_submission(
   self : NativeClientRunJournal,
   reference : NativeClientSubmissionReference,
+  reads? : NativeClientJournalReadAccess? = None,
 ) -> Result[NativeClientSubmittedIntentRecord?, NativeClientRunJournalIssue] {
   let original_reference = match
     @host.admit_client_submission_reference_record(reference.wire) {
@@ -256,7 +259,9 @@ fn NativeClientRunJournal::retained_submission(
   }
   @host.read_client_saved_submission(
     original_reference,
-    (table_name, key) => client_journal_read(self.database, table_name, key),
+    (table_name, key) => {
+      client_journal_read(self.database, table_name, key, reads~)
+    },
     row => {
       let record = match
         read_run_record({ body: row.body, revision: row.revision, }) {
@@ -302,6 +307,22 @@ pub fn NativeClientRunJournal::record_submitted_intent(
   current_authorization : Bool,
   now : Double,
 ) -> Result[NativeClientSubmittedIntentRecord, NativeClientRunJournalIssue] {
+  self.record_submitted_intent_with_operations(
+    authority, reference, intent, authority_scope_cid, current_authorization, now,
+  )
+}
+
+///|
+fn NativeClientRunJournal::record_submitted_intent_with_operations(
+  self : NativeClientRunJournal,
+  authority : NativeClientEpochAuthority,
+  reference : NativeClientSubmissionReference,
+  intent : @host.ClientSubmittedIntent,
+  authority_scope_cid : String,
+  current_authorization : Bool,
+  now : Double,
+  operations? : NativeClientJournalOperationAccess? = None,
+) -> Result[NativeClientSubmittedIntentRecord, NativeClientRunJournalIssue] {
   if !current_authorization {
     return Err(AuthorizationDenied)
   }
@@ -309,20 +330,29 @@ pub fn NativeClientRunJournal::record_submitted_intent(
     return Err(InvalidSubmission)
   }
   match
-    authority.verify_epoch(
+    authority.verify_epoch_with_operations(
       reference.epoch,
       authority_scope_cid,
       current_authorization,
       now,
+      operations~,
     ) {
     Ok(_) => ()
     Err(issue) => return Err(Epoch(issue))
   }
-  self.transaction(() => {
-    self.record_submitted_intent_locked(
-      authority, reference, intent, authority_scope_cid, current_authorization,
-    )
-  })
+  self.transaction_with_reads(
+    () => {
+      self.record_submitted_intent_locked(
+        authority,
+        reference,
+        intent,
+        authority_scope_cid,
+        current_authorization,
+        operations~,
+      )
+    },
+    reads=operations.map(original => original.reads),
+  )
 }
 
 ///|
@@ -335,10 +365,16 @@ fn NativeClientRunJournal::record_submitted_intent_locked(
   intent : @host.ClientSubmittedIntent,
   authority_scope_cid : String,
   current_authorization : Bool,
+  operations? : NativeClientJournalOperationAccess? = None,
 ) -> Result[NativeClientSubmittedIntentRecord, NativeClientRunJournalIssue] {
+  let reads = operations.map(original => original.reads)
   let validity = match
     self.verify_submission_locked(
-      authority, reference, authority_scope_cid, current_authorization,
+      authority,
+      reference,
+      authority_scope_cid,
+      current_authorization,
+      reads~,
     ) {
     Ok(value) => value
     Err(issue) => return Err(issue)
@@ -354,9 +390,11 @@ fn NativeClientRunJournal::record_submitted_intent_locked(
       intent,
       validity,
       self.max_records,
-      (table, cursor) => client_journal_scan(self.database, table, cursor),
-      (table, key) => client_journal_read(self.database, table, key),
-      row => self.inspect_submitted_intent_row(row),
+      (table, cursor) => {
+        client_journal_scan(self.database, table, cursor, reads~)
+      },
+      (table, key) => client_journal_read(self.database, table, key, reads~),
+      row => self.inspect_submitted_intent_row(row, reads~),
       row => {
         let record = match
           read_run_record({ body: row.body, revision: row.revision, }) {
@@ -399,14 +437,24 @@ fn NativeClientRunJournal::record_submitted_intent_locked(
     plan,
   )
   match
-    self.database.compare_exchange(
-      "client_submitted_intent_custody", "issued", revision, issued_body,
+    compare_exchange_client_journal_value(
+      self.database,
+      "client_submitted_intent_custody",
+      "issued",
+      revision,
+      issued_body,
+      operations,
     ) {
     Ok(_) => ()
     Err(issue) => return Err(Physical(issue))
   }
-  self.database
-  .insert("client_submitted_intents", key, body)
+  insert_client_journal_value(
+    self.database,
+    "client_submitted_intents",
+    key,
+    body,
+    operations,
+  )
   .map(revision => {
     reference,
     intent,
@@ -430,6 +478,22 @@ pub fn NativeClientRunJournal::lookup_submitted_intent(
   current_authorization : Bool,
   now : Double,
 ) -> Result[NativeClientSubmittedIntentLookup, NativeClientRunJournalIssue] {
+  self.lookup_submitted_intent_with_operations(
+    authority, reference, authority_scope_cid, current_authorization, now,
+  )
+}
+
+///|
+fn NativeClientRunJournal::lookup_submitted_intent_with_operations(
+  self : NativeClientRunJournal,
+  authority : NativeClientEpochAuthority,
+  reference : NativeClientSubmissionReference,
+  authority_scope_cid : String,
+  current_authorization : Bool,
+  now : Double,
+  operations? : NativeClientJournalOperationAccess? = None,
+) -> Result[NativeClientSubmittedIntentLookup, NativeClientRunJournalIssue] {
+  let reads = operations.map(value => value.reads)
   if !current_authorization {
     return Err(AuthorizationDenied)
   }
@@ -437,34 +501,42 @@ pub fn NativeClientRunJournal::lookup_submitted_intent(
     return Err(InvalidSubmission)
   }
   match
-    authority.verify_epoch(
+    authority.verify_epoch_with_operations(
       reference.epoch,
       authority_scope_cid,
       current_authorization,
       now,
+      operations~,
     ) {
     Ok(_) => ()
     Err(issue) => return Err(Epoch(issue))
   }
-  self.transaction(() => {
-    match
-      self.verify_submission_locked(
-        authority, reference, authority_scope_cid, current_authorization,
-      ) {
-      Ok(_) => ()
-      Err(issue) => return Err(issue)
-    }
-    match self.submitted_intent_custody() {
-      Ok(_) => ()
-      Err(issue) => return Err(issue)
-    }
-    self
-    .retained_submission(reference)
-    .map(record => {
-      match record {
-        Some(value) => Submitted(value)
-        None => UnresolvedSubmissionHistory
+  self.transaction_with_reads(
+    () => {
+      match
+        self.verify_submission_locked(
+          authority,
+          reference,
+          authority_scope_cid,
+          current_authorization,
+          reads~,
+        ) {
+        Ok(_) => ()
+        Err(issue) => return Err(issue)
       }
-    })
-  })
+      match self.submitted_intent_custody(reads~) {
+        Ok(_) => ()
+        Err(issue) => return Err(issue)
+      }
+      self
+      .retained_submission(reference, reads~)
+      .map(record => {
+        match record {
+          Some(value) => Submitted(value)
+          None => UnresolvedSubmissionHistory
+        }
+      })
+    },
+    reads~,
+  )
 }

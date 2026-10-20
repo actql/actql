@@ -127,7 +127,27 @@ Presentation commands are human-readable by default and expose stable JSON with 
 `result --json` requires a file destination (`--output` or `--deliver`) and returns the command response, not Result rows. Use `result --format json` for a JSON payload on stdout. `--deliver` is exclusive with `--output`, `--result`, and `--format`.
 `check --json` returns the redacted checking report; semantic validity, runtime support and execution admission are separate. A valid stage waiting for its predecessor is `pending_predecessor`, not a missing caller binding. `explain --json` returns an `actql-explanation/0.1` with checking facts, delivery intent, missing inputs, and evidence-backed or unknown estimates. Neither command emits an executable file.
 Artifact commands write to their declared `--output` or `--receipt` destination; without one, the artifact uses stdout. Progress and summaries use stderr.
-`run` publishes all Results and reports Run state; it does not implicitly stream Result rows. Use `result <run> --result name --format jsonl` for stdout, or `--deliver` / `--output` for files. Run receipts bind the Result Manifest, not a selected serialization. `result --receipt` exports a separate delivery receipt for `verify output`.
+`run` publishes all Results and reports Run state; it does not implicitly stream Result rows. Use `result <run> --result name --format jsonl` for stdout, or `--deliver` / `--output` for files. Run receipts bind the Result Manifest, not a selected serialization. `result --receipt` exports separate delivery evidence for `verify output`:
+
+```text
+ResultDeliveryReceiptFile := ResultDeliveryReceipt | [ResultDeliveryReceipt, ...]
+```
+
+One requested delivery preserves the canonical object bytes and self-CID.
+Multiple requested deliveries use a bounded ordered array containing successful
+per-delivery objects, including `[]` or a one-member array after partial failure.
+The container has no kind, version, CID or aggregate-success meaning; individual
+receipt identities do not authenticate list membership or order. Each actual
+Writer and delivery retains its own authority, outcome, Unknown and cleanup.
+Receipt export failure neither rolls back nor resends exposed output.
+
+`verify output` admits the complete container and every existing closed receipt
+self-CID before checking one explicit output's bytes and SHA256. Invalid unrelated
+members and zero matches fail. Equal-byte matches report every distinct existing
+identity and its count rather than choosing one Result. Valid nonmatching receipts
+say nothing about files not supplied. The CLI-only schemas are
+`actql-cli-result-delivery-receipts.schema.json` and
+`actql-cli-output-verification.schema.json`; the protocol receipt schema is unchanged.
 
 Private Run evidence is persisted durably regardless of receipt export. `--receipt` exports the requested receipt; it does not enable durability. Effect preview and application remain internal execution boundaries of the Program Run.
 
@@ -186,3 +206,12 @@ Options may appear before or after positionals. An option value is never reinter
 `check` returns 0 for a valid template (including missing bindings or unsupported runtime profiles), and 1 for semantic invalidity. `run` requires all initial bindings and runtime support. `explain` reports missing inputs without executing. Argument errors return 2.
 `0` otherwise means the CLI command completed and produced or updated the requested Run state. A Run may therefore be `waiting_checkpoint`, `needs_reconciliation`, or `failed` with exit code `0`; automation should use `run --json` and `status <run> --json`.
 `1` means execution of the CLI operation itself failed. `2` means the command line is invalid. Diagnostics use stable `ACTQL_E_*` codes; human output includes the code and message, while `--json` exposes the structured Run state and its terminal outcome.
+
+For a command rejected before any Run exists, JSON diagnostics are
+`{"code":"ACTQL_E_...","message":"..."}` objects on stderr, with empty stdout.
+They are presentation, without a fabricated Run, artifact kind, version or CID.
+The Native caller projects the original typed preparation diagnostic, retaining
+only its closed classification across the existing Read return. It never
+rechecks a rejected Program or infers a code from internal reason strings.
+Primary and cleanup failures remain distinct; successful stdout and real Run
+contracts retain their existing meaning.

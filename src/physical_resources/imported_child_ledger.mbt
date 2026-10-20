@@ -468,3 +468,74 @@ pub fn stop_imported_child_ledger(
     }
   }
 }
+
+///|
+/// Cleanup DATA only. The trusted physical caller must already be outside all
+/// child allocation scopes in its supplied outer control lifetime. Preserve
+/// the same Ledger and every charge; old escaped snapshots remain live aliases.
+/// This does not retire an allocation, report usage or acknowledge an Owner.
+pub fn relocate_imported_child_cleanup_usage(
+  value : ImportedChildLedger,
+) -> Result[Unit, ImportedChildLedgerIssue] {
+  match imported_child_original(value) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  if value.pending_report is Some(_) {
+    return Err(value.pending_report_issue.unwrap_or(Unknown))
+  }
+  if !value.attempted ||
+    !value.taken ||
+    !value.stop_attempted ||
+    !value.origin.stopping {
+    return Err(Unavailable)
+  }
+  if value.stop_outcome is Some(issue) {
+    return Err(issue)
+  }
+  guard value.ledger is Some(ledger) &&
+    ledger.imported_child is Some(origin) &&
+    physical_equal(origin, value.origin) &&
+    origin.ledger is Some(original) &&
+    physical_equal(original, ledger) else {
+    return Err(ForeignOriginal)
+  }
+  match check_imported_child_ledger(ledger) {
+    Err(issue) => return Err(Resource(issue))
+    Ok(_) => ()
+  }
+  let usage = ledger.usage
+  let copied_usage : LedgerUsage = {
+    planning_work: usage.planning_work,
+    attempts: usage.attempts,
+    holdings: usage.holdings,
+    transferred_bytes: usage.transferred_bytes,
+    uncertain_transfer_bytes: usage.uncertain_transfer_bytes,
+    reserved_transfer_bytes: usage.reserved_transfer_bytes,
+    held_bytes: usage.held_bytes,
+    reserved_retention_bytes: usage.reserved_retention_bytes,
+    reserved_execution_bytes: usage.reserved_execution_bytes,
+    peak_retention_bytes: usage.peak_retention_bytes,
+  }
+  let quantities = ledger.quantity_usage
+  let copied_quantities : QuantityUsage = {
+    reserved: cleanup_quantity_copy(quantities.reserved),
+    uncertain: cleanup_quantity_copy(quantities.uncertain),
+    consumed: cleanup_quantity_copy(quantities.consumed),
+  }
+  let copied_limits = ledger.quantity_limits.map(cleanup_quantity_copy)
+  // Construct every replacement before mutating the same original controls.
+  ledger.usage = copied_usage
+  ledger.quantity_usage = copied_quantities
+  ledger.quantity_limits = copied_limits
+  Ok(())
+}
+
+///|
+fn cleanup_quantity_copy(value : QuantityAmounts) -> QuantityAmounts {
+  {
+    tokens: value.tokens,
+    cost_units: value.cost_units,
+    duration_ms: value.duration_ms,
+  }
+}

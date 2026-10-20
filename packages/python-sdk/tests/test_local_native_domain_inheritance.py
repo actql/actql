@@ -170,10 +170,10 @@ class NativeDomainInheritanceTests(unittest.TestCase):
 
     def test_original_domain_cannot_be_consumed_by_another_process(self):
         f = ChannelFixture(self, spawn=False)
-        slot = OriginalWorkerSlot(f.funding, Path('/installed/another-slot'))
+        slot = OriginalWorkerSlot(f.funding, '/installed/another-slot')
         with self.assertRaises(LocalWorkerProcessPending) as caught:
-            OriginalWorkerProcess(f.funding, slot, executable=Path('/installed/python'),
-                executable_image=Path('/installed/python'), executable_link=None,
+            OriginalWorkerProcess(f.funding, slot, executable='/installed/python',
+                executable_image='/installed/python', executable_link=None,
                 executable_bytes=8192, executable_sha256='a' * 64,
                 environment=(('LANG', 'C.UTF-8'),))
         self.assertIs(f.domain._worker_process_original, f.process)

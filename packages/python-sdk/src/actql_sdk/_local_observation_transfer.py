@@ -22,8 +22,10 @@ class OriginalObservationTransfer:
 
     A failure retains the same workspace/input. Discard retained row/encoding
     references and failure tracebacks after physical cleanup, then explicitly
-    close. Raw rows that survive a Store callback are sealed into individual
-    Core inputs before callback return; only nominal handles escape. The original Core borrower must return its loan first; close does not
+    close. Raw rows that survive a Store callback retain individual unsealed
+    Core inputs before callback return; only nominal handles escape. The closed
+    observation envelope is separately sealed for Core admission. The original
+    Core borrower must return its loan first; close does not
     retire another borrow, close parents, cancel a Run or replay a Store operation.
     """
 
@@ -116,7 +118,7 @@ class OriginalObservationTransfer:
             return tuple(self._sources)
 
     def retain_source(self, raw: bytes) -> _Input:
-        """Seal one actual Store row before its synchronous consumer returns.
+        """Retain one actual raw Store row before its synchronous consumer returns.
 
         The same workspace was reserved before the row was physically copied.
         Core separately charges each retained raw input/Wasm copy. At most three
@@ -136,8 +138,11 @@ class OriginalObservationTransfer:
                 source = self._reserve_input(raw)
                 self._sources.append(source)
                 self._source_bytes += len(raw)
-                core.fill_input(source, 0, len(raw))
-                core.seal_input(source)
+                for start in range(0, len(raw), 16_384):
+                    core.fill_input(source, start, min(16_384, len(raw) - start))
+                # A physical CID reference is not a JSON document. This loan
+                # retains exact row bytes, not an admitted source node. Only
+                # the complete closed lookup/observation envelope is sealed.
                 return source
             except BaseException:
                 self._failed = True
@@ -221,7 +226,8 @@ class OriginalObservationTransfer:
             try:
                 packet = self._packet(fields)
                 self._input = self._reserve_input(packet)
-                core.fill_input(self._input, 0, len(packet))
+                for start in range(0, len(packet), 16_384):
+                    core.fill_input(self._input, start, min(16_384, len(packet) - start))
                 core.seal_input(self._input)
                 if lookup:
                     core.prepare_publication_lookup(

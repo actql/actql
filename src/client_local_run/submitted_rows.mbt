@@ -21,6 +21,7 @@ pub struct LocalSubmittedRunRows {
   run : Bytes
   submitted : Bytes
   local_policy_original : String?
+  observation_originals : String?
 }
 
 ///|
@@ -40,6 +41,77 @@ pub fn prepare_local_submitted_run_rows(
   context_cid : String,
   now : Double,
   local_policy_original? : @host.ClientLocalRunPolicyOriginal? = None,
+) -> Result[LocalSubmittedRunRows, LocalSubmittedRunRowsIssue] {
+  prepare_local_submitted_run_rows_original(
+    plan,
+    preparation,
+    reference,
+    retained_preparing,
+    permit,
+    current,
+    tuple,
+    context_cid,
+    now,
+    local_policy_original,
+    None,
+  )
+}
+
+///|
+/// The ordinary SDK acceptance keeps its actual original compiler evidence
+/// before the first transaction. Missing old evidence is never recaptured.
+pub fn prepare_local_sdk_submitted_run_rows(
+  plan : LocalRunPlan,
+  preparation : @input.LocalSubmittedPreparation,
+  reference : @host.ClientSubmissionReferenceRecord,
+  retained_preparing : Bytes,
+  permit : @authorization.DispatchAuthorization,
+  current : @authorization.AdmittedAccountConfiguration,
+  tuple : @authorization.AccessTuple,
+  context_cid : String,
+  now : Double,
+  local_policy_original : @host.ClientLocalRunPolicyOriginal,
+) -> Result[LocalSubmittedRunRows, LocalSubmittedRunRowsIssue] {
+  let originals = match
+    @host.capture_client_run_observation_originals(
+      plan.compiled,
+      plan.definition,
+    ) {
+    Ok(value) => value
+    Err(_) => return Err(CustodyLost)
+  }
+  let wire = match originals.wire() {
+    Ok(value) => value
+    Err(_) => return Err(CustodyLost)
+  }
+  prepare_local_submitted_run_rows_original(
+    plan,
+    preparation,
+    reference,
+    retained_preparing,
+    permit,
+    current,
+    tuple,
+    context_cid,
+    now,
+    Some(local_policy_original),
+    Some(wire),
+  )
+}
+
+///|
+fn prepare_local_submitted_run_rows_original(
+  plan : LocalRunPlan,
+  preparation : @input.LocalSubmittedPreparation,
+  reference : @host.ClientSubmissionReferenceRecord,
+  retained_preparing : Bytes,
+  permit : @authorization.DispatchAuthorization,
+  current : @authorization.AdmittedAccountConfiguration,
+  tuple : @authorization.AccessTuple,
+  context_cid : String,
+  now : Double,
+  local_policy_original : @host.ClientLocalRunPolicyOriginal?,
+  observation_originals : String?,
 ) -> Result[LocalSubmittedRunRows, LocalSubmittedRunRowsIssue] {
   if !physical_equal(
       plan.input,
@@ -116,6 +188,7 @@ pub fn prepare_local_submitted_run_rows(
         checkpoint: None,
       },
       local_run_policy_originals=local_policy_original,
+      run_observation_originals=observation_originals,
     ) {
     Ok(value) => value
     Err(issue) => return Err(Encoding(issue))
@@ -125,6 +198,7 @@ pub fn prepare_local_submitted_run_rows(
       reference_wire,
       intent,
       run_admission=Some((plan.request, local_run_definition_cid(plan), 0L)),
+      run_state_observation=Some((0L, None)),
     ) {
     Ok(value) => value
     Err(issue) => return Err(Encoding(issue))
@@ -137,6 +211,7 @@ pub fn prepare_local_submitted_run_rows(
     run,
     submitted,
     local_policy_original,
+    observation_originals,
   })
 }
 
@@ -193,14 +268,15 @@ pub fn validate_local_saved_submitted_rows(
     submission_revision < 0L {
     return Err(CustodyLost)
   }
-  let (run, saved_policy) = match
-    @host.decode_client_run_journal_row_with_local_policy(run_body) {
+  let (run, saved_policy, saved_observation) = match
+    @host.decode_client_run_journal_row_with_observation_originals(run_body) {
     Ok(value) => value
     Err(_) => return Err(CustodyLost)
   }
   // Later Run revisions may change dispatch/publication facts. The original
   // finite Policy packet is immutable, including its initial issued_at.
-  if saved_policy != value.local_policy_original {
+  if saved_policy != value.local_policy_original ||
+    saved_observation != value.observation_originals {
     return Err(CustodyLost)
   }
   let submitted = match

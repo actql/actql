@@ -42,7 +42,10 @@ class LocalSDKResponseTests(unittest.IsolatedAsyncioTestCase):
                 terminal.append(clock)
             with patch.object(holder, 'persist_original_terminal', side_effect=saved):
                 chunks = [chunk async for chunk in stream]
-            self.assertEqual(chunks, [b'', b'', b'{"n":1}\n', b'\x1e'])
+            # Empty progress polls carry no bytes. Their position is not a
+            # delivery acknowledgement; the exact payload and final marker are.
+            self.assertEqual(chunks.count(b''), 2)
+            self.assertEqual([chunk for chunk in chunks if chunk], [b'{"n":1}\n', b'\x1e'])
             self.assertEqual(len(terminal), 1)
             # Confirmation was handled by the underlying scalar fixture; EOF
             # is qualified only by the explicit saved-observation test double.

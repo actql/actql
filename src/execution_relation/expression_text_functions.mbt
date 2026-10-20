@@ -34,6 +34,7 @@ priv enum TextFunctionKind {
   TextLTrim
   TextRTrim
   TextContains
+  TextUtf8Truncate
 } derive(Eq)
 
 ///|
@@ -52,6 +53,12 @@ fn is_slice_text_function(kind : TextFunctionKind) -> Bool {
 ///|
 fn is_pad_text_function(kind : TextFunctionKind) -> Bool {
   kind == TextLPad || kind == TextRPad
+}
+
+///|
+priv struct Utf8TruncationState {
+  max_bytes : Int64
+  mut input_bytes : Int64
 }
 
 ///|
@@ -99,6 +106,7 @@ priv struct TextFunctionState {
   mut trim_scanning : Bool
   mut trim_start : Int
   mut trim_end : Int
+  truncate : Utf8TruncationState?
 }
 
 ///|
@@ -119,13 +127,15 @@ fn start_text_function(
           (
             !is_slice_text_function(kind) &&
             kind != TextRepeat &&
-            kind != TextInstr
+            kind != TextInstr &&
+            kind != TextUtf8Truncate
           ) ||
           (kind == TextInstr && i < 2) ||
           i == 0 ||
           (is_pad_text_function(kind) && i == 2)
         ) => ()
-      Number(_) if kind == TextChr ||
+      Number(_) if (kind == TextUtf8Truncate && i == 1) ||
+        kind == TextChr ||
         (kind == TextInstr && i >= 2) ||
         (kind == TextSubstring && i > 0) ||
         ((is_slice_text_function(kind) || kind == TextRepeat) && i == 1) => ()
@@ -218,8 +228,31 @@ fn start_text_function(
       return Err({ kind: Scalar(InvalidOperand), expression, })
     }
   }
-  if !reserve_slots(workspace, 2) {
+  let reserved = if kind == TextUtf8Truncate { 6 } else { 2 }
+  if !reserve_slots(workspace, reserved) {
     return Err({ kind: WorkspaceLimit, expression, })
+  }
+  let truncate = if kind == TextUtf8Truncate {
+    guard @lower.expression_text_bound(expression) is Some(original) &&
+      @text_bounds.output_operation(
+        @expression_context.text_bound_output(original),
+      )
+      is @text_bounds.Utf8Truncate(_) else {
+      return Err({ kind: Scalar(InvalidOperand), expression, })
+    }
+    let max_bytes = if null_result {
+      0L
+    } else {
+      guard values[1] is Number(number) &&
+        @scalar.read_safe_integer(number) is Some(limit) &&
+        limit >= 0L else {
+        return Err({ kind: Scalar(InvalidOperand), expression, })
+      }
+      limit
+    }
+    Some({ max_bytes, input_bytes: 0L, })
+  } else {
+    None
   }
   let repetitions = if kind == TextRepeat &&
     !null_result &&
@@ -307,7 +340,9 @@ fn start_text_function(
       ""
     },
     output_root,
-    reserved: if kind == TextReplace ||
+    reserved: if truncate is Some(_) {
+      6
+    } else if kind == TextReplace ||
       kind == TextTranslate ||
       kind == TextInstr ||
       kind == TextRepeat ||
@@ -342,7 +377,9 @@ fn start_text_function(
     translate_outer: 0,
     translate_inner: 0,
     trim_explicit: is_trim_text_function(kind) && values.length() == 2,
-    substring_phase: if is_slice_text_function(kind) {
+    substring_phase: if truncate is Some(_) {
+      4
+    } else if is_slice_text_function(kind) {
       1
     } else {
       0
@@ -353,12 +390,13 @@ fn start_text_function(
     padding_remaining: 0L,
     padding_position: 0,
     trim_scanning: is_trim_text_function(kind),
-    trim_start: if kind == TextRTrim {
+    trim_start: if kind == TextRTrim || truncate is Some(_) {
       0
     } else {
       input.length()
     },
-    trim_end: if kind == TextRTrim {
+    truncate,
+    trim_end: if kind == TextRTrim || kind == TextUtf8Truncate {
       0
     } else {
       input.length()
@@ -504,6 +542,37 @@ fn advance_text_function(
   let expression = state.expression
   if state.null_result {
     return Ok(Some(Null))
+  }
+  if state.substring_phase == 4 {
+    // Validate the complete original input, including the suffix beyond the
+    // selected prefix. A small result never hides an input-ceiling violation.
+    guard state.truncate is Some(truncate) &&
+      @lower.expression_text_bound(expression) is Some(original) else {
+      return Err({ kind: Scalar(InvalidOperand), expression, })
+    }
+    if state.position == state.input.length() {
+      state.substring_phase = 3
+      state.position = 0
+      return Ok(None)
+    }
+    guard text_function_scalar(state.input, state.position)
+      is Some((_, next, width, _)) else {
+      return Err({ kind: Scalar(InvalidOperand), expression, })
+    }
+    let (points, bytes) = @text_bounds.input_extent(
+      @text_bounds.output_input(@expression_context.text_bound_output(original)),
+    )
+    if state.count.to_int64() >= points ||
+      width.to_int64() > bytes - truncate.input_bytes {
+      return Err({ kind: TextBounds(@text_bounds.InputCeiling), expression, })
+    }
+    truncate.input_bytes += width.to_int64()
+    state.count += 1
+    state.position = next
+    if truncate.input_bytes <= truncate.max_bytes {
+      state.trim_end = next
+    }
+    return Ok(None)
   }
   if state.kind == TextInstr {
     return advance_instr_function(state)
@@ -759,7 +828,8 @@ fn advance_text_function(
   let end = if state.kind == TextReverse ||
     (state.kind == TextRepeat && state.repetitions == 0) {
     0
-  } else if is_trim_text_function(state.kind) ||
+  } else if state.kind == TextUtf8Truncate ||
+    is_trim_text_function(state.kind) ||
     is_slice_text_function(state.kind) {
     state.trim_end
   } else if state.kind == TextChr {
@@ -798,7 +868,8 @@ fn advance_text_function(
     state.building = true
     state.position = if state.kind == TextReverse {
       state.input.length()
-    } else if is_trim_text_function(state.kind) ||
+    } else if state.kind == TextUtf8Truncate ||
+      is_trim_text_function(state.kind) ||
       is_slice_text_function(state.kind) {
       state.trim_start
     } else {
@@ -876,7 +947,9 @@ fn advance_text_function(
     }
     return Ok(None)
   }
-  if is_trim_text_function(state.kind) || is_slice_text_function(state.kind) {
+  if state.kind == TextUtf8Truncate ||
+    is_trim_text_function(state.kind) ||
+    is_slice_text_function(state.kind) {
     state.position = match
       append_text_function_scalar(state, state.input, state.position) {
       Ok(next) => next

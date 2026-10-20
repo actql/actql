@@ -24,6 +24,8 @@ pub fn bound_value_at(BoundValues, Int) -> BoundParameter?
 
 pub fn bound_value_count(BoundValues) -> Int
 
+pub fn bound_value_declaration(BoundValues, Int) -> Declaration?
+
 pub fn bound_values(BoundValues) -> Array[BoundParameter]
 
 pub fn declaration_at(Declarations, Int) -> Declaration?

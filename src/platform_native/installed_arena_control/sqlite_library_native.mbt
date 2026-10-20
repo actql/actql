@@ -68,7 +68,8 @@ pub fn InstalledArenaHost::prepare_sqlite_library(
   }
   if domain.crypto_component is Some(_) ||
     domain.sqlite_library is Some(_) ||
-    domain.original_read is Some(_) {
+    domain.original_read is Some(_) ||
+    domain.retained_execution is Some(_) {
     return Err(Domain(@bootstrap.Bootstrap(@bootstrap.AlreadyConsumed)))
   }
   let record : InstalledArenaSqliteLibrary = {

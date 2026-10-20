@@ -39,30 +39,55 @@ fn NativeLocalHostConnection::select_original_run_id(
   principal : String,
   connection : String,
   run_id : String,
+  operations? : NativeClientJournalOperationAccess? = None,
+  capture? : NativeLocalJournalCapture? = None,
 ) -> Result[NativeClientOriginalRunSelection, NativeClientSavedRunStateIssue] {
-  let scope = match self.authority_scope_cid(principal, connection, crypto) {
+  let reads = operations.map(value => value.reads)
+  let scope_result = match capture {
+    None => self.authority_scope_cid(principal, connection, crypto)
+    Some(original) => {
+      guard original.opening is JournalAcquired(host) &&
+        physical_equal(host, self) else {
+        return Err(Journal(AuthorizationDenied))
+      }
+      original.authority_scope_cid_in_original_read(principal, connection)
+    }
+  }
+  let scope = match scope_result {
     Ok(value) => value
     Err(_) => return Err(Journal(AuthorizationDenied))
   }
   let current = () => {
-    saved_run_selection_current(self, crypto, principal, connection, scope)
+    saved_run_selection_current(
+      self,
+      crypto,
+      principal,
+      connection,
+      scope,
+      capture~,
+    )
   }
   if !current() {
     return Err(Journal(AuthorizationDenied))
   }
   let selected = match
-    self.journal.transaction(() => {
-      if !current() {
-        return Err(AuthorizationDenied)
-      }
-      let selected = self.journal.select_saved_state_run_id_locked(
-        scope, run_id,
-      )
-      if !current() {
-        return Err(AuthorizationDenied)
-      }
-      selected
-    }) {
+    self.journal.transaction_with_reads(
+      () => {
+        if !current() {
+          return Err(AuthorizationDenied)
+        }
+        let selected = self.journal.select_saved_state_run_id_locked(
+          scope,
+          run_id,
+          reads~,
+        )
+        if !current() {
+          return Err(AuthorizationDenied)
+        }
+        selected
+      },
+      reads~,
+    ) {
     Ok(Some(value)) => value
     Ok(None) => return Err(Unavailable)
     Err(issue) => return Err(Journal(issue))
@@ -83,8 +108,30 @@ pub fn NativeLocalHostConnection::lookup_submitted_run_original_by_id(
   connection : String,
   run_id : String,
 ) -> Result[NativeClientOriginalRunSelection, NativeClientSavedRunStateIssue] {
+  self.lookup_submitted_run_original_by_id_with_operations(
+    crypto, principal, connection, run_id,
+  )
+}
+
+///|
+fn NativeLocalHostConnection::lookup_submitted_run_original_by_id_with_operations(
+  self : NativeLocalHostConnection,
+  crypto : @crypto.Library,
+  principal : String,
+  connection : String,
+  run_id : String,
+  operations? : NativeClientJournalOperationAccess? = None,
+  capture? : NativeLocalJournalCapture? = None,
+) -> Result[NativeClientOriginalRunSelection, NativeClientSavedRunStateIssue] {
   let selected = match
-    self.select_original_run_id(crypto, principal, connection, run_id) {
+    self.select_original_run_id(
+      crypto,
+      principal,
+      connection,
+      run_id,
+      operations~,
+      capture~,
+    ) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
@@ -94,6 +141,7 @@ pub fn NativeLocalHostConnection::lookup_submitted_run_original_by_id(
       principal,
       connection,
       selected.scope,
+      capture~,
     ) {
     return Err(Journal(AuthorizationDenied))
   }

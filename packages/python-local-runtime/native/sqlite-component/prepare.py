@@ -40,11 +40,29 @@ def _read(path: Path, expected: dict, maximum: int = 12 * 1024 * 1024) -> bytes:
         os.close(fd)
 
 
-def prepare(archive: Path, destination: Path, *, source: Path = HERE) -> dict:
+def process_recipe(original: bytes, target: str | None) -> tuple[dict, bytes]:
+    recipe = json.loads(original)
+    if target is None:
+        return recipe, original
+    if (target != 'linux-arm64-gnu' or recipe['target'] != 'aarch64-apple-darwin'
+            or recipe['deployment_target'] != '11.0'):
+        raise ValueError('Unsupported SQLite process target selection')
+    # A genuinely derived preparation identity. Never relabel the Darwin
+    # recipe, nor change its source, provider inputs, heap or cleanup rules.
+    selected = dict(recipe, target='aarch64-unknown-linux-gnu', deployment_target=None,
+                    original_recipe_sha256=hashlib.sha256(original).hexdigest(),
+                    process_format='ELF64-little-AArch64-shared',
+                    provider_binding='same original process namespace',
+                    automatic_initializers=False, component_tls=False)
+    return selected, (json.dumps(selected, sort_keys=True, separators=(',', ':')) + '\n').encode()
+
+
+def prepare(archive: Path, destination: Path, *, source: Path = HERE,
+            process_target: str | None = None) -> dict:
     # The recipe is a trusted repository input, not installer-supplied DATA or an
     # authority document. The stage does not acquire any allocation/Host grant.
     recipe_raw = (source / 'source.json').read_bytes()
-    recipe = json.loads(recipe_raw)
+    recipe, selected_raw = process_recipe(recipe_raw, process_target)
     if (recipe['status'] != 'review-candidate-not-adopted'
             or recipe['normal_profile'] is not None or recipe['installed_supplier'] is not False):
         raise ValueError('SQLite candidate is not a review-only recipe')
@@ -72,13 +90,16 @@ def prepare(archive: Path, destination: Path, *, source: Path = HERE) -> dict:
     # Fixed literal output names. No path from a zip entry is extracted.
     for name in ('component.c', 'component.h', 'api.h', 'NOTICE'):
         outputs[name] = _read(source / name, recipe['local'][name])
-    record = {'status': recipe['status'], 'recipe_sha256': hashlib.sha256(recipe_raw).hexdigest(),
+    record = {'status': recipe['status'], 'recipe_sha256': hashlib.sha256(selected_raw).hexdigest(),
               'upstream': upstream, 'target': recipe['target'],
               'deployment_target': recipe['deployment_target'], 'defines': recipe['defines'],
               'provider_inputs': recipe['provider_inputs'], 'memory': recipe['memory'],
               'outputs': {name: {'bytes': len(data), 'sha256': hashlib.sha256(data).hexdigest()}
                           for name, data in outputs.items()},
               'compiled': 0, 'loaded': 0, 'installed_supplier': False, 'normal_profile': None}
+    if process_target is not None:
+        record['selected_process_recipe'] = recipe
+        record['original_recipe_sha256'] = hashlib.sha256(recipe_raw).hexdigest()
     destination.mkdir(parents=True, exist_ok=False)
     for name, data in outputs.items():
         with (destination / name).open('xb') as output:

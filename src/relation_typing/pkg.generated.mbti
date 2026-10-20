@@ -77,6 +77,10 @@ pub fn analytic_term_at(CheckedOperation, Int) -> OrderTerm?
 
 pub fn analytic_term_count(CheckedOperation) -> Int
 
+pub fn assertion_key_at(CheckedOperation, Int) -> KeyField?
+
+pub fn assertion_key_count(CheckedOperation) -> Int
+
 pub fn binding_at(CheckedOperation, Int) -> Binding?
 
 pub fn binding_copy_at(CheckedOperation, Int) -> CopyBinding?
@@ -118,6 +122,12 @@ pub fn existing_order_requirement(CheckedOperation) -> ValidationKind?
 pub fn form(CheckedOperation) -> Form
 
 pub fn group(CheckedOperation) -> CheckedGroup?
+
+pub fn group_has_additional_prefix(CheckedGroup) -> Bool
+
+pub fn group_key_at(CheckedGroup, Int) -> KeyField?
+
+pub fn group_key_count(CheckedGroup) -> Int
 
 pub fn group_keys(CheckedGroup) -> Array[KeyField]
 

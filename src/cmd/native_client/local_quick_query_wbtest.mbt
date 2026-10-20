@@ -6,6 +6,30 @@ fn quick_query_arguments(argv : ArrayView[String]) -> @argparse.Matches raise {
 }
 
 ///|
+test "Quick query diagnostic JSON leaves original intent and row encoding unchanged" {
+  for operation in ["sql", "aql"] {
+    let plain = quick_query_arguments([
+      operation, "SELECT 1 AS id", "--format", "csv",
+    ])
+    let structured = quick_query_arguments([
+      operation, "SELECT 1 AS id", "--format", "csv", "--json",
+    ])
+    assert_false(local_command_json_selected(plain))
+    assert_true(local_command_json_selected(structured))
+    let plain_child = plain.subcommand.unwrap().1
+    let structured_child = structured.subcommand.unwrap().1
+    assert_eq(local_quick_query_format(plain_child), "csv")
+    assert_eq(local_quick_query_format(structured_child), "csv")
+    assert_eq(
+      local_intent_wire("/never-open-this-root", operation, plain_child),
+      local_intent_wire("/never-open-this-root", operation, structured_child),
+    )
+    assert_true(command_preparation_invocation.val is None)
+    assert_true(initial_crypto_invocation.val is None)
+  }
+}
+
+///|
 // Report only the closed issue variant, never the submitted document or wire.
 fn quick_query_intent_original(
   wire : String,
@@ -76,6 +100,135 @@ test "quick query params aliases keep the original separate parameter input" {
     assert_eq(optional(child, "parameters-file"), Some("parameters.json"))
     assert_eq(optional(child, "params"), None)
     assert_eq(optional(child, "parameter-declarations-file"), None)
+  }
+}
+
+///|
+fn quick_query_declared_preparation(
+  wire : String,
+) -> Result[
+  @local_host.NativeClientSubmittedPreparation,
+  @local_host.NativeClientSubmittedPreparationIssue,
+] raise {
+  let environment = explain_fixture_environment()
+  let context = @frontend.bind_query_context(
+    [],
+    @checked.checking_environment_cid(environment),
+  ).unwrap()
+  @local_host.prepare_native_client_submitted_program(
+    quick_query_intent_original(wire),
+    environment,
+    Some(context),
+    [],
+    @run_host.client_standard_effect_computation_limits(),
+  )
+}
+
+///|
+test "literal queries retain bounded typed declarations through original normalization" {
+  let root = @env.current_dir().unwrap() + "/scripts/fixtures/native-local-cli"
+  for operation in ["sql", "aql"] {
+    let (declarations_file, values_file) = if operation == "sql" {
+      ("parameter-declarations.json", "parameter-values.json")
+    } else {
+      ("parameter-int64-declarations.json", "parameter-int64-values.json")
+    }
+    let selected = quick_query_arguments([
+      operation, "SELECT @id AS id", "--parameter-declarations-file", declarations_file,
+      "--params", values_file,
+    ])
+    normalize_native_query_arguments(selected)
+    let (_, child) = selected.subcommand.unwrap()
+    assert_eq(
+      optional(child, "parameter-declarations-file"),
+      Some(declarations_file),
+    )
+    let wire = local_intent_wire(root, operation, child)
+    let prepared = quick_query_declared_preparation(wire).unwrap()
+    assert_eq(
+      @local_host.native_client_submitted_preparation_intent_cid(prepared),
+      @run_host.client_submitted_intent_cid(quick_query_intent_original(wire)),
+    )
+    guard @local_host.native_client_submitted_preparation(prepared)
+      is @local_host.Computation(original) else {
+      fail("typed literal query did not prepare its own computation")
+    }
+    assert_eq(@run_host.prepared_client_result_count(original), 1)
+    // Preparation alone is insufficient for the public Run path: the same
+    // checked owner must supply its actual supported normalization inventory.
+    let normalization = @run_host.issue_prepared_client_local_normalization(
+      original,
+    ).unwrap()
+    assert_true(
+      @run_host.prepared_client_local_normalization_evidence(
+        original, normalization,
+      )
+      is Ok(_),
+    )
+    // Both routes share the same original declaration/values file intake.
+    let file = command().parse(
+      argv=[
+        "run",
+        "--program-file",
+        "parameterized.sql",
+        "--format",
+        if operation == "sql" {
+          "sql"
+        } else {
+          "aql-text"
+        },
+        "--parameter-declarations-file",
+        declarations_file,
+        "--params",
+        values_file,
+      ],
+      env=Map([]),
+    )
+    normalize_native_program_arguments(file)
+    let file_wire = local_intent_wire(root, "run", file.subcommand.unwrap().1)
+    let file_prepared = quick_query_declared_preparation(file_wire).unwrap()
+    guard @local_host.native_client_submitted_preparation(file_prepared)
+      is @local_host.Computation(file_original) else {
+      fail("file-backed typed query did not prepare")
+    }
+    assert_eq(
+      @run_host.prepared_client_identity(original).parameter_values_cid,
+      @run_host.prepared_client_identity(file_original).parameter_values_cid,
+    )
+  }
+}
+
+///|
+test "literal query values cannot infer declarations or bypass required value contracts" {
+  let root = @env.current_dir().unwrap() + "/scripts/fixtures/native-local-cli"
+  for operation in ["sql", "aql"] {
+    let undeclared = quick_query_arguments([
+      operation, "SELECT @id AS id", "--params", "parameter-values.json",
+    ])
+    let wire = local_intent_wire(
+      root,
+      operation,
+      undeclared.subcommand.unwrap().1,
+    )
+    assert_true(quick_query_declared_preparation(wire) is Err(_))
+    let selected = quick_query_arguments([
+      operation, "SELECT @id AS id", "--parameter-declarations-file", "parameter-declarations.json",
+      "--params", "parameter-values.json",
+    ])
+    let wire = local_intent_wire(
+      root,
+      operation,
+      selected.subcommand.unwrap().1,
+    )
+    let original_values = "\"parameters\":{\"id\":7}"
+    assert_true(wire.contains(original_values))
+    for invalid in ["{}", "{\"id\":null}", "{\"id\":\"7\"}"] {
+      let changed = wire.replace(
+        old=original_values,
+        new="\"parameters\":" + invalid,
+      )
+      assert_true(quick_query_declared_preparation(changed) is Err(_))
+    }
   }
 }
 

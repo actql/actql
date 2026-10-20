@@ -32,18 +32,39 @@ start another Host, provide a token for Local, or select component paths.
 Remote connections continue to use the existing explicit `connect(endpoint,
 token)` API.
 
-The Local entry points are `Client.open()` and `await AsyncClient.open()`. They
+The short Local entry is `actql.open(state_dir=".actql")`; it returns the same
+context-managed `Client` used by `Client.open()` and `await AsyncClient.open()`.
+The Client factories also accept an explicit Store directory. They
 accept no endpoint, token, Wasm/library path, resources or allocator options.
 Both delegate to the same installed Host and existing Client model. The sync
 entry rejects an application event loop before I/O; use the async entry there.
 
-This candidate is not a completed or published Local release. Its selected
-Host/root/bootstrap capacity original is still unadopted, so ordinary `open()`
-currently rejects with `LocalInstallationUnavailable` before module capture or
-VM/Store construction. Private resource fixtures are never its fallback.
-The verified installed SELECT1/Result/reread/recovery examples will replace this
-status only after actual wheel consumption succeeds. Factory/caller doubles,
-metadata and compiler checks do not establish that acceptance.
+Ordinary Local `open()` selects the packaged platform runtime through the same
+factory, using the supported OS/runtime services and the actual Core, Store and
+Result resources. It does not require a diagnostic resource supplier. An
+independent clean installation of the three normal wheels at source
+`7629cfd0edd4d819ecbf387c1b417d7d7e984001` passed public import, fresh
+`actql.open(state_dir=...)`, `client.sql("SELECT 1 AS id").all()` returning
+`[{"id": 1}]`, and explicit close of that same Client on the selected macOS arm64
+platform. That finite execution is separate from factory doubles and compiler
+checks; it is not a completed or published Local release.
+
+A separate normal-wheel installation at source
+`fd878cec04aa6c95ffcc5481cb8fa5efbf7720ab` passed a fresh
+`client.sql("SELECT 23 AS id").all()`, explicit close, and a new-process reopen
+of the same installation. The new Client attached the original Run and read
+`result("answer").all()` as `[{"id": 23}]`, then closed explicitly. The saved
+read submitted no new Program or Run and performed no compilation. This finite
+case covers a source-free, Effect-free and checkpoint-free Result; its slow
+saved read does not establish acceptable responsiveness.
+
+Cold status/wait, general recovery, public Local `check()`, the documented
+top-level `connect(...)` entry, Mock, repeated-Host pressure and other platform
+combinations remain incomplete or unverified.
+The optional owned-Native preparation path retains its separate physical
+supplier requirements; its `LocalExecutionFundingUnavailable` refusal does not
+describe ordinary platform startup. Private resource fixtures are never a fallback
+for either path.
 
 Failed initialization with pending physical cleanup retains
 `error.cleanup_client`. Retry `cleanup_client.close()` (sync) or
@@ -96,6 +117,8 @@ the process rather than producing a success JSON.
 
 Run `--mode sdk-only` in a separate SDK-only venv to reject any installed Local
 distribution. These fixtures are acceptance commands, not evidence that this
-candidate has passed them. Actual engine termination across processes,
-original recovery, metered runtime and ordinary wheel execution remain the
-product gate; public-call spies and receipt-file tests only prepare that gate.
+candidate has passed them. The finite ordinary query/close execution does not
+establish the complete sync/async initial/resume scenarios, general saved-original
+recovery, normal numerical funding or full platform coverage. Those remain
+separate product gates; public-call spies and receipt-file tests only prepare
+them.

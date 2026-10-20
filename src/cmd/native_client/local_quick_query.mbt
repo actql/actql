@@ -21,6 +21,41 @@ fn local_quick_query_format(
 }
 
 ///|
+// Refuse unsupported destinations before allocating a Submission or attempt.
+// A stdout byte receipt cannot acknowledge an internal material receiver.
+fn local_quick_query_delivery(
+  child : @argparse.Matches,
+) -> String raise ClientStop {
+  let format = local_quick_query_format(child)
+  if format == "table" {
+    stop("LocalQueryTablePresentationUnavailable")
+  }
+  if child.values.contains("output") {
+    stop("LocalResultFileDeliveryUnavailable")
+  }
+  format
+}
+
+///|
+// Metadata selection for the ordinary captured caller. The original Result
+// Owner still supplies File authority, exclusive Writer and cleanup. Legacy
+// callers above retain their refusal rather than borrowing this capability.
+fn local_quick_query_file_output(
+  child : @argparse.Matches,
+  directory : String,
+) -> String? raise ClientStop {
+  match optional(child, "output") {
+    None => None
+    Some(path) => {
+      if local_quick_query_format(child) == "table" {
+        stop("LocalResultFileDeliveryUnavailable")
+      }
+      Some(local_result_output_path(directory, path))
+    }
+  }
+}
+
+///|
 fn normalize_native_query_arguments(
   matches : @argparse.Matches,
 ) -> Unit raise ClientStop {
@@ -40,8 +75,7 @@ fn normalize_native_query_arguments(
   ignore(required(child, "query"))
   for
     name in [
-      "program-file", "parameter-declarations-file", "stop-before", "request-id",
-      "submission-ref-file", "operation-attempt-id",
+      "program-file", "stop-before", "request-id", "submission-ref-file", "operation-attempt-id",
     ] {
     if child.values.contains(name) {
       stop("ConflictingQuickQuerySelection")
@@ -71,16 +105,7 @@ fn local_quick_query(
   operation : String,
   child : @argparse.Matches,
 ) -> String raise ClientStop {
-  let format = local_quick_query_format(child)
-  // The existing delivery grant is for exact json/jsonl/csv bytes at stdout.
-  // It cannot certify transformed table bytes or authorize a file writer.
-  // These missing adapters refuse before allocating a submission or attempt.
-  if format == "table" {
-    stop("LocalQueryTablePresentationUnavailable")
-  }
-  if child.values.contains("output") {
-    stop("LocalResultFileDeliveryUnavailable")
-  }
+  let format = local_quick_query_delivery(child)
   let original = local_submission_start(
     host,
     settings,
@@ -92,6 +117,20 @@ fn local_quick_query(
     child,
     public_run=true,
   )
+  let result = local_quick_query_result(original, format)
+  local_public_result(host, settings, crypto, sqlite, result.0) catch {
+    ClientStop(issue) => stop(issue + result.1)
+  }
+}
+
+///|
+// Select the exact returned Run only. A refusal after submission includes the
+// original correlation; it never retries or starts a replacement query.
+fn local_quick_query_result(
+  original : String,
+  format : String,
+  output? : String? = None,
+) -> (@argparse.Matches, String) raise ClientStop {
   let root = @decode.open_object(local_input_cursor(original)).unwrap_or_else(() => {
     stop("LocalQuerySavedStateUnavailable")
   })
@@ -112,14 +151,110 @@ fn local_quick_query(
   }
   // Select only that original returned Run; the Result Owner restores its
   // succeeded originals and rechecks current read permission independently.
-  let selected = command().parse(
-    argv=["result", "--format", format, "--", run_id],
-    env=Map([]),
-  ) catch {
+  let arguments = ["result", "--format", format]
+  if output is Some(path) {
+    arguments.push("--output")
+    arguments.push(path)
+  }
+  arguments.push("--")
+  arguments.push(run_id)
+  let selected = command().parse(argv=arguments[:], env=Map([])) catch {
     _ => stop("LocalQueryResultSelectionUnavailable" + correlation)
   }
   let (_, result) = selected.subcommand.unwrap()
-  local_public_result(host, settings, crypto, sqlite, result) catch {
+  (result, correlation)
+}
+
+///|
+// Use the same admitted business selection and its actual publication Store.
+// Run acceptance does not itself grant Result access: the existing captured
+// Result Owner independently restores/current-checks that exact returned Run.
+fn LocalCommandPreparationOriginal::execute_original_quick_query(
+  self : LocalCommandPreparationOriginal,
+  host : @local_host.NativeLocalHostConnection,
+  capture : @local_host.NativeLocalJournalCapture,
+  settings : LocalHostSettings,
+  configuration_name : String,
+  runtime : LocalPackagedRuntime,
+  input_root : String,
+  operation : String,
+  child : @argparse.Matches,
+) -> String raise ClientStop {
+  let presentation = local_quick_query_format(child)
+  // Bound the complete destination before business preparation or Submission.
+  // It is presentation DATA, never a new Run field or File permission.
+  let output = if child.values.contains("output") {
+    let directory = @env.current_dir().unwrap_or_else(() => {
+      stop("ProjectConfigurationDirectoryUnavailable")
+    })
+    local_quick_query_file_output(child, directory)
+  } else {
+    None
+  }
+  if output is Some(_) &&
+    !settings.installation_files.contains("file-read.json") {
+    stop("LocalResultFileOriginalNotSelected")
+  }
+  if presentation == "table" &&
+    !settings.installation_files.contains("material-read.json") {
+    stop("LocalResultMaterialOriginalNotSelected")
+  }
+  // JSON is the private material transfer encoding, never a stdout receipt
+  // relabelled as a table. The selected receiver owns the checked rows.
+  let format = if presentation == "table" { "json" } else { presentation }
+  let publication = self.prepare_business_submission(
+    host, capture, configuration_name, runtime, input_root, operation, child,
+  )
+  let physical = self.host.unwrap_or_else(() => {
+    stop("LocalBusinessOriginalUnavailable")
+  })
+  let pair = self.pair.unwrap_or_else(() => {
+    stop("LocalBusinessOriginalUnavailable")
+  })
+  let sqlite = physical
+    .borrow_local_host_sqlite(pair)
+    .unwrap_or_else(() => stop("LocalBusinessOriginalUnavailable"))
+  let crypto = self.inner_library.unwrap_or_else(() => {
+    stop("LocalBusinessOriginalUnavailable")
+  })
+  let original = local_submission_start(
+    host,
+    settings,
+    crypto,
+    sqlite,
+    publication.environment,
+    input_root,
+    operation,
+    child,
+    public_run=true,
+    business=Some(publication),
+  )
+  let (result, correlation) = local_quick_query_result(
+    original,
+    format,
+    output~,
+  )
+  try {
+    let selected = self.prepare_original_result(
+      host,
+      capture,
+      settings,
+      configuration_name,
+      runtime,
+      sqlite,
+      result,
+      publication=Some(publication),
+    )
+    local_public_result(
+      host,
+      settings,
+      crypto,
+      sqlite,
+      result,
+      prepared=Some(selected),
+      material_table=presentation == "table",
+    )
+  } catch {
     ClientStop(issue) => stop(issue + correlation)
   }
 }

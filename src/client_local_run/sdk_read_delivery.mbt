@@ -29,8 +29,8 @@ pub(all) enum LocalSDKReadDeliveryIssue[E] {
 /// attempt, renewed grant, payload replay or inferred completion. Query failure
 /// is distinct from a confirmed missing row. The caller reserves transfer and
 /// physical metadata capacity before applying the returned original CAS.
-pub fn[E] prepare_local_sdk_read_delivery_from_store(
-  preflight : LocalPublicationPreflight,
+pub fn[E] prepare_local_sdk_read_delivery_for_source(
+  source : LocalSDKReadSource,
   account : @authorization.AdmittedAccountConfiguration,
   finite : @host.ClientLocalRunPolicyOriginal,
   selection : @publication.LocalSDKResultReadSelection,
@@ -46,8 +46,8 @@ pub fn[E] prepare_local_sdk_read_delivery_from_store(
   current : () -> Result[Unit, E],
 ) -> Result[LocalSDKReadDeliveryPreparation, LocalSDKReadDeliveryIssue[E]] {
   let grant = match
-    issue_local_sdk_read_grant_from_store(
-      preflight, account, finite, selection, host_adoption_cid, owner, view, result_name,
+    issue_local_sdk_read_grant_for_source(
+      source, account, finite, selection, host_adoption_cid, owner, view, result_name,
       format, attempt_id, observed_at, max_results, read, current,
     ) {
     Ok(grant) => grant
@@ -140,8 +140,8 @@ pub fn[E] prepare_local_sdk_read_delivery_from_store(
   // nominal stored-chain view. Reuse the original grant/chain checks after
   // those callbacks before exposing any write materials to the supplier.
   let checked_grant = match
-    issue_local_sdk_read_grant_from_store(
-      preflight, account, finite, selection, host_adoption_cid, owner, view, result_name,
+    issue_local_sdk_read_grant_for_source(
+      source, account, finite, selection, host_adoption_cid, owner, view, result_name,
       format, attempt_id, observed_at, max_results, read, current,
     ) {
     Ok(grant) => grant
@@ -208,8 +208,8 @@ pub fn local_sdk_read_delivery_usage_row(
 /// Closed original first-installation writes. A retained/partial installation
 /// needs the original lookup path and is never silently overwritten here.
 /// The issuer holds the same trusted TX/current frame throughout preparation.
-pub fn[E] prepare_local_sdk_read_delivery_storage_from_store(
-  preflight : LocalPublicationPreflight,
+pub fn[E] prepare_local_sdk_read_delivery_storage_for_source(
+  source : LocalSDKReadSource,
   account : @authorization.AdmittedAccountConfiguration,
   finite : @host.ClientLocalRunPolicyOriginal,
   selection : @publication.LocalSDKResultReadSelection,
@@ -224,8 +224,8 @@ pub fn[E] prepare_local_sdk_read_delivery_storage_from_store(
   read : (String, String) -> Result[@host.ClientJournalPhysicalRow?, E],
   current : () -> Result[Unit, E],
 ) -> Result[String, LocalSDKReadDeliveryIssue[E]] {
-  prepare_local_sdk_read_delivery_installation_from_store(
-    preflight, account, finite, selection, host_adoption_cid, owner, view, result_name,
+  prepare_local_sdk_read_delivery_installation_for_source(
+    source, account, finite, selection, host_adoption_cid, owner, view, result_name,
     format, attempt_id, observed_at, max_results, read, current,
   ).map(pair => pair.1)
 }
@@ -235,8 +235,8 @@ pub fn[E] prepare_local_sdk_read_delivery_storage_from_store(
 /// projection. The portable Host borrows it before retiring transport output;
 /// wire bytes or saved metadata cannot reconstruct this nominal preparation.
 /// Neither component is a Store ACK, byte-disclosure permit or new attempt.
-pub fn[E] prepare_local_sdk_read_delivery_installation_from_store(
-  preflight : LocalPublicationPreflight,
+pub fn[E] prepare_local_sdk_read_delivery_installation_for_source(
+  source : LocalSDKReadSource,
   account : @authorization.AdmittedAccountConfiguration,
   finite : @host.ClientLocalRunPolicyOriginal,
   selection : @publication.LocalSDKResultReadSelection,
@@ -255,8 +255,8 @@ pub fn[E] prepare_local_sdk_read_delivery_installation_from_store(
   LocalSDKReadDeliveryIssue[E],
 ] {
   let prepared = match
-    prepare_local_sdk_read_delivery_from_store(
-      preflight, account, finite, selection, host_adoption_cid, owner, view, result_name,
+    prepare_local_sdk_read_delivery_for_source(
+      source, account, finite, selection, host_adoption_cid, owner, view, result_name,
       format, attempt_id, observed_at, max_results, read, current,
     ) {
     Ok(prepared) => prepared
@@ -277,8 +277,8 @@ pub fn[E] prepare_local_sdk_read_delivery_installation_from_store(
     Ok(None) => ()
   }
   let final_grant = match
-    issue_local_sdk_read_grant_from_store(
-      preflight, account, finite, selection, host_adoption_cid, owner, view, result_name,
+    issue_local_sdk_read_grant_for_source(
+      source, account, finite, selection, host_adoption_cid, owner, view, result_name,
       format, attempt_id, observed_at, max_results, read, current,
     ) {
     Ok(grant) => grant
@@ -343,4 +343,115 @@ pub fn[E] prepare_local_sdk_read_delivery_installation_from_store(
     @encode.OutputLimit => Err(Store(Preparation(Codec(CapacityExceeded))))
     _ => Err(Store(Preparation(Codec(Encoding))))
   }
+}
+
+///|
+/// Existing live-run entrance retains its original preflight/current checks.
+pub fn[E] prepare_local_sdk_read_delivery_from_store(
+  preflight : LocalPublicationPreflight,
+  account : @authorization.AdmittedAccountConfiguration,
+  finite : @host.ClientLocalRunPolicyOriginal,
+  selection : @publication.LocalSDKResultReadSelection,
+  host_adoption_cid : String,
+  owner : @publication.PublicationCommitPreparation,
+  view : @publication.PublicationCommitReadView,
+  result_name : String,
+  format : String,
+  attempt_id : String,
+  observed_at : String,
+  max_results : Int,
+  read : (String, String) -> Result[@host.ClientJournalPhysicalRow?, E],
+  current : () -> Result[Unit, E],
+) -> Result[LocalSDKReadDeliveryPreparation, LocalSDKReadDeliveryIssue[E]] {
+  prepare_local_sdk_read_delivery_for_source(
+    live_sdk_read_source(preflight),
+    account,
+    finite,
+    selection,
+    host_adoption_cid,
+    owner,
+    view,
+    result_name,
+    format,
+    attempt_id,
+    observed_at,
+    max_results,
+    read,
+    current,
+  )
+}
+
+///|
+/// Existing live-run entrance retains its original preflight/current checks.
+pub fn[E] prepare_local_sdk_read_delivery_storage_from_store(
+  preflight : LocalPublicationPreflight,
+  account : @authorization.AdmittedAccountConfiguration,
+  finite : @host.ClientLocalRunPolicyOriginal,
+  selection : @publication.LocalSDKResultReadSelection,
+  host_adoption_cid : String,
+  owner : @publication.PublicationCommitPreparation,
+  view : @publication.PublicationCommitReadView,
+  result_name : String,
+  format : String,
+  attempt_id : String,
+  observed_at : String,
+  max_results : Int,
+  read : (String, String) -> Result[@host.ClientJournalPhysicalRow?, E],
+  current : () -> Result[Unit, E],
+) -> Result[String, LocalSDKReadDeliveryIssue[E]] {
+  prepare_local_sdk_read_delivery_storage_for_source(
+    live_sdk_read_source(preflight),
+    account,
+    finite,
+    selection,
+    host_adoption_cid,
+    owner,
+    view,
+    result_name,
+    format,
+    attempt_id,
+    observed_at,
+    max_results,
+    read,
+    current,
+  )
+}
+
+///|
+/// Existing live-run entrance retains its original preflight/current checks.
+pub fn[E] prepare_local_sdk_read_delivery_installation_from_store(
+  preflight : LocalPublicationPreflight,
+  account : @authorization.AdmittedAccountConfiguration,
+  finite : @host.ClientLocalRunPolicyOriginal,
+  selection : @publication.LocalSDKResultReadSelection,
+  host_adoption_cid : String,
+  owner : @publication.PublicationCommitPreparation,
+  view : @publication.PublicationCommitReadView,
+  result_name : String,
+  format : String,
+  attempt_id : String,
+  observed_at : String,
+  max_results : Int,
+  read : (String, String) -> Result[@host.ClientJournalPhysicalRow?, E],
+  current : () -> Result[Unit, E],
+) -> Result[
+  (LocalSDKReadDeliveryPreparation, String),
+  LocalSDKReadDeliveryIssue[E],
+] {
+  prepare_local_sdk_read_delivery_installation_for_source(
+    live_sdk_read_source(preflight),
+    account,
+    finite,
+    selection,
+    host_adoption_cid,
+    owner,
+    view,
+    result_name,
+    format,
+    attempt_id,
+    observed_at,
+    max_results,
+    read,
+    current,
+  )
 }

@@ -8,6 +8,39 @@ pub fn NativeLocalReadPolicyBinding::authorize_read_request(
   observed_at : String,
   max_output_bytes? : Int? = None,
 ) -> Result[Unit, NativeLocalReadBindingIssue] {
+  match self.capture {
+    None =>
+      self.authorize_read_request_with_reads(
+        original,
+        request,
+        observed_at,
+        max_output_bytes~,
+      )
+    Some(capture) =>
+      read_binding_in_original_read(capture, (host, operations) => {
+        if !physical_equal(host, self.host) {
+          return Err(SelectionMismatch)
+        }
+        self.authorize_read_request_with_reads(
+          original,
+          request,
+          observed_at,
+          max_output_bytes~,
+          reads=Some(operations.reads),
+        )
+      })
+  }
+}
+
+///|
+fn NativeLocalReadPolicyBinding::authorize_read_request_with_reads(
+  self : NativeLocalReadPolicyBinding,
+  original : @host.ClientRequestIdentity,
+  request : @result_access.NativeResultAccessRequest,
+  observed_at : String,
+  max_output_bytes? : Int? = None,
+  reads? : NativeClientJournalReadAccess? = None,
+) -> Result[Unit, NativeLocalReadBindingIssue] {
   if max_output_bytes is Some(limit) &&
     (limit < 1 || limit > self.selection.max_bytes) {
     return Err(SelectionMismatch)
@@ -25,7 +58,8 @@ pub fn NativeLocalReadPolicyBinding::authorize_read_request(
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
-  let record = match self.host.journal.lookup(original, true) {
+  let record = match
+    self.host.journal.lookup_with_reads(original, true, reads~) {
     Ok(Retained(value)) => value
     Ok(UnresolvedHistory) => return Err(Journal(CustodyLost))
     Err(issue) => return Err(Journal(issue))
@@ -49,54 +83,96 @@ fn NativeLocalReadPolicyBinding::retained_read_admission(
   @result_access.NativeResultReadAdmission,
   NativeLocalReadBindingIssue,
 ] {
-  let mut refusal : NativeLocalReadBindingIssue? = None
-  let retained = self.host.journal.transaction(() => {
-    let bodies = match
-      self.read_admission_originals(original, facts, actual_policy_cid) {
-      Ok(value) => value
-      Err(issue) => {
-        refusal = Some(issue)
-        return Err(AuthorizationDenied)
-      }
-    }
-    let (_, _, runs) = match self.host.read_evidence_custody(self.crypto) {
-      Ok(value) => value
-      Err(issue) => return Err(issue)
-    }
-    if runs.get(@host.client_request_scope_cid(original)) is None {
-      return Err(CustodyLost)
-    }
-    let packet = match local_read_evidence_packet(original, bodies) {
-      Ok(value) => value
-      Err(issue) => return Err(issue)
-    }
-    guard self.host.database.read(
-        "client_local_read_evidence",
-        bodies.egress.cid,
+  match self.capture {
+    None =>
+      self.retained_read_admission_with_operations(
+        original, facts, actual_policy_cid,
       )
-      is Ok(row) &&
-      row.revision == 0L &&
-      row.body == packet else {
-      return Err(CustodyLost)
-    }
-    match self.require_request(original, facts) {
-      Err(issue) => {
-        refusal = Some(issue)
-        Err(AuthorizationDenied)
-      }
-      Ok(_) => {
-        let admission : @result_access.NativeResultReadAdmission = {
-          authorization_context_cid: bodies.authorization.cid,
-          data_ceiling_cid: bodies.ceiling.cid,
-          egress_admission_cid: bodies.egress.cid,
-          expires_at: self.expires_at,
-          max_bytes: self.selection.max_bytes,
-          max_uses: self.selection.max_uses,
+    Some(capture) =>
+      read_binding_in_original_read(capture, (host, operations) => {
+        if !physical_equal(host, self.host) {
+          return Err(SelectionMismatch)
         }
-        Ok(admission)
+        self.retained_read_admission_with_operations(
+          original,
+          facts,
+          actual_policy_cid,
+          operations=Some(operations),
+        )
+      })
+  }
+}
+
+///|
+fn NativeLocalReadPolicyBinding::retained_read_admission_with_operations(
+  self : NativeLocalReadPolicyBinding,
+  original : @host.ClientRequestIdentity,
+  facts : @result_access.NativeResultReadFacts,
+  actual_policy_cid : String,
+  operations? : NativeClientJournalOperationAccess? = None,
+) -> Result[
+  @result_access.NativeResultReadAdmission,
+  NativeLocalReadBindingIssue,
+] {
+  let reads = operations.map(value => value.reads)
+  let mut refusal : NativeLocalReadBindingIssue? = None
+  let retained = self.host.journal.transaction_with_reads(
+    () => {
+      let bodies = match
+        self.read_admission_originals(original, facts, actual_policy_cid) {
+        Ok(value) => value
+        Err(issue) => {
+          refusal = Some(issue)
+          return Err(AuthorizationDenied)
+        }
       }
-    }
-  })
+      let (_, _, runs) = match
+        self.host.read_evidence_custody(
+          self.crypto,
+          operations~,
+          capture=self.capture,
+        ) {
+        Ok(value) => value
+        Err(issue) => return Err(issue)
+      }
+      if runs.get(@host.client_request_scope_cid(original)) is None {
+        return Err(CustodyLost)
+      }
+      let packet = match local_read_evidence_packet(original, bodies) {
+        Ok(value) => value
+        Err(issue) => return Err(issue)
+      }
+      guard read_client_journal_value(
+          self.host.database,
+          "client_local_read_evidence",
+          bodies.egress.cid,
+          reads,
+        )
+        is Ok(row) &&
+        row.revision == 0L &&
+        row.body == packet else {
+        return Err(CustodyLost)
+      }
+      match self.require_request(original, facts) {
+        Err(issue) => {
+          refusal = Some(issue)
+          Err(AuthorizationDenied)
+        }
+        Ok(_) => {
+          let admission : @result_access.NativeResultReadAdmission = {
+            authorization_context_cid: bodies.authorization.cid,
+            data_ceiling_cid: bodies.ceiling.cid,
+            egress_admission_cid: bodies.egress.cid,
+            expires_at: self.expires_at,
+            max_bytes: self.selection.max_bytes,
+            max_uses: self.selection.max_uses,
+          }
+          Ok(admission)
+        }
+      }
+    },
+    reads~,
+  )
   match retained {
     Ok(value) => Ok(value)
     Err(TransactionUnknown) => Err(Journal(TransactionUnknown))
@@ -114,7 +190,17 @@ pub fn NativeLocalReadPolicyBinding::authorize_read_delivery(
   store : @publication_store.Store,
   delivery : @result_access.NativeResultDeliveryAuthorization,
 ) -> Result[Unit, NativeLocalReadBindingIssue] {
-  if delivery.stage != "read" && delivery.stage != "receipt" {
+  if delivery.stage == "table_output" {
+    guard self.selection.sink == Material &&
+      self.selection.purpose == "cli-table" &&
+      self.material_receiver is Some(receiver) &&
+      receiver.table_output_in_flight() else {
+      return Err(AuthorizationDenied)
+    }
+  }
+  if delivery.stage != "read" &&
+    delivery.stage != "receipt" &&
+    delivery.stage != "table_output" {
     return Err(SelectionMismatch)
   }
   match

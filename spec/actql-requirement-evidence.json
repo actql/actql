@@ -1181,7 +1181,7 @@
     },
     {
       "requirement_id": "actql.language/value-contracts.decimal-output-target-is-not-input-evidence",
-      "statement_sha256": "8c99d88fd791957952d91653593417ffba20569c2815f3d39bc5ad0106a98e31",
+      "statement_sha256": "eca5e9cc35796ba21da47a9536530e18cc4156168fb9a0ef0dcd8cacdcb895e9",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
@@ -3667,7 +3667,7 @@
     },
     {
       "requirement_id": "actql.language/expression-text.signatures-mapping-constraints-len-x-sqrt-x",
-      "statement_sha256": "0de125cf8c3c29127927efb0967e0d30e13425f7f7a14f14fd8980887a551d0c",
+      "statement_sha256": "8fce2522cf4812bc2126437b9ce52f3c26916622291869b94929ba96fa239a5a",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
@@ -4031,6 +4031,17 @@
     {
       "requirement_id": "actql.language/decimal-expressions.quantize-public-shorthand",
       "statement_sha256": "0f783e2a1c7798be0bf2169d55fe790f7e78401a1b3544617eae737a6a36337e",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "decimal-expressions",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/decimal-expressions.public-exact-division-at-scale",
+      "statement_sha256": "8338cc1079a1c42bb583b22a9c76aaf072c46644903e567da4e09f78bc6373a7",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
@@ -10773,7 +10784,7 @@
     },
     {
       "requirement_id": "actql.language/machine-contracts.exact-artifacts",
-      "statement_sha256": "0380d64aa06ae419a3803d2ca73a6bf89af32b446c406bb8d05dfb41347b7fd1",
+      "statement_sha256": "b8864e1149656a52670b67391a4b3bbe05c50f5e6ebf7f1e4397f5353c500199",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
@@ -17593,7 +17604,7 @@
     },
     {
       "requirement_id": "actql.protocol.contracts/machine-contracts.exact-artifacts",
-      "statement_sha256": "5650eaf29ec5f3d4753b1c35be71024c4498029785aff39053d4bb99555a9cc0",
+      "statement_sha256": "84b2767b5ca700de7251df2fbae41961448ce752c1009a7382a0166dafea2bd3",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
@@ -18100,6 +18111,61 @@
     {
       "requirement_id": "actql.protocol.artifacts/result-delivery.modifying-either-the-delivered-bytes-or-any-bound-receipt-field",
       "statement_sha256": "daaa1ab6ded7829f3e9aa3ce4b1653cdf796bbd174db4db87f62ba8e62cddb17",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "result-delivery",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.artifacts/result-delivery.single-receipt-preserves-canonical-object",
+      "statement_sha256": "a74e9664d4fc4a56e8ffcd65615313f54964d26211361ea3ec5547221b9c6719",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "result-delivery",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.artifacts/result-delivery.multiple-receipts-preserve-ordered-array",
+      "statement_sha256": "4886fbb867605eca1a02578e9e0c6ddd3c331311ef2a785ce1fc79d1b9946ad6",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "result-delivery",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.artifacts/result-delivery.receipt-export-failure-does-not-resend",
+      "statement_sha256": "0e6f7690b161bd51acf354c03203a274da4dab025e4c22f278df53fed794ae07",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "result-delivery",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.artifacts/result-delivery.verify-output-admits-all-receipts",
+      "statement_sha256": "e181b8249e148e9340b2b95bdf49f791f6c962e64afca52e4fdc80934b962dee",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "result-delivery",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.artifacts/result-delivery.verify-output-matches-count-and-digest",
+      "statement_sha256": "12617e091875d1891f8bcb24b9f670ca9a390a7a1d8c6f830a938d39d8746634",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",

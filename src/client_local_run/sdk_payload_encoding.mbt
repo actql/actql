@@ -82,8 +82,8 @@ pub(all) enum LocalSDKPayloadPreparationIssue[E] {
 /// Only the original validated selection/schema can create this encoder. A
 /// caller cannot pair an arbitrary serializer with a retained attempt and
 /// thereby issue a receipt for a different serialization contract.
-pub fn[E] prepare_local_sdk_payload_encoding_from_store(
-  preflight : LocalPublicationPreflight,
+pub fn[E] prepare_local_sdk_payload_encoding_for_source(
+  source : LocalSDKReadSource,
   account : @authorization.AdmittedAccountConfiguration,
   finite : @host.ClientLocalRunPolicyOriginal,
   selection : @publication.LocalSDKResultReadSelection,
@@ -102,8 +102,8 @@ pub fn[E] prepare_local_sdk_payload_encoding_from_store(
   current : () -> Result[Unit, E],
 ) -> Result[LocalSDKPayloadEncoding, LocalSDKPayloadPreparationIssue[E]] {
   let codecs = match
-    prepare_local_sdk_read_payload_codecs(
-      preflight, account, finite, selection, host_adoption_cid, owner, view, first,
+    prepare_local_sdk_read_payload_codecs_for_source(
+      source, account, finite, selection, host_adoption_cid, owner, view, first,
       result_name, format, attempt_id, observed_at, max_results, max_row_bytes, input_chunk_bytes,
       read, current,
     ) {
@@ -121,8 +121,8 @@ pub fn[E] prepare_local_sdk_payload_encoding_from_store(
 ///|
 /// Reuse original evidence/availability/current Owners around actual byte
 /// disclosure. Recomputing the same grant body does not renew or install it.
-pub fn[E] validate_local_sdk_payload_encoding_current(
-  preflight : LocalPublicationPreflight,
+pub fn[E] validate_local_sdk_payload_encoding_source_current(
+  source : LocalSDKReadSource,
   account : @authorization.AdmittedAccountConfiguration,
   finite : @host.ClientLocalRunPolicyOriginal,
   selection : @publication.LocalSDKResultReadSelection,
@@ -139,8 +139,8 @@ pub fn[E] validate_local_sdk_payload_encoding_current(
   current : () -> Result[Unit, E],
 ) -> Result[Unit, LocalSDKReadPayloadCodecIssue[E]] {
   let saved = match
-    observe_local_sdk_read_delivery_from_store(
-      preflight, account, finite, selection, host_adoption_cid, owner, view, result_name,
+    observe_local_sdk_read_delivery_for_source(
+      source, account, finite, selection, host_adoption_cid, owner, view, result_name,
       format, attempt_id, max_results, read, current,
     ) {
     Ok(saved) => saved
@@ -150,8 +150,8 @@ pub fn[E] validate_local_sdk_payload_encoding_current(
     return Err(ChangedOriginal)
   }
   let grant = match
-    issue_local_sdk_read_grant_from_store(
-      preflight, account, finite, selection, host_adoption_cid, owner, view, result_name,
+    issue_local_sdk_read_grant_for_source(
+      source, account, finite, selection, host_adoption_cid, owner, view, result_name,
       format, attempt_id, observed_at, max_results, read, current,
     ) {
     Ok(grant) => grant
@@ -164,8 +164,8 @@ pub fn[E] validate_local_sdk_payload_encoding_current(
   // A current callback can change the saved usage/head after observation.
   // Revalidate the original streaming attempt without constructing new codecs.
   let final_saved = match
-    observe_local_sdk_read_delivery_from_store(
-      preflight, account, finite, selection, host_adoption_cid, owner, view, result_name,
+    observe_local_sdk_read_delivery_for_source(
+      source, account, finite, selection, host_adoption_cid, owner, view, result_name,
       format, attempt_id, max_results, read, current,
     ) {
     Ok(saved) => saved
@@ -346,4 +346,84 @@ pub fn LocalSDKPayloadEncoding::cancel_frames(
 ) -> Unit {
   @publication.cancel_durable_result_row_frames(self.frames)
   self.issue = Some(Frames(DurableRowFrameClosed))
+}
+
+///|
+/// Existing live-run entry preserves its original preflight/current checks.
+pub fn[E] prepare_local_sdk_payload_encoding_from_store(
+  preflight : LocalPublicationPreflight,
+  account : @authorization.AdmittedAccountConfiguration,
+  finite : @host.ClientLocalRunPolicyOriginal,
+  selection : @publication.LocalSDKResultReadSelection,
+  host_adoption_cid : String,
+  owner : @publication.PublicationCommitPreparation,
+  view : @publication.PublicationCommitReadView,
+  first : LocalSDKReadDeliveryPreparation,
+  result_name : String,
+  format : String,
+  attempt_id : String,
+  observed_at : String,
+  max_results : Int,
+  max_row_bytes : Int,
+  input_chunk_bytes : Int,
+  read : (String, String) -> Result[@host.ClientJournalPhysicalRow?, E],
+  current : () -> Result[Unit, E],
+) -> Result[LocalSDKPayloadEncoding, LocalSDKPayloadPreparationIssue[E]] {
+  prepare_local_sdk_payload_encoding_for_source(
+    live_sdk_read_source(preflight),
+    account,
+    finite,
+    selection,
+    host_adoption_cid,
+    owner,
+    view,
+    first,
+    result_name,
+    format,
+    attempt_id,
+    observed_at,
+    max_results,
+    max_row_bytes,
+    input_chunk_bytes,
+    read,
+    current,
+  )
+}
+
+///|
+/// Existing live-run entry preserves its original preflight/current checks.
+pub fn[E] validate_local_sdk_payload_encoding_current(
+  preflight : LocalPublicationPreflight,
+  account : @authorization.AdmittedAccountConfiguration,
+  finite : @host.ClientLocalRunPolicyOriginal,
+  selection : @publication.LocalSDKResultReadSelection,
+  host_adoption_cid : String,
+  owner : @publication.PublicationCommitPreparation,
+  view : @publication.PublicationCommitReadView,
+  first : LocalSDKReadDeliveryPreparation,
+  result_name : String,
+  format : String,
+  attempt_id : String,
+  observed_at : String,
+  max_results : Int,
+  read : (String, String) -> Result[@host.ClientJournalPhysicalRow?, E],
+  current : () -> Result[Unit, E],
+) -> Result[Unit, LocalSDKReadPayloadCodecIssue[E]] {
+  validate_local_sdk_payload_encoding_source_current(
+    live_sdk_read_source(preflight),
+    account,
+    finite,
+    selection,
+    host_adoption_cid,
+    owner,
+    view,
+    first,
+    result_name,
+    format,
+    attempt_id,
+    observed_at,
+    max_results,
+    read,
+    current,
+  )
 }

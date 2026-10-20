@@ -10,17 +10,33 @@ fn local_retain_values_policy_originals(
   prepared : @run_host.PreparedClientProgram,
   compiled : @run_host.ClientCompiledRun,
   definition : @publication.PublicationContract,
+  business? : LocalCommandBusinessPreparation? = None,
 ) -> Unit raise ClientStop {
-  match
-    host.retain_publication_policy_originals(
-      crypto,
-      settings.principal,
-      settings.connection,
-      request,
-      prepared,
-      compiled,
-      definition,
-    ) {
+  let retained = match business {
+    None =>
+      host.retain_publication_policy_originals(
+        crypto,
+        settings.principal,
+        settings.connection,
+        request,
+        prepared,
+        compiled,
+        definition,
+      )
+    Some(original) =>
+      local_business_policy_result(
+        original,
+        original.capture.retain_publication_policy_in_original_read(
+          settings.principal,
+          settings.connection,
+          request,
+          prepared,
+          compiled,
+          definition,
+        ),
+      )
+  }
+  match retained {
     Ok(_) => ()
     Err(PublicationPolicy(@checked.MissingDependency)) =>
       stop("LocalResultPolicyOriginalsMissing")

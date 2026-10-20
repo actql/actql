@@ -5,6 +5,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from threading import RLock
 import unittest
+from unittest.mock import patch
 
 from actql_sdk._local_core import LocalCore, LocalCoreError, _Output, _PhysicalInput
 from actql_sdk._local_files import LocalFileRoot, LocalFileError
@@ -83,6 +84,8 @@ class OriginalHostBindingTests(unittest.TestCase):
                 return result
             if name == 'reserve':
                 return 200 + (args[0] if family != 'current' else args[1])
+            if family == 'buffer' and name in ('fill', 'seal'):
+                return 0
             if family == 'current' and name in ('bind', 'validate'):
                 ticket = args[0] - 200
                 self.assertIsNotNone(core._journal_callbacks(ticket).reader)
@@ -100,6 +103,30 @@ class OriginalHostBindingTests(unittest.TestCase):
             return value
         binding = factory() if create else None
         return path, store, core, epoch, source, state, tuple(expected), calls, codes, factory, binding
+
+    def test_original_current_input_is_completed_before_acquisition(self):
+        _, _, _, _, _, _, _, calls, _, _, binding = self.fixture()
+        original = binding._input
+        assert original is not None
+        transfers = [(name, args) for family, name, args in calls
+                     if family == 'buffer' and name in ('fill', 'seal')]
+        self.assertEqual(transfers, [('fill', (original.handle, 0, original.length)),
+                                     ('seal', (original.handle,))])
+        sealed = next(i for i, call in enumerate(calls) if call[:2] == ('buffer', 'seal'))
+        acquired = next(i for i, call in enumerate(calls) if call[:2] == ('current', 'reserve'))
+        self.assertLess(sealed, acquired)
+
+    def test_incomplete_original_transfer_retains_same_input_without_current_acquisition(self):
+        _, _, core, _, _, _, _, calls, codes, factory, _ = self.fixture(create=False)
+        codes['buffer', 'fill'] = LocalCoreError('fill', -9)
+        with self.assertRaises(LocalHostBindingCleanupPending) as raised:
+            factory()
+        binding = raised.exception.cleanup_binding
+        assert binding._input is not None
+        self.assertIs(core._loans[binding._input.ticket], binding._input)
+        self.assertIsNone(binding._current)
+        self.assertFalse(any(call[:2] == ('current', 'reserve') for call in calls))
+        self.assertTrue(binding.close())
 
     def test_same_original_store_snapshot_and_exact_bytes_without_writes_or_execution(self):
         _, store, core, _, source, _, _, calls, _, _, binding = self.fixture()
@@ -121,6 +148,22 @@ class OriginalHostBindingTests(unittest.TestCase):
         self.assertTrue(all(family in ('buffer', 'workspace', 'current') for family, _, _ in calls))
         self.assertFalse(store._connection.in_transaction)
         self.assertEqual(len(frames), 1)
+
+    def test_each_current_callback_observes_every_original_file_once_without_caching(self):
+        path, _, _, _, source, state, _, _, _, _, binding = self.fixture()
+        with patch.object(source._root, 'observe_original',
+                          wraps=source._root.observe_original) as source_observe, \
+                patch.object(state._root, 'observe_original',
+                             wraps=state._root.observe_original) as state_observe:
+            binding._physical_current()
+            self.assertEqual((source_observe.call_count, state_observe.call_count), (2, 4))
+            binding._physical_current()
+            self.assertEqual((source_observe.call_count, state_observe.call_count), (4, 8))
+            # A second operation must observe the original again. Identical
+            # prior bytes/currentness cannot mask a changed physical file.
+            (path / 'source' / 'account.json').write_bytes(b'changed')
+            with self.assertRaises(LocalFileError):
+                binding._physical_current()
 
     def test_missing_changed_or_extra_settings_refuse_before_core_binding(self):
         for mutation in ('missing', 'changed', 'extra'):

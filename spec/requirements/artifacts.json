@@ -509,6 +509,61 @@
       }
     },
     {
+      "requirement_id": "actql.protocol.artifacts/result-delivery.single-receipt-preserves-canonical-object",
+      "statement_sha256": "a74e9664d4fc4a56e8ffcd65615313f54964d26211361ea3ec5547221b9c6719",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "result-delivery",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.artifacts/result-delivery.multiple-receipts-preserve-ordered-array",
+      "statement_sha256": "4886fbb867605eca1a02578e9e0c6ddd3c331311ef2a785ce1fc79d1b9946ad6",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "result-delivery",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.artifacts/result-delivery.receipt-export-failure-does-not-resend",
+      "statement_sha256": "0e6f7690b161bd51acf354c03203a274da4dab025e4c22f278df53fed794ae07",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "result-delivery",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.artifacts/result-delivery.verify-output-admits-all-receipts",
+      "statement_sha256": "e181b8249e148e9340b2b95bdf49f791f6c962e64afca52e4fdc80934b962dee",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "result-delivery",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.artifacts/result-delivery.verify-output-matches-count-and-digest",
+      "statement_sha256": "12617e091875d1891f8bcb24b9f670ca9a390a7a1d8c6f830a938d39d8746634",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "result-delivery",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.protocol.artifacts/reference-admission.before-preview-apply-the-connector-host-must-resolve-it-against-the",
       "statement_sha256": "10916c1fea3ffa9bd9f1e016f343aa976336a90d5917295287e7f33ea1164ae4",
       "status": "pending",

@@ -154,12 +154,13 @@ class _OriginalFileReader:
     """Physical reader of saved originals, not an adoption or authority witness."""
 
     __slots__ = ('root', 'name', 'max_bytes', 'descriptor', 'identity', 'stamp',
-                 'offset', 'chunk', 'hash', 'invalid', 'closing', 'close_pending', 'eof')
+                 'offset', 'chunk', 'hash', 'invalid', 'closing', 'close_pending', 'eof', 'expected')
 
     def __init__(self, root: 'LocalFileRoot', name: str, max_bytes: int) -> None:
         self.root = root
         self.name = name
         self.max_bytes = max_bytes
+        self.expected: PhysicalFileSnapshot | None = None
         self.descriptor: int | None = None
         self.identity: PhysicalFileIdentity | None = None
         self.stamp: tuple[int, ...] | None = None
@@ -365,6 +366,35 @@ class LocalFileRoot:
                 os.fsync(self._observation_root())
                 value.creation_synced = True
 
+    def restore_area(self, name: str, expected: PhysicalFileIdentity) -> _AllocationArea:
+        """Reacquire the recorded directory generation without creating anything.
+
+        The existing Host/Store caller validates the saved allocation first.
+        These physical facts grant no scope, capacity or creation/commit ACK.
+        Every partial descriptor stays on this original returned error carrier.
+        """
+        self._name(name)
+        if (type(expected) is not PhysicalFileIdentity
+                or type(expected.device) is not int or not 0 <= expected.device < 2**64
+                or type(expected.inode) is not int or not 0 <= expected.inode < 2**64):
+            raise ValueError('Invalid saved Local area generation')
+        with self._lock:
+            self._open()
+            if self._parent_area is not None:
+                raise LocalFileError('Nested Local allocation areas are unsupported')
+            if any(value.name == name for value in self._areas.values()):
+                raise LocalFileError('Original Local allocation area is already retained')
+            if self._used_slots() >= self._max_files:
+                raise LocalFileError('Local file descriptor capacity exceeded')
+            value = _AllocationArea(self, name)
+            value.identity = expected
+            self._areas[id(value)] = value
+            try:
+                self._open_area_descriptor(value)
+            except BaseException as original:
+                raise LocalAreaAcquisitionError(value) from original
+            return value
+
     def open_area(self, value: _AllocationArea) -> 'LocalFileRoot':
         """Open the original area after its Owner durably recorded the identity.
 
@@ -372,50 +402,56 @@ class LocalFileRoot:
         must enforce its original CAS before this physical operation.
         """
         with self._lock:
-            root = self._open()
             self._owned_area(value)
             if value.closing or not value.creation_synced:
                 raise LocalFileError('Original Local allocation area is pending or closing')
-            self.observe_area(value)
-            if value.directory is not None:
-                # A failed first open remains this same handle; never reopen it.
-                value.directory._open()
-                if not value.directory._ready:
-                    raise LocalFileError('Original Local allocation directory is pending')
-                return value.directory
-            child = LocalFileRoot.__new__(LocalFileRoot)
-            child._lock = self._lock
-            child._files = {}
-            child._areas = {}
-            child._name_transfers = {}
-            child._finalizations = {}
-            child._readers = {}
-            child._original_readers = {}
-            child._capacity_root = self
-            child._parent_area = value
-            child._max_files = self._max_files
-            child._max_chunk_bytes = self._max_chunk_bytes
-            child._descriptor = None
-            child._closing = False
-            child._close_pending = False
-            child._ready = False
-            child._identity = None
-            value.directory = child
-            try:
-                descriptor = os.open(value.name, os.O_RDONLY | os.O_DIRECTORY |
-                                     os.O_CLOEXEC | os.O_NOFOLLOW, dir_fd=root)
-                child._descriptor = descriptor
-                current = os.fstat(descriptor)
-                child._identity = PhysicalFileIdentity(current.st_dev, current.st_ino)
-                if (not stat.S_ISDIR(current.st_mode) or current.st_mode & 0o077
-                        or current.st_uid != os.getuid()
-                        or PhysicalFileIdentity(current.st_dev, current.st_ino) != value.identity):
-                    raise LocalFileError('Original Local allocation descriptor facts changed')
-                fcntl.flock(descriptor, fcntl.LOCK_EX | fcntl.LOCK_NB)
-                child._ready = True
-            except BaseException as original:
-                raise LocalAreaAcquisitionError(value) from original
-            return child
+            return self._open_area_descriptor(value)
+
+    def _open_area_descriptor(self, value: _AllocationArea) -> 'LocalFileRoot':
+        root = self._open()
+        self._owned_area(value)
+        if value.closing:
+            raise LocalFileError('Original Local allocation area is closing')
+        self.observe_area(value)
+        if value.directory is not None:
+            # A failed first open remains this same handle; never reopen it.
+            value.directory._open()
+            if not value.directory._ready:
+                raise LocalFileError('Original Local allocation directory is pending')
+            return value.directory
+        child = LocalFileRoot.__new__(LocalFileRoot)
+        child._lock = self._lock
+        child._files = {}
+        child._areas = {}
+        child._name_transfers = {}
+        child._finalizations = {}
+        child._readers = {}
+        child._original_readers = {}
+        child._capacity_root = self
+        child._parent_area = value
+        child._max_files = self._max_files
+        child._max_chunk_bytes = self._max_chunk_bytes
+        child._descriptor = None
+        child._closing = False
+        child._close_pending = False
+        child._ready = False
+        child._identity = None
+        value.directory = child
+        try:
+            descriptor = os.open(value.name, os.O_RDONLY | os.O_DIRECTORY |
+                                 os.O_CLOEXEC | os.O_NOFOLLOW, dir_fd=root)
+            child._descriptor = descriptor
+            current = os.fstat(descriptor)
+            child._identity = PhysicalFileIdentity(current.st_dev, current.st_ino)
+            if (not stat.S_ISDIR(current.st_mode) or current.st_mode & 0o077
+                    or current.st_uid != os.getuid()
+                    or PhysicalFileIdentity(current.st_dev, current.st_ino) != value.identity):
+                raise LocalFileError('Original Local allocation descriptor facts changed')
+            fcntl.flock(descriptor, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            child._ready = True
+        except BaseException as original:
+            raise LocalAreaAcquisitionError(value) from original
+        return child
 
     def close_area(self, value: _AllocationArea) -> bool:
         """Retire physical handles only; never unlink or return disk capacity."""
@@ -951,11 +987,41 @@ class LocalFileRoot:
         self._name(name)
         if type(max_bytes) is not int or not 0 <= max_bytes <= 1048576:
             raise ValueError('Invalid saved Local original byte limit')
+        return self._open_original_descriptor(name, max_bytes, None)
+
+    def open_saved_payload(self, name: str, expected: PhysicalFileSnapshot) -> _OriginalFileReader:
+        """Read the saved Sealed generation; this never invents a finalization.
+
+        The trusted caller binds this observation to the original committed
+        Result and Store allocation. Identity/size are checked before bytes;
+        the exact digest is checked after EOF before a completed observation.
+        No write, replacement, Run replay or permission is supplied here.
+        """
+        self._name(name)
+        if (type(expected) is not PhysicalFileSnapshot
+                or type(expected.observation) is not PhysicalFileObservation
+                or type(expected.observation.identity) is not PhysicalFileIdentity
+                or type(expected.observation.size) is not int
+                or not 0 <= expected.observation.size < 2**63
+                or type(expected.observation.identity.device) is not int
+                or not 0 <= expected.observation.identity.device < 2**64
+                or type(expected.observation.identity.inode) is not int
+                or not 0 <= expected.observation.identity.inode < 2**64
+                or type(expected.physical_digest) is not str
+                or len(expected.physical_digest) != 71
+                or not expected.physical_digest.startswith('sha256:')
+                or any(c not in '0123456789abcdef' for c in expected.physical_digest[7:])):
+            raise ValueError('Invalid saved Local payload generation')
+        return self._open_original_descriptor(name, expected.observation.size, expected)
+
+    def _open_original_descriptor(self, name: str, max_bytes: int,
+                                  expected: PhysicalFileSnapshot | None) -> _OriginalFileReader:
         with self._lock:
             root = self._open()
             if self._capacity_root._used_slots() >= self._capacity_root._max_files:
                 raise LocalFileError('Local file descriptor capacity is exhausted')
             reader = _OriginalFileReader(self, name, max_bytes)
+            reader.expected = expected
             self._original_readers[id(reader)] = reader
             try:
                 # Nonblocking also prevents an untrusted special file from
@@ -989,6 +1055,11 @@ class LocalFileRoot:
                     or not stat.S_ISDIR(directory.st_mode) or directory.st_mode & 0o077
                     or directory.st_uid != os.getuid()):
                 raise LocalFileError('Original Local root generation changed')
+            if reader.expected is not None:
+                expected = reader.expected.observation
+                if (reader.stamp[:3] != (expected.identity.device, expected.identity.inode,
+                                        expected.size)):
+                    raise LocalFileError('Saved Local payload differs from its recorded generation')
             current = os.fstat(reader.descriptor)
             named = os.stat(reader.name, dir_fd=root, follow_symlinks=False)
             for value in (current, named):
@@ -1045,9 +1116,13 @@ class LocalFileRoot:
             stamp = self._validate_original(reader)
             if not reader.eof or reader.chunk is not None or reader.offset != stamp[2]:
                 raise LocalFileError('Saved Local original read is incomplete')
-            return PhysicalFileSnapshot(
+            observed = PhysicalFileSnapshot(
                 PhysicalFileObservation(PhysicalFileIdentity(stamp[0], stamp[1]), stamp[2]),
                 'sha256:' + reader.hash.hexdigest())
+            if reader.expected is not None and observed != reader.expected:
+                reader.invalid = True
+                raise LocalFileError('Saved Local payload content differs from its recorded digest')
+            return observed
 
     def close_original(self, reader: _OriginalFileReader) -> bool:
         """After input cleanup, stop the same descriptor without altering saved bytes.

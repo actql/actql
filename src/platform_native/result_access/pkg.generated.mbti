@@ -17,6 +17,8 @@ pub fn lookup_native_result_delivery_attempt(NativeResultAccessService, @run_pub
 
 pub fn open_native_result_access(NativeResultAccessService, NativeResultAccessRequest) -> Result[NativeResultAccessSession, NativeResultAccessIssue]
 
+pub fn prepare_native_result_material_receiver(@publication_store.Store, NativeResultAccessRequest, String, Int, Int, Int, Int, Int, Int, Int, Array[String]) -> Result[NativeResultMaterialReceiver, NativeResultMaterialIssue]
+
 // Errors
 
 // Types and methods
@@ -51,6 +53,7 @@ pub fn NativeResultAccessSession::attempt_cid(Self) -> String
 pub fn NativeResultAccessSession::close(Self) -> Result[Unit, NativeResultAccessIssue]
 pub fn NativeResultAccessSession::confirm_chunk(Self) -> Result[Int64, NativeResultAccessIssue]
 pub fn NativeResultAccessSession::confirm_sink_finished(Self) -> Result[@publication_store.NativeResultDeliverySuccess, NativeResultAccessIssue]
+pub fn NativeResultAccessSession::matches_original(Self, @publication_store.Store, NativeResultAccessRequest) -> Bool
 pub fn NativeResultAccessSession::next(Self, Int) -> Result[@publication_store.NativePublicationDeliveryChunk, NativeResultAccessIssue]
 pub fn NativeResultAccessSession::terminate(Self, Int?, Bool, String, Int?, String?) -> Result[@publication_store.NativeResultDeliveryFailure, NativeResultAccessIssue]
 
@@ -62,6 +65,37 @@ pub(all) struct NativeResultDeliveryAuthorization {
   stage : String
   observed_at : String
 }
+
+pub struct NativeResultMaterialIdentity {
+  receiver_cid : String
+  result_schema_cid : String
+  ordering_evidence_cid : String
+}
+
+pub(all) enum NativeResultMaterialIssue {
+  MaterialInvalidLimits
+  MaterialForeignSession
+  MaterialNotComplete
+  MaterialClosed
+  MaterialOutputAlreadyAttempted
+  MaterialOutputUnknown(Int)
+  MaterialAccess(NativeResultAccessIssue)
+  MaterialSink(NativeResultSinkIssue)
+  MaterialSchema(@run_publication.ResultMaterialIssue)
+  MaterialFrame(@run_publication.DurableResultRowFrameIssue)
+}
+
+type NativeResultMaterialReceiver
+pub fn NativeResultMaterialReceiver::attach(Self, NativeResultAccessSession) -> Result[Unit, NativeResultMaterialIssue]
+pub fn NativeResultMaterialReceiver::close(Self) -> Result[Unit, NativeResultAccessIssue]
+pub fn NativeResultMaterialReceiver::covers_read_limits(Self, Int, Int) -> Bool
+pub fn NativeResultMaterialReceiver::identity(Self) -> NativeResultMaterialIdentity
+pub fn NativeResultMaterialReceiver::matches_facts(Self, NativeResultReadFacts) -> Bool
+pub fn NativeResultMaterialReceiver::matches_request(Self, NativeResultAccessRequest) -> Bool
+pub fn NativeResultMaterialReceiver::poll(Self) -> Result[Bool, NativeResultMaterialIssue]
+pub fn NativeResultMaterialReceiver::table(Self, Int) -> Result[String, NativeResultMaterialIssue]
+pub fn NativeResultMaterialReceiver::table_output_in_flight(Self) -> Bool
+pub fn NativeResultMaterialReceiver::write_table(Self, Int) -> Result[NativeResultTableWriteReceipt, NativeResultMaterialIssue]
 
 pub(all) struct NativeResultReadAdmission {
   authorization_context_cid : String
@@ -105,6 +139,10 @@ pub(all) enum NativeResultSinkStep {
 pub(all) enum NativeResultSinkWrite {
   SinkChunkConfirmed
   SinkChunkFailed(Int, Int)
+}
+
+pub struct NativeResultTableWriteReceipt {
+  confirmed_bytes : Int
 }
 
 // Type aliases

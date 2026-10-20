@@ -1355,6 +1355,10 @@ pub fn[T] start_local_managed_dispatch(
             if progress < 0L || work < 0L || work > quantum.to_int64() {
               return Err(Configuration(InvalidLimits))
             }
+            // Preserve the original running task's primary computation failure,
+            // as in the materializing lane. Stop and cleanup remain separate.
+            @strategy.fail_task_execution(setup.run, execution, Compute(issue))
+            |> ignore
             execution_finished.val = true
             Err(Configuration(issue))
           }

@@ -277,6 +277,8 @@ fn scalar_call(
     "TIMESTAMP_SUB" => ("TIMESTAMP_SUB", "timestamp_sub", 2, 2)
     "DATE_TRUNC" => ("DATE_TRUNC", "date_trunc", 2, 2)
     "TO_NUMBER" => ("TO_NUMBER", "to_number", 1, 1)
+    "TRY_NUMBER" => ("TRY_NUMBER", "try_number", 1, 1)
+    "UTF8_TRUNCATE" => ("UTF8_TRUNCATE", "utf8_truncate", 2, 2)
     "TO_STRING" => ("TO_STRING", "to_string", 1, 1)
     "TO_BOOLEAN" => ("TO_BOOLEAN", "to_boolean", 1, 1)
     "TO_TIMESTAMP" => ("TO_TIMESTAMP", "to_timestamp", 1, 1)
@@ -753,10 +755,12 @@ fn append_resolved(
               if name == "quantize" && args.length() != 2 && args.length() != 4 {
                 raise Abort(InvalidArguments)
               }
-              if name == "decimal_divide" && args.length() < 4 {
+              if name == "decimal_divide" && args.length() == 2 {
                 raise Abort(UnsupportedFunction)
               }
-              if name == "decimal_divide" && args.length() != 5 {
+              if name == "decimal_divide" &&
+                args.length() != 3 &&
+                args.length() != 5 {
                 raise Abort(InvalidArguments)
               }
               if name == "date_trunc" &&
@@ -776,6 +780,14 @@ fn append_resolved(
                   nodes[args[1]],
                   lowering.form("literal", lowering.add(String(unit))),
                 ])
+              } else if name == "utf8_truncate" {
+                lowering.form(
+                  "utf8_truncate",
+                  lowering.object([
+                    ("value", nodes[args[0]]),
+                    ("max_bytes", nodes[args[1]]),
+                  ]),
+                )
               } else if ["to_number", "to_string", "to_boolean", "to_timestamp"].contains(
                   name,
                 ) {
@@ -799,26 +811,39 @@ fn append_resolved(
                   ]),
                 )
               } else if name == "decimal_divide" {
-                guard numbers[args[2]] is Some(precision) &&
-                  precision >= 1.0 &&
-                  precision <= 38.0 &&
-                  precision.trunc() == precision else {
-                  current = @query.expression_origin(ast, args[2])
-                  raise Abort(InvalidArguments)
+                let short = args.length() == 3
+                let precision = if short {
+                  38.0
+                } else {
+                  guard numbers[args[2]] is Some(precision) &&
+                    precision >= 1.0 &&
+                    precision <= 38.0 &&
+                    precision.trunc() == precision else {
+                    current = @query.expression_origin(ast, args[2])
+                    raise Abort(InvalidArguments)
+                  }
+                  precision
                 }
-                guard numbers[args[3]] is Some(scale) &&
+                let scale_index = if short { 2 } else { 3 }
+                guard numbers[args[scale_index]] is Some(scale) &&
                   scale >= 0.0 &&
                   scale <= precision &&
                   scale.trunc() == scale else {
-                  current = @query.expression_origin(ast, args[3])
+                  current = @query.expression_origin(ast, args[scale_index])
                   raise Abort(InvalidArguments)
                 }
-                guard strings[args[4]] is Some(rounding) &&
-                  ["half_even", "half_up", "toward_zero", "floor", "ceiling"].contains(
-                    rounding,
-                  ) else {
-                  current = @query.expression_origin(ast, args[4])
-                  raise Abort(InvalidArguments)
+                let rounding = if short {
+                  "exact"
+                } else {
+                  guard strings[args[4]] is Some(rounding) &&
+                    [
+                      "half_even", "half_up", "toward_zero", "floor", "ceiling",
+                      "exact",
+                    ].contains(rounding) else {
+                    current = @query.expression_origin(ast, args[4])
+                    raise Abort(InvalidArguments)
+                  }
+                  rounding
                 }
                 lowering.form(
                   "decimal_divide",
@@ -960,6 +985,11 @@ fn append_resolved(
                   nodes[args[0]],
                 ])
                 lowering.form("negate", lowering.form("floor", negative))
+              } else if name == "try_number" {
+                lowering.form(
+                  name,
+                  lowering.object([("value", nodes[args[0]])]),
+                )
               } else if name == "substring" {
                 let fields = [
                   ("value", nodes[args[0]]),
@@ -1077,13 +1107,15 @@ fn append_resolved(
               ]),
             )
           }
-          lowering.form(
-            "case",
-            lowering.object([
-              ("when", lowering.add(Array(values))),
-              ("else", nodes[otherwise]),
-            ]),
-          )
+          let fields = [("when", lowering.add(Array(values)))]
+          let original_else = @query.expression_node(ast, otherwise).unwrap()
+          // The parser anchors an omitted ELSE's synthetic NULL to END.
+          // Preserve that omission for the existing Common completion owner;
+          // an explicitly authored NULL has its own earlier source span.
+          if !(original_else.kind is Null && original_else.end == node.end) {
+            fields.push(("else", nodes[otherwise]))
+          }
+          lowering.form("case", lowering.object(fields))
         }
         Cast(child, target) =>
           match target {

@@ -13,6 +13,11 @@
       "sha256": "cf386ddff4c97d743957519e64c70c5b0e502ea23d5da5694926682e889f1e30"
     },
     {
+      "path": "src/platform_native/host_bootstrap/execution_domain_minimum_native.mbt",
+      "bytes": 639,
+      "sha256": "e094899c2b6808525b89559e2aa4b52fe52816c8e8f6c0a5aaa772742f10df2d"
+    },
+    {
       "path": "src/platform_native/host_bootstrap/backed_region_native.mbt",
       "bytes": 7371,
       "sha256": "031321b773f0f5156ace56c23bcde53756f0a957414f836607a6519ea70ca353"
@@ -29,8 +34,8 @@
     },
     {
       "path": "src/platform_native/host_bootstrap/backed_read_native.mbt",
-      "bytes": 12715,
-      "sha256": "47a49836bceb64b1cd97afa6d88f9fae7c5454276ecdde5f1952e62383ef78fb"
+      "bytes": 15605,
+      "sha256": "3210f5e368db6c64968a0f60b4279936ad03693b891ab1624ddd6c330c3486fe"
     },
     {
       "path": "src/platform_native/host_bootstrap/backed_region_wbtest.mbt",
@@ -39,8 +44,8 @@
     },
     {
       "path": "src/platform_native/host_bootstrap/bootstrap_stub.c",
-      "bytes": 27472,
-      "sha256": "4c9c220ab17901ff06e9234dcb4cbc3635708b6e7c3b8578d49b1e8445691b70"
+      "bytes": 33664,
+      "sha256": "dbfe8e2552148925d51360fd1769947dd4eb1aa6ff87c4e025cd034e13c1361a"
     },
     {
       "path": "src/platform_native/host_bootstrap/process_region.h",
@@ -99,8 +104,13 @@
     },
     {
       "path": "src/platform_native/host_bootstrap/component_domain_minimum.h",
-      "bytes": 712,
-      "sha256": "6a8ec7bdd72b8173818f322046b740a16fd14ff1bedf43828e3c47f77273bc46"
+      "bytes": 1048,
+      "sha256": "84d1d7520f20ba053ac70b6116af1dee376d123c5505302f6f793c9325a48000"
+    },
+    {
+      "path": "src/platform_native/host_bootstrap/read_cleanup_observation_native.mbt",
+      "bytes": 3415,
+      "sha256": "ef1b5bad9763b3ac375801311fbcd094e9e40c76e7dc26c651af5ca4009834ee"
     }
   ]
 }

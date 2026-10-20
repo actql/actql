@@ -199,7 +199,7 @@ fn produce_sdk_read_field(
   let current = context.current
   let sdk = context.sdk
   let finite = context.finite
-  let preflight = context.preflight
+  let source = context.source
   let commit = context.owner
   let view = context.view
   let result_name = context.result_name
@@ -244,8 +244,8 @@ fn produce_sdk_read_field(
   let text = match kind {
     Grant(_) => {
       let grant = match
-        @local_run.issue_local_sdk_read_grant_from_store(
-          preflight,
+        @local_run.issue_local_sdk_read_grant_for_source(
+          source,
           current.account,
           finite,
           sdk.read,
@@ -277,8 +277,8 @@ fn produce_sdk_read_field(
     }
     Decision => {
       let decision = match
-        @local_run.prepare_local_sdk_read_evidence_from_store(
-          preflight,
+        @local_run.prepare_local_sdk_read_evidence_for_source(
+          source,
           current.account,
           finite,
           sdk.read,
@@ -308,8 +308,8 @@ fn produce_sdk_read_field(
     }
     DeliveryStorage =>
       match
-        @local_run.prepare_local_sdk_read_delivery_installation_from_store(
-          preflight,
+        @local_run.prepare_local_sdk_read_delivery_installation_for_source(
+          source,
           current.account,
           finite,
           sdk.read,
@@ -339,8 +339,8 @@ fn produce_sdk_read_field(
       }
     DeliveryLookup =>
       match
-        @local_run.local_sdk_read_delivery_lookup_wire(
-          preflight,
+        @local_run.local_sdk_read_delivery_lookup_wire_for_source(
+          source,
           current.account,
           finite,
           sdk.read,
@@ -363,8 +363,8 @@ fn produce_sdk_read_field(
       }
     Original(_, _) | Evidence(_) => {
       let originals = match
-        @local_run.prepare_local_sdk_read_originals(
-          preflight,
+        @local_run.prepare_local_sdk_read_originals_for_source(
+          source,
           current.account,
           finite,
           sdk.read,

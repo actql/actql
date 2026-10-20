@@ -30,6 +30,13 @@ priv enum LocalCommandPreparationIssue {
   CommandHost(@initial_bootstrap.NativeBootstrapIssue)
   CommandDomain(@initial_bootstrap.NativeBackedExecutionIssue)
   CommandRead(@initial_arena.InstalledArenaOriginalReadIssue)
+  CommandRetainedExecution(@initial_arena.InstalledArenaRetainedExecutionIssue)
+  CommandStoreOperation(@local_host.NativeLocalStoreOperationIssue)
+  CommandBusinessChildren
+  CommandBusinessPublication
+  CommandBusinessStore(@local_store.NativePublicationStoreIssue)
+  CommandBusinessResult(@local_result.NativeResultAccessIssue)
+  CommandBusinessFileOutput(@local_host.NativeLocalReadBindingIssue)
   CommandSqlite(@initial_arena.InstalledArenaSqliteIssue)
   CommandPair(@initial_arena.InstalledArenaLocalHostResourcesIssue)
   CommandRuntime(@local_host.NativeLocalPackagedRuntimeIssue)
@@ -65,6 +72,7 @@ fn[T] command_preparation_value(
 priv struct LocalCommandPreparationOriginal {
   profile : LocalCommandPreparationProfile
   native_storage : LocalCommandNativeStorageQuote
+  business : LocalCommandBusinessOriginal?
   mut backing : InitialCryptoBacking?
   mut host : @initial_arena.InstalledArenaHost?
   mut backing_scope : @initial_arena.InstalledArenaBackingBorrow?
@@ -82,6 +90,7 @@ priv struct LocalCommandPreparationOriginal {
   mut outer_library : @local_crypto.Library?
   mut inner_library : @local_crypto.Library?
   mut product : @local_host.NativeLocalProductConfigurationCapture?
+  mut initial_product_selected : Bool
   mut adoption : @local_host.NativeLocalAdoptionCapture?
   mut product_parent : @local_filesystem.Root?
   mut product_parent_failure : @local_filesystem.NativeRootOpenFailure?
@@ -102,6 +111,7 @@ priv struct LocalCommandPreparationOriginal {
 ///|
 fn prepare_local_command_preparation_original(
   profile : LocalCommandPreparationProfile,
+  business? : LocalCommandBusinessProfile? = None,
 ) -> Result[LocalCommandPreparationOriginal, LocalCommandPreparationIssue] {
   if profile.source.length() != 40 ||
     profile.recipe.length() != 32 ||
@@ -123,6 +133,27 @@ fn prepare_local_command_preparation_original(
     profile.diagnostic_ceiling > 4096 {
     return Err(CommandInvalidProfile)
   }
+  if business is Some(candidate) &&
+    (
+      candidate.domain_bytes <= 0L ||
+      candidate.payload_facility_bytes <= 0L ||
+      profile.control_bytes >
+      profile.arena_bytes -
+      profile.read_domain_bytes -
+      profile.sqlite_domain_bytes ||
+      candidate.domain_bytes >
+      profile.arena_bytes -
+      profile.read_domain_bytes -
+      profile.sqlite_domain_bytes -
+      profile.control_bytes ||
+      candidate.limits.retained_bytes < 0L ||
+      candidate.limits.execution_bytes < 0L ||
+      candidate.limits.retained_bytes > candidate.payload_facility_bytes ||
+      candidate.limits.execution_bytes >
+      candidate.payload_facility_bytes - candidate.limits.retained_bytes
+    ) {
+    return Err(CommandInvalidProfile)
+  }
   let native_storage = match quote_local_command_native_storage(profile) {
     Err(issue) => return Err(CommandNativeStorage(issue))
     Ok(value) => value
@@ -134,6 +165,40 @@ fn prepare_local_command_preparation_original(
   Ok({
     profile,
     native_storage,
+    business: business.map(candidate => {
+      profile: candidate,
+      domain: None,
+      execution: None,
+      operation: None,
+      values_work: None,
+      values_failure: None,
+      store: None,
+      store_failure: None,
+      store_parent: None,
+      store_parent_failure: None,
+      store_root: None,
+      store_root_failure: None,
+      store_root_operation: None,
+      publication_publisher: None,
+      publication_service: None,
+      publication_results: None,
+      publication_pending: None,
+      publication_failure: None,
+      publication_commit_failure: None,
+      publication_cleanup_failure: None,
+      publication_attempted: false,
+      publication_result: None,
+      run_receipt_original: None,
+      publication_retired: false,
+      result_binding: None,
+      result_service: None,
+      result_session: None,
+      result_material: None,
+      result_sink: None,
+      result_refusal: None,
+      result_cleanup_issue: None,
+      active: false,
+    }),
     backing: None,
     host: None,
     backing_scope: None,
@@ -151,6 +216,7 @@ fn prepare_local_command_preparation_original(
     outer_library: None,
     inner_library: None,
     product: None,
+    initial_product_selected: false,
     adoption: None,
     product_parent: None,
     product_parent_failure: None,
@@ -300,6 +366,9 @@ fn LocalCommandPreparationOriginal::acquire_physical_read(
       host.transfer_domain(sqlite_domain).map_err(issue => CommandDomain(issue)),
     )
     command_preparation_value(
+      self.prepare_business_domain(host, scope, backing.descriptor()),
+    )
+    command_preparation_value(
       host
       .leave_backing_borrow_scope(scope)
       .map_err(issue => CommandHost(issue)),
@@ -329,6 +398,7 @@ fn LocalCommandPreparationOriginal::acquire_physical_read(
     command_preparation_value(
       sqlite_preparation.map_err(issue => CommandDomain(issue)),
     )
+    command_preparation_value(self.prepare_business_execution(host))
     let acquired = command_preparation_value(
       host
       .prepare_domain_original_read(read_domain, profile.read_budget)
@@ -604,6 +674,7 @@ fn LocalCommandPreparationOriginal::text_file(
   root : String,
   name : String,
   maximum : Int64,
+  ordinary_name? : Bool = false,
 ) -> Result[String, LocalCommandPreparationIssue] {
   if (!self.phase_open && !self.journal_read_open) ||
     self.closing ||
@@ -611,13 +682,22 @@ fn LocalCommandPreparationOriginal::text_file(
     self.primary is Some(_) {
     return Err(CommandUnavailable)
   }
-  match
+  let result = if ordinary_name {
+    @files.read_bounded_ordinary_text_file_in_current_read_context_with_custody(
+      root,
+      name,
+      maximum,
+      self.profile.diagnostic_ceiling,
+    )
+  } else {
     @files.read_bounded_text_file_in_current_read_context_with_custody(
       root,
       name,
       maximum,
       self.profile.diagnostic_ceiling,
-    ) {
+    )
+  }
+  match result {
     Ok(text) => Ok(text)
     Err(failure) => {
       self.read_failure = Some(failure)
@@ -656,25 +736,16 @@ fn LocalCommandPreparationOriginal::close_checked(
     if self.journal_read_open {
       return Err(CommandUnavailable)
     }
+    self.cleanup_stage = "business-children"
+    command_preparation_value(self.close_business_children())
+    self.cleanup_stage = "business-operation"
+    command_preparation_value(self.close_business_operation())
     if self.journal is Some(journal) {
       command_preparation_value(
         journal
         .finish_pending_original_scope()
         .map_err(issue => CommandAdoption(issue)),
       )
-    }
-    if self.runtime is Some(runtime) {
-      self.cleanup_stage = "runtime"
-      command_preparation_value(
-        runtime.close().map_err(issue => CommandRuntime(issue)),
-      )
-    }
-    if self.journal is Some(journal) {
-      self.cleanup_stage = "journal"
-      let reply = journal.close()
-      if reply.issue() is Some(issue) {
-        return Err(CommandJournal(issue))
-      }
     }
     if self.host is Some(host) {
       // An incomplete physical domain acquisition can retain the original
@@ -693,6 +764,23 @@ fn LocalCommandPreparationOriginal::close_checked(
         )
         self.backing_scope = None
       }
+    }
+    self.cleanup_stage = "business-execution"
+    command_preparation_value(self.close_business_execution())
+    if self.runtime is Some(runtime) {
+      self.cleanup_stage = "runtime"
+      command_preparation_value(
+        runtime.close().map_err(issue => CommandRuntime(issue)),
+      )
+    }
+    if self.journal is Some(journal) {
+      self.cleanup_stage = "journal"
+      let reply = journal.close()
+      if reply.issue() is Some(issue) {
+        return Err(CommandJournal(issue))
+      }
+    }
+    if self.host is Some(host) {
       if self.read is Some(read) {
         if self.pair is Some(pair) {
           command_preparation_value(
@@ -1182,10 +1270,12 @@ fn LocalCommandPreparationOriginal::open_adopted_journal(
       self.retain_primary(CommandJournal(issue))
       return Err(CommandJournal(issue))
     }
-    match journal.original_host() {
-      Some(original) => Ok(original)
-      None => Err(CommandUnavailable)
+    let original = match journal.original_host() {
+      Some(original) => original
+      None => return Err(CommandUnavailable)
     }
+    command_preparation_value(self.prepare_business_operation())
+    Ok(original)
   } catch {
     LocalCommandPreparationStop(issue) => {
       self.retain_primary(issue)

@@ -74,6 +74,8 @@ pub fn admit_result_definition(String, Int, Int, Int) -> Result[ResultDefinition
 
 pub fn admit_result_material_holds(String) -> Result[ResultMaterialHolds, ResultMaterialHoldIssue]
 
+pub fn admit_result_material_row(ResultMaterialSchema, String) -> Result[ResultMaterialRow, ResultMaterialIssue]
+
 pub fn admit_run_evidence_value(String, String, Int, Int, Int) -> Result[RunEvidenceValue, RunEvidenceValueIssue]
 
 pub fn admit_run_publication(RunEvidenceValue, RunEvidenceValue, RunEvidenceValue, PublicationContract) -> Result[RunPublicationAdmission, RunPublicationAdmissionIssue]
@@ -690,6 +692,8 @@ pub fn prepare_result_delivery_serializer(String, String, Array[String], Int, In
 
 pub fn prepare_result_material_holds_step(ResultMaterialHolds, String, String) -> Result[ResultMaterialHolds, ResultMaterialHoldIssue]
 
+pub fn prepare_result_material_schema(String, Array[String], Int, Int, Int, Int) -> Result[ResultMaterialSchema, ResultMaterialIssue]
+
 pub fn prepare_run_state_observation(String, String, Int64, Int, Int, Int) -> Result[RunStateObservation, RunStateObservationIssue]
 
 pub fn prepare_stored_captured_content_reference(String, GeneratedContentBinding, @value_admission.ReferenceLimits) -> Result[CapturedContentReference, GeneratedContentReferenceIssue]
@@ -780,6 +784,8 @@ pub fn read_model_capture_bundle(String, String, Int, Int, Int) -> Result[ModelC
 
 pub fn read_model_original_resource_document(String, Int, Int, Int) -> Result[ModelOriginalResourceDocument, PublicationContractIssue]
 
+pub fn[E] read_stored_effect_free_publication(String, String, String, (String, String) -> Result[Bytes?, E], () -> Result[Unit, E], Int, Int, Int, Int, Int, Int) -> Result[PublicationCommitPreparation?, StoredPublicationReadIssue[E]]
+
 pub fn readmit_generated_content_observation(RunEvidenceValue, String, String, String, String, RunEvidenceValue, RunEvidenceValue, RunEvidenceValue, StoredGeneratedContentReference, @value_admission.CheckedValue) -> Result[BoundContentGeneration, RunEvidenceValueIssue]
 
 pub fn record_result_access_grant(ResultAccessProgress, Bool) -> Result[Unit, ResultAccessProgressIssue]
@@ -805,6 +811,8 @@ pub fn recorded_run_publication_result_cid(RecordedRunPublication) -> String
 pub fn recorded_run_publication_run_cid(RecordedRunPublication) -> String
 
 pub fn release_model_capture_bundle_read(ModelCaptureBundleRead) -> Bool
+
+pub fn render_result_material_table(ResultMaterialSchema, Array[ResultMaterialRow], Int, Int) -> Result[String, ResultMaterialIssue]
 
 pub fn resolve_run_local_result_evidence_refs(RunPublicationAdmission, PublicationContract, PublicationContract, RunEvidenceValue, PublicationContract) -> Result[(String, String, String), RunLocalResultEvidenceIssue]
 
@@ -2013,6 +2021,19 @@ pub(all) enum ResultMaterialHoldIssue {
 
 type ResultMaterialHolds
 
+pub(all) enum ResultMaterialIssue {
+  MaterialInvalidLimits
+  MaterialInvalidSchema
+  MaterialInvalidRow
+  MaterialTypeMismatch
+  MaterialForeignSchema
+  MaterialOutputLimit
+} derive(Eq, @debug.Debug)
+
+type ResultMaterialRow
+
+type ResultMaterialSchema
+
 type ResultOrderingEvidence
 
 pub(all) enum ResultOrderingEvidenceIssue {
@@ -2202,6 +2223,14 @@ pub(all) enum SourceInputObservationIssue {
 } derive(Eq, @debug.Debug)
 
 type StoredGeneratedContentReference
+
+pub(all) enum StoredPublicationReadIssue[E] {
+  Read(E)
+  Missing(String)
+  Contract(PublicationContractIssue)
+  References
+  Bounds
+}
 
 // Type aliases
 

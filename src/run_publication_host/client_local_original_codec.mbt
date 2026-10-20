@@ -99,7 +99,7 @@ pub fn client_local_configuration_selection_body(
   files : Array[ClientLocalOriginalConfigurationFile],
   managed : ClientLocalOriginalManagedRoot?,
 ) -> Result[Bytes, ClientLocalOriginalCodecIssue] {
-  if files.length() > 8 {
+  if files.length() > 10 {
     return Err(ConfigurationLimit)
   }
   let writer = @encode.writer(8192, 128, 4) catch { _ => return Err(Encoding) }

@@ -342,9 +342,55 @@ pub fn keyed_input_proof_source(KeyedInputProof) -> UnitOperationSource
 
 pub fn local_completion_free_inventory_matches(LocalCompletionFreeInventory, CheckedProgram) -> Bool
 
+pub fn local_completion_free_inventory_parameters_defaulted(LocalCompletionFreeInventory) -> Bool
+
+pub fn local_completion_free_inventory_parameters_supplied(LocalCompletionFreeInventory) -> Bool
+
+pub fn local_completion_free_inventory_uses_assertions(LocalCompletionFreeInventory) -> Bool
+
+pub fn local_completion_free_inventory_uses_checked_expressions(LocalCompletionFreeInventory) -> Bool
+
+pub fn local_completion_free_inventory_uses_dedupe(LocalCompletionFreeInventory) -> Bool
+
+pub fn local_completion_free_inventory_uses_distinct(LocalCompletionFreeInventory) -> Bool
+
+pub fn local_completion_free_inventory_uses_explicit_cast(LocalCompletionFreeInventory) -> Bool
+
+pub fn local_completion_free_inventory_uses_groups(LocalCompletionFreeInventory) -> Bool
+
+pub fn local_completion_free_inventory_uses_set(LocalCompletionFreeInventory) -> Bool
+
+pub fn local_completion_free_inventory_uses_sort(LocalCompletionFreeInventory) -> Bool
+
+pub fn local_completion_free_inventory_uses_take(LocalCompletionFreeInventory) -> Bool
+
 pub fn local_completion_free_inventory_work(LocalCompletionFreeInventory) -> Int
 
 pub fn local_program_completion_free_inventory(CheckedProgram) -> Result[LocalCompletionFreeInventory, CompletionFreeInventoryIssue]
+
+pub fn local_program_sort_normalization_inventory(CheckedProgram) -> Result[LocalSortNormalizationInventory?, CompletionFreeInventoryIssue]
+
+pub fn local_sort_normalization_entry_at(LocalSortNormalizationInventory, Int) -> (String, String, String)?
+
+pub fn local_sort_normalization_entry_count(LocalSortNormalizationInventory) -> Int
+
+pub fn local_sort_normalization_entry_rule_at(LocalSortNormalizationInventory, Int) -> String?
+
+pub fn local_sort_normalization_inventory_matches(LocalSortNormalizationInventory, CheckedProgram) -> Bool
+
+pub fn local_sort_normalization_inventory_parameters_defaulted(LocalSortNormalizationInventory) -> Bool
+
+pub fn local_sort_normalization_inventory_uses_assertions(LocalSortNormalizationInventory) -> Bool
+
+pub fn local_sort_normalization_inventory_uses_dedupe(LocalSortNormalizationInventory) -> Bool
+
+pub fn local_sort_normalization_inventory_uses_distinct(LocalSortNormalizationInventory) -> Bool
+
+pub fn local_sort_normalization_inventory_uses_projection(LocalSortNormalizationInventory) -> Bool
+
+pub fn local_sort_normalization_inventory_uses_set(LocalSortNormalizationInventory) -> Bool
+
+pub fn local_sort_normalization_inventory_work(LocalSortNormalizationInventory) -> Int
 
 pub fn local_update_completion_free_inventory_matches(LocalUpdateCompletionFreeInventory, EffectProgramStaticCandidate) -> Bool
 
@@ -1124,6 +1170,8 @@ pub(all) enum LocalDependencyBodyKind {
   SourceViewContract(Int)
   RegistryContract(Int)
 } derive(Eq, @debug.Debug)
+
+type LocalSortNormalizationInventory
 
 type LocalUpdateCompletionFreeInventory
 

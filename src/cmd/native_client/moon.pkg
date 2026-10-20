@@ -7,6 +7,8 @@ import {
   "actql/actql/platform_native/http_client" @http,
   "actql/actql/source_value" @source,
   "actql/actql/encode_core" @encode,
+  "actql/actql/sha256" @sha,
+  "actql/actql/canonical_json" @canonical,
   "actql/actql/run_publication" @publication,
   "actql/actql/run_publication_host" @run_host,
   "actql/actql/client_local_host" @local_values,

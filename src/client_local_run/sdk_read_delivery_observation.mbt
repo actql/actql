@@ -55,8 +55,8 @@ fn[E] sdk_delivery_stored_contract(
 /// clock renewal or payload access is performed. Older requested-at values
 /// remain the actual saved attempt, validated by the existing lookup Owner.
 /// Query failures and partial originals are not confirmed missing attempts.
-pub fn[E] observe_local_sdk_read_delivery_from_store(
-  preflight : LocalPublicationPreflight,
+pub fn[E] observe_local_sdk_read_delivery_for_source(
+  source : LocalSDKReadSource,
   account : @authorization.AdmittedAccountConfiguration,
   finite : @host.ClientLocalRunPolicyOriginal,
   selection : @publication.LocalSDKResultReadSelection,
@@ -81,7 +81,7 @@ pub fn[E] observe_local_sdk_read_delivery_from_store(
   }
   match
     validate_sdk_read_original_binding(
-      preflight, account, finite, selection, host_adoption_cid, result_name, format,
+      source, account, finite, selection, host_adoption_cid, result_name, format,
       attempt_id,
     ) {
     Err(issue) => return Err(Store(Preparation(issue)))
@@ -102,8 +102,8 @@ pub fn[E] observe_local_sdk_read_delivery_from_store(
       }
       match
         validate_sdk_read_original_binding(
-          preflight, account, finite, selection, host_adoption_cid, result_name,
-          format, attempt_id,
+          source, account, finite, selection, host_adoption_cid, result_name, format,
+          attempt_id,
         ) {
         Err(issue) => return Err(Store(Preparation(issue)))
         Ok(_) => ()
@@ -134,8 +134,8 @@ pub fn[E] observe_local_sdk_read_delivery_from_store(
   // Recompute the saved body's binding at its actual admitted request time.
   // Current authority remains independent; this grants no present byte access.
   let expected = match
-    issue_local_sdk_read_grant_from_store(
-      preflight, account, finite, selection, host_adoption_cid, owner, view, result_name,
+    issue_local_sdk_read_grant_for_source(
+      source, account, finite, selection, host_adoption_cid, owner, view, result_name,
       format, attempt_id, requested_at, max_results, read, current,
     ) {
     Ok(grant) => grant
@@ -266,8 +266,8 @@ pub fn[E] observe_local_sdk_read_delivery_from_store(
   // The physical readers may revoke authority or cancel the borrowed full
   // chain. Recheck after the last read before exposing even private metadata.
   let final_grant = match
-    issue_local_sdk_read_grant_from_store(
-      preflight, account, finite, selection, host_adoption_cid, owner, view, result_name,
+    issue_local_sdk_read_grant_for_source(
+      source, account, finite, selection, host_adoption_cid, owner, view, result_name,
       format, attempt_id, requested_at, max_results, read, current,
     ) {
     Ok(value) => value
@@ -314,8 +314,8 @@ pub fn local_sdk_read_delivery_observation_original(
 /// original read-only observation. Confirmed missing is never replay permission.
 /// The initial Source-free response allowance is unchanged; oversized metadata
 /// is refused, not truncated or reported as a missing/succeeded occurrence.
-pub fn[E] local_sdk_read_delivery_lookup_wire(
-  preflight : LocalPublicationPreflight,
+pub fn[E] local_sdk_read_delivery_lookup_wire_for_source(
+  source : LocalSDKReadSource,
   account : @authorization.AdmittedAccountConfiguration,
   finite : @host.ClientLocalRunPolicyOriginal,
   selection : @publication.LocalSDKResultReadSelection,
@@ -330,8 +330,8 @@ pub fn[E] local_sdk_read_delivery_lookup_wire(
   current : () -> Result[Unit, E],
 ) -> Result[String, LocalSDKReadDeliveryObservationIssue[E]] {
   let observed = match
-    observe_local_sdk_read_delivery_from_store(
-      preflight, account, finite, selection, host_adoption_cid, owner, view, result_name,
+    observe_local_sdk_read_delivery_for_source(
+      source, account, finite, selection, host_adoption_cid, owner, view, result_name,
       format, attempt_id, max_results, read, current,
     ) {
     Ok(observed) => observed
@@ -358,4 +358,75 @@ pub fn[E] local_sdk_read_delivery_lookup_wire(
     return Err(Store(Preparation(Codec(CapacityExceeded))))
   }
   Ok(wire)
+}
+
+///|
+/// Existing live-run entrance retains its original preflight/current checks.
+pub fn[E] observe_local_sdk_read_delivery_from_store(
+  preflight : LocalPublicationPreflight,
+  account : @authorization.AdmittedAccountConfiguration,
+  finite : @host.ClientLocalRunPolicyOriginal,
+  selection : @publication.LocalSDKResultReadSelection,
+  host_adoption_cid : String,
+  owner : @publication.PublicationCommitPreparation,
+  view : @publication.PublicationCommitReadView,
+  result_name : String,
+  format : String,
+  attempt_id : String,
+  max_results : Int,
+  read : (String, String) -> Result[@host.ClientJournalPhysicalRow?, E],
+  current : () -> Result[Unit, E],
+) -> Result[
+  LocalSDKReadDeliveryObservation,
+  LocalSDKReadDeliveryObservationIssue[E],
+] {
+  observe_local_sdk_read_delivery_for_source(
+    live_sdk_read_source(preflight),
+    account,
+    finite,
+    selection,
+    host_adoption_cid,
+    owner,
+    view,
+    result_name,
+    format,
+    attempt_id,
+    max_results,
+    read,
+    current,
+  )
+}
+
+///|
+/// Existing live-run entrance retains its original preflight/current checks.
+pub fn[E] local_sdk_read_delivery_lookup_wire(
+  preflight : LocalPublicationPreflight,
+  account : @authorization.AdmittedAccountConfiguration,
+  finite : @host.ClientLocalRunPolicyOriginal,
+  selection : @publication.LocalSDKResultReadSelection,
+  host_adoption_cid : String,
+  owner : @publication.PublicationCommitPreparation,
+  view : @publication.PublicationCommitReadView,
+  result_name : String,
+  format : String,
+  attempt_id : String,
+  max_results : Int,
+  read : (String, String) -> Result[@host.ClientJournalPhysicalRow?, E],
+  current : () -> Result[Unit, E],
+) -> Result[String, LocalSDKReadDeliveryObservationIssue[E]] {
+  local_sdk_read_delivery_lookup_wire_for_source(
+    live_sdk_read_source(preflight),
+    account,
+    finite,
+    selection,
+    host_adoption_cid,
+    owner,
+    view,
+    result_name,
+    format,
+    attempt_id,
+    max_results,
+    read,
+    current,
+  )
 }

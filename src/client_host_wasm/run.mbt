@@ -476,7 +476,8 @@ pub fn close_run_configuration(nonce : Int64, handle : Int) -> Int {
     value.run_configurations.get(handle) is Some(record) else {
     return -2
   }
-  if value.journal_observations
+  if value.client_checks.values().any(report => report.configuration == handle) ||
+    value.journal_observations
     .values()
     .any(child => child.configuration == handle) ||
     value.computes

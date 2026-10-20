@@ -104,6 +104,10 @@ fn execute_native_local(matches : @argparse.Matches) -> String raise ClientStop 
     stop("LocalOperationUnavailable")
   }
   if operation == "run" {
+    if local_run_presentation_requested(child) &&
+      command_preparation_invocation.val is None {
+      stop("LocalRunPresentationOriginalUnavailable")
+    }
     // A public command spelling, not a new intent/admission/retry operation.
     // Preserve the original AQL envelope and explicitly saved identities.
     let original_operation = local_run_original_operation()

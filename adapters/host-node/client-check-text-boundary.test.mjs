@@ -45,10 +45,10 @@ const environment = moon.clientProgramCheckEnvironment(canonicalText(wire),
   wire.evidence_bundle_cid, false, false, true, true, false, false, false);
 
 async function publicCheck(t, entrance, {program = false, environmentWire = wire,
-  visibility, contextKey, principalId = 'reader', afterCheck, transformOwnerOutcome} = {}) {
-  const selected = environmentWire === wire ? environment
+  visibility, contextKey, principalId = 'reader', afterCheck, transformOwnerOutcome, textTime = false} = {}) {
+  const selected = environmentWire === wire && !textTime ? environment
     : moon.clientProgramCheckEnvironment(canonicalText(environmentWire),
-      environmentWire.evidence_bundle_cid, false, false, true, true, false, false, false);
+      environmentWire.evidence_bundle_cid, textTime, false, true, true, false, false, false);
   const counts = {exchanges: 0, authorization: 0, analysis: 0};
   const sourceRef = 'connector://crm/main/r#v';
   const aliases = visibility && visibility !== 'absent' ? [{name: 'records', sourceRef,
@@ -854,10 +854,45 @@ for (const entrance of ['local', 'http']) {
           ...(text.includes('@whole') ? {parameterDeclarations:{whole:{type:'int64'}},parameters:{whole:'9007199254740993'}} : {})});
         assert.equal(checked.report.verdict,'invalid',text);
       }
-      for (const text of ["SELECT DECIMAL_DIVIDE(CAST('12.5' AS DECIMAL(6,2)),2) AS quotient","SELECT DECIMAL_DIVIDE(CAST('12.5' AS DECIMAL(6,2)),2,2) AS quotient","SELECT ACTQL.DECIMAL_DIVIDE(CAST('12.5' AS DECIMAL(6,2)),2,6,2,'floor') AS quotient"]) {
+      for (const text of ["SELECT DECIMAL_DIVIDE(CAST('12.5' AS DECIMAL(6,2)),2) AS quotient","SELECT ACTQL.DECIMAL_DIVIDE(CAST('12.5' AS DECIMAL(6,2)),2,6,2,'floor') AS quotient"]) {
         const checked = await client.check(text,{kind:'text',scope:'bound_input',format});
         assert.equal(checked.report.verdict,'undetermined');
         assert.equal(checked.report.coverage.limits[0].code,'implementation_limit');
+      }
+    }
+  });
+
+  test(`${entrance}: exact-at-scale DECIMAL_DIVIDE keeps original typed operands and static scale`, async t => {
+    const {client} = await publicCheck(t, entrance);
+    for (const format of ['sql', 'aql-text']) {
+      for (const text of [
+        "SELECT DECIMAL_DIVIDE(CAST('1' AS DECIMAL(1,0)),8,3) AS quotient",
+        "SELECT DECIMAL_DIVIDE(CAST('-1' AS DECIMAL(1,0)),4,(2)) AS quotient",
+        "SELECT DECIMAL_DIVIDE(NULL,NULL,3) AS quotient",
+        "SELECT DECIMAL_DIVIDE(@amount,@divisor,3) AS quotient",
+        "SELECT CAST('1' AS DECIMAL(1,0)) AS amount |> SELECT DECIMAL_DIVIDE(amount,8,3) AS quotient",
+        "SELECT DECIMAL_DIVIDE(CAST('1' AS DECIMAL(1,0)),8,38,3,'exact') AS quotient",
+      ]) {
+        const checked = await client.check(text, {kind:'text',scope:'bound_input',format,
+          ...(text.includes('@amount') ? {parameterDeclarations:{amount:{type:'decimal',precision:1,scale:0},divisor:{type:'number'}},parameters:{amount:'1',divisor:8}} : {})});
+        assert.equal(checked.report.verdict, 'verified', JSON.stringify(checked.report));
+        assert.deepEqual(checked.report.runnable, {verdict:'yes',reasons:[]});
+        assert.deepEqual(checked.report.coverage, {limits:[],unresolved:[]});
+        assert.equal(getCheckInput(checked,'source').text,text);
+      }
+      for (const text of [
+        'SELECT DECIMAL_DIVIDE(1,8,3) AS bad',
+        "SELECT DECIMAL_DIVIDE(CAST('1' AS DECIMAL(1,0)),'8',3) AS bad",
+        "SELECT DECIMAL_DIVIDE(CAST('1' AS DECIMAL(1,0)),@whole,3) AS bad",
+        "SELECT DECIMAL_DIVIDE(CAST('1' AS DECIMAL(1,0)),8,@scale) AS bad",
+        "SELECT DECIMAL_DIVIDE(CAST('1' AS DECIMAL(1,0)),8,1+2) AS bad",
+        "SELECT DECIMAL_DIVIDE(CAST('1' AS DECIMAL(1,0)),8,39) AS bad",
+        "SELECT QUANTIZE(CAST('1' AS DECIMAL(1,0)),38,3,'exact') AS bad",
+      ]) {
+        const checked = await client.check(text, {kind:'text',scope:'bound_input',format,
+          ...(text.includes('@whole') ? {parameterDeclarations:{whole:{type:'int64'}},parameters:{whole:'8'}} : {}),
+          ...(text.includes('@scale') ? {parameterDeclarations:{scale:{type:'number'}},parameters:{scale:3}} : {})});
+        assert.equal(checked.report.verdict,'invalid',text);
       }
     }
   });
@@ -936,6 +971,96 @@ for (const entrance of ['local', 'http']) {
           ...(text.includes('@whole') ? {parameterDeclarations: {whole: {type: 'int64'}},
             parameters: {whole: '9007199254740993'}} : {}),
           ...(text.includes('@scale') ? {parameterDeclarations: {scale: {type: 'number'}}, parameters: {scale: 2}} : {})});
+        assert.equal(checked.report.verdict, 'invalid', text);
+      }
+    }
+  });
+
+  test(`${entrance}: String TRY_NUMBER keeps the selected profile and original public text`, async t => {
+    const withProfile = structuredClone(wire);
+    delete withProfile.evidence_bundle_cid;
+    withProfile.host_policy_profile.text_time_evaluation = {
+      version: 'actql-text-time-host-policy/0.1', max_input_codepoints: 64,
+      max_input_utf8_bytes: 256, max_pattern_bytes: 1, max_output_bytes: 64,
+      max_replacements: 1,
+    };
+    withProfile.evidence_bundle_cid = 'sha256:' + (await import('node:crypto')).createHash('sha256')
+      .update(canonicalText(withProfile)).digest('hex');
+    const {client} = await publicCheck(t, entrance, {environmentWire: withProfile, textTime: true});
+    for (const format of ['sql', 'aql-text']) {
+      for (const text of [
+        "SELECT TRY_NUMBER('12.5') AS n",
+        "SELECT '12.5' AS text |> SELECT TRY_NUMBER(text) AS n",
+        'SELECT TRY_NUMBER(@text) AS n',
+      ]) {
+        const outcome = await client.check(text, {kind: 'text', scope: 'bound_input', format,
+          ...(text.includes('@text') ? {parameterDeclarations: {text: {type: 'string'}},
+            parameters: {text: '12.5'}} : {})});
+        assert.equal(outcome.report.verdict, 'verified', JSON.stringify(outcome.report));
+        assert.deepEqual(outcome.report.runnable, {verdict: 'yes', reasons: []});
+        assert.deepEqual(outcome.report.coverage, {limits: [], unresolved: []});
+        assert.equal(getCheckInput(outcome, 'source').text, text);
+      }
+    }
+  });
+
+  test(`${entrance}: UTF8_TRUNCATE retains original public text and checked byte-limit bindings`, async t => {
+    const withProfile = structuredClone(wire);
+    delete withProfile.evidence_bundle_cid;
+    withProfile.host_policy_profile.text_time_evaluation = {
+      version: 'actql-text-time-host-policy/0.1', max_input_codepoints: 64,
+      max_input_utf8_bytes: 64, max_pattern_bytes: 1, max_output_bytes: 64,
+      max_replacements: 1,
+    };
+    withProfile.evidence_bundle_cid = 'sha256:' + (await import('node:crypto')).createHash('sha256')
+      .update(canonicalText(withProfile)).digest('hex');
+    const {client} = await publicCheck(t, entrance, {environmentWire: withProfile, textTime: true});
+    for (const format of ['sql', 'aql-text']) {
+      for (const text of [
+        "SELECT UTF8_TRUNCATE('é😀x', 6) AS prefix",
+        "SELECT 'é😀x' AS text |> SELECT UTF8_TRUNCATE(text, @bytes) AS prefix",
+        'SELECT UTF8_TRUNCATE(NULL, 0) AS prefix',
+        "SELECT UTF8_TRUNCATE('x', -1) AS prefix",
+      ]) {
+        const outcome = await client.check(text, {kind: 'text', scope: 'bound_input', format,
+          ...(text.includes('@bytes') ? {parameterDeclarations: {bytes: {type: 'number'}},
+            parameters: {bytes: 6}} : {})});
+        assert.equal(outcome.report.verdict, 'verified', JSON.stringify(outcome.report));
+        assert.deepEqual(outcome.report.runnable, {verdict: 'yes', reasons: []});
+        assert.deepEqual(outcome.report.coverage, {limits: [], unresolved: []});
+        assert.equal(getCheckInput(outcome, 'source').text, text);
+      }
+      for (const text of ["SELECT UTF8_TRUNCATE(1, 1) AS bad",
+        "SELECT UTF8_TRUNCATE('x', TRUE) AS bad", "SELECT UTF8_TRUNCATE('x') AS bad"]) {
+        const outcome = await client.check(text, {kind: 'text', scope: 'bound_input', format});
+        assert.equal(outcome.report.verdict, 'invalid', text);
+      }
+    }
+  });
+
+  test(`${entrance}: TRY_NUMBER admits original Number identity without String profile promotion`, async t => {
+    const {client} = await publicCheck(t, entrance);
+    for (const format of ['sql', 'aql-text']) {
+      for (const text of [
+        'SELECT TRY_NUMBER(1.25) AS n',
+        'SELECT 1.25 AS n |> SELECT TRY_NUMBER(n) AS parsed',
+        'SELECT TRY_NUMBER(CAST(NULL AS NUMBER)) AS n',
+        'SELECT TRY_NUMBER(@n) AS n',
+        'SELECT TRY_NUMBER(1 / 0) AS n',
+      ]) {
+        const checked = await client.check(text, {kind: 'text', scope: 'bound_input', format,
+          ...(text.includes('@n') ? {parameterDeclarations: {n: {type: 'number'}}, parameters: {n: 1.25}} : {})});
+        assert.equal(checked.report.verdict, 'verified', JSON.stringify(checked.report));
+        assert.deepEqual(checked.report.runnable, {verdict: 'yes', reasons: []});
+        assert.equal(getCheckInput(checked, 'source').text, text);
+      }
+      for (const text of [
+        'SELECT TRY_NUMBER(TRUE) AS n',
+        "SELECT TRY_NUMBER(CAST('1.25' AS DECIMAL(3,2))) AS n",
+        'SELECT TRY_NUMBER(@whole) AS n',
+      ]) {
+        const checked = await client.check(text, {kind: 'text', scope: 'bound_input', format,
+          ...(text.includes('@whole') ? {parameterDeclarations: {whole: {type: 'int64'}}, parameters: {whole: '9007199254740993'}} : {})});
         assert.equal(checked.report.verdict, 'invalid', text);
       }
     }

@@ -107,7 +107,10 @@ fn NativeLocalHostConnection::validate_read_evidence(
   self : NativeLocalHostConnection,
   crypto : @crypto.Library,
   row : @sqlite.NativeJournalEntry,
+  operations? : NativeClientJournalOperationAccess? = None,
+  capture? : NativeLocalJournalCapture? = None,
 ) -> Result[String, NativeClientRunJournalIssue] {
+  let reads = operations.map(value => value.reads)
   guard row.revision == 0L else { return Err(CustodyLost) }
   let packet = match
     local_read_evidence_object(
@@ -129,23 +132,12 @@ fn NativeLocalHostConnection::validate_read_evidence(
     Ok(value) => value
     Err(_) => return Err(CustodyLost)
   }
-  let record = match self.journal.retained(original) {
+  let record = match self.journal.retained(original, reads~) {
     Ok(Some(value)) => value
     Ok(None) => return Err(CustodyLost)
     Err(issue) => return Err(issue)
   }
-  let egress = match
-    local_read_evidence_object(
-      @utf8.encode(egress_wire),
-      [
-        "attempt_id", "authority_scope_cid", "authorization_context_cid", "data_ceiling_cid",
-        "domain", "effective_data_policy_cid", "expires_at", "format", "material_generation_cid",
-        "max_bytes", "max_uses", "principal_id", "public_index_entry_cid", "purpose",
-        "read_original_cid", "result_artifact_cid", "result_definition_cid", "result_manifest_cid",
-        "result_name", "run_definition_cid", "sink",
-      ],
-      16384,
-    ) {
+  let egress = match local_read_egress_fields(egress_wire) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
@@ -165,6 +157,9 @@ fn NativeLocalHostConnection::validate_read_evidence(
       (file, wire, None)
     }
     None => {
+      if capture is Some(_) {
+        return Err(AuthorizationDenied)
+      }
       let upgrade = match self.retained_policy_upgrade() {
         Ok(Some(value)) => value
         Ok(None) => return Err(CustodyLost)
@@ -194,13 +189,60 @@ fn NativeLocalHostConnection::validate_read_evidence(
     Ok(value) => value
     Err(_) => return Err(CustodyLost)
   }
-  // Existing saved stdout preimages cannot restore a material receiver or
-  // acquire its workspace merely because its configuration parses.
-  if selection.sink != Stdout {
-    return Err(CustodyLost)
+  // Archive integrity only: preserve the saved material identities without
+  // reconstructing a receiver or obtaining another read/holding permission.
+  let material_original = if selection.sink == Material {
+    guard epoch_text(egress, "sink") == Some("material") &&
+      epoch_text(egress, "material_receiver_cid") is Some(receiver_cid) &&
+      !receiver_cid.is_empty() &&
+      epoch_text(egress, "result_schema_cid") is Some(result_schema_cid) &&
+      !result_schema_cid.is_empty() &&
+      epoch_text(egress, "ordering_evidence_cid") is Some(ordering_evidence_cid) &&
+      !ordering_evidence_cid.is_empty() else {
+      return Err(CustodyLost)
+    }
+    Some({ receiver_cid, result_schema_cid, ordering_evidence_cid, })
+  } else {
+    if epoch_text(egress, "sink") !=
+      Some(if selection.sink == File { "file" } else { "stdout" }) ||
+      @decode.lookup(egress, "material_receiver_cid") is Some(_) ||
+      @decode.lookup(egress, "result_schema_cid") is Some(_) ||
+      @decode.lookup(egress, "ordering_evidence_cid") is Some(_) {
+      return Err(CustodyLost)
+    }
+    None
   }
-  let scope = match
-    self.authority_scope_cid(selection.principal, selection.connection, crypto) {
+  let file_original = if selection.sink == File {
+    match read_local_file_destination_original(egress) {
+      Ok(value) => Some(value)
+      Err(issue) => return Err(issue)
+    }
+  } else {
+    for
+      name in [
+        "destination_path", "destination_name", "destination_staging_name", "destination_parent_device",
+        "destination_parent_inode", "destination_writer_device", "destination_writer_inode",
+      ] {
+      if @decode.lookup(egress, name) is Some(_) {
+        return Err(CustodyLost)
+      }
+    }
+    None
+  }
+  let selected_scope = match capture {
+    None =>
+      self.authority_scope_cid(
+        selection.principal,
+        selection.connection,
+        crypto,
+      )
+    Some(original) =>
+      original.authority_scope_cid_in_original_read(
+        selection.principal,
+        selection.connection,
+      )
+  }
+  let scope = match selected_scope {
     Ok(value) => value
     Err(_) => return Err(AuthorizationDenied)
   }
@@ -230,6 +272,9 @@ fn NativeLocalHostConnection::validate_read_evidence(
   }
   let (expires_at, run_policy_original) = match selection.expiry {
     Absolute(expires_at) => {
+      if capture is Some(_) {
+        return Err(AuthorizationDenied)
+      }
       match self.require_original_legacy_policy(original) {
         Ok(_) => ()
         Err(issue) => return Err(issue)
@@ -251,15 +296,37 @@ fn NativeLocalHostConnection::validate_read_evidence(
             is Some(profile_file) else {
             return Err(CustodyLost)
           }
-          self.bind_run_policy_profile(
+          let run_read_file = if selection.sink == Material ||
+            selection.sink == File {
+            // Duration/custody comes from the exact original Run admission;
+            // the independent Material file never replaces its read CID.
+            guard record.local_run_policy_originals is Some(wire) &&
+              @host.client_local_original_record_fields(@utf8.encode(wire), [
+                "host_adoption_cid", "issued_at", "profile_wire", "read_selection_cid",
+                "request_wire", "retention_policy_wire", "run_definition_cid", "submission_reference_wire",
+                "version",
+              ])
+              is Ok(fields) &&
+              self.session.settings.files
+              .iter()
+              .find_first(candidate => candidate.content_cid == fields[3])
+              is Some(original_read) else {
+              return Err(CustodyLost)
+            }
+            original_read.name
+          } else {
+            file.name
+          }
+          self.bind_run_policy_profile_with_capture(
             crypto,
             selection.principal,
             selection.connection,
             profile_file.name,
-            file.name,
+            run_read_file,
             roles.run_file,
             roles.retention_file,
             roles.store_file,
+            capture~,
           )
         }
       }
@@ -274,7 +341,8 @@ fn NativeLocalHostConnection::validate_read_evidence(
         roles.store_file != policy.store_file.name {
         return Err(CustodyLost)
       }
-      let (reference, saved) = match policy.restore_read_original(record) {
+      let (reference, saved) = match
+        policy.restore_read_original(record, reads~, capture~) {
         Ok(value) => value
         Err(issue) => return Err(issue)
       }
@@ -292,6 +360,7 @@ fn NativeLocalHostConnection::validate_read_evidence(
   }
   let binding : NativeLocalReadPolicyBinding = {
     host: self,
+    capture,
     crypto,
     file,
     selection,
@@ -300,6 +369,12 @@ fn NativeLocalHostConnection::validate_read_evidence(
     scope,
     expires_at,
     selection_cid: read_cid,
+    material_receiver: None,
+    material_original,
+    file_destination: None,
+    file_original,
+    file_store: None,
+    file_preparation: None,
     upgrade_packet: upgrade.map(value => value.packet),
     run_policy_original,
   }
@@ -344,14 +419,34 @@ fn NativeLocalHostConnection::validate_read_evidence(
 fn NativeLocalHostConnection::read_evidence_custody(
   self : NativeLocalHostConnection,
   crypto : @crypto.Library,
+  operations? : NativeClientJournalOperationAccess? = None,
+  capture? : NativeLocalJournalCapture? = None,
 ) -> Result[(Int, Int64, Map[String, (Int, Int)]), NativeClientRunJournalIssue] {
-  guard self.database.scan_after("client_local_read_custody", "") is Ok(first) &&
+  let reads = operations.map(value => value.reads)
+  guard scan_client_journal_value(
+      self.database,
+      "client_local_read_custody",
+      "",
+      reads,
+    )
+    is Ok(first) &&
     first.key == "host" &&
     first.revision == 0L &&
     first.body == self.adoption_body &&
-    self.database.scan_after("client_local_read_custody", "host") is Ok(issued) &&
+    scan_client_journal_value(
+      self.database,
+      "client_local_read_custody",
+      "host",
+      reads,
+    )
+    is Ok(issued) &&
     issued.key == "issued" &&
-    self.database.scan_after("client_local_read_custody", "issued")
+    scan_client_journal_value(
+      self.database,
+      "client_local_read_custody",
+      "issued",
+      reads,
+    )
     is Err(@sqlite.NotFound) else {
     return Err(CustodyLost)
   }
@@ -382,7 +477,12 @@ fn NativeLocalHostConnection::read_evidence_custody(
   let mut observed = 0
   while true {
     let row = match
-      self.database.scan_after("client_local_read_evidence", cursor) {
+      scan_client_journal_value(
+        self.database,
+        "client_local_read_evidence",
+        cursor,
+        reads,
+      ) {
       Ok(value) => value
       Err(@sqlite.NotFound) => break
       Err(issue) => return Err(Physical(issue))
@@ -391,7 +491,8 @@ fn NativeLocalHostConnection::read_evidence_custody(
     if observed > count {
       return Err(CustodyLost)
     }
-    let scope = match self.validate_read_evidence(crypto, row) {
+    let scope = match
+      self.validate_read_evidence(crypto, row, operations~, capture~) {
       Ok(value) => value
       Err(issue) => return Err(issue)
     }
@@ -408,7 +509,12 @@ fn NativeLocalHostConnection::read_evidence_custody(
   if observed != count {
     return Err(CustodyLost)
   }
-  guard self.database.capacity_usage("client_local_read_evidence") is Ok(usage) &&
+  guard client_journal_capacity_usage(
+      self.database,
+      "client_local_read_evidence",
+      operations,
+    )
+    is Ok(usage) &&
     usage.reserved_objects == runs.length().to_int64() &&
     usage.reserved_bytes == runs.length().to_int64() * 65536L else {
     return Err(CustodyLost)
@@ -451,128 +557,201 @@ fn NativeLocalReadPolicyBinding::retain_read_admission(
   @result_access.NativeResultReadAdmission,
   NativeLocalReadBindingIssue,
 ] {
+  match self.capture {
+    None =>
+      self.retain_read_admission_with_operations(
+        original, facts, actual_policy_cid,
+      )
+    Some(capture) =>
+      read_binding_in_original_read(capture, (host, operations) => {
+        if !physical_equal(host, self.host) {
+          return Err(SelectionMismatch)
+        }
+        self.retain_read_admission_with_operations(
+          original,
+          facts,
+          actual_policy_cid,
+          operations=Some(operations),
+        )
+      })
+  }
+}
+
+///|
+fn NativeLocalReadPolicyBinding::retain_read_admission_with_operations(
+  self : NativeLocalReadPolicyBinding,
+  original : @host.ClientRequestIdentity,
+  facts : @result_access.NativeResultReadFacts,
+  actual_policy_cid : String,
+  operations? : NativeClientJournalOperationAccess? = None,
+) -> Result[
+  @result_access.NativeResultReadAdmission,
+  NativeLocalReadBindingIssue,
+] {
+  let reads = operations.map(value => value.reads)
   let mut authority_refusal : NativeLocalReadBindingIssue? = None
-  let stored = self.host.journal.transaction(() => {
-    match self.require_request(original, facts) {
-      Ok(_) => ()
-      Err(issue) => {
-        authority_refusal = Some(issue)
+  let stored = self.host.journal.transaction_with_reads(
+    () => {
+      match self.require_request(original, facts) {
+        Ok(_) => ()
+        Err(issue) => {
+          authority_refusal = Some(issue)
+          return Err(AuthorizationDenied)
+        }
+      }
+      if !self.selection.data_policy_cids.contains(actual_policy_cid) {
+        authority_refusal = Some(PolicyNotSelected)
         return Err(AuthorizationDenied)
       }
-    }
-    if !self.selection.data_policy_cids.contains(actual_policy_cid) {
-      authority_refusal = Some(PolicyNotSelected)
-      return Err(AuthorizationDenied)
-    }
-    let record = match self.host.journal.retained(original) {
-      Ok(Some(value)) => value
-      Ok(None) => return Err(CustodyLost)
-      Err(issue) => return Err(issue)
-    }
-    if @publication.publication_contract_identity(record.definition) !=
-      facts.request.run_definition_cid {
-      return Err(ForeignRun)
-    }
-    guard record.publication_policy_originals is Some(policy_wire) else {
-      return Err(PublicationPolicy(@checked.MissingDependency))
-    }
-    let policies = match read_run_policy_originals(policy_wire) {
-      Ok(value) => value
-      Err(issue) => return Err(issue)
-    }
-    if !policies.any(body => {
-        @publication.captured_effect_dependency_body_kind(body) == "data_policy" &&
-        @publication.captured_effect_dependency_body_cid(body) ==
-        actual_policy_cid
-      }) {
-      return Err(PublicationPolicy(@checked.MissingDependency))
-    }
-    let (count, revision, runs) = match
-      self.host.read_evidence_custody(self.crypto) {
-      Ok(value) => value
-      Err(issue) => return Err(issue)
-    }
-    let scope = @host.client_request_scope_cid(original)
-    let (entries, used_bytes) = runs.get(scope).unwrap_or((0, 0))
-    // The same durable per-Run reservation covers bounded originals, before
-    // copying/encoding. Existing reservation loss cannot be silently repaired.
-    match
-      self.host.database.reserve_capacity_in_transaction(
-        "client_local_read_evidence",
-        scope,
-        65536L,
-        1L,
-        self.host.journal.max_records.to_int64() * 65536L,
-        self.host.journal.max_records.to_int64(),
-      ) {
-      Ok(fresh) if fresh == (entries == 0) => ()
-      Ok(_) => return Err(CustodyLost)
-      Err(@sqlite.CapacityExceeded) => return Err(CapacityExceeded)
-      Err(issue) => return Err(Physical(issue))
-    }
-    let bodies = match
-      self.read_admission_originals(original, facts, actual_policy_cid) {
-      Ok(value) => value
-      Err(issue) => {
-        authority_refusal = Some(issue)
-        return Err(AuthorizationDenied)
+      let record = match self.host.journal.retained(original, reads~) {
+        Ok(Some(value)) => value
+        Ok(None) => return Err(CustodyLost)
+        Err(issue) => return Err(issue)
       }
-    }
-    let packet = match local_read_evidence_packet(original, bodies) {
-      Ok(value) => value
-      Err(issue) => return Err(issue)
-    }
-    match
-      self.host.database.read("client_local_read_evidence", bodies.egress.cid) {
-      Ok(row) if row.revision == 0L && row.body == packet => ()
-      Ok(_) => return Err(CustodyLost)
-      Err(@sqlite.NotFound) => {
-        if entries >= 64 || packet.length() > 65536 - used_bytes {
-          return Err(CapacityExceeded)
-        }
-        match
-          self.host.database.insert(
-            "client_local_read_evidence",
-            bodies.egress.cid,
-            packet,
-          ) {
-          Ok(_) => ()
-          Err(issue) => return Err(Physical(issue))
-        }
-        match
-          self.host.database.compare_exchange(
-            "client_local_read_custody",
-            "issued",
-            revision,
-            @utf8.encode((count + 1).to_string()),
-          ) {
-          Ok(_) => ()
-          Err(issue) => return Err(Physical(issue))
+      if @publication.publication_contract_identity(record.definition) !=
+        facts.request.run_definition_cid {
+        return Err(ForeignRun)
+      }
+      guard record.publication_policy_originals is Some(policy_wire) else {
+        return Err(PublicationPolicy(@checked.MissingDependency))
+      }
+      let policies = match read_run_policy_originals(policy_wire) {
+        Ok(value) => value
+        Err(issue) => return Err(issue)
+      }
+      if !policies.any(body => {
+          @publication.captured_effect_dependency_body_kind(body) ==
+          "data_policy" &&
+          @publication.captured_effect_dependency_body_cid(body) ==
+          actual_policy_cid
+        }) {
+        return Err(PublicationPolicy(@checked.MissingDependency))
+      }
+      let (count, revision, runs) = match
+        self.host.read_evidence_custody(
+          self.crypto,
+          operations~,
+          capture=self.capture,
+        ) {
+        Ok(value) => value
+        Err(issue) => return Err(issue)
+      }
+      let scope = @host.client_request_scope_cid(original)
+      let (entries, used_bytes) = runs.get(scope).unwrap_or((0, 0))
+      // The same durable per-Run reservation covers bounded originals, before
+      // copying/encoding. Existing reservation loss cannot be silently repaired.
+      match
+        reserve_client_journal_capacity(
+          self.host.database,
+          "client_local_read_evidence",
+          scope,
+          65536L,
+          1L,
+          self.host.journal.max_records.to_int64() * 65536L,
+          self.host.journal.max_records.to_int64(),
+          operations,
+        ) {
+        Ok(fresh) if fresh == (entries == 0) => ()
+        Ok(_) => return Err(CustodyLost)
+        Err(@sqlite.CapacityExceeded) => return Err(CapacityExceeded)
+        Err(issue) => return Err(Physical(issue))
+      }
+      let bodies = match
+        self.read_admission_originals(original, facts, actual_policy_cid) {
+        Ok(value) => value
+        Err(issue) => {
+          authority_refusal = Some(issue)
+          return Err(AuthorizationDenied)
         }
       }
-      Err(issue) => return Err(Physical(issue))
-    }
-    match self.require_request(original, facts) {
-      Ok(_) => {
-        let admission : @result_access.NativeResultReadAdmission = {
-          authorization_context_cid: bodies.authorization.cid,
-          data_ceiling_cid: bodies.ceiling.cid,
-          egress_admission_cid: bodies.egress.cid,
-          expires_at: self.expires_at,
-          max_bytes: self.selection.max_bytes,
-          max_uses: self.selection.max_uses,
+      let packet = match local_read_evidence_packet(original, bodies) {
+        Ok(value) => value
+        Err(issue) => return Err(issue)
+      }
+      match
+        read_client_journal_value(
+          self.host.database,
+          "client_local_read_evidence",
+          bodies.egress.cid,
+          reads,
+        ) {
+        Ok(row) if row.revision == 0L && row.body == packet => ()
+        Ok(_) => return Err(CustodyLost)
+        Err(@sqlite.NotFound) => {
+          if entries >= 64 || packet.length() > 65536 - used_bytes {
+            return Err(CapacityExceeded)
+          }
+          match
+            insert_client_journal_value(
+              self.host.database,
+              "client_local_read_evidence",
+              bodies.egress.cid,
+              packet,
+              operations,
+            ) {
+            Ok(_) => ()
+            Err(issue) => return Err(Physical(issue))
+          }
+          match
+            compare_exchange_client_journal_value(
+              self.host.database,
+              "client_local_read_custody",
+              "issued",
+              revision,
+              @utf8.encode((count + 1).to_string()),
+              operations,
+            ) {
+            Ok(_) => ()
+            Err(issue) => return Err(Physical(issue))
+          }
         }
-        Ok(admission)
+        Err(issue) => return Err(Physical(issue))
       }
-      Err(issue) => {
-        authority_refusal = Some(issue)
-        Err(AuthorizationDenied)
+      match self.require_request(original, facts) {
+        Ok(_) => {
+          let admission : @result_access.NativeResultReadAdmission = {
+            authorization_context_cid: bodies.authorization.cid,
+            data_ceiling_cid: bodies.ceiling.cid,
+            egress_admission_cid: bodies.egress.cid,
+            expires_at: self.expires_at,
+            max_bytes: self.selection.max_bytes,
+            max_uses: self.selection.max_uses,
+          }
+          Ok(admission)
+        }
+        Err(issue) => {
+          authority_refusal = Some(issue)
+          Err(AuthorizationDenied)
+        }
       }
-    }
-  })
+    },
+    reads~,
+  )
   match stored {
     Ok(value) => Ok(value)
     Err(TransactionUnknown) => Err(Journal(TransactionUnknown))
     Err(issue) => Err(authority_refusal.unwrap_or(Journal(issue)))
   }
+}
+
+///|
+// Closed archive inverse shared with completed File verification. No live
+// receiver or authority is constructed by decoding these saved fields.
+fn local_read_egress_fields(
+  wire : String,
+) -> Result[@decode.ObjectView, NativeClientRunJournalIssue] {
+  local_read_evidence_object(
+    @utf8.encode(wire),
+    [
+      "attempt_id", "authority_scope_cid", "authorization_context_cid", "data_ceiling_cid",
+      "domain", "effective_data_policy_cid", "expires_at", "format", "material_generation_cid",
+      "max_bytes", "max_uses", "principal_id", "public_index_entry_cid", "purpose",
+      "read_original_cid", "result_artifact_cid", "result_definition_cid", "result_manifest_cid",
+      "result_name", "run_definition_cid", "sink", "material_receiver_cid", "result_schema_cid",
+      "ordering_evidence_cid", "destination_path", "destination_name", "destination_staging_name",
+      "destination_parent_device", "destination_parent_inode", "destination_writer_device",
+      "destination_writer_inode",
+    ],
+    16384,
+  )
 }

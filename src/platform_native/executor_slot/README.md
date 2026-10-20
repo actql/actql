@@ -1,5 +1,13 @@
 # Original scoped process stop
 
+The one-way Holder Channel retains one selected pending frame through busy or
+partial writes, including refusal before its first byte. Later offers advance
+that original frame without replacing it or appending another. `send` confirms
+only a completed write of the offered line; advancing a different pending line
+still returns false. Callers retain unconfirmed control requests and must not
+let repeated status offers substitute for them. Byte relay, peer consumption,
+business acceptance and descriptor/child cleanup remain separate observations.
+
 The opt-in scoped holder extends this existing executor-slot Owner. Preparation
 requires an already-held original Slot and captures a separate open description
 of that exact inode. This anchor pins identity without keeping the inherited

@@ -374,6 +374,8 @@ fn assemble_client_native_local_product_originals(
         ]
         if finite_run_profile {
           selected.push("profile.json")
+          selected.push("material-read.json")
+          selected.push("file-read.json")
         }
         settings["installation_files"] = product_texts(selected)
         originals[index] = (

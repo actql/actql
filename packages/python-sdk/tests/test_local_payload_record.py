@@ -121,3 +121,27 @@ class PayloadRecordCustodyTests(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             core.reserve_payload_record(request, cleanup=lambda: True)
         self.assertEqual(len(calls), before)
+
+    def test_saved_parent_reservation_preserves_original_family_and_read_only_core_refusal(self):
+        core, _, _, calls, state, wire = self.bridge()
+        parent = _Output(core._identity, 7, 23, 65536, 'submission_lookup')
+        core._loans[7] = parent
+        record = core.reserve_saved_payload_record(parent, cleanup=lambda: True)
+        core.produce_payload_record(record, 31)
+        self.assertEqual(core.read_payload_record(record, 31), wire)
+        state['begin'] = -2
+        with self.assertRaises(LocalCoreError):
+            core.begin_payload_record(record, 31)
+        self.assertIs(core._loans[8], record)
+        self.assertEqual(sum(name == 'reserve' for _, name, _ in calls), 1)
+
+    def test_saved_record_reservation_rejects_wrong_family_and_copy_before_ffi(self):
+        core, request, _, calls, _, _ = self.bridge()
+        before = len(calls)
+        with self.assertRaises(ValueError):
+            core.reserve_saved_payload_record(request, cleanup=lambda: True)
+        parent = _Output(core._identity, 7, 23, 65536, 'submission_lookup')
+        core._loans[7] = parent
+        with self.assertRaises(ValueError):
+            core.reserve_saved_payload_record(copy.copy(parent), cleanup=lambda: True)
+        self.assertEqual(len(calls), before)

@@ -11,11 +11,12 @@ const canonical = value => Array.isArray(value) ? '[' + value.map(canonical).joi
     .map(key => JSON.stringify(key) + ':' + canonical(value[key])).join(',') + '}' : JSON.stringify(value);
 const cid = value => 'sha256:' + createHash('sha256').update(canonical(value)).digest('hex');
 const hasPin = (path, expected) => assert.ok(read(path).includes('"' + expected + '"'), path);
-const fixtureBody = (path, name) => {
+const fixtureWire = (path, name) => {
   const match = read(path).match(new RegExp('let ' + name + ' : String =\\s*\\n\\s*#\\|([^\\n]+)'));
   assert.ok(match, name);
-  return JSON.parse(match[1]);
+  return match[1];
 };
+const fixtureBody = (path, name) => JSON.parse(fixtureWire(path, name));
 
 test('resident physical acquisition fixtures retain complete normative query dependencies', () => {
   const path = 'src/platform_native/remote_resident_source_compute_tests/source_compute_wbtest.mbt';
@@ -37,7 +38,11 @@ test('resident physical Source environments advertise their exact normative two-
     ['source_fixture_wbtest.mbt', 'resident_effect_source_environment'],
     ['effect_completion_free_wbtest.mbt', 'native_completion_free_environment'],
   ]) {
-    const body = fixtureBody('src/platform_native/remote_resident_source_compute_tests/' + file, name);
+    const wire = fixtureWire('src/platform_native/remote_resident_source_compute_tests/' + file, name);
+    const body = JSON.parse(wire);
+    assert.equal(wire, canonical(body));
+    const memberCids = body.connector_capabilities.map(cid);
+    assert.deepEqual(memberCids, [...memberCids].sort());
     const {evidence_bundle_cid: original, ...preimage} = body;
     assert.equal(original, cid(preimage));
     for (const capability of body.connector_capabilities) {
@@ -50,15 +55,20 @@ test('resident physical Source environments advertise their exact normative two-
 
 test('current Catalog dependency fixtures pin the normative environment grammar', () => {
   const expected = cid(json('spec/contracts/actql-check-environment.json'));
-  assert.equal(expected, 'sha256:b513c6a3f6746e20822c51f3fc7dab2327e5ecfe339549b50e98976c11d21804');
+  assert.equal(expected, 'sha256:b351198c3319e349f87c650694e8cc9b3a443598eac3097992d445eadaafee23');
   for (const name of ['catalog_body_dependencies_test', 'lookup_body_dependencies_test']) {
     hasPin('src/check_environment/' + name + '.mbt', expected);
   }
+  const valueSchema = json('spec/contracts/actql-protocol-schemas.json').schemas.canonical_value_contract;
+  const valuePin = cid(valueSchema);
+  assert.equal(valuePin, 'sha256:71919bebf9a27c30c2c3ac29093aa90f983307e0d9272f9baeea891295c9cbc1');
+  assert.equal(json('spec/contracts/actql-check-environment.json').value_contract_bodies.schema.cid, valuePin);
+  hasPin('src/check_environment/catalog_body_dependencies_test.mbt', valuePin);
 });
 
 test('current expression fixture resolves only the normative root', () => {
   const expected = cid(json('spec/contracts/actql-expressions.json'));
-  assert.equal(expected, 'sha256:e7645d18471d4436b7542302adce28303a8a634ce29e9f5fd849f5cee8d1159e');
+  assert.equal(expected, 'sha256:6ab2396dc413fa604854f6586ec957203ccf23392c52f254dfd7b3c0c6dcbe7f');
   hasPin('src/check_environment/expression_dependencies_test.mbt', expected);
   assert.notEqual(expected, 'sha256:e4b8431ae81884a1e198420dcbd08d6b12ef4dca4bd9b7b8ffa4cd45db887289');
 });
@@ -67,13 +77,13 @@ test('current Program roots pin the normative closed source schema', () => {
   const body = json('spec/contracts/actql-protocol-schemas.json').artifact_schemas
     .executable_plan.properties.execution_material.properties.program;
   const expected = cid(body);
-  assert.equal(expected, 'sha256:0160e902a462b4cb69aa9ee3e1f2205d25299a55b5a442d74f41b472fd84fd89');
+  assert.equal(expected, 'sha256:acf5924c443028dd822112903e1d542154a939fbe013bf58b60f756285796ad4');
   hasPin('src/pipeline_check_context/core_contracts_test.mbt', expected);
 });
 
 test('managed completion fixture pins the complete normative profile', () => {
   const expected = cid(json('spec/contracts/actql-managed-retained-execution.json'));
-  assert.equal(expected, 'sha256:0c727bf78c1ab4cb1a62243e35ee49cd841e49b1fa3d66aa2f381f4222b17573');
+  assert.equal(expected, 'sha256:edec788d429772c76faebfd977aeba394971a8f23761a3ec30c593e28a74f3c8');
   hasPin('src/execution_relation/managed_completion_wbtest.mbt', expected);
 });
 
@@ -148,4 +158,40 @@ for (const [path, prefix] of [
   assert.deepEqual(values, contract.execution_contracts['REL.values']);
   assert.equal(cid(values), contract.target_registry_requirements['REL.values'].execution_contract.cid);
   assert.equal(registry['ACTQL.expression_fragment/0.1'].execution_contract.cid, cid(body));
+});
+
+
+test('current complete-fragment callers rebind only their declared normative dependencies', () => {
+  const fixture = json('portability/corpus/expression-fragment-identities.json');
+  const expression = cid(json('spec/contracts/actql-expressions.json'));
+  const ordered = cid(json('spec/contracts/actql-aoa.json').execution_contracts['REL.derive.ordered']);
+  for (const item of fixture.cases) {
+    // Keep the complete independently authored historical preimage immutable.
+    assert.equal(canonical(item.body), item.canonical);
+    assert.equal(cid(item.body), item.cid);
+    assert.equal(Buffer.byteLength(item.canonical), item.bytes);
+    const current = structuredClone(item.body);
+    let caller;
+    if (item.id === 'ordered_node') {
+      current.params.row_kernel_contract_cid = ordered;
+      caller = 'src/execution_relation/fragment_ordered_wbtest.mbt';
+    } else {
+      assert.equal(item.id, 'complete_fragment');
+      current.expression_contract_cid = expression;
+      caller = 'src/execution_relation/fragment_candidate_wbtest.mbt';
+    }
+    assert.equal(Buffer.byteLength(canonical(current)), item.bytes);
+    hasPin(caller, cid(current));
+    assert.notEqual(cid(current), item.cid);
+  }
+});
+
+
+test('current Registry, Values and graph caller literals bind complete normative bodies', () => {
+  const owner = json('spec/contracts/actql-aoa.json');
+  const registry = json(owner.pipeline_registry_file);
+  const path = 'src/execution_relation/registry_wbtest.mbt';
+  hasPin(path, cid(registry));
+  hasPin(path, cid(owner.execution_contracts['REL.values']));
+  hasPin(path, cid(owner.execution_contracts['BRIDGE.rows.to_graph']));
 });

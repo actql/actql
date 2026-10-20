@@ -37,9 +37,19 @@ test "CLI explicitly selects Reviewer only within existing finite installation o
     old="\"other-two.json\"]",
     new="\"other-two.json\",\"seventh.json\"]",
   )
+  assert_eq(local_host_settings(seventh).installation_files.length(), 7)
+  let eighth = seventh.replace_all(
+    old="\"seventh.json\"]",
+    new="\"seventh.json\",\"eighth.json\"]",
+  )
+  assert_eq(local_host_settings(eighth).installation_files.length(), 8)
+  let ninth = eighth.replace_all(
+    old="\"eighth.json\"]",
+    new="\"eighth.json\",\"ninth.json\"]",
+  )
   assert_true(
     try {
-      local_host_settings(seventh) |> ignore
+      local_host_settings(ninth) |> ignore
       false
     } catch {
       ClientStop(message) => message == "InvalidLocalInstallationSelection"

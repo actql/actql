@@ -203,7 +203,11 @@ test "Native Local capture binding does not fill a missing accepted packet from 
   )
   let materials = effect_original_restore_fixture_call(host, reference, request).unwrap()
   let record = host.journal.retained(request).unwrap().unwrap()
-  host.journal.save({ ..record, effect_material_originals: None, }).unwrap()
+  host.journal
+  .transaction(() => {
+    host.journal.save({ ..record, effect_material_originals: None, })
+  })
+  .unwrap()
   |> ignore
   assert_true(
     local_capture_binding_fixture_call(

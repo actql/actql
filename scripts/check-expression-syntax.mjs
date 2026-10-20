@@ -1,3 +1,4 @@
+import {verifyDecimalDivisionContracts} from './decimal-division-exact-contract.mjs';
 import assert from 'node:assert/strict';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -46,6 +47,7 @@ export function generate(corpus, textCorpus) {
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  verifyDecimalDivisionContracts();
   const corpus = JSON.parse(readFileSync('portability/corpus/actql-expression-syntax-v0.1.json', 'utf8'));
   const textCorpus = JSON.parse(readFileSync('portability/corpus/actql-expression-text-v0.1.json', 'utf8'));
   const output = generate(corpus, textCorpus);

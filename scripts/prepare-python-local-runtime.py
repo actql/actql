@@ -17,7 +17,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'scripts'))
 from python_release_cohort import read_cohort  # noqa: E402
 sys.path.insert(0, str(ROOT / 'packages/python-sdk/src'))
-from actql_sdk._local_distribution import LocalComponents, inspect_local_components, _read_file  # noqa: E402
+from actql_sdk._local_distribution import LocalComponents, WASMTIME_VERSION, inspect_local_components, _read_file  # noqa: E402
 if TYPE_CHECKING:
     from actql_sdk._local_image_recipe import _SelectedImageRecipe
 
@@ -122,11 +122,12 @@ def stage_selected_private_runtime(selected: _SelectedImageRecipe, bindings_sour
                                    native_libraries: Path, target: Path) -> dict[str, object]:
     """Generate pinned Python source and copy exact original DLLs; never import them."""
     selected.validate()
+    provider_digest, provider_bytes = selected.owned_provider()
     if native_libraries.is_symlink() or not native_libraries.is_dir():
         raise ValueError('Original private native library directory is unavailable')
     libraries = (
         ('_libwasmtime.dylib', selected.runtime_library_bytes, selected.runtime_library_sha256),
-        ('libactql_native_control.dylib', selected.provider_library_bytes, selected.provider_library_sha256),
+        ('libactql_native_control.dylib', provider_bytes, provider_digest),
     )
     for name, size, digest in libraries:
         _read_file(native_libraries / name, maximum=size, expected=size, digest=digest)
@@ -188,10 +189,14 @@ def _source_original(root: Path, source: str, relative: str, label: str) -> byte
         raise ValueError(f'{label} is unavailable') from failure
 
 
-def image_recipe_original(root: Path, source: str) -> bytes:
+def image_recipe_original(root: Path, source: str, *, runtime_allocation: str = 'native-owned') -> bytes:
     """Bounded exact Git-original read; no unbounded git-show capture."""
+    names = {'native-owned': 'selected-image-recipe.json',
+             'platform': 'selected-platform-image-recipe.json'}
+    if runtime_allocation not in names:
+        raise ValueError('Unknown selected image runtime allocation')
     return _source_original(root, source,
-        'packages/python-local-runtime/selected-image-recipe.json',
+        'packages/python-local-runtime/' + names[runtime_allocation],
         'Selected source-original image recipe')
 
 
@@ -207,7 +212,8 @@ def verify_artifact(artifact: Path) -> LocalComponents:
     with components.module.open('rb') as source:
         if source.read(8) != b'\0asm\x01\0\0\0':
             raise ValueError('Invalid installed Wasm module format')
-    recipe_bytes = image_recipe_original(ROOT, head)
+    recipe_bytes = image_recipe_original(ROOT, head,
+        runtime_allocation=components.image_recipe.runtime_allocation)
     if _read_file(components.engine_recipe, maximum=65536) != recipe_bytes:
         raise ValueError('Staged image recipe differs from its source original')
     library_target(components.duckdb)
@@ -219,9 +225,13 @@ def verify_artifact(artifact: Path) -> LocalComponents:
     return components
 
 
-def prepare(artifact: Path, destination: Path, *, bindings_source: Path,
-            native_libraries: Path) -> dict[str, object]:
+def prepare(artifact: Path, destination: Path, *, bindings_source: Path | None = None,
+            native_libraries: Path | None = None) -> dict[str, object]:
     components = verify_artifact(artifact)
+    platform_runtime = components.image_recipe.runtime_allocation == 'platform'
+    if (platform_runtime and (bindings_source is not None or native_libraries is not None)
+            or not platform_runtime and (bindings_source is None or native_libraries is None)):
+        raise ValueError('Runtime preparation inputs do not match the selected allocation')
     runtime = ROOT / 'packages/python-local-runtime'
     destination.mkdir()
     for name in ('pyproject.toml', 'setup.py'):
@@ -236,7 +246,14 @@ def prepare(artifact: Path, destination: Path, *, bindings_source: Path,
         shutil.copyfile(artifact / name, target / name)
         if name.endswith('LICENSE') or name.endswith('NOTICE'):
             shutil.copyfile(artifact / name, destination / name)
-    private_runtime = stage_private_runtime(components, bindings_source, native_libraries, target)
+    if platform_runtime:
+        shutil.copyfile(runtime / 'WASMTIME-LICENSE', target / 'WASMTIME-LICENSE')
+        private_runtime = {'runtime_allocation': 'platform',
+            'dependency': 'wasmtime==' + WASMTIME_VERSION,
+            'native_loaded': False, 'engine_executed': False}
+    else:
+        assert bindings_source is not None and native_libraries is not None
+        private_runtime = stage_private_runtime(components, bindings_source, native_libraries, target)
     shutil.copyfile(target / 'WASMTIME-LICENSE', destination / 'WASMTIME-LICENSE')
     staged = inspect_local_components(target, package_version=components.package_version)
     if ((staged.source_sha, staged.package_version, staged.module_sha256,
@@ -270,8 +287,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--artifact-directory', type=Path, required=True)
     parser.add_argument('--destination', type=Path, required=True)
-    parser.add_argument('--bindings-source', type=Path, required=True)
-    parser.add_argument('--native-libraries', type=Path, required=True)
+    parser.add_argument('--bindings-source', type=Path)
+    parser.add_argument('--native-libraries', type=Path)
     args = parser.parse_args()
     print(json.dumps(prepare(args.artifact_directory, args.destination,
         bindings_source=args.bindings_source, native_libraries=args.native_libraries)))

@@ -6,6 +6,7 @@ from unittest.mock import patch
 
 from test_local_native_control_custody import Fixture as ControlFixture, Function
 from actql_sdk._local_native_control_custody import _OriginalControlError
+from actql_sdk._local_native_initial_custody import _OriginalPythonNativeInitial
 from actql_sdk._local_native_backing_custody import (
     _OriginalBackingCustody, _OriginalBackingError, _OriginalBackingFunctions,
 )
@@ -112,6 +113,66 @@ class BackingFixture:
 
 
 class BackingCustodyTests(unittest.TestCase):
+    def test_python_initial_refusal_precedes_original_backing_borrow(self):
+        # Controlled ABI ports, not a Native initial or physical supplier.
+        f = BackingFixture()
+        initial = _OriginalPythonNativeInitial.__new__(_OriginalPythonNativeInitial)
+        f.host._python_initial_original = initial
+        primary = ValueError('Original Python Runtime is unavailable')
+        with patch.object(_OriginalPythonNativeInitial, 'require_control_current',
+                          side_effect=primary) as current:
+            with self.assertRaises(ValueError) as observed: f.take()
+            self.assertIs(observed.exception, primary)
+            current.assert_called_once_with()
+        self.assertEqual(f.events, [])
+        self.assertEqual(f.host._original.value, 101)
+        self.assertFalse(f.host._busy)
+        self.assertIs(f.host._python_initial_original, initial)
+        f.host.close()
+
+    def test_python_initial_refusal_blocks_backing_use_but_not_original_return(self):
+        f = BackingFixture()
+        initial = _OriginalPythonNativeInitial.__new__(_OriginalPythonNativeInitial)
+        f.host._python_initial_original = initial
+        with patch.object(_OriginalPythonNativeInitial, 'require_control_current'):
+            loan = f.take()
+        before = list(f.events)
+        primary = ValueError('Original Python Runtime became unavailable')
+        with patch.object(_OriginalPythonNativeInitial, 'require_control_current',
+                          side_effect=primary):
+            for call in (loan.current, lambda: loan._change_physical_scope(4)):
+                with self.assertRaises(ValueError) as observed: call()
+                self.assertIs(observed.exception, primary)
+                self.assertFalse(f.host._busy)
+            self.assertEqual(f.events, before)
+            loan.return_after_stop()
+            f.host.close()
+        self.assertTrue(loan._closed)
+        self.assertEqual(f.events.count(('borrow', 101)), 1)
+        self.assertEqual(f.events.count(('return', 101, 201)), 1)
+        self.assertEqual(f.control.events.count(('physical_close', 101)), 1)
+
+    def test_python_initial_refusal_keeps_entered_scope_leave_and_same_return(self):
+        f = BackingFixture()
+        initial = _OriginalPythonNativeInitial.__new__(_OriginalPythonNativeInitial)
+        f.host._python_initial_original = initial
+        refused = False
+        def current():
+            if refused: raise ValueError('Original Python Runtime became unavailable')
+        with patch.object(_OriginalPythonNativeInitial, 'require_control_current',
+                          side_effect=current):
+            loan = f.take()
+            with loan._physical_scope():
+                refused = True
+            self.assertEqual(f.scopes, 0)
+            with self.assertRaises(ValueError): loan.current()
+            loan.return_after_stop()
+            f.host.close()
+        self.assertTrue(loan._closed)
+        self.assertEqual(f.events.count(('enter_scope', 101, 201)), 1)
+        self.assertEqual(f.events.count(('leave_scope', 101, 201)), 1)
+        self.assertEqual(f.events.count(('return', 101, 201)), 1)
+
     def test_lost_borrow_reply_keeps_same_loan_carrier_without_late_error_allocation(self):
         f = BackingFixture()
         primary = OSError('lost original borrow response')

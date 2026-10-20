@@ -1,7 +1,7 @@
 ///|
 struct CheckedProgram {
   completion_free_audit : CompletionFreeAudit
-  local_completion_free_audit : CompletionFreeAudit
+  local_completion_free_audit : LocalCompletionFreeAudit
   has_effects : Bool
   keyed_input_proofs : Array[KeyedInputProof]
   nest_limits : Array[Array[NestLimits]]
@@ -318,7 +318,7 @@ fn check(
     local_completion_free_audit: if effect_headers is Some(_) {
       ProfileNotInstalled
     } else {
-      audit_local_completion_free_units(program, units)
+      audit_local_completion_free_units(program, identity, units, requirements)
     },
     has_effects: effect_headers is Some(_),
     keyed_input_proofs,
