@@ -220,7 +220,7 @@ fn open_native_client_local_values_work(
       return Err(values_unstarted_failure(run, original_access, issue))
   }
   let execution = match
-    @local.execute_source_free_values_guarded(
+    @local.execute_source_free_local_tasks_guarded(
       setup,
       finalization_quantum,
       max_finalization_rounds,

@@ -259,7 +259,7 @@ fn LocalCommandPreparationOriginal::require_business_program(
     business.execution is Some(execution) else {
     return Err(CommandUnavailable)
   }
-  guard @local_values.single_source_free_local_ledger_limits(
+  guard @local_values.source_free_local_ledger_limits(
       prepared,
       assets.registry,
       assets.values,
