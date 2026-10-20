@@ -215,7 +215,9 @@ fn issue_acquired_client_serialization_plan_graph(
     return Err(InvalidLimits)
   }
   if !client_serialization_single_capture_shape(
-      owner, task, max_work=max_preparation_work,
+      owner,
+      task,
+      max_work=max_preparation_work,
     ) ||
     prepared_client_acquisition_count(owner) != 1 ||
     !client_serialization_source_inventory_supported(
@@ -341,7 +343,11 @@ pub fn client_keyed_acquisition_reaches_serialization(
     return false
   }
   client_serialization_original_task_path(
-    graph, keyed_task, task, max_work, Some(keyed.owner),
+    graph,
+    keyed_task,
+    task,
+    max_work,
+    Some(keyed.owner),
   )
 }
 
@@ -357,8 +363,10 @@ fn client_serialization_original_task_path(
   max_work : Int,
   original_owner : @lower.BoundPrepared?,
 ) -> Bool {
-  if producer < 0 || consumer < producer ||
-    consumer >= @strategy.graph_task_count(graph) || max_work <= 0 {
+  if producer < 0 ||
+    consumer < producer ||
+    consumer >= @strategy.graph_task_count(graph) ||
+    max_work <= 0 {
     return false
   }
   let mut current = consumer
@@ -382,7 +390,8 @@ fn client_serialization_original_task_path(
         let parent = @strategy.data_edge_producer(edge)
         guard predecessor is None &&
           @strategy.data_edge_input(edge) == 0 &&
-          parent >= producer && parent < current &&
+          parent >= producer &&
+          parent < current &&
           client_task_edge_input(graph, edge) is Some(_) else {
           return false
         }
@@ -427,12 +436,14 @@ fn client_serialization_single_capture_shape(
     return match select_client_single_keyed_acquisition(owner) {
       Ok(Some(keyed)) =>
         client_keyed_acquisition_reaches_serialization(
-          owner, keyed, task, step, max_work~,
+          owner,
+          keyed,
+          task,
+          step,
+          max_work~,
         )
       Ok(None) =>
-        client_serialization_original_task_path(
-          graph, 0, task, max_work, None,
-        )
+        client_serialization_original_task_path(graph, 0, task, max_work, None)
       Err(_) => false
     }
   }

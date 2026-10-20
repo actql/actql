@@ -11,7 +11,8 @@ test "split keyed Content graph keeps the actual public output target" {
     _ => -1
   }
   let terminal_node = @lower.node_at(prepared, terminal)
-    .map(@lower.node_id).unwrap_or("none")
+    .map(@lower.node_id)
+    .unwrap_or("none")
   let issue = match
     @publication_host.issue_prepared_client_acquired_serialization_plan_graph(
       value.prepared,
@@ -39,11 +40,27 @@ test "split keyed Content graph keeps the actual public output target" {
   }
   assert_true(
     issue is None,
-    msg="original graph issue=" + issue.unwrap_or("none") +
-      ", task=" + value.task.to_string() + ", step=" + value.step.to_string() +
-      ", unit=" + @strategy.graph_task_unit_index(graph, value.task).unwrap_or(-1).to_string() +
-      ", inputs=" + @strategy.graph_task_input_count(graph, value.task).unwrap_or(-1).to_string() +
-      ", selected=" + @strategy.graph_task_selected_step(graph, value.task).unwrap_or(-1).to_string() +
-      ", terminal=" + terminal.to_string() + ", terminal_node=" + terminal_node,
+    msg="original graph issue=" +
+      issue.unwrap_or("none") +
+      ", task=" +
+      value.task.to_string() +
+      ", step=" +
+      value.step.to_string() +
+      ", unit=" +
+      @strategy.graph_task_unit_index(graph, value.task)
+      .unwrap_or(-1)
+      .to_string() +
+      ", inputs=" +
+      @strategy.graph_task_input_count(graph, value.task)
+      .unwrap_or(-1)
+      .to_string() +
+      ", selected=" +
+      @strategy.graph_task_selected_step(graph, value.task)
+      .unwrap_or(-1)
+      .to_string() +
+      ", terminal=" +
+      terminal.to_string() +
+      ", terminal_node=" +
+      terminal_node,
   )
 }
