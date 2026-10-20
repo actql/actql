@@ -709,6 +709,16 @@ Reserving these bytes supplies neither a missing operational purpose nor
 Model or Account authority. The Host's normal Run retirement uses the same
 admission cleanup rather than separately stopping around this retained duty.
 
+After the original Model read has handed off, a producer on the same Run may
+complete its reserved input into an independently retained output. Publication
+currentness recognizes that Resource-recorded completion only on the same
+reservation and its still-live original inventory holding (or a completed empty
+output). The original bootstrap, read token, other input holdings and delegation
+snapshots remain exact. Initial read admission and durable snapshot comparison
+do not accept a changed snapshot. Observing completed output neither refunds
+pending producer scratch nor acknowledges its separate physical cleanup; park,
+stop, foreign owners and retired output still refuse publication use.
+
 An owning consumer may read each original reservation's current retained and
 execution amounts without mutating the shared Ledger or invoking currentness.
 Foreign Ledger/token pairs refuse even after settlement. A closed reservation
