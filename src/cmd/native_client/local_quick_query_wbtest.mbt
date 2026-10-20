@@ -101,7 +101,7 @@ fn quick_query_declared_preparation(
 }
 
 ///|
-test "literal queries retain bounded typed declarations through actual preparation" {
+test "literal queries retain bounded typed declarations through original normalization" {
   let root = @env.current_dir().unwrap() + "/scripts/fixtures/native-local-cli"
   for operation in ["sql", "aql"] {
     let selected = quick_query_arguments([
@@ -125,6 +125,17 @@ test "literal queries retain bounded typed declarations through actual preparati
       fail("typed literal query did not prepare its own computation")
     }
     assert_eq(@run_host.prepared_client_result_count(original), 1)
+    // Preparation alone is insufficient for the public Run path: the same
+    // checked owner must supply its actual supported normalization inventory.
+    let normalization = @run_host.issue_prepared_client_local_normalization(
+      original,
+    ).unwrap()
+    assert_true(
+      @run_host.prepared_client_local_normalization_evidence(
+        original, normalization,
+      )
+      is Ok(_),
+    )
     // Both routes share the same original declaration/values file intake.
     let file = command().parse(
       argv=[
