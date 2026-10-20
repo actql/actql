@@ -10,6 +10,23 @@ struct ClientCapturedContent {
 }
 
 ///|
+fn client_captured_content_schema_media_matches(
+  schema : @schema.Schema,
+  media_type : String,
+) -> Bool {
+  let mut contents = 0
+  for field in @schema.fields(schema) {
+    if field.contract.shape is @contract.ContentRef(media_type=Some(expected)) {
+      if expected != media_type {
+        return false
+      }
+      contents += 1
+    }
+  }
+  contents == 1
+}
+
+///|
 pub fn prepare_client_captured_content(
   acquisition : ClientKeyedAcquisition,
   request : ClientKeyedRequest,
@@ -54,16 +71,7 @@ pub fn prepare_client_captured_content(
   }
   // Provider metadata or a file extension cannot narrow the declared MIME.
   // The first capture profile must have one statically typed Content column.
-  let mut contents = 0
-  for field in @schema.fields(schema) {
-    if field.contract.shape is @contract.ContentRef(media_type=Some(expected)) {
-      if expected != observed_media_type {
-        return Err(InvalidBinding("source_media_type"))
-      }
-      contents += 1
-    }
-  }
-  if contents != 1 {
+  if !client_captured_content_schema_media_matches(schema, observed_media_type) {
     return Err(InvalidBinding("source_media_type"))
   }
   @publication.prepare_captured_content_reference(
@@ -180,16 +188,7 @@ pub fn prepare_client_stored_run_captured_content(
   // its projected MIME against the original checked response, without issuing
   // a second candidate from that expected string and discarding the report.
   let media_type = @publication.captured_content_reference_media_type(candidate)
-  let mut contents = 0
-  for field in @schema.fields(schema) {
-    if field.contract.shape is @contract.ContentRef(media_type=Some(expected)) {
-      if media_type != expected {
-        return Err(InvalidBinding("source_media_type"))
-      }
-      contents += 1
-    }
-  }
-  if contents != 1 {
+  if !client_captured_content_schema_media_matches(schema, media_type) {
     return Err(InvalidBinding("source_media_type"))
   }
   Ok({
