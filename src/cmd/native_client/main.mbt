@@ -819,6 +819,7 @@ fn command() -> @argparse.Command {
       ),
     ],
     subcommands=[
+      @argparse.Command("schema", about="Print the Program JSON Schema"),
       @argparse.Command("verify", subcommand_required=true, subcommands=[
         @argparse.Command("output", flags=[@argparse.FlagArg("json")], positionals=[
           @argparse.PositionArg("receipt"),
@@ -1408,6 +1409,12 @@ fn execute_and_write_native_reply(
 ) -> Unit raise ClientStop {
   command_check_invalid_exit.val = false
   command_result_delivery_failed.val = false
+  // Language discovery returns the registered Program schema, without project
+  // selection, installation IO, a Host or a Run. Main owns stdout/flush errors.
+  if matches.subcommand is Some(("schema", _)) {
+    pending_reply.val = Some(generated_program_schema())
+    return
+  }
   // Integrity verification reads explicit files and does not acquire a Host,
   // resolve a project, create an installation or grant payload access.
   if matches.subcommand is Some(("verify", child)) {

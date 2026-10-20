@@ -307,6 +307,10 @@ actql schema
 syntax and `schema` the JSON schema of the Program model. Agents use these
 instead of guessing.
 
+`schema` writes the registered Program JSON Schema as one JSON object followed
+by a newline. It does not inspect a database, select a project, initialize a
+Local Host or create a Run. It works in an empty directory without credentials.
+
 ## Integrity
 
 ```text
