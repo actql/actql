@@ -12894,7 +12894,7 @@
     {
       "module": "adapters/host-node/client-checkpoints.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "c5dda62ea43fe1ca5446c1348afa98866495b99189d958998c34f9a9236cc78f",
+      "sha256": "5ac7463bc0c430afea4bf81d9ac392aa1043f20944bf5a7c379960ac0a305856",
       "role": "physical-io",
       "owner": "Existing Checkpoint/Resolution/Run Owners and same SQLite physical journal",
       "exports": [
@@ -13698,6 +13698,21 @@
             "input"
           ],
           "async": true
+        },
+        {
+          "name": "installRemoteCheckpoints/init:localSigningContext/init:localSigningContext",
+          "parameters": [
+            "principalId",
+            "summary",
+            "signingResource",
+            "signal"
+          ],
+          "async": true
+        },
+        {
+          "name": "installRemoteCheckpoints/init:localSigningContext/init:localSigningContext/assertCurrent/assertCurrent",
+          "parameters": [],
+          "async": false
         },
         {
           "name": "installRemoteCheckpoints/init:modelAuthorization/init:modelAuthorization",
@@ -15006,6 +15021,79 @@
               {
                 "path": "packages/sdk/effect-review-checkpoints.test.mjs",
                 "anchor": "test('Effect semantic review verification rejects"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "installRemoteCheckpoints/init:localSigningContext/init:localSigningContext",
+            "installRemoteCheckpoints/init:localSigningContext/init:localSigningContext/assertCurrent/assertCurrent"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "The ordinary Local Mock Host retains its packaged finite signing policy and"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "answer port selects an original Checkpoint from that Host; it neither exports"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "binds those originals to the same Store and private-key generation. A missing"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "the key nor accepts an arbitrary signing preimage. Run-read, resolve and key-sign"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "and purpose-bound operation, then commits each exact preimage's one-use claim"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "before native signing. A claimed or uncertain outcome cannot be replaced by a"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "authority are checked before key observation and around asynchronous work."
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "The same Checkpoint Journal retains the original decision, clock sample, expiry"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "an Effect send permit: the existing signed Resolution admission and current"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/local-checkpoint-answer.test.mjs",
+                "anchor": "test('original signature outcome loss stays claimed across a new coordinator without re-signing'"
+              },
+              {
+                "path": "adapters/host-node/local-checkpoint-signing-custody.test.mjs",
+                "anchor": "test('same original signing claim and saved outcome survive actual Journal close and reopen'"
               }
             ]
           }
@@ -58771,7 +58859,7 @@
     {
       "module": "adapters/host-node/sqlite-checkpoint-journal.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "251b681742edd764333b16d086b9aac57eba8e8bef2481223800eaf6762c6b25",
+      "sha256": "d48aa8479ef4bebc14ae300928db71a8bac9fa06c5b8036acde05f7941541edf",
       "role": "physical-io",
       "owner": "Existing Checkpoint/Resolution/Run Owners and same SQLite physical journal",
       "exports": [
@@ -59407,6 +59495,20 @@
           "async": false
         },
         {
+          "name": "openSqliteCheckpointJournal/init:localSigningRecord/init:localSigningRecord",
+          "parameters": [
+            "operationCid"
+          ],
+          "async": false
+        },
+        {
+          "name": "openSqliteCheckpointJournal/init:originalCheckpointForSigning/init:originalCheckpointForSigning",
+          "parameters": [
+            "reference"
+          ],
+          "async": false
+        },
+        {
           "name": "openSqliteCheckpointJournal/init:refuseUnsentModelResume/init:refuseUnsentModelResume",
           "parameters": [
             "reference",
@@ -59526,6 +59628,20 @@
             "items"
           ],
           "async": true
+        },
+        {
+          "name": "openSqliteCheckpointJournal/init:transitionLocalSigningRecord/init:transitionLocalSigningRecord",
+          "parameters": [
+            "operationCid",
+            "previous",
+            "next"
+          ],
+          "async": false
+        },
+        {
+          "name": "openSqliteCheckpointJournal/init:transitionLocalSigningRecord/init:transitionLocalSigningRecord/init:transitionLocalSigningRecord",
+          "parameters": [],
+          "async": false
         },
         {
           "name": "openSqliteCheckpointJournal/insertCheckpoint",
@@ -60056,6 +60172,81 @@
               {
                 "path": "src/checkpoint_runtime/pkg.generated.mbti",
                 "anchor": "pub const RESUME_REVALIDATION_FAILED_CODE : String = \"ACTQL_E_RESUME_REVALIDATION_FAILED\""
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "openSqliteCheckpointJournal/init:localSigningRecord/init:localSigningRecord",
+            "openSqliteCheckpointJournal/init:originalCheckpointForSigning/init:originalCheckpointForSigning",
+            "openSqliteCheckpointJournal/init:transitionLocalSigningRecord/init:transitionLocalSigningRecord",
+            "openSqliteCheckpointJournal/init:transitionLocalSigningRecord/init:transitionLocalSigningRecord/init:transitionLocalSigningRecord"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "The ordinary Local Mock Host retains its packaged finite signing policy and"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "answer port selects an original Checkpoint from that Host; it neither exports"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "binds those originals to the same Store and private-key generation. A missing"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "the key nor accepts an arbitrary signing preimage. Run-read, resolve and key-sign"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "and purpose-bound operation, then commits each exact preimage's one-use claim"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "before native signing. A claimed or uncertain outcome cannot be replaced by a"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "authority are checked before key observation and around asynchronous work."
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "The same Checkpoint Journal retains the original decision, clock sample, expiry"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "an Effect send permit: the existing signed Resolution admission and current"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/local-checkpoint-answer.test.mjs",
+                "anchor": "test('original signature outcome loss stays claimed across a new coordinator without re-signing'"
+              },
+              {
+                "path": "adapters/host-node/local-checkpoint-signing-custody.test.mjs",
+                "anchor": "test('same original signing claim and saved outcome survive actual Journal close and reopen'"
               }
             ]
           }
@@ -71314,7 +71505,7 @@
     },
     {
       "module": "adapters/host-node/ordinary-mock-account.mjs",
-      "sha256": "3818493c0fd95945137c52c1b6d3984fb2ce3181d431ed282301279c6a649f34",
+      "sha256": "2e610adb4537335349db3adf29ecd9282737a2a89ebb9e29fd91ffdfa6d04215",
       "exports": [
         "initializeOrdinaryMockAccount"
       ],
@@ -71397,6 +71588,22 @@
           "name": "initialize/init:adoptStore/init:adoptStore/init:adoptStore",
           "parameters": [],
           "async": true
+        },
+        {
+          "name": "initialize/init:assertSigningCurrent/init:assertSigningCurrent",
+          "parameters": [
+            "store"
+          ],
+          "async": true
+        },
+        {
+          "name": "initialize/init:signingOriginal/init:signingOriginal",
+          "parameters": [
+            "store",
+            "sampledAt",
+            "validUntil"
+          ],
+          "async": false
         },
         {
           "name": "initialize/initialize",
@@ -71541,6 +71748,79 @@
               {
                 "path": "adapters/host-node/ordinary-host-connected.actual.test.mjs",
                 "anchor": "test('ordinary"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "initialize/init:assertSigningCurrent/init:assertSigningCurrent",
+            "initialize/init:signingOriginal/init:signingOriginal"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "The ordinary Local Mock Host retains its packaged finite signing policy and"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "answer port selects an original Checkpoint from that Host; it neither exports"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "binds those originals to the same Store and private-key generation. A missing"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "the key nor accepts an arbitrary signing preimage. Run-read, resolve and key-sign"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "and purpose-bound operation, then commits each exact preimage's one-use claim"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "before native signing. A claimed or uncertain outcome cannot be replaced by a"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "authority are checked before key observation and around asynchronous work."
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "The same Checkpoint Journal retains the original decision, clock sample, expiry"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "an Effect send permit: the existing signed Resolution admission and current"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/local-checkpoint-answer.test.mjs",
+                "anchor": "test('original signature outcome loss stays claimed across a new coordinator without re-signing'"
+              },
+              {
+                "path": "adapters/host-node/local-checkpoint-signing-custody.test.mjs",
+                "anchor": "test('same original signing claim and saved outcome survive actual Journal close and reopen'"
               }
             ]
           }
@@ -72855,6 +73135,251 @@
           }
         }
       ]
+    },
+    {
+      "module": "adapters/host-node/local-checkpoint-answer.mjs",
+      "sha256": "168443906762104e9fdced7c242587546b8dfd1c20cc76ca98b18718e52db1c3",
+      "exports": [
+        "createLocalCheckpointAnswer"
+      ],
+      "operations": [
+        {
+          "name": "cid/cid",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createLocalCheckpointAnswer",
+          "parameters": [
+            "moon",
+            "checkpoints",
+            "mockAccount",
+            "store",
+            "authorityScopeCid",
+            "principalId",
+            "metadata",
+            "assertCurrent",
+            "loadRunOriginal",
+            "now"
+          ],
+          "async": false
+        },
+        {
+          "name": "createLocalCheckpointAnswer/answer",
+          "parameters": [
+            "summary",
+            "decision",
+            "signal"
+          ],
+          "async": true
+        },
+        {
+          "name": "createLocalCheckpointAnswer/answer/current/current",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createLocalCheckpointAnswer/answer/physicalProof",
+          "parameters": [
+            "role",
+            "preimage"
+          ],
+          "async": true
+        },
+        {
+          "name": "createLocalCheckpointAnswer/answerCheckpoint",
+          "parameters": [
+            "summary",
+            "decision",
+            "signal"
+          ],
+          "async": false
+        },
+        {
+          "name": "createLocalCheckpointAnswer/answerCheckpoint/flight/flight",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createLocalCheckpointAnswer/answerCheckpoint/settled/settled",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createLocalCheckpointAnswer/call/call",
+          "parameters": [
+            "name",
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "createLocalCheckpointAnswer/createLocalCheckpointAnswer",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "createLocalCheckpointAnswer/createLocalCheckpointAnswer#2",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createLocalCheckpointAnswer/methods/methods",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "createLocalCheckpointAnswer/move/move",
+          "parameters": [
+            "key",
+            "previous",
+            "next"
+          ],
+          "async": false
+        },
+        {
+          "name": "createLocalCheckpointAnswer/readRecord/readRecord",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "fail/fail",
+          "parameters": [
+            "code",
+            "cause"
+          ],
+          "async": false
+        },
+        {
+          "name": "hash/hash",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "own/own",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "../../packages/sdk/host-port.mjs",
+        "../host-common/compiler-binding.generated.mjs",
+        "../host-common/runtime-result.mjs",
+        "node:crypto"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "Existing Local Host, Checkpoint/Resolution, Credential and same SQLite Journal Owners",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "cid/cid",
+            "createLocalCheckpointAnswer",
+            "createLocalCheckpointAnswer/answer",
+            "createLocalCheckpointAnswer/answer/current/current",
+            "createLocalCheckpointAnswer/answer/physicalProof",
+            "createLocalCheckpointAnswer/answerCheckpoint",
+            "createLocalCheckpointAnswer/answerCheckpoint/flight/flight",
+            "createLocalCheckpointAnswer/answerCheckpoint/settled/settled",
+            "createLocalCheckpointAnswer/call/call",
+            "createLocalCheckpointAnswer/createLocalCheckpointAnswer",
+            "createLocalCheckpointAnswer/createLocalCheckpointAnswer#2",
+            "createLocalCheckpointAnswer/methods/methods",
+            "createLocalCheckpointAnswer/move/move",
+            "createLocalCheckpointAnswer/readRecord/readRecord",
+            "fail/fail",
+            "hash/hash",
+            "own/own"
+          ],
+          "exports": [
+            "createLocalCheckpointAnswer"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "The ordinary Local Mock Host retains its packaged finite signing policy and"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "answer port selects an original Checkpoint from that Host; it neither exports"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "binds those originals to the same Store and private-key generation. A missing"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "the key nor accepts an arbitrary signing preimage. Run-read, resolve and key-sign"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "and purpose-bound operation, then commits each exact preimage's one-use claim"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "before native signing. A claimed or uncertain outcome cannot be replaced by a"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "authority are checked before key observation and around asynchronous work."
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "The same Checkpoint Journal retains the original decision, clock sample, expiry"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "an Effect send permit: the existing signed Resolution admission and current"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/local-checkpoint-answer.test.mjs",
+                "anchor": "test('original signature outcome loss stays claimed across a new coordinator without re-signing'"
+              },
+              {
+                "path": "adapters/host-node/local-checkpoint-signing-custody.test.mjs",
+                "anchor": "test('same original signing claim and saved outcome survive actual Journal close and reopen'"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Private original Local Mock Reviewer connection. Checked metadata and explicit-port tests do not issue authority, physical resources or installed acceptance."
     }
   ],
   "generated": [],
@@ -72867,10 +73392,10 @@
     "Whole-distribution or installed-cohort completion"
   ],
   "counts": {
-    "modules": 161,
-    "operations": 4089,
-    "exports": 1011,
-    "explicitContractGroups": 224
+    "modules": 162,
+    "operations": 4114,
+    "exports": 1012,
+    "explicitContractGroups": 228
   },
   "scope": "The original supplied modules and explicitly added Project Task/profile installation modules are source/reference facets, not a reassignment of Coordinator/Transfer, process, Connector, Credential, Store or semantic implementation ownership."
 }

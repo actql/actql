@@ -37361,7 +37361,7 @@
     {
       "module": "adapters/host-node/embedded-local.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "f61ebfbf425756eec7bc3980657e1f9db3f6c4cdbbfcb862e64ed6f734bbbd30",
+      "sha256": "53302793f7aa862a8a3126864bc72f44b40950986631fb2dc88723f4ba41eb85",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -37882,6 +37882,15 @@
           "async": true
         },
         {
+          "name": "openInstalledHost/bootstrapPort/init:answerCheckpoint/init:answerCheckpoint",
+          "parameters": [
+            "summary",
+            "decision",
+            "signal"
+          ],
+          "async": true
+        },
+        {
           "name": "openInstalledHost/bootstrapPort/init:perform/init:perform",
           "parameters": [
             "operation",
@@ -37980,6 +37989,33 @@
           "parameters": [
             "submission"
           ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/answerLocalCheckpoint/answerLocalCheckpoint",
+          "parameters": [
+            "summary",
+            "decision",
+            "signal"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/answerLocalCheckpoint/answerLocalCheckpoint/init:assertCurrent/init:assertCurrent",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/answerLocalCheckpoint/answerLocalCheckpoint/init:loadRunOriginal/init:loadRunOriginal",
+          "parameters": [
+            "view",
+            "signal"
+          ],
+          "async": true
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/answerLocalCheckpoint/answerLocalCheckpoint/init:loadRunOriginal/init:loadRunOriginal/current/current",
+          "parameters": [],
           "async": false
         },
         {
@@ -44929,6 +44965,82 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "openInstalledHost/bootstrapPort/init:answerCheckpoint/init:answerCheckpoint",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/answerLocalCheckpoint/answerLocalCheckpoint",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/answerLocalCheckpoint/answerLocalCheckpoint/init:assertCurrent/init:assertCurrent",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/answerLocalCheckpoint/answerLocalCheckpoint/init:loadRunOriginal/init:loadRunOriginal",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/answerLocalCheckpoint/answerLocalCheckpoint/init:loadRunOriginal/init:loadRunOriginal/current/current"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "The ordinary Local Mock Host retains its packaged finite signing policy and"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "answer port selects an original Checkpoint from that Host; it neither exports"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "binds those originals to the same Store and private-key generation. A missing"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "the key nor accepts an arbitrary signing preimage. Run-read, resolve and key-sign"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "and purpose-bound operation, then commits each exact preimage's one-use claim"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "before native signing. A claimed or uncertain outcome cannot be replaced by a"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "authority are checked before key observation and around asynchronous work."
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "The same Checkpoint Journal retains the original decision, clock sample, expiry"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "an Effect send permit: the existing signed Resolution admission and current"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/local-checkpoint-answer.test.mjs",
+                "anchor": "test('original signature outcome loss stays claimed across a new coordinator without re-signing'"
+              },
+              {
+                "path": "adapters/host-node/local-checkpoint-signing-custody.test.mjs",
+                "anchor": "test('same original signing claim and saved outcome survive actual Journal close and reopen'"
+              }
+            ]
+          }
         }
       ],
       "imports": [
@@ -45002,6 +45114,7 @@
         "./installed-source.mjs",
         "./installed-update-originals.mjs",
         "./local-account-config.mjs",
+        "./local-checkpoint-answer.mjs",
         "./local-continuation-evidence.mjs",
         "./local-values-plan.mjs",
         "./node-host-journal-installation.mjs",
@@ -124591,8 +124704,8 @@
   ],
   "counts": {
     "modules": 58,
-    "operations": 3573,
+    "operations": 3578,
     "exports": 567,
-    "explicitContractGroups": 786
+    "explicitContractGroups": 787
   }
 }
