@@ -103,3 +103,54 @@ test "File destination retains failed attempted output and refuses a replacement
   )
   destination.close().unwrap()
 }
+
+///|
+test "File read preimage binds every destination original and keeps stdout bytes" {
+  let crypto = epoch_test_crypto()
+  let fields = [
+    ("domain", @host.Text("native_local_read.egress_admission")),
+    ("sink", @host.Text("file")),
+  ]
+  let file : NativeLocalReadFileOriginal = {
+    path: "/tmp/export/answer.json",
+    name: "answer.json",
+    staging_name: "private.stage",
+    parent_device: "1",
+    parent_inode: "2",
+    writer_device: "1",
+    writer_inode: "3",
+  }
+  let exact = local_read_preimage(crypto, fields.copy(), file=Some(file)).unwrap()
+  assert_eq(
+    exact.wire,
+    "{\"destination_name\":\"answer.json\",\"destination_parent_device\":\"1\",\"destination_parent_inode\":\"2\",\"destination_path\":\"/tmp/export/answer.json\",\"destination_staging_name\":\"private.stage\",\"destination_writer_device\":\"1\",\"destination_writer_inode\":\"3\",\"domain\":\"native_local_read.egress_admission\",\"sink\":\"file\"}",
+  )
+  assert_eq(
+    exact.cid,
+    "sha256:b6e307b06e1b9722d8e65425c08df2dc25e88dc33d552a132dfe74a70a9006e1",
+  )
+  assert_eq(
+    read_local_file_destination_original(
+      local_read_egress_fields(exact.wire).unwrap(),
+    ).unwrap(),
+    file,
+  )
+  for
+    changed in [
+      { ..file, path: "/tmp/other/answer.json", },
+      { ..file, name: "other.json", },
+      { ..file, staging_name: "other.stage", },
+      { ..file, parent_device: "9", },
+      { ..file, parent_inode: "9", },
+      { ..file, writer_device: "9", },
+      { ..file, writer_inode: "9", },
+    ] {
+    assert_false(
+      local_read_preimage(crypto, fields.copy(), file=Some(changed)).unwrap().cid ==
+      exact.cid,
+    )
+  }
+  let stdout = local_read_preimage(crypto, [("a", @host.Text("original"))]).unwrap()
+  assert_eq(stdout.wire, "{\"a\":\"original\"}")
+  crypto.close_checked().unwrap()
+}
