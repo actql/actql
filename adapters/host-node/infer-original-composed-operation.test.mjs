@@ -3,7 +3,10 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {openNodeComposedInferProvider, openNodeInferOperation} from './infer-operation.mjs';
+import * as inferOperation from './infer-operation.mjs';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
+
+const originalReadCleaned = read => inferOperation.inferOriginalReadCleanupComplete?.(read) === true;
 
 function fixture({claimIssue, startIssue} = {}) {
   const active = {}, consumer = {}, read = {}, rawCompiled = {}, rawDefinition = {}, scope = {};
@@ -69,6 +72,75 @@ function expectOriginalStart(f) {
   assert.equal(f.calls[1].length, expected.length + 1);
   for (const [index, value] of expected.entries()) assert.strictEqual(f.calls[1][index + 1], value);
 }
+
+test('original read cleanup is observable only after the actual Core execution acknowledges it', async () => {
+  const f = fixture(), read = f.originalPreparation.read;
+  let ready = false, cleanups = 0;
+  f.moon.clientProgramCleanupInferExecution = active => {
+    assert.strictEqual(active, f.active); cleanups++; return {$tag: 1, _0: ready};
+  };
+  const operation = openNodeInferOperation(f.options);
+  assert.equal(originalReadCleaned(read), false);
+  assert.equal(operation.cleanup(), false);
+  assert.equal(cleanups, 0);
+  await operation.stop();
+  assert.equal(originalReadCleaned(read), false);
+  assert.equal(operation.cleanup(), false);
+  assert.equal(cleanups, 1);
+  assert.equal(originalReadCleaned(read), false);
+  ready = true;
+  assert.equal(operation.cleanup(), true);
+  assert.equal(originalReadCleaned(read), true);
+  assert.equal(operation.cleanup(), true);
+  assert.equal(cleanups, 2);
+});
+
+test('original read cleanup never acknowledges copied foreign or sibling read tokens', async () => {
+  const f = fixture(), other = fixture();
+  const operation = openNodeInferOperation(f.options), sibling = openNodeInferOperation(other.options);
+  const read = f.originalPreparation.read, foreign = other.originalPreparation.read;
+  await sibling.close();
+  assert.equal(originalReadCleaned(foreign), true);
+  assert.equal(originalReadCleaned(read), false);
+  await operation.close();
+  assert.equal(originalReadCleaned(read), true);
+  for (const value of [{...read}, {}, undefined, null, 0, 'same-looking-token']) {
+    assert.equal(originalReadCleaned(value), false);
+  }
+});
+
+test('original read cleanup preserves a thrown original failure without inventing an acknowledgement', async () => {
+  const f = fixture(), issue = Object.freeze({issue: 'OriginalCleanupUnknown'});
+  const operation = openNodeInferOperation(f.options), read = f.originalPreparation.read;
+  f.moon.clientProgramCleanupInferExecution = () => ({$tag: 0, _0: issue});
+  await operation.stop();
+  assert.throws(() => operation.cleanup(), error => error.code === 'MoonBitHostFailure' && error.cause === issue);
+  assert.equal(originalReadCleaned(read), false);
+  assert.equal(operation.cleanupPending(), true);
+  f.moon.clientProgramCleanupInferExecution = () => ({$tag: 1, _0: true});
+  assert.equal(operation.cleanup(), true);
+  assert.equal(originalReadCleaned(read), true);
+});
+
+test('original read cleanup retains the exact claimed token rather than a later property replacement', async () => {
+  const f = fixture(), read = f.originalPreparation.read;
+  const operation = openNodeInferOperation(f.options);
+  const replaced = f.originalPreparation.read = {};
+  await operation.close();
+  assert.equal(originalReadCleaned(read), true);
+  assert.equal(originalReadCleaned(replaced), false);
+});
+
+test('original read cleanup cannot acknowledge an unclaimed or failed-construction read', () => {
+  const f = fixture({startIssue: 'OriginalStartFailure'});
+  assert.throws(() => openNodeInferOperation(f.options), error =>
+    error.code === 'MoonBitHostFailure' && error.cause === 'OriginalStartFailure');
+  assert.equal(originalReadCleaned(f.originalPreparation.read), false);
+  const rejected = fixture({claimIssue: 'ForeignOriginalRead'});
+  assert.throws(() => openNodeInferOperation(rejected.options), error =>
+    error.code === 'MoonBitHostFailure' && error.cause === 'ForeignOriginalRead');
+  assert.equal(originalReadCleaned(rejected.originalPreparation.read), false);
+});
 
 test('original composed start claims once and forwards the same read and producer inputs without IO ports', async () => {
   const f = fixture();
