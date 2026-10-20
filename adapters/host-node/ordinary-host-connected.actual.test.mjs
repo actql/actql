@@ -276,7 +276,16 @@ test('ordinary actual Mock Host captures the original Quickstart Effect without 
     assert.equal(body.encryption_required, true);
     assert.deepEqual(body.displayed_rows.map(row => row.target_row_identity).sort(), ['001Acme', '001Globex']);
     assert.equal(await readFile('mock/data.json', 'utf8'), before);
-  } catch (error) {primaryFailure = error; throw error;}
+  } catch (error) {
+    const describe = (cause, depth = 0) => cause === undefined || depth === 6 ? undefined : ({
+      code: cause.code, name: cause.name, message: cause.message,
+      cause: describe(cause.cause, depth + 1),
+      primary: cause.primaryFailure === cause ? undefined : describe(cause.primaryFailure, depth + 1),
+      errors: Array.isArray(cause.errors) ? cause.errors.slice(0, 8).map(value => describe(value, depth + 1)) : undefined,
+    });
+    t.diagnostic(JSON.stringify({originalFailure: describe(error)}));
+    primaryFailure = error; throw error;
+  }
   finally {
     try {await client?.close();}
     catch (cleanupFailure) {

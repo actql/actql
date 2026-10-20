@@ -938,7 +938,7 @@ async function openInstalledHost(originalInstallation, preparation) {
       }
       installedEffect = await preparation.installMockEffects(moon, baseEnvironmentWire,
         () => createLocalAuthorizationGate({...authorization, principal: principalId}),
-        principalId, mockEffectResources);
+        principalId, mockEffectResources, sourceProfile.sources[0].connectorBindings[0]);
       // Retain the actual factory result before a fallible observation/current
       // read, so the existing initialization carrier still owns its file child.
       mockEffectObservation = observeInstalledMockEffectResources(installedEffect);
@@ -4680,17 +4680,25 @@ export async function connectEmbeddedLocal(options, initialEntry) {
         baseEnvironmentWire, authorizationFor,
         readAsset: path => readInitialControlInstallationAsset(control, originals, path)});
     },
-    async installMockEffects(runtime, baseEnvironmentWire, authorizationFor, principalId, effectResources) {
+    async installMockEffects(runtime, baseEnvironmentWire, authorizationFor, principalId, effectResources,
+      sourceBinding) {
       if (runtime !== moon || mockPreparation === undefined) {
         throw clientOperationError('ForeignInstalledMockPreparation');
       }
       assertSourceManagedInstallationCurrent(sourceManaged, originals);
       const bundle = mockPreparation.originalsForRuntime(moon);
+      if (sourceBinding?.connectorId !== bundle.sources[0].catalogue.connectorId ||
+          typeof sourceBinding.bindingCid !== 'string' ||
+          !/^sha256:[0-9a-f]{64}$/u.test(sourceBinding.bindingCid)) {
+        throw clientOperationError('ForeignInstalledMockSourceBinding');
+      }
       return installPreparedProjectMockEffects({moon, mockPreparation, baseEnvironmentWire,
         authorizationFor, principalId, effectResources,
         runtimeBundleCid: await installedRuntimeBundleCid(runtimeUrl),
-        bindingCid: contentCid({connection: bundle.sources[0].catalogue.connection,
-          dataPath: bundle.dataPath, mapping: bundle.mappingWire}),
+        // Correspondence DATA from the actual same Host's Source factory.
+        // The Mapping cannot redefine that physical installation identity;
+        // this CID grants no Run, resource original or target authority.
+        bindingCid: sourceBinding.bindingCid,
         ledgerRoot: join(originalInstallation.root, 'state', 'effects', 'ledger'),
         assertCurrent: () => assertSourceManagedInstallationCurrent(sourceManaged, originals)});
     },
