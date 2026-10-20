@@ -266,6 +266,10 @@ pub fn validate_submission_append(
   handle : Int,
   current : Int,
 ) -> Int {
+  if selected(nonce).bind(value => value.submissions.get(handle))
+    is Some({ kind: 4, .. }) {
+    return validate_submission_lookup(nonce, handle, current)
+  }
   guard selected(nonce) is Some(value) &&
     value.submissions.get(handle) is Some(record) &&
     record.kind == 3 &&

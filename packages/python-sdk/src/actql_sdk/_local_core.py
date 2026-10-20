@@ -1255,14 +1255,15 @@ class LocalCore:
         with self._lock:
             self._owned_input(source)
             if (self._closing or type(configuration) is not int or
-                    not 0 < configuration < 2**31 or type(kind) is not int or kind not in (1, 2, 3)):
+                    not 0 < configuration < 2**31 or type(kind) is not int or kind not in (1, 2, 3, 4)):
                 raise ValueError('Invalid Local Submission projection')
             ticket = self._next_ticket
             if ticket >= 2**31:
                 raise RuntimeError('Local Core input identity exhausted')
             self._next_ticket += 1
-            limit = 1048576 if kind == 3 else 4096
-            family = 'submission_append' if kind == 3 else 'submission'
+            limit = 1048576 if kind in (3, 4) else 4096
+            family = ('submission_append' if kind == 3 else
+                      'submission_lookup' if kind == 4 else 'submission')
             self._inputs[ticket] = _PhysicalInput(b'', cleanup, lambda _: True)
             physical_bytes = (2 * limit + sys.getsizeof(bytearray()) + sys.getsizeof(b'')
                               + sys.getsizeof(_Output(self._identity, ticket, 0, limit, family)))
@@ -1406,6 +1407,36 @@ class LocalCore:
 
     def close_submission_append(self, value: _Output) -> bool:
         return self._close_output(value, 'submission_append', 'close', abi_family='submission')
+
+    def produce_submission_lookup(self, value: _Output, current: _Output) -> None:
+        """Read only the original history in the same current Store snapshot."""
+        with self._lock:
+            self._owned_output(value, 'submission_lookup')
+            callbacks = self._host_current_ready(current)
+            code = self._call('submission', 'produce', value.handle)
+            if callbacks.failure is not None:
+                raise callbacks.failure
+            self._check('produce_submission_lookup', code)
+            self.validate_submission_lookup(value, current)
+
+    def validate_submission_lookup(self, value: _Output, current: _Output) -> None:
+        with self._lock:
+            self._owned_output(value, 'submission_lookup')
+            callbacks = self._host_current_ready(current)
+            code = self._call('submission', 'validate_append', value.handle, current.handle)
+            if callbacks.failure is not None:
+                raise callbacks.failure
+            self._check('validate_submission_lookup', code)
+
+    def read_submission_lookup(self, value: _Output, current: _Output) -> bytes:
+        with self._lock:
+            self.validate_submission_lookup(value, current)
+            raw = self._read_output(value, 'submission_lookup', 'length', abi_family='submission')
+            self.validate_submission_lookup(value, current)
+            return raw
+
+    def close_submission_lookup(self, value: _Output) -> bool:
+        return self._close_output(value, 'submission_lookup', 'close', abi_family='submission')
 
     def retire_submission_append_output(self, value: _Output) -> bool:
         """Retire transport while Core retains original input/Run relationships."""

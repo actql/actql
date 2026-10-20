@@ -335,6 +335,8 @@ class InstalledLocalHost:
         with self._core._lock:
             if operation == 'connect':
                 raw = wire_bytes(self._profile())  # type: ignore[no-untyped-call]
+            elif operation == 'lookup-submission':
+                raw = self._lookup_original_submission(body['submissionRef'])
             elif operation == 'submit-intent':
                 intent = {key: body[key] for key in ('kind', 'input', 'parameters')}
                 for key in ('stopBefore', 'readOnly'):
@@ -848,9 +850,61 @@ class InstalledLocalHost:
                 raise LocalStorageError('Original Local submitted intent write conflicted; lookup is required')
             return output
 
+    def _lookup_original_submission(self, reference: object) -> bytes:
+        """Observe authenticated saved history without preparing or resending.
+
+        A missing original is unresolved history, never proof of nonexecution.
+        The Core's full inventories and retained Run validator remain inside
+        the same current physical snapshot before and after copying the view.
+        """
+        installation = self._active()
+        configuration = self._configuration
+        if (installation._epoch is None or installation._store is None
+                or configuration is None):
+            raise ValueError('Original Local submission suppliers are unavailable')
+        captured_reference = _object(wire_bytes(reference), 8192)  # type: ignore[no-untyped-call]
+        with self._core._lock:
+            installation._epoch.identity(captured_reference)
+            source = self._copy(wire_bytes({  # type: ignore[no-untyped-call]
+                'reference': wire_bytes(captured_reference).decode('utf-8')}))  # type: ignore[no-untyped-call]
+            output = self._reserve(lambda: self._core.reserve_submission_projection(
+                configuration.handle, source, 4, cleanup=lambda: True))
+            self._projections.append(output)
+            self._append_sources[output.ticket] = source
+            captured: list[dict[str, Any]] = []
+            def observe(current: _Output) -> None:
+                self._core.produce_submission_lookup(output, current)
+                captured.append(_object(self._core.read_submission_lookup(output, current), 1048576))
+            installation.binding.inspect(observe)
+            original = captured[0]
+            kind = original.get('kind')
+            fields = ({'kind'} if kind == 'missing' else {'kind', 'intentCid'}
+                      if kind == 'preparing' else {'kind', 'intentCid', 'admission'}
+                      if kind == 'ready' else set())
+            if not fields or set(original) != fields:
+                raise ValueError('Invalid original Local submission lookup')
+            if kind == 'missing':
+                result: dict[str, Any] = {'kind': 'unresolvable',
+                    'submissionRef': captured_reference,
+                    'problem': {'code': 'submission_history_unresolvable'}}
+            else:
+                result = {'kind': kind, 'submissionRef': captured_reference,
+                          'intentCid': original['intentCid']}
+                if kind == 'ready':
+                    if type(original['admission']) is not str:
+                        raise ValueError('Invalid original saved Local admission')
+                    result['admission'] = _object(original['admission'].encode('utf-8'), 4096)
+            if not wire.submission_outcome(result, _LOCAL_SELECTION, captured_reference, lookup=True):  # type: ignore[no-untyped-call]
+                raise ValueError('Invalid original Local submission lookup response')
+            raw: bytes = wire_bytes(result)  # type: ignore[no-untyped-call]
+            if not self._close_projection(output):
+                raise LocalProductCleanupPending(self)
+            return raw
+
     def _close_projection(self, output: _Output) -> bool:
         """Release only original transport loans after successful cleanup."""
         closed = (self._core.close_submission_append(output) if output.family == 'submission_append'
+                  else self._core.close_submission_lookup(output) if output.family == 'submission_lookup'
                   else self._core.close_submission_projection(output))
         if not closed:
             return False
