@@ -154,3 +154,51 @@ test "public set operands retain exact supplied bindings and refuse equal defaul
     assert_true(defaulted.local_normalization is None)
   }
 }
+
+///|
+test "Set followed by actual Sort completion retains its nonempty original journal" {
+  let document =
+    #|{"version":"actql/0.1","id":"local.set-sort","stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"k":{"type":"number","nullable":false},"n":{"type":"number","nullable":false}},"rows":[{"n":1,"k":3},{"n":2,"k":1},{"n":1,"k":2}]},"as":"left"},{"values":{"schema":{"k":{"type":"number","nullable":false},"n":{"type":"number","nullable":false}},"rows":[]},"as":"right"},{"from":"left","except":{"with":"right","duplicates":"distinct"}},{"sort":[{"field":"n","dir":"asc","nulls":"last"}],"as":"selected"}],"results":{"rows":{"from":"selected","fields":["n","k"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}
+  let owner = local_group_original_document(document)
+  let proof = issue_prepared_client_local_normalization(owner).unwrap()
+  guard proof.audit is SortCompletion(inventory) else {
+    fail("original Set Sort completion expected")
+  }
+  assert_true(@checked.local_sort_normalization_inventory_uses_set(inventory))
+  assert_eq(@checked.local_sort_normalization_entry_count(inventory), 1)
+  let wire = @publication.run_evidence_value_json(
+    prepared_client_local_normalization_evidence(owner, proof).unwrap(),
+  )
+  let empty_owner = local_set_rows("append")
+  let empty = local_set_normalization(empty_owner)
+  let empty_wire = @publication.run_evidence_value_json(
+    prepared_client_local_normalization_evidence(empty_owner, empty).unwrap(),
+  )
+  let catalog = local_normalization_catalog_cid(proof.audit)
+  assert_true(
+    restore_prepared_client_local_normalization(owner, proof, wire, catalog)
+    is Ok(_),
+  )
+  assert_true(
+    restore_prepared_client_local_normalization(
+      owner, proof, empty_wire, catalog,
+    )
+    is Err(SubstitutedJournal),
+  )
+  let output = local_distinct_execute(owner)
+  assert_eq(@execution.completed_row_count(output), 3)
+  for row, expected in [(1.0, 2.0), (1.0, 3.0), (2.0, 1.0)] {
+    assert_eq(@execution.completed_column_count(output), 2)
+    for column in 0..<@execution.completed_column_count(output) {
+      let wanted = match @execution.completed_column_name(output, column) {
+        Some("n") => expected.0
+        Some("k") => expected.1
+        _ => fail("unexpected original Set result column")
+      }
+      assert_true(
+        @execution.completed_cell(output, row, column) is Some(Number(value)) &&
+        value == wanted,
+      )
+    }
+  }
+}
