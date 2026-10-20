@@ -280,6 +280,40 @@ function listingContentProgram({maximum = 3, emptySelector = false,
     declaration, declared, program, environmentWire: env.wire};
 }
 
+function assertOriginalSerializationInput({control, plan, program, acquisition,
+  foreignProgram, joinedInput}) {
+  // A split task serializes the original captured predecessor. Its selected
+  // fragment contains the internal sort, not a second execution of the JOIN.
+  control.checkClientCompiledRunOwner(plan.compiled, program);
+  control.checkClientCompiledRunDefinition(plan.compiled, plan.runDefinition);
+  assert.equal(moon.clientProgramDefinitionCid(foreignProgram),
+    moon.clientProgramDefinitionCid(program));
+  assert.equal(moon.clientProgramKeyedAcquisitionMatchesProgram(acquisition, program), true);
+  assert.equal(moon.clientProgramKeyedAcquisitionMatchesProgram(acquisition, foreignProgram), false);
+  assert.throws(() => control.checkClientCompiledRunOwner(plan.compiled,
+    foreignProgram), /Foreign Client compiled Run/u);
+  assert.throws(() => control.checkClientCompiledRunOwner({...plan.compiled},
+    program), /Foreign Client compiled Run/u);
+  assert.throws(() => runtimeCore({...moon}).publicationControl.checkClientCompiledRunOwner(
+    plan.compiled, program), /Foreign Client compiled Run/u);
+  assert.throws(() => control.checkClientCompiledRunDefinition(plan.compiled,
+    {...plan.runDefinition}), /Foreign/u);
+  assert.deepEqual(control.compiledSerializationGraph(plan.compiled), plan.serializationGraph);
+  const graph = JSON.parse(plan.serializationGraph.wire);
+  const input = graph.nodes.find(node => node.node_id ===
+    `task_${plan.serializationGraph.task}_before_serialize_${plan.serializationGraph.step}`);
+  assert(input, 'The same original Content barrier must retain its typed input fragment');
+  assert.deepEqual(Object.keys(input.input_contracts).sort(),
+    joinedInput ? ['contents', 'files'] : ['input_0']);
+  for (const cid of Object.values(input.input_contracts)) {
+    assert.match(cid, /^sha256:[0-9a-f]{64}$/u);
+  }
+  assert.match(plan.serializationGraph.wire, /REL\.orderByStable/u);
+  if (joinedInput) assert.match(plan.serializationGraph.wire, /REL\.join/u);
+  else assert.doesNotMatch(plan.serializationGraph.wire, /REL\.join/u);
+  assert.doesNotMatch(plan.serializationGraph.wire, /REL\.values/u);
+}
+
 test('keyed capture SERIALIZE checks and compiles both original Source obligations', () => {
   const value = listingContentProgram({capturePrefix: true, allFiles: true, serialize: true});
   const program = value.preparedProgram;
@@ -303,21 +337,23 @@ test('keyed capture SERIALIZE checks and compiles both original Source obligatio
     .map(view => view.source_data_policy_cid);
   assert.deepEqual(new Set(body.source_data_policy_cids), new Set(policies));
   assert.equal(control.compiledSourceFreeResultPolicy(plan.compiled), undefined);
-  assert.match(plan.serializationGraph.wire, /REL\.join/u);
-  assert.doesNotMatch(plan.serializationGraph.wire, /REL\.values/u);
+  assertOriginalSerializationInput({control, plan, program, acquisition,
+    foreignProgram: listingContentProgram({capturePrefix: true, allFiles: true,
+      serialize: true}).preparedProgram, joinedInput: false});
   assert.throws(() => control.issueCheckedClientCompiledInvocation(plan.compiled,
     plan.runDefinition, {dataPolicyCid: control.compiledSerializationPolicy(plan.compiled).cid},
     {maxWireBytes: 100000, maxNodes: 10000, maxDepth: 100}), /RunHostInvocationRejected/u);
 });
 
 for (const syntax of ['aql', 'json']) test(`unfiltered ${syntax} file Content JOIN retains its acquired serialization graph`, () => {
-  const value = listingContentProgram({allFiles: true, serialize: true,
+  const options = {allFiles: true, serialize: true,
     sourceFormat: syntax,
     authoredDocument: 'FROM LIST_FILES(docs.listing) AS f ' +
       '|> JOIN docs.contents AS c ON f.resource = c.resource AND f.version = c.version ' +
       '|> SELECT f.name AS name, c.content AS document ' +
       '|> ASSERT UNIQUE BY (name) ' +
-      "|> SERIALIZE FORMAT JSONL ORDER BY name OPTIONS (name = 'native-files.jsonl')"});
+      "|> SERIALIZE FORMAT JSONL ORDER BY name OPTIONS (name = 'native-files.jsonl')"};
+  const value = listingContentProgram(options);
   const program = value.preparedProgram;
   const acquisition = checked(moon.clientProgramSelectSingleKeyedAcquisition(program));
   assert.ok(acquisition, 'The exact original keyed acquisition must be retained');
@@ -340,8 +376,9 @@ for (const syntax of ['aql', 'json']) test(`unfiltered ${syntax} file Content JO
   assert.deepEqual(new Set(policy.source_data_policy_cids), new Set(
     JSON.parse(value.environmentWire).schema_snapshots.map(view => view.source_data_policy_cid)));
   assert.equal(control.compiledSourceFreeResultPolicy(plan.compiled), undefined);
-  assert.match(plan.serializationGraph.wire, /REL\.join/u);
-  assert.doesNotMatch(plan.serializationGraph.wire, /REL\.values/u);
+  assertOriginalSerializationInput({control, plan, program, acquisition,
+    foreignProgram: listingContentProgram(options).preparedProgram,
+    joinedInput: syntax === 'json'});
   assert.throws(() => control.issueCheckedClientCompiledInvocation(plan.compiled,
     plan.runDefinition, {dataPolicyCid: control.compiledSerializationPolicy(plan.compiled).cid},
     {maxWireBytes: 100000, maxNodes: 10000, maxDepth: 100}), /RunHostInvocationRejected/u);
