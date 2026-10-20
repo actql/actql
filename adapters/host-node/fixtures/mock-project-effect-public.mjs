@@ -74,7 +74,9 @@ function checkReview(review, summary, ref) {
     assert.equal(row.before.value.Risk_Reason__c, null);
     assert.deepEqual(row.intended_changes, {state: 'present', value: {
       Churn_Risk__c: answer.level, Risk_Reason__c: answer.reason}});
-    assert.deepEqual(row.after, {state: 'present', value: {...row.before.value,
+    // The original full-diff after/change omits unchanged fields. The sealed
+    // review preserves that original value rather than expanding the row.
+    assert.deepEqual(row.after, {state: 'present', value: {
       Churn_Risk__c: answer.level, Risk_Reason__c: answer.reason}});
   }
 }
@@ -114,6 +116,7 @@ try {
     });
     const review = await step('read original sealed review', async () => {
       const review = await client.reviewCheckpoint(summary);
+      await writeFile(handoffPath + '.review', review.bytes, {mode: 0o600, flag: 'wx'});
       checkReview(JSON.parse(Buffer.from(review.bytes).toString('utf8')), summary, execution.ref);
       return review;
     });
