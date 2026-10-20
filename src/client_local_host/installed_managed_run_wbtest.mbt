@@ -78,9 +78,9 @@ test "source-free managed Run refuses supplied Source transport and changed regi
 }
 
 ///|
-test "managed Run does not reinterpret an unsupported single Source as source-free" {
+test "managed Run requires the actual declaration for a single Source instead of treating it as source-free" {
   let prepared = installed_source_read_prepared_fixture()
-  assert_true(!installed_managed_run_purpose_supported(prepared))
+  assert_true(installed_managed_run_purpose_supported(prepared))
   assert_true(
     installed_managed_run_requirements(
       prepared,

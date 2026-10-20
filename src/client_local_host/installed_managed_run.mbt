@@ -85,7 +85,7 @@ fn installed_managed_owner_shape_supported(
       )
   }
   (
-    captured == 2 ||
+    (captured > 0 && (!mock_model || captured == 2)) ||
     (captured == 0 && @strategy.graph_source_free_inputs_complete(graph))
   ) &&
   boundary_count is Some(count) &&
@@ -249,11 +249,14 @@ fn installed_managed_run_requirements_owned(
       limits.execution_bytes,
     ])
   }
-  if declarations.length() != 2 {
+  let captured = @strategy.graph_captured_prefix(
+    installed_managed_owner_graph(owner),
+  )
+  if declarations.length() != captured {
     return Err(Unsupported)
   }
   let capacities = []
-  for index in 0..<2 {
+  for index in 0..<captured {
     guard prepare_local_query_requirement_owned(
         owner, index, 0, registry_body, values_body, fragment_body, ordered_body,
       )
@@ -439,7 +442,7 @@ pub fn check_installed_managed_run(
 }
 
 ///|
-/// Both reads keep the same admitted parent; this is not a second import,
+/// Every read keeps the same admitted parent; this is not a second import,
 /// a Source-only child conversion, or a getter for a public bare Ledger.
 pub fn begin_installed_managed_run_source_read(
   value : ClientInstalledManagedRun,

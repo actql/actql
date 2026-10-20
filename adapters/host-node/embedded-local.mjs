@@ -633,6 +633,11 @@ async function openInstalledHost(originalInstallation, preparation) {
     // Existing borrow/current rechecks remain legal while cleanup is pending;
     // this check is not new-allocation or send admission during Host closing.
     assertModelRuntime();
+    // The ordinary trusted Host borrows the loaded SDK originals through the
+    // installed Provider's retained closure. It does not need an early/eager
+    // import history and must not manufacture that distinct recipe's proof.
+    // Its same-Host/current Provider checks and actual I/O admission remain.
+    if (modelRuntimeStartupView === undefined) return undefined;
     bindInferTrustedSdkStaticModules(modelRuntimeView, runtimeOriginals(), originals);
     checkInferTrustedSdkStaticModules(modelRuntimeView, runtimeOriginals(), originals);
     modelSdkStaticOriginals ??= originals;
@@ -717,19 +722,14 @@ async function openInstalledHost(originalInstallation, preparation) {
   if (preparation === undefined) await admitHostRootFormat(root);
   else await preparation.admitRootFormat(root);
   const originalSourcePreparation = preparation?.sourcePreparation();
-  if (originalSourcePreparation === undefined &&
-      registerModelProviders !== undefined && process.version === 'v22.22.0' &&
-      process.platform === 'darwin' && process.arch === 'arm64' &&
-      process.versions.openssl === '3.5.4') {
-    // Issue before registering the provider table. Local project discovery
-    // may already have imported the same Common module; this view does not
-    // retroactively fund that import or manufacture startup responsibility.
-    // This is the selected
-    // Node installation only; module/native lifetime remains process-owned.
-    // Managed JS/buffer/holding bounds still require the original Run Ledger.
+  if (originalSourcePreparation === undefined && registerModelProviders !== undefined) {
+    // The normal Host trusts its supported platform and embedding application.
+    // Retain the actual installation/currentness identity, not an exact patch,
+    // preload ancestry, process-once lifetime or whole-runtime allocation proof.
+    // This reference view supplies no Run limit, Model I/O or send authority.
     modelRuntimeView = issueInferTrustedRuntimeView(runtimeOriginals());
-    // Startup responsibility was retained by the real Node preload before
-    // entry imports. Ordinary embedded processes have no such original.
+    // Preserve the optional explicit diagnostic recipe when actually present;
+    // an ordinary Host does not reconstruct or require its missing history.
     modelRuntimeStartupView = associateInferTrustedStartupView(modelRuntimeView, runtimeOriginals());
     assertNewModelRuntime();
   }
@@ -766,7 +766,7 @@ async function openInstalledHost(originalInstallation, preparation) {
     ? installModelProviders(moon, registerModelProviders,
       modelRuntimeView === undefined ? undefined : assertModelRuntime,
       modelRuntimeView === undefined ? undefined : assertNewModelRuntime,
-      modelRuntimeStartupView === undefined ? undefined : bindModelSdkStaticOriginals)
+      modelRuntimeView === undefined ? undefined : bindModelSdkStaticOriginals)
     : new Map();
   const inferSelections = new WeakMap();
   const earlyMockInferPlans = new WeakMap();
@@ -1917,16 +1917,18 @@ async function openInstalledHost(originalInstallation, preparation) {
       }
       let admissionBoundary = 'compute_suffix';
       try {
-        // A known missing startup original must refuse before accepting a
-        // new Run/physical-start reservation. Keep dispatch's later checks:
-        // a current selection is not future authority or cleanup evidence.
+        // Actual Host/Provider currentness precedes new preparation. The
+        // optional explicit startup recipe keeps its own history check; the
+        // ordinary trusted Host is not required to supply that recipe.
         if (physical.originalReadInstallation !== undefined) {
           admissionBoundary = 'original_startup';
           if (typeof physical.assertNewTrustedRuntime !== 'function') {
             throw clientOperationError('InferTrustedRuntimeViewUnavailable');
           }
           physical.assertNewTrustedRuntime();
-          requireInferTrustedStartupView(modelRuntimeStartupView, runtimeOriginals());
+          if (modelRuntimeStartupView !== undefined) {
+            requireInferTrustedStartupView(modelRuntimeStartupView, runtimeOriginals());
+          }
         }
         admissionBoundary = 'compute_suffix';
         const durableModel = modelController !== undefined && checkpoints?.configured === true;
@@ -2006,9 +2008,9 @@ async function openInstalledHost(originalInstallation, preparation) {
           assertTrustedRuntime: physical.assertTrustedRuntime,
           assertNewTrustedRuntime() {
             physical.assertNewTrustedRuntime?.();
-            // Original read/Model allocation requires this same startup
-            // prerequisite. Ordinary fixture/native binding alone is not it.
-            requireInferTrustedStartupView(modelRuntimeView, runtimeOriginals());
+            if (modelRuntimeStartupView !== undefined) {
+              requireInferTrustedStartupView(modelRuntimeView, runtimeOriginals());
+            }
           },
           bindTrustedRuntimeScope(scope, compiled, definition, graph) {
             physical.assertTrustedRuntime?.();
@@ -2022,7 +2024,9 @@ async function openInstalledHost(originalInstallation, preparation) {
             const originals = {...runtimeOriginals(), installation: scope,
               transport: physical.provider};
             const view = issueInferTrustedRuntimeView(originals);
-            borrowInferTrustedStartupView(modelRuntimeView, view, runtimeOriginals(), originals);
+            if (modelRuntimeStartupView !== undefined) {
+              borrowInferTrustedStartupView(modelRuntimeView, view, runtimeOriginals(), originals);
+            }
             modelRuntimeScopes.set(scope, {view, compiled, definition, graph, physical});
             return view;
           },
@@ -2038,8 +2042,10 @@ async function openInstalledHost(originalInstallation, preparation) {
             physical.assertTrustedRuntime();
             checkInferTrustedRuntimeView(view, {...runtimeOriginals(),
               installation: scope, transport: physical.provider});
-            requireInferTrustedStartupView(view, {...runtimeOriginals(),
-              installation: scope, transport: physical.provider});
+            if (modelRuntimeStartupView !== undefined) {
+              requireInferTrustedStartupView(view, {...runtimeOriginals(),
+                installation: scope, transport: physical.provider});
+            }
             if (!control.checkedClientInferOriginalReadScopeLive(compiled, definition, graph, scope)) {
               throw clientOperationError('InferTrustedRuntimeScopeUnavailable');
             }
@@ -2058,7 +2064,7 @@ async function openInstalledHost(originalInstallation, preparation) {
             const finished = control.finishCheckedClientInferOriginalReadScope(
               compiled, definition, graph, scope, true);
             if (finished !== true) return false;
-            forgetInferTrustedStartupView(view, host, host);
+            if (modelRuntimeStartupView !== undefined) forgetInferTrustedStartupView(view, host, host);
             forgetInferTrustedRuntimeView(view, host, host);
             modelRuntimeScopes.delete(scope);
             return true;

@@ -203,6 +203,16 @@ read/decode/parse/type checks. Package integrity and API/ABI compatibility remai
 relevant; one compiler pin, exact runtime patch, load-cache ancestry, pristine
 stdout or absent diagnostic options is not an ordinary initialization authority.
 
+Configured Model Providers follow the same ordinary factory boundary. The Host
+retains its actual Provider callback and loaded SDK module originals, checks
+the same installation and Store while they are borrowed, and retires those
+references with the Host. Early import or eager compilation history is not
+required. An explicitly selected diagnostic startup may still check its own
+history; normal initialization neither manufactures nor borrows that proof.
+Provider registration alone supplies no Model I/O admission, quantity budget,
+current authorization or permission to send. Model preparation and dispatch
+retain their original Common Scope, same-Run limits and physical child cleanup.
+
 Each Host owns its active/closing/closed lifecycle. Independent Hosts and reopen
 are supported within the same process, subject to actual directory locks and
 resource limits. A shared module/runtime cache does not become a Host child
@@ -666,12 +676,22 @@ their separate cleanup. A close-only retry neither repeats a partial write or
 sync nor regenerates a key or Content object.
 
 The Host retains the unstarted admission before fallible start/take, and takes
-one original Run Ledger. The two Source reads and the generated managed DAG
+one original Run Ledger. The Source reads and the generated managed DAG
 borrow that same Ledger internally. The existing physical Ledger equality at
 capture transfer remains mandatory. Independent Source-only children, equal
 limits, copied prepared values or a fresh scalar Ledger cannot replace it.
 Currentness and the existing mutable-resource/park fence both apply before
 preparation and after callbacks. Account and read/send authority stay separate.
+
+The shared Source/Compute limit projection follows the checked capture-prefix
+count, including a single installed RowSource. Declaration, capture, transport
+and workspace arrays must match that original count; each capture must retain
+the corresponding checked QueryRequirement. All captured inputs stay retained
+beside the generated Compute suffix. The source-free entry requires empty
+Source arrays rather than silently treating a missing acquisition as free.
+This projection remains managed demand, not a physical supplier or read grant.
+The separate local Mock Model purpose retains its own supported shape and
+early original Scope; extending plain Source bookkeeping does not issue it.
 
 Partial initialization retains the same admission even when no Run view was
 returned. If Resource proves that neither the imported child nor its origin
