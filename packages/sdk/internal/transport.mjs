@@ -12,7 +12,20 @@ import {captureSourcePreparation} from './private-source-preparation.mjs';
 export const loadLoopbackTransport = () => import('#loopback-http');
 
 export function createTransport(selected, port, isClosed, directLoopback) {
-  const sourcePreparation = captureSourcePreparation(port);
+  const capturedSourcePreparation = captureSourcePreparation(port);
+  // Query capture and Result consumption must retain this same callback pair.
+  // Check the connection lifetime before entering either original Host method.
+  const sourcePreparation = capturedSourcePreparation === undefined ? undefined
+    : Object.freeze({...capturedSourcePreparation,
+      beforeResultRead(...args) {
+        if (isClosed()) fail('ClientClosed');
+        return capturedSourcePreparation.beforeResultRead(...args);
+      },
+      assertResultReadCurrent() {
+        if (isClosed()) fail('ClientClosed');
+        return capturedSourcePreparation.assertResultReadCurrent();
+      },
+    });
   const dispatchedCancellations = new WeakSet();
   const dispatchedSubmissions = new WeakSet();
   const exchange = async (operation, body = {}, signal, submitContext, cancellationContext, sourceProducer) => {
