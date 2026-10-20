@@ -1899,7 +1899,7 @@ never re-materialized to restore removed or restricted grants. The
 configuration document is `actql-execution-account-config/0.1`, whose wire form
 and exact overlap rule are bound by the [Run protocol](protocols/run.md#account-config).
 
-<!-- requirement-block: policy-routing.standard-local-bootstrap -->
+<!-- requirement-block: policy-routing.standard-local-bootstrap policy-routing.mock-request-protection-target -->
 A standard Local Host without an authored `account_config` MUST materialize
 and durably adopt the explicit bootstrap profile that allows pure computation,
 reads from configured connections and INFER through registered ModelTasks,
