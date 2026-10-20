@@ -72,3 +72,101 @@ test "Unsupplied literal query destinations refuse before any original submissio
     assert_true(initial_crypto_invocation.val is None)
   }
 }
+
+///|
+test "ordinary literal File selection retains bounded exact presentation metadata" {
+  for operation in ["sql", "aql"] {
+    for format in ["json", "jsonl", "csv"] {
+      let parsed = quick_query_arguments([
+        operation, "SELECT 1 AS id", "--format", format, "--output", "results éé.jsonl",
+      ])
+      let (_, child) = parsed.subcommand.unwrap()
+      assert_eq(
+        local_quick_query_file_output(child, "/explicit-project"),
+        Some("/explicit-project/results éé.jsonl"),
+      )
+      assert_true(command_preparation_invocation.val is None)
+      assert_true(initial_crypto_invocation.val is None)
+    }
+  }
+  let stdout = quick_query_arguments(["sql", "SELECT 1"])
+  assert_eq(
+    local_quick_query_file_output(
+      stdout.subcommand.unwrap().1,
+      "/explicit-project",
+    ),
+    None,
+  )
+}
+
+///|
+test "ordinary literal File selection refuses unsupported or invalid destinations before submission" {
+  for
+    (arguments, expected) in [
+      (
+        ["sql", "SELECT 1", "--output", "rows.txt"],
+        "LocalResultFileDeliveryUnavailable",
+      ),
+      (
+        ["aql", "SELECT 1", "--format", "jsonl", "--output", "directory/"],
+        "InvalidLocalResultDestination",
+      ),
+      (
+        ["sql", "SELECT 1", "--format", "csv", "--output", ""],
+        "InvalidLocalResultDestination",
+      ),
+    ] {
+    let parsed = quick_query_arguments(arguments[:])
+    let issue = try {
+      local_quick_query_file_output(
+        parsed.subcommand.unwrap().1,
+        "/explicit-project",
+      )
+      |> ignore
+      "unexpected destination"
+    } catch {
+      ClientStop(issue) => issue
+    }
+    assert_eq(issue, expected)
+    assert_true(command_preparation_invocation.val is None)
+    assert_true(initial_crypto_invocation.val is None)
+  }
+}
+
+///|
+test "literal File delivery selects only the exact original final Run and keeps its correlation" {
+  let original =
+    #|{"version":"actql-run-state/0.1","run_id":"original-run","status":"succeeded","revision":0,"updated_at":"2026-10-20T00:00:00.000Z","next_action":{"kind":"refresh_availability","results":["answer"]},"result_available":false,"result_availability":{"answer":{"state":"unknown","observed_at":"2026-10-20T00:00:00.000Z","reason":"verification_pending"}}}
+  let (file, correlation) = local_quick_query_result(
+    original,
+    "jsonl",
+    output=Some("/explicit-project/results éé.jsonl"),
+  )
+  assert_eq(required(file, "run"), "original-run")
+  assert_eq(
+    optional(file, "output"),
+    Some("/explicit-project/results éé.jsonl"),
+  )
+  assert_eq(optional(file, "format"), Some("jsonl"))
+  assert_true(correlation.contains("originalRunId=\"original-run\""))
+  let (stdout, same) = local_quick_query_result(original, "jsonl")
+  assert_eq(optional(stdout, "output"), None)
+  assert_eq(required(stdout, "run"), required(file, "run"))
+  assert_eq(same, correlation)
+  let pending = original.replace_all(
+    old="\"status\":\"succeeded\"",
+    new="\"status\":\"running\"",
+  )
+  let issue = try {
+    local_quick_query_result(
+      pending,
+      "jsonl",
+      output=Some("/explicit-project/not-opened.jsonl"),
+    )
+    |> ignore
+    "unexpected nonfinal Run"
+  } catch {
+    ClientStop(issue) => issue
+  }
+  assert_eq(issue, "LocalQueryNotFinal" + correlation)
+}

@@ -81,6 +81,17 @@ An explicit `result --output` or repeated `--deliver` selection uses an
 independent adopted File read original. It does not redirect a stdout or
 Material grant. The original Run, committed Manifest, physical Store and
 current Run/named-Result authority are checked before acquiring the destination.
+Literal SQL/Pipe file presentation carries the bounded selected path into the
+same exact returned-Run Result request. It selects File authorization separately
+from the saved Program and Run; it does not redirect a stdout grant. Destination
+selection and missing initial File-original refusal precede Submission. A later
+delivery refusal retains the original Run correlation and never resubmits it.
+The separate Material/table stdout route is unchanged. Outside project metadata,
+exact public saved-Run `result` and `status` operands select the existing default
+Local installation, subject to explicit Remote/installation precedence. Their
+original restore-only path does not join the quick-query initialization rule;
+missing adoption/current/Run state remains unavailable.
+
 First initialization retains the File selection alongside the unchanged stdout
 and Material originals; existing installations lacking it remain unavailable.
 

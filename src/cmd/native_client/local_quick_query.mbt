@@ -37,6 +37,25 @@ fn local_quick_query_delivery(
 }
 
 ///|
+// Metadata selection for the ordinary captured caller. The original Result
+// Owner still supplies File authority, exclusive Writer and cleanup. Legacy
+// callers above retain their refusal rather than borrowing this capability.
+fn local_quick_query_file_output(
+  child : @argparse.Matches,
+  directory : String,
+) -> String? raise ClientStop {
+  match optional(child, "output") {
+    None => None
+    Some(path) => {
+      if local_quick_query_format(child) == "table" {
+        stop("LocalResultFileDeliveryUnavailable")
+      }
+      Some(local_result_output_path(directory, path))
+    }
+  }
+}
+
+///|
 fn normalize_native_query_arguments(
   matches : @argparse.Matches,
 ) -> Unit raise ClientStop {
@@ -110,6 +129,7 @@ fn local_quick_query(
 fn local_quick_query_result(
   original : String,
   format : String,
+  output? : String? = None,
 ) -> (@argparse.Matches, String) raise ClientStop {
   let root = @decode.open_object(local_input_cursor(original)).unwrap_or_else(() => {
     stop("LocalQuerySavedStateUnavailable")
@@ -131,10 +151,14 @@ fn local_quick_query_result(
   }
   // Select only that original returned Run; the Result Owner restores its
   // succeeded originals and rechecks current read permission independently.
-  let selected = command().parse(
-    argv=["result", "--format", format, "--", run_id],
-    env=Map([]),
-  ) catch {
+  let arguments = ["result", "--format", format]
+  if output is Some(path) {
+    arguments.push("--output")
+    arguments.push(path)
+  }
+  arguments.push("--")
+  arguments.push(run_id)
+  let selected = command().parse(argv=arguments[:], env=Map([])) catch {
     _ => stop("LocalQueryResultSelectionUnavailable" + correlation)
   }
   let (_, result) = selected.subcommand.unwrap()
@@ -157,8 +181,19 @@ fn LocalCommandPreparationOriginal::execute_original_quick_query(
   child : @argparse.Matches,
 ) -> String raise ClientStop {
   let presentation = local_quick_query_format(child)
-  if child.values.contains("output") {
-    stop("LocalResultFileDeliveryUnavailable")
+  // Bound the complete destination before business preparation or Submission.
+  // It is presentation DATA, never a new Run field or File permission.
+  let output = if child.values.contains("output") {
+    let directory = @env.current_dir().unwrap_or_else(() => {
+      stop("ProjectConfigurationDirectoryUnavailable")
+    })
+    local_quick_query_file_output(child, directory)
+  } else {
+    None
+  }
+  if output is Some(_) &&
+    !settings.installation_files.contains("file-read.json") {
+    stop("LocalResultFileOriginalNotSelected")
   }
   if presentation == "table" &&
     !settings.installation_files.contains("material-read.json") {
@@ -194,7 +229,11 @@ fn LocalCommandPreparationOriginal::execute_original_quick_query(
     public_run=true,
     business=Some(publication),
   )
-  let (result, correlation) = local_quick_query_result(original, format)
+  let (result, correlation) = local_quick_query_result(
+    original,
+    format,
+    output~,
+  )
   try {
     let selected = self.prepare_original_result(
       host,
