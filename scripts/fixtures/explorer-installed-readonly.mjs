@@ -46,7 +46,8 @@ try {
   try {
     const capabilities = await source.connect(gateway.issueBootstrap().bootstrap);
     assert.deepEqual(capabilities, {plan: true, run: true, resultMetadata: true,
-      resultPayload: false, control: false, sample: false});
+      resultPayload: false, control: false, sample: false, cancellation: false,
+      checkpointList: true, checkpointReview: true});
     const plan = await source.plan('SELECT 1 AS answer', {format: 'sql'});
     assert.equal(plan.compiledPlanCid, directPlan.compiled_plan_cid);
     assert.deepEqual(plan.nodes.map(n => [n.id, n.ports]),
