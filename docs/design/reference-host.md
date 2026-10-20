@@ -690,6 +690,12 @@ read authority or acknowledges physical cleanup. Model-composed Content and
 other unsupported backend shapes remain separate connections, not language
 restrictions.
 
+Task splitting does not replace this original inventory: the JOIN and Serialize
+may have different task ordinals. The checked same-owner dependency path, not
+ordinal equality, binds the selected barrier. Prefix preparation retains its
+original acquisition contexts and executes only the range after the completed
+Direct capture, using the same sealed keyed inputs without Source replay.
+
 The Local Connector resolves keyed Content through the original captured
 listing path and exact Resource/version pair, then obtains a current original
 Account read decision. It does not reverse a Resource CID into a path, scan a

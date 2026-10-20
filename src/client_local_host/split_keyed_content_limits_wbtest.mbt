@@ -55,7 +55,7 @@ fn split_keyed_content_limits_fixture() -> SplitKeyedContentLimitsFixture raise 
     "|> SELECT f.name AS name, c.content AS document " +
     "|> ASSERT UNIQUE BY (name) " +
     "|> SERIALIZE FORMAT JSONL ORDER BY name OPTIONS (name = 'native-files.jsonl')",
-    Aql,
+    Text,
     Some(context),
   ).unwrap()
   let prepared = @publication_host.prepare_parsed_effect_free_client_program(
