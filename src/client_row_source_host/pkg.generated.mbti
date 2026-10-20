@@ -35,6 +35,8 @@ pub fn accept_row_run_page(RowRun, Bytes) -> Result[Int, RowHostIssue]
 
 pub fn accept_row_run_values(RowRun, Array[String], Array[Array[@value_admission.CheckedValue]]) -> Result[Int, RowHostIssue]
 
+pub fn admit_mock_churn_risk_target_document(RowDeclaration, RowDeclaration, Bytes, RowPageLimits, Int) -> Result[MockTargetDocument, RowSourceIssue]
+
 pub fn advance_keyed_row_page(RowSourceRead, Int) -> Result[RowKeyedPagePoll, RowSourceIssue]
 
 pub fn advance_row_capture(RowRun, Int) -> Result[(Bool, Int64), RowHostIssue]
@@ -135,9 +137,15 @@ pub fn mock_churn_risk_source_at(MockChurnRiskCatalogue, Int) -> (String, RowDec
 
 pub fn mock_churn_risk_source_count(MockChurnRiskCatalogue) -> Int
 
+pub fn mock_churn_risk_target_before(MockTargetRow) -> String?
+
+pub fn mock_churn_risk_target_version(MockTargetRow) -> String?
+
 pub fn mock_churn_risk_update_alias_at(MockChurnRiskCatalogue, Int) -> (String, RowDeclaration)?
 
 pub fn mock_churn_risk_update_alias_count(MockChurnRiskCatalogue) -> Int
+
+pub fn observe_mock_churn_risk_target(MockTargetDocument, RowDeclaration, String) -> Result[MockTargetRow, RowSourceIssue]
 
 pub fn prepare_churn_risk_mock_update_mapping(RowDeclaration, RowDeclarationLimits) -> Result[RowMapping, RowMappingIssue]
 
@@ -150,6 +158,8 @@ pub fn prepare_keyed_row_acquisition(@lowering_relation.BoundPrepared, @sourcevi
 pub fn prepare_keyed_row_capacity(@lowering_relation.BoundPrepared, @sourceview_resolution.KeyedSourceFacts, RowDeclaration, RowKeyedLimits) -> Result[RowKeyedCapacity, RowHostIssue]
 
 pub fn prepare_mock_churn_risk_catalogue(RowDeclarationLimits) -> Result[MockChurnRiskCatalogue, RowHostIssue]
+
+pub fn prepare_mock_churn_risk_target_update(MockTargetDocument, MockTargetRow, String, String, Int) -> Result[Bytes, RowSourceIssue]
 
 pub fn prepare_relation_row_write_mapping(RowDeclaration, String, String, RowRelationWriteSpec, Array[RowMappingSource], RowDeclarationLimits) -> Result[RowMapping, RowMappingIssue]
 
@@ -241,6 +251,14 @@ pub fn start_row_acquisition(RowAcquisition, String, (RowAttempt) -> Bool) -> Re
 
 // Types and methods
 pub struct MockChurnRiskCatalogue {
+  // private fields
+}
+
+pub struct MockTargetDocument {
+  // private fields
+}
+
+pub struct MockTargetRow {
   // private fields
 }
 
