@@ -94,11 +94,13 @@ fn local_saved_run_plan_reply(
       ("plan_view", plan),
     ]),
   )
+  // Admission budgets are nodes, depth and text units; emission separately
+  // limits UTF-8 bytes for the complete public envelope.
   let canonical = @canonical.from_json(
     envelope,
-    65536,
     8192,
     64,
+    65536,
     data_keys=true,
   ) catch {
     _ => stop("LocalOriginalRunPlanUnavailable")
