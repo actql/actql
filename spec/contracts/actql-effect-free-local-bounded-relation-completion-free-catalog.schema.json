@@ -149,13 +149,13 @@
         "group_key_selection": "authored",
         "max_source_inputs": 1,
         "max_stages": 10000,
-        "parameter_declarations": "none-or-all-supplied-original-values",
+        "parameter_declarations": "none-or-original-supplied-or-declared-default-values",
         "proof": "original-checked-owner-audit",
         "source_selection": "explicit",
         "take_count_minimum": 1,
         "take_maximum": 9007199254740991,
         "take_offset_minimum": 0,
-        "take_parameter_resolution": "original-same-pipeline-step-SafeInteger-supplied-owner",
+        "take_parameter_resolution": "original-same-pipeline-step-SafeInteger-bound-owner",
         "sort_empty": "original-identity-no-new-order",
         "sort_resolution": "original-same-pipeline-step-covered-candidate-key-or-existing-total",
         "sort_appended_identity_terms": "original-owned-semantic-journal-entry",
@@ -177,6 +177,11 @@
         ],
         "set_order": "original-earliest-left-occurrences-no-new-total-order",
         "binary_set_stage_scope": "complete-original-units; prepass-and-every-unit-step-alignment-visit-charged-to-same-audit-work-limit",
+        "parameter_origins": [
+          "supplied",
+          "default"
+        ],
+        "parameter_default_correspondence": "same-original-BoundValues-declaration-name-type-and-checked-default-value",
         "projection_expansion": "original-same-pipeline-step-CheckedOperation-complete-schema-and-owned-projection; actual-authored-path-and-semantic-journal-entry"
       }
     },

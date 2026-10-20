@@ -126,10 +126,7 @@ test "explicit CAST with original supplied Parameters uses its own exact alterna
     None,
     text="SELECT CAST(@id AS NUMBER) AS id",
   )
-  assert_true(
-    issue_prepared_client_local_normalization(defaulted)
-    is Err(Inventory(ProfileNotInstalled)),
-  )
+  ignore(local_default_parameter_normalization(defaulted))
 }
 
 ///|

@@ -17,6 +17,7 @@ struct LocalSortNormalizationInventory {
   entries : Array[LocalSortNormalizationEntry]
   distincts : Bool
   sets : Bool
+  defaulted_parameters : Bool
 }
 
 ///|
@@ -211,17 +212,18 @@ pub fn local_program_sort_normalization_inventory(
     return Err(ProfileNotInstalled)
   }
   match owner.local_completion_free_audit {
-    Complete(_, _, _, _, _, _, _)
-    | DistinctComplete(_, _, _, _, _, _, _)
-    | SetComplete(_, _, _, _, _, _, _, _) => Ok(None)
-    SortCompleted(work, entries)
-    | DistinctSortCompleted(work, entries)
-    | SetSortCompleted(work, entries, _) =>
+    Complete(_, _, _, _, _, _, _, _)
+    | DistinctComplete(_, _, _, _, _, _, _, _)
+    | SetComplete(_, _, _, _, _, _, _, _, _) => Ok(None)
+    SortCompleted(work, entries, defaulted_parameters)
+    | DistinctSortCompleted(work, entries, defaulted_parameters)
+    | SetSortCompleted(work, entries, _, defaulted_parameters) =>
       Ok(
         Some({
           owner,
           audited_work: work,
           entries,
+          defaulted_parameters,
           sets: local_audit_uses_set(owner.local_completion_free_audit),
           distincts: local_audit_uses_distinct(
             owner.local_completion_free_audit,
@@ -315,6 +317,14 @@ pub fn local_sort_normalization_inventory_uses_distinct(
   value : LocalSortNormalizationInventory,
 ) -> Bool {
   value.distincts
+}
+
+///|
+/// Metadata from the complete original audit, independent of Sort entries.
+pub fn local_sort_normalization_inventory_parameters_defaulted(
+  value : LocalSortNormalizationInventory,
+) -> Bool {
+  value.defaulted_parameters
 }
 
 ///|
