@@ -49,14 +49,21 @@ test('ordinary Project Local files use one actual managed Run and preserve indep
       first.sql('SELECT * FROM LIST_FILES(local)'));
     const fullRows = await step('read the full typed listing Result', () => full.all());
     assert.equal(fullRows.length, 2);
+    const description = await step('describe the complete native listing schema', () => full.describe());
+    const columns = Object.fromEntries(description.columns.map(column => [column.name, column.contract]));
+    assert.equal(description.columns.length, 9);
+    assert.deepEqual(columns.size, {type: 'int64', nullable: false});
+    assert.deepEqual(columns.modified_time, {type: 'timestamp', nullable: false});
     for (const row of fullRows) assert.deepEqual(Object.keys(row).sort(),
       ['resource', 'version', 'name', 'path', 'media_type', 'size_bytes', 'modified_at',
         'size', 'modified_time'].sort());
     const saved = structuredClone(full.ref);
     const savedState = await full.execution.status();
     assert.equal(savedState.status, 'succeeded');
-    assert.deepEqual(await step('typed empty listing selection', () => first.sql(
-      'SELECT * FROM LIST_FILES(local, paths => ARRAY<STRING>[])').all()), []);
+    const empty = await step('typed empty listing selection', () => first.sql(
+      'SELECT * FROM LIST_FILES(local, paths => ARRAY<STRING>[])'));
+    assert.deepEqual(await empty.all(), []);
+    assert.deepEqual((await empty.describe()).columns, description.columns);
     // The retained exact connection acquisition participates in Host reuse.
     // Changing only original bytes must not silently return the old service.
     await writeFile(join(directory, 'connectors.json'), connections + '\n');
@@ -73,6 +80,7 @@ test('ordinary Project Local files use one actual managed Run and preserve indep
     assert.equal(restoredState.run_id, savedState.run_id);
     assert.deepEqual(await step('restore all nine typed listing Result fields', () =>
       restored.result(saved.resultName).all()), fullRows);
+    assert.deepEqual((await restored.result(saved.resultName).describe()).columns, description.columns);
     assert.deepEqual(await step('reopened Source Host source-free SELECT', () => first.sql('SELECT 2 AS id').all()), [{id: 2}]);
     assert.deepEqual((await step('reopened Local Source original read', () => first.sql(listing).all())).map(row => row.path).sort(),
       ['nested/two.txt', 'one.txt']);
