@@ -7352,6 +7352,7 @@ fn open_client_local_effect_host(
   captured_sources? : Array[(Int, @query.CapturedInputSource)] = [],
   acquisition_ledger? : @resources.Ledger? = None,
   component_providers? : Array[@local.ManagedProvider] = [],
+  source_free_limits? : @resources.LedgerLimits? = None,
   query_time? : (
     @publication_host.ClientQueryTimePreparation,
     @publication_host.ClientRequestIdentity,
@@ -7370,6 +7371,10 @@ fn open_client_local_effect_host(
     return None
   }
   let multiple = !captured_sources.is_empty()
+  if source_free_limits is Some(_) &&
+    (source is Some(_) || multiple || acquisition_ledger is Some(_)) {
+    return None
+  }
   if multiple &&
     (
       source is Some(_) ||
@@ -7393,12 +7398,14 @@ fn open_client_local_effect_host(
       acquisition_ledger.unwrap(),
     )
   } else {
-    guard @client_local_host.client_effect_local_ledger_limits(
-        computation, registry_body, values_body, fragment_body, ordered_body,
-      )
-      is Some(limits) else {
-      return None
+    let candidate_limits = match source_free_limits {
+      Some(limits) => Some(limits)
+      None =>
+        @client_local_host.client_effect_local_ledger_limits(
+          computation, registry_body, values_body, fragment_body, ordered_body,
+        )
     }
+    guard candidate_limits is Some(limits) else { return None }
     match source {
       None =>
         @publication_host.open_prepared_source_free_client_effect_run(

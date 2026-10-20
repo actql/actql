@@ -749,6 +749,8 @@ pub fn client_program_effect_semantics_cid(@run_publication_host.PreparedClientE
 
 pub fn client_program_effect_source_artifact_preview_binding(@run_publication.PublicationContract, String, String, String) -> Result[(String, String), @run_publication.EffectSourceArtifactIssue]
 
+pub fn client_program_effect_store_command_selection(@check_environment.StoreCommandBinding) -> Result[Array[String], @value_admission.ReferenceIssue]
+
 pub fn client_program_effect_table_input_at(@physical_strategy.CapturedEffectInputs, Int) -> @physical_strategy.CapturedEffectTableInput?
 
 pub fn client_program_effect_table_input_export_advance(@execution_relation.CompletedTableInputRelationExportPreparation, Int) -> Result[(Bool, Int), @execution_relation.CompletedExportIssue]
@@ -948,6 +950,8 @@ pub fn client_program_issue_source_free_local_effect_invocation(@run_publication
 pub fn client_program_issue_source_free_local_effect_result_artifact(@run_publication_host.PreparedClientEffectComputation, @physical_strategy.CapturedEffectInputs, Int, ClientEffectManagedInputImport, @run_publication_host.ClientEffectLocalResultDefinition, @run_publication_host.ClientEffectLocalInvocation, @execution_relation.CompletedRelationExportReceipt, @run_publication.PublicationContract, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.RunEvidenceValue, Int, Int, Int) -> Result[@run_publication_host.ClientEffectLocalResultArtifact, ClientEffectLocalArtifactBridgeIssue]
 
 pub fn client_program_issue_source_free_local_effect_table_artifact(@run_publication_host.PreparedClientEffectComputation, @physical_strategy.CapturedEffectInputs, Int, ClientEffectManagedInputImport, @run_publication_host.ClientEffectLocalTableDefinition, @run_publication_host.ClientEffectLocalInvocation, @execution_relation.CompletedRelationExportReceipt, @run_publication.PublicationContract, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.RunEvidenceValue, Int, Int, Int) -> Result[@run_publication_host.ClientEffectLocalResultArtifact, ClientEffectLocalArtifactBridgeIssue]
+
+pub fn client_program_issue_store_collection_reference(@check_environment.StoreCommandBinding, @value_admission.ReferenceIssuer, String, Int, Int, Int) -> Result[@value_admission.CheckedValue, @value_admission.ReferenceIssue]
 
 pub fn client_program_issue_task_compiled_run(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientTaskCompilation, String, String, String) -> Result[@run_publication_host.ClientCompiledRun, @run_publication_host.ClientCompiledRunIssue]
 
@@ -1405,7 +1409,17 @@ pub fn client_program_read_public_model_task(String, String, Int, Int, Int, Int,
 
 pub fn client_program_recheck_salesforce_row_projection(@actql/actql/connectors/salesforce/host.InstalledSalesforceDeclaration, @client_row_source_host.RowAcquisition, @actql/actql/connectors/salesforce/catalog.CatalogObservation, Int) -> Result[@actql/actql/connectors/salesforce/catalog.ReadProjection, @actql/actql/connectors/salesforce/host.InstalledSalesforceIssue]
 
+pub fn client_program_recover_effect_command_content(@run_publication_host.ClientCompiledRun, @run_publication_host.PreparedClientEffectComputation, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.EffectPreviewIdentity, @run_publication.PublicationContract, @run_publication.CapturedEffectSourceArtifact, String, Int, Int, Int, String, @run_publication.StoredGeneratedContentReference, @value_admission.CheckedValue, Int, Int, Int, Int, Int) -> Result[@run_publication_host.RecoveredClientEffectCommandContent, @run_publication_host.ClientEffectCommandContentIssue]
+
 pub fn client_program_recover_effect_target_guards(@run_publication.EffectPreviewIdentity, Array[Array[@logical_request_scope.LogicalRequestScope]], Array[Array[@effect_application.LogicalItemLocator]], Array[Array[@effect_application.EffectDispatchKey]], Array[Array[@effect_application.EffectLedgerBasis]], Array[Array[@effect_application.EffectLedgerEntry?]], Array[Array[Bool]], Int, Int, Int) -> Result[@effect_application.RecoveredEffectTargetGuards, @effect_application.EffectSetProgressIssue]
+
+pub fn client_program_recovered_effect_command_content_matches(@run_publication_host.RecoveredClientEffectCommandContent, @run_publication_host.ClientCompiledRun, @run_publication_host.PreparedClientEffectComputation, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.EffectPreviewIdentity, Int, Int, String) -> Bool
+
+pub fn client_program_recovered_effect_command_content_matches_issued(@run_publication_host.RecoveredClientEffectCommandContent, @value_admission.CheckedValue) -> Bool
+
+pub fn client_program_recovered_effect_command_content_release(@run_publication_host.RecoveredClientEffectCommandContent) -> Unit
+
+pub fn client_program_recovered_effect_command_content_wire(@run_publication_host.RecoveredClientEffectCommandContent) -> Result[String, @run_publication_host.ClientEffectCommandContentIssue]
 
 pub fn client_program_recovered_table_preview_commit_outcome(@run_publication_host.RecoveredClientTablePreview, String, Int, Int, Int, Int) -> Result[String, @run_publication_host.ClientTableInputIssue]
 

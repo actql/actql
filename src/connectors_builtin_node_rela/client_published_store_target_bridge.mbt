@@ -18,6 +18,125 @@ pub fn client_program_effect_published_store_binding(
 }
 
 ///|
+fn client_store_command_resource_identity(
+  pair : @check_environment.StoreCommandBinding,
+) -> String? {
+  let mapping = @check_environment.mapping_shape_member(
+    @check_environment.store_command_mapping(pair),
+  )
+  guard @decode.open_object(@check_environment.member_body(mapping)) is Ok(body) &&
+    @decode.lookup(body, "resource_identity_cid") is Some(identity) &&
+    @decode.text(identity) is Ok(identity) else {
+    return None
+  }
+  Some(identity)
+}
+
+///|
+/// Bounded DATA selection from the already checked original pair. This is not
+/// an installation, Reference issuer, permission or replacement pair.
+#export_name("clientProgramEffectStoreCommandSelection")
+pub fn client_program_effect_store_command_selection(
+  pair : @check_environment.StoreCommandBinding,
+) -> Result[Array[String], @admitted.ReferenceIssue] {
+  let mapping = @check_environment.store_command_mapping(pair)
+  let command = @check_environment.store_command_target(pair)
+  let catalog = @check_environment.catalog_member(
+    @check_environment.command_target_catalog(command),
+  )
+  guard client_store_command_resource_identity(pair) is Some(identity) else {
+    return Err(InvalidIdentity)
+  }
+  Ok([
+    @check_environment.mapping_shape_target(mapping),
+    @check_environment.mapping_shape_reference(mapping),
+    @check_environment.mapping_shape_cid(mapping),
+    @check_environment.command_target_id(command),
+    @check_environment.command_target_cid(command),
+    @check_environment.member_cid(catalog),
+    @check_environment.command_target_resource_kind(command),
+    identity,
+  ])
+}
+
+///|
+fn client_store_reference_cursor(
+  wire : String,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @decode.Cursor? {
+  if wire.length() > max_bytes {
+    return None
+  }
+  guard @source.parse_json_bytes_preserving(@utf8.encode(wire), {
+      max_input_bytes: max_bytes,
+      max_nodes,
+      max_depth,
+    })
+    is Ok(tree) &&
+    @decode.admit(tree, {
+      max_nodes,
+      max_depth,
+      max_string_bytes: max_bytes,
+      max_total_string_bytes: max_bytes,
+    })
+    is Ok(cursor) else {
+    return None
+  }
+  Some(cursor)
+}
+
+///|
+/// The actual installed collection supplies its original issuer. Match the
+/// admitted Mapping identity before borrowing the existing value Owner; the
+/// captured-input binder still requires this exact nominal pair afterwards.
+#export_name("clientProgramIssueStoreCollectionReference")
+pub fn client_program_issue_store_collection_reference(
+  pair : @check_environment.StoreCommandBinding,
+  issuer : @admitted.ReferenceIssuer,
+  resource_wire : String,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[@admitted.CheckedValue, @admitted.ReferenceIssue] {
+  if max_bytes < 1 || max_nodes < 1 || max_depth < 1 {
+    return Err(InvalidLimits)
+  }
+  if @check_environment.command_target_resource_kind(
+      @check_environment.store_command_target(pair),
+    ) != "file_collection" {
+    return Err(ContractMismatch)
+  }
+  guard client_store_command_resource_identity(pair) is Some(identity) &&
+    client_store_reference_cursor(resource_wire, max_bytes, max_nodes, max_depth)
+    is Some(resource) &&
+    @decode.open_object(resource) is Ok(body) &&
+    @decode.lookup(body, "identity_cid") is Some(actual) &&
+    @decode.text(actual) is Ok(actual_identity) && actual_identity == identity else {
+    return Err(InvalidIdentity)
+  }
+  let contract_wire =
+    "{\"nullable\":false,\"resource_kind\":\"file_collection\",\"type\":\"resource_ref\"}"
+  guard client_store_reference_cursor(contract_wire, max_bytes, max_nodes, max_depth)
+    is Some(cursor) &&
+    @parameter_contract.read_checked(cursor, {
+      max_nodes,
+      max_depth,
+      max_text_bytes: max_bytes,
+    })
+    is Ok(contract) else {
+    return Err(InvalidLimits)
+  }
+  @admitted.issue_reference(issuer, contract, resource_wire, {
+    max_bytes,
+    max_nodes,
+    max_depth,
+    max_text_units: max_bytes,
+  })
+}
+
+///|
 #export_name("clientProgramBindEffectCommandTarget")
 pub fn client_program_bind_effect_command_target(
   inputs : @strategy.CapturedEffectInputs,
