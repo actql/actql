@@ -1232,6 +1232,7 @@ async function openInstalledHost(originalInstallation, preparation) {
         installedEffect?.queryTableBindings ?? effectInstallation?.queryTableBindings ?? [],
         {updateTargets: installedEffect === undefined ? [] :
           installedUpdateTargets(installedEffect, installedEffect.queryUpdateTargets ?? [], environmentWire),
+          storeTargets: sourceProfile?.queryStoreTargets ?? [],
           namespace: sourceNamespace === undefined ? undefined : {
           name: sourceNamespace, profilePaths: selectedSourcePaths},
           selectorNamespace: sourceSelectorNamespace === undefined ? undefined : {
