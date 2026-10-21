@@ -140,8 +140,9 @@ then share a contracts-directory acknowledgement. No prepared holder escapes
 between these writes and publication, so this path does not persist separate
 prepared-custody records or their later deletion.
 
-Only after this bounded batch succeeds may the existing delivery-attempt
-directory consume the grant. Failure preserves the original cause and a
+The same Store first durably claims the complete logical delivery key and its
+grant use; only after this bounded batch succeeds is that claim ready for the
+delivery caller. Failure preserves the original cause and a
 single-flight cleanup of the same allocations and any failed writer. Cleanup
 observes a possibly completed original link and confirms its containing
 directory without resealing, allocating a replacement or repeating delivery.
@@ -158,6 +159,47 @@ establish committed state: their native FDs close before unlink, and existing
 exclusive opening recovery removes any such alias resurrected by a crash.
 Prepared-object/Content holders still use their separate original custody
 protocol; they are not converted to direct semantic writes.
+
+## Indexed delivery claims and coverage
+
+The exclusively owned Store keeps private SQLite lookup metadata beside its
+existing immutable contracts and attempt directories. The seven-part logical
+key includes namespace, authority scope, Run, principal, purpose, Result name
+and attempt ID. A transaction claims that complete unique key and updates the
+indexed grant-use counter together. These are the existing Store's lookup,
+quota and recovery metadata, not another authorization evaluator or Ledger.
+The public caller still supplies admitted grant and attempt originals. A
+lookup validates the selected original attempt, its referenced grant and the
+index correspondence; unrelated history is neither read nor re-admitted.
+
+A durable building/ready marker distinguishes migration from ready coverage.
+The bounded legacy migration reads each original attempt and referenced grant,
+refuses ambiguous keys or excess uses, and commits complete coverage once.
+Ready opens read only pending indexed claims, not historical delivery names or
+grant bodies. A missing adopted database refuses, rather than returning false
+absence. A pending claim retains its exact attempt/grant wires and use quota;
+recovery installs those same immutable originals and their final directory
+acknowledgements before marking the row ready. It never dispatches payload,
+replaces an unknown business attempt or refunds a failed preparation. Pending
+staging aliases are derived from that same attempt, so recovery locates them
+without another global directory enumeration. Metadata retirement removes the
+same indexed Run rows only after the original delivery directories retire.
+
+The native database uses WAL, FULL synchronization, fullfsync and checkpoint
+fullfsync. A failed COMMIT is unknown even when the connection has left its
+transaction; further work refuses until close/reopen observes the durable
+original state. Bounded input/row counts are not capacity or permission.
+The original native wrapper and captured close/isOpen remain owned until real
+close. Store exclusion and key retirement follow that ACK and all independent
+payload or directory-FD ACKs, including partial opening failure. Cancellation,
+GC, a marker write or a successful sibling close is not their substitute.
+
+This metadata index does not change grant/attempt/record wires, authorization,
+Result binding, append transitions, stored public formats or optional delivery
+capabilities. The separate public operation still observes current policy.
+Focused history, quota, migration, ambiguity, COMMIT-loss and native cleanup
+cases exercise the existing Store boundary; they do not establish ordinary
+package latency or close other startup/retention inventory costs.
 
 If an object link completed before a failed reply, its actual inode is observed
 without repeating the write. A completed immutable object remains charged to

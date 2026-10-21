@@ -20,6 +20,7 @@ import {spawn} from 'node:child_process';
 import {once} from 'node:events';
 import fsPromises from 'node:fs/promises';
 import {syncBuiltinESMExports} from 'node:module';
+import {DatabaseSync} from 'node:sqlite';
 import {canonicalCid, createPublicationContractControlFixture} from
   '../host-common/publication-contract-control.fixture.mjs';
 import {openLocalPublicationStore as openActualLocalPublicationStore} from './publication-store.mjs';
@@ -2030,7 +2031,7 @@ test('delivery contract batches retain the same directory ACK after partial fail
         maxObjectBytes: 65536, maxObjects: 2,
         maxContractNodes: 4096, maxContractDepth: 64}, contractControl);
       assert.deepEqual(await reopened.createDeliveryAttempt(wire(attempt), wire(root.grant)),
-        {attempt, created: true});
+        {attempt, created: false});
       assert.equal(reopened.status().objectCount, 2, 'cleanup neither reseals nor allocates replacements');
       assert.equal(await reopened.close(), true);
     });
@@ -2337,7 +2338,7 @@ test('delivery grant use limit is durable and concurrent attempts are CAS',
     ), code('DeliveryGrantUseLimit'));
   });
 
-test('delivery admission validates each retained attempt once per selection',
+test('delivery admission reads no unrelated attempts and admits its selected original once',
   async t => {
     // Synthetic adapter fixtures, not retained public publication history.
     const {store, configuration} = await fixture(t);
@@ -2368,14 +2369,14 @@ test('delivery admission validates each retained attempt once per selection',
     };
     const reopened = await openLocalPublicationStore(configuration, suppliedControl);
     t.after(async () => { await reopened.close(); });
+    assert.deepEqual([...admissions.values()], [0, 0],
+      'ready coverage does not re-admit history on ordinary reopen');
     for (const identity of admissions.keys()) admissions.set(identity, 0);
     const selected = deliveryAttempt(root, 'new-same-grant');
     assert.deepEqual(await reopened.createDeliveryAttempt(
       wire(selected), wire(root.grant),
     ), {attempt: selected, created: true});
-    // The two independently authored old attempts each need one admission.
-    // Counting all Store admissions would also count the new input and write.
-    assert.deepEqual([...admissions.values()], [1, 1]);
+    assert.deepEqual([...admissions.values()], [0, 0]);
 
     const lookup = {
       indexKey: {namespaceId: 'namespace-a',
@@ -2386,7 +2387,7 @@ test('delivery admission validates each retained attempt once per selection',
     for (const identity of admissions.keys()) admissions.set(identity, 0);
     assert.deepEqual(await reopened.lookupDeliveryAttempt(lookup),
       {attempt: selected, record: undefined, hostReleaseReceipt: undefined});
-    assert.deepEqual([...admissions.values()], [1, 1]);
+    assert.deepEqual([...admissions.values()], [0, 0]);
     assert.equal(await reopened.lookupDeliveryAttempt({...lookup,
       principalId: 'different-principal'}), undefined);
 
@@ -2397,8 +2398,9 @@ test('delivery admission validates each retained attempt once per selection',
     assert.deepEqual(await reopened.createDeliveryAttempt(
       wire(replay), wire(root.grant),
     ), {attempt: selected, created: false});
-    // Keep the retained scan, restored canonical identity, and exact wire reread.
-    assert.equal(admissions.get(selected.delivery_attempt_cid), 3);
+    // A differently born input is separate; the selected stored original is
+    // admitted once, with no restored-identity hash or repeated wire reread.
+    assert.equal(admissions.get(selected.delivery_attempt_cid), 1);
     admissions.delete(selected.delivery_attempt_cid);
     const conflicting = seal('delivery_attempt', {...replayBody,
       serialization_contract_cid: cids.policy});
@@ -2410,7 +2412,7 @@ test('delivery admission validates each retained attempt once per selection',
     await assert.rejects(reopened.createDeliveryAttempt(
       wire(deliveryAttempt(root, 'one-too-many')), wire(root.grant),
     ), code('DeliveryGrantUseLimit'));
-    assert.deepEqual([...admissions.values()], [1, 1]);
+    assert.deepEqual([...admissions.values()], [0, 0]);
   });
 
 test('delivery admission retains corruption and metadata deletion refusals',
@@ -2426,17 +2428,19 @@ test('delivery admission retains corruption and metadata deletion refusals',
     await writeFile(join(directory, 'deliveries',
       damaged.delivery_attempt_cid.slice(7), 'attempt.json'),
     wire({...damaged, attempt_id: 'changed-without-updating-identity'}));
-    for (const attempt of [retained, deliveryAttempt(root, 'over-limit')]) {
-      await assert.rejects(store.createDeliveryAttempt(
-        wire(attempt), wire(root.grant),
-      ), code('InvalidDeliveryAttempt'));
-    }
-    await assert.rejects(store.lookupDeliveryAttempt({
+    assert.equal((await store.createDeliveryAttempt(
+      wire(retained), wire(root.grant))).created, false);
+    await assert.rejects(store.createDeliveryAttempt(
+      wire(deliveryAttempt(root, 'over-limit')), wire(root.grant)), code('DeliveryGrantUseLimit'));
+    const query = {
       indexKey: {namespaceId: 'namespace-a',
         authorityScopeCid: cids.scope, runDefinitionCid: cids.run},
       principalId: 'principal-a', purpose: 'download',
       resultName: 'answer', attemptId: retained.attempt_id,
-    }), code('InvalidDeliveryAttempt'));
+    };
+    assert.deepEqual((await store.lookupDeliveryAttempt(query)).attempt, retained);
+    await assert.rejects(store.lookupDeliveryAttempt({...query,
+      attemptId: damaged.attempt_id}), code('InvalidDeliveryAttempt'));
 
     await writeFile(join(directory, 'metadata-deletions',
       `${digest('synthetic retired Run').slice(7)}.json`), wire({
@@ -2449,6 +2453,294 @@ test('delivery admission retains corruption and metadata deletion refusals',
       ), code('PublicationMetadataDeleted'));
     }
   });
+
+test('ready delivery coverage opens and looks up without unrelated history reads', async t => {
+  const {store, directory, configuration} = await fixture(t);
+  const root = deliveryFixture(14);
+  const attempts = Array.from({length: 12}, (_, index) => deliveryAttempt(root, `history-${index}`));
+  for (const attempt of attempts) await store.createDeliveryAttempt(wire(attempt),wire(root.grant));
+  await store.close();
+  const originalOpen = fsPromises.open;
+  const originalReaddir = fsPromises.readdir;
+  const attemptReads = [];
+  let deliveryEnumerations = 0;
+  let grantAdmissions = 0, attemptAdmissions = 0;
+  const supplied = {...contractControl, admit(name,...args) {
+    if (name === 'delivery_attempt') attemptAdmissions++;
+    if (name === 'result_read_grant') grantAdmissions++;
+    return contractControl.admit(name,...args);
+  }};
+  fsPromises.open = async function(path,...args) {
+    if (String(path).startsWith(join(directory,'deliveries') + sep) &&
+        String(path).endsWith('/attempt.json')) attemptReads.push(String(path));
+    return Reflect.apply(originalOpen,this,[path,...args]);
+  };
+  fsPromises.readdir = function(path,...args) {
+    if (String(path) === join(directory,'deliveries')) deliveryEnumerations++;
+    return Reflect.apply(originalReaddir,this,[path,...args]);
+  };
+  syncBuiltinESMExports();
+  try {
+    const reopened = await openLocalPublicationStore(configuration,supplied);
+    assert.deepEqual(attemptReads,[]);
+    assert.equal(deliveryEnumerations,0,'ready cold open does not enumerate historical delivery names');
+    assert.equal(attemptAdmissions,0);
+    assert.equal(grantAdmissions,0);
+    const selected = attempts[7];
+    const query = {indexKey:{namespaceId:'namespace-a',authorityScopeCid:cids.scope,
+      runDefinitionCid:cids.run},principalId:'principal-a',purpose:'download',
+      resultName:'answer',attemptId:selected.attempt_id};
+    assert.deepEqual((await reopened.lookupDeliveryAttempt(query)).attempt,selected);
+    assert.deepEqual(attemptReads,[join(directory,'deliveries',selected.delivery_attempt_cid.slice(7),'attempt.json')]);
+    assert.equal(attemptAdmissions,1);
+    assert.equal(grantAdmissions,1);
+    attemptReads.length = 0;
+    const newAttempt = deliveryAttempt(root,'new-after-history');
+    await reopened.createDeliveryAttempt(wire(newAttempt),wire(root.grant));
+    assert.deepEqual(attemptReads,[join(directory,'deliveries',newAttempt.delivery_attempt_cid.slice(7),'attempt.json')],
+      'only the new target is checked; indexed grant usage does not inspect previous attempts');
+    await reopened.close();
+    assert.equal(deliveryEnumerations,0);
+  } finally {
+    fsPromises.open = originalOpen;
+    fsPromises.readdir = originalReaddir;
+    syncBuiltinESMExports();
+  }
+});
+
+test('legacy delivery coverage migrates once and missing adopted database refuses', async t => {
+  const {store,directory,configuration} = await fixture(t);
+  const root = deliveryFixture(2), attempt = deliveryAttempt(root,'legacy-index');
+  await store.createDeliveryAttempt(wire(attempt),wire(root.grant));
+  await store.close();
+  // This disposable fixture models the old on-disk layout, not a lost live DB.
+  await unlink(join(directory,'delivery-attempts.sqlite3'));
+  await unlink(join(directory,'delivery-attempts-index.json'));
+  let attemptAdmissions = 0;
+  const supplied = {...contractControl,admit(name,...args) {
+    if (name === 'delivery_attempt') attemptAdmissions++;
+    return contractControl.admit(name,...args);
+  }};
+  const migrated = await openLocalPublicationStore(configuration,supplied);
+  assert.equal(attemptAdmissions,1);
+  assert.deepEqual(JSON.parse(await readFile(join(directory,'delivery-attempts-index.json'),'utf8')),
+    {version:1,phase:'ready'});
+  await migrated.close();
+  attemptAdmissions = 0;
+  const reopened = await openLocalPublicationStore(configuration,supplied);
+  assert.equal(attemptAdmissions,0);
+  await reopened.close();
+  await unlink(join(directory,'delivery-attempts.sqlite3'));
+  await assert.rejects(openLocalPublicationStore(configuration,supplied),code('DeliveryAttemptIndexUnavailable'));
+  assert.equal(attemptAdmissions,0, 'missing adopted coverage never silently rebuilds from history');
+  await assert.rejects(stat(join(directory,'owner')),code('ENOENT'));
+});
+
+test('pending delivery claim restores only its same originals and retains quota', async t => {
+  const {store,directory,configuration} = await fixture(t);
+  await store.close();
+  let refuse = false;
+  const selected = await openLocalPublicationStore(configuration,contractControl,{
+    async syncDirectory(path) {
+      if (refuse && path === join(directory,'deliveries')) {
+        throw Object.assign(new Error('delivery directory ACK unavailable'),{code:'EIO'});
+      }
+      const fd = await open(path,'r');
+      try { await fd.sync(); } finally { await fd.close(); }
+    },
+  });
+  const root = deliveryFixture(1), attempt = deliveryAttempt(root,'pending-original');
+  refuse = true;
+  await assert.rejects(selected.createDeliveryAttempt(wire(attempt),wire(root.grant)),code('EIO'));
+  await assert.rejects(selected.createDeliveryAttempt(wire(deliveryAttempt(root,'not-refunded')),
+    wire(root.grant)),code('DeliveryGrantUseLimit'));
+  await selected.close();
+  const reopened = await openLocalPublicationStore(configuration,contractControl);
+  assert.deepEqual(await reopened.createDeliveryAttempt(wire(attempt),wire(root.grant)),
+    {attempt,created:false});
+  await assert.rejects(reopened.createDeliveryAttempt(wire(deliveryAttempt(root,'still-not-refunded')),
+    wire(root.grant)),code('DeliveryGrantUseLimit'));
+  assert.equal(reopened.status().objectCount,2);
+  await reopened.close();
+});
+
+test('Store exclusion waits for its captured native delivery index close', async t => {
+  const {store,directory,configuration} = await fixture(t);
+  await store.close();
+  const original = DatabaseSync.prototype.close;
+  let refuse = true, acquired;
+  DatabaseSync.prototype.close = function() {
+    acquired = this;
+    if (refuse) return false;
+    return Reflect.apply(original,this,[]);
+  };
+  let reopened;
+  try { reopened = await openLocalPublicationStore(configuration,contractControl); }
+  finally { DatabaseSync.prototype.close = original; }
+  t.after(async () => { refuse = false; await reopened.close(); });
+  const before = await readFile(join(directory,'owner','owner.json'),'utf8');
+  await assert.rejects(reopened.close(),code('DeliveryAttemptIndexCleanupPending'));
+  assert.equal(acquired.isOpen,true);
+  assert.equal(await readFile(join(directory,'owner','owner.json'),'utf8'),before);
+  assert.equal(reopened.status().closed,false);
+  refuse = false;
+  assert.equal(await reopened.close(),true);
+  assert.equal(acquired.isOpen,false);
+  await assert.rejects(stat(join(directory,'owner')),code('ENOENT'));
+});
+
+test('delivery index preserves an actual committed claim after its reply is lost', async t => {
+  const {store,directory,configuration} = await fixture(t);
+  await store.close();
+  const originalExec = DatabaseSync.prototype.exec;
+  let armed = false, lost = false;
+  DatabaseSync.prototype.exec = function(sql) {
+    const value = Reflect.apply(originalExec,this,[sql]);
+    if (armed && !lost && sql === 'COMMIT') {
+      lost = true;
+      throw Object.assign(new Error('lost original COMMIT reply'),{code:'EIO'});
+    }
+    return value;
+  };
+  let selected;
+  try { selected = await openLocalPublicationStore(configuration,contractControl); }
+  finally { DatabaseSync.prototype.exec = originalExec; }
+  t.after(async () => { await selected.close(); });
+  const root = deliveryFixture(1), attempt = deliveryAttempt(root,'original-commit-unknown');
+  armed = true;
+  await assert.rejects(selected.createDeliveryAttempt(wire(attempt),wire(root.grant)),
+    error => error.code === 'DeliveryAttemptIndexCommitOutcomeUnknown' && error.outcome === 'unknown');
+  assert.equal(lost,true);
+  assert.deepEqual(await readdir(join(directory,'deliveries')),[]);
+  await assert.rejects(selected.createDeliveryAttempt(wire(attempt),wire(root.grant)),
+    code('DeliveryAttemptIndexCommitOutcomeUnknown'));
+  await selected.close();
+  const reopened = await openLocalPublicationStore(configuration,contractControl);
+  assert.deepEqual(await reopened.createDeliveryAttempt(wire(attempt),wire(root.grant)),
+    {attempt,created:false});
+  await assert.rejects(reopened.createDeliveryAttempt(wire(deliveryAttempt(root,'replacement-after-unknown')),
+    wire(root.grant)),code('DeliveryGrantUseLimit'));
+  await reopened.close();
+});
+
+test('pending delivery directory FD keeps Store ownership until original close', async t => {
+  const {store,directory,configuration} = await fixture(t);
+  const originalOpen = fsPromises.open;
+  let refuse = true, retained, acquisitions = 0;
+  fsPromises.open = async function(path,...args) {
+    const handle = await Reflect.apply(originalOpen,this,[path,...args]);
+    if (String(path).startsWith(join(directory,'deliveries','.staging-'))) {
+      acquisitions++;
+      retained = handle;
+      const close = handle.close;
+      handle.close = function() { return refuse ? Promise.resolve(false) : Reflect.apply(close,this,[]); };
+    }
+    return handle;
+  };
+  syncBuiltinESMExports();
+  const root = deliveryFixture(1), attempt = deliveryAttempt(root,'pending-stage-original');
+  let failure;
+  try {
+    await assert.rejects(store.createDeliveryAttempt(wire(attempt),wire(root.grant)),
+      error => { failure = error; return error.cleanupHandle?.status().pending === true; });
+    const before = await readFile(join(directory,'owner','owner.json'),'utf8');
+    await assert.rejects(store.close(),code('PublicationStoreCleanupPending'));
+    assert.equal(await readFile(join(directory,'owner','owner.json'),'utf8'),before);
+    assert.ok(retained.fd >= 0);
+    refuse = false;
+    assert.equal(await store.close(),true);
+    assert.equal(retained.fd,-1);
+    assert.equal(acquisitions,1,'close retries neither stage sync nor a replacement FD');
+    assert.equal(failure.cleanupHandle.status().pending,false);
+  } finally { refuse = false; fsPromises.open = originalOpen; syncBuiltinESMExports(); }
+  const reopened = await openLocalPublicationStore(configuration,contractControl);
+  assert.deepEqual(await reopened.createDeliveryAttempt(wire(attempt),wire(root.grant)),
+    {attempt,created:false});
+  assert.equal((await readdir(join(directory,'deliveries'))).some(name => name.startsWith('.staging-')),false);
+  await reopened.close();
+});
+
+test('legacy delivery migration refuses duplicate complete logical keys', async t => {
+  const {store,directory,configuration} = await fixture(t);
+  const root = deliveryFixture(2), first = deliveryAttempt(root,'duplicate-legacy-key');
+  await store.createDeliveryAttempt(wire(first),wire(root.grant));
+  await store.close();
+  const body = {...first,requested_at:'2026-09-18T01:00:01.000Z'};
+  delete body.delivery_attempt_cid;
+  const second = seal('delivery_attempt',body);
+  const secondPath = join(directory,'deliveries',second.delivery_attempt_cid.slice(7));
+  // A disposable old-layout corruption fixture: two independently valid
+  // originals are not permission to choose one by filesystem enumeration order.
+  await mkdir(secondPath);
+  await writeFile(join(secondPath,'attempt.json'),wire(second));
+  await unlink(join(directory,'delivery-attempts-index.json'));
+  await unlink(join(directory,'delivery-attempts.sqlite3'));
+  await assert.rejects(openLocalPublicationStore(configuration,contractControl),
+    code('AmbiguousDeliveryAttemptLookup'));
+  assert.deepEqual(JSON.parse(await readFile(join(directory,'delivery-attempts-index.json'),'utf8')),
+    {version:1,phase:'building'});
+  assert.equal(await readFile(join(secondPath,'attempt.json'),'utf8'),wire(second));
+  await assert.rejects(stat(join(directory,'owner')),code('ENOENT'));
+});
+
+test('index opening cleanup retains native and failed metadata FD independently', async t => {
+  const {store,directory,configuration} = await fixture(t);
+  await store.close();
+  const originalClose = DatabaseSync.prototype.close;
+  let refuseNative = true, refuseReader = true, native;
+  DatabaseSync.prototype.close = function() {
+    native = this;
+    if (refuseNative) return false;
+    return Reflect.apply(originalClose,this,[]);
+  };
+  let reader;
+  // Fail the ready-marker directory ACK after acquiring the actual native DB.
+  await unlink(join(directory,'delivery-attempts-index.json'));
+  await unlink(join(directory,'delivery-attempts.sqlite3'));
+  let originalFailure;
+  try {
+    await assert.rejects(openLocalPublicationStore(configuration,contractControl,{
+      async syncDirectory(path) {
+        const fd = await open(path,'r');
+        const close = fd.close;
+        let ready = false;
+        if (path === directory) {
+          try { ready = JSON.parse(await readFile(join(directory,'delivery-attempts-index.json'),'utf8')).phase === 'ready'; }
+          catch (error) { if (error.code !== 'ENOENT') throw error; }
+        }
+        if (ready) {
+          // This existing directory-sync protocol supplies its own actual FD
+          // cleanup carrier, not a synthetic acknowledgement.
+          reader = fd;
+          fd.close = function() { return refuseReader ? Promise.resolve(false) : Reflect.apply(close,this,[]); };
+        }
+        try { await fd.sync(); } finally {
+          if (await fd.close() === false) {
+            const status = () => Object.freeze({pending:fd.fd !== -1});
+            const error = Object.assign(new Error('pending original directory close'),{code:'EIO'});
+            error.cleanupHandle = Object.freeze({status,async retry() { await fd.close(); return status(); }});
+            throw error;
+          }
+        }
+      },
+    }),error => { originalFailure = error; return error.cleanupHandle?.status().pending === true; });
+    assert.ok(native?.isOpen);
+    assert.ok(reader.fd >= 0);
+    refuseNative = false;
+    await assert.rejects(originalFailure.cleanupHandle.retry());
+    assert.equal(native.isOpen,false,'native cleanup progresses independently of the failed FD');
+    assert.equal(originalFailure.cleanupHandle.status().pending,true);
+    assert.ok(reader.fd >= 0);
+    refuseReader = false;
+    assert.equal((await originalFailure.cleanupHandle.retry()).pending,false);
+    assert.equal(reader.fd,-1);
+    await assert.rejects(stat(join(directory,'owner')),code('ENOENT'));
+  } finally {
+    refuseNative = refuseReader = false;
+    await originalFailure?.cleanupHandle.retry();
+    DatabaseSync.prototype.close = originalClose;
+  }
+});
 
 test('Manifest grant use is durable idempotent and bounded across restart',
   async t => {
