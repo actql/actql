@@ -357,6 +357,31 @@ fn run_journal_custody(
 }
 
 ///|
+// Ordinary operations authenticate only their selected rows. This monotonic
+// issuance anchor bounds append capacity without enumerating unrelated Runs.
+// Its revision advances once with each issued record in the same transaction.
+fn client_journal_issuance_anchor(
+  database : @sqlite.Database,
+  table_name : String,
+  max_records : Int,
+  reads? : NativeClientJournalReadAccess? = None,
+) -> Result[(Int, Int64), NativeClientRunJournalIssue] {
+  let row = match read_client_journal_value(database, table_name, "issued", reads) {
+    Ok(value) => value
+    Err(@sqlite.NotFound) => return Err(CustodyLost)
+    Err(issue) => return Err(Physical(issue))
+  }
+  let count = match @host.client_journal_issuance_count(row.body, max_records) {
+    Ok(value) => value
+    Err(_) => return Err(CustodyLost)
+  }
+  if row.revision != count.to_int64() {
+    return Err(CustodyLost)
+  }
+  Ok((count, row.revision))
+}
+
+///|
 pub fn open_native_client_run_journal(
   database : @sqlite.Database,
   max_records : Int,
@@ -376,7 +401,7 @@ fn open_native_client_run_journal_with_reads(
   if max_records < 1 || max_records > 1024 {
     return Err(CapacityExceeded)
   }
-  match run_journal_custody(database, max_records, reads~) {
+  match client_journal_issuance_anchor(database, "client_run_custody", max_records, reads~) {
     Ok(_) =>
       Ok({
         database,
@@ -417,11 +442,9 @@ fn[T] NativeClientRunJournal::transaction_with_reads(
     Err(issue) => return Err(Physical(issue))
   }
   self.transaction_active = true
-  let result = match
-    run_journal_custody(self.database, self.max_records, reads~) {
-    Ok(_) => work()
-    Err(issue) => Err(issue)
-  }
+  // The selected operation owns its target admission and local mutation
+  // checks. A transaction is not a request to audit unrelated history.
+  let result = work()
   self.transaction_active = false
   match result {
     Ok(value) =>
@@ -461,6 +484,10 @@ fn NativeClientRunJournal::retained(
   requested : @host.ClientRequestIdentity,
   reads? : NativeClientJournalReadAccess? = None,
 ) -> Result[NativeClientRunRecord?, NativeClientRunJournalIssue] {
+  match client_journal_issuance_anchor(self.database, "client_run_custody", self.max_records, reads~) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
   let row = match
     read_client_journal_value(
       self.database,
@@ -474,6 +501,10 @@ fn NativeClientRunJournal::retained(
   }
   let retained = match read_run_record(row) {
     Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  match confirm_effect_ledger_custody(self.database, retained, reads~) {
+    Ok(_) => ()
     Err(issue) => return Err(issue)
   }
   match @host.client_request_identity_relation(requested, retained.request) {

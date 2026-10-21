@@ -51,7 +51,7 @@ pub fn inspect_native_client_state(
     max_snapshot_bytes,
     database => {
       guard database is Some(database) else { return Ok(PhysicallyAbsent) }
-      match inspect_native_client_custody_rows(database, max_records) {
+      match inspect_native_client_control_rows(database, max_records) {
         Ok(value) => Ok(value)
         Err(issue) => {
           refusal = Some(issue)
@@ -95,6 +95,26 @@ fn inspect_native_client_custody_rows(
     transaction_active: false,
   }
   match journal.submitted_intent_custody(reads~) {
+    Ok(_) => Ok(Retained)
+    Err(issue) => Err(Submission(issue))
+  }
+}
+
+///|
+fn inspect_native_client_control_rows(
+  database : @sqlite.Database,
+  max_records : Int,
+  reads? : NativeClientJournalReadAccess? = None,
+) -> Result[NativeClientStateInspection, NativeClientCustodyIssue] {
+  match read_epoch_custody(database, reads~) {
+    Ok(_) => ()
+    Err(issue) => return Err(Epoch(issue))
+  }
+  match client_journal_issuance_anchor(database, "client_run_custody", max_records, reads~) {
+    Ok(_) => ()
+    Err(issue) => return Err(Run(issue))
+  }
+  match client_journal_issuance_anchor(database, "client_submitted_intent_custody", max_records, reads~) {
     Ok(_) => Ok(Retained)
     Err(issue) => Err(Submission(issue))
   }

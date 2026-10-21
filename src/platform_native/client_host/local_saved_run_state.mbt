@@ -58,7 +58,7 @@ fn NativeClientRunJournal::saved_run_state_locked(
   (NativeClientSubmittedIntentRecord, NativeClientRunRecord),
   NativeClientRunJournalIssue,
 ] {
-  match self.submitted_intent_custody(reads~) {
+  match client_journal_issuance_anchor(self.database, "client_submitted_intent_custody", self.max_records, reads~) {
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }

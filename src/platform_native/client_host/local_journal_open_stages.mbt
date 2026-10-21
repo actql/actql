@@ -67,8 +67,8 @@ fn NativeLocalAdoptionSession::inspect_retained_journal(
 }
 
 ///|
-// Physical SQLite stage. Keep the complete Run/Policy/Effect custody
-// transaction and name-startup audit in their original order.
+// Ordinary open validates installation and issuance anchors. Target operations
+// admit their own originals; whole-history audits are explicit operations.
 fn NativeLocalAdoptionSession::bind_journal_sqlite_originals(
   self : NativeLocalAdoptionSession,
   database : @sqlite.Database,
@@ -127,17 +127,11 @@ fn NativeLocalAdoptionSession::bind_journal_sqlite_originals(
     Ok(value) => value
     Err(issue) => return Err(Journal(issue))
   }
-  match journal.submitted_intent_custody(reads~) {
+  match client_journal_issuance_anchor(database, "client_submitted_intent_custody", max_records, reads~) {
     Ok(_) => ()
     Err(issue) => return Err(Journal(issue))
   }
-  // Keep the inherited Run/Policy custody transaction. Only the new name
-  // extension's full census/HMAC scan belongs here at startup, not each lookup.
-  match
-    journal.transaction_with_reads(
-      () => journal.inspect_submitted_name_startup(epoch, reads~),
-      reads~,
-    ) {
+  match journal.inspect_submitted_name_control(epoch, reads~) {
     Ok(_) => ()
     Err(issue) => return Err(Journal(issue))
   }

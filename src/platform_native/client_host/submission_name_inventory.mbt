@@ -132,6 +132,30 @@ fn NativeClientRunJournal::audit_submitted_names(
 }
 
 ///|
+// Opening an existing installation checks fixed name-extension control only.
+// An individual lookup authenticates its selected name and original binding.
+fn NativeClientRunJournal::inspect_submitted_name_control(
+  self : NativeClientRunJournal,
+  authority : NativeClientEpochAuthority,
+  reads? : NativeClientJournalReadAccess? = None,
+) -> Result[Unit, NativeClientRunJournalIssue] {
+  if !physical_equal(self.database, authority.database) {
+    return Err(InvalidSubmission)
+  }
+  match read_client_journal_value(self.database, "client_submission_name_custody", "issued", reads) {
+    Ok(_) => self.submitted_name_control(reads~).map(_ => ())
+    Err(@sqlite.NotFound) => {
+      if read_client_submission_name_schema(self.database, reads) == 0 {
+        Ok(())
+      } else {
+        Err(CustodyLost)
+      }
+    }
+    Err(issue) => Err(Physical(issue))
+  }
+}
+
+///|
 // Optional historical absence is not permission to initialize this extension.
 // The original reference-only journal can still restore without name support.
 fn NativeClientRunJournal::inspect_submitted_name_startup(

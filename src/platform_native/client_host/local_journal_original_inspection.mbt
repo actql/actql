@@ -45,7 +45,7 @@ fn NativeLocalJournalCapture::inspect_original_retained_journal(
     None => Ok(PhysicallyAbsent)
     Some(database) =>
       original.audit_read_stage(database, reads => {
-        inspect_native_client_custody_rows(
+        inspect_native_client_control_rows(
           database,
           self.max_records,
           reads=Some(reads),

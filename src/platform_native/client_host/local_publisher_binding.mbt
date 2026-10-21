@@ -198,8 +198,8 @@ pub fn NativeLocalPublisherBinding::current(
 }
 
 ///|
-// Metadata CAS already owns this same journal TX and its full initial custody
-// scan. Joining it is private and cannot turn a supplied Bool into permission.
+// Metadata CAS already owns this same Journal transaction. Joining it is
+// private and cannot turn a supplied Bool into permission.
 fn NativeLocalPublisherBinding::current_in_owned_transaction(
   self : NativeLocalPublisherBinding,
 ) -> Bool {
@@ -222,9 +222,9 @@ fn NativeLocalPublisherBinding::current_in_mode(
     return false
   }
   let host = self.authority.host
-  // This material is local to this single predicate and is not retained by
-  // the publisher. Each of the three original authority checks still invokes
-  // the Common scope and Account operations with their actual current fences.
+  // One synchronous predicate admits this exact tuple once. The retained
+  // material is local; the post-read fence observes current originals again
+  // without evaluating the unchanged Account tuple a second time.
   guard self.authority.current_material_for(host.journal, self.request)
     is Some(material) else {
     return false
@@ -245,16 +245,8 @@ fn NativeLocalPublisherBinding::current_in_mode(
     binding == self.store_binding else {
     return false
   }
-  // Both paths validate the same retained record. The public path still uses
-  // its original bounded transaction; the private path joins only the actual
-  // transaction above, after its mandatory all-row custody validation.
-  if !self.authority.current_with_material_for(
-      host.journal,
-      self.request,
-      material,
-    ) {
-    return false
-  }
+  // Read only this original Run. The transaction/target reader retain their
+  // physical fence and selected record custody, without a history inventory.
   let retained = if join_owned_transaction {
     host.journal.retained(self.request, reads~)
   } else {
@@ -273,7 +265,7 @@ fn NativeLocalPublisherBinding::current_in_mode(
     @publication.publication_contract_identity(self.definition) else {
     return false
   }
-  self.authority.current_with_material_for(host.journal, self.request, material)
+  @host.client_local_adopted_current_account(material, host.database) is Ok(_)
 }
 
 ///|
@@ -286,7 +278,8 @@ pub fn NativeLocalPublisherBinding::publication_policy_cid(
 
 ///|
 /// The Native publication Owner projects the actual opaque request and index.
-/// Current authorization is checked on both sides of this callback boundary.
+/// This synchronous projection contains no callback or dispatch. Its entry
+/// checks the current original tuple; the following comparisons are pure.
 pub fn NativeLocalPublisherBinding::authorize_request(
   self : NativeLocalPublisherBinding,
   context : @publication.PublicationRequestContext,
@@ -310,5 +303,5 @@ pub fn NativeLocalPublisherBinding::authorize_request(
       ("request", None) | ("commit" | "return_committed", Some(_)) => true
       _ => false
     })
-  matches && self.current()
+  matches
 }

@@ -17,6 +17,7 @@ priv struct NativeLocalPolicyAuthority {
   scope : String
   purpose : NativeLocalPolicyAuthorityPurpose
   capture : NativeLocalJournalCapture?
+  material : @host.ClientLocalAdoptedHostMaterial[@sqlite.Database, NativeLocalAdoptionIssue]
 }
 
 ///|
@@ -47,22 +48,12 @@ fn NativeLocalPolicyAuthority::current_material_for(
     @host.client_request_authority_scope_cid(request) != self.scope {
     return None
   }
-  match self.capture {
-    None => self.host.adopted_current_material().to_option()
-    Some(capture) =>
-      capture
-      .with_current_adoption_material_in_original_read((
-        host,
-        material,
-        _operations,
-      ) => {
-        if physical_equal(host, self.host) {
-          Ok(material)
-        } else {
-          Err(CustodyLost)
-        }
-      })
-      .to_option()
+  // Reuse admitted typed facts, not an Allow. The Common current port still
+  // compares this exact original Store, row, generation and Account before use.
+  if @host.client_local_adopted_current_account(self.material, self.host.database) is Ok(_) {
+    Some(self.material)
+  } else {
+    None
   }
 }
 
@@ -144,6 +135,16 @@ fn native_local_policy_authority_for(
     (name.is_empty() || name.length() > 128) {
     return Err(AuthorizationDenied)
   }
+  let material = match capture {
+    None => host.adopted_current_material()
+    Some(original) => original.with_current_adoption_material_in_original_read((current, material, _) => {
+      if physical_equal(current, host) { Ok(material) } else { Err(CustodyLost) }
+    })
+  }
+  let material = match material {
+    Ok(value) => value
+    Err(_) => return Err(AuthorizationDenied)
+  }
   let authority : NativeLocalPolicyAuthority = {
     host,
     crypto,
@@ -152,6 +153,7 @@ fn native_local_policy_authority_for(
     scope: @host.client_request_authority_scope_cid(request),
     purpose,
     capture,
+    material,
   }
   if !authority.current_for(host.journal, request) {
     return Err(AuthorizationDenied)

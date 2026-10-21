@@ -222,6 +222,20 @@ fn NativeClientRunJournal::retain_run_availability_observation(
         Ok(value) => value
         Err(_) => return Err(CustodyLost)
       }
+      // Timestamps are not new logical availability facts. Keep the exact
+      // admitted original and its revision when the observation key is equal;
+      // do not reserialize or durably write an unchanged status read.
+      if observation.key() == key {
+        if !authority.current_for(self, original.request) {
+          return Err(AuthorizationDenied)
+        }
+        match run_observation_store_binding(store, namespace_id) {
+          Ok(current) if current == binding => ()
+          Ok(_) => return Err(CustodyLost)
+          Err(issue) => return Err(issue)
+        }
+        return Ok({ original: prior.original, control_revision: run.revision, })
+      }
       let next = match observation.next_revision(Some(key), revision) {
         Ok(value) => value
         Err(_) => return Err(CustodyLost)
