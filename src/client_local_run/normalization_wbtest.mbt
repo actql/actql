@@ -6,7 +6,7 @@ test "Local normalization retains original admission compilation and material ow
   let evidence = local_run_normalization_evidence(original, issued).unwrap()
   assert_eq(
     @publication.run_evidence_value_identity(evidence),
-    "sha256:068f6d7eefb587836c72426fb4d579406247a97b27120621880cbd4a23874880",
+    "sha256:e245b445e5014e5764dab4bf1b9ddc3b3abdf821ddf75950f9bee9df29007164",
   )
   let other = plan(prepared(@input.Program(program)), "normalization-run")
   assert_eq(local_run_definition_cid(other), local_run_definition_cid(original))
@@ -17,22 +17,25 @@ test "Local normalization retains original admission compilation and material ow
   assert_eq(
     @publication.run_evidence_value_json(
       restore_local_run_normalization_evidence(
-        original,
-        issued,
-        wire,
-        @host.client_local_completion_free_catalog_cid(),
+        original, issued, wire, "sha256:f93d91b468d850cbc63a8c8350578af8431a2256eb2b1ef3f60586fdc640561d",
       ).unwrap(),
     ),
     wire,
   )
   assert_true(
     restore_local_run_normalization_evidence(
-      other,
+      other, issued, wire, "sha256:f93d91b468d850cbc63a8c8350578af8431a2256eb2b1ef3f60586fdc640561d",
+    )
+    is Err(ForeignPlan),
+  )
+  assert_true(
+    restore_local_run_normalization_evidence(
+      original,
       issued,
       wire,
       @host.client_local_completion_free_catalog_cid(),
     )
-    is Err(ForeignPlan),
+    is Err(Normalization(ForeignCatalog)),
   )
   // Equal identity does not substitute another original compilation owner.
   let mismatched : LocalRunPlan = {
