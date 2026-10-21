@@ -731,6 +731,8 @@ jobs:
         run: node --test adapters/host-common/sqlite-format-inspection.test.mjs
       - name: Test durable Checkpoint journal and resumed dispatch admission
         run: npm run check:checkpoint-runtime
+      - name: Test operation authorization and unchanged Run observations
+        run: node --test adapters/host-node/authorization-account-current.test.mjs adapters/host-node/local-account-current.test.mjs adapters/host-node/client-run-state-revision.test.mjs
       - name: Test native retained task file ownership
         run: npm run check:native-retained-task-file
       - name: Test portable Remote Transfer owner package

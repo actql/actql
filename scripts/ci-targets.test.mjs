@@ -22,6 +22,11 @@ test('normal lint executes behavioral operation performance assessment tests', (
   // These tests validate raw samples, frame counts, faults and incomplete
   // evidence. Running them is not an ordinary-package performance result.
   assert.ok(jobs.host.steps.some(row => row.run === 'npm run check:checkpoint-runtime'));
+  const observed = jobs.host.steps.find(row =>
+    row.name === 'Test operation authorization and unchanged Run observations');
+  assert.equal(observed.run, 'node --test adapters/host-node/authorization-account-current.test.mjs adapters/host-node/local-account-current.test.mjs adapters/host-node/client-run-state-revision.test.mjs');
+  assert.ok(jobs.host.steps.indexOf(observed) > jobs.host.steps.findIndex(row =>
+    row.run === 'npm run check:retained-boundary'));
 });
 
 test('manual integration keeps full core and explicit macOS opt-in', () => {
