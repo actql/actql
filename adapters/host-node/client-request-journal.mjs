@@ -3219,13 +3219,18 @@ export function openClientRequestJournal(directory, {
       if (original === undefined) return undefined;
       return Object.freeze({intent: original.intent, referenceWire: original.referenceWire,
         assertCurrent() {
-          ensureOpen();
-          const current = transaction.run(readOriginal);
-          if (current === undefined || current.intentCid !== original.intentCid ||
-              current.intentWire !== original.intentWire ||
-              current.referenceWire !== original.referenceWire ||
-              current.runDefinitionCid !== original.runDefinitionCid) {
-            fail('ClientRequestSubmittedIntentMismatch');
+          try {
+            ensureOpen();
+            const current = transaction.run(readOriginal);
+            if (current === undefined || current.intentCid !== original.intentCid ||
+                current.intentWire !== original.intentWire ||
+                current.referenceWire !== original.referenceWire ||
+                current.runDefinitionCid !== original.runDefinitionCid) {
+              fail('ClientRequestSubmittedIntentMismatch');
+            }
+          } catch (error) {
+            previousRunRow = previousRunFacts = previousIntent = previousReference = undefined;
+            throw error;
           }
         }});
     },
