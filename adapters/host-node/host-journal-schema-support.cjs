@@ -22,5 +22,47 @@ const sql = Object.freeze([
   "CREATE TABLE client_submitted_intent_custody (\n          singleton INTEGER PRIMARY KEY CHECK (singleton = 1),\n          issued_count INTEGER NOT NULL CHECK (issued_count >= 0)\n        ) STRICT",
   "CREATE TABLE client_submitted_intent_retirement (\n          singleton INTEGER PRIMARY KEY CHECK (singleton = 1),\n          retired_count INTEGER NOT NULL CHECK (retired_count >= 0)\n        ) STRICT",
   "CREATE TABLE client_submitted_intents (\n          submission_id TEXT PRIMARY KEY,\n          authority_scope_cid TEXT NOT NULL,\n          nonce TEXT NOT NULL,\n          epoch_wire TEXT NOT NULL,\n          intent_cid TEXT NOT NULL,\n          intent_wire TEXT NOT NULL,\n          accepted_at INTEGER NOT NULL,\n          phase TEXT NOT NULL CHECK (phase IN ('preparing', 'not_accepted', 'preparation_failed', 'ready', 'held')),\n          outcome_wire TEXT,\n          revision INTEGER NOT NULL DEFAULT 0 CHECK (revision >= 0)\n        ) STRICT"
+  ,`CREATE TABLE client_submitted_intent_usage (
+    singleton INTEGER PRIMARY KEY CHECK (singleton = 1),
+    retained_count INTEGER NOT NULL CHECK (retained_count >= 0 AND retained_count <= 9007199254740991),
+    retained_bytes INTEGER NOT NULL CHECK (retained_bytes >= 0 AND retained_bytes <= 67108864),
+    revision INTEGER NOT NULL CHECK (revision >= 0 AND revision <= 9007199254740991)
+  ) STRICT`,
+  `CREATE TABLE client_submission_restart_usage (
+    singleton INTEGER PRIMARY KEY CHECK (singleton = 1),
+    retained_count INTEGER NOT NULL CHECK (retained_count >= 0 AND retained_count <= 9007199254740991),
+    retained_bytes INTEGER NOT NULL CHECK (retained_bytes >= 0 AND retained_bytes <= 67108864),
+    revision INTEGER NOT NULL CHECK (revision >= 0 AND revision <= 9007199254740991)
+  ) STRICT`,
+  `CREATE TRIGGER client_submitted_intent_usage_insert AFTER INSERT ON client_submitted_intents BEGIN
+    UPDATE client_submitted_intent_usage SET retained_count = retained_count + 1,
+      retained_bytes = retained_bytes + length(CAST(NEW.intent_wire AS BLOB)),
+      revision = revision + 1 WHERE singleton = 1;
+  END`,
+  `CREATE TRIGGER client_submitted_intent_usage_delete AFTER DELETE ON client_submitted_intents BEGIN
+    UPDATE client_submitted_intent_usage SET retained_count = retained_count - 1,
+      retained_bytes = retained_bytes - length(CAST(OLD.intent_wire AS BLOB)),
+      revision = revision + 1 WHERE singleton = 1;
+  END`,
+  `CREATE TRIGGER client_submitted_intent_usage_update AFTER UPDATE OF intent_wire ON client_submitted_intents BEGIN
+    UPDATE client_submitted_intent_usage SET retained_bytes = retained_bytes
+      - length(CAST(OLD.intent_wire AS BLOB)) + length(CAST(NEW.intent_wire AS BLOB)),
+      revision = revision + 1 WHERE singleton = 1;
+  END`,
+  `CREATE TRIGGER client_submission_restart_usage_insert AFTER INSERT ON client_submission_restarts BEGIN
+    UPDATE client_submission_restart_usage SET retained_count = retained_count + 1,
+      retained_bytes = retained_bytes + length(CAST(NEW.link_wire AS BLOB)),
+      revision = revision + 1 WHERE singleton = 1;
+  END`,
+  `CREATE TRIGGER client_submission_restart_usage_delete AFTER DELETE ON client_submission_restarts BEGIN
+    UPDATE client_submission_restart_usage SET retained_count = retained_count - 1,
+      retained_bytes = retained_bytes - length(CAST(OLD.link_wire AS BLOB)),
+      revision = revision + 1 WHERE singleton = 1;
+  END`,
+  `CREATE TRIGGER client_submission_restart_usage_update AFTER UPDATE OF link_wire ON client_submission_restarts BEGIN
+    UPDATE client_submission_restart_usage SET retained_bytes = retained_bytes
+      - length(CAST(OLD.link_wire AS BLOB)) + length(CAST(NEW.link_wire AS BLOB)),
+      revision = revision + 1 WHERE singleton = 1;
+  END`
 ]);
 module.exports = Object.freeze({sql});

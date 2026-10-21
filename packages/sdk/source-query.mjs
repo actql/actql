@@ -1,4 +1,3 @@
-import {captureReadOptions, captureResultRead} from './result-schema.mjs';
 import {captureQueryResultRead, collectCapturedResult} from './internal/result-read.mjs';
 
 // A query composes existing admission, observation and Result owners. It never
@@ -121,22 +120,11 @@ export function sourceQuery(startSource, ClientError, retainResult, retainFailur
   // share this operation; each explicitly requested collection opens a read.
   Object.defineProperties(query, {
     requestId: {value: requestId, enumerable: true},
-    all: {value: (schemaOrOptions, options) => beforeResultRead !== undefined
-      ? collectSelected('all', schemaOrOptions, options)
-      : collectAfterQuery(query, retainResult,
-      () => captureResultRead(ClientError, schemaOrOptions, options),
-      (result, captured) => captured.validate === undefined
-        ? result.all(captured.options)
-        : result.all({'~standard': {version: 1, vendor: 'actql-captured',
-          validate: captured.validate}}, captured.options))},
-    one: {value: options => beforeResultRead !== undefined
-      ? collectSelected('one', options, undefined)
-      : collectAfterQuery(query, retainResult,
-      () => captureReadOptions(options), (result, captured) => result.one(captured))},
-    scalar: {value: options => beforeResultRead !== undefined
-      ? collectSelected('scalar', options, undefined)
-      : collectAfterQuery(query, retainResult,
-      () => captureReadOptions(options), (result, captured) => result.scalar(captured))},
+    // Both transport modes consume this call's captured options and schema
+    // through the existing nominal Result, rather than a second public intake.
+    all: {value: (schemaOrOptions, options) => collectSelected('all', schemaOrOptions, options)},
+    one: {value: options => collectSelected('one', options, undefined)},
+    scalar: {value: options => collectSelected('scalar', options, undefined)},
   });
   // The SDK properties above are immutable, but the native Promise must stay
   // extensible: Node attaches async-context state when hooks become active.

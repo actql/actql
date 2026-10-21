@@ -30672,7 +30672,7 @@
     },
     {
       "module": "adapters/host-node/host-journal-schema-support.cjs",
-      "sha256": "9677078c8c7df3c264d0b02f6f20e45bb9fa645f8c100cb5ed099a68bc27e44a",
+      "sha256": "2b0943fd525193f04f5033d6f73683ad509e9b9609d392a2525762c89798e163",
       "exports": [
         "commonjs:sql"
       ],
@@ -30754,6 +30754,10 @@
               {
                 "path": "adapters/host-node/host-journal-schema-support.test.mjs",
                 "anchor": "selected own-DDL bytes cover the actual primary, Source and observation schema then cold reopen"
+              },
+              {
+                "path": "adapters/host-node/host-journal-schema-support.test.mjs",
+                "anchor": "selected Journal reopens its own durable usage metadata without changing original bytes"
               }
             ]
           }

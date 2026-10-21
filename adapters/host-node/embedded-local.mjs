@@ -1992,6 +1992,26 @@ async function openInstalledHost(originalInstallation, preparation) {
     void checkpoints.sweep();
     return {requestId, kind: held.outcome};
   };
+  // Share one settlement reaction per original work Promise. A timed-out
+  // waiter removes its own listener without abandoning or retaining the
+  // original physical operation. Settlement is only a hint to read again.
+  const waitWork = new WeakMap();
+  const subscribeWaitWork = (promise, wake) => {
+    if (promise === undefined) return () => {};
+    let work = waitWork.get(promise);
+    if (work === undefined) {
+      work = {pending: true, listeners: new Set()};
+      waitWork.set(promise, work);
+      const settled = () => {
+        work.pending = false;
+        for (const listener of work.listeners) listener();
+        work.listeners.clear();
+      };
+      promise.then(settled, settled);
+    }
+    if (work.pending) work.listeners.add(wake);
+    return () => work.listeners.delete(wake);
+  };
   const wait = async ({ref, principalId: actual, until, since, signal}) => {
     if (until !== null && until !== 'terminal') {
       throw clientOperationError('InvalidWaitCondition');
@@ -2014,19 +2034,39 @@ async function openInstalledHost(originalInstallation, preparation) {
     };
     for (;;) {
       if (signal?.aborted) throw interruption();
-      // Reuse the original read/authorization owner. A caller timeout does
-      // not retire an unfinished Store read or the original physical work.
-      const current = await observeStep(observeRun({ref, principalId:actual}));
-      if (signal?.aborted) throw interruption();
-      const decision = installedRunWaitDecision(moon, current, since);
-      if (decision === 'ready') return current;
-      if (decision !== 'pending') throw clientOperationError(decision);
-      // One timer and one abort listener per wait. Never repeatedly attach
-      // reactions to an original physical Promise that may never settle.
-      let timer;
+      let wake, timer;
+      const changed = new Promise(resolve => { wake = resolve; });
+      const subscriptions = new Map();
+      const captureWork = () => {
+        for (const promise of [dispatchOwner.operation(ref),
+          effectResumeFlights.get(ref.runDefinitionCid),
+          modelResumeFlights.get(ref.runDefinitionCid)]) {
+          if (promise !== undefined && !subscriptions.has(promise)) {
+            subscriptions.set(promise, subscribeWaitWork(promise, wake));
+          }
+        }
+      };
       try {
-        await observeStep(new Promise(resolve => { timer = setTimeout(resolve, 100); }));
-      } finally { clearTimeout(timer); }
+        // Register before observation so completion during its asynchronous
+        // Store read remains latched even when that read still reports pending.
+        captureWork();
+        // Reuse the original read/authorization owner. A caller timeout does
+        // not retire an unfinished Store read or the original physical work.
+        const current = await observeStep(observeRun({ref, principalId:actual}));
+        if (signal?.aborted) throw interruption();
+        const decision = installedRunWaitDecision(moon, current, since);
+        if (decision === 'ready') return current;
+        if (decision !== 'pending') throw clientOperationError(decision);
+        // Also retain work that started during observation. The unchanged
+        // fallback observes other-process changes and later local work; neither
+        // a notification nor a settled Promise is a completion/cleanup receipt.
+        captureWork();
+        await observeStep(Promise.race([changed,
+          new Promise(resolve => { timer = setTimeout(resolve, 100); })]));
+      } finally {
+        clearTimeout(timer);
+        for (const unsubscribe of subscriptions.values()) unsubscribe();
+      }
     }
   };
   const prepareInferSelection = (preparedProgram, occurrence, retain = true) => {
