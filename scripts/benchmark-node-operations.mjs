@@ -6,7 +6,7 @@ import {appendFile, lstat, mkdir, readFile, readdir, writeFile} from 'node:fs/pr
 import {arch, platform, release, cpus, totalmem} from 'node:os';
 import {dirname, join, relative, resolve} from 'node:path';
 import {pathToFileURL} from 'node:url';
-import {assessLatency, collectOperationSamples} from './operation-performance.mjs';
+import {assessLatency, calibratedLatencyTarget, collectOperationSamples} from './operation-performance.mjs';
 
 const hash = bytes => createHash('sha256').update(bytes).digest('hex');
 // Independent literal oracles: JOIN selects the matching id and label; UNION
@@ -106,6 +106,27 @@ export async function runNodeWarmBenchmark({manifestPath, consumer, output, cont
     ? combined : nodeWarmProtocol(mode);
   assert.equal(controls.historyProtocolSha256, hash(Buffer.from(JSON.stringify(protocol))));
   assert(['isolated', 'concurrent'].includes(controls.load));
+  const executableSha256 = hash(await readFile(process.execPath));
+  const comparisonSeries = (operation, expected) => {
+    const query = nodeWarmSmallQueryFixtures.find(row => row.operation === operation);
+    return {operation, environmentSha256: hash(Buffer.from(JSON.stringify(actualEnvironment))),
+      executableSha256, load: controls.load,
+      fixtureSha256: query ? hash(Buffer.from(JSON.stringify(query))) : hash(Buffer.from('SELECT 1 AS id\n[{"id":1}]\n')),
+      ...(expected === undefined ? {} : {expectedSha256: hash(Buffer.from(JSON.stringify(expected)))}),
+      // These are independently stated workload/settings facts from the fixed
+      // experiment, never copied from the profile's expected conditions.
+      comparisonMatch: controls.comparisonMatches?.[operation], comparisonSettings: controls.comparisonSettings,
+      resultStorageMatch: controls.resultStorageMatches?.[operation]};
+  };
+  if (mode === 'final') {
+    const missing = nodeWarmProtocol(mode).operationOrder.flatMap(operation => {
+      const query = nodeWarmSmallQueryFixtures.find(row => row.operation === operation);
+      const expected = query?.expected ?? (operation === 'warm-status' ? undefined : [{id: 1}]);
+      return calibratedLatencyTarget(comparisonSeries(operation, expected), controls.comparison)
+        .missing.map(reason => `${operation}: ${reason}`);
+    });
+    assert.equal(missing.length, 0, `Final comparison profile incomplete before public open: ${missing.join('; ')}`);
+  }
   const before = await verifyNodeBenchmarkPackages(manifest, manifestPath, consumer);
   await mkdir(output, {mode: 0o700}); // An existing benchmark directory is never reused.
   const stateId = join(output, 'new-state'), hostId = randomUUID();
@@ -115,6 +136,7 @@ export async function runNodeWarmBenchmark({manifestPath, consumer, output, cont
   const report = {sourceSha: manifest.sourceSha, cohortSha256: identity.cohortSha256, environmentSha256,
     historyProtocolSha256: controls.historyProtocolSha256, mode, ordinaryPackageManifest: manifestPath,
     observedEnvironment: actualEnvironment,
+    ...(controls.comparison ? {comparison: controls.comparison} : {}),
     historyProtocol: protocol,
     load: controls.load, latency: [], diagnosticFindings: [], functional: {cohortSha256: identity.cohortSha256,
       environmentSha256, historyProtocolSha256: controls.historyProtocolSha256, rows: []}, cleanup: {closed: false},
@@ -145,6 +167,8 @@ export async function runNodeWarmBenchmark({manifestPath, consumer, output, cont
           ? {status: 'succeeded', revision: baseline.revision} : [{id: 1}]);
         const sampleIdentity = query ? {...identity,
           fixtureSha256: hash(Buffer.from(JSON.stringify(query)))} : identity;
+        const comparison = comparisonSeries(operation, expected);
+        const calibration = calibratedLatencyTarget(comparison, controls.comparison);
         let observed;
         const execute = query || operation === 'warm-select' ? async () => {
           observed = await client.sql(query?.text ?? 'SELECT 1 AS id').all(); assert.deepEqual(observed, expected);
@@ -155,8 +179,9 @@ export async function runNodeWarmBenchmark({manifestPath, consumer, output, cont
           observed = {status: state.status, revision: state.revision}; assert.deepEqual(observed, expected);
         };
         const collected = await collectOperationSamples({operation, mode, identity: sampleIdentity, stateId, execute,
+          ...(calibration.missing.length ? {} : {targetP95Ms: calibration.target.p95Ms}),
           emit: row => appendFile(join(output, 'samples.jsonl'), JSON.stringify({operation, ...row}) + '\n', {mode: 0o600})});
-        const series = {operation, mode, ...sampleIdentity, ...(query ? {query} : {}), environmentSha256,
+        const series = {...comparison, operation, mode, ...sampleIdentity, ...(query ? {query} : {}), environmentSha256,
           historyProtocolSha256: controls.historyProtocolSha256, ...nodeBenchmarkInstrumentation(), load: controls.load, ...collected};
         report.latency.push(series);
         report.functional.rows.push({operation, completed: collected.samples.every(row => row.verified),
@@ -185,7 +210,7 @@ export async function runNodeWarmBenchmark({manifestPath, consumer, output, cont
     }
     try { assert.deepEqual(await verifyNodeBenchmarkPackages(manifest, manifestPath, consumer), before); report.installedPayloadsUnchanged = true; }
     catch (error) { primary ??= error; report.packageFailure = error.message; }
-    report.assessments = report.latency.map(assessLatency);
+    report.assessments = report.latency.map(row => assessLatency(row, controls.comparison));
     report.fullAcceptance = false;
     await save();
   }
