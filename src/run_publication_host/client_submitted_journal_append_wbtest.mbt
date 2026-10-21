@@ -248,13 +248,13 @@ test "indexed fresh intents use fixed target and quota work across unrelated his
       append_original_record().intent,
       @request_scope.Admissible,
       1024,
-      (_, _) => fail("ordinary append must not scan"),
+      (_, _) => Err("ordinary append must not scan"),
       (table, key) => {
         calls.push(table + ":" + key)
         inventory_read(rows, table, key)
       },
-      _ => fail("ordinary append must not validate unrelated intent"),
-      _ => fail("ordinary append must not validate unrelated Run"),
+      _ => Err("ordinary append must not validate unrelated intent"),
+      _ => Err("ordinary append must not validate unrelated Run"),
       "custody",
       usage=Some(() => {
         calls.push("usage")
@@ -304,10 +304,10 @@ test "indexed append refuses missing stale noncanonical and exhausted quota with
       append_original_record().intent,
       @request_scope.Admissible,
       1024,
-      (_, _) => fail("no compatibility sweep during ordinary append"),
+      (_, _) => Err("no compatibility sweep during ordinary append"),
       (table, key) => inventory_read(rows, table, key),
-      _ => fail("no unrelated validation"),
-      _ => fail("no unrelated validation"),
+      _ => Err("no unrelated validation"),
+      _ => Err("no unrelated validation"),
       "custody",
       usage=Some(() => Ok(usage)),
     )
