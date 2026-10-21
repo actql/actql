@@ -161,6 +161,59 @@ test('synchronization requests cannot relabel a different measured mode', () => 
   control.protocolSha256 = createHash('sha256').update(JSON.stringify(control.protocol)).digest('hex');
   assert.throws(() => calibrateSqliteComparisonProfile(baseline, control), /requested\/readback/u);
 });
+test('checkpoint synchronization differences remain visible when fullfsync makes them equivalent', () => {
+  const baseline = syntheticSQLiteBaseline(); baseline.settings.fullfsync = 1;
+  const resultControl = syntheticResultStorageControl(baseline);
+  resultControl.settings = {...resultControl.settings, checkpoint_fullfsync: 1};
+  const before = JSON.stringify({baseline, resultControl});
+  const control = {baseline, resultControl, profile: calibrateSqliteComparisonProfile(baseline, resultControl)};
+  const expected = {matched: true, equivalentDifferences: [{setting: 'checkpoint_fullfsync', observed: 1,
+    comparator: 0, reason: 'fullfsync=1 selects full synchronization for all sync operations'}]};
+  assert.deepEqual(control.profile.resultStorage.synchronizationComparison, expected);
+  assert.equal(control.profile.settings.checkpoint_fullfsync, 0);
+  assert.equal(control.profile.resultStorage.conditions.settings.checkpoint_fullfsync, 1);
+  const row = matchedDiagnostic('warm-result', control);
+  row.comparisonSettings.checkpoint_fullfsync = 1;
+  row.resultStorageMatch = structuredClone(control.profile.resultStorage.conditions);
+  row.resultStorageMatch.settings.checkpoint_fullfsync = 0;
+  const assessed = assessLatency(row, control);
+  assert.deepEqual(assessed.target.synchronizationComparison, expected);
+  assert.deepEqual(assessed.target.resultStorageSynchronizationComparison.equivalentDifferences,
+    [{...expected.equivalentDifferences[0], observed: 0, comparator: 1}]);
+  assert(!assessed.missing.includes('matched stated transaction/durability settings'));
+  assert(!assessed.missing.includes('actual Result key/body/group correspondence'));
+  assert.equal(assessed.status, 'incomplete'); // No public essential-work or speed acceptance.
+  assert.equal(JSON.stringify({baseline, resultControl}), before);
+  const {resultStorage, ...withoutControl} = control.profile;
+  assert.deepEqual(withoutControl, calibrateSqliteComparisonProfile(baseline));
+});
+test('checkpoint equivalence refuses missing, invalid, fullfsync-off and unrelated setting differences', () => {
+  const baseline = syntheticSQLiteBaseline(); baseline.settings.fullfsync = 1;
+  const control = comparison(baseline);
+  for (const mutate of [s => {delete s.checkpoint_fullfsync;}, s => {s.checkpoint_fullfsync = 2;},
+    s => {s.checkpoint_fullfsync = '1';}, s => {s.fullfsync = 0;}, s => {delete s.fullfsync;},
+    s => {s.synchronous = 1;}, s => {s.sqliteVersion += '-foreign';}, s => {s.extra = true;}]) {
+    const row = matchedDiagnostic('warm-select', control);
+    row.comparisonSettings.checkpoint_fullfsync = 1;
+    mutate(row.comparisonSettings);
+    assert(calibratedLatencyTarget(row, control).missing.includes('matched stated transaction/durability settings'));
+  }
+  const off = syntheticSQLiteBaseline(), offControl = comparison(off);
+  const row = matchedDiagnostic('warm-select', offControl); row.comparisonSettings.checkpoint_fullfsync = 1;
+  assert(calibratedLatencyTarget(row, offControl).missing.includes('matched stated transaction/durability settings'));
+  for (const b of [baseline, off]) {
+    const result = syntheticResultStorageControl(b);
+    result.settings = {...result.settings, checkpoint_fullfsync: b.settings.fullfsync ? 2 : 1};
+    assert.throws(() => calibrateSqliteComparisonProfile(b, result), /durability differs/u);
+  }
+  const resultControl = syntheticResultStorageControl(baseline);
+  const withResult = {baseline, resultControl, profile: calibrateSqliteComparisonProfile(baseline, resultControl)};
+  const resultRow = matchedDiagnostic('warm-result', withResult);
+  resultRow.resultStorageMatch = structuredClone(withResult.profile.resultStorage.conditions);
+  resultRow.resultStorageMatch.settings.checkpoint_fullfsync = 1;
+  resultRow.resultStorageMatch.bodyBytes.clock += 1;
+  assert(calibratedLatencyTarget(resultRow, withResult).missing.includes('actual Result key/body/group correspondence'));
+});
 for (const [operation, p95Ms] of [['cold-existing', 2000], ['first-init', 5000], ['mock-workflow', 5000]]) {
   test(`${operation} retains its separately reported guardrail and sample minimum`, () => {
     const row = evidence(operation, p95Ms);

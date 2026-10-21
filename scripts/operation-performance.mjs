@@ -40,6 +40,25 @@ export function latencySummary(samples, minimum) {
 export const sqliteComparisonPolicy = Object.freeze({ratio: 3, minimumSamples: 100,
   noise: 'matched baseline p95 minus median', essentialTransactionsPerNewRun: 1});
 const evidenceHash = value => createHash('sha256').update(JSON.stringify(value) ?? 'null').digest('hex');
+const explicitSqliteSettings = value => value?.journal_mode === 'wal' && value.synchronous === 2 &&
+  typeof value.sqliteVersion === 'string' && [0, 1].includes(value.fullfsync) &&
+  [0, 1].includes(value.checkpoint_fullfsync);
+function sqliteSettingsComparison(observed, comparator) {
+  const result = {matched: false, equivalentDifferences: []};
+  if (!explicitSqliteSettings(observed) || !explicitSqliteSettings(comparator)) return result;
+  if (evidenceHash(observed) === evidenceHash(comparator)) return {...result, matched: true};
+  // https://www.sqlite.org/pragma.html#pragma_checkpoint_fullfsync:
+  // fullfsync selects the full method for all syncs, including checkpoints.
+  // Retain both observed flags; do not normalize the original reports/profile.
+  if (observed.fullfsync === 1 && comparator.fullfsync === 1 &&
+      observed.checkpoint_fullfsync !== comparator.checkpoint_fullfsync &&
+      evidenceHash({...observed, checkpoint_fullfsync: comparator.checkpoint_fullfsync}) === evidenceHash(comparator)) {
+    return {matched: true, equivalentDifferences: [{setting: 'checkpoint_fullfsync',
+      observed: observed.checkpoint_fullfsync, comparator: comparator.checkpoint_fullfsync,
+      reason: 'fullfsync=1 selects full synchronization for all sync operations'}]};
+  }
+  return result;
+}
 // The original collector hashes bytes, not a JSON string, for the seed fixture.
 const seedFixture = createHash('sha256').update('SELECT 1 AS id\n[{"id":1}]\n').digest('hex');
 const comparisonQueries = Object.freeze({
@@ -58,9 +77,10 @@ function resultStorageComparison(control, baseline) {
     control.productAcceptance === false, 'Bounded Result storage control required');
   requireValue(control.cleanup?.closed === true && control.failure == null && control.profiled === false,
     'Completed successful unprofiled Result control required');
+  const synchronizationComparison = sqliteSettingsComparison(control.settings, baseline.settings);
   requireValue(control.executableSha256 === baseline.executableSha256 && digest(control.collectorSha256) &&
     evidenceHash(control.environment) === evidenceHash(baseline.environment) && control.load === baseline.load &&
-    evidenceHash(control.settings) === evidenceHash(baseline.settings), 'Result control runtime/environment/durability differs');
+    synchronizationComparison.matched, 'Result control runtime/environment/durability differs');
   const protocol = control.protocol, groups = ['clock', 'start', 'end'];
   requireValue(protocol?.binding === 'node:sqlite DatabaseSync' && protocol.concurrency === 1 &&
     control.protocolSha256 === evidenceHash(protocol), 'Fixed Result control protocol required');
@@ -110,6 +130,7 @@ function resultStorageComparison(control, baseline) {
     ownerMapping: control.ownerMapping, conditions: {keyWidths, bodyBytes: sizes,
       payload: protocol.payload, preparation: protocol.preparation, groups, settings: control.settings},
     summary, coverage: protocol.coverage, noiseMs,
+    ...(synchronizationComparison.equivalentDifferences.length ? {synchronizationComparison} : {}),
     diagnosticLimits: {medianMs: 3 * summary.medianMs + noiseMs, p95Ms: 3 * summary.p95Ms + noiseMs,
       ratio: 3, basis: 'whole minimal Result control including indexed materialization'},
     qualification: 'Measured minimal Result storage only. Required Account, typed/cryptographic work and actual public context correspondence remain separate; this is not an unconditional SDK SLA.'};
@@ -124,9 +145,7 @@ export function calibrateSqliteComparisonProfile(baseline, resultControl) {
   requireValue(digest(baseline.executableSha256) && digest(baseline.collectorSha256) &&
     baseline.protocolSha256 === evidenceHash(baseline.protocol), 'Comparator source/tool/protocol identity required');
   requireValue(baseline.environment && nonempty(baseline.environment.node), 'Explicit comparator runtime required');
-  requireValue(baseline.settings?.journal_mode === 'wal' && baseline.settings.synchronous === 2 &&
-    typeof baseline.settings.sqliteVersion === 'string' &&
-    [0, 1].includes(baseline.settings.fullfsync) && [0, 1].includes(baseline.settings.checkpoint_fullfsync),
+  requireValue(explicitSqliteSettings(baseline.settings),
   'Explicit WAL/FULL/fullfsync/checkpoint synchronization settings required');
   if (Object.hasOwn(baseline.protocol, 'fullfsyncRequested')) requireValue(typeof baseline.protocol.fullfsyncRequested === 'boolean' &&
     baseline.settings.fullfsync === Number(baseline.protocol.fullfsyncRequested), 'Comparator requested/readback synchronization differs');
@@ -201,22 +220,26 @@ export function calibratedLatencyTarget(series, comparison) {
   const entry = actual.entries.find(row => row.operation === series.operation);
   if (!entry) return {target, missing: ['matched SQLite operation comparator']};
   const storage = series.operation === 'warm-result' ? actual.resultStorage : undefined;
+  const synchronizationComparison = sqliteSettingsComparison(series.comparisonSettings, actual.settings);
+  const resultStorageSynchronizationComparison = storage
+    ? sqliteSettingsComparison(series.resultStorageMatch?.settings, storage.conditions.settings) : undefined;
   const missing = storage ? ['required public work coverage outside the storage control']
     : ['matched minimum public essential-work comparator'];
-  if (storage && evidenceHash(series.resultStorageMatch) !== evidenceHash(storage.conditions)) {
+  if (storage && (!resultStorageSynchronizationComparison.matched ||
+      evidenceHash({...series.resultStorageMatch, settings: storage.conditions.settings}) !== evidenceHash(storage.conditions))) {
     missing.push('actual Result key/body/group correspondence');
   }
   if (['warm-result', 'warm-status'].includes(series.operation)) missing.push('actual saved-row/key/durability comparator correspondence');
   if (actual.environmentSha256 !== series.environmentSha256 || actual.load !== series.load) missing.push('matched comparator environment/load');
   if (series.executableSha256 !== comparison.baseline.executableSha256) missing.push('matched comparator runtime executable');
-  if (evidenceHash(series.comparisonSettings) !== evidenceHash(actual.settings)) missing.push('matched stated transaction/durability settings');
+  if (!synchronizationComparison.matched) missing.push('matched stated transaction/durability settings');
   if (entry.fixtureSha256 !== series.fixtureSha256 || series.expectedSha256 !== entry.expectedSha256) missing.push('matched public fixture/oracle');
   if (evidenceHash(series.comparisonMatch) !== evidenceHash(entry.conditions)) missing.push('matched data/indexes/materialization/preparation/durability conditions');
   // These measured engine/minimum-control limits are diagnostic history. They
   // become public acceptance limits only after the existing semantic Owner's
   // required transitions have a matched measured comparator.
-  return {target: {...target, diagnosticComparison: entry,
-    ...(storage ? {resultStorageComparison: storage} : {})}, missing};
+  return {target: {...target, diagnosticComparison: entry, synchronizationComparison,
+    ...(storage ? {resultStorageComparison: storage, resultStorageSynchronizationComparison} : {})}, missing};
 }
 
 export function assessLatency(series, comparison) {
