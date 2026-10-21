@@ -8452,7 +8452,7 @@
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "else await preparation.admitRootFormat(root);"
+                "anchor": ": await preparation.admitRootFormat(root);"
               }
             ],
             "failure": [
