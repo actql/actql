@@ -229,7 +229,8 @@ test "current loss at the next Account boundary refuses an earlier Allow" {
       connection: "local-files",
       resource: "run",
       operation: "publish",
-    }) is Ok(@authorization.Allow(_)),
+    })
+    is Ok(@authorization.Allow(_)),
   )
   assert_true(
     client_local_adopted_account_outcome(material, store, {
@@ -268,7 +269,8 @@ test "scope retains one immutable projection but each new operation checks curre
   assert_true(
     client_local_adopted_authority_scope_body(
       material, store, "other", "local-files",
-    ) is Err(ChangedCurrent),
+    )
+    is Err(ChangedCurrent),
   )
   assert_eq(calls.val, 5)
 }

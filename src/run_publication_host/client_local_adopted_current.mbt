@@ -233,7 +233,8 @@ pub fn[Store, E] client_local_adopted_authority_scope_body(
     Err(issue) => return Err(issue)
   }
   if material.scope_cache is Some((cached_principal, cached_connection, body)) &&
-    principal == cached_principal && connection == cached_connection {
+    principal == cached_principal &&
+    connection == cached_connection {
     return Ok(Bytes::makei(body.length(), index => body[index]))
   }
   let body = match
