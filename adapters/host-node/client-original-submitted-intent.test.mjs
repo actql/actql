@@ -67,6 +67,11 @@ async function fixture(t, {selected = true, readOnly = false, link = true} = {})
     } finally {database.close();}
   };
   return {path, reference, intent, request, identity, accepted, readRow, mutate,
+    update(sql, ...parameters) {
+      const database = new DatabaseSync(join(path, 'client-requests.sqlite3'));
+      try {return database.prepare(sql).run(...parameters);}
+      finally {database.close();}
+    },
     get journal() {return journal;},
     read: (requestControl = moon, publicationControl = publication) =>
       journal.originalSubmittedIntent(identity, fields, requestControl, publicationControl),
@@ -115,11 +120,53 @@ test('one original submitted-content handle admits each unchanged row once', asy
   assert.deepEqual(counts, {identity: 1, intent: 1, definition: 1});
   original.assertCurrent();
   original.assertCurrent();
+  f.update('UPDATE client_submission_epoch_authority SET observed_at=observed_at+1');
+  original.assertCurrent();
   assert.deepEqual(counts, {identity: 1, intent: 1, definition: 1},
     'same selected scalar rows reuse the actual admitted originals, not another decode/hash');
   f.read(requestControl, publicationControl).assertCurrent();
   assert.deepEqual(counts, {identity: 2, intent: 2, definition: 2},
     'a distinct original operation has its own initial admission');
+  f.mutate(value => {value.authorization = 'changed-valid-authorization-wire';});
+  original.assertCurrent();
+  assert.deepEqual(counts, {identity: 2, intent: 2, definition: 3},
+    'a changed Run row revalidates its Run facts without decoding the unchanged intent');
+  assert.deepEqual(Object.keys(f.journal.lookupSubmittedIntent(f.reference, fields, moon)).sort(),
+    ['intentCid', 'intentWire', 'outcome', 'phase', 'requestId', 'revision', 'submissionRef'],
+    'public submission records do not expose the private admitted intent or row snapshots');
+});
+
+for (const [label, sql, expected] of [
+  ['intent wire', "UPDATE client_submitted_intents SET intent_wire='{}'", 'ClientSubmittedIntentCorrupt'],
+  ['epoch key', "UPDATE client_submission_epoch_authority SET authentication_key='" + '1'.repeat(64) + "'", 'ClientSubmittedIntentCorrupt'],
+  ['Run custody', 'UPDATE client_submission_custody SET issued_count=issued_count+1', 'ClientRequestSubmissionCustodyLost'],
+  ['intent custody', 'UPDATE client_submitted_intent_custody SET issued_count=issued_count+1', 'ClientSubmittedIntentCustodyLost'],
+  ['restart custody', 'UPDATE client_submission_restart_custody SET issued_count=issued_count+1', 'ClientSubmissionRestartCustodyLost'],
+]) {
+  test(`original submitted-content reuse still observes changed ${label}`, async t => {
+    const f = await fixture(t), original = f.read();
+    original.assertCurrent();
+    f.update(sql);
+    assert.throws(() => original.assertCurrent(), {code: expected});
+    assert.throws(() => f.read(), {code: expected});
+    assert.equal(moon.clientSubmittedIntentRequestsCommitStop(original.intent), true);
+  });
+}
+
+test('failed original-content observation discards its retained decoded facts', async t => {
+  const f = await fixture(t);
+  let admissions = 0;
+  const requestControl = {...moon, clientSubmittedIntent(...args) {
+    admissions++;
+    return Reflect.apply(moon.clientSubmittedIntent, moon, args);
+  }};
+  const original = f.read(requestControl);
+  assert.equal(admissions, 1);
+  f.mutate(value => {value.submittedIntentCid = cid('f');});
+  assert.throws(() => original.assertCurrent(), {code: 'ClientRequestSubmittedIntentMismatch'});
+  f.mutate(value => {value.submittedIntentCid = moon.clientSubmittedIntentCid(f.intent);});
+  original.assertCurrent();
+  assert.equal(admissions, 2, 'after a failed observation the restored bytes require new admission');
 });
 
 for (const [label, selected, expected] of [

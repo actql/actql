@@ -151,6 +151,16 @@ assertion and unchanged explicit submission packet. Transport loss retains
 Unknown; neither an error code nor an unavailable named supplier selects a
 legacy operation, automatic restart or new preparation.
 
+An existing same-Run submitted-content handle retains its admitted request,
+Run and intent facts. Its current check still reads the selected Journal rows,
+epoch key and restart linkage under the same transaction and checks issuance
+custody. Identical scalar rows reuse those immutable facts instead of repeating
+decode, hash or reference serialization. A changed row or key re-enters the
+existing validation, and a failed observation discards the retained facts.
+The decoded intent remains private to that handle; public submission records
+retain their wire shape. A new handle performs its own admission. None of this
+supplies current Account authority, a resume/physical-start claim or an ACK.
+
 Names have finite admission capacity under the existing Journal limit. There
 is no automatic eviction: formal pre-Run intent retirement leaves its named
 binding unresolved and occupied rather than making the name unused. Missing
