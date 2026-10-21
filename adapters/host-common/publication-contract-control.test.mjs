@@ -289,8 +289,8 @@ test('native publication metadata is not duplicated by a mixed legacy group', as
   const invocation = control.seal('run_invocation',JSON.stringify({version:'actql-run-invocation/0.1',
     invocation_template_cid:cid('1'),observation_set_cid:cid('2')}),limits);
   const record = control.seal('publication_record',JSON.stringify({version:'actql-publication-record/0.1',
-    publication_attempt_cid:cid('3'),sequence:0,previous_record_cid:null,state:'preparing',
-    recorded_at:'2026-09-18T00:00:00.000Z'}),limits);
+    publication_attempt_cid:cid('3'),sequence:0,state:'preparing',cleanup_owner_cids:[],
+    observed_at:'2026-09-18T00:00:00.000Z'}),limits);
   const directory = await mkdtemp(join(tmpdir(),'actql-publication-native-mixed-'));
   let store;
   t.after(async () => { if (store !== undefined) await store.close(); await rm(directory,{recursive:true}); });
