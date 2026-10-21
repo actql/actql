@@ -37051,7 +37051,7 @@
     {
       "module": "adapters/host-node/installed-content-family.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "acf70cbacf41561bd7e15477ffe745a94174983b62f0cfde4c2771f4237a620a",
+      "sha256": "b0dc1a945898c14515d459a792db628939e90d58b4995b23af92103583062feb",
       "role": "physical-io",
       "owner": "Existing Content/Reference/completion/publication Owners and physical Store writer",
       "exports": [
@@ -37597,7 +37597,7 @@
     {
       "module": "adapters/host-node/installed-content-run.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "6bb6d614d1f00c742231d28b314c1dc4b798fc91731a76409026a6740161e29c",
+      "sha256": "7745a120dd0d9325d77b9d194e93523b180b9890dab111fcf8a9e8ba583ede0f",
       "role": "physical-io",
       "owner": "Existing Content/Reference/completion/publication Owners and physical Store writer",
       "exports": [
