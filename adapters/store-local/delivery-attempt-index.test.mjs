@@ -21,6 +21,40 @@ for (const missing of ['publication_contracts','publication_usage']) {
   });
 }
 
+for (const afterCommit of [false,true]) {
+  test(`native publication retirement confirms the same ${afterCommit ? 'committed' : 'rolled-back'} removal without refunding twice`,async t => {
+    const directory = await mkdtemp(join(tmpdir(),'actql-native-publication-retirement-'));
+    let index, armed = false, lost = false;
+    t.after(async () => { index?.close(); await rm(directory,{recursive:true}); });
+    const exec = DatabaseSync.prototype.exec;
+    t.mock.method(DatabaseSync.prototype,'exec',function(sql) {
+      if (armed && !lost && sql === 'COMMIT') {
+        lost = true;
+        if (afterCommit) Reflect.apply(exec,this,[sql]);
+        throw Object.assign(new Error('lost original metadata removal reply'),{code:'EIO'});
+      }
+      return Reflect.apply(exec,this,[sql]);
+    });
+    index = await openDeliveryAttemptIndex(join(directory,'index.sqlite3'),
+      {create:true,maxEntries:2,maxWireBytes:4096});
+    index.migrate([]);
+    // Existing physical-index boundary; no Run/Account/semantic issuer.
+    const entry = {semantic_cid:'sha256:'+'1'.repeat(64),name:'run_invocation',wire:'{}',byte_count:2};
+    const other = {...entry,semantic_cid:'sha256:'+'2'.repeat(64)};
+    index.putPublicationContracts([entry,other],{objects:2,bytes:4});
+    armed = true;
+    assert.throws(() => index.removePublicationContract(entry),
+      error => error.outcome === 'unknown');
+    assert.throws(() => index.removePublicationContract(other),{code:'DeliveryAttemptIndexCommitOutcomeUnknown'});
+    assert.equal(index.removePublicationContract(entry).objects,1);
+    assert.equal(index.publicationUsage().bytes,2);
+    assert.equal(index.publicationContract(entry.semantic_cid),undefined);
+    assert.deepEqual(index.publicationContract(other.semantic_cid),other);
+    assert.equal(index.removePublicationContract(entry).objects,1);
+    assert.equal(index.publicationUsage().bytes,2,'idempotent removal does not refill capacity twice');
+  });
+}
+
 test('same original indexed removal retries after a lost COMMIT reply without decrementing twice', async t => {
   const directory = await mkdtemp(join(tmpdir(),'actql-delivery-index-removal-'));
   let index;

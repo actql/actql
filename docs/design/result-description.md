@@ -78,6 +78,7 @@ Publication setup can persist its finite immutable contract inventory through
 the existing Store's grouped contract operation. It owns the supplied name/wire
 pairs before callbacks, admits each distinct body, and applies the Store's
 object-count, per-body and aggregate storage limits before physical acquisition.
+Legacy/raw file-backed groups retain the existing physical batch protocol.
 Every new body retains its actual file write, synchronization and original
 close. The group shares the object-directory and semantic-link-directory
 acknowledgements; no caller receives provisional per-contract durability.
@@ -89,6 +90,33 @@ group never falls back to repeating individual writes. Empty inventories do no
 persistence work. Wire identities and the existing physical file layout remain
 unchanged.
 
+The same-original publication operation stores new immutable metadata bodies in
+the existing Store SQLite database, with one actual `FULL`/`fullfsync` transaction
+for the group. It does not also create per-body object files and semantic hard
+links. Existing file originals remain files, and Index/schema and the existing
+attempt/progress file protocols keep their original representation. A repeated
+raw write of an already native body uses that same native original, not a second
+physical copy. Public contract wires, identities and publication authorization
+are unchanged; the public Index retains its separate logical commit.
+
+The database persists native body count and UTF-8 bytes in the same transaction
+as insertion/removal. These consume the same Store object and byte limits as
+file bodies and pending reservations; they are not SQLite heap or disk extent
+claims. Opening reads the bounded usage singleton, not every historical body.
+Only a supported older private format can first adopt the additive tables;
+missing adopted tables/counters refuse instead of resetting usage. A lost COMMIT
+reply retains the exact original metadata group and its capacity reservation.
+Only a real same-database confirmation write can settle that same duty; a visible
+row is not an ACK, and no Run, claim, grant or protected action is replayed.
+
+The private metadata inventory distinguishes native bodies from physical files.
+Native entries retain their semantic identity, complete-body digest and byte
+count, never a fabricated file path or file ACK. Last-reference retirement uses
+the same database transaction and decrements usage once, including idempotent
+same-original recovery after Unknown. Shared bodies stay live for other actual
+publication inventories. Payload files and native database close retain their
+separate original acknowledgements.
+
 That setup can pass the original immutable contracts from the same publication
 control directly to its Store. The existing control retains the actual issuer's
 captured wire/node/depth bounds with each original. Compatible consumer bounds
@@ -98,7 +126,7 @@ unsupported bounds use the normal admission path; none is treated as permission.
 The conservative bound on JSON nodes uses the canonical wire's UTF-16 length,
 and its UTF-8 byte upper is bounded by three bytes per code unit and the issuer's
 checked byte ceiling. These are pure immutable representation facts, not a
-Store-wide Allow or successful-disk-read cache. Selected disk reads still admit
+Store-wide Allow or successful-disk-read cache. Selected storage reads still admit
 their actual bytes, and physical writes, durability, current authority and
 cleanup retain their independent checks and original acknowledgements.
 
@@ -133,13 +161,13 @@ these facts do not authorize an Effect or replace any durable acknowledgement.
 Known file-backed Index and Result-schema reads select their file representation
 directly; they do not first query the native delivery-metadata tables. The
 selected file still supplies its real bounded bytes, inode/digest checks and
-close duty. Generic semantic reads and the native delivery contract families
-retain their existing native lookup and file fallback.
+close duty. Generic semantic reads and supported native publication/delivery
+families use selected database rows with legacy file fallback.
 
-Typed publication evidence selects that same representation before the commit's
+Typed publication evidence selects its storage representation before the commit's
 generic inventory traversal. The traversal reuses those acquired originals;
-it does not query delivery metadata merely because it encountered their CIDs
-before their known contract families. The admitted Index also has its known
+it does not repeat the same selected row/file admission merely because it
+encountered the CID again. The admitted Index also has its known
 file representation. Additional untyped inventory still receives its original
 generic lookup, and missing originals refuse before publication becomes visible.
 

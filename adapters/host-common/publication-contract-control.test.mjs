@@ -244,6 +244,46 @@ test('native publication capacity and legacy files share the original Store limi
   }
 });
 
+test('native publication bodies retain byte capacity and cold actual-wire admission', async t => {
+  let admissions = 0;
+  const control = runtimeCore(Object.freeze({...moon,strategyPublicationAdmit(...args) {
+    admissions++;
+    return Reflect.apply(moon.strategyPublicationAdmit,moon,args);
+  }})).publicationControl;
+  const contracts = [1,3].map(digit => control.seal('run_invocation',JSON.stringify({
+    version:'actql-run-invocation/0.1',invocation_template_cid:cid(String(digit)),
+    observation_set_cid:cid(String(digit+1)),
+  }),limits));
+  const byteCount = Buffer.byteLength(contracts[0].wire,'utf8');
+  assert.equal(Buffer.byteLength(contracts[1].wire,'utf8'),byteCount);
+  const directory = await mkdtemp(join(tmpdir(),'actql-publication-native-bytes-'));
+  let store;
+  t.after(async () => { if (store !== undefined) await store.close(); await rm(directory,{recursive:true}); });
+  const configuration = {directory,storeAuthorityCid:cid('5'),capacityBytes:2*byteCount-1,
+    maxObjectBytes:byteCount,maxObjects:100,maxContractNodes:4096,maxContractDepth:64};
+  store = await openLocalPublicationStore(configuration,control);
+  await assert.rejects(store.putOriginalPublicationContracts(contracts),{code:'PublicationStoreCapacity'});
+  assert.equal(store.status().objectCount,0);
+  assert.equal(store.status().reservedObjects,0);
+  await store.putOriginalPublicationContracts([contracts[0]]);
+  assert.equal(admissions,3,'these tighter consumer wire bounds keep the normal admission fallback');
+  await assert.rejects(store.putBytes(Buffer.alloc(byteCount)),{code:'PublicationStoreCapacity'});
+  await store.close();
+  store = await openLocalPublicationStore(configuration,control);
+  assert.equal((await store.readPublicationContract(contracts[0].identity,contracts[0].name)).wire,contracts[0].wire);
+  assert.equal(admissions,4,'a cold selected row admits the actual acquired wire once');
+  await store.close();
+  // Dedicated new fixture corruption, not mutation/replay of any original Run.
+  const database = new DatabaseSync(join(directory,'delivery-attempts.sqlite3'));
+  try { database.prepare('UPDATE publication_contracts SET wire=? WHERE semantic_cid=?')
+    .run(contracts[1].wire,contracts[0].identity); }
+  finally { database.close(); }
+  store = await openLocalPublicationStore(configuration,control);
+  await assert.rejects(store.readPublicationContract(contracts[0].identity,contracts[0].name),
+    {code:'InvalidDeliveryAttemptIndex'});
+  assert.equal(admissions,5,'a mismatched selected original does not inherit another body\'s identity');
+});
+
 test('publication originals preserve owner identity and captured issuance bounds', () => {
   const control = runtimeCore(moon).publicationControl;
   const selected = {maxWireBytes: 65536, maxNodes: 4096, maxDepth: 64};
