@@ -8,6 +8,7 @@ import {installedSourcePublicationFacts} from './installed-source.mjs';
 // These associations add no registry, persistent record or execution authority.
 const namespaces = new WeakMap();
 const observations = new WeakMap();
+const publicationOriginals = new WeakMap();
 const unresolved = () => Object.freeze({state: 'unresolved'});
 const digest = value => `sha256:${createHash('sha256')
   .update(JSON.stringify(value)).digest('hex')}`;
@@ -189,9 +190,10 @@ export function sourceAliasPublication(moon, environment, aliases = [], tableWri
           Object.freeze({...binding.expectedTable}),
       }))),
     })});
-  if (typeof moon.clientProgramSourcePublicationValid !== 'function' ||
-      !moon.clientProgramSourcePublicationValid(environment,
-        JSON.stringify(publication))) {
+  const wire = JSON.stringify(publication);
+  const preparedEnvironment = typeof moon.clientProgramPreparePublicSourceEnvironment !== 'function'
+    ? undefined : moon.clientProgramPreparePublicSourceEnvironment(environment, wire);
+  if (preparedEnvironment === undefined) {
     throw new TypeError('InvalidPublicSourcePublication');
   }
   const queryAlias = namespace === undefined ? undefined :
@@ -201,7 +203,26 @@ export function sourceAliasPublication(moon, environment, aliases = [], tableWri
   if (queryAlias !== undefined || sourceSelector !== undefined) {
     namespaces.set(publication, Object.freeze({queryAlias, sourceSelector}));
   }
+  publicationOriginals.set(publication, {moon, environment,
+    original: Object.freeze({wire, preparedEnvironment})});
   return publication;
+}
+
+// Only the owned declaration in its original runtime/Environment carries this
+// pure preparation. Equal fields or a copied publication do not recover it.
+export function sourceAliasPublicationOriginal(moon, environment, publication) {
+  const retained = publicationOriginals.get(publication);
+  return retained !== undefined && retained.moon === moon && retained.environment === environment
+    ? retained.original : undefined;
+}
+
+// Cut this declaration's association only. Other legitimate holders of the
+// pure Common value remain valid; this is not a physical release ACK.
+export function retireSourceAliasPublicationOriginal(moon, environment, publication) {
+  const retained = publicationOriginals.get(publication);
+  if (retained !== undefined && retained.moon === moon && retained.environment === environment) {
+    publicationOriginals.delete(publication);
+  }
 }
 
 // A current decision in its own short-lived scope: ordinary check/read grants

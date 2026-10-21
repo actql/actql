@@ -85,7 +85,8 @@ function serializeProgram({kind, input, parameters}) {
 
 export function installNodeClientProgramPreparation({moon, environment,
   allowEffects = false, effectEvidence = [], sourcePublication, valuesMaxRows, check,
-  verifyRequestValuePolicy, restoreEffectOriginal, restoreInferOriginal}) {
+  verifyRequestValuePolicy, restoreEffectOriginal, restoreInferOriginal,
+  getPreparedSourceEnvironment}) {
   if (!moon || typeof moon.clientProgramPrepareEffectFreeWithParameters !==
       'function' || typeof moon.clientProgramPreparationReady !== 'function' ||
       typeof moon.clientProgramPreparationIssue !== 'function' ||
@@ -95,6 +96,7 @@ export function installNodeClientProgramPreparation({moon, environment,
       (restoreEffectOriginal !== undefined && typeof restoreEffectOriginal !== 'function') ||
       (restoreInferOriginal !== undefined && typeof restoreInferOriginal !== 'function') ||
       (check !== undefined && typeof check !== 'function') ||
+      (getPreparedSourceEnvironment !== undefined && typeof getPreparedSourceEnvironment !== 'function') ||
       (verifyRequestValuePolicy !== undefined &&
         (typeof verifyRequestValuePolicy !== 'function' ||
           typeof moon.clientProgramRequestValuePolicySubjects !== 'function' ||
@@ -116,23 +118,35 @@ export function installNodeClientProgramPreparation({moon, environment,
   const effectOwned = new WeakSet();
   const sourceCheckFailures = new WeakSet();
   const installedEvidence = Object.freeze([...effectEvidence]);
-  const prepareEffect = !allowEffects ? undefined :
-    installNodeClientEffectProgramPreparation({moon,
-      environment, evidence: installedEvidence, publication: sourcePublication});
   let sourcePreparation;
+  const publicSourcePreparation = selectedEnvironment => selectedEnvironment === environment
+    ? (sourcePreparation ??= installNodePublicSourcePreparation({moon,
+      environment, publication: sourcePublication, allowEffects,
+      effectEvidence: installedEvidence, getPreparedSourceEnvironment}))
+    : installNodePublicSourcePreparation({moon,
+      environment: selectedEnvironment, publication: sourcePublication, allowEffects,
+      effectEvidence: installedEvidence});
+  const preparePublishedEffect = (request, selectedEnvironment) => {
+    const {document, format, supplied} = serializeProgram(request);
+    return effectPreparation(moon, publicSourcePreparation(selectedEnvironment)
+      .prepareEffect({document, format, supplied}));
+  };
+  if (allowEffects && sourcePublication !== undefined) {
+    // The Source and JSON Effect frontends borrow the same admitted
+    // publication, not two independently reconstructed catalogs.
+    publicSourcePreparation(environment);
+  }
+  const prepareEffect = !allowEffects ? undefined : sourcePublication === undefined
+    ? installNodeClientEffectProgramPreparation({moon,
+      environment, evidence: installedEvidence})
+    : request => preparePublishedEffect(request, environment);
   const prepare = (request, selectedEnvironment = environment) => {
     const {document, format, supplied, declarations} =
       serializeProgram(request);
     let outcome;
     const sourceFormat = ['aql', 'aql-text', 'sql'].includes(format);
     if (sourceFormat) {
-      const currentSourcePreparation = selectedEnvironment === environment
-        ? (sourcePreparation ??= installNodePublicSourcePreparation({moon,
-          environment, publication: sourcePublication, allowEffects,
-          effectEvidence: installedEvidence}))
-        : installNodePublicSourcePreparation({moon,
-        environment: selectedEnvironment, publication: sourcePublication, allowEffects,
-        effectEvidence: installedEvidence});
+      const currentSourcePreparation = publicSourcePreparation(selectedEnvironment);
       const source = currentSourcePreparation.prepare({document, format, declarations,
         supplied});
       if (source.kind === 'effectful') {
@@ -159,10 +173,11 @@ export function installNodeClientProgramPreparation({moon, environment,
     const issue = moon.clientProgramPreparationIssue(outcome);
     const category = moon.clientProgramPreparationIssueCode(outcome);
     if (!sourceFormat && category === 'effect_not_supported' && prepareEffect !== undefined) {
-      const effect = (selectedEnvironment === environment ? prepareEffect :
-        installNodeClientEffectProgramPreparation({moon,
-          environment: selectedEnvironment, evidence: installedEvidence,
-          publication: sourcePublication}))(request);
+      const effect = selectedEnvironment === environment ? prepareEffect(request)
+        : sourcePublication === undefined
+          ? installNodeClientEffectProgramPreparation({moon,
+            environment: selectedEnvironment, evidence: installedEvidence})(request)
+          : preparePublishedEffect(request, selectedEnvironment);
       effectOwned.add(effect);
       return effect;
     }
