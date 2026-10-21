@@ -4598,7 +4598,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "f73bf085db2bb0e48cda2a51d58f49337bce0586383f4ea1b3659f8cc17a151c",
+      "sha256": "3688c0d89e74c4b7038628d85d86e63d4f67623d71d2f96f4abb1426b3c59c06",
       "exports": [
         "PublicationStoreError",
         "assertOriginalLocalPublicationStoreFacilityCurrent",
@@ -4953,7 +4953,8 @@
         {
           "name": "openOriginalLocalPublicationStore/bindMetadataContractObjects/bindMetadataContractObjects",
           "parameters": [
-            "contractCids"
+            "contractCids",
+            "readOriginal"
           ],
           "async": true
         },
@@ -5114,6 +5115,14 @@
           "name": "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/inventorySemanticCids/inventorySemanticCids",
           "parameters": [
             "contract"
+          ],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/readOriginal/readOriginal",
+          "parameters": [
+            "cid",
+            "includeNative"
           ],
           "async": false
         },
@@ -5926,7 +5935,8 @@
             "preview",
             "receipts",
             "privateBinding",
-            "effectSources"
+            "effectSources",
+            "readOriginal"
           ],
           "async": true
         },
@@ -6694,7 +6704,8 @@
           "name": "openOriginalLocalPublicationStore/readContract/readContract",
           "parameters": [
             "cid",
-            "contractName"
+            "contractName",
+            "readOriginal"
           ],
           "async": true
         },
@@ -6979,29 +6990,37 @@
           "async": true
         },
         {
-          "name": "openOriginalLocalPublicationStore/readSemanticBytes/readSemanticBytes/cleanup/init:retry/init:retry",
+          "name": "openOriginalLocalPublicationStore/readSemanticOriginal/readSemanticBytes",
+          "parameters": [
+            "cid",
+            "includeNative"
+          ],
+          "async": true
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/readSemanticOriginal/readSemanticBytes/cleanup/init:retry/init:retry",
           "parameters": [],
           "async": false
         },
         {
-          "name": "openOriginalLocalPublicationStore/readSemanticBytes/readSemanticBytes/cleanup/init:retry/init:retry/init:retry",
+          "name": "openOriginalLocalPublicationStore/readSemanticOriginal/readSemanticBytes/cleanup/init:retry/init:retry/init:retry",
           "parameters": [],
           "async": true
         },
         {
-          "name": "openOriginalLocalPublicationStore/readSemanticBytes/readSemanticBytes/cleanup/init:retry/init:retry/init:retry#2",
+          "name": "openOriginalLocalPublicationStore/readSemanticOriginal/readSemanticBytes/cleanup/init:retry/init:retry/init:retry#2",
           "parameters": [],
           "async": false
         },
         {
-          "name": "openOriginalLocalPublicationStore/readSemanticBytes/readSemanticBytes/readSemanticBytes",
+          "name": "openOriginalLocalPublicationStore/readSemanticOriginal/readSemanticBytes/readSemanticBytes",
           "parameters": [
             "name"
           ],
           "async": false
         },
         {
-          "name": "openOriginalLocalPublicationStore/readSemanticBytes/readSemanticBytes/status/status",
+          "name": "openOriginalLocalPublicationStore/readSemanticOriginal/readSemanticBytes/status/status",
           "parameters": [],
           "async": false
         },
@@ -7461,14 +7480,16 @@
             "admitted",
             "entry",
             "suppliedEvidence",
-            "required"
+            "required",
+            "readOriginal"
           ],
           "async": true
         },
         {
           "name": "openOriginalLocalPublicationStore/verifyDurableResultBinding/verifyDurableResultBinding",
           "parameters": [
-            "contract"
+            "contract",
+            "readOriginal"
           ],
           "async": true
         },
@@ -8422,11 +8443,11 @@
             "openOriginalLocalPublicationStore/readResultRetentionExtension/readResultRetentionExtension/records/records#2",
             "openOriginalLocalPublicationStore/readRetainedResultExtension/readRetainedResultExtension",
             "openOriginalLocalPublicationStore/readSemanticBytes/readSemanticBytes",
-            "openOriginalLocalPublicationStore/readSemanticBytes/readSemanticBytes/cleanup/init:retry/init:retry",
-            "openOriginalLocalPublicationStore/readSemanticBytes/readSemanticBytes/cleanup/init:retry/init:retry/init:retry",
-            "openOriginalLocalPublicationStore/readSemanticBytes/readSemanticBytes/cleanup/init:retry/init:retry/init:retry#2",
-            "openOriginalLocalPublicationStore/readSemanticBytes/readSemanticBytes/readSemanticBytes",
-            "openOriginalLocalPublicationStore/readSemanticBytes/readSemanticBytes/status/status",
+            "openOriginalLocalPublicationStore/readSemanticOriginal/readSemanticBytes/cleanup/init:retry/init:retry",
+            "openOriginalLocalPublicationStore/readSemanticOriginal/readSemanticBytes/cleanup/init:retry/init:retry/init:retry",
+            "openOriginalLocalPublicationStore/readSemanticOriginal/readSemanticBytes/cleanup/init:retry/init:retry/init:retry#2",
+            "openOriginalLocalPublicationStore/readSemanticOriginal/readSemanticBytes/readSemanticBytes",
+            "openOriginalLocalPublicationStore/readSemanticOriginal/readSemanticBytes/status/status",
             "openOriginalLocalPublicationStore/reclaimCustody/reclaimCustody",
             "openOriginalLocalPublicationStore/reclaimCustody/reclaimCustody/operation/operation",
             "openOriginalLocalPublicationStore/reclaimCustody/reclaimCustody/operation/operation/confirmUnlink/confirmUnlink",
@@ -8562,7 +8583,9 @@
             "writeExclusive",
             "acquireStoreOwnership/ownership/init:release/init:release/acknowledged/acknowledged",
             "openOriginalLocalPublicationStore/bootstrap/bootstrap",
-            "readBounded/captureClose/captureClose"
+            "readBounded/captureClose/captureClose",
+            "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/readOriginal/readOriginal",
+            "openOriginalLocalPublicationStore/readSemanticOriginal/readSemanticBytes"
           ],
           "exports": [
             "PublicationStoreError",
@@ -8577,6 +8600,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "# Physical holding metadata publication"
+              },
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "One serialized Store publication commit retains the selected semantic metadata"
               }
             ],
             "inputsOutputs": [
@@ -8591,6 +8618,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "# Physical holding metadata publication"
+              },
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "const readOriginal = (cid, includeNative = true) => {"
               }
             ],
             "identity": [
@@ -8601,6 +8632,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "# Physical holding metadata publication"
+              },
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "return Object.freeze({bytes, physicalCid});"
               }
             ],
             "ownership": [
@@ -8615,6 +8650,10 @@
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "if (retirementReadCleanup !== undefined) {"
+              },
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "returned by the public mutable-byte API or retained as a Store-wide success or"
               }
             ],
             "synchronization": [
@@ -8629,6 +8668,10 @@
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "if (!acknowledged(state)) state = await originalApply(child.retry, child.handle, []);"
+              },
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "for (const cid of required) await readOriginal(cid);"
               }
             ],
             "failure": [
@@ -8643,6 +8686,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "# Physical holding metadata publication"
+              },
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "const primary = readFailed ? readFailure : closeFailure;"
               }
             ],
             "cancellation": [
@@ -8653,6 +8700,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "# Physical holding metadata publication"
+              },
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "activeSemanticReaders.delete(reader);"
               }
             ],
             "resources": [
@@ -8667,6 +8718,10 @@
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "const existing = JSON.parse(await readBounded(ownerPath, 4096));"
+              },
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "The selected buffers overlap for that operation and remain subject to the"
               }
             ],
             "extension": [
@@ -8677,6 +8732,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "# Physical holding metadata publication"
+              },
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "authorization cache. A distinct operation acquires its own originals. Native"
               }
             ],
             "verification": [
@@ -8731,6 +8790,14 @@
               {
                 "path": "adapters/store-local/ownership-retirement-read.test.mjs",
                 "anchor": "test('retirement retains the same failed metadata close before another read or owner removal'"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "test('one publication commit acquires each unchanged semantic original once', async t => {"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "test('publication commit never reuses a prior operation semantic original after mutation', async t => {"
               }
             ]
           }
@@ -9294,7 +9361,7 @@
             "extension": [
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
-"anchor": "own input; no admitted-record or authorization cache persists across calls."
+                "anchor": "own input; no admitted-record or authorization cache persists across calls."
               }
             ],
             "verification": [

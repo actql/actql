@@ -62,6 +62,18 @@ validation boundary. The reader retains its actual close duty, size/identity
 checks and bounded backing. Later acquisitions validate their new original;
 no persistent successful-digest cache hides changed bytes.
 
+One serialized Store publication commit retains the selected semantic metadata
+observations for its inventory, evidence and binding phases. The same private
+bytes and digest are consumed after their original read FD has closed, instead
+of reopening and rehashing the unchanged allocation at each internal phase.
+The selected buffers overlap for that operation and remain subject to the
+existing object/input bounds and allocation failure handling. They are not
+returned by the public mutable-byte API or retained as a Store-wide success or
+authorization cache. A distinct operation acquires its own originals. Native
+delivery metadata keeps its actual database original; payload holdings, current
+authorization, durable publication/claim transitions and pending cleanup retain
+their separate responsibilities and real acknowledgements.
+
 ## Delivery profile and bounds
 
 `format` defaults to `jsonl`. The current public delivery owner admits `json`,
