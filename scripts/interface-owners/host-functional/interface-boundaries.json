@@ -18746,7 +18746,7 @@
     {
       "module": "adapters/host-node/client-request-journal.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "0cf3f7fb2e51731759b30ae280e8ac1d6ae4ff3cf64b84479e685eb856867ad9",
+      "sha256": "5065f70b9e4dccb4b4d2b97e1ba6ae9a6620c5af83c57a929251e255cce26513",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
@@ -21461,6 +21461,10 @@
               {
                 "path": "adapters/host-node/client-submission-usage.test.mjs",
                 "anchor": "new submitted intent uses no historical aggregate with ${history} retained originals"
+              },
+              {
+                "path": "adapters/host-node/ordinary-host-journal.test.mjs",
+                "anchor": "ordinary Journal keeps native directory admission separate from accepted row projection"
               }
             ]
           }
