@@ -162,12 +162,10 @@ fn NativeLocalAdoptionSession::open_journal_selected(
   let first = match self.prepare_journal_marker(ownership, adoption_body) {
     Err(issue) => return Err(issue)
     Ok(true) => true
-    Ok(false) =>
-      match
-        self.inspect_retained_journal(library, max_snapshot_bytes, max_records) {
-        Ok(value) => value
-        Err(issue) => return Err(issue)
-      }
+    // The existing-only SQLite entrance cannot initialize missing schema or
+    // keys. Its fixed adoption/epoch anchors are checked before any command.
+    // Copying and auditing all historical rows is an explicit recovery task.
+    Ok(false) => false
   }
   if !first && (initial_signing is Some(_) || initial_policy is Some(_)) {
     return Err(AmbiguousInitialization)

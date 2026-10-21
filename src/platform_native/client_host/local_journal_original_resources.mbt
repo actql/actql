@@ -238,17 +238,16 @@ fn NativeLocalJournalCapture::open_original_journal_stages(
     Ok(value) => value
   }
   // Only the actual original marker selects first initialization. Existing
-  // Session admission and retained inspection keep missing/copy refusals.
+  // Session admission and the existing-only open retain missing-state refusals.
   let first = if marker {
     if self.session.existing_only {
       return Err(CustodyLost)
     }
     true
   } else {
-    match self.inspect_original_retained_journal(original, library) {
-      Err(issue) => return Err(issue)
-      Ok(value) => value
-    }
+    // Retain the same existing-only open and original physical cleanup. A
+    // normal command does not copy/audit unrelated retained business history.
+    false
   }
   if !first && self.initial_signing is Some(_) {
     return Err(AmbiguousInitialization)

@@ -139,17 +139,40 @@ fn NativeClientRunJournal::select_saved_state_run_id_locked(
   scope : String,
   run_id : String,
   reads? : NativeClientJournalReadAccess? = None,
-) -> Result[(NativeClientSubmissionReference, @host.ClientRequestIdentity, @publication.PublicationContract)?, NativeClientRunJournalIssue] {
-  if !self.transaction_active { return Err(CustodyLost) }
-  match client_journal_issuance_anchor(self.database, "client_submitted_intent_custody", self.max_records, reads~) {
+) -> Result[
+  (
+    NativeClientSubmissionReference,
+    @host.ClientRequestIdentity,
+    @publication.PublicationContract,
+  )?,
+  NativeClientRunJournalIssue,
+] {
+  if !self.transaction_active {
+    return Err(CustodyLost)
+  }
+  match
+    client_journal_issuance_anchor(
+      self.database,
+      "client_submitted_intent_custody",
+      self.max_records,
+      reads~,
+    ) {
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
-  let reference = match read_client_journal_value(self.database, "client_run_id_index", run_id_index_key(scope, run_id), reads) {
+  let reference = match
+    read_client_journal_value(
+      self.database,
+      "client_run_id_index",
+      run_id_index_key(scope, run_id),
+      reads,
+    ) {
     Ok(row) => {
-      if row.body == b"ambiguous" { return Err(ForeignRun) }
+      if row.body == b"ambiguous" {
+        return Err(ForeignRun)
+      }
       match read_run_id_index_reference(row.body) {
-        Ok(value) => value
+        Ok(value) => (value, true)
         Err(issue) => return Err(issue)
       }
     }
@@ -158,7 +181,13 @@ fn NativeClientRunJournal::select_saved_state_run_id_locked(
       // is only a locator candidate: its retained Run must prove the equality.
       // Arbitrary legacy IDs require explicit bounded indexing, not a scan on
       // every ordinary lookup and never permission to execute fresh work.
-      let row = match client_journal_read(self.database, "client_submitted_intents", run_id, reads~) {
+      let row = match
+        client_journal_read(
+          self.database,
+          "client_submitted_intents",
+          run_id,
+          reads~,
+        ) {
         Ok(Some(value)) => value
         Ok(None) => return Ok(None)
         Err(issue) => return Err(issue)
@@ -167,12 +196,17 @@ fn NativeClientRunJournal::select_saved_state_run_id_locked(
         Ok(value) => value
         Err(_) => return Err(CustodyLost)
       }
-      if @host.client_submission_reference_record_request_id(decoded.reference) != row.key {
+      if @host.client_submission_reference_record_request_id(decoded.reference) !=
+        row.key {
         return Err(CustodyLost)
       }
-      native_submission_reference_record(decoded.reference)
+      (native_submission_reference_record(decoded.reference), false)
     }
     Err(issue) => return Err(Physical(issue))
   }
-  self.run_id_original_locked(authority, reference, scope, run_id, reads~)
+  match
+    self.run_id_original_locked(authority, reference, scope, run_id, reads~) {
+    Ok(None) if indexed => Err(CustodyLost)
+    result => result
+  }
 }
