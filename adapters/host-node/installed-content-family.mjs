@@ -13,13 +13,16 @@ export function installEffectContentFamily({moon, control, publications, bodies,
   }
   const definition = JSON.parse(plan.runDefinition.wire);
   const sourceFree = moon.clientProgramEffectAcquisitionCount?.(prepared) === 0;
+  const compiledLimits = publications.checkedClientSerializationGenerationLimits(
+    plan.compiled, plan.serializationGraph);
   // These are the existing installed Local execution ceilings, not sampled
   // Source sizes. Authored generation bounds further constrain the encoder.
-  const output = Object.freeze({...outputLimits, maxRows: 100,
+  const output = Object.freeze({...outputLimits, maxRows: Math.min(100, compiledLimits.maxRows),
     maxValueNodes: 10000, maxValueTextBytes: 10000,
     maxWireBytes: 1000000, maxWireNodes: 10000,
     maxLogicalWireBytes: 1000000, maxLogicalWireNodes: 10003});
-  const generationLimits = Object.freeze({maxRows: 100, maxBytes: 10000,
+  const generationLimits = Object.freeze({maxRows: output.maxRows,
+    maxBytes: Math.min(10000, compiledLimits.maxBytes),
     maxValueNodes: 10000, maxValueDepth: 64, maxFrames: 100});
   const contractLimits = Object.freeze({maxWireBytes: 100000, maxNodes: 10000, maxDepth: 64});
   let active, capturedProof, writer, physical, byteHolding, retained, generation, recovery, storedOriginal;

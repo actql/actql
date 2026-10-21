@@ -66,6 +66,11 @@ export function installNodeContentRun({moon, core, registry, values, fragment, o
       throw new TypeError('InvalidInstalledContentRun');
     }
     const {task, step} = plan.serializationGraph;
+    const compiledLimits = publications.checkedClientSerializationGenerationLimits(
+      plan.compiled, plan.serializationGraph);
+    const selectedGenerationLimits = Object.freeze({...generationLimits,
+      maxRows: Math.min(generationLimits.maxRows, compiledLimits.maxRows),
+      maxBytes: Math.min(generationLimits.maxBytes, compiledLimits.maxBytes)});
     const definition = JSON.parse(plan.runDefinition.wire);
     const key = {namespaceId, authorityScopeCid, runDefinitionCid: plan.runDefinition.identity};
     let retired = false;
@@ -168,14 +173,14 @@ export function installNodeContentRun({moon, core, registry, values, fragment, o
       await faultInjection?.('content_workspace_reserved', {capacity});
       const output = await runGeneratedContentPrefix({control, prefix, remainingWork, chargeWork, signal});
       const barrier = control.prepare(preparedProgram, task, step, 10000);
-      const encoder = control.encoder(barrier, generationLimits);
+      const encoder = control.encoder(barrier, selectedGenerationLimits);
       input = control.bindInput(barrier, output, encoder);
       const inputEvidence = await identifyGeneratedContentInput({control, compiled: plan.compiled,
         input, limits: localOutputLimits, maxWorkspaceSlots: identitySlots,
         identityLimits: localContractLimits, remainingWork, chargeWork, signal, captured: capturedProof});
       await faultInjection?.('content_input_identified', {work, signal});
       signal?.throwIfAborted();
-      writer = store.createPreparedObjectWriter(generationLimits.maxBytes);
+      writer = store.createPreparedObjectWriter(selectedGenerationLimits.maxBytes);
       const generated = await writeGeneratedContent({control, input, writer, remainingWork, chargeWork, signal});
       if (!live()) throw new Error('InstalledContentAuthorityUnavailable');
       // The checked generation graph supplies its admitted policy; do not

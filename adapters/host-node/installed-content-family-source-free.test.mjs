@@ -4,24 +4,56 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {installEffectContentFamily} from './installed-content-family.mjs';
 
-function fixture(sourceCount){
+function fixture(sourceCount,{bounds={maxRows:1000,maxBytes:1000},boundFailure}={}){
   let appends=0,binds=0,cancelled=0;
+  let selectedLimits;
   const active=Object.freeze({}),proof=Object.freeze({});
+  const compiled=Object.freeze({}),graph=Object.freeze({});
   const owner=installEffectContentFamily({
     moon:{clientProgramEffectAcquisitionCount:()=>sourceCount},
-    control:{effectFamily(_prepared,_graph,_bodies,_limits,_port,retain){retain(active);return {};},
+    control:{effectFamily(_prepared,_graph,_bodies,limits,_port,retain){selectedLimits=limits;retain(active);return {};},
       familyPendingPiece(value){assert.strictEqual(value,active);return{revision:1,piece:Buffer.from('exact')};},
       familyAcknowledgePiece(value,revision){assert.strictEqual(value,active);assert.equal(revision,1);return true;}},
-    publications:{bindCheckedClientEffectSerializationCapture(){binds++;return proof;}},
-    bodies:{},prepared:{},plan:{serializationGraph:{},compiled:{},
+    publications:{bindCheckedClientEffectSerializationCapture(){binds++;return proof;},
+      checkedClientSerializationGenerationLimits(value,selection){
+        assert.strictEqual(value,compiled);assert.strictEqual(selection,graph);
+        if(boundFailure!==undefined)throw boundFailure;
+        return bounds;
+      }},
+    bodies:{},prepared:{},plan:{serializationGraph:graph,compiled,
       runDefinition:{wire:'{"valid_until":"2099-01-01T00:00:00.000Z"}'}},
     store:{storeAuthorityCid:'same Store',status:()=>({closed:false}),
       createPreparedObjectWriter(){return{append(bytes){assert.deepEqual(bytes,Buffer.from('exact'));appends++;},
         cancel(){cancelled++;},status:()=>({reservationHeld:false,custodyPending:false,cleanupPending:false})};}},
     principalId:'same principal',ownerPrincipal:'same principal',now:()=> '2026-10-21T00:00:00.000Z',
     authorize:()=>true,storeAuthorityCid:'same Store',outputLimits:{}});
-  return{owner,counts:()=>({appends,binds,cancelled})};
+  return{owner,counts:()=>({appends,binds,cancelled}),selectedLimits:()=>selectedLimits};
 }
+
+test('Content family forwards the same compiled row and byte ceilings before provider construction',async()=>{
+  const f=fixture(0,{bounds:{maxRows:7,maxBytes:1000}});
+  try{
+    assert.equal(f.selectedLimits().generation.maxRows,7);
+    assert.equal(f.selectedLimits().generation.maxBytes,1000);
+    assert.equal(f.selectedLimits().output.maxRows,7);
+  }finally{await f.owner.cleanup();}
+});
+
+test('Content family retains a compiled zero-row zero-byte ceiling without a fallback',async()=>{
+  const f=fixture(0,{bounds:{maxRows:0,maxBytes:0}});
+  try{
+    assert.equal(f.selectedLimits().generation.maxRows,0);
+    assert.equal(f.selectedLimits().generation.maxBytes,0);
+    assert.equal(f.selectedLimits().output.maxRows,0);
+  }finally{await f.owner.cleanup();}
+});
+
+test('Content family preserves original compiled-bound refusal before provider construction',async()=>{
+  const original=new Error('OriginalCompiledBoundsRefused');let f;
+  try{
+    assert.throws(()=>{f=fixture(0,{boundFailure:original});},error=>error===original);
+  }finally{await f?.owner.cleanup();}
+});
 
 test('source-free Content family uses its checked Values input without inventing Source proof',async()=>{
   const f=fixture(0);

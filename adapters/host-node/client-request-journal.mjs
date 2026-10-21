@@ -1870,7 +1870,8 @@ export function openClientRequestJournal(directory, {
       revision: accepted.revision, requestId: row.caller_request_id,
       ...retainedRunFacts(row, publicationControl, maxRunDefinitionWireBytes, updateOriginalControl),
     });
-    runStateFrames.set(facts, Object.freeze({...row}));
+    runStateFrames.set(facts, Object.freeze({row: Object.freeze({...row}),
+      requestControl, publicationControl}));
     return facts;
   };
   const selectRun = database.prepare(`SELECT run_definition_cid
@@ -2921,32 +2922,44 @@ export function openClientRequestJournal(directory, {
     // own this counter. Neither reading nor wall-clock time increments it.
     publishRunState(frame, state, requestControl, publicationControl) {
       ensureOpen();
-      const expected = runStateFrames.get(frame);
-      if (expected === undefined) fail('ForeignRunStateObservation');
+      const retained = runStateFrames.get(frame);
+      if (retained === undefined || retained.requestControl !== requestControl ||
+          retained.publicationControl !== publicationControl) fail('ForeignRunStateObservation');
+      const expected = retained.row;
+      if (!Number.isSafeInteger(expected.state_revision) || expected.state_revision < 0 ||
+          expected.state_observation_key !== null &&
+            (typeof expected.state_observation_key !== 'string' || expected.state_observation_key.length === 0)) {
+        fail('ClientRequestJournalCorrupt');
+      }
+      // The frame already admitted this complete original row. Reuse its
+      // typed Run/control facts, not a decode/encode/hash of identical bytes.
+      const projection = prepareInstalledRunStateObservation(requestControl, {
+        state: {...state, control: issueInstalledRunControlObservation(requestControl, {
+          revision: frame.revision,
+          cancellationRequested: frame.cancellationRequested,
+          physicallyUnstarted: frame.physicalStartReserved === false,
+          preDispatchFailureConfirmed: frame.preDispatchFailureConfirmed,
+          physicalCloseConfirmed: frame.physicalCloseConfirmed,
+        })}, runId: publicationControl.runDefinitionRunId(frame.runDefinition),
+        revision: expected.state_revision, priorKey: expected.state_observation_key,
+      });
+      const currentRow = () => {
+        const row = readRunDefinitionRow(frame.ref, requestControl);
+        if (row === undefined || Object.keys(row).length !== Object.keys(expected).length ||
+            Object.keys(expected).some(key => row[key] !== expected[key])) {
+          fail('RunStateObservationChanged');
+        }
+        return row;
+      };
+      // This read follows projection/callback work and is the unchanged
+      // observation's linearization point. No mutation means no write TX or
+      // COMMIT. Changed observations still use the original atomic CAS below.
+      const observed = currentRow();
+      if (projection.key === observed.state_observation_key) return projection.wire;
       return transact('run_state_observation', 'ClientRunStateObservationUnknown',
         error => ['RunStateObservationChanged', 'ClientRequestJournalCorrupt',
           'ForeignRunStateObservation', 'MoonBitHostFailure'].includes(error?.code), () => {
-          const row = readRunDefinitionRow(frame.ref, requestControl);
-          if (row === undefined || Object.keys(row).length !== Object.keys(expected).length ||
-              Object.keys(expected).some(key => row[key] !== expected[key])) {
-            fail('RunStateObservationChanged');
-          }
-          const current = admitRunDefinitionRow(row, requestControl, publicationControl);
-          if (!Number.isSafeInteger(row.state_revision) || row.state_revision < 0 ||
-              row.state_observation_key !== null &&
-                (typeof row.state_observation_key !== 'string' || row.state_observation_key.length === 0)) {
-            fail('ClientRequestJournalCorrupt');
-          }
-          const projection = prepareInstalledRunStateObservation(requestControl, {
-            state: {...state, control: issueInstalledRunControlObservation(requestControl, {
-              revision: current.revision,
-              cancellationRequested: current.cancellationRequested,
-              physicallyUnstarted: current.physicalStartReserved === false,
-              preDispatchFailureConfirmed: current.preDispatchFailureConfirmed,
-              physicalCloseConfirmed: current.physicalCloseConfirmed,
-            })}, runId: publicationControl.runDefinitionRunId(current.runDefinition),
-            revision: row.state_revision, priorKey: row.state_observation_key,
-          });
+          const row = currentRow();
           if (projection.key !== row.state_observation_key) {
             const result = database.prepare(`UPDATE client_requests SET
               state_revision = ?, state_observation_key = ?

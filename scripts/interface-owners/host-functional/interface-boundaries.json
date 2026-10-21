@@ -234,7 +234,7 @@
     {
       "module": "adapters/host-common/authorization-gate.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "decff7d20aa2cdb2e6c715a107941c8429937b04cb9a006c9034e8ea311bbe2a",
+      "sha256": "bc110ead823b75962518cfca547d62ebeb67edb73f43f7934a8774a79f81efdd",
       "role": "physical-io",
       "owner": "Existing execution_authorization/Checkpoint Owners and trusted Host gate",
       "exports": [
@@ -18619,7 +18619,7 @@
     {
       "module": "adapters/host-node/client-request-journal.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "3b9a094fde0b0ef0962fdc059bd715399b030336e1a88e3dc9317006604463f9",
+      "sha256": "6b6fde939a785fdc106452544e6d93e14a79857be0544270f6d28f34f9161db0",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
@@ -19734,16 +19734,21 @@
           "async": false
         },
         {
-          "name": "openClientRequestJournal/journal/init:publishRunState/init:publishRunState/init:publishRunState",
+          "name": "openClientRequestJournal/journal/init:publishRunState/init:publishRunState/currentRow/currentRow",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openClientRequestJournal/journal/init:publishRunState/init:publishRunState/currentRow/currentRow/currentRow",
           "parameters": [
-            "error"
+            "key"
           ],
           "async": false
         },
         {
-          "name": "openClientRequestJournal/journal/init:publishRunState/init:publishRunState/init:publishRunState/init:publishRunState",
+          "name": "openClientRequestJournal/journal/init:publishRunState/init:publishRunState/init:publishRunState",
           "parameters": [
-            "key"
+            "error"
           ],
           "async": false
         },
@@ -20515,9 +20520,10 @@
             "openClientRequestJournal/journal/init:originalSubmittedIntent/init:originalSubmittedIntent/init:assertCurrent/init:assertCurrent",
             "openClientRequestJournal/journal/init:originalSubmittedIntent/init:originalSubmittedIntent/readOriginal/readOriginal",
             "openClientRequestJournal/journal/init:publishRunState/init:publishRunState",
+            "openClientRequestJournal/journal/init:publishRunState/init:publishRunState/currentRow/currentRow",
+            "openClientRequestJournal/journal/init:publishRunState/init:publishRunState/currentRow/currentRow/currentRow",
             "openClientRequestJournal/journal/init:publishRunState/init:publishRunState/init:publishRunState",
             "openClientRequestJournal/journal/init:publishRunState/init:publishRunState/init:publishRunState#2",
-            "openClientRequestJournal/journal/init:publishRunState/init:publishRunState/init:publishRunState/init:publishRunState",
             "openClientRequestJournal/journal/init:recordCancellationAttempt/init:recordCancellationAttempt",
             "openClientRequestJournal/journal/init:recordCancellationOperation/init:recordCancellationOperation",
             "openClientRequestJournal/journal/init:recordCancellationOperation/init:recordCancellationOperation/init:recordCancellationOperation",
