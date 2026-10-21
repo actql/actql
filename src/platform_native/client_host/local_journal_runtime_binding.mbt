@@ -18,6 +18,13 @@ fn[T] NativeLocalJournalCapture::with_runtime_binding_access(
     .transaction_with_reads(
       () => {
         let access : NativeLocalRuntimeBindingAccess = {
+          runtime_current: runtime => {
+            if self.read_callback_active && self.read_facts_valid {
+              runtime.local_runtime_require_live() is Ok(_)
+            } else {
+              runtime.check_current() is Ok(_)
+            }
+          },
           scope: (principal, connection) => {
             self.operation_scope(host, material, principal, connection)
           },

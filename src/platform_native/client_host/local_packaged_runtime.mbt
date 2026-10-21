@@ -599,28 +599,9 @@ pub fn NativeLocalPackagedRuntime::bind_original_host_resources(
 fn NativeLocalPackagedRuntime::local_runtime_check_originals(
   self : NativeLocalPackagedRuntime,
 ) -> Result[Unit, NativeLocalPackagedRuntimeIssue] {
-  if !self.ready ||
-    self.closed ||
-    self.reader is Some(_) ||
-    self.reader_open_failure is Some(_) ||
-    self.root_open_failure is Some(_) {
-    return Err(Changed)
-  }
-  if self.original_read is Some((host, original)) {
-    let current = match self.original_resources {
-      Some(resources) =>
-        host
-        .require_local_host_consuming_read_current(resources, original)
-        .map_err(issue => OriginalHostResources(issue))
-      None =>
-        host
-        .require_domain_original_read_current(original)
-        .map_err(issue => OriginalRead(issue))
-    }
-    match current {
-      Err(issue) => return Err(issue)
-      Ok(_) => ()
-    }
+  match self.local_runtime_require_live() {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
   }
   if self.original_resources is Some(_) {
     for root in self.roots {
@@ -666,6 +647,38 @@ fn NativeLocalPackagedRuntime::local_runtime_check_originals(
 }
 
 ///|
+// The already admitted immutable metadata keeps the same actual Read/Library
+// lifetime. Pure getters do not walk package witnesses or rehash its members.
+fn NativeLocalPackagedRuntime::local_runtime_require_live(
+  self : NativeLocalPackagedRuntime,
+) -> Result[Unit, NativeLocalPackagedRuntimeIssue] {
+  if !self.ready ||
+    self.closed ||
+    self.reader is Some(_) ||
+    self.reader_open_failure is Some(_) ||
+    self.root_open_failure is Some(_) {
+    return Err(Changed)
+  }
+  if self.original_read is Some((host, original)) {
+    let current = match self.original_resources {
+      Some(resources) =>
+        host
+        .require_local_host_consuming_read_current(resources, original)
+        .map_err(issue => OriginalHostResources(issue))
+      None =>
+        host
+        .require_domain_original_read_current(original)
+        .map_err(issue => OriginalRead(issue))
+    }
+    match current {
+      Err(issue) => return Err(issue)
+      Ok(_) => ()
+    }
+  }
+  Ok(())
+}
+
+///|
 pub fn NativeLocalPackagedRuntime::manifest(
   self : NativeLocalPackagedRuntime,
 ) -> Result[@host.ClientNativeLocalRuntime, NativeLocalPackagedRuntimeIssue] {
@@ -674,7 +687,7 @@ pub fn NativeLocalPackagedRuntime::manifest(
     Ok(_) => ()
   }
   let result = self
-    .local_runtime_check_originals()
+    .local_runtime_require_live()
     .bind(_ => {
       match self.manifest {
         Some(value) => Ok(value)
@@ -693,7 +706,7 @@ pub fn NativeLocalPackagedRuntime::assets(
     Ok(_) => ()
   }
   let result = self
-    .local_runtime_check_originals()
+    .local_runtime_require_live()
     .bind(_ => {
       match self.assets {
         Some(value) => Ok(value)

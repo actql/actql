@@ -21,6 +21,7 @@ test "Runtime frame reuses its exact scope read tuple and three selected origina
     runtime_frame_selected,
   )
   let source : NativeLocalRuntimeBindingAccess = {
+    runtime_current: _ => false,
     scope: (principal, connection) => {
       scopes.val += 1
       Ok(principal + "/" + connection)
@@ -79,6 +80,7 @@ test "Runtime frame cannot export an Allow to another tuple or the next operatio
   let allowed = Ref(true)
   let calls = Ref(0)
   let source : NativeLocalRuntimeBindingAccess = {
+    runtime_current: _ => false,
     scope: (_, _) => Ok("scope"),
     read_allowed: (principal, connection) => {
       calls.val += 1
@@ -121,6 +123,7 @@ test "Runtime frame loses all retained facts on current failure and does not rev
   let decisions = Ref(0)
   let selections = Ref(0)
   let source : NativeLocalRuntimeBindingAccess = {
+    runtime_current: _ => false,
     scope: (_, _) => {
       scopes.val += 1
       Err(Encoding)

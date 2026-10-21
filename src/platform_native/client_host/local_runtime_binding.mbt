@@ -77,6 +77,7 @@ fn local_runtime_original_assets(
 // file operations while an acquired Journal routes each SQL call through its
 // own SQLite phase. It is never stored in the binding or accepted publicly.
 priv struct NativeLocalRuntimeBindingAccess {
+  runtime_current : (NativeLocalPackagedRuntime) -> Bool
   scope : (String, String) -> Result[String, NativeLocalAdoptionIssue]
   read_allowed : (String, String) -> Bool
   selected : (String) -> Result[
@@ -120,6 +121,7 @@ fn[T] with_local_runtime_binding_frame(
     }
   }
   let access : NativeLocalRuntimeBindingAccess = {
+    runtime_current: runtime => live() && (source.runtime_current)(runtime),
     scope: (principal, connection) => {
       if !live() {
         return Err(CustodyLost)
@@ -176,6 +178,7 @@ fn native_local_runtime_binding_access(
   host : NativeLocalHostConnection,
 ) -> NativeLocalRuntimeBindingAccess {
   {
+    runtime_current: runtime => runtime.check_current() is Ok(_),
     scope: (principal, connection) => {
       host.authority_scope_cid(principal, connection, host.epoch.crypto)
     },
@@ -199,7 +202,7 @@ fn local_runtime_binding_current_with_access(
   binding : NativeLocalRuntimeBinding,
   access : NativeLocalRuntimeBindingAccess,
 ) -> Bool {
-  if binding.current.check_current() is Err(_) ||
+  if !(access.runtime_current)(binding.current) ||
     !((access.scope)(binding.principal, binding.connection) is Ok(scope) &&
     scope == binding.scope) {
     return false
@@ -210,7 +213,7 @@ fn local_runtime_binding_current_with_access(
       return false
     }
   }
-  binding.current.check_current() is Ok(_)
+  (access.runtime_current)(binding.current)
 }
 
 ///|
