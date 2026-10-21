@@ -9,6 +9,26 @@ import {pathToFileURL} from 'node:url';
 import {assessLatency, collectOperationSamples} from './operation-performance.mjs';
 
 const hash = bytes => createHash('sha256').update(bytes).digest('hex');
+// Independent literal oracles: JOIN selects the matching id and label; UNION
+// retains both ordered ids; Decimal SUM is (125 + 250 + 25) / 100 = "4.00".
+// No expected value is obtained from a compiler or a previous product result.
+export const nodeWarmSmallQueryFixtures = Object.freeze([
+  {operation: 'warm-join',
+    text: "WITH lhs AS (SELECT 1 AS id), rhs AS (SELECT 1 AS id, 'joined' AS label) "
+      + 'SELECT lhs.id AS id, rhs.label AS label FROM lhs JOIN rhs ON lhs.id = rhs.id MAX_OUTPUT_ROWS 1',
+    expected: [{id: 1, label: 'joined'}]},
+  {operation: 'warm-union',
+    text: 'WITH items AS (SELECT 2 AS id UNION ALL SELECT 1 AS id) '
+      + 'SELECT id FROM items |> ASSERT UNIQUE BY (id) |> ORDER BY id',
+    expected: [{id: 1}, {id: 2}]},
+  {operation: 'warm-decimal-sum',
+    text: "WITH items AS (SELECT CAST('1.25' AS DECIMAL(8,2)) AS amount "
+      + "UNION ALL SELECT CAST('2.50' AS DECIMAL(8,2)) AS amount "
+      + "UNION ALL SELECT CAST('0.25' AS DECIMAL(8,2)) AS amount) "
+      + 'SELECT SUM(amount) AS total FROM items',
+    expected: [{total: '4.00'}]},
+].map(fixture => Object.freeze({...fixture,
+  expected: Object.freeze(fixture.expected.map(row => Object.freeze(row)))})));
 export function nodeBenchmarkInstrumentation({execArgv = process.execArgv,
   nodeOptions = process.env.NODE_OPTIONS ?? '', coverage = process.env.NODE_V8_COVERAGE} = {}) {
   // Known startup instrumentation is evidence against unprofiled acceptance.
@@ -20,9 +40,10 @@ export function nodeWarmProtocol(mode) {
   assert(['diagnostic', 'final'].includes(mode));
   return {entry: 'ordinary open/stateDir', mode, priorState: 'new empty directory',
     seed: {source: 'SELECT 1 AS id', format: 'sql', expected: [{id: 1}], successfulRuns: 1},
-    operationOrder: ['warm-select', 'warm-result', 'warm-status'], samplesPerOperation: mode === 'final' ? 100 : 3,
+    operationOrder: ['warm-select', 'warm-result', 'warm-status', ...nodeWarmSmallQueryFixtures.map(row => row.operation)],
+    smallQueries: nodeWarmSmallQueryFixtures, samplesPerOperation: mode === 'final' ? 100 : 3,
     diagnosticContinuation: mode === 'diagnostic' ? 'verified success only; stop each slow family' : 'none',
-    newShortQueries: 'one per warm-select sample', savedReads: 'same original seed Run',
+    newShortQueries: 'one per SELECT/JOIN/UNION/Decimal SUM sample', savedReads: 'same original seed Run',
     status: 'same original revision after initial status observation', close: 'await original Client in finally'};
 }
 // One explicit experiment definition lets warm and process measurements share
@@ -117,21 +138,25 @@ export async function runNodeWarmBenchmark({manifestPath, consumer, output, cont
     if (report.initialLatencyExceeded && mode === 'final') report.stoppedAt = 'initial operation exceeded 5s; final sampling not started';
     else {
       const baseline = await original.status();
-      for (const operation of ['warm-select', 'warm-result', 'warm-status']) {
+      for (const operation of nodeWarmProtocol(mode).operationOrder) {
         active = operation;
-        const expected = operation === 'warm-status' ? {status: 'succeeded', revision: baseline.revision} : [{id: 1}];
+        const query = nodeWarmSmallQueryFixtures.find(row => row.operation === operation);
+        const expected = query?.expected ?? (operation === 'warm-status'
+          ? {status: 'succeeded', revision: baseline.revision} : [{id: 1}]);
+        const sampleIdentity = query ? {...identity,
+          fixtureSha256: hash(Buffer.from(JSON.stringify(query)))} : identity;
         let observed;
-        const execute = operation === 'warm-select' ? async () => {
-          observed = await client.sql('SELECT 1 AS id').all(); assert.deepEqual(observed, expected);
+        const execute = query || operation === 'warm-select' ? async () => {
+          observed = await client.sql(query?.text ?? 'SELECT 1 AS id').all(); assert.deepEqual(observed, expected);
         } : operation === 'warm-result' ? async () => {
           observed = await original.result('main').all(); assert.deepEqual(observed, expected);
         } : async () => {
           const state = await original.status();
           observed = {status: state.status, revision: state.revision}; assert.deepEqual(observed, expected);
         };
-        const collected = await collectOperationSamples({operation, mode, identity, stateId, execute,
+        const collected = await collectOperationSamples({operation, mode, identity: sampleIdentity, stateId, execute,
           emit: row => appendFile(join(output, 'samples.jsonl'), JSON.stringify({operation, ...row}) + '\n', {mode: 0o600})});
-        const series = {operation, mode, ...identity, environmentSha256,
+        const series = {operation, mode, ...sampleIdentity, ...(query ? {query} : {}), environmentSha256,
           historyProtocolSha256: controls.historyProtocolSha256, ...nodeBenchmarkInstrumentation(), load: controls.load, ...collected};
         report.latency.push(series);
         report.functional.rows.push({operation, completed: collected.samples.every(row => row.verified),
