@@ -4920,6 +4920,21 @@ test('ordinary Store selected holding refuses a different valid record under its
   await reopened.close();
 });
 
+test('ordinary Store pending holding recovery still refuses a foreign deletion record', async t => {
+  const setup = await fixture(t);
+  await setup.store.close();
+  const requestedCid = digest('pending deletion name');
+  const original = Buffer.from(JSON.stringify(physicalHolding(
+    digest('foreign pending deletion'), digest('foreign pending artifact'), [])));
+  const path = join(setup.directory, 'physical-holding-deletions', `${requestedCid.slice(7)}.json`);
+  await writeFile(path, original);
+  await assert.rejects(openLocalPublicationStore(setup.configuration, contractControl),
+    code('InvalidPublicationPhysicalHoldingStore'));
+  assert.deepEqual(await readFile(path), original);
+  await assert.rejects(stat(join(setup.directory, 'owner')), code('ENOENT'),
+    'failed recovery closes its native database and releases the original owner');
+});
+
 for (const damage of ['missing', 'corrupt']) {
 test(`one ${damage} Effect payload does not disable unrelated holdings`,
   async t => {
