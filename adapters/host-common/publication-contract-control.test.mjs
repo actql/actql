@@ -8,6 +8,7 @@ import {syncBuiltinESMExports} from 'node:module';
 import {link, mkdir, mkdtemp, open, readdir, readFile, rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
+import {parse} from 'acorn';
 import {runtimeCore} from './runtime-core.mjs';
 import {checked} from './runtime-result.mjs';
 import {publishEffectFreeRun, publishEffectfulRun} from
@@ -59,6 +60,40 @@ const limits = Object.freeze({
   maxWireBytes: 64 * 1024,
   maxNodes: 4096,
   maxDepth: 64,
+});
+
+test('publication persister retains legacy receivers and waits for the selected group outcome', async () => {
+  const source = await readFile(new URL('./run-publication.mjs', import.meta.url), 'utf8');
+  const declaration = parse(source, {sourceType: 'module', ecmaVersion: 'latest'}).body
+    .find(node => node.type === 'FunctionDeclaration' && node.id.name === 'persistContracts');
+  assert.ok(declaration);
+  // Execute this exact private adapter function, not a second publication
+  // implementation. The real Common/Store integration is checked below.
+  const persist = Function('return ('+source.slice(declaration.start, declaration.end)+')')();
+  const first = Object.freeze({identity: cid('1'), name: 'first', wire: 'first-body'});
+  const second = Object.freeze({identity: cid('2'), name: 'second', wire: 'second-body'});
+  const calls = [];
+  const legacy = {async putPublicationContract(name, wire) {
+    assert.equal(this, legacy);calls.push([name, wire]);
+  }};
+  await persist(legacy, [first, second, first]);
+  assert.deepEqual(calls, [['first', 'first-body'], ['second', 'second-body']]);
+  const gate = Promise.withResolvers();let batches = 0, settled = false;
+  const grouped = {putPublicationContract() {throw new Error('NoIndividualFallback');},
+    async putPublicationContracts(contracts) {
+      assert.equal(this, grouped);batches++;
+      assert.equal(Object.isFrozen(contracts), true);
+      assert(contracts.every(Object.isFrozen));
+      assert.deepEqual(contracts, [{name: 'first', wire: 'first-body'}, {name: 'second', wire: 'second-body'}]);
+      await gate.promise;
+    }};
+  const pending = persist(grouped, [first, second, first]).then(() => {settled = true;});
+  await Promise.resolve();assert.equal(settled, false);assert.equal(batches, 1);
+  gate.resolve();await pending;
+  const original = new Error('OriginalGroupFailure');
+  grouped.putPublicationContracts = async () => {throw original;};
+  await assert.rejects(persist(grouped, [first]), error => error === original);
+  await persist({putPublicationContracts() {throw new Error('EmptyGroupDoesNoWork');}}, []);
 });
 
 test('generated publication owner crosses the JS bridge as named actions', () => {

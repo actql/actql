@@ -149,6 +149,7 @@ async function persistContracts(store, contracts) {
     selected.push(contract);
     persisted.add(contract.identity);
   }
+  if (selected.length === 0) return;
   const batch = store.putPublicationContracts;
   if (batch !== undefined) {
     // One setup step has no protected action between these immutable bodies.
