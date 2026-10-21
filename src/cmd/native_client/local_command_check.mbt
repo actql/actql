@@ -299,6 +299,11 @@ fn LocalCommandPreparationOriginal::execute_adopted_command(
   public_run? : Bool = false,
   preparation_runtime? : LocalPackagedRuntime? = None,
 ) -> String raise ClientStop {
+  // This selected status route returns State only on success. Its failures
+  // are command diagnostics, never a legacy Run/Unknown response container.
+  if operation == "status" {
+    command_preparation_diagnostic.val = RunObservationFailed
+  }
   let session = command_preparation_result(
     self.prepare_adoption(
       {
