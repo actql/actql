@@ -58,7 +58,7 @@ test('selected own-DDL bytes cover the actual primary, Source and observation sc
   const actual = inspectSqliteSnapshot(join(directory, 'client-requests.sqlite3'), original =>
     original.prepare('SELECT sql FROM sqlite_schema WHERE sql IS NOT NULL')
       .all().map(row => row.sql).sort(), {maxSourceBytes: options.maxDatabaseBytes});
-  assert.equal(actual.length, 25);
+  assert.equal(actual.length, 31);
   assert.deepEqual(actual, [...support.sql].sort());
   const before = snapshot(directory);
   const restored = openClientRequestJournal(directory, selected);

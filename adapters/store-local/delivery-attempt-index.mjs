@@ -6,7 +6,13 @@ import {createSqliteTransaction} from '../host-common/sqlite-transaction.mjs';
 
 const fail = (code, cause) => { throw Object.assign(new Error(code, {cause}), {code}); };
 const cid = value => typeof value === 'string' && /^sha256:[0-9a-f]{64}$/u.test(value);
-const version = 3;
+const version = 4;
+const completionTable = `CREATE TABLE completions (
+  attempt_cid TEXT PRIMARY KEY REFERENCES attempts(attempt_cid) ON DELETE CASCADE,
+  record_cid TEXT NOT NULL UNIQUE, record_wire TEXT NOT NULL,
+  receipt_cid TEXT NOT NULL UNIQUE, receipt_wire TEXT NOT NULL,
+  ack_revision INTEGER NOT NULL CHECK(ack_revision>=1 AND ack_revision<=9007199254740991)
+) WITHOUT ROWID`;
 
 export async function openDeliveryAttemptIndex(path, {create, maxEntries, maxWireBytes}) {
   const database = new DatabaseSync(path, {__proto__: null, open: false,
@@ -108,7 +114,7 @@ export async function openDeliveryAttemptIndex(path, {create, maxEntries, maxWir
       exec(`CREATE TABLE coverage (
         id INTEGER PRIMARY KEY CHECK(id=1), version INTEGER NOT NULL,
         complete INTEGER NOT NULL CHECK(complete IN (0,1)), entries INTEGER NOT NULL);
-        INSERT INTO coverage VALUES(1,2,0,0);
+        INSERT INTO coverage VALUES(1,4,0,0);
         CREATE TABLE attempts (
           logical_key TEXT PRIMARY KEY, attempt_cid TEXT NOT NULL UNIQUE,
           grant_cid TEXT NOT NULL, run_cid TEXT NOT NULL,
@@ -120,11 +126,14 @@ export async function openDeliveryAttemptIndex(path, {create, maxEntries, maxWir
         CREATE TABLE grant_uses(grant_cid TEXT PRIMARY KEY, uses INTEGER NOT NULL CHECK(uses>=0)) WITHOUT ROWID;
         CREATE TABLE initial_records (
           attempt_cid TEXT PRIMARY KEY REFERENCES attempts(attempt_cid) ON DELETE CASCADE,
-          initial_wire TEXT NOT NULL) WITHOUT ROWID;`);
+          initial_wire TEXT NOT NULL, initial_cid TEXT,
+          ack_revision INTEGER NOT NULL DEFAULT 1 CHECK(ack_revision>=1 AND ack_revision<=9007199254740991)) WITHOUT ROWID;
+        CREATE UNIQUE INDEX initial_record_identity ON initial_records(initial_cid);
+        ${completionTable};`);
     });
     const state = prepare('SELECT version,complete,entries FROM coverage WHERE id=1');
     const selected = state.get();
-    if (![1,2,version].includes(selected?.version) || ![0,1].includes(selected.complete) ||
+    if (![1,2,3,version].includes(selected?.version) || ![0,1].includes(selected.complete) ||
         !Number.isSafeInteger(selected.entries) || selected.entries < 0 || selected.entries > maxEntries) {
       fail('DeliveryAttemptIndexUnavailable');
     }
@@ -152,6 +161,15 @@ export async function openDeliveryAttemptIndex(path, {create, maxEntries, maxWir
         prepare("SELECT name FROM sqlite_schema WHERE type='index' AND name='initial_record_identity'").get() === undefined) {
       fail('DeliveryAttemptIndexUnavailable');
     }
+    if(selected.version<4) transaction.run(()=>exec(`ALTER TABLE initial_records ADD COLUMN
+      ack_revision INTEGER NOT NULL DEFAULT 1 CHECK(ack_revision>=1 AND ack_revision<=9007199254740991);
+      ${completionTable}; UPDATE coverage SET version=4 WHERE id=1;`));
+    else if(prepare("SELECT sql FROM sqlite_schema WHERE type='table' AND name='completions'").get()?.sql!==completionTable) {
+      fail('DeliveryAttemptIndexUnavailable');
+    }
+    if(!prepare('PRAGMA table_info(initial_records)').all().some(row=>row.name==='ack_revision')) {
+      fail('DeliveryAttemptIndexUnavailable');
+    }
     let complete = selected.complete === 1;
     const lookup = prepare(`SELECT attempts.*,initial_records.initial_wire,initial_records.initial_cid FROM attempts
       LEFT JOIN initial_records USING(attempt_cid) WHERE logical_key=?`);
@@ -161,12 +179,19 @@ export async function openDeliveryAttemptIndex(path, {create, maxEntries, maxWir
       FROM attempts JOIN initial_records USING(attempt_cid) WHERE attempt_cid=? AND initial_cid IS NOT NULL
       UNION ALL SELECT 'result_read_grant',grant_wire FROM attempts JOIN initial_records USING(attempt_cid)
       WHERE grant_cid=? AND initial_cid IS NOT NULL
-      UNION ALL SELECT 'delivery_record',initial_wire FROM initial_records WHERE initial_cid=? LIMIT 1`);
+      UNION ALL SELECT 'delivery_record',initial_wire FROM initial_records WHERE initial_cid=?
+      UNION ALL SELECT 'delivery_record',record_wire FROM completions WHERE record_cid=?
+      UNION ALL SELECT 'result_delivery_receipt',receipt_wire FROM completions WHERE receipt_cid=? LIMIT 1`);
+    const completion = prepare('SELECT * FROM completions WHERE attempt_cid=?');
+    const initialRecord = prepare('SELECT * FROM initial_records WHERE attempt_cid=?');
+    const confirmInitial = prepare('UPDATE initial_records SET ack_revision=ack_revision+1 WHERE attempt_cid=? AND initial_cid=?');
+    const insertCompletion = prepare('INSERT INTO completions VALUES(?,?,?,?,?,1)');
+    const confirmCompletion = prepare('UPDATE completions SET ack_revision=ack_revision+1 WHERE attempt_cid=? AND record_cid=?');
     const byRun = prepare(`SELECT attempts.*,initial_records.initial_wire,initial_records.initial_cid FROM attempts
       LEFT JOIN initial_records USING(attempt_cid) WHERE run_cid=? LIMIT ?`);
     const pending = prepare('SELECT * FROM attempts WHERE ready=0 LIMIT ?');
     const insert = prepare('INSERT INTO attempts VALUES(?,?,?,?,?,?,?)');
-    const insertInitial = prepare('INSERT INTO initial_records VALUES(?,?,?)');
+    const insertInitial = prepare('INSERT INTO initial_records VALUES(?,?,?,1)');
     const uses = prepare('SELECT uses FROM grant_uses WHERE grant_cid=?');
     const addUse = prepare('INSERT INTO grant_uses VALUES(?,1) ON CONFLICT(grant_cid) DO UPDATE SET uses=uses+1');
     const removeUses = prepare('UPDATE grant_uses SET uses=uses-? WHERE grant_cid=?');
@@ -174,7 +199,7 @@ export async function openDeliveryAttemptIndex(path, {create, maxEntries, maxWir
     const ready = prepare('UPDATE attempts SET ready=1 WHERE logical_key=? AND attempt_cid=?');
     const remove = prepare('DELETE FROM attempts WHERE run_cid=?');
     const updateCount = prepare('UPDATE coverage SET entries=entries+? WHERE id=1');
-    let uncertain = false, uncertainRemoval;
+    let uncertain = false, uncertainRemoval, uncertainCompletion, uncertainInitial, confirmedRecord;
     const run = body => {
       if (mutating) fail('DeliveryAttemptIndexBusy');
       mutating = true;
@@ -207,6 +232,15 @@ export async function openDeliveryAttemptIndex(path, {create, maxEntries, maxWir
       return row;
     };
     const copy = row => row === undefined ? undefined : Object.freeze({...validate(row)});
+    const completionCopy = row => {
+      if(row===undefined) return undefined;
+      if(![row.attempt_cid,row.record_cid,row.receipt_cid].every(cid) ||
+          ![row.record_wire,row.receipt_wire].every(wire=>typeof wire==='string'&&Buffer.byteLength(wire,'utf8')<=maxWireBytes) ||
+          !Number.isSafeInteger(row.ack_revision) || row.ack_revision<1) fail('InvalidDeliveryAttemptIndex');
+      return Object.freeze({...row});
+    };
+    const sameCompletion = (left,right) => left!==undefined && right!==undefined &&
+      ['attempt_cid','record_cid','record_wire','receipt_cid','receipt_wire','prior_cid'].every(key=>left[key]===right[key]);
     const add = (row, isReady, initialWire, initialCid) => {
       validate(row);
       insert.run(row.logical_key,row.attempt_cid,row.grant_cid,row.run_cid,
@@ -236,21 +270,81 @@ export async function openDeliveryAttemptIndex(path, {create, maxEntries, maxWir
       lookup(key) { requireComplete(); return copy(lookup.get(key)); },
       attempt(attemptCid) { requireComplete(); return copy(byAttempt.get(attemptCid)); },
       run(runCid) { requireComplete(); return Object.freeze(byRun.all(runCid,maxEntries+1).map(copy)); },
+      completion(attemptCid) {requireComplete();return completionCopy(completion.get(attemptCid));},
       contract(semanticCid) {
         requireComplete();
-        const row=nativeContract.get(semanticCid,semanticCid,semanticCid);
+        const row=nativeContract.get(semanticCid,semanticCid,semanticCid,semanticCid,semanticCid);
         if(row===undefined) return undefined;
         const {name,wire}=row;
         if(typeof wire!=='string' || Buffer.byteLength(wire,'utf8')>maxWireBytes) fail('InvalidDeliveryAttemptIndex');
         return Object.freeze({name,wire});
       },
       pending() { requireComplete(); return Object.freeze(pending.all(maxEntries + 1).map(copy)); },
+      complete(entry) {
+        const retry=uncertain && sameCompletion(uncertainCompletion,entry);
+        if(retry) {
+          if(closed||closing||mutating||!complete) fail('DeliveryAttemptIndexCleanupPending');
+          transaction.assertUsable();
+        } else requireComplete();
+        completionCopy({...entry,ack_revision:1});
+        if(!cid(entry.prior_cid)) fail('InvalidDeliveryAttemptIndex');
+        const original=Object.freeze({...entry});
+        try {
+          run(()=>{
+            const attempt=byAttempt.get(entry.attempt_cid);
+            if(attempt?.ready!==1 || attempt.initial_cid!==entry.prior_cid) fail('DeliveryRecordConflict');
+            const retained=completionCopy(completion.get(entry.attempt_cid));
+            if(retained===undefined) insertCompletion.run(entry.attempt_cid,entry.record_cid,entry.record_wire,entry.receipt_cid,entry.receipt_wire);
+            else {
+              if(!sameCompletion({...retained,prior_cid:entry.prior_cid},entry)) fail('DeliveryRecordConflict');
+              // A real write in the SAME database confirms a lost earlier
+              // COMMIT reply. A visible row or read-only COMMIT is not an ACK.
+              if(confirmCompletion.run(entry.attempt_cid,entry.record_cid).changes!==1) fail('DeliveryRecordConflict');
+            }
+          });
+          if(retry) {uncertain=false;uncertainCompletion=undefined;}
+          confirmedRecord=entry.record_cid;
+        } catch(error) {
+          if(error?.outcome==='unknown') uncertainCompletion=original;
+          throw error;
+        }
+      },
+      confirmRecord(attemptCid,recordCid,wire) {
+        const retryInitial=uncertain && uncertainInitial?.attemptCid===attemptCid &&
+          uncertainInitial.recordCid===recordCid && uncertainInitial.wire===wire;
+        const retry=retryInitial || uncertain && uncertainCompletion?.attempt_cid===attemptCid &&
+          uncertainCompletion.record_cid===recordCid && uncertainCompletion.record_wire===wire;
+        if(retry) {
+          if(closed||closing||mutating||!complete) fail('DeliveryAttemptIndexCleanupPending');
+          transaction.assertUsable();
+        } else requireComplete();
+        const initial=initialRecord.get(attemptCid);
+        const isInitial=initial?.initial_cid===recordCid;
+        const retained=isInitial ? undefined : completionCopy(completion.get(attemptCid));
+        if(!isInitial && retained?.record_cid!==recordCid) return false;
+        if(isInitial ? initial.initial_wire!==wire || !Number.isSafeInteger(initial.ack_revision) || initial.ack_revision<1
+          : retained.record_wire!==wire) fail('DeliveryRecordConflict');
+        if(confirmedRecord===recordCid && !retry) return true;
+        const priorCid=byAttempt.get(attemptCid)?.initial_cid;
+        try {
+          run(()=>{if((isInitial?confirmInitial:confirmCompletion).run(attemptCid,recordCid).changes!==1) fail('DeliveryRecordConflict');});
+          if(retry) {uncertain=false;uncertainCompletion=undefined;uncertainInitial=undefined;}
+          confirmedRecord=recordCid;
+          return true;
+        } catch(error) {
+          if(error?.outcome==='unknown') {
+            if(isInitial) uncertainInitial=Object.freeze({attemptCid,recordCid,wire});
+            else uncertainCompletion=Object.freeze({...retained,prior_cid:priorCid});
+          }
+          throw error;
+        }
+      },
       claim(row,maxUses,initialWire,initialCid) {
         requireComplete();
         validate({...row,initial_wire:initialWire,initial_cid:initialCid});
         const retained = lookup.get(row.logical_key);
         if (retained !== undefined) return Object.freeze({row: copy(retained), created: false});
-        return run(() => {
+        const result=run(() => {
           if ((uses.get(row.grant_cid)?.uses ?? 0) >= maxUses) fail('DeliveryGrantUseLimit');
           if (state.get().entries >= maxEntries) fail('DeliveryAttemptIndexLimit');
           // For a joint START this is a complete durable logical claim, not
@@ -260,6 +354,8 @@ export async function openDeliveryAttemptIndex(path, {create, maxEntries, maxWir
           add(row,isReady,initialWire,initialCid);
           return Object.freeze({row: copy({...row,ready:isReady,initial_wire:initialWire,initial_cid:initialCid}), created:true});
         });
+        if(initialCid!==undefined) confirmedRecord=initialCid;
+        return result;
       },
       finish(key,attemptCid) {
         requireComplete();

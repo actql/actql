@@ -184,18 +184,34 @@ original issued count. Restart retention remains distinct and cannot refund an
 issued link. Existing record and byte quotas, target identity, current
 authorization and transaction outcomes are unchanged.
 
+The same Journal also maintains retained request and cancellation row counts.
+Their insert/delete triggers run inside the original acceptance/cancellation
+transaction and retained counts must equal the existing cumulative issued
+counts. A lost row therefore fences new admission; it cannot refill quota.
+Admission and cancellation read these singleton originals and selected rows,
+not a count over unrelated history. An acceptance reuses its already observed
+same-transaction retained count at the capacity decision. Name startup checks
+the exact schema/triggers and original counters without another global census;
+name use still checks issued/retained custody and authenticates its target.
+
 A bounded one-time legacy adoption derives usage from the original
 issuance/retirement prefix and detects extra or missing rows. The private
 SQLite `user_version` transition commits in the same transaction as those
 tables, triggers and singleton rows; it is not a public wire version. No
 subsequent filesystem marker is needed to complete that adoption. Complete
-metadata from the prior two-step format finishes only this original database
-transition without reaggregating history or changing issuance/retirement. An
+metadata from the prior two-step format preserves its already derived intent
+and restart usage without reaggregating those bodies or changing issuance or
+retirement. The additive request/cancellation-count extension counts only each
+original issued prefix once, with one lookahead row to detect lost coverage,
+and commits both new singleton tables/triggers and its private header in the
+same transaction. It adds no per-Run durable transition. An
 absent or partial old derived marker neither issues authority nor blocks that
 bounded completion. Missing adopted tables, rows or triggers still refuse.
 Later ordinary opens and admissions
 read only the singleton usage rows and selected original, not aggregate
-historical intent or restart bodies. Failed row changes roll back their usage;
+historical request, cancellation, intent, name or restart bodies. This removes
+those SQL censuses, not the separate existing cold DB/WAL copy inspection.
+Failed row changes roll back their usage;
 an unknown COMMIT remains unknown and cannot certify another insertion or a
 safe resend. This does not replace the original Run/intent reconstruction or
 any real native close acknowledgement.

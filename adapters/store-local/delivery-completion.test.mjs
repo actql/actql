@@ -162,12 +162,16 @@ test('native START retains the first subsequent record directory ACK after a los
   const original=f.control.captureIssuedDeliveryAttempt(f.root.attempt,f.root.index,
     f.root.manifest,f.root.grant,limits);
   await f.store.beginDeliveryAttempt(original,f.root.streaming);
+  const failed=f.control.issueDeliveryRecord(f.root.attempt,f.root.streaming,{
+    state:'failed',confirmedByteCount:0,exposure:'exact',possibleUnconfirmedMaxBytes:undefined,
+    deliveredSha256:undefined,receipt:undefined,failureCid:cid('b'),observedAt:at,cleanupOwnerCids:[],
+  },limits);
   armed=true;
-  await assert.rejects(f.store.appendDeliveryCompletion(f.root.attempt,f.root.receipt,f.root.succeeded),{code:'EIO'});
+  await assert.rejects(f.store.appendDeliveryRecord(failed.wire),{code:'EIO'});
   assert.equal((await f.store.latestDeliveryRecord(f.root.attempt.identity)).state,'streaming');
-  await f.store.appendDeliveryCompletion(f.root.attempt,f.root.receipt,f.root.succeeded);
+  await f.store.appendDeliveryRecord(failed.wire);
   assert.equal(parentAcks,2,'the same visible directory is not a durability ACK');
-  assert.equal((await f.store.latestDeliveryRecord(f.root.attempt.identity)).state,'succeeded');
+  assert.equal((await f.store.latestDeliveryRecord(f.root.attempt.identity)).state,'failed');
 });
 
 function deliveryOptions(f, sink, overrides = {}) {
@@ -215,6 +219,9 @@ test('actual delivery caller retains joint END originals through partial ACK cle
     async write(bytes) { writes++; return {confirmedBytes: bytes.byteLength}; },
     async finish() { finishes++; armed = true; return {confirmed: true}; },
   });
+  // Exercise the still-supported file-backed START/END protocol here. Native
+  // metadata completion has its own lost-COMMIT cases below, not file ACKs.
+  delete facade.beginDeliveryAttempt;
   options.control = {...f.control, issueResultDeliveryReceipt(...args) {
     issuedReceipts++;
     return f.control.issueResultDeliveryReceipt(...args);
@@ -324,9 +331,143 @@ test('native START metadata commits without duplicate contract files or director
   assert.equal((await reopened.beginDeliveryAttempt(original,f.root.streaming)).created,false);
   assert.deepEqual(f.syncs,[],'targeted native reads do not recreate obsolete aliases');
   await reopened.appendDeliveryCompletion(f.root.attempt,f.root.receipt,f.root.succeeded);
-  assert.equal(fileSyncs,2,'the distinct END payloads retain their real file ACKs');
+  assert.equal(fileSyncs,0,'native END metadata retains no duplicate contract files');
   assert.equal((await reopened.latestDeliveryRecord(f.root.attempt.identity)).state,'succeeded');
 });
+
+test('native record confirmation retains initial-record compatibility and one real reopened ACK',async t=>{
+  const exec=DatabaseSync.prototype.exec;
+  let armed=false,commits=0;
+  t.mock.method(DatabaseSync.prototype,'exec',function(sql) {
+    if(armed && sql==='COMMIT') commits++;
+    return Reflect.apply(exec,this,[sql]);
+  });
+  const f=await fixture(t,undefined,false);
+  const original=f.control.captureIssuedDeliveryAttempt(f.root.attempt,f.root.index,
+    f.root.manifest,f.root.grant,limits);
+  await f.store.beginDeliveryAttempt(original,f.root.streaming);
+  armed=true;
+  assert.equal((await f.store.confirmDeliveryRecord(f.root.streaming.wire)).state,'streaming');
+  assert.equal(commits,0,'the same confirmed claim already owns its real ACK');
+  await f.store.close();
+  armed=false;
+  const reopened=await f.reopen();
+  f.syncs.length=0;
+  armed=true;
+  assert.equal((await reopened.confirmDeliveryRecord(f.root.streaming.wire)).state,'streaming');
+  assert.equal(commits,1,'a fresh Store confirms through the same native database');
+  await reopened.confirmDeliveryRecord(f.root.streaming.wire);
+  assert.equal(commits,1,'unchanged same-Store confirmation does not repeat the ACK');
+  assert.deepEqual(f.syncs,[],'native originals do not require absent alias directories');
+  await reopened.appendDeliveryCompletion(f.root.attempt,f.root.receipt,f.root.succeeded);
+  assert.equal((await reopened.confirmDeliveryRecord(f.root.streaming.wire)).state,'streaming',
+    'the retained initial original remains confirmable after its terminal successor');
+});
+
+test('native END metadata shares one real completion transaction without shadow contract files',async t=>{
+  const exec=DatabaseSync.prototype.exec;
+  let armed=false, commits=0;
+  t.mock.method(DatabaseSync.prototype,'exec',function(sql) {
+    if(armed && sql==='COMMIT') commits++;
+    return Reflect.apply(exec,this,[sql]);
+  });
+  const f=await fixture(t,undefined,false);
+  const original=f.control.captureIssuedDeliveryAttempt(f.root.attempt,f.root.index,
+    f.root.manifest,f.root.grant,limits);
+  await f.store.beginDeliveryAttempt(original,f.root.streaming);
+  const nullHandle=await open('/dev/null','r'), prototype=Object.getPrototypeOf(nullHandle);
+  const sync=prototype.sync;
+  await nullHandle.close();
+  let fileSyncs=0;
+  t.mock.method(prototype,'sync',async function() {
+    if((await this.stat()).isFile()) fileSyncs++;
+    return Reflect.apply(sync,this,[]);
+  });
+  f.syncs.length=0;
+  armed=true;
+  await f.store.appendDeliveryCompletion(f.root.attempt,f.root.receipt,f.root.succeeded);
+  assert.equal(fileSyncs,0,'native immutable completion metadata needs no duplicate contract files');
+  assert.deepEqual(f.syncs,[]);
+  assert.equal(commits,1,'receipt, record and exact head CAS share the actual durable commit');
+  assert.equal((await f.store.latestDeliveryRecord(f.root.attempt.identity)).state,'succeeded');
+  assert.equal((await f.store.readPublicationContract(f.root.receipt.identity,f.root.receipt.name)).wire,f.root.receipt.wire);
+  await f.store.close();
+  const reopened=await f.reopen();
+  assert.equal((await reopened.latestDeliveryRecord(f.root.attempt.identity)).state,'succeeded');
+  assert.equal((await reopened.readPublicationContract(f.root.receipt.identity,f.root.receipt.name)).wire,f.root.receipt.wire);
+});
+
+for(const afterCommit of [false,true]) {
+  test(`native END metadata retains original completion across ${afterCommit?'after':'before'} COMMIT reply loss`,async t=>{
+    const exec=DatabaseSync.prototype.exec;
+    let armed=false,lost=false;
+    t.mock.method(DatabaseSync.prototype,'exec',function(sql) {
+      if(armed && !lost && sql==='COMMIT') {
+        lost=true;
+        if(afterCommit) Reflect.apply(exec,this,[sql]);
+        throw Object.assign(new Error('lost original completion reply'),{code:'EIO'});
+      }
+      return Reflect.apply(exec,this,[sql]);
+    });
+    const f=await fixture(t,undefined,false);
+    let writes=0,finishes=0,receipts=0;
+    const {options}=deliveryOptions(f,{
+      async write(bytes) {writes++;return {confirmedBytes:bytes.byteLength};},
+      async finish() {finishes++;armed=true;return {confirmed:true};},
+    });
+    options.control={...f.control,issueResultDeliveryReceipt(...args) {
+      receipts++;return f.control.issueResultDeliveryReceipt(...args);
+    }};
+    let failure;
+    await assert.rejects(deliverPublishedResult(options),error=>{
+      failure=error;return error.code==='ResultDeliveryDurabilityPending' && error.cleanupPending===true;
+    });
+    assert.equal(lost,true);
+    assert.equal(finishes,1);assert.equal(receipts,1);
+    const beforeWrites=writes;
+    const first=failure.cleanupHandle.retry(),second=failure.cleanupHandle.retry();
+    assert.equal(first,second);
+    assert.equal((await first).pending,false);
+    assert.equal(writes,beforeWrites);assert.equal(finishes,1);assert.equal(receipts,1);
+    assert.equal((await f.store.latestDeliveryRecord(f.root.attempt.identity)).state,'succeeded');
+    const db=new DatabaseSync(join(f.directory,'delivery-attempts.sqlite3'),{readOnly:true});
+    try {
+      assert.equal(db.prepare('SELECT count(*) AS n FROM completions').get().n,1);
+      assert.equal(db.prepare('SELECT ack_revision FROM completions').get().ack_revision,afterCommit?2:1);
+      assert.equal(db.prepare('SELECT uses FROM grant_uses').get().uses,1);
+    } finally {db.close();}
+    await f.store.close();
+    const reopened=await f.reopen();
+    const next=deliveryOptions({...f,store:reopened},{async write(){assert.fail('completed original must not resend');},
+      async finish(){assert.fail('completed original must not finish again');}}).options;
+    assert.equal((await deliverPublishedResult(next)).idempotent,true);
+  });
+}
+
+for(const selected of ['record','receipt']) {
+  test(`native END rejects a foreign persisted ${selected} original on its targeted read`,async t=>{
+    const f=await fixture(t,undefined,false);
+    const original=f.control.captureIssuedDeliveryAttempt(f.root.attempt,f.root.index,
+      f.root.manifest,f.root.grant,limits);
+    await f.store.beginDeliveryAttempt(original,f.root.streaming);
+    await f.store.appendDeliveryCompletion(f.root.attempt,f.root.receipt,f.root.succeeded);
+    await f.store.close();
+    const database=new DatabaseSync(join(f.directory,'delivery-attempts.sqlite3'));
+    try {
+      if(selected==='record') database.prepare('UPDATE completions SET record_wire=?').run(f.root.streaming.wire);
+      else {
+        const foreign=f.control.issueResultDeliveryReceipt(f.root.index,f.root.manifest,f.root.grant,
+          f.root.attempt,{byteCount:3,sha256:'1'.repeat(64)},limits);
+        database.prepare('UPDATE completions SET receipt_wire=?').run(foreign.wire);
+      }
+    } finally {database.close();}
+    const reopened=await f.reopen();
+    await assert.rejects(selected==='record'
+      ? reopened.latestDeliveryRecord(f.root.attempt.identity)
+      : reopened.readPublicationContract(f.root.receipt.identity,f.root.receipt.name),
+    {code:'InvalidDeliveryAttemptIndex'});
+  });
+}
 
 test('delivery START uses native metadata durability before any row exposure', async t => {
   const f = await fixture(t, undefined, false);
@@ -518,10 +659,11 @@ test('joint END retains a lost final ACK reply without reissuing receipt or payl
   }, false);
   directory = join(f.directory, 'deliveries', f.root.attempt.identity.slice(7));
   let writes = 0, finishes = 0, issuances = 0;
-  const {options} = deliveryOptions(f, {
+  const {options,facade} = deliveryOptions(f, {
     async write(bytes) { writes++; return {confirmedBytes: bytes.byteLength}; },
     async finish() { finishes++; armed = true; return {confirmed: true}; },
   });
+  delete facade.beginDeliveryAttempt;
   options.control = {...f.control, issueResultDeliveryReceipt(...args) {
     issuances++;
     return f.control.issueResultDeliveryReceipt(...args);

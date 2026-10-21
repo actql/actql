@@ -7628,13 +7628,13 @@
             "synchronization": [
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
-                "anchor": "contracts-directory ACK. The succeeded record is linked only afterwards and"
+                "anchor": "ACK, then the record alias requires its actual attempt-directory ACK. No prepared"
               }
             ],
             "failure": [
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
-                "anchor": "pending even when succeeded bytes are visible. Retry never invokes the sink,"
+                "anchor": "Retry never invokes the sink,"
               }
             ],
             "cancellation": [
@@ -18729,7 +18729,7 @@
     {
       "module": "adapters/host-node/client-request-journal.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "28b27984a79c7a36830aaa78da70333a9215d0312172e9aa3f50e157d69dd9af",
+      "sha256": "733393f82fdbab489db2d4d8343aa5b9ad405d7b6f2f969a4f4b2c40f03e29b9",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
@@ -18827,11 +18827,33 @@
           "async": false
         },
         {
+          "name": "adoptSubmissionUsageStorage/adoptSubmissionUsageStorage/adoptSubmissionUsageStorage#4",
+          "parameters": [
+            "sql"
+          ],
+          "async": false
+        },
+        {
+          "name": "adoptSubmissionUsageStorage/adoptSubmissionUsageStorage/adoptSubmissionUsageStorage#5",
+          "parameters": [
+            "sql"
+          ],
+          "async": false
+        },
+        {
           "name": "adoptSubmissionUsageStorage/adoptSubmissionUsageStorage/retained/retained",
           "parameters": [
             "table",
             "wire",
             "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "adoptSubmissionUsageStorage/adoptSubmissionUsageStorage/retainedRows/retainedRows",
+          "parameters": [
+            "table",
+            "custody"
           ],
           "async": false
         },
@@ -19182,6 +19204,41 @@
           "async": false
         },
         {
+          "name": "inspectJournalRowUsage",
+          "parameters": [
+            "database",
+            "version"
+          ],
+          "async": false
+        },
+        {
+          "name": "inspectJournalRowUsage/inspectJournalRowUsage",
+          "parameters": [
+            "name",
+            "sql"
+          ],
+          "async": false
+        },
+        {
+          "name": "inspectJournalRowUsage/inspectJournalRowUsage/inspectJournalRowUsage",
+          "parameters": [
+            "row"
+          ],
+          "async": false
+        },
+        {
+          "name": "inspectJournalRowUsage/names/names",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "inspectJournalRowUsage/schema/schema",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "inspectJournalSnapshot",
           "parameters": [
             "directory",
@@ -19380,6 +19437,21 @@
         {
           "name": "journalMarkerMatches/status/status",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "journalRowUsageTables/journalRowUsageTables",
+          "parameters": [
+            "usage"
+          ],
+          "async": false
+        },
+        {
+          "name": "journalRowUsageTriggers/journalRowUsageTriggers",
+          "parameters": [
+            "usage",
+            "table"
+          ],
           "async": false
         },
         {
@@ -20642,6 +20714,13 @@
         },
         {
           "name": "validEpochAuthority",
+          "parameters": [
+            "row"
+          ],
+          "async": false
+        },
+        {
+          "name": "validJournalRowUsage/validJournalRowUsage",
           "parameters": [
             "row"
           ],
@@ -22019,14 +22098,25 @@
             "adoptSubmissionUsageStorage/adoptSubmissionUsageStorage/adoptSubmissionUsageStorage",
             "adoptSubmissionUsageStorage/adoptSubmissionUsageStorage/adoptSubmissionUsageStorage#2",
             "adoptSubmissionUsageStorage/adoptSubmissionUsageStorage/adoptSubmissionUsageStorage#3",
+            "adoptSubmissionUsageStorage/adoptSubmissionUsageStorage/adoptSubmissionUsageStorage#4",
+            "adoptSubmissionUsageStorage/adoptSubmissionUsageStorage/adoptSubmissionUsageStorage#5",
             "adoptSubmissionUsageStorage/adoptSubmissionUsageStorage/retained/retained",
+            "adoptSubmissionUsageStorage/adoptSubmissionUsageStorage/retainedRows/retainedRows",
+            "inspectJournalRowUsage",
+            "inspectJournalRowUsage/inspectJournalRowUsage",
+            "inspectJournalRowUsage/inspectJournalRowUsage/inspectJournalRowUsage",
+            "inspectJournalRowUsage/names/names",
+            "inspectJournalRowUsage/schema/schema",
             "inspectSubmissionUsageStorage",
             "inspectSubmissionUsageStorage/inspectSubmissionUsageStorage",
             "inspectSubmissionUsageStorage/inspectSubmissionUsageStorage/inspectSubmissionUsageStorage",
             "inspectSubmissionUsageStorage/names/names",
             "inspectSubmissionUsageStorage/schema/schema",
+            "journalRowUsageTables/journalRowUsageTables",
+            "journalRowUsageTriggers/journalRowUsageTriggers",
             "submissionUsageTables/submissionUsageTables",
             "submissionUsageTriggers/submissionUsageTriggers",
+            "validJournalRowUsage/validJournalRowUsage",
             "validSubmissionUsage/validSubmissionUsage"
           ],
           "exports": [],
@@ -22089,6 +22179,10 @@
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
                 "anchor": "row.n !== counts[index]"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "FROM (SELECT 1 FROM ${table} LIMIT ?)"
               }
             ],
             "extension": [
@@ -22098,7 +22192,7 @@
               },
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "if (database.prepare('PRAGMA user_version').get().user_version === 0) {"
+                "anchor": "if (database.prepare('PRAGMA user_version').get().user_version < 2) {"
               }
             ],
             "verification": [
@@ -22109,6 +22203,10 @@
               {
                 "path": "adapters/host-node/client-submission-usage.test.mjs",
                 "anchor": "failed original row mutation rolls back usage and issuance in the same native transaction"
+              },
+              {
+                "path": "adapters/host-node/client-submission-operation.test.mjs",
+                "anchor": "one actual submit and cold reopen use no whole-history quota aggregate"
               }
             ]
           }
@@ -30574,7 +30672,7 @@
     },
     {
       "module": "adapters/host-node/host-journal-schema-support.cjs",
-      "sha256": "2b0943fd525193f04f5033d6f73683ad509e9b9609d392a2525762c89798e163",
+      "sha256": "29f17c802b94833db3141020ea99252f4de83025ea31c06758146c918f2c92a2",
       "exports": [
         "commonjs:sql"
       ],
@@ -70684,13 +70782,13 @@
             "synchronization": [
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
-                "anchor": "contracts-directory ACK. The succeeded record is linked only afterwards and"
+                "anchor": "ACK, then the record alias requires its actual attempt-directory ACK. No prepared"
               }
             ],
             "failure": [
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
-                "anchor": "pending even when succeeded bytes are visible. Retry never invokes the sink,"
+                "anchor": "Retry never invokes the sink,"
               }
             ],
             "cancellation": [

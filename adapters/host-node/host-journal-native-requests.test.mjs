@@ -203,7 +203,7 @@ test('generated/intermediate record upper is not silently limited to saved file 
 test('fixed schema request catalogue remains a partial subset of the supported own DDL', () => {
   const body = readFileSync(new URL('./host-journal-schema-support.cjs', import.meta.url));
   assert.equal(createHash('sha256').update(body).digest('hex'),
-    '2b0943fd525193f04f5033d6f73683ad509e9b9609d392a2525762c89798e163');
+    '29f17c802b94833db3141020ea99252f4de83025ea31c06758146c918f2c92a2');
   const s = calculate(input()).fixedSchema;
   // The historical fixed vector excludes the newer private usage metadata.
   // It neither gates ordinary supported allocation nor claims whole-schema demand.

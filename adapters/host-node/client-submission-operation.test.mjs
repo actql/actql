@@ -85,6 +85,71 @@ test('one actual submit retains epoch authentication and one durable floor throu
   assert.deepEqual(f.counts(), {parsing: 2, authentication: 2, clockWrites: 2});
 });
 
+test('one actual submit and cold reopen use no whole-history quota aggregate',async t=>{
+  const f=await fixture(t), queries=[];
+  const get=StatementSync.prototype.get;
+  t.mock.method(StatementSync.prototype,'get',function(...args) {
+    if(/\bCOUNT\s*\(/iu.test(this.sourceSQL) &&
+        /\bFROM\s+client_(?:requests|cancellation_operations|submission_names)\b/iu.test(this.sourceSQL)) {
+      queries.push(this.sourceSQL);
+    }
+    return Reflect.apply(get,this,args);
+  });
+  f.now(start+10);
+  assert.equal((await f.service.submitAttempt(f.request)).outcome.kind,'ready');
+  assert.deepEqual(queries,[],'a real accepted Run reads its retained quota singleton, not unrelated rows');
+  f.journal.close();
+  const reopened=openClientRequestJournal(f.root,{submissionEpochNow:()=>start+20});
+  try {
+    assert.equal(reopened.lookupSubmittedIntent(f.request.submissionRef,fields,moon).phase,'ready');
+    assert.deepEqual(queries,[],'an adopted ordinary reopen does not recount unrelated names or cancellations');
+  } finally {reopened.close();}
+});
+
+for(const loss of ['table','row','trigger']) {
+  test(`adopted request usage ${loss} loss refuses instead of resetting issuance`,async t=>{
+    const f=await fixture(t);
+    assert.equal((await f.service.submitAttempt(f.request)).outcome.kind,'ready');
+    f.journal.close();
+    const path=join(f.root,'client-requests.sqlite3'), database=new DatabaseSync(path);
+    try {database.exec(loss==='table'?'DROP TABLE client_request_row_usage':
+      loss==='row'?'DELETE FROM client_request_row_usage':'DROP TRIGGER client_request_row_usage_insert');}
+    finally {database.close();}
+    assert.throws(()=>openClientRequestJournal(f.root),{code:'UnknownClientRequestJournalFormat'});
+    const retained=new DatabaseSync(path,{readOnly:true});
+    try {assert.equal(retained.prepare('SELECT issued_count FROM client_submission_custody').get().issued_count,1);}
+    finally {retained.close();}
+  });
+}
+
+test('prior request quota adoption preserves original issued counts and commits no new Run',async t=>{
+  const f=await fixture(t);
+  assert.equal((await f.service.submitAttempt(f.request)).outcome.kind,'ready');
+  f.journal.close();
+  const database=new DatabaseSync(join(f.root,'client-requests.sqlite3'));
+  try {
+    for(const table of ['client_request_row_usage','client_cancellation_row_usage']) {
+      for(const suffix of ['insert','delete']) database.exec(`DROP TRIGGER ${table}_${suffix}`);
+      database.exec(`DROP TABLE ${table}`);
+    }
+    database.exec('PRAGMA user_version=1');
+  } finally {database.close();}
+  const queries=[], get=StatementSync.prototype.get;
+  t.mock.method(StatementSync.prototype,'get',function(...args) {
+    if(/\bCOUNT\s*\(/iu.test(this.sourceSQL)) queries.push(this.sourceSQL);
+    return Reflect.apply(get,this,args);
+  });
+  const reopened=openClientRequestJournal(f.root,{submissionEpochNow:()=>start+20});
+  try {
+    assert.equal(queries.length,2,'only two bounded same-original adoption counts');
+    assert(queries.every(sql=>sql.includes('LIMIT ?')));
+    assert.equal(reopened.lookupSubmittedIntent(f.request.submissionRef,fields,moon).phase,'ready');
+  } finally {reopened.close();}
+  queries.length=0;
+  const again=openClientRequestJournal(f.root,{submissionEpochNow:()=>start+30});
+  try {assert.deepEqual(queries,[]);} finally {again.close();}
+});
+
 test('an interval crossed during preparation is durably expired without repeated authentication', async t => {
   let f;
   f = await fixture(t, {prepare() {f.now(start + 1000);}});

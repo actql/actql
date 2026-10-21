@@ -3518,7 +3518,7 @@ async function openOriginalLocalPublicationStore(
 
   const readContract = async (cid, contractName) => {
     const native = contractName === undefined ||
-      ['delivery_attempt','result_read_grant','delivery_record'].includes(contractName)
+      ['delivery_attempt','result_read_grant','delivery_record','result_delivery_receipt'].includes(contractName)
       ? nativeDeliveryContract(cid,contractName) : undefined;
     if (native !== undefined) return Object.freeze({wire:native.wire,value:parseContract(native),contract:native});
     const bytes = await readSemanticBytes(cid,false);
@@ -4053,6 +4053,18 @@ async function openOriginalLocalPublicationStore(
 
   const readLatestDeliveryRecordContract = async (attemptCid, original, retainedBirth, retainedBirthValue) => {
     active();
+    const completed=deliveryIndex?.completion(attemptCid);
+    if(completed!==undefined) {
+      const retained=original?.contract;
+      const contract=retained?.identity===completed.record_cid && retained.wire===completed.record_wire
+        ? retained : admitContract('delivery_record',completed.record_wire);
+      const record=parseContract(contract);
+      if(contract.identity!==completed.record_cid || record.delivery_attempt_cid!==attemptCid ||
+          record.sequence!==1 || record.state!=='succeeded' || record.result_delivery_receipt_cid!==completed.receipt_cid) {
+        fail('InvalidDeliveryAttemptIndex');
+      }
+      return contract;
+    }
     const directory = deliveryAttemptPath(attemptCid);
     const row = deliveryIndex?.attempt(attemptCid);
     let initial;
@@ -4198,6 +4210,7 @@ async function openOriginalLocalPublicationStore(
   };
 
   const confirmAdmittedDeliveryRecord = async (contract, record, observed) => {
+    if(deliveryIndex?.confirmRecord(record.delivery_attempt_cid,contract.identity,contract.wire)===true) return record;
     const directory = deliveryAttemptPath(record.delivery_attempt_cid);
     const target = resolve(directory, `${record.sequence}.json`);
     let previousBytes = Buffer.isBuffer(observed) ? observed : undefined;
@@ -4240,7 +4253,7 @@ async function openOriginalLocalPublicationStore(
   const appendDeliveryRecord = async suppliedWire => {
     active();
     const contract = admitContract('delivery_record', suppliedWire);
-    return appendAdmittedDeliveryRecord(contract);
+    return enqueueDeliveryAdmission(()=>appendAdmittedDeliveryRecord(contract));
   };
 
   const appendDeliveryCompletion = async (attempt, receipt, contract) => {
@@ -4264,7 +4277,18 @@ async function openOriginalLocalPublicationStore(
     if (!valid) fail('InvalidDeliverySuccessEvidence');
     const record = parseContract(contract);
     if (record.state !== 'succeeded') fail('InvalidDeliverySuccessEvidence');
-    return appendAdmittedDeliveryRecord(contract, {attempt, receipt, record});
+    return enqueueDeliveryAdmission(()=>{
+      const progress=deliveryStarts.get(attempt.identity), pending=progress?.completion;
+      if(pending!==undefined) {
+        if(pending.attempt!==attempt || pending.receipt!==receipt || pending.contract!==contract) {
+          fail('ResultDeliveryAttemptUnresolved');
+        }
+        deliveryIndex.complete(pending.entry);
+        progress.completion=undefined;
+        return record;
+      }
+      return appendAdmittedDeliveryRecord(contract, {attempt, receipt, record});
+    });
   };
 
   const appendAdmittedDeliveryRecord = async (contract, completion) => {
@@ -4312,6 +4336,22 @@ async function openOriginalLocalPublicationStore(
       ) !== true) {
         fail('InvalidDeliverySuccessEvidence');
       }
+    }
+    const native=deliveryIndex?.attempt(record.delivery_attempt_cid);
+    if(completion!==undefined && record.sequence===1 && native?.initial_cid===previous?.identity) {
+      const progress=deliveryStarts.get(record.delivery_attempt_cid) ?? {runCid:attempt.run_definition_cid,phase:'installed'};
+      deliveryStarts.set(record.delivery_attempt_cid,progress);
+      const entry=Object.freeze({attempt_cid:record.delivery_attempt_cid,prior_cid:previous.identity,
+        record_cid:contract.identity,record_wire:contract.wire,
+        receipt_cid:suppliedReceipt.identity,receipt_wire:suppliedReceipt.wire});
+      try {deliveryIndex.complete(entry);}
+      catch(error) {
+        // Retain these SAME nominal inputs for storage-only finalization.
+        // A retry cannot send again, reissue a receipt or replace this duty.
+        progress.completion=Object.freeze({attempt:completion.attempt,receipt:suppliedReceipt,contract,entry});
+        throw error;
+      }
+      return record;
     }
     if (suppliedReceipt === undefined) await putSemantic(contract.wire, contract.identity);
     else await putSemanticBatch([suppliedReceipt, contract].map(value => ({
@@ -5581,6 +5621,14 @@ async function openOriginalLocalPublicationStore(
       if (row.initial_cid == null) continue;
       const {attemptContract,grantContract,streaming}=admitDeliveryClaim(row);
       for(const contract of [grantContract,attemptContract,streaming]) collected.add(contract.identity);
+      const completed=deliveryIndex.completion(row.attempt_cid);
+      if(completed!==undefined) {
+        const record=admitContract('delivery_record',completed.record_wire);
+        const receipt=admitContract('result_delivery_receipt',completed.receipt_wire);
+        if(record.identity!==completed.record_cid || receipt.identity!==completed.receipt_cid ||
+            contractControl.deliverySuccessValid(attemptContract,receipt,record)!==true) fail('InvalidDeliveryAttemptIndex');
+        collected.add(record.identity);collected.add(receipt.identity);
+      }
     }
     for (const name of await readdir(attemptsDirectory)) {
       if (!/^[0-9a-f]{64}$/u.test(name)) {
