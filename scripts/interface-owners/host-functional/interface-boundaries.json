@@ -18621,7 +18621,7 @@
     {
       "module": "adapters/host-node/client-request-journal.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "6b6fde939a785fdc106452544e6d93e14a79857be0544270f6d28f34f9161db0",
+      "sha256": "453b7f540ac85eb0f2ddce219dc52eefa459ba34eb3370f46720bccdcecbcd9e",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
@@ -18896,17 +18896,6 @@
           "name": "checkedRunDefinition",
           "parameters": [
             "value",
-            "control",
-            "maxBytes"
-          ],
-          "async": false
-        },
-        {
-          "name": "checkStoredPlanOriginal",
-          "parameters": [
-            "value",
-            "definition",
-            "programCid",
             "control",
             "maxBytes"
           ],
@@ -20429,7 +20418,6 @@
             "admitJournalDirectory",
             "assertKeyedInventoryRequest",
             "assertSourceInventory",
-            "checkStoredPlanOriginal",
             "checkedIdentity",
             "checkedRunDefinition",
             "cid/cid",
@@ -20487,7 +20475,6 @@
             "openClientRequestJournal/epochClock/epochClock",
             "openClientRequestJournal/epochHandle/epochHandle",
             "openClientRequestJournal/journal/init:accept/init:accept",
-            "openClientRequestJournal/journal/init:acceptDefinition/init:acceptDefinition",
             "openClientRequestJournal/journal/init:admitOrLookupDefinition/init:admitOrLookupDefinition",
             "openClientRequestJournal/journal/init:checkSubmissionAttempt/init:checkSubmissionAttempt",
             "openClientRequestJournal/journal/init:checkSubmissionAttempt/init:checkSubmissionAttempt/init:checkSubmissionAttempt",
@@ -20580,7 +20567,6 @@
             "retainedResultNames",
             "retainedResultNames/retainedResultNames",
             "retainedRunDefinition",
-            "retainedRunFacts",
             "syncDirectory",
             "text/text",
             "validEpochAuthority",
@@ -21677,6 +21663,83 @@
               {
                 "path": "adapters/host-node/client-request-journal-operation-bounds.test.mjs",
                 "anchor": "failed original currentness consumes its operation before argument access without blocking close"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "openClientRequestJournal/journal/init:acceptDefinition/init:acceptDefinition",
+            "retainedRunFacts"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "Run status and cancellation metadata do not consume the saved logical map."
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "function retainedRunFacts(row, publicationControl, maxWireBytes, updateOriginalControl)"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "original = publicationControl.originalRunPlanAdmissionEvidence(originalPlan,"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "The compiler's nominal initial selection already checks its Plan, Program and"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "const accepted = acceptRecord(identity, {namespaceId,"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/client-run-plan.mjs",
+                "anchor": "const wire = control.readStoredRunPlanOriginal(saved, original.runDefinition,"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "cancellationRequested: row.cancellation_requested === 1,"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "if (Buffer.byteLength(original.compiledPlanWire) > maxRunDefinitionWireBytes ||"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "and adds no permission cache, replacement map or revision."
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-original-plan-journal.test.mjs",
+                "anchor": "Run metadata and nominal acceptance do not validate an unused logical map"
+              },
+              {
+                "path": "adapters/host-node/client-original-plan-journal.test.mjs",
+                "anchor": "actual Run plan read validates its original once across Journal lookups"
+              },
+              {
+                "path": "adapters/host-node/client-original-plan-control.test.mjs",
+                "anchor": "restored map checks original Plan Program and self CID without another compilation"
               }
             ]
           }
