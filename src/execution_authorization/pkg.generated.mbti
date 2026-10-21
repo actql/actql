@@ -82,6 +82,12 @@ pub fn local_mock_profile_identity() -> BootstrapProfile
 
 pub fn local_mock_profile_predecessor_body() -> String
 
+pub fn local_standard_account_configuration(LocalStandardAccountSubjects) -> Result[String, LocalStandardProfileIssue]
+
+pub fn local_standard_profile_body() -> String
+
+pub fn local_standard_profile_identity() -> BootstrapProfile
+
 pub fn prepare_decision_request(DelegatedMatch, configuration_cid~ : String, boundary~ : DecisionBoundary, subject_cid~ : String, context_cid~ : String, answering_authorities~ : Array[String], required_claims? : Array[String]) -> Result[DecisionRequest, RequestIssue]
 
 pub fn runtime_action_error_code(RuntimeAction) -> String?
@@ -287,6 +293,21 @@ pub(all) struct LocalMockAccountSubjects {
 }
 
 pub(all) enum LocalMockProfileIssue {
+  InvalidSubjects
+  Configuration(ConfigurationIssue)
+} derive(Eq, @debug.Debug)
+
+pub(all) struct LocalStandardAccountSubjects {
+  account_id : String
+  principal : String
+  control_connection : String
+  configured_connections : Array[String]
+  model_tasks : Array[(String, String)]
+  request_target : (String, String)?
+  signing_key_resource : String?
+}
+
+pub(all) enum LocalStandardProfileIssue {
   InvalidSubjects
   Configuration(ConfigurationIssue)
 } derive(Eq, @debug.Debug)

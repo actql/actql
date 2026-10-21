@@ -264,11 +264,27 @@ Design agreement is complete for the two-layer responsibility split. Concrete
 configuration and wire specification are explicitly unfinished, not implementation
 details silently decided by whichever Host is written first.
 
+## Standard Local bootstrap
+
+Absent authored Account configuration selects the existing standard Local
+bootstrap, not implicit permission. Common owns its explicit canonical profile
+and bounded configuration materializer in
+`execution_authorization/local_standard_profile.mbt`; the existing initializer
+owns first initialization, exclusive creation, confirmation and durable adoption.
+Configured-connection reads, exact registered Task/provider inference and pure
+Local control/Result access retain their separate actual original/current
+bindings. Every Effect delegates to the existing effect policy, default review.
+An explicit Account replaces the bootstrap completely, without grant merging.
+Reopen reads the saved current Account; missing, corrupt or revoked adopted
+state never causes profile recreation or permission restoration. Optional
+signing subjects require an actual purpose-confined key, independently of
+otherwise authorized reads and inference.
+
 ## Explicit initial Local Mock profile
 
 The shared Common profile `actql-local-mock`, version `0.1`, has canonical
 body CID
-`sha256:8d3a8a44d338852bdef34d4547dc8a9c22d91e9831dac20ee42f144de8793e01`.
+`sha256:0423a05cccb8d7329cc130247130f2081bb8f54e42ae579e99166da30c21de52`.
 The original body and finite materializer belong to
 `execution_authorization/local_mock_profile.mbt`. They produce the existing
 Account configuration; they do not create an installation, key, Reviewer or
@@ -293,7 +309,13 @@ for the new public Source and historical/explicit answer recipes. Their original
 prepared publication or authenticated committed Manifest and same-Run/current
 checks remain mandatory; the Account entry cannot issue a Result. Other Named
 Results remain outside this finite profile, not wildcard-authorized by a name
-or Program CID. Signing is limited to the actual original
+or Program CID. The selected UPDATE recipe additionally receives exactly
+`result/updates` read; this neither approves the Effect nor creates its Result.
+The previous primary profile body
+`sha256:8d3a8a44d338852bdef34d4547dc8a9c22d91e9831dac20ee42f144de8793e01`
+and prior configuration identities remain recognized originals without that
+additional tuple. No saved configuration is upgraded or regranted on reopen.
+Signing is limited to the actual original
 purpose-confined key resource. Omitting an unavailable signer creates no sign
 entry and does not itself revoke otherwise permitted reads or inference.
 Current Reviewer/key/actor checks, exact signed preimages and durable claims

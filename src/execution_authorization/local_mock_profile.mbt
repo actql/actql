@@ -11,6 +11,14 @@ pub const LOCAL_MOCK_PROFILE_VERSION : String = "0.1"
 /// remain Host originals; these policy bytes cannot authenticate any of them.
 pub fn local_mock_profile_body() -> String {
   (
+    #|{"control":{"operations":["cancel","publish","read","resolve","submit"],"resource":"run"},"effect":{"operations":["effect"],"outcome":"delegate"},"infer":{"connection":"mock","operations":["infer","model_raw_capture"]},"profile_id":"actql-local-mock","profile_version":"0.1","read":{"operations":["read"]},"request":{"operations":["write"],"resource":"original-host-mock-realization"},"result":{"operations":["read"],"resources":["result/answer","result/main","result/updates"]},"scope":"selected-mock-project-installation","sign":{"operations":["sign"],"resource":"original-local-purpose-key"}}
+  )
+}
+
+///|
+/// Exact prior primary policy. Recognition never adds grants to saved state.
+fn local_mock_primary_profile_body() -> String {
+  (
     #|{"control":{"operations":["cancel","publish","read","resolve","submit"],"resource":"run"},"effect":{"operations":["effect"],"outcome":"delegate"},"infer":{"connection":"mock","operations":["infer","model_raw_capture"]},"profile_id":"actql-local-mock","profile_version":"0.1","read":{"operations":["read"]},"request":{"operations":["write"],"resource":"original-host-mock-realization"},"result":{"operations":["read"],"resources":["result/answer","result/main"]},"scope":"selected-mock-project-installation","sign":{"operations":["sign"],"resource":"original-local-purpose-key"}}
   )
 }
@@ -56,6 +64,7 @@ fn local_mock_profile_body_identity(wire : String) -> BootstrapProfile {
 /// This does not issue adoption, a Run, a Result or replacement permissions.
 pub fn is_known_local_mock_profile(profile : BootstrapProfile) -> Bool {
   profile == local_mock_profile_identity() ||
+  profile == local_mock_profile_body_identity(local_mock_primary_profile_body()) ||
   profile == local_mock_profile_body_identity(local_mock_answer_profile_body()) ||
   profile ==
   local_mock_profile_body_identity(local_mock_profile_predecessor_body())
@@ -201,6 +210,18 @@ pub fn local_mock_account_configuration(
         target.1,
         ["effect"],
         Delegate,
+      ),
+    )
+    // Only the selected UPDATE recipe's exact Named Result. This does not
+    // approve the Effect, issue a Result or replace its same-Run/current gate.
+    entries.push(
+      local_mock_entry(
+        "local-update-result-read",
+        subjects,
+        subjects.control_connection,
+        "result/updates",
+        ["read"],
+        Allow,
       ),
     )
   }

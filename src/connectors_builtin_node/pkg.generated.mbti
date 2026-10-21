@@ -1962,6 +1962,10 @@ pub fn client_program_local_mock_account_profile() -> (String, String, String, S
 
 pub fn client_program_local_mock_account_profile_known(String, String, String) -> Bool
 
+pub fn client_program_local_standard_account_configuration(String, String, String, Array[String], Array[(String, String)], (String, String)?, String?) -> Result[String, @execution_authorization.LocalStandardProfileIssue]
+
+pub fn client_program_local_standard_account_profile() -> (String, String, String, String)
+
 pub fn client_program_local_table_commit_response(String, Int, Int, Int, Int) -> Result[String, @effect_application.TableCommitIssue]
 
 pub fn client_program_local_table_storage_mapping_cid(@table.IcebergStorageMapping) -> String

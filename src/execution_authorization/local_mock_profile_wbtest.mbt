@@ -97,7 +97,8 @@ test "answer-only Mock originals remain known without acquiring main authority" 
     ..fresh,
     bootstrap: Some(previous),
     entries: fresh.entries.filter(entry => {
-      entry.entry_id != "local-primary-result-read"
+      entry.entry_id != "local-primary-result-read" &&
+      entry.entry_id != "local-update-result-read"
     }),
   }).unwrap()
   // Independently retained full configuration identity, not a newer policy
@@ -123,6 +124,79 @@ test "answer-only Mock originals remain known without acquiring main authority" 
 }
 
 ///|
+test "prior primary Mock original never acquires the UPDATE Result on recovery" {
+  let previous = local_mock_profile_body_identity(
+    local_mock_primary_profile_body(),
+  )
+  assert_eq(
+    previous.profile_cid,
+    "sha256:8d3a8a44d338852bdef34d4547dc8a9c22d91e9831dac20ee42f144de8793e01",
+  )
+  assert_true(is_known_local_mock_profile(previous))
+  let fresh = decode_account_configuration_json(
+    local_mock_account_configuration(mock_profile_subjects()).unwrap(),
+  ).unwrap()
+  let saved = admit_account_configuration({
+    ..fresh,
+    bootstrap: Some(previous),
+    entries: fresh.entries.filter(entry => {
+      entry.entry_id != "local-update-result-read"
+    }),
+  }).unwrap()
+  assert_eq(
+    saved.configuration_cid(),
+    "sha256:82722eed1a6b4cfb1a33f06b3345246076cf6802483c97eab250f5febb8826e8",
+  )
+  assert_true(
+    evaluate_account(
+      saved,
+      mock_profile_at("local-host", "result/main", "read"),
+    )
+    is Allow(_),
+  )
+  assert_true(
+    evaluate_account(
+      saved,
+      mock_profile_at("local-host", "result/updates", "read"),
+    )
+    is Deny(NoMatch),
+  )
+}
+
+///|
+test "Mock UPDATE Result scope requires the selected UPDATE recipe" {
+  let subjects = mock_profile_subjects()
+  let read_only = admit_account_configuration_json(
+    local_mock_account_configuration({ ..subjects, update_target: None, }).unwrap(),
+  ).unwrap()
+  assert_true(
+    evaluate_account(
+      read_only,
+      mock_profile_at("local-host", "result/updates", "read"),
+    )
+    is Deny(NoMatch),
+  )
+  let update = admit_account_configuration_json(
+    local_mock_account_configuration(subjects).unwrap(),
+  ).unwrap()
+  assert_true(
+    evaluate_account(
+      update,
+      mock_profile_at("local-host", "result/updates", "read"),
+    )
+    is Allow(_),
+  )
+  for
+    tuple in [
+      mock_profile_at("local-host", "result/other", "read"),
+      mock_profile_at("local-host", "result/updates", "write"),
+      mock_profile_at("foreign", "result/updates", "read"),
+    ] {
+    assert_true(evaluate_account(update, tuple) is Deny(NoMatch))
+  }
+}
+
+///|
 test "Local Mock profile and concrete configuration match independent canonical preimages" {
   // Independently authored profile/configuration objects and canonical SHA256,
   // not expectations regenerated from this implementation's emitted bytes.
@@ -131,13 +205,13 @@ test "Local Mock profile and concrete configuration match independent canonical 
   assert_eq(profile.profile_version, "0.1")
   assert_eq(
     profile.profile_cid,
-    "sha256:8d3a8a44d338852bdef34d4547dc8a9c22d91e9831dac20ee42f144de8793e01",
+    "sha256:0423a05cccb8d7329cc130247130f2081bb8f54e42ae579e99166da30c21de52",
   )
   let wire = local_mock_account_configuration(mock_profile_subjects()).unwrap()
   let admitted = admit_account_configuration_json(wire).unwrap()
   assert_eq(
     admitted.configuration_cid(),
-    "sha256:82722eed1a6b4cfb1a33f06b3345246076cf6802483c97eab250f5febb8826e8",
+    "sha256:d516378d5284e53e3c9667e62a11ffd020b477111920fa0405d93f73695f2907",
   )
   assert_eq(admitted.bootstrap_profile(), Some(profile))
   assert_true(
@@ -177,6 +251,7 @@ test "Local Mock reads inference request and key scopes remain finite and UPDATE
       mock_profile_at("local-host", "run", "cancel"),
       mock_profile_at("local-host", "result/answer", "read"),
       mock_profile_at("local-host", "result/main", "read"),
+      mock_profile_at("local-host", "result/updates", "read"),
       mock_profile_at("local-host", "key:reviewer", "sign"),
     ] {
     assert_true(evaluate_account(config, tuple) is Allow(_))

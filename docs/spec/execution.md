@@ -2008,10 +2008,23 @@ All ordinary credential, egress, resource, currentness and approval checks
 remain required. An unreadable, invalid or revoked configuration is refused,
 not treated as absence or a request to restore the bootstrap profile.
 
+The [Common standard Local materializer](../../src/execution_authorization/local_standard_profile.mbt)
+retains the explicit `actql-local-standard` version `0.1` profile body CID
+`sha256:8c28b41c2fc824e43c77de4726337661b651287d2ac627770dc106e972afd60e`.
+The initializer supplies its actual principal, control connection, configured
+connections, registered Task/provider pairs and any actual request/signing
+subjects. Configured-connection reads cover that connection's resource domain;
+registered INFER subjects remain exact Task/provider pairs. The Local Result
+Owner still binds its actual Result name and same original Run, separately from
+the Account tuple. Every Effect is delegated, not permitted. Profile DATA and
+configuration materialization neither establish installation nor record
+adoption; the existing initialization intent and durable Account adoption must
+complete before use. Authored configuration replaces this profile in full.
+
 <!-- requirement-block: policy-routing.mock-result-original-binding policy-routing.mock-request-protection-target -->
 For trusted explicit initial Local Mock selection, the limited shared profile is
 `actql-local-mock` version `0.1`, with original body CID
-`sha256:8d3a8a44d338852bdef34d4547dc8a9c22d91e9831dac20ee42f144de8793e01`.
+`sha256:0423a05cccb8d7329cc130247130f2081bb8f54e42ae579e99166da30c21de52`.
 Its [Common body and materializer](../../src/execution_authorization/local_mock_profile.mbt)
 instantiate only finite principal/connection/resource/operation tuples for the
 same selected Project and actual Mock installation: selected Source reads,
@@ -2023,7 +2036,14 @@ read-only Source and `result/answer` for the historical or explicitly selected
 answer recipe, each with `read`, independently of `run/read` and Source reads. Each use MUST
 retain the actual same-Run preparation or committed Result, installation and
 current authority. This finite default scope does not authorize another Named
-Result, an alias, a caller-supplied name list or a live backend.
+Result, an alias, a caller-supplied name list or a live backend. A selected
+UPDATE recipe additionally materializes only its exact `result/updates` read
+tuple. That read does not approve the Effect or create a Result; the actual
+same-Run Result and current authority remain required. The prior two-default
+profile body CID
+`sha256:8d3a8a44d338852bdef34d4547dc8a9c22d91e9831dac20ee42f144de8793e01`
+and its saved configuration remain exact historical originals, without this
+additional grant. Reopen never materializes a newer profile over saved state.
 The selected UPDATE uses `delegate`, never
 automatic approval. The original Host request-protection `write` tuple is
 distinct from a Source or Effect target and MUST NOT name either in its place.
