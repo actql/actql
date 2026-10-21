@@ -23,7 +23,8 @@ function publicOperation(operation = 'warm-result', id = 'public-call-1') {
       kind, fact: 'original-row', revision: 7, required: true, fullCalls: 1}));
   for (const resource of ['run', 'result/main']) fullChecks.push({kind: 'account-evaluation',
     fact: 'original-account', revision: 'policy/key/target-7', required: true, fullCalls: 1,
-    tuple: {subject: 'local-reviewer', operation: 'read', resource, run: 'original-run', target: null}});
+    tuple: {subject: 'local-reviewer', connection: 'configured-a', operation: 'read', resource,
+      run: 'original-run', target: null, authorityScope: 'original-authority'}});
   return {id, operation, complete: true, overflow: false, unrelatedRunRows: 0, unrelatedEffectRows: 0,
     fullChecks, fullTotals: {'physical-validation': 1, 'current-validation': 1, 'account-evaluation': 2,
       'row-admission': 1, decode: 1, parse: 1, mac: 1, hash: 1, 'scope-digest': 1, 'configuration-inventory': 1},
@@ -110,6 +111,31 @@ test('an Account getter alias cannot split the same subject/permission/resource/
   const row = publicOperation(), check = row.fullChecks.find(value => value.kind === 'account-evaluation');
   row.fullChecks.push({...check, fact: 'renamed-helper-or-cache-eviction'});
   assert.equal(assessStructure({operations: [row]}).status, 'failed');
+});
+test('Account connections remain distinct while private frames cannot split one connection permission', () => {
+  const row = publicOperation(), original = row.fullChecks.find(check => check.kind === 'account-evaluation');
+  row.fullChecks = row.fullChecks.filter(check => check.kind !== 'account-evaluation');
+  row.fullChecks.push(original, {...original, tuple: {...original.tuple, connection: 'configured-b'}});
+  assert.equal(assessStructure({operations: [row]}).status, 'passed');
+  row.fullChecks.push({...original, fact: 'another-private-getter', frame: 'after-trusted-read'});
+  row.fullTotals['account-evaluation'] = 3;
+  assert.equal(assessStructure({operations: [row]}).status, 'failed');
+  const absent = publicOperation(); delete absent.fullChecks.find(check => check.kind === 'account-evaluation').tuple.connection;
+  assert.throws(() => assessStructure({operations: [absent]}), /exact subject\/connection/u);
+});
+test('Account authority scopes are explicit or inherited only from the fixed public operation', () => {
+  const row = publicOperation();
+  const original = row.fullChecks.find(check => check.kind === 'account-evaluation');
+  row.fullChecks.push({...original, tuple: {...original.tuple, authorityScope: 'other-authority'}});
+  row.fullTotals['account-evaluation'] = 3;
+  assert.equal(assessStructure({operations: [row]}).status, 'passed');
+  const fixed = publicOperation(); fixed.authorityScope = 'original-authority';
+  fixed.fullChecks.filter(check => check.kind === 'account-evaluation').forEach(check => {delete check.tuple.authorityScope;});
+  assert.equal(assessStructure({operations: [fixed]}).status, 'passed');
+  fixed.fullChecks.find(check => check.kind === 'account-evaluation').tuple.authorityScope = 'other-authority';
+  assert.throws(() => assessStructure({operations: [fixed]}), /differs from the fixed public operation/u);
+  delete row.fullChecks.find(check => check.kind === 'account-evaluation').tuple.authorityScope;
+  assert.throws(() => assessStructure({operations: [row]}), /actual authority scope/u);
 });
 test('pure fact work runs zero heavy checks, without manufacturing an admission', () => {
   const row = publicOperation(); row.fullChecks.forEach(check => {check.required = false; check.fullCalls = 0;});
