@@ -20,6 +20,16 @@ unchanged legacy Run state and its observed control revision. Missing pending
 flags remain omitted/unknown; unsupported pause, Sample and cost capabilities
 are separate facts. No logical map is reconstructed from physical tasks.
 
+Run status and cancellation metadata do not consume the saved logical map.
+The request journal retains its bounded original strings alongside the
+admitted Run and current control flags without re-admitting that unused map.
+The compiler's nominal initial selection already checks its Plan, Program and
+Run binding before acceptance; the journal still checks the original ticket,
+shape, limits and exact duplicate bytes. The actual authorized stored-plan
+reader admits and checks the map when returning it. This preserves semantic
+verification at use without repeating it at every unrelated metadata lookup,
+and adds no permission cache, replacement map or revision.
+
 This limited profile refuses Inspect when an older record lacks original policy
 evidence, or when a resuming state lacks the required continuation/fence origin
 observation. The underlying original Run and legacy status API remain usable.

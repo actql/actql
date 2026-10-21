@@ -938,20 +938,6 @@ function freezeAdmissionEvidence(value) {
   return Object.freeze(value);
 }
 
-function checkStoredPlanOriginal(value, definition, programCid, control, maxBytes) {
-  if (!logicalPlanOriginalShape(value) ||
-      Buffer.byteLength(value.compiledPlanWire) > maxBytes ||
-      Buffer.byteLength(value.planViewWire) > maxBytes) {
-    fail('InvalidClientRunPlanOriginal');
-  }
-  if (typeof control?.readStoredRunPlanOriginal !== 'function') {
-    fail('ClientRequestPlanEvidenceUnavailable');
-  }
-  const wire = control.readStoredRunPlanOriginal(value, definition, programCid,
-    {maxWireBytes: maxBytes, maxNodes: 4096, maxDepth: 64});
-  if (wire !== value.planViewWire) fail('InvalidClientRunPlanOriginal');
-}
-
 function retainedResultNames(row) {
   if (row.result_names_json === null) return undefined;
   let names;
@@ -988,22 +974,9 @@ function retainedRunFacts(row, publicationControl, maxWireBytes, updateOriginalC
       JSON.parse(runAdmissionEvidence.modelOriginalRunWire).runDefinitionWire !== row.run_definition_wire) {
     fail('ClientRequestJournalCorrupt');
   }
-  if (runAdmissionEvidence?.logicalPlanOriginal !== undefined) {
-    try { checkStoredPlanOriginal(runAdmissionEvidence.logicalPlanOriginal,
-      runDefinition, row.program_definition_cid, publicationControl, maxWireBytes); }
-    catch (cause) {
-      if (cause?.code === 'ClientRequestPlanEvidenceUnavailable') throw cause;
-      if (cause?.code === 'ClientOperationUnavailable') {
-        fail('ClientRequestPlanEvidenceUnavailable', cause);
-      }
-      if (cause instanceof TypeError || cause instanceof SyntaxError ||
-          ['InvalidClientRunPlanOriginal', 'MoonBitHostFailure',
-            'RunHostOriginalMapRejected'].includes(cause?.code)) {
-        fail('ClientRequestJournalCorrupt', cause);
-      }
-      fail('ClientRequestPlanReadUnknown', cause);
-    }
-  }
+  // Metadata/status/control consumes the admitted Run and current row flags,
+  // not its logical map. Keep the bounded original bytes here; the existing
+  // plan reader checks their semantic binding only when that map is used.
   return Object.freeze({
     runDefinition,
     programDefinitionCid: row.program_definition_cid,
@@ -2793,13 +2766,14 @@ export function openClientRequestJournal(directory, {
         try {
           original = publicationControl.originalRunPlanAdmissionEvidence(originalPlan,
             definition, requestControl.clientRequestProgramCid(identity), runAdmissionEvidence);
-          if (logicalPlanOriginalShape(original) &&
-              (Buffer.byteLength(original.compiledPlanWire) > maxRunDefinitionWireBytes ||
-               Buffer.byteLength(original.planViewWire) > maxRunDefinitionWireBytes)) {
+          if (!logicalPlanOriginalShape(original)) fail('InvalidClientRunPlanOriginal');
+          if (Buffer.byteLength(original.compiledPlanWire) > maxRunDefinitionWireBytes ||
+              Buffer.byteLength(original.planViewWire) > maxRunDefinitionWireBytes) {
             fail('InvalidClientRunAdmissionEvidence');
           }
-          checkStoredPlanOriginal(original, definition,
-            requestControl.clientRequestProgramCid(identity), publicationControl, maxRunDefinitionWireBytes);
+          // This nominal compiler selection already checked Plan/map/Run
+          // binding before issuance. Adopting its exact original is not a
+          // second stored-map read or another execution permission.
         } catch (cause) {
           if (cause?.code === 'InvalidClientRunAdmissionEvidence') throw cause;
           fail('InvalidClientRunPlanOriginal', cause);
