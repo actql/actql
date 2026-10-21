@@ -110,7 +110,9 @@ for (const kind of ['effect_set', 'model_invocation']) {
         assert.equal(new Set(digests).size, digests.length,
           'no constructor-produced CID preimage is hashed again');
         assert.equal(signatures, decision === 'approved' ? 2 : 1);
-        assert.equal(answer.signed[0], sent);
+        assert.deepEqual(answer.signed[0], sent,
+          'the transport may copy the envelope, never change its signed bytes');
+        assert.equal(Object.isFrozen(answer.signed[0]), true);
         assert.equal(JSON.parse(sent.resolutionWire).decision, decision);
         assert.deepEqual(f.calls, ['connect', 'checkpoints', 'resolve']);
       } finally {mock.restoreAll();}
