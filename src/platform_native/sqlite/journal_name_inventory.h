@@ -39,7 +39,7 @@ int32_t actql_native_client_submission_name_schema(
     actql_native_sqlite_database *database) {
   if (!actql_name_inventory_database_current(database)) return -1;
   sqlite3_stmt *statement = NULL;
-  int code = database->library->prepare_v2(database->database,
+  int code = ACTQL_NATIVE_TIMED_CALL(ACTQL_NATIVE_COUNT_SQL_QUERY, database->library->prepare_v2)(database->database,
     "SELECT name,sql FROM sqlite_schema WHERE type='trigger' "
     "AND tbl_name='actql_records' ORDER BY name COLLATE BINARY", -1,
     &statement, NULL);
@@ -51,7 +51,7 @@ int32_t actql_native_client_submission_name_schema(
   const char *sql[] = {ACTQL_NAME_DELETE_TRIGGER, ACTQL_NAME_INSERT_TRIGGER};
   int count = 0;
   bool exact = true;
-  while ((code = database->library->step(statement)) == SQLITE_ROW) {
+  while ((code = ACTQL_NATIVE_TIMED_CALL(ACTQL_NATIVE_COUNT_SQL_STEP, database->library->step)(statement)) == SQLITE_ROW) {
     if (count >= 2) { exact = false; break; }
     const void *name = database->library->column_blob(statement, 0);
     const void *body = database->library->column_blob(statement, 1);
@@ -68,14 +68,14 @@ int32_t actql_native_client_submission_name_schema(
   if (count == 0) return 0;
   if (count != 2) return -1;
   statement = NULL;
-  code = database->library->prepare_v2(database->database,
+  code = ACTQL_NATIVE_TIMED_CALL(ACTQL_NATIVE_COUNT_SQL_QUERY, database->library->prepare_v2)(database->database,
     "SELECT 1 FROM actql_records WHERE namespace='client_submission_name_custody' "
     "AND record_key NOT IN ('issued','retained') LIMIT 1", -1, &statement, NULL);
   if (code != SQLITE_OK) {
     if (statement != NULL) database->library->finalize(statement);
     return -1;
   }
-  code = database->library->step(statement);
+  code = ACTQL_NATIVE_TIMED_CALL(ACTQL_NATIVE_COUNT_SQL_STEP, database->library->step)(statement);
   finalized = database->library->finalize(statement);
   return code == SQLITE_DONE && finalized == SQLITE_OK ? 1 : -1;
 }
@@ -87,16 +87,16 @@ int64_t actql_native_client_submission_name_census(
   if (!actql_name_inventory_database_current(database) ||
       database->library->get_autocommit(database->database)) return -1;
   sqlite3_stmt *statement = NULL;
-  int code = database->library->prepare_v2(database->database,
+  int code = ACTQL_NATIVE_TIMED_CALL(ACTQL_NATIVE_COUNT_SQL_QUERY, database->library->prepare_v2)(database->database,
     "SELECT count(*) FROM actql_records WHERE namespace='client_submission_names'",
     -1, &statement, NULL);
   if (code != SQLITE_OK) {
     if (statement != NULL) database->library->finalize(statement);
     return -1;
   }
-  code = database->library->step(statement);
+  code = ACTQL_NATIVE_TIMED_CALL(ACTQL_NATIVE_COUNT_SQL_STEP, database->library->step)(statement);
   int64_t count = code == SQLITE_ROW ? database->library->column_int64(statement, 0) : -1;
-  if (code == SQLITE_ROW) code = database->library->step(statement);
+  if (code == SQLITE_ROW) code = ACTQL_NATIVE_TIMED_CALL(ACTQL_NATIVE_COUNT_SQL_STEP, database->library->step)(statement);
   int finalized = database->library->finalize(statement);
   return code == SQLITE_DONE && finalized == SQLITE_OK ? count : -1;
 }
@@ -110,7 +110,7 @@ int32_t actql_native_client_submission_name_install(
       actql_native_client_submission_name_schema(database) != 0 ||
       actql_native_client_submission_name_census(database) != 0) return 0;
   sqlite3_stmt *statement = NULL;
-  int code = database->library->prepare_v2(database->database,
+  int code = ACTQL_NATIVE_TIMED_CALL(ACTQL_NATIVE_COUNT_SQL_QUERY, database->library->prepare_v2)(database->database,
     "SELECT count(*) FROM actql_records WHERE namespace='client_submission_name_custody' "
     "AND record_key IN ('issued','retained') AND revision=0 AND body=X'30'",
     -1, &statement, NULL);
@@ -118,9 +118,9 @@ int32_t actql_native_client_submission_name_install(
     if (statement != NULL) database->library->finalize(statement);
     return 0;
   }
-  code = database->library->step(statement);
+  code = ACTQL_NATIVE_TIMED_CALL(ACTQL_NATIVE_COUNT_SQL_STEP, database->library->step)(statement);
   bool original = code == SQLITE_ROW && database->library->column_int64(statement, 0) == 2;
-  if (code == SQLITE_ROW) code = database->library->step(statement);
+  if (code == SQLITE_ROW) code = ACTQL_NATIVE_TIMED_CALL(ACTQL_NATIVE_COUNT_SQL_STEP, database->library->step)(statement);
   int finalized = database->library->finalize(statement);
   if (!original || code != SQLITE_DONE || finalized != SQLITE_OK) return 0;
   return actql_exec(database, ACTQL_NAME_INSERT_TRIGGER) == SQLITE_OK &&

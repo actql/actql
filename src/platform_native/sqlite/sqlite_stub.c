@@ -2,6 +2,7 @@
 #define _POSIX_C_SOURCE 200809L
 
 #include "moonbit.h"
+#include "../filesystem/native_timings.h"
 
 #include <dlfcn.h>
 #include "../filesystem/observed_component_member.h"
@@ -442,7 +443,7 @@ static void *actql_open_inspection_database(
    * aliases such as the platform temporary directory; do not impose that
    * unrelated restriction on the same original isolated copy. */
   if (journal_copy) flags |= SQLITE_OPEN_URI;
-  int code = library->open_v2(text, &database->database, flags, NULL);
+  int code = ACTQL_NATIVE_TIMED_CALL(ACTQL_NATIVE_COUNT_SQL_OPEN, library->open_v2)(text, &database->database, flags, NULL);
   actql_adapter_free(library, text);
   if (code != SQLITE_OK) {
     actql_database_error(database, "open inspection database failed");
@@ -604,7 +605,7 @@ static int actql_exec(
   const char *sql
 ) {
   char *message = NULL;
-  int code = database->library->exec(
+  int code = ACTQL_NATIVE_TIMED_CALL(ACTQL_NATIVE_COUNT_SQL_EXEC, database->library->exec)(
     database->database,
     sql,
     NULL,
@@ -622,7 +623,7 @@ static int actql_exec(
 
 static int actql_user_version(actql_native_sqlite_database *database) {
   sqlite3_stmt *statement = NULL;
-  int code = database->library->prepare_v2(
+  int code = ACTQL_NATIVE_TIMED_CALL(ACTQL_NATIVE_COUNT_SQL_QUERY, database->library->prepare_v2)(
     database->database,
     "PRAGMA user_version",
     -1,
@@ -633,7 +634,7 @@ static int actql_user_version(actql_native_sqlite_database *database) {
     actql_database_error(database, "prepare user_version failed");
     return -1;
   }
-  code = database->library->step(statement);
+  code = ACTQL_NATIVE_TIMED_CALL(ACTQL_NATIVE_COUNT_SQL_STEP, database->library->step)(statement);
   int version = code == SQLITE_ROW
     ? (int)database->library->column_int64(statement, 0)
     : -1;
@@ -679,12 +680,12 @@ int32_t actql_native_sqlite_inspection_schema(
   };
   for (int index = 0; index < 3; index++) {
     sqlite3_stmt *statement = NULL;
-    int code = database->library->prepare_v2(database->database,
+    int code = ACTQL_NATIVE_TIMED_CALL(ACTQL_NATIVE_COUNT_SQL_QUERY, database->library->prepare_v2)(database->database,
       "SELECT sql FROM sqlite_schema WHERE type='table' AND name=?1", -1,
       &statement, NULL);
     if (code == SQLITE_OK) code = database->library->bind_text(statement, 1,
       names[index], -1, SQLITE_STATIC);
-    if (code == SQLITE_OK) code = database->library->step(statement);
+    if (code == SQLITE_OK) code = ACTQL_NATIVE_TIMED_CALL(ACTQL_NATIVE_COUNT_SQL_STEP, database->library->step)(statement);
     int matches = 0;
     if (code == SQLITE_ROW) {
       int length = database->library->column_bytes(statement, 0);
@@ -736,11 +737,11 @@ static bool actql_initialize_schema(
     "PRAGMA user_version=3;"
     "COMMIT;";
   if (actql_exec(database, schema) != SQLITE_OK) {
-    database->library->exec(database->database, "ROLLBACK", NULL, NULL, NULL);
+    ACTQL_NATIVE_TIMED_CALL(ACTQL_NATIVE_COUNT_SQL_EXEC, database->library->exec)(database->database, "ROLLBACK", NULL, NULL, NULL);
     return false;
   }
   sqlite3_stmt *statement = NULL;
-  int code = database->library->prepare_v2(
+  int code = ACTQL_NATIVE_TIMED_CALL(ACTQL_NATIVE_COUNT_SQL_QUERY, database->library->prepare_v2)(
     database->database,
     "SELECT revision, body FROM actql_records WHERE 0",
     -1,
@@ -1016,14 +1017,14 @@ void actql_native_sqlite_test_failed_open_cleanup(
 static bool actql_select_journal_exclusive(actql_native_sqlite_database *database) {
   sqlite3_stmt *statement = NULL;
   actql_native_sqlite_library *library = database->library;
-  int code = library->prepare_v2(database->database,
+  int code = ACTQL_NATIVE_TIMED_CALL(ACTQL_NATIVE_COUNT_SQL_QUERY, library->prepare_v2)(database->database,
     "PRAGMA main.locking_mode=EXCLUSIVE", -1, &statement, NULL);
   bool selected = false;
-  if (code == SQLITE_OK && library->step(statement) == SQLITE_ROW) {
+  if (code == SQLITE_OK && ACTQL_NATIVE_TIMED_CALL(ACTQL_NATIVE_COUNT_SQL_STEP, library->step)(statement) == SQLITE_ROW) {
     const void *mode = library->column_blob(statement, 0);
     int length = library->column_bytes(statement, 0);
     selected = mode != NULL && length == 9 && memcmp(mode, "exclusive", 9) == 0 &&
-      library->step(statement) == SQLITE_DONE;
+      ACTQL_NATIVE_TIMED_CALL(ACTQL_NATIVE_COUNT_SQL_STEP, library->step)(statement) == SQLITE_DONE;
   }
   if (statement != NULL && library->finalize(statement) != SQLITE_OK) selected = false;
   return selected;
@@ -1125,7 +1126,7 @@ static void *actql_open_database(
   }
   int flags = SQLITE_OPEN_READWRITE | SQLITE_OPEN_FULLMUTEX;
   flags |= contained ? SQLITE_OPEN_NOFOLLOW : SQLITE_OPEN_CREATE;
-  int code = library->open_v2(
+  int code = ACTQL_NATIVE_TIMED_CALL(ACTQL_NATIVE_COUNT_SQL_OPEN, library->open_v2)(
     path_text,
     &database->database,
     flags,
@@ -1329,7 +1330,7 @@ static int32_t actql_database_read(
   if (database == NULL || !database->opened || !actql_database_library_available(database->library)) return 5;
   actql_clear_result(database);
   sqlite3_stmt *statement = NULL;
-  int code = database->library->prepare_v2(
+  int code = ACTQL_NATIVE_TIMED_CALL(ACTQL_NATIVE_COUNT_SQL_QUERY, database->library->prepare_v2)(
     database->database,
     "SELECT revision, body FROM actql_records "
     "WHERE namespace = ?1 AND record_key = ?2",
@@ -1352,7 +1353,7 @@ static int32_t actql_database_read(
     key_length
   );
   if (result == 0) {
-    code = database->library->step(statement);
+    code = ACTQL_NATIVE_TIMED_CALL(ACTQL_NATIVE_COUNT_SQL_STEP, database->library->step)(statement);
     if (code == SQLITE_DONE) {
       result = 1;
     } else if (code != SQLITE_ROW) {
@@ -1400,7 +1401,7 @@ int32_t actql_native_sqlite_database_read_header(
   if (database == NULL || !database->opened || !actql_database_library_available(database->library)) return 5;
   actql_clear_result(database);
   sqlite3_stmt *statement = NULL;
-  int code = database->library->prepare_v2(database->database,
+  int code = ACTQL_NATIVE_TIMED_CALL(ACTQL_NATIVE_COUNT_SQL_QUERY, database->library->prepare_v2)(database->database,
     "SELECT revision, length(body), typeof(body) = 'blob' FROM actql_records "
     "WHERE namespace = ?1 AND record_key = ?2", -1, &statement, NULL);
   if (code != SQLITE_OK) {
@@ -1411,7 +1412,7 @@ int32_t actql_native_sqlite_database_read_header(
     namespace_length, 2, key, key_length);
   int64_t revision = 0, length = 0;
   if (result == 0) {
-    code = database->library->step(statement);
+    code = ACTQL_NATIVE_TIMED_CALL(ACTQL_NATIVE_COUNT_SQL_STEP, database->library->step)(statement);
     if (code == SQLITE_DONE) result = 1;
     else if (code != SQLITE_ROW) {
       actql_database_error(database, "read journal header failed");
@@ -1484,7 +1485,7 @@ static int32_t actql_database_scan_after(
       memcmp(namespace_bytes, "client_submission_names", 23) == 0) return -1;
   actql_clear_result(database);
   sqlite3_stmt *statement = NULL;
-  int code = database->library->prepare_v2(
+  int code = ACTQL_NATIVE_TIMED_CALL(ACTQL_NATIVE_COUNT_SQL_QUERY, database->library->prepare_v2)(
     database->database,
     "SELECT record_key, revision, body FROM actql_records "
     "WHERE namespace = ?1 AND record_key > ?2 "
@@ -1519,7 +1520,7 @@ static int32_t actql_database_scan_after(
     result = actql_operation_code(code_key);
   }
   if (result == 0) {
-    code = database->library->step(statement);
+    code = ACTQL_NATIVE_TIMED_CALL(ACTQL_NATIVE_COUNT_SQL_STEP, database->library->step)(statement);
     if (code == SQLITE_DONE) {
       result = 1;
     } else if (code != SQLITE_ROW) {
@@ -1611,7 +1612,7 @@ int32_t actql_native_sqlite_database_insert(
     return 4;
   }
   sqlite3_stmt *statement = NULL;
-  int code = database->library->prepare_v2(
+  int code = ACTQL_NATIVE_TIMED_CALL(ACTQL_NATIVE_COUNT_SQL_QUERY, database->library->prepare_v2)(
     database->database,
     "INSERT INTO actql_records(namespace, record_key, revision, body) "
     "VALUES(?1, ?2, 0, ?3)",
@@ -1647,7 +1648,7 @@ int32_t actql_native_sqlite_database_insert(
     }
   }
   if (result == 0) {
-    code = database->library->step(statement);
+    code = ACTQL_NATIVE_TIMED_CALL(ACTQL_NATIVE_COUNT_SQL_STEP, database->library->step)(statement);
     if ((code & 0xff) == SQLITE_CONSTRAINT) {
       result = 2;
     } else if (code != SQLITE_DONE) {
@@ -1683,7 +1684,7 @@ int32_t actql_native_sqlite_database_compare_exchange(
   }
   if (expected_revision < 0 || expected_revision == INT64_MAX) return 2;
   sqlite3_stmt *statement = NULL;
-  int code = database->library->prepare_v2(
+  int code = ACTQL_NATIVE_TIMED_CALL(ACTQL_NATIVE_COUNT_SQL_QUERY, database->library->prepare_v2)(
     database->database,
     "UPDATE actql_records SET revision = revision + 1, body = ?3 "
     "WHERE namespace = ?1 AND record_key = ?2 AND revision = ?4",
@@ -1726,7 +1727,7 @@ int32_t actql_native_sqlite_database_compare_exchange(
     }
   }
   if (result == 0) {
-    code = database->library->step(statement);
+    code = ACTQL_NATIVE_TIMED_CALL(ACTQL_NATIVE_COUNT_SQL_STEP, database->library->step)(statement);
     if (code != SQLITE_DONE) {
       actql_database_error(database, "update journal record failed");
       result = actql_operation_code(code);
@@ -1763,7 +1764,7 @@ int32_t actql_native_sqlite_database_remove_exact(
   if (body_length < 0 || (int64_t)body_length > database->max_body_bytes) return 4;
   if (expected_revision < 0) return 2;
   sqlite3_stmt *statement = NULL;
-  int code = database->library->prepare_v2(database->database,
+  int code = ACTQL_NATIVE_TIMED_CALL(ACTQL_NATIVE_COUNT_SQL_QUERY, database->library->prepare_v2)(database->database,
     "DELETE FROM actql_records WHERE namespace = ?1 AND record_key = ?2 "
     "AND revision = ?3 AND body = ?4", -1, &statement, NULL);
   if (code != SQLITE_OK) {
@@ -1783,7 +1784,7 @@ int32_t actql_native_sqlite_database_remove_exact(
     }
   }
   if (result == 0) {
-    code = database->library->step(statement);
+    code = ACTQL_NATIVE_TIMED_CALL(ACTQL_NATIVE_COUNT_SQL_STEP, database->library->step)(statement);
     if (code != SQLITE_DONE) {
       actql_database_error(database, "exact journal retirement failed");
       result = actql_operation_code(code);
@@ -1807,13 +1808,13 @@ int32_t actql_native_sqlite_test_remove_journal_record(
     moonbit_bytes_t key, int32_t key_length) {
   if (database == NULL || !database->opened) return 0;
   sqlite3_stmt *statement = NULL;
-  int code = database->library->prepare_v2(database->database,
+  int code = ACTQL_NATIVE_TIMED_CALL(ACTQL_NATIVE_COUNT_SQL_QUERY, database->library->prepare_v2)(database->database,
     "DELETE FROM actql_records WHERE namespace = ?1 AND record_key = ?2",
     -1, &statement, NULL);
   if (code != SQLITE_OK) return 0;
   int bound = actql_bind_key(database, statement, 1, namespace_bytes,
     namespace_length, 2, key, key_length);
-  int removed = bound == 0 && database->library->step(statement) == SQLITE_DONE &&
+  int removed = bound == 0 && ACTQL_NATIVE_TIMED_CALL(ACTQL_NATIVE_COUNT_SQL_STEP, database->library->step)(statement) == SQLITE_DONE &&
     database->library->changes64(database->database) == 1;
   int finalized = database->library->finalize(statement);
   return removed && finalized == SQLITE_OK;
@@ -1902,7 +1903,7 @@ int32_t actql_native_sqlite_database_rollback(
 static void actql_capacity_rollback(
   actql_native_sqlite_database *database
 ) {
-  database->library->exec(database->database, "ROLLBACK", NULL, NULL, NULL);
+  ACTQL_NATIVE_TIMED_CALL(ACTQL_NATIVE_COUNT_SQL_EXEC, database->library->exec)(database->database, "ROLLBACK", NULL, NULL, NULL);
 }
 
 static int32_t actql_capacity_begin(
@@ -1931,7 +1932,7 @@ static int32_t actql_capacity_existing(
   int64_t *reserved_objects
 ) {
   sqlite3_stmt *statement = NULL;
-  int code = database->library->prepare_v2(
+  int code = ACTQL_NATIVE_TIMED_CALL(ACTQL_NATIVE_COUNT_SQL_QUERY, database->library->prepare_v2)(
     database->database,
     "SELECT reserved_bytes, reserved_objects FROM actql_capacity "
     "WHERE namespace = ?1 AND reservation_key = ?2",
@@ -1954,7 +1955,7 @@ static int32_t actql_capacity_existing(
     key_length
   );
   if (result == 0) {
-    code = database->library->step(statement);
+    code = ACTQL_NATIVE_TIMED_CALL(ACTQL_NATIVE_COUNT_SQL_STEP, database->library->step)(statement);
     if (code == SQLITE_ROW) {
       *reserved_bytes = (int64_t)database->library->column_int64(statement, 0);
       *reserved_objects = (int64_t)database->library->column_int64(statement, 1);
@@ -1982,7 +1983,7 @@ static int32_t actql_capacity_sum(
   int64_t *reserved_objects
 ) {
   sqlite3_stmt *statement = NULL;
-  int code = database->library->prepare_v2(
+  int code = ACTQL_NATIVE_TIMED_CALL(ACTQL_NATIVE_COUNT_SQL_QUERY, database->library->prepare_v2)(
     database->database,
     "SELECT COALESCE(SUM(reserved_bytes), 0), "
     "COALESCE(SUM(reserved_objects), 0) FROM actql_capacity "
@@ -2007,7 +2008,7 @@ static int32_t actql_capacity_sum(
     actql_database_error(database, "bind capacity scope failed");
     result = actql_operation_code(code);
   } else {
-    code = database->library->step(statement);
+    code = ACTQL_NATIVE_TIMED_CALL(ACTQL_NATIVE_COUNT_SQL_STEP, database->library->step)(statement);
     if (code == SQLITE_ROW) {
       *reserved_bytes = (int64_t)database->library->column_int64(statement, 0);
       *reserved_objects = (int64_t)database->library->column_int64(statement, 1);
@@ -2098,7 +2099,7 @@ int32_t actql_native_sqlite_database_reserve_capacity(
     return 6;
   }
   sqlite3_stmt *statement = NULL;
-  int code = database->library->prepare_v2(
+  int code = ACTQL_NATIVE_TIMED_CALL(ACTQL_NATIVE_COUNT_SQL_QUERY, database->library->prepare_v2)(
     database->database,
     "INSERT INTO actql_capacity("
     "namespace, reservation_key, reserved_bytes, reserved_objects"
@@ -2133,7 +2134,7 @@ int32_t actql_native_sqlite_database_reserve_capacity(
     }
   }
   if (result == 0) {
-    code = database->library->step(statement);
+    code = ACTQL_NATIVE_TIMED_CALL(ACTQL_NATIVE_COUNT_SQL_STEP, database->library->step)(statement);
     if (code != SQLITE_DONE) {
       actql_database_error(database, "insert capacity reservation failed");
       result = actql_operation_code(code);
@@ -2194,7 +2195,7 @@ static int32_t actql_database_release_capacity(
     return result == 0 ? 2 : result;
   }
   sqlite3_stmt *statement = NULL;
-  int code = database->library->prepare_v2(
+  int code = ACTQL_NATIVE_TIMED_CALL(ACTQL_NATIVE_COUNT_SQL_QUERY, database->library->prepare_v2)(
     database->database,
     "DELETE FROM actql_capacity WHERE namespace = ?1 "
     "AND reservation_key = ?2",
@@ -2218,7 +2219,7 @@ static int32_t actql_database_release_capacity(
     key_length
   );
   if (result == 0) {
-    code = database->library->step(statement);
+    code = ACTQL_NATIVE_TIMED_CALL(ACTQL_NATIVE_COUNT_SQL_STEP, database->library->step)(statement);
     if (code != SQLITE_DONE ||
         database->library->changes64(database->database) != 1) {
       if (code != SQLITE_DONE) {
@@ -2267,7 +2268,7 @@ int32_t actql_native_sqlite_database_lookup_claim_ordinal(
   if (database == NULL || !database->opened || !actql_database_library_available(database->library)) return 5;
   actql_clear_result(database);
   sqlite3_stmt *statement = NULL;
-  int code = database->library->prepare_v2(
+  int code = ACTQL_NATIVE_TIMED_CALL(ACTQL_NATIVE_COUNT_SQL_QUERY, database->library->prepare_v2)(
     database->database,
     "SELECT ordinal, typeof(ordinal) = 'integer' FROM actql_claims "
     "WHERE namespace = ?1 AND claim_key = ?2",
@@ -2285,7 +2286,7 @@ int32_t actql_native_sqlite_database_lookup_claim_ordinal(
   );
   int64_t ordinal = 0;
   if (result == 0) {
-    code = database->library->step(statement);
+    code = ACTQL_NATIVE_TIMED_CALL(ACTQL_NATIVE_COUNT_SQL_STEP, database->library->step)(statement);
     if (code == SQLITE_DONE) {
       result = 1;
     } else if (code != SQLITE_ROW) {
@@ -2337,7 +2338,7 @@ static int32_t actql_claim_ordinal(
   int32_t result = owns_transaction ? actql_capacity_begin(database) : 0;
   if (result != 0) return result;
   sqlite3_stmt *statement = NULL;
-  int code = database->library->prepare_v2(
+  int code = ACTQL_NATIVE_TIMED_CALL(ACTQL_NATIVE_COUNT_SQL_QUERY, database->library->prepare_v2)(
     database->database,
     "SELECT ordinal FROM actql_claims "
     "WHERE namespace = ?1 AND claim_key = ?2",
@@ -2361,7 +2362,7 @@ static int32_t actql_claim_ordinal(
     key_length
   );
   if (result == 0) {
-    code = database->library->step(statement);
+    code = ACTQL_NATIVE_TIMED_CALL(ACTQL_NATIVE_COUNT_SQL_STEP, database->library->step)(statement);
     if (code == SQLITE_ROW) {
       database->result_revision = (int64_t)database->library->column_int64(
         statement,
@@ -2391,7 +2392,7 @@ static int32_t actql_claim_ordinal(
     if (owns_transaction) actql_capacity_rollback(database);
     return result;
   }
-  code = database->library->prepare_v2(
+  code = ACTQL_NATIVE_TIMED_CALL(ACTQL_NATIVE_COUNT_SQL_QUERY, database->library->prepare_v2)(
     database->database,
     "SELECT COALESCE(MAX(ordinal), 0) FROM actql_claims "
     "WHERE namespace = ?1",
@@ -2412,7 +2413,7 @@ static int32_t actql_claim_ordinal(
     SQLITE_TRANSIENT
   );
   int64_t prior = 0;
-  if (code == SQLITE_OK) code = database->library->step(statement);
+  if (code == SQLITE_OK) code = ACTQL_NATIVE_TIMED_CALL(ACTQL_NATIVE_COUNT_SQL_STEP, database->library->step)(statement);
   if (code == SQLITE_ROW) {
     prior = (int64_t)database->library->column_int64(statement, 0);
   } else {
@@ -2434,7 +2435,7 @@ static int32_t actql_claim_ordinal(
     return 6;
   }
   int64_t ordinal = prior + 1;
-  code = database->library->prepare_v2(
+  code = ACTQL_NATIVE_TIMED_CALL(ACTQL_NATIVE_COUNT_SQL_QUERY, database->library->prepare_v2)(
     database->database,
     "INSERT INTO actql_claims(namespace, claim_key, ordinal) "
     "VALUES(?1, ?2, ?3)",
@@ -2463,7 +2464,7 @@ static int32_t actql_claim_ordinal(
       3,
       (sqlite3_int64)ordinal
     );
-    if (code == SQLITE_OK) code = database->library->step(statement);
+    if (code == SQLITE_OK) code = ACTQL_NATIVE_TIMED_CALL(ACTQL_NATIVE_COUNT_SQL_STEP, database->library->step)(statement);
     if (code != SQLITE_DONE) {
       actql_database_error(database, "insert bounded claim failed");
       result = actql_operation_code(code);
@@ -2530,7 +2531,7 @@ int32_t actql_native_sqlite_database_usage(
   if (database == NULL || !database->opened || !actql_database_library_available(database->library)) return 5;
   actql_clear_result(database);
   sqlite3_stmt *statement = NULL;
-  int code = database->library->prepare_v2(database->database,
+  int code = ACTQL_NATIVE_TIMED_CALL(ACTQL_NATIVE_COUNT_SQL_QUERY, database->library->prepare_v2)(database->database,
     "SELECT COUNT(*), COALESCE(SUM(length(body)), 0), "
     "(SELECT COUNT(*) FROM actql_capacity) FROM actql_records",
     -1, &statement, NULL);
@@ -2540,7 +2541,7 @@ int32_t actql_native_sqlite_database_usage(
   }
   int32_t result = 0;
   int64_t records = 0, bytes = 0, reservations = 0;
-  code = database->library->step(statement);
+  code = ACTQL_NATIVE_TIMED_CALL(ACTQL_NATIVE_COUNT_SQL_STEP, database->library->step)(statement);
   if (code == SQLITE_ROW) {
     records = (int64_t)database->library->column_int64(statement, 0);
     bytes = (int64_t)database->library->column_int64(statement, 1);
@@ -2693,10 +2694,10 @@ int32_t actql_native_sqlite_lookup_start(actql_native_sqlite_database *database,
   int code = actql_exec(database, "PRAGMA query_only=ON");
   if (code != SQLITE_OK) return actql_operation_code(code);
   sqlite3_stmt *statement = NULL;
-  code = database->library->prepare_v2(database->database,
+  code = ACTQL_NATIVE_TIMED_CALL(ACTQL_NATIVE_COUNT_SQL_QUERY, database->library->prepare_v2)(database->database,
     "PRAGMA query_only", -1, &statement, NULL);
   if (code != SQLITE_OK) return actql_operation_code(code);
-  int stepped = database->library->step(statement);
+  int stepped = ACTQL_NATIVE_TIMED_CALL(ACTQL_NATIVE_COUNT_SQL_STEP, database->library->step)(statement);
   bool enforced = stepped == SQLITE_ROW &&
     database->library->column_int64(statement, 0) == 1;
   int finalized = database->library->finalize(statement);
