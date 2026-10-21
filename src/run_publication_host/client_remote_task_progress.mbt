@@ -59,6 +59,7 @@ pub fn inspect_client_remote_task_progress(
     authority,
     client_task_run_binding_definition_cid(binding),
     client_task_run_binding_result_names(binding),
+    compilation.standard_progress_keys,
     durable,
   )
 }
@@ -72,6 +73,7 @@ fn inspect_bound_client_remote_task_progress(
   authority : String,
   definition_cid : String,
   result_names : Array[String],
+  standard_progress_keys : Array[String]?,
   durable : Array[@remote.DurableCoordinatorDispatchRecord],
 ) -> Result[ClientRemoteTaskProgress, ClientRemoteTaskProgressIssue] {
   let graph = prepared_client_graph(prepared)
@@ -79,21 +81,32 @@ fn inspect_bound_client_remote_task_progress(
   if count == 0 || authority.is_empty() {
     return Err(UnsupportedGraph)
   }
-  let keys : Array[String] = []
-  for task in 0..<count {
-    let fragment = match
-      issue_prepared_client_task_fragment(
-        prepared,
-        task,
-        client_standard_values_sequence_limits(),
-        1000000,
-        100000,
-        100,
-      ) {
-      Ok(value) => value
-      Err(issue) => return Err(Fragment(issue))
+  let keys = match standard_progress_keys {
+    Some(keys) => {
+      if keys.length() != count {
+        return Err(UnsupportedGraph)
+      }
+      keys
     }
-    keys.push(client_task_fragment_node_id(fragment))
+    None => {
+      let keys : Array[String] = []
+      for task in 0..<count {
+        let fragment = match
+          issue_prepared_client_task_fragment(
+            prepared,
+            task,
+            client_standard_values_sequence_limits(),
+            1000000,
+            100000,
+            100,
+          ) {
+          Ok(value) => value
+          Err(issue) => return Err(Fragment(issue))
+        }
+        keys.push(client_task_fragment_node_id(fragment))
+      }
+      keys
+    }
   }
   let journal = match @remote.create_coordinator_dispatch_journal(authority) {
     Ok(value) => value
