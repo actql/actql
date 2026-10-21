@@ -700,6 +700,83 @@ test('committed evidence validation retains its actual payload and next-operatio
   assert.deepEqual(await readFile(path), changed, 'validation refuses instead of repairing the original');
 });
 
+test('known file-backed Result metadata performs no unrelated native delivery probe', async t => {
+  const prepare = DatabaseSync.prototype.prepare;
+  const probes = [];
+  let observing = false;
+  t.mock.method(DatabaseSync.prototype, 'prepare', function(sql, ...rest) {
+    const statement = Reflect.apply(prepare, this, [sql, ...rest]);
+    if (sql.startsWith("SELECT 'delivery_attempt' AS name,attempt_wire AS wire")) {
+      const get = statement.get;
+      t.mock.method(statement, 'get', function(...args) {
+        if (observing) probes.push([...args]);
+        return Reflect.apply(get, this, args);
+      });
+    }
+    return statement;
+  });
+  const {store, directory} = await fixture(t);
+  const invocationValue = invocation();
+  const definition = resultDefinition();
+  const request = publicationRequest(definition, invocationValue.invocation_cid);
+  const attempt = publicationAttempt(request);
+  const prepared = await prepareCommit(store, request, attempt, invocationValue);
+  await store.putPublicationContract('result_definition', wire(definition));
+  const entry = indexEntry(request, attempt, invocationValue, {
+    durable_result_binding_cids: [prepared.binding.identity],
+  });
+  observing = true;
+  await store.commitIndex(wire(entry), prepared.required, prepared.evidence);
+  assert.deepEqual(probes, [], 'typed commit evidence selects its representation before generic inventory');
+  assert.equal((await store.commitIndex(wire(entry), prepared.required, prepared.evidence)).idempotent, true);
+  assert.deepEqual(probes, [], 'a distinct operation reacquires typed evidence without unrelated native probes');
+  const description = await store.readCommittedResultDescriptionEvidence(
+    indexKeyFor(request), definition.result_definition_cid);
+  assert.equal(description.schemaWire, resultSchemaWire);
+  assert.equal(description.definition.identity, definition.result_definition_cid);
+  assert.deepEqual(probes, [], 'known Index and schema bodies are file-backed, not delivery metadata');
+  const chunks = [];
+  await store.consumeCommittedResult(indexKeyFor(request), definition.result_definition_cid,
+    () => true, chunk => chunks.push(Buffer.from(chunk)));
+  assert.equal(Buffer.concat(chunks).toString('utf8'), 'fixture durable Result payload');
+  assert.deepEqual(probes, [], 'actual payload/schema consumption uses the same selected representation');
+  await unlink(join(directory, 'contracts', cids.schema.slice(7) + '.json'));
+  await assert.rejects(store.readCommittedResultDescriptionEvidence(
+    indexKeyFor(request), definition.result_definition_cid), code('PublicationContractMissing'));
+  assert.deepEqual(probes, [], 'a missing selected schema refuses without a different representation');
+  assert.equal((await store.readSemanticBytes(invocationValue.invocation_cid)).toString('utf8'),
+    contractControl.admit('run_invocation', wire(invocationValue), limits).wire);
+  assert.equal(probes.length, 1, 'an untyped public read retains the generic native lookup and file fallback');
+  assert.deepEqual(probes[0], Array(5).fill(invocationValue.invocation_cid));
+});
+
+test('publication inventory still acquires additional untyped originals and refuses missing ones', async t => {
+  for (const missing of [false, true]) {
+    await t.test(missing ? 'missing original' : 'stored original', async t => {
+      const {store} = await fixture(t);
+      const invocationValue = invocation();
+      const request = publicationRequest(resultDefinition(), invocationValue.invocation_cid);
+      const attempt = publicationAttempt(request);
+      const prepared = await prepareCommit(store, request, attempt, invocationValue);
+      const entry = indexEntry(request, attempt, invocationValue, {
+        durable_result_binding_cids: [prepared.binding.identity],
+      });
+      const extraWire = '{"auxiliary":true}', extraCid = digest(extraWire);
+      if (!missing) await store.putSemantic(extraWire, extraCid);
+      const commit = store.commitIndex(wire(entry), [...prepared.required, extraCid], prepared.evidence);
+      if (missing) {
+        await assert.rejects(commit, code('PublicationContractMissing'));
+        assert.equal(await store.inspectCommittedIndex(indexKeyFor(request)), undefined);
+        assert.equal((await store.latestRecord(attempt.publication_attempt_cid)).state, 'committing');
+        assert.equal(await prepared.prepared.release(), true);
+      } else {
+        assert.equal((await commit).committed, true);
+        assert.equal((await store.readSemanticBytes(extraCid)).toString('utf8'), extraWire);
+      }
+    });
+  }
+});
+
 test('bounded object writes are durable, streamed, and physically addressed',
   async t => {
     const {store, configuration} = await fixture(t);

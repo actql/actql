@@ -4598,7 +4598,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "1100cc4efda43755e547b06ac6754e17d154cfabda2ef178d824ccfea0e1b6e9",
+      "sha256": "c9ca8af362fc5856a19441dd873369b2f66841575ec102af78cf336c2a815967",
       "exports": [
         "PublicationStoreError",
         "assertOriginalLocalPublicationStoreFacilityCurrent",
@@ -8624,6 +8624,18 @@
               {
                 "path": "docs/design/result-description.md",
                 "anchor": "Within that commit, the admitted Index body is persisted directly rather than"
+              },
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "Known file-backed Index and Result-schema reads select their file representation"
+              },
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "The Effect evidence inspection returns its verified Binding facts to the same"
+              },
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "Typed publication evidence selects that same representation before the commit's"
               }
             ],
             "inputsOutputs": [
@@ -8641,7 +8653,7 @@
               },
               {
                 "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "const readOriginal = (cid, includeNative = true) => {"
+                "anchor": "const readOriginal = (cid, includeNative = cid !== admitted.identity) => {"
               },
               {
                 "path": "adapters/store-local/publication-store.mjs",
@@ -8664,6 +8676,18 @@
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "bindingSchemas.set(value.binding.durable_result_binding_cid, value.schema.cid);"
+              },
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "const original = await readOriginal(binding.result_schema_cid, false);"
+              },
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "verifiedBindings = inspected.verifiedBindings;"
+              },
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "const readOriginal = (cid, includeNative = cid !== admitted.identity) => {"
               }
             ],
             "ownership": [
@@ -8788,6 +8812,10 @@
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "const putPublicationContract = async (name, suppliedWire) => {"
+              },
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "close duty. Generic semantic reads and the native delivery contract families"
               }
             ],
             "verification": [
@@ -8862,6 +8890,18 @@
               {
                 "path": "adapters/store-local/publication-store.test.mjs",
                 "anchor": "test('committed evidence validation retains its actual payload and next-operation mutation check', async t => {"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "test('known file-backed Result metadata performs no unrelated native delivery probe', async t => {"
+              },
+              {
+                "path": "adapters/host-common/publication-contract-control.test.mjs",
+                "anchor": "assert.deepEqual(effectfulBindingPayloadReads,"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "assert.deepEqual(probes, [], 'typed commit evidence selects its representation before generic inventory');"
               }
             ]
           }
