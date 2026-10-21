@@ -4739,7 +4739,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "7ca4d1e5012b907eb85c7c0c76915f42f7c71af8310b3cb6fdfbdb42851b7394",
+      "sha256": "f198aa63aeb535b564bc63b7e4f7b9f7d1b770cdd27d7a5a4741f294f1eb3d46",
       "exports": [
         "PublicationStoreError",
         "assertOriginalLocalPublicationStoreFacilityCurrent",
@@ -7177,7 +7177,8 @@
         {
           "name": "openOriginalLocalPublicationStore/readPhysicalHoldingAt/readPhysicalHoldingAt",
           "parameters": [
-            "path"
+            "path",
+            "holdingCid"
           ],
           "async": true
         },
@@ -7758,11 +7759,6 @@
             "binding"
           ],
           "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/validatePhysicalHoldingStore/validatePhysicalHoldingStore",
-          "parameters": [],
-          "async": true
         },
         {
           "name": "openOriginalLocalPublicationStore/verifyCommitEvidence/verifyCommitEvidence",
@@ -8794,7 +8790,6 @@
             "openOriginalLocalPublicationStore/validateCommittedEvidence/validateCommittedEvidence",
             "openOriginalLocalPublicationStore/validateCommittedMetadataInventories/validateCommittedMetadataInventories",
             "openOriginalLocalPublicationStore/validateModelRawBinding/validateModelRawBinding",
-            "openOriginalLocalPublicationStore/validatePhysicalHoldingStore/validatePhysicalHoldingStore",
             "openOriginalLocalPublicationStore/verifyCommitEvidence/verifyCommitEvidence",
             "openOriginalLocalPublicationStore/verifyDurableResultBinding/verifyDurableResultBinding",
             "openOriginalLocalPublicationStore/verifyDurableResultBinding/verifyDurableResultBinding/verifyDurableResultBinding",
@@ -8948,6 +8943,10 @@
               {
                 "path": "docs/design/result-description.md",
                 "anchor": "The same-original publication operation stores new immutable metadata bodies in"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "This does not repair a corrupt final record. Each selected holding read admits"
               }
             ],
             "inputsOutputs": [
@@ -8986,6 +8985,10 @@
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "const putNativePublicationContracts = async admitted => {"
+              },
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "const readPhysicalHoldingAt = async (path, holdingCid) => {"
               }
             ],
             "identity": [
@@ -9032,6 +9035,10 @@
               {
                 "path": "docs/design/result-description.md",
                 "anchor": "Native entries retain their semantic identity, complete-body digest and byte"
+              },
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "if (record.holding_cid !== holdingCid) {"
               }
             ],
             "ownership": [
@@ -9070,6 +9077,10 @@
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "activePhysicalRecordWriters.add(writer);"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "pending-deletion recovery still reads its own original records and refuses"
               }
             ],
             "synchronization": [
@@ -9108,6 +9119,10 @@
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "const usage = deliveryIndex.putPublicationContracts(originalEntries,allowance);"
+              },
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "const recoverPhysicalHoldingDeletions = async () => {"
               }
             ],
             "failure": [
@@ -9146,6 +9161,10 @@
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "failure = new PublicationStoreError('PublicationMetadataCommitOutcomeUnknown',error);"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "test('ordinary Store selected holding refuses a different valid record under its name', async t => {"
               }
             ],
             "cancellation": [
@@ -9180,6 +9199,10 @@
               {
                 "path": "docs/design/result-description.md",
                 "anchor": "publication inventories. Payload files and native database close retain their"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "test('ordinary Store pending holding recovery still refuses a foreign deletion record', async t => {"
               }
             ],
             "resources": [
@@ -9218,6 +9241,10 @@
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "accountNativePublication(deliveryIndex.publicationUsage());"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "unapplied operation, permission or cleanup success. Physical capacity accounting,"
               }
             ],
             "extension": [
@@ -9256,6 +9283,10 @@
               {
                 "path": "docs/design/result-description.md",
                 "anchor": "links. Existing file originals remain files, and Index/schema and the existing"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "this does not make all remaining opening inventories history-independent."
               }
             ],
             "verification": [
@@ -9366,6 +9397,10 @@
               {
                 "path": "adapters/host-common/publication-contract-control.test.mjs",
                 "anchor": "test('native publication metadata is not duplicated by a mixed legacy group', async t => {"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "test('ordinary Store reopen reads no unrelated immutable physical holding bodies', async t => {"
               }
             ]
           }
