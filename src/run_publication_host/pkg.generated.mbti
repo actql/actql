@@ -3876,6 +3876,7 @@ pub(all) enum ClientRunStartIssue {
 } derive(Eq, @debug.Debug)
 
 type ClientRunStateOriginal
+pub fn ClientRunStateOriginal::original_manifest(Self) -> @run_publication.PublicationContract
 pub fn ClientRunStateOriginal::state_wire(Self) -> String
 pub fn ClientRunStateOriginal::wire(Self) -> String
 
