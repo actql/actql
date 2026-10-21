@@ -1,0 +1,271 @@
+"""Actual process/fixture tests of the collector, not ActQL performance tests."""
+import base64
+import csv
+import hashlib
+import io
+import json
+from pathlib import Path
+import stat
+import subprocess
+import sys
+import tarfile
+import tempfile
+import unittest
+import venv
+import zipfile
+
+SCRIPT = Path(__file__).with_name('benchmark-ordinary-processes.py')
+SOURCE = 'a' * 40
+
+
+def sha(body):
+    return hashlib.sha256(body).hexdigest()
+
+
+NATIVE = r'''#!/usr/bin/env python3
+import json,os,sys
+from pathlib import Path
+args=sys.argv[1:];cwd=Path.cwd()
+if args[0]=='init':
+ (cwd/args[1]).mkdir()
+elif args[0]=='run':
+ assert (cwd/'query.aql').read_text()=='SELECT 1 AS id;\n'.replace('\\n','\n')
+ (cwd/'events').write_text('submit\n')
+ (cwd/'answer.jsonl').write_text('{"id":1}\n')
+ (cwd/'run.json').write_text('{"synthetic":true}')
+ print(json.dumps({'run':{'status':'succeeded','run_id':'synthetic-original'},'delivery_status':'delivered'}))
+elif args[0]=='result':
+ assert args[1]=='synthetic-original'
+ with (cwd/'events').open('a') as f:f.write('result\n')
+ if (cwd.parent/'fail-result').exists():
+  print('Synthetic Unknown; no resend',file=sys.stderr);sys.exit(1)
+ print('{"id":1}')
+else:raise AssertionError(args)
+'''
+
+PYTHON = '''import json,os
+from pathlib import Path
+from types import SimpleNamespace
+def open(*,state_dir):
+ state=Path(state_dir);state.mkdir(exist_ok=True)
+ def event(name):
+  with (state/'events').open('a') as f:f.write(json.dumps({'event':name,'pid':os.getpid()})+'\\n')
+ event('open')
+ ref={'namespaceId':'synthetic','authorityScopeCid':'sha256:'+'b'*64,'runDefinitionCid':'sha256:'+'c'*64}
+ class Result:
+  def all(self):event('result');return [{'id':1}]
+ class Execution:
+  def __init__(self):self.ref=ref
+  def status(self):event('status');return SimpleNamespace(status='succeeded')
+  def result(self,name):assert name=='main';return Result()
+ class Query:
+  def __init__(self):self.execution=Execution()
+  def all(self):event('submit');return [{'id':1}]
+ class Client:
+  def sql(self,text):assert text=='SELECT 1 AS id';return Query()
+  def attach(self,original):assert original==ref;event('attach');return Execution()
+  def close(self):
+   event('close')
+   if (state.parent/'fail-close').exists():raise RuntimeError('Synthetic cleanup pending')
+ return Client()
+'''
+
+
+class CollectorTests(unittest.TestCase):
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory(prefix='actql-process-collector-fixture-')
+        self.root = Path(self.temp.name)
+        self.addCleanup(self.temp.cleanup)
+
+    def native(self, fail_result=False):
+        root = self.root
+        consumer = root/'installed-native'
+        packages = root/'packages'
+        packages.mkdir()
+        platform_key = 'darwin-arm64' if sys.platform == 'darwin' else 'linux-x64-gnu'
+        manifest = dict(version='actql-native-cli-release/0.1', sourceSha=SOURCE,
+                        platforms={platform_key:{}}, packages=[])
+        code = NATIVE.replace("if (cwd.parent/'fail-result').exists():", 'if True:') if fail_result else NATIVE
+        for name, members in [('actql', {'bin/actql.mjs':code.encode()}),
+                              ('@actql/cli-'+platform_key, {'bin/actql-native-client':b'synthetic artifact only'})]:
+            filename = name.replace('@','').replace('/','-')+'.tgz'
+            files = []
+            with tarfile.open(packages/filename,'w:gz') as archive:
+                for path, body in members.items():
+                    mode = 0o755
+                    item = tarfile.TarInfo('package/'+path);item.mode=mode;item.size=len(body)
+                    archive.addfile(item,io.BytesIO(body))
+                    prefix = consumer if name == 'actql' else consumer/'node_modules'/name
+                    target=prefix/path;target.parent.mkdir(parents=True,exist_ok=True);target.write_bytes(body);target.chmod(mode)
+                    files.append(dict(path=path,bytes=len(body),mode=mode,sha256=sha(body)))
+            raw=(packages/filename).read_bytes()
+            manifest['packages'].append(dict(name=name,file=filename,bytes=len(raw),sha256=sha(raw),
+                integrity='sha512-'+base64.b64encode(hashlib.sha512(raw).digest()).decode(),files=files))
+        path=packages/'release.json';path.write_text(json.dumps(manifest))
+        return path, consumer, None
+
+    def python(self, fail_close=False, alter_on_close=False):
+        root=self.root
+        environment=root/'venv'
+        venv.EnvBuilder(with_pip=False, symlinks=True).create(environment)
+        paths=json.loads(subprocess.check_output([str(environment/'bin/python'),'-I','-c',
+            'import json,sysconfig;print(json.dumps(sysconfig.get_paths()))']))
+        consumer=Path(paths['purelib'])
+        packages=root/'packages';(packages/'wheels').mkdir(parents=True)
+        key='darwin-arm64' if sys.platform=='darwin' else 'linux-x64-gnu'
+        cohort=dict(source_sha=SOURCE,platform=key,wheels=[])
+        code = PYTHON.replace("if (state.parent/'fail-close').exists():", 'if True:') if fail_close else PYTHON
+        if alter_on_close:
+            code = code.replace("event('close')", "event('close');Path(__file__).write_text(Path(__file__).read_text()+'\\n# altered on close\\n')")
+        for distribution,members in [('actql',{'actql/__init__.py':code.encode()}),
+                ('actql-sdk',{'actql_sdk/__init__.py':b'# Explicit synthetic SDK fixture\n'}),
+                ('actql-local-runtime',{'actql_local_runtime/__init__.py':b'# No real runtime\n'})]:
+            filename=distribution+'.whl';record=distribution.replace('-','_')+'.dist-info/RECORD'
+            rows=[]
+            with zipfile.ZipFile(packages/'wheels'/filename,'w') as archive:
+                for path,body in members.items():
+                    entry=zipfile.ZipInfo(path);entry.external_attr=(stat.S_IFREG|0o644)<<16;archive.writestr(entry,body)
+                    target=consumer/path;target.parent.mkdir(parents=True,exist_ok=True);target.write_bytes(body);target.chmod(0o644)
+                    rows.append([path,'sha256='+base64.urlsafe_b64encode(hashlib.sha256(body).digest()).decode().rstrip('='),str(len(body))])
+                stream=io.StringIO();writer=csv.writer(stream);writer.writerows([*rows,[record,'','']]);archive.writestr(record,stream.getvalue())
+            raw=(packages/'wheels'/filename).read_bytes();cohort['wheels'].append(dict(distribution=distribution,file=filename,bytes=len(raw),sha256=sha(raw)))
+        path=packages/'cohort.json';path.write_text(json.dumps(cohort))
+        return path,consumer,environment
+
+    def collect(self, adapter, fixture, operation, output=None, extra=()):
+        manifest,consumer,environment=fixture
+        output=output or self.root/'measurement'
+        args=[sys.executable,'-I','-B',str(SCRIPT),'--adapter',adapter,'--manifest',str(manifest),
+              '--consumer',str(consumer),'--source',SOURCE,'--output',str(output),'--operation',operation,*extra]
+        if environment:args+=['--venv',str(environment)]
+        result=subprocess.run(args,capture_output=True,text=True)
+        path=output/'measurements.json'
+        report=json.loads(path.read_text()) if path.exists() else None
+        return result,report,output
+
+    def test_native_cold_uses_actual_distinct_children_and_same_original(self):
+        result,report,output=self.collect('native',self.native(),'cold-existing')
+        self.assertEqual(result.returncode,0,result.stderr)
+        rows=report['latency'][0]['samples'];self.assertEqual(len(rows),3)
+        self.assertEqual(len({r['pid'] for r in rows}),3)
+        self.assertNotIn(report['seed']['pid'],{r['pid'] for r in rows})
+        self.assertEqual((output/'existing-state/events').read_text().splitlines(),['submit','result','result','result'])
+        self.assertTrue(report['cleanup']['closed']);self.assertFalse(report['fullAcceptance'])
+        self.assertIsNone(report['structuralCounters'])
+        self.assertTrue(all(r['wallNs']>0 for r in rows))
+        self.assertTrue(report['missing'])
+
+    def test_native_initialization_has_distinct_states_and_is_not_warm_host(self):
+        fixture=self.native()
+        result,report,_=self.collect('native',fixture,'first-init')
+        self.assertEqual(result.returncode,0,result.stderr)
+        self.assertEqual(len({r['stateId'] for r in report['latency'][0]['samples']}),3)
+        result,_,_=self.collect('native',fixture,'warm-select',self.root/'wrong-warm')
+        self.assertNotEqual(result.returncode,0)
+        self.assertIn('not retained-Host warm',result.stderr)
+
+    def test_native_failure_keeps_actual_failed_sample_and_never_retries(self):
+        result,report,output=self.collect('native',self.native(fail_result=True),'cold-existing')
+        self.assertEqual(result.returncode,1,result.stderr)
+        rows=report['latency'][0]['samples'];self.assertEqual(len(rows),1)
+        self.assertFalse(rows[0]['verified']);self.assertGreater(rows[0]['wallNs'],0)
+        self.assertTrue(report['cleanup']['closed'])
+        self.assertEqual((output/'existing-state/events').read_text().splitlines(),['submit','result'])
+        self.assertEqual(report['failedObservation']['commands'][0]['code'],1)
+
+    def test_modified_installed_payload_refuses_before_execution(self):
+        fixture=self.native();launcher=fixture[1]/'bin/actql.mjs';launcher.write_text(launcher.read_text()+'\n# altered\n')
+        result,report,_=self.collect('native',fixture,'cold-existing')
+        self.assertNotEqual(result.returncode,0);self.assertIsNone(report)
+
+    def test_source_symlink_is_not_an_installed_consumer(self):
+        manifest,consumer,environment=self.native()
+        link=self.root/'linked-consumer';link.symlink_to(consumer,target_is_directory=True)
+        result,report,_=self.collect('native',(manifest,link,environment),'first-init')
+        self.assertNotEqual(result.returncode,0);self.assertIsNone(report)
+        self.assertIn('source symlink',result.stderr)
+
+    def test_python_warm_keeps_one_real_host_and_returns_cleanup(self):
+        result,report,output=self.collect('python',self.python(),'warm-result')
+        self.assertEqual(result.returncode,0,result.stderr)
+        rows=report['latency'][0]['samples'];self.assertEqual(len(rows),3)
+        self.assertEqual(len({r['pid'] for r in rows}),1);self.assertEqual(len({r['hostId'] for r in rows}),1)
+        events=[json.loads(x) for x in (output/'existing-state/events').read_text().splitlines()]
+        self.assertEqual([x['event'] for x in events],['open','submit','result','result','result','close'])
+        self.assertTrue(report['cleanup']['closed']);self.assertIsNone(report['databaseReads'])
+
+    def test_python_cold_retains_reference_without_another_submission(self):
+        result,report,output=self.collect('python',self.python(),'cold-existing')
+        self.assertEqual(result.returncode,0,result.stderr)
+        rows=report['latency'][0]['samples'];self.assertEqual(len({r['pid']for r in rows}),3)
+        events=[json.loads(x) for x in (output/'existing-state/events').read_text().splitlines()]
+        self.assertEqual(sum(x['event']=='submit' for x in events),1)
+        self.assertEqual(sum(x['event']=='attach' for x in events),3)
+        self.assertEqual(sum(x['event']=='result' for x in events),3)
+        self.assertEqual(sum(x['event']=='close' for x in events),4)
+
+    def test_python_initialization_has_no_extra_saved_result_operation(self):
+        result,report,output=self.collect('python',self.python(),'first-init')
+        self.assertEqual(result.returncode,0,result.stderr)
+        rows=report['latency'][0]['samples'];self.assertEqual(len({r['stateId']for r in rows}),3)
+        for row in rows:
+            events=[json.loads(x)['event']for x in (Path(row['stateId'])/'events').read_text().splitlines()]
+            self.assertEqual(events,['open','submit','close'])
+
+    def test_python_select_and_status_use_the_public_route_and_real_samples(self):
+        fixture=self.python()
+        for operation in ['warm-select','warm-status']:
+            result,report,output=self.collect('python',fixture,operation,self.root/operation,
+                                            extra=['--mode','final'] if operation=='warm-select' else ())
+            self.assertEqual(result.returncode,0,result.stderr)
+            count=100 if operation=='warm-select'else 3
+            self.assertEqual(len(report['latency'][0]['samples']),count)
+            events=[json.loads(x)['event']for x in (output/'existing-state/events').read_text().splitlines()]
+            self.assertEqual(events.count('submit'),101 if operation=='warm-select'else 1)
+            self.assertEqual(events.count('status'),0 if operation=='warm-select'else 4)
+            self.assertEqual(events.count('result'),0)
+            self.assertEqual(events[-1],'close')
+
+    def test_wrong_source_refuses_before_any_execution(self):
+        fixture=self.python();manifest=json.loads(fixture[0].read_text());manifest['source_sha']='b'*40
+        fixture[0].write_text(json.dumps(manifest))
+        result,report,_=self.collect('python',fixture,'first-init')
+        self.assertNotEqual(result.returncode,0);self.assertIsNone(report)
+
+    def test_python_failed_close_cannot_qualify_successful_rows(self):
+        result,report,_=self.collect('python',self.python(fail_close=True),'first-init')
+        self.assertEqual(result.returncode,1,result.stderr)
+        self.assertFalse(report['cleanup']['closed'])
+        self.assertFalse(report['functional']['rows'][0]['completed'])
+        self.assertEqual(len(report['latency'][0]['samples']),1)
+        self.assertFalse(report['latency'][0]['samples'][0]['verified'])
+
+    def test_payload_changed_during_close_invalidates_functional_completion(self):
+        fixture=self.python(alter_on_close=True)
+        installed=fixture[1]/'actql/__init__.py';before=installed.read_bytes()
+        result,report,_=self.collect('python',fixture,'warm-result')
+        self.assertEqual(result.returncode,1,result.stderr)
+        self.assertNotEqual(installed.read_bytes(),before)
+        self.assertTrue(report['cleanup']['closed'])
+        self.assertEqual(len(report['latency'][0]['samples']),3)
+        self.assertTrue(all(row['verified'] for row in report['latency'][0]['samples']))
+        self.assertIn('Installed payload differs',report['packageFailure'])
+        self.assertFalse(report['installedPayloadsUnchanged'])
+        self.assertFalse(report['functional']['rows'][0]['completed'])
+        self.assertNotIn('actualSha256',report['functional']['rows'][0])
+        self.assertFalse(report['fullAcceptance'])
+
+    def test_existing_assessor_keeps_selected_process_success_incomplete(self):
+        result,report,output=self.collect('native',self.native(),'first-init')
+        self.assertEqual(result.returncode,0,result.stderr)
+        assessment=subprocess.run(['node',str(SCRIPT.with_name('operation-performance.mjs')),
+            '--input',str(output/'measurements.json')],capture_output=True,text=True)
+        self.assertEqual(assessment.returncode,1,assessment.stderr)
+        body=json.loads(assessment.stdout)
+        self.assertEqual(body['status'],'incomplete')
+        for section in ['structure','history','chunks','boundaries']:
+            self.assertIn(section,body['missing'])
+
+
+if __name__=='__main__':
+    unittest.main()
