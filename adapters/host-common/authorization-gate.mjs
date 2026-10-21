@@ -350,6 +350,8 @@ export function createAuthorizationGate({
   const core = Object.freeze({
     moon,
     account,
+    configuration,
+    accountState: Object.freeze(state),
     readConfiguration,
     accountId: state.state === 'admitted' ? state.account_id : undefined,
     configurationCid: state.state === 'admitted' ? state.configuration_cid
@@ -412,15 +414,20 @@ function gateFor(core, context) {
   const assertScopeAccountCurrent = () => {
     ensureOpen();
     let account = core.account;
-    let state;
+    let state = core.accountState;
     try {
       if (core.readConfiguration !== undefined) {
         const wire = core.readConfiguration();
-        account = typeof wire === 'string'
-          ? core.moon.executionAuthorizationAdmit(wire)
-          : core.moon.executionAuthorizationMissing();
+        // The original immutable wire was admitted at installation. Observe
+        // the file at this boundary, but do not parse/admit/project unchanged
+        // bytes again. Changed observations still take the full Core path.
+        if (typeof wire !== 'string' || wire !== core.configuration) {
+          account = typeof wire === 'string'
+            ? core.moon.executionAuthorizationAdmit(wire)
+            : core.moon.executionAuthorizationMissing();
+          state = JSON.parse(core.moon.executionAuthorizationAccountJson(account));
+        }
       }
-      state = JSON.parse(core.moon.executionAuthorizationAccountJson(account));
     } catch { unavailable('AuthorizationCurrentAccountUnavailable'); }
     ensureOpen();
     if (state.state !== 'admitted') {
@@ -434,6 +441,12 @@ function gateFor(core, context) {
   };
   const assertCurrentAccount = decision => {
     const account = assertScopeAccountCurrent();
+    // Only an internal dispatch or an exact issued decision reaches here.
+    // With the same admitted immutable Account its pure tuple outcome cannot
+    // change. Host answers/claims are not renewed by this reuse; dispatch and
+    // resume retain their separate current/claim boundaries. A changed wire
+    // with the same admitted identity is evaluated through Core below.
+    if (account === core.account) return;
     let outcome;
     try {
       outcome = JSON.parse(core.moon.executionAuthorizationEvaluationJson(

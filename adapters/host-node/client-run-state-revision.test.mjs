@@ -74,10 +74,53 @@ test('state revision persists independently of control and unchanged rereads acr
   assert.equal(publish(reopened, ref, '2026-10-16T00:00:02.000Z').revision, 1);
 });
 
+test('unchanged state observation reuses its admitted row without a write transaction', async t => {
+  const {journal, ref} = await fixture(t);
+  publish(journal, ref);
+  let admissions = 0;
+  const originalControl = Object.freeze({...control, admit(...args) {
+    admissions++;
+    return control.admit(...args);
+  }});
+  const original = journal.lookupRunDefinition(ref, moon, originalControl);
+  const before = admissions;
+  assert.equal(before, 1);
+  const transactions = [];
+  const exec = DatabaseSync.prototype.exec;
+  t.mock.method(DatabaseSync.prototype, 'exec', function(sql) {
+    if (/^(BEGIN|COMMIT|ROLLBACK)/u.test(sql)) transactions.push(sql);
+    return exec.call(this, sql);
+  });
+  const observed = JSON.parse(journal.publishRunState(original, state(original), moon, originalControl));
+  assert.equal(observed.revision, 0);
+  assert.equal(admissions, before, 'the exact unchanged row keeps its typed definition');
+  assert.deepEqual(transactions, [], 'an unchanged read has no durable mutation');
+});
+
+test('state projection reentry cannot reuse a row changed during its callback', async t => {
+  const {journal, ref} = await fixture(t);
+  publish(journal, ref);
+  const original = frame(journal, ref), previous = state(original);
+  let changed = false;
+  const reentrant = {...previous, get updated_at() {
+    if (!changed) {
+      changed = true;
+      journal.requestCancellation(ref, {currentAuthorization:true, publicationCommitted:false}, moon, control);
+    }
+    return previous.updated_at;
+  }};
+  assert.throws(() => journal.publishRunState(original, reentrant, moon, control),
+    {code:'RunStateObservationChanged'});
+  assert.equal(changed, true);
+  assert.equal(frame(journal, ref).cancellationRequested, true);
+});
+
 test('state revision rejects copied foreign stale and changed complete original row frames', async t => {
   const {path, journal, ref} = await fixture(t);
   const original = frame(journal, ref), initial = state(original);
   assert.throws(() => journal.publishRunState({...original}, initial, moon, control),
+    {code:'ForeignRunStateObservation'});
+  assert.throws(() => journal.publishRunState(original, initial, moon, {...control}),
     {code:'ForeignRunStateObservation'});
   const other = openClientRequestJournal(path);
   t.after(() => other.close());

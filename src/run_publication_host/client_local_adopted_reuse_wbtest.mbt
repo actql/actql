@@ -21,14 +21,14 @@ test "one original material keeps independent scope run and result current obser
       is Ok(@authorization.Allow(_)),
     )
   }
-  // Admission, scope, Run read and Result read each retain both observations.
-  assert_eq(calls.val, 8)
+  // Each boundary observes once; pure scope/evaluation has no hidden callback.
+  assert_eq(calls.val, 4)
 }
 
 ///|
 test "retained material never carries an earlier Allow across a failed current observation" {
   let store = Ref(0)
-  for refuse_at in 3..<=8 {
+  for refuse_at in 2..<=4 {
     let calls = Ref(0)
     let material = bind_client_local_adopted_host_material(store, () => {
       calls.val += 1
@@ -41,7 +41,7 @@ test "retained material never carries an earlier Allow across a failed current o
     let scope = client_local_adopted_authority_scope_body(
       material, store, "operator", "local-files",
     )
-    if refuse_at <= 4 {
+    if refuse_at == 2 {
       assert_true(scope is Err(Physical("current unavailable")))
       continue
     }
@@ -52,7 +52,7 @@ test "retained material never carries an earlier Allow across a failed current o
       resource: "run",
       operation: "read",
     })
-    if refuse_at <= 6 {
+    if refuse_at == 3 {
       assert_true(run is Err(Physical("current unavailable")))
       continue
     }
