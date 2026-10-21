@@ -259,3 +259,114 @@ fn LocalCommandRunObservationOriginal::close_root_descriptors(
   }
   Ok(())
 }
+
+///|
+// Exact current RunRead selection precedes any Store open. The adopted Runtime
+// and original namespace join this same installed Store; no Result read grant
+// or business installation is selected merely to observe availability.
+fn LocalCommandPreparationOriginal::refresh_run_observation_state(
+  self : LocalCommandPreparationOriginal,
+  host : @local_host.NativeLocalHostConnection,
+  capture : @local_host.NativeLocalJournalCapture,
+  settings : LocalHostSettings,
+  configuration_name : String,
+  runtime : LocalPackagedRuntime,
+  id : String,
+) -> @local_host.NativeClientSavedRunStateSelection raise ClientStop {
+  guard self.journal is Some(actual_capture) &&
+    physical_equal(actual_capture, capture) &&
+    capture.original_host() is Some(actual_host) &&
+    physical_equal(actual_host, host) &&
+    self.runtime is Some(actual_runtime) &&
+    physical_equal(actual_runtime, runtime.physical) &&
+    self.run_observation is Some(observation) &&
+    self.business is None &&
+    self.journal_read_open &&
+    !self.closing &&
+    !self.closed &&
+    self.primary is None else {
+    stop("LocalRunObservationOriginalUnavailable")
+  }
+  let configuration = local_check_original_text(
+    local_host_result(
+      capture.selected_configuration_in_original_read(configuration_name),
+    ),
+  )
+  let (environment_name, _) = local_configuration(configuration)
+  let run_file = settings.run_file.unwrap_or_else(() => {
+    stop("LocalRunOriginalNotSelected")
+  })
+  local_host_result(
+    capture.bind_packaged_runtime_in_original_read(
+      runtime.physical,
+      settings.principal,
+      settings.connection,
+      environment_name,
+      run_file,
+      "runtime.json",
+    ),
+  )
+  |> ignore
+  local_host_result(capture.require_packaged_runtime_upgrade_in_original_read())
+  |> ignore
+  let original = match
+    local_host_result(
+      capture.lookup_submitted_run_original_by_id_in_original_read(
+        settings.principal,
+        settings.connection,
+        id,
+      ),
+    ) {
+    Ok(value) => value
+    Err(issue) => stop(local_saved_state_issue(issue))
+  }
+  let scope = local_host_result(
+    capture.authority_scope_cid_in_original_read(
+      settings.principal,
+      settings.connection,
+    ),
+  )
+  let reference = local_original_run_reference(original.definition(), scope)
+  guard reference is Object(fields) &&
+    json_text(fields, "namespaceId") is Some(namespace_id) else {
+    stop("LocalOriginalRunUnavailable")
+  }
+  let run = local_run_installation(
+    local_check_original_text(
+      local_host_result(
+        capture.selected_configuration_in_original_read(run_file),
+      ),
+    ),
+  )
+  if run.namespace_id != namespace_id {
+    stop("LocalOriginalRunReferenceMismatch")
+  }
+  let managed = local_host_result(capture.managed_root_path_in_original_read()).unwrap_or_else(() => {
+      stop("LocalManagedRootRequired")
+    },
+  )
+  local_host_result(capture.check_current_in_original_read()) |> ignore
+  guard self.host is Some(physical) && self.pair is Some(pair) else {
+    stop("LocalRunObservationOriginalUnavailable")
+  }
+  let library = physical
+    .borrow_local_host_sqlite(pair)
+    .unwrap_or_else(() => stop("LocalRunObservationOriginalUnavailable"))
+  let store = self.open_run_observation_store(library, managed, run)
+  let refreshed = local_host_result(
+    capture.refresh_original_run_availability_in_original_read(
+      settings.principal,
+      settings.connection,
+      original,
+      store,
+      namespace_id,
+      observation.operation,
+      local_utc_now(),
+      @env.now().to_double(),
+    ),
+  )
+  match refreshed {
+    Ok(value) => value
+    Err(issue) => stop(local_saved_state_issue(issue))
+  }
+}

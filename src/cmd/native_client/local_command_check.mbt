@@ -352,6 +352,9 @@ fn LocalCommandPreparationOriginal::execute_adopted_command(
     stage=Some("journal-open"),
   )
   |> ignore
+  if operation == "status" {
+    command_preparation_result(self.prepare_run_observation_operation())
+  }
   let crypto = self.inner_library.unwrap()
   command_preparation_result(
     self.read_command(fn(host, capture) {
@@ -389,6 +392,9 @@ fn LocalCommandPreparationOriginal::execute_adopted_command(
             capture=Some(capture),
           )
         } else if operation == "status" {
+          let runtime = preparation_runtime.unwrap_or_else(() => {
+            stop("LocalRunObservationOriginalUnavailable")
+          })
           local_saved_run_status_command(
             host,
             settings,
@@ -396,6 +402,11 @@ fn LocalCommandPreparationOriginal::execute_adopted_command(
             input_root,
             child,
             capture=Some(capture),
+            original_reader=Some(id => {
+              self.refresh_run_observation_state(
+                host, capture, settings, name, runtime, id,
+              )
+            }),
           )
         } else if local_quick_query_requested(operation, child) {
           let runtime = preparation_runtime.unwrap_or_else(() => {
