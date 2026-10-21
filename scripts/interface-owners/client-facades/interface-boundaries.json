@@ -10667,7 +10667,7 @@
     {
       "module": "packages/sdk/internal/result-read.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "01623388b78de5e2961ac74e433c17044c4107454e0a2ed9a8c552a76845b07f",
+      "sha256": "c5ff71de8a186ea900a49f6933aa884182d404afd15e9ea5b94416f85c23c0d9",
       "exports": [
         "captureQueryResultRead",
         "collectCapturedResult",
@@ -10779,6 +10779,13 @@
           "async": true
         },
         {
+          "name": "createResultFactory/createResultFactory/captureOneRead/captureOneRead",
+          "parameters": [
+            "options"
+          ],
+          "async": false
+        },
+        {
           "name": "createResultFactory/createResultFactory/init:read/init:read",
           "parameters": [
             "kind",
@@ -10789,7 +10796,7 @@
         {
           "name": "createResultFactory/createResultFactory/oneCaptured/oneCaptured",
           "parameters": [
-            "options"
+            "captured"
           ],
           "async": true
         },
@@ -10956,7 +10963,7 @@
         {
           "name": "createResultFactory/createResultFactory/scalarCaptured/scalarCaptured",
           "parameters": [
-            "options"
+            "captured"
           ],
           "async": true
         },
@@ -11145,7 +11152,11 @@
               },
               {
                 "path": "packages/sdk/query-read-capture.test.mjs",
-                "anchor": "unselected query all captures"
+                "anchor": "the admitted capture is consumed without a second capture pass"
+              },
+              {
+                "path": "packages/sdk/query-single-result.test.mjs",
+                "anchor": "await assert.rejects(target[method](options), {code});"
               }
             ]
           }
@@ -11163,13 +11174,7 @@
             "createResultFactory/createResultFactory/batches/batches/init:<computed>/init:<computed>/owned/init:abort/init:abort",
             "createResultFactory/createResultFactory/batches/batches/init:<computed>/init:<computed>/owned/owned",
             "createResultFactory/createResultFactory/batches/batches/iterate/iterate",
-            "createResultFactory/createResultFactory/result/result",
-            "createResultFactory/createResultFactory/result/result/result",
-            "createResultFactory/createResultFactory/result/result/limits/limits",
-            "createResultFactory/createResultFactory/result/result/schema/schema",
-            "createResultFactory/createResultFactory/result/result#2",
-            "createResultFactory/createResultFactory/result/result#3",
-            "createResultFactory/createResultFactory/result/result#4",
+            "createResultFactory/createResultFactory/captureOneRead/captureOneRead",
             "createResultFactory/createResultFactory/readRows/readRows",
             "createResultFactory/createResultFactory/readRows/readRows/acceptRow/acceptRow",
             "createResultFactory/createResultFactory/readRows/readRows/iterate/iterate",
@@ -11178,23 +11183,30 @@
             "createResultFactory/createResultFactory/readRows/readRows/iterate/iterate/iterate",
             "createResultFactory/createResultFactory/readRows/readRows/reader/init:<computed>/init:<computed>",
             "createResultFactory/createResultFactory/readRows/readRows/reader/init:<computed>/init:<computed>/init:<computed>",
-            "createResultFactory/createResultFactory/readRows/readRows/reader/init:<computed>/init:<computed>/init:<computed>/init:<computed>",
             "createResultFactory/createResultFactory/readRows/readRows/reader/init:<computed>/init:<computed>/init:<computed>#2",
             "createResultFactory/createResultFactory/readRows/readRows/reader/init:<computed>/init:<computed>/init:<computed>#3",
+            "createResultFactory/createResultFactory/readRows/readRows/reader/init:<computed>/init:<computed>/init:<computed>/init:<computed>",
             "createResultFactory/createResultFactory/readRows/readRows/reader/init:<computed>/init:<computed>/owned/owned",
             "createResultFactory/createResultFactory/readRows/readRows/reader/init:<computed>/init:<computed>/owned/owned#2",
             "createResultFactory/createResultFactory/readRows/readRows/reader/init:<computed>/init:<computed>/unwrap/unwrap",
             "createResultFactory/createResultFactory/readRows/readRows/reader/reader",
             "createResultFactory/createResultFactory/readRows/readRows/reader/reader#2",
+            "createResultFactory/createResultFactory/result/result",
+            "createResultFactory/createResultFactory/result/result#2",
+            "createResultFactory/createResultFactory/result/result#3",
+            "createResultFactory/createResultFactory/result/result#4",
+            "createResultFactory/createResultFactory/result/result/limits/limits",
+            "createResultFactory/createResultFactory/result/result/result",
+            "createResultFactory/createResultFactory/result/result/schema/schema",
             "createResultFactory/createResultFactory/rows/rows",
             "explainDeliveryAttempt",
             "explainReadFailure",
             "readFailure/readFailure",
             "retainDeliveryExplanation/retainDeliveryExplanation",
             "retainDeliveryLookupFailure/retainDeliveryLookupFailure",
+            "retainReadExplanation/retainReadExplanation",
             "retainedValueBytes",
             "retainedValueBytes/visit/visit",
-            "retainReadExplanation/retainReadExplanation",
             "tighter",
             "validationFailure/validationFailure"
           ],
@@ -14251,7 +14263,7 @@
     {
       "module": "packages/sdk/source-query.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "2cf212b95d254e3dd58319459d60f85d2d90be432449bde51defe494bff1d2d9",
+      "sha256": "2ca6c69f8339c5f287e60615c3553a5535f1b99241386df1d9d2afd308fd0c49",
       "exports": [
         "sourceQuery"
       ],
@@ -14355,32 +14367,6 @@
           "async": false
         },
         {
-          "name": "sourceQuery/sourceQuery/sourceQuery",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "sourceQuery/sourceQuery/sourceQuery#2",
-          "parameters": [
-            "result",
-            "captured"
-          ],
-          "async": false
-        },
-        {
-          "name": "sourceQuery/sourceQuery/sourceQuery#3",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "sourceQuery/sourceQuery/sourceQuery#4",
-          "parameters": [
-            "result",
-            "captured"
-          ],
-          "async": false
-        },
-        {
           "name": "sourceQuery/sourceQuery#2",
           "parameters": [
             "options"
@@ -14396,8 +14382,7 @@
         }
       ],
       "imports": [
-        "./internal/result-read.mjs",
-        "./result-schema.mjs"
+        "./internal/result-read.mjs"
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
@@ -14558,7 +14543,11 @@
               },
               {
                 "path": "packages/sdk/query-read-capture.test.mjs",
-                "anchor": "unselected query all captures"
+                "anchor": "the admitted capture is consumed without a second capture pass"
+              },
+              {
+                "path": "packages/sdk/query-single-result.test.mjs",
+                "anchor": "await assert.rejects(target[method](options), {code});"
               }
             ]
           }
@@ -14572,10 +14561,6 @@
             "sourceQuery",
             "sourceQuery/query/query",
             "sourceQuery/capture/capture/capture",
-            "sourceQuery/sourceQuery/sourceQuery",
-            "sourceQuery/sourceQuery/sourceQuery#2",
-            "sourceQuery/sourceQuery/sourceQuery#3",
-            "sourceQuery/sourceQuery/sourceQuery#4",
             "sourceQuery/sourceQuery",
             "sourceQuery/sourceQuery#2",
             "sourceQuery/sourceQuery#3"
@@ -14587,7 +14572,7 @@
             "responsibility": [
               {
                 "path": "packages/sdk/source-query.mjs",
-                "anchor": "import {captureReadOptions} from './result-schema.mjs';"
+                "anchor": "const collectSelected = (kind, schemaOrOptions, options) => collectAfterQuery(query,"
               },
               {
                 "path": "docs/design/client-submission-identity.md",
@@ -14597,7 +14582,7 @@
             "inputsOutputs": [
               {
                 "path": "packages/sdk/source-query.mjs",
-                "anchor": "import {captureReadOptions} from './result-schema.mjs';"
+                "anchor": "const collectSelected = (kind, schemaOrOptions, options) => collectAfterQuery(query,"
               },
               {
                 "path": "spec/contracts/actql-client-host.json",
@@ -14611,7 +14596,7 @@
               },
               {
                 "path": "packages/sdk/source-query.mjs",
-                "anchor": "import {captureReadOptions} from './result-schema.mjs';"
+                "anchor": "const collectSelected = (kind, schemaOrOptions, options) => collectAfterQuery(query,"
               },
               {
                 "path": "src/run_publication_host/client_submitted_intent.mbt",
@@ -14625,7 +14610,7 @@
               },
               {
                 "path": "packages/sdk/source-query.mjs",
-                "anchor": "import {captureReadOptions} from './result-schema.mjs';"
+                "anchor": "const collectSelected = (kind, schemaOrOptions, options) => collectAfterQuery(query,"
               },
               {
                 "path": "adapters/host-node/client-program-preparation.mjs",
@@ -14639,7 +14624,7 @@
               },
               {
                 "path": "packages/sdk/source-query.mjs",
-                "anchor": "import {captureReadOptions} from './result-schema.mjs';"
+                "anchor": "const collectSelected = (kind, schemaOrOptions, options) => collectAfterQuery(query,"
               },
               {
                 "path": "adapters/host-node/client-submission.mjs",
@@ -14653,7 +14638,7 @@
               },
               {
                 "path": "packages/sdk/source-query.mjs",
-                "anchor": "import {captureReadOptions} from './result-schema.mjs';"
+                "anchor": "const collectSelected = (kind, schemaOrOptions, options) => collectAfterQuery(query,"
               },
               {
                 "path": "src/run_publication_host/client_submitted_intent.mbt",
@@ -14667,7 +14652,7 @@
               },
               {
                 "path": "packages/sdk/source-query.mjs",
-                "anchor": "import {captureReadOptions} from './result-schema.mjs';"
+                "anchor": "const collectSelected = (kind, schemaOrOptions, options) => collectAfterQuery(query,"
               },
               {
                 "path": "adapters/host-node/client-effect-run.mjs",
@@ -14681,7 +14666,7 @@
               },
               {
                 "path": "packages/sdk/source-query.mjs",
-                "anchor": "import {captureReadOptions} from './result-schema.mjs';"
+                "anchor": "const collectSelected = (kind, schemaOrOptions, options) => collectAfterQuery(query,"
               },
               {
                 "path": "src/run_publication_host/client_submitted_intent.mbt",
@@ -14695,7 +14680,7 @@
               },
               {
                 "path": "packages/sdk/source-query.mjs",
-                "anchor": "import {captureReadOptions} from './result-schema.mjs';"
+                "anchor": "const collectSelected = (kind, schemaOrOptions, options) => collectAfterQuery(query,"
               },
               {
                 "path": "src/run_publication_host/client_submitted_intent.mbt",

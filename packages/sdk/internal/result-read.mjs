@@ -454,14 +454,15 @@ export function createResultFactory({ref, limits, lookupContext, redactErrors, t
       beforeResultRead?.(schemaOrOptions, options);
       return allCaptured(captureResultRead(ClientError, schemaOrOptions, options));
     };
-    const oneCaptured = async options => {
-      const values = await allCaptured(captureResultRead(ClientError, {...options,
-        maxRows: Math.min(2, limits.maxRows)}));
+    const captureOneRead = options => captureResultRead(ClientError, {...options,
+      maxRows: Math.min(2, limits.maxRows)});
+    const oneCaptured = async captured => {
+      const values = await allCaptured(captured);
       if (values.length !== 1) fail('ExpectedOneRow');
       return values[0];
     };
-    const scalarCaptured = async options => {
-      const row = await oneCaptured(options);
+    const scalarCaptured = async captured => {
+      const row = await oneCaptured(captured);
       if (row === null || typeof row !== 'object' ||
           Array.isArray(row) || Object.keys(row).length !== 1) fail('ExpectedOneColumn');
       return Object.values(row)[0];
@@ -471,11 +472,11 @@ export function createResultFactory({ref, limits, lookupContext, redactErrors, t
       execution: getExecution(), rows, batches, all,
       one: async options => {
         beforeResultRead?.(options, undefined);
-        return oneCaptured(options);
+        return oneCaptured(captureOneRead(options));
       },
       scalar: async options => {
         beforeResultRead?.(options, undefined);
-        return scalarCaptured(options);
+        return scalarCaptured(captureOneRead(options));
       },
       describe: async ({signal, format = 'jsonl',
         ...requestedLimits} = {}) => {
@@ -558,8 +559,10 @@ export function createResultFactory({ref, limits, lookupContext, redactErrors, t
     capturedResultReads.set(result, {before: beforeResultRead, current: assertResultReadCurrent,
       read(kind, captured) {
         if (kind === 'all') return allCaptured(captured);
-        if (kind === 'one') return oneCaptured(captured);
-        if (kind === 'scalar') return scalarCaptured(captured);
+        if (kind === 'one' || kind === 'scalar') {
+          const single = {options: {...captured, maxRows: Math.min(2, limits.maxRows)}};
+          return kind === 'one' ? oneCaptured(single) : scalarCaptured(single);
+        }
         fail('InvalidResult');
       }});
     return result;

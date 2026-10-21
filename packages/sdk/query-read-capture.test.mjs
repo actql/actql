@@ -31,8 +31,8 @@ const profile = {version: 'actql-client-host/0.1', mode: 'local', owner: 'local'
   limits: {maxReadWireBytes: 4096, maxRowWireBytes: 1024, maxRowRetainedValueBytes: 1024,
     maxRetainedValueBytes: 4096, maxRows: 10, maxBatchRows: 3, maxBatchRetainedValueBytes: 1024}};
 
-for (const typed of [false, true]) {
-  test(`unselected query all captures ${typed ? 'schema and options' : 'options'} once before its wait`, async t => {
+for (const [method, typed] of [['all', false], ['all', true], ['one', false], ['scalar', false]]) {
+  test(`unselected query ${method} captures ${typed ? 'schema and options' : 'options'} once before its wait`, async t => {
     let release, optionReads = 0, schemaReads = 0, rowValidations = 0;
     const pending = new Promise(resolve => {release = resolve;});
     const calls = [];
@@ -61,14 +61,16 @@ for (const typed of [false, true]) {
     const schema = {get '~standard'() {schemaReads++; return standard;}};
     const query = client.sql('SELECT 1 AS n');
     captures.length = 0;
-    const values = typed ? query.all(schema, options) : query.all(options);
-    assert.deepEqual(captures, ['captureResultRead']);
+    const values = typed ? query.all(schema, options) : query[method](options);
+    const expectedCaptures = [method === 'all' ? 'captureResultRead' : 'captureReadOptions'];
+    assert.deepEqual(captures, expectedCaptures);
     assert.equal(optionReads, 1);
     assert.equal(schemaReads, typed ? 1 : 0);
     assert.equal(calls.includes('read'), false);
     release();
-    assert.deepEqual(await values, [{n: typed ? 2 : 1}]);
-    assert.deepEqual(captures, ['captureResultRead'], 'the admitted capture is consumed without a second capture pass');
+    const expected = {n: typed ? 2 : 1};
+    assert.deepEqual(await values, method === 'all' ? [expected] : method === 'one' ? expected : expected.n);
+    assert.deepEqual(captures, expectedCaptures, 'the admitted capture is consumed without a second capture pass');
     assert.equal(rowValidations, typed ? 1 : 0);
     assert.equal(optionReads, 1);
     assert.deepEqual(calls, ['connect', 'submit-intent', 'wait', 'read']);
