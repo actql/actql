@@ -91,7 +91,13 @@ fn NativeLocalHostConnection::lookup_submission_reference_by_request_id_with_ope
         if !current() {
           return Err(AuthorizationDenied)
         }
-        match client_journal_issuance_anchor(self.journal.database, "client_submitted_intent_custody", self.journal.max_records, reads~) {
+        match
+          client_journal_issuance_anchor(
+            self.journal.database,
+            "client_submitted_intent_custody",
+            self.journal.max_records,
+            reads~,
+          ) {
           Ok(_) => ()
           Err(issue) => return Err(issue)
         }

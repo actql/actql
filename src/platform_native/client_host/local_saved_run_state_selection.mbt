@@ -150,14 +150,14 @@ fn NativeClientRunJournal::select_saved_state_run_id_locked(
   if !self.transaction_active {
     return Err(CustodyLost)
   }
-  match
+  let issuance = match
     client_journal_issuance_anchor(
       self.database,
       "client_submitted_intent_custody",
       self.max_records,
       reads~,
     ) {
-    Ok(_) => ()
+    Ok(value) => value
     Err(issue) => return Err(issue)
   }
   let (reference, indexed) = match
@@ -189,7 +189,7 @@ fn NativeClientRunJournal::select_saved_state_run_id_locked(
           reads~,
         ) {
         Ok(Some(value)) => value
-        Ok(None) => return Ok(None)
+        Ok(None) => return self.run_id_absence_locked(scope, issuance, reads~)
         Err(issue) => return Err(issue)
       }
       let decoded = match @host.decode_client_submitted_journal_row(row.body) {
@@ -207,6 +207,7 @@ fn NativeClientRunJournal::select_saved_state_run_id_locked(
   match
     self.run_id_original_locked(authority, reference, scope, run_id, reads~) {
     Ok(None) if indexed => Err(CustodyLost)
+    Ok(None) => self.run_id_absence_locked(scope, issuance, reads~)
     result => result
   }
 }

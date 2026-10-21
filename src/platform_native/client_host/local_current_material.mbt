@@ -40,7 +40,13 @@ fn NativeLocalHostConnection::current_adoption_material_with_reads(
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
-  let row = match read_client_journal_value(self.database, "client_local_adoption", "adoption", reads) {
+  let row = match
+    read_client_journal_value(
+      self.database,
+      "client_local_adoption",
+      "adoption",
+      reads,
+    ) {
     Ok(value) => value
     Err(issue) => return Err(Physical(issue))
   }

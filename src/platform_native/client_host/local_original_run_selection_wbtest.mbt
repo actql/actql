@@ -360,3 +360,67 @@ test "original Run ID does not bypass malformed unselected history" {
   host.close().unwrap()
   assert_true(malformed is Err(Journal(CustodyLost)))
 }
+
+///|
+test "adopted Host explicitly indexes pre-index arbitrary Run IDs without changing originals" {
+  let host = policy_host_fixture("original-id-migration")
+  let crypto = epoch_test_crypto()
+  let (reference, request, _) = original_selection_fixture(
+    host, "legacy-nonce", "legacy-arbitrary-id",
+  )
+  let journal = host.run_journal().unwrap()
+  let scope = @host.client_request_authority_scope_cid(request)
+  let before = host.database
+    .read("client_runs", @host.client_request_scope_cid(request))
+    .unwrap()
+  let table = @utf8.encode("client_run_id_index")
+  let key = @utf8.encode(run_id_index_key(scope, "legacy-arbitrary-id"))
+  assert_true(
+    submitted_test_remove_record(
+      host.database,
+      table,
+      table.length(),
+      key,
+      key.length(),
+    ),
+  )
+  assert_true(
+    host.lookup_submitted_run_original_by_id(
+      crypto, "operator", "cli", "legacy-arbitrary-id",
+    )
+    is Err(Unavailable),
+  )
+  assert_true(
+    host.index_saved_run_ids(crypto, "foreign-principal", "cli")
+    is Err(Journal(AuthorizationDenied)),
+  )
+  host.index_saved_run_ids(crypto, "operator", "cli").unwrap()
+  let selected = host
+    .lookup_submitted_run_original_by_id(
+      crypto, "operator", "cli", "legacy-arbitrary-id",
+    )
+    .unwrap()
+  assert_eq(selected.reference().wire, reference.wire)
+  assert_true(
+    journal
+    .transaction(() => {
+      journal.select_saved_state_run_id_locked(
+        host.epoch,
+        scope,
+        "not-an-original",
+      )
+    })
+    .unwrap()
+    is None,
+  )
+  let after = host.database
+    .read("client_runs", @host.client_request_scope_cid(request))
+    .unwrap()
+  assert_eq(after.body, before.body)
+  assert_eq(after.revision, before.revision)
+  assert_false(
+    journal.retained(request).unwrap().unwrap().physical_start_claimed,
+  )
+  host.close().unwrap()
+  crypto.close_checked().unwrap()
+}

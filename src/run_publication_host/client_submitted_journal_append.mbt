@@ -57,7 +57,10 @@ pub fn[E] prepare_client_submitted_journal_append(
   ClientSubmittedJournalAppendPlan,
   ClientSubmittedJournalAppendIssue[E],
 ] {
-  match journal_issuance_anchor("client_submitted_intent_custody", max_records, read, custody_lost) {
+  match
+    journal_issuance_anchor(
+      "client_submitted_intent_custody", max_records, read, custody_lost,
+    ) {
     Ok(_) => ()
     Err(issue) => return Err(Observation(issue))
   }

@@ -127,7 +127,13 @@ fn NativeLocalAdoptionSession::bind_journal_sqlite_originals(
     Ok(value) => value
     Err(issue) => return Err(Journal(issue))
   }
-  match client_journal_issuance_anchor(database, "client_submitted_intent_custody", max_records, reads~) {
+  match
+    client_journal_issuance_anchor(
+      database,
+      "client_submitted_intent_custody",
+      max_records,
+      reads~,
+    ) {
     Ok(_) => ()
     Err(issue) => return Err(Journal(issue))
   }

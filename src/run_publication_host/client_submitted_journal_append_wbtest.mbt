@@ -198,16 +198,35 @@ test "retained submission target does not scan unrelated Run or Effect history" 
     append_original_record().intent,
     @request_scope.Expired,
     1024,
-    (table, _) => { calls.push("scan:" + table); Err("unexpected-inventory") },
-    (table, key) => { calls.push("read:" + table + ":" + key); inventory_read(rows, table, key) },
+    (table, _) => {
+      calls.push("scan:" + table)
+      Err("unexpected-inventory")
+    },
+    (table, key) => {
+      calls.push("read:" + table + ":" + key)
+      inventory_read(rows, table, key)
+    },
     _ => Err("unexpected-submission-inventory"),
-    _ => { calls.push("validate-selected-run"); Ok(saved_snapshot_run()) },
+    _ => {
+      calls.push("validate-selected-run")
+      Ok(saved_snapshot_run())
+    },
     "custody",
   )
-  guard result is Ok(Retained(snapshot)) else { fail("selected original refused") }
+  guard result is Ok(Retained(snapshot)) else {
+    fail("selected original refused")
+  }
   assert_eq(client_saved_submission_revision(snapshot), 6L)
   assert_eq(calls.filter(value => value.has_prefix("scan:")).length(), 0)
   assert_eq(calls.filter(value => value == "validate-selected-run").length(), 1)
-  assert_eq(calls.filter(value => value.has_prefix("read:client_runs:")).length(), 1)
-  assert_eq(calls.filter(value => value.has_prefix("read:client_submitted_intents:")).length(), 1)
+  assert_eq(
+    calls.filter(value => value.has_prefix("read:client_runs:")).length(),
+    1,
+  )
+  assert_eq(
+    calls
+    .filter(value => value.has_prefix("read:client_submitted_intents:"))
+    .length(),
+    1,
+  )
 }

@@ -142,15 +142,20 @@ fn NativeClientRunJournal::inspect_submitted_name_control(
   if !physical_equal(self.database, authority.database) {
     return Err(InvalidSubmission)
   }
-  match read_client_journal_value(self.database, "client_submission_name_custody", "issued", reads) {
+  match
+    read_client_journal_value(
+      self.database,
+      "client_submission_name_custody",
+      "issued",
+      reads,
+    ) {
     Ok(_) => self.submitted_name_control(reads~).map(_ => ())
-    Err(@sqlite.NotFound) => {
+    Err(@sqlite.NotFound) =>
       if read_client_submission_name_schema(self.database, reads) == 0 {
         Ok(())
       } else {
         Err(CustodyLost)
       }
-    }
     Err(issue) => Err(Physical(issue))
   }
 }

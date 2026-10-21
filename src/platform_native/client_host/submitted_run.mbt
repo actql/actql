@@ -364,7 +364,13 @@ fn NativeClientRunJournal::accept_original_submitted_run(
         Ok(_) => ()
         Err(issue) => return Err(issue)
       }
-      match client_journal_issuance_anchor(self.database, "client_submitted_intent_custody", self.max_records, reads~) {
+      match
+        client_journal_issuance_anchor(
+          self.database,
+          "client_submitted_intent_custody",
+          self.max_records,
+          reads~,
+        ) {
         Ok(_) => ()
         Err(issue) => return Err(issue)
       }

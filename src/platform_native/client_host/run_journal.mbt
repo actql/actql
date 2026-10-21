@@ -8,7 +8,13 @@ struct NativeClientRunJournal {
   mut fenced : Bool
   // Physical transaction ownership only; this is not a Run control revision.
   mut transaction_active : Bool
-  mut admitted_record : (String, Bytes, Int64, RunRecordPolicyValidation, NativeClientRunRecord)?
+  mut admitted_record : (
+    String,
+    Bytes,
+    Int64,
+    RunRecordPolicyValidation,
+    NativeClientRunRecord,
+  )?
   // Read-only lookup may join this journal's own publication fence. Mutating
   // nested operations still fail instead of acquiring another transaction.
   mut publication_read_locked : Bool
@@ -39,6 +45,7 @@ pub(all) enum NativeClientRunJournalIssue {
   CancellationIdentity(@host.ClientCancellationIdentityIssue)
   CancellationOperation(@host.ClientCancellationOperationIssue)
   PublicationObservation(@publication_store.NativePublicationStoreIssue)
+  RunIdIndexIncomplete
 }
 
 ///|
@@ -263,9 +270,9 @@ fn initialize_native_client_run_journal(
   }
   for
     table in [
-      "client_checkpoint_id_index", "client_run_id_index", "client_effect_response_meta", "client_effect_response_bytes",
-      "client_effect_row_receipt", "client_cancellations", "client_cancel_custody",
-      "client_cancel_originals",
+      "client_checkpoint_id_index", "client_run_id_index", "client_run_id_index_coverage",
+      "client_effect_response_meta", "client_effect_response_bytes", "client_effect_row_receipt",
+      "client_cancellations", "client_cancel_custody", "client_cancel_originals",
     ] {
     match
       scan_client_journal_value(
@@ -367,7 +374,8 @@ fn client_journal_issuance_anchor(
   max_records : Int,
   reads? : NativeClientJournalReadAccess? = None,
 ) -> Result[(Int, Int64), NativeClientRunJournalIssue] {
-  let row = match read_client_journal_value(database, table_name, "issued", reads) {
+  let row = match
+    read_client_journal_value(database, table_name, "issued", reads) {
     Ok(value) => value
     Err(@sqlite.NotFound) => return Err(CustodyLost)
     Err(issue) => return Err(Physical(issue))
@@ -402,7 +410,13 @@ fn open_native_client_run_journal_with_reads(
   if max_records < 1 || max_records > 1024 {
     return Err(CapacityExceeded)
   }
-  match client_journal_issuance_anchor(database, "client_run_custody", max_records, reads~) {
+  match
+    client_journal_issuance_anchor(
+      database,
+      "client_run_custody",
+      max_records,
+      reads~,
+    ) {
     Ok(_) =>
       Ok({
         database,
@@ -493,7 +507,12 @@ fn NativeClientRunJournal::admit_retained_record(
   row : @sqlite.NativeJournalValue,
   mode? : RunRecordPolicyValidation = ValidatePublication,
 ) -> Result[NativeClientRunRecord, NativeClientRunJournalIssue] {
-  if self.transaction_active && self.admitted_record is Some((original_key, body, revision, admitted_mode, record)) && original_key == key && body == row.body && revision == row.revision {
+  if self.transaction_active &&
+    self.admitted_record
+    is Some((original_key, body, revision, admitted_mode, record)) &&
+    original_key == key &&
+    body == row.body &&
+    revision == row.revision {
     if admitted_mode is DeferPublicationWire && mode is ValidatePublication {
       if record.publication_policy_originals is Some(wire) {
         match read_run_policy_originals(wire) {
@@ -501,7 +520,9 @@ fn NativeClientRunJournal::admit_retained_record(
           Err(_) => return Err(CustodyLost)
         }
       }
-      self.admitted_record = Some((key, body, revision, ValidatePublication, record))
+      self.admitted_record = Some(
+        (key, body, revision, ValidatePublication, record),
+      )
     }
     return Ok(record)
   }
@@ -521,7 +542,13 @@ fn NativeClientRunJournal::retained(
   requested : @host.ClientRequestIdentity,
   reads? : NativeClientJournalReadAccess? = None,
 ) -> Result[NativeClientRunRecord?, NativeClientRunJournalIssue] {
-  match client_journal_issuance_anchor(self.database, "client_run_custody", self.max_records, reads~) {
+  match
+    client_journal_issuance_anchor(
+      self.database,
+      "client_run_custody",
+      self.max_records,
+      reads~,
+    ) {
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
@@ -536,7 +563,8 @@ fn NativeClientRunJournal::retained(
     Err(@sqlite.NotFound) => return Ok(None)
     Err(issue) => return Err(Physical(issue))
   }
-  let retained = match self.admit_retained_record(@host.client_request_scope_cid(requested), row) {
+  let retained = match
+    self.admit_retained_record(@host.client_request_scope_cid(requested), row) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
@@ -600,7 +628,12 @@ fn NativeClientRunJournal::retained_policy_wire(
     Err(@sqlite.NotFound) => return Err(CustodyLost)
     Err(issue) => return Err(Physical(issue))
   }
-  let record = match self.admit_retained_record(@host.client_request_scope_cid(requested), row, mode=DeferPublicationWire) {
+  let record = match
+    self.admit_retained_record(
+      @host.client_request_scope_cid(requested),
+      row,
+      mode=DeferPublicationWire,
+    ) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
@@ -811,7 +844,11 @@ fn NativeClientRunJournal::save_with_operations(
       reads,
     ) {
     Ok(current) if current.revision == record.revision =>
-      match self.admit_retained_record(@host.client_request_scope_cid(record.request), current) {
+      match
+        self.admit_retained_record(
+          @host.client_request_scope_cid(record.request),
+          current,
+        ) {
         Ok(value) => value
         Err(issue) => return Err(issue)
       }

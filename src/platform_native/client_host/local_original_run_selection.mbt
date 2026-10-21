@@ -90,7 +90,7 @@ fn NativeLocalHostConnection::select_original_run_id(
       reads~,
     ) {
     Ok(Some(value)) => value
-    Ok(None) => return Err(Unavailable)
+    Ok(None) | Err(RunIdIndexIncomplete) => return Err(Unavailable)
     Err(issue) => return Err(Journal(issue))
   }
   let (reference, request, definition) = selected

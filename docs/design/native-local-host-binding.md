@@ -291,8 +291,13 @@ A subordinate scope/Run-ID locator commits in the same transaction as fresh
 admission. Arbitrary Run IDs remain valid and duplicate IDs remain ambiguous.
 Lookup verifies the indexed original identity and epoch. Without a locator,
 the ordinary CLI's Run-ID/Submission-ID equality is only a candidate until the
-retained original proves it. Other legacy IDs require explicit bounded indexing;
-missing or inconsistent history never permits a new execution or resend.
+retained original proves it. Other legacy IDs require explicit bounded indexing
+through the adopted Host's `index_saved_run_ids`, with current RunRead before,
+inside and after the transaction. Until coverage of the exact issuance snapshot
+is established, a missing locator returns `RunIdIndexIncomplete`, not absence.
+Later admissions invalidate that absence coverage. Indexing authenticates the
+existing originals and changes only subordinate locators; missing or inconsistent
+history never permits a new execution or resend.
 
 An unchanged availability observation returns its retained state and revision
 without another serialization or durable update. A changed logical observation

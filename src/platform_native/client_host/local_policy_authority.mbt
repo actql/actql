@@ -17,7 +17,10 @@ priv struct NativeLocalPolicyAuthority {
   scope : String
   purpose : NativeLocalPolicyAuthorityPurpose
   capture : NativeLocalJournalCapture?
-  material : @host.ClientLocalAdoptedHostMaterial[@sqlite.Database, NativeLocalAdoptionIssue]
+  material : @host.ClientLocalAdoptedHostMaterial[
+    @sqlite.Database,
+    NativeLocalAdoptionIssue,
+  ]
 }
 
 ///|
@@ -133,9 +136,18 @@ fn native_local_policy_authority_for(
   }
   let material = match capture {
     None => host.adopted_current_material()
-    Some(original) => original.with_current_adoption_material_in_original_read((current, material, _) => {
-      if physical_equal(current, host) { Ok(material) } else { Err(CustodyLost) }
-    })
+    Some(original) =>
+      original.with_current_adoption_material_in_original_read((
+        current,
+        material,
+        _,
+      ) => {
+        if physical_equal(current, host) {
+          Ok(material)
+        } else {
+          Err(CustodyLost)
+        }
+      })
   }
   let material = match material {
     Ok(value) => value
