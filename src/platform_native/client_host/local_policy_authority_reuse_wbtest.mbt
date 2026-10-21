@@ -1,7 +1,10 @@
 ///|
-// Independently canonical fixture; the original failing shared fixture is retained.
+// Independent canonical and malformed fixtures keep their own exact selectors.
 // Account wire selectors use UTF-16 order, distinct from Core String comparison.
 let policy_reuse_account_original : Bytes = b"{\"version\":\"actql-execution-account-config/0.1\",\"account_id\":\"operator\",\"entries\":[{\"entry_id\":\"explicit-policy-operations\",\"outcome\":\"allow\",\"principal\":{\"any_of\":[\"operator\"]},\"connection\":{\"any_of\":[\"cli\"]},\"resource\":{\"any_of\":[\"result/answer\",\"run\"]},\"operation\":{\"any_of\":[\"read\",\"submit\"]},\"exclusions\":[]}]}"
+
+///|
+let policy_reuse_unsorted_account_original : Bytes = b"{\"version\":\"actql-execution-account-config/0.1\",\"account_id\":\"operator\",\"entries\":[{\"entry_id\":\"explicit-policy-operations\",\"outcome\":\"allow\",\"principal\":{\"any_of\":[\"operator\"]},\"connection\":{\"any_of\":[\"cli\"]},\"resource\":{\"any_of\":[\"run\",\"result/answer\"]},\"operation\":{\"any_of\":[\"read\",\"submit\"]},\"exclusions\":[]}]}"
 
 ///|
 // Concurrent Hosts retain independent adoption locks in separate private parents.
@@ -37,11 +40,11 @@ fn policy_reuse_host_fixture(name : String) -> NativeLocalHostConnection {
 ///|
 // Definitions only until a matching Native fixture is allocated and executed.
 test "Native policy material is fresh per predicate and unavailable after original Host close" {
-  // The original failure was Account admission before current_for. Retain its
-  // exact typed refusal on the matching Native target; do not weaken admission.
+  // Keep the explicit unsorted-selector refusal independent of other fixture
+  // repairs; this does not weaken admission to reach the actual current path.
   assert_eq(
     @authorization.admit_account_configuration_json(
-      @utf8.decode(policy_account_original),
+      @utf8.decode(policy_reuse_unsorted_account_original),
     ).map(_ => ()),
     Err(@authorization.NonCanonicalOrder("$.entries[0].resource.any_of[1]")),
   )
