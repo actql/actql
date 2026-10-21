@@ -82,8 +82,9 @@ fn NativeLocalReadPolicyBinding::read_admission_originals(
   facts : @result_access.NativeResultReadFacts,
   actual_policy_cid : String,
 ) -> Result[NativeLocalReadAdmissionOriginals, NativeLocalReadBindingIssue] {
-  // Both actual Account decisions are made again here. Merely retaining a
-  // previous allow observation cannot authorize this read.
+  // Admit the distinct current Run-read and named-Result-read tuples at entry.
+  // Encoding and hashing immutable preimages invoke no application callback
+  // or external dispatch, so they consume that same observation.
   match self.require_request(original, facts) {
     Ok(_) => ()
     Err(issue) => return Err(issue)
@@ -91,15 +92,7 @@ fn NativeLocalReadPolicyBinding::read_admission_originals(
   if !self.selection.data_policy_cids.contains(actual_policy_cid) {
     return Err(PolicyNotSelected)
   }
-  let originals = match
-    self.read_admission_preimages(original, facts, actual_policy_cid) {
-    Ok(value) => value
-    Err(issue) => return Err(issue)
-  }
-  match self.require_request(original, facts) {
-    Ok(_) => Ok(originals)
-    Err(issue) => Err(issue)
-  }
+  self.read_admission_preimages(original, facts, actual_policy_cid)
 }
 
 ///|
