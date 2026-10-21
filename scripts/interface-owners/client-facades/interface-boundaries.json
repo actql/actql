@@ -8112,7 +8112,7 @@
               },
               {
                 "path": "packages/sdk/internal/checkpoint-operations.mjs",
-                "anchor": "if (!await answerMatches(answer, summary, decision, selectedSigner))"
+                "anchor": "selectedSigner === undefined && !await answerMatches(answer, summary, decision)"
               }
             ],
             "failure": [
