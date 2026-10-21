@@ -211,6 +211,7 @@ export async function runSQLiteResultControl({output, resultOwnerMap, warmSample
   const context = {namespaceId: 'bench', authorityScopeCid: cid(), runDefinitionCid: cid(),
     principalId: 'test', purpose: 'fixture0', resultName: 'main'};
   const clockCid = cid(), payloadCid = cid(), payload = '{"id":1}\n';
+  const storedPayload = plain, schema = '{"id":{"nullable":false,"type":"number"}}';
   const clockEpoch = Date.now();
   const clockBody = floor => {
     const value = {clockContractCid: clockCid, observedAt: new Date(clockEpoch + floor).toISOString()};
@@ -220,14 +221,19 @@ export async function runSQLiteResultControl({output, resultOwnerMap, warmSample
   const database = join(output, 'result-control.sqlite');
   const environment = {platform: platform(), arch: arch(), osRelease: release(), node: process.version,
     cpuModel: cpus()[0].model, logicalCpus: cpus().length, memoryBytes: totalmem()};
-  const report = {schemaVersion: 1, kind: 'local-sqlite-result-control', environment, load,
+  const report = {schemaVersion: 2, kind: 'local-sqlite-result-control', environment, load,
     ownerMapping: {source: mapping.source.commit, sha256: digest(mapBytes), groups: mapping.groups},
     executableSha256: digest(await readFile(process.execPath)), collectorSha256: digest(await readFile(fileURLToPath(import.meta.url))),
     protocol: {binding: 'node:sqlite DatabaseSync', concurrency: 1, fullfsyncRequested: fullfsync,
       preparation: 'prepared statements; fresh identities/envelopes inside each timed sample',
       groups: ['durable clock acceptance', 'atomic grant/use/attempt/streaming before payload', 'atomic receipt/terminal/head CAS after payload completion'],
       keyWidths: resultControlKeyWidths, bodyBytes: sizes, payload, expected: [{id: 1}], warmup,
-      materialization: 'indexed JSONL payload -> all ordinary JS rows; literal oracle inside timed operation',
+      materialization: {
+        storedFormat: 'json-array-utf8', storedBytes: Buffer.byteLength(storedPayload), storedSha256: digest(storedPayload),
+        schemaFormat: 'actql-schema-json-utf8', schemaBytes: Buffer.byteLength(schema), schemaSha256: digest(schema),
+        outputFormat: 'jsonl-utf8', outputBytes: Buffer.byteLength(payload), outputSha256: digest(payload),
+        conversion: 'stored-array-and-schema -> JSONL -> ordinary-JS-records',
+      },
       serialization: 'Fresh size-matched opaque JSON envelopes, not actual typed/canonical ActQL contracts',
       coverage: 'Minimal independently required durable groups only; excludes Account/cryptographic/type admission and new Run claim/publication',
       history: 'One fixed Run/payload; fresh grant/attempt per sample; indexed keys/quota/head, no unrelated row inventory'},
@@ -248,9 +254,9 @@ export async function runSQLiteResultControl({output, resultOwnerMap, warmSample
       CREATE TABLE record (attempt TEXT NOT NULL, sequence INTEGER NOT NULL, cid TEXT NOT NULL UNIQUE,
         prior TEXT, body TEXT NOT NULL, PRIMARY KEY(attempt,sequence));
       CREATE TABLE receipt (cid TEXT PRIMARY KEY, body TEXT NOT NULL);
-      CREATE TABLE payload (cid TEXT PRIMARY KEY, wire TEXT NOT NULL);`);
+      CREATE TABLE payload (cid TEXT PRIMARY KEY, wire TEXT NOT NULL, schema TEXT NOT NULL);`);
     db.prepare('INSERT INTO clock VALUES (?,0,?)').run(clockCid, clockBody(0));
-    db.prepare('INSERT INTO payload VALUES (?,?)').run(payloadCid, payload);
+    db.prepare('INSERT INTO payload VALUES (?,?,?)').run(payloadCid, storedPayload, schema);
     const statement = Object.fromEntries(Object.entries({
       clock: 'SELECT floor FROM clock WHERE cid=?',
       floor: 'UPDATE clock SET floor=?,body=? WHERE cid=? AND floor=?',
@@ -259,7 +265,7 @@ export async function runSQLiteResultControl({output, resultOwnerMap, warmSample
       use: 'UPDATE grant_use SET uses=uses+1 WHERE cid=? AND uses<max_uses',
       attempt: 'INSERT INTO attempt VALUES (?,?,?,?,?,?,?,?,?,?,?)',
       record: 'INSERT INTO record VALUES (?,?,?,?,?)',
-      payload: 'SELECT wire FROM payload WHERE cid=?',
+      payload: 'SELECT wire,schema FROM payload WHERE cid=?',
       receipt: 'INSERT INTO receipt VALUES (?,?)',
       terminal: 'UPDATE attempt SET head=? WHERE cid=? AND head=?',
     }).map(([key, sql]) => [key, db.prepare(sql)]));
@@ -294,7 +300,14 @@ export async function runSQLiteResultControl({output, resultOwnerMap, warmSample
         write('record', ids.attempt, 0, ids.streaming, null, bodies.streaming);
       });
       mark = process.hrtime.bigint();
-      const actual = read('payload', payloadCid).wire.trimEnd().split('\n').map(line => JSON.parse(line));
+      const stored = read('payload', payloadCid), decoded = JSON.parse(stored.wire);
+      assert.deepEqual(JSON.parse(stored.schema), {id: {nullable: false, type: 'number'}});
+      events.push('stored-array-decoded');
+      const jsonl = decoded.map(row => JSON.stringify(row) + '\n').join('');
+      assert.equal(jsonl, payload); events.push('jsonl-serialized');
+      const actual = jsonl.trimEnd().split('\n').map(line => JSON.parse(line));
+      const materialization = {storedBytes: Buffer.byteLength(stored.wire), schemaBytes: Buffer.byteLength(stored.schema),
+        jsonlBytes: Buffer.byteLength(jsonl), decodedRows: actual.length, outputSha256: digest(jsonl)};
       assert.deepEqual(actual, [{id: 1}]); events.push('payload-materialized');
       phases.payloadAndMaterializeNs = Number(process.hrtime.bigint() - mark);
       mark = process.hrtime.bigint();
@@ -307,8 +320,9 @@ export async function runSQLiteResultControl({output, resultOwnerMap, warmSample
         write('record', ids.attempt, 1, ids.terminalSucceeded, ids.streaming, bodies.terminalSucceeded);
         assert.equal(write('terminal', ids.terminalSucceeded, ids.attempt, ids.streaming).changes, 1);
       });
-      assert.deepEqual(events, ['clock-committed', 'start-committed', 'payload-materialized', 'end-committed']);
-      return {actual, phases, events, counts, attemptCid: ids.attempt};
+      assert.deepEqual(events, ['clock-committed', 'start-committed', 'stored-array-decoded',
+        'jsonl-serialized', 'payload-materialized', 'end-committed']);
+      return {actual, phases, events, counts, materialization, attemptCid: ids.attempt};
     };
     for (let n = 0; n < warmup; n++) execute();
     for (let n = 0; n < warmSamples; n++) {
@@ -316,7 +330,7 @@ export async function runSQLiteResultControl({output, resultOwnerMap, warmSample
       const wallNs = Number(process.hrtime.bigint() - start), usage = process.cpuUsage(cpu);
       report.samples.push({index: n, pid: process.pid, wallNs, userUs: usage.user, systemUs: usage.system, verified: true,
         outputSha256: digest(JSON.stringify(value.actual)), phases: value.phases, events: value.events,
-        counts: value.counts, attemptCid: value.attemptCid});
+        counts: value.counts, materialization: value.materialization, attemptCid: value.attemptCid});
     }
     report.summary = summarizeSQLiteSamples(report.samples);
   } catch (error) {
