@@ -725,6 +725,22 @@ does not establish that a request was unsent or can be sent again.
 
 ## Public execution and restoration
 
+The Native Journal's Run-definition uniqueness extension uses a physical
+partial UNIQUE index on `actql_records` for the `client_runs` namespace. Its
+key is the canonical Run-definition CID inside the stored definition string.
+Removing a locator record cannot remove this constraint. Exact index SQL is
+the format discriminator; absent and unsupported definitions remain distinct.
+Typed row admission and original HMAC/current checks remain necessary: SQLite
+NULL uniqueness does not validate a missing or malformed CID.
+
+The SQLite adapter installs this index only inside the caller's active
+transaction. The authorized bootstrap or explicit migration owns validation,
+usage metadata and final commit. A streaming prepass stops after the supplied
+row-work ceiling plus one, before DDL; this ceiling is not a byte-demand or
+capacity proof. Index creation uses the same Library and heap and may fail
+without committing, replacing the Database or granting fresh usage. Ordinary
+reads need not repeat this format inspection within the same Database lifetime.
+
 The preparation identity uses the separately adopted closed
 `actql-local-preparation-fence/0.1` body: original Client intent/scope, checked
 operation occurrence, actual Run invocation and checked Unit definition. Public

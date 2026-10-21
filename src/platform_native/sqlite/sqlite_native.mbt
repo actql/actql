@@ -5,6 +5,52 @@ type Library
 type Database
 
 ///|
+#borrow(database)
+extern "C" fn client_run_definition_schema_ffi(database : Database) -> Int = "actql_native_client_run_definition_schema"
+
+///|
+#borrow(database)
+extern "C" fn client_run_definition_install_ffi(
+  database : Database,
+  max_inspect_rows : Int64,
+) -> Int = "actql_native_client_run_definition_install"
+
+///|
+/// Inspect the physical Run-definition uniqueness format on this Database.
+/// Zero is legacy absence; one is the exact supported index. Neither grants
+/// authority, validates a Run body or acknowledges a transaction.
+pub fn Database::client_run_definition_schema(
+  self : Database,
+) -> Result[Int, NativeSqliteIssue] {
+  self.with_original_store_sql(false, fn() {
+    match client_run_definition_schema_ffi(self) {
+      0 => Ok(0)
+      1 => Ok(1)
+      _ => Err(Physical("Run definition index unavailable or unsupported"))
+    }
+  })
+}
+
+///|
+/// Install only in the caller's existing transaction after its authorization
+/// and row admission. The streaming whole-table work bound supplies no heap,
+/// authority, durable quota or COMMIT acknowledgement.
+pub fn Database::install_client_run_definition_schema(
+  self : Database,
+  max_inspect_rows : Int64,
+) -> Result[Unit, NativeSqliteIssue] {
+  if max_inspect_rows < 0L || max_inspect_rows > 536870912L {
+    return Err(InvalidLimit)
+  }
+  self.with_original_store_sql(false, fn() {
+    match client_run_definition_install_ffi(self, max_inspect_rows) {
+      0 => Ok(())
+      code => Err(operation_issue(self, code))
+    }
+  })
+}
+
+///|
 extern "C" fn command_domain_necessary_bytes_ffi(
   domain_bytes : Int64,
   heap_bytes : Int64,

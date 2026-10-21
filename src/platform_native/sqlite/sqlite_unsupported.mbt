@@ -15,6 +15,21 @@ struct Database {
 }
 
 ///|
+pub fn Database::client_run_definition_schema(
+  _self : Database,
+) -> Result[Int, NativeSqliteIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
+pub fn Database::install_client_run_definition_schema(
+  _self : Database,
+  _max_inspect_rows : Int64,
+) -> Result[Unit, NativeSqliteIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
 pub fn Library::open_inspection_database(
   _self : Library,
   _path : String,

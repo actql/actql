@@ -2783,3 +2783,4 @@ int32_t actql_native_sqlite_lookup_stopped_current(
 }
 
 #include "journal_name_inventory.h"
+#include "journal_run_definition.h"
