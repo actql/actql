@@ -282,7 +282,7 @@ fn NativeLocalJournalCapture::check_current_between_original_phases(
             Some(binding) =>
               binding.current
               .local_runtime_require_live()
-              .map_err(_ => CustodyLost)
+              .map_err(_ => NativeLocalAdoptionIssue::CustodyLost)
           }
           match runtime {
             Err(issue) => Err(issue)
