@@ -503,6 +503,8 @@ export function createResultFactory({ref, limits, lookupContext, redactErrors, t
         catch (cause) {
           throw new ClientError('InvalidHostResultDescription', {cause});
         }
+        try { answer = captureResponse(answer); }
+        catch { fail('InvalidHostResultDescription'); }
         if (!validResultDescription(answer, {ref, resultName: name, format},
           limits)) fail('InvalidHostResultDescription');
         const schema = Object.fromEntries(answer.columns.map(column =>
@@ -516,7 +518,7 @@ export function createResultFactory({ref, limits, lookupContext, redactErrors, t
               result_name: name}) !== answer.resultDefinitionCid) {
           fail('InvalidHostResultDescription');
         }
-        return Object.freeze(answer);
+        return freezeInput(answer);
       },
       deliveryAttempt: async (attemptId, {signal} = {}) => {
         if (typeof attemptId !== 'string' || !attemptId) {

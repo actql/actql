@@ -71,6 +71,24 @@ test('Result description retains its captured Run across identity hashing awaits
   assert.deepEqual(calls, ['connect', 'attach', 'result-describe']);
 });
 
+test('Result description capture refuses unreadable data without retaining private errors', async t => {
+  const privateFailure = new Error('private description getter');
+  const client = await connectInProcess({mode: 'local', owner: 'local'}, {
+    perform(operation) {
+      if (operation === 'connect') return profile('local');
+      if (operation === 'attach') return admission;
+      if (operation === 'result-describe') return {get ref() {throw privateFailure;}};
+      assert.fail(`Unexpected:${operation}`);
+    },
+  });
+  t.after(() => client.close());
+  await assert.rejects((await client.attach(ref)).result('answer').describe(), error => {
+    assert.equal(error.code, 'InvalidHostResultDescription');
+    assert.equal(error.cause, undefined);
+    return true;
+  });
+});
+
 test('generated contracts validate full recursive types and exact bindings', () => {
   assert.equal(validResultDescription(description(), expected), true);
   const changes = [

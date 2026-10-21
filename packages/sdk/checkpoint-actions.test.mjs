@@ -125,6 +125,37 @@ test('Checkpoint page captures each original response field before admission', a
   assert.deepEqual(calls.map(call => call.operation), ['connect', 'checkpoints']);
 });
 
+test('exact Checkpoint lookup captures once without copying the admitted response again', async t => {
+  let reads = 0, responseCopies = 0;
+  const clone = globalThis.structuredClone;
+  t.mock.method(globalThis, 'structuredClone', value => {
+    // Transport still owns its required outbound packet copy.
+    if (!Object.hasOwn(value, 'connection')) responseCopies++;
+    return clone(value);
+  });
+  const summary = {...original};
+  Object.defineProperty(summary, 'checkpointId', {enumerable: true,
+    get() {reads++; return original.checkpointId;}});
+  const {client, calls} = await fixture(t, {lookup: () => ({items: [summary]})});
+  const page = await client.checkpoints({checkpointId: original.checkpointId});
+  assert.deepEqual(page.items, [original]);
+  assert.equal(reads, 1);
+  assert.equal(responseCopies, 0);
+  assert.equal(Object.isFrozen(page.items[0].requirements), true);
+  assert.deepEqual(calls.map(call => call.operation), ['connect', 'checkpoints']);
+});
+
+test('Checkpoint response capture refuses unreadable data without retaining private errors', async t => {
+  const privateFailure = new Error('private response getter');
+  const {client, calls} = await fixture(t, {lookup: () => ({get items() {throw privateFailure;}})});
+  await assert.rejects(client.checkpoints(), error => {
+    assert.equal(error.code, 'InvalidHostCheckpointPage');
+    assert.equal(error.cause, undefined);
+    return true;
+  });
+  assert.deepEqual(calls.map(call => call.operation), ['connect', 'checkpoints']);
+});
+
 test('original signer values and receiver survive mutation during lookup', async t => {
   let release, arrived;
   const waiting = new Promise(resolve => {arrived = resolve;});

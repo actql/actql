@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {registerHooks} from 'node:module';
 import {readFileSync} from 'node:fs';
+import {createHash} from 'node:crypto';
 import {originalSubmission, readySubmissionAttempt, submissionEpoch} from './submission-fixture.mjs';
 
 // Count completed SDK wire-admission passes, not transport copies, cheap
@@ -12,14 +13,19 @@ const counterKey = Symbol.for('actql.sdk.operation-validation.test');
 globalThis[counterKey] = admissions;
 const names = ['validClientAdmission', 'validSubmissionAttempt', 'validSubmissionLookup',
   'validRequestLookup', 'validRequestCancellation', 'validCancellationAttempt',
-  'validCancellationLookup', 'validDeliveryAttemptLookup', 'validCheckOutcome'];
+  'validCancellationLookup', 'validDeliveryAttemptLookup', 'validCheckOutcome',
+  'validCheckpointPage', 'validCheckpointLookup', 'validResultDescription'];
 const wireUrl = new URL('../client-wire/index.mjs', import.meta.url).href;
 const wrapper = `import * as wire from ${JSON.stringify(wireUrl)};
 export * from ${JSON.stringify(wireUrl)};
 ${names.map(name => `export function ${name}(...args) {
   const result = wire.${name}(...args);
   const counts = globalThis[Symbol.for('actql.sdk.operation-validation.test')];
-  counts.set('${name}', (counts.get('${name}') ?? 0) + 1);
+  // The selected lookup response below is nonempty. Its separate empty
+  // selector probe is not a response admission or a nested validator pass.
+  const key = '${name}' === 'validCheckpointLookup' && args[0]?.items?.length === 0
+    ? 'checkpointSelectorProbe' : '${name}';
+  counts.set(key, (counts.get(key) ?? 0) + 1);
   return result;
 }`).join('\n')}`;
 const wrapperUrl = `data:text/javascript,${encodeURIComponent(wrapper)}`;
@@ -58,6 +64,55 @@ async function fixture(t, respond) {
   return {client, calls};
 }
 const assertPasses = expected => assert.deepEqual(Object.fromEntries(admissions), expected);
+
+test('Checkpoint page and exact lookup each admit one captured response', async t => {
+  const summary = {checkpointId: 'checkpoint', checkpointCid: cid('c'),
+    kind: 'effect_set', phase: 'commit',
+    subject: {kind: 'run_unit', runId: 'run', runDefinitionCid: cid('b')},
+    requiredArtifact: {type: 'effect_set_preview', cid: cid('d')},
+    reviewProjectionCid: cid('e'), requirements: ['effect_scope_approved'],
+    createdAt: '2026-10-18T00:00:00.000Z', expiresAt: '2027-01-01T00:00:00.000Z',
+    humanSummary: 'Original Effect'};
+  const f = await fixture(t, () => ({items: [summary]}));
+  admissions.clear();
+  await f.client.checkpoints({limit: 1});
+  assertPasses({validCheckpointPage: 1});
+  admissions.clear();
+  const page = await f.client.checkpoints({checkpointId: summary.checkpointId});
+  assertPasses({checkpointSelectorProbe: 1, validCheckpointLookup: 1});
+  admissions.clear();
+  assert.equal(page.items[0].checkpointId, summary.checkpointId);
+  assertPasses({});
+});
+
+test('Result description admits one captured response and pure access does no readmission', async t => {
+  const canonical = value => value !== null && typeof value === 'object'
+    ? `{${Object.keys(value).sort().map(key =>
+      `${JSON.stringify(key)}:${canonical(value[key])}`).join(',')}}`
+    : JSON.stringify(value);
+  const identity = value => `sha256:${createHash('sha256').update(canonical(value)).digest('hex')}`;
+  const schema = {n: {type: 'number', nullable: false}};
+  const programDefinitionCid = cid('c');
+  const answer = {ref, resultName: 'answer', programDefinitionCid,
+    resultDefinitionCid: identity({version: 'actql-result-definition/0.1',
+      program_definition_cid: programDefinitionCid, result_name: 'answer'}),
+    resultArtifactCid: cid('d'), resultSchemaCid: identity(schema),
+    columns: [{name: 'n', contract: schema.n}],
+    serialization: {format: 'jsonl', version: 'actql-jsonl/0.1',
+      contractCid: identity({json_value_wire_contract_cid:
+        'sha256:8ce92036074141bdc4b39436fe2460c7d1460810af1c345b45c6fc102b36791b',
+      version: 'actql-jsonl/0.1'})}};
+  const f = await fixture(t, () => answer);
+  const run = await f.client.attach(ref);
+  admissions.clear();
+  const captured = await run.result('answer').describe();
+  assertPasses({validResultDescription: 1});
+  admissions.clear();
+  assert.deepEqual(captured.ref, ref);
+  assert.equal(captured.columns[0].name, 'n');
+  assertPasses({});
+  assert.deepEqual(f.calls, ['connect', 'attach', 'result-describe']);
+});
 
 test('ready submit admits its envelope once and constructs a Run without readmission', async t => {
   const f = await fixture(t, (_operation, body) => readySubmissionAttempt(body, admission));

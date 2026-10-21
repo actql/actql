@@ -126,11 +126,11 @@ export function createCheckpointOperations(connection, exchange, responseValue,
       let page;
       try { page = await responseValue(response); }
       catch (cause) { throw new ClientError('InvalidHostCheckpointPage', {cause}); }
+      try { page = captureResponse(page); }
+      catch { fail('InvalidHostCheckpointPage'); }
       if (!(lookup ? validCheckpointLookup(page, checkpointId)
         : validCheckpointPage(page, limit))) fail('InvalidHostCheckpointPage');
-      return Object.freeze({items: Object.freeze(page.items.map(item =>
-        Object.freeze(structuredClone(item)))),
-      ...(page.next === undefined ? {} : {next: page.next})});
+      return freezeInput(page);
     },
     // The exact review projection a Checkpoint names, when the caller is
     // authorized to read it. Bounded by `maxBytes` on both sides; the bytes
