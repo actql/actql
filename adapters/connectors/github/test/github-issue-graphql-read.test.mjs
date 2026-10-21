@@ -1,6 +1,8 @@
 // Independent original GitHub Issue boundary cases; expected rows stay local.
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import {createHash} from 'node:crypto';
+import {performance} from 'node:perf_hooks';
 import * as moon from '../../../../_build/js/release/build/connectors/github/host_node/host_node.js';
 import {callHttpsCredentialResource, withHttpsCredentialRunResponseOriginal} from '../../../site-node/https-credential-resource.mjs';
 import {issueReads} from './github-graphql.fixture.mjs';
@@ -42,6 +44,43 @@ test('pages are read from the published node ID until the last cursor', async t 
     assert.equal(entry.pathname, '/graphql');
     assert.equal(entry.headers['x-github-api-version'], '2026-03-10');
   }
+});
+
+test('page callbacks reuse the original prefix check across pure codec getters', async t => {
+  const context = await setup(t, world());
+  const bodies = new Set();
+  const prototype = Object.getPrototypeOf(createHash('sha256'));
+  const update = prototype.update;
+  let checks = 0, bytes = 0, pages = 0;
+  const hashes = t.mock.method(prototype, 'update', function (data, ...args) {
+    if (bodies.has(data)) { checks++; bytes += data.byteLength; }
+    return Reflect.apply(update, this, [data, ...args]);
+  });
+  const cpu = process.cpuUsage(), started = performance.now();
+  let result;
+  try {
+    result = await context.read({
+      callResource: async request => {
+        const response = await callHttpsCredentialResource(request);
+        bodies.add(response.body);
+        return response;
+      },
+      chargePage: body => Object.freeze({body}),
+      consumePage: () => { pages++; },
+    });
+  } finally { hashes.mock.restore(); }
+  const used = process.cpuUsage(cpu);
+  t.diagnostic(JSON.stringify({responsePrefixChecks: checks, hashedResponseBytes: bytes,
+    elapsedMs: performance.now() - started, cpuUserMs: used.user / 1000,
+    cpuSystemMs: used.system / 1000, physicalRequests: context.fixture.seen().length,
+    qualification: 'one actual Credential/SQLite/loopback TLS diagnostic; not an ordinary latency distribution'}));
+  assert.equal(result.complete, true);
+  assert.deepEqual(result.rows, [1, 2, 3, 4, 5].map(row));
+  assert.equal(context.fixture.seen().length, 3);
+  assert.equal(pages, 3);
+  assert.ok(checks > 0, 'actual original response validation must run');
+  assert.ok(checks <= 33, `response prefix checks exceed the unchanged-page budget: ${checks}`);
+  assert.ok(context.journal.recover().every(record => record.outcome === 'succeeded'));
 });
 
 test('a same-name repository B never changes the requested node', async t => {
