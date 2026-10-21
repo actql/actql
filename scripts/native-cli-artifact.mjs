@@ -39,7 +39,17 @@ export function inspectNativeAbi(binary, platform, execute = execFileSync) {
     httpLibraryRequirements: 'Separately supplied libcurl and its transitive dependencies may require a newer glibc than the executable.'};
 }
 
-export async function buildNativeCliArtifact(destination, {verbose = false, localRuntime} = {}) {
+// This bounds compilation time only; it changes neither compiler flags nor admission.
+export function nativeCliCompileBudget(compileSeconds, scoped = false) {
+  assert.equal(typeof scoped, 'boolean');
+  const seconds = compileSeconds === undefined ? (scoped ? 900 : 300) : compileSeconds;
+  assert(Number.isSafeInteger(seconds) && seconds > 0 && seconds <= 86400,
+    'compileSeconds must be an integer from 1 to 86400');
+  return {seconds, timeoutMs: (seconds + (scoped ? 30 : 0)) * 1000};
+}
+
+export async function buildNativeCliArtifact(destination, {verbose = false, localRuntime, compileSeconds} = {}) {
+  const budget = nativeCliCompileBudget(compileSeconds, localRuntime !== undefined);
   assert.equal(typeof verbose, 'boolean', 'verbose must be an explicit Boolean');
   const source = checkoutState(repository); assert(source.clean, 'Native artifact requires clean source HEAD');
   await checkInterfaceOwners(repository, {manifests: ['packages/native-cli/package.json']});
@@ -75,16 +85,16 @@ export async function buildNativeCliArtifact(destination, {verbose = false, loca
     selectedBuildArgs = [join(repository, 'scripts/produce-native-remote-scoped-runtime.py'),
       '--source', source.revision, '--moon-home', await realpath(process.env.MOON_HOME),
       '--clang', clang, '--sdk', sdk, '--destination', join(destination, 'native-producer'),
-      '--seconds', '900', '--entry', 'src/cmd/native_client'];
+      '--seconds', String(budget.seconds), '--entry', 'src/cmd/native_client'];
     built = join(destination, 'native-producer/emission/native/release/build/cmd/native_client/native_client.exe');
     c = join(destination, 'native-producer/emission/native/release/build/cmd/native_client/native_client.c');
   }
   const startedAt = performance.now();
   if (verbose) console.log(JSON.stringify({phase: 'native-cli-build-start',
-    sourceSha: source.revision, command: [buildCommand, ...selectedBuildArgs], timeoutMs: localMetadata ? 930_000 : 300_000}));
+    sourceSha: source.revision, command: [buildCommand, ...selectedBuildArgs], timeoutMs: budget.timeoutMs}));
   try {
     const output = run(buildCommand, selectedBuildArgs,
-      {timeout: localMetadata ? 930_000 : 300_000});
+      {timeout: budget.timeoutMs});
     if (localMetadata !== undefined) {
       scopedReceipt = JSON.parse(await readFile(join(destination, 'native-producer/build.json'), 'utf8'));
       assert.equal(scopedReceipt.source, source.revision);
@@ -158,12 +168,18 @@ export async function buildNativeCliArtifact(destination, {verbose = false, loca
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const [destination, ...options] = process.argv.slice(2);
-  let verbose = false, recipe;
+  let verbose = false, recipe, compileSeconds;
   while (options.length) {
     const option = options.shift();
     if (option === '--verbose' && !verbose) verbose = true;
     else if (option === '--local-runtime-recipe' && recipe === undefined && options.length) recipe = options.shift();
-    else assert.fail('usage: native-cli-artifact.mjs <new-artifact-directory> [--verbose] [--local-runtime-recipe <selected-recipe>]');
+    else if (option === '--compile-seconds' && compileSeconds === undefined && options.length) {
+      const value = options.shift();
+      assert.match(value, /^[1-9][0-9]*$/u, 'compile-seconds must be a positive integer');
+      compileSeconds = Number(value);
+      nativeCliCompileBudget(compileSeconds);
+    }
+    else assert.fail('usage: native-cli-artifact.mjs <new-artifact-directory> [--verbose] [--local-runtime-recipe <selected-recipe>] [--compile-seconds <positive-integer>]');
   }
   assert(destination);
   let wire;
@@ -184,7 +200,7 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
       wire = bytes.subarray(0, offset);
     } finally {await descriptor.close();}
   }
-  const record = await buildNativeCliArtifact(destination, {verbose,
+  const record = await buildNativeCliArtifact(destination, {verbose, compileSeconds,
     ...(wire ? {localRuntime: JSON.parse(wire.toString('utf8'))} : {})});
   console.log(JSON.stringify({sourceSha: record.sourceSha, platform: record.platform,
     binarySha256: record.binarySha256, abi: record.abi.sharedLibraries}, null, 2));
