@@ -1625,21 +1625,25 @@ async function openOriginalLocalPublicationStore(
     });
   };
 
-  const readPhysicalHoldingAt = async path => {
+  const readPhysicalHoldingAt = async (path, holdingCid) => {
     let bytes;
     try { bytes = await readBounded(path, configuration.maxObjectBytes); }
     catch (error) {
       if (error?.code === 'ENOENT') return undefined;
       throw error;
     }
-    return parsePhysicalHolding(bytes);
+    const record = parsePhysicalHolding(bytes);
+    if (record.holding_cid !== holdingCid) {
+      fail('InvalidPublicationPhysicalHoldingStore');
+    }
+    return record;
   };
 
   const readPhysicalHolding = holdingCid =>
-    readPhysicalHoldingAt(physicalHoldingPath(holdingCid));
+    readPhysicalHoldingAt(physicalHoldingPath(holdingCid), holdingCid);
 
   const readPhysicalHoldingDeletion = holdingCid =>
-    readPhysicalHoldingAt(physicalHoldingDeletionPath(holdingCid));
+    readPhysicalHoldingAt(physicalHoldingDeletionPath(holdingCid), holdingCid);
 
   const parseMetadataInventory = bytes => {
     let value;
@@ -6791,6 +6795,7 @@ async function openOriginalLocalPublicationStore(
       }
       const record = await readPhysicalHoldingAt(
         resolve(physicalHoldingDeletionsDirectory, name),
+        `sha256:${name.slice(0, -5)}`,
       );
       const cleanup = createPhysicalHoldingDeletionCleanup(record);
       try { await cleanup.retry(); }
@@ -6798,24 +6803,6 @@ async function openOriginalLocalPublicationStore(
       recovered.push(cleanup);
     }
     return Object.freeze(recovered);
-  };
-
-  const validatePhysicalHoldingStore = async () => {
-    for (const directory of [
-      physicalHoldingsDirectory,
-      physicalHoldingDeletionsDirectory,
-    ]) {
-      for (const name of await readdir(directory)) {
-        const record = await readPhysicalHoldingAt(resolve(directory, name));
-        if (`${cidHex(record.holding_cid)}.json` !== name) {
-          fail('InvalidPublicationPhysicalHoldingStore');
-        }
-        // Startup validates ownership records, not every Run's payload.
-        // inspect/consume/commit still verify bytes before using a holding.
-        // A missing or damaged object must not disable unrelated Runs, nor
-        // turn its retained recovery responsibility into absent evidence.
-      }
-    }
   };
 
   const recoverPreparedCustodies = async () => {
@@ -7415,8 +7402,9 @@ async function openOriginalLocalPublicationStore(
     }
   };
 
-  await validatePhysicalHoldingStore();
-
+  // Immutable holding bodies are admitted at their selected read. Pending
+  // deletion recovery below still owns its exact records and original ACKs;
+  // unrelated history is not another ordinary opening admission boundary.
   // Recover process-crash custody before accepting new Store work. A
   // committed or shared allocation survives; an unpublished allocation is
   // reclaimed using its exact recorded generation.

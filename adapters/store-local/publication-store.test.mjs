@@ -4900,6 +4900,26 @@ test('ordinary Store reopen defers unrelated damaged holding refusal to its sele
   await reopened.close();
 });
 
+test('ordinary Store selected holding refuses a different valid record under its name', async t => {
+  const setup = await fixture(t);
+  const payload = await preparePhysical(setup.store, 'original named holding');
+  const holding = physicalHolding(digest('original named holding'),
+    digest('original named artifact'), [{cid: payload.cid, byte_count: payload.bytes}],
+    'effect-source');
+  await setup.store.commitPhysicalHolding(holding, [payload.prepared]);
+  await setup.store.close();
+  const foreignCid = digest('different selected holding');
+  const foreignPath = join(setup.directory, 'physical-holdings', `${foreignCid.slice(7)}.json`);
+  const original = Buffer.from(JSON.stringify(holding));
+  await writeFile(foreignPath, original);
+  const reopened = await openLocalPublicationStore(setup.configuration, contractControl);
+  await assert.rejects(reopened.inspectPhysicalHolding(foreignCid),
+    code('InvalidPublicationPhysicalHoldingStore'));
+  assert.deepEqual(await reopened.inspectPhysicalHolding(holding.holding_cid), holding);
+  assert.deepEqual(await readFile(foreignPath), original);
+  await reopened.close();
+});
+
 for (const damage of ['missing', 'corrupt']) {
 test(`one ${damage} Effect payload does not disable unrelated holdings`,
   async t => {

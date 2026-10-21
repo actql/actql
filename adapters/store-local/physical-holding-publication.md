@@ -103,9 +103,14 @@ unchanged. Incomplete bytes occupy only an unpublished `object-<UUID>` staging
 alias, which the same Store's existing restart recovery removes. A crash after
 the exclusive link leaves complete final bytes, not a new commit receipt.
 
-This does not repair or ignore an old corrupt final record. Startup still
-refuses it and retains the original recovery evidence; no missing/empty record
-is interpreted as an unapplied operation, permission or cleanup success.
+This does not repair a corrupt final record. Each selected holding read admits
+its bounded body against the exact requested holding CID before using it;
+unrelated immutable records are not all read at ordinary startup. Required
+pending-deletion recovery still reads its own original records and refuses
+invalid identity or bytes. No missing/empty record is interpreted as an
+unapplied operation, permission or cleanup success. Physical capacity accounting,
+other Store recovery and their actual acknowledgement duties are unchanged;
+this does not make all remaining opening inventories history-independent.
 
 ## Same-owner cleanup and inventory
 
