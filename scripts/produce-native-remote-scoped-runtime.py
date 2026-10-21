@@ -361,6 +361,7 @@ def build(source: str, moon_home: Path, clang: Path, sdk: Path,
         receipt['commands_completed'] = len(commands)
         executable = emission / 'native/release/build' / entry_package / (Path(entry_package).name + '.exe')
         receipt['executable'] = original(executable)
+        receipt['generated_c'] = original(executable.with_suffix('.c'))
     for item in inputs:
         if original(Path(str(item['path']))) != item:
             raise ValueError('Original build input changed during preparation')
