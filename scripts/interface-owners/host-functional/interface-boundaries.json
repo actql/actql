@@ -7588,7 +7588,7 @@
               },
               {
                 "path": "adapters/store-local/delivery-completion.test.mjs",
-                "anchor": "delivery START shares semantic and attempt directory ACKs before any row exposure"
+                "anchor": "delivery START uses native metadata durability before any row exposure"
               }
             ]
           }
@@ -70640,7 +70640,7 @@
               },
               {
                 "path": "adapters/store-local/delivery-completion.test.mjs",
-                "anchor": "delivery START shares semantic and attempt directory ACKs before any row exposure"
+                "anchor": "delivery START uses native metadata durability before any row exposure"
               }
             ]
           }
