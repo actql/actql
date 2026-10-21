@@ -75555,15 +75555,16 @@
     {
       "module": "adapters/host-node/local-result-authorization.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "c0ce97c79c0754229bff6422f87744668d17f3e4acf197cc30c798a4822785bb",
+      "sha256": "94b17b4f98f1370d43c5e205b363c952f64ed3d7f8ecc756bc896b885e9eff32",
       "role": "physical-io",
       "owner": "Existing installed Local Host Result access and Common execution-authorization Owners",
       "exports": [
+        "createLocalReadAuthorizations",
         "createLocalResultAuthorization"
       ],
       "operations": [
         {
-          "name": "createLocalResultAuthorization",
+          "name": "createLocalReadAuthorizations",
           "parameters": [
             "moon",
             "authorization",
@@ -75574,12 +75575,39 @@
           "async": false
         },
         {
-          "name": "createLocalResultAuthorization/createLocalResultAuthorization",
+          "name": "createLocalReadAuthorizations/authorize/authorize",
+          "parameters": [
+            "facts",
+            "operation",
+            "resource"
+          ],
+          "async": true
+        },
+        {
+          "name": "createLocalReadAuthorizations/init:result/init:result",
           "parameters": [
             "facts",
             "operation"
           ],
-          "async": true
+          "async": false
+        },
+        {
+          "name": "createLocalReadAuthorizations/init:run/init:run",
+          "parameters": [
+            "facts"
+          ],
+          "async": false
+        },
+        {
+          "name": "createLocalResultAuthorization",
+          "parameters": [
+            "moon",
+            "authorization",
+            "principalId",
+            "namespaceId",
+            "authorityScopeCid"
+          ],
+          "async": false
         }
       ],
       "imports": [
@@ -75591,8 +75619,7 @@
         {
           "operations": [
             "<module>",
-            "createLocalResultAuthorization",
-            "createLocalResultAuthorization/createLocalResultAuthorization"
+            "createLocalResultAuthorization"
           ],
           "exports": [
             "createLocalResultAuthorization"
@@ -75613,7 +75640,7 @@
             "identity": [
               {
                 "path": "adapters/host-node/local-result-authorization.mjs",
-                "anchor": "const scope = {connection, resource: `result/${facts.resultName}`, operation: 'read'};"
+                "anchor": "const scope = {connection, resource, operation: 'read'};"
               }
             ],
             "ownership": [
@@ -75656,6 +75683,79 @@
               {
                 "path": "adapters/host-node/local-result-authorization.test.mjs",
                 "anchor": "test('Local Result reads evaluate the actual current Account without repeated admission'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createLocalReadAuthorizations",
+            "createLocalReadAuthorizations/authorize/authorize",
+            "createLocalReadAuthorizations/init:result/init:result",
+            "createLocalReadAuthorizations/init:run/init:run"
+          ],
+          "exports": [
+            "createLocalReadAuthorizations"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "## Local Run observation authorization"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/local-result-authorization.mjs",
+                "anchor": "export function createLocalReadAuthorizations({moon, authorization,"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/local-result-authorization.mjs",
+                "anchor": "run(facts) {return authorize(facts, undefined, 'run');}"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/local-result-authorization.mjs",
+                "anchor": "const originalAccountId = identity.state === 'admitted' ? identity.account_id : undefined;"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "return authorizeLocalRun({principalId: value.principalId,"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/local-result-authorization.mjs",
+                "anchor": "if (originalAccountId === undefined || identity.state !== 'admitted' ||"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/local-result-authorization.mjs",
+                "anchor": "} finally { gate.close(); }"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/local-result-authorization.mjs",
+                "anchor": "if (retained !== undefined && retained.account === retainedAccount) return retained.allowed;"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "Pure checking/static planning and named Result delivery do not borrow this"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/local-run-authorization.test.mjs",
+                "anchor": "test('actual Account keeps Run-read and named-Result-read distinct and current'"
               }
             ]
           }

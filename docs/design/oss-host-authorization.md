@@ -17,6 +17,25 @@ approval. Standard Local bootstrap adoption remains the distinct initialization
 responsibility required by `policy-routing.standard-local-bootstrap`; absence
 of an adopted configuration is not an Allow.
 
+## Local Run observation authorization
+
+The public Local Host entry checks the current `run` / `read` permission on its
+actual control connection before Run status, wait, attach, plan/inspection,
+owner observations or request/submission lookup reads their Journal. Each
+public operation evaluates that tuple once. Internal revision loops and trusted
+Store observations consume the admitted decision, not another Account check.
+Pure checking/static planning and named Result delivery do not borrow this
+permission: `result/<actual name>` / `read` remains its distinct original tuple.
+
+Both read entrances retain the same installed Account identity and observe its
+current configuration for each new public operation. If this same owner already
+observes a changed Account during another operation, a pending operation cannot
+reuse a decision for the old Account value. That cheap revision comparison does
+not read or evaluate an unchanged policy again. Delegate still uses the original
+application answer and post-callback current check; it creates no approval or
+cleanup acknowledgment. Internal cleanup remains independent of public read
+permission.
+
 ## Standard Local Account initialization
 
 The ordinary exclusive Host initializer materializes Common's complete
