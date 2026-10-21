@@ -1312,6 +1312,28 @@ int32_t actql_native_sqlite_database_ready(
   return database != NULL && database->opened && actql_database_library_available(database->library);
 }
 
+/* Observe retained DATA custody while its existing caller holds the Host and
+ * capture facts. No entered Read, SQL, callback, permission or ACK is issued. */
+MOONBIT_FFI_EXPORT int32_t actql_native_sqlite_database_retained_data_current(
+    actql_native_sqlite_database *database) {
+  if (database == NULL || database->process != getpid() ||
+      !database->opened || database->database == NULL) return 1;
+  actql_native_sqlite_library *library = database->library;
+  if (library == NULL || library->dynamic_library == NULL || library->closing ||
+      (library->selected_component && (!library->selected_ready ||
+       library->selected_process != getpid()))) return 2;
+  if (database->transaction_fenced || database->journal_pin_close_unknown) return 3;
+  actql_native_store_operation *original = database->store_operation;
+  if (original != NULL) {
+    if (!actql_store_operation_thread(original) || original->closed ||
+        !original->activated || original->bound_database != database ||
+        original->library != library || original->database_closed ||
+        original->failed || original->cleanup_only) return 4;
+    if (original->calling || original->flight || original->sql) return 3;
+  }
+  return 0;
+}
+
 moonbit_bytes_t actql_native_sqlite_database_error(
   actql_native_sqlite_database *database
 ) {
