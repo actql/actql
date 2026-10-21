@@ -2,11 +2,12 @@
 // compiles, publishes or substitutes source packages for a missing artifact.
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
-import {execFileSync} from 'node:child_process';
+import {execFile, execFileSync} from 'node:child_process';
 import {mkdir, readFile, writeFile} from 'node:fs/promises';
 import {arch, cpus, platform, release, totalmem} from 'node:os';
 import {join, resolve} from 'node:path';
 import {pathToFileURL} from 'node:url';
+import {promisify} from 'node:util';
 import {CLIENT_PACKAGES, checkoutState} from './packed-client-packages.mjs';
 import {inventory, unpack} from './package-release.mjs';
 import {nodeOperationProtocol, nodeWarmSmallQueryFixtures} from './benchmark-node-operations.mjs';
@@ -53,6 +54,30 @@ export function validatePerformancePackageProducer({repository, sourceSha, runId
     qualification: 'Successful package producer only; other source-run failures remain failures.'};
 }
 
+export function validatePerformanceProcessPackageProducer(options) {
+  const {repository, sourceSha, runId, artifactId, artifact, run, jobs, producerJob, adapter} = options;
+  assert(['native', 'python'].includes(adapter));
+  assert.match(repository, /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/u);
+  assert.match(sourceSha, /^[a-f0-9]{40}$/u);
+  assert(positiveId(runId) && positiveId(artifactId), 'Exact producer run/artifact IDs are required');
+  assert.equal(typeof producerJob, 'string'); assert(producerJob.trim().length > 0);
+  assert.equal(String(run.id), String(runId));
+  assert.equal(run.repository.full_name, repository);
+  assert.equal(run.head_sha, sourceSha);
+  assert.equal(run.path.split('@')[0], '.github/workflows/ci.yml');
+  assert.equal(run.status, 'completed'); assert(positiveId(run.run_attempt));
+  assert.equal(String(artifact.id), String(artifactId)); assert.equal(artifact.expired, false);
+  assert.equal(String(artifact.workflow_run.id), String(runId));
+  assert.equal(artifact.workflow_run.head_sha, sourceSha);
+  const selected = jobs.filter(job => job.name === producerJob);
+  assert.equal(selected.length, 1, 'Exactly one selected normal package job is required');
+  assert.equal(selected[0].status, 'completed'); assert.equal(selected[0].conclusion, 'success');
+  assert.equal(selected[0].head_sha, sourceSha);
+  return {repository, sourceSha, adapter, runId: String(runId), artifactId: String(artifactId),
+    attempt: run.run_attempt, producerJobId: selected[0].id, artifactName: artifact.name,
+    qualification: 'Original same-run artifact and selected package job only; installed payload and performance checks remain required.'};
+}
+
 export async function inspectPerformancePackageProducer(options, fetchMetadata = fetch) {
   const {repository, runId, artifactId, token} = options;
   assert.match(repository, /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/u);
@@ -77,7 +102,35 @@ export async function inspectPerformancePackageProducer(options, fetchMetadata =
     if (jobs.length >= result.total_count) { complete = true; break; }
   }
   assert(complete, 'Incomplete producer job inventory');
-  return validatePerformancePackageProducer({...options, run, artifact, jobs});
+  return (options.adapter === undefined ? validatePerformancePackageProducer
+    : validatePerformanceProcessPackageProducer)({...options, run, artifact, jobs});
+}
+
+export async function prepareOrdinaryNativePerformanceConsumer({packages, sourceSha, output,
+  verify, openRegistry, install}) {
+  packages = resolve(packages); output = resolve(output);
+  verify ??= (await import('./native-cli-release.mjs')).verifyNativeCliRelease;
+  openRegistry ??= (await import('./release-test-registry.mjs')).openReleaseTestRegistry;
+  const manifest = await verify(packages);
+  assert.equal(manifest.sourceSha, sourceSha, 'Native packages differ from the checked source');
+  await mkdir(output);
+  const registry = await openRegistry([{directory: packages, manifest}]);
+  try {
+    const env = {...process.env};
+    for (const key of Object.keys(env)) if (/^npm_config_/iu.test(key)) delete env[key];
+    Object.assign(env, {npm_config_registry: registry.url,
+      npm_config_cache: join(output, 'npm-cache'), npm_config_userconfig: join(output, 'npmrc'),
+      npm_config_globalconfig: join(output, 'npmrc-global'), npm_config_update_notifier: 'false',
+      npm_config_proxy: '', npm_config_https_proxy: '', NO_PROXY: '127.0.0.1,localhost'});
+    delete env.NODE_PATH;
+    await writeFile(env.npm_config_userconfig, `registry=${registry.url}\n@actql:registry=${registry.url}\n`);
+    await writeFile(env.npm_config_globalconfig, '');
+    install ??= async (args, options) => promisify(execFile)('npm', args,
+      {...options, timeout: 120_000, maxBuffer: 8 * 1024 ** 2});
+    await install(['install', '-g', '--prefix', output, '--ignore-scripts', '--no-audit', '--no-fund',
+      `actql@${manifest.cohort.packageVersion}`], {cwd: output, env});
+    return {consumer: join(output, 'lib/node_modules/actql'), sourceSha};
+  } finally { await registry.close(); }
 }
 
 export async function prepareOrdinaryPerformanceConsumer({packages, sourceSha, output, comparisonPath,
@@ -239,11 +292,20 @@ export async function combineOrdinaryPerformanceMeasurements(root) {
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   try {
     const [command, ...args] = process.argv.slice(2);
-    if (command === 'inspect-producer') {
+    if (command === 'inspect-producer' || command === 'inspect-process-producer') {
       assert.equal(args.length, 0);
       console.log(JSON.stringify(await inspectPerformancePackageProducer({repository: process.env.GITHUB_REPOSITORY,
         sourceSha: process.env.GITHUB_SHA, runId: process.env.PACKAGE_RUN_ID,
-        artifactId: process.env.PACKAGE_ARTIFACT_ID, token: process.env.GITHUB_TOKEN})));
+        artifactId: process.env.PACKAGE_ARTIFACT_ID, token: process.env.GITHUB_TOKEN,
+        ...(command === 'inspect-process-producer' ? {adapter: process.env.PACKAGE_ADAPTER,
+          producerJob: process.env.PACKAGE_PRODUCER_JOB} : {})})));
+    } else if (command === 'prepare-native') {
+      assert.equal(args.length, 3);
+      const before = checkoutState(process.cwd());
+      assert(before.clean && before.revision === args[1], 'Performance checkout differs from the package source');
+      console.log(JSON.stringify(await prepareOrdinaryNativePerformanceConsumer({packages: args[0],
+        sourceSha: args[1], output: args[2]})));
+      assert.deepEqual(checkoutState(process.cwd()), before);
     } else if (command === 'combine') {
       assert.equal(args.length, 1);
       console.log(await combineOrdinaryPerformanceMeasurements(args[0]));

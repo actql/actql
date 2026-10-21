@@ -2,15 +2,17 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {createHash} from 'node:crypto';
 import {execFileSync, spawnSync} from 'node:child_process';
-import {cp, mkdir, mkdtemp, readFile, rm, writeFile} from 'node:fs/promises';
+import {chmod, cp, mkdir, mkdtemp, readFile, rm, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {readFileSync} from 'node:fs';
+import {runInNewContext} from 'node:vm';
 import {parse} from 'yaml';
 import {CLIENT_PACKAGES} from './packed-client-packages.mjs';
 import {validatePerformancePackageProducer, inspectPerformancePackageProducer,
-  prepareOrdinaryPerformanceConsumer, combineOrdinaryPerformanceMeasurements} from './ordinary-operation-packages.mjs';
+  prepareOrdinaryPerformanceConsumer, combineOrdinaryPerformanceMeasurements,
+  validatePerformanceProcessPackageProducer, prepareOrdinaryNativePerformanceConsumer} from './ordinary-operation-packages.mjs';
 import {readFixedSQLiteComparison} from './ordinary-operation-packages.mjs';
 import {nodeOperationProtocol, nodeWarmSmallQueryFixtures} from './benchmark-node-operations.mjs';
 import {assessPerformanceEvidence, calibrateSqliteComparisonProfile} from './operation-performance.mjs';
@@ -57,6 +59,51 @@ test('metadata lookup reads the original attempt and complete job pages', async 
 test('metadata failure never falls back to an unverified artifact or package producer', async () => {
   await assert.rejects(inspectPerformancePackageProducer({...provenance(), token: 'test-only'},
     async () => ({ok: false, status: 404})), /Cannot read original package metadata/u);
+});
+
+test('ordinary process artifacts bind the actual source run and selected successful job', () => {
+  for (const adapter of ['native', 'python']) {
+    const input = () => ({...provenance(), adapter, producerJob: 'client-packages'});
+    const result = validatePerformanceProcessPackageProducer(input());
+    assert.equal(result.adapter, adapter); assert.equal(result.producerJobId, 41);
+    for (const mutate of [p => {p.producerJob = '';}, p => {p.producerJob = 'missing';},
+      p => {p.run.head_sha = 'b'.repeat(40);}, p => {p.artifact.workflow_run.id = 19;},
+      p => {p.artifact.workflow_run.head_sha = 'b'.repeat(40);}, p => {p.artifact.expired = true;},
+      p => {p.jobs[0].conclusion = 'failure';}, p => {p.jobs.push({...p.jobs[0]});},
+      p => {p.run.status = 'in_progress';}, p => {p.artifactId = '';}, p => {p.adapter = 'node';}]) {
+      const p = input(); mutate(p); assert.throws(() => validatePerformanceProcessPackageProducer(p));
+    }
+  }
+});
+
+test('ordinary Native installation resolves only fixed artifacts and always closes its registry', async t => {
+  const root = await mkdtemp(join(tmpdir(), 'actql-native-performance-install-'));
+  t.after(() => rm(root, {recursive: true, force: true}));
+  const manifest = {sourceSha: sha, cohort: {packageVersion: '0.1.0'}};
+  let closed = 0, installs = 0;
+  const options = {packages: join(root, 'packages'), sourceSha: sha,
+    verify: async () => manifest,
+    openRegistry: async entries => {
+      assert.equal(entries[0].manifest, manifest);
+      return {url: 'http://127.0.0.1:12345/', close: async () => {closed++;}};
+    }, install: async (args, {env}) => {
+      installs++;
+      assert.deepEqual(args.slice(0, 2), ['install', '-g']);
+      assert(args.includes('--ignore-scripts')); assert(args.includes('--no-audit'));
+      assert.equal(args.at(-1), 'actql@0.1.0');
+      assert.equal(env.npm_config_registry, 'http://127.0.0.1:12345/');
+      assert.equal(env.NODE_PATH, undefined);
+      assert.match(await readFile(env.npm_config_userconfig, 'utf8'), /@actql:registry=http:\/\/127\.0\.0\.1:12345\//u);
+    }};
+  const result = await prepareOrdinaryNativePerformanceConsumer({...options, output: join(root, 'success')});
+  assert.equal(result.consumer, join(root, 'success/lib/node_modules/actql'));
+  assert.equal(installs, 1); assert.equal(closed, 1);
+  await assert.rejects(prepareOrdinaryNativePerformanceConsumer({...options,
+    output: join(root, 'failed'), install: async () => {throw new Error('Actual install failure');}}), /Actual install failure/u);
+  assert.equal(closed, 2);
+  await assert.rejects(prepareOrdinaryNativePerformanceConsumer({...options,
+    sourceSha: 'b'.repeat(40), output: join(root, 'foreign')}), /differ/u);
+  assert.equal(installs, 1); assert.equal(closed, 2);
 });
 
 async function packages(t) {
@@ -145,6 +192,12 @@ test('controlled performance check consumes existing artifacts and cannot omit f
   assert.deepEqual(ci.jobs['performance-matrix'].with, {
     'package-run-id': '${{ inputs.performance_package_run_id }}',
     'package-artifact-id': '${{ inputs.performance_package_artifact_id }}',
+    'native-package-run-id': '${{ inputs.performance_native_package_run_id }}',
+    'native-package-artifact-id': '${{ inputs.performance_native_package_artifact_id }}',
+    'native-package-producer-job': "${{ fromJSON(inputs.performance_process_package_jobs || '{}').native || '' }}",
+    'python-package-run-id': '${{ inputs.performance_python_package_run_id }}',
+    'python-package-artifact-id': '${{ inputs.performance_python_package_artifact_id }}',
+    'python-package-producer-job': "${{ fromJSON(inputs.performance_process_package_jobs || '{}').python || '' }}",
   });
   assert.ok(ci.jobs.lint.steps.some(s => s.run === 'node --test scripts/ordinary-operation-packages.test.mjs'));
   assert.equal(ci.jobs.lint.steps.find(s => s.name === 'Test ordinary operation performance assessment').run,
@@ -195,6 +248,142 @@ test('controlled performance check consumes existing artifacts and cannot omit f
   assert.equal(job.steps[combine].if, 'always()');
   assert(!job.steps.some(s => /setup-toolchain|setup-moonbit/u.test(s.uses ?? '')));
   assert(!job.steps.some(s => /\b(?:npm pack|moon build|packed-client-packages\.mjs)\b/u.test(s.run ?? '')));
+});
+
+test('ordinary platform assessment rejects missing, failed and skipped public collectors', () => {
+  const workflow = parse(readFileSync(new URL('../.github/workflows/performance-matrix.yml', import.meta.url), 'utf8'));
+  const names = ['ordinary-operations', 'ordinary-native', 'ordinary-python'];
+  const job = workflow.jobs['ordinary-platform-assessment'];
+  assert(job, 'Required public Node, Native and Python assessment is missing');
+  assert.deepEqual(job.needs, names);
+  assert(job.if.includes('always()'));
+  const step = job.steps.find(value => value.env?.RESULTS === '${{ toJSON(needs) }}');
+  assert(step, 'Assessment must consume the actual collector job results');
+  assert.equal(step['continue-on-error'], undefined);
+  const run = results => spawnSync('bash', ['-eo', 'pipefail', '-c', step.run], {
+    encoding: 'utf8', env: {...process.env, RESULTS: JSON.stringify(results)},
+    timeout: 5000, maxBuffer: 65536,
+  });
+  const complete = Object.fromEntries(names.map(name => [name, {result: 'success'}]));
+  assert.equal(run(complete).status, 0);
+  for (const name of names) {
+    for (const result of ['failure', 'cancelled', 'skipped', 'in_progress', undefined]) {
+      const child = run({...complete, [name]: {result}});
+      assert.equal(child.status, 1, `${name}: ${result}\n${child.stdout}\n${child.stderr}`);
+    }
+    const missing = {...complete}; delete missing[name];
+    assert.equal(run(missing).status, 1, `Missing ${name} must not pass`);
+  }
+  assert.equal(run({}).status, 1);
+  assert.equal(run({...complete, unrelated: {result: 'success'}}).status, 1);
+});
+
+test('ordinary process producer names stay empty on non-performance entry without invented jobs', () => {
+  const ci = parse(readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8'));
+  for (const adapter of ['native', 'python']) {
+    const expression = ci.jobs['performance-matrix'].with[`${adapter}-package-producer-job`].slice(3, -2);
+    for (const inputs of [{}, {performance_process_package_jobs: ''}, {performance_process_package_jobs: '{}'}]) {
+      assert.equal(runInNewContext(expression, {inputs, fromJSON: JSON.parse}, {timeout: 100}), '');
+    }
+    assert.equal(runInNewContext(expression, {inputs: {performance_process_package_jobs: '{"native":"actual Native job","python":"actual Python job"}'},
+      fromJSON: JSON.parse}, {timeout: 100}), `actual ${adapter === 'native' ? 'Native' : 'Python'} job`);
+  }
+});
+
+test('ordinary platform assessment depends on real required artifact collectors', () => {
+  const workflow = parse(readFileSync(new URL('../.github/workflows/performance-matrix.yml', import.meta.url), 'utf8'));
+  for (const name of workflow.jobs['ordinary-platform-assessment'].needs) {
+    const job = workflow.jobs[name];
+    assert(job, `Missing ordinary platform collector: ${name}`);
+    assert.equal(job['continue-on-error'], undefined);
+    assert(job.steps.some(step => step.uses?.startsWith('actions/download-artifact@')),
+      `${name} must reuse an actual artifact`);
+    assert(!job.steps.some(step => /\b(?:moon build|npm pack|pip wheel)\b/u.test(step.run ?? '')),
+      `${name} must not replace missing artifacts with a producer`);
+    assert(job.steps.some(step => step.if === 'always()' &&
+      step.uses?.startsWith('actions/upload-artifact@')), `${name} must retain failed and incomplete evidence`);
+  }
+});
+
+test('ordinary process jobs execute the tested collector contract and retain assessment failure', async t => {
+  const workflow = parse(readFileSync(new URL('../.github/workflows/performance-matrix.yml', import.meta.url), 'utf8'));
+  const root = await mkdtemp(join(tmpdir(), 'actql-platform-command test-'));
+  t.after(() => rm(root, {recursive: true, force: true}));
+  const bin = join(root, 'bin'); await mkdir(bin);
+  for (const executable of ['python3', 'node']) {
+    const path = join(bin, executable);
+    await writeFile(path, `#!${process.execPath}\nrequire('node:fs').writeFileSync(process.env.ARGV, JSON.stringify(process.argv.slice(2)));process.exit(1);\n`);
+    await chmod(path, 0o755);
+  }
+  for (const adapter of ['native', 'python']) {
+    const job = workflow.jobs[`ordinary-${adapter}`];
+    assert.deepEqual(job.strategy.matrix.operation, adapter === 'native'
+      ? ['first-init', 'cold-existing'] : ['first-init', 'cold-existing', 'warm-select', 'warm-result', 'warm-status']);
+    const collect = job.steps.find(step => step.run?.includes('scripts/benchmark-ordinary-processes.py'));
+    const assess = job.steps.find(step => step.run?.includes('scripts/operation-performance.mjs --input'));
+    assert.equal(assess.if, 'always()'); assert.equal(assess['continue-on-error'], undefined);
+    const env = {...process.env, PATH: `${bin}:${process.env.PATH}`, RUNNER_TEMP: root,
+      GITHUB_SHA: sha, ARGV: join(root, `${adapter}.json`)};
+    const body = collect.run.replaceAll('${{ matrix.operation }}', 'cold-existing')
+      .replaceAll('${{ steps.consumer.outputs.path }}', join(root, 'site-packages'));
+    const child = spawnSync('bash', ['-eo', 'pipefail', '-c', body], {env, encoding: 'utf8', timeout: 5000});
+    assert.equal(child.status, 1, child.stderr);
+    const args = JSON.parse(await readFile(env.ARGV, 'utf8'));
+    assert.deepEqual(args.slice(0, 5), ['-I', '-B', 'scripts/benchmark-ordinary-processes.py', '--adapter', adapter]);
+    assert.equal(args[args.indexOf('--source') + 1], sha);
+    assert.equal(args[args.indexOf('--operation') + 1], 'cold-existing');
+    assert.equal(args[args.indexOf('--mode') + 1], 'final');
+    assert.equal(args[args.indexOf('--consumer') + 1], adapter === 'native'
+      ? join(root, 'ordinary-native/consumer/lib/node_modules/actql') : join(root, 'site-packages'));
+    if (adapter === 'python') assert.equal(args[args.indexOf('--venv') + 1], join(root, 'ordinary-python/venv'));
+    const assessed = spawnSync('bash', ['-eo', 'pipefail', '-c', assess.run], {env, encoding: 'utf8', timeout: 5000});
+    assert.equal(assessed.status, 1, assessed.stderr);
+    assert.equal(JSON.parse(await readFile(env.ARGV, 'utf8'))[0], 'scripts/operation-performance.mjs');
+  }
+  const entry = parse(readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8'));
+  assert(Object.keys(entry.on.workflow_dispatch.inputs).length <= 10);
+  for (const adapter of ['native', 'python']) {
+    for (const key of ['run-id', 'artifact-id', 'producer-job']) {
+      assert(workflow.on.workflow_call.inputs[`${adapter}-package-${key}`].required);
+      assert(entry.jobs['performance-matrix'].with[`${adapter}-package-${key}`]);
+    }
+  }
+});
+
+test('ordinary Python setup validates original wheels before offline binary-only installation', async t => {
+  const workflow = parse(readFileSync(new URL('../.github/workflows/performance-matrix.yml', import.meta.url), 'utf8'));
+  const step = workflow.jobs['ordinary-python'].steps.find(step => step.id === 'consumer');
+  const source = step.run.split("<<'PYTHON'\n")[1].split('\nPYTHON')[0];
+  const root = await mkdtemp(join(tmpdir(), 'actql-python-performance-setup-'));
+  t.after(() => rm(root, {recursive: true, force: true}));
+  const packages = join(root, 'ordinary-python/packages'); await mkdir(join(packages, 'wheels'), {recursive: true});
+  const wheels = [];
+  for (const distribution of ['actql', 'actql-sdk', 'actql-local-runtime']) {
+    const file = `${distribution}.whl`, bytes = Buffer.from(`Explicit synthetic ${distribution} wheel metadata fixture`);
+    await writeFile(join(packages, 'wheels', file), bytes);
+    wheels.push({distribution, file, bytes: bytes.length, sha256: hash(bytes)});
+  }
+  const manifest = {source_sha: sha, package_version: '0.1.0', wheels};
+  const path = join(packages, 'cohort.json'); await writeFile(path, JSON.stringify(manifest));
+  const log = join(root, 'commands.json'), output = join(root, 'outputs');
+  const harness = `import json,os,subprocess\nfrom unittest.mock import patch\ncommands=[]\ndef run(args,check):\n commands.append(args)\nclass Result: pass\ntry:\n with patch.object(subprocess,'run',run),patch.object(subprocess,'check_output',return_value='/explicit/synthetic/site-packages\\n'):\n  exec(compile(${JSON.stringify(source)},'<actual-workflow-python-setup>','exec'))\nfinally:\n open(os.environ['COMMAND_LOG'],'w').write(json.dumps(commands))\n`;
+  const run = () => spawnSync(process.env.ACTQL_PYTHON ?? 'python3', ['-I', '-B', '-c', harness], {
+    env: {...process.env, RUNNER_TEMP: root, GITHUB_SHA: sha, GITHUB_OUTPUT: output, COMMAND_LOG: log},
+    encoding: 'utf8', timeout: 10000,
+  });
+  let child = run(); assert.equal(child.status, 0, child.stderr);
+  const commands = JSON.parse(await readFile(log, 'utf8'));
+  assert.equal(commands.length, 2);
+  assert.deepEqual(commands[0].slice(1, 4), ['-m', 'venv', '--symlinks']);
+  const pip = commands[1];
+  for (const flag of ['--no-index', '--only-binary=:all:', '--no-compile', '--no-cache-dir']) assert(pip.includes(flag));
+  assert.equal(pip.at(-1), 'actql==0.1.0');
+  assert.equal(pip[pip.indexOf('--find-links') + 1], join(packages, 'wheels'));
+  await writeFile(path, JSON.stringify({...manifest, source_sha: 'b'.repeat(40)}));
+  child = run(); assert.notEqual(child.status, 0); assert.deepEqual(JSON.parse(await readFile(log, 'utf8')), []);
+  await writeFile(path, JSON.stringify(manifest));
+  await writeFile(join(packages, 'wheels', wheels[0].file), 'changed');
+  child = run(); assert.notEqual(child.status, 0); assert.deepEqual(JSON.parse(await readFile(log, 'utf8')), []);
 });
 
 async function reports(t, comparison) {
