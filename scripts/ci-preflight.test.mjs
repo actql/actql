@@ -84,7 +84,7 @@ test('moved validators execute exactly once before fan-out; complete local spec 
     assert(![...commands('lint'), ...commands('spec')].includes(command), command);
   }
   const {scripts} = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
-  assert.equal(scripts['check:spec'], 'npm run check:contract-versions && npm run check:spec-after-preflight');
+  assert.equal(scripts['check:spec'], 'npm run check:interfaces && npm run check:contract-versions && npm run check:spec-after-preflight');
   assert(!scripts['check:spec-after-preflight'].includes('check:contract-versions'));
   assert(commands('spec').includes('npm run check:spec-after-preflight'));
 });

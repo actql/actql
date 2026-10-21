@@ -17,6 +17,14 @@ on:
         description: Run the registered performance matrix at this revision
         type: boolean
         default: false
+      performance_package_run_id:
+        description: Completed same-source normal CI run supplying existing Client tarballs
+        type: string
+        default: ''
+      performance_package_artifact_id:
+        description: Exact existing Client package artifact for the performance check
+        type: string
+        default: ''
       native_macos:
         description: Also run the macOS native job (billed at ten times Linux)
         type: boolean
@@ -64,6 +72,12 @@ jobs:
   performance-matrix:
     if: ${{ vars.ACTQL_MAIN_CI_ENABLED == 'true' && github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && (github.event_name == 'workflow_dispatch' && inputs.performance_matrix && !inputs.packed_query_evidence_probe) }}
     uses: ./.github/workflows/performance-matrix.yml
+    permissions:
+      contents: read
+      actions: read
+    with:
+      package-run-id: ${{ inputs.performance_package_run_id }}
+      package-artifact-id: ${{ inputs.performance_package_artifact_id }}
   # Admission checks complete before any normal runtime/proof runner starts.
   # Actual retained history is checked before installing the build toolchain.
   preflight:
@@ -173,6 +187,9 @@ jobs:
       - name: Test ordinary operation performance assessment
         if: ${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}
         run: node --test scripts/operation-performance.test.mjs scripts/benchmark-node-operations.test.mjs scripts/operation-performance-policy.test.mjs
+      - name: Test ordinary artifact reuse and controlled performance gate
+        if: ${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}
+        run: node --test scripts/ordinary-operation-packages.test.mjs
       - name: Test Client CI partition and aggregate requirements
         if: ${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}
         run: node --test scripts/client-ci.test.mjs
