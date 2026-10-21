@@ -96974,7 +96974,7 @@
     {
       "module": "packages/run-host-core/index.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "82a786e9884e45406dec031f6929d2f69509a0324316fb404c57e8d2ea0614ac",
+      "sha256": "7953c49d73de41585cb0dc72458635826b1dfb998649308f58aefb6c4e5eb6e1",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -98604,6 +98604,17 @@
           "async": false
         },
         {
+          "name": "openResultDeliveryControl/init:captureIssuedDeliveryAttempt/init:captureIssuedDeliveryAttempt",
+          "parameters": [
+            "attempt",
+            "index",
+            "manifest",
+            "grant",
+            "limits"
+          ],
+          "async": false
+        },
+        {
           "name": "openResultDeliveryControl/init:deliveryFailureTerminalAction/init:deliveryFailureTerminalAction",
           "parameters": [
             "observed"
@@ -98799,6 +98810,13 @@
           "async": false
         },
         {
+          "name": "openResultDeliveryControl/init:readIssuedDeliveryAttempt/init:readIssuedDeliveryAttempt",
+          "parameters": [
+            "original"
+          ],
+          "async": false
+        },
+        {
           "name": "openResultDeliveryControl/init:recordResultAccessGrant/init:recordResultAccessGrant",
           "parameters": [
             "progress",
@@ -98941,6 +98959,22 @@
           "name": "openResultDeliveryControl/progressToken/progressToken",
           "parameters": [
             "progress"
+          ],
+          "async": false
+        },
+        {
+          "name": "openResultDeliveryControl/sameBounds/sameBounds",
+          "parameters": [
+            "first",
+            "second"
+          ],
+          "async": false
+        },
+        {
+          "name": "openResultDeliveryControl/sameBounds/sameBounds/sameBounds",
+          "parameters": [
+            "value",
+            "index"
           ],
           "async": false
         },
@@ -110706,6 +110740,7 @@
             "openResultDeliveryControl/init:beginResultAccessProgress/init:beginResultAccessProgress",
             "openResultDeliveryControl/init:beginResultDelivery/init:beginResultDelivery",
             "openResultDeliveryControl/init:cancelDurableResultRowFrames/init:cancelDurableResultRowFrames",
+            "openResultDeliveryControl/init:captureIssuedDeliveryAttempt/init:captureIssuedDeliveryAttempt",
             "openResultDeliveryControl/init:deliveryFailureTerminalAction/init:deliveryFailureTerminalAction",
             "openResultDeliveryControl/init:deliveryRecordRetryAction/init:deliveryRecordRetryAction",
             "openResultDeliveryControl/init:deliveryResultDefinitionCid/init:deliveryResultDefinitionCid",
@@ -110716,6 +110751,7 @@
             "openResultDeliveryControl/init:feedDurableResultRowFrames/init:feedDurableResultRowFrames",
             "openResultDeliveryControl/init:finishDurableResultRowFrames/init:finishDurableResultRowFrames",
             "openResultDeliveryControl/init:finishResultDelivery/init:finishResultDelivery",
+            "openResultDeliveryControl/init:fromPublication/init:fromPublication",
             "openResultDeliveryControl/init:issueDeliveryAttempt/init:issueDeliveryAttempt",
             "openResultDeliveryControl/init:issueDeliveryRecord/init:issueDeliveryRecord",
             "openResultDeliveryControl/init:issueManifestReadGrant/init:issueManifestReadGrant",
@@ -110727,6 +110763,7 @@
             "openResultDeliveryControl/init:prepareDeliveryGrantUsageClaim/init:prepareDeliveryGrantUsageClaim",
             "openResultDeliveryControl/init:prepareDurableResultRowFrames/init:prepareDurableResultRowFrames",
             "openResultDeliveryControl/init:prepareResultDeliverySerializer/init:prepareResultDeliverySerializer",
+            "openResultDeliveryControl/init:readIssuedDeliveryAttempt/init:readIssuedDeliveryAttempt",
             "openResultDeliveryControl/init:recordResultAccessGrant/init:recordResultAccessGrant",
             "openResultDeliveryControl/init:recordResultAccessInitialAvailability/init:recordResultAccessInitialAvailability",
             "openResultDeliveryControl/init:recordResultAccessReadAdmission/init:recordResultAccessReadAdmission",
@@ -110745,7 +110782,8 @@
             "openResultDeliveryControl/limitsOf/limitsOf",
             "openResultDeliveryControl/mark/mark",
             "openResultDeliveryControl/progressToken/progressToken",
-            "openResultDeliveryControl/init:fromPublication/init:fromPublication"
+            "openResultDeliveryControl/sameBounds/sameBounds",
+            "openResultDeliveryControl/sameBounds/sameBounds/sameBounds"
           ],
           "exports": [
             "openResultDeliveryControl"

@@ -7139,7 +7139,7 @@
     {
       "module": "adapters/host-common/result-delivery.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "4617722b18d311d8f1d5f2600d86c9e9e313b35fed694ea4fdb0588373a9fb6b",
+      "sha256": "2facf9ae2312cea9529a012bd6afd5083b1fdbc0c2fa85b2376691e0b24583e6",
       "role": "physical-io",
       "owner": "Existing Result access/delivery/publication Owners and physical read/sink adapter",
       "exports": [
@@ -7297,7 +7297,8 @@
             "manifest",
             "grant",
             "request",
-            "limits"
+            "limits",
+            "original"
           ],
           "async": false
         },
@@ -69696,7 +69697,7 @@
     {
       "module": "packages/run-host-core/result-delivery.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "4617722b18d311d8f1d5f2600d86c9e9e313b35fed694ea4fdb0588373a9fb6b",
+      "sha256": "2facf9ae2312cea9529a012bd6afd5083b1fdbc0c2fa85b2376691e0b24583e6",
       "role": "physical-io",
       "owner": "Existing Result access/delivery/publication Owners and physical read/sink adapter",
       "exports": [
@@ -69854,7 +69855,8 @@
             "manifest",
             "grant",
             "request",
-            "limits"
+            "limits",
+            "original"
           ],
           "async": false
         },
