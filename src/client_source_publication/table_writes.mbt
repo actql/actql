@@ -18,6 +18,14 @@ fn table_write_publication(
   publication : String,
 ) -> Array[@query_program.TableWriteBinding] raise PublicationStop {
   let root = source_publication_cursor(publication)
+  table_write_publication_from_root(environment, root)
+}
+
+///|
+fn table_write_publication_from_root(
+  environment : @program_check.CheckEnvironment,
+  root : @decode.Cursor,
+) -> Array[@query_program.TableWriteBinding] raise PublicationStop {
   if source_publication_text(root, "environmentCid") !=
     @program_check.checking_environment_cid(environment) {
     raise PublicationStop(Publication)

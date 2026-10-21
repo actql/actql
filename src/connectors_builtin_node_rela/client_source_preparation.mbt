@@ -205,31 +205,35 @@ fn client_program_lower_source(
   publication : String,
   declarations : String?,
 ) -> Result[@source_frontend.Lowered, ClientProgramBridgeIssue] {
-  let context = client_source_context(environment, publication, declarations) catch {
-    ClientSourceStop(issue) => return Err(SourcePreparation(issue))
-  }
   let selected = match @source_frontend.select_format(format) {
     Ok(Text) => @source_frontend.Text
     Ok(Sql) => @source_frontend.Sql
-    _ => return Err(InvalidFormat)
+    _ => {
+      // Retain the original context-before-format refusal on this invalid
+      // input path. The ordinary supported path binds every part once below.
+      let _ = client_source_context(environment, publication, declarations) catch {
+        ClientSourceStop(issue) => return Err(SourcePreparation(issue))
+      }
+      return Err(InvalidFormat)
+    }
   }
-  let table_writes = client_table_write_publication(environment, publication) catch {
-    ClientSourceStop(issue) => return Err(SourcePreparation(issue))
-  }
-  let update_targets = match
-    @source_publication.published_update_targets(environment, publication) {
+  let (context, table_writes, update_targets, store_targets, command_targets) = match
+    @source_publication.bind_published_query_parts(
+      environment, publication, declarations,
+    ) {
     Ok(value) => value
-    Err(_) => return Err(SourcePreparation(Publication))
-  }
-  let store_targets = match
-    @source_publication.published_store_targets(environment, publication) {
-    Ok(value) => value
-    Err(_) => return Err(SourcePreparation(Publication))
-  }
-  let command_targets = match
-    @source_publication.published_command_targets(environment, publication) {
-    Ok(value) => value
-    Err(_) => return Err(SourcePreparation(Publication))
+    Err(issue) =>
+      return Err(
+        SourcePreparation(
+          match issue {
+            Publication => Publication
+            Limit => Limit
+            UnsupportedCarrier => UnsupportedCarrier
+            Declarations => Declarations
+            Alias(issue) => Alias(issue)
+          },
+        ),
+      )
   }
   // Both authored forms carry the same admitted publication into the ordinary
   // checked Effect owner. Selection is retained material, never a permission.
