@@ -1439,7 +1439,7 @@ test('existing schema preparation retains the same failed reader close', async t
   await store.putSemantic(resultSchemaWire, cids.schema);
   const semantic = join(directory, 'contracts', cids.schema.slice(7) + '.json');
   const originalOpen = fsPromises.open;
-  let original, closes = 0, acquisitions = 0, allowClose = false;
+  let original, closes = 0, liveCloseAttempts = 0, acquisitions = 0, allowClose = false;
   const closeFailure = Object.assign(new Error('original schema close'), {code: 'EIO'});
   fsPromises.open = async function(path, ...args) {
     const handle = await Reflect.apply(originalOpen, this, [path, ...args]);
@@ -1450,6 +1450,7 @@ test('existing schema preparation retains the same failed reader close', async t
       handle.close = function() {
         assert.equal(this, original);
         closes++;
+        if (this.fd !== -1) liveCloseAttempts++;
         if (!allowClose) throw closeFailure;
         return Reflect.apply(close, this, []);
       };
@@ -1469,7 +1470,10 @@ test('existing schema preparation retains the same failed reader close', async t
     assert.equal(closes, 2);
     allowClose = true;
     assert.equal((await failure.cleanupHandle.retry()).pending, false);
-    assert.equal(closes, 3);
+    // Node's stream can also observe close on the already retired wrapper.
+    // Count only attempts while this original still owns its numeric FD.
+    assert.equal(liveCloseAttempts, 3);
+    assert.equal(original.fd, -1);
     assert.equal(acquisitions, 1, 'cleanup never acquires a replacement reader');
     assert.deepEqual(await readdir(join(directory, 'prepared-schemas')), []);
     assert.equal(store.status().objectCount, 1);
