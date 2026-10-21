@@ -147,10 +147,13 @@ pub fn ClientLocalSourceFreeRequirements::maximum_limits(
 pub fn ClientLocalSourceFreeRequirements::simultaneous_limits(
   self : ClientLocalSourceFreeRequirements,
 ) -> @resources.LedgerLimits? {
-  self.capacity.simultaneous.map((retained, execution) => {
-    ..self.capacity.limits,
-    retained_bytes: retained,
-    execution_bytes: execution,
+  self.capacity.simultaneous.map(value => {
+    let (retained, execution) = value
+    {
+      ..self.capacity.limits,
+      retained_bytes: retained,
+      execution_bytes: execution,
+    }
   })
 }
 
