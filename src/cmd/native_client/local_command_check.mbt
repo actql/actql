@@ -48,6 +48,8 @@ fn command_preparation_cleanup_kind(
     CommandBusinessChildren => "business-children"
     CommandBusinessPublication => "business-publication"
     CommandBusinessStore(_) => "business-store"
+    CommandRunObservationPending => "run-observation-pending"
+    CommandRunObservationStore(_) => "run-observation-store"
     CommandBusinessResult(_) => "business-result"
     CommandBusinessFileOutput(_) => "business-file-output"
     CommandPair(value) =>
