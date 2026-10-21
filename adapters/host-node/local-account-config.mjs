@@ -8,7 +8,7 @@
 // unreadable or rejected file fails installation with the same runtime code.
 import {createHash} from 'node:crypto';
 import {readFile, stat} from 'node:fs/promises';
-import {openSync, readSync, closeSync} from 'node:fs';
+import {openSync, readSync, closeSync, fstatSync} from 'node:fs';
 import {isAbsolute, resolve} from 'node:path';
 import {createNodeAuthorizationGate} from './authorization.mjs';
 
@@ -24,14 +24,21 @@ function observeAccountConfigurationWire(authorization) {
       if (wire !== undefined) return undefined;
       const fd = openSync(authorization.accountConfig, 'r');
       try {
-        const buffer = Buffer.alloc(MAX_CONFIGURATION_BYTES + 1);
+        // Size selects only a bounded workspace, never configuration identity
+        // or authority. Read the original FD's contents below; one extra byte
+        // refuses growth rather than admitting a truncated configuration.
+        const size = fstatSync(fd).size;
+        if (!Number.isSafeInteger(size) || size < 0 || size > MAX_CONFIGURATION_BYTES) {
+          return undefined;
+        }
+        const buffer = Buffer.alloc(size + 1);
         let used = 0;
         while (used < buffer.length) {
           const read = readSync(fd, buffer, used, buffer.length - used, used);
           if (read === 0) break;
           used += read;
         }
-        if (used > MAX_CONFIGURATION_BYTES) return undefined;
+        if (used > size) return undefined;
         wire = new TextDecoder('utf-8', {fatal: true}).decode(buffer.subarray(0, used));
       } finally { closeSync(fd); }
     }

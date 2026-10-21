@@ -3,6 +3,7 @@ import test from 'node:test';
 import {mkdtemp, writeFile, rm, rename} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
+import {writeFileSync} from 'node:fs';
 import {createLocalAuthorizationGate, observeInstalledAccount,
   sourceReadAccountConfiguration} from './local-account-config.mjs';
 
@@ -13,6 +14,39 @@ const fakeMoon = {
   executionAuthorizationAdmit: text => ({state: 'admitted', text}),
   executionAuthorizationMissing: () => ({state: 'missing'}),
 };
+
+test('the account observer allocates only the opened file length and growth sentinel', async t => {
+  const root = await mkdtemp(join(tmpdir(), 'actql-account-buffer-'));
+  t.after(() => rm(root, {recursive: true, force: true}));
+  const path = join(root, 'account.json');
+  await writeFile(path, wire);
+  const requested = [];
+  const original = Buffer.alloc;
+  t.mock.method(Buffer, 'alloc', function(size, ...args) {
+    requested.push(size);
+    return original.call(this, size, ...args);
+  });
+  assert.equal(observeInstalledAccount(fakeMoon, {accountConfig: path}).text, wire);
+  assert.deepEqual(requested, [Buffer.byteLength(wire) + 1]);
+});
+
+test('the account observer refuses growth after sizing instead of admitting a prefix', async t => {
+  const root = await mkdtemp(join(tmpdir(), 'actql-account-growth-'));
+  t.after(() => rm(root, {recursive: true, force: true}));
+  const path = join(root, 'account.json');
+  await writeFile(path, wire);
+  let changed = false;
+  const original = Buffer.alloc;
+  t.mock.method(Buffer, 'alloc', function(size, ...args) {
+    if (!changed) {
+      changed = true;
+      writeFileSync(path, wire + ' '.repeat(64));
+    }
+    return original.call(this, size, ...args);
+  });
+  assert.deepEqual(observeInstalledAccount(fakeMoon, {accountConfig: path}), {state: 'missing'});
+  assert.equal(changed, true);
+});
 
 test('the shared account observer keeps its fixed byte and fatal UTF-8 bounds', async t => {
   const root = await mkdtemp(join(tmpdir(), 'actql-account-observation-'));
