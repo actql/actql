@@ -9,6 +9,7 @@ import {
   "actql/actql/client_local_host",
   "actql/actql/client_local_preparation",
   "actql/actql/client_row_source_host",
+  "actql/actql/client_source_publication",
   "actql/actql/connector_sdk",
   "actql/actql/connectors/duckdb/acquisition",
   "actql/actql/connectors/local",
@@ -2073,6 +2074,8 @@ pub fn client_program_prepare_duckdb_capture_capacity(@query_planning.QueryRequi
 
 pub fn client_program_prepare_duckdb_source_evidence_context(@query_planning.QueryRequirement) -> Result[@actql/actql/connectors/duckdb/host.NativeSourceEvidenceContext, @actql/actql/connectors/duckdb/host.NativeSourceEvidenceIssue]
 
+pub fn client_program_prepare_effect_computation_in_public_environment(String, String, @program_check.CheckEnvironment, @client_source_publication.PreparedPublishedQueryEnvironment, String?, Array[@pipeline_check_context.StageCapacityInput]) -> ClientEffectProgramBridgeOutcome
+
 pub fn client_program_prepare_effect_computation_with_parameters(String, String, @program_check.CheckEnvironment, String?, Array[@pipeline_check_context.StageCapacityInput]) -> ClientEffectProgramBridgeOutcome
 
 pub fn client_program_prepare_effect_free(String, String, @program_check.CheckEnvironment) -> @run_publication_host.PreparedClientProgram?
@@ -2123,6 +2126,8 @@ pub fn client_program_prepare_multi_captured_local_installed_ledger(@run_publica
 
 pub fn client_program_prepare_multi_captured_local_ledger(@run_publication_host.PreparedClientProgram, Array[@actql/actql/connectors/duckdb/host.NativeHostConfiguration], Array[Int64], Array[Int64], String, String, String?, String?) -> @physical_resources.Ledger?
 
+pub fn client_program_prepare_public_source_environment(@program_check.CheckEnvironment, String) -> @client_source_publication.PreparedPublishedQueryEnvironment?
+
 pub fn client_program_prepare_published_effect_computation_with_parameters(String, String, @program_check.CheckEnvironment, String, String?, Array[@pipeline_check_context.StageCapacityInput]) -> ClientEffectProgramBridgeOutcome
 
 pub fn client_program_prepare_query_acquisition(@run_publication_host.PreparedClientProgram, Int, Int) -> Result[@sourceview_resolution.QueryAcquisition, @run_publication_host.ClientAcquisitionIssue]
@@ -2145,6 +2150,8 @@ pub fn client_program_prepare_serialization_captured_ledger(@run_publication_hos
 
 pub fn client_program_prepare_single_captured_local_installed_ledger(@run_publication_host.PreparedClientProgram, @client_local_host.ClientInstalledCaptureCapacity, Int64, Int64, String, String, String?, String?) -> @physical_resources.Ledger?
 
+pub fn client_program_prepare_source_computation_in_public_environment(String, String, @program_check.CheckEnvironment, @client_source_publication.PreparedPublishedQueryEnvironment, String?, String?, Bool, Array[@pipeline_check_context.StageCapacityInput]) -> ClientSourceComputationBridgeOutcome
+
 pub fn client_program_prepare_source_computation_with_parameters(String, String, @program_check.CheckEnvironment, String, String?, String?, Bool, Array[@pipeline_check_context.StageCapacityInput]) -> ClientSourceComputationBridgeOutcome
 
 pub fn client_program_prepare_source_with_parameters(String, String, @program_check.CheckEnvironment, String, String?, String?) -> ClientProgramBridgeOutcome
@@ -2164,6 +2171,8 @@ pub fn client_program_project_openai_chat_request(@model_execution.AdmittedModel
 pub fn client_program_project_public_model_task_environment(String, String, Array[@check_environment.NormalizedPublicModelTask], Int, Int, Int, Int, Int, Int, Int, Int) -> Result[(String, String, Int), @check_environment.ModelTaskIssue]
 
 pub fn client_program_public_model_task_name(@check_environment.PublicModelTaskDeclaration) -> String
+
+pub fn client_program_public_source_environment_matches(@client_source_publication.PreparedPublishedQueryEnvironment, @program_check.CheckEnvironment) -> Bool
 
 pub fn client_program_publication_bytes_binding_json(@run_publication_host.PreparedClientProgram, Int, Int) -> Result[String, @run_publication_host.ClientPublicationBindingIssue]
 

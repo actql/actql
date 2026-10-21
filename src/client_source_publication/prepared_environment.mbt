@@ -1,0 +1,323 @@
+///|
+/// Immutable installation metadata retained by its original Host. This is not
+/// an Account decision, checked query, Run, attempt or Result. The Host owns its
+/// publication generation, compiler namespace and closing/replacement fence.
+pub struct PreparedPublishedQueryEnvironment {
+  priv environment : @program_check.CheckEnvironment
+  priv publication : String
+  priv context : @query_program.Context
+  priv table_writes : Array[@query_program.TableWriteBinding]
+  priv update_targets : @query_program.UpdateTargetPublication?
+  priv store_targets : @query_program.StoreTargetPublication?
+  priv command_targets : @query_program.CommandTargetPublication?
+  priv catalog : @program_check.PreparedSourceCatalog
+}
+
+///|
+pub(all) enum PreparedPublicationIssue {
+  Publication(PublicationIssue)
+  ForeignEnvironment
+  Frontend(@source_frontend.Issue)
+}
+
+///|
+// Constructor-local sharing only. The sealed value retains no reader callback
+// or mutable admission cache. Different publication sections consume the same
+// existing Catalog and Mapping owners instead of readmitting them.
+priv struct PublicationEnvironmentAdmission {
+  environment : @program_check.CheckEnvironment
+  read_catalog : (
+    @program_check.CheckEnvironment,
+    @program_check.SourceCatalogLimits,
+    @check_environment.Limits?,
+  ) -> Result[
+    @program_check.PreparedSourceCatalog,
+    @program_check.EnvironmentFailure,
+  ]
+  mut catalog : @program_check.PreparedSourceCatalog?
+  mut catalog_contents_bounded : Bool
+  mut mappings : @check_environment.MappingContractShapes?
+}
+
+///|
+fn publication_admission_catalog(
+  admission : PublicationEnvironmentAdmission,
+) -> @program_check.PreparedSourceCatalog raise PublicationStop {
+  if admission.catalog is Some(value) {
+    return value
+  }
+  let value = match
+    (admission.read_catalog)(
+      admission.environment,
+      {
+        max_work: 10000000,
+        max_bytes: 1048576,
+        max_nodes: 65536,
+        max_depth: 64,
+      },
+      if admission.catalog_contents_bounded {
+        Some({
+          max_bytes: 1048576,
+          max_nodes: 16384,
+          max_depth: 32,
+          max_members: 32768,
+        })
+      } else {
+        None
+      },
+    ) {
+    Ok(value) => value
+    Err(@program_check.EnvironmentFailure::BudgetExceeded) =>
+      raise PublicationStop(Limit)
+    Err(_) => raise PublicationStop(Publication)
+  }
+  admission.catalog = Some(value)
+  value
+}
+
+///|
+fn publication_admission_contents(
+  admission : PublicationEnvironmentAdmission,
+) -> @check_environment.CatalogContents raise PublicationStop {
+  // Only registry/Catalog admission has the stricter Store/Command bound.
+  // Source value and carrier admission retain their original 64-deep bound.
+  // These sections precede Source binding; never reuse an unproved admission.
+  if admission.catalog is None {
+    admission.catalog_contents_bounded = true
+  }
+  if !admission.catalog_contents_bounded {
+    raise PublicationStop(Publication)
+  }
+  let contents = @check_environment.reference_contents(
+    @check_environment.data_policy_references(
+      @check_environment.value_contract_policies(
+        @check_environment.source_view_shape_values(
+          @check_environment.read_mode_shapes(
+            @check_environment.carrier_schema_modes(
+              @check_environment.source_request_carriers(
+                @program_check.source_catalog_contracts(
+                  publication_admission_catalog(admission),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    ),
+  )
+  let registry = @check_environment.catalog_registry(contents)
+  for
+    (bytes, nodes, members) in [
+      @check_environment.contract_registry_usage(registry),
+      @check_environment.catalog_usage(contents),
+    ] {
+    if bytes > 1048576 || nodes > 16384 || members > 32768 {
+      raise PublicationStop(Publication)
+    }
+  }
+  contents
+}
+
+///|
+fn publication_admission_mappings(
+  admission : PublicationEnvironmentAdmission,
+) -> @check_environment.MappingContractShapes raise PublicationStop {
+  if admission.mappings is Some(value) {
+    return value
+  }
+  let value = @check_environment.check_mapping_contract_shapes(
+    @program_check.checking_environment_wire(admission.environment),
+    { max_bytes: 1048576, max_nodes: 16384, max_depth: 32, max_members: 32768, },
+    1000000,
+  ).unwrap_or_else(() => raise PublicationStop(Publication))
+  admission.mappings = Some(value)
+  value
+}
+
+///|
+/// Validate every public section before the Host installs this original.
+/// Existing bounded readers supply all indices; no query or supplied Parameter
+/// value is retained. Other Hosts may retain the same pure immutable facts.
+pub fn prepare_published_query_environment(
+  environment : @program_check.CheckEnvironment,
+  publication : String,
+) -> Result[PreparedPublishedQueryEnvironment, PublicationIssue] {
+  prepare_published_query_environment_with_reader(
+    environment, publication, source_publication_cursor,
+  )
+}
+
+///|
+fn prepare_published_query_environment_with_reader(
+  environment : @program_check.CheckEnvironment,
+  publication : String,
+  read : (String) -> @decode.Cursor raise PublicationStop,
+) -> Result[PreparedPublishedQueryEnvironment, PublicationIssue] {
+  prepare_published_query_environment_with_readers(
+    environment, publication, read, publication_read_catalog,
+  )
+}
+
+///|
+fn publication_read_catalog(
+  environment : @program_check.CheckEnvironment,
+  limits : @program_check.SourceCatalogLimits,
+  contents_limits : @check_environment.Limits?,
+) -> Result[
+  @program_check.PreparedSourceCatalog,
+  @program_check.EnvironmentFailure,
+] {
+  match contents_limits {
+    None => @program_check.prepare_source_catalog(environment, limits)
+    Some(contents_limits) =>
+      @program_check.prepare_source_catalog_with_contents_limits(
+        environment, limits, contents_limits,
+      )
+  }
+}
+
+///|
+fn prepare_published_query_environment_with_readers(
+  environment : @program_check.CheckEnvironment,
+  publication : String,
+  read : (String) -> @decode.Cursor raise PublicationStop,
+  read_catalog : (
+    @program_check.CheckEnvironment,
+    @program_check.SourceCatalogLimits,
+    @check_environment.Limits?,
+  ) -> Result[
+    @program_check.PreparedSourceCatalog,
+    @program_check.EnvironmentFailure,
+  ],
+) -> Result[PreparedPublishedQueryEnvironment, PublicationIssue] {
+  let admission = {
+    environment,
+    read_catalog,
+    catalog: None,
+    catalog_contents_bounded: false,
+    mappings: None,
+  }
+  bind_published_query_parts_with_reader(
+    environment,
+    publication,
+    None,
+    read,
+    admission=Some(admission),
+  ).map(parts => {
+    let (
+      context,
+      table_writes,
+      update_targets,
+      store_targets,
+      command_targets,
+      catalog,
+    ) = parts
+    {
+      environment,
+      publication,
+      context,
+      table_writes,
+      update_targets,
+      store_targets,
+      command_targets,
+      catalog,
+    }
+  })
+}
+
+///|
+/// A cheap nominal join, never a CID-based replacement or current permission.
+pub fn prepared_published_query_environment_matches(
+  prepared : PreparedPublishedQueryEnvironment,
+  environment : @program_check.CheckEnvironment,
+) -> Bool {
+  physical_equal(prepared.environment, environment)
+}
+
+///|
+/// Join a retained publication as well as its nominal Environment. Equal CIDs
+/// or an unrelated publication cannot substitute for this admitted original.
+pub fn prepared_published_query_environment_publication_matches(
+  prepared : PreparedPublishedQueryEnvironment,
+  environment : @program_check.CheckEnvironment,
+  publication : String,
+) -> Bool {
+  prepared_published_query_environment_matches(prepared, environment) &&
+  prepared.publication == publication
+}
+
+///|
+/// Formal JSON/YAML preparation uses this same Catalog without manufacturing
+/// an alias or a second Environment owner. The Program checker still applies
+/// the operation's current input, work and artifact bounds.
+pub fn prepared_published_query_catalog(
+  prepared : PreparedPublishedQueryEnvironment,
+  environment : @program_check.CheckEnvironment,
+) -> Result[@program_check.PreparedSourceCatalog, PreparedPublicationIssue] {
+  if !prepared_published_query_environment_matches(prepared, environment) {
+    return Err(ForeignEnvironment)
+  }
+  Ok(prepared.catalog)
+}
+
+///|
+/// Lower a new query with the retained static installation. Only this query's
+/// declarations are read here; its parse, names, types, plan and later checking
+/// remain ordinary per-query work. No mutable Context or alias array escapes.
+pub fn lower_prepared_published_query(
+  prepared : PreparedPublishedQueryEnvironment,
+  environment : @program_check.CheckEnvironment,
+  document : String,
+  format : @source_frontend.Format,
+  declarations : String?,
+) -> Result[
+  (@source_frontend.Lowered, @program_check.PreparedSourceCatalog),
+  PreparedPublicationIssue,
+] {
+  if !prepared_published_query_environment_matches(prepared, environment) {
+    return Err(ForeignEnvironment)
+  }
+  let parameters = client_source_declarations(declarations) catch {
+    PublicationStop(issue) => return Err(Publication(issue))
+  }
+  let context = { ..prepared.context, parameter_declarations: parameters, }
+  @source_frontend.lower(
+    document,
+    format,
+    Some(context),
+    table_writes=prepared.table_writes,
+    update_targets=prepared.update_targets,
+    store_targets=prepared.store_targets,
+    command_targets=prepared.command_targets,
+  )
+  .map(lowered => (lowered, prepared.catalog))
+  .map_err(issue => Frontend(issue))
+}
+
+///|
+/// JSON Effect preparation consumes these same original opaque targets and
+/// Catalog. Their static admission is not target custody or execution approval.
+pub fn prepared_published_effect_parts(
+  prepared : PreparedPublishedQueryEnvironment,
+  environment : @program_check.CheckEnvironment,
+) -> Result[
+  (
+    @query_program.UpdateTargetPublication?,
+    @query_program.StoreTargetPublication?,
+    @query_program.CommandTargetPublication?,
+    @program_check.PreparedSourceCatalog,
+  ),
+  PreparedPublicationIssue,
+] {
+  if !prepared_published_query_environment_matches(prepared, environment) {
+    return Err(ForeignEnvironment)
+  }
+  Ok(
+    (
+      prepared.update_targets,
+      prepared.store_targets,
+      prepared.command_targets,
+      prepared.catalog,
+    ),
+  )
+}
