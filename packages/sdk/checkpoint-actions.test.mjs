@@ -308,6 +308,26 @@ test('a lost resolution reply preserves exact signed bytes without automatic re-
   assert.equal(calls.filter(call => call.operation === 'checkpoints').length, 1);
 });
 
+test('Resolution reply captures original result fields before validation', async t => {
+  const item = await signedAnswer(original, 'approved', signer, '2026-10-18T00:01:00.000Z');
+  let reads = 0;
+  const result = {status: 'committed', decision: 'approved',
+    resolutionCid: JSON.parse(item.resolutionWire).resolution_cid};
+  Object.defineProperty(result, 'checkpointCid', {enumerable: true,
+    get() {return ++reads === 1 ? original.checkpointCid : cid('f');}});
+  const raw = {results: [result]};
+  const {client, calls} = await fixture(t, {resolve: () => raw});
+  const answer = await client.resolveCheckpoints([item]);
+  assert.equal(answer.results[0].checkpointCid, original.checkpointCid);
+  assert.equal(reads, 1);
+  assert.equal(Object.isFrozen(answer.results[0]), true);
+  assert.equal(Object.isFrozen(raw), false);
+  raw.results.length = 0;
+  assert.equal(answer.results.length, 1);
+  assert.deepEqual(answer.signed, [item]);
+  assert.deepEqual(calls.map(call => call.operation), ['connect', 'resolve']);
+});
+
 test('abort during a pending signature observes settlement and makes no second signature or resolve', async t => {
   let release, arrived, signatures = 0;
   const waiting = new Promise(resolve => {arrived = resolve;});

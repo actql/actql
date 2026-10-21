@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {registerHooks} from 'node:module';
 import {readFileSync} from 'node:fs';
-import {createHash} from 'node:crypto';
+import {createHash, generateKeyPairSync, sign} from 'node:crypto';
 import {originalSubmission, readySubmissionAttempt, submissionEpoch} from './submission-fixture.mjs';
 
 // Count completed SDK wire-admission passes, not transport copies, cheap
@@ -14,7 +14,8 @@ globalThis[counterKey] = admissions;
 const names = ['validClientAdmission', 'validSubmissionAttempt', 'validSubmissionLookup',
   'validRequestLookup', 'validRequestCancellation', 'validCancellationAttempt',
   'validCancellationLookup', 'validDeliveryAttemptLookup', 'validCheckOutcome',
-  'validCheckpointPage', 'validCheckpointLookup', 'validResultDescription'];
+  'validCheckpointPage', 'validCheckpointLookup', 'validResultDescription',
+  'validResolveItem', 'validResolveResults'];
 const wireUrl = new URL('../client-wire/index.mjs', import.meta.url).href;
 const wrapper = `import * as wire from ${JSON.stringify(wireUrl)};
 export * from ${JSON.stringify(wireUrl)};
@@ -37,6 +38,7 @@ const hook = registerHooks({resolve(specifier, context, nextResolve) {
 }});
 const sdk = await import('./index.mjs');
 hook.deregister();
+const {signedAnswer} = await import('./checkpoints.mjs');
 
 const cid = value => `sha256:${value.repeat(64)}`;
 const ref = {namespaceId: 'namespace', authorityScopeCid: cid('a'), runDefinitionCid: cid('b')};
@@ -64,6 +66,54 @@ async function fixture(t, respond) {
   return {client, calls};
 }
 const assertPasses = expected => assert.deepEqual(Object.fromEntries(admissions), expected);
+
+for (const [action, decision] of [['approve', 'approved'], ['reject', 'rejected']]) {
+  test(`${action} reuses one admitted signed answer through resolution`, async t => {
+    const summary = {checkpointId: 'checkpoint', checkpointCid: cid('c'),
+      kind: 'effect_set', phase: 'commit',
+      subject: {kind: 'run_unit', runId: 'run', runDefinitionCid: cid('b')},
+      requiredArtifact: {type: 'effect_set_preview', cid: cid('d')},
+      reviewProjectionCid: cid('e'), requirements: ['effect_scope_approved'],
+      createdAt: '2026-10-18T00:00:00.000Z', expiresAt: '2027-01-01T00:00:00.000Z',
+      humanSummary: 'Original Effect'};
+    const keys = generateKeyPairSync('ed25519');
+    const original = await signedAnswer(summary, decision, {keyId: 'key', reviewerId: 'reviewer',
+      authorityScopeCid: cid('f'), sign: bytes => sign(null, bytes, keys.privateKey)},
+    '2026-10-18T00:01:00.000Z');
+    const calls = [];
+    let originalAnswers = 0;
+    const client = await sdk.connectInProcess({mode: 'local', owner: 'local'}, {
+      answerCheckpoint(observed, requested) {
+        originalAnswers++;
+        assert.deepEqual(observed, summary);
+        assert.equal(requested, decision);
+        return original;
+      },
+      perform(operation, body) {
+        calls.push(operation);
+        if (operation === 'connect') return profile;
+        if (operation === 'checkpoints') return {items: [summary]};
+        assert.equal(operation, 'resolve');
+        assert.deepEqual(body.items, [original]);
+        return {results: [{checkpointCid: summary.checkpointCid, status: 'committed',
+          decision, resolutionCid: JSON.parse(original.resolutionWire).resolution_cid}]};
+      },
+    });
+    t.after(() => client.close());
+    admissions.clear();
+    const answer = await client[action](summary.checkpointId);
+    assert.equal(admissions.get('validResolveItem'), 1, 'one envelope admission, not three internal entries');
+    assert.equal(admissions.get('validResolveResults'), 1);
+    assert.deepEqual(answer.signed, [original]);
+    assert.equal(originalAnswers, 1);
+    assert.deepEqual(calls, ['connect', 'checkpoints', 'resolve']);
+    admissions.clear();
+    await client.resolveCheckpoints(answer.signed);
+    assert.equal(admissions.get('validResolveItem'), 1, 'an explicit later resend is a new public operation');
+    assert.equal(admissions.get('validResolveResults'), 1);
+    assert.equal(originalAnswers, 1, 'never obtain replacement signed bytes');
+  });
+}
 
 test('Checkpoint page and exact lookup each admit one captured response', async t => {
   const summary = {checkpointId: 'checkpoint', checkpointCid: cid('c'),
