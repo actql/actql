@@ -20167,7 +20167,7 @@
     },
     {
       "requirement_id": "actql.conformance/ordinary-performance.latency-targets",
-      "statement_sha256": "6d23ff89458dd6df5e666e621a9a714db390cde250631ef77a9598cd3fc23a30",
+      "statement_sha256": "aa6e17e04e7a75e0016c52bdf3734bb819871d5692aa40bf777c6587e8a2f48d",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
