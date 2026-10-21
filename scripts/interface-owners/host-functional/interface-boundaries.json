@@ -8542,7 +8542,6 @@
             "indexKey",
             "member/member",
             "persistContracts",
-            "persistContracts/persistContracts",
             "publishEffectFreeRun",
             "publishEffectfulRun",
             "publishEffectfulRun/memberReceipts/memberReceipts",
@@ -8570,7 +8569,8 @@
             "validateRequest/validateRequest",
             "validateStore",
             "validateStore/validateStore",
-            "withPublicationCleanup"
+            "withPublicationCleanup",
+            "persistContracts/persistContracts"
           ],
           "exports": [
             "RunPublicationError",
