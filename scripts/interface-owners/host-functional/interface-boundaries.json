@@ -57565,7 +57565,7 @@
     {
       "module": "adapters/host-node/public-source-preparation.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "4b004e422619391e69aba995cf6b090a49a3e7a29427f1acc770c1d0baadf610",
+      "sha256": "856112a6f8298611f56cba2e928b9842dba6fe49a8025537cf647835465fa5eb",
       "role": "physical-io",
       "owner": "Existing static checker/Frontend/compiled preparation Owners; no Run permission",
       "exports": [
@@ -65725,7 +65725,7 @@
     {
       "module": "packages/run-host-core/index.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "a32c700d0b564c899ac97670607c324d483e5131b849ff2d9e9f7b17c3703676",
+      "sha256": "ea36f9a2dcb24652298aa76d1df8fbc823308ce47bf313b3fd208eb65cf9fb07",
       "role": "common-semantics",
       "owner": "Existing client_values_host_abi/Run Publication Owners; public same-process type projection",
       "exports": [

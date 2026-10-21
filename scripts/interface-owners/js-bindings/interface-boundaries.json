@@ -96786,7 +96786,7 @@
     {
       "module": "packages/run-host-core/index.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "a0c6d61c8e35b06bce63e9c7db7c0b41ba1ccef75b8a9dea3cc693ac59d1bc53",
+      "sha256": "bf9cd8d65f9a410918d6c672bff6c7074e0e0d9e51b750494ddafe89b5713e71",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -99094,6 +99094,16 @@
             "intent",
             "environment",
             "publicationWire"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareSourceProgramOriginal",
+          "parameters": [
+            "intent",
+            "environment",
+            "publicationWire",
+            "primaryResultRecipe"
           ],
           "async": false
         },
@@ -120537,6 +120547,7 @@
           "operations": [
             "admitSourceRequestFields",
             "prepareSourceProgram",
+            "prepareSourceProgramOriginal",
             "prepareSourceRequest",
             "restoreSourceProgram",
             "restoreSourceProgram/restoreSourceProgram",
