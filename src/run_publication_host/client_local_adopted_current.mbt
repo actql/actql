@@ -34,8 +34,10 @@ pub struct ClientLocalAdoptedHostMaterial[Store, E] {
   account : @authorization.AdmittedAccountConfiguration
   account_original : Bytes
   adoption : ClientJournalPhysicalRow
+  adoption_cid : String
   generation : (UInt64, UInt64)
   current : () -> Result[ClientLocalAdoptionCurrentObservation[Store], E]
+  mut scope_cache : (String, String, Bytes)?
 }
 
 ///|
@@ -129,11 +131,7 @@ fn[Store, E] client_local_observed_current(
     Ok(NotAdopted) => Err(NotAdopted)
     Ok(CommitUnknown) => Err(CommitUnknown)
     Ok(Observed(store, account, account_original, row, generation)) =>
-      if client_local_original_adoption(row, generation) {
-        Ok((store, account, account_original, row, generation))
-      } else {
-        Err(InvalidOriginal)
-      }
+      Ok((store, account, account_original, row, generation))
   }
 }
 
@@ -156,6 +154,9 @@ pub fn[Store, E] bind_client_local_adopted_host_material(
   if !physical_equal(store, observed) {
     return Err(ForeignStore)
   }
+  if !client_local_original_adoption(row, generation) {
+    return Err(InvalidOriginal)
+  }
   // Preserve the actual source bytes as well as the configuration identity.
   // Configuration canonicalization cannot excuse replacement of its original.
   if account_original.length() > 1048576 {
@@ -177,18 +178,19 @@ pub fn[Store, E] bind_client_local_adopted_host_material(
     account,
     account_original,
     adoption: row,
+    adoption_cid: "sha256:" + @sha.hex(row.body),
     generation,
     current,
+    scope_cache: None,
   }
-  match client_local_adopted_current_account(material, store) {
-    Ok(_) => Ok(material)
-    Err(issue) => Err(issue)
-  }
+  Ok(material)
 }
 
 ///|
-/// Recheck physical current before each scope, Account or publisher operation.
-/// A changed original cannot be filled in from a new default configuration.
+/// Recheck the original port at each operation boundary. Admission validated
+/// the immutable adoption and Account once; equality with those originals does
+/// not require another parse/canonical-write/hash cycle. The port still owns
+/// current file/policy/transaction checks and must refuse closed or stale use.
 pub fn[Store, E] client_local_adopted_current_account(
   material : ClientLocalAdoptedHostMaterial[Store, E],
   store : Store,
@@ -208,13 +210,14 @@ pub fn[Store, E] client_local_adopted_current_account(
     return Err(ForeignStore)
   }
   if account_original != material.account_original ||
+    row.key != material.adoption.key ||
     row.body != material.adoption.body ||
     row.revision != material.adoption.revision ||
     generation != material.generation ||
     account.configuration_cid() != material.account.configuration_cid() {
     return Err(ChangedCurrent)
   }
-  Ok(account)
+  Ok(material.account)
 }
 
 ///|
@@ -229,20 +232,27 @@ pub fn[Store, E] client_local_adopted_authority_scope_body(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
+  if material.scope_cache is Some((cached_principal, cached_connection, body)) &&
+    principal == cached_principal && connection == cached_connection {
+    return Ok(Bytes::makei(body.length(), index => body[index]))
+  }
   let body = match
     client_local_authority_scope_body(
       account,
-      "sha256:" + @sha.hex(material.adoption.body),
+      material.adoption_cid,
       principal,
       connection,
     ) {
     Ok(value) => value
     Err(issue) => return Err(Scope(issue))
   }
-  match client_local_adopted_current_account(material, store) {
-    Ok(_) => Ok(body)
-    Err(issue) => Err(issue)
-  }
+  // This pure typed construction invokes no external callback. A new public
+  // operation or protected dispatch must enter through the current port again.
+  // Retain only one private principal/connection projection, not an unbounded
+  // cache. A Host byte view may mutate its returned buffer, so never expose
+  // the retained canonical bytes. The copy keeps the existing 8192-byte bound.
+  material.scope_cache = Some((principal, connection, body))
+  Ok(Bytes::makei(body.length(), index => body[index]))
 }
 
 ///|
@@ -256,9 +266,8 @@ pub fn[Store, E] client_local_adopted_account_outcome(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  let outcome = @authorization.evaluate_account(account, tuple)
-  match client_local_adopted_current_account(material, store) {
-    Ok(_) => Ok(outcome)
-    Err(issue) => Err(issue)
-  }
+  // Account evaluation is pure; there is no await, callback or mutation between
+  // this operation's current observation and its result. Never cache an Allow
+  // across an external callback or dispatch boundary.
+  Ok(@authorization.evaluate_account(account, tuple))
 }
