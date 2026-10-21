@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import test from 'node:test';
+import {execFileSync} from 'node:child_process';
+import {fileURLToPath} from 'node:url';
 import {validRunState} from '@actql/client-wire';
 import {admitEnvironment, prepareEffect, compileEffect, prepareEffectRequest,
   issueAllowedEffectRun, issueEffectRunDefinition, inspectEffectTaskProgress,
@@ -129,3 +131,32 @@ for (const field of ['savedClaims', 'durableWires']) {
     }
   });
 }
+
+
+// Wrap only the real compiled export in a child process; all admitted originals
+// and reductions remain the actual runtime's objects and implementation.
+test('Effect projection reduces durable progress at most once without an empty progress probe', () => {
+  const name = 'Effect projection reduces durable progress at most once without an empty progress probe';
+  const key = Symbol.for('actql.test.effect-progress-work');
+  const probe = globalThis[key];
+  if (probe === undefined) {
+    const module = new URL('./dist/client_values_host_abi.js', import.meta.url).href;
+    const preload = `import {mock} from 'node:test';
+      import * as actual from ${JSON.stringify(module)};
+      let calls = 0;
+      globalThis[Symbol.for('actql.test.effect-progress-work')] = {reset() {calls = 0;}, count() {return calls;}};
+      mock.module(${JSON.stringify(module)}, {namedExports: {...actual,
+        clientValuesHostInspectEffectTaskProgress(...args) {calls++; return actual.clientValuesHostInspectEffectTaskProgress(...args);}}});`;
+    const output = execFileSync(process.execPath, ['--experimental-test-module-mocks',
+      '--import', 'data:text/javascript,' + encodeURIComponent(preload), '--test',
+      '--test-name-pattern=^' + name + '$', fileURLToPath(import.meta.url)], {encoding: 'utf8'});
+    console.log(output.trim());
+    return;
+  }
+  const f = original();
+  probe.reset();
+  const projected = f.project();
+  assert.equal(JSON.parse(projected.stateWire).status, 'preparing');
+  console.log('effect-progress-reductions ' + probe.count());
+  assert(probe.count() <= 1, 'EffectProgressReductionBudgetExceeded');
+});
