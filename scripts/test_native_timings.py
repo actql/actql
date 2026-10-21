@@ -40,6 +40,21 @@ class NativeTimingProtocol(unittest.TestCase):
         rows=self.run_protocol('threads','1');meta=next(x for k,x in rows if k=='ACTQL_NATIVE_TIMINGS');self.assertTrue(meta['parallel_observed'])
         counts={x['tag']:x['count']for k,x in rows if k=='ACTQL_NATIVE_COUNTER' and x['count']};self.assertEqual(counts,{16:4000})
         phase=next(x for k,x in rows if k=='ACTQL_NATIVE_PHASE' and x['tag']==2);self.assertEqual((phase['begins'],phase['ends'],phase['active']),(4,4,0))
+    def test_amounts_are_bounded_additions_not_increment_loops(self):
+        rows=self.run_protocol('amount','1');meta=next(x for k,x in rows if k=='ACTQL_NATIVE_TIMINGS')
+        counts={x['tag']:x for k,x in rows if k=='ACTQL_NATIVE_COUNTER'}
+        self.assertEqual(counts[46]['count'],512*1024*1024+16384)
+        self.assertEqual(counts[47]['count'],16384)
+        self.assertEqual(counts[46]['name'],'backing_allocated_bytes')
+        self.assertEqual(counts[47]['name'],'backing_explicit_zeroed_bytes')
+        self.assertEqual(meta['invalid_amounts'],1);self.assertEqual(meta['invalid_tags'],1)
+        self.assertFalse(meta['overflow'])
+        self.assertEqual(self.run_protocol('amount',None),[])
+    def test_amount_overflow_remains_explicit(self):
+        rows=self.run_protocol('amount-overflow','1');meta=next(x for k,x in rows if k=='ACTQL_NATIVE_TIMINGS')
+        self.assertTrue(meta['overflow'])
+        count=next(x['count'] for k,x in rows if k=='ACTQL_NATIVE_COUNTER' and x['tag']==46)
+        self.assertEqual(count,(3*((1<<63)-1))%(1<<64))
     def test_child_snapshot_does_not_duplicate_parent_report_or_counts(self):
         rows=self.run_protocol('fork','1');self.assertEqual(sum(k=='ACTQL_NATIVE_TIMINGS'for k,x in rows),1)
         counts={x['tag']:x['count']for k,x in rows if k=='ACTQL_NATIVE_COUNTER' and x['count']};self.assertEqual(counts,{16:1})
