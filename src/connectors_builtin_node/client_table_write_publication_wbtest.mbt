@@ -1,4 +1,18 @@
 ///|
+// Preserve the existing Node preparation failure domain while using the same
+// portable publication owner as the public check projection.
+fn client_table_write_publication(
+  environment : @program_check.CheckEnvironment,
+  publication : String,
+) -> Array[@query_program.TableWriteBinding] raise ClientSourceStop {
+  match @source_publication.published_table_writes(environment, publication) {
+    Ok(value) => value
+    Err(Limit) => raise ClientSourceStop(Limit)
+    Err(_) => raise ClientSourceStop(Publication)
+  }
+}
+
+///|
 // Independent installed environment and fixed binding, before physical I/O.
 test "Table publication validates installed Mapping before lowering" {
   let wire = "{\"command_contracts\":[],\"connector_capabilities\":[],\"connector_catalogs\":[{\"catalog_cid\":\"sha256:5e08bd4afedbd52e332bff556d21ae024806b40acfdff7d683c63fbfd9c12576\",\"commands\":[],\"connector_id\":\"table\",\"connector_version\":\"fixture\",\"contracts\":[],\"schema\":\"actql.connector_catalog/0.1\",\"source_views\":[]}],\"connector_manifest\":{\"connectors\":[{\"connector\":\"table\",\"connector_id\":\"table\",\"connector_version\":\"fixture\"}],\"version\":\"actql-connectors/0.1\"},\"contract_registry\":[],\"evidence_bundle_cid\":\"sha256:ee8bc2292e30621d67ad36adb1a25987d113448e5b6dd333cbaf5511328e20dc\",\"host_policy_profile\":{\"capacity\":{\"max_aggregate_array_items\":1000,\"max_artifact_bytes\":1000,\"max_artifact_rows\":1000,\"max_effect_items\":1000,\"max_graph_input_edges\":1000,\"max_graph_input_nodes\":1000,\"max_graph_output_rows\":1000,\"max_graph_paths\":1000,\"max_infer_items\":1000,\"max_model_input_tokens_per_item\":1000,\"max_model_request_bytes_per_item\":1000,\"max_model_total_duration_ms\":1000,\"max_nested_value_bytes\":1000,\"max_nested_value_depth\":1000,\"max_relation_output_rows\":1000,\"max_temporal_matches_per_key\":1000,\"max_temporal_output_rows\":1000,\"version\":\"actql-capacity-host-policy/0.1\"}},\"mapping_contracts\":[{\"connector_manifest_cid\":\"sha256:a1a3727735c1e6af17286d33e4eccf591d11821edb1fbed9bb963284027b9874\",\"conversions\":[],\"mapping_contract_cid\":\"sha256:112eeda664d4f10b1a5c827b49ff301c42366fc831b381919036d2cf81591f1b\",\"mapping_ref\":\"mapping:table.catalog.v1\",\"minimum_approval\":\"required\",\"permission_rules\":[{\"effect_kind\":\"store\",\"permissions\":[\"scope:store\"],\"selector_class\":\"none\",\"write_fields\":[\"Name\"]}],\"primary_identity\":\"Id\",\"required_fields\":[],\"required_permissions\":[],\"resource_identity_cid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"row_mapping\":{\"Name\":{\"field\":\"id\",\"null_behavior\":\"reject\"}},\"schema\":\"actql.mapping_contract/0.1\",\"target_ref\":\"connector://table/catalog\",\"target_schema\":{\"additional_properties\":false,\"fields\":{\"Id\":{\"nullable\":false,\"type\":\"number\"},\"Name\":{\"nullable\":true,\"type\":\"number\"}},\"nullable\":false,\"type\":\"object\"},\"target_schema_identity\":\"sha256:c000fb12383456a0e123e74501d164b96bb886251dbb44f301661070321be8e0\",\"version\":\"reference-v1\",\"writable_fields\":[\"Name\"]}],\"model_task_contracts\":[],\"schema_snapshots\":[],\"source_views\":[],\"version\":\"actql-check-environment/0.1\"}"
