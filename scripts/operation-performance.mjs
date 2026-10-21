@@ -1,12 +1,13 @@
+import {createHash} from 'node:crypto';
 // Acceptance evidence only. This module grants no runtime authority and does
 // not replace package provenance, the public result oracle, or resource guards.
 export const operationTargets = Object.freeze({
-  'warm-select': {samples: 100, medianMs: 5, p95Ms: 10},
-  'warm-result': {samples: 100, medianMs: 5, p95Ms: 10},
-  'warm-status': {samples: 100, medianMs: 5, p95Ms: 10},
-  'warm-join': {samples: 100, p95Ms: 500},
-  'warm-union': {samples: 100, p95Ms: 500},
-  'warm-decimal-sum': {samples: 100, p95Ms: 500},
+  'warm-select': {samples: 100, comparison: 'local-sqlite'},
+  'warm-result': {samples: 100, comparison: 'local-sqlite'},
+  'warm-status': {samples: 100, comparison: 'local-sqlite'},
+  'warm-join': {samples: 100, comparison: 'local-sqlite'},
+  'warm-union': {samples: 100, comparison: 'local-sqlite'},
+  'warm-decimal-sum': {samples: 100, comparison: 'local-sqlite'},
   'cold-existing': {samples: 30, p95Ms: 2000},
   'first-init': {samples: 30, p95Ms: 5000},
   'mock-workflow': {samples: 30, p95Ms: 5000},
@@ -33,13 +34,127 @@ export function latencySummary(samples, minimum) {
     maxMs: n ? values[n - 1] : null, quantile: 'nearest-rank', minimum};
 }
 
-export function assessLatency(series) {
-  requireValue(Object.hasOwn(operationTargets, series.operation), 'Unknown public operation');
+// Diagnostic calibration consumes independently measured SQLite data, never
+// candidate durations. Public acceptance additionally needs a matched control
+// for the existing semantic Owner's independently required durable transitions.
+export const sqliteComparisonPolicy = Object.freeze({ratio: 3, minimumSamples: 100,
+  noise: 'matched baseline p95 minus median', essentialTransactionsPerNewRun: 1});
+const evidenceHash = value => createHash('sha256').update(JSON.stringify(value) ?? 'null').digest('hex');
+// The original collector hashes bytes, not a JSON string, for the seed fixture.
+const seedFixture = createHash('sha256').update('SELECT 1 AS id\n[{"id":1}]\n').digest('hex');
+const comparisonQueries = Object.freeze({
+  'warm-join': {text: "WITH lhs AS (SELECT 1 AS id), rhs AS (SELECT 1 AS id, 'joined' AS label) "
+    + 'SELECT lhs.id AS id, rhs.label AS label FROM lhs JOIN rhs ON lhs.id = rhs.id MAX_OUTPUT_ROWS 1',
+    sqlite: "WITH lhs AS (SELECT 1 AS id), rhs AS (SELECT 1 AS id, 'joined' AS label) "
+      + 'SELECT lhs.id AS id, rhs.label AS label FROM lhs JOIN rhs ON lhs.id = rhs.id LIMIT 1',
+    expected: [{id: 1, label: 'joined'}]},
+  'warm-union': {text: 'WITH items AS (SELECT 2 AS id UNION ALL SELECT 1 AS id) '
+    + 'SELECT id FROM items |> ASSERT UNIQUE BY (id) |> ORDER BY id',
+    sqlite: 'WITH items AS (SELECT 2 AS id UNION ALL SELECT 1 AS id) SELECT id FROM items ORDER BY id',
+    expected: [{id: 1}, {id: 2}]},
+});
+export function calibrateSqliteComparisonProfile(baseline) {
+  requireValue(baseline?.kind === 'local-sqlite-comparator' && baseline.schemaVersion === 1,
+    'Actual local SQLite comparator required');
+  requireValue(baseline.cleanup?.closed === true && baseline.profiled === false,
+    'Completed unprofiled comparator required');
+  requireValue(baseline.protocol?.binding === 'node:sqlite DatabaseSync' && baseline.protocol.concurrency === 1 &&
+    ['isolated', 'concurrent'].includes(baseline.load), 'Explicit local binding/concurrency/load required');
+  requireValue(digest(baseline.executableSha256) && digest(baseline.collectorSha256) &&
+    baseline.protocolSha256 === evidenceHash(baseline.protocol), 'Comparator source/tool/protocol identity required');
+  requireValue(baseline.environment && nonempty(baseline.environment.node), 'Explicit comparator runtime required');
+  requireValue(baseline.settings?.journal_mode === 'wal' && baseline.settings.synchronous === 2 &&
+    typeof baseline.settings.sqliteVersion === 'string', 'Explicit WAL/FULL SQLite settings required');
+  const observed = (operation, mode) => {
+    const entries = baseline.warm.filter(row => row.operation === operation && row.mode === mode);
+    requireValue(entries.length <= 1, 'Duplicate comparator workload');
+    if (!entries.length) return null;
+    const row = entries[0], indexes = new Set(), outputs = new Set();
+    requireValue(row.samples.length >= sqliteComparisonPolicy.minimumSamples, 'Insufficient comparator samples');
+    for (const sample of row.samples) {
+      requireValue(integer(sample.index) && !indexes.has(sample.index) && sample.verified === true &&
+        integer(sample.pid) && sample.pid > 0 && digest(sample.outputSha256), 'Invalid comparator observation');
+      indexes.add(sample.index); outputs.add(sample.outputSha256);
+    }
+    requireValue(outputs.size === 1, 'Comparator oracle changed');
+    const summary = latencySummary(row.samples.map(sample => ({wallNs: sample.wallNs,
+      cpuUserUs: sample.userUs, cpuSystemUs: sample.systemUs})), sqliteComparisonPolicy.minimumSamples);
+    return {row, summary, outputSha256: [...outputs][0]};
+  };
+  const durable = observed('durable-transaction-read', 'prepared');
+  if (durable) requireValue(durable.outputSha256 === evidenceHash([{id: 1}]), 'Durable comparator oracle differs');
+  const entries = [];
+  for (const operation of ['warm-select', 'warm-result', 'warm-status', 'warm-join', 'warm-union']) {
+    const mode = ['warm-result', 'warm-status'].includes(operation) ? 'prepared' : 'one-shot';
+    const value = observed(operation, mode); if (!value) continue;
+    const query = comparisonQueries[operation];
+    let fixtureSha256 = seedFixture;
+    if (query) {
+      requireValue(value.row.fixture?.sql === query.sqlite &&
+        evidenceHash(value.row.fixture.expected) === evidenceHash(query.expected) &&
+        JSON.stringify(value.row.fixture.parameters) === '[]', 'Unmatched SQLite query fixture');
+      fixtureSha256 = evidenceHash({operation, text: query.text, expected: query.expected});
+    } else if (operation === 'warm-select') {
+      requireValue(value.row.fixture?.sql === 'SELECT 1 AS id' &&
+        JSON.stringify(value.row.fixture.parameters) === '[]' &&
+        value.outputSha256 === evidenceHash([{id: 1}]), 'Unmatched SELECT fixture');
+    } else requireValue(baseline.savedFixture?.rows === 1 && baseline.savedFixture.payload === '[{"id":1}]' &&
+      baseline.savedFixture.plan?.some(row => row.detail.includes('USING INTEGER PRIMARY KEY')),
+    'Matched indexed saved-row fixture required');
+    const newRun = !['warm-result', 'warm-status'].includes(operation);
+    if (newRun && !durable) continue;
+    const oracle = query?.expected ?? (operation === 'warm-status' ? {status: 'succeeded', revision: 0} : [{id: 1}]);
+    requireValue(value.outputSha256 === evidenceHash(oracle), 'Comparator output differs from fixed literal oracle');
+    const noiseMs = Math.max(0, value.summary.p95Ms - value.summary.medianMs);
+    const essential = newRun ? durable.summary : {medianMs: 0, p95Ms: 0};
+    entries.push({operation, mode, fixtureSha256, expectedSha256: value.outputSha256,
+      matchQualification: newRun ? 'matched literal-query input/output' : 'minimum indexed control only; actual saved Run key/row not yet matched',
+      conditions: {concurrency: 1, preparation: mode, temperature: 'warm',
+        materialization: 'ordinary JS records', parameters: [],
+        data: query || operation === 'warm-select' ? {input: 'literal CTE', indexes: []}
+          : {logicalRows: [{id: 1}], indexes: ['single bound primary key']},
+        durability: newRun ? 'diagnostic minimum WAL/FULL transaction; public Run/Result duties unmatched' : 'pure indexed-read diagnostic; no invented write'},
+      engine: value.summary, noiseMs,
+      essentialOverhead: {medianMs: essential.medianMs, p95Ms: essential.p95Ms,
+        qualification: newRun ? 'One diagnostic WAL/FULL transaction/read; not a sufficient public Run/Result allowance.' : 'Pure indexed-read diagnostic only; public Result attempt/grant/terminal duties remain unmatched.'},
+      medianMs: sqliteComparisonPolicy.ratio * value.summary.medianMs + noiseMs + essential.medianMs,
+      p95Ms: sqliteComparisonPolicy.ratio * value.summary.p95Ms + noiseMs + essential.p95Ms});
+  }
+  return {kind: 'local-sqlite-comparison-profile', policy: sqliteComparisonPolicy,
+    baselineBodySha256: evidenceHash(baseline), environmentSha256: evidenceHash(baseline.environment),
+    runtime: baseline.environment.node, load: baseline.load, settings: baseline.settings, entries,
+    qualification: 'Frozen baseline-only diagnostic calibration, not an unconditional SDK SLA. Public essential-work mapping remains unmatched; total public latency remains primary.'};
+}
+export function calibratedLatencyTarget(series, comparison) {
   const target = operationTargets[series.operation];
+  requireValue(Object.hasOwn(operationTargets, series.operation), 'Unknown public operation');
+  if (!target.comparison) return {target, missing: []};
+  if (!comparison?.baseline || !comparison.profile) return {target, missing: ['measured fixed SQLite comparison profile']};
+  const actual = calibrateSqliteComparisonProfile(comparison.baseline);
+  requireValue(evidenceHash(comparison.profile) === evidenceHash(actual), 'Comparison profile differs from fixed baseline-only policy');
+  const entry = actual.entries.find(row => row.operation === series.operation);
+  if (!entry) return {target, missing: ['matched SQLite operation comparator']};
+  const missing = ['matched minimum public essential-work comparator'];
+  if (['warm-result', 'warm-status'].includes(series.operation)) missing.push('actual saved-row/key/durability comparator correspondence');
+  if (actual.environmentSha256 !== series.environmentSha256 || actual.load !== series.load) missing.push('matched comparator environment/load');
+  if (series.executableSha256 !== comparison.baseline.executableSha256) missing.push('matched comparator runtime executable');
+  if (evidenceHash(series.comparisonSettings) !== evidenceHash(actual.settings)) missing.push('matched stated transaction/durability settings');
+  if (entry.fixtureSha256 !== series.fixtureSha256 || series.expectedSha256 !== entry.expectedSha256) missing.push('matched public fixture/oracle');
+  if (evidenceHash(series.comparisonMatch) !== evidenceHash(entry.conditions)) missing.push('matched data/indexes/materialization/preparation/durability conditions');
+  // These measured engine/minimum-control limits are diagnostic history. They
+  // become public acceptance limits only after the existing semantic Owner's
+  // required transitions have a matched measured comparator.
+  return {target: {...target, diagnosticComparison: entry}, missing};
+}
+
+export function assessLatency(series, comparison) {
+  requireValue(Object.hasOwn(operationTargets, series.operation), 'Unknown public operation');
+  const calibration = calibratedLatencyTarget(series, comparison);
+  const target = calibration.target;
   requireValue(digest(series.cohortSha256) && digest(series.fixtureSha256) && digest(series.environmentSha256),
     'Exact cohort, fixture and environment identities are required');
   requireValue(['diagnostic', 'final'].includes(series.mode) && Array.isArray(series.samples), 'Invalid measurement mode');
-  const failures = [], missing = [];
+  const failures = [], missing = [...calibration.missing];
   const successful = [];
   const keys = new Set();
   for (const row of series.samples) {
@@ -73,11 +188,18 @@ export function assessLatency(series) {
     failures.push('first initialization samples must use distinct state directories');
   }
   if (successful.some(row => typeof row.stateId !== 'string' || !row.stateId)) missing.push('explicit state identity');
-  if (summary.p95Ms !== null && summary.p95Ms > target.p95Ms) failures.push('p95 latency exceeds target');
+  if (target.p95Ms !== undefined && summary.p95Ms !== null && summary.p95Ms > target.p95Ms) failures.push('p95 latency exceeds target');
   if (summary.count >= target.samples && target.medianMs !== undefined && summary.medianMs > target.medianMs) {
     failures.push('median latency exceeds target');
   }
-  return outcome(failures, missing, {operation: series.operation, target, summary});
+  const entry = target.diagnosticComparison;
+  const diagnosticComparison = entry ? Object.fromEntries(['medianMs', 'p95Ms'].map(key => [key, {
+    publicMs: summary[key], engineMs: entry.engine[key],
+    ratio: summary[key] === null || entry.engine[key] === 0 ? null : summary[key] / entry.engine[key],
+    deltaMs: summary[key] === null ? null : summary[key] - entry.engine[key],
+    diagnosticLimitMs: entry[key], publicAcceptance: 'unmatched',
+  }])) : null;
+  return outcome(failures, missing, {operation: series.operation, target, summary, diagnosticComparison});
 }
 
 const fullCheckKinds = Object.freeze(['physical-validation', 'current-validation', 'account-evaluation',
@@ -265,7 +387,7 @@ export function assessBoundaries(rows) {
 // The callback must await the public operation AND verify materialized output.
 // Timing hooks do not wrap product getters, authorization or cryptography.
 export async function collectOperationSamples({operation, mode, identity, stateId, execute, emit,
-  now = () => process.hrtime.bigint(), cpu = () => process.cpuUsage(), pid = process.pid}) {
+  now = () => process.hrtime.bigint(), cpu = () => process.cpuUsage(), pid = process.pid, targetP95Ms}) {
   // Cold/init measurements must come from actual child-process adapters with
   // their individual PID/state observations, never this warm-process clock.
   requireValue(Object.hasOwn(operationTargets, operation) && operation.startsWith('warm-') &&
@@ -286,7 +408,11 @@ export async function collectOperationSamples({operation, mode, identity, stateI
     await emit(row);
     // An obvious slow sample stops expensive preparation. It is retained as a
     // diagnostic; it cannot be turned into a final p95 or a successful gate.
-    if (!verified || wallNs / 1e6 >= target.p95Ms * 10) {
+    // A missing comparison never supplies a pass. Retain the existing 100 ms
+    // unprofiled early-stop budget solely to avoid repeating an expensive diagnostic.
+    const stopMs = targetP95Ms === undefined ? 100 : targetP95Ms * 10;
+    requireValue(Number.isFinite(stopMs) && stopMs > 0, 'Invalid diagnostic stop budget');
+    if (!verified || wallNs / 1e6 >= stopMs) {
       stopReason = verified ? 'slow diagnostic; final distribution not measured' : 'public functional failure';
       break;
     }
@@ -304,7 +430,7 @@ export function assessPerformanceEvidence(report) {
       series.historyProtocolSha256 === report.historyProtocolSha256, 'Latency environment or history protocol differs');
     requireValue(!seen.has(series.operation), 'Duplicate operation series');
     seen.add(series.operation);
-    gates[series.operation] = assessLatency(series);
+    gates[series.operation] = assessLatency(series, report.comparison);
   }
   for (const operation of Object.keys(operationTargets)) if (!seen.has(operation)) missing.push(operation);
   for (const [name, assess] of [['functional', assessFunctions], ['structure', assessStructure], ['history', assessHistory],
@@ -345,14 +471,18 @@ export function assessFunctions(rows) {
 
 async function main(args) {
   const {readFile, writeFile, stat} = await import('node:fs/promises');
-  requireValue(args.length === 2 && args[0] === '--input' || args.length === 4 && args[0] === '--input' && args[2] === '--output',
-    'Usage: node scripts/operation-performance.mjs --input REPORT.json [--output SUMMARY.json]');
+  requireValue((args.length === 2 || args.length === 4 && args[2] === '--output') &&
+    ['--input', '--calibrate-sqlite'].includes(args[0]),
+    'Usage: node scripts/operation-performance.mjs --input REPORT.json | --calibrate-sqlite BASELINE.json [--output JSON]');
   requireValue((await stat(args[1])).size <= 16 * 1024 ** 2, 'Measurement report exceeds bounded input');
-  const result = assessPerformanceEvidence(JSON.parse(await readFile(args[1], 'utf8')));
+  const input = JSON.parse(await readFile(args[1], 'utf8'));
+  const calibration = args[0] === '--calibrate-sqlite';
+  const result = calibration ? {baseline: input, profile: calibrateSqliteComparisonProfile(input)}
+    : assessPerformanceEvidence(input);
   const body = JSON.stringify(result, null, 2) + '\n';
   if (args[3]) await writeFile(args[3], body, {flag: 'wx'});
   process.stdout.write(body);
-  return result.status === 'passed' ? 0 : 1;
+  return calibration || result.status === 'passed' ? 0 : 1;
 }
 const {pathToFileURL} = await import('node:url');
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {

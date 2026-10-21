@@ -4,15 +4,23 @@ import {execFileSync} from 'node:child_process';
 import {mkdtempSync, writeFileSync, rmSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
-import {operationTargets, latencySummary, assessLatency, assessStructure, assessHistory,
+import {operationTargets, latencySummary, assessLatency as rawAssessLatency, calibrateSqliteComparisonProfile, calibratedLatencyTarget, assessStructure, assessHistory,
   assessChunks, assessBoundaries, boundaryExpectations, collectOperationSamples, assessPerformanceEvidence} from './operation-performance.mjs';
 
+import {syntheticSQLiteBaseline} from './fixtures/operation-performance-comparison.mjs';
+const baseline = syntheticSQLiteBaseline();
+const comparison = {baseline, profile: calibrateSqliteComparisonProfile(baseline)};
+const assessLatency = value => rawAssessLatency(value, comparison);
 // Synthetic evidence exercises the acceptance oracle, never product latency.
-const cohort = 'a'.repeat(64), fixture = 'b'.repeat(64), environment = 'c'.repeat(64), protocol = 'e'.repeat(64);
+const cohort = 'a'.repeat(64), fixture = 'b'.repeat(64), environment = comparison.profile.environmentSha256, protocol = 'e'.repeat(64);
 function series(operation = 'warm-select', count = operationTargets[operation].samples, ms = 4) {
-  return {operation, mode: 'final', cohortSha256: cohort, fixtureSha256: fixture,
+  const entry = comparison.profile.entries.find(row => row.operation === operation);
+  const fixtureIdentity = entry?.fixtureSha256 ?? fixture;
+  return {operation, mode: 'final', cohortSha256: cohort, fixtureSha256: fixtureIdentity,
+    ...(entry ? {expectedSha256: entry.expectedSha256, comparisonMatch: structuredClone(entry.conditions),
+      executableSha256: baseline.executableSha256, comparisonSettings: structuredClone(baseline.settings)} : {}),
     environmentSha256: environment, historyProtocolSha256: protocol, profiled: false, load: 'isolated', samples: Array.from({length: count}, (_, iteration) => ({
-      iteration, cohortSha256: cohort, fixtureSha256: fixture, wallNs: ms * 1e6,
+      iteration, cohortSha256: cohort, fixtureSha256: fixtureIdentity, wallNs: ms * 1e6,
       cpuUserUs: 1000, cpuSystemUs: 200, cpuScope: 'measured-process', pid: 1, hostId: 'host1', stateId: 'state1',
       completed: true, verified: true,
     }))};
@@ -49,16 +57,20 @@ test('one successful sample has no acceptance p95', () => {
   const result = assessLatency(series('warm-select', 1));
   assert.equal(result.status, 'incomplete'); assert.equal(result.summary.p95Ms, null);
 });
-test('enforces millisecond simple targets rather than a 200ms substitute', () => {
-  assert.equal(assessLatency(series()).status, 'passed');
-  assert.equal(assessLatency(series('warm-select', 100, 6)).status, 'failed');
-  const rows = series(); rows.samples.slice(94).forEach(row => { row.wallNs = 11e6; });
-  assert(assessLatency(rows).failures.includes('p95 latency exceeds target'));
+test('diagnostic SQLite limits never become unmatched public SDK thresholds', () => {
+  assert.equal(assessLatency(series('warm-select', 100, 6)).status, 'incomplete');
+  assert.equal(assessLatency(series('warm-select', 100, 968)).status, 'incomplete');
+  assert.equal(rawAssessLatency(series()).status, 'incomplete');
+  assert.equal(assessLatency(series('warm-decimal-sum')).status, 'incomplete');
+  assert.equal(assessLatency(series('warm-result')).status, 'incomplete');
 });
-test('threshold equality passes; small JOIN has its distinct 500ms target', () => {
-  assert.equal(assessLatency(series('warm-select', 100, 5)).status, 'passed');
-  assert.equal(assessLatency(series('warm-join', 100, 500)).status, 'passed');
-  assert.equal(assessLatency(series('warm-join', 100, 501)).status, 'failed');
+test('comparison retains public total, ratio and absolute delta without a false acceptance', () => {
+  const value = series('warm-join', 100, 9);
+  const result = assessLatency(value);
+  assert.equal(result.status, 'incomplete');
+  assert.deepEqual(result.diagnosticComparison.medianMs, {publicMs: 9, engineMs: 2,
+    ratio: 4.5, deltaMs: 7, diagnosticLimitMs: 9, publicAcceptance: 'unmatched'});
+  assert.equal(result.target.p95Ms, undefined);
 });
 test('a diagnostic or profiled/loaded run cannot become final acceptance', () => {
   for (const patch of [{mode: 'diagnostic'}, {profiled: true}, {load: 'concurrent'}, {stoppedEarly: true}]) {
@@ -268,13 +280,14 @@ test('full composition binds functional, latency, structural and faults to one c
     if (operation === 'first-init') value.samples.forEach((r, n) => {r.stateId = `new${n}`;});
     return value;
   });
-  const report = {sourceSha: 'd'.repeat(40), ...identity, latency,
+  const report = {sourceSha: 'd'.repeat(40), ...identity, latency, comparison,
     functional: {...identity, rows: Object.keys(operationTargets).map(operation => ({operation,
       completed: true, expectedSha256: fixture, actualSha256: fixture}))},
     structure: {...identity, operations: Object.keys(operationTargets).map(operation => publicOperation(operation, operation))}, history: {...identity, rows: histories()},
     chunks: {...identity, rows: chunks()}, boundaries: {...identity,
       rows: Object.entries(boundaryExpectations).map(([name, expected]) => ({case: name, ...expected}))}};
-  assert.equal(assessPerformanceEvidence(report).status, 'passed');
+  assert.equal(assessPerformanceEvidence(report).status, 'incomplete');
+  assert(assessPerformanceEvidence(report).missing.some(value => value.includes('matched SQLite operation comparator')));
   const partialWork = structuredClone(report); partialWork.structure.operations.pop();
   assert.equal(assessPerformanceEvidence(partialWork).status, 'incomplete');
   for (const section of ['functional', 'structure', 'history', 'chunks', 'boundaries']) {
@@ -306,7 +319,7 @@ test('CLI returns nonzero for incomplete evidence and distinguishes malformed co
   assert.equal(malformed.status, 2); assert.match(malformed.stderr.toString(), /environment or history protocol/u);
 });
 test('exported criteria are immutable and inherited object properties are not operations', () => {
-  assert.throws(() => { operationTargets['warm-select'].p95Ms = 200; });
+  assert.throws(() => { operationTargets['warm-select'].comparison = 'fixed-200ms'; });
   assert.throws(() => { boundaryExpectations['commit-unknown'].outcome = 'succeeded'; });
   assert.throws(() => assessLatency({...series(), operation: 'toString'}), /Unknown public operation/u);
 });
