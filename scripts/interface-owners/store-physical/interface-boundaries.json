@@ -8774,7 +8774,7 @@
             "identity": [
               {
                 "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "await putDeliveryContracts(grantContract, admitted);"
+                "anchor": "await putDeliveryContracts(grantContract,admitted);"
               }
             ],
             "ownership": [
