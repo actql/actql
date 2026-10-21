@@ -164,6 +164,17 @@ for (const entry of ['resolveDefinition', 'admitOrLookupDefinition']) {
   });
 }
 
+test('admit-or-lookup refuses an incomplete request control before issuer callback', async t => {
+  const f = await fixture(t);
+  let issuances = 0;
+  const incomplete = {...moon, clientRequestRelation: undefined};
+  await assert.rejects(f.journal.admitOrLookupDefinition(f.identity, {
+    namespaceId: 'another-owner', lookupExpiresAt: '2099-01-01T00:00:00.000Z',
+    issueDefinition() {issuances++; throw new Error('InvalidControlMustNotReachIssuer');},
+  }, incomplete, publication), {code: 'InvalidClientRequestLookup'});
+  assert.equal(issuances, 0);
+});
+
 for (const [label, sql, expected] of [
   ['intent wire', "UPDATE client_submitted_intents SET intent_wire='{}'", 'ClientSubmittedIntentCorrupt'],
   ['epoch key', "UPDATE client_submission_epoch_authority SET authentication_key='" + '1'.repeat(64) + "'", 'ClientSubmittedIntentCorrupt'],
