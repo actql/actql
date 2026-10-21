@@ -290,6 +290,8 @@ export interface ResultDeliveryControl {
   /** Reuse an original publication from this module without wire admission. */
   fromPublication<Kind extends string>(original: PublicationContract<Kind>):
     DeliveryContractView<Kind>;
+  fromPublication<Kind extends string>(original: PublicationContract,
+    expectedName: Kind): DeliveryContractView<Kind>;
   beginResultAccessProgress(): ResultAccessProgress;
   resultAccessProgressAction(progress: ResultAccessProgress):
     'authorize_request' | 'resolve_committed_result' |

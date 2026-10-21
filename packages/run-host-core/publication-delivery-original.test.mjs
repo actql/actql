@@ -60,3 +60,13 @@ test('delivery refuses copied and foreign publications before reading fields', a
   assert.equal(reads, 0);
   assert.equal(control.fromPublication(original).identity, identity);
 });
+
+test('delivery checks the requested kind using original nominal facts', () => {
+  const original = admitPublicationContract('result_retention_policy', wire, limits);
+  const control = openResultDeliveryControl();
+  assert.equal(control.fromPublication(original, 'result_retention_policy').identity,
+    identity);
+  assert.throws(() => control.fromPublication(original, 'result_manifest'),
+    {name: 'TypeError', message: 'RunHostPublicationKindMismatch'});
+  assert.equal(control.fromPublication(original).identity, identity);
+});

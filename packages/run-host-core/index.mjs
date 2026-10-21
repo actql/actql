@@ -2492,12 +2492,16 @@ export function openResultDeliveryControl() {
     admit(name, wire, limits) {
       return deliveryView(admitPublicationContract(name, wire, limits));
     },
-    fromPublication(contract) {
+    fromPublication(contract, expectedName) {
       const original = publicationOriginals.get(contract);
       if (original === undefined) {
         throw new TypeError('ForeignRunHostPublication');
       }
-      return deliveryView(contract, original);
+      const view = deliveryView(contract, original);
+      if (expectedName !== undefined && view.name !== expectedName) {
+        throw new TypeError('RunHostPublicationKindMismatch');
+      }
+      return view;
     },
     beginResultAccessProgress() {
       return handle(accessProgress,
