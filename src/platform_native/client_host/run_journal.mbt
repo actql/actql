@@ -14,6 +14,12 @@ struct NativeClientRunJournal {
   // Fully admitted selected target of the closed public command. Internal
   // trusted reads consume it until a relevant mutation/failure or command end.
   mut operation_record : NativeClientRunRecord?
+  // Same selected Submission and Run relationship for this closed command.
+  // Relevant row mutation, failure and operation end retire the typed pair.
+  mut operation_submission : (
+    NativeClientSubmittedIntentRecord,
+    NativeClientRunRecord?,
+  )?
   mut admitted_record : (
     String,
     Bytes,
@@ -463,6 +469,7 @@ fn open_native_client_run_journal_with_reads(
         operation_active: false,
         admitted_publications: [],
         operation_record: None,
+        operation_submission: None,
         admitted_record: None,
         admitted_adoption: None,
       })
@@ -555,6 +562,7 @@ fn NativeClientRunJournal::invalidate_operation_record(
 ) -> Unit {
   self.operation_record = None
   self.admitted_record = None
+  self.invalidate_operation_submission()
 }
 
 ///|
@@ -1107,4 +1115,11 @@ fn NativeClientRunJournal::claim_physical_start_with_operations(
     },
     reads~,
   )
+}
+
+///|
+fn NativeClientRunJournal::invalidate_operation_submission(
+  self : NativeClientRunJournal,
+) -> Unit {
+  self.operation_submission = None
 }

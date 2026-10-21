@@ -193,7 +193,8 @@ fn NativeClientRunJournal::retain_observed_run_state(
       }
       match original.run_state_original {
         Some(prior) if prior == wire => ()
-        _ =>
+        _ => {
+          self.invalidate_operation_submission()
           match
             compare_exchange_client_journal_value(
               self.database,
@@ -206,6 +207,7 @@ fn NativeClientRunJournal::retain_observed_run_state(
             Ok(_) => ()
             Err(issue) => return Err(Physical(issue))
           }
+        }
       }
       // A metadata CAS never calls save(run), changes accepted revision, or
       // creates a second control CAS. Current is checked before commit as well.

@@ -51,6 +51,10 @@ fn[T] NativeLocalJournalCapture::with_current_adoption_material_in_original_read
         self.clear_read_operation_facts()
         host.journal.admitted_adoption = None
       }
+      if table
+        is Some("client_submitted_intents" | "client_submitted_intent_custody") {
+        host.journal.invalidate_operation_submission()
+      }
       if table is None || table is Some("client_runs" | "client_effect_custody") {
         host.journal.invalidate_operation_record()
       }

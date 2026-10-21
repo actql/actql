@@ -569,6 +569,7 @@ fn NativeClientRunJournal::accept_original_submitted_run(
         Ok(_) => ()
         Err(issue) => return Err(issue)
       }
+      self.invalidate_operation_submission()
       compare_exchange_client_journal_value(
         self.database,
         "client_submitted_intents",

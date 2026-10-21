@@ -308,9 +308,26 @@ fn NativeClientRunJournal::retained_submission_with_run(
   (NativeClientSubmittedIntentRecord, NativeClientRunRecord?)?,
   NativeClientRunJournalIssue,
 ] {
+  if reads is Some(access) && !physical_equal(access.database, self.database) {
+    self.invalidate_operation_submission()
+    return Err(Physical(@sqlite.Collision))
+  }
+  if self.fenced || client_journal_transaction_fenced(self.database, reads) {
+    self.invalidate_operation_submission()
+    return Err(Fenced)
+  }
+  if self.operation_active &&
+    self.operation_submission is Some((original, run)) &&
+    original.reference.wire == reference.wire {
+    return Ok(Some((original, run)))
+  }
   let original_reference = reference.original
   let selected_run : Ref[NativeClientRunRecord?] = Ref(None)
-  @host.read_client_saved_submission(
+  // Count actual selected-row admission attempts, never entries or cache hits.
+  if self.operation_active {
+    native_timing_count(39)
+  }
+  let result = @host.read_client_saved_submission(
     original_reference,
     (table_name, key) => {
       client_journal_read(self.database, table_name, key, reads~)
@@ -354,6 +371,19 @@ fn NativeClientRunJournal::retained_submission_with_run(
       (original, selected_run.val)
     })
   })
+  match result {
+    Ok(Some(original)) => {
+      if self.operation_active {
+        self.operation_submission = Some(original)
+      }
+      Ok(Some(original))
+    }
+    Ok(None) => Ok(None)
+    Err(issue) => {
+      self.invalidate_operation_submission()
+      Err(issue)
+    }
+  }
 }
 
 ///|
@@ -534,6 +564,7 @@ fn NativeClientRunJournal::record_submitted_intent_locked(
     Ok(_) => ()
     Err(issue) => return Err(Physical(issue))
   }
+  self.invalidate_operation_submission()
   insert_client_journal_value(
     self.database,
     "client_submitted_intents",

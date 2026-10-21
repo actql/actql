@@ -273,6 +273,7 @@ fn NativeClientRunJournal::retain_run_availability_observation(
         Err(issue) => return Err(issue)
       }
       if submission.run_state_original != Some(state.wire()) {
+        self.invalidate_operation_submission()
         match
           compare_exchange_client_journal_value(
             self.database,
