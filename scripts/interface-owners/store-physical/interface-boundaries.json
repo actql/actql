@@ -4739,7 +4739,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "2fd3958a239a4763090f0cf1f83b560a3f02b84e9b2fe35245e8cade8cc1b29b",
+      "sha256": "7ca4d1e5012b907eb85c7c0c76915f42f7c71af8310b3cb6fdfbdb42851b7394",
       "exports": [
         "PublicationStoreError",
         "assertOriginalLocalPublicationStoreFacilityCurrent",
@@ -6835,29 +6835,28 @@
           "async": false
         },
         {
+          "name": "openOriginalLocalPublicationStore/putPublicationContractBatch/putPublicationContractBatch/nativeOnly/nativeOnly",
+          "parameters": [
+            "contract"
+          ],
+          "async": false
+        },
+        {
           "name": "openOriginalLocalPublicationStore/putPublicationContractBatch/putPublicationContractBatch/putPublicationContractBatch",
           "parameters": [
-            "contract"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/putPublicationContractBatch/putPublicationContractBatch/putPublicationContractBatch#2",
-          "parameters": [
-            "contract"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/putPublicationContractBatch/putPublicationContractBatch/putPublicationContractBatch#3",
-          "parameters": [
-            "physical",
-            "index"
+            "original"
           ],
           "async": false
         },
         {
           "name": "openOriginalLocalPublicationStore/putPublicationContractBatch/putPublicationContractBatch/stored/stored",
+          "parameters": [
+            "contract"
+          ],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/putPublicationContractBatch/putPublicationContractBatch/stored/stored#2",
           "parameters": [
             "contract"
           ],
@@ -8897,8 +8896,8 @@
             "openOriginalLocalPublicationStore/putNativePublicationContracts/putNativePublicationContracts/init:retry/init:retry/init:retry",
             "openOriginalLocalPublicationStore/putNativePublicationContracts/putNativePublicationContracts/init:retry/init:retry/init:retry#2",
             "openOriginalLocalPublicationStore/putNativePublicationContracts/putNativePublicationContracts/status/status",
-            "openOriginalLocalPublicationStore/putPublicationContractBatch/putPublicationContractBatch/putPublicationContractBatch#2",
-            "openOriginalLocalPublicationStore/putPublicationContractBatch/putPublicationContractBatch/putPublicationContractBatch#3"
+            "openOriginalLocalPublicationStore/putPublicationContractBatch/putPublicationContractBatch/nativeOnly/nativeOnly",
+            "openOriginalLocalPublicationStore/putPublicationContractBatch/putPublicationContractBatch/stored/stored#2"
           ],
           "exports": [
             "PublicationStoreError",
@@ -9363,6 +9362,10 @@
               {
                 "path": "adapters/host-common/publication-contract-control.test.mjs",
                 "anchor": "test('native publication capacity and legacy files share the original Store limits', async t => {"
+              },
+              {
+                "path": "adapters/host-common/publication-contract-control.test.mjs",
+                "anchor": "test('native publication metadata is not duplicated by a mixed legacy group', async t => {"
               }
             ]
           }
