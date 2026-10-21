@@ -22,6 +22,8 @@ pub fn Database::capacity_usage(Self, String) -> Result[NativeCapacityUsage, Nat
 pub fn Database::claim_ordinal(Self, String, String, Int64) -> Result[Int64, NativeSqliteIssue]
 pub fn Database::claim_ordinal_action(Self, String, String, Int64) -> Result[NativeOrdinalClaim, NativeSqliteIssue]
 pub fn Database::claim_ordinal_action_in_transaction(Self, String, String, Int64) -> Result[NativeOrdinalClaim, NativeSqliteIssue]
+pub fn Database::client_read_evidence_schema(Self) -> Result[Int, NativeSqliteIssue]
+pub fn Database::client_read_evidence_usage(Self, String, Int64, Int64) -> Result[(Int64, Int64), NativeSqliteIssue]
 pub fn Database::client_run_definition_schema(Self) -> Result[Int, NativeSqliteIssue]
 pub fn Database::close(Self) -> Unit
 pub fn Database::close_checked(Self) -> Result[Unit, NativeSqliteIssue]
@@ -34,6 +36,7 @@ pub fn Database::fence_transactions(Self) -> Unit
 pub fn Database::insert(Self, String, String, Bytes) -> Result[Int64, NativeSqliteIssue]
 pub fn Database::insert_original_store_cleanup(Self, NativeStoreOperationOriginal, String, String, Bytes) -> Result[Int64, NativeSqliteIssue]
 pub fn Database::inspection_status(Self) -> Result[Unit, NativeSqliteIssue]
+pub fn Database::install_client_read_evidence_schema(Self, Int64) -> Result[Unit, NativeSqliteIssue]
 pub fn Database::install_client_run_definition_schema(Self, Int64) -> Result[Unit, NativeSqliteIssue]
 pub fn Database::lookup_claim_ordinal(Self, String, String) -> Result[Int64?, NativeSqliteIssue]
 pub fn Database::matches_original_store_operation(Self, NativeStoreOperationOriginal) -> Bool
