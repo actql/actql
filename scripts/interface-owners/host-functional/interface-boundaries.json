@@ -18161,7 +18161,7 @@
     {
       "module": "adapters/host-node/client-program-preparation.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "8b3786621490ed64360ab53e49979103a850a1e8caca0862dd59fa682b634fcf",
+      "sha256": "d3314fb7d60f2a9c3f4e993dd70f8881476800b79d96ddfa539d2299b0eb834a",
       "role": "physical-io",
       "owner": "Existing static checker/Frontend/compiled preparation Owners; no Run permission",
       "exports": [
@@ -18210,7 +18210,12 @@
           "async": false
         },
         {
-          "name": "installNodeClientEffectProgramPreparation/installNodeClientEffectProgramPreparation",
+          "name": "installNodeClientEffectProgramPreparation/init:retireSourceEnvironment/init:retireSourceEnvironment",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installNodeClientEffectProgramPreparation/prepare/prepare",
           "parameters": [
             "request"
           ],
@@ -18313,6 +18318,11 @@
           "async": false
         },
         {
+          "name": "installNodeClientProgramPreparation/init:retireReferences/init:retireReferences",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "installNodeClientProgramPreparation/init:sourceCheckFailure/init:sourceCheckFailure",
           "parameters": [
             "error"
@@ -18390,7 +18400,8 @@
             "fail",
             "immutablePolicySubject",
             "installNodeClientEffectProgramPreparation",
-            "installNodeClientEffectProgramPreparation/installNodeClientEffectProgramPreparation",
+            "installNodeClientEffectProgramPreparation/init:retireSourceEnvironment/init:retireSourceEnvironment",
+            "installNodeClientEffectProgramPreparation/prepare/prepare",
             "installNodeClientProgramPreparation",
             "installNodeClientProgramPreparation/disclosed/disclosed",
             "installNodeClientProgramPreparation/disclosed/disclosed/disclosed",
@@ -18399,6 +18410,7 @@
             "installNodeClientProgramPreparation/init:assertSubmittedIntent/init:assertSubmittedIntent",
             "installNodeClientProgramPreparation/init:kindOf/init:kindOf",
             "installNodeClientProgramPreparation/init:restoreOriginal/init:restoreOriginal",
+            "installNodeClientProgramPreparation/init:retireReferences/init:retireReferences",
             "installNodeClientProgramPreparation/init:sourceCheckFailure/init:sourceCheckFailure",
             "installNodeClientProgramPreparation/prepare/prepare",
             "installNodeClientProgramPreparation/prepareEffect/prepareEffect",
@@ -18576,6 +18588,10 @@
               {
                 "path": "docs/design/checked-program.md",
                 "anchor": "## Installed public Environment lifetime"
+              },
+              {
+                "path": "adapters/host-node/client-program-preparation.mjs",
+                "anchor": "retireReferences() {"
               }
             ],
             "synchronization": [
@@ -18690,6 +18706,10 @@
               {
                 "path": "docs/design/checked-program.md",
                 "anchor": "## Installed public Environment lifetime"
+              },
+              {
+                "path": "adapters/host-node/client-program-preparation.mjs",
+                "anchor": "retireReferences() {"
               }
             ],
             "resources": [
@@ -18728,6 +18748,10 @@
               {
                 "path": "docs/design/checked-program.md",
                 "anchor": "## Installed public Environment lifetime"
+              },
+              {
+                "path": "adapters/host-node/client-program-preparation.mjs",
+                "anchor": "retireReferences() {"
               }
             ],
             "extension": [
@@ -18765,7 +18789,7 @@
               },
               {
                 "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "const prepareEffect = !allowEffects ? undefined : sourcePublication === undefined"
+                "anchor": "let prepareEffect = !allowEffects ? undefined : sourcePublication === undefined"
               },
               {
                 "path": "docs/design/checked-program.md",
@@ -18812,6 +18836,10 @@
               {
                 "path": "docs/design/checked-program.md",
                 "anchor": "## Installed public Environment lifetime"
+              },
+              {
+                "path": "adapters/host-node/public-store-source-preparation.test.mjs",
+                "anchor": "test('retiring one public Environment consumer cuts its aliases without invalidating another holder'"
               }
             ]
           }
@@ -58776,7 +58804,7 @@
     {
       "module": "adapters/host-node/public-source-preparation.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "f8e0fd905dfdfec03f2085204aedbb146d73103d329133357b1dfdcf49070f48",
+      "sha256": "6110f5a6567ce336bbd401bfbd9347fcb72a6d9df499b15a71d74f6151a2bc86",
       "role": "physical-io",
       "owner": "Existing static checker/Frontend/compiled preparation Owners; no Run permission",
       "exports": [
@@ -58842,6 +58870,11 @@
             "supplied"
           ],
           "async": false
+        },
+        {
+          "name": "installNodePublicSourcePreparation/init:retireSourceEnvironment/init:retireSourceEnvironment",
+          "parameters": [],
+          "async": false
         }
       ],
       "contracts": [
@@ -58854,7 +58887,8 @@
             "installNodePublicSourcePreparation",
             "installNodePublicSourcePreparation/currentEnvironment/currentEnvironment",
             "installNodePublicSourcePreparation/init:prepare/init:prepare",
-            "installNodePublicSourcePreparation/init:prepareEffect/init:prepareEffect"
+            "installNodePublicSourcePreparation/init:prepareEffect/init:prepareEffect",
+            "installNodePublicSourcePreparation/init:retireSourceEnvironment/init:retireSourceEnvironment"
           ],
           "exports": [
             "installNodePublicSourcePreparation"
@@ -58887,7 +58921,7 @@
               },
               {
                 "path": "adapters/host-node/public-source-preparation.mjs",
-                "anchor": "const original = sourceAliasPublicationOriginal(moon, environment, publication);"
+                "anchor": "let original = sourceAliasPublicationOriginal(moon, environment, publication);"
               },
               {
                 "path": "docs/design/checked-program.md",
@@ -58994,6 +59028,10 @@
               {
                 "path": "docs/design/checked-program.md",
                 "anchor": "## Installed public Environment lifetime"
+              },
+              {
+                "path": "adapters/host-node/public-source-preparation.mjs",
+                "anchor": "retireSourceEnvironment() {"
               }
             ],
             "synchronization": [
@@ -59080,6 +59118,10 @@
               {
                 "path": "docs/design/checked-program.md",
                 "anchor": "## Installed public Environment lifetime"
+              },
+              {
+                "path": "adapters/host-node/public-source-preparation.mjs",
+                "anchor": "retireSourceEnvironment() {"
               }
             ],
             "resources": [
@@ -59106,6 +59148,10 @@
               {
                 "path": "docs/design/checked-program.md",
                 "anchor": "## Installed public Environment lifetime"
+              },
+              {
+                "path": "adapters/host-node/public-source-preparation.mjs",
+                "anchor": "retireSourceEnvironment() {"
               }
             ],
             "extension": [
@@ -59170,6 +59216,10 @@
               {
                 "path": "docs/design/checked-program.md",
                 "anchor": "## Installed public Environment lifetime"
+              },
+              {
+                "path": "adapters/host-node/public-store-source-preparation.test.mjs",
+                "anchor": "test('retiring one public Environment consumer cuts its aliases without invalidating another holder'"
               }
             ]
           }
