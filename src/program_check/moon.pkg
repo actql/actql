@@ -81,6 +81,8 @@ import {
 
 import {
   "actql/actql/binding_declarations" @bindings,
+  "actql/actql/lowering_relation" @lower,
+  "actql/actql/execution_relation" @execution,
   "actql/actql/run_publication",
   "actql/actql/canonical_json" @json,
   "actql/actql/text_rank_profile" @lexical,

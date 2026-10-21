@@ -1,3 +1,5 @@
+// Legacy catalogue compatibility cases retain the original recipe issuer.
+
 ///|
 fn local_supplied_parameter_preparation_attempt(
   format : @source_frontend.Format,
@@ -26,6 +28,7 @@ fn local_supplied_parameter_preparation_attempt(
     parameter_declarations=Some(declarations),
   ).unwrap()
   let original = @source_frontend.lower(text, format, Some(context)).unwrap()
+
   prepare_parsed_effect_free_client_program(
     original.program.unwrap(),
     environment,
@@ -71,7 +74,8 @@ test "public literal queries retain actually supplied typed parameters through L
         declarations,
         Some(supplied),
       )
-      guard issue_prepared_client_local_normalization(original) is Ok(issued) else {
+      guard issue_prepared_client_legacy_local_normalization(original)
+        is Ok(issued) else {
         fail(
           "the original explicitly supplied Parameter cannot obtain Local normalization",
         )
@@ -82,7 +86,7 @@ test "public literal queries retain actually supplied typed parameters through L
       assert_true(
         physical_equal(
           issued,
-          issue_prepared_client_local_normalization(original).unwrap(),
+          issue_prepared_client_legacy_local_normalization(original).unwrap(),
         ),
       )
     }
@@ -108,7 +112,9 @@ test "Local normalization distinguishes actual supplied origin from equal defaul
     local_parameter_values_identity(supplied),
     local_parameter_values_identity(defaulted),
   )
-  assert_true(issue_prepared_client_local_normalization(supplied) is Ok(_))
+  assert_true(
+    issue_prepared_client_legacy_local_normalization(supplied) is Ok(_),
+  )
   ignore(local_default_parameter_normalization(defaulted))
 }
 
@@ -134,7 +140,9 @@ test "Local normalization preserves unused declaration refusal and accepts expli
     "{\"id\":{\"type\":\"number\",\"nullable\":true}}",
     Some("{\"id\":null}"),
   )
-  assert_true(issue_prepared_client_local_normalization(nullable) is Ok(_))
+  assert_true(
+    issue_prepared_client_legacy_local_normalization(nullable) is Ok(_),
+  )
 }
 
 ///|
@@ -145,7 +153,7 @@ test "Local supplied-Parameter normalization retains exact catalog journal and f
     declarations,
     Some("{\"id\":7}"),
   )
-  let issued = issue_prepared_client_local_normalization(owner).unwrap()
+  let issued = issue_prepared_client_legacy_local_normalization(owner).unwrap()
   let evidence = prepared_client_local_normalization_evidence(owner, issued).unwrap()
   // Independently hashed complete catalog and journal preimages accompany the
   // new closed applicability alternative; the old parameter-free bytes remain.
@@ -220,7 +228,7 @@ test "Local supplied Parameter inventory joins every original checked stage" {
     client_standard_program_preparation_limits(),
   ).unwrap()
   assert_eq(@checked.unit_count(@strategy.graph_program(owner.graph)), 2)
-  let issued = issue_prepared_client_local_normalization(owner).unwrap()
+  let issued = issue_prepared_client_legacy_local_normalization(owner).unwrap()
   assert_true(
     prepared_client_local_normalization_evidence(owner, issued) is Ok(_),
   )
@@ -249,7 +257,7 @@ test "Parameter-free public Local preparation retains the exact original catalog
     None,
     client_standard_program_preparation_limits(),
   ).unwrap()
-  let issued = issue_prepared_client_local_normalization(owner).unwrap()
+  let issued = issue_prepared_client_legacy_local_normalization(owner).unwrap()
   let evidence = prepared_client_local_normalization_evidence(owner, issued).unwrap()
   let expected =
     #|{"entries":[],"journal_cid":"sha256:068f6d7eefb587836c72426fb4d579406247a97b27120621880cbd4a23874880","rule_catalog_cid":"sha256:690a1e3eea6e0ce89e54937db070a578ec66c2c456061c28a29c7c4dba1b6587","version":"actql-normalization-journal/0.1"}

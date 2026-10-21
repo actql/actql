@@ -1,3 +1,5 @@
+// Legacy catalogue compatibility cases retain the original recipe issuer.
+
 ///|
 let local_checked_expression_catalog_cid : String = "sha256:e51161c71f8cb1565fd562ce325a78d2cec3b5c55a5aca54e70953fd6d92db74"
 
@@ -9,7 +11,7 @@ let local_checked_expression_journal : String =
 fn local_checked_expression_normalization(
   owner : PreparedClientProgram,
 ) -> ClientLocalNormalization raise {
-  let issued = issue_prepared_client_local_normalization(owner).unwrap()
+  let issued = issue_prepared_client_legacy_local_normalization(owner).unwrap()
   assert_eq(
     @publication.run_evidence_value_json(
       prepared_client_local_normalization_evidence(owner, issued).unwrap(),
@@ -28,7 +30,7 @@ test "the unchanged public ABS query issues original normalization and evaluates
   assert_true(
     physical_equal(
       issued,
-      issue_prepared_client_local_normalization(original).unwrap(),
+      issue_prepared_client_legacy_local_normalization(original).unwrap(),
     ),
   )
   let task = @strategy.graph_task_owner(original.graph, 0).unwrap()
@@ -106,7 +108,7 @@ test "a supported scalar never hides implicit completion or uninstalled relation
     text="SELECT CASE WHEN TRUE THEN ABS(-3) END AS value",
   )
   assert_true(
-    issue_prepared_client_local_normalization(implicit_else)
+    issue_prepared_client_legacy_local_normalization(implicit_else)
     is Err(Inventory(CompletionObserved)),
   )
   assert_true(implicit_else.local_normalization is None)
@@ -127,7 +129,7 @@ test "a supported scalar never hides implicit completion or uninstalled relation
     ),
   )
   assert_true(
-    issue_prepared_client_local_normalization(uncovered_relation)
+    issue_prepared_client_legacy_local_normalization(uncovered_relation)
     is Err(Inventory(ProfileNotInstalled)),
   )
   assert_true(uncovered_relation.local_normalization is None)

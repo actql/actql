@@ -6,6 +6,7 @@ fn checked_direct_program_fixture(
   imported? : Bool = false,
   append? : String = "",
   input_name? : String = "remote",
+  explicit_view? : Bool = false,
   set_operation? : String = "",
   duplicates? : String = "distinct",
   join_kind? : String = "",
@@ -58,6 +59,14 @@ fn checked_direct_program_fixture(
     old="\"remote\"",
     new="\"" + input_name + "\"",
   )
+  let text = if explicit_view {
+    text.replace(
+      old="\"resource\":\"r\"",
+      new="\"resource\":\"r\",\"view\":\"v\"",
+    )
+  } else {
+    text
+  }
   let text = if request_parameter {
     text
     .replace(

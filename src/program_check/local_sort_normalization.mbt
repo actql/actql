@@ -214,7 +214,7 @@ pub fn local_program_sort_normalization_inventory(
   if owner.has_effects {
     return Err(ProfileNotInstalled)
   }
-  match local_audit_base(owner.local_completion_free_audit) {
+  match local_audit_base(local_legacy_audit(owner)) {
     Complete(_, _, _, _, _, _, _, _)
     | DistinctComplete(_, _, _, _, _, _, _, _)
     | SetComplete(_, _, _, _, _, _, _, _, _)
@@ -233,15 +233,11 @@ pub fn local_program_sort_normalization_inventory(
           audited_work: work,
           entries,
           defaulted_parameters,
-          sets: local_audit_uses_set(owner.local_completion_free_audit),
-          dedupes: local_audit_uses_dedupe(owner.local_completion_free_audit),
-          assertions: local_audit_uses_assertions(
-            owner.local_completion_free_audit,
-          ),
-          joins: local_audit_uses_join(owner.local_completion_free_audit),
-          distincts: local_audit_uses_distinct(
-            owner.local_completion_free_audit,
-          ),
+          sets: local_audit_uses_set(local_legacy_audit(owner)),
+          dedupes: local_audit_uses_dedupe(local_legacy_audit(owner)),
+          assertions: local_audit_uses_assertions(local_legacy_audit(owner)),
+          joins: local_audit_uses_join(local_legacy_audit(owner)),
+          distincts: local_audit_uses_distinct(local_legacy_audit(owner)),
         }),
       )
     CompletionObserved => Err(CompletionObserved)
@@ -304,6 +300,11 @@ pub fn local_sort_normalization_entry_rule_at(
     value.entries.get(index) is Some(entry) else {
     return None
   }
+  local_sort_entry_rule(entry)
+}
+
+///|
+fn local_sort_entry_rule(entry : LocalSortNormalizationEntry) -> String? {
   Some(
     match entry.order {
       Some(_) => "sort.candidate_key_completion"
@@ -378,5 +379,5 @@ pub fn local_sort_normalization_inventory_uses_join(
 pub fn local_sort_normalization_inventory_uses_decimal_sum(
   inventory : LocalSortNormalizationInventory,
 ) -> Bool {
-  inventory.owner.local_completion_free_audit is DecimalSumAudit(_)
+  local_legacy_audit(inventory.owner) is DecimalSumAudit(_)
 }
