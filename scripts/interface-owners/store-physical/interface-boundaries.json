@@ -4598,7 +4598,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "8c6617b084547cf9500d7b36ec2dbf62023ae662c8778d9236c45af2e2f0415d",
+      "sha256": "c9ca8af362fc5856a19441dd873369b2f66841575ec102af78cf336c2a815967",
       "exports": [
         "PublicationStoreError",
         "assertOriginalLocalPublicationStoreFacilityCurrent",
@@ -8632,6 +8632,10 @@
               {
                 "path": "docs/design/result-description.md",
                 "anchor": "The Effect evidence inspection returns its verified Binding facts to the same"
+              },
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "Typed publication evidence selects that same representation before the commit's"
               }
             ],
             "inputsOutputs": [
@@ -8680,6 +8684,10 @@
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "verifiedBindings = inspected.verifiedBindings;"
+              },
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "const readOriginal = (cid, includeNative = cid !== admitted.identity) => {"
               }
             ],
             "ownership": [
@@ -8890,6 +8898,10 @@
               {
                 "path": "adapters/host-common/publication-contract-control.test.mjs",
                 "anchor": "assert.deepEqual(effectfulBindingPayloadReads,"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "assert.deepEqual(probes, [], 'typed commit evidence selects its representation before generic inventory');"
               }
             ]
           }
