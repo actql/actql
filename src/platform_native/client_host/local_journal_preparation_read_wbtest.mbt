@@ -174,6 +174,12 @@ test "finishing a captured scope fences new work without acknowledging original 
 test "prepared read refuses a missing pair and retires inactive routing without opening" {
   let capture = journal_capture_fixture("read-unopened-routing")
   let session = capture.original_session()
+  // The existing-only fixture already owns a seeded Journal. Refusal must
+  // preserve that original; it cannot make an existing file disappear.
+  let database_original = session.root
+    .inspect_generation("client.sqlite3")
+    .unwrap()
+  assert_true(database_original is Some(_))
   let library = capture.library.unwrap()
   let runtime = local_runtime_empty(None)
   let routing = prepare_native_local_run_observation_store_operation(
@@ -189,7 +195,10 @@ test "prepared read refuses a missing pair and retires inactive routing without 
   assert_true(capture.original_host() is None)
   assert_true(capture.original_failure() is None)
   assert_eq(capture.check_current().issue_family(), 1)
-  assert_eq(session.root.inspect_generation("client.sqlite3").unwrap(), None)
+  assert_eq(
+    session.root.inspect_generation("client.sqlite3").unwrap(),
+    database_original,
+  )
   routing.close_checked().unwrap()
   assert_false(session.closed)
   adoption_open_require_locked(session.parent)
