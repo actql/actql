@@ -297,6 +297,21 @@ resource limits. A shared module/runtime cache does not become a Host child
 that must be unloaded before close. A new Host cannot reset a retained Run's
 budget, request identity, send state or adoption history.
 
+The final installed Check Environment and query-name publication retain their
+pure Common preparation for that Host's lifetime. Declaration admission and
+catalog/index construction happen once for those same immutable originals,
+not again for each query. Source and JSON Effect preparation share that original;
+a changed or request-specific Environment receives its own preparation rather
+than borrowing the base installation's facts. Query inputs, work limits,
+current permissions, target selection and durable Run transitions remain separate.
+
+The existing Host slot binds the original runtime namespace, Environment and
+publication to that same Host. Use checks only its local identity and closing
+state; it does not repeat catalog admission or Account evaluation. Final Host
+retirement cuts its private publication association and aliases after the existing
+child shutdown duties, including partial-failure retries. It does not invalidate
+other holders of the pure immutable Environment or manufacture a physical ACK.
+
 The existing Host and Resource Owners acquire actual buffers, files, database
 connections and selected workers. They bind each operation to its checked Run,
 limits and current permissions, without claiming that a declared byte total
