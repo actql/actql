@@ -3566,8 +3566,9 @@ async function openOriginalLocalPublicationStore(
     if (schemaCid !== binding.result_schema_cid) {
       fail('PublicationDurableBindingMismatch');
     }
+    const schemaWire = schemaBytes.toString('utf8');
     let schema;
-    try { schema = JSON.parse(schemaBytes.toString('utf8')); }
+    try { schema = JSON.parse(schemaWire); }
     catch (error) { fail('PublicationDurableBindingMismatch', error); }
     if (schema === null || typeof schema !== 'object' ||
         Array.isArray(schema) || !Array.isArray(binding.result_fields) ||
@@ -3582,7 +3583,7 @@ async function openOriginalLocalPublicationStore(
       physical,
       schema: Object.freeze({
         cid: schemaCid,
-        wire: schemaBytes.toString('utf8'),
+        wire: schemaWire,
       }),
     });
   };
