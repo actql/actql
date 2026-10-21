@@ -5,11 +5,14 @@
 fn NativeClientRunJournal::migrate_append_metadata_locked(
   self : NativeClientRunJournal,
   max_inspect_rows : Int64,
+  authority : NativeClientEpochAuthority,
+  scope : String,
   operations? : NativeClientJournalOperationAccess? = None,
 ) -> Result[Unit, NativeClientRunJournalIssue] {
   if !self.transaction_active ||
     max_inspect_rows < 1L ||
-    max_inspect_rows > 536870912L {
+    max_inspect_rows > 536870912L ||
+    !physical_equal(self.database, authority.database) {
     return Err(CustodyLost)
   }
   let reads = operations.map(value => value.reads)
@@ -45,13 +48,30 @@ fn NativeClientRunJournal::migrate_append_metadata_locked(
       Ok(None) => return Err(CustodyLost)
       Err(issue) => return Err(issue)
     }
-    return @host.client_submitted_journal_usage(
-        usage,
-        submitted.0,
-        self.max_records,
-      )
-      .map(_ => ())
-      .map_err(_ => CustodyLost)
+    match
+      @host.client_submitted_journal_usage(usage, submitted.0, self.max_records) {
+      Ok(_) => ()
+      Err(_) => return Err(CustodyLost)
+    }
+    // A complete scope-local locator needs no second inventory on repeated
+    // maintenance. Missing coverage is not interpreted as target absence.
+    match self.run_id_absence_locked(scope, submitted, reads~) {
+      Ok(_) => return Ok(())
+      Err(RunIdIndexIncomplete) => ()
+      Err(issue) => return Err(issue)
+    }
+    let (_, issuance, originals) = match
+      self.collect_legacy_append_usage_locked(operations~) {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
+    }
+    return self.index_admitted_run_ids_locked(
+      authority,
+      scope,
+      issuance,
+      originals,
+      operations~,
+    )
   }
   if self.append_schema != 0 {
     return Err(CustodyLost)
@@ -68,7 +88,8 @@ fn NativeClientRunJournal::migrate_append_metadata_locked(
     Ok(_) => return Err(CustodyLost)
     Err(issue) => return Err(Physical(issue))
   }
-  let usage = match self.collect_legacy_append_usage_locked(operations~) {
+  let (usage, issuance, originals) = match
+    self.collect_legacy_append_usage_locked(operations~) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
@@ -81,15 +102,24 @@ fn NativeClientRunJournal::migrate_append_metadata_locked(
     Ok(_) => ()
     Err(issue) => return Err(Physical(issue))
   }
-  insert_client_journal_value(
-    self.database,
-    "client_submitted_intent_usage",
-    "retained",
-    usage,
-    operations,
+  match
+    insert_client_journal_value(
+      self.database,
+      "client_submitted_intent_usage",
+      "retained",
+      usage,
+      operations,
+    ) {
+    Ok(_) => ()
+    Err(issue) => return Err(Physical(issue))
+  }
+  self.index_admitted_run_ids_locked(
+    authority,
+    scope,
+    issuance,
+    originals,
+    operations~,
   )
-  .map(_ => ())
-  .map_err(issue => Physical(issue))
 }
 
 ///|
@@ -102,7 +132,11 @@ pub fn NativeLocalHostConnection::migrate_journal_append_metadata(
   connection : String,
   max_inspect_rows : Int64,
 ) -> Result[Unit, NativeClientRunJournalIssue] {
-  guard self.authorize({
+  let material = match self.adopted_current_material() {
+    Ok(value) => value
+    Err(_) => return Err(AuthorizationDenied)
+  }
+  guard @host.client_local_adopted_account_outcome(material, self.database, {
       principal,
       connection,
       resource: "run",
@@ -111,8 +145,26 @@ pub fn NativeLocalHostConnection::migrate_journal_append_metadata(
     is Ok(Allow(_)) else {
     return Err(AuthorizationDenied)
   }
+  let body = match
+    @host.client_local_adopted_authority_scope_body(
+      material,
+      self.database,
+      principal,
+      connection,
+    ) {
+    Ok(value) => value
+    Err(_) => return Err(AuthorizationDenied)
+  }
+  let scope = match local_adoption_digest(self.epoch.crypto, body) {
+    Ok(value) => value
+    Err(_) => return Err(AuthorizationDenied)
+  }
   let result = self.journal.transaction(() => {
-    self.journal.migrate_append_metadata_locked(max_inspect_rows)
+    self.journal.migrate_append_metadata_locked(
+      max_inspect_rows,
+      self.epoch,
+      scope,
+    )
   })
   if result is Ok(_) {
     // Only the actual original COMMIT ACK publishes the new format fact.
@@ -148,10 +200,17 @@ pub fn NativeLocalJournalCapture::migrate_journal_append_metadata_in_original_re
     if !allowed {
       return Ok(Err(AuthorizationDenied))
     }
+    let scope = match
+      self.operation_scope(host, material, principal, connection) {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
+    }
     let result = host.journal.transaction_with_reads(
       () => {
         host.journal.migrate_append_metadata_locked(
           self.max_snapshot_bytes,
+          host.epoch,
+          scope,
           operations=Some(operations),
         )
       },

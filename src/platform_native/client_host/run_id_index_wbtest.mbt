@@ -141,7 +141,9 @@ test "legacy arbitrary Run ID indexing is explicit and preserves its existing or
     is Err(RunIdIndexIncomplete),
   )
   journal
-  .transaction(() => journal.index_legacy_run_ids_locked(authority, scope))
+  .transaction(() => {
+    journal.migrate_append_metadata_locked(1024L, authority, scope)
+  })
   .unwrap()
   let selected = journal
     .transaction(() => {

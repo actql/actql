@@ -2453,7 +2453,10 @@ bounded original inventory under current RunRead and installs the constraint
 and usage in the same captured Read/SQL transaction. The existing inspection
 byte bound also caps the schema installation's row work conservatively: each
 stored row occupies at least one byte. This work cap is not capacity, fit or
-permission evidence. Already admitted Runs are reused for Submission checks.
+permission evidence. Already admitted Runs are reused for Submission checks and scope-local saved
+Run-ID/reference locators. The same maintenance route completes legacy
+arbitrary-ID coverage; missing coverage on an ordinary lookup remains
+migration-required, never false absence or resend permission.
 
 The actual UNIQUE-index schema distinguishes the legacy format from usage
 metadata deleted after adoption. An indexed installation with missing or

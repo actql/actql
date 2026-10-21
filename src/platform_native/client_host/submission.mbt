@@ -196,6 +196,10 @@ fn NativeClientRunJournal::submitted_intent_custody(
   self : NativeClientRunJournal,
   reads? : NativeClientJournalReadAccess? = None,
   runs? : Map[String, NativeClientRunRecord]? = None,
+  observe? : ((@host.ClientSubmittedJournalEncoding) -> Result[
+    Unit,
+    NativeClientRunJournalIssue,
+  ])? = None,
 ) -> Result[(Int, Int64, Int64), NativeClientRunJournalIssue] {
   @host.inspect_client_submitted_journal_inventory(
     self.max_records,
@@ -205,7 +209,20 @@ fn NativeClientRunJournal::submitted_intent_custody(
     (table_name, key) => {
       client_journal_read(self.database, table_name, key, reads~)
     },
-    row => self.inspect_submitted_intent_row(row, reads~, runs~),
+    row => {
+      let original = match
+        self.inspect_submitted_intent_row(row, reads~, runs~) {
+        Ok(value) => value
+        Err(issue) => return Err(issue)
+      }
+      if observe is Some(visit) {
+        match visit(original) {
+          Ok(_) => ()
+          Err(issue) => return Err(issue)
+        }
+      }
+      Ok(original)
+    },
     CustodyLost,
   )
 }

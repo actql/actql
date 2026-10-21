@@ -3,7 +3,14 @@
 fn NativeClientRunJournal::collect_legacy_append_usage_locked(
   self : NativeClientRunJournal,
   operations? : NativeClientJournalOperationAccess? = None,
-) -> Result[Bytes, NativeClientRunJournalIssue] {
+) -> Result[
+  (
+    Bytes,
+    (Int, Int64),
+    Array[(NativeClientSubmissionReference, NativeClientRunRecord)],
+  ),
+  NativeClientRunJournalIssue,
+] {
   if !self.transaction_active {
     return Err(CustodyLost)
   }
@@ -28,8 +35,26 @@ fn NativeClientRunJournal::collect_legacy_append_usage_locked(
   if run_count.to_int64() != run_revision {
     return Err(CustodyLost)
   }
+  let references : Array[
+    (NativeClientSubmissionReference, NativeClientRunRecord),
+  ] = []
   let (count, bytes, revision) = match
-    self.submitted_intent_custody(reads~, runs=Some(runs)) {
+    self.submitted_intent_custody(
+      reads~,
+      runs=Some(runs),
+      observe=Some(original => {
+        if original.run_admission is Some((request, _, _)) {
+          let run = match runs.get(@host.client_request_scope_cid(request)) {
+            Some(value) => value
+            None => return Err(CustodyLost)
+          }
+          references.push(
+            (native_submission_reference_record(original.reference), run),
+          )
+        }
+        Ok(())
+      }),
+    ) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
@@ -41,5 +66,5 @@ fn NativeClientRunJournal::collect_legacy_append_usage_locked(
     Ok(value) => value
     Err(_) => return Err(CustodyLost)
   }
-  Ok(body)
+  Ok((body, (count, revision), references))
 }

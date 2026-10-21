@@ -406,7 +406,8 @@ After upgrading an older Local installation, run
 Run. The command requires the installation's current Run-read permission and
 uses its existing Account, Journal, key and exclusion. It preserves original
 Runs and Results while installing bounded append quota metadata and the native
-definition uniqueness constraint atomically. It does not initialize signing, renew grants, issue an
+definition uniqueness constraint atomically. It also indexes the admitted
+original Run IDs for saved reads; it does not restrict IDs to CLI defaults. It does not initialize signing, renew grants, issue an
 epoch or execute a Program. Existing project and Local configuration selection
 still apply.
 

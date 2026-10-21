@@ -42,6 +42,9 @@ fn NativeClientRunJournal::index_run_id_locked(
       if original.body == b"ambiguous" {
         return Ok(())
       }
+      if original.body == body {
+        return Ok(())
+      }
       let original_reference = match
         read_run_id_index_reference(original.body) {
         Ok(value) => value
@@ -58,9 +61,6 @@ fn NativeClientRunJournal::index_run_id_locked(
         Ok(Some(_)) => ()
         Ok(None) => return Err(CustodyLost)
         Err(issue) => return Err(issue)
-      }
-      if original.body == body {
-        return Ok(())
       }
       // Preserve the former ambiguous-ID refusal without forbidding a second
       // otherwise valid admission. No ordinary lookup chooses the first row.
@@ -127,60 +127,28 @@ fn NativeClientRunJournal::run_id_original_locked(
 }
 
 ///|
-// Explicit bounded compatibility indexing, outside ordinary open/read. It
-// authenticates existing originals; it never creates a Submission/Run, repairs
-// missing custody, renews an epoch or permits a resend. The caller owns current
-// authorization and the original Journal transaction/COMMIT Unknown handling.
-fn NativeClientRunJournal::index_legacy_run_ids_locked(
+// The explicit migration supplies only originals admitted in its one bounded
+// inventory. The caller owns current RunRead and the same transaction.
+fn NativeClientRunJournal::index_admitted_run_ids_locked(
   self : NativeClientRunJournal,
   authority : NativeClientEpochAuthority,
   scope : String,
+  issuance : (Int, Int64),
+  originals : Array[(NativeClientSubmissionReference, NativeClientRunRecord)],
   operations? : NativeClientJournalOperationAccess? = None,
 ) -> Result[Unit, NativeClientRunJournalIssue] {
-  if !self.transaction_active {
+  if !self.transaction_active ||
+    !physical_equal(self.database, authority.database) {
     return Err(CustodyLost)
   }
   let reads = operations.map(value => value.reads)
-  let mut cursor = ""
-  let mut count = 0
-  while true {
-    let row = match
-      scan_client_journal_value(
-        self.database,
-        "client_submitted_intents",
-        cursor,
-        reads,
-      ) {
-      Ok(value) => value
-      Err(@sqlite.NotFound) => break
-      Err(issue) => return Err(Physical(issue))
-    }
-    count += 1
-    if count > self.max_records || row.key <= cursor {
-      return Err(CustodyLost)
-    }
-    cursor = row.key
-    let decoded = match
-      self.inspect_submitted_intent_row(
-        { key: row.key, body: row.body, revision: row.revision, },
-        reads~,
-      ) {
-      Ok(value) => value
-      Err(issue) => return Err(issue)
-    }
-    guard decoded.run_admission is Some((request, _, _)) else { continue }
-    if @host.client_request_authority_scope_cid(request) != scope {
+  for (reference, run) in originals {
+    if @host.client_request_authority_scope_cid(run.request) != scope {
       continue
     }
-    let reference = native_submission_reference_record(decoded.reference)
     match
       self.verify_submission_locked(authority, reference, scope, true, reads~) {
       Ok(_) => ()
-      Err(issue) => return Err(issue)
-    }
-    let run = match self.retained(request, reads~) {
-      Ok(Some(value)) => value
-      Ok(None) => return Err(CustodyLost)
       Err(issue) => return Err(issue)
     }
     match self.index_run_id_locked(authority, reference, run, operations~) {
@@ -197,21 +165,6 @@ fn NativeClientRunJournal::index_legacy_run_ids_locked(
       Ok(_) => ()
       Err(issue) => return Err(issue)
     }
-  }
-  // Completeness belongs to this exact issuance snapshot. Later admissions
-  // change its anchor, so a missing locator cannot become false absence.
-  let issuance = match
-    client_journal_issuance_anchor(
-      self.database,
-      "client_submitted_intent_custody",
-      self.max_records,
-      reads~,
-    ) {
-    Ok(value) => value
-    Err(issue) => return Err(issue)
-  }
-  if count != issuance.0 {
-    return Err(CustodyLost)
   }
   let body = @utf8.encode(issuance.0.to_string() + ":" + issuance.1.to_string())
   match
@@ -232,6 +185,7 @@ fn NativeClientRunJournal::index_legacy_run_ids_locked(
       .map(_ => ())
       .map_err(issue => Physical(issue))
     Err(issue) => Err(Physical(issue))
+    Ok(original) if original.body == body => Ok(())
     Ok(original) =>
       compare_exchange_client_journal_value(
         self.database,
@@ -277,47 +231,6 @@ fn NativeClientRunJournal::run_id_absence_locked(
     Ok(original) if original.body == expected => Ok(None)
     Ok(_) | Err(@sqlite.NotFound) => Err(RunIdIndexIncomplete)
     Err(issue) => Err(Physical(issue))
-  }
-}
-
-///|
-/// Explicit bounded compatibility indexing on this adopted Host. This does
-/// not run during ordinary open/lookup, initialize history, issue an epoch or
-/// permit execution. The same current RunRead and transaction must survive
-/// the entire indexing operation; COMMIT uncertainty retains its usual fence.
-pub fn NativeLocalHostConnection::index_saved_run_ids(
-  self : NativeLocalHostConnection,
-  crypto : @crypto.Library,
-  principal : String,
-  connection : String,
-) -> Result[Unit, NativeClientSavedRunStateIssue] {
-  let scope = match self.authority_scope_cid(principal, connection, crypto) {
-    Ok(value) => value
-    Err(_) => return Err(Journal(AuthorizationDenied))
-  }
-  let current = () => {
-    saved_run_selection_current(self, crypto, principal, connection, scope)
-  }
-  if !current() {
-    return Err(Journal(AuthorizationDenied))
-  }
-  let indexed = self.journal.transaction(() => {
-    if !current() {
-      return Err(AuthorizationDenied)
-    }
-    match self.journal.index_legacy_run_ids_locked(self.epoch, scope) {
-      Ok(_) => ()
-      Err(issue) => return Err(issue)
-    }
-    if !current() {
-      return Err(AuthorizationDenied)
-    }
-    Ok(())
-  })
-  match indexed {
-    Err(issue) => Err(Journal(issue))
-    Ok(_) if !current() => Err(Journal(AuthorizationDenied))
-    Ok(_) => Ok(())
   }
 }
 

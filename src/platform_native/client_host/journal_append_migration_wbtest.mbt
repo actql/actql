@@ -91,11 +91,27 @@ test "explicit legacy migration preserves arbitrary Run and permits the next new
   let issued = database
     .read("client_submitted_intent_custody", "issued")
     .unwrap()
+  let scope = "sha256:" + "a".repeat(64)
+  assert_true(
+    journal.transaction(() => {
+      journal.select_saved_state_run_id_locked(
+        authority, scope, "legacy-arbitrary-run",
+      )
+    })
+    is Err(RunIdIndexIncomplete),
+  )
   let calls : Array[String] = []
   let access = journal_test_operation_access(database, calls)
   journal
   .transaction_with_reads(
-    () => journal.migrate_append_metadata_locked(1024L, operations=Some(access)),
+    () => {
+      journal.migrate_append_metadata_locked(
+        1024L,
+        authority,
+        "sha256:" + "a".repeat(64),
+        operations=Some(access),
+      )
+    },
     reads=Some(access.reads),
   )
   .unwrap()
@@ -104,6 +120,15 @@ test "explicit legacy migration preserves arbitrary Run and permits the next new
   assert_eq(journal.append_schema, 0)
   assert_eq(database.client_run_definition_schema().unwrap(), 1)
   let journal = open_native_client_run_journal(database, 8).unwrap()
+  let selected = journal
+    .transaction(() => {
+      journal.select_saved_state_run_id_locked(
+        authority, scope, "legacy-arbitrary-run",
+      )
+    })
+    .unwrap()
+    .unwrap()
+  assert_eq(selected.0.wire, reference.wire)
   let same = database
     .read("client_submitted_intents", reference.request_id)
     .unwrap()
@@ -117,7 +142,14 @@ test "explicit legacy migration preserves arbitrary Run and permits the next new
   calls.clear()
   journal
   .transaction_with_reads(
-    () => journal.migrate_append_metadata_locked(1024L, operations=Some(access)),
+    () => {
+      journal.migrate_append_metadata_locked(
+        1024L,
+        authority,
+        "sha256:" + "a".repeat(64),
+        operations=Some(access),
+      )
+    },
     reads=Some(access.reads),
   )
   .unwrap()
@@ -169,7 +201,13 @@ test "indexed format never recreates deleted usage metadata" {
     "append-deleted-usage",
   )
   journal
-  .transaction(() => journal.migrate_append_metadata_locked(1024L))
+  .transaction(() => {
+    journal.migrate_append_metadata_locked(
+      1024L,
+      authority,
+      "sha256:" + "a".repeat(64),
+    )
+  })
   .unwrap()
   let journal = open_native_client_run_journal(database, 8).unwrap()
   let row = database.read("client_submitted_intent_usage", "retained").unwrap()
@@ -182,7 +220,13 @@ test "indexed format never recreates deleted usage metadata" {
   )
   .unwrap()
   assert_true(
-    journal.transaction(() => journal.migrate_append_metadata_locked(1024L))
+    journal.transaction(() => {
+      journal.migrate_append_metadata_locked(
+        1024L,
+        authority,
+        "sha256:" + "a".repeat(64),
+      )
+    })
     is Err(CustodyLost),
   )
   assert_true(
@@ -207,7 +251,12 @@ test "legacy migration index refusal rolls back all new metadata" {
   assert_true(
     journal.transaction_with_reads(
       () => {
-        journal.migrate_append_metadata_locked(1024L, operations=Some(access))
+        journal.migrate_append_metadata_locked(
+          1024L,
+          authority,
+          "sha256:" + "a".repeat(64),
+          operations=Some(access),
+        )
       },
       reads=Some(access.reads),
     )
@@ -235,13 +284,25 @@ test "legacy migration commit loss retains Unknown without publishing a format f
   )
   submitted_test_fail_commit_after(database, 0, true)
   assert_true(
-    journal.transaction(() => journal.migrate_append_metadata_locked(1024L))
+    journal.transaction(() => {
+      journal.migrate_append_metadata_locked(
+        1024L,
+        authority,
+        "sha256:" + "a".repeat(64),
+      )
+    })
     is Err(TransactionUnknown),
   )
   assert_eq(journal.append_schema, 0)
   assert_true(database.transaction_fenced())
   assert_true(
-    journal.transaction(() => journal.migrate_append_metadata_locked(1024L))
+    journal.transaction(() => {
+      journal.migrate_append_metadata_locked(
+        1024L,
+        authority,
+        "sha256:" + "a".repeat(64),
+      )
+    })
     is Err(Fenced),
   )
   database.close_checked().unwrap()
