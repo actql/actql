@@ -768,6 +768,7 @@ test('publication inventory still acquires additional untyped originals and refu
         await assert.rejects(commit, code('PublicationContractMissing'));
         assert.equal(await store.inspectCommittedIndex(indexKeyFor(request)), undefined);
         assert.equal((await store.latestRecord(attempt.publication_attempt_cid)).state, 'committing');
+        assert.equal(await prepared.prepared.release(), true);
       } else {
         assert.equal((await commit).committed, true);
         assert.equal((await store.readSemanticBytes(extraCid)).toString('utf8'), extraWire);
