@@ -17,7 +17,7 @@ test "selection encoder matches independent identity corpus original preimage" {
   let actual = encode_client_effect_target_selections([selected]).unwrap()
   assert_eq(actual.wire, expected)
   assert_eq(
-    "sha256:" + @sha.hex(@utf8.encode(actual.wire)),
+    client_effect_target_selection_cid(actual),
     "sha256:312e3ae46daa9cf148a228e668726d8f251e1f0035c796c882a51d76f3ba22db",
   )
   assert_true(encode_client_effect_target_selections([]) is Err(Limit))
@@ -491,4 +491,40 @@ test "held original selection restores only the independently pinned compiled pl
       )
     }
   }
+}
+
+///|
+test "selection identity stays attached to its admitted original across Run bindings" {
+  let (owner, allowed, definition, _) = target_selection_fixture()
+  let selection = client_effect_target_selection_original(owner)[0]
+  let expected = "sha256:" + @sha.hex(@utf8.encode(selection.wire))
+  assert_eq(selection.cid, expected)
+  for _ in 0..<3 {
+    assert_eq(client_effect_target_selection_cid(selection), expected)
+    assert_eq(client_effect_target_selections_cid(owner), Some(expected))
+    assert_true(
+      bind_client_effect_compiled_run(owner, allowed, definition) is Ok(_),
+    )
+  }
+  let restored = admit_client_effect_target_selections(
+    owner.candidate,
+    selection.wire,
+  ).unwrap()
+  assert_eq(restored.cid, expected)
+  assert_false(client_effect_target_selection_matches_prepared(restored, owner))
+  let (foreign, _, foreign_definition, _) = target_selection_fixture(
+    owner_cid="sha256:" + "7".repeat(64),
+  )
+  assert_true(client_effect_target_selections_cid(foreign) != Some(expected))
+  assert_true(
+    bind_client_effect_compiled_run(owner, allowed, foreign_definition)
+    is Err(_),
+  )
+  assert_false(
+    client_effect_run_start_current(
+      allowed, definition, "2026-10-10T00:00:00.000Z",
+    ),
+  )
+  let (legacy, _, _, _) = target_selection_fixture(published=false)
+  assert_eq(client_effect_target_selections_cid(legacy), None)
 }

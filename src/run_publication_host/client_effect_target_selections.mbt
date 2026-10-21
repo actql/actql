@@ -29,6 +29,7 @@ priv struct ClientEffectUpdateTargetSelection {
 /// Retained by the existing checked preparation, never an execution permit.
 pub struct ClientEffectUpdateTargetSelections {
   wire : String
+  cid : String
 }
 
 ///|
@@ -88,7 +89,9 @@ fn encode_client_effect_target_selections(
   } catch {
     _ => return Err(Encoding)
   }
-  Ok({ wire, })
+  // Seal this immutable selection once; Run and current-use checks stay at
+  // their original admission and execution boundaries.
+  Ok({ wire, cid: "sha256:" + @sha.hex(@utf8.encode(wire)), })
 }
 
 ///|
@@ -364,7 +367,7 @@ pub fn client_effect_target_selection_wire(
 pub fn client_effect_target_selection_cid(
   original : ClientEffectUpdateTargetSelections,
 ) -> String {
-  "sha256:" + @sha.hex(@utf8.encode(original.wire))
+  original.cid
 }
 
 ///|
@@ -382,9 +385,7 @@ pub fn client_effect_target_selection_matches_prepared(
 fn client_effect_target_selections_cid(
   prepared : PreparedClientEffectComputation,
 ) -> String? {
-  prepared.target_selections.map(value => {
-    "sha256:" + @sha.hex(@utf8.encode(value.wire))
-  })
+  prepared.target_selections.map(value => value.cid)
 }
 
 ///|
