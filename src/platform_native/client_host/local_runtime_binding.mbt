@@ -86,6 +86,92 @@ priv struct NativeLocalRuntimeBindingAccess {
 }
 
 ///|
+// Only the three closed Runtime binding callers use this synchronous frame.
+// Retain one exact principal/connection projection and at most the three
+// constructor selections, not an Allow shared with another operation. Every
+// getter still observes original lifetime; the caller owns its full entry and
+// return fences. Cutting these references is not a physical cleanup ACK.
+fn[T] with_local_runtime_binding_frame(
+  source : NativeLocalRuntimeBindingAccess,
+  current : () -> Bool,
+  operation : (NativeLocalRuntimeBindingAccess) -> T,
+) -> T {
+  let active = Ref(true)
+  let scope : Ref[(String, String, Result[String, NativeLocalAdoptionIssue])?] = Ref(
+    None,
+  )
+  // The existing port has the fixed resource=run, operation=read purpose.
+  let read : Ref[(String, String, Bool)?] = Ref(None)
+  let selected : Array[
+    (String, Result[NativeLocalSelectedFile, NativeClientRunJournalIssue]),
+  ] = []
+  let clear = () => {
+    scope.val = None
+    read.val = None
+    selected.clear()
+  }
+  let live = () => {
+    if active.val && current() {
+      true
+    } else {
+      active.val = false
+      clear()
+      false
+    }
+  }
+  let access : NativeLocalRuntimeBindingAccess = {
+    scope: (principal, connection) => {
+      if !live() {
+        return Err(CustodyLost)
+      }
+      if scope.val is Some((original_principal, original_connection, value)) &&
+        principal == original_principal &&
+        connection == original_connection {
+        return value
+      }
+      let value = (source.scope)(principal, connection)
+      scope.val = Some((principal, connection, value))
+      value
+    },
+    read_allowed: (principal, connection) => {
+      if !live() {
+        return false
+      }
+      if read.val is Some((original_principal, original_connection, value)) &&
+        principal == original_principal &&
+        connection == original_connection {
+        return value
+      }
+      let value = (source.read_allowed)(principal, connection)
+      read.val = Some((principal, connection, value))
+      value
+    },
+    selected: name => {
+      if !live() {
+        return Err(CustodyLost)
+      }
+      for (original_name, value) in selected {
+        if name == original_name {
+          return value
+        }
+      }
+      let value = (source.selected)(name)
+      // The actual Runtime constructor names exactly three files. Do not
+      // impose a new name restriction if a future caller asks for another;
+      // simply avoid retaining additional selections in this frame.
+      if selected.length() < 3 {
+        selected.push((name, value))
+      }
+      value
+    },
+  }
+  let result = operation(access)
+  active.val = false
+  clear()
+  result
+}
+
+///|
 fn native_local_runtime_binding_access(
   host : NativeLocalHostConnection,
 ) -> NativeLocalRuntimeBindingAccess {

@@ -58,7 +58,21 @@ fn[T] NativeLocalJournalCapture::with_runtime_binding_access(
             }
           },
         }
-        operation(host, access)
+        with_local_runtime_binding_frame(
+          access,
+          () => {
+            match self.check_original_read_lifetime() {
+              Ok(_) => true
+              Err(issue) => {
+                if self.read_operation_issue is None {
+                  self.read_operation_issue = Some(issue)
+                }
+                false
+              }
+            }
+          },
+          retained => operation(host, retained),
+        )
       },
       reads=Some(operations.reads),
     )
