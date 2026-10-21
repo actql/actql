@@ -45,17 +45,12 @@ fn NativeLocalRunPolicyBinding::current_in_original_read(
     }
     for operation in operations {
       match
-        capture.operation_account(
-          host,
-          material,
-          {
-            principal: self.principal,
-            connection: self.connection,
-            resource: "run",
-            operation,
-          },
-          target=request.map(value => @host.client_request_scope_cid(value)),
-        ) {
+        capture.operation_account(host, material, {
+          principal: self.principal,
+          connection: self.connection,
+          resource: "run",
+          operation,
+        }) {
         Ok(@authorization.Allow(_)) => ()
         Ok(_) => return Err(Journal(AuthorizationDenied))
         Err(issue) => return Err(issue)
