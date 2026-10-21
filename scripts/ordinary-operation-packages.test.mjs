@@ -145,6 +145,8 @@ test('controlled performance check consumes existing artifacts and cannot omit f
     'package-artifact-id': '${{ inputs.performance_package_artifact_id }}',
   });
   assert.ok(ci.jobs.lint.steps.some(s => s.run === 'node --test scripts/ordinary-operation-packages.test.mjs'));
+  assert.equal(ci.jobs.lint.steps.find(s => s.name === 'Test ordinary operation performance assessment').run,
+    'node --test scripts/operation-performance.test.mjs scripts/benchmark-node-operations.test.mjs scripts/operation-performance-policy.test.mjs scripts/benchmark-node-process-operations.test.mjs');
   const job = workflow.jobs['ordinary-operations'];
   assert.equal(job.permissions.actions, 'read');
   const inspect = job.steps.findIndex(s => s.name === 'Validate the original normal package producer');
@@ -192,7 +194,8 @@ async function reports(t) {
     const directory = join(root, 'measurement', family); await mkdir(directory, {recursive: true});
     const latency = operations.map(operation => ({operation, mode: 'final', ...binding, samples: []}));
     const report = {sourceSha: sha, mode: 'final', ...binding, latency,
-      functional: {...binding, rows: []}, cleanup: {synthetic: true}};
+      functional: {...binding, rows: []}, installedPayloadsUnchanged: true,
+      cleanup: family === 'warm' ? {closed: true} : {allChildrenExited: true, allOriginalClientsClosed: true}};
     for (const series of latency) series.samples.push({iteration: 0, wallNs: 1, synthetic: true});
     const save = async () => {
       await writeFile(join(directory, 'measurements.json'), JSON.stringify(report));
@@ -241,5 +244,35 @@ test('foreign identities and missing or changed raw measurements refuse aggregat
       const result = spawnSync(process.execPath, [script, 'combine', p.root], {encoding: 'utf8'});
       assert.equal(result.status, 1); assert.match(result.stderr, /ENOENT/u);
     }
+  }
+});
+
+test('successful samples cannot hide failed or unfinished original cleanup and package verification', async t => {
+  const valid = await reports(t);
+  await valid.add('warm', ['warm-select']);
+  assert.equal(JSON.parse(await readFile(await combineOrdinaryPerformanceMeasurements(valid.root))).latency.length, 1);
+  for (const [family, mutate] of [
+    ['warm', r => {r.cleanup.closed = false;}],
+    ['warm', r => {delete r.cleanup.closed;}],
+    ['warm', r => {r.cleanup.failure = {message: 'close failed'};}],
+    ['warm', r => {r.firstFailure = {message: 'original operation failed'};}],
+    ['warm', r => {r.packageFailure = 'changed installed payload';}],
+    ['warm', r => {r.installedPayloadsUnchanged = false;}],
+    ['warm', r => {delete r.installedPayloadsUnchanged;}],
+    ['cold-existing', r => {r.cleanup.allChildrenExited = false;}],
+    ['first-init', r => {delete r.cleanup.allOriginalClientsClosed;}],
+  ]) {
+    const p = await reports(t), original = await p.add(family, [family === 'warm' ? 'warm-select' : family]);
+    original.report.latency[0].samples[0].completed = true;
+    original.report.latency[0].samples[0].verified = true;
+    original.report.functional.rows.push({operation: original.report.latency[0].operation, completed: true,
+      expectedSha256: 'c'.repeat(64), actualSha256: 'c'.repeat(64)});
+    mutate(original.report); await original.save();
+    const reportBefore = await readFile(join(original.directory, 'measurements.json'));
+    const rawBefore = await readFile(join(original.directory, 'samples.jsonl'));
+    await assert.rejects(combineOrdinaryPerformanceMeasurements(p.root), /Collector|Original/u);
+    await assert.rejects(readFile(join(p.root, 'measurements.json')), {code: 'ENOENT'});
+    assert.deepEqual(await readFile(join(original.directory, 'measurements.json')), reportBefore);
+    assert.deepEqual(await readFile(join(original.directory, 'samples.jsonl')), rawBefore);
   }
 });

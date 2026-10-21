@@ -137,6 +137,15 @@ export async function combineOrdinaryPerformanceMeasurements(root) {
       assert.equal(report.functional[key], value, `Functional ${key} differs`);
     }
     assert.equal(report.mode, 'final');
+    assert(report.firstFailure == null && report.packageFailure == null,
+      'Collector recorded a public operation or package failure');
+    assert.equal(report.installedPayloadsUnchanged, true, 'Collector package verification did not complete');
+    assert(report.cleanup && report.cleanup.failure == null, 'Collector cleanup failed or is missing');
+    if (family === 'warm') assert.equal(report.cleanup.closed, true, 'Original warm Client was not closed');
+    else {
+      assert.equal(report.cleanup.allChildrenExited, true, 'Original child processes did not exit');
+      assert.equal(report.cleanup.allOriginalClientsClosed, true, 'Original child Clients were not closed');
+    }
     const seen = new Set();
     for (const series of report.latency) {
       assert(operations.includes(series.operation) && !seen.has(series.operation), 'Foreign or duplicate operation');
