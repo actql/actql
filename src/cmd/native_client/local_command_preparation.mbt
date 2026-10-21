@@ -723,6 +723,16 @@ fn LocalCommandPreparationOriginal::close_checked(
     if self.journal_read_open {
       return Err(CommandUnavailable)
     }
+    if self.journal is Some(journal) && journal.original_host() is None {
+      // Inactive routing metadata can exist before the first Journal open.
+      // A failed open may retain its own Read/SQL return; finish that original
+      // flight before closing metadata allocated outside the entered domains.
+      command_preparation_value(
+        journal
+        .finish_pending_original_scope()
+        .map_err(issue => CommandAdoption(issue)),
+      )
+    }
     self.cleanup_stage = "run-observation"
     command_preparation_value(self.close_run_observation())
     self.cleanup_stage = "business-children"
@@ -991,8 +1001,13 @@ fn LocalCommandPreparationOriginal::read_command(
   })
   match executed {
     Err(issue) => {
-      self.retain_primary(CommandAdoption(issue))
-      Err(CommandAdoption(issue))
+      let primary = match journal.original_failure() {
+        Some(original) =>
+          CommandJournal(@local_host.JournalAdoption(original.issue()))
+        None => CommandAdoption(issue)
+      }
+      self.retain_primary(primary)
+      Err(primary)
     }
     Ok(_) =>
       match self.reply_outcome {
@@ -1179,14 +1194,14 @@ fn LocalCommandPreparationOriginal::prepare_adoption(
 }
 
 ///|
-// Retain the same Journal before its first Read/SQL exchange. Material is
+// Prepare the same Journal before its first Read/SQL exchange. Material is
 // generated only by the same explicitly eligible original Session, never by
 // restoring a path or reissuing a key after failure/Unknown.
-fn LocalCommandPreparationOriginal::open_adopted_journal(
+fn LocalCommandPreparationOriginal::prepare_adopted_journal(
   self : LocalCommandPreparationOriginal,
   initialize_signing : Bool,
   options : LocalInitialSigningAdoptionOptions,
-) -> Result[@local_host.NativeLocalHostConnection, LocalCommandPreparationIssue] {
+) -> Result[Unit, LocalCommandPreparationIssue] {
   if !self.phase_open ||
     self.closing ||
     self.closed ||
@@ -1248,16 +1263,11 @@ fn LocalCommandPreparationOriginal::open_adopted_journal(
     }
     self.journal = Some(journal)
     command_preparation_value(self.leave())
-    if journal.open().issue() is Some(issue) {
-      self.retain_primary(CommandJournal(issue))
-      return Err(CommandJournal(issue))
-    }
-    let original = match journal.original_host() {
-      Some(original) => original
-      None => return Err(CommandUnavailable)
-    }
+    // Routing preparation performs no activation, Store IO or Host admission.
+    // Keep it outside the Read; read_command opens and enters the original
+    // Journal in one closed call without a second configuration observation.
     command_preparation_value(self.prepare_business_operation())
-    Ok(original)
+    Ok(())
   } catch {
     LocalCommandPreparationStop(issue) => {
       self.retain_primary(issue)

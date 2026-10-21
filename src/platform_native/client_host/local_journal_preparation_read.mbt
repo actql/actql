@@ -1,5 +1,8 @@
 ///|
-// One entered preparation inside the same acquired Journal's original Read.
+// One entered preparation inside the same Journal's original Read. A prepared
+// same-pair capture opens inside this call, so trusted opening and command work
+// share one source observation. An already-open capture observes current state
+// afresh at this public entry; cached open success never selects that shortcut.
 // The callback is not an authority, admission receipt or cleanup ACK. Its
 // caller retains its own output/primary in an out-slot before returning.
 pub fn[T] NativeLocalJournalCapture::with_original_read(
@@ -13,24 +16,34 @@ pub fn[T] NativeLocalJournalCapture::with_original_read(
       self.read_operation_issue.unwrap_or(OriginalResourceScopePending),
     )
   }
-  guard self.opening is JournalAcquired(host) &&
-    self.original_resources is Some(original) else {
+  guard self.original_resources is Some(original) else {
     return Err(InvalidInput)
   }
   if original.store_operation is Some(_) {
     return Err(OriginalResourceScopePending)
   }
+  let opened_here = self.opening is JournalNotAttempted
+  if opened_here {
+    match self.open().issue() {
+      None => ()
+      Some(JournalAdoption(issue)) => return Err(issue)
+      Some(_) => return Err(InvalidInput)
+    }
+  }
+  guard self.opening is JournalAcquired(host) else { return Err(InvalidInput) }
   self.clear_read_operation_facts()
   host.journal.admitted_publications.clear()
   host.journal.admitted_record = None
-  host.journal.admitted_adoption = None
-  native_timing_count(32)
-  match original.check_journal_current(host) {
-    Err(issue) => {
-      self.read_operation_issue = Some(issue)
-      return Err(issue)
+  if !opened_here {
+    host.journal.admitted_adoption = None
+    native_timing_count(32)
+    match original.check_journal_current(host) {
+      Err(issue) => {
+        self.read_operation_issue = Some(issue)
+        return Err(issue)
+      }
+      Ok(_) => ()
     }
-    Ok(_) => ()
   }
   self.read_callback_active = true
   self.read_facts_valid = true

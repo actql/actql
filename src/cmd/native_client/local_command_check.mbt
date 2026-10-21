@@ -348,7 +348,7 @@ fn LocalCommandPreparationOriginal::execute_adopted_command(
       self.initial_product_selected
     )
   command_preparation_result(
-    self.open_adopted_journal(initialize_signing, {
+    self.prepare_adopted_journal(initialize_signing, {
       initialize_signing,
       ttl_ms: settings.ttl_ms,
       max_records: settings.record_limit,

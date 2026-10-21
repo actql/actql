@@ -80,6 +80,7 @@ fn NativeLocalAdoptionSession::bind_journal_sqlite_originals(
   max_records : Int,
   reads? : NativeClientJournalReadAccess? = None,
   bootstrap? : NativeClientJournalBootstrapAccess? = None,
+  opening_ownership? : @filesystem.NativeFileOwnership? = None,
 ) -> Result[
   (NativeClientEpochAuthority, NativeClientRunJournal),
   NativeLocalAdoptionIssue,
@@ -108,8 +109,9 @@ fn NativeLocalAdoptionSession::bind_journal_sqlite_originals(
       Err(issue) => return Err(issue)
     }
   }
-  match local_adoption_row(database, adoption_body, reads~) {
-    Ok(_) => ()
+  let adoption = match
+    local_adoption_original_row(database, adoption_body, reads~) {
+    Ok(value) => value
     Err(issue) => return Err(issue)
   }
   let epoch = match
@@ -140,6 +142,20 @@ fn NativeLocalAdoptionSession::bind_journal_sqlite_originals(
   match journal.inspect_submitted_name_control(epoch, reads~) {
     Ok(_) => ()
     Err(issue) => return Err(Journal(issue))
+  }
+  if opening_ownership is Some(ownership) {
+    // This is captured DATA from the actual opening, not an Allow. Only a
+    // command that opened inside its own read entry retains it; a later public
+    // read entry clears it before observing current state again.
+    journal.admitted_adoption = Some(
+      @host.Observed(
+        database,
+        self.configuration,
+        self.source_body,
+        { key: adoption.key, body: adoption.body, revision: adoption.revision, },
+        (ownership.device, ownership.inode),
+      ),
+    )
   }
   Ok((epoch, journal))
 }

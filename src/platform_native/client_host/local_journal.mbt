@@ -271,6 +271,17 @@ fn local_adoption_row(
   body : Bytes,
   reads? : NativeClientJournalReadAccess? = None,
 ) -> Result[Unit, NativeLocalAdoptionIssue] {
+  local_adoption_original_row(database, body, reads~).map(_ => ())
+}
+
+///|
+// Retain the actual admitted row for a closed opening/read operation instead
+// of selecting and comparing that unchanged original again in material binding.
+fn local_adoption_original_row(
+  database : @sqlite.Database,
+  body : Bytes,
+  reads? : NativeClientJournalReadAccess? = None,
+) -> Result[@sqlite.NativeJournalEntry, NativeLocalAdoptionIssue] {
   guard scan_client_journal_value(database, "client_local_adoption", "", reads)
     is Ok(first) &&
     first.key == "adoption" &&
@@ -282,7 +293,7 @@ fn local_adoption_row(
     is Err(@sqlite.NotFound) else {
     return Err(CustodyLost)
   }
-  Ok(())
+  Ok(first)
 }
 
 ///|

@@ -330,6 +330,7 @@ fn NativeLocalJournalCapture::open_original_journal_stages(
         self.max_records,
         reads=Some(bootstrap.reads),
         bootstrap=Some(bootstrap),
+        opening_ownership=Some(ownership),
       )
     }) {
     Err(issue) => return Err(issue)
