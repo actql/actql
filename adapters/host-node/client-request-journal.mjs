@@ -1056,6 +1056,103 @@ const intentMarkerName = 'submitted-intent-format.json';
 const retirementMarkerName = 'submitted-intent-retirement-format.json';
 const restartMarkerName = 'submission-restart-format.json';
 const nameMarkerName = 'submission-name-format.json';
+// Retained only to recognize the earlier two-step derived-metadata adoption.
+// New adoption commits its private format transition inside SQLite instead.
+const usageMarkerName = 'submission-usage-format.json';
+// These are lookup/quota metadata of the SAME Journal, not admission receipts.
+// Native triggers update them in the original row mutation's transaction.
+const submissionUsageSources = [
+  ['client_submitted_intent_usage','client_submitted_intents','intent_wire'],
+  ['client_submission_restart_usage','client_submission_restarts','link_wire'],
+];
+const submissionUsageTables = submissionUsageSources.map(([name]) => [name,
+  `CREATE TABLE ${name} (
+    singleton INTEGER PRIMARY KEY CHECK (singleton = 1),
+    retained_count INTEGER NOT NULL CHECK (retained_count >= 0 AND retained_count <= 9007199254740991),
+    retained_bytes INTEGER NOT NULL CHECK (retained_bytes >= 0 AND retained_bytes <= 67108864),
+    revision INTEGER NOT NULL CHECK (revision >= 0 AND revision <= 9007199254740991)
+  ) STRICT`]);
+const submissionUsageTriggers = submissionUsageSources.flatMap(([usage,table,wire]) => [
+  [`${usage}_insert`, `CREATE TRIGGER ${usage}_insert AFTER INSERT ON ${table} BEGIN
+    UPDATE ${usage} SET retained_count = retained_count + 1,
+      retained_bytes = retained_bytes + length(CAST(NEW.${wire} AS BLOB)),
+      revision = revision + 1 WHERE singleton = 1;
+  END`],
+  [`${usage}_delete`, `CREATE TRIGGER ${usage}_delete AFTER DELETE ON ${table} BEGIN
+    UPDATE ${usage} SET retained_count = retained_count - 1,
+      retained_bytes = retained_bytes - length(CAST(OLD.${wire} AS BLOB)),
+      revision = revision + 1 WHERE singleton = 1;
+  END`],
+  [`${usage}_update`, `CREATE TRIGGER ${usage}_update AFTER UPDATE OF ${wire} ON ${table} BEGIN
+    UPDATE ${usage} SET retained_bytes = retained_bytes
+      - length(CAST(OLD.${wire} AS BLOB)) + length(CAST(NEW.${wire} AS BLOB)),
+      revision = revision + 1 WHERE singleton = 1;
+  END`],
+]);
+const validSubmissionUsage = row => row?.singleton === 1 &&
+  Number.isSafeInteger(row.retained_count) && row.retained_count >= 0 &&
+  Number.isSafeInteger(row.retained_bytes) && row.retained_bytes >= 0 && row.retained_bytes <= 67108864 &&
+  Number.isSafeInteger(row.revision) && row.revision >= 0;
+function inspectSubmissionUsageStorage(database, enabled) {
+  const version = database.prepare('PRAGMA user_version').get()?.user_version;
+  if (version !== 0 && version !== 1) fail('UnknownClientRequestJournalFormat');
+  const originals = [...submissionUsageTables,...submissionUsageTriggers];
+  const names = originals.map(([name]) => name);
+  const schema = database.prepare(`SELECT name,sql FROM sqlite_master
+    WHERE name IN (${names.map(() => '?').join(',')})`).all(...names);
+  if (!enabled && version === 0 && schema.length === 0) return false;
+  if (schema.length !== originals.length || originals.some(([name,sql]) =>
+    schema.find(row => row.name === name)?.sql !== sql)) fail('UnknownClientRequestJournalFormat');
+  for (const [table] of submissionUsageTables) {
+    if (!validSubmissionUsage(database.prepare(`SELECT * FROM ${table} WHERE singleton=1`).get())) {
+      fail('UnknownClientRequestJournalFormat');
+    }
+  }
+  return true;
+}
+
+function adoptSubmissionUsageStorage(database, transaction, previousMarker) {
+  const complete = inspectSubmissionUsageStorage(database,previousMarker);
+  transaction.run(() => {
+    const issued = database.prepare('SELECT issued_count FROM client_submitted_intent_custody WHERE singleton=1').get()?.issued_count;
+    const retired = database.prepare('SELECT retired_count FROM client_submitted_intent_retirement WHERE singleton=1').get()?.retired_count;
+    const restarts = database.prepare('SELECT issued_count FROM client_submission_restart_custody WHERE singleton=1').get()?.issued_count;
+    if (![issued,retired,restarts].every(n => Number.isSafeInteger(n) && n >= 0) ||
+        retired > issued || issued - retired === Number.MAX_SAFE_INTEGER || restarts === Number.MAX_SAFE_INTEGER) {
+      fail('ClientSubmittedIntentCustodyLost');
+    }
+    const counts = [issued-retired,restarts];
+    if (complete) {
+      for (let i=0;i<submissionUsageTables.length;i++) {
+        const usage = database.prepare(`SELECT retained_count FROM ${submissionUsageTables[i][0]} WHERE singleton=1`).get();
+        if (usage?.retained_count !== counts[i]) fail('ClientSubmittedIntentCustodyLost');
+      }
+      // The previous transaction installed all derived metadata but its marker
+      // was not completed. Finish ONLY this same DB format transition; no
+      // historical aggregation, insertion, issuance or retirement is replayed.
+      database.exec('PRAGMA user_version=1');
+      return;
+    }
+    // One bounded legacy adoption, never a normal-open or per-operation scan.
+    // The existing original issuance/retirement bounds the selected prefix;
+    // one extra row detects missing coverage instead of silently truncating it.
+    const retained = submissionUsageSources.map(([,table,wire],index) => {
+      const row = database.prepare(`SELECT COUNT(*) AS n,COALESCE(SUM(length(CAST(${wire} AS BLOB))),0) AS bytes
+        FROM (SELECT ${wire} FROM ${table} LIMIT ?)` ).get(counts[index]+1);
+      if (row.n !== counts[index] || !Number.isSafeInteger(row.bytes) || row.bytes < 0 || row.bytes > 67108864) {
+        fail(index === 0 ? 'ClientSubmittedIntentCustodyLost' : 'ClientSubmissionRestartCustodyLost');
+      }
+      return row;
+    });
+    database.exec(submissionUsageTables.map(([,sql]) => `${sql};`).join('\n'));
+    for (let i=0;i<submissionUsageTables.length;i++) {
+      database.prepare(`INSERT INTO ${submissionUsageTables[i][0]} VALUES(1,?,?,0)`)
+        .run(retained[i].n,retained[i].bytes);
+    }
+    database.exec(submissionUsageTriggers.map(([,sql]) => `${sql};`).join('\n'));
+    database.exec('PRAGMA user_version=1');
+  });
+}
 const nameMarker = Buffer.from(JSON.stringify({
   version: 'actql-client-request-journal/0.1', feature: 'scoped_submission_names',
 }));
@@ -1256,6 +1353,12 @@ function inspectJournalSnapshot(directory, databasePath, markerPath, maxInspecti
   const nameEnabled = entries.includes(nameMarkerName);
   if (nameEnabled && (!intentEnabled || !lstatSync(namePath).isFile() ||
       !journalMarkerMatches(namePath, nameMarker))) fail('UnknownClientRequestJournalFormat');
+  const usagePath = join(directory, usageMarkerName);
+  const usageEnabled = entries.includes(usageMarkerName);
+  if (usageEnabled && (!intentEnabled || !retirementEnabled || !restartEnabled ||
+      !lstatSync(usagePath).isFile())) {
+    fail('UnknownClientRequestJournalFormat');
+  }
   let inspectionSql;
   try {
   inspectSqliteSnapshot(databasePath, originalDatabase => {
@@ -1278,6 +1381,7 @@ function inspectJournalSnapshot(directory, databasePath, markerPath, maxInspecti
     inspectIntentRetirementStorage(database, retirementEnabled);
     inspectRestartStorage(database, restartEnabled);
     inspectNameStorage(database, nameEnabled);
+    inspectSubmissionUsageStorage(database, usageEnabled);
     inspectClientSourceOperationStorage(database);
   }, {code: 'UnknownClientRequestJournalFormat', maxSourceBytes: maxInspectionBytes,
     unavailableCode: 'ClientRequestJournalInspectionUnavailable',
@@ -1697,6 +1801,9 @@ export function openClientRequestJournal(directory, {
       finally {closeSync(marker);}
       syncDirectory(root);
     }
+    if (database.prepare('PRAGMA user_version').get().user_version === 0) {
+      adoptSubmissionUsageStorage(database,transaction,existsSync(join(root,usageMarkerName)));
+    }
     // This optional original-operation storage belongs to this same Journal.
     // Legacy absence grants no new dispatch: live scope issuance additionally
     // requires the existing confirmed first physical-start transaction.
@@ -1986,24 +2093,32 @@ export function openClientRequestJournal(directory, {
       ? 'ClientSubmissionEpochExpired' : 'ClientSubmissionEpochNotYetValid');
   };
   const intentSelect = database.prepare('SELECT * FROM client_submitted_intents WHERE submission_id = ?');
-  const intentCount = database.prepare('SELECT COUNT(*) AS n, COALESCE(SUM(length(CAST(intent_wire AS BLOB))), 0) AS bytes FROM client_submitted_intents');
+  const intentUsage = database.prepare(`SELECT retained_count AS n,retained_bytes AS bytes,revision
+    FROM client_submitted_intent_usage WHERE singleton=1`);
   const intentIssued = database.prepare('SELECT issued_count FROM client_submitted_intent_custody WHERE singleton = 1');
   const intentRetired = database.prepare('SELECT retired_count FROM client_submitted_intent_retirement WHERE singleton = 1');
   const restartSelect = database.prepare('SELECT * FROM client_submission_restarts WHERE fresh_submission_id = ?');
-  const restartCount = database.prepare('SELECT COUNT(*) AS n, COALESCE(SUM(length(CAST(link_wire AS BLOB))), 0) AS bytes FROM client_submission_restarts');
+  const restartUsage = database.prepare(`SELECT retained_count AS n,retained_bytes AS bytes,revision
+    FROM client_submission_restart_usage WHERE singleton=1`);
   const restartIssued = database.prepare('SELECT issued_count FROM client_submission_restart_custody WHERE singleton = 1');
   const assertRestartCustody = () => {
-    const retained = restartCount.get();
-    if (!Number.isSafeInteger(retained.n) || restartIssued.get()?.issued_count !== retained.n) {
+    const retained = restartUsage.get();
+    if (!retained || !Number.isSafeInteger(retained.n) || retained.n < 0 ||
+        !Number.isSafeInteger(retained.bytes) || retained.bytes < 0 || retained.bytes > 67108864 ||
+        !Number.isSafeInteger(retained.revision) || retained.revision < 0 ||
+        restartIssued.get()?.issued_count !== retained.n) {
       fail('ClientSubmissionRestartCustodyLost');
     }
     return retained;
   };
   const assertIntentCustody = () => {
-    const retained = intentCount.get();
+    const retained = intentUsage.get();
     const issued = intentIssued.get()?.issued_count;
     const retired = intentRetired.get()?.retired_count;
-    if (!Number.isSafeInteger(issued) || !Number.isSafeInteger(retired) || retired < 0 ||
+    if (!retained || !Number.isSafeInteger(retained.n) || retained.n < 0 ||
+        !Number.isSafeInteger(retained.bytes) || retained.bytes < 0 || retained.bytes > 67108864 ||
+        !Number.isSafeInteger(retained.revision) || retained.revision < 0 ||
+        !Number.isSafeInteger(issued) || !Number.isSafeInteger(retired) || retired < 0 ||
         !Number.isSafeInteger(retained.n + retired) || retained.n + retired !== issued) {
       fail('ClientSubmittedIntentCustodyLost');
     }
@@ -2040,9 +2155,9 @@ export function openClientRequestJournal(directory, {
   // The caller must already hold this journal's transaction. Both ordinary
   // epoch admission and named resolution use this same custody transition.
   const recordIntentLocked = (submissionRef, original, {authorityScopeCid,
-    currentAuthorization, phase = 'preparing', outcome}, restartWire, requestId, control) => {
-    const retained = assertIntentCustody();
-    assertRestartCustody();
+    currentAuthorization, phase = 'preparing', outcome}, restartWire, requestId, control,
+    originalCustody) => {
+    const retained = originalCustody ?? assertIntentCustody();
     const existing = intentSelect.get(requestId);
     if (existing !== undefined) {
       const previous = retainedIntent(existing, control, submissionRef.epoch);
@@ -2562,7 +2677,7 @@ export function openClientRequestJournal(directory, {
       const original = originalIntent(intent, control);
       const result = submissionTransaction(() => {
         const issued = assertNameCustody();
-        assertIntentCustody();
+        const intentCustody = assertIntentCustody();
         const existing = nameSelect.get(namespaceId, actorId, name);
         if (existing !== undefined) {
           if (!hexKey(existing.binding_authenticator) ||
@@ -2597,7 +2712,7 @@ export function openClientRequestJournal(directory, {
         // unused authenticated reference can acquire this new name and intent.
         if (intentSelect.get(requestId) !== undefined) fail('ClientSubmissionNameReferenceUsed');
         const retained = recordIntentLocked(submissionRef, original,
-          {authorityScopeCid, currentAuthorization}, undefined, requestId, control);
+          {authorityScopeCid, currentAuthorization}, undefined, requestId, control, intentCustody);
         if (retained.epochRejected !== undefined) return retained;
         const row = {namespace_id: namespaceId, actor_id: actorId, name,
           authority_scope_cid: authorityScopeCid, submission_id: requestId, intent_cid: original.identity};
@@ -2625,7 +2740,6 @@ export function openClientRequestJournal(directory, {
       const fields = {authorityScopeCid, currentAuthorization};
       const result = submissionTransaction(() => {
         assertIntentCustody();
-        assertRestartCustody();
         const verified = verifyEpochLocked(submissionRef.epoch, {...fields, purpose: 'lookup'}, control);
         const requestId = control.clientSubmissionRequestId(verified.handle, submissionRef.nonce);
         if (requestId === undefined) fail('InvalidClientSubmittedIntent');
