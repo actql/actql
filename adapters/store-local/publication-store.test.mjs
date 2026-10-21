@@ -4842,6 +4842,64 @@ function physicalHolding(holdingCid, manifestCid, objects,
   });
 }
 
+test('ordinary Store reopen reads no unrelated immutable physical holding bodies', async t => {
+  const setup = await fixture(t);
+  const holdings = [];
+  for (const name of ['selected', 'unrelated']) {
+    const payload = await preparePhysical(setup.store, `rows ${name}`);
+    const holding = physicalHolding(digest(`open holding ${name}`),
+      digest(`open artifact ${name}`),
+      [{cid: payload.cid, byte_count: payload.bytes}], 'effect-source');
+    await setup.store.commitPhysicalHolding(holding, [payload.prepared]);
+    holdings.push(holding);
+  }
+  await setup.store.close();
+  const originalOpen = fsPromises.open;
+  const reads = [];
+  fsPromises.open = function(path, ...arguments_) {
+    if (String(path).startsWith(join(setup.directory, 'physical-holdings') + sep)) {
+      reads.push(String(path));
+    }
+    return Reflect.apply(originalOpen, this, [path, ...arguments_]);
+  };
+  syncBuiltinESMExports();
+  try {
+    const reopened = await openLocalPublicationStore(setup.configuration, contractControl);
+    assert.deepEqual(reads, [], 'ordinary startup does not admit unrelated immutable bodies');
+    assert.deepEqual(await reopened.inspectPhysicalHolding(holdings[0].holding_cid), holdings[0]);
+    assert.deepEqual(reads, [join(setup.directory, 'physical-holdings',
+      `${holdings[0].holding_cid.slice(7)}.json`)]);
+    await reopened.close();
+  } finally {
+    fsPromises.open = originalOpen;
+    syncBuiltinESMExports();
+  }
+});
+
+test('ordinary Store reopen defers unrelated damaged holding refusal to its selected read', async t => {
+  const setup = await fixture(t);
+  const payload = await preparePhysical(setup.store, 'selected rows');
+  const holding = physicalHolding(digest('selected intact holding'),
+    digest('selected intact artifact'), [{cid: payload.cid, byte_count: payload.bytes}],
+    'effect-source');
+  await setup.store.commitPhysicalHolding(holding, [payload.prepared]);
+  await setup.store.close();
+  const damagedCid = digest('unrelated damaged holding');
+  const damagedPath = join(setup.directory, 'physical-holdings', `${damagedCid.slice(7)}.json`);
+  const damagedBytes = Buffer.from('{incomplete');
+  await writeFile(damagedPath, damagedBytes);
+  const reopened = await openLocalPublicationStore(setup.configuration, contractControl);
+  const rows = [];
+  await reopened.consumePhysicalHolding(holding.holding_cid, 0,
+    chunk => rows.push(Buffer.from(chunk)));
+  assert.equal(Buffer.concat(rows).toString('utf8'), 'selected rows');
+  await assert.rejects(reopened.inspectPhysicalHolding(damagedCid),
+    code('InvalidPublicationPhysicalHoldingStore'));
+  assert.deepEqual(await readFile(damagedPath), damagedBytes,
+    'target refusal preserves the original invalid record rather than repairing it');
+  await reopened.close();
+});
+
 for (const damage of ['missing', 'corrupt']) {
 test(`one ${damage} Effect payload does not disable unrelated holdings`,
   async t => {
