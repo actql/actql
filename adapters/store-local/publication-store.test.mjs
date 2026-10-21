@@ -4831,6 +4831,86 @@ test('publication capacity preflight observes limits without reserving',
     assert.deepEqual(store.status(), before);
   });
 
+async function committedHoldingFixture(setup, label) {
+  const request = publicationRequest(resultDefinition(), digest(`published ${label}`));
+  const invocationValue = invocation();
+  const attempt = publicationAttempt(request, label);
+  const prepared = await prepareCommit(setup.store, request, attempt, invocationValue);
+  const entry = indexEntry(request, attempt, invocationValue, {
+    durable_result_binding_cids: [prepared.binding.identity],
+  });
+  await setup.store.commitIndex(wire(entry), prepared.required, prepared.evidence);
+  const payload = await preparePhysical(setup.store, `source ${label}`);
+  const holding = physicalHolding(digest(`holding ${label}`), digest(`manifest ${label}`),
+    [{cid: payload.cid, byte_count: payload.bytes}], 'effect-source');
+  await setup.store.commitPhysicalHolding(holding, [payload.prepared]);
+  // Explicit adapter evidence fixture: bind this real holding to the committed
+  // inventory without claiming an actual Common-issued Effect/capture chain.
+  const inventoryPath = join(setup.directory, 'metadata-inventories',
+    `${entry.public_index_entry_cid.slice(7)}.json`);
+  const inventory = JSON.parse(await readFile(inventoryPath, 'utf8'));
+  inventory.physical_holding_cids = [holding.holding_cid];
+  await writeFile(inventoryPath, JSON.stringify(inventory));
+  return {request, entry, holding, inventory, inventoryPath,
+    holdingPath: join(setup.directory, 'physical-holdings',
+      `${holding.holding_cid.slice(7)}.json`)};
+}
+
+test('committed Result opening defers holding proof to the selected publication', async t => {
+  const setup = await fixture(t);
+  const selected = await committedHoldingFixture(setup, 'selected proof');
+  const unrelated = await committedHoldingFixture(setup, 'unrelated proof');
+  await setup.store.close();
+  const originalOpen = fsPromises.open, reads = [];
+  t.mock.method(fsPromises, 'open', function(path, ...args) {
+    reads.push(String(path));
+    return Reflect.apply(originalOpen, this, [path, ...args]);
+  });
+  syncBuiltinESMExports();
+  t.after(() => { t.mock.restoreAll(); syncBuiltinESMExports(); });
+  const reopened = await openLocalPublicationStore(setup.configuration, contractControl);
+  assert.deepEqual(reads.filter(path => path.includes(`${sep}physical-holdings${sep}`)), []);
+  // The separate legacy uncommitted-recovery walk still reads inventories.
+  // This cut removes the extra committed-wide pass, not all cold history work.
+  for (const target of [selected, unrelated]) {
+    assert.equal(reads.filter(path => path === target.inventoryPath).length, 1);
+  }
+  reads.length = 0;
+  assert.equal((await reopened.lookupCommittedIndex(indexKeyFor(selected.request), () => true))
+    .public_index_entry_cid, selected.entry.public_index_entry_cid);
+  assert.deepEqual(reads.filter(path => path.includes(`${sep}physical-holdings${sep}`)),
+    [selected.holdingPath]);
+  assert.equal(reads.filter(path => path === selected.inventoryPath).length, 1);
+  assert.equal(reads.includes(unrelated.inventoryPath), false);
+  await reopened.close();
+});
+
+test('committed Result opening does not inspect an unrelated damaged holding', async t => {
+  const setup = await fixture(t);
+  const selected = await committedHoldingFixture(setup, 'healthy selected');
+  const unrelated = await committedHoldingFixture(setup, 'damaged unrelated');
+  await setup.store.close();
+  const damaged = Buffer.from('{incomplete');
+  await writeFile(unrelated.holdingPath, damaged);
+  const reopened = await openLocalPublicationStore(setup.configuration, contractControl);
+  assert.equal((await reopened.lookupCommittedIndex(indexKeyFor(selected.request), () => true))
+    .public_index_entry_cid, selected.entry.public_index_entry_cid);
+  await assert.rejects(reopened.lookupCommittedIndex(indexKeyFor(unrelated.request), () => true),
+    code('InvalidPublicationPhysicalHoldingStore'));
+  assert.deepEqual(await readFile(unrelated.holdingPath), damaged);
+  await reopened.close();
+});
+
+for (const missing of ['inventory', 'holding']) {
+test(`selected committed Result refuses its missing ${missing} before returning the Index`, async t => {
+  const setup = await fixture(t);
+  const selected = await committedHoldingFixture(setup, `missing ${missing}`);
+  await unlink(missing === 'inventory' ? selected.inventoryPath : selected.holdingPath);
+  await assert.rejects(setup.store.lookupCommittedIndex(indexKeyFor(selected.request), () => true),
+    code('InvalidPublicationMetadataInventoryStore'));
+});
+}
+
 function physicalHolding(holdingCid, manifestCid, objects,
   namespace = 'remote-transfer') {
   return Object.freeze({
