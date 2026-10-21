@@ -158,6 +158,10 @@ test "fresh Run binding uses its local issuance and physical uniqueness without 
   |> ignore
   assert_false(calls.any(value => value.has_prefix("scan:")))
   assert_eq(
+    calls.filter(value => value == "read:client_run_custody:issued").length(),
+    1,
+  )
+  assert_eq(
     calls.filter(value => value.has_prefix("insert:client_runs:")).length(),
     1,
   )

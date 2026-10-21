@@ -621,6 +621,21 @@ fn NativeClientRunJournal::retained(
   requested : @host.ClientRequestIdentity,
   reads? : NativeClientJournalReadAccess? = None,
 ) -> Result[NativeClientRunRecord?, NativeClientRunJournalIssue] {
+  self.retained_with_issuance(requested, reads~).map(value => value.0)
+}
+
+///|
+// A target miss and the following append share this actual issuance row in
+// the caller's transaction. The coordinate never outlives this synchronous
+// call and does not replace the final capacity check or original CAS.
+fn NativeClientRunJournal::retained_with_issuance(
+  self : NativeClientRunJournal,
+  requested : @host.ClientRequestIdentity,
+  reads? : NativeClientJournalReadAccess? = None,
+) -> Result[
+  (NativeClientRunRecord?, (Int, Int64)?),
+  NativeClientRunJournalIssue,
+] {
   if reads is Some(access) && !physical_equal(access.database, self.database) {
     return Err(Physical(@sqlite.Collision))
   }
@@ -633,19 +648,19 @@ fn NativeClientRunJournal::retained(
     @host.client_request_scope_cid(original.request) {
     return match
       @host.client_request_identity_relation(requested, original.request) {
-      SameRequest => Ok(Some(original))
+      SameRequest => Ok((Some(original), None))
       ChangedIntent => Err(ChangedIntent)
       DifferentRequest => Err(CustodyLost)
     }
   }
-  match
+  let issuance = match
     client_journal_issuance_anchor(
       self.database,
       "client_run_custody",
       self.max_records,
       reads~,
     ) {
-    Ok(_) => ()
+    Ok(value) => value
     Err(issue) => return Err(issue)
   }
   let key = @host.client_request_scope_cid(requested)
@@ -655,12 +670,11 @@ fn NativeClientRunJournal::retained(
       match
         read_client_journal_value(self.database, "client_runs", key, reads) {
         Ok(value) => value
-        Err(@sqlite.NotFound) => return Ok(None)
+        Err(@sqlite.NotFound) => return Ok((None, Some(issuance)))
         Err(issue) => return Err(Physical(issue))
       }
   }
-  let retained = match
-    self.admit_retained_record(@host.client_request_scope_cid(requested), row) {
+  let retained = match self.admit_retained_record(key, row) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
@@ -673,7 +687,7 @@ fn NativeClientRunJournal::retained(
       if self.operation_active {
         self.operation_record = Some(retained)
       }
-      Ok(Some(retained))
+      Ok((Some(retained), Some(issuance)))
     }
     ChangedIntent => Err(ChangedIntent)
     DifferentRequest => Err(CustodyLost)
@@ -850,29 +864,20 @@ fn NativeClientRunJournal::bind_run_locked(
   operations? : NativeClientJournalOperationAccess? = None,
 ) -> Result[NativeClientRunRecord, NativeClientRunJournalIssue] {
   let reads = operations.map(value => value.reads)
-  match self.retained(request, reads~) {
+  let issuance = match self.retained_with_issuance(request, reads~) {
     Err(issue) => return Err(issue)
-    Ok(Some(retained)) => {
+    Ok((Some(retained), _)) => {
       if @publication.publication_contract_identity(definition) !=
         @publication.publication_contract_identity(retained.definition) {
         return Err(ForeignRun)
       }
       return Ok(retained)
     }
-    Ok(None) => ()
+    Ok((None, Some(original))) => original
+    Ok((None, None)) => return Err(CustodyLost)
   }
   if self.append_schema != 1 {
     return Err(CustodyLost)
-  }
-  let issuance = match
-    client_journal_issuance_anchor(
-      self.database,
-      "client_run_custody",
-      self.max_records,
-      reads~,
-    ) {
-    Ok(value) => value
-    Err(issue) => return Err(issue)
   }
   let (count, revision) = issuance
   if count == self.max_records {

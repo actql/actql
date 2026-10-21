@@ -309,7 +309,7 @@ test "original Run ID requires actual current RunRead independently of submit an
 }
 
 ///|
-test "original Run ID scans all original rows and refuses ambiguous same-ID admissions" {
+test "original Run ID locator refuses ambiguous same-ID admissions" {
   let host = policy_host_fixture("original-id-ambiguous")
   let crypto = epoch_test_crypto()
   original_selection_fixture(host, "first-nonce", "same-run-id") |> ignore
@@ -328,7 +328,7 @@ test "original Run ID scans all original rows and refuses ambiguous same-ID admi
 }
 
 ///|
-test "original Run ID does not bypass malformed unselected history" {
+test "original Run ID selects its target without auditing malformed unrelated history" {
   let host = policy_host_fixture("original-id-malformed")
   let crypto = epoch_test_crypto()
   original_selection_fixture(host, "first-valid", "valid-selected-run")
@@ -354,11 +354,25 @@ test "original Run ID does not bypass malformed unselected history" {
   })
   .unwrap()
   |> ignore
-  let malformed = host.lookup_submitted_run_original_by_id(
-    crypto, "operator", "cli", "valid-selected-run",
+  let selected = host
+    .lookup_submitted_run_original_by_id(
+      crypto, "operator", "cli", "valid-selected-run",
+    )
+    .unwrap()
+  assert_eq(
+    @publication.run_definition_run_id(selected.definition()).unwrap(),
+    "valid-selected-run",
+  )
+  // Only explicit bounded maintenance inspects the unrelated original. Its
+  // corruption cannot be adopted as complete locator coverage.
+  assert_true(
+    host.migrate_journal_append_metadata("operator", "cli", 8388608L)
+    is Err(CustodyLost),
+  )
+  assert_false(
+    journal.retained(selected.request()).unwrap().unwrap().physical_start_claimed,
   )
   host.close().unwrap()
-  assert_true(malformed is Err(Journal(CustodyLost)))
 }
 
 ///|
