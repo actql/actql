@@ -42662,7 +42662,7 @@
               },
               {
                 "path": "adapters/host-node/local-result-authorization.mjs",
-                "anchor": "if (retained !== undefined && retained.account === retainedAccount) return retained.allowed;"
+                "anchor": "retained.sinkCallbackCount === sinkCallbackCount) return retained.allowed;"
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
