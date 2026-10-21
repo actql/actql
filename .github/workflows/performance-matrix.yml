@@ -2,12 +2,113 @@ name: Registered performance matrix
 
 on:
   workflow_dispatch:
+    inputs:
+      package-run-id:
+        description: Completed same-source normal CI run supplying existing Client tarballs
+        type: string
+        required: true
+      package-artifact-id:
+        description: Exact existing Client package artifact
+        type: string
+        required: true
   workflow_call:
+    inputs:
+      package-run-id:
+        type: string
+        required: true
+      package-artifact-id:
+        type: string
+        required: true
 
 permissions:
   contents: read
 
 jobs:
+  ordinary-operations:
+    name: Required ordinary operation performance
+    if: ${{ vars.ACTQL_MAIN_CI_ENABLED == 'true' && github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: 22.22.0
+      - name: Validate the original normal package producer
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          PACKAGE_RUN_ID: ${{ inputs.package-run-id }}
+          PACKAGE_ARTIFACT_ID: ${{ inputs.package-artifact-id }}
+        run: |
+          mkdir "$RUNNER_TEMP/ordinary-operation"
+          node scripts/ordinary-operation-packages.mjs inspect-producer > "$RUNNER_TEMP/ordinary-operation/producer.json"
+      - name: Reuse the exact existing normal package artifact
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          github-token: ${{ github.token }}
+          run-id: ${{ inputs.package-run-id }}
+          artifact-ids: ${{ inputs.package-artifact-id }}
+          path: ${{ runner.temp }}/ordinary-operation/packages
+          merge-multiple: true
+      - name: Measure the same-machine local SQLite diagnostic baseline
+        run: node scripts/benchmark-node-sqlite.mjs --output "$RUNNER_TEMP/ordinary-operation/sqlite" --warm-samples 100 --cold-samples 5 --load isolated
+      - name: Freeze the baseline-only comparison before candidate measurements
+        run: node scripts/operation-performance.mjs --calibrate-sqlite "$RUNNER_TEMP/ordinary-operation/sqlite/sqlite-baseline.json" --output "$RUNNER_TEMP/ordinary-operation/comparison.json"
+      - name: Install a fresh ordinary consumer without a producer fallback
+        run: node scripts/ordinary-operation-packages.mjs prepare "$RUNNER_TEMP/ordinary-operation/packages" "$GITHUB_SHA" "$RUNNER_TEMP/ordinary-operation/prepared" --comparison "$RUNNER_TEMP/ordinary-operation/comparison.json"
+      - name: Measure completed public operations from the installed cohort
+        run: |
+          mkdir "$RUNNER_TEMP/ordinary-operation/measurement"
+          node scripts/benchmark-node-operations.mjs \
+            --manifest "$RUNNER_TEMP/ordinary-operation/packages/ordinary-operation-packages.json" \
+            --consumer "$RUNNER_TEMP/ordinary-operation/prepared/consumer" \
+            --output "$RUNNER_TEMP/ordinary-operation/measurement/warm" \
+            --controls "$RUNNER_TEMP/ordinary-operation/prepared/controls.json" \
+            --mode final
+      - name: Measure existing-state reads in new processes
+        run: |
+          node scripts/benchmark-node-process-operations.mjs \
+            --manifest "$RUNNER_TEMP/ordinary-operation/packages/ordinary-operation-packages.json" \
+            --consumer "$RUNNER_TEMP/ordinary-operation/prepared/consumer" \
+            --output "$RUNNER_TEMP/ordinary-operation/measurement/cold-existing" \
+            --controls "$RUNNER_TEMP/ordinary-operation/prepared/controls.json" \
+            --mode final --operation cold-existing
+      - name: Measure first initialization in distinct new states
+        run: |
+          node scripts/benchmark-node-process-operations.mjs \
+            --manifest "$RUNNER_TEMP/ordinary-operation/packages/ordinary-operation-packages.json" \
+            --consumer "$RUNNER_TEMP/ordinary-operation/prepared/consumer" \
+            --output "$RUNNER_TEMP/ordinary-operation/measurement/first-init" \
+            --controls "$RUNNER_TEMP/ordinary-operation/prepared/controls.json" \
+            --mode final --operation first-init
+      - name: Bind actual reports to the same cohort and raw samples
+        if: always()
+        run: node scripts/ordinary-operation-packages.mjs combine "$RUNNER_TEMP/ordinary-operation"
+      - name: Require measured latency and structural release evidence
+        if: always()
+        run: node scripts/operation-performance.mjs --input "$RUNNER_TEMP/ordinary-operation/measurements.json" --output "$RUNNER_TEMP/ordinary-operation/assessment.json"
+      - name: Retain raw measurements and incomplete or failed assessment
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: ordinary-operation-performance-${{ github.sha }}
+          path: |
+            ${{ runner.temp }}/ordinary-operation/producer.json
+            ${{ runner.temp }}/ordinary-operation/packages/ordinary-operation-packages.json
+            ${{ runner.temp }}/ordinary-operation/prepared/controls.json
+            ${{ runner.temp }}/ordinary-operation/comparison.json
+            ${{ runner.temp }}/ordinary-operation/sqlite/sqlite-baseline.json
+            ${{ runner.temp }}/ordinary-operation/measurements.json
+            ${{ runner.temp }}/ordinary-operation/measurement/*/*.json
+            ${{ runner.temp }}/ordinary-operation/measurement/*/*.jsonl
+            ${{ runner.temp }}/ordinary-operation/assessment.json
+          if-no-files-found: warn
+          retention-days: 30
   registered-cases:
     if: ${{ vars.ACTQL_MAIN_CI_ENABLED == 'true' && github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' }}
     runs-on: ubuntu-24.04

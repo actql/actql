@@ -4340,14 +4340,15 @@
     {
       "module": "packages/sdk/checkpoints.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "06bd0b1d8a79c69592135cd1dcfe2d6ed6539671a1ea30cf6aeb68895290ed24",
+      "sha256": "1548bde2896d3456323cda85d818df04358fed087cf5aa93624c188ac69cc935",
       "exports": [
         "bytesCid",
         "canonicalJson",
         "checkedSigner",
         "contentCid",
         "reviewBytesMatchCid",
-        "signedAnswer"
+        "signedAnswer",
+        "signedAnswerFromAdmittedSummary"
       ],
       "operations": [
         {
@@ -4425,6 +4426,26 @@
           "async": false
         },
         {
+          "name": "constructSignedAnswer",
+          "parameters": [
+            "summary",
+            "decision",
+            "signer",
+            "decidedAt",
+            "effect",
+            "acquiredRead",
+            "model"
+          ],
+          "async": true
+        },
+        {
+          "name": "constructSignedAnswer/constructSignedAnswer",
+          "parameters": [
+            "claim"
+          ],
+          "async": false
+        },
+        {
           "name": "contentCid/contentCid",
           "parameters": [
             "value"
@@ -4486,9 +4507,19 @@
           "async": false
         },
         {
-          "name": "signedAnswer/signedAnswer#2",
+          "name": "signedAnswerFromAdmittedSummary",
           "parameters": [
-            "claim"
+            "summary",
+            "decision",
+            "signer",
+            "decidedAt"
+          ],
+          "async": true
+        },
+        {
+          "name": "supportedAnswerProfile",
+          "parameters": [
+            "summary"
           ],
           "async": false
         },
@@ -4522,6 +4553,8 @@
             "canonicalJson/entries/entries",
             "canonicalJson/entries/entries#2",
             "checkedSigner",
+            "constructSignedAnswer",
+            "constructSignedAnswer/constructSignedAnswer",
             "contentCid/contentCid",
             "hex/hex",
             "hex/hex/hex",
@@ -4530,7 +4563,8 @@
             "signature",
             "signedAnswer",
             "signedAnswer/signedAnswer",
-            "signedAnswer/signedAnswer#2",
+            "signedAnswerFromAdmittedSummary",
+            "supportedAnswerProfile",
             "wellFormed"
           ],
           "exports": [
@@ -4539,7 +4573,8 @@
             "checkedSigner",
             "contentCid",
             "reviewBytesMatchCid",
-            "signedAnswer"
+            "signedAnswer",
+            "signedAnswerFromAdmittedSummary"
           ],
           "attributes": {
             "responsibility": [
@@ -7312,7 +7347,7 @@
     {
       "module": "packages/sdk/internal/check-observation.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "b5d176e6acc6847545f7d4b61464d7c6a3fa403ce67a6a22ec0635895ec3e19f",
+      "sha256": "07df139f762760a343b9dd5bff017b7888defc725cfb6c1a05b0fe4d0da48a99",
       "exports": [
         "bindCheckObservation",
         "createCheckDocumentSession",
@@ -8099,7 +8134,7 @@
               },
               {
                 "path": "packages/sdk/internal/checkpoint-operations.mjs",
-                "anchor": "if (!await answerMatches(answer, summary, decision, selectedSigner))"
+                "anchor": "selectedSigner === undefined && !await answerMatches(answer, summary, decision)"
               }
             ],
             "failure": [
@@ -8159,7 +8194,7 @@
     {
       "module": "packages/sdk/internal/checkpoint-operations.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "4d29820be9b89aa5f45e7524b499ed51e24bf209d42d1c33d664173fc5a7a5cf",
+      "sha256": "7b7de0e2fe9580e423d98607374d4f8cd1eec1b4e1a4a5af9b6fc84e91644727",
       "exports": [
         "createCheckpointOperations"
       ],
@@ -8186,13 +8221,6 @@
           "async": true
         },
         {
-          "name": "createCheckpointOperations/answerById/answerById/init:sign/init:sign",
-          "parameters": [
-            "bytes"
-          ],
-          "async": false
-        },
-        {
           "name": "createCheckpointOperations/answerMatches/answerMatches",
           "parameters": [
             "answer",
@@ -8207,6 +8235,21 @@
           "parameters": [
             "claim",
             "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "createCheckpointOperations/captureSigner/captureSigner",
+          "parameters": [
+            "signer",
+            "signal"
+          ],
+          "async": false
+        },
+        {
+          "name": "createCheckpointOperations/captureSigner/captureSigner/init:sign/init:sign",
+          "parameters": [
+            "bytes"
           ],
           "async": false
         },
@@ -8247,20 +8290,6 @@
           "async": false
         },
         {
-          "name": "createCheckpointOperations/operations/operations/operations#2",
-          "parameters": [
-            "item"
-          ],
-          "async": false
-        },
-        {
-          "name": "createCheckpointOperations/operations/operations/operations#3",
-          "parameters": [
-            "result"
-          ],
-          "async": false
-        },
-        {
           "name": "createCheckpointOperations/operations/operations#2",
           "parameters": [
             "checkpoint",
@@ -8293,6 +8322,14 @@
             "options"
           ],
           "async": false
+        },
+        {
+          "name": "createCheckpointOperations/resolveSigned/resolveSigned",
+          "parameters": [
+            "frozen",
+            "signal"
+          ],
+          "async": true
         },
         {
           "name": "createCheckpointOperations/without/without",
@@ -8507,17 +8544,17 @@
         {
           "operations": [
             "createCheckpointOperations/answerById/answerById",
-            "createCheckpointOperations/answerById/answerById/init:sign/init:sign",
+            "createCheckpointOperations/captureSigner/captureSigner",
+            "createCheckpointOperations/captureSigner/captureSigner/init:sign/init:sign",
             "createCheckpointOperations/current/current",
             "createCheckpointOperations/operations/operations",
             "createCheckpointOperations/operations/operations/bytes/bytes",
             "createCheckpointOperations/operations/operations/operations",
-            "createCheckpointOperations/operations/operations/operations#2",
-            "createCheckpointOperations/operations/operations/operations#3",
             "createCheckpointOperations/operations/operations#2",
             "createCheckpointOperations/operations/operations#3",
             "createCheckpointOperations/operations/operations#4",
-            "createCheckpointOperations/operations/operations#5"
+            "createCheckpointOperations/operations/operations#5",
+            "createCheckpointOperations/resolveSigned/resolveSigned"
           ],
           "exports": [],
           "attributes": {
@@ -8679,7 +8716,7 @@
               },
               {
                 "path": "packages/sdk/internal/checkpoint-operations.mjs",
-                "anchor": "if (!await answerMatches(answer, summary, decision, selectedSigner))"
+                "anchor": "selectedSigner === undefined && !await answerMatches(answer, summary, decision)"
               }
             ],
             "failure": [
@@ -9569,10 +9606,9 @@
     {
       "module": "packages/sdk/internal/data.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "5768cb08304fff4714fbf371bfa91d4071831d9f076de912c74904e28f8222d3",
+      "sha256": "153fd1b5635ea1b97e74b8819a64677ee033f5be6461c04a5c193cd7a750823e",
       "exports": [
         "captureResponse",
-        "detachResponse",
         "freezeInput",
         "positive",
         "structuralKey",
@@ -9584,13 +9620,6 @@
           "parameters": [
             "value",
             "captured"
-          ],
-          "async": false
-        },
-        {
-          "name": "detachResponse/detachResponse",
-          "parameters": [
-            "value"
           ],
           "async": false
         },
@@ -9634,7 +9663,6 @@
           "operations": [
             "<module>",
             "captureResponse/captureResponse",
-            "detachResponse/detachResponse",
             "freezeInput/freezeInput",
             "positive/positive",
             "structuralKey/structuralKey",
@@ -9642,7 +9670,6 @@
           ],
           "exports": [
             "captureResponse",
-            "detachResponse",
             "freezeInput",
             "positive",
             "structuralKey",
@@ -9944,7 +9971,7 @@
     {
       "module": "packages/sdk/internal/plan.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "98de56a07f232e839fefec31cade22206d5cecda1d88dee52721130257d938ed",
+      "sha256": "fda04146bc4163f6bcb37a6293b32e66dd1153137e496733cb0a86f1a45129b3",
       "exports": [
         "createPlan"
       ],
@@ -10640,7 +10667,7 @@
     {
       "module": "packages/sdk/internal/result-read.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "a440c03086d57c6a6d18c3aafee939d53274aa4ad73f1a32e0872a0f1f6a57fb",
+      "sha256": "98ef1109eb768e36823a9208d82baeb86a1c2136242832ca7666c382660ea3e8",
       "exports": [
         "captureQueryResultRead",
         "collectCapturedResult",
@@ -11268,7 +11295,7 @@
     {
       "module": "packages/sdk/internal/run-observation.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "c75dbc35575966e8376868fe0a26fa2aaca300c88e69748690505c524f32cc02",
+      "sha256": "94e98e2b5c45f8d21311dd2af45b17490f3c8b953d3629344fbad21b64290025",
       "exports": [
         "copyRunObservationFailure",
         "createExecutionFactory",
@@ -11844,7 +11871,7 @@
     {
       "module": "packages/sdk/internal/submission-observation.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "f192f1ba8e3b03fe842de6281967d42a7fa42b05e3229766635eada8d501a197",
+      "sha256": "f31a8eaea981245a29911b311d348ee06b1828f121eab55afa3882cf5476af4d",
       "exports": [
         "RequestHeld",
         "createSubmissionOperations",
@@ -11931,13 +11958,6 @@
             "options"
           ],
           "async": true
-        },
-        {
-          "name": "createSubmissionOperations/createSubmissionOperations/createSubmissionOperations#4",
-          "parameters": [
-            "field"
-          ],
-          "async": false
         },
         {
           "name": "createSubmissionOperations/createSubmissionOperations#2",
@@ -12422,7 +12442,6 @@
             "submissionNotSent/submissionNotSent",
             "submissionUnknown/submissionUnknown",
             "uninterpretableRequestCancellation/uninterpretableRequestCancellation",
-            "createSubmissionOperations/createSubmissionOperations/createSubmissionOperations#4",
             "createSubmissionOperations/startSource/startSource/startSource",
             "createSubmissionOperations/withSourceProducer/withSourceProducer",
             "createSubmissionOperations/withSourceProducer/withSourceProducer/finish/finish",

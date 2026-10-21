@@ -7139,7 +7139,7 @@
     {
       "module": "adapters/host-common/result-delivery.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "4617722b18d311d8f1d5f2600d86c9e9e313b35fed694ea4fdb0588373a9fb6b",
+      "sha256": "2facf9ae2312cea9529a012bd6afd5083b1fdbc0c2fa85b2376691e0b24583e6",
       "role": "physical-io",
       "owner": "Existing Result access/delivery/publication Owners and physical read/sink adapter",
       "exports": [
@@ -7297,7 +7297,8 @@
             "manifest",
             "grant",
             "request",
-            "limits"
+            "limits",
+            "original"
           ],
           "async": false
         },
@@ -65959,7 +65960,7 @@
     {
       "module": "packages/run-host-core/index.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "ea36f9a2dcb24652298aa76d1df8fbc823308ce47bf313b3fd208eb65cf9fb07",
+      "sha256": "ae811c49b9c87bce76353746b3f4aa3f27039e4d8d4d64da00393bfb96c2cdfb",
       "role": "common-semantics",
       "owner": "Existing client_values_host_abi/Run Publication Owners; public same-process type projection",
       "exports": [
@@ -65969,6 +65970,8 @@
         "DeliveryContractView",
         "DurableResultRowFrames",
         "EffectCompilation",
+        "IssuedDeliveryAttemptFacts",
+        "IssuedDeliveryAttemptOriginal",
         "IssuedEffectRunMaterials",
         "OriginalRunPlan",
         "PreparedEffectProgram",
@@ -67415,6 +67418,17 @@
           "result": "void"
         },
         {
+          "name": "ResultDeliveryControl/captureIssuedDeliveryAttempt",
+          "parameters": [
+            "attempt: AttemptView",
+            "index: IndexView",
+            "manifest: ManifestView",
+            "grant: GrantView",
+            "limits: PublicationLimits"
+          ],
+          "result": "IssuedDeliveryAttemptOriginal | undefined"
+        },
+        {
           "name": "ResultDeliveryControl/deliveryFailureTerminalAction",
           "parameters": [
             "observed: boolean"
@@ -67496,6 +67510,21 @@
             "serializer: ResultDeliverySerializer"
           ],
           "result": "string"
+        },
+        {
+          "name": "ResultDeliveryControl/fromPublication",
+          "parameters": [
+            "original: PublicationContract<Kind>"
+          ],
+          "result": "DeliveryContractView<Kind>"
+        },
+        {
+          "name": "ResultDeliveryControl/fromPublication#2",
+          "parameters": [
+            "original: PublicationContract",
+            "expectedName: Kind"
+          ],
+          "result": "DeliveryContractView<Kind>"
         },
         {
           "name": "ResultDeliveryControl/issueDeliveryAttempt",
@@ -67600,6 +67629,13 @@
             "limits: PublicationLimits"
           ],
           "result": "ResultDeliverySerializer"
+        },
+        {
+          "name": "ResultDeliveryControl/readIssuedDeliveryAttempt",
+          "parameters": [
+            "original: IssuedDeliveryAttemptOriginal"
+          ],
+          "result": "IssuedDeliveryAttemptFacts"
         },
         {
           "name": "ResultDeliveryControl/recordResultAccessGrant",
@@ -68053,6 +68089,7 @@
             "ResultDeliveryControl/beginResultAccessProgress",
             "ResultDeliveryControl/beginResultDelivery",
             "ResultDeliveryControl/cancelDurableResultRowFrames",
+            "ResultDeliveryControl/captureIssuedDeliveryAttempt",
             "ResultDeliveryControl/deliveryFailureTerminalAction",
             "ResultDeliveryControl/deliveryRecordRetryAction",
             "ResultDeliveryControl/deliveryResultDefinitionCid",
@@ -68063,6 +68100,8 @@
             "ResultDeliveryControl/feedDurableResultRowFrames",
             "ResultDeliveryControl/finishDurableResultRowFrames",
             "ResultDeliveryControl/finishResultDelivery",
+            "ResultDeliveryControl/fromPublication",
+            "ResultDeliveryControl/fromPublication#2",
             "ResultDeliveryControl/issueDeliveryAttempt",
             "ResultDeliveryControl/issueDeliveryRecord",
             "ResultDeliveryControl/issueManifestReadGrant",
@@ -68074,6 +68113,7 @@
             "ResultDeliveryControl/prepareDeliveryGrantUsageClaim",
             "ResultDeliveryControl/prepareDurableResultRowFrames",
             "ResultDeliveryControl/prepareResultDeliverySerializer",
+            "ResultDeliveryControl/readIssuedDeliveryAttempt",
             "ResultDeliveryControl/recordResultAccessGrant",
             "ResultDeliveryControl/recordResultAccessInitialAvailability",
             "ResultDeliveryControl/recordResultAccessReadAdmission",
@@ -68254,6 +68294,8 @@
             "DeliveryContractView",
             "DurableResultRowFrames",
             "EffectCompilation",
+            "IssuedDeliveryAttemptFacts",
+            "IssuedDeliveryAttemptOriginal",
             "IssuedEffectRunMaterials",
             "OriginalRunPlan",
             "PreparedEffectProgram",
@@ -69742,7 +69784,7 @@
     {
       "module": "packages/run-host-core/result-delivery.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "4617722b18d311d8f1d5f2600d86c9e9e313b35fed694ea4fdb0588373a9fb6b",
+      "sha256": "2facf9ae2312cea9529a012bd6afd5083b1fdbc0c2fa85b2376691e0b24583e6",
       "role": "physical-io",
       "owner": "Existing Result access/delivery/publication Owners and physical read/sink adapter",
       "exports": [
@@ -69900,7 +69942,8 @@
             "manifest",
             "grant",
             "request",
-            "limits"
+            "limits",
+            "original"
           ],
           "async": false
         },

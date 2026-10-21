@@ -62,6 +62,42 @@ fallback. To reuse distributions locally, first commit all source changes, run
 it. `client` itself is CI-only aggregation. Hosted CI verifies the final submitted
 revision, actual artifact handoff and complete foundation Git history.
 
+## Controlled ordinary-operation performance check
+
+Normal CI runs the quick behavioral validation and assessment-policy tests.
+Statistically sampled public operations belong to the separately requested
+performance matrix, not every PR or ordinary integration run. Select the exact
+artifact ID from a successful `client-packages` job in a completed normal CI
+run at the same commit:
+
+```sh
+gh workflow run CI --ref <same-source-ref> -f performance_matrix=true \
+  -f performance_package_run_id=<normal-run-id> \
+  -f performance_package_artifact_id=<client-package-artifact-id>
+```
+
+The required ordinary-operation job verifies the original run, attempt, source,
+package job and artifact identity, then reuses those five tarballs. It checks
+their digests and independent unpacked member inventories, performs a fresh
+default npm installation, and verifies the installed members. Missing, expired,
+foreign or changed inputs fail without invoking a compiler, pack or replacement
+producer. Other failures in the original CI run remain failures; authenticating
+its successful package job is not whole-run acceptance.
+
+The existing public collector runs in final mode and the complete performance
+assessor runs even after measurement failure. Slow, malformed or missing raw
+measurements cannot produce a successful performance workflow. Raw samples,
+controls, source/package identities and failed or incomplete assessment are
+retained separately from ordinary functional acceptance. The collectors cover
+warm SELECT, saved Result and status, existing-state reads in distinct child
+processes, and first initialization in distinct new states. Each uses the same
+package consumer and explicit combined protocol. The combined report verifies
+the source, cohort, environment and protocol identities and matches each sample
+against its retained raw JSONL. Missing families remain absent; missing or
+different raw samples refuse. Missing JOIN, UNION, Decimal SUM, Mock, history,
+chunk, structural or fault evidence keeps the full release assessment incomplete.
+Harness tests or a passing subset do not establish the release latency gate.
+
 ## Focused packed Content recovery acceptance
 
 After committing a coherent Content implementation, use the normal five-package

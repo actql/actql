@@ -232,21 +232,15 @@ test('original cancellation lookup captures nested identity and outcome exactly 
   assert.deepEqual(f.calls.map(call => call.operation), ['connect', 'attach', 'lookup-cancellation']);
 });
 
-test('cancellation lookup detachment cannot change a valid original outcome', async t => {
+test('cancellation lookup uses its captured original with no verification clone', async t => {
   const f = await fixture(t, () => ({kind: 'found', cancellation: original}));
-  const clone = globalThis.structuredClone;
-  t.after(() => { globalThis.structuredClone = clone; });
-  globalThis.structuredClone = value => {
-    const copy = clone(value);
-    if (value.kind === 'found' && value.cancellation !== undefined) {
-      copy.cancellation.kind = 'already_terminal';
-    }
-    return copy;
-  };
-  await assert.rejects(f.run.lookupCancellation(cancelRef), error => {
-    assert.equal(error.code, 'InvalidHostCancellationLookup');
-    assert.deepEqual(error.cancelRef, cancelRef);
-    return true;
+  const nativeClone = globalThis.structuredClone;
+  const clone = t.mock.method(globalThis, 'structuredClone', value => {
+    if (Object.hasOwn(value, 'connection')) return nativeClone(value);
+    assert.fail('Unexpected response verification clone');
   });
+  const answer = await f.run.lookupCancellation(cancelRef);
+  assert.deepEqual(answer, {kind: 'found', cancellation: original});
+  assert.equal(clone.mock.calls.filter(({arguments: [value]}) => !Object.hasOwn(value, 'connection')).length, 0);
   assert.equal(f.calls.filter(call => call.operation === 'cancel').length, 0);
 });

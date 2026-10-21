@@ -270,6 +270,20 @@ export interface DurableResultRowFrames {
   readonly [durableRowFramesBrand]: true;
 }
 
+declare const issuedDeliveryAttemptBrand: unique symbol;
+export interface IssuedDeliveryAttemptOriginal {
+  readonly [issuedDeliveryAttemptBrand]: true;
+}
+export interface IssuedDeliveryAttemptFacts {
+  readonly index: IndexView;
+  readonly manifest: ManifestView;
+  readonly grant: GrantView;
+  readonly attempt: AttemptView;
+  readonly request: Readonly<{resultName: string; format: string;
+    attemptId: string; requestedAt: string}>;
+  readonly limits: PublicationLimits;
+}
+
 export interface ResultDeliveryControl {
   describeCommittedResult(index: IndexView, manifest: ManifestView,
     resultName: string, bindings: readonly DeliveryContractView<string>[],
@@ -289,6 +303,11 @@ export interface ResultDeliveryControl {
     bytes: number): boolean;
   admit<Kind extends string>(name: Kind, wire: string,
     limits: PublicationLimits): DeliveryContractView<Kind>;
+  /** Reuse an original publication from this module without wire admission. */
+  fromPublication<Kind extends string>(original: PublicationContract<Kind>):
+    DeliveryContractView<Kind>;
+  fromPublication<Kind extends string>(original: PublicationContract,
+    expectedName: Kind): DeliveryContractView<Kind>;
   beginResultAccessProgress(): ResultAccessProgress;
   resultAccessProgressAction(progress: ResultAccessProgress):
     'authorize_request' | 'resolve_committed_result' |
@@ -331,6 +350,12 @@ export interface ResultDeliveryControl {
     attempt: Readonly<{resultName: string; format: string;
       attemptId: string; requestedAt: string}>,
     limits: PublicationLimits): AttemptView;
+  /** Capture this issuer's exact immutable inputs; no authority or durable ACK. */
+  captureIssuedDeliveryAttempt(attempt: AttemptView, index: IndexView,
+    manifest: ManifestView, grant: GrantView, limits: PublicationLimits):
+    IssuedDeliveryAttemptOriginal | undefined;
+  readIssuedDeliveryAttempt(original: IssuedDeliveryAttemptOriginal):
+    IssuedDeliveryAttemptFacts;
   deliveryResultDefinitionCid(manifest: ManifestView,
     attempt: AttemptView): string;
   issueResultDeliveryReceipt(index: IndexView,

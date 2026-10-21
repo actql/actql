@@ -34,41 +34,24 @@ async function fixture(t, reply) {
 const next = {operation: 'lookupRequest', requestId: 'saved',
   lookupContext: {endpoint: 'actql:embedded', scopeRef: 'scope'}};
 
-for (const kind of ['found', 'held']) for (const target of ['verification copy', 'captured original']) {
-  test(`request lookup classifies a throwing ${target} getter for ${kind}`, async t => {
+for (const kind of ['found', 'held']) {
+  test(`request lookup captures a throwing original getter once for ${kind}`, async t => {
     const reply = kind === 'found' ? {kind, requestId: 'saved', ref,
       durability: 'durable', lookupExpiresAt: '2099-01-01T00:00:00.000Z'}
       : held('waiting_checkpoint');
+    let reads = 0;
+    Object.defineProperty(reply, 'requestId', {enumerable: true, get() {
+      reads++; throw new Error('private-lookup-original-getter');
+    }});
     const f = await fixture(t, reply);
-    const clone = globalThis.structuredClone;
-    const privateCause = new Error('private-lookup-verification-getter');
-    let copies = 0, reads = 0, failure;
-    // Explicitly inject the existing verification-copy fault model. Native
-    // structuredClone does not normally return getters or mutate its input.
-    const mocked = t.mock.method(globalThis, 'structuredClone', value => {
-      const copy = clone(value);
-      if (value?.kind === kind && value.requestId === 'saved') {
-        copies++;
-        Object.defineProperty(target === 'verification copy' ? copy : value,
-          'requestId', {enumerable: true, configurable: true,
-            get() { reads++; throw privateCause; }});
-      }
-      return copy;
-    });
-    try { await f.client.lookupRequest('saved'); } catch (error) { failure = error; }
-    finally { mocked.mock.restore(); }
-    assert.equal(copies, 1);
+    let failure;
+    try {await f.client.lookupRequest('saved');} catch (error) {failure = error;}
     assert.equal(reads, 1);
+    assert.equal(failure?.code, 'InvalidHostRequestLookup');
+    assert.equal(sdk.explainRequestLookup(failure).observation, 'lookup_uninterpretable');
+    assert.deepEqual(sdk.explainRequestLookup(failure).next, next);
     assert.deepEqual(f.calls, ['connect', 'lookup-request']);
-    assert.equal(reply.requestId, 'saved');
-    assert.equal(failure?.code, 'InvalidHostRequestLookup', '[lookup-verification:classification]');
-    assert.notEqual(failure, privateCause);
-    const explanation = sdk.explainRequestLookup(failure);
-    assert.equal(explanation.observation, 'lookup_uninterpretable');
-    assert.deepEqual(explanation.next, next);
-    assert.equal(sdk.explainRequestLookup({...failure}), undefined);
-    assert.equal(sdk.getSubmissionInput(failure), undefined);
-    assert.doesNotMatch(inspect(failure, {showHidden: true, depth: 8}), /private-lookup-verification-getter/u);
+    assert.doesNotMatch(inspect(failure, {showHidden: true, depth: 8}), /private-lookup-original-getter/u);
   });
 }
 
@@ -132,22 +115,20 @@ test('request lookup snapshots detach a reused held checkpoint', async t => {
   assert.equal(Object.isFrozen(first.checkpoint), true, '[check-mutation:request-lookup-freeze]');
   assert.equal(second.state, 'ended');
 });
-for (const fault of ['clone changes a field', 'reply cannot be cloned']) {
-  test(`request lookup rejects ${fault}`, async t => {
-    const f = await fixture(t, held('waiting_checkpoint'));
-    const original = globalThis.structuredClone;
-    mock.method(globalThis, 'structuredClone', value => {
-      if (value?.kind !== 'held') return original(value);
-      if (fault === 'reply cannot be cloned') throw new Error('private-clone-cause');
-      return {...original(value), requestId: 'foreign'};
-    });
-    t.after(() => mock.restoreAll());
-    let failure;try {await f.client.lookupRequest('saved');} catch (error) {failure = error;}
-    assert.equal(failure?.code, 'InvalidHostRequestLookup', '[check-mutation:request-lookup-admission]');
-    assert.equal(sdk.explainRequestLookup(failure).observation, 'lookup_uninterpretable');
-    assert.deepEqual(sdk.explainRequestLookup(failure).next, next);
+test('request lookup needs no verification clone after original capture', async t => {
+  const f = await fixture(t, held('waiting_checkpoint'));
+  const nativeClone = globalThis.structuredClone;
+  const clone = t.mock.method(globalThis, 'structuredClone', value => {
+    if (Object.hasOwn(value, 'connection')) return nativeClone(value);
+    assert.fail('Unexpected response verification clone');
   });
-}
+  const answer = await f.client.lookupRequest('saved');
+  assert.equal(clone.mock.calls.filter(({arguments: [value]}) => !Object.hasOwn(value, 'connection')).length, 0);
+  assert.equal(answer.requestId, 'saved');
+  assert.equal(answer.checkpoint.checkpointId, 'checkpoint');
+  assert.equal(sdk.explainRequestLookup(answer).preparationState, 'waiting_checkpoint');
+  assert.deepEqual(f.calls, ['connect', 'lookup-request']);
+});
 test('held submit explanations retain the admitted preparation state', async t => {
   const reply = held('waiting_checkpoint'), f = await fixture(t, reply);
   let failure;try {await f.client.start({params: {}, stages: []}, {submissionRef: originalSubmission('saved')});} catch (error) {failure = error;}
@@ -161,26 +142,22 @@ test('held submit explanations retain the admitted preparation state', async t =
   assert.equal(failure.held.checkpoint.checkpointId, 'checkpoint');
   assert.deepEqual(f.calls, ['connect', 'submit-intent']);
 });
-for (const fault of ['held clone changes its admitted branch', 'held reply cannot be cloned']) {
-  test(`submission uncertainty retains original lookup when ${fault}`, async t => {
-    const f = await fixture(t, held('waiting_checkpoint'));
-    const original = globalThis.structuredClone;
-    mock.method(globalThis, 'structuredClone', value => {
-      if (value?.kind !== 'held') return original(value);
-      if (fault === 'held reply cannot be cloned') throw new Error('private-clone-cause');
-      return {ref, durability: 'durable', revision: 1};
-    });
-    t.after(() => mock.restoreAll());
-    let failure;try {await f.client.start({params: {}, stages: []}, {submissionRef: originalSubmission('saved')});} catch (error) {failure = error;}
-    assert.equal(failure?.code, 'SubmissionUnknown', '[check-mutation:request-held-admission]');
-    assert.equal(failure instanceof sdk.RequestHeld, false);
-    assert.equal(sdk.explainSubmission(failure).observation, 'acceptance_unknown');
-    assert.deepEqual(sdk.explainSubmission(failure).next, {operation: 'lookupSubmission',
-      submissionRef: originalSubmission('saved'), lookupContext: next.lookupContext});
-    assert.equal(sdk.getSubmissionInput(failure).requestId, 'saved');
-    assert.deepEqual(f.calls, ['connect', 'submit-intent']);
+test('held submission reuses the captured nested outcome without a verification clone', async t => {
+  const f = await fixture(t, held('waiting_checkpoint'));
+  const nativeClone = globalThis.structuredClone;
+  const clone = t.mock.method(globalThis, 'structuredClone', value => {
+    if (Object.hasOwn(value, 'connection')) return nativeClone(value);
+    assert.fail('Unexpected response verification clone');
   });
-}
+  let heldRequest;
+  try {await f.client.start({params: {}, stages: []}, {submissionRef: originalSubmission('saved')});}
+  catch (error) {heldRequest = error;}
+  assert.ok(heldRequest instanceof sdk.RequestHeld);
+  assert.equal(clone.mock.calls.filter(({arguments: [value]}) => !Object.hasOwn(value, 'connection')).length, 0);
+  assert.equal(sdk.explainSubmission(heldRequest).preparationState, 'waiting_checkpoint');
+  assert.deepEqual(sdk.getSubmissionInput(heldRequest).submissionRef, originalSubmission('saved'));
+  assert.deepEqual(f.calls, ['connect', 'submit-intent']);
+});
 for (const [label, reply] of [
   ['unknown branch', {kind: 'succeeded', requestId: 'saved', permission: 'submit'}],
   ['malformed held branch', {...held('waiting_checkpoint'), checkpoint: undefined}],
@@ -294,31 +271,21 @@ test('request cancellation snapshots detach reused response and Run references',
   assert.equal(sdk.explainRequestCancellation(second).observation, 'already_terminal');
   assert.deepEqual(sdk.explainRequestCancellation(first).next.ref, ref);
 });
-for (const fault of ['clone changes request identity', 'clone changes known branch', 'clone changes Run reference', 'clone throws']) {
-  test(`request cancellation rejects ${fault}`, async t => {
-    const f = await fixture(t, {kind: 'accepted', requestId: 'saved', ref: {...ref}, revision: 7});
-    const original = globalThis.structuredClone;
-    mock.method(globalThis, 'structuredClone', value => {
-      if (value?.kind !== 'accepted') return original(value);
-      if (fault === 'clone throws') throw new Error('private-clone-cause');
-      const copy = original(value);
-      if (fault === 'clone changes request identity') copy.requestId = 'foreign';
-      else if (fault === 'clone changes known branch') copy.kind = 'already_terminal';
-      else copy.ref.runDefinitionCid = cid('d');
-      return copy;
-    });
-    t.after(() => mock.restoreAll());
-    let failure;try {await f.client.cancelRequest('saved');} catch (error) {failure = error;}
-    assert.equal(failure?.code, 'CancellationUnknown', '[check-mutation:request-cancel-admission]');
-    const explanation = sdk.explainRequestCancellation(failure);
-    assert.equal(explanation.observation, 'outcome_unknown');
-    assert.equal(explanation.problem, 'response_uninterpretable');
-    assert.deepEqual(explanation.next, next);
-    assert.equal(Object.hasOwn(explanation, 'revision'), false);
-    assert.equal(sdk.explainRequestCancellation({...failure}), undefined);
-    assert.doesNotMatch(sdk.formatRequestCancellation(failure, {format: 'json'}), /private-clone-cause/u);
+test('request cancellation keeps its original outcome without a verification clone', async t => {
+  const f = await fixture(t, {kind: 'accepted', requestId: 'saved', ref: {...ref}, revision: 7});
+  const nativeClone = globalThis.structuredClone;
+  const clone = t.mock.method(globalThis, 'structuredClone', value => {
+    if (Object.hasOwn(value, 'connection')) return nativeClone(value);
+    assert.fail('Unexpected response verification clone');
   });
-}
+  const answer = await f.client.cancelRequest('saved');
+  assert.equal(clone.mock.calls.filter(({arguments: [value]}) => !Object.hasOwn(value, 'connection')).length, 0);
+  assert.equal(answer.kind, 'accepted');
+  assert.equal(answer.revision, 7);
+  assert.deepEqual(answer.ref, ref);
+  assert.equal(sdk.explainRequestCancellation(answer).observation, 'accepted');
+  assert.deepEqual(f.calls, ['connect', 'cancel-request']);
+});
 for (const reply of [{kind: 'succeeded', requestId: 'saved'}, {kind: 'accepted', requestId: 'saved', revision: 7}]) {
   test(`request cancellation admits no facts from ${reply.kind === 'succeeded' ? 'unknown' : 'malformed known'} reply`, async t => {
     const f = await fixture(t, reply);

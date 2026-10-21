@@ -5,7 +5,7 @@ import {projectDeliveryExplanation, projectDeliveryLookupFailure, projectReadExp
 import {contentCid} from '../checkpoints.mjs';
 import {jsonValueWireContractCid} from '../json-value-wire.generated.mjs';
 import {awaitValidation, captureReadOptions, captureResultRead, validationOutcome} from '../result-schema.mjs';
-import {captureResponse, freezeInput, positive, structuralKey} from './data.mjs';
+import {captureResponse, freezeInput, positive} from './data.mjs';
 import {ClientError, fail, ownedClientFailure, markOwnedFailure, ownedFailureCode,
   requestCancellationCause} from './errors.mjs';
 import {resultDescriptionLimits, validDeliveryAttemptLookup, validResultDescription} from '@actql/client-wire';
@@ -503,6 +503,8 @@ export function createResultFactory({ref, limits, lookupContext, redactErrors, t
         catch (cause) {
           throw new ClientError('InvalidHostResultDescription', {cause});
         }
+        try { answer = captureResponse(answer); }
+        catch { fail('InvalidHostResultDescription'); }
         if (!validResultDescription(answer, {ref, resultName: name, format},
           limits)) fail('InvalidHostResultDescription');
         const schema = Object.fromEntries(answer.columns.map(column =>
@@ -516,7 +518,7 @@ export function createResultFactory({ref, limits, lookupContext, redactErrors, t
               result_name: name}) !== answer.resultDefinitionCid) {
           fail('InvalidHostResultDescription');
         }
-        return Object.freeze(answer);
+        return freezeInput(answer);
       },
       deliveryAttempt: async (attemptId, {signal} = {}) => {
         if (typeof attemptId !== 'string' || !attemptId) {
@@ -543,12 +545,7 @@ export function createResultFactory({ref, limits, lookupContext, redactErrors, t
         try {
           answer = captureResponse(answer);
           if (!validDeliveryAttemptLookup(answer, expected)) fail('InvalidHostAttemptLookup');
-          const observation = answer;
-          const observedKey = structuralKey(answer);
-          answer = structuredClone(answer);
-          if (!validDeliveryAttemptLookup(answer, expected) || structuralKey(answer) !== observedKey) fail('InvalidHostAttemptLookup');
-          if (structuralKey(observation) !== observedKey) fail('InvalidHostAttemptLookup');
-          return retainDeliveryExplanation(freezeInput(observation), {
+          return retainDeliveryExplanation(freezeInput(answer), {
             operation: 'deliveryAttempt', ref, resultName: name, attemptId,
             lookupContext: {...lookupContext},
           });

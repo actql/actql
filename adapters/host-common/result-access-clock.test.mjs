@@ -239,7 +239,6 @@ test('explicit authority callback refusals cannot dispatch or complete delivery'
     if (stage !== 'receipt') assert.equal(input.state.finishes, 0);
   }
 });
-
 for (const [name, api] of [['source', source], ['packaged', packaged]]) {
   test(`${name}: later concurrent observation does not reject an earlier sample`, async () => {
     const input = fixture(api, {afterAdmission(state) {
