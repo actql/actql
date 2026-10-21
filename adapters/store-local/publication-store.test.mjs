@@ -725,8 +725,11 @@ test('known file-backed Result metadata performs no unrelated native delivery pr
   const entry = indexEntry(request, attempt, invocationValue, {
     durable_result_binding_cids: [prepared.binding.identity],
   });
-  await store.commitIndex(wire(entry), prepared.required, prepared.evidence);
   observing = true;
+  await store.commitIndex(wire(entry), prepared.required, prepared.evidence);
+  assert.deepEqual(probes, [], 'typed commit evidence selects its representation before generic inventory');
+  assert.equal((await store.commitIndex(wire(entry), prepared.required, prepared.evidence)).idempotent, true);
+  assert.deepEqual(probes, [], 'a distinct operation reacquires typed evidence without unrelated native probes');
   const description = await store.readCommittedResultDescriptionEvidence(
     indexKeyFor(request), definition.result_definition_cid);
   assert.equal(description.schemaWire, resultSchemaWire);
@@ -741,6 +744,10 @@ test('known file-backed Result metadata performs no unrelated native delivery pr
   await assert.rejects(store.readCommittedResultDescriptionEvidence(
     indexKeyFor(request), definition.result_definition_cid), code('PublicationContractMissing'));
   assert.deepEqual(probes, [], 'a missing selected schema refuses without a different representation');
+  assert.equal((await store.readSemanticBytes(invocationValue.invocation_cid)).toString('utf8'),
+    contractControl.admit('run_invocation', wire(invocationValue), limits).wire);
+  assert.equal(probes.length, 1, 'an untyped public read retains the generic native lookup and file fallback');
+  assert.deepEqual(probes[0], Array(5).fill(invocationValue.invocation_cid));
 });
 
 test('bounded object writes are durable, streamed, and physically addressed',
