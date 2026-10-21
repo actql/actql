@@ -6,6 +6,21 @@ import {join} from 'node:path';
 import {DatabaseSync} from 'node:sqlite';
 import {openDeliveryAttemptIndex} from './delivery-attempt-index.mjs';
 
+for (const missing of ['publication_contracts','publication_usage']) {
+  test(`adopted publication metadata refuses missing ${missing} without resetting coverage`,async t => {
+    const directory = await mkdtemp(join(tmpdir(),'actql-native-publication-missing-'));
+    t.after(() => rm(directory,{recursive:true}));
+    const path = join(directory,'index.sqlite3');
+    const options = {create:false,maxEntries:2,maxWireBytes:4096};
+    const index = await openDeliveryAttemptIndex(path,{...options,create:true});
+    index.migrate([]);
+    index.close();
+    const database = new DatabaseSync(path);
+    try {database.exec(`DROP TABLE ${missing}`);} finally {database.close();}
+    await assert.rejects(openDeliveryAttemptIndex(path,options),{code:'DeliveryAttemptIndexUnavailable'});
+  });
+}
+
 test('same original indexed removal retries after a lost COMMIT reply without decrementing twice', async t => {
   const directory = await mkdtemp(join(tmpdir(),'actql-delivery-index-removal-'));
   let index;
@@ -98,7 +113,7 @@ test('legacy indexed attempts keep the original pending and finish protocol afte
   index.close();
   // Reconstruct the exact pre-extension schema, not an empty replacement DB.
   const database = new DatabaseSync(path);
-  try {database.exec('DROP TABLE completions; DROP TABLE initial_records; UPDATE coverage SET version=1 WHERE id=1');}
+  try {database.exec('DROP TABLE publication_contracts; DROP TABLE publication_usage; DROP TABLE completions; DROP TABLE initial_records; UPDATE coverage SET version=1 WHERE id=1');}
   finally {database.close();}
   index = await openDeliveryAttemptIndex(path,{create:false,maxEntries:2,maxWireBytes:4096});
   assert.equal(index.pending().length,1);
@@ -134,7 +149,7 @@ test('version two initial records remain file-backed after additive native-origi
   index.claim(row,1,'{"initial":1}');
   index.close();
   const database=new DatabaseSync(path);
-  try {database.exec(`DROP TABLE completions;
+  try {database.exec(`DROP TABLE publication_contracts; DROP TABLE publication_usage; DROP TABLE completions;
     ALTER TABLE initial_records DROP COLUMN ack_revision;
     DROP INDEX initial_record_identity;
     ALTER TABLE initial_records DROP COLUMN initial_cid; UPDATE coverage SET version=2 WHERE id=1`);}
@@ -159,7 +174,7 @@ test('version three native originals survive additive completion storage without
   index.claim(row,1,'{"initial":1}',cid('4'));
   index.close();
   const database=new DatabaseSync(path);
-  try {database.exec(`DROP TABLE completions; ALTER TABLE initial_records DROP COLUMN ack_revision;
+  try {database.exec(`DROP TABLE publication_contracts; DROP TABLE publication_usage; DROP TABLE completions; ALTER TABLE initial_records DROP COLUMN ack_revision;
     UPDATE coverage SET version=3 WHERE id=1`);} finally {database.close();}
   index=await openDeliveryAttemptIndex(path,options);
   assert.deepEqual(index.contract(cid('4')),{name:'delivery_record',wire:'{"initial":1}'});

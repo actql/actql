@@ -113,18 +113,17 @@ test('original publication metadata has one native durable commit without duplic
     if (store !== undefined) await store.close();
     await rm(directory, {recursive: true});
   });
-  store = await openLocalPublicationStore(configuration, control);
   const originalExec = DatabaseSync.prototype.exec, originalOpen = fs.open;
-  let commits = 0;
+  let commits = 0, armed = false;
   const fileSyncs = [];
   DatabaseSync.prototype.exec = function(sql, ...args) {
     const result = Reflect.apply(originalExec, this, [sql, ...args]);
-    if (sql.trim() === 'COMMIT') commits++;
+    if (armed && sql.trim() === 'COMMIT') commits++;
     return result;
   };
   fs.open = async function(path, ...args) {
     const handle = await Reflect.apply(originalOpen, this, [path, ...args]);
-    if (typeof path === 'string' && path.startsWith(directory + '/')) {
+    if (armed && typeof path === 'string' && path.startsWith(directory + '/')) {
       const originalSync = handle.sync;
       handle.sync = async function(...parameters) {
         const result = await Reflect.apply(originalSync, this, parameters);
@@ -136,6 +135,10 @@ test('original publication metadata has one native durable commit without duplic
   };
   syncBuiltinESMExports();
   try {
+    // The native Owner captures exec at open. Install observation before that
+    // capture, then count only this publication, not initialization COMMITs.
+    store = await openLocalPublicationStore(configuration, control);
+    armed = true;
     await store.putOriginalPublicationContracts(contracts);
   } finally {
     DatabaseSync.prototype.exec = originalExec;
@@ -155,6 +158,90 @@ test('original publication metadata has one native durable commit without duplic
     assert.equal((await store.readPublicationContract(contract.identity, contract.name)).wire, contract.wire);
   }
   assert.equal(store.status().objectCount, 2);
+});
+
+for (const afterCommit of [false, true]) {
+  test(`native publication metadata retains capacity across ${afterCommit ? 'after' : 'before'} COMMIT reply loss`, async t => {
+    const control = runtimeCore(moon).publicationControl;
+    const contract = control.seal('run_invocation', JSON.stringify({
+      version:'actql-run-invocation/0.1',invocation_template_cid:cid('1'),observation_set_cid:cid('2'),
+    }), limits);
+    const directory = await mkdtemp(join(tmpdir(),'actql-publication-native-unknown-'));
+    let store, armed = false, lost = false, commits = 0;
+    const exec = DatabaseSync.prototype.exec;
+    t.mock.method(DatabaseSync.prototype,'exec',function(sql) {
+      if (armed && sql === 'COMMIT') {
+        commits++;
+        if (!lost) {
+          lost = true;
+          if (afterCommit) Reflect.apply(exec,this,[sql]);
+          throw Object.assign(new Error('lost original publication COMMIT reply'),{code:'EIO'});
+        }
+      }
+      return Reflect.apply(exec,this,[sql]);
+    });
+    t.after(async () => { if (store !== undefined) await store.close(); await rm(directory,{recursive:true}); });
+    store = await openLocalPublicationStore({directory,storeAuthorityCid:cid('5'),
+      capacityBytes:1048576,maxObjectBytes:65536,maxObjects:2,maxContractNodes:4096,maxContractDepth:64},control);
+    armed = true;
+    let originalFailure;
+    await assert.rejects(store.putOriginalPublicationContracts([contract]), error => {
+      originalFailure = error;
+      return error.code === 'PublicationMetadataCommitOutcomeUnknown' && error.outcome === 'unknown';
+    });
+    assert.equal(store.status().objectCount,0,'an unobserved COMMIT is not reported as durable success');
+    assert.equal(store.status().reservedObjects,1);
+    assert.equal(store.status().reservedBytes,Buffer.byteLength(contract.wire,'utf8'));
+    await assert.rejects(store.close(),{code:'PublicationStoreCleanupPending'});
+    await assert.rejects(store.putOriginalPublicationContracts([contract]),{code:'PublicationStoreCleanupPending'});
+    await assert.rejects(store.readPublicationContract(contract.identity,contract.name),
+      {code:'DeliveryAttemptIndexCommitOutcomeUnknown'});
+    assert.equal(originalFailure.cleanupHandle.status().pending,true);
+    assert.equal((await originalFailure.cleanupHandle.retry()).pending,false);
+    assert.equal(commits,2,'only the same metadata duty makes a real confirmation write');
+    assert.equal(store.status().reservedObjects,0);
+    assert.equal(store.status().objectCount,1);
+    assert.equal(store.status().storedBytes,Buffer.byteLength(contract.wire,'utf8'));
+    assert.equal((await store.readPublicationContract(contract.identity,contract.name)).wire,contract.wire);
+    await store.putOriginalPublicationContracts([contract]);
+    await store.putPublicationContract(contract.name,contract.wire);
+    assert.equal(commits,2,'known immutable metadata is not committed or duplicated again');
+    assert.deepEqual(await readdir(join(directory,'contracts')),[]);
+    assert.deepEqual(await readdir(join(directory,'objects')),[]);
+    assert.equal(store.status().objectCount,1);
+  });
+}
+
+test('native publication capacity and legacy files share the original Store limits', async t => {
+  const control = runtimeCore(moon).publicationControl;
+  const contracts = [1,3,5].map(digit => control.seal('run_invocation',JSON.stringify({
+    version:'actql-run-invocation/0.1',invocation_template_cid:cid(String(digit)),
+    observation_set_cid:cid(String(digit+1)),
+  }),limits));
+  const directory = await mkdtemp(join(tmpdir(),'actql-publication-native-capacity-'));
+  let store;
+  t.after(async () => { if (store !== undefined) await store.close(); await rm(directory,{recursive:true}); });
+  const configuration = {directory,storeAuthorityCid:cid('7'),capacityBytes:1048576,
+    maxObjectBytes:65536,maxObjects:2,maxContractNodes:4096,maxContractDepth:64};
+  store = await openLocalPublicationStore(configuration,control);
+  await store.putPublicationContract(contracts[0].name,contracts[0].wire);
+  const fileBytes = store.status().storedBytes;
+  await assert.rejects(store.putOriginalPublicationContracts(contracts.slice(1)),{code:'PublicationStoreObjectLimit'});
+  assert.equal(store.status().objectCount,1);
+  assert.equal(store.status().reservedObjects,0,'a refused whole group releases only unpublished reservations');
+  assert.equal(store.status().storedBytes,fileBytes);
+  await store.putOriginalPublicationContracts(contracts.slice(0,2));
+  assert.equal(store.status().objectCount,2,'the old file is not duplicated or charged a second time');
+  assert.equal((await readdir(join(directory,'contracts'))).length,1);
+  assert.equal((await readdir(join(directory,'objects'))).length,1);
+  await assert.rejects(store.putBytes(Buffer.from('payload')),{code:'PublicationStoreObjectLimit'});
+  await store.close();
+  store = await openLocalPublicationStore(configuration,control);
+  assert.equal(store.status().objectCount,2);
+  assert.equal(store.status().storedBytes,fileBytes+Buffer.byteLength(contracts[1].wire,'utf8'));
+  for (const contract of contracts.slice(0,2)) {
+    assert.equal((await store.readPublicationContract(contract.identity,contract.name)).wire,contract.wire);
+  }
 });
 
 test('publication originals preserve owner identity and captured issuance bounds', () => {

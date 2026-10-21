@@ -76,6 +76,17 @@ const localContinuationEvidenceNames = Object.freeze([
 const nativeDeliveryContractNames = Object.freeze([
   'delivery_attempt', 'result_read_grant', 'delivery_record', 'result_delivery_receipt',
 ]);
+// These objects retain their existing file/alias representation. Other
+// publication contracts may live in the same Store's native metadata table.
+const filePublicationContractNames = Object.freeze(['public_index_entry','schema',
+  'publication_attempt','publication_record',...nativeDeliveryContractNames]);
+const nativePublicationContract = name => !filePublicationContractNames.includes(name);
+const nativeContractRead = name => nativePublicationContract(name) || nativeDeliveryContractNames.includes(name);
+const metadataContractObject = object => object !== null && typeof object === 'object' &&
+  cidPattern.test(object.semantic_cid) && quantity(object.byte_count) && (
+    exactKeys(object, ['semantic_cid','physical_cid','byte_count']) && cidPattern.test(object.physical_cid) ||
+    exactKeys(object, ['semantic_cid','native','body_sha256','byte_count']) &&
+      object.native === 'sqlite' && cidPattern.test(object.body_sha256));
 const recordNamePattern = /^(0|[1-9][0-9]*)\.json$/u;
 const custodyNamePattern =
   /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\.json$/u;
@@ -1249,6 +1260,13 @@ async function openOriginalLocalPublicationStore(
 
   let storedBytes = 0;
   let objectCount = 0;
+  let nativePublicationBytes = 0, nativePublicationObjects = 0;
+  const accountNativePublication = usage => {
+    storedBytes += usage.bytes - nativePublicationBytes;
+    objectCount += usage.objects - nativePublicationObjects;
+    nativePublicationBytes = usage.bytes;
+    nativePublicationObjects = usage.objects;
+  };
   for (const name of await readOpeningDirectory(objectsDirectory)) {
     if (!/^[0-9a-f]{64}$/u.test(name)) {
       fail('InvalidPublicationStoreObject');
@@ -1642,11 +1660,7 @@ async function openOriginalLocalPublicationStore(
         !cidPattern.test(value.publication_attempt_cid) ||
         !Array.isArray(value.contract_objects) ||
         value.contract_objects.length === 0 ||
-        value.contract_objects.some(object => !exactKeys(object, [
-          'semantic_cid', 'physical_cid', 'byte_count',
-        ]) || !cidPattern.test(object.semantic_cid) ||
-          !cidPattern.test(object.physical_cid) ||
-          !quantity(object.byte_count)) ||
+        value.contract_objects.some(object => !metadataContractObject(object)) ||
         new Set(value.contract_objects.map(object => object.semantic_cid))
           .size !== value.contract_objects.length ||
         [...value.contract_objects]
@@ -1751,11 +1765,7 @@ async function openOriginalLocalPublicationStore(
           .size !== value.results.length ||
         !Array.isArray(value.contract_objects) ||
         value.contract_objects.length === 0 ||
-        value.contract_objects.some(object => !exactKeys(object, [
-          'semantic_cid', 'physical_cid', 'byte_count',
-        ]) || !cidPattern.test(object.semantic_cid) ||
-          !cidPattern.test(object.physical_cid) ||
-          !quantity(object.byte_count)) ||
+        value.contract_objects.some(object => !metadataContractObject(object)) ||
         new Set(value.contract_objects.map(object => object.semantic_cid))
           .size !== value.contract_objects.length ||
         [...value.contract_objects]
@@ -3110,11 +3120,95 @@ async function openOriginalLocalPublicationStore(
     const contract = admitContract(name, suppliedWire);
     const value = parseContract(contract);
     const semanticCid = contract.identity;
+    if (nativePublicationContract(name) && deliveryIndex?.publicationContract(semanticCid) !== undefined) {
+      return (await putNativePublicationContracts([Object.freeze({contract,value})]))[0];
+    }
     return Object.freeze({
       value,
       contract,
       ...await putSemantic(contract.wire, semanticCid),
     });
+  };
+
+  const putNativePublicationContracts = async admitted => {
+    active();
+    for (const pending of activePhysicalRecordWriters) {
+      if (pending.failed) fail('PublicationStoreCleanupPending');
+    }
+    const entries = [], results = [], reservations = [];
+    let reservationBytes = 0;
+    try {
+      for (const original of admitted) {
+        const {contract} = original;
+        // Existing file originals remain files. Do not duplicate their charge
+        // or silently replace an independently adopted physical representation.
+        try {
+          await lstat(contractPath(contract.identity));
+          const retained = await readSemanticOriginal(contract.identity, false);
+          if (!exactUtf8WireMatches(retained.bytes, contract.wire)) fail('PublicationSemanticIdentityConflict');
+          results.push(Object.freeze({...original, semanticCid:contract.identity, storage:'file', created:false}));
+          continue;
+        } catch (error) { if (error?.code !== 'ENOENT') throw error; }
+        const entry = Object.freeze({semantic_cid:contract.identity,name:contract.name,
+          wire:contract.wire,byte_count:Buffer.byteLength(contract.wire,'utf8')});
+        const existing = deliveryIndex.publicationContract(entry.semantic_cid);
+        if (existing !== undefined && (existing.name !== entry.name || existing.wire !== entry.wire)) {
+          fail('PublicationSemanticIdentityConflict');
+        }
+        entries.push(entry);
+        if (existing === undefined) {
+          reservations.push(reserveObjectCapacity(entry.byte_count));
+          reservationBytes += entry.byte_count;
+        }
+        results.push(Object.freeze({...original, semanticCid:contract.identity, storage:'sqlite', created:existing === undefined}));
+      }
+    } catch (error) {
+      for (const reservation of reservations) reservation.release();
+      throw error;
+    }
+    if (entries.length === 0) return Object.freeze(results);
+    const originalEntries = Object.freeze(entries);
+    const allowance = Object.freeze({objects:reservations.length,bytes:reservationBytes});
+    const writer = {failed:false,cleanup:undefined};
+    let pending = true, flight, failure;
+    const finish = () => {
+      const usage = deliveryIndex.putPublicationContracts(originalEntries,allowance);
+      accountNativePublication(usage);
+      for (const reservation of reservations) reservation.release();
+      pending = false;
+      activePhysicalRecordWriters.delete(writer);
+    };
+    const status = () => Object.freeze({pending});
+    writer.cleanup = Object.freeze({status,retry() {
+      if (flight !== undefined) return flight;
+      flight = Promise.resolve().then(() => {
+        if (pending) finish();
+        if (failure !== undefined) failure.cleanupPending = pending;
+        return status();
+      })
+        .finally(() => { flight = undefined; });
+      return flight;
+    }});
+    activePhysicalRecordWriters.add(writer);
+    try { finish(); }
+    catch (error) {
+      if (error?.outcome !== 'unknown') {
+        for (const reservation of reservations) reservation.release();
+        pending = false;
+        activePhysicalRecordWriters.delete(writer);
+        throw error;
+      }
+      writer.failed = true;
+      // The same bodies and capacity reservation remain owned until an actual
+      // same-database write confirms their outcome. Visibility is not an ACK.
+      failure = new PublicationStoreError('PublicationMetadataCommitOutcomeUnknown',error);
+      failure.outcome = 'unknown';
+      failure.primaryFailure = error;
+      failure.cleanupPending = true;
+      failure.cleanupHandle = writer.cleanup;
+      throw failure;
+    }
+    return Object.freeze(results);
   };
 
   const putPublicationContractBatch = async (supplied, originals) => {
@@ -3169,6 +3263,10 @@ async function openOriginalLocalPublicationStore(
       identities.set(contract.identity, original);
       wires.set(input.wire, original);
     }
+    if (admitted.every(({contract}) => nativePublicationContract(contract.name)) &&
+        (originals || admitted.some(({contract}) => deliveryIndex.publicationContract(contract.identity) !== undefined))) {
+      return putNativePublicationContracts(admitted);
+    }
     const stored = await putSemanticBatch(admitted.map(({contract}) => ({
       wire: contract.wire, semanticCid: contract.identity,
     })));
@@ -3180,8 +3278,7 @@ async function openOriginalLocalPublicationStore(
   const putPublicationContracts = supplied => putPublicationContractBatch(supplied, false);
   const putOriginalPublicationContracts = supplied => putPublicationContractBatch(supplied, true);
 
-  const nativeDeliveryContract = (cid, name, retained) => {
-    const native = deliveryIndex?.contract(cid);
+  const admitNativeContract = (native, cid, name, retained) => {
     if (native === undefined) return undefined;
     if (name !== undefined && native.name !== name) fail('InvalidDeliveryAttemptIndex');
     const contract = retained?.identity === cid && retained.name === native.name && retained.wire === native.wire
@@ -3189,12 +3286,16 @@ async function openOriginalLocalPublicationStore(
     if (contract.identity !== cid) fail('InvalidDeliveryAttemptIndex');
     return contract;
   };
+  const nativeDeliveryContract = (cid, name, retained) =>
+    admitNativeContract(deliveryIndex?.contract(cid), cid, name, retained);
 
   const readSemanticOriginal = async function readSemanticBytes(cid, includeNative = true) {
     const path = contractPath(cid);
     active();
-    const native = includeNative ? nativeDeliveryContract(cid) : undefined;
-    if (native !== undefined) return Object.freeze({bytes: Buffer.from(native.wire,'utf8'), native});
+    const nativeRecord = includeNative ? deliveryIndex?.contract(cid) : undefined;
+    const native = admitNativeContract(nativeRecord,cid);
+    if (native !== undefined) return Object.freeze({bytes: Buffer.from(native.wire,'utf8'), native,
+      publication: nativeRecord.publication === true});
     // This is the original read duty in the same Store lifetime. Keep its
     // private failure reachable even when a public ingress redacts the Error.
     const reader = {cleanup: undefined, failure: undefined};
@@ -3613,8 +3714,7 @@ async function openOriginalLocalPublicationStore(
   };
 
   const readContract = async (cid, contractName, readOriginal = readSemanticOriginal) => {
-    const includeNative = contractName === undefined ||
-      nativeDeliveryContractNames.includes(contractName);
+    const includeNative = contractName === undefined || nativeContractRead(contractName);
     const original = await readOriginal(cid, includeNative);
     const native = original.native;
     if (native !== undefined) {
@@ -3998,6 +4098,10 @@ async function openOriginalLocalPublicationStore(
       }
       await syncDirectory(deliveriesDirectory);
       deliveryIndex.migrate(rows);
+    }
+    accountNativePublication(deliveryIndex.publicationUsage());
+    if (storedBytes > configuration.capacityBytes || objectCount > configuration.maxObjects) {
+      fail('PublicationStoreCapacity');
     }
     if (coverage.phase !== 'ready') await publishCoverage('ready');
     // Only unfinished indexed claims are revisited. No ordinary open scans or
@@ -4774,7 +4878,7 @@ async function openOriginalLocalPublicationStore(
         fail('InvalidPublicationCommitEvidence');
       }
       const persisted = (await readOriginal(contract.identity,
-        nativeDeliveryContractNames.includes(contract.name))).bytes;
+        nativeContractRead(contract.name))).bytes;
       if (!persisted.equals(Buffer.from(contract.wire, 'utf8'))) {
         fail('PublicationCommitEvidenceMismatch');
       }
@@ -4915,7 +5019,7 @@ async function openOriginalLocalPublicationStore(
         'name', 'identityField', 'identity', 'wire',
       ]) || !cidPattern.test(contract.identity) ||
           !(await readOriginal(contract.identity,
-            nativeDeliveryContractNames.includes(contract.name))).bytes.equals(
+            nativeContractRead(contract.name))).bytes.equals(
             Buffer.from(contract.wire, 'utf8'))) {
         fail('EffectfulCommitEvidenceMismatch');
       }
@@ -5851,6 +5955,12 @@ async function openOriginalLocalPublicationStore(
     const objects = [];
     for (const semanticCid of contractCids) {
       const original = await readOriginal(semanticCid);
+      if (original.publication === true) {
+        objects.push(Object.freeze({semantic_cid:semanticCid,native:'sqlite',
+          body_sha256:`sha256:${createHash('sha256').update(original.bytes).digest('hex')}`,
+          byte_count:original.bytes.byteLength}));
+        continue;
+      }
       if(original.native !== undefined) {
         try {await lstat(contractPath(semanticCid));}
         catch(error) {if(error?.code==='ENOENT') continue; throw error;}
@@ -5994,6 +6104,7 @@ async function openOriginalLocalPublicationStore(
     return false;
   };
 
+  const pendingNativeMetadataReclaims = new Map();
   const reclaimMetadataContractInternal = async (
     excludedPublicIndexEntryCid,
     object,
@@ -6003,6 +6114,19 @@ async function openOriginalLocalPublicationStore(
         await metadataContractHasLiveReference(
       object.semantic_cid, excludedPublicIndexEntryCid,
     )) return;
+    if (object.native === 'sqlite') {
+      let original = pendingNativeMetadataReclaims.get(object.semantic_cid);
+      if (original === undefined) original = deliveryIndex.publicationContract(object.semantic_cid);
+      if (original === undefined) return; // A durable deletion marker owns this exact idempotent removal.
+      if (original.byte_count !== object.byte_count ||
+          `sha256:${createHash('sha256').update(original.wire,'utf8').digest('hex')}` !== object.body_sha256) {
+        fail('PublicationContractCorrupt');
+      }
+      pendingNativeMetadataReclaims.set(object.semantic_cid,original);
+      accountNativePublication(deliveryIndex.removePublicationContract(original));
+      pendingNativeMetadataReclaims.delete(object.semantic_cid);
+      return;
+    }
     const semanticPath = contractPath(object.semantic_cid);
     let semanticState;
     try { semanticState = await lstat(semanticPath); }
@@ -7279,6 +7403,9 @@ async function openOriginalLocalPublicationStore(
   // Recover process-crash custody before accepting new Store work. A
   // committed or shared allocation survives; an unpublished allocation is
   // reclaimed using its exact recorded generation.
+  // Native publication bodies and their persisted capacity are available to
+  // the same targeted recovery/retirement paths as legacy file originals.
+  await initializeDeliveryIndex();
   await recoverPreparedCustodies();
   await recoverPreparedSchemas();
   // A crash between semantic alias creation and physical-custody handoff
@@ -7301,10 +7428,6 @@ async function openOriginalLocalPublicationStore(
   // failed physical cleanup remains owned by the returned Store and can be
   // retried without making the deleted Result visible again.
   await recoverRetiredResults();
-
-  // The same index must be live when interrupted metadata retirement removes
-  // its selected attempt rows. Retired pending claims are not re-published.
-  await initializeDeliveryIndex();
 
   // Metadata deletion markers hide the public index before physical cleanup.
   // Restart resumes every exact contract and payload responsibility recorded

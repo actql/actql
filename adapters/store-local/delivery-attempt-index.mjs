@@ -6,7 +6,16 @@ import {createSqliteTransaction} from '../host-common/sqlite-transaction.mjs';
 
 const fail = (code, cause) => { throw Object.assign(new Error(code, {cause}), {code}); };
 const cid = value => typeof value === 'string' && /^sha256:[0-9a-f]{64}$/u.test(value);
-const version = 4;
+const version = 5;
+const publicationTable = `CREATE TABLE publication_contracts (
+  semantic_cid TEXT PRIMARY KEY, name TEXT NOT NULL, wire TEXT NOT NULL,
+  byte_count INTEGER NOT NULL CHECK(byte_count>=0)
+) WITHOUT ROWID`;
+const publicationUsageTable = `CREATE TABLE publication_usage (
+  id INTEGER PRIMARY KEY CHECK(id=1), objects INTEGER NOT NULL CHECK(objects>=0),
+  bytes INTEGER NOT NULL CHECK(bytes>=0),
+  ack_revision INTEGER NOT NULL CHECK(ack_revision>=1 AND ack_revision<=9007199254740991)
+)`;
 const completionTable = `CREATE TABLE completions (
   attempt_cid TEXT PRIMARY KEY REFERENCES attempts(attempt_cid) ON DELETE CASCADE,
   record_cid TEXT NOT NULL UNIQUE, record_wire TEXT NOT NULL,
@@ -114,7 +123,7 @@ export async function openDeliveryAttemptIndex(path, {create, maxEntries, maxWir
       exec(`CREATE TABLE coverage (
         id INTEGER PRIMARY KEY CHECK(id=1), version INTEGER NOT NULL,
         complete INTEGER NOT NULL CHECK(complete IN (0,1)), entries INTEGER NOT NULL);
-        INSERT INTO coverage VALUES(1,4,0,0);
+        INSERT INTO coverage VALUES(1,5,0,0);
         CREATE TABLE attempts (
           logical_key TEXT PRIMARY KEY, attempt_cid TEXT NOT NULL UNIQUE,
           grant_cid TEXT NOT NULL, run_cid TEXT NOT NULL,
@@ -129,11 +138,12 @@ export async function openDeliveryAttemptIndex(path, {create, maxEntries, maxWir
           initial_wire TEXT NOT NULL, initial_cid TEXT,
           ack_revision INTEGER NOT NULL DEFAULT 1 CHECK(ack_revision>=1 AND ack_revision<=9007199254740991)) WITHOUT ROWID;
         CREATE UNIQUE INDEX initial_record_identity ON initial_records(initial_cid);
-        ${completionTable};`);
+        ${completionTable}; ${publicationTable}; ${publicationUsageTable};
+        INSERT INTO publication_usage VALUES(1,0,0,1);`);
     });
     const state = prepare('SELECT version,complete,entries FROM coverage WHERE id=1');
     const selected = state.get();
-    if (![1,2,3,version].includes(selected?.version) || ![0,1].includes(selected.complete) ||
+    if (![1,2,3,4,version].includes(selected?.version) || ![0,1].includes(selected.complete) ||
         !Number.isSafeInteger(selected.entries) || selected.entries < 0 || selected.entries > maxEntries) {
       fail('DeliveryAttemptIndexUnavailable');
     }
@@ -170,6 +180,19 @@ export async function openDeliveryAttemptIndex(path, {create, maxEntries, maxWir
     if(!prepare('PRAGMA table_info(initial_records)').all().some(row=>row.name==='ack_revision')) {
       fail('DeliveryAttemptIndexUnavailable');
     }
+    if (selected.version < 5) transaction.run(() => {
+      // Only the old version permits first adoption. Missing adopted metadata
+      // is never repaired by resetting its capacity counters or originals.
+      exec(`${publicationTable}; ${publicationUsageTable};
+        INSERT INTO publication_usage VALUES(1,0,0,1);
+        UPDATE coverage SET version=5 WHERE id=1;`);
+    });
+    for (const [name, sql] of [['publication_contracts', publicationTable],
+      ['publication_usage', publicationUsageTable]]) {
+      if (prepare("SELECT sql FROM sqlite_schema WHERE type='table' AND name=?").get(name)?.sql !== sql) {
+        fail('DeliveryAttemptIndexUnavailable');
+      }
+    }
     let complete = selected.complete === 1;
     const lookup = prepare(`SELECT attempts.*,initial_records.initial_wire,initial_records.initial_cid FROM attempts
       LEFT JOIN initial_records USING(attempt_cid) WHERE logical_key=?`);
@@ -182,6 +205,12 @@ export async function openDeliveryAttemptIndex(path, {create, maxEntries, maxWir
       UNION ALL SELECT 'delivery_record',initial_wire FROM initial_records WHERE initial_cid=?
       UNION ALL SELECT 'delivery_record',record_wire FROM completions WHERE record_cid=?
       UNION ALL SELECT 'result_delivery_receipt',receipt_wire FROM completions WHERE receipt_cid=? LIMIT 1`);
+    const publication = prepare('SELECT * FROM publication_contracts WHERE semantic_cid=?');
+    const publicationUsage = prepare('SELECT objects,bytes,ack_revision FROM publication_usage WHERE id=1');
+    const insertPublication = prepare('INSERT INTO publication_contracts VALUES(?,?,?,?)');
+    const removePublication = prepare('DELETE FROM publication_contracts WHERE semantic_cid=?');
+    const updatePublicationUsage = prepare(`UPDATE publication_usage SET objects=objects+?,bytes=bytes+?,
+      ack_revision=ack_revision+1 WHERE id=1`);
     const completion = prepare('SELECT * FROM completions WHERE attempt_cid=?');
     const initialRecord = prepare('SELECT * FROM initial_records WHERE attempt_cid=?');
     const confirmInitial = prepare('UPDATE initial_records SET ack_revision=ack_revision+1 WHERE attempt_cid=? AND initial_cid=?');
@@ -199,7 +228,8 @@ export async function openDeliveryAttemptIndex(path, {create, maxEntries, maxWir
     const ready = prepare('UPDATE attempts SET ready=1 WHERE logical_key=? AND attempt_cid=?');
     const remove = prepare('DELETE FROM attempts WHERE run_cid=?');
     const updateCount = prepare('UPDATE coverage SET entries=entries+? WHERE id=1');
-    let uncertain = false, uncertainRemoval, uncertainCompletion, uncertainInitial, confirmedRecord;
+    let uncertain = false, uncertainRemoval, uncertainCompletion, uncertainInitial, confirmedRecord,
+      uncertainPublication;
     const run = body => {
       if (mutating) fail('DeliveryAttemptIndexBusy');
       mutating = true;
@@ -249,7 +279,75 @@ export async function openDeliveryAttemptIndex(path, {create, maxEntries, maxWir
       updateCount.run(1);
       addUse.run(row.grant_cid);
     };
+    const usage = () => {
+      const row = publicationUsage.get();
+      if (!row || ![row.objects,row.bytes,row.ack_revision].every(Number.isSafeInteger) ||
+          row.objects < 0 || row.objects > maxEntries || row.bytes < 0 || row.ack_revision < 1) {
+        fail('InvalidDeliveryAttemptIndex');
+      }
+      return Object.freeze({...row});
+    };
+    const publicationCopy = row => {
+      if (row === undefined) return undefined;
+      if (!cid(row.semantic_cid) || typeof row.name !== 'string' || row.name.length === 0 ||
+          Buffer.byteLength(row.name,'utf8') > maxWireBytes ||
+          typeof row.wire !== 'string' || !Number.isSafeInteger(row.byte_count) ||
+          row.byte_count < 0 || row.byte_count > maxWireBytes ||
+          Buffer.byteLength(row.wire,'utf8') !== row.byte_count) fail('InvalidDeliveryAttemptIndex');
+      return Object.freeze({...row});
+    };
+    const samePublication = (left,right) => left !== undefined && right !== undefined &&
+      ['semantic_cid','name','wire','byte_count'].every(key => left[key] === right[key]);
+    const publicationMutation = (kind, entries, allowance) => {
+      if (!Array.isArray(entries) || entries.length > maxEntries) fail('DeliveryAttemptIndexLimit');
+      const retry = uncertain && uncertainPublication?.kind === kind &&
+        entries.length === uncertainPublication.entries.length &&
+        entries.every((entry,i) => samePublication(entry,uncertainPublication.entries[i]));
+      if (retry) {
+        if (closed || closing || mutating || !complete) fail('DeliveryAttemptIndexCleanupPending');
+        transaction.assertUsable();
+      } else requireComplete();
+      const originals = Object.freeze(entries.map(entry => publicationCopy(entry)));
+      const before = usage();
+      const additions = [], removals = [];
+      const keys = new Set();
+      let bytes = 0;
+      for (const entry of originals) {
+        if (entry === undefined || keys.has(entry.semantic_cid)) fail('InvalidDeliveryAttemptIndex');
+        keys.add(entry.semantic_cid);
+        const current = publicationCopy(publication.get(entry.semantic_cid));
+        if (current !== undefined && !samePublication(current,entry)) fail('PublicationSemanticIdentityConflict');
+        if (kind === 'put' && current === undefined) { additions.push(entry); bytes += entry.byte_count; }
+        if (kind === 'remove' && current !== undefined) { removals.push(entry); bytes -= entry.byte_count; }
+      }
+      const objects = additions.length - removals.length;
+      if (!Number.isSafeInteger(bytes) || !Number.isSafeInteger(before.bytes + bytes) ||
+          before.objects + objects > maxEntries) fail('DeliveryAttemptIndexLimit');
+      if (kind === 'put' && (!allowance || !Number.isSafeInteger(allowance.bytes) || allowance.bytes < bytes ||
+          !Number.isSafeInteger(allowance.objects) || allowance.objects < objects)) fail('PublicationStoreCapacity');
+      if (objects !== 0 || retry) {
+        try {
+          run(() => {
+            for (const entry of additions) insertPublication.run(entry.semantic_cid,entry.name,entry.wire,entry.byte_count);
+            for (const entry of removals) removePublication.run(entry.semantic_cid);
+            // A real same-database write confirms a lost COMMIT, even when
+            // the original transaction already installed/removed every row.
+            if (updatePublicationUsage.run(objects,bytes).changes !== 1) fail('InvalidDeliveryAttemptIndex');
+          });
+          if (retry) { uncertain = false; uncertainPublication = undefined; }
+        } catch (error) {
+          if (error?.outcome === 'unknown') uncertainPublication = Object.freeze({kind,entries:originals});
+          throw error;
+        }
+      }
+      return usage();
+    };
+    usage();
     return Object.freeze({
+      publicationUsage() { requireComplete(); return usage(); },
+      publicationContract(semanticCid) { requireComplete(); return publicationCopy(publication.get(semanticCid)); },
+      putPublicationContracts(entries, allowance) { return publicationMutation('put',entries,allowance); },
+      removePublicationContract(entry) { return publicationMutation('remove',[entry]); },
       needsMigration() { requireOpen(); return !complete; },
       migrate(rows) {
         requireOpen();
@@ -273,6 +371,8 @@ export async function openDeliveryAttemptIndex(path, {create, maxEntries, maxWir
       completion(attemptCid) {requireComplete();return completionCopy(completion.get(attemptCid));},
       contract(semanticCid) {
         requireComplete();
+        const metadata = publicationCopy(publication.get(semanticCid));
+        if (metadata !== undefined) return Object.freeze({name:metadata.name,wire:metadata.wire,publication:true});
         const row=nativeContract.get(semanticCid,semanticCid,semanticCid,semanticCid,semanticCid);
         if(row===undefined) return undefined;
         const {name,wire}=row;
