@@ -300,13 +300,14 @@ export function assessStructure(report) {
     for (const key of activityCounters) if (!integer(activity[key])) missing.push(`${label}: ${key}`);
     if (integer(activity.materialGetterCalls) && integer(activity.materialCacheHits) &&
         activity.materialCacheHits > activity.materialGetterCalls) failures.push(`${label}: cache hits exceed material getter calls`);
-    const facts = new Map();
+    const facts = new Map(), incompleteAttribution = new Set();
     if (!Array.isArray(operation.fullChecks)) missing.push(`${label}: explicit full-validation attribution`);
     else for (const check of operation.fullChecks) {
-      requireValue(fullCheckKinds.includes(check.kind) && nonempty(check.fact) &&
-        (nonempty(check.revision) || integer(check.revision)), 'Full checks require actual fact kind, identity and relevant revision');
+      requireValue(fullCheckKinds.includes(check.kind) && (check.kind === 'account-evaluation' ||
+        nonempty(check.fact) && (nonempty(check.revision) || integer(check.revision))),
+      'Full checks require actual fact kind, identity and relevant revision');
       requireValue(typeof check.required === 'boolean', 'Declare required versus pure fact work');
-      let tuple = null;
+      let tuple = null, revision = check.revision;
       if (check.kind === 'account-evaluation') {
         const value = check.tuple ?? {};
         // subject is the actual AccessTuple.principal. A configured connection
@@ -320,14 +321,34 @@ export function assessStructure(report) {
           requireValue(nonempty(operation.authorityScope) && scope === operation.authorityScope,
             'Account authority scope differs from the fixed public operation');
         }
-        tuple = [...['subject', 'connection', 'operation', 'resource', 'run', 'target'].map(key => value[key]), scope];
+        if (!check.accountConfigurationCid) {
+          missing.push(`${label}: actual admitted Account configuration attribution`);
+          incompleteAttribution.add(check.kind);
+          continue;
+        }
+        requireValue(/^sha256:[a-f0-9]{64}$/u.test(check.accountConfigurationCid),
+          'Account checks require the original admitted Account configuration CID');
+        if (Object.hasOwn(check, 'policyRevision')) requireValue(nonempty(check.policyRevision) || integer(check.policyRevision),
+          'Account policy revision must be an actual observed revision');
+        // evaluate_account receives the admitted Account and AccessTuple's four
+        // fields. Discovered Run/target and a Run-row revision are trace context,
+        // not new evaluator inputs. Target-bound grants remain separate facts.
+        tuple = [check.accountConfigurationCid, scope,
+          ...['subject', 'connection', 'operation', 'resource'].map(key => value[key])];
+        // The immutable configuration CID already versions the policy bytes.
+        // Use an actual policy revision if supplied, never a made-up zero or
+        // the surrounding Run/adoption row revision.
+        revision = check.policyRevision ?? check.accountConfigurationCid;
       }
       // Internal frames, helpers, awaits, FFI phases and cache eviction are not
       // validation identities. Sum every entry for the same actual fact and
       // relevant revision across this entire public call. A cache hit reports
       // zero full calls; changing an Account getter's name cannot split a tuple.
-      const key = JSON.stringify([check.kind, tuple === null ? check.fact : tuple, String(check.revision)]);
-      const fact = facts.get(key) ?? {kind: check.kind, required: check.required, fullCalls: 0, complete: true};
+      const key = JSON.stringify([check.kind, tuple === null ? check.fact : tuple, String(revision)]);
+      const fact = facts.get(key) ?? {kind: check.kind, required: check.required, fullCalls: 0, complete: true,
+        ...(tuple ? {evaluatorInputs: tuple, revision, traceContexts: []} : {})};
+      if (tuple) fact.traceContexts.push({run: check.tuple.run, target: check.tuple.target,
+        observedRevision: check.revision, fullCalls: check.fullCalls});
       requireValue(fact.required === check.required, 'Conflicting required/pure classification for the same fact');
       if (!integer(check.fullCalls)) {
         fact.complete = false;
@@ -349,7 +370,7 @@ export function assessStructure(report) {
     for (const kind of fullCheckKinds) {
       const total = operation.fullTotals?.[kind];
       if (!integer(total)) missing.push(`${label}: ${kind} full total`);
-      else if (![...facts.values()].some(fact => fact.kind === kind && !fact.complete)) {
+      else if (!incompleteAttribution.has(kind) && ![...facts.values()].some(fact => fact.kind === kind && !fact.complete)) {
         if (total > 0 && !Object.hasOwn(fullCallsByKind, kind)) missing.push(`${label}: ${kind} fact attribution`);
         else if (total !== (fullCallsByKind[kind] ?? 0)) failures.push(`${label}: ${kind} full total differs from fact attribution`);
       }
@@ -365,6 +386,8 @@ export function assessStructure(report) {
       else if (operation.statusWrites !== 0 || operation.revisionBefore !== operation.revisionAfter) failures.push(`${label}: unchanged status mutated`);
     }
     measured.push({id: operation.id, operation: operation.operation, factCount: facts.size, fullCallsByKind,
+      incompleteAttribution: [...incompleteAttribution],
+      accountEvaluations: [...facts.values()].filter(fact => fact.kind === 'account-evaluation'),
       // Keep physical DB/prepare work and getters observable without presenting
       // function entries or cache hits as full validation counts.
       activity});

@@ -30,7 +30,8 @@ function publicOperation(operation = 'warm-result', id = 'public-call-1') {
     'parse', 'mac', 'hash', 'scope-digest', 'configuration-inventory'].map(kind => ({
       kind, fact: 'original-row', revision: 7, required: true, fullCalls: 1}));
   for (const resource of ['run', 'result/main']) fullChecks.push({kind: 'account-evaluation',
-    fact: 'original-account', revision: 'policy/key/target-7', required: true, fullCalls: 1,
+    fact: 'original-account', revision: 'observed-row-7', required: true, fullCalls: 1,
+    accountConfigurationCid: 'sha256:' + '1'.repeat(64), policyRevision: 'actual-policy-7',
     tuple: {subject: 'local-reviewer', connection: 'configured-a', operation: 'read', resource,
       run: 'original-run', target: null, authorityScope: 'original-authority'}});
   return {id, operation, complete: true, overflow: false, unrelatedRunRows: 0, unrelatedEffectRows: 0,
@@ -124,6 +125,38 @@ test('an Account getter alias cannot split the same subject/permission/resource/
   row.fullChecks.push({...check, fact: 'renamed-helper-or-cache-eviction'});
   assert.equal(assessStructure({operations: [row]}).status, 'failed');
 });
+test('raw Account evaluation cannot reset its budget when incidental Run, target or row context changes', () => {
+  const row = publicOperation(), original = row.fullChecks.find(check => check.kind === 'account-evaluation');
+  original.tuple = {...original.tuple, run: null, target: null};
+  row.fullChecks.push({...original, revision: 'newly-discovered-run-row-8',
+    tuple: {...original.tuple, run: 'discovered-run', target: 'discovered-target'}});
+  row.fullTotals['account-evaluation'] = 3;
+  const result = assessStructure({operations: [row]});
+  assert.equal(result.status, 'failed');
+  const duplicate = result.operations[0].accountEvaluations.find(check => check.fullCalls === 2);
+  assert.deepEqual(duplicate.traceContexts.map(value => [value.run, value.target]),
+    [[null, null], ['discovered-run', 'discovered-target']]);
+  assert.equal(duplicate.revision, 'actual-policy-7');
+  row.fullChecks.filter(check => check.kind === 'account-evaluation').forEach(check => {delete check.policyRevision;});
+  assert.equal(assessStructure({operations: [row]}).status, 'failed');
+});
+test('raw Account material and policy snapshots remain distinct while target-bound facts keep their own identity', () => {
+  for (const changed of [{policyRevision: 'actual-policy-8'}, {accountConfigurationCid: 'sha256:' + '3'.repeat(64)}]) {
+    const row = publicOperation(), original = row.fullChecks.find(check => check.kind === 'account-evaluation');
+    row.fullChecks.push({...original, ...changed});
+    row.fullTotals['account-evaluation'] = 3;
+    assert.equal(assessStructure({operations: [row]}).status, 'passed');
+  }
+  const row = publicOperation(), current = row.fullChecks.find(check => check.kind === 'current-validation');
+  row.fullChecks.push({...current, fact: 'different-original-bound-Run-and-target'});
+  row.fullTotals['current-validation'] = 2;
+  assert.equal(assessStructure({operations: [row]}).status, 'passed');
+  const accounts = row.fullChecks.filter(check => check.kind === 'account-evaluation');
+  accounts.forEach(check => {delete check.policyRevision; delete check.fact; delete check.revision;});
+  assert.equal(assessStructure({operations: [row]}).status, 'passed');
+  delete accounts[0].accountConfigurationCid;
+  assert.equal(assessStructure({operations: [row]}).status, 'incomplete');
+});
 test('Account connections remain distinct while private frames cannot split one connection permission', () => {
   const row = publicOperation(), original = row.fullChecks.find(check => check.kind === 'account-evaluation');
   row.fullChecks = row.fullChecks.filter(check => check.kind !== 'account-evaluation');
@@ -182,7 +215,7 @@ test('distinct permissions and changed relevant revisions are not collapsed into
   const row = publicOperation();
   const auth = row.fullChecks.filter(check => check.kind === 'account-evaluation');
   assert.deepEqual(auth.map(check => check.tuple.resource), ['run', 'result/main']);
-  row.fullChecks.push({...auth[0], revision: 'policy/key/target-8'});
+  row.fullChecks.push({...auth[0], policyRevision: 'actual-policy-8'});
   row.fullTotals['account-evaluation'] = 3;
   assert.equal(assessStructure({operations: [row]}).status, 'passed');
   const second = publicOperation('warm-result', 'public-call-2');
