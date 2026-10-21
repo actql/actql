@@ -2999,6 +2999,54 @@ test('durable Result retirement blocks new reads and waits for active readers',
     ), code('PublicationObjectMissing'));
   });
 
+test('description evidence admits each selected immutable contract once per read',
+  async t => {
+    const directory = await mkdtemp(join(tmpdir(), 'actql-description-once-'));
+    t.after(() => removeFixtureDirectory(directory));
+    const admissions = new Map();
+    const control = {...contractControl, admit(name, value, bounds) {
+      const admitted = contractControl.admit(name, value, bounds);
+      admissions.set(admitted.identity, (admissions.get(admitted.identity) ?? 0) + 1);
+      return admitted;
+    }};
+    const store = await openLocalPublicationStore({directory,
+      storeAuthorityCid: cids.authority, capacityBytes: 1024 * 1024,
+      maxObjectBytes: 65536, maxObjects: 100,
+      maxContractNodes: 4096, maxContractDepth: 64}, control);
+    const invocationValue = invocation();
+    const definition = resultDefinition();
+    const request = publicationRequest(definition, invocationValue.invocation_cid);
+    await store.putPublicationContract('result_definition', wire(definition));
+    const attempt = publicationAttempt(request);
+    const prepared = await prepareCommit(store, request, attempt, invocationValue);
+    const entry = indexEntry(request, attempt, invocationValue, {
+      durable_result_binding_cids: [prepared.binding.identity],
+    });
+    await store.commitIndex(wire(entry), prepared.required, prepared.evidence);
+    for (let operation = 0; operation < 2; operation++) {
+      admissions.clear();
+      const result = await store.readCommittedResultDescriptionEvidence(
+        indexKeyFor(request), definition.result_definition_cid,
+      );
+      assert.equal(result.definition.identity, definition.result_definition_cid);
+      assert.deepEqual(result.bindings.map(binding => binding.identity),
+        [prepared.binding.identity]);
+      assert.equal(admissions.get(entry.public_index_entry_cid), 1,
+        'the selected Index is admitted once, including its contract alias');
+      assert.equal(admissions.get(prepared.binding.identity), 1,
+        'the selected Binding is reused by the retention lookup');
+      assert.equal(admissions.get(definition.result_definition_cid), 1);
+    }
+    // A later operation must acquire and reject the changed target, not reuse
+    // a successful description across public calls.
+    const names = await readdir(join(directory, 'indexes'));
+    assert.equal(names.length, 1);
+    await writeFile(join(directory, 'indexes', names[0]), '{}');
+    await assert.rejects(store.readCommittedResultDescriptionEvidence(
+      indexKeyFor(request), definition.result_definition_cid,
+    ), code('InvalidPublicationContract'));
+  });
+
 test('description evidence survives payload deletion and restart, not metadata deletion',
   async t => {
     const {store, configuration} = await fixture(t);
@@ -3030,6 +3078,51 @@ test('description evidence survives payload deletion and restart, not metadata d
     await reopened.retireCommittedPublicationMetadata(key, '2026-09-18T04:00:00.000Z');
     await assert.rejects(reopened.readCommittedResultDescriptionEvidence(key, definitionCid),
       code('PublicationLookupDenied'));
+  });
+
+test('cold index confirmation reuses unchanged admission and checks post-ACK mutation',
+  async t => {
+    const {store, configuration} = await fixture(t);
+    const invocationValue = invocation();
+    const request = publicationRequest(resultDefinition(), invocationValue.invocation_cid);
+    const attempt = publicationAttempt(request);
+    const prepared = await prepareCommit(store, request, attempt, invocationValue);
+    const entry = indexEntry(request, attempt, invocationValue, {
+      durable_result_binding_cids: [prepared.binding.identity],
+    });
+    await store.commitIndex(wire(entry), prepared.required, prepared.evidence);
+    await store.close();
+    let admissions = 0, indexSyncs = 0, replace = false;
+    const control = {...contractControl, admit(name, value, bounds) {
+      const admitted = contractControl.admit(name, value, bounds);
+      if (admitted.identity === entry.public_index_entry_cid) admissions++;
+      return admitted;
+    }};
+    const indexes = join(configuration.directory, 'indexes');
+    const [name] = await readdir(indexes);
+    const durability = {async syncDirectory(path) {
+      const handle = await open(path, 'r');
+      try { await handle.sync(); } finally { await handle.close(); }
+      if (path === indexes) {
+        indexSyncs++;
+        if (replace) await writeFile(join(indexes, name), '{}');
+      }
+    }};
+    const reopened = await openLocalPublicationStore(configuration, control, durability);
+    admissions = indexSyncs = 0;
+    assert.deepEqual(await reopened.confirmCommittedIndex(indexKeyFor(request)), entry);
+    assert.equal(admissions, 1);
+    assert.equal(indexSyncs, 1, 'cold confirmation still requires a real directory ACK');
+    admissions = indexSyncs = 0;
+    assert.deepEqual(await reopened.confirmCommittedIndex(indexKeyFor(request)), entry);
+    assert.equal(admissions, 1, 'a later public call admits its own acquired original');
+    assert.equal(indexSyncs, 0, 'an already confirmed immutable entry needs no new ACK');
+    await reopened.close();
+    const changed = await openLocalPublicationStore(configuration, control, durability);
+    replace = true;
+    await assert.rejects(changed.confirmCommittedIndex(indexKeyFor(request)),
+      code('InvalidPublicationContract'));
+    await changed.close();
   });
 
 test('metadata retirement hides the Run and reclaims its durable chain',
