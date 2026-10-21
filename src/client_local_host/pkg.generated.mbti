@@ -147,7 +147,7 @@ pub fn complete_client_local_content_step(ClientLocalContentStep, @run_publicati
 
 pub fn configure_source_free_effect_local_retained_host(@run_publication_host.PreparedClientEffectRun, @physical_strategy.CapturedEffectRunDAG, String, String, String?, String?) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]?
 
-pub fn execute_source_free_local_tasks_guarded(@connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue], Int, Int, () -> Bool) -> Result[LocalValuesExecution, LocalValuesExecutionFailure]
+pub fn execute_source_free_local_tasks_guarded(@connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue], Int, Int, () -> Bool, require_live? : (() -> Bool)?) -> Result[LocalValuesExecution, LocalValuesExecutionFailure]
 
 pub fn execute_source_free_values(@connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue], Int, Int) -> Result[LocalValuesExecution, LocalValuesExecutionFailure]
 
