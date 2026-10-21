@@ -1979,13 +1979,17 @@ test('delivery admission batches its immutable contracts and validates each once
   assert.equal(admissions.get('delivery_attempt'), 1);
   assert.equal(synced.filter(path => path === join(directory, 'contracts')).length, 1,
     'both independent immutable links share one actual containing-directory ACK');
-  assert.equal(synced.filter(path => path === join(directory, 'prepared-custody')).length, 3,
-    'two original preparation ACKs and one joint retirement ACK');
+  assert.equal(synced.filter(path => path === join(directory, 'objects')).length, 1,
+    'both closed payloads share one actual object-directory ACK');
+  assert.equal(synced.filter(path => path === join(directory, 'prepared-custody')).length, 0,
+    'no prepared holder escapes this final semantic publication');
+  assert.equal(synced.filter(path => path === join(directory, 'staging')).length, 0,
+    'transient staging deletion is not a separate logical commit');
   assert.deepEqual(await readdir(join(directory, 'prepared-custody')), []);
 });
 
 test('delivery contract batches retain the same directory ACK after partial failure', async t => {
-  for (const failedDirectory of ['contracts', 'prepared-custody']) {
+  for (const failedDirectory of ['contracts', 'objects']) {
     await t.test(failedDirectory, async t => {
       const directory = await mkdtemp(join(tmpdir(), 'actql-delivery-batch-ack-'));
       t.after(() => removeFixtureDirectory(directory));
@@ -1997,9 +2001,8 @@ test('delivery contract batches retain the same directory ACK after partial fail
         async syncDirectory(path) {
           if (armed && path === join(directory, failedDirectory)) {
             selectedSyncs++;
-            // Custody has two real preparation ACKs before retirement.
-            if (selectedSyncs > (failedDirectory === 'prepared-custody' ? 2 : 0) &&
-                failures++ < 2) throw Object.assign(new Error('batch directory ACK'), {code: 'EIO'});
+            failures++;
+            throw Object.assign(new Error('batch directory ACK'), {code: 'EIO'});
           }
           const handle = await open(path, 'r');
           try {await handle.sync();} finally {await handle.close();}
@@ -2021,10 +2024,15 @@ test('delivery contract batches retain the same directory ACK after partial fail
       assert.equal((await original.cleanupHandle.retry()).pending, false);
       assert.equal(original.cleanupPending, false);
       assert.deepEqual(await readdir(join(directory, 'prepared-custody')), []);
-      assert.deepEqual(await store.createDeliveryAttempt(wire(attempt), wire(root.grant)),
-        {attempt, created: true});
-      assert.equal(store.status().objectCount, 2, 'cleanup neither reseals nor allocates replacements');
       assert.equal(await store.close(), true);
+      const reopened = await openLocalPublicationStore({directory,
+        storeAuthorityCid: cids.authority, capacityBytes: 1024 * 1024,
+        maxObjectBytes: 65536, maxObjects: 2,
+        maxContractNodes: 4096, maxContractDepth: 64}, contractControl);
+      assert.deepEqual(await reopened.createDeliveryAttempt(wire(attempt), wire(root.grant)),
+        {attempt, created: true});
+      assert.equal(reopened.status().objectCount, 2, 'cleanup neither reseals nor allocates replacements');
+      assert.equal(await reopened.close(), true);
     });
   }
 });
@@ -2042,7 +2050,7 @@ test('delivery contract batch reclaims its first preparation if the second refus
   assert.equal(await store.close(), true);
 });
 
-test('delivery contract batch cleans the first custody while retaining a failed second writer', async t => {
+test('delivery contract batch cleans the first staging file while retaining a failed second writer', async t => {
   const {store, directory} = await fixture(t);
   const originalOpen = fsPromises.open;
   const stagingOpens = [];
@@ -2050,7 +2058,7 @@ test('delivery contract batch cleans the first custody while retaining a failed 
   fsPromises.open = async function(path, ...args) {
     const handle = await Reflect.apply(originalOpen, this, [path, ...args]);
     if (String(path).startsWith(join(directory, 'staging') + sep)) stagingOpens.push({path, flags: args[0]});
-    if (String(path).startsWith(join(directory, 'staging') + sep) && ++acquisitions === 3) {
+    if (String(path).startsWith(join(directory, 'staging') + sep) && ++acquisitions === 2) {
       retained = handle; retainedFd = handle.fd;
       const close = handle.close;
       handle.close = function() {
@@ -2078,7 +2086,7 @@ test('delivery contract batch cleans the first custody while retaining a failed 
     refuseClose = false;
     assert.equal((await original.cleanupHandle.retry()).pending, false);
     assert.equal(retained.fd, -1);
-    assert.equal(acquisitions, 3, 'cleanup never opens a replacement writer');
+    assert.equal(acquisitions, 2, 'cleanup never opens a replacement writer');
     assert.equal(store.status().objectCount, 0);
     assert.equal(store.status().reservedObjects, 0);
     assert.deepEqual(await readdir(join(directory, 'prepared-custody')), []);
@@ -2137,6 +2145,99 @@ test('delivery attempts and records remain append-only after restart',
       failed,
     );
   });
+
+test('delivery record append and confirmation admit each unchanged original once', async t => {
+  const directory = await mkdtemp(join(tmpdir(), 'actql-delivery-record-once-'));
+  t.after(() => removeFixtureDirectory(directory));
+  const admissions = new Map();
+  const control = {...contractControl, admit(name, value, limits) {
+    const admitted = contractControl.admit(name, value, limits);
+    admissions.set(admitted.identity, (admissions.get(admitted.identity) ?? 0) + 1);
+    return admitted;
+  }};
+  const store = await openLocalPublicationStore({directory,
+    storeAuthorityCid: cids.authority, capacityBytes: 1024 * 1024,
+    maxObjectBytes: 65536, maxObjects: 100,
+    maxContractNodes: 4096, maxContractDepth: 64}, control);
+  const root = deliveryFixture(), attempt = deliveryAttempt(root, 'record-once');
+  await store.createDeliveryAttempt(wire(attempt), wire(root.grant));
+  const streaming = deliveryRecord(attempt, 0, 'streaming');
+  admissions.clear();
+  assert.deepEqual(await store.appendDeliveryRecord(wire(streaming)), streaming);
+  assert.equal(admissions.get(streaming.delivery_record_cid), 1);
+  assert.equal(admissions.get(attempt.delivery_attempt_cid), 1);
+  const failed = deliveryRecord(attempt, 1, 'failed', streaming, {
+    confirmed_byte_count: 7, failure_cid: digest('record once failure'),
+  });
+  admissions.clear();
+  assert.deepEqual(await store.appendDeliveryRecord(wire(failed)), failed);
+  assert.equal(admissions.get(failed.delivery_record_cid), 1);
+  assert.equal(admissions.get(streaming.delivery_record_cid), 1,
+    'the distinct previous revision still requires its own admission');
+  admissions.clear();
+  assert.deepEqual(await store.appendDeliveryRecord(wire(failed)), failed);
+  assert.equal(admissions.get(failed.delivery_record_cid), 1,
+    'an exact same-operation retained wire reuses its admitted input');
+  admissions.clear();
+  assert.deepEqual(await store.confirmDeliveryRecord(wire(failed)), failed);
+  assert.equal(admissions.get(failed.delivery_record_cid), 1,
+    'a new confirmation admits its input once, not once per trusted read');
+  admissions.clear();
+  const foreign = {get contract() { throw new Error('foreign retained input'); }};
+  const latest = await store.latestDeliveryRecordContract(attempt.delivery_attempt_cid, foreign);
+  assert.equal(latest.identity, failed.delivery_record_cid);
+  assert.equal(admissions.get(failed.delivery_record_cid), 1,
+    'the public reader cannot accept a caller-supplied retained admission');
+  const target = join(directory, 'deliveries', attempt.delivery_attempt_cid.slice(7), '1.json');
+  await writeFile(target, JSON.stringify(failed, null, 2));
+  admissions.clear();
+  assert.deepEqual(await store.confirmDeliveryRecord(wire(failed)), failed);
+  assert.equal(admissions.get(failed.delivery_record_cid), 2,
+    'the distinct valid spelling is admitted once and its reread is reused');
+  admissions.clear();
+  assert.deepEqual(await store.appendDeliveryRecord(wire(failed)), failed);
+  assert.equal(admissions.get(failed.delivery_record_cid), 2);
+  const changed = deliveryRecord(attempt, 1, 'failed', streaming, {
+    confirmed_byte_count: 8, failure_cid: digest('record once failure'),
+  });
+  await writeFile(target, wire(changed));
+  await assert.rejects(store.confirmDeliveryRecord(wire(failed)), code('DeliveryRecordConflict'));
+});
+
+test('delivery record confirmation refuses changed original bytes after its ACK', async t => {
+  const directory = await mkdtemp(join(tmpdir(), 'actql-delivery-confirm-change-'));
+  t.after(() => removeFixtureDirectory(directory));
+  let replace;
+  const store = await openLocalPublicationStore({directory,
+    storeAuthorityCid: cids.authority, capacityBytes: 1024 * 1024,
+    maxObjectBytes: 65536, maxObjects: 100,
+    maxContractNodes: 4096, maxContractDepth: 64}, contractControl, {
+    async syncDirectory(path) {
+      const handle = await open(path, 'r');
+      try { await handle.sync(); } finally { await handle.close(); }
+      if (replace !== undefined && path === replace.directory) {
+        const original = replace;
+        replace = undefined;
+        await writeFile(original.path, original.wire);
+      }
+    },
+  });
+  const root = deliveryFixture(), attempt = deliveryAttempt(root, 'confirm-change');
+  await store.createDeliveryAttempt(wire(attempt), wire(root.grant));
+  const streaming = deliveryRecord(attempt, 0, 'streaming');
+  await store.appendDeliveryRecord(wire(streaming));
+  const failed = deliveryRecord(attempt, 1, 'failed', streaming, {
+    confirmed_byte_count: 7, failure_cid: digest('confirmation change'),
+  });
+  const changed = deliveryRecord(attempt, 1, 'failed', streaming, {
+    confirmed_byte_count: 8, failure_cid: digest('confirmation change'),
+  });
+  const records = join(directory, 'deliveries', attempt.delivery_attempt_cid.slice(7));
+  replace = {directory: records, path: join(records, '1.json'), wire: wire(changed)};
+  await assert.rejects(store.appendDeliveryRecord(wire(failed)),
+    code('DeliveryRecordDurabilityMismatch'));
+  assert.deepEqual(await store.latestDeliveryRecord(attempt.delivery_attempt_cid), changed);
+});
 
 test('delivery record durability retries the exact visible record', async t => {
   const directory = await mkdtemp(join(
