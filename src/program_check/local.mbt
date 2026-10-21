@@ -32,6 +32,7 @@ fn construct_local(
   graph? : Bool = false,
   model_tasks? : @environment.ModelTasks? = None,
   request_value_policies? : Array[HostRequestValuePolicyEvidence] = [],
+  source_catalog? : PreparedSourceCatalog? = None,
 ) -> (
   @context.ProgramSourceIdentity,
   @context.StageRequirementClosure,
@@ -57,7 +58,12 @@ fn construct_local(
     depth: budget.depth,
   }
   let wire = environment.wire
-  let (catalog, references) = prepare_environment(wire, admission) catch {
+  let (catalog, references) = try {
+    match source_catalog {
+      Some(prepared) => reuse_source_catalog(prepared, wire, admission)
+      None => prepare_environment(wire, admission)
+    }
+  } catch {
     e => raise Environment(e)
   }
   let locations = environment.locations

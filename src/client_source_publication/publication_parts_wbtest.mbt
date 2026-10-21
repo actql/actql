@@ -31,7 +31,7 @@ test "publication parts read the original wire once for all five projections" {
   let wire = publication_parts_wire(environment)
   let reads = Ref(0)
   let seen = Ref("")
-  let (context, tables, updates, stores, commands) = bind_published_query_parts_with_reader(
+  let (context, tables, updates, stores, commands, catalog) = bind_published_query_parts_with_reader(
     environment,
     wire,
     None,
@@ -49,6 +49,9 @@ test "publication parts read the original wire once for all five projections" {
   assert_true(updates is None)
   assert_true(stores is None)
   assert_true(commands is None)
+  assert_true(
+    physical_equal(@program_check.source_catalog_owner(catalog), environment),
+  )
   let legacy = bind_published_query_context(environment, wire, None).unwrap()
   assert_eq(context.program_id, legacy.program_id)
   assert_eq(context.result_name, legacy.result_name)

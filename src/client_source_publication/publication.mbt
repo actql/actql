@@ -39,6 +39,32 @@ pub fn bind_published_query_parts(
 ] {
   bind_published_query_parts_with_reader(
     environment, publication, declarations, source_publication_cursor,
+  ).map(parts => {
+    let (context, table, update, store, command, _) = parts
+    (context, table, update, store, command)
+  })
+}
+
+///|
+/// Retain the original Catalog interpretation for the subsequent checker.
+/// Its configured Environment and current compilation bounds still apply.
+pub fn bind_published_query_parts_with_catalog(
+  environment : @program_check.CheckEnvironment,
+  publication : String,
+  declarations : String?,
+) -> Result[
+  (
+    @query_program.Context,
+    Array[@query_program.TableWriteBinding],
+    @query_program.UpdateTargetPublication?,
+    @query_program.StoreTargetPublication?,
+    @query_program.CommandTargetPublication?,
+    @program_check.PreparedSourceCatalog,
+  ),
+  PublicationIssue,
+] {
+  bind_published_query_parts_with_reader(
+    environment, publication, declarations, source_publication_cursor,
   )
 }
 
@@ -57,6 +83,7 @@ fn bind_published_query_parts_with_reader(
     @query_program.UpdateTargetPublication?,
     @query_program.StoreTargetPublication?,
     @query_program.CommandTargetPublication?,
+    @program_check.PreparedSourceCatalog,
   ),
   PublicationIssue,
 ] {
@@ -72,7 +99,7 @@ fn bind_published_query_parts_with_reader(
       Ok(value) => value
       Err(issue) => raise PublicationStop(issue)
     }
-    let context = client_source_context_from_root(
+    let (context, catalog) = client_source_context_from_root(
       environment, root, declarations,
     )
     let table = table_write_publication_from_root(environment, root)
@@ -80,7 +107,7 @@ fn bind_published_query_parts_with_reader(
       Ok(value) => value
       Err(_) => raise PublicationStop(Publication)
     }
-    Ok((context, table, update, store, command))
+    Ok((context, table, update, store, command, catalog))
   } catch {
     PublicationStop(issue) => Err(issue)
   }
@@ -202,7 +229,7 @@ fn client_source_context(
     Ok(_) => ()
     Err(issue) => raise PublicationStop(issue)
   }
-  client_source_context_from_root(environment, root, declarations)
+  client_source_context_from_root(environment, root, declarations).0
 }
 
 ///|
@@ -221,7 +248,7 @@ fn client_source_context_from_root(
   environment : @program_check.CheckEnvironment,
   root : @decode.Cursor,
   declarations : String?,
-) -> @query_program.Context raise PublicationStop {
+) -> (@query_program.Context, @program_check.PreparedSourceCatalog) raise PublicationStop {
   let environment_cid = @program_check.checking_environment_cid(environment)
   if source_publication_text(root, "environmentCid") != environment_cid {
     raise PublicationStop(Publication)
@@ -386,7 +413,7 @@ fn client_source_context_from_root(
         environment,
       ),
     ) {
-    Ok(value) => value
+    Ok(value) => (value, prepared_catalog)
     Err(issue) => raise PublicationStop(Alias(issue))
   }
 }

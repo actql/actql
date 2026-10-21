@@ -96,6 +96,7 @@ pub fn prepare_parsed_client_effect_computation(
   update_targets? : @update_targets.UpdateTargetPublication? = None,
   store_targets? : @update_targets.StoreTargetPublication? = None,
   command_targets? : @update_targets.CommandTargetPublication? = None,
+  source_catalog? : @checked.PreparedSourceCatalog? = None,
 ) -> Result[PreparedClientEffectComputation, ClientEffectComputationIssue] {
   if command_targets is Some(publication) &&
     !physical_equal(
@@ -113,6 +114,7 @@ pub fn prepare_parsed_client_effect_computation(
       limits.program.checking,
       limits.max_members,
       limits.max_header_work,
+      source_catalog~,
     ) {
     Ok(value) => value
     Err(issue) => return Err(Candidate(issue))
