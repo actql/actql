@@ -37,7 +37,7 @@
     },
     {
       "requirement_id": "actql.conformance/ordinary-performance.structural-regression",
-      "statement_sha256": "21b72b10727d1aaeddcf76721530776eff4f29adf057e2783927a5f1d920b8a4",
+      "statement_sha256": "d3c2bcf22f4977fac6bb87d43d432d8750ec10c29596ef3c60d00f9dc0e98342",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",

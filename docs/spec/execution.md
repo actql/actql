@@ -184,30 +184,40 @@ embedding does not promise a universal whole-process memory ceiling.
 ### Ordinary operation validation
 
 <!-- requirement-block: ordinary-operation.retained-validation-scope -->
-An ordinary Host MUST retain and reuse a needed admitted immutable fact within
-the same bounded operation, transaction or response frame, preserving its
-original Host, Store, snapshot, row revision, validator, principal, policy,
-operation, resource, target and relevant key generation correspondence.
+An ordinary Host MUST perform each necessary heavy validation once for the same
+public operation and unchanged subject, permission, resource, Run, target and
+relevant state, and retain the admitted immutable facts for its internal uses.
+Pure work requiring no such validation performs none. Retained facts preserve
+their original Host, Store, snapshot, row revision, validator, principal, policy
+and relevant key generation correspondence. Existing operation, capture and
+reader state supply this reuse; there is no persistent or global Allow cache.
 Content identity is not authority, and this rule creates no additional Owner,
 permission mechanism or execution profile.
 
 <!-- requirement-block: ordinary-operation.revalidation-boundaries -->
-The existing Owner MUST end reuse or revalidate the affected facts at frame
-end, relevant mutation or policy/key/target change, close, cancellation,
-deadline, uncontrolled callback or reentry, and an await that can invalidate
-those facts.
-An unrelated mutation does not itself invalidate every retained fact.
+The existing Owner MUST observe current authority for each new public operation
+and reobserve affected facts when relevant policy, key, target or state changes,
+uncontrolled application callback or reentry, or an actual protected external
+dispatch requires it. Internal getters, pure helpers, trusted DB/Store metadata
+reads, FFI phase exchanges and awaits alone do not create new validation frames
+or require another heavy observation. Cheap closed, identity, range, deadline,
+cancellation and lifetime checks retain their existing duties without invoking
+the whole authorization or validation chain.
+An unrelated mutation does not itself invalidate every retained fact; a helper
+or wrapper name does not establish a new trust boundary.
 A database read snapshot fixes its visible database revision, not external
 configuration files or subsequent commits from another connection.
 
 <!-- requirement-block: ordinary-operation.authorization-tuples -->
-The Host MUST evaluate the same principal/action/resource/scope/policy-revision
-tuple once within an unchanged frame and establish required current authority
-again at the existing protected dispatch or commit boundary.
-Different tuples remain separate, including Source read, Run publication,
-Result read and Effect application.
-An earlier Allow, repeated snapshot reads or a content CID cannot override a
-current Deny, expired authority or changed approval target.
+The Host MUST choose the actual required authorization point once for each
+distinct permission and unchanged principal/action/resource/scope/policy-revision
+tuple in a public operation. A protected external dispatch or relevant change
+requires only its affected authority observation, not unconditional before/after
+evaluation at every internal phase. Different permissions remain separate,
+including Source read, Run publication, Run read, named Result read and Effect
+application. Every new public operation observes current Deny; an earlier Allow,
+repeated snapshot reads or a content CID cannot override Deny, expired authority
+or changed approval target.
 
 <!-- requirement-block: ordinary-operation.targeted-durable-reads -->
 An ordinary single-Run status, Result or saved Explain read MUST validate the
@@ -220,19 +230,23 @@ used or inspected, rather than requiring its detection before another Run's
 ordinary read; applicable rollback/epoch anchors and active claim checks remain.
 
 <!-- requirement-block: ordinary-operation.immutable-row-validation -->
-The existing durable-data Owner MUST validate newly received or persisted bytes
-at admission and reuse the resulting typed value for the same original row,
-revision and validation context within an unchanged frame without repeated
-decode, canonical write, MAC, signature or digest work.
-A missing cache entry or eviction performs the applicable admission again,
-never creates authority or turns a failure into NotFound or resend permission.
+The existing durable-data Owner MUST perform required admission once for the
+same original bytes, row revision and validation context in a public operation,
+retaining the resulting typed value through its unchanged internal uses without
+duplicate admission, parse, decode, canonical write, MAC, signature, hash or
+scope-digest work. Internal phase changes or cache eviction do not justify
+repeating that heavy work; retain the needed bounded facts for the operation.
+Missing required proof cannot create authority or turn a failure into NotFound
+or resend permission.
 Foreign, changed and unknown-generation material does not inherit that result.
 
 <!-- requirement-block: ordinary-operation.configuration-boundary -->
-The Host MUST validate applicable configuration contents at open, operation or
-reload and retain that bounded observation through unchanged internal reads
-without repeating the full configuration inventory for each getter or row.
-If external changes are possible, the next applicable boundary observes them;
+The Host MUST perform a necessary configuration inventory once at its applicable
+open, public-operation or actual reload boundary and retain that bounded
+observation through unchanged internal reads, getters and rows. Pure work
+requiring no configuration validation performs no inventory. An internal
+transaction, Store read or await is not itself a reload or new public operation.
+If relevant external changes are possible, the next applicable boundary observes them;
 inode, modification time and length alone are not content authority.
 
 <!-- requirement-block: ordinary-operation.normalization-original -->
@@ -263,7 +277,9 @@ hold a write lock across a long external network wait.
 <!-- requirement-block: ordinary-operation.bounded-transfer -->
 Normal Journal bulk transfer MUST use bounded chunks with original ticket,
 memory range, generation, currentness and lifetime checks at applicable
-transfer boundaries, rather than one host call per payload byte.
+transfer boundaries, rather than one host call per payload byte. A trusted FFI
+phase exchange reuses the retained typed facts; its cheap ticket, range and
+lifetime checks do not repeat the whole Host, Account or Run validation chain.
 Incomplete, cancelled or released transfers do not establish completed bytes
 or physical cleanup, and deterministic work limits remain distinct from a
 Host deadline or cancellation signal.
