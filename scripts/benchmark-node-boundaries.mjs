@@ -55,8 +55,8 @@ async function mutateSelectedMaterial(stateDir, ref, output) {
   const file = await openFile(path, constants.O_RDWR | constants.O_NOFOLLOW);
   try {
     const before = await file.stat();
-    assert(before.isFile() && before.size > 0 && before.size <= 1024 ** 2 && before.size === binding.byte_count,
-      'Selected one-row fixture exceeds bounded material input');
+    assert(before.isFile() && before.nlink === 1 && before.size > 0 && before.size <= 1024 ** 2 && before.size === binding.byte_count,
+      'Selected one-row fixture requires unshared bounded material');
     const bytes = await file.readFile();
     assert(bytes.length > 0 && bytes.length === binding.byte_count);
     assert.equal(hash(bytes), cidHex(materialCid));
