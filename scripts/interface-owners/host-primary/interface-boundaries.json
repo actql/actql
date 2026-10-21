@@ -4448,7 +4448,7 @@
     },
     {
       "module": "adapters/host-node/embedded-local.mjs",
-      "sha256": "1779c31b1f3390b11d63d2efedc98a30bcfb365df9a863441c07cb83ccaaa28f",
+      "sha256": "eaa31ba89796eb3a451674c93cd202bc6ec6147ce09dfe6a612f123b6501ed78",
       "exports": [
         "admitOriginalHostRootFormat",
         "assertInitialControlHostPreparation",
@@ -6297,6 +6297,29 @@
           "async": false
         },
         {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/subscribeWaitWork/subscribeWaitWork",
+          "parameters": [
+            "promise",
+            "wake"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/subscribeWaitWork/subscribeWaitWork/settled/settled",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/subscribeWaitWork/subscribeWaitWork/subscribeWaitWork",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/subscribeWaitWork/subscribeWaitWork/subscribeWaitWork#2",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns",
           "parameters": [
             "reconcileRef"
@@ -6486,6 +6509,18 @@
             "signal"
           ],
           "async": true
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/wait/wait/captureWork/captureWork",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/wait/wait/changed/changed",
+          "parameters": [
+            "resolve"
+          ],
+          "async": false
         },
         {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/wait/wait/interruption/interruption",
@@ -7259,6 +7294,10 @@
             "openInstalledHost/initializePublicationServices/initializePublicationServices/submitEffect/submitEffect/submitEffect",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/submitEffect/submitEffect/submitEffect#2",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/submitEffect/submitEffect/submitEffect#3",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/subscribeWaitWork/subscribeWaitWork",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/subscribeWaitWork/subscribeWaitWork/settled/settled",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/subscribeWaitWork/subscribeWaitWork/subscribeWaitWork",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/subscribeWaitWork/subscribeWaitWork/subscribeWaitWork#2",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/flight/flight",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/flight/flight#2",
@@ -7289,6 +7328,8 @@
             "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/runRestoredModel/runRestoredModel/runRestoredModel#2",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/terminal/terminal",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/wait/wait",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/wait/wait/captureWork/captureWork",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/wait/wait/changed/changed",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/wait/wait/interruption/interruption",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/wait/wait/observeStep/observeStep",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/wait/wait/observeStep/observeStep/interrupted/interrupted",
@@ -7819,6 +7860,10 @@
               {
                 "path": "adapters/host-node/local-result-authorization.mjs",
                 "anchor": "if (retained !== undefined && retained.account === retainedAccount) return retained.allowed;"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "for (const unsubscribe of subscriptions.values()) unsubscribe();"
               }
             ],
             "extension": [
@@ -7983,6 +8028,10 @@
               {
                 "path": "adapters/host-node/local-run-authorization.test.mjs",
                 "anchor": "test('actual Account keeps Run-read and named-Result-read distinct and current'"
+              },
+              {
+                "path": "adapters/host-node/client-run-wait-notification.test.mjs",
+                "anchor": "test('settlement during the asynchronous pending observation is latched'"
               }
             ]
           }
