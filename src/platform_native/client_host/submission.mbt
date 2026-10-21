@@ -60,10 +60,9 @@ pub fn prepare_native_client_submission_reference(
   epoch : NativeClientSubmissionEpoch,
   nonce : String,
 ) -> Result[NativeClientSubmissionReference, NativeClientRunJournalIssue] {
-  // Preserve the original typed nonce rejection before token serialization.
-  if @scope.submission_request_id(epoch.body, nonce) is Err(_) {
-    return Err(InvalidSubmission)
-  }
+  // The opaque epoch already came from the existing admitted token path.
+  // The Common reference Owner validates the nonce and derives its request ID
+  // once; do not compute and discard that same identity before calling it.
   let token = match @host.admit_client_submission_epoch_token(epoch.wire) {
     Ok(value) => value
     Err(@host.Unverifiable) => return Err(Epoch(Unverifiable))
