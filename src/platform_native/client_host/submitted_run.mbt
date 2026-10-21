@@ -43,11 +43,7 @@ fn NativeClientRunJournal::validate_submitted_run_admission(
   runs? : Map[String, NativeClientRunRecord]? = None,
 ) -> Result[Unit, NativeClientRunJournalIssue] {
   guard record.run_admission is Some(admission) else { return Ok(()) }
-  let reference = match
-    @host.admit_client_submission_reference_record(record.reference.wire) {
-    Ok(value) => value
-    Err(_) => return Err(CustodyLost)
-  }
+  let reference = record.reference.original
   let retained = match runs {
     None => self.retained(admission.request, reads~)
     Some(originals) =>

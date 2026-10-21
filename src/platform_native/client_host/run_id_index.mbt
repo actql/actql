@@ -246,11 +246,7 @@ fn NativeClientRunJournal::index_saved_run_reference_locked(
     !physical_equal(self.database, authority.database) {
     return Err(CustodyLost)
   }
-  let original = match
-    @host.admit_client_submission_reference_record(reference.wire) {
-    Ok(value) => value
-    Err(_) => return Err(CustodyLost)
-  }
+  let original = reference.original
   let (key, body) = match
     @host.client_saved_run_reference_locator(
       original,
@@ -303,11 +299,7 @@ fn NativeClientRunJournal::index_saved_run_reference_locked(
         Ok(None) => return Err(CustodyLost)
         Err(issue) => return Err(issue)
       }
-      let old_original = match
-        @host.admit_client_submission_reference_record(old_reference.wire) {
-        Ok(value) => value
-        Err(_) => return Err(CustodyLost)
-      }
+      let old_original = old_reference.original
       match
         @host.client_saved_run_reference_locator(
           old_original, old_request, old_definition,
