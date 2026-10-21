@@ -11,6 +11,9 @@ import {captureSourcePreparation} from './private-source-preparation.mjs';
 // Return the import promise itself so only the existing loopback branch yields.
 export const loadLoopbackTransport = () => import('#loopback-http');
 
+const isSubmission = operation => operation === 'submit-intent' ||
+  operation === 'submit-named-intent' || operation === 'restart-intent';
+
 export function createTransport(selected, port, isClosed, directLoopback) {
   const capturedSourcePreparation = captureSourcePreparation(port);
   // Query capture and Result consumption must retain this same callback pair.
@@ -43,7 +46,7 @@ export function createTransport(selected, port, isClosed, directLoopback) {
           signal?.throwIfAborted();
           dispatchedCancellations.add(cancellationContext);
         }
-        if ((operation === 'submit-intent' || operation === 'restart-intent')) {
+        if (isSubmission(operation)) {
           signal?.throwIfAborted();
           dispatchedSubmissions.add(submitContext);
         }
@@ -55,7 +58,7 @@ export function createTransport(selected, port, isClosed, directLoopback) {
         return value;
       }
       catch (cause) {
-        if ((operation === 'submit-intent' || operation === 'restart-intent')) {
+        if (isSubmission(operation)) {
           if (!dispatchedSubmissions.has(submitContext)) {
             throw submissionNotSent(submitContext, cause);
           }
@@ -91,7 +94,7 @@ export function createTransport(selected, port, isClosed, directLoopback) {
       signal?.throwIfAborted();
       dispatchedCancellations.add(cancellationContext);
     }
-    if ((operation === 'submit-intent' || operation === 'restart-intent')) {
+    if (isSubmission(operation)) {
       signal?.throwIfAborted();
       dispatchedSubmissions.add(submitContext);
     }
@@ -122,7 +125,7 @@ export function createTransport(selected, port, isClosed, directLoopback) {
         redirect: 'error',
       });
     } catch (cause) {
-      if ((operation === 'submit-intent' || operation === 'restart-intent')) {
+      if (isSubmission(operation)) {
         throw submissionUnknown(submitContext,
           selected.redactCredentialErrors ? undefined : cause);
       }
@@ -136,7 +139,7 @@ export function createTransport(selected, port, isClosed, directLoopback) {
       const code = typeof error?.code === 'string' &&
         /^[A-Za-z][A-Za-z0-9_]{0,79}$/u.test(error.code)
         ? error.code : `HostHTTP${response.status}`;
-      if ((operation === 'submit-intent' || operation === 'restart-intent')) {
+      if (isSubmission(operation)) {
         throw submissionUnknown(submitContext, new ClientError(code));
       }
       if (operation === 'read' && readRefusalCodes.has(code)) {

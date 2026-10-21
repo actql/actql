@@ -13,6 +13,7 @@ import {copyRunObservationFailure} from './run-observation.mjs';
 import {controlValue} from './transport-response.mjs';
 import {clientSourceFormats, snapshotClientRequest, validClientAdmission, validOperationAttemptRef,
   validRequestCancellation, validRequestLookup, validRunRef, validSubmissionAttempt,
+  validNamedSubmissionAttempt, validSubmissionName,
   validSubmissionLookup, validSubmissionRef, validSubmissionRestart} from '@actql/client-wire';
 
 // Original request data is available only through explicit SDK access, never
@@ -216,7 +217,7 @@ export function createSubmissionOperations(selected, confirmed, transport, execu
     retainQueryResult(original, pending);
     return pending;
   };
-  const submitIntent = (kind, input, options, sourceProducer) => {
+  const submitIntent = (kind, input, options, sourceProducer, requestName) => {
     let body;
     try {
       const stopBefore = options.stopBefore;
@@ -225,6 +226,7 @@ export function createSubmissionOperations(selected, confirmed, transport, execu
       if (Object.hasOwn(options, 'readOnly') && readOnly !== true) fail('InvalidClientPayload');
       body = freezeInput(snapshotClientRequest({submissionRef: options.submissionRef,
         attemptRef: {operation: 'submit', attemptId: options.attemptId ?? crypto.randomUUID()},
+        ...(requestName === undefined ? {} : {requestName}),
         kind, input, parameters: options.parameters ?? null,
         ...(stopBefore === undefined ? {} : {stopBefore}),
         ...(readOnly === undefined ? {} : {readOnly}),
@@ -234,13 +236,14 @@ export function createSubmissionOperations(selected, confirmed, transport, execu
       sourcePreparation.bindSourceSnapshot(sourceProducer.receipt, body);
       sourceProducer.body = body;
     }
-    if (!validSubmissionRef(body.submissionRef) || options.requestId !== undefined &&
+    if (!validSubmissionRef(body.submissionRef) || requestName === undefined && options.requestId !== undefined &&
         options.requestId !== body.submissionRef.nonce) fail('InvalidSubmissionRef');
     if (!validOperationAttemptRef(body.attemptRef)) fail('InvalidOperationAttemptRef');
     if (body.unresolvedHistory !== undefined &&
         !validSubmissionRestart(body.unresolvedHistory, body.submissionRef)) fail('InvalidSubmissionRestart');
-    const requestId = body.submissionRef.nonce;
+    const requestId = requestName ?? body.submissionRef.nonce;
     const context = {requestId, submissionRef: body.submissionRef, attemptRef: body.attemptRef,
+      ...(requestName === undefined ? {} : {requestName}),
       lookupContext: Object.freeze({endpoint: selected.endpoint, scopeRef: confirmed.scopeRef})};
     const snapshot = freezeInput({...body, requestId, connection: selected.wire,
       lookupContext: context.lookupContext});
@@ -259,11 +262,16 @@ export function createSubmissionOperations(selected, confirmed, transport, execu
       let typedRejection;
       let checkObservation;
       try {
-        const response = await exchange(body.unresolvedHistory === undefined ? 'submit-intent' : 'restart-intent',
+        const operation = requestName !== undefined ? 'submit-named-intent'
+          : body.unresolvedHistory === undefined ? 'submit-intent' : 'restart-intent';
+        const response = await exchange(operation,
           {...body, intentCid}, options.signal, context, undefined, sourceProducer);
         attempt = detachResponse(captureResponse(await controlValue(response)));
-        if (!validSubmissionAttempt(attempt, selected.wire, body.submissionRef, intentCid,
-          body.attemptRef, body.unresolvedHistory)) {
+        if (!(requestName === undefined
+          ? validSubmissionAttempt(attempt, selected.wire, body.submissionRef, intentCid,
+            body.attemptRef, body.unresolvedHistory)
+          : validNamedSubmissionAttempt(attempt, selected.wire, requestName,
+            body.submissionRef, intentCid, body.attemptRef))) {
           fail('InvalidHostSubmissionOutcome');
         }
         attempt = freezeInput(attempt);
@@ -271,13 +279,18 @@ export function createSubmissionOperations(selected, confirmed, transport, execu
         if (outcome === undefined) {
           // A typed initial refusal or conflict is not the durable original's
           // receipt and supplies no automatic retry or new-submission grant.
-          typedRejection = new ClientError(attempt.kind === 'refused' ? 'SubmissionRefused' : 'SubmissionConflict',
+          typedRejection = new ClientError(attempt.kind === 'refused' ? 'SubmissionRefused'
+            : requestName === undefined ? 'SubmissionConflict' : 'RequestConflict',
             {...context, outcome: attempt});
           submissionInputs.set(typedRejection, snapshot);
           submissionAttempts.set(typedRejection, attempt);
           retainSubmissionAttemptExplanation(typedRejection, attempt, snapshot);
           throw typedRejection;
         }
+        // The submitted candidate remains the exact captured input. Only this
+        // correlated original reply supplies a durable reference for lookup;
+        // a scoped name may legitimately resolve an earlier epoch.
+        context.submissionRef = outcome.submissionRef;
         if (outcome.checkObservation !== undefined) {
           checkObservation = outcome.checkObservation;
           if (!(body.kind === 'program' || body.kind === 'aql' && ['sql', 'aql', 'aql-text'].includes(body.input.format)) ||
@@ -305,8 +318,10 @@ export function createSubmissionOperations(selected, confirmed, transport, execu
       const error = outcome.kind === 'held'
         ? new RequestHeld(outcome.held, context.lookupContext)
         : new ClientError(outcome.kind === 'not_accepted' ? 'SubmissionNotAccepted'
-          : outcome.kind === 'preparation_failed' ? 'SubmissionPreparationFailed' : 'SubmissionPreparing',
-        {requestId, submissionRef: body.submissionRef, outcome});
+          : outcome.kind === 'preparation_failed' ? 'SubmissionPreparationFailed'
+          : outcome.kind === 'unresolvable' ? 'SubmissionUnresolvable' : 'SubmissionPreparing',
+        {requestId, submissionRef: context.submissionRef, outcome});
+      if (requestName !== undefined) error.requestName = requestName;
       submissionInputs.set(error, snapshot);
       submissionOutcomes.set(error, outcome);
       submissionAttempts.set(error, attempt);
@@ -325,14 +340,15 @@ export function createSubmissionOperations(selected, confirmed, transport, execu
   };
   const submit = (kind, input, options = {}, sourceProducer) => {
     try {
-      // A bare legacy ID cannot recover its original epoch on reconnect.
-      // Never reinterpret it as new work under the latest connection ticket.
-      if (options.submissionRef === undefined &&
-          (options.requestId !== undefined || options.unresolvedHistory !== undefined)) {
+      // Risk restart remains reference-bound. A public name is a separate
+      // existing Owner domain, never a relabelled historical epoch nonce.
+      if (options.submissionRef === undefined && options.unresolvedHistory !== undefined) {
         fail('SubmissionReferenceRequired');
       }
+      const requestName = options.submissionRef === undefined ? options.requestId : undefined;
+      if (requestName !== undefined && !validSubmissionName(requestName)) fail('InvalidRequestId');
       return submitIntent(kind, input, {...options,
-        submissionRef: options.submissionRef ?? newSubmission()}, sourceProducer);
+        submissionRef: options.submissionRef ?? newSubmission()}, sourceProducer, requestName);
     } catch (cause) {return Promise.reject(cause);}
   };
   const submitSource = (text, options, sourceProducer) => {
