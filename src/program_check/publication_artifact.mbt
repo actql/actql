@@ -112,6 +112,7 @@ fn prepare_publication_row_artifact(
   host : @host.Witness,
   budget : IdentityBudget,
   proofs? : Array[ReidentifiedStep]? = None,
+  on_body_preparation? : (() -> Unit)? = None,
 ) -> @wire.LimitClaim raise UnitBuildFailure {
   let remaining = IdentityBudget::{ ..budget, }
   guard unit.publication_rows.get(index) is Some(selected) else {
@@ -193,28 +194,19 @@ fn prepare_publication_row_artifact(
   if input_limits.is_empty() {
     identity_charge(remaining, @wire.claim_reference_count(claims))
   }
-  let hash = identity_writer(remaining)
-  emit_publication_row_body(
+  let body = prepare_publication_row_body(
     unit,
     index,
     host,
-    hash,
     remaining,
     proofs=Some(proofs),
+    on_body_preparation~,
   )
+  let hash = identity_writer(remaining)
+  emit_prepared_publication_row_body(body, hash, remaining)
   let cid = identity_finish(remaining, hash)
   let bytes = publication_metadata(
-    w => {
-      emit_publication_row_body(
-        unit,
-        index,
-        host,
-        w,
-        remaining,
-        cid=Some(cid),
-        proofs=Some(proofs),
-      )
-    },
+    w => emit_prepared_publication_row_body(body, w, remaining, cid=Some(cid)),
     remaining,
   )
   identity_charge(remaining, bytes.length())

@@ -34,7 +34,7 @@ export function nodeBenchmarkInstrumentation({execArgv = process.execArgv,
   // Known startup instrumentation is evidence against unprofiled acceptance.
   // This is not whole-runtime provenance or hostile embedding detection.
   const flags = [...execArgv, nodeOptions].join(' ');
-  return {profiled: /--(?:cpu-prof|heap-prof|prof|inspect|perf-basic-prof)(?:[=\s-]|$)/u.test(flags) || Boolean(coverage)};
+  return {profiled: /--(?:cpu-prof|heap-prof|prof|inspect|perf-basic-prof|trace-events-enabled|trace-event-categories)(?:[=\s-]|$)/u.test(flags) || Boolean(coverage)};
 }
 export function nodeWarmProtocol(mode) {
   assert(['diagnostic', 'final'].includes(mode));

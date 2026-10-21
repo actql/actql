@@ -76,6 +76,8 @@ pub fn parse_query_script(String, QueryLimits, source_path? : String) -> Result[
 
 pub fn parse_relation_path(String, LexicalLimits, source_path? : String) -> Result[Array[NamePart], Diagnostic]
 
+pub fn parse_selected_query_script(String, QueryLimits, Bool, source_path? : String) -> Result[QueryScript?, Diagnostic]
+
 pub fn parse_sga_call(String, QueryLimits, source_path? : String) -> Result[SgaCall, Diagnostic]
 
 pub fn positional_output(Query) -> Bool
