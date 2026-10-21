@@ -63,7 +63,13 @@ fn[T] NativeLocalJournalCapture::with_current_adoption_material_in_original_read
       host.current_adoption_material_with_reads(
         () => self.check_current_in_original_read(),
         reads=Some(queries.access()),
-        snapshot_current=Some(() => self.check_original_read_lifetime()),
+        snapshot_current=Some(() => {
+          if self.read_callback_active && !self.read_facts_valid {
+            Err(OriginalResourceScopePending)
+          } else {
+            self.check_original_read_lifetime()
+          }
+        }),
       )
     }).map_err(local_current_material_issue)
   }
