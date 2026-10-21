@@ -5,6 +5,59 @@ priv struct NativeLocalReadPreimage {
 }
 
 ///|
+// Pure encoding/digest DATA in the existing command capture. Exact typed
+// inputs distinguish purposes, policies and physical destination originals;
+// the result is neither an Account outcome nor an admission/cleanup ACK.
+priv struct NativeLocalReadPreimageObservation {
+  crypto : @crypto.Library
+  fields : Array[(String, @host.ClientLocalReadEvidenceValue)]
+  value : NativeLocalReadPreimage
+}
+
+///|
+fn local_read_preimage_fields_equal(
+  left : Array[(String, @host.ClientLocalReadEvidenceValue)],
+  right : Array[(String, @host.ClientLocalReadEvidenceValue)],
+) -> Bool {
+  if left.length() != right.length() {
+    return false
+  }
+  for index = 0; index < left.length(); index = index + 1 {
+    let (left_name, left_value) = left[index]
+    let (right_name, right_value) = right[index]
+    if left_name != right_name {
+      return false
+    }
+    let same = match (left_value, right_value) {
+      (Text(a), Text(b)) | (AllowedReads(a), AllowedReads(b)) => a == b
+      (Quantity(a), Quantity(b)) => a == b
+      (Texts(a), Texts(b)) => a == b
+      _ => false
+    }
+    if !same {
+      return false
+    }
+  }
+  true
+}
+
+///|
+fn local_read_preimage_original_fields(
+  fields : Array[(String, @host.ClientLocalReadEvidenceValue)],
+) -> Array[(String, @host.ClientLocalReadEvidenceValue)] {
+  fields.map(entry => {
+    let (name, value) = entry
+    let original = match value {
+      // Retain the actual elements, not an alias that a later input mutation
+      // could make equal to itself while its old wire/CID remains unchanged.
+      Texts(values) => @host.Texts(values.map(value => value))
+      _ => value
+    }
+    (name, original)
+  })
+}
+
+///|
 // Archive comparison DATA only. A live binding independently retains and
 // checks the actual receiver; parsing these fields never reconstructs it.
 priv struct NativeLocalReadMaterialOriginal {
@@ -41,6 +94,7 @@ fn local_read_preimage(
   fields : Array[(String, @host.ClientLocalReadEvidenceValue)],
   material? : NativeLocalReadMaterialOriginal? = None,
   file? : NativeLocalReadFileOriginal? = None,
+  capture? : NativeLocalJournalCapture? = None,
 ) -> Result[NativeLocalReadPreimage, NativeClientRunJournalIssue] {
   if material is Some(original) {
     fields.push(("material_receiver_cid", Text(original.receiver_cid)))
@@ -61,6 +115,36 @@ fn local_read_preimage(
       @canonical_value.compare_utf16(left.0, right.0)
     })
   }
+  if capture is Some(owner) {
+    if owner.closing ||
+      owner.read_operation_issue is Some(_) ||
+      (owner.read_callback_active && !owner.read_facts_valid) {
+      if owner.read_callback_active {
+        if owner.read_operation_issue is None {
+          owner.read_operation_issue = Some(OriginalResourceScopePending)
+        }
+        owner.clear_read_operation_facts()
+      }
+      return Err(CustodyLost)
+    }
+    if owner.read_callback_active {
+      guard owner.opening is JournalAcquired(host) &&
+        owner.read_facts_valid &&
+        host.journal.operation_active else {
+        owner.read_operation_issue = Some(OriginalResourceScopePending)
+        owner.clear_read_operation_facts()
+        return Err(CustodyLost)
+      }
+      for observed in owner.read_preimages {
+        if physical_equal(observed.crypto, crypto) &&
+          local_read_preimage_fields_equal(observed.fields, fields) {
+          // Separate pure retained-value hits from actual encode/digest work.
+          native_timing_count(44)
+          return Ok(observed.value)
+        }
+      }
+    }
+  }
   let wire = match @host.encode_client_local_read_preimage(fields) {
     Ok(value) => value
     Err(CapacityExceeded) => return Err(CapacityExceeded)
@@ -72,7 +156,18 @@ fn local_read_preimage(
     Ok(value) => value
     Err(_) => return Err(Encoding)
   }
-  Ok({ wire, cid, })
+  let value = { wire, cid, }
+  if capture is Some(owner) &&
+    owner.read_callback_active &&
+    owner.read_facts_valid &&
+    owner.read_operation_issue is None {
+    owner.read_preimages.push({
+      crypto,
+      fields: local_read_preimage_original_fields(fields),
+      value,
+    })
+  }
+  Ok(value)
 }
 
 ///|
@@ -148,6 +243,7 @@ fn NativeLocalReadPolicyBinding::read_admission_preimages(
       ],
       material~,
       file~,
+      capture=self.capture,
     ) {
     Ok(value) => value
     Err(issue) => return Err(Journal(issue))
@@ -165,6 +261,7 @@ fn NativeLocalReadPolicyBinding::read_admission_preimages(
       ],
       material~,
       file~,
+      capture=self.capture,
     ) {
     Ok(value) => value
     Err(issue) => return Err(Journal(issue))
@@ -208,6 +305,7 @@ fn NativeLocalReadPolicyBinding::read_admission_preimages(
       ],
       material~,
       file~,
+      capture=self.capture,
     ) {
     Ok(value) => value
     Err(issue) => return Err(Journal(issue))
