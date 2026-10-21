@@ -32,7 +32,7 @@ int actql_crypto_component_borrow_library(void);
 int actql_crypto_component_release_library(void);
 void *actql_crypto_component_symbol(const char *name);
 /* Exact physical census, not quota or a cleanup ACK: heap, live requested,
- * live aligned payload, live blocks, peak aligned payload, headers, free bytes,
+ * live aligned payload, live blocks, peak aligned payload, allocator metadata, free bytes,
  * failures, Library borrows, active operation, closing and initialized. */
 int actql_crypto_component_inventory(uint64_t out[12]);
 /* One-shot instance cleanup. Failed retirement retains its original extent and
