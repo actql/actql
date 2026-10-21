@@ -46,8 +46,9 @@ async function sample(config) {
       }
       row.cleanup.wallNs = Number(process.hrtime.bigint() - closeStart);
     }
-    const cpu = process.cpuUsage(cpuStart);
+    const cpu = process.cpuUsage(), operationCpu = process.cpuUsage(cpuStart);
     row.cpuUserUs = cpu.user; row.cpuSystemUs = cpu.system;
+    row.operationCpuUserUs = operationCpu.user; row.operationCpuSystemUs = operationCpu.system;
     row.operationWallNs = Number(process.hrtime.bigint() - started);
     row.completed = row.verified = !failure && row.cleanup.closed;
     await new Promise((resolve, reject) => process.send(row, error => error ? reject(error) : resolve()));
@@ -94,7 +95,7 @@ async function runChild(config, output, name) {
     completed: verified, overflow, stateDirectory, childObservation: actual,
     cpuUserUs: valid ? actual.cpuUserUs : parentCpu.user,
     cpuSystemUs: valid ? actual.cpuSystemUs : parentCpu.system,
-    cpuScope: valid ? 'actual-child-process-only; separate workers/subprocesses excluded'
+    cpuScope: valid ? 'actual-child-startup-through-close; other processes and post-close reporting/exit excluded'
       : 'collector-process-only; child CPU unavailable',
     childCpuAvailable: valid,
     ...(!verified ? {error: actual?.firstFailure?.message ?? actual?.cleanup?.failure?.message ??

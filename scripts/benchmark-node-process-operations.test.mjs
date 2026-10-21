@@ -60,6 +60,9 @@ test('cold samples use distinct actual children, same successful saved Run and n
   assert.equal(new Set(series.samples.map(row => row.stateId)).size, 1);
   assert(series.samples.every(row => row.verified && row.childCpuAvailable && row.childObservation.pid === row.pid));
   assert(series.samples.every(row => row.stateDirectory.entryCount > 0));
+  assert(series.samples.every(row => row.cpuUserUs >= row.childObservation.operationCpuUserUs &&
+    row.cpuSystemUs >= row.childObservation.operationCpuSystemUs));
+  assert(series.samples.every(row => row.cpuScope.includes('startup-through-close')));
   assert(series.samples.every(row => row.wallNs >= row.childObservation.operationWallNs));
   const trace = await events(series.samples[0].stateId);
   assert.equal(trace.filter(row => row.kind === 'submit').length, 1);
