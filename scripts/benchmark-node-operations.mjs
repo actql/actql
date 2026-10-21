@@ -9,6 +9,13 @@ import {pathToFileURL} from 'node:url';
 import {assessLatency, collectOperationSamples} from './operation-performance.mjs';
 
 const hash = bytes => createHash('sha256').update(bytes).digest('hex');
+export function nodeBenchmarkInstrumentation({execArgv = process.execArgv,
+  nodeOptions = process.env.NODE_OPTIONS ?? '', coverage = process.env.NODE_V8_COVERAGE} = {}) {
+  // Known startup instrumentation is evidence against unprofiled acceptance.
+  // This is not whole-runtime provenance or hostile embedding detection.
+  const flags = [...execArgv, nodeOptions].join(' ');
+  return {profiled: /--(?:cpu-prof|heap-prof|prof|inspect|perf-basic-prof)(?:[=\s-]|$)/u.test(flags) || Boolean(coverage)};
+}
 export function nodeWarmProtocol(mode) {
   assert(['diagnostic', 'final'].includes(mode));
   return {entry: 'ordinary open/stateDir', mode, priorState: 'new empty directory',
@@ -17,6 +24,50 @@ export function nodeWarmProtocol(mode) {
     diagnosticContinuation: mode === 'diagnostic' ? 'verified success only; stop each slow family' : 'none',
     newShortQueries: 'one per warm-select sample', savedReads: 'same original seed Run',
     status: 'same original revision after initial status observation', close: 'await original Client in finally'};
+}
+// One explicit experiment definition lets warm and process measurements share
+// the assessor's cohort/environment/history binding without accepting arbitrary
+// successful reports from different histories. Warm-only callers stay valid.
+export function nodeOperationProtocol(mode) {
+  return {warm: nodeWarmProtocol(mode), process: {
+    samplesPerOperation: mode === 'final' ? 30 : 3,
+    coldExisting: 'one new successful seed Run; distinct child per original saved Result read',
+    firstInit: 'distinct empty state and actual child per SELECT/Result/awaited close',
+    wall: 'parent launch through natural child exit, including import/open/operation/close',
+    cpu: 'actual child process; separate workers and subprocesses excluded',
+    failedOrUnknown: 'retain sample and stop; never replay the failed Run',
+  }};
+}
+export async function verifyNodeBenchmarkPackages(manifest, manifestPath, consumer) {
+  assert(Array.isArray(manifest.packages) && manifest.packages.length > 0);
+  assert(manifest.packages.some(row => row.name === '@actql/node'));
+  const observations = [], names = new Set();
+  for (const pkg of manifest.packages) {
+    assert(/^(?:@actql\/)?[a-z0-9-]+$/u.test(pkg.name) && !names.has(pkg.name));
+    names.add(pkg.name);
+    assert.equal(pkg.file, pkg.file.split('/').at(-1));
+    const tar = await readFile(join(dirname(manifestPath), pkg.file));
+    assert.equal(tar.length, pkg.bytes); assert.equal(hash(tar), pkg.sha256);
+    assert.equal('sha512-' + createHash('sha512').update(tar).digest('base64'), pkg.integrity);
+    const base = join(consumer, 'node_modules', pkg.name), files = [];
+    async function visit(dir) {
+      assert(!(await lstat(dir)).isSymbolicLink(), 'Installed package cannot be a source symlink');
+      for (const name of (await readdir(dir)).sort()) {
+        const file = join(dir, name), st = await lstat(file);
+        assert(!st.isSymbolicLink(), 'Installed product payload cannot be linked');
+        if (st.isDirectory()) await visit(file);
+        else {
+          assert(st.isFile()); const data = await readFile(file);
+          files.push({path: relative(base, file), bytes: data.length, mode: st.mode & 0o777, sha256: hash(data)});
+        }
+      }
+    }
+    await visit(base);
+    const sort = rows => rows.toSorted((a, b) => a.path.localeCompare(b.path));
+    assert.deepEqual(sort(files), sort(pkg.files));
+    observations.push({package: pkg.name, files});
+  }
+  return observations;
 }
 export async function runNodeWarmBenchmark({manifestPath, consumer, output, controlsPath, mode = 'diagnostic'}) {
   assert(['diagnostic', 'final'].includes(mode));
@@ -29,41 +80,12 @@ export async function runNodeWarmBenchmark({manifestPath, consumer, output, cont
   const actualEnvironment = {platform: platform(), arch: arch(), osRelease: release(), node: process.version,
     cpuModel: cpus()[0].model, logicalCpus: cpus().length, memoryBytes: totalmem()};
   for (const [key, value] of Object.entries(actualEnvironment)) assert.equal(controls.environment[key], value, key);
-  const protocol = nodeWarmProtocol(mode);
+  const combined = nodeOperationProtocol(mode);
+  const protocol = controls.historyProtocolSha256 === hash(Buffer.from(JSON.stringify(combined)))
+    ? combined : nodeWarmProtocol(mode);
   assert.equal(controls.historyProtocolSha256, hash(Buffer.from(JSON.stringify(protocol))));
   assert(['isolated', 'concurrent'].includes(controls.load));
-  assert(Array.isArray(manifest.packages) && manifest.packages.length > 0);
-  assert(manifest.packages.some(row => row.name === '@actql/node'));
-  async function verifyPackages() {
-    const observations = [], names = new Set();
-    for (const pkg of manifest.packages) {
-      assert(/^(?:@actql\/)?[a-z0-9-]+$/u.test(pkg.name) && !names.has(pkg.name));
-      names.add(pkg.name);
-      assert.equal(pkg.file, pkg.file.split('/').at(-1));
-      const tar = await readFile(join(dirname(manifestPath), pkg.file));
-      assert.equal(tar.length, pkg.bytes); assert.equal(hash(tar), pkg.sha256);
-      assert.equal('sha512-' + createHash('sha512').update(tar).digest('base64'), pkg.integrity);
-      const base = join(consumer, 'node_modules', pkg.name), files = [];
-      async function visit(dir) {
-        assert(!(await lstat(dir)).isSymbolicLink(), 'Installed package cannot be a source symlink');
-        for (const name of (await readdir(dir)).sort()) {
-          const file = join(dir, name), st = await lstat(file);
-          assert(!st.isSymbolicLink(), 'Installed product payload cannot be linked');
-          if (st.isDirectory()) await visit(file);
-          else {
-            assert(st.isFile()); const data = await readFile(file);
-            files.push({path: relative(base, file), bytes: data.length, mode: st.mode & 0o777, sha256: hash(data)});
-          }
-        }
-      }
-      await visit(base);
-      const sort = rows => rows.toSorted((a, b) => a.path.localeCompare(b.path));
-      assert.deepEqual(sort(files), sort(pkg.files));
-      observations.push({package: pkg.name, files});
-    }
-    return observations;
-  }
-  const before = await verifyPackages();
+  const before = await verifyNodeBenchmarkPackages(manifest, manifestPath, consumer);
   await mkdir(output, {mode: 0o700}); // An existing benchmark directory is never reused.
   const stateId = join(output, 'new-state'), hostId = randomUUID();
   const identity = {cohortSha256: hash(manifestBytes),
@@ -110,7 +132,7 @@ export async function runNodeWarmBenchmark({manifestPath, consumer, output, cont
         const collected = await collectOperationSamples({operation, mode, identity, stateId, execute,
           emit: row => appendFile(join(output, 'samples.jsonl'), JSON.stringify({operation, ...row}) + '\n', {mode: 0o600})});
         const series = {operation, mode, ...identity, environmentSha256,
-          historyProtocolSha256: controls.historyProtocolSha256, profiled: false, load: controls.load, ...collected};
+          historyProtocolSha256: controls.historyProtocolSha256, ...nodeBenchmarkInstrumentation(), load: controls.load, ...collected};
         report.latency.push(series);
         report.functional.rows.push({operation, completed: collected.samples.every(row => row.verified),
           expectedSha256: hash(Buffer.from(JSON.stringify(expected))),
@@ -136,7 +158,7 @@ export async function runNodeWarmBenchmark({manifestPath, consumer, output, cont
       catch (error) { primary ??= error; report.cleanup.failure = {name: error.name, code: error.code ?? null, message: error.message}; }
       report.cleanup.wallNs = Number(process.hrtime.bigint() - closeStart);
     }
-    try { assert.deepEqual(await verifyPackages(), before); report.installedPayloadsUnchanged = true; }
+    try { assert.deepEqual(await verifyNodeBenchmarkPackages(manifest, manifestPath, consumer), before); report.installedPayloadsUnchanged = true; }
     catch (error) { primary ??= error; report.packageFailure = error.message; }
     report.assessments = report.latency.map(assessLatency);
     report.fullAcceptance = false;

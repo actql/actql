@@ -4,9 +4,18 @@ import {mkdtemp, mkdir, readFile, writeFile, rm} from 'node:fs/promises';
 import {tmpdir, arch, platform, release, cpus, totalmem} from 'node:os';
 import {join} from 'node:path';
 import test from 'node:test';
-import {runNodeWarmBenchmark, nodeWarmProtocol} from './benchmark-node-operations.mjs';
+import {nodeBenchmarkInstrumentation, runNodeWarmBenchmark, nodeWarmProtocol} from './benchmark-node-operations.mjs';
 
 const hash = bytes => createHash('sha256').update(bytes).digest('hex');
+test('known startup profiling cannot be labeled uninstrumented latency', () => {
+  const ordinary = {execArgv: [], nodeOptions: '', coverage: undefined};
+  assert.equal(nodeBenchmarkInstrumentation(ordinary).profiled, false);
+  for (const flags of [['--cpu-prof'], ['--cpu-prof-dir=output'], ['--prof'], ['--inspect=0'], ['--heap-prof']]) {
+    assert.equal(nodeBenchmarkInstrumentation({...ordinary, execArgv: flags}).profiled, true);
+  }
+  assert.equal(nodeBenchmarkInstrumentation({...ordinary, nodeOptions: '--cpu-prof'}).profiled, true);
+  assert.equal(nodeBenchmarkInstrumentation({...ordinary, coverage: 'coverage'}).profiled, true);
+});
 async function fixture(t, fail = false, slow = false) {
   const root = await mkdtemp(join(tmpdir(), 'actql-benchmark-oracle-'));
   t.after(() => rm(root, {recursive: true, force: true}));
