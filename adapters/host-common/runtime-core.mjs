@@ -1844,6 +1844,7 @@ function publicationControl(moon) {
   let control = publicationControls.get(moon);
   if (control !== undefined) return control;
   const tokens = new WeakMap();
+  const contractBounds = new WeakMap();
   const issuedDeliveryGrants = new WeakMap();
   const issuedDeliveryAttempts = new WeakMap();
   const originalDeliveryAttempts = new WeakMap();
@@ -1956,7 +1957,7 @@ function publicationControl(moon) {
   const sourceAdvanceTokens = new WeakMap();
   const computationPreviewTokens = new WeakMap();
   const computationPreviewWires = new WeakMap();
-  const inspect = contract => {
+  const inspect = (contract, limits) => {
     const value = Object.freeze({
       name: moon.strategyPublicationContractName(contract),
       identityField: moon.strategyPublicationContractIdentityField(contract),
@@ -1964,6 +1965,17 @@ function publicationControl(moon) {
       wire: moon.strategyPublicationContractJson(contract),
     });
     tokens.set(value, contract);
+    if (limits !== undefined) {
+      // The actual issuer checked this complete immutable wire under these
+      // bounds. Each JSON node needs at least one UTF-16 code unit; at most
+      // three UTF-8 bytes encode one code unit. These conservative bounds
+      // can prove a later looser limit without parsing or hashing again.
+      contractBounds.set(value, Object.freeze({
+        maxWireBytes: Math.min(limits.maxWireBytes, value.wire.length * 3),
+        maxNodes: Math.min(limits.maxNodes, value.wire.length),
+        maxDepth: limits.maxDepth,
+      }));
+    }
     return value;
   };
   const token = value => {
@@ -2053,7 +2065,12 @@ function publicationControl(moon) {
     }
     return limits;
   };
-  const finishCapturedPreparation = async (preparation, signal) => {
+  const captureContractLimits = (limits, label) => issuanceLimits(Object.freeze({
+    maxWireBytes: limits?.maxWireBytes,
+    maxNodes: limits?.maxNodes,
+    maxDepth: limits?.maxDepth,
+  }), label);
+  const finishCapturedPreparation = async (preparation, signal, limits) => {
     let finished = false;
     try {
       while (true) {
@@ -2063,7 +2080,7 @@ function publicationControl(moon) {
       }
       signal?.throwIfAborted();
       const captured = inspect(checked(
-        moon.strategyCapturedRunFinish(preparation)));
+        moon.strategyCapturedRunFinish(preparation)), limits);
       finished = true;
       return captured;
     } finally {
@@ -2093,24 +2110,34 @@ function publicationControl(moon) {
   };
   control = Object.freeze({
     seal(name, bodyWire, limits) {
+      limits = captureContractLimits(limits, 'publication contract');
       return inspect(checked(moon.strategyPublicationSeal(
         name,
         bodyWire,
         limits.maxWireBytes,
         limits.maxNodes,
         limits.maxDepth,
-      )));
+      )), limits);
     },
     // Data-only private retention parser; no resource/custody/current grant.
     privateContinuationRetentionShape: moon.clientProgramPrivateContinuationRetentionShape,
     admit(name, completeWire, limits) {
+      limits = captureContractLimits(limits, 'publication contract');
       return inspect(checked(moon.strategyPublicationAdmit(
         name,
         completeWire,
         limits.maxWireBytes,
         limits.maxNodes,
         limits.maxDepth,
-      )));
+      )), limits);
+    },
+    admitOriginal(original, limits) {
+      const retained = contractBounds.get(original);
+      if (retained === undefined || !tokens.has(original)) return undefined;
+      const required = captureContractLimits(limits, 'publication contract');
+      return retained.maxWireBytes <= required.maxWireBytes &&
+        retained.maxNodes <= required.maxNodes &&
+        retained.maxDepth <= required.maxDepth ? original : undefined;
     },
     sealRunEvidence(name, bodyWire, limits) {
       issuanceLimits(limits, 'Run evidence');
@@ -2133,14 +2160,14 @@ function publicationControl(moon) {
       )));
     },
     issueRunInvocation(template, observation, limits) {
-      issuanceLimits(limits, 'Run Invocation');
+      limits = captureContractLimits(limits, 'Run Invocation');
       return inspect(checked(moon.strategyIssueRunInvocation(
         evidenceToken(template),
         evidenceToken(observation),
         limits.maxWireBytes,
         limits.maxNodes,
         limits.maxDepth,
-      )));
+      )), limits);
     },
     admitRunPublication(template, prepared, authorization, compiledPlan) {
       return inspectAdmission(checked(moon.strategyRunPublicationAdmit(
@@ -2805,12 +2832,12 @@ function publicationControl(moon) {
       if (value === undefined || completion === undefined) {
         throw new TypeError('Foreign Client Content generation');
       }
-      issuanceLimits(limits, 'Content Invocation');
+      limits = captureContractLimits(limits, 'Content Invocation');
       const issued = compiledRunResult(moon.clientProgramIssueSerializationInvocation(
         value, token(definition), completion,
         limits.maxWireBytes, limits.maxNodes, limits.maxDepth), 'RunHostContentInvocationRejected');
       return Object.freeze({observation: inspectEvidence(runtimeField(issued, 0)),
-        invocation: inspect(runtimeField(issued, 1)), owner: runtimeField(issued, 1)});
+        invocation: inspect(runtimeField(issued, 1), limits), owner: runtimeField(issued, 1)});
     },
     compiledInferSourceFreeResultPolicy: compiledSourceFreeResultPolicy,
     compiledInferEvaluationPolicy(compiled) {
@@ -2908,7 +2935,7 @@ function publicationControl(moon) {
       if (value === undefined) {
         throw new TypeError('Foreign Client compiled Run');
       }
-      issuanceLimits(limits, 'Client Run Invocation');
+      limits = captureContractLimits(limits, 'Client Run Invocation');
       const issued = compiledRunResult(source === undefined
         ? (compiled.kind !== 'values'
           ? moon.clientProgramIssueCompiledSourceFreeTaskInvocation(value,
@@ -2926,7 +2953,7 @@ function publicationControl(moon) {
       source === undefined ? 'RunHostInvocationRejected'
         : 'RunHostTaskInvocationRejected');
       return Object.freeze({observation: inspectEvidence(runtimeField(issued, 0)),
-        invocation: inspect(runtimeField(issued, 1)), owner: runtimeField(issued, 1)});
+        invocation: inspect(runtimeField(issued, 1), limits), owner: runtimeField(issued, 1)});
     },
     issueCheckedClientCompiledMultiInvocation(compiled, definition,
       {sources, authorityScopeCid, dataPolicyCid, captureStartedAt, captureCompletedAt}, limits) {
@@ -2935,7 +2962,7 @@ function publicationControl(moon) {
           !Array.isArray(sources) || sources.length !== 2) {
         throw new TypeError('Foreign Client compiled multi-source Run');
       }
-      issuanceLimits(limits, 'Client Run Invocation');
+      limits = captureContractLimits(limits, 'Client Run Invocation');
       const issued = compiledRunResult(moon.clientProgramIssueCompiledMultiTaskInvocation(
         value, token(definition), sources.map(source => source.captured.capture.source()),
         sources.map(source => source.captured.identity),
@@ -2945,7 +2972,7 @@ function publicationControl(moon) {
         authorityScopeCid, dataPolicyCid, captureStartedAt, captureCompletedAt,
         limits.maxWireBytes, limits.maxNodes, limits.maxDepth), 'RunHostTaskInvocationRejected');
       return Object.freeze({observation: inspectEvidence(runtimeField(issued, 0)),
-        invocation: inspect(runtimeField(issued, 1)), owner: runtimeField(issued, 1)});
+        invocation: inspect(runtimeField(issued, 1), limits), owner: runtimeField(issued, 1)});
     },
     issueCheckedClientCompiledKeyedInvocation(compiled, definition,
       {captured, sourceEvidenceWire, inputLogicalWire, keyedObservation,
@@ -2956,7 +2983,7 @@ function publicationControl(moon) {
           captured?.requirement === undefined || keyedObservation === undefined) {
         throw new TypeError('Foreign Client compiled keyed-source Run');
       }
-      issuanceLimits(limits, 'Client Run Invocation');
+      limits = captureContractLimits(limits, 'Client Run Invocation');
       // The portable issuer verifies original capture/compilation ownership,
       // whole-Source coverage and live keyed custody. Wire evidence alone is
       // not enough to manufacture a completed keyed acquisition.
@@ -2966,7 +2993,7 @@ function publicationControl(moon) {
         authorityScopeCid, dataPolicyCid, captureStartedAt, captureCompletedAt,
         limits.maxWireBytes, limits.maxNodes, limits.maxDepth), 'RunHostTaskInvocationRejected');
       return Object.freeze({observation: inspectEvidence(runtimeField(issued, 0)),
-        invocation: inspect(runtimeField(issued, 1)), owner: runtimeField(issued, 1)});
+        invocation: inspect(runtimeField(issued, 1), limits), owner: runtimeField(issued, 1)});
     },
     // Reuse the compiled owner retained at Run admission. The physical
     // adapter supplies its opaque execution and bounded verification owner;
@@ -3660,7 +3687,7 @@ function publicationControl(moon) {
       return bound;
     },
     issueRunDefinition(admission, definition, limits) {
-      issuanceLimits(limits, 'Run Definition');
+      limits = captureContractLimits(limits, 'Run Definition');
       if (definition === null || typeof definition !== 'object') {
         throw new TypeError('Invalid Run Definition request');
       }
@@ -3674,10 +3701,10 @@ function publicationControl(moon) {
         limits.maxWireBytes,
         limits.maxNodes,
         limits.maxDepth,
-      )));
+      )), limits);
     },
     issueEffectFreeRunReceipt(chain, provenance, limits) {
-      issuanceLimits(limits, 'Run Receipt');
+      limits = captureContractLimits(limits, 'Run Receipt');
       if (chain === null || typeof chain !== 'object' ||
           provenance === null || typeof provenance !== 'object' ||
           !Array.isArray(chain.definitions) ||
@@ -3706,7 +3733,7 @@ function publicationControl(moon) {
         limits.maxNodes,
         limits.maxDepth,
         contentCaptures(provenance.contentGenerations),
-      )));
+      )), limits);
     },
     admitCapturedResultSnapshot(definition, artifact, rowsWire, fields,
       limits) {
@@ -4301,7 +4328,7 @@ function publicationControl(moon) {
       ));
     },
     async issueEffectFreeCapturedRun(chain, evidence, limits, signal) {
-      issuanceLimits(limits, 'Captured Run');
+      limits = captureContractLimits(limits, 'Captured Run');
       if (chain === null || typeof chain !== 'object' ||
           evidence === null || typeof evidence !== 'object' ||
           !Array.isArray(chain.definitions) ||
@@ -4329,7 +4356,7 @@ function publicationControl(moon) {
         moon.strategyPublicationEvidenceWorkspace(limits.maxNodes),
         contentCaptures(evidence.contentGenerations),
       );
-      return finishCapturedPreparation(preparation, signal);
+      return finishCapturedPreparation(preparation, signal, limits);
     },
     admitEffectComputationPreview(wire, runDefinition, authoring, limits) {
       issuanceLimits(limits, 'Effect computation Preview');
@@ -4575,7 +4602,7 @@ function publicationControl(moon) {
       return Object.freeze(owned);
     },
     async issueEffectfulCapturedRun(chain, evidence, preview, plans, limits, signal) {
-      issuanceLimits(limits, 'Effectful Captured Run');
+      limits = captureContractLimits(limits, 'Effectful Captured Run');
       if (chain === null || typeof chain !== 'object' ||
           evidence === null || typeof evidence !== 'object' ||
           !Array.isArray(chain.definitions) ||
@@ -4613,7 +4640,7 @@ function publicationControl(moon) {
         moon.strategyPublicationEvidenceWorkspace(limits.maxNodes),
         contentCaptures(evidence.contentGenerations),
       ));
-      return finishCapturedPreparation(preparation, signal);
+      return finishCapturedPreparation(preparation, signal, limits);
     },
     prepareLocalEffectDependencyInventory(artifacts, bodies, limits) {
       issuanceLimits(limits, 'Effect dependency inventory');
@@ -4663,7 +4690,7 @@ function publicationControl(moon) {
         limits.maxWireBytes, limits.maxNodes, limits.maxDepth));
     },
     issueEffectfulFinalRunReceipt(chain, preview, receipts, limits) {
-      issuanceLimits(limits, 'final Effectful Run Receipt');
+      limits = captureContractLimits(limits, 'final Effectful Run Receipt');
       if (chain === null || typeof chain !== 'object' ||
           !Array.isArray(chain.definitions) ||
           !Array.isArray(chain.artifacts) ||
@@ -4684,10 +4711,10 @@ function publicationControl(moon) {
         token(chain.capturedRun), ownedPreview, receipts.setWire,
         receipts.memberWires, limits.maxWireBytes, limits.maxNodes,
         limits.maxDepth,
-      )));
+      )), limits);
     },
     issueEffectSetApplyReceiptFromMembers(preview, members, replayed, limits) {
-      issuanceLimits(limits, 'Effect Set Apply Receipt');
+      limits = captureContractLimits(limits, 'Effect Set Apply Receipt');
       if (!Array.isArray(members) ||
           members.some(member => typeof member?.wire !== 'string') ||
           !Array.isArray(replayed) ||
@@ -4703,7 +4730,7 @@ function publicationControl(moon) {
           ownedPreview, members.map(member => member.wire), replayed,
           limits.maxWireBytes, limits.maxNodes, limits.maxDepth,
         ),
-      ));
+      ), limits);
     },
     effectSetReceiptRunDisposition(preview, receipts, limits) {
       issuanceLimits(limits, 'Effect Set Run disposition');
@@ -4916,7 +4943,7 @@ function publicationControl(moon) {
     },
     issueResultManifest(runDefinition, invocation, definitions, artifacts,
       limits) {
-      issuanceLimits(limits, 'Result Manifest');
+      limits = captureContractLimits(limits, 'Result Manifest');
       return inspect(checked(moon.strategyIssueResultManifest(
         token(runDefinition),
         token(invocation),
@@ -4925,10 +4952,10 @@ function publicationControl(moon) {
         limits.maxWireBytes,
         limits.maxNodes,
         limits.maxDepth,
-      )));
+      )), limits);
     },
     issueDurableResultBinding(chain, physical, limits) {
-      issuanceLimits(limits, 'durable Result binding');
+      limits = captureContractLimits(limits, 'durable Result binding');
       if (chain === null || typeof chain !== 'object' ||
           physical === null || typeof physical !== 'object') {
         throw new TypeError('Invalid durable Result binding request');
@@ -4951,10 +4978,10 @@ function publicationControl(moon) {
         limits.maxWireBytes,
         limits.maxNodes,
         limits.maxDepth,
-      )));
+      )), limits);
     },
     issuePublicationRequest(runDefinition, definitions, intent, limits) {
-      issuanceLimits(limits, 'Publication Request');
+      limits = captureContractLimits(limits, 'Publication Request');
       if (intent === null || typeof intent !== 'object') {
         throw new TypeError('Invalid Publication Request intent');
       }
@@ -4969,10 +4996,10 @@ function publicationControl(moon) {
         limits.maxWireBytes,
         limits.maxNodes,
         limits.maxDepth,
-      )));
+      )), limits);
     },
     issuePublicationAttempt(request, runDefinition, attempt, limits) {
-      issuanceLimits(limits, 'Publication Attempt');
+      limits = captureContractLimits(limits, 'Publication Attempt');
       if (attempt === null || typeof attempt !== 'object') {
         throw new TypeError('Invalid Publication Attempt');
       }
@@ -4986,7 +5013,7 @@ function publicationControl(moon) {
         limits.maxWireBytes,
         limits.maxNodes,
         limits.maxDepth,
-      )));
+      )), limits);
     },
     publicationPreflightValid(
       admission,
@@ -5016,7 +5043,7 @@ function publicationControl(moon) {
       );
     },
     issuePublicIndexEntry(chain, committedAt, limits) {
-      issuanceLimits(limits, 'Public Index Entry');
+      limits = captureContractLimits(limits, 'Public Index Entry');
       if (chain === null || typeof chain !== 'object' ||
           !Array.isArray(chain.durableBindings)) {
         throw new TypeError('Invalid publication chain');
@@ -5034,14 +5061,14 @@ function publicationControl(moon) {
         limits.maxWireBytes,
         limits.maxNodes,
         limits.maxDepth,
-      )));
+      )), limits);
     },
     publicIndexSameCommittedContent(committed, candidate) {
       return moon.strategyPublicIndexSameCommittedContent(
         token(committed), token(candidate));
     },
     issuePublicationRecord(attempt, previous, update, limits) {
-      issuanceLimits(limits, 'Publication Record');
+      limits = captureContractLimits(limits, 'Publication Record');
       if (update === null || typeof update !== 'object') {
         throw new TypeError('Invalid Publication Record update');
       }
@@ -5058,7 +5085,7 @@ function publicationControl(moon) {
         limits.maxWireBytes,
         limits.maxNodes,
         limits.maxDepth,
-      )));
+      )), limits);
     },
     async effectFreeChainValid(runDefinition, invocation, definitions, artifacts,
       manifest, receipt, capturedRun, limits, signal) {
@@ -5143,7 +5170,7 @@ function publicationControl(moon) {
       );
     },
     issueResultArtifact(exportHandle, invocation, retention, limits) {
-      issuanceLimits(limits, 'Result Artifact');
+      limits = captureContractLimits(limits, 'Result Artifact');
       return inspect(checked(
         moon.strategyHostOutputExportIssueResultArtifact(
           exportHandle,
@@ -5153,7 +5180,7 @@ function publicationControl(moon) {
           limits.maxNodes,
           limits.maxDepth,
         ),
-      ));
+      ), limits);
     },
     deliveryTransition(previous, next) {
       return moon.strategyDeliveryRecordTransition(
@@ -5184,7 +5211,7 @@ function publicationControl(moon) {
         limits.maxNodes, limits.maxDepth)));
     },
     issueManifestReadGrant(index, manifest, grant, limits) {
-      issuanceLimits(limits, 'Manifest read grant');
+      limits = captureContractLimits(limits, 'Manifest read grant');
       if (grant === null || typeof grant !== 'object') {
         throw new TypeError('Invalid Manifest read grant');
       }
@@ -5201,10 +5228,10 @@ function publicationControl(moon) {
         limits.maxWireBytes,
         limits.maxNodes,
         limits.maxDepth,
-      )));
+      )), limits);
     },
     issueResultReadGrant(index, manifest, grant, limits) {
-      issuanceLimits(limits, 'Result read grant');
+      limits = captureContractLimits(limits, 'Result read grant');
       const bounds = Object.freeze({maxWireBytes: limits.maxWireBytes,
         maxNodes: limits.maxNodes, maxDepth: limits.maxDepth});
       if (grant === null || typeof grant !== 'object' ||
@@ -5228,12 +5255,12 @@ function publicationControl(moon) {
         bounds.maxWireBytes,
         bounds.maxNodes,
         bounds.maxDepth,
-      )));
+      )), limits);
       issuedDeliveryGrants.set(result, bounds);
       return result;
     },
     issueDeliveryAttempt(index, manifest, grant, attempt, limits) {
-      issuanceLimits(limits, 'Delivery Attempt');
+      limits = captureContractLimits(limits, 'Delivery Attempt');
       const bounds = Object.freeze({maxWireBytes: limits.maxWireBytes,
         maxNodes: limits.maxNodes, maxDepth: limits.maxDepth});
       if (attempt === null || typeof attempt !== 'object') {
@@ -5250,7 +5277,7 @@ function publicationControl(moon) {
         bounds.maxWireBytes,
         bounds.maxNodes,
         bounds.maxDepth,
-      )));
+      )), limits);
       const original = Object.freeze({kind: 'issued-delivery-attempt'});
       const facts = Object.freeze({index, manifest, grant, attempt: result,
         request: Object.freeze({resultName: attempt.resultName, format: attempt.format,
@@ -5386,7 +5413,7 @@ function publicationControl(moon) {
     issueResultRetentionExtension(
       base, availableUntil, admittedAt, limits,
     ) {
-      issuanceLimits(limits, 'Result retention extension');
+      limits = captureContractLimits(limits, 'Result retention extension');
       if (typeof availableUntil !== 'string' ||
           typeof admittedAt !== 'string') {
         throw new TypeError('Invalid Result retention extension');
@@ -5398,7 +5425,7 @@ function publicationControl(moon) {
         limits.maxWireBytes,
         limits.maxNodes,
         limits.maxDepth,
-      )));
+      )), limits);
     },
     resultReadExtendedAvailability(
       manifest, resultName, base, extension, observedAt,
@@ -5497,7 +5524,7 @@ function publicationControl(moon) {
     },
     issueResultDeliveryReceipt(index, manifest, grant, attempt, delivered,
       limits) {
-      issuanceLimits(limits, 'Result delivery receipt');
+      limits = captureContractLimits(limits, 'Result delivery receipt');
       if (delivered === null || typeof delivered !== 'object') {
         throw new TypeError('Invalid Result delivery receipt');
       }
@@ -5511,10 +5538,10 @@ function publicationControl(moon) {
         limits.maxWireBytes,
         limits.maxNodes,
         limits.maxDepth,
-      )));
+      )), limits);
     },
     issueDeliveryRecord(attempt, previous, update, limits) {
-      issuanceLimits(limits, 'Delivery Record');
+      limits = captureContractLimits(limits, 'Delivery Record');
       if (update === null || typeof update !== 'object' ||
           !Array.isArray(update.cleanupOwnerCids)) {
         throw new TypeError('Invalid Delivery Record');
@@ -5534,7 +5561,7 @@ function publicationControl(moon) {
         limits.maxWireBytes,
         limits.maxNodes,
         limits.maxDepth,
-      )));
+      )), limits);
     },
     prepareResultDeliverySerializer(format, schemaWire, fields, limits) {
       issuanceLimits(limits, 'Result delivery serializer');

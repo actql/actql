@@ -3117,7 +3117,7 @@ async function openOriginalLocalPublicationStore(
     });
   };
 
-  const putPublicationContracts = async supplied => {
+  const putPublicationContractBatch = async (supplied, originals) => {
     active();
     if (!Array.isArray(supplied)) fail('InvalidPublicationContractWire');
     const count = supplied.length;
@@ -3127,15 +3127,33 @@ async function openOriginalLocalPublicationStore(
     // Own the finite input before an admission callback or physical await.
     const inputs = Array.from({length: count}, (_, index) => {
       const input = supplied[index];
-      if (!exactKeys(input, ['name', 'wire'])) fail('InvalidPublicationContractWire');
-      return Object.freeze({name: input.name, wire: input.wire});
+      if (!exactKeys(input, originals
+        ? ['name', 'identityField', 'identity', 'wire'] : ['name', 'wire'])) {
+        fail('InvalidPublicationContractWire');
+      }
+      return Object.freeze({name: input.name, wire: input.wire,
+        original: originals ? input : undefined});
     });
     const admitted = [], identities = new Map(), wires = new Map();
     let bytes = 0n;
     for (const input of inputs) {
       const sameWire = wires.get(input.wire);
       if (sameWire !== undefined && sameWire.contract.name === input.name) continue;
-      const contract = admitContract(input.name, input.wire);
+      let contract;
+      if (input.original !== undefined && typeof contractControl.admitOriginal === 'function') {
+        try { contract = contractControl.admitOriginal(input.original, contractLimits); }
+        catch (error) { fail('InvalidPublicationContract', error); }
+        if (contract !== undefined &&
+            (contract !== input.original || !Object.isFrozen(contract) ||
+              typeof contract.name !== 'string' || contract.name !== input.name ||
+              typeof contract.identityField !== 'string' ||
+              !cidPattern.test(contract.identity) || contract.wire !== input.wire ||
+              typeof contract.wire !== 'string' ||
+              Buffer.byteLength(contract.wire, 'utf8') > configuration.maxObjectBytes)) {
+          fail('InvalidPublicationContractControlResult');
+        }
+      }
+      contract ??= admitContract(input.name, input.wire);
       const value = parseContract(contract);
       const previous = identities.get(contract.identity);
       if (previous !== undefined) {
@@ -3158,6 +3176,9 @@ async function openOriginalLocalPublicationStore(
       ...admitted[index], ...physical,
     })));
   };
+
+  const putPublicationContracts = supplied => putPublicationContractBatch(supplied, false);
+  const putOriginalPublicationContracts = supplied => putPublicationContractBatch(supplied, true);
 
   const nativeDeliveryContract = (cid, name, retained) => {
     const native = deliveryIndex?.contract(cid);
@@ -7431,6 +7452,7 @@ async function openOriginalLocalPublicationStore(
     putPreparedResultSchema,
     putPublicationContract,
     putPublicationContracts,
+    putOriginalPublicationContracts,
     verifyObject,
     observeTrustedClock,
     sampleTrustedClock,

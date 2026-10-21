@@ -55,7 +55,9 @@ function validateStore(store) {
         'validateCommittedEvidence', 'retireUncommittedPublication']
         .every(name => typeof store[name] === 'function') ||
       store.putPublicationContracts !== undefined &&
-        typeof store.putPublicationContracts !== 'function') {
+        typeof store.putPublicationContracts !== 'function' ||
+      store.putOriginalPublicationContracts !== undefined &&
+        typeof store.putOriginalPublicationContracts !== 'function') {
     fail('InvalidRunPublicationStore');
   }
 }
@@ -150,6 +152,11 @@ async function persistContracts(store, contracts) {
     persisted.add(contract.identity);
   }
   if (selected.length === 0) return;
+  const originals = store.putOriginalPublicationContracts;
+  if (originals !== undefined) {
+    await Reflect.apply(originals, store, [Object.freeze(selected)]);
+    return;
+  }
   const batch = store.putPublicationContracts;
   if (batch !== undefined) {
     // One setup step has no protected action between these immutable bodies.
