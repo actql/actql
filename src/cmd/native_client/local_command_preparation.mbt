@@ -75,6 +75,7 @@ priv struct LocalCommandPreparationOriginal {
   profile : LocalCommandPreparationProfile
   native_storage : LocalCommandNativeStorageQuote
   business : LocalCommandBusinessOriginal?
+  extent_diagnostics : Bool
   mut run_observation : LocalCommandRunObservationOriginal?
   mut host : @initial_arena.InstalledArenaHost?
   mut backing_scope : @initial_arena.InstalledArenaBackingBorrow?
@@ -180,6 +181,7 @@ fn prepare_local_command_preparation_original(
   Ok({
     profile,
     native_storage,
+    extent_diagnostics: @env.get_env_var("ACTQL_NATIVE_TIMINGS") == Some("1"),
     run_observation: None,
     business: business.map(candidate => {
       profile: candidate,
@@ -330,6 +332,7 @@ fn LocalCommandPreparationOriginal::acquire_physical_read(
       .map_err(issue => CommandHost(issue)),
     )
     self.backing_entered = true
+    let domain_work_before = self.observe_extent_work(host, scope)
     let acquired = command_preparation_value(
       host
       .prepare_domain_in_process(
@@ -369,6 +372,11 @@ fn LocalCommandPreparationOriginal::acquire_physical_read(
     self.sqlite_domain = Some(sqlite_domain)
     command_preparation_value(
       host.transfer_domain(sqlite_domain).map_err(issue => CommandDomain(issue)),
+    )
+    record_command_extent_work(
+      domain_work_before,
+      self.observe_extent_work(host, scope),
+      49,
     )
     command_preparation_value(
       host

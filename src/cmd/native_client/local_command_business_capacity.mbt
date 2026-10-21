@@ -53,6 +53,11 @@ fn LocalCommandPreparationOriginal::prepare_business_capacity(
     payload_facility_bytes: payload,
     limits: selected,
   })
+  native_timing_amount(53, maximum.retained_bytes)
+  native_timing_amount(54, maximum.execution_bytes)
+  native_timing_amount(55, selected.retained_bytes)
+  native_timing_amount(56, selected.execution_bytes)
+  native_timing_amount(57, bytes)
   match capture.suspend_original_read_for_preparation() {
     Err(issue) => return Err(CommandAdoption(issue))
     Ok(_) => ()
@@ -68,7 +73,14 @@ fn LocalCommandPreparationOriginal::prepare_business_capacity(
       .map_err(issue => CommandHost(issue)),
     )
     self.backing_entered = true
-    command_preparation_value(self.prepare_business_domain(host, scope))
+    let before = self.observe_extent_work(host, scope)
+    let acquired = self.prepare_business_domain(host, scope)
+    record_command_extent_work(
+      before,
+      self.observe_extent_work(host, scope),
+      46,
+    )
+    command_preparation_value(acquired)
     Ok(())
   } catch {
     LocalCommandPreparationStop(issue) => Err(issue)
