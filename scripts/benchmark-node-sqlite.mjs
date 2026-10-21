@@ -33,10 +33,19 @@ export const sqliteBaselineProtocol = Object.freeze({
   unsupported: {'warm-decimal-sum': 'SQLite numeric affinity does not supply the exact Decimal/string oracle'},
 });
 
-async function openDatabase(file) {
+function checkFullfsync(fullfsync) {
+  assert.equal(typeof fullfsync, 'boolean', 'fullfsync must be explicitly boolean');
+  assert(!fullfsync || platform() === 'darwin', 'F_FULLFSYNC comparison requires Darwin');
+}
+async function openDatabase(file, fullfsync = false) {
+  checkFullfsync(fullfsync);
   const {DatabaseSync} = await import('node:sqlite');
   const db = new DatabaseSync(file);
-  try { db.exec('PRAGMA journal_mode = WAL; PRAGMA synchronous = FULL; PRAGMA wal_autocheckpoint = 1000'); }
+  try {
+    db.exec('PRAGMA journal_mode = WAL; PRAGMA synchronous = FULL; PRAGMA wal_autocheckpoint = 1000');
+    db.exec(`PRAGMA fullfsync = ${fullfsync ? 'ON' : 'OFF'}`);
+    assert.equal(Object.values(db.prepare('PRAGMA fullfsync').get())[0], Number(fullfsync));
+  }
   catch (error) { db.close(); throw error; }
   return db;
 }
@@ -76,20 +85,22 @@ async function series(operation, mode, count, execute, extra = {}) {
 
 // Child's phase clock starts at this module body; parent wall includes launch,
 // module loading, stdout drain and actual natural exit. It is never collector PID.
-async function coldChild(database, initialize) {
+async function coldChild(database, initialize, fullfsync) {
   const phases = {}, start = process.hrtime.bigint();
   const stamp = () => Number(process.hrtime.bigint() - start);
-  let mark = stamp(); const db = await openDatabase(database); phases.importAndOpenNs = stamp() - mark;
+  let mark = stamp(); const db = await openDatabase(database, fullfsync); phases.importAndOpenNs = stamp() - mark;
+  let actualSettings;
   try {
+    actualSettings = settings(db);
     mark = stamp(); if (initialize) seed(db); phases.schemaAndSeedNs = stamp() - mark;
     mark = stamp(); const actual = JSON.parse(db.prepare('SELECT payload FROM saved_result WHERE id = ?').get(1).payload);
     assert.deepEqual(actual, [{id: 1}]); phases.queryAndMaterializeNs = stamp() - mark;
   } finally { mark = stamp(); db.close(); phases.closeNs = stamp() - mark; }
-  return {pid: process.pid, stateId: database, initialize, verified: true, phases, cpu: process.cpuUsage()};
+  return {pid: process.pid, stateId: database, initialize, verified: true, settings: actualSettings, phases, cpu: process.cpuUsage()};
 }
-async function childSample(database, initialize) {
+async function childSample(database, initialize, fullfsync) {
   const start = process.hrtime.bigint();
-  const child = spawn(process.execPath, [fileURLToPath(import.meta.url), '--sqlite-child', database, String(initialize)],
+  const child = spawn(process.execPath, [fileURLToPath(import.meta.url), '--sqlite-child', database, String(initialize), String(fullfsync)],
     {stdio: ['ignore', 'pipe', 'pipe']});
   let stdout = '', stderr = '';
   child.stdout.on('data', bytes => { stdout += bytes; }); child.stderr.on('data', bytes => { stderr += bytes; });
@@ -100,10 +111,12 @@ async function childSample(database, initialize) {
   assert.equal(terminal.signal, null); assert.equal(terminal.code, 0, stderr);
   const row = JSON.parse(stdout);
   assert.equal(row.pid, child.pid); assert.equal(row.stateId, database); assert.equal(row.verified, true);
+  assert.equal(row.settings.fullfsync, Number(fullfsync));
   return {...row, wallNs, userUs: row.cpu.user, systemUs: row.cpu.system, terminal, stderr};
 }
 
-export async function runSQLiteBaseline({output, warmSamples = 100, coldSamples = 5, load}) {
+export async function runSQLiteBaseline({output, warmSamples = 100, coldSamples = 5, load, fullfsync = false}) {
+  checkFullfsync(fullfsync);
   assert(['isolated', 'concurrent'].includes(load), 'State actual host load explicitly');
   assert(Number.isSafeInteger(warmSamples) && warmSamples >= 1 && warmSamples <= 1000);
   assert(Number.isSafeInteger(coldSamples) && coldSamples >= 0 && coldSamples <= 30);
@@ -112,12 +125,13 @@ export async function runSQLiteBaseline({output, warmSamples = 100, coldSamples 
     cpuModel: cpus()[0].model, logicalCpus: cpus().length, memoryBytes: totalmem()};
   const report = {schemaVersion: 1, kind: 'local-sqlite-comparator', environment, load, profiled: false,
     executableSha256: digest(await readFile(process.execPath)), collectorSha256: digest(await readFile(fileURLToPath(import.meta.url))),
-    protocol: sqliteBaselineProtocol, protocolSha256: digest(JSON.stringify(sqliteBaselineProtocol)),
+    protocol: {...sqliteBaselineProtocol, fullfsyncRequested: fullfsync},
     warmSamples, coldSamples, warm: [], cold: [], cleanup: {closed: false}, productAcceptance: false,
     qualification: 'Local comparator only; no ActQL operation or semantic/durability equivalence inferred.'};
+  report.protocolSha256 = digest(JSON.stringify(report.protocol));
   const flags = [...process.execArgv, process.env.NODE_OPTIONS ?? ''].join(' ');
   report.profiled = /--(?:cpu-prof|heap-prof|prof|inspect|perf-basic-prof)(?:[=\s-]|$)/u.test(flags) || Boolean(process.env.NODE_V8_COVERAGE);
-  const database = join(output, 'warm.sqlite'), db = await openDatabase(database);
+  const database = join(output, 'warm.sqlite'), db = await openDatabase(database, fullfsync);
   try {
     report.settings = settings(db); seed(db);
     for (const fixture of sqliteQueryFixtures) {
@@ -159,7 +173,7 @@ export async function runSQLiteBaseline({output, warmSamples = 100, coldSamples 
   for (const operation of ['cold-existing', 'first-init']) {
     const samples = [];
     for (let n = 0; n < coldSamples; n++) samples.push({index: n,
-      ...await childSample(operation === 'first-init' ? join(output, `init-${n}.sqlite`) : database, operation === 'first-init')});
+      ...await childSample(operation === 'first-init' ? join(output, `init-${n}.sqlite`) : database, operation === 'first-init', fullfsync)});
     if (samples.length) report.cold.push({operation, samples, summary: summarizeSQLiteSamples(samples)});
   }
   report.observedAt = new Date().toISOString();
@@ -179,7 +193,8 @@ function sizedControlBody(bytes, kind, identity) {
   assert(remaining >= 0); value.fixture = 'x'.repeat(remaining);
   const wire = JSON.stringify(value); assert.equal(Buffer.byteLength(wire), bytes); return wire;
 }
-export async function runSQLiteResultControl({output, resultOwnerMap, warmSamples = 100, load, warmup = 10}) {
+export async function runSQLiteResultControl({output, resultOwnerMap, warmSamples = 100, load, warmup = 10, fullfsync = false}) {
+  checkFullfsync(fullfsync);
   assert(['isolated', 'concurrent'].includes(load));
   assert(Number.isSafeInteger(warmSamples) && warmSamples >= 1 && warmSamples <= 1000);
   assert(Number.isSafeInteger(warmup) && warmup >= 0 && warmup <= 100);
@@ -208,7 +223,8 @@ export async function runSQLiteResultControl({output, resultOwnerMap, warmSample
   const report = {schemaVersion: 1, kind: 'local-sqlite-result-control', environment, load,
     ownerMapping: {source: mapping.source.commit, sha256: digest(mapBytes), groups: mapping.groups},
     executableSha256: digest(await readFile(process.execPath)), collectorSha256: digest(await readFile(fileURLToPath(import.meta.url))),
-    protocol: {binding: 'node:sqlite DatabaseSync', concurrency: 1, preparation: 'prepared statements; fresh identities/envelopes inside each timed sample',
+    protocol: {binding: 'node:sqlite DatabaseSync', concurrency: 1, fullfsyncRequested: fullfsync,
+      preparation: 'prepared statements; fresh identities/envelopes inside each timed sample',
       groups: ['durable clock acceptance', 'atomic grant/use/attempt/streaming before payload', 'atomic receipt/terminal/head CAS after payload completion'],
       keyWidths: resultControlKeyWidths, bodyBytes: sizes, payload, expected: [{id: 1}], warmup,
       materialization: 'indexed JSONL payload -> all ordinary JS rows; literal oracle inside timed operation',
@@ -219,7 +235,7 @@ export async function runSQLiteResultControl({output, resultOwnerMap, warmSample
   report.protocolSha256 = digest(JSON.stringify(report.protocol));
   const flags = [...process.execArgv, process.env.NODE_OPTIONS ?? ''].join(' ');
   report.profiled = /--(?:cpu-prof|heap-prof|prof|inspect|perf-basic-prof)(?:[=\s-]|$)/u.test(flags) || Boolean(process.env.NODE_V8_COVERAGE);
-  const db = await openDatabase(database);
+  const db = await openDatabase(database, fullfsync);
   try {
     report.settings = settings(db);
     db.exec(`CREATE TABLE clock (cid TEXT PRIMARY KEY, floor INTEGER NOT NULL, body TEXT NOT NULL);
@@ -314,15 +330,21 @@ export async function runSQLiteResultControl({output, resultOwnerMap, warmSample
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   try {
-    if (process.argv[2] === '--sqlite-child') console.log(JSON.stringify(await coldChild(process.argv[3], process.argv[4] === 'true')));
+    if (process.argv[2] === '--sqlite-child') {
+      assert(['true', 'false'].includes(process.argv[5]), 'Explicit child fullfsync setting required');
+      console.log(JSON.stringify(await coldChild(process.argv[3], process.argv[4] === 'true', process.argv[5] === 'true')));
+    }
     else {
       const args = process.argv.slice(2), options = {};
       assert.equal(args.length % 2, 0);
       for (let n = 0; n < args.length; n += 2) {
         const key = {'--output': 'output', '--warm-samples': 'warmSamples', '--cold-samples': 'coldSamples', '--load': 'load',
-          '--result-owner-map': 'resultOwnerMap'}[args[n]];
+          '--result-owner-map': 'resultOwnerMap', '--fullfsync': 'fullfsync'}[args[n]];
         assert(key && !Object.hasOwn(options, key));
-        options[key] = key.endsWith('Samples') ? Number(args[n + 1]) : args[n + 1];
+        if (key === 'fullfsync') {
+          assert(['on', 'off'].includes(args[n + 1]), 'fullfsync must be on or off');
+          options[key] = args[n + 1] === 'on';
+        } else options[key] = key.endsWith('Samples') ? Number(args[n + 1]) : args[n + 1];
       }
       assert(options.output);
       if (options.resultOwnerMap) {
