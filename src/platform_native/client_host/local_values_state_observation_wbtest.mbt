@@ -264,7 +264,71 @@ test "typed Local Host terminal fence accepts actual state and refuses purpose o
     journal.retained_submission(reference).unwrap().unwrap().revision,
     before_names_submission,
   )
+  // Controlled retention flags exercise only copied metadata in this actual
+  // legacy Store fixture. They issue no Native pair, read permission or ACK.
+  let data_capture = prepare_native_local_journal_capture(
+    host.session,
+    library,
+    crypto,
+    100.0,
+    8,
+    8388608L,
+  )
+  data_capture.opening = JournalAcquired(host)
+  data_capture.read_callback_active = true
+  data_capture.read_facts_valid = true
+  journal.operation_active = true
+  let definition_cid = @publication.publication_contract_identity(definition)
+  assert_true(
+    local_committed_result_observation(
+      store,
+      "local-test",
+      scope,
+      definition_cid,
+      "answer",
+      capture=Some(data_capture),
+    )
+    is Ok(None),
+  )
+  assert_eq(data_capture.read_committed_results.length(), 0)
   pending.commit().unwrap() |> ignore
+  // A real publication changes absence into a positive immutable original.
+  // Repeated pure correspondence reuses the same decoded DATA, not another
+  // Store resolution, grant, reader or returned scope.
+  let committed = local_committed_result_observation(
+      store,
+      "local-test",
+      scope,
+      definition_cid,
+      "answer",
+      capture=Some(data_capture),
+    )
+    .unwrap()
+    .unwrap()
+  for _ in 0..<3 {
+    let retained = local_committed_result_observation(
+        store,
+        "local-test",
+        scope,
+        definition_cid,
+        "answer",
+        capture=Some(data_capture),
+      )
+      .unwrap()
+      .unwrap()
+    assert_true(
+      physical_equal(committed.result_manifest, retained.result_manifest),
+    )
+    assert_true(
+      physical_equal(committed.public_index_entry, retained.public_index_entry),
+    )
+  }
+  assert_eq(data_capture.read_committed_results.length(), 1)
+  data_capture.read_callback_active = false
+  journal.operation_active = false
+  data_capture.clear_read_operation_facts()
+  assert_eq(data_capture.read_committed_results.capacity(), 0)
+  assert_false(data_capture.cleanup_acknowledged)
   let committed_names_run = run_record_body(
     journal.retained(request).unwrap().unwrap(),
   ).unwrap()
@@ -545,7 +609,44 @@ test "typed Local Host terminal fence accepts actual state and refuses purpose o
   )
   candidate.release().unwrap()
   assert_true(work.close())
+  // A new controlled observation must read the actual Store again. Closing
+  // that original afterwards makes retained DATA unavailable; the cache must
+  // not bypass actual lifetime or revive the failed operation.
+  data_capture.read_callback_active = true
+  data_capture.read_facts_valid = true
+  journal.operation_active = true
+  assert_true(
+    local_committed_result_observation(
+      store,
+      "local-test",
+      scope,
+      definition_cid,
+      "answer",
+      capture=Some(data_capture),
+    )
+    is Ok(Some(_)),
+  )
   assert_true(store.close().unwrap())
+  assert_true(
+    local_committed_result_observation(
+      store,
+      "local-test",
+      scope,
+      definition_cid,
+      "answer",
+      capture=Some(data_capture),
+    )
+    is Err(PublicationObservation(@publication_store.Closed)),
+  )
+  assert_false(data_capture.read_facts_valid)
+  assert_eq(data_capture.read_committed_results.capacity(), 0)
+  assert_true(
+    data_capture.read_operation_issue
+    is Some(Journal(PublicationObservation(@publication_store.Closed))),
+  )
+  assert_false(data_capture.cleanup_acknowledged)
+  data_capture.read_callback_active = false
+  journal.operation_active = false
   assert_true(
     host.lookup_original_result_names_json(
       crypto, "operator", "cli", names_original, store, "local-test",

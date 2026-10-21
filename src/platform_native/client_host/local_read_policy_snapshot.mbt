@@ -239,17 +239,15 @@ fn NativeLocalReadPolicyBinding::resolve_policy_from_snapshot(
     }
     let resolved = match committed_result {
       Some(value) => value
-      None => {
-        native_timing_count(43)
+      None =>
         match
-          store.resolve_committed_result(
+          local_committed_result_observation(
+            store,
             facts.request.namespace_id,
             self.scope,
             definition_cid,
             facts.request.result_name,
-            65536,
-            8192,
-            64,
+            capture=Some(capture),
           ) {
           Ok(Some(value)) => value
           Ok(None) =>
@@ -260,9 +258,8 @@ fn NativeLocalReadPolicyBinding::resolve_policy_from_snapshot(
                 ),
               ),
             )
-          Err(issue) => return Err(Journal(PublicationObservation(issue)))
+          Err(issue) => return Err(Journal(issue))
         }
-      }
     }
     // This synchronous trusted Store metadata read changes no Host, Account,
     // Run or selected configuration fact. Select the observed Policy from the

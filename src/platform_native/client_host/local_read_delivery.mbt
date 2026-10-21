@@ -207,20 +207,18 @@ pub fn NativeLocalReadPolicyBinding::authorize_read_delivery(
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
-  native_timing_count(43)
   let resolved = match
-    store.resolve_committed_result(
+    local_committed_result_observation(
+      store,
       delivery.request.namespace_id,
       delivery.request.authority_scope_cid,
       delivery.request.run_definition_cid,
       delivery.request.result_name,
-      65536,
-      8192,
-      64,
+      capture=self.capture,
     ) {
     Ok(Some(value)) => value
     Ok(None) => return Err(Journal(CustodyLost))
-    Err(issue) => return Err(Journal(PublicationObservation(issue)))
+    Err(issue) => return Err(Journal(issue))
   }
   if delivery.public_index_entry_cid !=
     @publication.publication_contract_identity(resolved.public_index_entry) ||

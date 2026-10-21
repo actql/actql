@@ -21,6 +21,8 @@ fn NativeLocalJournalCapture::clear_read_operation_facts(
   self.read_decisions.shrink_to_fit()
   self.read_bindings.clear()
   self.read_bindings.shrink_to_fit()
+  self.read_committed_results.clear()
+  self.read_committed_results.shrink_to_fit()
 }
 
 ///|

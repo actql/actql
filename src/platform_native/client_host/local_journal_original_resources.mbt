@@ -46,6 +46,7 @@ pub fn prepare_native_local_journal_capture_with_original_resources(
     read_scopes: [],
     read_decisions: [],
     read_bindings: [],
+    read_committed_results: [],
     read_operation_issue: None,
     opening_database: None,
     opening_physical_failure: None,
