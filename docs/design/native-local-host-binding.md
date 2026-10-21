@@ -272,6 +272,15 @@ and a byte-identical replacement file cannot assume its predecessor's identity.
 These configuration records confer no execution permission; the existing
 execution-account Owner evaluates each current access tuple.
 
+Selecting bytes from an open adoption Session projects the captured original
+DATA; it does not reread every selected file or authorize a dispatch. Closed or
+failed physical custody still refuses selection. Protected staging observes the
+source installation once on entry and retains the copy's exact body, generation
+and creation custody. Trusted copy I/O does not repeat that source admission.
+Journal opening consumes this observation through its closed Read/SQLite steps,
+while retaining the actual opened database target, selected stored originals,
+adoption/epoch anchors and each physical return or partial-failure duty.
+
 ### Operation-scoped Journal reads
 
 Ordinary open uses the existing-only SQLite entrance and fixed adoption,
@@ -299,13 +308,18 @@ Later admissions invalidate that absence coverage. Indexing authenticates the
 existing originals and changes only subordinate locators; missing or inconsistent
 history never permits a new execution or resend.
 
-The captured Read path may reuse its admitted adoption observation only inside
-one actual Journal transaction, while the same original pair, thread, entered
-Read and failure latches remain current. Transaction boundaries, routed writes,
-explicit full revalidation and close retire the observation. Public callback
-entry and return retain full configuration/current validation; legacy uncaptured
-ports retain their full checks. A publisher predicate uses one snapshot for its
-scope, Account, selected configuration and Run joins.
+The captured Read path retains validated immutable facts for the same public
+operation while its original pair, thread, entered Read and failure latches
+remain current. A trusted metadata read, transaction, phase exchange or pure
+getter does not create another authorization frame. Each distinct unchanged
+permission tuple is evaluated once; pure DATA work performs no authorization.
+Actual relevant target/policy/key changes, uncontrolled application reentry and
+the next public operation require the corresponding fresh observations. A real
+lifetime failure consumes the relevant observation instead of allowing a later
+cheap check to revive it. Close retires all operation facts. Uncaptured public
+entries retain their required entry checks. A publisher predicate consumes the
+same scope, Account, selected configuration and Run facts without rebuilding
+them between trusted reads.
 
 Source-free Compute separates cheap original-lifetime polling from authority
 validation at task dispatch, transfer and finalization entry/return. Existing
