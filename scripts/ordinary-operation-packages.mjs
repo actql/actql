@@ -9,7 +9,7 @@ import {join, resolve} from 'node:path';
 import {pathToFileURL} from 'node:url';
 import {CLIENT_PACKAGES, checkoutState} from './packed-client-packages.mjs';
 import {inventory, unpack} from './package-release.mjs';
-import {nodeOperationProtocol} from './benchmark-node-operations.mjs';
+import {nodeOperationProtocol, nodeWarmSmallQueryFixtures} from './benchmark-node-operations.mjs';
 
 const hash = (value, algorithm = 'sha256', encoding = 'hex') =>
   createHash(algorithm).update(value).digest(encoding);
@@ -123,7 +123,8 @@ export async function combineOrdinaryPerformanceMeasurements(root) {
   const combined = {sourceSha: controls.sourceSha, ...binding, latency: [],
     functional: {...binding, rows: []}, collectors: [],
     qualification: 'Actual warm and process reports only; unmeasured release gates remain incomplete.'};
-  for (const [family, operations] of Object.entries({warm: ['warm-select', 'warm-result', 'warm-status'],
+  for (const [family, operations] of Object.entries({warm: ['warm-select', 'warm-result', 'warm-status',
+    ...nodeWarmSmallQueryFixtures.map(fixture => fixture.operation)],
     'cold-existing': ['cold-existing'], 'first-init': ['first-init']})) {
     const directory = join(root, 'measurement', family);
     let bytes;
@@ -150,8 +151,25 @@ export async function combineOrdinaryPerformanceMeasurements(root) {
     for (const series of report.latency) {
       assert(operations.includes(series.operation) && !seen.has(series.operation), 'Foreign or duplicate operation');
       seen.add(series.operation);
+      const fixture = nodeWarmSmallQueryFixtures.find(value => value.operation === series.operation);
+      if (fixture) {
+        assert.deepEqual(series.query, fixture, 'Collector query differs from the fixed protocol');
+        const fixtureSha256 = hash(JSON.stringify(fixture));
+        assert.equal(series.fixtureSha256, fixtureSha256, 'Collector query identity differs');
+        assert(series.samples.every(sample => sample.fixtureSha256 === fixtureSha256),
+          'Raw sample query identity differs');
+      }
     }
     assert(report.functional.rows.every(row => seen.has(row.operation)));
+    for (const row of report.functional.rows) {
+      const fixture = nodeWarmSmallQueryFixtures.find(value => value.operation === row.operation);
+      if (fixture) {
+        const expectedSha256 = hash(JSON.stringify(fixture.expected));
+        assert.equal(row.expectedSha256, expectedSha256, 'Functional query oracle differs');
+        if (row.completed === true) assert.equal(row.actualSha256, expectedSha256,
+          'Completed functional query result differs');
+      }
+    }
     const raw = await readFile(join(directory, 'samples.jsonl'), 'utf8');
     assert(Buffer.byteLength(raw) <= 16 * 1024 ** 2, 'Raw samples exceed assessor input bound');
     assert.deepEqual(raw.split('\n').filter(Boolean).map(line => JSON.parse(line)),
