@@ -4598,7 +4598,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "1100cc4efda43755e547b06ac6754e17d154cfabda2ef178d824ccfea0e1b6e9",
+      "sha256": "9d67fabcce2511a4b258c14f5f03f2551a915c15c7d18589d1652a44dc9f1b2b",
       "exports": [
         "PublicationStoreError",
         "assertOriginalLocalPublicationStoreFacilityCurrent",
@@ -8624,6 +8624,10 @@
               {
                 "path": "docs/design/result-description.md",
                 "anchor": "Within that commit, the admitted Index body is persisted directly rather than"
+              },
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "Known file-backed Index and Result-schema reads select their file representation"
               }
             ],
             "inputsOutputs": [
@@ -8664,6 +8668,10 @@
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "bindingSchemas.set(value.binding.durable_result_binding_cid, value.schema.cid);"
+              },
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "const original = await readOriginal(binding.result_schema_cid, false);"
               }
             ],
             "ownership": [
@@ -8788,6 +8796,10 @@
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "const putPublicationContract = async (name, suppliedWire) => {"
+              },
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "close duty. Generic semantic reads and the native delivery contract families"
               }
             ],
             "verification": [
@@ -8862,6 +8874,10 @@
               {
                 "path": "adapters/store-local/publication-store.test.mjs",
                 "anchor": "test('committed evidence validation retains its actual payload and next-operation mutation check', async t => {"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "test('known file-backed Result metadata performs no unrelated native delivery probe', async t => {"
               }
             ]
           }
