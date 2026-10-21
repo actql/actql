@@ -91,6 +91,10 @@ async function fixture(t, {restored = false, omitRestoredOriginal = false, after
       afterMatch?.({result, owner, port});
       return result;
     }}, control, publications: {
+      checkedClientSerializationGenerationLimits(value, graph) {
+        assert.strictEqual(value, compiled); assert.strictEqual(graph, plan.serializationGraph);
+        return {maxRows: 100, maxBytes: 10000};
+      },
       bindCheckedClientEffectSerializationCapture() { return {}; },
       bindCheckedClientSerializationInputIdentity() { return evidence; },
       checkedClientSerializationByteHoldingCid() { return holdingCid; },

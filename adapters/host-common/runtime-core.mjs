@@ -2588,6 +2588,26 @@ function publicationControl(moon) {
       serializationPlanTokens.set(selected, graph);
       return selected;
     },
+    checkedClientSerializationGenerationLimits(compiled, selection) {
+      const value = compiledContent(compiled);
+      const graph = serializationPlanTokens.get(selection);
+      if (graph === undefined || moon.clientProgramCompiledRunSerializationGraph(value) !== graph) {
+        throw new TypeError('Foreign Content compilation graph');
+      }
+      // Read only the same nominal compiler output, not the caller-visible
+      // wire/coordinates. These quantities constrain generation; they supply
+      // neither current permission nor physical capacity or cleanup evidence.
+      const coordinates = moon.clientProgramSerializationPlanGraphCoordinates(graph);
+      const id = `task_${runtimeField(coordinates, 0)}_serialize_${runtimeField(coordinates, 1)}`;
+      const body = JSON.parse(moon.clientProgramSerializationPlanGraphWire(graph));
+      const nodes = body.nodes?.filter(node => node.kind === 'content_barrier' && node.node_id === id);
+      const bounds = nodes?.length === 1 ? nodes[0].barrier?.serialization?.bounds : undefined;
+      if (bounds === undefined || !['max_rows', 'max_bytes'].every(name =>
+        Number.isInteger(bounds[name]) && bounds[name] >= 0 && bounds[name] <= 2147483647)) {
+        throw new TypeError('Content compilation generation bounds unavailable');
+      }
+      return Object.freeze({maxRows: bounds.max_rows, maxBytes: bounds.max_bytes});
+    },
     inferSerializationGraph(inferGraph) {
       const graph = moon.clientProgramInferPlanSerializationGraph(inferGraph);
       if (graph === undefined) return undefined;

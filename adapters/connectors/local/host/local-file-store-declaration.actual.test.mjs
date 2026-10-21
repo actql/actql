@@ -44,9 +44,10 @@ function fixture(){
   assert.equal(moon.clientProgramSourcePublicationValid(admitted,publication),true);
   return{wire,data,admitted,publication,environment};
 }
-const source=set=>"SELECT 1 AS id |> SERIALIZE FORMAT JSONL ORDER BY id OPTIONS (name = 'one.jsonl') "+
+const source=(set,serializationOptions='')=>"SELECT 1 AS id |> SERIALIZE FORMAT JSONL ORDER BY id OPTIONS (name = 'one.jsonl'"+
+  serializationOptions+") "+
   '|> EFFECT STORE local.files SET ('+set+')';
-const prepare=(fixture,set)=>moon.clientProgramPrepareSourceComputationWithParameters(source(set),'sql',
+const prepare=(fixture,set)=>moon.clientProgramPrepareSourceComputationWithParameters(source(set,fixture.serializationOptions),'sql',
   fixture.admitted,fixture.publication,undefined,undefined,true,[]);
 
 test('actual Local STORE declaration retains complete Source originals and requires exact typed Content and approval',()=>{
@@ -130,8 +131,8 @@ test('actual Local STORE refuses missing or wrong typed inputs and conflicting o
   assert.deepEqual(JSON.parse(f.wire).catalog,canonical(catalog),'no original input mutation');
 });
 
-async function storeOwnerFixture({withMapping=true,driverKinds=['command'],continuationBinding}={}) {
-  const f=fixture(),mapping=JSON.parse(f.data.mappingWire),command=JSON.parse(f.data.commandWire);
+async function storeOwnerFixture({withMapping=true,driverKinds=['command'],continuationBinding,serializationOptions=''}={}) {
+  const f={...fixture(),serializationOptions},mapping=JSON.parse(f.data.mappingWire),command=JSON.parse(f.data.commandWire);
   const unavailable=()=>assert.fail('Selection validation cannot perform provider work');
   const owner=await createInstalledRowEffect({moon,environmentWire:f.environment.wire,
     connectorId:'local',connectorRegistration:'local',connectorRevision:'local/0.1',connection:'local',
@@ -296,4 +297,36 @@ test('actual Local STORE family admits its original source-free Host capacity',a
       originalFamilyProvider:true,capacityAvailable:capacity!==undefined}));
     assert(capacity,'the supported source-free STORE family must have an admitted Host envelope');
   }finally{await family?.close();await f.close();}
+});
+
+function compiledStoreGeneration(f,runId){
+  const control=runtimeCore(moon).publicationControl;
+  const allowed=checked(moon.clientProgramIssueAllowedEffectRun(f.compilation,
+    'sha256:'+'1'.repeat(64),'sha256:'+'2'.repeat(64),'2099-01-01T00:00:00.000Z'));
+  const definition=checked(moon.clientProgramIssueEffectRunDefinition(allowed,
+    'store-generation-scope',runId,'2026-10-21T00:00:00.000Z','2098-01-01T00:00:00.000Z'));
+  const runDefinition=control.admit('run_definition',moon.strategyPublicationContractJson(definition),
+    {maxWireBytes:1000000,maxNodes:100000,maxDepth:100});
+  const compiled=control.adoptCheckedClientEffectSerializationRun(allowed,runDefinition);
+  return{control,compiled,graph:control.compiledSerializationGraph(compiled)};
+}
+
+for(const [name,serializationOptions,expected] of [
+  ['Host defaults','',{maxRows:1000,maxBytes:1000}],
+  ['authored tighter ceilings',', max_rows = 7, max_bytes = 41',{maxRows:7,maxBytes:41}],
+  ['zero ceilings',', max_rows = 0, max_bytes = 0',{maxRows:0,maxBytes:0}],
+])test(`actual Local STORE generation retains original ${name} before encoding`,async()=>{
+  const f=await storeOwnerFixture({serializationOptions});let foreign;
+  try{
+    const {control,compiled,graph}=compiledStoreGeneration(f,'same-generation');
+    const limits=control.checkedClientSerializationGenerationLimits(compiled,graph);
+    assert.deepEqual(limits,expected);assert(Object.isFrozen(limits));
+    assert.throws(()=>control.checkedClientSerializationGenerationLimits({...compiled},graph));
+    assert.throws(()=>control.checkedClientSerializationGenerationLimits(compiled,{...graph}));
+    if(name==='Host defaults'){
+      foreign=await storeOwnerFixture();
+      const other=compiledStoreGeneration(foreign,'foreign-generation');
+      assert.throws(()=>control.checkedClientSerializationGenerationLimits(compiled,other.graph));
+    }
+  }finally{await foreign?.close();await f.close();}
 });

@@ -45,7 +45,8 @@ function familyFixture(consumePhysicalHolding) {
   const stored=Object.freeze({...original,issued});
   const owner=installEffectContentFamily({
     moon:{clientProgramEffectCommandContentMatchesIssued:(value,ref)=>value===binding&&ref===issued},
-    control:{effectFamily:()=>({})},publications:{},bodies:{},prepared:{},
+    control:{effectFamily:()=>({})},publications:{
+      checkedClientSerializationGenerationLimits:()=>({maxRows:100,maxBytes:10000})},bodies:{},prepared:{},
     plan:{serializationGraph:{},runDefinition:{wire:'{"valid_until":"2099-01-01T00:00:00.000Z"}'}},
     store:{storeAuthorityCid:stored.storeAuthorityCid,status:()=>({closed:false}),consumePhysicalHolding},
     principalId:'same principal',ownerPrincipal:'same principal',now:()=>'2026-10-21T00:00:00.000Z',
