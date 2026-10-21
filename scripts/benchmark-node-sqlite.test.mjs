@@ -100,3 +100,23 @@ test('Result SQLite control refuses a missing durable group or mismatched payloa
   await writeFile(resultOwnerMap, JSON.stringify(wrong)); await assert.rejects(runSQLiteResultControl(options));
   await assert.rejects(readFile(join(options.output, 'result-control.sqlite')), {code: 'ENOENT'});
 });
+
+test('SQLite full-sync mode reaches warm, Result and actual process-cold connections', {skip: process.platform !== 'darwin'}, async t => {
+  const root = await mkdtemp(join(tmpdir(), 'actql-full-sync-'));
+  t.after(() => rm(root, {recursive: true, force: true}));
+  const common = {warmSamples: 1, load: 'concurrent', fullfsync: true};
+  const baseline = await runSQLiteBaseline({...common, output: join(root, 'baseline'), coldSamples: 1});
+  assert.equal(baseline.protocol.fullfsyncRequested, true);
+  assert.equal(baseline.settings.fullfsync, 1);
+  const cold = baseline.cold.flatMap(row => row.samples);
+  assert.equal(cold.length, 2);
+  assert.equal(new Set(cold.map(row => row.pid)).size, 2);
+  assert(cold.every(row => row.pid !== process.pid && row.settings.fullfsync === 1 && row.terminal.code === 0));
+  const resultOwnerMap = join(root, 'owner.json'); await writeFile(resultOwnerMap, JSON.stringify(resultMapping()));
+  const control = await runSQLiteResultControl({...common, resultOwnerMap, output: join(root, 'result'), warmup: 0});
+  assert.equal(control.protocol.fullfsyncRequested, true); assert.equal(control.settings.fullfsync, 1);
+  assert.deepEqual(control.samples[0].counts, {begins: 3, commits: 3, rollbacks: 0, reads: 3, writes: 8});
+  assert.equal(control.cleanup.closed, true); assert.equal(baseline.cleanup.closed, true);
+  await assert.rejects(runSQLiteBaseline({...common, output: join(root, 'invalid'), fullfsync: 'on'}), /explicitly boolean/u);
+  await assert.rejects(readFile(join(root, 'invalid', 'warm.sqlite')), {code: 'ENOENT'});
+});
