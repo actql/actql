@@ -30,12 +30,23 @@ export function createLocalReadAuthorizations({moon, authorization,
       operation.indexKey?.namespaceId === facts.indexKey.namespaceId &&
       operation.indexKey?.authorityScopeCid === facts.indexKey.authorityScopeCid &&
       operation.indexKey?.runDefinitionCid === facts.indexKey.runDefinitionCid;
+    // Only an actual output callback advances this observation boundary.
+    // Pure internal stages/Store reads/FFI exchanges keep the original memo.
+    const sinkCallbackCount = facts.delivery?.sinkCallbackCount ?? 0;
+    if (!Number.isSafeInteger(sinkCallbackCount) || sinkCallbackCount < 0) return false;
     const retained = sameOperation ? operations.get(operation) : undefined;
-    if (retained !== undefined && retained.account === retainedAccount) return retained.allowed;
+    if (retained !== undefined && retained.account === retainedAccount &&
+        retained.sinkCallbackCount === sinkCallbackCount) return retained.allowed;
     const account = observeInstalledAccount(moon, authorization);
     if (account !== retainedAccount) {
       identity = JSON.parse(moon.executionAuthorizationAccountJson(account));
       retainedAccount = account;
+    }
+    if (retained !== undefined && retained.account === account) {
+      // Same immutable Account after application reentry: observing current
+      // bytes is not another admission/evaluation of this unchanged tuple.
+      operations.set(operation, {...retained, sinkCallbackCount});
+      return retained.allowed;
     }
     if (originalAccountId === undefined || identity.state !== 'admitted' ||
         identity.account_id !== originalAccountId) return false;
@@ -44,7 +55,7 @@ export function createLocalReadAuthorizations({moon, authorization,
     const outcome = JSON.parse(moon.executionAuthorizationEvaluationJson(evaluation));
     if (outcome.outcome !== 'delegate') {
       const allowed = outcome.outcome === 'allow';
-      if (sameOperation) operations.set(operation, {allowed, account});
+      if (sameOperation) operations.set(operation, {allowed, account, sinkCallbackCount});
       return allowed;
     }
     // An immediate configured answer still belongs to the existing gate.
@@ -58,7 +69,7 @@ export function createLocalReadAuthorizations({moon, authorization,
       const allowed = decision.action === 'dispatch';
       // The application's answer and its post-callback current check have
       // completed. Internal consumption does not call that application again.
-      if (sameOperation) operations.set(operation, {allowed, account});
+      if (sameOperation) operations.set(operation, {allowed, account, sinkCallbackCount});
       return allowed;
     } finally { gate.close(); }
   };

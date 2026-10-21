@@ -755,7 +755,7 @@ jobs:
       - name: Test portable Remote Transfer owner package
         run: npm run check:transfer-core
       - name: Test portable Run Host compilation package
-        run: npm run check:run-host-core
+        run: npm run check:run-host-core && node --test adapters/host-node/local-result-authorization.test.mjs
       - name: Build runtime packages without prebuilt bundles
         run: node scripts/test-runtime-package-build.mjs
       - name: Test packed Local runtime assets

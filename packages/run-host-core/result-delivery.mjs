@@ -119,8 +119,8 @@ function validateRequest(options) {
   }
 }
 
-async function requireCurrentAuthorization(authorize, facts) {
-  if (await authorize(Object.freeze(facts)) !== true) {
+async function requireCurrentAuthorization(authorize, facts, sinkCallbackCount) {
+  if (await authorize(Object.freeze({...facts, sinkCallbackCount})) !== true) {
     fail('ResultDeliveryDenied');
   }
 }
@@ -282,6 +282,9 @@ export async function deliverPublishedResult(options, resolvedPublication) {
   validateControl(options.control);
   const {store, control, indexKey, grant, resultName, format, attemptId,
     limits, frameLimits, now, sink, createDigest, authorize, signal} = options;
+  // Existing delivery-local state identifies actual application output
+  // callbacks, not internal awaits or another public authorization frame.
+  let sinkCallbackCount = 0;
   const appendCompletion = store.appendDeliveryCompletion;
   if (appendCompletion !== undefined && typeof appendCompletion !== 'function') {
     fail('InvalidResultDeliveryStore');
@@ -337,7 +340,7 @@ export async function deliverPublishedResult(options, resolvedPublication) {
     ...authorizationFacts,
     stage: 'attempt',
     observedAt: requestedAt,
-  });
+  }, sinkCallbackCount);
   const proposed = control.issueDeliveryAttempt(
     index,
     manifest,
@@ -389,7 +392,7 @@ export async function deliverPublishedResult(options, resolvedPublication) {
           attempt,
           stage: 'receipt',
           observedAt: trustedNow(now),
-        });
+        }, sinkCallbackCount);
         const receipt = await store.readPublicationContract(
           value.result_delivery_receipt_cid,
           'result_delivery_receipt',
@@ -485,13 +488,14 @@ export async function deliverPublishedResult(options, resolvedPublication) {
         observedAt,
         confirmedByteCount,
         nextByteCount: confirmedByteCount + bytes.byteLength,
-      });
+      }, sinkCallbackCount);
       const dispatchAt = trustedNow(now);
       if (!control.resultReadGrantValidAt(grant, dispatchAt)) {
         fail('ResultDeliveryGrantExpired');
       }
       signal?.throwIfAborted();
       let result;
+      sinkCallbackCount++;
       try { result = await sink.write(bytes, signal); }
       catch (reason) {
         writeFailure = sinkFailure(reason, bytes.byteLength);
@@ -537,7 +541,7 @@ export async function deliverPublishedResult(options, resolvedPublication) {
           resultSchemaCid: metadata.resultSchemaCid,
           rowCount: metadata.rowCount,
           payloadBytes: metadata.payloadBytes,
-        });
+        }, sinkCallbackCount);
         const serializer = control.prepareResultDeliverySerializer(
           format,
           metadata.resultSchemaWire,
@@ -559,8 +563,9 @@ export async function deliverPublishedResult(options, resolvedPublication) {
       stage: 'finish',
       observedAt: finishedAt,
       confirmedByteCount,
-    });
+    }, sinkCallbackCount);
     signal?.throwIfAborted();
+    sinkCallbackCount++;
     await finishSink(sink, signal);
     const committedAt = trustedNow(now);
     if (!control.resultReadGrantValidAt(grant, committedAt)) {
@@ -572,7 +577,7 @@ export async function deliverPublishedResult(options, resolvedPublication) {
       stage: 'receipt',
       observedAt: committedAt,
       confirmedByteCount,
-    });
+    }, sinkCallbackCount);
     const deliveredSha256 = await digest.finish();
     if (!digestPattern.test(deliveredSha256)) {
       fail('InvalidResultDeliveryDigest');
