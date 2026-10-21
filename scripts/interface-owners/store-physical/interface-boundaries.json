@@ -4598,7 +4598,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "9d67fabcce2511a4b258c14f5f03f2551a915c15c7d18589d1652a44dc9f1b2b",
+      "sha256": "8c6617b084547cf9500d7b36ec2dbf62023ae662c8778d9236c45af2e2f0415d",
       "exports": [
         "PublicationStoreError",
         "assertOriginalLocalPublicationStoreFacilityCurrent",
@@ -8628,6 +8628,10 @@
               {
                 "path": "docs/design/result-description.md",
                 "anchor": "Known file-backed Index and Result-schema reads select their file representation"
+              },
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "The Effect evidence inspection returns its verified Binding facts to the same"
               }
             ],
             "inputsOutputs": [
@@ -8672,6 +8676,10 @@
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "const original = await readOriginal(binding.result_schema_cid, false);"
+              },
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "verifiedBindings = inspected.verifiedBindings;"
               }
             ],
             "ownership": [
@@ -8878,6 +8886,10 @@
               {
                 "path": "adapters/store-local/publication-store.test.mjs",
                 "anchor": "test('known file-backed Result metadata performs no unrelated native delivery probe', async t => {"
+              },
+              {
+                "path": "adapters/host-common/publication-contract-control.test.mjs",
+                "anchor": "assert.deepEqual(effectfulBindingPayloadReads,"
               }
             ]
           }
