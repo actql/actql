@@ -97,6 +97,74 @@ test('publication persistence consumes its same-owner immutable contracts withou
   assert.equal((await store.readPublicationContract(second.identity, second.name)).wire, second.wire);
 });
 
+test('publication originals preserve owner identity and captured issuance bounds', () => {
+  const control = runtimeCore(moon).publicationControl;
+  const selected = {maxWireBytes: 65536, maxNodes: 4096, maxDepth: 64};
+  const original = control.seal('run_invocation', JSON.stringify({
+    version: 'actql-run-invocation/0.1', invocation_template_cid: cid('1'),
+    observation_set_cid: cid('2'),
+  }), selected);
+  selected.maxWireBytes = selected.maxNodes = selected.maxDepth = 1;
+  assert.equal(control.admitOriginal(original, limits), original);
+  assert.equal(control.admitOriginal(original, {...limits, maxNodes: original.wire.length}), original);
+  assert.equal(control.admitOriginal(original, {...limits, maxNodes: 1}), undefined);
+  assert.equal(control.admitOriginal(original, {...limits, maxDepth: 1}), undefined);
+  assert.equal(control.admitOriginal(original, {...limits,
+    maxWireBytes: Buffer.byteLength(original.wire, 'utf8') - 1}), undefined);
+  assert.equal(control.admitOriginal(Object.freeze({...original}), limits), undefined);
+  const foreign = runtimeCore(Object.freeze({...moon})).publicationControl;
+  assert.equal(foreign.admitOriginal(original, limits), undefined);
+  const admitted = control.admit(original.name, original.wire, limits);
+  assert.equal(control.admitOriginal(admitted, limits), admitted);
+  const {run, invoked} = admittedRun(control, cid('6'));
+  assert.equal(control.admitOriginal(run, limits), run, 'actual Run issuer retains its checked bounds');
+  assert.equal(control.admitOriginal(invoked, limits), invoked, 'actual Invocation issuer retains its checked bounds');
+});
+
+test('publication original persistence falls back for copies foreign owners and tighter limits', async t => {
+  let admissions = 0;
+  const observed = Object.freeze({...moon, strategyPublicationAdmit(...args) {
+    admissions++;
+    return Reflect.apply(moon.strategyPublicationAdmit, moon, args);
+  }});
+  const control = runtimeCore(observed).publicationControl;
+  const body = JSON.stringify({version: 'actql-run-invocation/0.1',
+    invocation_template_cid: cid('1'), observation_set_cid: cid('2')});
+  const owned = control.seal('run_invocation', body, limits);
+  const foreign = runtimeCore(moon).publicationControl.seal('run_invocation', body, limits);
+  const stores = [], directories = [];
+  t.after(async () => {
+    for (const store of stores) await store.close();
+    for (const directory of directories) await rm(directory, {recursive: true});
+  });
+  const makeStore = async extra => {
+    const directory = await mkdtemp(join(tmpdir(), 'actql-original-fallback-'));
+    directories.push(directory);
+    const store = await openLocalPublicationStore({directory, storeAuthorityCid: cid('5'),
+      capacityBytes: 1024 * 1024, maxObjectBytes: 65536, maxObjects: 100,
+      maxContractNodes: 4096, maxContractDepth: 64, ...extra}, control);
+    stores.push(store);return store;
+  };
+  const store = await makeStore({});
+  await store.putOriginalPublicationContracts([Object.freeze({...owned})]);
+  assert.equal(admissions, 1);
+  await store.putOriginalPublicationContracts([foreign]);
+  assert.equal(admissions, 2);
+  const bounded = await makeStore({maxContractNodes: 1});
+  await assert.rejects(bounded.putOriginalPublicationContracts([owned]),
+    error => error.code === 'InvalidPublicationContract');
+  assert.equal(admissions, 3, 'the actual Core checks a tighter unsupported node bound');
+  assert.equal(bounded.status().objectCount, 0);
+  assert.deepEqual(await readdir(join(directories[1], 'staging')), []);
+  const changed = Object.freeze({...owned, wire: owned.wire.replace(cid('2'), cid('3'))});
+  await assert.rejects(store.putOriginalPublicationContracts([changed]),
+    error => error.code === 'InvalidPublicationContract');
+  assert.equal(admissions, 4);
+  const freshRead = await store.readPublicationContract(owned.identity, owned.name);
+  assert.equal(freshRead.wire, owned.wire);
+  assert.equal(admissions, 5, 'a cold selected read still admits its actual disk bytes');
+});
+
 test('publication persister retains legacy receivers and waits for the selected group outcome', async () => {
   const source = await readFile(new URL('./run-publication.mjs', import.meta.url), 'utf8');
   const declaration = parse(source, {sourceType: 'module', ecmaVersion: 'latest'}).body
@@ -129,6 +197,16 @@ test('publication persister retains legacy receivers and waits for the selected 
   grouped.putPublicationContracts = async () => {throw original;};
   await assert.rejects(persist(grouped, [first]), error => error === original);
   await persist({putPublicationContracts() {throw new Error('EmptyGroupDoesNoWork');}}, []);
+  const owned = {putPublicationContracts() {throw new Error('NoRawFallback');},
+    async putOriginalPublicationContracts(contracts) {
+      assert.equal(this, owned);
+      assert.equal(Object.isFrozen(contracts), true);
+      assert.equal(contracts[0], first);
+      assert.equal(contracts[1], second);
+      assert.equal(contracts.length, 2);
+      throw original;
+    }};
+  await assert.rejects(persist(owned, [first, second, first]), error => error === original);
 });
 
 test('generated publication owner crosses the JS bridge as named actions', () => {
@@ -2004,6 +2082,10 @@ test('portable control validates Receipt and Captured Run references',
     async putPublicationContracts(contracts) {
       metadataBatches++;
       return Reflect.apply(effectfulStore.putPublicationContracts, effectfulStore, [contracts]);
+    },
+    async putOriginalPublicationContracts(contracts) {
+      metadataBatches++;
+      return Reflect.apply(effectfulStore.putOriginalPublicationContracts, effectfulStore, [contracts]);
     },
     async putPublicationContract(...args) {
       individualMetadataWrites++;
