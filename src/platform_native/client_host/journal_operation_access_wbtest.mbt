@@ -237,7 +237,9 @@ test "Submission original routing retains the exact intent and rejects changed o
     calls.contains("insert:client_submitted_intents:" + reference.request_id),
   )
   assert_false(calls.any(value => value.has_prefix("scan:")))
-  assert_true(calls.contains("compare_exchange:client_submitted_intent_usage:retained"))
+  assert_true(
+    calls.contains("compare_exchange:client_submitted_intent_usage:retained"),
+  )
   let original = database
     .read("client_submitted_intents", reference.request_id)
     .unwrap()
@@ -296,7 +298,9 @@ test "Submission original routing rolls back the same issued count after an inse
   let issued = database
     .read("client_submitted_intent_custody", "issued")
     .unwrap()
-  let usage = database.read("client_submitted_intent_usage", "retained").unwrap()
+  let usage = database
+    .read("client_submitted_intent_usage", "retained")
+    .unwrap()
   let calls : Array[String] = []
   let access : NativeClientJournalOperationAccess = {
     ..journal_test_operation_access(database, calls),
@@ -327,7 +331,9 @@ test "Submission original routing rolls back the same issued count after an inse
     .unwrap()
   assert_eq(after_count.body, issued.body)
   assert_eq(after_count.revision, issued.revision)
-  let after_usage = database.read("client_submitted_intent_usage", "retained").unwrap()
+  let after_usage = database
+    .read("client_submitted_intent_usage", "retained")
+    .unwrap()
   assert_eq(after_usage.body, usage.body)
   assert_eq(after_usage.revision, usage.revision)
   assert_true(
@@ -341,7 +347,9 @@ test "Submission original routing rolls back the same issued count after an inse
 
 ///|
 test "Submission usage CAS refusal rolls back issuance before original intent insertion" {
-  let (database, journal, authority, reference) = submitted_test_setup("journal-usage-rollback")
+  let (database, journal, authority, reference) = submitted_test_setup(
+    "journal-usage-rollback",
+  )
   let calls : Array[String] = []
   let access : NativeClientJournalOperationAccess = {
     ..journal_test_operation_access(database, calls),
@@ -354,16 +362,33 @@ test "Submission usage CAS refusal rolls back issuance before original intent in
       }
     },
   }
-  assert_true(journal.record_submitted_intent_with_operations(
-    authority, reference, submitted_test_intent("SELECT 1 AS n"),
-    "sha256:" + "a".repeat(64), true, 1001.0, operations=Some(access),
-  ) is Err(Physical(@sqlite.Busy)))
+  assert_true(
+    journal.record_submitted_intent_with_operations(
+      authority,
+      reference,
+      submitted_test_intent("SELECT 1 AS n"),
+      "sha256:" + "a".repeat(64),
+      true,
+      1001.0,
+      operations=Some(access),
+    )
+    is Err(Physical(@sqlite.Busy)),
+  )
   assert_true(calls.contains("cas:client_submitted_intent_custody"))
   assert_true(calls.contains("cas:client_submitted_intent_usage"))
   assert_eq(calls[calls.length() - 1], "rollback")
-  assert_eq(database.read("client_submitted_intent_custody", "issued").unwrap().body, b"0")
-  assert_eq(database.read("client_submitted_intent_usage", "retained").unwrap().body, b"0:0")
-  assert_true(database.read("client_submitted_intents", reference.request_id) is Err(@sqlite.NotFound))
+  assert_eq(
+    database.read("client_submitted_intent_custody", "issued").unwrap().body,
+    b"0",
+  )
+  assert_eq(
+    database.read("client_submitted_intent_usage", "retained").unwrap().body,
+    b"0:0",
+  )
+  assert_true(
+    database.read("client_submitted_intents", reference.request_id)
+    is Err(@sqlite.NotFound),
+  )
   database.close_checked().unwrap()
   authority.crypto.close_checked().unwrap()
 }

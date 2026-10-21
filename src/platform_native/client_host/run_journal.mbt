@@ -286,11 +286,10 @@ fn initialize_native_client_run_journal(
   }
   for
     table in [
-      "client_run_definition_index", "client_run_append_coverage",
-      "client_checkpoint_id_index", "client_run_id_index", "client_run_id_index_coverage",
-      "client_run_reference_index", "client_effect_response_meta", "client_effect_response_bytes",
-      "client_effect_row_receipt", "client_cancellations", "client_cancel_custody",
-      "client_cancel_originals",
+      "client_run_definition_index", "client_run_append_coverage", "client_checkpoint_id_index",
+      "client_run_id_index", "client_run_id_index_coverage", "client_run_reference_index",
+      "client_effect_response_meta", "client_effect_response_bytes", "client_effect_row_receipt",
+      "client_cancellations", "client_cancel_custody", "client_cancel_originals",
     ] {
     match
       scan_client_journal_value(
@@ -310,9 +309,10 @@ fn initialize_native_client_run_journal(
     Ok(_) => ()
     Err(issue) => return Err(Physical(issue))
   }
-  match insert_bootstrap_journal_value(
-    database, "client_run_append_coverage", "issued", b"0:0", bootstrap,
-  ) {
+  match
+    insert_bootstrap_journal_value(
+      database, "client_run_append_coverage", "issued", b"0:0", bootstrap,
+    ) {
     Ok(_) => ()
     Err(issue) => return Err(Physical(issue))
   }
@@ -849,9 +849,13 @@ fn NativeClientRunJournal::bind_run_locked(
     }
     Ok(None) => ()
   }
-  let issuance = match client_journal_issuance_anchor(
-    self.database, "client_run_custody", self.max_records, reads~,
-  ) {
+  let issuance = match
+    client_journal_issuance_anchor(
+      self.database,
+      "client_run_custody",
+      self.max_records,
+      reads~,
+    ) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
@@ -908,18 +912,26 @@ fn NativeClientRunJournal::bind_run_locked(
       }
     Err(issue) => return Err(Physical(issue))
   }
-  match insert_client_journal_value(
-    self.database, "client_run_definition_index",
-    @publication.publication_contract_identity(definition),
-    @utf8.encode(@host.client_request_scope_cid(request)), operations,
-  ) {
+  match
+    insert_client_journal_value(
+      self.database,
+      "client_run_definition_index",
+      @publication.publication_contract_identity(definition),
+      @utf8.encode(@host.client_request_scope_cid(request)),
+      operations,
+    ) {
     Ok(_) => ()
     Err(issue) => return Err(Physical(issue))
   }
-  match compare_exchange_client_journal_value(
-    self.database, "client_run_append_coverage", "issued", coverage.revision,
-    journal_append_coverage(count + 1, issuance.1 + 1L), operations,
-  ) {
+  match
+    compare_exchange_client_journal_value(
+      self.database,
+      "client_run_append_coverage",
+      "issued",
+      coverage.revision,
+      journal_append_coverage(count + 1, issuance.1 + 1L),
+      operations,
+    ) {
     Ok(_) => ()
     Err(issue) => return Err(Physical(issue))
   }
