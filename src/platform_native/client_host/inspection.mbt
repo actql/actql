@@ -96,6 +96,7 @@ fn inspect_native_client_custody_rows(
     transaction_active: false,
     admitted_record: None,
     operation_record: None,
+    operation_submission: None,
     admitted_adoption: None,
     operation_active: false,
     admitted_publications: [],
