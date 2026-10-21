@@ -498,3 +498,11 @@ pub fn Database::retained_data_current(
 ) -> Result[Unit, NativeSqliteIssue] {
   Err(UnsupportedTarget)
 }
+
+///|
+pub fn Database::client_run_definition_key(
+  _self : Database,
+  _definition_cid : String,
+) -> Result[String?, NativeSqliteIssue] {
+  Err(UnsupportedTarget)
+}

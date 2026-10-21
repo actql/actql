@@ -24,6 +24,7 @@ pub fn Database::claim_ordinal_action(Self, String, String, Int64) -> Result[Nat
 pub fn Database::claim_ordinal_action_in_transaction(Self, String, String, Int64) -> Result[NativeOrdinalClaim, NativeSqliteIssue]
 pub fn Database::client_read_evidence_schema(Self) -> Result[Int, NativeSqliteIssue]
 pub fn Database::client_read_evidence_usage(Self, String, Int64, Int64) -> Result[(Int64, Int64), NativeSqliteIssue]
+pub fn Database::client_run_definition_key(Self, String) -> Result[String?, NativeSqliteIssue]
 pub fn Database::client_run_definition_schema(Self) -> Result[Int, NativeSqliteIssue]
 pub fn Database::close(Self) -> Unit
 pub fn Database::close_checked(Self) -> Result[Unit, NativeSqliteIssue]
