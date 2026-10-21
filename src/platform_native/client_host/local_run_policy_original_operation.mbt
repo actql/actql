@@ -103,8 +103,12 @@ pub fn NativeLocalJournalCapture::bind_run_policy_profile_in_original_read(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  if !(local_adoption_digest(self.crypto, profile) is Ok(cid) &&
-    cid == roles.profile_cid) {
+  if !(host.session.settings.files
+    .iter()
+    .find_first(file => file.name == profile_file)
+    is Some(original) &&
+    original.body == profile &&
+    original.content_cid == roles.profile_cid) {
     return Err(CustodyLost)
   }
   host

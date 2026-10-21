@@ -134,6 +134,15 @@ pub fn NativeLocalJournalCapture::selected_configuration_in_original_read(
     Ok(_) => ()
   }
   guard self.opening is JournalAcquired(host) else { return Err(InvalidInput) }
+  // The command entry validated this retained original. Pure selection does
+  // not restage configuration or inspect its filesystem generation again.
+  if self.read_callback_active && self.read_facts_valid {
+    return match
+      host.session.settings.files.iter().find_first(file => file.name == name) {
+      Some(file) => Ok(file.body)
+      None => Err(InvalidInput)
+    }
+  }
   host.session.selected_configuration(name)
 }
 
