@@ -35,6 +35,7 @@ fn local_run_operation_allowed(
   operation : String,
   capture? : @local_host.NativeLocalJournalCapture? = None,
 ) -> Bool {
+  native_timing_count(19)
   if capture is Some(original) {
     return original.authority_scope_cid_in_original_read(
         settings.principal,

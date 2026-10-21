@@ -13,6 +13,8 @@ fn local_execute_original_publish_values(
   attempt : String,
   store : @local_store.Store,
 ) -> String raise ClientStop {
+  native_timing_begin(3)
+  defer native_timing_end(3)
   guard selection.original.business is Some(business) &&
     business.operation is Some(operation) &&
     business.store is Some(original_store) &&
@@ -154,52 +156,57 @@ fn local_execute_original_publish_values(
   .return_business_to_original_read()
   .unwrap_or_else(() => stop("LocalBusinessScopeReturnPending"))
   business.active = false
-  business.publication_attempted = true
-  let published = match pending.commit() {
-    Ok(value) => {
-      business.publication_result = Some(value)
-      value
+  let saved = {
+    native_timing_begin(4)
+    defer native_timing_end(4)
+    business.publication_attempted = true
+    let published = match pending.commit() {
+      Ok(value) => {
+        business.publication_result = Some(value)
+        value
+      }
+      Err(issue) => {
+        business.publication_commit_failure = Some(issue)
+        stop("LocalPublicationNeedsReconciliation")
+      }
     }
-    Err(issue) => {
-      business.publication_commit_failure = Some(issue)
+    if !published.committed {
       stop("LocalPublicationNeedsReconciliation")
     }
-  }
-  if !published.committed {
-    stop("LocalPublicationNeedsReconciliation")
-  }
-  let saved = match
-    selection.host.observe_publication_run_state(
-      publisher,
-      pending,
-      local_utc_now(),
-      limits.max_result_workspace_entries,
-      16,
-      1000,
-    ) {
-    Ok(observed) => {
-      // Retain the same accepted receipt before the following Journal action.
-      // The command cuts this alias only in existing publication-child cleanup.
-      business.run_receipt_original = Some(observed)
-      selection.capture
-      .retain_observed_run_state_in_original_read(
-        settings.principal,
-        settings.connection,
-        reference,
-        request,
-        observed,
-        @env.now().to_double(),
-      )
-      .unwrap_or_else(() => stop("LocalRunStateNeedsReconciliation"))
-    }
-    Err(Journal(@local_host.AuthorizationDenied)) => {
-      if !publisher.current() ||
-        !selection.current(selection.host, settings, selection.environment) {
-        stop("LocalRunStateNeedsReconciliation")
+    let saved = match
+      selection.host.observe_publication_run_state(
+        publisher,
+        pending,
+        local_utc_now(),
+        limits.max_result_workspace_entries,
+        16,
+        1000,
+      ) {
+      Ok(observed) => {
+        // Retain the same accepted receipt before the following Journal action.
+        // The command cuts this alias only in existing publication-child cleanup.
+        business.run_receipt_original = Some(observed)
+        selection.capture
+        .retain_observed_run_state_in_original_read(
+          settings.principal,
+          settings.connection,
+          reference,
+          request,
+          observed,
+          @env.now().to_double(),
+        )
+        .unwrap_or_else(() => stop("LocalRunStateNeedsReconciliation"))
       }
-      stop("LocalRunStateUnavailable")
+      Err(Journal(@local_host.AuthorizationDenied)) => {
+        if !publisher.current() ||
+          !selection.current(selection.host, settings, selection.environment) {
+          stop("LocalRunStateNeedsReconciliation")
+        }
+        stop("LocalRunStateUnavailable")
+      }
+      Err(_) => stop("LocalRunStateNeedsReconciliation")
     }
-    Err(_) => stop("LocalRunStateNeedsReconciliation")
+    saved
   }
   // The existing saved-State Owner finished its original reference/request,
   // revision and independent RunRead/current fences. Do not select by an

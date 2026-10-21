@@ -253,6 +253,7 @@ fn local_runtime_read_member(
     }
   }
   runtime.reader = Some(reader)
+  native_timing_count(16)
   let hasher = @sha.hasher()
   let retained : Array[Byte] = []
   let mut done = false

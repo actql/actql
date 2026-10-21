@@ -98,6 +98,7 @@ fn local_adoption_digest(
   crypto : @crypto.Library,
   body : Bytes,
 ) -> Result[String, NativeLocalAdoptionIssue] {
+  native_timing_count(26)
   let hasher = match crypto.sha256_hasher() {
     Ok(value) => value
     Err(issue) => return Err(Crypto(issue))

@@ -98,6 +98,7 @@ pub fn NativeLocalJournalCapture::authorize_in_original_read(
   self : NativeLocalJournalCapture,
   request : @authorization.AccessTuple,
 ) -> Result[@authorization.AccountOutcome, NativeLocalAdoptionIssue] {
+  native_timing_count(23)
   self.with_current_adoption_material_in_original_read((
     host,
     material,

@@ -35,6 +35,7 @@ fn NativeLocalHostConnection::current_adoption_material_with_reads(
   @host.ClientLocalAdoptionCurrentObservation[@sqlite.Database],
   NativeLocalAdoptionIssue,
 ] {
+  native_timing_count(18)
   match current() {
     Ok(_) => ()
     Err(issue) => return Err(issue)

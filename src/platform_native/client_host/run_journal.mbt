@@ -140,6 +140,7 @@ fn read_run_record_in_mode(
   row : @sqlite.NativeJournalValue,
   mode : RunRecordPolicyValidation,
 ) -> Result[NativeClientRunRecord, NativeClientRunJournalIssue] {
+  native_timing_count(25)
   let (decoded, local_run_policy_originals, run_observation_originals) = match
     @host.decode_client_run_journal_row_with_observation_originals(row.body) {
     Ok(value) => value
@@ -402,6 +403,8 @@ fn[T] NativeClientRunJournal::transaction_with_reads(
   work : () -> Result[T, NativeClientRunJournalIssue],
   reads? : NativeClientJournalReadAccess? = None,
 ) -> Result[T, NativeClientRunJournalIssue] {
+  native_timing_begin(7)
+  defer native_timing_end(7)
   if self.fenced || client_journal_transaction_fenced(self.database, reads) {
     return Err(Fenced)
   }
@@ -715,6 +718,7 @@ fn NativeClientRunJournal::save_with_operations(
   record : NativeClientRunRecord,
   operations? : NativeClientJournalOperationAccess? = None,
 ) -> Result[NativeClientRunRecord, NativeClientRunJournalIssue] {
+  native_timing_count(20)
   if !self.transaction_active {
     return Err(CustodyLost)
   }

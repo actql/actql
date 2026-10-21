@@ -316,6 +316,8 @@ fn local_check_for_host(
   child : @argparse.Matches,
   capture? : @local_host.NativeLocalJournalCapture? = None,
 ) -> String raise ClientStop {
+  native_timing_begin(2)
+  defer native_timing_end(2)
   let context = local_check_context(host, crypto, configuration_name, capture~)
   let format = @frontend.select_format(required(child, "format")).unwrap_or_else(() => {
       stop("UnsupportedLocalSourceFormat")

@@ -273,6 +273,7 @@ pub fn NativeLocalHostConnection::authorize(
   self : NativeLocalHostConnection,
   request : @authorization.AccessTuple,
 ) -> Result[@authorization.AccountOutcome, NativeLocalAdoptionIssue] {
+  native_timing_count(22)
   let material = match self.adopted_current_material() {
     Ok(value) => value
     Err(issue) => return Err(issue)

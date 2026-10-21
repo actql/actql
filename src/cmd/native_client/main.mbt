@@ -121,6 +121,7 @@ fn json_file_text(
   name : String,
   maximum : Int64,
 ) -> Json raise ClientStop {
+  native_timing_count(17)
   match
     @source.parse_json_bytes_preserving(@utf8.encode(text), {
       max_input_bytes: maximum.to_int(),
@@ -1433,6 +1434,8 @@ fn execute_and_write_native_reply(
   matches : @argparse.Matches,
   pending_reply : Ref[String?],
 ) -> Unit raise ClientStop {
+  native_timing_begin(1)
+  defer native_timing_end(1)
   local_command_diagnostic_reset()
   command_diagnostic_json.val = local_command_json_selected(matches)
   command_check_invalid_exit.val = false
@@ -1493,6 +1496,7 @@ fn execute_and_write_native_reply(
 
 ///|
 fn main {
+  native_timing_begin(0)
   local_command_diagnostic_reset()
   // Bound and retain ordinary process input before constructing the parser.
   // No pre-main provenance or private libc state is required.
@@ -1526,6 +1530,7 @@ fn main {
       abort("native Client argument failure")
     }
   }
+  native_timing_end(0)
   // At most one bounded UTF-16 metadata copy escapes into initial control.
   // It overlaps the retained Read original until actual child cleanup ACKs.
   let pending_reply : Ref[String?] = Ref(None)
@@ -1545,6 +1550,7 @@ fn main {
   }
   // stdout/flush, Library, component, context/domain/map, Host and FD retirement
   // are separate facts. An output or process exit never substitutes for ACK.
+  native_timing_begin(5)
   if local_finish_output_verification() is Err(_) {
     fail_cleanup_command("OutputVerificationCleanupPending")
   }
@@ -1558,6 +1564,7 @@ fn main {
   } else {
     false
   }
+  native_timing_end(5)
   if command_cleanup is Err(issue) {
     let stage = match command_preparation_invocation.val {
       Some(original) => original.cleanup_stage

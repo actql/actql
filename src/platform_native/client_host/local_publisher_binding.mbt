@@ -292,6 +292,7 @@ pub fn NativeLocalPublisherBinding::authorize_request(
   context : @publication.PublicationRequestContext,
   facts : @native_publication.NativeRunPublicationAuthorization,
 ) -> Bool {
+  native_timing_count(24)
   if !self.current() {
     return false
   }

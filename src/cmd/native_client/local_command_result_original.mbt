@@ -37,6 +37,8 @@ fn LocalCommandPreparationOriginal::prepare_original_result(
   child : @argparse.Matches,
   publication? : LocalCommandBusinessPreparation? = None,
 ) -> LocalCommandResultOriginal raise ClientStop {
+  native_timing_begin(6)
+  defer native_timing_end(6)
   guard self.journal is Some(actual_capture) &&
     physical_equal(actual_capture, capture) &&
     capture.original_host() is Some(actual_host) &&

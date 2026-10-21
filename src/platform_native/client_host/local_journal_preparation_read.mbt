@@ -50,6 +50,7 @@ pub fn[T] NativeLocalJournalCapture::with_original_read(
 pub fn NativeLocalJournalCapture::check_current_in_original_read(
   self : NativeLocalJournalCapture,
 ) -> Result[Unit, NativeLocalAdoptionIssue] {
+  native_timing_count(18)
   if self.closing || self.read_operation_issue is Some(_) {
     return Err(
       self.read_operation_issue.unwrap_or(OriginalResourceScopePending),
