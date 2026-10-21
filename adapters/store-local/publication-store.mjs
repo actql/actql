@@ -4210,7 +4210,7 @@ async function openOriginalLocalPublicationStore(
   };
 
   const confirmAdmittedDeliveryRecord = async (contract, record, observed) => {
-    if(deliveryIndex?.confirmCompletion(record.delivery_attempt_cid,contract.identity,contract.wire)===true) return record;
+    if(deliveryIndex?.confirmRecord(record.delivery_attempt_cid,contract.identity,contract.wire)===true) return record;
     const directory = deliveryAttemptPath(record.delivery_attempt_cid);
     const target = resolve(directory, `${record.sequence}.json`);
     let previousBytes = Buffer.isBuffer(observed) ? observed : undefined;

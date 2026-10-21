@@ -126,7 +126,8 @@ export async function openDeliveryAttemptIndex(path, {create, maxEntries, maxWir
         CREATE TABLE grant_uses(grant_cid TEXT PRIMARY KEY, uses INTEGER NOT NULL CHECK(uses>=0)) WITHOUT ROWID;
         CREATE TABLE initial_records (
           attempt_cid TEXT PRIMARY KEY REFERENCES attempts(attempt_cid) ON DELETE CASCADE,
-          initial_wire TEXT NOT NULL, initial_cid TEXT) WITHOUT ROWID;
+          initial_wire TEXT NOT NULL, initial_cid TEXT,
+          ack_revision INTEGER NOT NULL DEFAULT 1 CHECK(ack_revision>=1 AND ack_revision<=9007199254740991)) WITHOUT ROWID;
         CREATE UNIQUE INDEX initial_record_identity ON initial_records(initial_cid);
         ${completionTable};`);
     });
@@ -160,8 +161,13 @@ export async function openDeliveryAttemptIndex(path, {create, maxEntries, maxWir
         prepare("SELECT name FROM sqlite_schema WHERE type='index' AND name='initial_record_identity'").get() === undefined) {
       fail('DeliveryAttemptIndexUnavailable');
     }
-    if(selected.version<4) transaction.run(()=>exec(`${completionTable}; UPDATE coverage SET version=4 WHERE id=1;`));
+    if(selected.version<4) transaction.run(()=>exec(`ALTER TABLE initial_records ADD COLUMN
+      ack_revision INTEGER NOT NULL DEFAULT 1 CHECK(ack_revision>=1 AND ack_revision<=9007199254740991);
+      ${completionTable}; UPDATE coverage SET version=4 WHERE id=1;`));
     else if(prepare("SELECT sql FROM sqlite_schema WHERE type='table' AND name='completions'").get()?.sql!==completionTable) {
+      fail('DeliveryAttemptIndexUnavailable');
+    }
+    if(!prepare('PRAGMA table_info(initial_records)').all().some(row=>row.name==='ack_revision')) {
       fail('DeliveryAttemptIndexUnavailable');
     }
     let complete = selected.complete === 1;
@@ -177,13 +183,15 @@ export async function openDeliveryAttemptIndex(path, {create, maxEntries, maxWir
       UNION ALL SELECT 'delivery_record',record_wire FROM completions WHERE record_cid=?
       UNION ALL SELECT 'result_delivery_receipt',receipt_wire FROM completions WHERE receipt_cid=? LIMIT 1`);
     const completion = prepare('SELECT * FROM completions WHERE attempt_cid=?');
+    const initialRecord = prepare('SELECT * FROM initial_records WHERE attempt_cid=?');
+    const confirmInitial = prepare('UPDATE initial_records SET ack_revision=ack_revision+1 WHERE attempt_cid=? AND initial_cid=?');
     const insertCompletion = prepare('INSERT INTO completions VALUES(?,?,?,?,?,1)');
     const confirmCompletion = prepare('UPDATE completions SET ack_revision=ack_revision+1 WHERE attempt_cid=? AND record_cid=?');
     const byRun = prepare(`SELECT attempts.*,initial_records.initial_wire,initial_records.initial_cid FROM attempts
       LEFT JOIN initial_records USING(attempt_cid) WHERE run_cid=? LIMIT ?`);
     const pending = prepare('SELECT * FROM attempts WHERE ready=0 LIMIT ?');
     const insert = prepare('INSERT INTO attempts VALUES(?,?,?,?,?,?,?)');
-    const insertInitial = prepare('INSERT INTO initial_records VALUES(?,?,?)');
+    const insertInitial = prepare('INSERT INTO initial_records VALUES(?,?,?,1)');
     const uses = prepare('SELECT uses FROM grant_uses WHERE grant_cid=?');
     const addUse = prepare('INSERT INTO grant_uses VALUES(?,1) ON CONFLICT(grant_cid) DO UPDATE SET uses=uses+1');
     const removeUses = prepare('UPDATE grant_uses SET uses=uses-? WHERE grant_cid=?');
@@ -191,7 +199,7 @@ export async function openDeliveryAttemptIndex(path, {create, maxEntries, maxWir
     const ready = prepare('UPDATE attempts SET ready=1 WHERE logical_key=? AND attempt_cid=?');
     const remove = prepare('DELETE FROM attempts WHERE run_cid=?');
     const updateCount = prepare('UPDATE coverage SET entries=entries+? WHERE id=1');
-    let uncertain = false, uncertainRemoval, uncertainCompletion, confirmedCompletion;
+    let uncertain = false, uncertainRemoval, uncertainCompletion, uncertainInitial, confirmedRecord;
     const run = body => {
       if (mutating) fail('DeliveryAttemptIndexBusy');
       mutating = true;
@@ -295,31 +303,39 @@ export async function openDeliveryAttemptIndex(path, {create, maxEntries, maxWir
             }
           });
           if(retry) {uncertain=false;uncertainCompletion=undefined;}
-          confirmedCompletion=entry.record_cid;
+          confirmedRecord=entry.record_cid;
         } catch(error) {
           if(error?.outcome==='unknown') uncertainCompletion=original;
           throw error;
         }
       },
-      confirmCompletion(attemptCid,recordCid,wire) {
-        const retry=uncertain && uncertainCompletion?.attempt_cid===attemptCid &&
+      confirmRecord(attemptCid,recordCid,wire) {
+        const retryInitial=uncertain && uncertainInitial?.attemptCid===attemptCid &&
+          uncertainInitial.recordCid===recordCid && uncertainInitial.wire===wire;
+        const retry=retryInitial || uncertain && uncertainCompletion?.attempt_cid===attemptCid &&
           uncertainCompletion.record_cid===recordCid && uncertainCompletion.record_wire===wire;
         if(retry) {
           if(closed||closing||mutating||!complete) fail('DeliveryAttemptIndexCleanupPending');
           transaction.assertUsable();
         } else requireComplete();
-        const retained=completionCopy(completion.get(attemptCid));
-        if(retained===undefined) return false;
-        if(retained?.record_cid!==recordCid || retained.record_wire!==wire) fail('DeliveryRecordConflict');
-        if(confirmedCompletion===recordCid && !retry) return true;
+        const initial=initialRecord.get(attemptCid);
+        const isInitial=initial?.initial_cid===recordCid;
+        const retained=isInitial ? undefined : completionCopy(completion.get(attemptCid));
+        if(!isInitial && retained?.record_cid!==recordCid) return false;
+        if(isInitial ? initial.initial_wire!==wire || !Number.isSafeInteger(initial.ack_revision) || initial.ack_revision<1
+          : retained.record_wire!==wire) fail('DeliveryRecordConflict');
+        if(confirmedRecord===recordCid && !retry) return true;
         const priorCid=byAttempt.get(attemptCid)?.initial_cid;
         try {
-          run(()=>{if(confirmCompletion.run(attemptCid,recordCid).changes!==1) fail('DeliveryRecordConflict');});
-          if(retry) {uncertain=false;uncertainCompletion=undefined;}
-          confirmedCompletion=recordCid;
+          run(()=>{if((isInitial?confirmInitial:confirmCompletion).run(attemptCid,recordCid).changes!==1) fail('DeliveryRecordConflict');});
+          if(retry) {uncertain=false;uncertainCompletion=undefined;uncertainInitial=undefined;}
+          confirmedRecord=recordCid;
           return true;
         } catch(error) {
-          if(error?.outcome==='unknown') uncertainCompletion=Object.freeze({...retained,prior_cid:priorCid});
+          if(error?.outcome==='unknown') {
+            if(isInitial) uncertainInitial=Object.freeze({attemptCid,recordCid,wire});
+            else uncertainCompletion=Object.freeze({...retained,prior_cid:priorCid});
+          }
           throw error;
         }
       },
@@ -328,7 +344,7 @@ export async function openDeliveryAttemptIndex(path, {create, maxEntries, maxWir
         validate({...row,initial_wire:initialWire,initial_cid:initialCid});
         const retained = lookup.get(row.logical_key);
         if (retained !== undefined) return Object.freeze({row: copy(retained), created: false});
-        return run(() => {
+        const result=run(() => {
           if ((uses.get(row.grant_cid)?.uses ?? 0) >= maxUses) fail('DeliveryGrantUseLimit');
           if (state.get().entries >= maxEntries) fail('DeliveryAttemptIndexLimit');
           // For a joint START this is a complete durable logical claim, not
@@ -338,6 +354,8 @@ export async function openDeliveryAttemptIndex(path, {create, maxEntries, maxWir
           add(row,isReady,initialWire,initialCid);
           return Object.freeze({row: copy({...row,ready:isReady,initial_wire:initialWire,initial_cid:initialCid}), created:true});
         });
+        if(initialCid!==undefined) confirmedRecord=initialCid;
+        return result;
       },
       finish(key,attemptCid) {
         requireComplete();

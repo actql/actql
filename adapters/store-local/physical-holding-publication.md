@@ -203,8 +203,8 @@ A lost COMMIT reply remains Unknown and never refunds a use or authorizes
 another stream. A later Store observes only the selected original claim; its
 retained streaming record remains unresolved, not permission to resend.
 The native index bounds entry count and all three wire extents. Ordinary
-payload data and subsequent record/receipt files retain their real file ACKs.
-The first subsequent record creates its actual alias directory and confirms
+payload data and file-backed subsequent records retain their real file ACKs.
+The first file-backed subsequent record creates its actual alias directory and confirms
 its parent before publishing that record; a visible mkdir does not acknowledge
 a failed parent sync. The optional function is captured before callbacks.
 Stores or issuers without this connection retain separate create/append and
@@ -228,18 +228,29 @@ is still read. An identical wire reuses its issued input; a changed spelling
 receives ordinary admission and binding checks. The stored predecessor and
 transition remain separate actual observations.
 
-The receipt and record keep their original wire/CID meanings. Their two payload
-FDs each file-sync and close under the existing semantic writer before either
-final object is acknowledged. They share one objects-directory ACK and one
-contracts-directory ACK. The succeeded record is linked only afterwards and
-needs its original attempt-directory ACK before completion returns success.
-No prepared holder escapes and no intermediate custody file is introduced.
+The receipt and record keep their original wire/CID meanings. For a native
+joint START followed by its sequence-one succeeded record, the same SQLite
+transaction stores both immutable bodies and identities, checks the exact
+initial predecessor and owns completion uniqueness. Its real FULL COMMIT
+acknowledges this metadata transition; duplicate semantic files, aliases and
+their directory ACKs are not required. The completion row is bounded one per
+existing attempt, and the same grant use is neither repeated nor refunded.
+Actual Result payload files and native/FD cleanup are unchanged.
+
+Legacy file-backed attempts and other transitions retain the semantic writer:
+each real payload FD file-syncs and closes before final object acknowledgement.
+The receipt and record share one objects-directory ACK and one contracts-directory
+ACK, then the record alias requires its actual attempt-directory ACK. No prepared
+holder escapes and no intermediate custody file is introduced.
 
 The existing pending-record carrier retains the captured completion function,
 its original receiver and all three nominal inputs. A partial semantic writer's
 same cleanup child must acknowledge its real pending FD/directory duties before
 the carrier retries that same metadata completion. A lost final ACK reply stays
-pending even when succeeded bytes are visible. Retry never invokes the sink,
+pending even when succeeded bytes are visible. Native completion retains the
+same exact nominal inputs; a lost COMMIT reply can retry only that same physical
+completion on the usable original connection. An already visible row is not its
+missing ACK: retry performs a real revision write and COMMIT. Retry never invokes the sink,
 reissues a receipt, claims another attempt or refunds a use. Stores without the
 optional operation retain the separate receipt/record protocol; an explicitly
 malformed operation is not treated as omission.
@@ -303,6 +314,20 @@ An unusable connection is never treated as a successful cleanup.
 This metadata index does not change grant/attempt/record wires, authorization,
 Result binding, append transitions, stored public formats or optional delivery
 capabilities. The separate public operation still observes current policy.
+
+The additive completion layout also retains explicit confirmation of an initial
+native record, including after a terminal successor. The same Store reuses its
+successful original claim/completion ACK. A fresh Store's first explicit record
+confirmation performs a real bounded revision update and COMMIT in that same
+database; unchanged subsequent confirmations reuse only that lifetime's last
+confirmed identity after checking the selected original wire. A failed reply
+retains the same original confirmation and fences other work until its own
+physical retry succeeds or the native connection closes. No read-only transaction,
+file visibility or fabricated directory ACK substitutes for that outcome.
+Missing adopted completion metadata refuses; upgrade does not parse historical
+bodies. Same-Run retirement validates retained typed receipt/record bindings and
+removes their rows through the original indexed deletion transaction, preserving
+other Runs and real physical-file duties.
 Focused history, quota, migration, ambiguity, COMMIT-loss and native cleanup
 cases exercise the existing Store boundary; they do not establish ordinary
 package latency or close other startup/retention inventory costs.

@@ -98,7 +98,7 @@ test('legacy indexed attempts keep the original pending and finish protocol afte
   index.close();
   // Reconstruct the exact pre-extension schema, not an empty replacement DB.
   const database = new DatabaseSync(path);
-  try {database.exec('DROP TABLE initial_records; UPDATE coverage SET version=1 WHERE id=1');}
+  try {database.exec('DROP TABLE completions; DROP TABLE initial_records; UPDATE coverage SET version=1 WHERE id=1');}
   finally {database.close();}
   index = await openDeliveryAttemptIndex(path,{create:false,maxEntries:2,maxWireBytes:4096});
   assert.equal(index.pending().length,1);
@@ -134,7 +134,9 @@ test('version two initial records remain file-backed after additive native-origi
   index.claim(row,1,'{"initial":1}');
   index.close();
   const database=new DatabaseSync(path);
-  try {database.exec(`DROP INDEX initial_record_identity;
+  try {database.exec(`DROP TABLE completions;
+    ALTER TABLE initial_records DROP COLUMN ack_revision;
+    DROP INDEX initial_record_identity;
     ALTER TABLE initial_records DROP COLUMN initial_cid; UPDATE coverage SET version=2 WHERE id=1`);}
   finally {database.close();}
   index=await openDeliveryAttemptIndex(path,options);
@@ -142,4 +144,109 @@ test('version two initial records remain file-backed after additive native-origi
   assert.equal(index.lookup(row.logical_key).initial_cid,null);
   assert.equal(index.contract(row.attempt_cid),undefined,'old original still selects its file protocol');
   assert.equal(index.claim(row,1).created,false);
+});
+
+test('version three native originals survive additive completion storage without body rewrites',async t=>{
+  const directory=await mkdtemp(join(tmpdir(),'actql-delivery-index-v3-'));
+  let index;
+  t.after(async()=>{index?.close();await rm(directory,{recursive:true});});
+  const path=join(directory,'index.sqlite3'), options={create:false,maxEntries:2,maxWireBytes:4096};
+  index=await openDeliveryAttemptIndex(path,{...options,create:true});
+  index.migrate([]);
+  const cid=value=>'sha256:'+value.repeat(64);
+  const row={logical_key:'v3',attempt_cid:cid('1'),grant_cid:cid('2'),run_cid:cid('3'),
+    attempt_wire:'{"attempt":1}',grant_wire:'{"grant":1}'};
+  index.claim(row,1,'{"initial":1}',cid('4'));
+  index.close();
+  const database=new DatabaseSync(path);
+  try {database.exec(`DROP TABLE completions; ALTER TABLE initial_records DROP COLUMN ack_revision;
+    UPDATE coverage SET version=3 WHERE id=1`);} finally {database.close();}
+  index=await openDeliveryAttemptIndex(path,options);
+  assert.deepEqual(index.contract(cid('4')),{name:'delivery_record',wire:'{"initial":1}'});
+  assert.equal(index.confirmRecord(row.attempt_cid,cid('4'),'{"initial":1}'),true);
+  assert.equal(index.claim(row,1).created,false);
+});
+
+test('adopted completion storage is not recreated when its original table is missing',async t=>{
+  const directory=await mkdtemp(join(tmpdir(),'actql-delivery-index-missing-end-'));
+  t.after(()=>rm(directory,{recursive:true}));
+  const path=join(directory,'index.sqlite3');
+  const index=await openDeliveryAttemptIndex(path,{create:true,maxEntries:2,maxWireBytes:4096});
+  index.migrate([]);index.close();
+  const database=new DatabaseSync(path);
+  try {database.exec('DROP TABLE completions');} finally {database.close();}
+  await assert.rejects(openDeliveryAttemptIndex(path,{create:false,maxEntries:2,maxWireBytes:4096}),
+    {code:'DeliveryAttemptIndexUnavailable'});
+});
+
+for(const afterCommit of [false,true]) {
+  test(`native initial confirmation retains the same original across ${afterCommit?'after':'before'} COMMIT reply loss`,async t=>{
+    const directory=await mkdtemp(join(tmpdir(),'actql-delivery-index-confirm-'));
+    let index,armed=false,lost=false;
+    t.after(async()=>{index?.close();await rm(directory,{recursive:true});});
+    const exec=DatabaseSync.prototype.exec;
+    t.mock.method(DatabaseSync.prototype,'exec',function(sql) {
+      if(armed && !lost && sql==='COMMIT') {
+        lost=true;
+        if(afterCommit) Reflect.apply(exec,this,[sql]);
+        throw Object.assign(new Error('lost original initial ACK'),{code:'EIO'});
+      }
+      return Reflect.apply(exec,this,[sql]);
+    });
+    const path=join(directory,'index.sqlite3'), options={create:false,maxEntries:2,maxWireBytes:4096};
+    index=await openDeliveryAttemptIndex(path,{...options,create:true});
+    index.migrate([]);
+    const cid=value=>'sha256:'+value.repeat(64);
+    const row={logical_key:'one',attempt_cid:cid('1'),grant_cid:cid('2'),run_cid:cid('3'),
+      attempt_wire:'{}',grant_wire:'{}'};
+    index.claim(row,1,'{"initial":1}',cid('4'));index.close();
+    index=await openDeliveryAttemptIndex(path,options);
+    armed=true;
+    assert.throws(()=>index.confirmRecord(row.attempt_cid,cid('4'),'{"initial":1}'),
+      error=>error.code==='DeliveryAttemptIndexCommitOutcomeUnknown' && error.outcome==='unknown');
+    assert.throws(()=>index.confirmRecord(row.attempt_cid,cid('4'),'different'),
+      {code:'DeliveryAttemptIndexCommitOutcomeUnknown'});
+    assert.throws(()=>index.claim({...row,logical_key:'replacement',attempt_cid:cid('5')},1),
+      {code:'DeliveryAttemptIndexCommitOutcomeUnknown'});
+    assert.equal(index.confirmRecord(row.attempt_cid,cid('4'),'{"initial":1}'),true);
+    index.close();
+    const database=new DatabaseSync(path,{readOnly:true});
+    try {
+      assert.equal(database.prepare('SELECT ack_revision FROM initial_records').get().ack_revision,afterCommit?3:2);
+      assert.equal(database.prepare('SELECT uses FROM grant_uses').get().uses,1);
+    } finally {database.close();}
+  });
+}
+
+test('native completion CAS and retirement retain the other original Run and exact grant use',async t=>{
+  const directory=await mkdtemp(join(tmpdir(),'actql-delivery-index-end-retirement-'));
+  let index;
+  t.after(async()=>{index?.close();await rm(directory,{recursive:true});});
+  const path=join(directory,'index.sqlite3');
+  index=await openDeliveryAttemptIndex(path,{create:true,maxEntries:2,maxWireBytes:4096});
+  index.migrate([]);
+  const cid=value=>'sha256:'+value.repeat(64);
+  const row={logical_key:'one',attempt_cid:cid('1'),grant_cid:cid('2'),run_cid:cid('3'),
+    attempt_wire:'{}',grant_wire:'{}'};
+  const other={...row,logical_key:'other',attempt_cid:cid('7'),run_cid:cid('8')};
+  index.claim(row,2,'{"initial":1}',cid('4'));
+  index.claim(other,2,'{"initial":2}',cid('9'));
+  const end={attempt_cid:row.attempt_cid,prior_cid:cid('4'),record_cid:cid('5'),
+    record_wire:'{"end":1}',receipt_cid:cid('6'),receipt_wire:'{"receipt":1}'};
+  assert.throws(()=>index.complete({...end,prior_cid:cid('9')}),{code:'DeliveryRecordConflict'});
+  index.complete(end);
+  assert.throws(()=>index.complete({...end,receipt_wire:'{"receipt":2}'}),{code:'DeliveryRecordConflict'});
+  index.complete({...end,attempt_cid:other.attempt_cid,prior_cid:cid('9'),record_cid:cid('a'),
+    record_wire:'{"end":2}',receipt_cid:cid('b'),receipt_wire:'{"receipt":2}'});
+  index.forgetRun(row.run_cid);
+  for(const id of [row.attempt_cid,cid('4'),cid('5'),cid('6')]) assert.equal(index.contract(id),undefined);
+  assert.equal(index.completion(other.attempt_cid).record_cid,cid('a'));
+  assert.equal(index.contract(cid('b')).wire,'{"receipt":2}');
+  index.close();
+  const database=new DatabaseSync(path,{readOnly:true});
+  try {
+    assert.equal(database.prepare('SELECT entries FROM coverage').get().entries,1);
+    assert.equal(database.prepare('SELECT uses FROM grant_uses').get().uses,1);
+    assert.equal(database.prepare('SELECT count(*) AS n FROM completions').get().n,1);
+  } finally {database.close();}
 });
