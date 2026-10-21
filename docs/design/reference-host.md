@@ -311,6 +311,11 @@ state; it does not repeat catalog admission or Account evaluation. Final Host
 retirement cuts its private publication association and aliases after the existing
 child shutdown duties, including partial-failure retries. It does not invalidate
 other holders of the pure immutable Environment or manufacture a physical ACK.
+The same boundary invokes the installed preparation consumer's captured
+retirement method with its original receiver before releasing the Host slot.
+That consumer drops its retained Source/Effect catalog and installation aliases;
+a closed Client's surviving closures cannot keep that cache through this holder.
+Pending child cleanup retains the original holder and its same release retry.
 
 The existing Host and Resource Owners acquire actual buffers, files, database
 connections and selected workers. They bind each operation to its checked Run,

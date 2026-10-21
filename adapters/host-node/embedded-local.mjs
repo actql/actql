@@ -725,6 +725,7 @@ async function openInstalledHost(originalInstallation, preparation) {
   const host = preparation?.host ?? {};
   let modelRuntimeClosing = false;
   let preparedSourceEnvironment;
+  let clientProgramPreparationReferences;
   let modelRuntimeView;
   let modelRuntimeStartupView;
   let modelSdkStaticOriginals;
@@ -800,6 +801,11 @@ async function openInstalledHost(originalInstallation, preparation) {
       modelSdkStaticOriginals);
   }
   function retireModelPreparationReferences() {
+    const consumer = clientProgramPreparationReferences;
+    if (consumer !== undefined) {
+      Reflect.apply(consumer.retire, consumer.owner, []);
+      clientProgramPreparationReferences = undefined;
+    }
     const original = preparedSourceEnvironment;
     if (original !== undefined) {
       // Cut this Host's association only after its existing shutdown duties.
@@ -1760,6 +1766,8 @@ async function openInstalledHost(originalInstallation, preparation) {
       control.admitStoredClientInferRunOriginal(original, definition, request, evidence,
         [false, true, true, true, true, calendarArtifact !== undefined, false], localContractLimits),
     allowEffects: effectInstallation !== undefined});
+  clientProgramPreparationReferences = Object.freeze({owner: prepareSubmit,
+    retire: prepareSubmit.retireReferences});
   const prepareCapturedSubmission = async (submission, ref) => {
     const retained = ref === undefined ? undefined : journal.lookupRunDefinition(ref, moon, control);
     if (retained !== undefined &&

@@ -42,22 +42,26 @@ function opening() {
     ';return {journal, originalRequestPreparation};');
 }
 
-function preparedEnvironmentLifetime({missing = false, retire = () => {}} = {}) {
+function preparedEnvironmentLifetime({missing = false, retire = () => {},
+  consumerRetire = () => {}, install = true} = {}) {
   const opening = declared('openInstalledHost');
   const functions = new Map(opening.body.body.filter(node => node.type === 'FunctionDeclaration')
     .map(node => [node.id.name,node]));
   const getter = functions.get('getPreparedSourceEnvironment');
   const retirement = functions.get('retireModelPreparationReferences');
   assert(getter && retirement);
-  let capture, install, retain;
+  let capture, installation, retain, consumerCapture;
   visit(opening.body,node => {
     if (node.type === 'VariableDeclaration' && node.declarations.length === 1) {
       if (node.declarations[0].id.name === 'sourceEnvironmentOriginal') capture = node;
-      if (node.declarations[0].id.name === 'prepareSubmit') install = node;
+      if (node.declarations[0].id.name === 'prepareSubmit') installation = node;
     }
     if (node.type === 'IfStatement' && text(node.test) === 'sourceEnvironmentOriginal !== undefined') retain = node;
+    if (node.type === 'ExpressionStatement' && node.expression.type === 'AssignmentExpression' &&
+        node.expression.left.name === 'clientProgramPreparationReferences' &&
+        node.expression.right.type === 'CallExpression') consumerCapture = node;
   });
-  assert(capture && retain && install);
+  assert(capture && retain && installation);
   const original = {host:{},moon:{},environment:{},publication:{},preparedEnvironment:{}};
   let reads = 0, retirements = 0;
   const sourceAliasPublicationOriginal = (moon,environment,publication) => {
@@ -69,10 +73,11 @@ function preparedEnvironmentLifetime({missing = false, retire = () => {}} = {}) 
     assert.strictEqual(moon,original.moon);assert.strictEqual(environment,original.environment);
     assert.strictEqual(publication,original.publication);retirements++;retire();
   };
-  const create = new Function('original','sourceAliasPublicationOriginal','retireSourceAliasPublicationOriginal',`
+  const consumer = {calls:0,retained:true,retire:consumerRetire};
+  const create = new Function('original','sourceAliasPublicationOriginal','retireSourceAliasPublicationOriginal','consumer',`
     const host=original.host,moon=original.moon;
     let environment=original.environment,sourcePublication=original.publication;
-    let preparedSourceEnvironment,modelRuntimeClosing=false;
+    let preparedSourceEnvironment,clientProgramPreparationReferences,modelRuntimeClosing=false;
     let modelSdkStaticOriginals,originalInstallation={},registerModelProviders,modelProviders;
     let projectTasks,projectProfile,projectRuntime,project;
     const mockEffectRuns=new Map(),localFileEffectRuns=new Map();
@@ -84,18 +89,26 @@ function preparedEnvironmentLifetime({missing = false, retire = () => {}} = {}) 
     const valuesMaxRows=undefined,check=()=>{},verifyRequestValuePolicy=()=>{};
     const updateTargetOriginals={restorePrepared:()=>{}},control={},calendarArtifact=undefined;
     const effectInstallation=undefined;
-    const installNodeClientProgramPreparation=options=>options;
+    const installNodeClientProgramPreparation=options=>{
+      const holder=Object.assign(function(){},options);
+      holder.retireReferences=function(){
+        if(this!==holder)throw new Error('ForeignPreparationReceiver');
+        consumer.calls++;consumer.retire();consumer.retained=false;
+      };
+      return holder;
+    };
     ${text(getter)}
     ${text(retirement)}
     ${text(capture)}
     ${text(retain)}
-    ${text(install)}
+    let selectedPreparation;
+    ${install ? `{${text(installation)}\n${consumerCapture === undefined ? '' : text(consumerCapture)}\nselectedPreparation=prepareSubmit;}` : ''}
     return {get:getPreparedSourceEnvironment,retire:retireModelPreparationReferences,
-      get slot(){return preparedSourceEnvironment;},options:prepareSubmit,
+      get slot(){return preparedSourceEnvironment;},options:selectedPreparation,
       stop(){modelRuntimeClosing=true;},replaceEnvironment(value){environment=value;},
       replacePublication(value){sourcePublication=value;}};
   `);
-  return {fixture:create(original,sourceAliasPublicationOriginal,retireSourceAliasPublicationOriginal),original,
+  return {fixture:create(original,sourceAliasPublicationOriginal,retireSourceAliasPublicationOriginal,consumer),original,consumer,
     get reads(){return reads;},get retirements(){return retirements;}};
 }
 
@@ -138,6 +151,37 @@ test('Host prepared Environment refuses changed originals and retires only its c
   assert.ok(f.fixture.slot,'a failed reference-cut callback retains the same original for retry');
   f.fixture.retire();assert.equal(f.fixture.slot,undefined);assert.equal(f.retirements,2);
   assert.equal(f.reads,1);
+});
+
+test('Host consumer preparation retains aliases until original shutdown and releases the captured receiver', async () => {
+  const f=preparedEnvironmentLifetime();let closes=0,replacementCalls=0;
+  f.fixture.options.retireReferences=()=>{replacementCalls++;};
+  const shutdown=installedHostShutdown({stopModelRuntime:f.fixture.stop,
+    dispatchOwner:{drain(){}},retireTerminalEffects(){},
+    journal:{close(){if(++closes===1)throw new Error('OriginalJournalPending');}},
+    store:{close(){}},retireModelRuntime:f.fixture.retire});
+  await assert.rejects(shutdown.close(),{code:'InstalledHostCleanupPending'});
+  assert.equal(f.consumer.calls,0);assert.equal(f.consumer.retained,true);
+  assert.ok(f.fixture.slot);
+  await shutdown.close();
+  assert.equal(f.consumer.calls,1);assert.equal(f.consumer.retained,false);
+  assert.equal(replacementCalls,0);assert.equal(f.fixture.slot,undefined);
+  await shutdown.close();assert.equal(f.consumer.calls,1);
+});
+
+test('Host consumer preparation retains its original release retry and handles earlier initialization', () => {
+  const marker=new Error('OriginalConsumerRetirement');let attempts=0;
+  const f=preparedEnvironmentLifetime({consumerRetire(){if(++attempts===1)throw marker;}});
+  assert.throws(f.fixture.retire,error=>error===marker);
+  assert.equal(f.consumer.retained,true);assert.equal(f.consumer.calls,1);
+  assert.equal(f.retirements,0);assert.ok(f.fixture.slot);
+  f.fixture.retire();
+  assert.equal(f.consumer.calls,2);assert.equal(f.consumer.retained,false);
+  assert.equal(f.retirements,1);assert.equal(f.fixture.slot,undefined);
+  f.fixture.retire();assert.equal(f.consumer.calls,2);
+  const early=preparedEnvironmentLifetime({install:false});
+  early.fixture.retire();
+  assert.equal(early.consumer.calls,0);assert.equal(early.retirements,1);
 });
 
 test('actual Host acquires its same Journal before Compute and before publishing the SDK receiver', async () => {
