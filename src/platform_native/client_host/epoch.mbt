@@ -291,16 +291,17 @@ fn open_native_client_epoch_authority_with_reads(
     return Err(InvalidInput)
   }
   match read_epoch_custody(database, reads~) {
-    Ok(custody) => Ok({
-      database,
-      crypto,
-      ttl_ms,
-      fenced: false,
-      operation_active: false,
-      operation_issue: None,
-      observed_custody: Some(custody),
-      authenticated_epochs: {},
-    })
+    Ok(custody) =>
+      Ok({
+        database,
+        crypto,
+        ttl_ms,
+        fenced: false,
+        operation_active: false,
+        operation_issue: None,
+        observed_custody: Some(custody),
+        authenticated_epochs: {},
+      })
     Err(issue) => Err(issue)
   }
 }
@@ -414,7 +415,8 @@ fn NativeClientEpochAuthority::clock(
   if !valid_epoch_clock(now) {
     return Err(InvalidInput)
   }
-  if self.operation_active && self.observed_custody is Some((key, clock, _)) &&
+  if self.operation_active &&
+    self.observed_custody is Some((key, clock, _)) &&
     now <= clock {
     return Ok((key, clock))
   }
@@ -551,7 +553,12 @@ fn NativeClientEpochAuthority::issue_epoch_with_operations(
     @encode.key(writer, "version")
     @encode.string_value(writer, "actql-submission-epoch/0.1")
     @encode.end_object(writer)
-    let epoch = { body, authority_scope_cid, tag, wire: @encode.finish(writer), }
+    let epoch = {
+      body,
+      authority_scope_cid,
+      tag,
+      wire: @encode.finish(writer),
+    }
     if self.operation_active {
       // This exact token was just authenticated by the successful original
       // signing call. Its later pure identity lookup needs no second MAC.
@@ -681,11 +688,12 @@ fn NativeClientEpochAuthority::verify_epoch_with_custody(
   } else {
     // Counts actual authentication calls, not entries or cache hits.
     native_timing_count(38)
-    let valid = match self.crypto.verify_hmac_sha256(
-      key,
-      @utf8.encode(@scope.submission_epoch_wire(epoch.body)),
-      epoch.tag,
-    ) {
+    let valid = match
+      self.crypto.verify_hmac_sha256(
+        key,
+        @utf8.encode(@scope.submission_epoch_wire(epoch.body)),
+        epoch.tag,
+      ) {
       Ok(valid) => valid
       Err(issue) => return Err(self.fail_operation(Crypto(issue)))
     }
