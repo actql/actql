@@ -115,3 +115,51 @@ test('ordinary Effect publication refuses an absent supplier and never borrows t
     assert.equal((await f.journal.close()).pending, false);
   }
 });
+
+test('ordinary command-only Effect retains its Result purpose with zero requested Named Results', async () => {
+  let resultCount = 0;
+  const f = await fixture((originals, prepared) => {
+    assert.strictEqual(originals, f.originals); assert.strictEqual(prepared, f.prepared);
+    return {resultCount, maxRows: 100, maxContractBytes: 1000000};
+  });
+  const pure = prepareOrdinaryHostResult(f.originals, f.subject,
+    () => ({resultCount: 0, maxRows: 100, maxContractBytes: 1000000}));
+  try {
+    assert.throws(() => pure.admitRun(f.prepared), {message: 'HostResultPublicationUnsupported'});
+    f.view.admitEffectRun(f.prepared);
+    const store = await f.view.openStore(f.options, f.control);
+    assert.equal(store.status().closed, false);
+    const capacity = f.view.modelPublicationCapacity(f.prepared);
+    assert.deepEqual(capacity, {retainedBytes: 1000000n, workspaceBytes: 1000000n});
+    f.view.admitEffectRun(f.prepared);
+    assert.strictEqual(f.view.modelPublicationCapacity(f.prepared), capacity);
+    assert.throws(() => f.view.admitRun(f.prepared), {message: 'HostResultPublicationChanged'});
+    resultCount = 1;
+    assert.throws(() => f.view.admitEffectRun(f.prepared), {message: 'HostResultPublicationChanged'});
+    assert.throws(() => f.view.admitEffectRun({...f.prepared}));
+    await f.journal.close();
+    assert.throws(() => f.view.admitEffectRun(f.prepared), {code: 'HostJournalPreparationUnavailable'});
+  } finally {
+    await pure.close();
+    await f.journal.close();
+    assert.equal((await f.view.close()).pending, false);
+    assert.equal((await f.journal.close()).pending, false);
+  }
+});
+
+test('ordinary command-only Effect preserves finite result, row and contract limits', async () => {
+  let value;
+  const f = await fixture(() => value);
+  try {
+    const valid = {resultCount: 0, maxRows: 100, maxContractBytes: 1000000};
+    for (const change of [{resultCount: -1}, {resultCount: 0.5}, {resultCount: 11}, {resultCount: NaN},
+      {maxRows: -1}, {maxRows: 10001}, {maxContractBytes: 0}, {maxContractBytes: 2147483648}]) {
+      value = {...valid, ...change};
+      assert.throws(() => f.view.admitEffectRun(f.prepared), {message: 'HostResultPublicationUnsupported'});
+    }
+  } finally {
+    await f.journal.close();
+    assert.equal((await f.view.close()).pending, false);
+    assert.equal((await f.journal.close()).pending, false);
+  }
+});

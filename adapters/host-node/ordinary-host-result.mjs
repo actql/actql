@@ -102,7 +102,10 @@ export function prepareOrdinaryHostResult(originals, subject, requirements, effe
     return keyFlight;
   }
   function admitSelectedRun(prepared, value, kind) {
-    if (!Number.isSafeInteger(value.resultCount) || value.resultCount < 1 || value.resultCount > 10 ||
+    // A terminal Effect may publish no Named Result. Its own publication
+    // purpose still owns the checked command outcome; Pure requires a Result.
+    const minimumResults = kind === 'effect' ? 0 : 1;
+    if (!Number.isSafeInteger(value.resultCount) || value.resultCount < minimumResults || value.resultCount > 10 ||
         !Number.isSafeInteger(value.maxRows) || value.maxRows < 0 || value.maxRows > 10000 ||
         !Number.isSafeInteger(value.maxContractBytes) || value.maxContractBytes < 1 ||
         value.maxContractBytes > 2147483647) {
