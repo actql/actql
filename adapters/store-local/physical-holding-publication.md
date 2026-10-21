@@ -252,7 +252,17 @@ without another parse or identity hash. A distinct valid wire spelling retains
 its existing admission fallback; an identical reread reuses that result. Changed
 record identity or content, missing records, transition conflicts and unknown
 durability remain refusals. A later public append or confirmation admits its
-own input; no successful-record or authorization cache persists across calls.
+own input; no admitted-record or authorization cache persists across calls.
+
+The Store keeps at most one last-confirmed record CID as a durability
+observation. It is set only after the real containing-directory ACK and the
+post-ACK selected-record check. Reconfirmation of that immutable record still
+admits its input and reads/checks the selected file, but does not repeat the
+already successful directory ACK. A newly installed record, a different CID or
+a fresh Store needs its own ACK; a failed ACK or changed record cannot populate
+this observation. This bounded String does not retain an admitted contract,
+policy decision, payload, native handle or history inventory. Existing record
+immutability and the same exclusive Store ownership remain required.
 
 The operation retains one bounded record buffer and the admitted input/attempt
 references until confirmation. Existing native FD close, payload/custody and

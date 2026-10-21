@@ -2205,6 +2205,55 @@ test('delivery record append and confirmation admit each unchanged original once
   await assert.rejects(store.confirmDeliveryRecord(wire(failed)), code('DeliveryRecordConflict'));
 });
 
+test('delivery confirmation reuses its real immutable record ACK but reacquires each input', async t => {
+  const directory = await mkdtemp(join(tmpdir(), 'actql-delivery-ack-reuse-'));
+  t.after(() => removeFixtureDirectory(directory));
+  const configuration = {directory, storeAuthorityCid: cids.authority,
+    capacityBytes: 1024 * 1024, maxObjectBytes: 65536, maxObjects: 100,
+    maxContractNodes: 4096, maxContractDepth: 64};
+  let selectedDirectory, syncs = 0, admissions = 0;
+  const control = {...contractControl, admit(name, value, bounds) {
+    if (name === 'delivery_record') admissions++;
+    return contractControl.admit(name, value, bounds);
+  }};
+  const durability = {async syncDirectory(path) {
+    const handle = await open(path, 'r');
+    try { await handle.sync(); } finally { await handle.close(); }
+    if (path === selectedDirectory) syncs++;
+  }};
+  const store = await openLocalPublicationStore(configuration, control, durability);
+  const root = deliveryFixture(), attempt = deliveryAttempt(root, 'ack-reuse');
+  await store.createDeliveryAttempt(wire(attempt), wire(root.grant));
+  selectedDirectory = join(directory, 'deliveries', attempt.delivery_attempt_cid.slice(7));
+  const streaming = deliveryRecord(attempt, 0, 'streaming');
+  syncs = 0;
+  await store.appendDeliveryRecord(wire(streaming));
+  assert.equal(syncs, 1, 'a newly installed record requires its real directory ACK');
+  syncs = admissions = 0;
+  for (let operation = 0; operation < 3; operation++) {
+    assert.deepEqual(await store.confirmDeliveryRecord(wire(streaming)), streaming);
+  }
+  assert.equal(syncs, 0, 'the same durable immutable record needs no repeated ACK');
+  assert.equal(admissions, 3, 'each public confirmation still admits its own input');
+  const failed = deliveryRecord(attempt, 1, 'failed', streaming, {
+    failure_cid: digest('ack reuse failure'),
+  });
+  await store.appendDeliveryRecord(wire(failed));
+  assert.equal(syncs, 1, 'a distinct record cannot borrow the previous record ACK');
+  await store.close();
+  const reopened = await openLocalPublicationStore(configuration, control, durability);
+  syncs = admissions = 0;
+  assert.deepEqual(await reopened.confirmDeliveryRecord(wire(failed)), failed);
+  assert.equal(syncs, 1, 'a new Store has not confirmed this original directory');
+  assert.deepEqual(await reopened.confirmDeliveryRecord(wire(failed)), failed);
+  assert.equal(syncs, 1);
+  assert.equal(admissions, 2);
+  await writeFile(join(selectedDirectory, '1.json'), '{}');
+  await assert.rejects(reopened.confirmDeliveryRecord(wire(failed)),
+    code('InvalidPublicationContract'));
+  assert.equal(syncs, 1, 'changed bytes refuse despite a prior real ACK');
+});
+
 test('delivery record confirmation refuses changed original bytes after its ACK', async t => {
   const directory = await mkdtemp(join(tmpdir(), 'actql-delivery-confirm-change-'));
   t.after(() => removeFixtureDirectory(directory));

@@ -4437,7 +4437,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "53e134b0020a00ae348380be1d1b49828772d5ef6c383b9bd138571db17057d2",
+      "sha256": "3553fa323d1d438bf7c7a566575687880fd9b1601ef397220488c2d6b330186d",
       "exports": [
         "PublicationStoreError",
         "assertOriginalLocalPublicationStoreFacilityCurrent",
@@ -8961,18 +8961,26 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "The operation retains one bounded record buffer and the admitted input/attempt"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "The Store keeps at most one last-confirmed record CID as a durability"
               }
             ],
             "extension": [
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
-                "anchor": "own input; no successful-record or authorization cache persists across calls."
+"anchor": "own input; no admitted-record or authorization cache persists across calls."
               }
             ],
             "verification": [
               {
                 "path": "adapters/store-local/publication-store.test.mjs",
                 "anchor": "test('delivery record append and confirmation admit each unchanged original once', async t => {"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "test('delivery confirmation reuses its real immutable record ACK but reacquires each input', async t => {"
               }
             ]
           }

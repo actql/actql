@@ -1424,6 +1424,9 @@ async function openOriginalLocalPublicationStore(
     return flight;
   };
   const durablyConfirmedIndexes = new Map();
+  // One bounded durability observation, not a retained contract or Allow.
+  // Each public confirmation still acquires and checks its selected record.
+  let lastConfirmedDeliveryRecord;
   const durablyConfirmedClocks = new Map();
   const durablyConfirmedClockFiles = new Map();
   let deliveryAdmissionBusy = Promise.resolve();
@@ -4086,9 +4089,11 @@ async function openOriginalLocalPublicationStore(
       if (!matches(bytes)) fail('DeliveryRecordConflict');
       previousBytes = bytes;
     }
+    if (previousBytes !== undefined &&
+        lastConfirmedDeliveryRecord === contract.identity) return record;
     // A directory entry may be visible before its containing directory is
-    // durable. Re-sync the exact immutable record, then verify that the same
-    // record remains installed before acknowledging it.
+    // durable. Unless this Store already confirmed this immutable record,
+    // sync its directory and check the same original before acknowledging it.
     await syncDirectory(directory);
     const confirmed = await readBounded(
       target, configuration.maxObjectBytes,
@@ -4099,6 +4104,7 @@ async function openOriginalLocalPublicationStore(
         !matches(confirmed)) {
       fail('DeliveryRecordDurabilityMismatch');
     }
+    lastConfirmedDeliveryRecord = contract.identity;
     return record;
   };
 
