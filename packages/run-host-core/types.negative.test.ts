@@ -50,6 +50,18 @@ declare const publicationRequest: PublicationRequestContract;
 declare const publicationAttempt: PublicationAttemptContract;
 declare const publicationRecord: PublicationRecordContract;
 declare const publicIndex: PublicIndexEntryContract;
+const originalIndexView: DeliveryContractView<'public_index_entry'> =
+  control.fromPublication(publicIndex);
+const checkedIndexView: DeliveryContractView<'public_index_entry'> =
+  control.fromPublication(publication, 'public_index_entry');
+void originalIndexView;
+void checkedIndexView;
+// @ts-expect-error A delivery view cannot replace the original publication.
+control.fromPublication(manifest);
+// @ts-expect-error The original kind is preserved without a checked kind witness.
+const wrongOriginalView: DeliveryContractView<'result_manifest'> =
+  control.fromPublication(publicIndex);
+void wrongOriginalView;
 declare const publicationLimits: Parameters<typeof issuePublicationAttempt>[3];
 declare const runPublicationDefinition: PublicationContract;
 declare const prepared: PreparedProgram;

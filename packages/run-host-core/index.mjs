@@ -28,6 +28,7 @@ const submittedIntents = new WeakMap();
 const admissions = new WeakMap();
 const definitions = new WeakMap();
 const publicationContracts = new WeakMap();
+const publicationOriginals = new WeakMap();
 const runEvidences = new WeakMap();
 const originalRunPlans = new WeakMap();
 const resultOccurrences = new WeakMap();
@@ -1970,9 +1971,12 @@ function publicationLimits(limits) {
 
 function publicationContract(value) {
   const token = handle(publicationContracts, value, 'publication-contract');
-  return Object.freeze({token,
+  const contract = Object.freeze({token,
     cid: owner.clientValuesHostPublicationContractIdentity(value),
     wire: owner.clientValuesHostPublicationContractWire(value)});
+  publicationOriginals.set(contract, Object.freeze({value,
+    cid: contract.cid, wire: contract.wire}));
+  return contract;
 }
 
 function runEvidence(value) {
@@ -2416,13 +2420,15 @@ function deliveryResult(method, ...args) {
   return checked(deliveryCall(method, ...args), 'RunHostDeliveryRejected');
 }
 
-function deliveryView(contract) {
-  const value = publicationToken(contract);
+function deliveryView(contract, original) {
+  const value = original === undefined
+    ? publicationToken(contract) : original.value;
   const view = Object.freeze({
     name: owner.clientValuesHostPublicationContractName(value),
     identityField:
       owner.clientValuesHostPublicationContractIdentityField(value),
-    identity: contract.cid, wire: contract.wire,
+    identity: original === undefined ? contract.cid : original.cid,
+    wire: original === undefined ? contract.wire : original.wire,
   });
   deliveryViews.set(view, contract);
   return view;
@@ -2485,6 +2491,17 @@ export function openResultDeliveryControl() {
     },
     admit(name, wire, limits) {
       return deliveryView(admitPublicationContract(name, wire, limits));
+    },
+    fromPublication(contract, expectedName) {
+      const original = publicationOriginals.get(contract);
+      if (original === undefined) {
+        throw new TypeError('ForeignRunHostPublication');
+      }
+      const view = deliveryView(contract, original);
+      if (expectedName !== undefined && view.name !== expectedName) {
+        throw new TypeError('RunHostPublicationKindMismatch');
+      }
+      return view;
     },
     beginResultAccessProgress() {
       return handle(accessProgress,

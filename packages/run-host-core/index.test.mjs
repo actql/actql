@@ -9,6 +9,7 @@ import './effect-run.test.mjs';
 import './original-effect-materials.test.mjs';
 import './original-effect-update-materials.test.mjs';
 import './program-preparation.test.mjs';
+import './publication-delivery-original.test.mjs';
 import {valuesUnitIdentity, valuesResultPlan} from
   '../../scripts/fixtures/string-contract-identities.mjs';
 import {canonicalText} from '../../scripts/check-canonical-json.mjs';

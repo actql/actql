@@ -51712,7 +51712,7 @@
     {
       "module": "packages/run-host-core/index.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "a32c700d0b564c899ac97670607c324d483e5131b849ff2d9e9f7b17c3703676",
+      "sha256": "07de01d90bafa965f6f7e702c17509d994e463e62098584f02e23ccc89773340",
       "role": "common-semantics",
       "owner": "Existing client_values_host_abi/Run Publication Owners; public same-process type projection",
       "exports": [
@@ -53251,6 +53251,21 @@
           "result": "string"
         },
         {
+          "name": "ResultDeliveryControl/fromPublication",
+          "parameters": [
+            "original: PublicationContract<Kind>"
+          ],
+          "result": "DeliveryContractView<Kind>"
+        },
+        {
+          "name": "ResultDeliveryControl/fromPublication#2",
+          "parameters": [
+            "original: PublicationContract",
+            "expectedName: Kind"
+          ],
+          "result": "DeliveryContractView<Kind>"
+        },
+        {
           "name": "ResultDeliveryControl/issueDeliveryAttempt",
           "parameters": [
             "index: IndexView",
@@ -53842,6 +53857,8 @@
             "ResultDeliveryControl/resultReadRetentionPolicyCid",
             "ResultDeliveryControl/resultRetentionClockContractCid",
             "ResultDeliveryControl/trustedClockNotBefore",
+            "ResultDeliveryControl/fromPublication",
+            "ResultDeliveryControl/fromPublication#2",
             "RetainedInputCurrent/<call>",
             "RetainedInputPlanCurrent/<call>",
             "RetainedInputPlanCurrent/<call>#2",
