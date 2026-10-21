@@ -10667,7 +10667,7 @@
     {
       "module": "packages/sdk/internal/result-read.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "c5ff71de8a186ea900a49f6933aa884182d404afd15e9ea5b94416f85c23c0d9",
+      "sha256": "eddadc0fb22e9b57e1305604f6cb505587324bc30157c05704cef1bffa600243",
       "exports": [
         "captureQueryResultRead",
         "collectCapturedResult",
@@ -11133,6 +11133,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "payloads, Result readers/frames, actual native/managed controls, failed"
+              },
+              {
+                "path": "packages/sdk/internal/result-read.mjs",
+                "anchor": "resultSerializationContractCids[answer.serialization.version] !=="
               }
             ],
             "extension": [
@@ -11157,6 +11161,10 @@
               {
                 "path": "packages/sdk/query-single-result.test.mjs",
                 "anchor": "await assert.rejects(target[method](options), {code});"
+              },
+              {
+                "path": "packages/sdk/result-description.test.mjs",
+                "anchor": "test('describe hashes each dynamic identity once and never rehashes fixed serialization identities'"
               }
             ]
           }
@@ -13094,9 +13102,10 @@
     {
       "module": "packages/sdk/json-value-wire.generated.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "117b845466b3e7f4b48a842c680d13efb0e21b2c2f916ce953d10ebcac1dc626",
+      "sha256": "c2621541a432f94b5618747c5a7e675400252e472449b9cfaed5d033e4fbf453",
       "exports": [
-        "jsonValueWireContractCid"
+        "jsonValueWireContractCid",
+        "resultSerializationContractCids"
       ],
       "operations": [],
       "imports": [],
@@ -13111,7 +13120,8 @@
             "<module>"
           ],
           "exports": [
-            "jsonValueWireContractCid"
+            "jsonValueWireContractCid",
+            "resultSerializationContractCids"
           ],
           "attributes": {
             "responsibility": [
@@ -13134,6 +13144,10 @@
               {
                 "path": "packages/sdk/json-value-wire.generated.mjs",
                 "anchor": "// Generated from the common typed JSON wire law. Do not edit."
+              },
+              {
+                "path": "portability/corpus/typed-json-literals.json",
+                "anchor": "\"serialization_contracts\": {"
               }
             ],
             "ownership": [
@@ -13200,6 +13214,10 @@
               {
                 "path": "packages/sdk/typed-results.test.mjs",
                 "anchor": "test("
+              },
+              {
+                "path": "scripts/typed-json-literal-contract.test.mjs",
+                "anchor": "test('generated SDK serialization identities match all three independent existing wire vectors'"
               }
             ]
           }
