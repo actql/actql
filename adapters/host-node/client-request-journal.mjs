@@ -1093,9 +1093,41 @@ const validSubmissionUsage = row => row?.singleton === 1 &&
   Number.isSafeInteger(row.retained_count) && row.retained_count >= 0 &&
   Number.isSafeInteger(row.retained_bytes) && row.retained_bytes >= 0 && row.retained_bytes <= 67108864 &&
   Number.isSafeInteger(row.revision) && row.revision >= 0;
+const journalRowUsageSources = [
+  ['client_request_row_usage','client_requests','client_submission_custody'],
+  ['client_cancellation_row_usage','client_cancellation_operations','client_cancellation_custody'],
+];
+const journalRowUsageTables = journalRowUsageSources.map(([usage]) => [usage,`CREATE TABLE ${usage} (
+  singleton INTEGER PRIMARY KEY CHECK (singleton = 1),
+  retained_count INTEGER NOT NULL CHECK (retained_count >= 0 AND retained_count <= 9007199254740991)
+) STRICT`]);
+const journalRowUsageTriggers = journalRowUsageSources.flatMap(([usage,table]) => [
+  [`${usage}_insert`,`CREATE TRIGGER ${usage}_insert AFTER INSERT ON ${table} BEGIN
+    UPDATE ${usage} SET retained_count = retained_count + 1 WHERE singleton = 1;
+  END`],
+  [`${usage}_delete`,`CREATE TRIGGER ${usage}_delete AFTER DELETE ON ${table} BEGIN
+    UPDATE ${usage} SET retained_count = retained_count - 1 WHERE singleton = 1;
+  END`],
+]);
+const validJournalRowUsage = row => row?.singleton === 1 &&
+  Number.isSafeInteger(row.retained_count) && row.retained_count >= 0;
+function inspectJournalRowUsage(database, version) {
+  const originals=[...journalRowUsageTables,...journalRowUsageTriggers], names=originals.map(([name])=>name);
+  const schema=database.prepare(`SELECT name,sql FROM sqlite_master
+    WHERE name IN (${names.map(()=>'?').join(',')})`).all(...names);
+  if(version<2 && schema.length===0) return;
+  if(version!==2 || schema.length!==originals.length || originals.some(([name,sql])=>
+    schema.find(row=>row.name===name)?.sql!==sql)) fail('UnknownClientRequestJournalFormat');
+  for(const [table] of journalRowUsageTables) {
+    if(!validJournalRowUsage(database.prepare(`SELECT * FROM ${table} WHERE singleton=1`).get())) {
+      fail('UnknownClientRequestJournalFormat');
+    }
+  }
+}
 function inspectSubmissionUsageStorage(database, enabled) {
   const version = database.prepare('PRAGMA user_version').get()?.user_version;
-  if (version !== 0 && version !== 1) fail('UnknownClientRequestJournalFormat');
+  if (![0,1,2].includes(version)) fail('UnknownClientRequestJournalFormat');
+  inspectJournalRowUsage(database,version);
   const originals = [...submissionUsageTables,...submissionUsageTriggers];
   const names = originals.map(([name]) => name);
   const schema = database.prepare(`SELECT name,sql FROM sqlite_master
@@ -1127,12 +1159,7 @@ function adoptSubmissionUsageStorage(database, transaction, previousMarker) {
         const usage = database.prepare(`SELECT retained_count FROM ${submissionUsageTables[i][0]} WHERE singleton=1`).get();
         if (usage?.retained_count !== counts[i]) fail('ClientSubmittedIntentCustodyLost');
       }
-      // The previous transaction installed all derived metadata but its marker
-      // was not completed. Finish ONLY this same DB format transition; no
-      // historical aggregation, insertion, issuance or retirement is replayed.
-      database.exec('PRAGMA user_version=1');
-      return;
-    }
+    } else {
     // One bounded legacy adoption, never a normal-open or per-operation scan.
     // The existing original issuance/retirement bounds the selected prefix;
     // one extra row detects missing coverage instead of silently truncating it.
@@ -1150,7 +1177,22 @@ function adoptSubmissionUsageStorage(database, transaction, previousMarker) {
         .run(retained[i].n,retained[i].bytes);
     }
     database.exec(submissionUsageTriggers.map(([,sql]) => `${sql};`).join('\n'));
-    database.exec('PRAGMA user_version=1');
+    }
+    // Extend the same private adoption transaction. No request or cancel is
+    // issued here: original cumulative custody bounds this one legacy census.
+    const retainedRows=journalRowUsageSources.map(([,table,custody])=>{
+      const issued=database.prepare(`SELECT issued_count FROM ${custody} WHERE singleton=1`).get()?.issued_count;
+      if(!Number.isSafeInteger(issued) || issued<0 || issued===Number.MAX_SAFE_INTEGER) fail('ClientRequestSubmissionCustodyLost');
+      const n=database.prepare(`SELECT COUNT(*) AS n FROM (SELECT 1 FROM ${table} LIMIT ?)`).get(issued+1).n;
+      if(n!==issued) fail(table==='client_requests'?'ClientRequestSubmissionCustodyLost':'ClientRequestJournalCorrupt');
+      return n;
+    });
+    database.exec(journalRowUsageTables.map(([,sql])=>`${sql};`).join('\n'));
+    for(let i=0;i<journalRowUsageTables.length;i++) {
+      database.prepare(`INSERT INTO ${journalRowUsageTables[i][0]} VALUES(1,?)`).run(retainedRows[i]);
+    }
+    database.exec(journalRowUsageTriggers.map(([,sql])=>`${sql};`).join('\n'));
+    database.exec('PRAGMA user_version=2');
   });
 }
 const nameMarker = Buffer.from(JSON.stringify({
@@ -1289,10 +1331,9 @@ function inspectNameStorage(database, enabled) {
     if (database.prepare("SELECT sql FROM sqlite_master WHERE type = 'trigger' AND name = ?")
       .get(name)?.sql !== sql) fail('UnknownClientRequestJournalFormat');
   }
-  // Startup integrity inspection has no retained JS row inventory. Ordinary
-  // resolution uses the indexed key and the transaction-maintained singleton.
-  if (database.prepare('SELECT COUNT(*) AS n FROM client_submission_names').get().n !==
-      custody[0].retained_count) fail('UnknownClientRequestJournalFormat');
+  // Exact schema/triggers and the original singleton are checked here;
+  // target resolution and mutation check retained vs issued custody. Ordinary
+  // open does not recount unrelated historical name rows.
 }
 
 function inspectCancellationStorage(database, enabled) {
@@ -1304,13 +1345,18 @@ function inspectCancellationStorage(database, enabled) {
     .all().map(field => field.name).sort();
   const custodyFields = database.prepare('PRAGMA table_info(client_cancellation_custody)')
     .all().map(field => field.name).sort();
-  const records = database.prepare('SELECT COUNT(*) AS n FROM client_cancellation_operations').get().n;
+  const indexed=database.prepare('PRAGMA user_version').get().user_version===2;
+  const usage=indexed?database.prepare('SELECT * FROM client_cancellation_row_usage WHERE singleton=1').get():undefined;
+  if(indexed && !validJournalRowUsage(usage)) fail('UnknownClientRequestJournalFormat');
+  // A legacy database is counted once by the bounded adoption transaction,
+  // not once in this copy and again in the original. Adopted metadata is O(1).
+  const records = indexed ? usage.retained_count : undefined;
   const custody = database.prepare('SELECT singleton, issued_count FROM client_cancellation_custody').all();
   if (JSON.stringify(fields) !== JSON.stringify(cancellationColumns) ||
       JSON.stringify(custodyFields) !== JSON.stringify(['issued_count', 'singleton']) ||
       custody.length !== 1 || custody[0].singleton !== 1 ||
       !Number.isSafeInteger(custody[0].issued_count) || custody[0].issued_count < 0 ||
-      custody[0].issued_count !== records) fail('UnknownClientRequestJournalFormat');
+      indexed && custody[0].issued_count !== records) fail('UnknownClientRequestJournalFormat');
 }
 
 // A read-only SQLite connection can still create -shm beside a WAL database.
@@ -1801,7 +1847,7 @@ export function openClientRequestJournal(directory, {
       finally {closeSync(marker);}
       syncDirectory(root);
     }
-    if (database.prepare('PRAGMA user_version').get().user_version === 0) {
+    if (database.prepare('PRAGMA user_version').get().user_version < 2) {
       adoptSubmissionUsageStorage(database,transaction,existsSync(join(root,usageMarkerName)));
     }
     // This optional original-operation storage belongs to this same Journal.
@@ -1962,12 +2008,12 @@ export function openClientRequestJournal(directory, {
   };
   const selectRun = database.prepare(`SELECT run_definition_cid
     FROM client_requests WHERE run_definition_cid = ?`);
-  const count = database.prepare('SELECT COUNT(*) AS n FROM client_requests');
+  const requestUsage = database.prepare('SELECT * FROM client_request_row_usage WHERE singleton=1');
   const submissionIssued = database.prepare('SELECT issued_count FROM client_submission_custody WHERE singleton = 1');
   const advanceSubmissionCustody = database.prepare('UPDATE client_submission_custody SET issued_count = issued_count + 1 WHERE singleton = 1 AND issued_count = ?');
   const assertSubmissionCustody = () => {
-    const n = Number(count.get().n);
-    if (!Number.isSafeInteger(n) || submissionIssued.get()?.issued_count !== n) {
+    const usage=requestUsage.get(), n=usage?.retained_count;
+    if (!validJournalRowUsage(usage) || submissionIssued.get()?.issued_count !== n) {
       fail('ClientRequestSubmissionCustodyLost');
     }
     return n;
@@ -2304,7 +2350,7 @@ export function openClientRequestJournal(directory, {
       phase: row.phase, revision: row.revision, outcome,
       ...(unresolvedHistory === undefined ? {} : {unresolvedHistory})});
   };
-  const cancellationCount = database.prepare('SELECT COUNT(*) AS n FROM client_cancellation_operations');
+  const cancellationUsage = database.prepare('SELECT * FROM client_cancellation_row_usage WHERE singleton=1');
   const cancellationIssued = database.prepare('SELECT issued_count FROM client_cancellation_custody WHERE singleton = 1');
   const cancellationSelect = database.prepare(`SELECT * FROM client_cancellation_operations
     WHERE namespace_id = ? AND authority_scope_cid = ? AND cancel_id = ?`);
@@ -2312,8 +2358,8 @@ export function openClientRequestJournal(directory, {
     (namespace_id, authority_scope_cid, cancel_id, run_definition_cid,
      expected_revision, intent_fingerprint_cid) VALUES (?, ?, ?, ?, ?, ?)`);
   const assertCancellationCustody = () => {
-    const n = Number(cancellationCount.get().n);
-    if (cancellationIssued.get()?.issued_count !== n) fail('ClientRequestJournalCorrupt');
+    const usage=cancellationUsage.get(), n=usage?.retained_count;
+    if (!validJournalRowUsage(usage) || cancellationIssued.get()?.issued_count !== n) fail('ClientRequestJournalCorrupt');
     return n;
   };
   const insert = database.prepare(`INSERT INTO client_requests (${columns})
@@ -2513,7 +2559,7 @@ export function openClientRequestJournal(directory, {
         // clock revive the identity after an awaited issuance.
         return {epochRejected: epochValidity};
       }
-      if (Number(count.get().n) + assertCancellationCustody() >= maxRecords) {
+      if (retainedCount + assertCancellationCustody() >= maxRecords) {
         fail('ClientRequestJournalCapacity');
       }
       if (selectRun.get(runDefinitionCid) !== undefined) {
@@ -3419,7 +3465,7 @@ export function openClientRequestJournal(directory, {
           const action = cancellationAction(identity, retained?.identity, facts, row,
             currentAuthorization, publicationCommitted, requestControl);
           if (retained !== undefined) return {...retained, facts, action};
-          if (Number(count.get().n) + custodyCount >= maxRecords) {
+          if (assertSubmissionCustody() + custodyCount >= maxRecords) {
             rejectCancellation('ClientRequestJournalCapacity', 'refused', 'admission_capacity');
           }
           cancellationInsert.run(ref.namespaceId, ref.authorityScopeCid, cancelId,

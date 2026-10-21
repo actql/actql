@@ -53,6 +53,13 @@ function aggregateCounter(t) {
   return {scans,arm(){armed=true;}};
 }
 
+function removeRequestRowUsage(database) {
+  for(const table of ['client_request_row_usage','client_cancellation_row_usage']) {
+    for(const suffix of ['insert','delete']) database.exec(`DROP TRIGGER ${table}_${suffix}`);
+    database.exec(`DROP TABLE ${table}`);
+  }
+}
+
 for (const history of [0,5,25]) {
   test(`new submitted intent uses no historical aggregate with ${history} retained originals`,async t => {
     const counter = aggregateCounter(t), f = await fixture(t);
@@ -151,6 +158,7 @@ test('legacy usage adoption scans one bounded original prefix once and never rec
       for(const suffix of ['insert','delete','update']) db.exec(`DROP TRIGGER ${table}_${suffix}`);
       db.exec(`DROP TABLE ${table}`);
     }
+    removeRequestRowUsage(db);
     db.exec('PRAGMA user_version=0');
   });
   await rm(join(f.directory,'submission-usage-format.json'),{force:true});
@@ -207,6 +215,7 @@ test('legacy usage adoption preserves formal retirements instead of treating iss
       for(const suffix of ['insert','delete','update']) db.exec(`DROP TRIGGER ${table}_${suffix}`);
       db.exec(`DROP TABLE ${table}`);
     }
+    removeRequestRowUsage(db);
     db.exec('PRAGMA user_version=0');
   });
   await rm(join(f.directory,'submission-usage-format.json'),{force:true});
@@ -228,6 +237,7 @@ test('legacy usage adoption refuses missing original intent custody without repl
       for(const suffix of ['insert','delete','update']) db.exec(`DROP TRIGGER ${table}_${suffix}`);
       db.exec(`DROP TABLE ${table}`);
     }
+    removeRequestRowUsage(db);
     db.exec('PRAGMA user_version=0');
     db.exec('DELETE FROM client_submitted_intents');
   });
@@ -296,6 +306,7 @@ for(const marker of ['absent','partial']) {
     const retained = f.journal.recordSubmittedIntent(reference,intent(),fields,moon);
     f.journal.close();
     const before = f.database(db=>{
+      removeRequestRowUsage(db);
       db.exec('PRAGMA user_version=0');
       return {...db.prepare('SELECT * FROM client_submitted_intent_usage').get()};
     });
@@ -307,7 +318,7 @@ for(const marker of ['absent','partial']) {
     assert.equal(reopened.lookupSubmittedIntent(reference,fields,moon).requestId,retained.requestId);
     assert.deepEqual(counter.scans,[]);
     f.database(db=>{
-      assert.equal(db.prepare('PRAGMA user_version').get().user_version,1);
+      assert.equal(db.prepare('PRAGMA user_version').get().user_version,2);
       assert.deepEqual({...db.prepare('SELECT * FROM client_submitted_intent_usage').get()},before);
       assert.equal(db.prepare('SELECT issued_count FROM client_submitted_intent_custody').get().issued_count,1);
     });
