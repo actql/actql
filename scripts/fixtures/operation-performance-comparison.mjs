@@ -11,7 +11,7 @@ export function syntheticSQLiteBaseline({queryMs = 2, durableMs = 3} = {}) {
     environment: {node: 'v22.22.0', platform: 'synthetic'}, load: 'isolated', profiled: false,
     executableSha256: '8'.repeat(64), collectorSha256: '9'.repeat(64),
     protocol, protocolSha256: hash(protocol), settings: {sqliteVersion: '3.50.4', journal_mode: 'wal',
-      synchronous: 2, fullfsync: 0}, cleanup: {closed: true},
+      synchronous: 2, fullfsync: 0, checkpoint_fullfsync: 0}, cleanup: {closed: true},
     savedFixture: {rows: 1, payload: '[{"id":1}]', plan: [{detail: 'SEARCH USING INTEGER PRIMARY KEY'}]},
     warm: [...sqliteQueryFixtures.map(fixture => ({operation: fixture.operation, mode: 'one-shot',
       fixture, samples: samples(queryMs, fixture.expected)})),

@@ -135,6 +135,20 @@ test('Result storage success samples cannot hide failed cleanup, changed groups,
     mutate(control); assert.throws(() => calibrateSqliteComparisonProfile(baseline, control));
   }
 });
+test('synchronization comparison records explicit modes and refuses unmatched or missing fullfsync settings', () => {
+  const baseline = syntheticSQLiteBaseline(); baseline.settings.fullfsync = 1;
+  const control = syntheticResultStorageControl(baseline);
+  const profile = calibrateSqliteComparisonProfile(baseline, control);
+  assert.equal(profile.resultStorage.conditions.settings.fullfsync, 1);
+  assert.equal(profile.resultStorage.conditions.settings.checkpoint_fullfsync, 0);
+  assert.match(profile.resultStorage.qualification, /not an unconditional SDK SLA/u);
+  control.settings = {...control.settings, fullfsync: 0};
+  assert.throws(() => calibrateSqliteComparisonProfile(baseline, control), /durability differs/u);
+  for (const key of ['fullfsync', 'checkpoint_fullfsync']) {
+    const missing = syntheticSQLiteBaseline(); delete missing.settings[key];
+    assert.throws(() => calibrateSqliteComparisonProfile(missing), /synchronization settings/u);
+  }
+});
 for (const [operation, p95Ms] of [['cold-existing', 2000], ['first-init', 5000], ['mock-workflow', 5000]]) {
   test(`${operation} retains its separately reported guardrail and sample minimum`, () => {
     const row = evidence(operation, p95Ms);

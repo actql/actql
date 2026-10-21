@@ -123,7 +123,9 @@ export function calibrateSqliteComparisonProfile(baseline, resultControl) {
     baseline.protocolSha256 === evidenceHash(baseline.protocol), 'Comparator source/tool/protocol identity required');
   requireValue(baseline.environment && nonempty(baseline.environment.node), 'Explicit comparator runtime required');
   requireValue(baseline.settings?.journal_mode === 'wal' && baseline.settings.synchronous === 2 &&
-    typeof baseline.settings.sqliteVersion === 'string', 'Explicit WAL/FULL SQLite settings required');
+    typeof baseline.settings.sqliteVersion === 'string' &&
+    [0, 1].includes(baseline.settings.fullfsync) && [0, 1].includes(baseline.settings.checkpoint_fullfsync),
+  'Explicit WAL/FULL/fullfsync/checkpoint synchronization settings required');
   const observed = (operation, mode) => {
     const entries = baseline.warm.filter(row => row.operation === operation && row.mode === mode);
     requireValue(entries.length <= 1, 'Duplicate comparator workload');
