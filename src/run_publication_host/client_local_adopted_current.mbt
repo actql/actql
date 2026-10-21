@@ -234,7 +234,7 @@ pub fn[Store, E] client_local_adopted_authority_scope_body(
   }
   if material.scope_cache is Some((cached_principal, cached_connection, body)) &&
     principal == cached_principal && connection == cached_connection {
-    return Ok(body)
+    return Ok(Bytes::makei(body.length(), index => body[index]))
   }
   let body = match
     client_local_authority_scope_body(
@@ -248,9 +248,11 @@ pub fn[Store, E] client_local_adopted_authority_scope_body(
   }
   // This pure typed construction invokes no external callback. A new public
   // operation or protected dispatch must enter through the current port again.
-  // Retain only one principal/connection projection, not an unbounded cache.
+  // Retain only one private principal/connection projection, not an unbounded
+  // cache. A Host byte view may mutate its returned buffer, so never expose
+  // the retained canonical bytes. The copy keeps the existing 8192-byte bound.
   material.scope_cache = Some((principal, connection, body))
-  Ok(body)
+  Ok(Bytes::makei(body.length(), index => body[index]))
 }
 
 ///|
