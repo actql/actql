@@ -310,6 +310,16 @@ test('native START metadata commits without duplicate contract files or director
   const reopened=await f.reopen();
   f.syncs.length=0;
   fileSyncs=0;
+  const parse=JSON.parse;
+  let initialParses=0;
+  t.mock.method(JSON,'parse',function(wire,...rest) {
+    if(wire===f.root.streaming.wire) initialParses++;
+    return Reflect.apply(parse,this,[wire,...rest]);
+  });
+  assert.equal((await reopened.lookupDeliveryAttempt({indexKey:{namespaceId:'namespace',
+    authorityScopeCid:cid('a'),runDefinitionCid:cid('9')},principalId:'principal',
+  purpose:'download',resultName:'answer',attemptId:'completion'})).record.state,'streaming');
+  assert.equal(initialParses,1,'same selected native birth is parsed once in this operation');
   assert.equal((await reopened.latestDeliveryRecord(f.root.attempt.identity)).state,'streaming');
   assert.equal((await reopened.beginDeliveryAttempt(original,f.root.streaming)).created,false);
   assert.deepEqual(f.syncs,[],'targeted native reads do not recreate obsolete aliases');

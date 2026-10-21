@@ -4497,7 +4497,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "c2f7f22baddc8b6bd8dbc4054636cd05c9278820e5edff30c843e9df7ba429e2",
+      "sha256": "db1fadb6fc7827eb83610854f20686d613602c645e28c01d7e1df8e58fe1040a",
       "exports": [
         "PublicationStoreError",
         "assertOriginalLocalPublicationStoreFacilityCurrent",
@@ -6636,7 +6636,8 @@
           "parameters": [
             "attemptCid",
             "original",
-            "retainedBirth"
+            "retainedBirth",
+            "retainedBirthValue"
           ],
           "async": true
         },

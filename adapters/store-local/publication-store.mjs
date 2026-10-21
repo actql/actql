@@ -3813,10 +3813,10 @@ async function openOriginalLocalPublicationStore(
         attempt.result_manifest_cid !== grant.result_manifest_cid ||
         !grant.results.some(result => result.result_name === attempt.result_name &&
           result.result_artifact_cid === attempt.result_artifact_cid)) fail('InvalidDeliveryAttemptIndex');
-    let streaming;
+    let streaming, streamingRecord;
     if (row.initial_wire != null) {
       streaming = admitContract('delivery_record',row.initial_wire);
-      const record = parseContract(streaming);
+      const record = streamingRecord = parseContract(streaming);
       if (row.initial_cid != null && streaming.identity !== row.initial_cid ||
           record.delivery_attempt_cid !== attemptContract.identity ||
           record.sequence !== 0 || record.state !== 'streaming' ||
@@ -3824,7 +3824,7 @@ async function openOriginalLocalPublicationStore(
         fail('InvalidDeliveryAttemptIndex');
       }
     }
-    return {attemptContract,attempt,grantContract,grant,streaming};
+    return {attemptContract,attempt,grantContract,grant,streaming,streamingRecord};
   };
   const restoreDeliveryClaim = async row => {
     const {attemptContract,attempt,grantContract,grant,streaming} = admitDeliveryClaim(row);
@@ -4051,14 +4051,14 @@ async function openOriginalLocalPublicationStore(
     return operation;
   };
 
-  const readLatestDeliveryRecordContract = async (attemptCid, original, retainedBirth) => {
+  const readLatestDeliveryRecordContract = async (attemptCid, original, retainedBirth, retainedBirthValue) => {
     active();
     const directory = deliveryAttemptPath(attemptCid);
     const row = deliveryIndex?.attempt(attemptCid);
     let initial;
     if (row?.initial_cid != null) {
       initial = retainedBirth ?? admitContract('delivery_record',row.initial_wire);
-      const record = parseContract(initial);
+      const record = retainedBirthValue ?? parseContract(initial);
       if (initial.identity !== row.initial_cid || initial.wire !== row.initial_wire ||
           record.delivery_attempt_cid !== attemptCid || record.sequence !== 0 || record.state !== 'streaming') {
         fail('InvalidDeliveryAttemptIndex');
@@ -4180,8 +4180,10 @@ async function openOriginalLocalPublicationStore(
       fail('InvalidDeliveryAttemptIndex');
     }
     const recordContract = includeProgress ? await readLatestDeliveryRecordContract(
-      attemptContract.identity,undefined,row.initial_cid == null ? undefined : recovered.streaming) : undefined;
-    const record = recordContract === undefined ? undefined : parseContract(recordContract);
+      attemptContract.identity,undefined,row.initial_cid == null ? undefined : recovered.streaming,
+      row.initial_cid == null ? undefined : recovered.streamingRecord) : undefined;
+    const record = recordContract === undefined ? undefined : recordContract === recovered?.streaming
+      ? recovered.streamingRecord : parseContract(recordContract);
     const hostReleaseReceipt = record?.result_delivery_receipt_cid === undefined
       ? undefined : (await readContract(record.result_delivery_receipt_cid,
         'result_delivery_receipt')).value;
