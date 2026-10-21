@@ -3822,7 +3822,7 @@ async function openOriginalLocalPublicationStore(
     return operation;
   };
 
-  const latestDeliveryRecordContract = async attemptCid => {
+  const readLatestDeliveryRecordContract = async (attemptCid, original) => {
     active();
     const directory = deliveryAttemptPath(attemptCid);
     const entries = await readdir(directory);
@@ -3842,12 +3842,22 @@ async function openOriginalLocalPublicationStore(
     const bytes = await readBounded(
       resolve(directory, names.at(-1).name), configuration.maxObjectBytes,
     );
+    const retained = original?.contract;
+    if (original !== undefined) original.bytes = bytes;
+    // An append already admitted its immutable input. Equal canonical bytes
+    // are the same fact in this operation, not a second contract admission.
+    if (retained !== undefined && exactUtf8WireMatches(bytes, retained.wire)) {
+      return retained;
+    }
     try {
       return admitContract('delivery_record', bytes.toString('utf8'));
     } catch (error) {
       fail('InvalidDeliveryRecord', error);
     }
   };
+
+  const latestDeliveryRecordContract = attemptCid =>
+    readLatestDeliveryRecordContract(attemptCid);
 
   const latestDeliveryRecord = async attemptCid => {
     const contract = await latestDeliveryRecordContract(attemptCid);
@@ -3916,23 +3926,29 @@ async function openOriginalLocalPublicationStore(
     active();
     const contract = admitContract('delivery_record', suppliedWire);
     const record = parseContract(contract);
+    return confirmAdmittedDeliveryRecord(contract, record, false);
+  };
+
+  const confirmAdmittedDeliveryRecord = async (contract, record, observed) => {
     const directory = deliveryAttemptPath(record.delivery_attempt_cid);
     const target = resolve(directory, `${record.sequence}.json`);
-    let installed;
-    try {
-      const bytes = await readBounded(target, configuration.maxObjectBytes);
-      installed = admitContract(
-        'delivery_record', bytes.toString('utf8'),
-      );
-    } catch (error) {
-      if (error?.code === 'ENOENT') {
-        fail('DeliveryRecordMissing', error);
+    let previousBytes = Buffer.isBuffer(observed) ? observed : undefined;
+    const matches = bytes => {
+      if (exactUtf8WireMatches(bytes, contract.wire)) return true;
+      // Preserve existing admission of another valid wire spelling. Only a
+      // distinct acquired wire needs this fallback; identical rereads reuse it.
+      const admitted = admitContract('delivery_record', bytes.toString('utf8'));
+      return admitted.identity === contract.identity && admitted.wire === contract.wire;
+    };
+    if (observed === false) {
+      let bytes;
+      try { bytes = await readBounded(target, configuration.maxObjectBytes); }
+      catch (error) {
+        if (error?.code === 'ENOENT') fail('DeliveryRecordMissing', error);
+        throw error;
       }
-      throw error;
-    }
-    if (installed.identity !== contract.identity ||
-        installed.wire !== contract.wire) {
-      fail('DeliveryRecordConflict');
+      if (!matches(bytes)) fail('DeliveryRecordConflict');
+      previousBytes = bytes;
     }
     // A directory entry may be visible before its containing directory is
     // durable. Re-sync the exact immutable record, then verify that the same
@@ -3941,11 +3957,10 @@ async function openOriginalLocalPublicationStore(
     const confirmed = await readBounded(
       target, configuration.maxObjectBytes,
     );
-    const admitted = admitContract(
-      'delivery_record', confirmed.toString('utf8'),
-    );
-    if (admitted.identity !== contract.identity ||
-        admitted.wire !== contract.wire) {
+    // The input was admitted once. Trusted I/O and its directory ACK do not
+    // require parsing/hashing identical bytes again; changed bytes still fail.
+    if (!(previousBytes !== undefined && confirmed.equals(previousBytes)) &&
+        !matches(confirmed)) {
       fail('DeliveryRecordDurabilityMismatch');
     }
     return record;
@@ -3956,17 +3971,19 @@ async function openOriginalLocalPublicationStore(
     const contract = admitContract('delivery_record', suppliedWire);
     const record = parseContract(contract);
     const directory = deliveryAttemptPath(record.delivery_attempt_cid);
-    const attempt = parseContract(await readDeliveryAttemptContract(
+    const attemptContract = await readDeliveryAttemptContract(
       record.delivery_attempt_cid,
-    ));
+    );
+    const attempt = parseContract(attemptContract);
     if (await runMetadataDeletionStarted(attempt.run_definition_cid)) {
       fail('PublicationMetadataDeleted');
     }
-    const previous = await latestDeliveryRecordContract(
-      record.delivery_attempt_cid,
+    const original = {contract, bytes: undefined};
+    const previous = await readLatestDeliveryRecordContract(
+      record.delivery_attempt_cid, original,
     );
     if (previous?.identity === contract.identity) {
-      return confirmDeliveryRecord(contract.wire);
+      return confirmAdmittedDeliveryRecord(contract, record, original.bytes);
     }
     if (contractControl.deliveryTransition(previous, contract) !== true) {
       fail('InvalidDeliveryRecordTransition');
@@ -3979,23 +3996,20 @@ async function openOriginalLocalPublicationStore(
         record.result_delivery_receipt_cid,
         'result_delivery_receipt',
       )).contract;
-      const attemptContract = await readDeliveryAttemptContract(
-        record.delivery_attempt_cid,
-      );
       if (contractControl.deliverySuccessValid(
         attemptContract, receipt, contract,
       ) !== true) {
         fail('InvalidDeliverySuccessEvidence');
       }
     }
-    await putPublicationContract('delivery_record', contract.wire);
+    await putSemantic(contract.wire, contract.identity);
     const target = resolve(directory, `${record.sequence}.json`);
     try { await link(contractPath(record.delivery_record_cid), target); }
     catch (error) {
       if (error?.code === 'EEXIST') fail('DeliveryRecordConflict');
       throw error;
     }
-    return confirmDeliveryRecord(contract.wire);
+    return confirmAdmittedDeliveryRecord(contract, record, true);
   };
 
   const inspectCommittedIndexRaw = async key => {

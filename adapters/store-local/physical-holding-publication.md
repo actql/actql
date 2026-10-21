@@ -151,6 +151,27 @@ append-only records, commit uncertainty and separate physical-close duties
 remain unchanged. This changes transaction granularity, not wire identities,
 permission or the meaning of a durability acknowledgement.
 
+## Delivery record operation reuse
+
+An append admits its input record once and retains the same original attempt
+through transition and success checks. Its private semantic write consumes
+that admitted wire, rather than entering public admission again. An unchanged
+latest record reuses the input only after exact wire comparison inside this
+operation; the public latest-record reader cannot supply this private handoff.
+
+The original containing-directory ACK still precedes confirmation. The same
+record is reread after that ACK and compared with retained canonical bytes,
+without another parse or identity hash. A distinct valid wire spelling retains
+its existing admission fallback; an identical reread reuses that result. Changed
+record identity or content, missing records, transition conflicts and unknown
+durability remain refusals. A later public append or confirmation admits its
+own input; no successful-record or authorization cache persists across calls.
+
+The operation retains one bounded record buffer and the admitted input/attempt
+references until confirmation. Existing native FD close, payload/custody and
+directory durability responsibilities are unchanged. This removes repeated
+contract work, not any required durable write or acknowledgement.
+
 ## Prepared-object custody records
 
 Original prepared-object custody now uses this same Store-owned metadata
