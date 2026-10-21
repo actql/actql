@@ -100,6 +100,7 @@ fn NativeClientRunJournal::save_effect_ledger(
     Ok(value) => value
     Err(issue) => return Err(Physical(issue))
   }
+  self.invalidate_operation_record()
   match
     self.database.compare_exchange(
       "client_effect_custody",

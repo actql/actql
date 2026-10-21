@@ -9,6 +9,9 @@ struct NativeClientRunJournal {
   // Physical transaction ownership only; this is not a Run control revision.
   mut operation_active : Bool
   mut transaction_active : Bool
+  // Fully admitted selected target of the closed public command. Internal
+  // trusted reads consume it until a relevant mutation/failure or command end.
+  mut operation_record : NativeClientRunRecord?
   mut admitted_record : (
     String,
     Bytes,
@@ -440,6 +443,7 @@ fn open_native_client_run_journal_with_reads(
         transaction_active: false,
         operation_active: false,
         admitted_publications: [],
+        operation_record: None,
         admitted_record: None,
         admitted_adoption: None,
       })
@@ -476,7 +480,7 @@ fn[T] NativeClientRunJournal::transaction_with_reads(
   }
   if !self.operation_active {
     self.admitted_publications.clear()
-    self.admitted_record = None
+    self.invalidate_operation_record()
     self.admitted_adoption = None
   }
   self.transaction_active = true
@@ -486,7 +490,7 @@ fn[T] NativeClientRunJournal::transaction_with_reads(
   self.transaction_active = false
   if !self.operation_active {
     self.admitted_publications.clear()
-    self.admitted_record = None
+    self.invalidate_operation_record()
     self.admitted_adoption = None
   }
   match result {
@@ -499,12 +503,16 @@ fn[T] NativeClientRunJournal::transaction_with_reads(
         ) {
         Ok(_) => Ok(value)
         Err(_) => {
+          self.invalidate_operation_record()
           self.fenced = true
           fence_client_journal_transactions(self.database, reads)
           Err(TransactionUnknown)
         }
       }
-    Err(issue) =>
+    Err(issue) => {
+      // A failed mutation/observation cannot leave a typed target describing
+      // uncommitted state available after its rollback or lost return.
+      self.invalidate_operation_record()
       match
         client_journal_transaction_operation(
           self.database,
@@ -518,7 +526,16 @@ fn[T] NativeClientRunJournal::transaction_with_reads(
           Err(TransactionUnknown)
         }
       }
+    }
   }
+}
+
+///|
+fn NativeClientRunJournal::invalidate_operation_record(
+  self : NativeClientRunJournal,
+) -> Unit {
+  self.operation_record = None
+  self.admitted_record = None
 }
 
 ///|
@@ -568,6 +585,23 @@ fn NativeClientRunJournal::retained(
   requested : @host.ClientRequestIdentity,
   reads? : NativeClientJournalReadAccess? = None,
 ) -> Result[NativeClientRunRecord?, NativeClientRunJournalIssue] {
+  if reads is Some(access) && !physical_equal(access.database, self.database) {
+    return Err(Physical(@sqlite.Collision))
+  }
+  if self.fenced || client_journal_transaction_fenced(self.database, reads) {
+    return Err(Fenced)
+  }
+  if self.operation_active &&
+    self.operation_record is Some(original) &&
+    @host.client_request_scope_cid(requested) ==
+    @host.client_request_scope_cid(original.request) {
+    return match
+      @host.client_request_identity_relation(requested, original.request) {
+      SameRequest => Ok(Some(original))
+      ChangedIntent => Err(ChangedIntent)
+      DifferentRequest => Err(CustodyLost)
+    }
+  }
   match
     client_journal_issuance_anchor(
       self.database,
@@ -599,7 +633,12 @@ fn NativeClientRunJournal::retained(
     Err(issue) => return Err(issue)
   }
   match @host.client_request_identity_relation(requested, retained.request) {
-    SameRequest => Ok(Some(retained))
+    SameRequest => {
+      if self.operation_active {
+        self.operation_record = Some(retained)
+      }
+      Ok(Some(retained))
+    }
     ChangedIntent => Err(ChangedIntent)
     DifferentRequest => Err(CustodyLost)
   }
@@ -643,6 +682,18 @@ fn NativeClientRunJournal::retained_policy_wire(
   requested : @host.ClientRequestIdentity,
   reads? : NativeClientJournalReadAccess? = None,
 ) -> Result[(String?, RunPolicyRequestComparison), NativeClientRunJournalIssue] {
+  if reads is Some(access) && !physical_equal(access.database, self.database) {
+    return Err(Physical(@sqlite.Collision))
+  }
+  if self.fenced || client_journal_transaction_fenced(self.database, reads) {
+    return Err(Fenced)
+  }
+  if self.operation_active &&
+    self.operation_record is Some(original) &&
+    @host.client_request_scope_cid(requested) ==
+    @host.client_request_scope_cid(original.request) {
+    return extract_admitted_run_policy_wire(original, requested)
+  }
   let row = match
     read_client_journal_value(
       self.database,
@@ -889,7 +940,7 @@ fn NativeClientRunJournal::save_with_operations(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  self.admitted_record = None
+  self.invalidate_operation_record()
   let revision = match
     compare_exchange_client_journal_value(
       self.database,

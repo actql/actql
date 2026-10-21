@@ -30,18 +30,26 @@ test "one selected Run revision and Policy original survive trusted read-only tr
   .unwrap()
   |> ignore
   let journal = host.journal
-  journal.admitted_record = None
+  journal.invalidate_operation_record()
   journal.admitted_publications.clear()
   journal.operation_active = true
+  let calls : Array[String] = []
+  let reads = journal_test_read_access(host.database, calls)
   let first = journal
-    .transaction(() => journal.retained(request))
+    .transaction_with_reads(
+      () => journal.retained(request, reads=Some(reads)),
+      reads=Some(reads),
+    )
     .unwrap()
     .unwrap()
   let wire = first.publication_policy_originals.unwrap()
   let policies = journal.publication_originals(wire).unwrap()
   assert_eq(journal.admitted_publications.length(), 1)
   let second = journal
-    .transaction(() => journal.retained(request))
+    .transaction_with_reads(
+      () => journal.retained(request, reads=Some(reads)),
+      reads=Some(reads),
+    )
     .unwrap()
     .unwrap()
   assert_true(physical_equal(first, second))
@@ -49,10 +57,16 @@ test "one selected Run revision and Policy original survive trusted read-only tr
     physical_equal(policies, journal.publication_originals(wire).unwrap()),
   )
   assert_eq(journal.admitted_publications.length(), 1)
+  journal.retained_policy_wire(request, reads=Some(reads)).unwrap() |> ignore
+  assert_eq(
+    calls.filter(value => value.has_prefix("read:client_runs:")).length(),
+    1,
+  )
+  assert_false(calls.any(value => value.has_prefix("scan:client_runs:")))
   // These are the same typed originals across two actual transactions, not
   // newly admitted copies selected by a private helper/transaction frame.
   journal.operation_active = false
-  journal.admitted_record = None
+  journal.invalidate_operation_record()
   journal.admitted_publications.clear()
   journal.operation_active = true
   let next = journal
@@ -65,7 +79,7 @@ test "one selected Run revision and Policy original survive trusted read-only tr
   )
   assert_eq(journal.admitted_publications.length(), 1)
   journal.operation_active = false
-  journal.admitted_record = None
+  journal.invalidate_operation_record()
   journal.admitted_publications.clear()
   host.close().unwrap()
 }
@@ -90,9 +104,24 @@ test "failed operation lifetime retires the cached adoption before cheap current
     // Transfer this actual legacy opening into its test-owned capture. No
     // Native original resources or entered-scope result is manufactured.
     capture.opening = JournalAcquired(host)
+    let scope_cid = host
+      .authority_scope_cid("operator", "cli", epoch_test_crypto())
+      .unwrap()
+    let (request, prepared, compiled, definition) = journal_test_run(
+      name + "-request",
+      name + "-run",
+      scope=scope_cid,
+    )
+    host.journal
+    .bind_run(request, prepared, compiled, definition, true)
+    .unwrap()
+    |> ignore
     capture.read_callback_active = true
     capture.read_facts_valid = true
     host.journal.operation_active = true
+    host.journal.transaction(() => host.journal.retained(request)).unwrap()
+    |> ignore
+    assert_true(host.journal.operation_record is Some(_))
     let cheap_current = Ref(true)
     let full = Ref(0)
     let observe = () => {
@@ -148,6 +177,7 @@ test "failed operation lifetime retires the cached adoption before cheap current
     assert_eq(capture.read_scopes.length(), 0)
     assert_eq(capture.read_decisions.length(), 0)
     assert_true(host.journal.admitted_adoption is None)
+    assert_true(host.journal.operation_record is None)
     assert_true(
       capture.read_operation_issue is Some(OriginalResourceScopePending),
     )
@@ -221,6 +251,9 @@ test "operation retention refuses changed target bytes and preserves rollback an
   let key = @host.client_request_scope_cid(request)
   let before = host.database.read("client_runs", key).unwrap()
   let changed = journal.transaction(() => {
+    // This is an actual controlled mutation, not a trusted metadata getter.
+    // Retire the same operation fact before replacing the selected target.
+    journal.invalidate_operation_record()
     match
       host.database.compare_exchange(
         "client_runs",
@@ -241,7 +274,8 @@ test "operation retention refuses changed target bytes and preserves rollback an
     .transaction(() => journal.retained(request))
     .unwrap()
     .unwrap()
-  assert_true(physical_equal(first, restored))
+  assert_eq(restored.revision, first.revision)
+  assert_eq(run_record_body(restored).unwrap(), before.body)
   client_test_fail_commit_reply(host.database, 1)
   assert_true(
     journal.transaction(() => journal.retained(request))
@@ -250,7 +284,7 @@ test "operation retention refuses changed target bytes and preserves rollback an
   assert_true(journal.fenced && host.database.transaction_fenced())
   assert_true(journal.lookup(request, true) is Err(Fenced))
   journal.operation_active = false
-  journal.admitted_record = None
+  journal.invalidate_operation_record()
   journal.admitted_publications.clear()
   host.close().unwrap()
 }
