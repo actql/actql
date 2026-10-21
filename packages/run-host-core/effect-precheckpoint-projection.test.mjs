@@ -147,9 +147,12 @@ test('Effect projection reduces durable progress at most once without an empty p
       globalThis[Symbol.for('actql.test.effect-progress-work')] = {reset() {calls = 0;}, count() {return calls;}};
       mock.module(${JSON.stringify(module)}, {namedExports: {...actual,
         clientValuesHostInspectEffectTaskProgress(...args) {calls++; return actual.clientValuesHostInspectEffectTaskProgress(...args);}}});`;
+    const env = {...process.env};
+    delete env.NODE_TEST_CONTEXT;
     const output = execFileSync(process.execPath, ['--experimental-test-module-mocks',
       '--import', 'data:text/javascript,' + encodeURIComponent(preload), '--test',
-      '--test-name-pattern=^' + name + '$', fileURLToPath(import.meta.url)], {encoding: 'utf8'});
+      '--test-name-pattern=^' + name + '$', fileURLToPath(import.meta.url)], {encoding: 'utf8', env});
+    assert.match(output, /effect-progress-reductions [0-9]+/u);
     console.log(output.trim());
     return;
   }
