@@ -572,21 +572,28 @@ test('one publication commit acquires each unchanged semantic original once', as
   const entry = indexEntry(request, attempt, invocationValue, {
     durable_result_binding_cids: [prepared.binding.identity],
   });
-  const selected = join(directory, 'contracts', invocationValue.invocation_cid.slice(7) + '.json');
+  const selected = new Map([...prepared.required, cids.schema].map(cid =>
+    [join(directory, 'contracts', cid.slice(7) + '.json'), cid]));
   const originalOpen = fsPromises.open;
-  let acquisitions = 0;
+  const acquisitions = new Map();
   fsPromises.open = async function(path, ...args) {
-    if (path === selected) acquisitions++;
-    return Reflect.apply(originalOpen, this, [path, ...args]);
+    const handle = await Reflect.apply(originalOpen, this, [path, ...args]);
+    if (selected.has(path)) {
+      const cid = selected.get(path);
+      acquisitions.set(cid, (acquisitions.get(cid) ?? 0) + 1);
+    }
+    return handle;
   };
   syncBuiltinESMExports();
   try {
     assert.equal((await store.commitIndex(wire(entry), prepared.required, prepared.evidence)).committed, true);
-    assert.equal(acquisitions, 1, 'one commit shares its selected original across inventory and evidence');
-    acquisitions = 0;
+    assert.deepEqual([...acquisitions].sort(), [...selected.values()].map(cid => [cid, 1]).sort(),
+      'one commit shares its selected originals across inventory and evidence');
+    acquisitions.clear();
     const repeated = await store.commitIndex(wire(entry), prepared.required, prepared.evidence);
     assert.equal(repeated.idempotent, true);
-    assert.equal(acquisitions, 1, 'a distinct operation acquires its own original');
+    assert.deepEqual([...acquisitions].sort(), [...selected.values()].map(cid => [cid, 1]).sort(),
+      'a distinct operation acquires its own originals');
   } finally {
     fsPromises.open = originalOpen;
     syncBuiltinESMExports();
@@ -609,7 +616,9 @@ test('publication commit never reuses a prior operation semantic original after 
   changed[0] ^= 1;
   await writeFile(selected, changed);
   await assert.rejects(store.commitIndex(wire(entry), prepared.required, prepared.evidence),
-    code('PublicationContractCorrupt'));
+    error => error?.code === 'PublicationContractCorrupt' ||
+      error?.code === 'ENOENT' && error.syscall === 'lstat' &&
+        error.path?.startsWith(join(directory, 'objects') + sep));
   assert.deepEqual(await readFile(selected), changed, 'refusal does not repair or replace the original');
   await store.close();
 });

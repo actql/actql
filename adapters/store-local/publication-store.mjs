@@ -3099,11 +3099,11 @@ async function openOriginalLocalPublicationStore(
     return contract;
   };
 
-  const readSemanticBytes = async (cid, includeNative = true) => {
+  const readSemanticOriginal = async function readSemanticBytes(cid, includeNative = true) {
     const path = contractPath(cid);
     active();
     const native = includeNative ? nativeDeliveryContract(cid) : undefined;
-    if (native !== undefined) return Buffer.from(native.wire,'utf8');
+    if (native !== undefined) return Object.freeze({bytes: Buffer.from(native.wire,'utf8'), native});
     // This is the original read duty in the same Store lifetime. Keep its
     // private failure reachable even when a public ingress redacts the Error.
     const reader = {cleanup: undefined, failure: undefined};
@@ -3156,7 +3156,7 @@ async function openOriginalLocalPublicationStore(
       // that allocation to hash it again adds no independent fact. A later
       // read still acquires and validates its own original; no Store-wide
       // successful-digest cache substitutes for that observation.
-      return bytes;
+      return Object.freeze({bytes, physicalCid});
     } catch (error) {
       readFailure = error;
       readFailed = true;
@@ -3210,6 +3210,11 @@ async function openOriginalLocalPublicationStore(
       }
     }
   };
+
+  // Public callers receive their own mutable bytes. The private observation
+  // also retains the digest of this exact allocation after its real FD close.
+  const readSemanticBytes = async (cid, includeNative = true) =>
+    (await readSemanticOriginal(cid, includeNative)).bytes;
 
   // Private evidence uses the prepared-object and physical-holding custody
   // already used by Transfer. A semantic alias before a durable owner would
@@ -3516,12 +3521,16 @@ async function openOriginalLocalPublicationStore(
     return true;
   };
 
-  const readContract = async (cid, contractName) => {
-    const native = contractName === undefined ||
-      ['delivery_attempt','result_read_grant','delivery_record','result_delivery_receipt'].includes(contractName)
-      ? nativeDeliveryContract(cid,contractName) : undefined;
-    if (native !== undefined) return Object.freeze({wire:native.wire,value:parseContract(native),contract:native});
-    const bytes = await readSemanticBytes(cid,false);
+  const readContract = async (cid, contractName, readOriginal = readSemanticOriginal) => {
+    const includeNative = contractName === undefined ||
+      ['delivery_attempt','result_read_grant','delivery_record','result_delivery_receipt'].includes(contractName);
+    const original = await readOriginal(cid, includeNative);
+    const native = original.native;
+    if (native !== undefined) {
+      if (contractName !== undefined && native.name !== contractName) fail('InvalidDeliveryAttemptIndex');
+      return Object.freeze({wire:native.wire,value:parseContract(native),contract:native});
+    }
+    const bytes = original.bytes;
     const wire = bytes.toString('utf8');
     if (contractName === undefined) {
       let value;
@@ -3537,7 +3546,7 @@ async function openOriginalLocalPublicationStore(
   const readJsonObject = async (cid, contractName) =>
     (await readContract(cid, contractName)).value;
 
-  const verifyDurableResultBinding = async contract => {
+  const verifyDurableResultBinding = async (contract, readOriginal = readSemanticOriginal) => {
     if (contract.name !== 'durable_result_binding') {
       fail('InvalidPublicationCommitEvidence');
     }
@@ -3550,8 +3559,9 @@ async function openOriginalLocalPublicationStore(
     if (physical.bytes !== binding.byte_count) {
       fail('PublicationDurableBindingMismatch');
     }
-    const schemaBytes = await readSemanticBytes(binding.result_schema_cid);
-    const schemaCid = `sha256:${createHash('sha256')
+    const original = await readOriginal(binding.result_schema_cid);
+    const schemaBytes = original.bytes;
+    const schemaCid = original.physicalCid ?? `sha256:${createHash('sha256')
       .update(schemaBytes).digest('hex')}`;
     if (schemaCid !== binding.result_schema_cid) {
       fail('PublicationDurableBindingMismatch');
@@ -4624,6 +4634,7 @@ async function openOriginalLocalPublicationStore(
     entry,
     suppliedEvidence,
     required,
+    readOriginal = readSemanticOriginal,
   ) => {
     if (!exactKeys(suppliedEvidence, [
       'runDefinition',
@@ -4670,22 +4681,22 @@ async function openOriginalLocalPublicationStore(
           required !== undefined && !required.has(contract.identity)) {
         fail('InvalidPublicationCommitEvidence');
       }
-      const persisted = await readSemanticBytes(contract.identity);
+      const persisted = (await readOriginal(contract.identity)).bytes;
       if (!persisted.equals(Buffer.from(contract.wire, 'utf8'))) {
         fail('PublicationCommitEvidenceMismatch');
       }
     }
     const boundPhysicalCids = [];
     for (const contract of suppliedEvidence.durableBindings) {
-      const verified = await verifyDurableResultBinding(contract);
+      const verified = await verifyDurableResultBinding(contract, readOriginal);
       boundPhysicalCids.push(verified.binding.material_generation_cid);
     }
     const attemptStored = await readContract(
-      entry.publication_attempt_cid, 'publication_attempt',
+      entry.publication_attempt_cid, 'publication_attempt', readOriginal,
     );
     const attempt = attemptStored.value;
     const requestStored = await readContract(
-      entry.publication_request_cid, 'publication_request',
+      entry.publication_request_cid, 'publication_request', readOriginal,
     );
     if (attempt.publication_request_cid !== entry.publication_request_cid ||
         attempt.run_definition_cid !== entry.run_definition_cid) {
@@ -4759,7 +4770,7 @@ async function openOriginalLocalPublicationStore(
   // chain; the Store confirms its public bodies and private physical holdings.
   // A caller cannot use this result as an apply or commit permit.
   const inspectEffectfulStoredEvidence = async ({index, chain, preview,
-    receipts, privateBinding, effectSources}) => {
+    receipts, privateBinding, effectSources}, readOriginal = readSemanticOriginal) => {
     active();
     if (typeof contractControl.effectfulCommitValid !== 'function' ||
         typeof contractControl.effectPrivateEvidenceBinding !== 'function' ||
@@ -4791,10 +4802,10 @@ async function openOriginalLocalPublicationStore(
     }
     const entry = parseContract(admittedIndex);
     const request = (await readContract(
-      entry.publication_request_cid, 'publication_request',
+      entry.publication_request_cid, 'publication_request', readOriginal,
     )).contract;
     const attempt = (await readContract(
-      entry.publication_attempt_cid, 'publication_attempt',
+      entry.publication_attempt_cid, 'publication_attempt', readOriginal,
     )).contract;
     const finalReceipt = admitContract('run_receipt', receipts.finalWire);
     const setReceipt = admitContract(
@@ -4811,7 +4822,7 @@ async function openOriginalLocalPublicationStore(
       if (!exactKeys(contract, [
         'name', 'identityField', 'identity', 'wire',
       ]) || !cidPattern.test(contract.identity) ||
-          !(await readSemanticBytes(contract.identity)).equals(
+          !(await readOriginal(contract.identity)).bytes.equals(
             Buffer.from(contract.wire, 'utf8'))) {
         fail('EffectfulCommitEvidenceMismatch');
       }
@@ -4856,15 +4867,15 @@ async function openOriginalLocalPublicationStore(
         fail('EffectfulSourceHoldingUnavailable');
       }
       const artifact = (await readContract(
-        artifactCid, 'effect_source_artifact',
+        artifactCid, 'effect_source_artifact', readOriginal,
       )).value;
-      await readSemanticBytes(artifact.result_schema_cid);
+      await readOriginal(artifact.result_schema_cid);
       sourceArtifactCids.push(artifactCid);
       sourceSchemaCids.push(artifact.result_schema_cid);
       await commitPhysicalHolding(holding, []);
     }
     for (const binding of chain.durableBindings) {
-      await verifyDurableResultBinding(binding);
+      await verifyDurableResultBinding(binding, readOriginal);
     }
     let captureHoldingCid;
     let captureRecordHoldingCid;
@@ -4991,12 +5002,23 @@ async function openOriginalLocalPublicationStore(
     ]) {
       if (!required.has(cid)) fail('IncompletePublicationCommitInventory');
     }
-    for (const cid of required) await readSemanticBytes(cid);
+    // This is the existing serialized commit operation, not a Store-wide
+    // cache or authority. Its private bytes never escape to a public caller.
+    // Share successful acquisition/close facts across the pure evidence and
+    // metadata-inventory phases; a new operation acquires new originals.
+    const semanticOriginals = new Map();
+    const readOriginal = (cid, includeNative = true) => {
+      if (!semanticOriginals.has(cid)) {
+        semanticOriginals.set(cid, readSemanticOriginal(cid, includeNative));
+      }
+      return semanticOriginals.get(cid);
+    };
+    for (const cid of required) await readOriginal(cid);
     let boundPhysicalCids;
     let physicalHoldingCids = [];
     if (effectfulEvidence === undefined) {
       boundPhysicalCids = await verifyCommitEvidence(
-        admitted, entry, suppliedEvidence, required,
+        admitted, entry, suppliedEvidence, required, readOriginal,
       );
       physicalHoldingCids = [...await confirmCapturedContentHoldings(
         suppliedEvidence.capturedRun, suppliedEvidence.runDefinition)];
@@ -5006,7 +5028,7 @@ async function openOriginalLocalPublicationStore(
       }
       const inspected = await inspectEffectfulStoredEvidence({
         ...effectfulEvidence, index: admitted,
-      });
+      }, readOriginal);
       for (const cid of [
         ...inspected.publicContractCids,
         ...inspected.sourceArtifactCids,
@@ -5018,7 +5040,7 @@ async function openOriginalLocalPublicationStore(
       }
       boundPhysicalCids = [];
       for (const binding of suppliedEvidence.durableBindings) {
-        const verified = await verifyDurableResultBinding(binding);
+        const verified = await verifyDurableResultBinding(binding, readOriginal);
         boundPhysicalCids.push(verified.binding.material_generation_cid);
       }
       physicalHoldingCids = [
@@ -5073,7 +5095,7 @@ async function openOriginalLocalPublicationStore(
         for (const bindingCid of
           existingCommit.durable_result_binding_cids) {
           const binding = (await readContract(
-            bindingCid, 'durable_result_binding',
+            bindingCid, 'durable_result_binding', readOriginal,
           )).value;
           directlyRequired.push(binding.result_schema_cid);
         }
@@ -5091,7 +5113,7 @@ async function openOriginalLocalPublicationStore(
       async stage() {
         await putPublicationContract('public_index_entry', admitted.wire);
         const inventoryContractObjects = await bindMetadataContractObjects(
-          inventorySemanticCids,
+          inventorySemanticCids, readOriginal,
         );
         await ensureMetadataInventory(Object.freeze({
           version: 'actql-local-publication-metadata-inventory/0.1',
@@ -5725,19 +5747,21 @@ async function openOriginalLocalPublicationStore(
     return Object.freeze([...collected].sort());
   };
 
-  const bindMetadataContractObjects = async contractCids => {
+  const bindMetadataContractObjects = async (contractCids, readOriginal = readSemanticOriginal) => {
     const objects = [];
     for (const semanticCid of contractCids) {
-      if(deliveryIndex?.contract(semanticCid) !== undefined) {
+      const original = await readOriginal(semanticCid);
+      if(original.native !== undefined) {
         try {await lstat(contractPath(semanticCid));}
         catch(error) {if(error?.code==='ENOENT') continue; throw error;}
         // Only an independently present real file enters the physical-file
         // inventory. Native body identity is never a fabricated file/ACK.
       }
-      const bytes = await readSemanticBytes(semanticCid);
-      const physicalCid = `sha256:${createHash('sha256')
+      const bytes = original.bytes;
+      const physicalCid = original.physicalCid ?? `sha256:${createHash('sha256')
         .update(bytes).digest('hex')}`;
-      const physical = await verifyObject(physicalCid);
+      const physical = original.physicalCid === undefined
+        ? await verifyObject(physicalCid) : {cid: physicalCid, bytes: bytes.byteLength};
       if (physical.bytes !== bytes.byteLength) {
         fail('PublicationContractCorrupt');
       }
