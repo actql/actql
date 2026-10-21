@@ -316,6 +316,24 @@ This metadata index does not change grant/attempt/record wires, authorization,
 Result binding, append transitions, stored public formats or optional delivery
 capabilities. The separate public operation still observes current policy.
 
+### Publication metadata in the same database
+
+The Store also retains new publication metadata groups in this same database,
+instead of separately synchronizing duplicate body files and aliases. Existing
+file originals, Index/schema and file-backed attempt/progress protocols remain
+supported. The native group owns one real durable transaction, not a provisional
+per-body ACK. The existing Store's byte/object limits include native bodies and
+unresolved reservations beside actual file objects. A persisted usage singleton
+changes atomically with those bodies; ordinary open does not enumerate them.
+
+The private inventory identifies native semantic bodies by their complete-body
+digest and byte count, not a fabricated physical-file identity. Shared inventory
+references retain the same row. Last-reference removal changes the row and usage
+in one transaction. A lost reply keeps the same exact put/removal duty; only a
+real same-database confirmation write settles it, never a visible row or another
+Run's operation. Missing adopted storage/counters refuse without reinitializing
+capacity. Payload and original database close ACKs remain separate.
+
 The additive completion layout also retains explicit confirmation of an initial
 native record, including after a terminal successor. The same Store reuses its
 successful original claim/completion ACK. A fresh Store's first explicit record
