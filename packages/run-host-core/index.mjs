@@ -2471,6 +2471,11 @@ function issuedDelivery(method, ...args) {
 // This is a semantic port for the existing common Result access service.
 // The Host still supplies current authorization, trusted time, Store and sink.
 export function openResultDeliveryControl() {
+  const issuedGrantBounds = new WeakMap();
+  const issuedAttempts = new WeakMap();
+  const originalAttempts = new WeakMap();
+  const sameBounds = (first, second) => first.length === second.length &&
+    first.every((value, index) => value === second[index]);
   const limitsOf = limits => {
     const value = publicationLimits(limits);
     return [value.maxWireBytes, value.maxNodes, value.maxDepth];
@@ -2575,12 +2580,14 @@ export function openResultDeliveryControl() {
     },
     issueResultReadGrant(index, manifest, grant, limits) {
       const bounds = limitsOf(limits);
-      return issuedDelivery('clientValuesHostIssueResultReadGrant',
+      const result = issuedDelivery('clientValuesHostIssueResultReadGrant',
         deliveryToken(index), deliveryToken(manifest),
         grant.resultNames, grant.formats, grant.principalId, grant.purpose,
         grant.dataCeilingCid, grant.maxBytes, grant.maxUses,
         grant.expiresAt, grant.authorizationContextCid,
         grant.egressAdmissionCid, ...bounds);
+      issuedGrantBounds.set(result, Object.freeze(bounds));
+      return result;
     },
     resultReadGrantValidAt(grant, observedAt) {
       return owner.clientValuesHostResultReadGrantValidAt(
@@ -2591,10 +2598,47 @@ export function openResultDeliveryControl() {
         deliveryToken(grant), count);
     },
     issueDeliveryAttempt(index, manifest, grant, attempt, limits) {
-      return issuedDelivery('clientValuesHostIssueDeliveryAttempt',
+      const request = Object.freeze({resultName: attempt.resultName,
+        format: attempt.format, attemptId: attempt.attemptId,
+        requestedAt: attempt.requestedAt});
+      const bounds = Object.freeze(limitsOf(limits));
+      const result = issuedDelivery('clientValuesHostIssueDeliveryAttempt',
         deliveryToken(index), deliveryToken(manifest), deliveryToken(grant),
-        attempt.resultName, attempt.format, attempt.attemptId,
-        attempt.requestedAt, ...limitsOf(limits));
+        request.resultName, request.format, request.attemptId,
+        request.requestedAt, ...bounds);
+      const original = Object.freeze({kind: 'issued-delivery-attempt'});
+      const facts = Object.freeze({index, manifest, grant, attempt: result,
+        request, limits: Object.freeze({maxWireBytes: bounds[0],
+          maxNodes: bounds[1], maxDepth: bounds[2]})});
+      issuedAttempts.set(result, {index: deliveryContract(index),
+        manifest: deliveryContract(manifest), grant: deliveryContract(grant),
+        bounds, original});
+      originalAttempts.set(original, facts);
+      return result;
+    },
+    captureIssuedDeliveryAttempt(attempt, index, manifest, grant, limits) {
+      // Nominal lookups precede any view-field access. A valid raw admission
+      // remains compatible, but cannot claim this issuer's captured inputs.
+      deliveryContract(attempt);
+      const actualIndex = deliveryContract(index);
+      const actualManifest = deliveryContract(manifest);
+      const actualGrant = deliveryContract(grant);
+      const captured = issuedAttempts.get(attempt);
+      if (captured === undefined) return undefined;
+      if (captured.index !== actualIndex || captured.manifest !== actualManifest ||
+          captured.grant !== actualGrant) {
+        throw new TypeError('RunHostDeliveryOriginalMismatch');
+      }
+      const bounds = limitsOf(limits);
+      const grantBounds = issuedGrantBounds.get(grant);
+      if (grantBounds === undefined || !sameBounds(bounds, grantBounds) ||
+          !sameBounds(bounds, captured.bounds)) return undefined;
+      return captured.original;
+    },
+    readIssuedDeliveryAttempt(original) {
+      const facts = originalAttempts.get(original);
+      if (facts === undefined) throw new TypeError('ForeignRunHostDeliveryOriginal');
+      return facts;
     },
     deliveryResultDefinitionCid(manifest, attempt) {
       return deliveryResult('clientValuesHostDeliveryResultDefinitionCid',
