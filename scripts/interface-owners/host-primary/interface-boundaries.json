@@ -4448,7 +4448,7 @@
     },
     {
       "module": "adapters/host-node/embedded-local.mjs",
-      "sha256": "ae76c97be9b781aa5c5dc4422e7d715988ffe6d4740d566a5fbbab6fc20c0276",
+      "sha256": "e2c62374c84f9761c00074c853fd329c85a808bd36afdc0e5e79b46f02a5b0ee",
       "exports": [
         "admitOriginalHostRootFormat",
         "assertInitialControlHostPreparation",
@@ -8506,6 +8506,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "// The selected startup captures these exact existing Owner operations from"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The same boundary invokes the installed preparation consumer's captured"
               }
             ],
             "inputsOutputs": [
@@ -8520,6 +8524,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "admitRootFormat(root) {"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "clientProgramPreparationReferences = Object.freeze({owner: prepareSubmit,"
               }
             ],
             "identity": [
@@ -8554,6 +8562,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "return Reflect.apply(hostJournalAdmitRootFormat, hostJournal, [root]);"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "retire: prepareSubmit.retireReferences});"
               }
             ],
             "ownership": [
@@ -8576,6 +8588,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "hostJournalAdmitRootFormat = original.admitRootFormat;"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "let clientProgramPreparationReferences;"
               }
             ],
             "synchronization": [
@@ -8590,6 +8606,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": ": await preparation.admitRootFormat(root);"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "Reflect.apply(consumer.retire, consumer.owner, []);"
               }
             ],
             "failure": [
@@ -8600,6 +8620,10 @@
               {
                 "path": "adapters/host-node/initial-control-shutdown.test.mjs",
                 "anchor": "test('throwing initialization cleanup getters retain the already acquired control holding'"
+              },
+              {
+                "path": "adapters/host-node/embedded-managed-compute-lifecycle.test.mjs",
+                "anchor": "test('Host consumer preparation retains its original release retry and handles earlier initialization', () => {"
               }
             ],
             "cancellation": [
@@ -8610,6 +8634,10 @@
               {
                 "path": "adapters/host-node/embedded-local-lifecycle.test.mjs",
                 "anchor": "test('final close waits in-flight ingress and dispatch without cancelling a Run'"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Pending child cleanup retains the original holder and its same release retry."
               }
             ],
             "resources": [
@@ -8632,6 +8660,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Selected Host root-format admission consumes a one-entry view of that same"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "That consumer drops its retained Source/Effect catalog and installation aliases;"
               }
             ],
             "extension": [
@@ -8642,6 +8674,10 @@
               {
                 "path": "adapters/host-node/installed-project-configuration.mjs",
                 "anchor": "// do not acquire an operational admission by omitting these private inputs."
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "other holders of the pure immutable Environment or manufacture a physical ACK."
               }
             ],
             "verification": [
@@ -8664,6 +8700,10 @@
               {
                 "path": "adapters/host-node/host-journal-selected-constructor.test.mjs",
                 "anchor": "test('actual root-format choice awaits the selected original and preserves the unprepared path'"
+              },
+              {
+                "path": "adapters/host-node/embedded-managed-compute-lifecycle.test.mjs",
+                "anchor": "test('Host consumer preparation retains aliases until original shutdown and releases the captured receiver', async () => {"
               }
             ]
           }
