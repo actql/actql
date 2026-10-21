@@ -21,6 +21,7 @@ import {once} from 'node:events';
 import fsPromises from 'node:fs/promises';
 import {syncBuiltinESMExports} from 'node:module';
 import {DatabaseSync} from 'node:sqlite';
+import {openDeliveryAttemptIndex} from './delivery-attempt-index.mjs';
 import {canonicalCid, createPublicationContractControlFixture} from
   '../host-common/publication-contract-control.fixture.mjs';
 import {openLocalPublicationStore as openActualLocalPublicationStore} from './publication-store.mjs';
@@ -3191,6 +3192,24 @@ test('metadata retirement hides the Run and reclaims its durable chain',
     await store.commitIndex(
       wire(entry), prepared.required, prepared.evidence,
     );
+    // Independently admitted semantic fixtures and the real same-Store native
+    // index exercise retirement; this is not a nominal delivery permission or
+    // a full Host/Common execution fixture.
+    const delivery=deliveryFixture(1);
+    const {result_read_grant_cid:oldGrant,...grantBody}=delivery.grant;
+    delivery.grant=seal('result_read_grant',{...grantBody,run_definition_cid:request.run_definition_cid});
+    const {delivery_attempt_cid:oldAttempt,...attemptBody}=deliveryAttempt(delivery,'native-retirement');
+    const started=seal('delivery_attempt',{...attemptBody,run_definition_cid:request.run_definition_cid});
+    const initial=deliveryRecord(started,0,'streaming',undefined);
+    const native=await openDeliveryAttemptIndex(join(configuration.directory,'delivery-attempts.sqlite3'),
+      {create:false,maxEntries:configuration.maxObjects,maxWireBytes:configuration.maxObjectBytes});
+    try {native.claim({logical_key:JSON.stringify(['namespace-a',cids.scope,request.run_definition_cid,
+      'principal-a','download','answer','native-retirement']),
+    attempt_cid:started.delivery_attempt_cid,grant_cid:delivery.grant.result_read_grant_cid,
+    run_cid:request.run_definition_cid,attempt_wire:wire(started),grant_wire:wire(delivery.grant)},1,
+    wire(initial),initial.delivery_record_cid);} finally {native.close();}
+    assert.equal((await store.latestDeliveryRecord(started.delivery_attempt_cid)).state,'streaming');
+    assert.deepEqual(await readdir(join(configuration.directory,'deliveries')),[]);
     const retiredResult = await store.retireCommittedResult(
       indexKeyFor(request), request.inventory[0].result_definition_cid,
     );
@@ -3199,6 +3218,15 @@ test('metadata retirement hides the Run and reclaims its durable chain',
       indexKeyFor(request), '2026-09-18T04:00:00.000Z',
     );
     assert.equal(retiredMetadata.cleanup.status().pending, false);
+    for(const [cid,name] of [[started.delivery_attempt_cid,'delivery_attempt'],
+      [delivery.grant.result_read_grant_cid,'result_read_grant'],[initial.delivery_record_cid,'delivery_record']]) {
+      await assert.rejects(store.readPublicationContract(cid,name),code('PublicationContractMissing'));
+    }
+    const retiredDatabase=new DatabaseSync(join(configuration.directory,'delivery-attempts.sqlite3'),{readOnly:true});
+    try {
+      assert.equal(retiredDatabase.prepare('SELECT count(*) AS n FROM attempts WHERE run_cid=?').get(request.run_definition_cid).n,0);
+      assert.equal(retiredDatabase.prepare('SELECT count(*) AS n FROM initial_records').get().n,0);
+    } finally {retiredDatabase.close();}
     const deletionNames = await readdir(join(
       configuration.directory, 'metadata-deletions',
     ));

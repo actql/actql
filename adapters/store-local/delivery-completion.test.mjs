@@ -151,6 +151,25 @@ test('delivery END rejects copied originals and non-success records before writi
   assert.equal((await store.latestDeliveryRecord(root.attempt.identity)).state, 'streaming');
 });
 
+test('native START retains the first subsequent record directory ACK after a lost reply',async t=>{
+  let armed=false, parentAcks=0;
+  const f=await fixture(t,(path,phase)=>{
+    if(armed && phase==='after' && path===join(f.directory,'deliveries')) {
+      parentAcks++;
+      if(parentAcks===1) throw Object.assign(new Error('lost record directory ACK'),{code:'EIO'});
+    }
+  },false);
+  const original=f.control.captureIssuedDeliveryAttempt(f.root.attempt,f.root.index,
+    f.root.manifest,f.root.grant,limits);
+  await f.store.beginDeliveryAttempt(original,f.root.streaming);
+  armed=true;
+  await assert.rejects(f.store.appendDeliveryCompletion(f.root.attempt,f.root.receipt,f.root.succeeded),{code:'EIO'});
+  assert.equal((await f.store.latestDeliveryRecord(f.root.attempt.identity)).state,'streaming');
+  await f.store.appendDeliveryCompletion(f.root.attempt,f.root.receipt,f.root.succeeded);
+  assert.equal(parentAcks,2,'the same visible directory is not a durability ACK');
+  assert.equal((await f.store.latestDeliveryRecord(f.root.attempt.identity)).state,'succeeded');
+});
+
 function deliveryOptions(f, sink, overrides = {}) {
   const {store, root, control} = f;
   // Physical END persistence uses the real Store/Common. Publication lookup
@@ -266,7 +285,50 @@ test('delivery without joint operations retains the existing receipt then record
   assert.deepEqual(order, ['streaming', 'receipt', 'succeeded']);
 });
 
-test('delivery START shares semantic and attempt directory ACKs before any row exposure', async t => {
+test('native START metadata commits without duplicate contract files or directory ACKs', async t => {
+  const f = await fixture(t,undefined,false);
+  const original = f.control.captureIssuedDeliveryAttempt(f.root.attempt,f.root.index,
+    f.root.manifest,f.root.grant,limits);
+  let fileSyncs=0;
+  const handle=await open('/dev/null','r'), prototype=Object.getPrototypeOf(handle);
+  const sync=prototype.sync;
+  await handle.close();
+  t.mock.method(prototype,'sync',async function() {
+    if((await this.stat()).isFile()) fileSyncs++;
+    return Reflect.apply(sync,this,[]);
+  });
+  await f.store.beginDeliveryAttempt(original,f.root.streaming);
+  assert.equal(fileSyncs,0,'the native committed metadata is the original, not another file preparation');
+  assert.deepEqual(f.syncs,[]);
+  for(const name of ['objects','contracts','deliveries','staging']) {
+    assert.deepEqual(await readdir(join(f.directory,name)),[]);
+  }
+  for(const contract of [f.root.attempt,f.root.grant,f.root.streaming]) {
+    assert.equal((await f.store.readPublicationContract(contract.identity,contract.name)).wire,contract.wire);
+  }
+  await f.store.close();
+  const reopened=await f.reopen();
+  f.syncs.length=0;
+  fileSyncs=0;
+  const parse=JSON.parse;
+  let initialParses=0;
+  t.mock.method(JSON,'parse',function(wire,...rest) {
+    if(wire===f.root.streaming.wire) initialParses++;
+    return Reflect.apply(parse,this,[wire,...rest]);
+  });
+  assert.equal((await reopened.lookupDeliveryAttempt({indexKey:{namespaceId:'namespace',
+    authorityScopeCid:cid('a'),runDefinitionCid:cid('9')},principalId:'principal',
+  purpose:'download',resultName:'answer',attemptId:'completion'})).record.state,'streaming');
+  assert.equal(initialParses,1,'same selected native birth is parsed once in this operation');
+  assert.equal((await reopened.latestDeliveryRecord(f.root.attempt.identity)).state,'streaming');
+  assert.equal((await reopened.beginDeliveryAttempt(original,f.root.streaming)).created,false);
+  assert.deepEqual(f.syncs,[],'targeted native reads do not recreate obsolete aliases');
+  await reopened.appendDeliveryCompletion(f.root.attempt,f.root.receipt,f.root.succeeded);
+  assert.equal(fileSyncs,2,'the distinct END payloads retain their real file ACKs');
+  assert.equal((await reopened.latestDeliveryRecord(f.root.attempt.identity)).state,'succeeded');
+});
+
+test('delivery START uses native metadata durability before any row exposure', async t => {
   const f = await fixture(t, undefined, false);
   const {store, root, control, directory, syncs, admissions} = f;
   const original = control.captureIssuedDeliveryAttempt?.(root.attempt, root.index, root.manifest, root.grant, limits);
@@ -292,12 +354,12 @@ test('delivery START shares semantic and attempt directory ACKs before any row e
     staging: syncs.filter(path => path.startsWith(join(directory, 'deliveries', '.staging-'))).length,
     deliveries: syncs.filter(path => path === join(directory, 'deliveries')).length,
     attempt: syncs.filter(path => path === join(directory, 'deliveries', root.attempt.identity.slice(7))).length}));
-  assert.equal(syncs.filter(path => path === join(directory, 'objects')).length, 1);
-  assert.equal(syncs.filter(path => path === join(directory, 'contracts')).length, 1);
-  assert.equal(syncs.filter(path => path === join(directory, 'deliveries')).length, 1);
-  assert.equal(syncs.filter(path => path.startsWith(join(directory, 'deliveries', '.staging-'))).length, 1);
+  assert.equal(syncs.filter(path => path === join(directory, 'objects')).length, 0);
+  assert.equal(syncs.filter(path => path === join(directory, 'contracts')).length, 0);
+  assert.equal(syncs.filter(path => path === join(directory, 'deliveries')).length, 0);
+  assert.equal(syncs.filter(path => path.startsWith(join(directory, 'deliveries', '.staging-'))).length, 0);
   assert.equal(syncs.filter(path => path === join(directory, 'deliveries', root.attempt.identity.slice(7))).length, 0);
-  assert.equal(fileSyncs, 3, 'each real immutable payload still receives its own file ACK');
+  assert.equal(fileSyncs, 0, 'metadata has one native original instead of three duplicate payload files');
   for (const contract of [root.grant, root.attempt, root.streaming]) {
     assert.equal(admissions.filter(identity => identity === contract.identity).length, 0);
   }
@@ -350,47 +412,21 @@ test('delivery START refuses copied or foreign originals and a mismatched initia
   assert.deepEqual(syncs, []);
 });
 
-test('delivery START keeps the third original writer pending without retaining closed earlier staging files', async t => {
+test('native START acquires no redundant semantic writer', async t => {
   const f = await fixture(t, undefined, false);
   const {store, root, control} = f;
   const original = control.captureIssuedDeliveryAttempt(root.attempt, root.index, root.manifest, root.grant, limits);
   const originalOpen = fs.open;
-  let held, refusing = true;
-  const files = new Set();
   fs.open = async (...args) => {
-    const handle = await Reflect.apply(originalOpen, fs, args);
     if (typeof args[0] === 'string' && args[0].startsWith(join(f.directory, 'staging', 'object-'))) {
-      files.add(handle);
-      if (files.size === 3) {
-        held = handle;
-        const originalClose = handle.close;
-        handle.close = async function() {
-          assert.equal(this, held);
-          if (refusing) return false;
-          return Reflect.apply(originalClose, held, []);
-        };
-      }
+      assert.fail('native metadata must not acquire another semantic payload FD');
     }
-    return handle;
+    return Reflect.apply(originalOpen, fs, args);
   };
   syncBuiltinESMExports();
   t.after(() => {fs.open = originalOpen; syncBuiltinESMExports();});
-  let failure;
-  try {
-    await assert.rejects(store.beginDeliveryAttempt(original, root.streaming), error => {
-      failure = error;
-      return error.cleanupPending === true;
-    });
-    assert.equal(files.size, 3);
-    assert.equal(failure.cleanupHandle.status().pending, true);
-    assert.equal((await readdir(join(f.directory, 'staging'))).length, 1);
-    await assert.rejects(store.beginDeliveryAttempt(original, root.streaming), {code: 'ResultDeliveryAttemptUnresolved'});
-  } finally {
-    refusing = false;
-    if (failure?.cleanupHandle !== undefined) assert.equal((await failure.cleanupHandle.retry()).pending, false);
-  }
+  assert.equal((await store.beginDeliveryAttempt(original, root.streaming)).created,true);
   assert.equal((await readdir(join(f.directory, 'staging'))).length, 0);
-  assert.equal(files.size, 3, 'cleanup never allocates replacement payload writers');
 });
 
 test('actual delivery caller captures START and does not append another initial record', async t => {
@@ -455,28 +491,22 @@ test('current Deny after joint START still prevents the first protected row expo
   assert.equal((await f.store.latestDeliveryRecord(f.root.attempt.identity)).state, 'failed');
 });
 
-test('lost START directory ACK reply keeps its same attempt unresolved without sending or refunding', async t => {
+test('native START does not invoke obsolete file representation ACK callbacks', async t => {
   let armed = false;
   const f = await fixture(t, (path, phase) => {
-    if (armed && phase === 'after' && path === join(f.directory, 'deliveries')) {
+    if (armed) {
       throw Object.assign(new Error('lost START ACK reply'), {code: 'EIO'});
     }
   }, false);
-  let writes = 0;
-  const sink = {async write(bytes) {writes++; return {confirmedBytes: bytes.byteLength};},
-    async finish() {return {confirmed: true};}};
-  const {options} = deliveryOptions(f, sink);
+  const original = f.control.captureIssuedDeliveryAttempt(f.root.attempt,f.root.index,
+    f.root.manifest,f.root.grant,limits);
   armed = true;
-  await assert.rejects(deliverPublishedResult(options), {code: 'EIO'});
-  assert.equal(writes, 0);
-  await assert.rejects(deliverPublishedResult(options), {code: 'ResultDeliveryAttemptUnresolved'});
+  assert.equal((await f.store.beginDeliveryAttempt(original,f.root.streaming)).created,true);
+  assert.equal((await f.store.beginDeliveryAttempt(original,f.root.streaming)).created,false);
   armed = false;
   await f.store.close();
   const recovered = await f.reopen();
-  const next = deliveryOptions({...f, store: recovered}, sink).options;
-  await assert.rejects(deliverPublishedResult(next), {code: 'ResultDeliveryAttemptUnresolved'});
   assert.equal((await recovered.latestDeliveryRecord(f.root.attempt.identity)).state, 'streaming');
-  assert.equal(writes, 0);
 });
 
 test('joint END retains a lost final ACK reply without reissuing receipt or payload', async t => {
@@ -533,7 +563,7 @@ test('actual joint START uses one native claim COMMIT and restores only its sele
   try {
     database.prepare('INSERT INTO attempts VALUES(?,?,?,?,?,?,1)').run('unrelated',cid('5'),
       cid('6'),cid('7'),'not an admitted attempt','not an admitted grant');
-    database.prepare('INSERT INTO initial_records VALUES(?,?)').run(cid('5'),'not an admitted record');
+    database.prepare('INSERT INTO initial_records(attempt_cid,initial_wire) VALUES(?,?)').run(cid('5'),'not an admitted record');
     database.exec('UPDATE coverage SET entries=entries+1 WHERE id=1');
   } finally {database.close();}
   commits = 0;
@@ -599,7 +629,7 @@ test('targeted joint START recovery rejects a mismatched retained initial record
   assert.deepEqual(f.syncs,[]);
 });
 
-test('joint START cold recovery owns one file preparation through reentry', async t => {
+test('legacy joint START cold recovery owns one file preparation through reentry', async t => {
   let reopened, armed = false, entries = 0;
   const query = {indexKey: {namespaceId:'namespace',authorityScopeCid:cid('a'),
     runDefinitionCid:cid('9')},principalId:'principal',purpose:'download',
@@ -615,6 +645,10 @@ test('joint START cold recovery owns one file preparation through reentry', asyn
     f.root.manifest,f.root.grant,limits);
   await f.store.beginDeliveryAttempt(original,f.root.streaming);
   await f.store.close();
+  // Retain the pre-native-representation protocol on this newly owned fixture.
+  const database = new DatabaseSync(join(f.directory,'delivery-attempts.sqlite3'));
+  try {database.prepare('UPDATE initial_records SET initial_cid=NULL WHERE attempt_cid=?').run(f.root.attempt.identity);}
+  finally {database.close();}
   reopened = await f.reopen();
   armed = true;
   assert.equal((await reopened.lookupDeliveryAttempt(query)).record.state,'streaming');

@@ -63,10 +63,13 @@ test('joint START retains its initial original in one native claim and no open-t
     run_cid:cid('3'),attempt_wire:'{"attempt":1}',grant_wire:'{"grant":1}'};
   const initialWire = '{"initial":1}';
   armed = true;
-  assert.equal(index.claim(row,1,initialWire).created,true);
+  assert.equal(index.claim(row,1,initialWire,cid('8')).created,true);
   assert.equal(commits,1);
   assert.deepEqual(index.pending(),[]);
   assert.equal(index.lookup(row.logical_key).initial_wire,initialWire);
+  assert.deepEqual(index.contract(row.attempt_cid),{name:'delivery_attempt',wire:row.attempt_wire});
+  assert.deepEqual(index.contract(row.grant_cid),{name:'result_read_grant',wire:row.grant_wire});
+  assert.deepEqual(index.contract(cid('8')),{name:'delivery_record',wire:initialWire});
   assert.equal(index.claim(row,1,initialWire).created,false);
   assert.equal(commits,1,'same claim is not another durable mutation');
   index.close();
@@ -77,6 +80,7 @@ test('joint START retains its initial original in one native claim and no open-t
   assert.throws(() => index.claim({...row,logical_key:'two',attempt_cid:cid('4')},1,initialWire),
     {code:'DeliveryGrantUseLimit'});
   index.forgetRun(row.run_cid);
+  for(const id of [row.attempt_cid,row.grant_cid,cid('8')]) assert.equal(index.contract(id),undefined);
   assert.equal(index.claim({...row,logical_key:'two',attempt_cid:cid('4')},1,initialWire).created,true);
 });
 
@@ -116,4 +120,26 @@ test('adopted initial-record coverage is not recreated from a missing table', as
   try {database.exec('DROP TABLE initial_records');} finally {database.close();}
   await assert.rejects(openDeliveryAttemptIndex(path,{create:false,maxEntries:2,maxWireBytes:4096}),
     {code:'DeliveryAttemptIndexUnavailable'});
+});
+
+test('version two initial records remain file-backed after additive native-original upgrade',async t=>{
+  const directory=await mkdtemp(join(tmpdir(),'actql-delivery-index-v2-'));
+  let index;
+  t.after(async()=>{index?.close();await rm(directory,{recursive:true});});
+  const path=join(directory,'index.sqlite3'), options={create:false,maxEntries:2,maxWireBytes:4096};
+  index=await openDeliveryAttemptIndex(path,{...options,create:true});
+  index.migrate([]);
+  const cid=value=>'sha256:'+value.repeat(64);
+  const row={logical_key:'v2',attempt_cid:cid('1'),grant_cid:cid('2'),run_cid:cid('3'),attempt_wire:'{}',grant_wire:'{}'};
+  index.claim(row,1,'{"initial":1}');
+  index.close();
+  const database=new DatabaseSync(path);
+  try {database.exec(`DROP INDEX initial_record_identity;
+    ALTER TABLE initial_records DROP COLUMN initial_cid; UPDATE coverage SET version=2 WHERE id=1`);}
+  finally {database.close();}
+  index=await openDeliveryAttemptIndex(path,options);
+  assert.equal(index.lookup(row.logical_key).initial_wire,'{"initial":1}');
+  assert.equal(index.lookup(row.logical_key).initial_cid,null);
+  assert.equal(index.contract(row.attempt_cid),undefined,'old original still selects its file protocol');
+  assert.equal(index.claim(row,1).created,false);
 });

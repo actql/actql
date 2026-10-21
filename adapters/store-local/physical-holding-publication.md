@@ -191,26 +191,31 @@ view, equal-CID admission or another facade's original does not acquire that
 custody. These facts are not an authorization or a capacity original.
 
 When the Store supports joint start and the caller has that original, the
-existing delivery queue durably claims the logical key and grant use, then
-publishes Grant, Attempt and initial streaming record together. Each of the
-three actual payload FDs still file-syncs and closes. They share one objects
-directory ACK and one contracts directory ACK. Attempt and record links are
-installed in the same original staging directory before its ACK, rename and
-containing deliveries-directory ACK; no separate initial-record ACK is needed.
-Only then is file preparation ready and may the caller read or
-expose rows. Existing append-only names and wire identities are unchanged.
+existing delivery queue commits the logical key, grant use, exact Grant and
+Attempt wires and initial streaming record together in the same Store SQLite
+transaction. That committed database is the durable original of these metadata
+bodies; joint start does not also create three contract files and aliases.
+The actual native COMMIT acknowledgement precedes row exposure. First selected
+reads still admit each exact immutable wire and verify its CID and original
+tuple. Wire identities, grant uniqueness and use quotas are unchanged.
 
-A partial start preserves the same claim without refunding its use. The joint
-claim also retains the exact initial streaming record. Its file-readiness
-state is local progress, not another logical durable transition: no second
-SQLite COMMIT is required only to mark already-acknowledged files ready.
-Recovery handles only that claim's original staging/target aliases. An already
-installed streaming record remains unresolved and never starts another stream;
-absence is not permission to resend. Pending physical writers retain their
-original close and cleanup before Store retirement. No new prepared holder
-escapes, and actual object count/byte and per-body bounds remain applicable to
-the three-body group. The optional function is captured before callbacks;
-Stores or issuers without this connection retain separate create/append.
+A lost COMMIT reply remains Unknown and never refunds a use or authorizes
+another stream. A later Store observes only the selected original claim; its
+retained streaming record remains unresolved, not permission to resend.
+The native index bounds entry count and all three wire extents. Ordinary
+payload data and subsequent record/receipt files retain their real file ACKs.
+The first subsequent record creates its actual alias directory and confirms
+its parent before publishing that record; a visible mkdir does not acknowledge
+a failed parent sync. The optional function is captured before callbacks.
+Stores or issuers without this connection retain separate create/append and
+their actual writer/close duties.
+
+Metadata retirement validates only the selected Run's native bodies and removes
+them through the same indexed Run deletion transaction. Its physical-file
+inventory contains only real independently present files, never synthetic
+object identities or ACKs for SQLite rows. Retirement needs no temporary shadow
+files or spare object-file quota merely to remove native metadata. Existing
+deletion intent, idempotent Unknown recovery and actual native close remain.
 
 ## Joint delivery completion
 
@@ -266,10 +271,12 @@ false absence. A legacy pending claim retains its exact attempt/grant wires and
 use quota; recovery installs those same immutable originals and their final
 directory acknowledgements before marking the row ready. Joint START claims
 retain the initial streaming wire in that same claim transaction. Their
-progress does not require a second native COMMIT. A new Store lifetime recovers
-only the requested joint START, including the same initial record, before
-reporting its files ready. Failure or reentry within the current preparation
-lifetime remains unresolved; file visibility does not substitute for an ACK.
+new native representation also indexes the initial CID; older null-CID rows
+retain their original file-backed recovery protocol. The additive upgrade does
+not scan or parse their historical wires. A new Store reads only the requested
+native START, without reconstructing redundant aliases. Legacy preparation
+failure or reentry remains unresolved; file visibility does not substitute for
+an actual required ACK.
 The additive private index upgrade records its version transactionally; a
 missing adopted initial-record table refuses rather than recreating coverage.
 This is private lookup metadata, not a public wire or contract-version change.

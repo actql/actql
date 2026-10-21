@@ -4091,7 +4091,7 @@
     {
       "module": "adapters/store-local/delivery-attempt-index.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "979b16925be32d13d27ecf9deb04709a123497cdc28baea21fed9bdc751f17e4",
+      "sha256": "4633e79841b024026111bf0acb00bfbf1f55e1160ccfe31ee5159a40b9fce5aa",
       "exports": [
         "openDeliveryAttemptIndex"
       ],
@@ -4126,7 +4126,8 @@
           "parameters": [
             "row",
             "isReady",
-            "initialWire"
+            "initialWire",
+            "initialCid"
           ],
           "async": false
         },
@@ -4155,17 +4156,32 @@
           "async": false
         },
         {
+          "name": "openDeliveryAttemptIndex/init:attempt/init:attempt",
+          "parameters": [
+            "attemptCid"
+          ],
+          "async": false
+        },
+        {
           "name": "openDeliveryAttemptIndex/init:claim/init:claim",
           "parameters": [
             "row",
             "maxUses",
-            "initialWire"
+            "initialWire",
+            "initialCid"
           ],
           "async": false
         },
         {
           "name": "openDeliveryAttemptIndex/init:claim/init:claim/init:claim",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openDeliveryAttemptIndex/init:contract/init:contract",
+          "parameters": [
+            "semanticCid"
+          ],
           "async": false
         },
         {
@@ -4223,6 +4239,13 @@
           "async": false
         },
         {
+          "name": "openDeliveryAttemptIndex/init:run/init:run",
+          "parameters": [
+            "runCid"
+          ],
+          "async": false
+        },
+        {
           "name": "openDeliveryAttemptIndex/openDeliveryAttemptIndex",
           "parameters": [],
           "async": false
@@ -4230,6 +4253,18 @@
         {
           "name": "openDeliveryAttemptIndex/openDeliveryAttemptIndex#2",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openDeliveryAttemptIndex/openDeliveryAttemptIndex#3",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openDeliveryAttemptIndex/openDeliveryAttemptIndex#4",
+          "parameters": [
+            "row"
+          ],
           "async": false
         },
         {
@@ -4345,8 +4380,10 @@
             "openDeliveryAttemptIndex/close/close",
             "openDeliveryAttemptIndex/copy/copy",
             "openDeliveryAttemptIndex/exec/exec",
+            "openDeliveryAttemptIndex/init:attempt/init:attempt",
             "openDeliveryAttemptIndex/init:claim/init:claim",
             "openDeliveryAttemptIndex/init:claim/init:claim/init:claim",
+            "openDeliveryAttemptIndex/init:contract/init:contract",
             "openDeliveryAttemptIndex/init:finish/init:finish",
             "openDeliveryAttemptIndex/init:finish/init:finish/init:finish",
             "openDeliveryAttemptIndex/init:forgetRun/init:forgetRun",
@@ -4356,8 +4393,11 @@
             "openDeliveryAttemptIndex/init:migrate/init:migrate/init:migrate",
             "openDeliveryAttemptIndex/init:needsMigration/init:needsMigration",
             "openDeliveryAttemptIndex/init:pending/init:pending",
+            "openDeliveryAttemptIndex/init:run/init:run",
             "openDeliveryAttemptIndex/openDeliveryAttemptIndex",
             "openDeliveryAttemptIndex/openDeliveryAttemptIndex#2",
+            "openDeliveryAttemptIndex/openDeliveryAttemptIndex#3",
+            "openDeliveryAttemptIndex/openDeliveryAttemptIndex#4",
             "openDeliveryAttemptIndex/prepare/prepare",
             "openDeliveryAttemptIndex/prepare/prepare/prepare",
             "openDeliveryAttemptIndex/prepare/prepare/prepare#2",
@@ -4388,6 +4428,10 @@
               {
                 "path": "adapters/store-local/delivery-attempt-index.mjs",
                 "anchor": "export async function openDeliveryAttemptIndex(path, {create, maxEntries, maxWireBytes})"
+              },
+              {
+                "path": "adapters/store-local/delivery-attempt-index.mjs",
+                "anchor": "contract(semanticCid) {"
               }
             ],
             "identity": [
@@ -4440,6 +4484,10 @@
               {
                 "path": "adapters/store-local/delivery-attempt-index.test.mjs",
                 "anchor": "joint START retains its initial original in one native claim and no open-time pending scan"
+              },
+              {
+                "path": "adapters/store-local/delivery-completion.test.mjs",
+                "anchor": "native START metadata commits without duplicate contract files or directory ACKs"
               }
             ]
           }
@@ -4449,7 +4497,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "207dafec816731464472d2df6a6ee427a09cf991ad0060ea4ecbbcc42a3c7201",
+      "sha256": "db1fadb6fc7827eb83610854f20686d613602c645e28c01d7e1df8e58fe1040a",
       "exports": [
         "PublicationStoreError",
         "assertOriginalLocalPublicationStoreFacilityCurrent",
@@ -4639,6 +4687,29 @@
           "parameters": [
             "name",
             "wire"
+          ],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/admitDeliveryClaim/admitDeliveryClaim",
+          "parameters": [
+            "row",
+            "suppliedAttempt",
+            "suppliedGrant"
+          ],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/admitDeliveryClaim/admitDeliveryClaim/admitDeliveryClaim",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/admitDeliveryClaim/admitDeliveryClaim/admitDeliveryClaim#2",
+          "parameters": [
+            "result"
           ],
           "async": false
         },
@@ -6021,6 +6092,15 @@
           "async": false
         },
         {
+          "name": "openOriginalLocalPublicationStore/nativeDeliveryContract/nativeDeliveryContract",
+          "parameters": [
+            "cid",
+            "name",
+            "retained"
+          ],
+          "async": false
+        },
+        {
           "name": "openOriginalLocalPublicationStore/objectPath/objectPath",
           "parameters": [
             "cid"
@@ -6555,7 +6635,9 @@
           "name": "openOriginalLocalPublicationStore/readLatestDeliveryRecordContract/readLatestDeliveryRecordContract",
           "parameters": [
             "attemptCid",
-            "original"
+            "original",
+            "retainedBirth",
+            "retainedBirthValue"
           ],
           "async": true
         },
@@ -6780,7 +6862,8 @@
         {
           "name": "openOriginalLocalPublicationStore/readSemanticBytes/readSemanticBytes",
           "parameters": [
-            "cid"
+            "cid",
+            "includeNative"
           ],
           "async": true
         },
@@ -6980,20 +7063,6 @@
             "row"
           ],
           "async": true
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/restoreDeliveryClaim/restoreDeliveryClaim/restoreDeliveryClaim",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/restoreDeliveryClaim/restoreDeliveryClaim/restoreDeliveryClaim#2",
-          "parameters": [
-            "result"
-          ],
-          "async": false
         },
         {
           "name": "openOriginalLocalPublicationStore/resultDeletionDirectory/resultDeletionDirectory",
@@ -9004,7 +9073,7 @@
             "identity": [
               {
                 "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "await putDeliveryContracts(grantContract,admitted,initial?.streaming);"
+                "anchor": "const selected = deliveryIndex.claim(row,grant.max_uses,initial?.streaming.wire,initial?.streaming.identity);"
               }
             ],
             "ownership": [
@@ -9209,6 +9278,9 @@
         },
         {
           "operations": [
+            "openOriginalLocalPublicationStore/admitDeliveryClaim/admitDeliveryClaim",
+            "openOriginalLocalPublicationStore/admitDeliveryClaim/admitDeliveryClaim/admitDeliveryClaim",
+            "openOriginalLocalPublicationStore/admitDeliveryClaim/admitDeliveryClaim/admitDeliveryClaim#2",
             "openOriginalLocalPublicationStore/beginDeliveryAttempt/beginDeliveryAttempt",
             "openOriginalLocalPublicationStore/beginDeliveryAttempt/beginDeliveryAttempt/beginDeliveryAttempt",
             "openOriginalLocalPublicationStore/createAdmittedDeliveryAttempt/createAdmittedDeliveryAttempt",
@@ -9230,10 +9302,9 @@
             "openOriginalLocalPublicationStore/installDeliveryAttempt/installDeliveryAttempt/init:retry/init:retry/init:retry#2",
             "openOriginalLocalPublicationStore/installDeliveryAttempt/installDeliveryAttempt/linkInitialRecord/linkInitialRecord",
             "openOriginalLocalPublicationStore/installDeliveryAttempt/installDeliveryAttempt/status/status",
+            "openOriginalLocalPublicationStore/nativeDeliveryContract/nativeDeliveryContract",
             "openOriginalLocalPublicationStore/readDeliveryAttemptContract/readDeliveryAttemptContract",
             "openOriginalLocalPublicationStore/restoreDeliveryClaim/restoreDeliveryClaim",
-            "openOriginalLocalPublicationStore/restoreDeliveryClaim/restoreDeliveryClaim/restoreDeliveryClaim",
-            "openOriginalLocalPublicationStore/restoreDeliveryClaim/restoreDeliveryClaim/restoreDeliveryClaim#2",
             "openOriginalLocalPublicationStore/selectDeliveryAttempt/selectDeliveryAttempt",
             "openOriginalLocalPublicationStore/selectDeliveryAttempt/selectDeliveryAttempt/selectDeliveryAttempt"
           ],
@@ -9249,6 +9320,10 @@
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "const deliveryLogicalKey = query => JSON.stringify(["
+              },
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "const nativeDeliveryContract = (cid, name, retained) => {"
               }
             ],
             "identity": [
@@ -9312,11 +9387,15 @@
               },
               {
                 "path": "adapters/store-local/delivery-completion.test.mjs",
-                "anchor": "delivery START shares semantic and attempt directory ACKs before any row exposure"
+                "anchor": "delivery START uses native metadata durability before any row exposure"
               },
               {
                 "path": "adapters/store-local/delivery-completion.test.mjs",
                 "anchor": "lost joint claim COMMIT reply preserves quota and initial streaming without sending"
+              },
+              {
+                "path": "adapters/store-local/delivery-completion.test.mjs",
+                "anchor": "native START metadata commits without duplicate contract files or directory ACKs"
               }
             ]
           }
