@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import test from 'node:test';
-import {execFileSync} from 'node:child_process';
+import {spawnSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
 import {validRunState} from '@actql/client-wire';
 import {admitEnvironment, prepareEffect, compileEffect, prepareEffectRequest,
@@ -149,11 +149,13 @@ test('Effect projection reduces durable progress at most once without an empty p
         clientValuesHostInspectEffectTaskProgress(...args) {calls++; return actual.clientValuesHostInspectEffectTaskProgress(...args);}}});`;
     const env = {...process.env};
     delete env.NODE_TEST_CONTEXT;
-    const output = execFileSync(process.execPath, ['--experimental-test-module-mocks',
+    const child = spawnSync(process.execPath, ['--experimental-test-module-mocks',
       '--import', 'data:text/javascript,' + encodeURIComponent(preload), '--test',
       '--test-name-pattern=^' + name + '$', fileURLToPath(import.meta.url)], {encoding: 'utf8', env});
-    assert.match(output, /effect-progress-reductions [0-9]+/u);
-    console.log(output.trim());
+    console.log(child.stdout.trim());
+    if (child.stderr) console.error(child.stderr.trim());
+    assert.equal(child.status, 0);
+    assert.match(child.stdout, /effect-progress-reductions [0-9]+/u);
     return;
   }
   const f = original();
