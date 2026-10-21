@@ -18,6 +18,8 @@ import {join, resolve, sep} from 'node:path';
 import {createHash} from 'node:crypto';
 import {spawn} from 'node:child_process';
 import {once} from 'node:events';
+import fsPromises from 'node:fs/promises';
+import {syncBuiltinESMExports} from 'node:module';
 import {canonicalCid, createPublicationContractControlFixture} from
   '../host-common/publication-contract-control.fixture.mjs';
 import {openLocalPublicationStore as openActualLocalPublicationStore} from './publication-store.mjs';
@@ -1948,6 +1950,145 @@ test('publication records are append-only and sequence creation is CAS',
     assert.equal(latest.sequence, 1);
     assert.ok(['committing', 'cancelled'].includes(latest.state));
   });
+
+test('delivery admission batches its immutable contracts and validates each once', async t => {
+  const directory = await mkdtemp(join(tmpdir(), 'actql-delivery-batch-'));
+  t.after(() => removeFixtureDirectory(directory));
+  const synced = [];
+  const admissions = new Map();
+  const control = {...contractControl,
+    admit(name, value, limits) {
+      admissions.set(name, (admissions.get(name) ?? 0) + 1);
+      return contractControl.admit(name, value, limits);
+    }};
+  const store = await openLocalPublicationStore({directory,
+    storeAuthorityCid: cids.authority, capacityBytes: 1024 * 1024,
+    maxObjectBytes: 65536, maxObjects: 100,
+    maxContractNodes: 4096, maxContractDepth: 64}, control, {
+    async syncDirectory(path) {
+      synced.push(path);
+      const handle = await open(path, 'r');
+      try {await handle.sync();} finally {await handle.close();}
+    },
+  });
+  const root = deliveryFixture(1), attempt = deliveryAttempt(root, 'batched-delivery');
+  synced.length = 0; admissions.clear();
+  assert.deepEqual(await store.createDeliveryAttempt(wire(attempt), wire(root.grant)),
+    {attempt, created: true});
+  assert.equal(admissions.get('result_read_grant'), 1);
+  assert.equal(admissions.get('delivery_attempt'), 1);
+  assert.equal(synced.filter(path => path === join(directory, 'contracts')).length, 1,
+    'both independent immutable links share one actual containing-directory ACK');
+  assert.equal(synced.filter(path => path === join(directory, 'prepared-custody')).length, 3,
+    'two original preparation ACKs and one joint retirement ACK');
+  assert.deepEqual(await readdir(join(directory, 'prepared-custody')), []);
+});
+
+test('delivery contract batches retain the same directory ACK after partial failure', async t => {
+  for (const failedDirectory of ['contracts', 'prepared-custody']) {
+    await t.test(failedDirectory, async t => {
+      const directory = await mkdtemp(join(tmpdir(), 'actql-delivery-batch-ack-'));
+      t.after(() => removeFixtureDirectory(directory));
+      let armed = false, selectedSyncs = 0, failures = 0;
+      const store = await openLocalPublicationStore({directory,
+        storeAuthorityCid: cids.authority, capacityBytes: 1024 * 1024,
+        maxObjectBytes: 65536, maxObjects: 100,
+        maxContractNodes: 4096, maxContractDepth: 64}, contractControl, {
+        async syncDirectory(path) {
+          if (armed && path === join(directory, failedDirectory)) {
+            selectedSyncs++;
+            // Custody has two real preparation ACKs before retirement.
+            if (selectedSyncs > (failedDirectory === 'prepared-custody' ? 2 : 0) &&
+                failures++ < 2) throw Object.assign(new Error('batch directory ACK'), {code: 'EIO'});
+          }
+          const handle = await open(path, 'r');
+          try {await handle.sync();} finally {await handle.close();}
+        },
+      });
+      const root = deliveryFixture(1), attempt = deliveryAttempt(root, failedDirectory);
+      armed = true;
+      let original;
+      await assert.rejects(store.createDeliveryAttempt(wire(attempt), wire(root.grant)), error => {
+        original = error;
+        return error.code === 'EIO' && error.cleanupHandle.status().pending === true;
+      });
+      assert.equal(failures, 2);
+      await assert.rejects(store.close(), code('PublicationStoreCleanupPending'));
+      assert.deepEqual(await readdir(join(directory, 'deliveries')), []);
+      assert.equal(store.status().objectCount, 2);
+      assert.equal(store.status().reservedObjects, 0);
+      armed = false;
+      assert.equal((await original.cleanupHandle.retry()).pending, false);
+      assert.equal(original.cleanupPending, false);
+      assert.deepEqual(await readdir(join(directory, 'prepared-custody')), []);
+      assert.deepEqual(await store.createDeliveryAttempt(wire(attempt), wire(root.grant)),
+        {attempt, created: true});
+      assert.equal(store.status().objectCount, 2, 'cleanup neither reseals nor allocates replacements');
+      assert.equal(await store.close(), true);
+    });
+  }
+});
+
+test('delivery contract batch reclaims its first preparation if the second refuses', async t => {
+  const {store, directory} = await fixture(t, {maxObjects: 1});
+  const root = deliveryFixture(1), attempt = deliveryAttempt(root, 'second-preparation-refusal');
+  await assert.rejects(store.createDeliveryAttempt(wire(attempt), wire(root.grant)),
+    code('PublicationStoreObjectLimit'));
+  assert.equal(store.status().objectCount, 0);
+  assert.equal(store.status().reservedObjects, 0);
+  for (const name of ['contracts', 'deliveries', 'prepared-custody', 'staging', 'objects']) {
+    assert.deepEqual(await readdir(join(directory, name)), []);
+  }
+  assert.equal(await store.close(), true);
+});
+
+test('delivery contract batch cleans the first custody while retaining a failed second writer', async t => {
+  const {store, directory} = await fixture(t);
+  const originalOpen = fsPromises.open;
+  const stagingOpens = [];
+  let acquisitions = 0, refuseClose = true, retained, retainedFd;
+  fsPromises.open = async function(path, ...args) {
+    const handle = await Reflect.apply(originalOpen, this, [path, ...args]);
+    if (String(path).startsWith(join(directory, 'staging') + sep)) stagingOpens.push({path, flags: args[0]});
+    if (String(path).startsWith(join(directory, 'staging') + sep) && ++acquisitions === 3) {
+      retained = handle; retainedFd = handle.fd;
+      const close = handle.close;
+      handle.close = function() {
+        return refuseClose ? Promise.resolve(false) : Reflect.apply(close, this, []);
+      };
+    }
+    return handle;
+  };
+  syncBuiltinESMExports();
+  let original;
+  try {
+    const root = deliveryFixture(1), attempt = deliveryAttempt(root, 'second-writer-close');
+    await assert.rejects(store.createDeliveryAttempt(wire(attempt), wire(root.grant)), error => {
+      original = error;
+      return error.code === 'PublicationStoreCleanupPending' && error.cleanupHandle.status().pending;
+    });
+    assert.equal(retained.fd, retainedFd);
+    assert.equal(store.status().reservedObjects, 1);
+    // Independent cleanup may already reclaim the first unpublished payload.
+    // That real ACK cannot discharge the second writer's still-open original FD.
+    assert.equal((await readdir(join(directory, 'prepared-custody'))).length, 0,
+      JSON.stringify({stagingOpens, status: store.status()}));
+    assert.equal(store.status().objectCount, 0);
+    await assert.rejects(store.close(), code('PublicationStoreCleanupPending'));
+    refuseClose = false;
+    assert.equal((await original.cleanupHandle.retry()).pending, false);
+    assert.equal(retained.fd, -1);
+    assert.equal(acquisitions, 3, 'cleanup never opens a replacement writer');
+    assert.equal(store.status().objectCount, 0);
+    assert.equal(store.status().reservedObjects, 0);
+    assert.deepEqual(await readdir(join(directory, 'prepared-custody')), []);
+  } finally {
+    refuseClose = false;
+    fsPromises.open = originalOpen;
+    syncBuiltinESMExports();
+    if (original?.cleanupHandle.status().pending) await original.cleanupHandle.retry();
+  }
+});
 
 test('delivery attempts and records remain append-only after restart',
   async t => {

@@ -4091,7 +4091,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "d0acebcb9eff734c4a6be3d03b3c60e84451bfc5c80528fa0126483f2b3484a5",
+      "sha256": "94cd41a67d0dec0e1dbdf1067eabb0aab60d8783cd49c32b83535fc5be01fc5b",
       "exports": [
         "PublicationStoreError",
         "assertOriginalLocalPublicationStoreFacilityCurrent",
@@ -5857,6 +5857,81 @@
         },
         {
           "name": "openOriginalLocalPublicationStore/putCommittedResultRetentionExtension/putCommittedResultRetentionExtension/putCommittedResultRetentionExtension",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/putDeliveryContracts/putDeliveryContracts",
+          "parameters": [
+            "grant",
+            "attempt"
+          ],
+          "async": true
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/putDeliveryContracts/putDeliveryContracts/childPending/childPending",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/putDeliveryContracts/putDeliveryContracts/cleanup/init:retry/init:retry",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/putDeliveryContracts/putDeliveryContracts/cleanup/init:retry/init:retry/init:retry",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/putDeliveryContracts/putDeliveryContracts/cleanup/init:retry/init:retry/init:retry/init:retry",
+          "parameters": [
+            "item"
+          ],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/putDeliveryContracts/putDeliveryContracts/cleanup/init:retry/init:retry/init:retry/init:retry#2",
+          "parameters": [
+            "item"
+          ],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/putDeliveryContracts/putDeliveryContracts/cleanup/init:retry/init:retry/init:retry#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/putDeliveryContracts/putDeliveryContracts/items/items",
+          "parameters": [
+            "contract"
+          ],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/putDeliveryContracts/putDeliveryContracts/pendingCustodies/pendingCustodies",
+          "parameters": [
+            "selected"
+          ],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/putDeliveryContracts/putDeliveryContracts/pendingCustodies/pendingCustodies/pendingCustodies",
+          "parameters": [
+            "item"
+          ],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/putDeliveryContracts/putDeliveryContracts/retireCustodies/retireCustodies",
+          "parameters": [
+            "selected"
+          ],
+          "async": true
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/putDeliveryContracts/putDeliveryContracts/status/status",
           "parameters": [],
           "async": false
         },
@@ -8212,6 +8287,85 @@
               {
                 "path": "adapters/store-local/publication-clock-commit.test.mjs",
                 "anchor": "test('clock commits reject a torn in-place record live and after reopen'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "openOriginalLocalPublicationStore/putDeliveryContracts/putDeliveryContracts",
+            "openOriginalLocalPublicationStore/putDeliveryContracts/putDeliveryContracts/childPending/childPending",
+            "openOriginalLocalPublicationStore/putDeliveryContracts/putDeliveryContracts/cleanup/init:retry/init:retry",
+            "openOriginalLocalPublicationStore/putDeliveryContracts/putDeliveryContracts/cleanup/init:retry/init:retry/init:retry",
+            "openOriginalLocalPublicationStore/putDeliveryContracts/putDeliveryContracts/cleanup/init:retry/init:retry/init:retry/init:retry",
+            "openOriginalLocalPublicationStore/putDeliveryContracts/putDeliveryContracts/cleanup/init:retry/init:retry/init:retry/init:retry#2",
+            "openOriginalLocalPublicationStore/putDeliveryContracts/putDeliveryContracts/cleanup/init:retry/init:retry/init:retry#2",
+            "openOriginalLocalPublicationStore/putDeliveryContracts/putDeliveryContracts/items/items",
+            "openOriginalLocalPublicationStore/putDeliveryContracts/putDeliveryContracts/pendingCustodies/pendingCustodies",
+            "openOriginalLocalPublicationStore/putDeliveryContracts/putDeliveryContracts/pendingCustodies/pendingCustodies/pendingCustodies",
+            "openOriginalLocalPublicationStore/putDeliveryContracts/putDeliveryContracts/retireCustodies/retireCustodies",
+            "openOriginalLocalPublicationStore/putDeliveryContracts/putDeliveryContracts/status/status"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "## Delivery admission durability batches"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "const putDeliveryContracts = async (grant, attempt) => {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "await putDeliveryContracts(grantContract, admitted);"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "const items = [grant, attempt].map(contract => ({contract,"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "if (flight !== undefined) return flight;"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "primary?.code ?? 'PublicationSemanticWriteFailed', primary);"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "await retireCustodies(items.filter(item => item.linked));"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "for (const custody of originals) reclaimableCustodies.delete(custody.token);"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "Only after this bounded batch succeeds may the existing delivery-attempt"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "test('delivery admission batches its immutable contracts and validates each once', async t => {"
               }
             ]
           }

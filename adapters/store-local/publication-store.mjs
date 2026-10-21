@@ -2668,6 +2668,110 @@ async function openOriginalLocalPublicationStore(
     }
   };
 
+  // The delivery admission queue already admitted both immutable contracts.
+  // Their separate original payload/custody preparations remain durable;
+  // publish their links and retire their custodies as two bounded batches.
+  const putDeliveryContracts = async (grant, attempt) => {
+    const items = [grant, attempt].map(contract => ({contract,
+      physical: undefined, linkAttempted: false, linked: false}));
+    let contractsPending = false;
+    const pendingCustodies = selected => selected.flatMap(item =>
+      item.physical?.custody !== undefined &&
+        reclaimableCustodies.has(item.physical.custody.token)
+        ? [item.physical.custody] : []);
+    const retireCustodies = async selected => {
+      const originals = pendingCustodies(selected);
+      if (originals.length === 0) return;
+      for (const custody of originals) {
+        try { await unlink(custody.path); }
+        catch (error) { if (error?.code !== 'ENOENT') throw error; }
+      }
+      // No original is retired before this real shared directory ACK.
+      await syncDirectory(custodyDirectory);
+      for (const custody of originals) reclaimableCustodies.delete(custody.token);
+    };
+    try {
+      for (const item of items) {
+        item.physical = await putBytesInternal(
+          Buffer.from(item.contract.wire, 'utf8'), undefined, true);
+      }
+      for (const item of items) {
+        item.linkAttempted = true;
+        contractsPending = true;
+        try {
+          await link(objectPath(item.physical.cid), contractPath(item.contract.identity));
+        } catch (error) {
+          if (error?.code !== 'EEXIST') throw error;
+          const existing = await readBounded(
+            contractPath(item.contract.identity), configuration.maxObjectBytes);
+          if (!exactUtf8WireMatches(existing, item.contract.wire)) {
+            fail('PublicationSemanticIdentityConflict');
+          }
+        }
+        item.linked = true;
+      }
+      await syncDirectory(contractsDirectory);
+      contractsPending = false;
+      await retireCustodies(items);
+    } catch (primary) {
+      // A failed second preparation may itself own an original FD. Retain
+      // that same child in addition to the first prepared allocation.
+      const child = primary?.cleanupHandle;
+      const childStatus = child?.status, childRetry = child?.retry;
+      let unknownChild = primary?.cleanupPending === true &&
+        (typeof childStatus !== 'function' || typeof childRetry !== 'function');
+      let flight, failure;
+      const childPending = () => {
+        if (unknownChild) return true;
+        if (typeof childStatus !== 'function') return false;
+        try { return Reflect.apply(childStatus, child, []).pending !== false; }
+        catch { unknownChild = true; return true; }
+      };
+      const status = () => Object.freeze({pending: contractsPending ||
+        pendingCustodies(items).length !== 0 || childPending()});
+      const cleanup = Object.freeze({status, retry() {
+        if (flight !== undefined) return flight;
+        flight = Promise.resolve().then(async () => {
+          if (childPending() && !unknownChild) await Reflect.apply(childRetry, child, []);
+          // Observe a possibly completed original link; never repeat a write
+          // or replace an unknown allocation with a new preparation.
+          for (const item of items) {
+            if (!item.linkAttempted || item.linked) continue;
+            let semantic;
+            try { semantic = await lstat(contractPath(item.contract.identity)); }
+            catch (error) { if (error?.code === 'ENOENT') continue; throw error; }
+            const physical = await lstat(objectPath(item.physical.cid));
+            if (semantic.isFile() && physical.isFile() &&
+                semantic.dev === physical.dev && semantic.ino === physical.ino) {
+              item.linked = true;
+            }
+          }
+          if (contractsPending) {
+            await syncDirectory(contractsDirectory);
+            contractsPending = false;
+          }
+          await retireCustodies(items.filter(item => item.linked));
+          for (const custody of pendingCustodies(items.filter(item => !item.linked))) {
+            await reclaimCustody(custody);
+          }
+          return status();
+        }).finally(() => {
+          flight = undefined;
+          if (failure !== undefined) failure.cleanupPending = status().pending;
+        });
+        return flight;
+      }});
+      try { await cleanup.retry(); } catch {}
+      if (!status().pending) throw primary;
+      failure = new PublicationStoreError(
+        primary?.code ?? 'PublicationSemanticWriteFailed', primary);
+      failure.primaryFailure = primary;
+      failure.cleanupPending = true;
+      failure.cleanupHandle = cleanup;
+      throw failure;
+    }
+  };
+
   const parsePreparedSchema = bytes => {
     let value;
     try { value = JSON.parse(bytes.toString('utf8')); }
@@ -3622,10 +3726,7 @@ async function openOriginalLocalPublicationStore(
 
       if (grantUses >= grant.max_uses) fail('DeliveryGrantUseLimit');
 
-      await putPublicationContract(
-        'result_read_grant', grantContract.wire,
-      );
-      await putPublicationContract('delivery_attempt', admitted.wire);
+      await putDeliveryContracts(grantContract, admitted);
       const staging = resolve(
         deliveriesDirectory, `.staging-${randomUUID()}`,
       );
