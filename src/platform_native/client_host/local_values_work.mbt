@@ -67,7 +67,6 @@ fn local_values_work_failure(
   issue : NativeClientValuesWorkIssue,
   cleanup? : () -> Bool = () => true,
   original_access? : NativeLocalValuesOriginalAccess? = None,
-  requirements? : @local.ClientLocalSourceFreeRequirements? = None,
   requires_execution_scope? : Bool = false,
 ) -> NativeClientValuesWorkFailure {
   { issue, cleanup, cleaned: false, original_access, requires_execution_scope, }
@@ -126,6 +125,7 @@ fn open_native_client_local_values_work(
   current : () -> Bool,
   ledger? : @resources.Ledger? = None,
   original_access? : NativeLocalValuesOriginalAccess? = None,
+  requirements? : @local.ClientLocalSourceFreeRequirements? = None,
 ) -> Result[NativeClientValuesWork, NativeClientValuesWorkFailure] {
   if !current() {
     return Err(
