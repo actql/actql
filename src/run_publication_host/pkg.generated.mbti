@@ -1057,6 +1057,8 @@ pub fn client_run_journal_append_rows(ClientRunJournalAppend) -> (String, Bytes,
 
 pub fn client_run_journal_row_body(ClientRunJournalEncoding, local_run_policy_originals? : String?, run_observation_originals? : String?) -> Result[Bytes, ClientJournalEncodingIssue]
 
+pub fn client_saved_run_reference_locator(ClientSubmissionReferenceRecord, ClientRequestIdentity, @run_publication.PublicationContract) -> Result[(String, Bytes), ClientJournalEncodingIssue]
+
 pub fn client_saved_run_state_update_candidate_wire(ClientSavedRunStateUpdate) -> String
 
 pub fn client_saved_run_state_update_row(ClientSavedRunStateUpdate) -> (String, Int64, Int64, Bytes)
@@ -1914,6 +1916,8 @@ pub fn read_client_native_product_identity(String) -> Result[ClientNativeProduct
 pub fn[E] read_client_retained_run_journal(ClientRequestIdentity, (String, String) -> Result[ClientJournalPhysicalRow?, E], (ClientJournalPhysicalRow) -> Result[ClientRunJournalInspection, E], E) -> Result[ClientRetainedRunJournalRow?, ClientRunJournalAppendIssue[E]]
 
 pub fn read_client_run_policy_originals(String) -> Result[Array[@run_publication.CapturedEffectDependencyBody], ClientRunPolicyOriginalsIssue]
+
+pub fn[E] read_client_saved_run_reference(String, String, String, (String, String) -> Result[ClientJournalPhysicalRow?, E], (ClientJournalPhysicalRow) -> Result[ClientRunJournalInspection, E], E) -> Result[ClientSavedSubmissionSnapshot, E]
 
 pub fn[E] read_client_saved_submission(ClientSubmissionReferenceRecord, (String, String) -> Result[ClientJournalPhysicalRow?, E], (ClientJournalPhysicalRow) -> Result[ClientRunJournalInspection, E], E) -> Result[ClientSavedSubmissionSnapshot?, E]
 
@@ -2942,8 +2946,10 @@ pub struct ClientLocalAdoptedHostMaterial[Store, E] {
   account : @execution_authorization.AdmittedAccountConfiguration
   account_original : Bytes
   adoption : ClientJournalPhysicalRow
+  adoption_cid : String
   generation : (UInt64, UInt64)
   current : () -> Result[ClientLocalAdoptionCurrentObservation[Store], E]
+  mut scope_cache : (String, String, Bytes)?
 }
 
 pub(all) enum ClientLocalAdoptionCurrentObservation[Store] {
