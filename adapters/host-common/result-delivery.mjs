@@ -242,20 +242,44 @@ async function finishSink(sink, signal) {
   }
 }
 
-export async function deliverPublishedResult(options) {
+export async function deliverPublishedResult(options, resolvedPublication) {
   validateRequest(options);
   validateStore(options.store);
   validateControl(options.control);
   const {store, control, indexKey, grant, resultName, format, attemptId,
     limits, frameLimits, now, sink, createDigest, authorize, signal} = options;
+  // The access owner has already read these immutable typed contracts. This
+  // operation-local handoff is neither a read grant nor a cross-call cache.
+  // Capture it before the current-head await and preserve the generic path
+  // for callers that have not resolved a publication in this operation.
+  let retainedIndex, retainedManifest, indexCid, manifestCid;
+  if (resolvedPublication !== undefined) {
+    if (!exactKeys(resolvedPublication, ['store', 'control', 'index', 'manifest']) ||
+        resolvedPublication.store !== store || resolvedPublication.control !== control ||
+        !contractShape(resolvedPublication.index) ||
+        !contractShape(resolvedPublication.manifest) ||
+        resolvedPublication.index.name !== 'public_index_entry' ||
+        resolvedPublication.manifest.name !== 'result_manifest' ||
+        !Object.isFrozen(resolvedPublication.index) ||
+        !Object.isFrozen(resolvedPublication.manifest)) {
+      fail('InvalidResultDeliveryRequest');
+    }
+    retainedIndex = resolvedPublication.index;
+    retainedManifest = resolvedPublication.manifest;
+    indexCid = retainedIndex.identity;
+    manifestCid = retainedManifest.identity;
+  }
   signal?.throwIfAborted();
 
   const entry = await store.confirmCommittedIndex(indexKey);
   if (entry === undefined) fail('ResultDeliveryDenied');
-  const index = await store.readPublicationContract(
+  if (retainedIndex !== undefined &&
+      (entry.public_index_entry_cid !== indexCid ||
+       entry.result_manifest_cid !== manifestCid)) fail('ResultDeliveryDenied');
+  const index = retainedIndex ?? await store.readPublicationContract(
     entry.public_index_entry_cid, 'public_index_entry',
   );
-  const manifest = await store.readPublicationContract(
+  const manifest = retainedManifest ?? await store.readPublicationContract(
     entry.result_manifest_cid, 'result_manifest',
   );
   const requestedAt = trustedNow(now);
