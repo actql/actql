@@ -40,11 +40,12 @@ function publicOperation(operation = 'warm-result', id = 'public-call-1') {
     activity: {materialGetterCalls: 7, materialCacheHits: 6, decodeCalls: 1,
       databaseReads: 3, sqlPrepares: 4}, unchangedStatus: true, statusWrites: 0, revisionBefore: 7, revisionAfter: 7};
 }
-const histories = () => [1, 10, 100, 1000].map(size => ({size, supported: true, fixtureSha256: fixture,
+const histories = () => Object.keys(operationTargets).filter(operation => operation.startsWith('warm-'))
+  .flatMap(operation => [1, 10, 100, 1000].map(size => ({operation, size, supported: true, fixtureSha256: fixture,
   targetRowsRead: 3, databaseReads: 3, sqlPrepares: 4, materialGetterCalls: 7, materialCacheHits: 6,
   fullPhysicalValidations: 1, fullCurrentValidations: 1, fullRowAdmissions: 3, decodeCalls: 3,
   fullParses: 1, fullMacValidations: 3, fullHashValidations: 3, fullScopeDigests: 1,
-  fullConfigurationInventories: 1, fullAccountEvaluations: 1, unrelatedRunRows: 0, unrelatedEffectRows: 0}));
+  fullConfigurationInventories: 1, fullAccountEvaluations: 1, unrelatedRunRows: 0, unrelatedEffectRows: 0})));
 const chunks = () => [1024, 16384, 262144].map(bytes => ({bytes, chunkBytes: 16384,
   chunks: Math.ceil(bytes / 16384), rows: 1, boundaries: 3, hostCalls: Math.ceil(bytes / 16384) + 4,
   scalarByteCalls: 0, complete: true, overflow: false}));
@@ -264,6 +265,30 @@ test('history fixture changes and unrelated-row scans cannot hide behind latency
   for (const patch of [{fixtureSha256: cohort}, {unrelatedRunRows: 1}, {fullHashValidations: 1000}, {databaseReads: 1000}, {sqlPrepares: 1000}]) {
     const rows = histories(); Object.assign(rows[2], patch); assert.equal(assessHistory(rows).status, 'failed');
   }
+});
+test('history coverage requires new-query and saved-read operations independently', () => {
+  const rows = histories();
+  assert.equal(assessHistory(rows).status, 'passed');
+  const saved = rows.filter(row => ['warm-result', 'warm-status'].includes(row.operation));
+  const partial = assessHistory(saved);
+  assert.equal(partial.status, 'incomplete');
+  for (const size of [1, 10, 100, 1000]) assert(partial.missing.includes(`history warm-select ${size}`));
+  const legacy = rows.filter(row => row.operation === 'warm-result').map(({operation, ...row}) => row);
+  assert.equal(assessHistory(legacy).status, 'incomplete');
+  const changed = histories();
+  // Different operations may legitimately read different target rows. Each
+  // operation must remain independent of its own unrelated-history size.
+  changed.filter(row => row.operation === 'warm-select').forEach(row => {
+    row.fixtureSha256 = cohort; row.databaseReads = 9;
+  });
+  assert.equal(assessHistory(changed).status, 'passed');
+  for (const key of ['unrelatedRunRows', 'unrelatedEffectRows']) {
+    const failed = histories();
+    failed.find(row => row.operation === 'warm-select' && row.size === 1000)[key] = 1;
+    assert.equal(assessHistory(failed).status, 'failed');
+  }
+  assert.throws(() => assessHistory([...rows, rows[0]]), /Duplicate/u);
+  assert.throws(() => assessHistory([{...rows[0], operation: 'unattributed-helper'}]), /public operation/u);
 });
 test('bulk transfer gates scale by actual bounded chunks, never bytes', () => {
   assert.equal(assessChunks(chunks()).status, 'passed');
