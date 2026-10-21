@@ -62,6 +62,41 @@ const limits = Object.freeze({
   maxDepth: 64,
 });
 
+test('publication persistence consumes its same-owner immutable contracts without another admission', async t => {
+  let admissions = 0;
+  const observed = Object.freeze({...moon, strategyPublicationAdmit(...args) {
+    admissions++;
+    return Reflect.apply(moon.strategyPublicationAdmit, moon, args);
+  }});
+  const control = runtimeCore(observed).publicationControl;
+  const first = control.seal('run_invocation', JSON.stringify({
+    version: 'actql-run-invocation/0.1', invocation_template_cid: cid('1'),
+    observation_set_cid: cid('2'),
+  }), limits);
+  const second = control.seal('run_invocation', JSON.stringify({
+    version: 'actql-run-invocation/0.1', invocation_template_cid: cid('3'),
+    observation_set_cid: cid('4'),
+  }), limits);
+  const directory = await mkdtemp(join(tmpdir(), 'actql-original-publication-'));
+  let store;
+  t.after(async () => {
+    if (store !== undefined) await store.close();
+    await rm(directory, {recursive: true});
+  });
+  store = await openLocalPublicationStore({directory, storeAuthorityCid: cid('5'),
+    capacityBytes: 1024 * 1024, maxObjectBytes: 64 * 1024, maxObjects: 100,
+    maxContractNodes: limits.maxNodes, maxContractDepth: limits.maxDepth}, control);
+  const source = await readFile(new URL('./run-publication.mjs', import.meta.url), 'utf8');
+  const declaration = parse(source, {sourceType: 'module', ecmaVersion: 'latest'}).body
+    .find(node => node.type === 'FunctionDeclaration' && node.id.name === 'persistContracts');
+  const persist = Function('return ('+source.slice(declaration.start, declaration.end)+')')();
+  await persist(store, [first, second, first]);
+  assert.equal(admissions, 0, 'the original Common issuance already admitted these unchanged bodies');
+  assert.equal(store.status().objectCount, 2);
+  assert.equal((await store.readPublicationContract(first.identity, first.name)).wire, first.wire);
+  assert.equal((await store.readPublicationContract(second.identity, second.name)).wire, second.wire);
+});
+
 test('publication persister retains legacy receivers and waits for the selected group outcome', async () => {
   const source = await readFile(new URL('./run-publication.mjs', import.meta.url), 'utf8');
   const declaration = parse(source, {sourceType: 'module', ecmaVersion: 'latest'}).body
