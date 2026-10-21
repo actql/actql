@@ -1,8 +1,7 @@
 ///|
-// The access exists only during this synchronous original Read operation.
-// Its current callback repeats the complete captured fence; each SQL read
-// exchanges the original Read/SQLite phases rather than running in the heap
-// selected for the other domain. Nothing is installed on the Host as a bypass.
+// One closed Runtime binding operation uses one actual Journal snapshot.
+// Scope, Account and selected-file getters consume the same admitted facts;
+// the retained original port still checks physical Read lifetime on each use.
 fn[T] NativeLocalJournalCapture::with_runtime_binding_access(
   self : NativeLocalJournalCapture,
   operation : (NativeLocalHostConnection, NativeLocalRuntimeBindingAccess) -> Result[
@@ -10,80 +9,68 @@ fn[T] NativeLocalJournalCapture::with_runtime_binding_access(
     NativeClientRunJournalIssue,
   ],
 ) -> Result[T, NativeLocalAdoptionIssue] {
-  match self.check_current_in_original_read() {
-    Err(issue) => return Err(issue)
-    Ok(_) => ()
-  }
-  guard self.opening is JournalAcquired(host) &&
-    self.original_resources is Some(original) else {
-    return Err(OriginalResourceScopePending)
-  }
-  let queries : NativeLocalJournalReadQueries = {
-    original,
-    database: host.database,
-    failure: None,
-    invalidate_snapshot: () => host.journal.admitted_adoption = None,
-  }
-  let material = () => {
-    @host.bind_client_local_adopted_host_material(host.database, () => {
-      host.current_adoption_material_with_reads(
-        () => self.check_current_in_original_read(),
-        reads=Some(queries.access()),
-      )
-    }).map_err(local_current_material_issue)
-  }
-  let access : NativeLocalRuntimeBindingAccess = {
-    scope: (principal, connection) => {
-      match material() {
-        Err(issue) => Err(issue)
-        Ok(value) =>
-          match
-            @host.client_local_adopted_authority_scope_body(
-              value,
+  let result = self.with_current_adoption_material_in_original_read((
+    host,
+    material,
+    operations,
+  ) => {
+    host.journal
+    .transaction_with_reads(
+      () => {
+        let access : NativeLocalRuntimeBindingAccess = {
+          scope: (principal, connection) => {
+            match
+              @host.client_local_adopted_authority_scope_body(
+                material,
+                host.database,
+                principal,
+                connection,
+              ) {
+              Err(issue) => Err(local_current_material_issue(issue))
+              Ok(body) => local_adoption_digest(host.epoch.crypto, body)
+            }
+          },
+          read_allowed: (principal, connection) => {
+            @host.client_local_adopted_account_outcome(
+              material,
               host.database,
-              principal,
-              connection,
-            ) {
-            Err(issue) => Err(local_current_material_issue(issue))
-            Ok(body) => local_adoption_digest(host.epoch.crypto, body)
-          }
-      }
-    },
-    read_allowed: (principal, connection) => {
-      match material() {
-        Err(_) => false
-        Ok(value) =>
-          @host.client_local_adopted_account_outcome(value, host.database, {
-            principal,
-            connection,
-            resource: "run",
-            operation: "read",
-          })
-          is Ok(@authorization.Allow(_))
-      }
-    },
-    selected: name => {
-      match self.selected_configuration_in_original_read(name) {
-        Err(_) => Err(CustodyLost)
-        Ok(body) =>
-          match
-            host.session.settings.files
-            .iter()
-            .find_first(file => file.name == name && file.body == body) {
-            Some(file) => Ok(file)
-            None => Err(CustodyLost)
-          }
-      }
-    },
-  }
-  let result = operation(host, access)
-  match (queries.failure, self.read_operation_issue) {
-    (Some(issue), _) => {
-      self.read_operation_issue = Some(issue)
-      Err(issue)
-    }
-    (None, Some(issue)) => Err(issue)
-    (None, None) => result.map_err(issue => Journal(issue))
+              { principal, connection, resource: "run", operation: "read", },
+            )
+            is Ok(@authorization.Allow(_))
+          },
+          selected: name => {
+            // The current original above admitted this immutable settings
+            // list in the same snapshot. No caller callback or mutation is
+            // dispatched between that observation and this pure selection.
+            if @host.client_local_adopted_current_account(
+                material,
+                host.database,
+              )
+              is Err(_) {
+              return Err(CustodyLost)
+            }
+            match
+              host.session.settings.files
+              .iter()
+              .find_first(file => file.name == name) {
+              Some(file) => Ok(file)
+              None => Err(CustodyLost)
+            }
+          },
+        }
+        operation(host, access)
+      },
+      reads=Some(operations.reads),
+    )
+    .map_err(issue => Journal(issue))
+  })
+  match result {
+    Err(issue) => Err(issue)
+    Ok(value) =>
+      // Physical Runtime observation and binding return are the boundary for
+      // external configuration/current changes. Never retain this snapshot
+      // across the next operation, close or a failed original return.
+      self.check_current_in_original_read().map(_ => value)
   }
 }
 
