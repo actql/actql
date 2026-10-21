@@ -72,6 +72,15 @@ an issuance-count advance. A retained matching acceptance may still be
 identified after epoch expiry without issuing another Run. Changed intent
 remains a conflict under the existing common identity relation.
 
+Run resolution admits its supplied logical-request identity once. If all seven
+stored identity fields exactly match that admitted original, the same entry
+uses it for the common relation rather than admitting identical bytes again.
+A distinct saved identity is independently admitted before the existing
+conflict decision. The admit-or-lookup entry uses the same private resolution
+step before issuance; a retained Run never calls its issuer. Atomic acceptance
+after an issuer callback retains its original validation and race handling.
+No identity or permission is cached across resolution calls.
+
 Expiry is an admission restriction, not proof of nonexecution. Missing,
 expired or inaccessible outcome evidence must preserve the unresolved original
 reference. Durable terminal rejection consumes an identity; noncommitted
