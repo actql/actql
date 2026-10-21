@@ -14177,7 +14177,7 @@
     },
     {
       "module": "adapters/local-node/strategy-bundle.mjs",
-      "sha256": "865da6ec2ea9307e5f390a9eea90f763ebde73d366eb951730d4e3b1d29eb4da",
+      "sha256": "70557f66d87c7fc2d55b52741387491e860dd8db16215458b7da45f1434be292",
       "role": "physical-io",
       "exports": [
         "localStrategyContribution"

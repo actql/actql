@@ -103,3 +103,161 @@ test('embeddings without setImmediate retain the existing asynchronous timer fal
   assert.strictEqual(await f.finishPublicationValidation(f.preparation,()=>++steps===2?1:0,()=>f.result,()=>{cancelled++;}),f.result);
   assert.equal(f.counts.yields,0);assert.equal(f.counts.timers,2);assert.equal(cancelled,1);
 });
+
+// Keep the Local transport's actual private loops in this existing CI selection.
+// Explicit operation/Store ports below do not establish physical custody or a
+// normal installed Host result.
+function localDeclarations(path, names) {
+  const text = readFileSync(new URL(path, import.meta.url), 'utf8');
+  const selected = [];
+  for (const node of parse(text, {ecmaVersion:'latest',sourceType:'module'}).body) {
+    if (node.type === 'VariableDeclaration' &&
+        node.declarations.some(item => names.includes(item.id.name)) ||
+        node.type === 'FunctionDeclaration' && names.includes(node.id.name)) {
+      selected.push(text.slice(node.start, node.end));
+    }
+  }
+  assert.equal(selected.length, names.length);
+  return selected.join('\n');
+}
+const managedLocalSource = localDeclarations('../local-node/strategy-bundle.mjs', [
+  'yieldToHost', 'managedWorkQuantum', 'managedFinalizationQuantum',
+  'validateManagedAdvance', 'stopBoundedExecution',
+  'runManagedExecution', 'runManagedFinalization',
+]);
+const snapshotLocalSource = localDeclarations('../local-node/carrier-snapshot.mjs', [
+  'yieldToHost', 'quantum', 'validateAdvance', 'prepareLocalSnapshot',
+]);
+function localLoops({immediate=true,onYield}={}) {
+  const counts = {yields:0,timers:0};
+  const timer = (callback, delay) => {
+    counts.timers++; assert.equal(delay,0);
+    assert(!immediate,'A cooperative Local turn must not start a delay timer');
+    return setTimeout(callback,delay);
+  };
+  const turn = immediate ? callback => {
+    counts.yields++;
+    return setImmediate(() => {onYield?.();callback();});
+  } : undefined;
+  const managed = new Function('setTimeout','setImmediate',managedLocalSource +
+    ';return {runManagedExecution,runManagedFinalization};')(timer,turn);
+  const snapshot = new Function('setTimeout','setImmediate',snapshotLocalSource +
+    ';return prepareLocalSnapshot;')(timer,turn);
+  return {...managed,prepareSnapshot:snapshot,counts};
+}
+
+test('Local execution and finalization yield fixed quanta without delay timers',async()=>{
+  const f=localLoops(); let advanced=0,finalized=0,otherTurn=false;
+  setImmediate(()=>{otherTurn=true;});
+  const operations={
+    advance(quantum){assert.strictEqual(this,operations);assert.equal(quantum,256);
+      if(advanced>0)assert(otherTurn);return{complete:++advanced===3,progress:BigInt(advanced),work:1n};},
+    prepare_finalization(...args){assert.deepEqual(args,['payload',3,available]);},
+    advance_finalization(quantum){assert.strictEqual(this,operations);assert.equal(quantum,32);
+      return{complete:++finalized===3,progress:BigInt(finalized),work:1n};},
+  };
+  const available=()=>true;
+  await f.runManagedExecution(operations,x=>x);
+  await f.runManagedFinalization(operations,x=>x,undefined,'payload',3,available);
+  assert.equal(advanced,3);assert.equal(finalized,3);
+  assert.deepEqual(f.counts,{yields:4,timers:0});
+});
+
+test('Local physical waiting and settlement await the original port without cooperative polling',async()=>{
+  for(const paused of[{waiting:true},{settlement:0}]){
+    const f=localLoops();let advances=0,release,entered;
+    const ready=new Promise(resolve=>{entered=resolve;});
+    const operations={advance(){return ++advances===1
+      ?{complete:false,progress:0n,work:0n,...paused}
+      :{complete:true,progress:1n,work:1n};}};
+    const flight=f.runManagedExecution(operations,x=>x,undefined,undefined,7,
+      packet=>{assert.equal(packet.task,7);entered();return new Promise(resolve=>{release=resolve;});});
+    await ready;await new Promise(resolve=>setImmediate(resolve));
+    assert.equal(advances,1);assert.deepEqual(f.counts,{yields:0,timers:0});
+    release({action:'resume'});await flight;assert.equal(advances,2);
+  }
+});
+
+test('Local execution and finalization retain abort reason and bounded stop after a turn',async()=>{
+  for(const finalization of[false,true]){
+    const controller=new AbortController(),reason=new Error('original Local stop');
+    const f=localLoops({onYield:()=>controller.abort(reason)});
+    let advanced=0,cancelled=0,stopped=false;
+    const operations={
+      advance(quantum){advanced++;assert.equal(quantum,cancelled?1:256);
+        if(cancelled)stopped=true;return{complete:false,progress:1n,work:1n};},
+      request_cancel(){cancelled++;},execution_stopped:()=>stopped,
+      prepare_finalization(){},
+      advance_finalization(quantum){assert.equal(quantum,32);advanced++;return{complete:false,progress:1n,work:1n};},
+    };
+    const flight=finalization
+      ?f.runManagedFinalization(operations,x=>x,controller.signal)
+      :f.runManagedExecution(operations,x=>x,controller.signal);
+    await assert.rejects(flight,error=>error===reason);
+    assert.equal(cancelled,1);assert.equal(advanced,2);assert(stopped);
+    assert.deepEqual(f.counts,{yields:1,timers:0});
+  }
+});
+
+function localSnapshotFixture(f, {signal,cleanupFailure}={}) {
+  const events=[],content={cid:'sha256:'+'a'.repeat(64),bytes:3};
+  let saves=0,reloads=0,released;
+  const body={...content,available:()=>true,close(){events.push('body-close');},
+    async consume(consume){events.push('read');await consume(new TextEncoder().encode('abc'));events.push('read-end');}};
+  const store={reserve(bytes){assert.equal(bytes,16);return{
+    async start(){events.push('start');},async append(part){events.push('append:'+part);},
+    async seal(actual){assert.strictEqual(actual,content);events.push('seal');return body;},
+  };},close(){events.push('store-close');},
+    async cleanup(){events.push('cleanup');if(cleanupFailure)throw cleanupFailure;},
+    status:()=>({reservedBytes:0,cleanupPending:false}),
+  };
+  const operation={key:'original-task',maximum_bytes:16,maximum_frame_bytes:16,
+    advance_save(quantum){assert.equal(quantum,32);return{complete:++saves===3,progress:BigInt(saves),work:1n};},
+    take_output:()=>['a','b','c'][saves-1],content:()=>content,
+    release_source(cid){assert.equal(cid,content.cid);events.push('release-source');},
+    begin_reload(text,available){assert.equal(text,'abc');assert(available());assert(events.includes('read-end'));events.push('reload');},
+    advance_reload(quantum){assert.equal(quantum,32);return{complete:++reloads===3,progress:BigInt(reloads),work:1n};},
+    finish(){assert(released());assert(events.includes('cleanup'));events.push('finish');},
+  };
+  const owner=f.prepareSnapshot({prepare_carrier_snapshot(check){released=check;return operation;}},
+    async()=>store,x=>x,signal);
+  return{owner,events,get saves(){return saves;},get reloads(){return reloads;}};
+}
+
+test('Local snapshot yields during save and reload while retaining read-end and cleanup ordering',async()=>{
+  const f=localLoops(),s=localSnapshotFixture(f);
+  const result=await s.owner.roundtrip();
+  assert.equal(result.restored,true);assert.equal(result.temporaryBodyReclaimed,true);
+  assert.equal(s.saves,3);assert.equal(s.reloads,3);
+  assert.deepEqual(f.counts,{yields:4,timers:0});
+  assert(s.events.indexOf('seal')<s.events.indexOf('release-source'));
+  assert(s.events.indexOf('read-end')<s.events.indexOf('reload'));
+  assert(s.events.indexOf('cleanup')<s.events.indexOf('finish'));
+  assert.deepEqual(s.owner.cleanupHandle.status(),{pending:false});
+});
+
+test('Local snapshot cancellation at a yielded turn retains its original cleanup duty',async()=>{
+  const controller=new AbortController(),reason=new Error('original snapshot stop');
+  const f=localLoops({onYield:()=>controller.abort(reason)}),s=localSnapshotFixture(f,{signal:controller.signal});
+  await assert.rejects(s.owner.roundtrip(),error=>error===reason);
+  assert.equal(s.saves,1);assert.equal(s.reloads,0);
+  assert(!s.events.includes('seal'));assert(!s.events.includes('finish'));
+  assert.deepEqual(s.owner.cleanupHandle.status(),{pending:true});
+  assert.deepEqual(await s.owner.cleanupHandle.retry(),{pending:false});
+  assert.deepEqual(f.counts,{yields:1,timers:0});
+});
+
+test('Local snapshot cleanup failure after reload is not acknowledged by scheduling',async()=>{
+  const f=localLoops(),reason=new Error('original cleanup failure');
+  const s=localSnapshotFixture(f,{cleanupFailure:reason});
+  await assert.rejects(s.owner.roundtrip(),error=>error===reason);
+  assert.equal(s.reloads,3);assert(!s.events.includes('finish'));
+  assert.deepEqual(s.owner.cleanupHandle.status(),{pending:true});
+});
+
+test('Local loops retain the asynchronous timer fallback outside immediate-capable embeddings',async()=>{
+  const f=localLoops({immediate:false});let steps=0;
+  await f.runManagedExecution({advance:()=>({complete:++steps===2,progress:BigInt(steps),work:1n})},x=>x);
+  await localSnapshotFixture(f).owner.roundtrip();
+  assert.deepEqual(f.counts,{yields:0,timers:5});
+});
