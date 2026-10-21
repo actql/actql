@@ -107,3 +107,21 @@ A torn record refuses instead of selecting an older floor. Failed fsync or
 close is not acceptance, and Store retirement waits for the original operation
 and any retained failed-close duty. Existing two-field clock records remain
 readable; configurations too small for the checksum use atomic replacement.
+
+### Output callback Account observations
+
+One Result operation retains its exact principal, namespace, scope, Run, name
+and purpose in the existing owned request. Pure internal stages, trusted Store
+reads and FFI exchanges consume that request's admitted Account judgment; they
+do not create another authorization frame. Run-read and named-Result-read
+remain distinct permissions, and a new public operation observes current Deny.
+
+An application output sink can reenter or change the installed Account during
+`write` or `finish`. The existing delivery state counts those actual callbacks.
+Before another protected dispatch or successful receipt, Local authorization
+observes the current Account at that boundary. If its immutable original is
+unchanged, the operation reuses its one evaluation instead of repeating
+admission, parsing, hashing or policy evaluation. Changed, missing, rejected or
+foreign Account state cannot reuse the prior Allow. This count is neither a
+permission nor a durable receipt, and does not change the original delivery
+claim, quota, byte exposure, COMMIT Unknown, non-resend or cleanup duties.
