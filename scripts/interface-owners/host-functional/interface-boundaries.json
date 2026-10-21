@@ -18746,7 +18746,7 @@
     {
       "module": "adapters/host-node/client-request-journal.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "c1120dc6ece92c843818d44aa77ee79cf35cb4d38d806d55c2b2e47c96ec6ddf",
+      "sha256": "2f4d9664574ef4ca901e2dddd085e895ca2343ae7adae44bfdd714643a76eef5",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
@@ -20479,6 +20479,17 @@
           "async": false
         },
         {
+          "name": "openClientRequestJournal/resolveOriginalDefinition/resolveOriginalDefinition",
+          "parameters": [
+            "identity",
+            "fields",
+            "namespaceId",
+            "requestControl",
+            "publicationControl"
+          ],
+          "async": false
+        },
+        {
           "name": "openClientRequestJournal/restartDecision/restartDecision",
           "parameters": [
             "submissionRef",
@@ -20966,6 +20977,7 @@
             "openClientRequestJournal/rejectCancellation/rejectCancellation",
             "openClientRequestJournal/rejectSubmission/rejectSubmission",
             "openClientRequestJournal/rejectSubmissionEpoch/rejectSubmissionEpoch",
+            "openClientRequestJournal/resolveOriginalDefinition/resolveOriginalDefinition",
             "openClientRequestJournal/restartDecision/restartDecision",
             "openClientRequestJournal/retainedIntent/retainedIntent",
             "openClientRequestJournal/retainedIntentOriginal/retainedIntentOriginal",
@@ -21043,6 +21055,10 @@
               {
                 "path": "docs/design/client-submission-identity.md",
                 "anchor": "An existing same-Run submitted-content handle retains its admitted request,"
+              },
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "Run resolution admits its supplied logical-request identity once. If all seven"
               }
             ],
             "inputsOutputs": [
@@ -21093,6 +21109,10 @@
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
                 "anchor": "retainedIntentOriginal(row, control, originalEpoch).value;"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "const resolveOriginalDefinition = (identity, fields, namespaceId,"
               }
             ],
             "identity": [
@@ -21143,6 +21163,10 @@
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
                 "anchor": "row.authority_scope_cid === original.fields.authorityScopeCid &&"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "requestId: fields.requestId}, requestControl, {identity, fields});"
               }
             ],
             "ownership": [
@@ -21197,6 +21221,10 @@
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
                 "anchor": "const requestOriginal = Object.freeze({identity, fields});"
+              },
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "uses it for the common relation rather than admitting identical bytes again."
               }
             ],
             "synchronization": [
@@ -21251,6 +21279,10 @@
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
                 "anchor": "const original = transaction.run(readOriginal);"
+              },
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "after an issuer callback retains its original validation and race handling."
               }
             ],
             "failure": [
@@ -21301,6 +21333,10 @@
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
                 "anchor": "previousRunRow = previousRunFacts = previousIntent = previousReference = undefined;"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "const relation = requestControl.clientRequestRelation(identity, retained.identity);"
               }
             ],
             "cancellation": [
@@ -21355,6 +21391,10 @@
               {
                 "path": "docs/design/client-submission-identity.md",
                 "anchor": "supplies current Account authority, a resume/physical-start claim or an ACK."
+              },
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "No identity or permission is cached across resolution calls."
               }
             ],
             "resources": [
@@ -21421,6 +21461,10 @@
               {
                 "path": "docs/design/client-submission-identity.md",
                 "anchor": "epoch key and restart linkage under the same transaction and checks issuance"
+              },
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "A distinct saved identity is independently admitted before the existing"
               }
             ],
             "extension": [
@@ -21467,6 +21511,10 @@
               {
                 "path": "docs/design/client-submission-identity.md",
                 "anchor": "retain their wire shape. A new handle performs its own admission. None of this"
+              },
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "step before issuance; a retained Run never calls its issuer. Atomic acceptance"
               }
             ],
             "verification": [
@@ -21541,6 +21589,10 @@
               {
                 "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
                 "anchor": "test('one original submitted-content handle admits each unchanged row once', async t => {"
+              },
+              {
+                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "anchor": "assert.equal(admissions, 1, 'one exact request has one Common admission, not repeated stored copies');"
               }
             ]
           }
