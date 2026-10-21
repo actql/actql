@@ -69,3 +69,59 @@ installation may report both. This does not add a field to the eight-field
 selection or change the existing installation canonical body. A Source-only
 installation cannot manufacture a row-effect owner or claim `update:true` to
 stand in for STORE. Missing original installation/current facts remain refused.
+
+## Local file bytes and publication
+
+Local STORE borrows Content through the same Run's original input binding.
+The generated or captured Content owner selects its already issued reference
+and consumes its own retained Store holding. A holding CID, equal wire or copied
+input cannot choose a different Store or substitute for the current original.
+The original reader remains under that owner's cleanup duty during callbacks
+and after a failed physical close.
+
+A source-free Values producer keeps its checked input and explicit original Host
+data policy through compilation, Run admission and restoration. It does not
+fabricate a captured Source or borrow Source capacity to open the Content family.
+The existing registered-family selector covers the original enclosing Run; the
+policy and completed generation still prove no permission to apply the Command.
+
+The Local file child acquires descriptor-relative staging only after the
+approved Effect caller has retained it. It streams bounded original byte pieces
+without a text conversion. Publication occurs only after the Store has confirmed
+the complete hash, version and original read FD close, and the same input and
+authorization are still current. A delivered prefix never permits publication.
+The existing create-only or explicit replacement rule applies at the atomic
+rename; a partial or uncertain publication is not retried as another send.
+Reader and writer physical duties survive cancellation or currentness refusal
+until their own acknowledgements. These physical facts do not issue an Effect
+receipt, Account grant or replacement Run.
+
+## Saved Command Content
+
+Cold continuation uses the saved original Program, Environment, compiled Run,
+Run Definition, private Preview and captured member. The Command input owner
+checks its declared Content field against that Preview's exact intended row,
+not a newly evaluated SET expression or an expanded before row. The captured
+generation supplies the original node, barrier, task, input, policy and quantity
+correspondence. A Model call scope is not a substitute for this Command binding.
+
+The installing Content owner re-admits the original Reference envelope under
+its existing installation and validity, then the same Store confirms the
+captured byte holding and all three private generation proofs. Its actual
+issued Reference, not the envelope or a holding CID, enters the Common input
+binding. Foreign Run, member, input, generation, Store or issued-reference
+substitution refuses. Current Account, installation and original availability
+checks remain separate from the immutable capture and are repeated before use.
+
+The existing recovery parent retains each child before its first awaited Store
+confirmation. That child keeps the same issued original and failed reader-close
+duties through refusal, interruption or partial preparation. Physical write and
+read children must retire before the parent closes its Effect Ledger. Alias
+release does not retire durable Content or acknowledge another owner's cleanup.
+The restored view deliberately provides no reconstructed live Compute pin or
+shared-workspace loan. It cannot generate bytes, replay Source/Model work,
+replace a Run, bypass explicit approval or resend an uncertain publication.
+
+Unselected recovery preserves its existing synchronous validation path. Only
+the selected Content consumer awaits physical restoration, and it does so under
+the already retained original recovery parent rather than a detached callback.

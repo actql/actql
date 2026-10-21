@@ -2857,6 +2857,36 @@ pub fn client_program_open_source_free_local_retained_host(
 }
 
 ///|
+/// Open source-free Compute through the same original Resource Run. This is
+/// not the legacy scalar-accounting Host constructor or a second Ledger.
+#export_name("clientProgramOpenInstalledManagedSourceFreeHost")
+pub fn client_program_open_installed_managed_source_free_host(
+  value : @client_local_host.ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientProgram,
+  request : @publication_host.ClientRequestIdentity,
+  registry_body : String,
+  values_body : String,
+  fragment_body : String?,
+  ordered_body : String?,
+  retained_output : Bool,
+) -> Result[
+  @builtin.ConfiguredComputeHost[@strategy.RunIssue]?,
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  @client_local_host.open_installed_managed_source_free_host(
+    value,
+    prepared,
+    request,
+    registry_body,
+    values_body,
+    fragment_body,
+    ordered_body,
+    retained_output,
+    provider_factory=installed_client_family_providers,
+  )
+}
+
+///|
 /// The Local compute owner consumes a verified source from the installed
 /// physical acquisition adapter, preserving the checked Program graph.
 #export_name("clientProgramOpenCapturedLocalHost")
@@ -7322,6 +7352,7 @@ fn open_client_local_effect_host(
   captured_sources? : Array[(Int, @query.CapturedInputSource)] = [],
   acquisition_ledger? : @resources.Ledger? = None,
   component_providers? : Array[@local.ManagedProvider] = [],
+  source_free_limits? : @resources.LedgerLimits? = None,
   query_time? : (
     @publication_host.ClientQueryTimePreparation,
     @publication_host.ClientRequestIdentity,
@@ -7340,6 +7371,10 @@ fn open_client_local_effect_host(
     return None
   }
   let multiple = !captured_sources.is_empty()
+  if source_free_limits is Some(_) &&
+    (source is Some(_) || multiple || acquisition_ledger is Some(_)) {
+    return None
+  }
   if multiple &&
     (
       source is Some(_) ||
@@ -7363,12 +7398,14 @@ fn open_client_local_effect_host(
       acquisition_ledger.unwrap(),
     )
   } else {
-    guard @client_local_host.client_effect_local_ledger_limits(
-        computation, registry_body, values_body, fragment_body, ordered_body,
-      )
-      is Some(limits) else {
-      return None
+    let candidate_limits = match source_free_limits {
+      Some(limits) => Some(limits)
+      None =>
+        @client_local_host.client_effect_local_ledger_limits(
+          computation, registry_body, values_body, fragment_body, ordered_body,
+        )
     }
+    guard candidate_limits is Some(limits) else { return None }
     match source {
       None =>
         @publication_host.open_prepared_source_free_client_effect_run(
@@ -8465,6 +8502,17 @@ pub fn client_program_row_source_restore_relation_declaration(
 }
 
 ///|
+/// Exact physical filesystem epoch parts enter the existing Value Owner.
+/// This projects metadata only, without a Host Date conversion or clock grant.
+#export_name("clientProgramLocalFileTimestamp")
+pub fn client_program_local_file_timestamp(
+  seconds : Int64,
+  nanoseconds : Int,
+) -> String? {
+  @admitted.epoch_parts_timestamp(seconds, nanoseconds)
+}
+
+///|
 /// The published parts of a declaration as one JSON text: Catalog CID,
 /// Catalog, contracts, views, view bodies, manifest entry and its CID, and
 /// the Check Environment evidence members.
@@ -8620,6 +8668,32 @@ pub fn client_program_row_source_begin(
     run,
     max_page_bytes,
     max_page_rows,
+    max_capture_rows,
+    reference_issuer~,
+  ).map(_ => true)
+}
+
+///|
+// Original installed Source bounds only; this cannot supply its phase,
+// physical child, current authority or cleanup acknowledgement.
+#export_name("clientProgramRowSourceBeginWithPageLimits")
+pub fn client_program_row_source_begin_with_page_limits(
+  run : @client_row_source_host.RowRun,
+  max_page_bytes : Int,
+  max_page_nodes : Int,
+  max_page_depth : Int,
+  max_page_rows : Int,
+  max_capture_rows : Int,
+  reference_issuer : @admitted.ReferenceIssuer?,
+) -> Result[Bool, @client_row_source_host.RowHostIssue] {
+  @client_row_source_host.begin_row_run_with_page_limits(
+    run,
+    {
+      max_bytes: max_page_bytes,
+      max_nodes: max_page_nodes,
+      max_depth: max_page_depth,
+      max_rows: max_page_rows,
+    },
     max_capture_rows,
     reference_issuer~,
   ).map(_ => true)

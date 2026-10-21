@@ -147,6 +147,50 @@ pub fn prepare_client_effect_query_requirement(
 }
 
 ///|
+/// Read-only correspondence for a later physical Source parent. The exact
+/// checked Program, stage requests and original source occurrence must own
+/// this requirement; equal canonical identities do not replace those owners.
+/// This neither prepares another acquisition nor issues resource/read authority.
+pub fn client_query_requirement_matches_program(
+  prepared : PreparedClientProgram,
+  stage : Int,
+  source_index : Int,
+  requirement : @planning.QueryRequirement,
+) -> Bool {
+  let identity = @checked.source_identity(
+    @strategy.graph_program(prepared.graph),
+  )
+  guard @context.program_identity_stage_requests(identity, stage)
+    is Some(requests) else {
+    return false
+  }
+  let sequence = @planning.query_material_owner(
+    @planning.query_requirement_material(requirement),
+  )
+  let acquisition = @query.query_sequence_requirement(sequence)
+  physical_equal(@planning.query_requirement_program(requirement), identity) &&
+  physical_equal(@acquisition.query_acquisition_owner(acquisition), requests) &&
+  @acquisition.query_acquisition_source_index(acquisition) == source_index
+}
+
+///|
+/// Same original checked Effect preparation, without exposing its graph or
+/// re-labelling a pure requirement as an Effect read or permission.
+pub fn client_query_requirement_matches_effect_program(
+  prepared : PreparedClientEffectComputation,
+  stage : Int,
+  source_index : Int,
+  requirement : @planning.QueryRequirement,
+) -> Bool {
+  client_query_requirement_matches_program(
+    client_effect_program_view(prepared),
+    stage,
+    source_index,
+    requirement,
+  )
+}
+
+///|
 /// The graph seals the complete acquisition prefix. Physical task ordinals
 /// outside this prefix cannot be substituted as acquired roots.
 pub fn prepared_client_acquisition_count(value : PreparedClientProgram) -> Int {

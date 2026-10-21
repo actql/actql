@@ -26,6 +26,9 @@ import {
   randomUUID,
 } from 'node:crypto';
 import {resolve} from 'node:path';
+import {Buffer as OriginalBuffer} from 'node:buffer';
+import {assertHostJournalDirectoryInspector, inspectHostJournalDirectory}
+  from '../host-node/host-journal-directory.mjs';
 import {createObjectWriterOwner} from './object-writer-owner.mjs';
 import {createResultDeletionOwner} from './result-deletion-owner.mjs';
 import {createMetadataDeletionOwner} from './metadata-deletion-owner.mjs';
@@ -38,6 +41,22 @@ import {createPublicationCommitOwner} from './publication-commit-owner.mjs';
 export {readBounded as readBoundedLocalMetadata};
 
 const cidPattern = /^sha256:([0-9a-f]{64})$/u;
+const originalByteLength = OriginalBuffer.byteLength;
+const originalApply = Reflect.apply;
+
+// Read-only facility correspondence for the selected startup. Matching these
+// actual imports does not issue a service, key, capacity or permission.
+export function assertOriginalLocalPublicationStoreFacilityCurrent(bindings) {
+  const originals = {promises: {lstat, link, mkdir, open, opendir, readdir, readFile,
+    rename, rm, rmdir, unlink, writeFile},
+    crypto: {createCipheriv, createDecipheriv, createHash, randomBytes, randomUUID},
+    buffer: {alloc: OriginalBuffer.alloc, allocUnsafe: OriginalBuffer.allocUnsafe,
+      allocUnsafeSlow: OriginalBuffer.allocUnsafeSlow, byteLength: originalByteLength,
+      concat: OriginalBuffer.concat, from: OriginalBuffer.from, isBuffer: OriginalBuffer.isBuffer}};
+  for (const group of Object.keys(originals)) for (const name of Object.keys(originals[group])) {
+    if (bindings?.[group]?.[name] !== originals[group][name]) fail('PublicationStoreFacilityChanged');
+  }
+}
 // Physical holdings: Transfer material, Effect source/capture custody,
 // encrypted publication evidence, Local continuation evidence, and generated
 // or captured Content. These are kinds in the same physical custody owner,
@@ -296,7 +315,15 @@ async function readBounded(path, maximum, closed, signal, ownerOnly = false) {
   }
   let readFailure;
   let readFailed = false;
+  let originalClose;
+  const captureClose = () => {
+    if (originalClose !== undefined) return;
+    const method = handle.close;
+    if (typeof method !== 'function') fail('PublicationMetadataReaderCleanupPending');
+    originalClose = method;
+  };
   try {
+    captureClose();
     signal?.throwIfAborted();
     const before = await handle.stat({bigint: true});
     signal?.throwIfAborted();
@@ -353,13 +380,15 @@ async function readBounded(path, maximum, closed, signal, ownerOnly = false) {
     throw error;
   } finally {
     try {
-      if (await handle.close() === false) fail('PublicationMetadataReaderCleanupPending');
+      captureClose();
+      if (await originalApply(originalClose, handle, []) === false) fail('PublicationMetadataReaderCleanupPending');
     } catch (closeFailure) {
       // Retain exactly this failed FD, not a pathname reopen or another read.
       // As for the existing object reader, the original caller's reservation
       // and custody stay live until confirmed close. This control/frame and
       // any escaped error are part of the original funded read inventory.
       let original = handle;
+      let closeOriginal = originalClose;
       let retire = closed;
       let flight;
       const status = () => Object.freeze({pending: original !== undefined});
@@ -368,9 +397,18 @@ async function readBounded(path, maximum, closed, signal, ownerOnly = false) {
         retry() {
           if (flight !== undefined) return flight;
           if (original === undefined) return Promise.resolve(status());
-          flight = Promise.resolve().then(() => original.close()).then(result => {
+          flight = Promise.resolve().then(() => {
+            // Retry the successfully captured original only. If its getter
+            // never yielded a method, custody stays with this same handle.
+            if (closeOriginal === undefined) {
+              const method = original.close;
+              if (typeof method !== 'function') fail('PublicationMetadataReaderCleanupPending');
+              closeOriginal = method;
+            }
+            return originalApply(closeOriginal, original, []);
+          }).then(result => {
             if (result === false) fail('PublicationMetadataReaderCleanupPending');
-            original = undefined;
+            original = closeOriginal = undefined;
             const acknowledge = retire;
             retire = undefined;
             acknowledge?.();
@@ -433,7 +471,7 @@ async function processIsAlive(pid) {
 // until it completes: no earlier Buffer/String/Promise retirement is assumed.
 // The original Host envelope separately funds decode/tree/backing, the one
 // excess Dirent/EOF probe, FD/Dir/cleanup controls and generated Host baseline.
-function storeBootstrapAcquisition(supplied, maxMetadataBytes) {
+function storeBootstrapAcquisition(supplied, maxMetadataBytes, directoryInspection) {
   if (!exactKeys(supplied, ['maxWireBytes', 'maxDirectoryEntries']) ||
       !quantity(supplied.maxWireBytes) || supplied.maxWireBytes === 0 ||
       !quantity(supplied.maxDirectoryEntries)) {
@@ -441,6 +479,9 @@ function storeBootstrapAcquisition(supplied, maxMetadataBytes) {
   }
   // Capture before I/O. A mutated argument never widens this opening.
   const {maxWireBytes, maxDirectoryEntries} = supplied;
+  if (directoryInspection !== undefined) {
+    assertHostJournalDirectoryInspector(directoryInspection, maxDirectoryEntries);
+  }
   let entries = 0, rawBytes = 0;
   const readMetadata = async path => {
     const bytes = await readBounded(path,
@@ -449,6 +490,23 @@ function storeBootstrapAcquisition(supplied, maxMetadataBytes) {
     return bytes;
   };
   const readDirectory = async path => {
+    if (directoryInspection !== undefined) {
+      // The same Root owns this nominal native view and its cumulative scan
+      // allowance before acquisition. A whole scan's retained names/backing
+      // precedes these Store processing bounds; it is not a stock Dir lease.
+      // Unknown close propagates the view's original cleanup duty unchanged.
+      const names = inspectHostJournalDirectory(directoryInspection, path, maxDirectoryEntries);
+      for (const name of names) {
+        if (entries === maxDirectoryEntries) fail('PublicationStoreBootstrapEntriesLimit');
+        entries++;
+        const bytes = originalApply(originalByteLength, OriginalBuffer, [name, 'utf8']);
+        if (!Number.isSafeInteger(bytes) || bytes < name.length || bytes > maxWireBytes - rawBytes) {
+          fail('PublicationStoreBootstrapWireLimit');
+        }
+        rawBytes += bytes;
+      }
+      return names;
+    }
     const directory = await opendir(path, {encoding: 'buffer', bufferSize: 1});
     let primary, failed = false;
     try {
@@ -532,13 +590,62 @@ async function acquireStoreOwnership(root, bootstrap, key) {
         pid: process.pid,
         token,
       }), 'utf8');
-      await writeFile(ownerPath, owner, {flag: 'wx', mode: 0o600});
       let released = false, ownerRemoved = false, directoryRemoved = false;
       let ownershipDevice, ownershipInode;
       let retirementDirectory, retirementSynced = false;
+      let ownerWriter, ownerWriterClose, ownerFileIdentity;
+      let retirementReadCleanup, retirementReadFailure;
+      let ownerFileCreated = false, ownerWritten = false;
       const ownership = Object.freeze({
+        async assertCurrent() {
+          if (!ownerWritten || ownerWriter !== undefined || released || ownerRemoved ||
+              directoryRemoved || retirementDirectory !== undefined) {
+            fail('PublicationStoreOwnershipLost');
+          }
+          const currentRoot = await lstat(root, {bigint: true});
+          const directory = await lstat(ownershipDirectory, {bigint: true});
+          if (!currentRoot.isDirectory() || currentRoot.isSymbolicLink() ||
+              currentRoot.dev !== rootDevice || currentRoot.ino !== rootInode ||
+              !directory.isDirectory() || directory.isSymbolicLink()) fail('PublicationStoreOwnershipLost');
+          const before = await lstat(ownerPath, {bigint: true});
+          const sameFile = state => state.isFile() && !state.isSymbolicLink() &&
+            ['dev', 'ino', 'size', 'mtimeNs', 'ctimeNs'].every(name => state[name] === ownerFileIdentity?.[name]);
+          if (!sameFile(before)) fail('PublicationStoreOwnershipLost');
+          const existing = JSON.parse(await readBounded(ownerPath, 4096));
+          if (!sameFile(await lstat(ownerPath, {bigint: true}))) fail('PublicationStoreOwnershipLost');
+          if (existing?.token !== token || existing?.pid !== process.pid) fail('PublicationStoreOwnershipLost');
+          if (ownershipDevice === undefined) {
+            ownershipDevice = directory.dev;
+            ownershipInode = directory.ino;
+          } else if (directory.dev !== ownershipDevice || directory.ino !== ownershipInode) {
+            fail('PublicationStoreOwnershipLost');
+          }
+        },
         async release() {
           if (released) return false;
+          if (retirementReadCleanup !== undefined) {
+            const child = retirementReadCleanup;
+            const acknowledged = state => {
+              const pending = state !== null && typeof state === 'object'
+                ? Object.getOwnPropertyDescriptor(state, 'pending') : undefined;
+              return pending !== undefined && Object.hasOwn(pending, 'value') && pending.value === false;
+            };
+            if (child.status === undefined || child.retry === undefined) throw retirementReadFailure;
+            let state = await originalApply(child.status, child.handle, []);
+            if (!acknowledged(state)) state = await originalApply(child.retry, child.handle, []);
+            if (!acknowledged(state)) throw retirementReadFailure;
+            retirementReadCleanup = retirementReadFailure = undefined;
+          }
+          // The opener owns this exact metadata writer even if writing or
+          // closing failed before an ownership handle could be returned.
+          if (ownerWriter !== undefined) {
+            ownerWriterClose ??= ownerWriter.close;
+            if (typeof ownerWriterClose !== 'function' ||
+                await Reflect.apply(ownerWriterClose, ownerWriter, []) === false) {
+              fail('PublicationStoreCleanupPending');
+            }
+            ownerWriter = undefined;
+          }
           // This FD is already owned independently of the current pathname.
           // Drain it even if root has vanished or names a foreign directory;
           // successful FD close alone does not retire the Store or its key.
@@ -563,14 +670,39 @@ async function acquireStoreOwnership(root, bootstrap, key) {
               fail('PublicationStoreOwnershipLost');
             }
             if (!ownerRemoved) {
-              let existing;
-              try { existing = JSON.parse(await readFile(ownerPath, 'utf8')); }
-              catch (error) {
-                if (error?.code === 'ENOENT') return false;
-                throw error;
-              }
-              if (existing?.token !== token || existing?.pid !== process.pid) {
-                fail('PublicationStoreOwnershipLost');
+              if (ownerWritten) {
+                let existing;
+                try { existing = JSON.parse(bootstrap === undefined
+                  ? await readFile(ownerPath, 'utf8') : await readBounded(ownerPath, 4096)); }
+                catch (error) {
+                  const handle = error !== null && typeof error === 'object'
+                    ? Object.getOwnPropertyDescriptor(error, 'cleanupHandle')?.value : undefined;
+                  if (handle !== undefined) {
+                    const status = Object.getOwnPropertyDescriptor(handle, 'status')?.value;
+                    const retry = Object.getOwnPropertyDescriptor(handle, 'retry')?.value;
+                    retirementReadCleanup = {handle,
+                      status: typeof status === 'function' ? status : undefined,
+                      retry: typeof retry === 'function' ? retry : undefined};
+                    retirementReadFailure = error;
+                    throw error;
+                  }
+                  if (error?.code === 'ENOENT') return false;
+                  throw error;
+                }
+                if (existing?.token !== token || existing?.pid !== process.pid) {
+                  fail('PublicationStoreOwnershipLost');
+                }
+              } else if (ownerFileCreated) {
+                // Incomplete bytes do not contain a readable token yet. Only
+                // the exact file identity from our own writer may be removed.
+                const state = await lstat(ownerPath, {bigint: true});
+                if (ownerFileIdentity === undefined || !state.isFile() || state.isSymbolicLink() ||
+                    state.dev !== ownerFileIdentity.dev || state.ino !== ownerFileIdentity.ino) {
+                  fail('PublicationStoreOwnershipLost');
+                }
+              } else {
+                try { await lstat(ownerPath); fail('PublicationStoreOwnershipLost'); }
+                catch (cause) { if (cause?.code !== 'ENOENT') throw cause; }
               }
             }
             if (ownershipDevice === undefined) {
@@ -582,7 +714,7 @@ async function acquireStoreOwnership(root, bootstrap, key) {
             // Record only actually acknowledged phases in this original
             // handle. Never reconstruct an absent record or unlink again.
             if (!ownerRemoved) {
-              await unlink(ownerPath);
+              if (ownerFileCreated) await unlink(ownerPath);
               ownerRemoved = true;
             }
             await rmdir(ownershipDirectory);
@@ -616,6 +748,25 @@ async function acquireStoreOwnership(root, bootstrap, key) {
         },
       });
       try {
+        ownerWriter = await open(ownerPath, constants.O_CREAT | constants.O_EXCL | constants.O_WRONLY, 0o600);
+        ownerFileCreated = true;
+        ownerWriterClose = ownerWriter.close;
+        if (typeof ownerWriterClose !== 'function') fail('PublicationStoreCleanupPending');
+        const physical = await ownerWriter.stat({bigint: true});
+        ownerFileIdentity = {dev: physical.dev, ino: physical.ino};
+        let offset = 0;
+        while (offset < owner.byteLength) {
+          const {bytesWritten} = await ownerWriter.write(owner, offset, owner.byteLength - offset, offset);
+          if (bytesWritten === 0) fail('IncompletePublicationWrite');
+          offset += bytesWritten;
+        }
+        await ownerWriter.sync();
+        const written = await ownerWriter.stat({bigint: true});
+        ownerFileIdentity = Object.fromEntries(
+          ['dev', 'ino', 'size', 'mtimeNs', 'ctimeNs'].map(name => [name, written[name]]));
+        if (await Reflect.apply(ownerWriterClose, ownerWriter, []) === false) fail('PublicationStoreCleanupPending');
+        ownerWriter = undefined;
+        ownerWritten = true;
         await syncDirectoryPath(ownershipDirectory);
         await syncDirectoryPath(root);
         return ownership;
@@ -696,6 +847,141 @@ async function retainStoreOpeningFailure(cause, ownership, key) {
   return failure;
 }
 
+// A prepared original is only the existing physical exclusion duty. It is
+// neither a Store/capacity authority nor permission to initialize a format,
+// create keys, publish, or repair an unknown prefix.
+const preparedStoreOwnerships = new WeakMap();
+function originalPreparedStoreOwnership(original) {
+  const entry = preparedStoreOwnerships.get(original);
+  if (entry === undefined) fail('PublicationStoreOwnershipLost');
+  return entry;
+}
+function preparedOwnershipStatus(entry) {
+  return Object.freeze({pending: entry.ownership !== undefined || entry.child !== undefined,
+    adopted: entry.phase === 'adopted'});
+}
+async function releasePreparedOwnership(entry) {
+  if (entry.releaseFlight !== undefined) return entry.releaseFlight;
+  if (entry.ownership === undefined) return true;
+  entry.closing = true;
+  entry.releaseFlight = Promise.resolve().then(async () => {
+    // The selected Host may share this SAME exclusion with its Journal.
+    // Payload cleanup must still run independently, but cannot release the
+    // original owner while the retained Journal's physical close is pending.
+    // This dependency only delays release; it issues no capacity/authority.
+    if (entry.dependency !== undefined) {
+      const observation = await Reflect.apply(entry.dependencyStatus, entry.dependency, []);
+      const pending = observation !== null && typeof observation === 'object'
+        ? Object.getOwnPropertyDescriptor(observation, 'pending') : undefined;
+      if (pending === undefined || !Object.hasOwn(pending, 'value') || pending.value !== false) {
+        fail('PublicationStoreCleanupPending');
+      }
+      entry.dependency = entry.dependencyStatus = undefined;
+    }
+    if (await entry.ownership.release() !== true) fail('PublicationStoreOwnershipLost');
+    entry.ownership = undefined;
+    entry.phase = 'closed';
+    return true;
+  }).finally(() => { entry.releaseFlight = undefined; });
+  return entry.releaseFlight;
+}
+export function assertOriginalPreparedLocalPublicationStoreOwnership(original, directory) {
+  const entry = originalPreparedStoreOwnership(original);
+  if (entry.root !== resolve(directory) || entry.closing ||
+      entry.ownership === undefined || !['prepared', 'adopting', 'adopted'].includes(entry.phase)) {
+    fail('PublicationStoreOwnershipLost');
+  }
+}
+// Only this actual prepared Owner can select first private-key setup. An
+// absent key/path or caller flag cannot make an existing Store never-adopted.
+export async function assertOriginalPreparedLocalPublicationStoreFirstInitialization(original, directory) {
+  assertOriginalPreparedLocalPublicationStoreOwnership(original, directory);
+  const entry = originalPreparedStoreOwnership(original);
+  await entry.ownership.assertCurrent();
+  assertOriginalPreparedLocalPublicationStoreOwnership(original, directory);
+  if (!entry.fresh || entry.phase !== 'prepared') {
+    fail('PublicationStoreFirstInitializationUnavailable');
+  }
+}
+export async function prepareLocalPublicationStoreOwnership(directory, bounds, dependency, directoryInspection) {
+  if (typeof directory !== 'string' || directory.length === 0) fail('InvalidPublicationStoreConfiguration');
+  // Capture before any acquisition/callback. The actual Root supplies its
+  // original close-only observation, never a replacement DB or public flag.
+  const dependencyProperty = dependency !== null && typeof dependency === 'object'
+    ? Object.getOwnPropertyDescriptor(dependency, 'status') : undefined;
+  if (dependency !== undefined && (dependencyProperty === undefined ||
+      !Object.hasOwn(dependencyProperty, 'value') || typeof dependencyProperty.value !== 'function')) {
+    fail('InvalidPublicationStoreConfiguration');
+  }
+  const dependencyStatus = dependencyProperty?.value;
+  const root = resolve(directory);
+  if (bounds === undefined && directoryInspection !== undefined) {
+    fail('InvalidPublicationStoreBootstrapBounds');
+  }
+  // Ordinary installed Hosts move this same exclusion before their Journal
+  // without selecting a resource recipe or changing their existing intake.
+  // Selected operational callers still supply their explicit finite bounds.
+  const bootstrap = bounds === undefined ? Object.freeze({
+    readDirectory: readdir, readMetadata: path => readBounded(path, 4096),
+  }) : storeBootstrapAcquisition(bounds, 4096, directoryInspection);
+  let names;
+  try {
+    const state = await lstat(root);
+    if (!state.isDirectory() || state.isSymbolicLink()) fail('UnknownPublicationStoreFormat');
+    names = await bootstrap.readDirectory(root);
+  } catch (cause) {
+    if (cause?.code !== 'ENOENT') throw cause;
+    await mkdir(root, {recursive: true, mode: 0o700});
+    names = await bootstrap.readDirectory(root);
+  }
+  const fresh = names.length === 0;
+  if (!fresh) {
+    if (!names.includes('store.json')) fail('UnknownPublicationStoreFormat');
+    const contract = JSON.parse(await bootstrap.readMetadata(resolve(root, 'store.json')));
+    if (!exactKeys(contract, ['version', 'isolation', 'store_authority_cid']) ||
+        contract.version !== 'actql-local-publication-store/0.1' ||
+        contract.isolation !== 'execution-namespace' || !cidPattern.test(contract.store_authority_cid)) {
+      fail('UnknownPublicationStoreFormat');
+    }
+  }
+  const original = Object.freeze(Object.create(null));
+  const entry = {root, fresh, ownership: undefined, phase: 'prepared',
+    directoryBootstrap: directoryInspection === undefined ? undefined : bootstrap,
+    dependency, dependencyStatus,
+    closing: false, releaseFlight: undefined, cleanupFlight: undefined,
+    child: undefined, childStatus: undefined, childRetry: undefined, unknownChild: false};
+  preparedStoreOwnerships.set(original, entry);
+  entry.ownership = await acquireStoreOwnership(root, bootstrap, undefined);
+  try { await entry.ownership.assertCurrent(); }
+  catch (cause) {
+    entry.closing = true;
+    throw await retainStoreOpeningFailure(cause,
+      Object.freeze({release: () => releasePreparedOwnership(entry)}), undefined);
+  }
+  return original;
+}
+export function closePreparedLocalPublicationStoreOwnership(original) {
+  const entry = originalPreparedStoreOwnership(original);
+  entry.closing = true;
+  if (entry.cleanupFlight !== undefined) return entry.cleanupFlight;
+  entry.cleanupFlight = Promise.resolve().then(async () => {
+    if (entry.unknownChild) return preparedOwnershipStatus(entry);
+    if (entry.child !== undefined) {
+      let state = await Reflect.apply(entry.childStatus, entry.child, []);
+      if (state?.pending !== false) state = await Reflect.apply(entry.childRetry, entry.child, []);
+      if (state?.pending !== false) return preparedOwnershipStatus(entry);
+      entry.child = entry.childStatus = entry.childRetry = undefined;
+    }
+    // A live/adopting Store owns its children and the same original release.
+    // Parent close cannot certify or interrupt that Store's physical work.
+    if (entry.phase !== 'adopted' && entry.phase !== 'adopting') {
+      await releasePreparedOwnership(entry);
+    }
+    return preparedOwnershipStatus(entry);
+  }).finally(() => { entry.cleanupFlight = undefined; });
+  return entry.cleanupFlight;
+}
+
 function validateConfiguration(options) {
   const fields = [
     'directory',
@@ -766,11 +1052,66 @@ export async function openLocalPublicationStore(
   suppliedControl,
   durability = localDurability,
   suppliedBootstrap,
+  preparedOriginal,
+  operationalCurrent,
 ) {
+  if (operationalCurrent !== undefined) {
+    if (typeof operationalCurrent !== 'function') fail('InvalidPublicationStoreCurrent');
+    operationalCurrent();
+  }
+  const prepared = preparedOriginal === undefined ? undefined : originalPreparedStoreOwnership(preparedOriginal);
+  if (prepared !== undefined) {
+    if (prepared.phase !== 'prepared' || prepared.closing) fail('PublicationStoreOwnershipLost');
+    prepared.phase = 'adopting';
+  }
+  try {
+    return await openOriginalLocalPublicationStore(supplied, suppliedControl, durability,
+      suppliedBootstrap, prepared, operationalCurrent);
+  } catch (cause) {
+    if (prepared !== undefined && prepared.ownership !== undefined) {
+      // Retain any original failed child before observing its cleanup ports.
+      // Parent retirement never erases an unreadable/pending child carrier.
+      try {
+        const property = cause !== null && typeof cause === 'object'
+          ? Object.getOwnPropertyDescriptor(cause, 'cleanupHandle') : undefined;
+        if (property !== undefined) {
+          if (!Object.hasOwn(property, 'value')) throw new TypeError('UnobservedStoreCleanup');
+          prepared.child = property.value;
+          prepared.childStatus = prepared.child.status;
+          prepared.childRetry = prepared.child.retry;
+          if (typeof prepared.childStatus !== 'function' || typeof prepared.childRetry !== 'function') {
+            throw new TypeError('UnobservedStoreCleanup');
+          }
+        }
+      } catch { prepared.unknownChild = true; }
+      if (prepared.phase === 'adopting') prepared.phase = 'prepared';
+      prepared.closing = true;
+    }
+    throw cause;
+  }
+}
+
+async function openOriginalLocalPublicationStore(
+  supplied,
+  suppliedControl,
+  durability,
+  suppliedBootstrap,
+  prepared,
+  operationalCurrent,
+) {
+  operationalCurrent?.();
   const configuration = validateConfiguration(supplied);
   const contractControl = validateContractControl(suppliedControl);
-  const bootstrap = suppliedBootstrap === undefined ? undefined
+  const openingBootstrap = suppliedBootstrap === undefined ? undefined
     : storeBootstrapAcquisition(suppliedBootstrap, configuration.maxObjectBytes);
+  // Adopt the selected exclusion's SAME cumulative directory reader. Creating
+  // another view here would reset its history between prepare and Store open.
+  // Metadata keeps its existing object bound and acquisition semantics.
+  const bootstrap = prepared?.directoryBootstrap === undefined ? openingBootstrap : Object.freeze({
+    readDirectory: prepared.directoryBootstrap.readDirectory,
+    readMetadata: openingBootstrap?.readMetadata ??
+      (path => readBounded(path, configuration.maxObjectBytes)),
+  });
   const readOpeningDirectory = bootstrap?.readDirectory ?? readdir;
   const readOpeningMetadata = bootstrap?.readMetadata ??
     (path => readBounded(path, configuration.maxObjectBytes));
@@ -785,6 +1126,8 @@ export async function openLocalPublicationStore(
     maxDepth: configuration.maxContractDepth,
   });
   const root = configuration.directory;
+  if (prepared !== undefined && prepared.root !== root) fail('PublicationStoreOwnershipLost');
+  if (prepared !== undefined) await prepared.ownership.assertCurrent();
   const objectsDirectory = resolve(root, 'objects');
   const contractsDirectory = resolve(root, 'contracts');
   const stagingDirectory = resolve(root, 'staging');
@@ -820,7 +1163,12 @@ export async function openLocalPublicationStore(
   } catch (error) {
     if (error?.code !== 'ENOENT') throw error;
   }
-  if (existingNames?.length > 0) {
+  // Only the same still-held original may explain this exact fresh prefix.
+  // Ordinary opens and cold owner-only directories retain their old refusal.
+  const preparedFreshPrefix = prepared !== undefined && prepared.fresh &&
+    prepared.phase === 'adopting' && prepared.ownership !== undefined &&
+    existingNames?.length === 1 && existingNames[0] === 'owner';
+  if (existingNames?.length > 0 && !preparedFreshPrefix) {
     if (!existingNames.includes('store.json')) {
       const legacy = existingNames.some(name => [
         'objects', 'contracts', 'indexes', 'staging', 'owner',
@@ -913,7 +1261,17 @@ export async function openLocalPublicationStore(
   // One process owns the complete capacity authority for this local Store.
   // A dead local owner can be reclaimed, but two live opens never maintain
   // independent counters for the same physical allocation scope.
-  const ownership = await acquireStoreOwnership(root, bootstrap, configuration.privateEvidenceKey);
+  let ownership;
+  if (prepared === undefined) {
+    ownership = await acquireStoreOwnership(root, bootstrap, configuration.privateEvidenceKey);
+  } else {
+    await prepared.ownership.assertCurrent();
+    if (prepared.phase !== 'adopting' || prepared.closing || prepared.ownership === undefined) {
+      fail('PublicationStoreOwnershipLost');
+    }
+    prepared.phase = 'adopted';
+    ownership = Object.freeze({release: () => releasePreparedOwnership(prepared)});
+  }
   try {
   for (const name of await readOpeningDirectory(stagingDirectory)) {
     const path = resolve(stagingDirectory, name);
@@ -1199,6 +1557,9 @@ export async function openLocalPublicationStore(
       `${cidHex(resultDefinitionCid)}.json`,
     );
   const active = () => {
+    // This refusal-only callback is captured from the actual selected Root;
+    // it is not itself an issuer and never participates in cleanup ACKs.
+    operationalCurrent?.();
     if (closed || closeRequested) fail('PublicationStoreClosed');
   };
 

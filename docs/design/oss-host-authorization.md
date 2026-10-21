@@ -92,6 +92,14 @@ in for reviewer authority. Signing still requires the original Checkpoint,
 Run/request, approval scope, exact preimage, original use claim and independently
 current role/key checks; Unknown never allocates a replacement use.
 
+An Effect Checkpoint, whether issued by genuine Account delegation or an
+explicit requested stop, ends strictly before the same admitted Run's original
+exclusive deadline. The Host projects that immutable lifetime from the retained
+Run Definition, caps its existing Checkpoint TTL at the last preceding
+millisecond, and refuses an empty window after asynchronous preparation. This
+does not renew the Run, replace a saved Checkpoint or relax Common's lifetime
+reader; approval and signing still require the current original authority.
+
 Read limits bound UTF-8 input, parser nodes/depth and selected signer count.
 They do not fund the original String, byte conversion, parser workspace,
 selection records, key-file reads, signing work or their overlap. Those costs
@@ -625,6 +633,19 @@ uses that original submitted intent, never the source-free sentinel. The
 existing JSON Run material codec consumes only the Owner's retained Program
 projection; it does not replace the original submitted source. Legacy
 structured preparation and material bytes remain unchanged.
+
+For a new public read-only SQL/AQL Source without an authored RESULT, the
+existing frontend configures the actual primary export as `main` before
+constructing Program identity. It does not add an SDK alias or another Result.
+Internal preparations selecting the historical answer recipe remain explicit.
+New saved source-preparation metadata identifies the public-primary recipe;
+the original four-field metadata retains its historical recipe when re-admitted.
+Neither representation authorizes a Run: the independently retained request and
+material/definition correspondence must still match. Existing durable request
+names and cold Run observations return their saved Result names without compiling
+or dispatching a replacement. The finite Mock Account scope names only supported
+`result/main` and `result/answer` subjects; recognizing an older profile never
+adds either permission to its saved Account.
 
 A durable Host stores the original source metadata alongside the same Run's
 authenticated material record. Recovery re-admits that saved publication and

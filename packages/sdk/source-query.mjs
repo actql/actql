@@ -1,4 +1,5 @@
 import {captureReadOptions, captureResultRead} from './result-schema.mjs';
+import {captureQueryResultRead, collectCapturedResult} from './internal/result-read.mjs';
 
 // A query composes existing admission, observation and Result owners. It never
 // resubmits, reconciles a Run, answers a Checkpoint, or retries a Result read.
@@ -35,9 +36,12 @@ function collectAfterQuery(query, retainResult, capture, read) {
 }
 
 export function sourceQuery(startSource, ClientError, retainResult, retainFailure,
-  format, text, parameters, options = {}) {
+  format, text, parameters, options, beforeResultRead, assertResultReadCurrent, captureAdmission) {
   let requestId, admission, signal, selectedResult;
-  try {
+  const capture = submit => {
+    // A selected query intake observes the original omission before this
+    // SDK-owned default or any caller option/property access is performed.
+    if (options === undefined) options = {};
     requestId = options?.submissionRef?.nonce ?? options?.requestId;
     if (requestId !== undefined && (typeof requestId !== 'string' || !requestId)) {
       throw new ClientError('InvalidRequestId');
@@ -59,12 +63,16 @@ export function sourceQuery(startSource, ClientError, retainResult, retainFailur
     signal = options.signal;
     // startSource captures JSON source/declarations/parameters synchronously,
     // before credentials or I/O. Do not serialize caller-owned inputs twice.
-    admission = startSource(text, {format, parameters, signal, readOnly: true,
+    return submit(text, {format, parameters, signal, readOnly: true,
       ...(options.attemptId === undefined ? {} : {attemptId: options.attemptId}),
       ...(options.requestId === undefined ? {} : {requestId: options.requestId}),
       ...(options.submissionRef === undefined ? {} : {submissionRef: options.submissionRef}),
       ...(options.parameterDeclarations === undefined ? {} :
         {parameterDeclarations: options.parameterDeclarations})});
+  };
+  try {
+    admission = captureAdmission === undefined ? capture(startSource)
+      : captureAdmission(format, text, parameters, options, capture);
   } catch (cause) {
     // An unreadable option has no admission identity; expose one local call ID
     // consistently without evaluating the accessor again or sending anything.
@@ -106,19 +114,28 @@ export function sourceQuery(startSource, ClientError, retainResult, retainFailur
     return result;
   });
   retainResult(admission, query);
+  const collectSelected = (kind, schemaOrOptions, options) => collectAfterQuery(query,
+    retainResult, () => captureQueryResultRead(beforeResultRead, assertResultReadCurrent,
+      kind, schemaOrOptions, options), (result, token) => collectCapturedResult(result, token));
   // Keep one native Promise. Native chaining/assimilation and repeated awaits
   // share this operation; each explicitly requested collection opens a read.
   Object.defineProperties(query, {
     requestId: {value: requestId, enumerable: true},
-    all: {value: (schemaOrOptions, options) => collectAfterQuery(query, retainResult,
+    all: {value: (schemaOrOptions, options) => beforeResultRead !== undefined
+      ? collectSelected('all', schemaOrOptions, options)
+      : collectAfterQuery(query, retainResult,
       () => captureResultRead(ClientError, schemaOrOptions, options),
       (result, captured) => captured.validate === undefined
         ? result.all(captured.options)
         : result.all({'~standard': {version: 1, vendor: 'actql-captured',
           validate: captured.validate}}, captured.options))},
-    one: {value: options => collectAfterQuery(query, retainResult,
+    one: {value: options => beforeResultRead !== undefined
+      ? collectSelected('one', options, undefined)
+      : collectAfterQuery(query, retainResult,
       () => captureReadOptions(options), (result, captured) => result.one(captured))},
-    scalar: {value: options => collectAfterQuery(query, retainResult,
+    scalar: {value: options => beforeResultRead !== undefined
+      ? collectSelected('scalar', options, undefined)
+      : collectAfterQuery(query, retainResult,
       () => captureReadOptions(options), (result, captured) => result.scalar(captured))},
   });
   // The SDK properties above are immutable, but the native Promise must stay

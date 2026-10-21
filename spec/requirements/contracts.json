@@ -2028,7 +2028,29 @@
     },
     {
       "requirement_id": "actql.protocol.contracts/file-sources.listing-resolution-and-metadata",
-      "statement_sha256": "0b1b1f28c5b5195c53982a3108b0840863b74111cbd956466adcd4cf48c20c57",
+      "statement_sha256": "524330fbadfb863977810870749867d652579ba7e751f205453fd711a34012e2",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "file-sources",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/file-sources.declared-metadata-schema",
+      "statement_sha256": "580e6c2c684519fa6a8c8a95683a80a9dab4ff7a8922385706ba2099e7c96b86",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "file-sources",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/file-sources.full-schema-correspondence",
+      "statement_sha256": "d52331e9572f25e4a4fe2567feb5609024c5a74d92dc19375b703b365bd95b64",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",

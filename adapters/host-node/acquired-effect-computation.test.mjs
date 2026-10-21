@@ -190,9 +190,11 @@ test('a stale Source admission is not an unknown provider acquisition', async ()
   let retained;
   let reads = 0;
   let closes = 0;
+  const observations = [];
   await assert.rejects(openAcquiredEffectComputation({
     acquired: {prepared: {}}, now: () => '2026-09-29T00:00:00.000Z',
     retainComputationOwner(owner) { retained = owner; },
+    observe(name) { observations.push(name); },
     sourceProfile: {prepare: () => ({}), open() { reads++; }},
     sourceContinuation: {
       accessFor: access => access, prepared() {}, times: () => ({}),
@@ -205,6 +207,32 @@ test('a stale Source admission is not an unknown provider acquisition', async ()
   assert.equal(retained.cleanupPending(), false);
   assert.equal(reads, 0);
   assert.equal(closes, 1);
+  assert.deepEqual(observations, [], 'a refused original admission is not a Source attempt');
+});
+
+test('retained Source restoration is not a new adapter attempt even when it refuses', async () => {
+  let retained;
+  let reads = 0;
+  let closes = 0;
+  const observations = [];
+  const refusal = new Error('RetainedOriginalUnavailable');
+  await assert.rejects(openAcquiredEffectComputation({
+    acquired: {prepared: {}}, now: () => '2026-09-29T00:00:00.000Z',
+    retainComputationOwner(owner) {retained = owner;},
+    observe(name) {observations.push(name);},
+    sourceProfile: {prepare: () => ({}), open() {reads++;}},
+    sourceContinuation: {
+      accessFor: access => access, prepared() {}, times: () => ({}),
+      beforeRead: () => ({retained: {}}),
+      restore() {throw refusal;}, close() {closes++;},
+    },
+  }), error => error === refusal);
+  await retained.close();
+  assert.equal(await retained.cleanup(), true);
+  assert.equal(retained.cleanupPending(), false);
+  assert.equal(reads, 0);
+  assert.equal(closes, 1);
+  assert.deepEqual(observations, []);
 });
 
 test('source evidence failure retains capture cleanup until release succeeds',

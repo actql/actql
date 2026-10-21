@@ -100,6 +100,8 @@ export type PreparedSourceProgram =
   Readonly<{kind: 'effect_free'; prepared: PreparedProgram; originalIntent: SubmittedIntent}> |
   Readonly<{kind: 'effect'; prepared: PreparedEffectProgram; originalIntent: SubmittedIntent}>;
 export interface SourceProgramOriginals {
+  /** Absent on historical originals; restore never upgrades their primary. */
+  readonly primaryResultRecipe?: 'public-main';
   readonly intentWire: string;
   readonly intentCid: string;
   readonly environmentCid: string;

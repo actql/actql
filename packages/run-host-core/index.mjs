@@ -172,18 +172,24 @@ export function prepareProgram(document, format, environment, parametersWire) {
 
 /** One original submitted source and trusted installation publication. */
 export function prepareSourceProgram(intent, environment, publicationWire) {
+  return prepareSourceProgramOriginal(intent, environment, publicationWire, 'public-main');
+}
+
+function prepareSourceProgramOriginal(intent, environment, publicationWire, primaryResultRecipe) {
   if (typeof publicationWire !== 'string') throw new TypeError('InvalidRunHostSourcePublication');
   const originalIntent = requireHandle(submittedIntents, intent);
   const originalEnvironment = requireHandle(environments, environment);
-  const value = checked(owner.clientValuesHostPrepareSourceProgram(originalIntent,
-    originalEnvironment, publicationWire), 'RunHostSourcePreparationRejected');
+  const prepare = primaryResultRecipe === undefined
+    ? owner.clientValuesHostPrepareSourceProgram : owner.clientValuesHostPreparePublicSourceProgram;
+  const value = checked(Reflect.apply(prepare, owner, [originalIntent,
+    originalEnvironment, publicationWire]), 'RunHostSourcePreparationRejected');
   const kind = owner.clientValuesHostSourceProgramKind(value);
   const raw = kind === 'effect_free' ? owner.clientValuesHostSourceProgramPure(value)
     : kind === 'effect' ? owner.clientValuesHostSourceProgramEffect(value) : undefined;
   if (raw === undefined) throw new Error('InvalidRunHostOwnerResult');
   const prepared = handle(kind === 'effect_free' ? preparations : effectPreparations,
     raw, kind === 'effect_free' ? 'prepared-program' : 'prepared-effect-program');
-  sourcePreparations.set(prepared, {value, intent, environment});
+  sourcePreparations.set(prepared, {value, intent, environment, primaryResultRecipe});
   return Object.freeze({kind, prepared, originalIntent: intent});
 }
 
@@ -196,7 +202,9 @@ export function sourceProgramOriginals(prepared) {
     throw new Error('InvalidRunHostOwnerResult');
   }
   return Object.freeze({intentWire: facts[0], intentCid: facts[1],
-    environmentCid: facts[2], publicationWire: facts[3]});
+    environmentCid: facts[2], publicationWire: facts[3],
+    ...(original.primaryResultRecipe === undefined ? {} :
+      {primaryResultRecipe: original.primaryResultRecipe})});
 }
 
 /** Original lowerer projection for the existing JSON Run material codec. */
@@ -232,6 +240,14 @@ export function sourceProgramSourceInput(prepared) {
 /** Re-admit saved originals; the Host still verifies current custody and Run. */
 export function restoreSourceProgram(originals, environment) {
   const keys = ['intentWire', 'intentCid', 'environmentCid', 'publicationWire'];
+  const recipe = originals === null || typeof originals !== 'object' ? undefined
+    : Object.getOwnPropertyDescriptor(originals, 'primaryResultRecipe');
+  if (recipe !== undefined) {
+    if (!Object.hasOwn(recipe, 'value') || recipe.value !== 'public-main') {
+      throw new TypeError('InvalidRunHostSourceOriginals');
+    }
+    keys.push('primaryResultRecipe');
+  }
   if (originals === null || typeof originals !== 'object' || Array.isArray(originals) ||
       Reflect.ownKeys(originals).length !== keys.length || keys.some(key => {
         const d = Object.getOwnPropertyDescriptor(originals, key);
@@ -239,7 +255,11 @@ export function restoreSourceProgram(originals, environment) {
       })) throw new TypeError('InvalidRunHostSourceOriginals');
   const intent = prepareSubmittedIntent(originals.intentWire,
     {maxWireBytes: 1048576, maxNodes: 65536, maxDepth: 64});
-  const selected = prepareSourceProgram(intent, environment, originals.publicationWire);
+  // Absence means the exact historical configured-primary recipe. Never
+  // upgrade a saved source preparation merely because new public input uses
+  // main. Run restoration independently checks its saved request/materials.
+  const selected = prepareSourceProgramOriginal(intent, environment,
+    originals.publicationWire, recipe?.value);
   const actual = sourceProgramOriginals(selected.prepared);
   if (keys.some(key => actual[key] !== originals[key])) throw new TypeError('ForeignRunHostSourceOriginals');
   return selected;

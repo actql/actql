@@ -1,5 +1,5 @@
 {
-  "source": "623616dfb73778143ebb512695cbb272ee2fae4f",
+  "source": "1b87ca139a399e91773ebdb99dc658fcabe6b07a",
   "qualification": "Operational functional reference supply; no product edit, authority transfer, representation promotion or runtime verification",
   "input": {
     "file": "c-r1-functional-primary-references-2a316.json",
@@ -1422,9 +1422,9 @@
             "importResidentStrategyInput/result/result/batch/batch",
             "importResidentStrategyInput/result/result/discard/discard",
             "importResidentStrategyInput/result/result/frames/frames",
+            "importResidentStrategyInput/result/result/frames/frames#2",
             "importResidentStrategyInput/result/result/frames/frames/frames",
             "importResidentStrategyInput/result/result/frames/frames/frames#2",
-            "importResidentStrategyInput/result/result/frames/frames#2",
             "importResidentStrategyInput/result/result/result",
             "importResidentStrategyInput/result/result/verified/verified",
             "importRetainedComputeInput",
@@ -1452,6 +1452,7 @@
             "runBroadHostQuery/accounting/init:settled/init:settled",
             "runBroadHostQuery/accounting/init:started/init:started",
             "runBroadHostQuery/captured/captured",
+            "runBroadHostQuery/captured/captured#2",
             "runBroadHostQuery/captured/captured/captured",
             "runBroadHostQuery/captured/captured/captured#2",
             "runBroadHostQuery/captured/captured/captured#3",
@@ -1466,11 +1467,10 @@
             "runBroadHostQuery/captured/captured/port/init:finishMetadata/init:finishMetadata",
             "runBroadHostQuery/captured/captured/port/init:finishReceipt/init:finishReceipt",
             "runBroadHostQuery/captured/captured/port/port",
-            "runBroadHostQuery/captured/captured/port/port/port",
             "runBroadHostQuery/captured/captured/port/port#2",
             "runBroadHostQuery/captured/captured/port/port#3",
+            "runBroadHostQuery/captured/captured/port/port/port",
             "runBroadHostQuery/captured/captured/run/run",
-            "runBroadHostQuery/captured/captured#2",
             "runBroadHostQuery/complete/complete",
             "runBroadHostQuery/result/init:close/init:close",
             "runBroadHostQuery/result/result",
@@ -1479,8 +1479,8 @@
             "runBroadHostQuery/result/result#4",
             "runBroadHostQuery/retainedSourceCapture/retainedSourceCapture",
             "runBroadHostQuery/runBroadHostQuery",
-            "runBroadHostQuery/runBroadHostQuery/runBroadHostQuery",
             "runBroadHostQuery/runBroadHostQuery#2",
+            "runBroadHostQuery/runBroadHostQuery/runBroadHostQuery",
             "runFixedHostCompute",
             "runHostCompute",
             "runHostCompute/accounting/init:chargeTransfer/init:chargeTransfer",
@@ -1505,8 +1505,8 @@
             "runHostCompute/init:prepareDirectInput/init:prepareDirectInput/init:prepareDirectInput/fields/fields",
             "runHostCompute/init:prepareDirectInput/init:prepareDirectInput/init:prepareDirectInput/identityReused/identityReused",
             "runHostCompute/init:prepareDirectInput/init:prepareDirectInput/init:prepareDirectInput/init:prepareDirectInput",
-            "runHostCompute/init:prepareDirectInput/init:prepareDirectInput/init:prepareDirectInput/init:prepareDirectInput/init:prepareDirectInput",
             "runHostCompute/init:prepareDirectInput/init:prepareDirectInput/init:prepareDirectInput/init:prepareDirectInput#2",
+            "runHostCompute/init:prepareDirectInput/init:prepareDirectInput/init:prepareDirectInput/init:prepareDirectInput/init:prepareDirectInput",
             "runHostCompute/init:readRetained/init:readRetained",
             "runHostCompute/init:retry/init:retry",
             "runHostCompute/init:retry/init:retry#2",
@@ -1518,9 +1518,6 @@
             "runHostCompute/retainedCleanup/retainedCleanup",
             "runHostCompute/retainedCleanup/retainedCleanup#2",
             "runHostCompute/runHostCompute",
-            "runHostCompute/runHostCompute/runHostCompute",
-            "runHostCompute/runHostCompute/storedColumns/storedColumns",
-            "runHostCompute/runHostCompute/storedFields/storedFields",
             "runHostCompute/runHostCompute#10",
             "runHostCompute/runHostCompute#11",
             "runHostCompute/runHostCompute#12",
@@ -1542,6 +1539,9 @@
             "runHostCompute/runHostCompute#7",
             "runHostCompute/runHostCompute#8",
             "runHostCompute/runHostCompute#9",
+            "runHostCompute/runHostCompute/runHostCompute",
+            "runHostCompute/runHostCompute/storedColumns/storedColumns",
+            "runHostCompute/runHostCompute/storedFields/storedFields",
             "runHostCompute/storageReleased/storageReleased",
             "runHostCompute/verify/verify",
             "runHostNativeQuery",
@@ -1549,6 +1549,7 @@
             "runHostNativeQuery/accounting/init:settled/init:settled",
             "runHostNativeQuery/accounting/init:started/init:started",
             "runHostNativeQuery/captured/captured",
+            "runHostNativeQuery/captured/captured#2",
             "runHostNativeQuery/captured/captured/captured",
             "runHostNativeQuery/captured/captured/captured#2",
             "runHostNativeQuery/captured/captured/captured#3",
@@ -1565,16 +1566,15 @@
             "runHostNativeQuery/captured/captured/port/init:finishReceipt/init:finishReceipt",
             "runHostNativeQuery/captured/captured/port/init:finishReceipt/init:finishReceipt/init:finishReceipt",
             "runHostNativeQuery/captured/captured/port/port",
-            "runHostNativeQuery/captured/captured/port/port/port",
             "runHostNativeQuery/captured/captured/port/port#2",
             "runHostNativeQuery/captured/captured/port/port#3",
             "runHostNativeQuery/captured/captured/port/port#4",
             "runHostNativeQuery/captured/captured/port/port#5",
+            "runHostNativeQuery/captured/captured/port/port/port",
             "runHostNativeQuery/captured/captured/recovery/init:cleanup/init:cleanup",
             "runHostNativeQuery/captured/captured/recovery/init:close/init:close",
             "runHostNativeQuery/captured/captured/recovery/recovery",
             "runHostNativeQuery/captured/captured/run/run",
-            "runHostNativeQuery/captured/captured#2",
             "runHostNativeQuery/evidence/evidence",
             "runHostNativeQuery/evidence/evidence/evidence",
             "runHostNativeQuery/evidence/evidence/evidence#2",
@@ -1591,9 +1591,9 @@
             "runHostNativeQuery/retainedCleanup/retainedCleanup#2",
             "runHostNativeQuery/retainedSourceCapture/retainedSourceCapture",
             "runHostNativeQuery/runHostNativeQuery",
-            "runHostNativeQuery/runHostNativeQuery/runHostNativeQuery",
             "runHostNativeQuery/runHostNativeQuery#2",
             "runHostNativeQuery/runHostNativeQuery#3",
+            "runHostNativeQuery/runHostNativeQuery/runHostNativeQuery",
             "runManagedRetainedStrategyHostCompute",
             "runManagedRetainedStrategyHostCompute/runManagedRetainedStrategyHostCompute",
             "runNativeHostQuery",
@@ -1692,6 +1692,35 @@
             ]
           }
         }
+      ],
+      "imports": [
+        "../../../host-common/compiler-binding.generated.mjs",
+        "../../../store-local/files.mjs",
+        "../../../store-local/import.mjs",
+        "../../../store-local/managed-physical-representation.mjs",
+        "../../../store-local/managed-representations.mjs",
+        "../../../store-local/moonbit-row-frames.mjs",
+        "../../../store-local/process-client.mjs",
+        "../../../store-local/representations.mjs",
+        "./broad-query.mjs",
+        "./fixed-compute.mjs",
+        "./import-batch.mjs",
+        "./managed-column-codec.mjs",
+        "./managed-output-finish.mjs",
+        "./managed-strategy-compute.mjs",
+        "./native-query.mjs",
+        "./physical-capacity.mjs",
+        "./retained-configuration.mjs",
+        "./runtime-result.mjs",
+        "./session.mjs",
+        "./source-acquisition.mjs",
+        "./transport-bounds.mjs",
+        "node:crypto",
+        "node:timers/promises"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [
+        "runtime-dependent module dependency requires original owner/artifact mapping"
       ]
     },
     {
@@ -1785,7 +1814,13 @@
             ]
           }
         }
-      ]
+      ],
+      "imports": [
+        "../../../host-common/compiler-binding.generated.mjs",
+        "node:timers/promises"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/connectors/duckdb/node/runtime-result.mjs",
@@ -1874,7 +1909,13 @@
             ]
           }
         }
-      ]
+      ],
+      "imports": [
+        "../../../host-common/compiler-binding.generated.mjs",
+        "./configuration.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/connectors/duckdb/node/strategy-bundle.mjs",
@@ -2123,7 +2164,18 @@
             ]
           }
         }
-      ]
+      ],
+      "imports": [
+        "../../../host-common/compiler-binding.generated.mjs",
+        "../../../store-local/managed-representations.mjs",
+        "./configuration.mjs",
+        "./managed-column-codec.mjs",
+        "./managed-parquet-codec.mjs",
+        "./native-runtime.mjs",
+        "./physical-capacity.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
@@ -2542,9 +2594,9 @@
             "installedSalesforceEffect/installedSalesforceEffect#2",
             "installedSalesforceEffect/nextOccurrence/nextOccurrence",
             "installedSalesforceEffect/rowEffect/rowEffect",
-            "installedSalesforceEffect/rowEffect/rowEffect/rowEffect",
             "installedSalesforceEffect/rowEffect/rowEffect#2",
             "installedSalesforceEffect/rowEffect/rowEffect#3",
+            "installedSalesforceEffect/rowEffect/rowEffect/rowEffect",
             "installedSalesforceEffect/targetReadInventory/targetReadInventory",
             "loadInstalledSalesforceEffect",
             "loadInstalledSalesforceEffect/loadInstalledSalesforceEffect",
@@ -2753,7 +2805,23 @@
             ]
           }
         }
-      ]
+      ],
+      "imports": [
+        "../../../connectors-builtin/installations.generated.mjs",
+        "../../../host-common/compiler-binding.generated.mjs",
+        "../../../host-common/effect-preparation-result.mjs",
+        "../../../host-common/runtime-result.mjs",
+        "../../../host-node/installed-row-effect.mjs",
+        "../../../host-node/local-account-config.mjs",
+        "../../../host-node/update-target-original-shape.mjs",
+        "./installed-salesforce-site.mjs",
+        "./salesforce-publication.mjs",
+        "./salesforce-write-driver.mjs",
+        "node:fs/promises",
+        "node:path"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
@@ -3033,6 +3101,19 @@
             "cid/cid",
             "fail/fail",
             "installedSalesforceAdapter",
+            "installedSalesforceAdapter/directReadIdentity/directReadIdentity",
+            "installedSalesforceAdapter/directReadIdentity/directReadIdentity#2",
+            "installedSalesforceAdapter/directReadIdentity/directReadIdentity#3",
+            "installedSalesforceAdapter/source/source",
+            "installedSalesforceAdapter/source/source#2",
+            "installedSalesforceAdapter/source/source#3",
+            "installedSalesforceAdapter/source/source#4",
+            "installedSalesforceAdapter/source/source#5",
+            "installedSalesforceAdapter/source/source#6",
+            "installedSalesforceAdapter/source/source/describe/describe",
+            "installedSalesforceAdapter/source/source/source",
+            "installedSalesforceAdapter/source/source/source#2",
+            "installedSalesforceAdapter/source/source/source#3",
             "installedSalesforceSourceIdentityParts",
             "loadInstalledSalesforceSource",
             "loadInstalledSalesforceSource/recover/recover",
@@ -3044,20 +3125,7 @@
             "recoveryArguments/recoveryArguments",
             "recoveryArguments/recoveryArguments#2",
             "recoveryArguments/recoveryArguments#3",
-            "text/text",
-            "installedSalesforceAdapter/directReadIdentity/directReadIdentity",
-            "installedSalesforceAdapter/directReadIdentity/directReadIdentity#2",
-            "installedSalesforceAdapter/directReadIdentity/directReadIdentity#3",
-            "installedSalesforceAdapter/source/source",
-            "installedSalesforceAdapter/source/source/describe/describe",
-            "installedSalesforceAdapter/source/source/source",
-            "installedSalesforceAdapter/source/source/source#2",
-            "installedSalesforceAdapter/source/source/source#3",
-            "installedSalesforceAdapter/source/source#2",
-            "installedSalesforceAdapter/source/source#3",
-            "installedSalesforceAdapter/source/source#4",
-            "installedSalesforceAdapter/source/source#5",
-            "installedSalesforceAdapter/source/source#6"
+            "text/text"
           ],
           "exports": [
             "INSTALLED_SALESFORCE_SOURCE_VERSION",
@@ -3483,15 +3551,15 @@
             "salesforceWriteDriver/installedOf/installedOf",
             "salesforceWriteDriver/keyOf/keyOf",
             "salesforceWriteDriver/projectionOf/projectionOf",
+            "salesforceWriteDriver/recoverRequests/recoverRequests",
+            "salesforceWriteDriver/recoverRequests/recoverRequests/recoverRequests",
             "salesforceWriteDriver/requestCid/requestCid",
             "salesforceWriteDriver/salesforceWriteDriver",
             "salesforceWriteDriver/salesforceWriteDriver#2",
             "salesforceWriteDriver/salesforceWriteDriver#3",
             "salesforceWriteDriver/salesforceWriteDriver#4",
             "salesforceWriteDriver/salesforceWriteDriver#5",
-            "writeBody",
-            "salesforceWriteDriver/recoverRequests/recoverRequests",
-            "salesforceWriteDriver/recoverRequests/recoverRequests/recoverRequests"
+            "writeBody"
           ],
           "exports": [
             "salesforceRowEffectSite",
@@ -3713,7 +3781,14 @@
             ]
           }
         }
-      ]
+      ],
+      "imports": [
+        "../../../host-common/compiler-binding.generated.mjs",
+        "../../../host-common/effect-preparation-result.mjs",
+        "../../../host-common/runtime-result.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
@@ -3989,11 +4064,20 @@
             ]
           }
         }
-      ]
+      ],
+      "imports": [
+        "../../../host-common/compiler-binding.generated.mjs",
+        "../../../host-common/owned-invocation-context.mjs",
+        "../../../host-common/runtime-result.mjs",
+        "../../../site-node/https-credential-resource.mjs",
+        "./salesforce-catalog-sync.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/host-node/installed-row-effect.mjs",
-      "sha256": "8f38397c0f9b89cf8db2433148f6c44c529da71f21bde6709ad03898864dbd56",
+      "sha256": "0a622c0955e402419bdc38dc9ae04738322be02d668877a35c8e7a3051e10821",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral installed row/Command Effect hooks; original capture/Preview/Ledger/apply/publication owners retain authority",
@@ -4020,6 +4104,20 @@
           "parameters": [
             "kind",
             "row"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureEffectResources",
+          "parameters": [
+            "receiver"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureEffectResources/captureEffectResources",
+          "parameters": [
+            "args"
           ],
           "async": false
         },
@@ -4215,7 +4313,9 @@
             "ledgerRoot",
             "installation",
             "continuationBinding",
-            "suppliedLimits"
+            "suppliedLimits",
+            "effectResources",
+            "issueOriginalCollectionReference"
           ],
           "async": true
         },
@@ -4432,6 +4532,14 @@
           "async": false
         },
         {
+          "name": "createRowEffectStage/bindRunResources/bindRunResources",
+          "parameters": [
+            "facts",
+            "members"
+          ],
+          "async": false
+        },
+        {
           "name": "createRowEffectStage/canonicalRows/canonicalRows",
           "parameters": [
             "rows"
@@ -4478,6 +4586,7 @@
             "storedResults",
             "signal",
             "targetReads",
+            "contentOwner",
             "own",
             "ownInputs",
             "ownChildren",
@@ -4496,7 +4605,7 @@
         {
           "name": "createRowEffectStage/captureStage/captureStage",
           "parameters": [
-            "entry"
+            "member"
           ],
           "async": false
         },
@@ -4518,20 +4627,27 @@
         {
           "name": "createRowEffectStage/captureStage/captureStage#2",
           "parameters": [
-            "entry",
-            "row"
+            "entry"
           ],
           "async": false
         },
         {
           "name": "createRowEffectStage/captureStage/captureStage#3",
           "parameters": [
-            "member"
+            "entry",
+            "row"
           ],
           "async": false
         },
         {
           "name": "createRowEffectStage/captureStage/captureStage#4",
+          "parameters": [
+            "member"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/captureStage/captureStage#5",
           "parameters": [
             "member",
             "index"
@@ -4539,19 +4655,19 @@
           "async": false
         },
         {
-          "name": "createRowEffectStage/captureStage/captureStage#5",
+          "name": "createRowEffectStage/captureStage/captureStage#6",
           "parameters": [],
           "async": true
         },
         {
-          "name": "createRowEffectStage/captureStage/captureStage#6",
+          "name": "createRowEffectStage/captureStage/captureStage#7",
           "parameters": [
             "member"
           ],
           "async": false
         },
         {
-          "name": "createRowEffectStage/captureStage/captureStage#7",
+          "name": "createRowEffectStage/captureStage/captureStage#8",
           "parameters": [],
           "async": true
         },
@@ -4709,6 +4825,13 @@
           "parameters": [
             "member",
             "memberIndex"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/captureStage/targets/targets",
+          "parameters": [
+            "member"
           ],
           "async": false
         },
@@ -5108,6 +5231,82 @@
           "async": false
         },
         {
+          "name": "createRowEffectStage/prepareRecovered/finish/finish",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/prepareRecovered/finish/finish/finish",
+          "parameters": [
+            "member",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/prepareRecovered/finish/finish/finish/finish",
+          "parameters": [
+            "claim"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/prepareRecovered/finish/finish/finish#2",
+          "parameters": [
+            "refreshSignal"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/prepareRecovered/finish/finish/finish#3",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createRowEffectStage/prepareRecovered/finish/finish/finish#4",
+          "parameters": [
+            "member"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/prepareRecovered/finish/finish/finish#5",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/prepareRecovered/finish/finish/finish#6",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/prepareRecovered/finish/finish/previewRows/previewRows",
+          "parameters": [
+            "member"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/prepareRecovered/finish/finish/reconcileStoredResponses/reconcileStoredResponses",
+          "parameters": [
+            "claims",
+            "ledgerPreview"
+          ],
+          "async": true
+        },
+        {
+          "name": "createRowEffectStage/prepareRecovered/finish/finish/reconcileStoredResponses/reconcileStoredResponses/recovery/recovery",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createRowEffectStage/prepareRecovered/finish/finish/reconcileStoredResponses/reconcileStoredResponses/recovery/recovery#2",
+          "parameters": [
+            "stored"
+          ],
+          "async": false
+        },
+        {
           "name": "createRowEffectStage/prepareRecovered/ledgerOwner/init:cleanup/init:cleanup",
           "parameters": [],
           "async": true
@@ -5123,6 +5322,14 @@
           "async": false
         },
         {
+          "name": "createRowEffectStage/prepareRecovered/memberIndexes/memberIndexes",
+          "parameters": [
+            "member",
+            "index"
+          ],
+          "async": false
+        },
+        {
           "name": "createRowEffectStage/prepareRecovered/prepareRecovered",
           "parameters": [
             "dispatch",
@@ -5131,73 +5338,19 @@
           "async": false
         },
         {
-          "name": "createRowEffectStage/prepareRecovered/prepareRecovered/prepareRecovered",
-          "parameters": [
-            "claim"
-          ],
-          "async": false
-        },
-        {
           "name": "createRowEffectStage/prepareRecovered/prepareRecovered#2",
-          "parameters": [
-            "member",
-            "index"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/prepareRecovered/prepareRecovered#3",
-          "parameters": [
-            "refreshSignal"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/prepareRecovered/prepareRecovered#4",
           "parameters": [],
           "async": true
         },
         {
-          "name": "createRowEffectStage/prepareRecovered/prepareRecovered#5",
-          "parameters": [
-            "member"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/prepareRecovered/prepareRecovered#6",
+          "name": "createRowEffectStage/prepareRecovered/recoveryPending/recoveryPending",
           "parameters": [],
           "async": false
         },
         {
-          "name": "createRowEffectStage/prepareRecovered/prepareRecovered#7",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/prepareRecovered/previewRows/previewRows",
+          "name": "createRowEffectStage/prepareRecovered/recoveryPending/recoveryPending/recoveryPending",
           "parameters": [
-            "member"
-          ],
-          "async": false
-        },
-        {
-          "name": "createRowEffectStage/prepareRecovered/reconcileStoredResponses/reconcileStoredResponses",
-          "parameters": [
-            "claims",
-            "ledgerPreview"
-          ],
-          "async": true
-        },
-        {
-          "name": "createRowEffectStage/prepareRecovered/reconcileStoredResponses/reconcileStoredResponses/recovery/recovery",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "createRowEffectStage/prepareRecovered/reconcileStoredResponses/reconcileStoredResponses/recovery/recovery#2",
-          "parameters": [
-            "stored"
+            "child"
           ],
           "async": false
         },
@@ -5205,6 +5358,11 @@
           "name": "createRowEffectStage/prepareRecovered/releaseLedger/releaseLedger",
           "parameters": [],
           "async": false
+        },
+        {
+          "name": "createRowEffectStage/prepareRecovered/releaseRecoveryChildren/releaseRecoveryChildren",
+          "parameters": [],
+          "async": true
         },
         {
           "name": "createRowEffectStage/readDecision/readDecision",
@@ -5224,7 +5382,9 @@
             "body",
             "durable",
             "recorded",
-            "previewWire"
+            "previewWire",
+            "runInvocationCid",
+            "dispatches"
           ],
           "async": false
         },
@@ -5401,6 +5561,13 @@
           "async": false
         },
         {
+          "name": "createRowEffectStage/resourceFields/resourceFields",
+          "parameters": [
+            "member"
+          ],
+          "async": false
+        },
+        {
           "name": "createRowEffectStage/retainMember/retainMember",
           "parameters": [
             "owner",
@@ -5460,6 +5627,13 @@
         {
           "name": "createRowEffectStage/selectionFence/selectionFence/assertCurrent/assertCurrent/assertCurrent#2",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/selectionFence/selectionFence/resourceOwners/resourceOwners",
+          "parameters": [
+            "member"
+          ],
           "async": false
         },
         {
@@ -5596,6 +5770,18 @@
           "parameters": [
             "installation"
           ],
+          "async": false
+        },
+        {
+          "name": "requireSynchronousEffectResource",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "requireSynchronousEffectResource/requireSynchronousEffectResource",
+          "parameters": [],
           "async": false
         },
         {
@@ -5831,25 +6017,19 @@
             "createRowEffectStage/prepareRecovered/ledgerOwner/ledgerOwner",
             "createRowEffectStage/prepareRecovered/prepareRecovered",
             "createRowEffectStage/prepareRecovered/prepareRecovered#2",
-            "createRowEffectStage/prepareRecovered/prepareRecovered#3",
-            "createRowEffectStage/prepareRecovered/prepareRecovered#4",
-            "createRowEffectStage/prepareRecovered/prepareRecovered#5",
-            "createRowEffectStage/prepareRecovered/prepareRecovered#6",
-            "createRowEffectStage/prepareRecovered/prepareRecovered#7",
-            "createRowEffectStage/prepareRecovered/prepareRecovered/prepareRecovered",
-            "createRowEffectStage/prepareRecovered/previewRows/previewRows",
-            "createRowEffectStage/prepareRecovered/reconcileStoredResponses/reconcileStoredResponses",
-            "createRowEffectStage/prepareRecovered/reconcileStoredResponses/reconcileStoredResponses/recovery/recovery",
-            "createRowEffectStage/prepareRecovered/reconcileStoredResponses/reconcileStoredResponses/recovery/recovery#2",
             "createRowEffectStage/prepareRecovered/releaseLedger/releaseLedger",
             "createRowEffectStage/readDecision/readDecision",
             "createRowEffectStage/recoveredEntries/recoveredEntries",
+            "createRowEffectStage/recoveredEntries/recoveredEntries/currents/currents",
             "createRowEffectStage/recoveredEntries/recoveredEntries/entries/entries",
             "createRowEffectStage/recoveredEntries/recoveredEntries/entries/entries/claimBySource/claimBySource",
             "createRowEffectStage/recoveredEntries/recoveredEntries/entries/entries/entries",
             "createRowEffectStage/recoveredEntries/recoveredEntries/entries/entries/rows/rows",
             "createRowEffectStage/recoveredEntries/recoveredEntries/entries/entries/rows/rows#2",
+            "createRowEffectStage/recoveredEntries/recoveredEntries/memberIndexes/memberIndexes",
             "createRowEffectStage/recoveredEntries/recoveredEntries/recoveredEntries",
+            "createRowEffectStage/recoveredEntries/recoveredEntries/requests/requests",
+            "createRowEffectStage/recoveredEntries/recoveredEntries/usesRecovery/usesRecovery",
             "createRowEffectStage/recoveredMembers/recoveredMembers",
             "createRowEffectStage/recoveredMembers/recoveredMembers/recoveredMembers",
             "createRowEffectStage/recoveredMembers/recoveredMembers/recoveredMembers/command/command",
@@ -5884,10 +6064,17 @@
             "sameValue/sameValue",
             "targeted/targeted",
             "text/text",
-            "createRowEffectStage/recoveredEntries/recoveredEntries/currents/currents",
-            "createRowEffectStage/recoveredEntries/recoveredEntries/memberIndexes/memberIndexes",
-            "createRowEffectStage/recoveredEntries/recoveredEntries/requests/requests",
-            "createRowEffectStage/recoveredEntries/recoveredEntries/usesRecovery/usesRecovery"
+            "createRowEffectStage/prepareRecovered/finish/finish/finish",
+            "createRowEffectStage/prepareRecovered/finish/finish/finish/finish",
+            "createRowEffectStage/prepareRecovered/finish/finish/finish#2",
+            "createRowEffectStage/prepareRecovered/finish/finish/finish#3",
+            "createRowEffectStage/prepareRecovered/finish/finish/finish#4",
+            "createRowEffectStage/prepareRecovered/finish/finish/finish#5",
+            "createRowEffectStage/prepareRecovered/finish/finish/finish#6",
+            "createRowEffectStage/prepareRecovered/finish/finish/previewRows/previewRows",
+            "createRowEffectStage/prepareRecovered/finish/finish/reconcileStoredResponses/reconcileStoredResponses",
+            "createRowEffectStage/prepareRecovered/finish/finish/reconcileStoredResponses/reconcileStoredResponses/recovery/recovery",
+            "createRowEffectStage/prepareRecovered/finish/finish/reconcileStoredResponses/reconcileStoredResponses/recovery/recovery#2"
           ],
           "exports": [
             "composeInstalledRowEffectOwners",
@@ -6826,6 +7013,297 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "captureEffectResources",
+            "captureEffectResources/captureEffectResources",
+            "createRowEffectStage/bindRunResources/bindRunResources",
+            "createRowEffectStage/resourceFields/resourceFields",
+            "createRowEffectStage/selectionFence/selectionFence/resourceOwners/resourceOwners",
+            "requireSynchronousEffectResource",
+            "requireSynchronousEffectResource/requireSynchronousEffectResource"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "Responsibility stays with the existing normal Host, Resource, Source, Model,"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "Inputs are the checked Effect preparation and compilation, allowed Run,"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "Identity is retained with the same Host, installation and Run."
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "Ownership of Source capture, Model work and file requests is separate."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "Synchronization captures each private operation and its receiver before later"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "Failure preserves the original constructor, Source, Model, FileHandle, write,"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "Cancellation prevents new work but does not make cleanup require current"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "Resources include the retained preparation, compilation, definition, request,"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "Extension remains private to the installed Host and the existing typed"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "Verification distinguishes the real Row Effect factory's original-binding and"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createRowEffectStage/captureStage/captureStage#8",
+            "createRowEffectStage/captureStage/targets/targets"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "let publishedTargets;"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Preparation, compilation and saved selection"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "moon.clientProgramEffectPublishedStoreBinding("
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Preparation, compilation and saved selection"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "owner.issueOriginalCollectionReference(pair, limits.maxWork)"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Preparation, compilation and saved selection"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "moon.clientProgramBindEffectCommandTarget("
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Preparation, compilation and saved selection"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "assertCurrent?.();"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Preparation, compilation and saved selection"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "InstalledEffectPublishedTargetUnavailable"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Preparation, compilation and saved selection"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "ownInputs(releaseInputs);"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Preparation, compilation and saved selection"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "maxGroupingWork: limits.maxWork"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Preparation, compilation and saved selection"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "publishedTargets === undefined"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Preparation, compilation and saved selection"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors_builtin_node/client_store_collection_reference_wbtest.mbt",
+                "anchor": "test "
+              },
+              {
+                "path": "adapters/host-node/source-store-publication.test.mjs",
+                "anchor": "test('ordinary publication owns STORE targets"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createRowEffectStage/prepareRecovered/finish/finish",
+            "createRowEffectStage/prepareRecovered/memberIndexes/memberIndexes",
+            "createRowEffectStage/prepareRecovered/recoveryPending/recoveryPending",
+            "createRowEffectStage/prepareRecovered/recoveryPending/recoveryPending/recoveryPending",
+            "createRowEffectStage/prepareRecovered/releaseRecoveryChildren/releaseRecoveryChildren"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "prepareRecoveredContentChild"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Saved Command Content"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "prepareRecoveredContentChild"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Saved Command Content"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "prepareRecoveredContentChild"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Saved Command Content"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "prepareRecoveredContentChild"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Saved Command Content"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "prepareRecoveredContentChild"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Saved Command Content"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "prepareRecoveredContentChild"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Saved Command Content"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "prepareRecoveredContentChild"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Saved Command Content"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "prepareRecoveredContentChild"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Saved Command Content"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/installed-row-effect.mjs",
+                "anchor": "prepareRecoveredContentChild"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Saved Command Content"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/recovered-effect-parent-custody.test.mjs",
+                "anchor": "test('selected recovered Content stays in the original parent"
+              }
+            ]
+          }
         }
       ],
       "imports": [
@@ -6856,7 +7334,7 @@
     },
     {
       "module": "adapters/host-node/installed-row-run.mjs",
-      "sha256": "f18ab580c3fe35e6eaa2ba15241588bc99d492be99b2e81d1cecc944ab5059ea",
+      "sha256": "38dc09523834613feb0592739321187eb904676289f2214a4fe1e79471a4d560",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing RowRun acquisition/capture/release plumbing; physical provider and original current authority stay with the adapter",
@@ -6879,7 +7357,9 @@
             "nonce",
             "ledger",
             "capacity",
-            "keyed"
+            "keyed",
+            "originalRead",
+            "originalKeyedRead"
           ],
           "async": false
         },
@@ -7025,9 +7505,7 @@
         },
         {
           "name": "startInstalledRowRun/run/run#4",
-          "parameters": [
-            "attempt"
-          ],
+          "parameters": [],
           "async": false
         },
         {
@@ -7045,7 +7523,42 @@
           "async": false
         },
         {
+          "name": "startInstalledRowRun/run/run#7",
+          "parameters": [
+            "attempt"
+          ],
+          "async": false
+        },
+        {
+          "name": "startInstalledRowRun/run/run#8",
+          "parameters": [
+            "attempt"
+          ],
+          "async": false
+        },
+        {
+          "name": "startInstalledRowRun/run/run#9",
+          "parameters": [
+            "attempt"
+          ],
+          "async": false
+        },
+        {
           "name": "startInstalledRowRun/startInstalledRowRun",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "startInstalledRowRun/startInstalledRowRun#2",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "startInstalledRowRun/startInstalledRowRun#3",
           "parameters": [
             "name"
           ],
@@ -7088,15 +7601,15 @@
             "startInstalledRowRun/complete/source/source",
             "startInstalledRowRun/consumeKeyedPage",
             "startInstalledRowRun/init:confirmTransportStopped/init:confirmTransportStopped",
+            "startInstalledRowRun/readProvider",
+            "startInstalledRowRun/readProvider/readProvider",
+            "startInstalledRowRun/readProvider/readProvider#2",
+            "startInstalledRowRun/readerRetired/readerRetired",
             "startInstalledRowRun/run/run",
             "startInstalledRowRun/run/run#2",
             "startInstalledRowRun/run/run#3",
             "startInstalledRowRun/run/run#4",
             "startInstalledRowRun/run/run#5",
-            "startInstalledRowRun/readerRetired/readerRetired",
-            "startInstalledRowRun/readProvider",
-            "startInstalledRowRun/readProvider/readProvider",
-            "startInstalledRowRun/readProvider/readProvider#2",
             "startInstalledRowRun/run/run#6",
             "startInstalledRowRun/startInstalledRowRun",
             "startInstalledRowRun/stopReader/stopReader",
@@ -7232,6 +7745,189 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "startInstalledRowRun/run/run#7",
+            "startInstalledRowRun/startInstalledRowRun#2"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/installed-row-run.mjs",
+                "anchor": "if (originalRead !== undefined)"
+              },
+              {
+                "path": "src/client_local_host/installed_source_read.mbt",
+                "anchor": "pub fn check_installed_source_read_ledger("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-row-run.mjs",
+                "anchor": "clientProgramInstalledSourceReadStartRows(originalRead, acquisition,"
+              },
+              {
+                "path": "src/client_local_host/installed_source_read.mbt",
+                "anchor": "pub fn start_installed_source_read_rows("
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-row-run.mjs",
+                "anchor": "clientProgramInstalledSourceReadCheckLedger(originalRead, ledger)"
+              },
+              {
+                "path": "src/client_local_host/installed_source_read.mbt",
+                "anchor": "physical_equal(original, expected)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_local_host/installed_source_read.mbt",
+                "anchor": "claim_installed_source_read_start(value, acquisition)"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "one original Run Ledger. The Source reads and the generated managed DAG"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-row-run.mjs",
+                "anchor": "attempt => settled.has(attempt), capacity.transferBytes, capacity.executionBytes)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-run.mjs",
+                "anchor": "if (!checked(moon.clientProgramRowSourceCaptureCleanup(run)))"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-row-run.mjs",
+                "anchor": "fail('InstalledSourceReadUnavailable')"
+              },
+              {
+                "path": "adapters/host-node/installed-source-read-row-run.test.mjs",
+                "anchor": "foreign or stale original Source Ledger refuses before every RowRun constructor"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-row-run.mjs",
+                "anchor": "clientProgramInstalledSourceReadRetire(originalRead)"
+              },
+              {
+                "path": "src/client_local_host/installed_source_read.mbt",
+                "anchor": "Ok(false) => return Err(CleanupPending)"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_local_host/installed_source_read.mbt",
+                "anchor": "check_original_resources_mutable(ledger)"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Independent Source-only children, equal"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/installed-row-run.mjs",
+                "anchor": "ledger === undefined || keyed || reportCapacity !== undefined || providerCapacity !== undefined"
+              },
+              {
+                "path": "adapters/host-node/installed-source-read-row-run.test.mjs",
+                "anchor": "Source-only scope cannot replace a missing Run Ledger or rescue an unavailable typed consumer"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-source-read-row-run.test.mjs",
+                "anchor": "original Source read checks the same Run Ledger before starting and retires only after capture cleanup"
+              },
+              {
+                "path": "adapters/host-node/installed-source-read-row-run.test.mjs",
+                "anchor": "foreign or stale original Source Ledger refuses before every RowRun constructor"
+              },
+              {
+                "path": "adapters/host-node/installed-source-read-row-run.test.mjs",
+                "anchor": "Source-only scope cannot replace a missing Run Ledger or rescue an unavailable typed consumer"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "startInstalledRowRun/run/run#8",
+            "startInstalledRowRun/run/run#9",
+            "startInstalledRowRun/startInstalledRowRun#3"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "For a selected Local keyed Content path, the ordinary Source installation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-row-run.mjs",
+                "anchor": "capacity, keyed = false, originalRead, originalKeyedRead}) {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-row-run.mjs",
+                "anchor": "checked(moon.clientProgramInstalledKeyedSourceReadCheckLedger(originalKeyedRead, ledger));"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-row-run.mjs",
+                "anchor": "moon.clientProgramInstalledKeyedSourceReadStartRows(originalKeyedRead, acquisition,"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-row-run.mjs",
+                "anchor": "if (!checked(moon.clientProgramRowSourceCaptureCleanup(run))) {"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-row-run.mjs",
+                "anchor": "fail('InstalledSourceCleanupPending');"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-row-run.mjs",
+                "anchor": "function closeAfterFailure(state, recovery) {"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_local_host/installed_managed_keyed_content.mbt",
+                "anchor": "pub fn start_installed_keyed_source_read_rows("
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "other unsupported backend shapes remain separate connections, not language"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-row-run.test.mjs",
+                "anchor": "test('keyed original enters only its same Run Ledger and retires after the original capture cleanup'"
+              }
+            ]
+          }
         }
       ],
       "imports": [
@@ -7244,19 +7940,1479 @@
     },
     {
       "module": "adapters/host-node/installed-row-source.mjs",
-      "sha256": "367d274445ad9fe491aa49349493f346171f84723e0964b4c9a9c6065eb616cd",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral declaration/environment/Mapping/credential/RowRun source hooks; connector page meaning stays with its provider",
-      "exports": [
-        "createInstalledRowSource",
-        "installRowSourceAuthorization",
-        "loadRowSourceCredentialCustody",
-        "openRowSourceCredentialCustody",
-        "openRowSourceCredentialSite",
-        "rowSourceCheckEnvironment",
-        "rowSourceMapping"
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "byCid/byCid",
+            "byCid/byCid/byCid",
+            "byCid/byCid/byCid#2",
+            "cid/cid",
+            "createInstalledRowSource",
+            "createInstalledRowSource/acquire",
+            "createInstalledRowSource/acquire/complete/complete",
+            "createInstalledRowSource/acquire/complete/complete/verifyRead/verifyRead",
+            "createInstalledRowSource/acquire/issueGrant/issueGrant",
+            "createInstalledRowSource/acquire/readerOptions/consumeObservation",
+            "createInstalledRowSource/acquire/readerOptions/readerOptions",
+            "createInstalledRowSource/acquire/readerOptions/readerOptions#2",
+            "createInstalledRowSource/acquire/readerOptions/readerOptions#3",
+            "createInstalledRowSource/acquire/readerOptions/readerOptions#4",
+            "createInstalledRowSource/acquire/readerOptions/readerOptions#5",
+            "createInstalledRowSource/captureCapacity/captureCapacity",
+            "createInstalledRowSource/createInstalledRowSource",
+            "createInstalledRowSource/createInstalledRowSource#10",
+            "createInstalledRowSource/createInstalledRowSource#4",
+            "createInstalledRowSource/createInstalledRowSource#5",
+            "createInstalledRowSource/createInstalledRowSource#7",
+            "createInstalledRowSource/createInstalledRowSource#8",
+            "createInstalledRowSource/createInstalledRowSource#9",
+            "createInstalledRowSource/currentRead/currentRead",
+            "createInstalledRowSource/decideRead/decideRead",
+            "createInstalledRowSource/init:keyedLedgerCapacity/init:keyedLedgerCapacity",
+            "createInstalledRowSource/init:ledgerCapacity/init:ledgerCapacity",
+            "createInstalledRowSource/init:retainedCapture/init:retainedCapture",
+            "createInstalledRowSource/keyedRecoveryBinding",
+            "createInstalledRowSource/open",
+            "createInstalledRowSource/openCapture",
+            "createInstalledRowSource/openKeyed",
+            "createInstalledRowSource/openKeyed/observedMs/observedMs",
+            "createInstalledRowSource/openKeyed/openKeyed",
+            "createInstalledRowSource/openKeyed/openKeyed#2",
+            "createInstalledRowSource/openKeyed/openKeyed#3",
+            "createInstalledRowSource/openKeyed/openKeyed#4",
+            "createInstalledRowSource/openKeyed/openKeyed#5",
+            "createInstalledRowSource/openKeyed/openKeyed#6",
+            "createInstalledRowSource/openKeyed/openKeyed#7",
+            "createInstalledRowSource/openKeyed/openKeyed#8",
+            "createInstalledRowSource/openKeyed/openKeyed#9",
+            "createInstalledRowSource/openKeyed/openKeyed/expire/expire",
+            "createInstalledRowSource/openKeyed/verifyRead/verifyRead",
+            "createInstalledRowSource/openKeyedLookup",
+            "createInstalledRowSource/openKeyedLookup/cleanup/cleanup",
+            "createInstalledRowSource/openKeyedLookup/close/close",
+            "createInstalledRowSource/openKeyedLookup/init:borrowSerializationInput/init:borrowSerializationInput",
+            "createInstalledRowSource/openKeyedLookup/init:issueObservation/init:issueObservation",
+            "createInstalledRowSource/openKeyedLookup/init:openDag/init:openDag",
+            "createInstalledRowSource/openKeyedLookup/init:openHost/init:openHost",
+            "createInstalledRowSource/openKeyedLookup/init:prepareJoin/init:prepareJoin",
+            "createInstalledRowSource/openKeyedLookup/openKeyedLookup",
+            "createInstalledRowSource/openKeyedLookup/openKeyedLookup#2",
+            "createInstalledRowSource/openKeyedLookup/openKeyedLookup#3",
+            "createInstalledRowSource/openKeyedLookup/openKeyedLookup#4",
+            "createInstalledRowSource/openKeyedLookup/openKeyedLookup#5",
+            "createInstalledRowSource/openKeyedLookup/recovery/recovery",
+            "createInstalledRowSource/openKeyedLookup/stop/stop",
+            "createInstalledRowSource/operationBindings/operationBindings",
+            "createInstalledRowSource/ordinaryRecoveryBinding",
+            "createInstalledRowSource/ordinarySubject/ordinarySubject",
+            "createInstalledRowSource/prepare",
+            "createInstalledRowSource/prepare/authorizePreparation/authorizePreparation",
+            "createInstalledRowSource/prepare/prepare",
+            "createInstalledRowSource/prepareKeyed",
+            "createInstalledRowSource/prepareKeyed/prepareKeyed",
+            "createInstalledRowSource/prepareKeyed/prepareKeyed#2",
+            "createInstalledRowSource/resources/resources",
+            "createInstalledRowSource/selectedKeyedContent/selectedKeyedContent",
+            "createInstalledRowSource/sourceReadAccesses/sourceReadAccesses",
+            "createInstalledRowSource/sourceRefs/sourceRefs",
+            "createInstalledRowSource/verifyKeyedRead",
+            "createInstalledRowSource/verifyKeyedRead/recheck/recheck",
+            "fail/fail",
+            "installRowSourceAuthorization",
+            "installRowSourceAuthorization/installRowSourceAuthorization",
+            "installRowSourceAuthorization/installRowSourceAuthorization#2",
+            "installRowSourceAuthorization/installRowSourceAuthorization#3",
+            "installRowSourceAuthorization/own/own",
+            "openRowSourceCredentialCustody",
+            "openRowSourceCredentialCustody/bindRunAcquisition",
+            "openRowSourceCredentialCustody/captureRunCurrent",
+            "openRowSourceCredentialCustody/captureRunCurrent/assertCurrent/assertCurrent",
+            "openRowSourceCredentialCustody/captureRunCurrent/assertCurrent/assertCurrent/assertCurrent",
+            "openRowSourceCredentialCustody/captureRunCurrent/captureRunCurrent",
+            "openRowSourceCredentialCustody/captureRunCurrent/observeCurrent/observeCurrent",
+            "openRowSourceCredentialCustody/checkGrantRequest",
+            "openRowSourceCredentialCustody/close",
+            "openRowSourceCredentialCustody/close/close",
+            "openRowSourceCredentialCustody/closeRunBindings",
+            "openRowSourceCredentialCustody/ensureOpen/ensureOpen",
+            "openRowSourceCredentialCustody/init:closeOnce/init:closeOnce",
+            "openRowSourceCredentialCustody/openRowSourceCredentialCustody",
+            "openRowSourceCredentialCustody/openRowSourceCredentialCustody#2",
+            "openRowSourceCredentialCustody/openRowSourceCredentialCustody#3",
+            "openRowSourceCredentialCustody/openRowSourceCredentialCustody#4",
+            "openRowSourceCredentialCustody/openRowSourceCredentialCustody#5",
+            "openRowSourceCredentialCustody/openRunAcquisition",
+            "openRowSourceCredentialCustody/openRunAcquisition/openRunAcquisition",
+            "openRowSourceCredentialCustody/openRunAcquisition/openRunAcquisition#2",
+            "openRowSourceCredentialCustody/openRunAcquisition/openRunAcquisition#3",
+            "openRowSourceCredentialCustody/openRunAcquisition/originalRequest/originalRequest",
+            "openRowSourceCredentialCustody/retainRunBinding",
+            "openRowSourceCredentialCustody/retainRunBinding/init:close/init:close",
+            "openRowSourceCredentialCustody/sign",
+            "openRowSourceCredentialSite",
+            "openRowSourceCredentialSite/bindingWire/bindingWire",
+            "openRowSourceCredentialSite/callResource/callResource",
+            "openRowSourceCredentialSite/currentEffectRead",
+            "openRowSourceCredentialSite/currentEffectRead/currentEffectRead",
+            "openRowSourceCredentialSite/init:admitCheckpointEffectTargetRead/init:admitCheckpointEffectTargetRead",
+            "openRowSourceCredentialSite/init:admitCheckpointEffectTargetRead/init:admitCheckpointEffectTargetRead/init:admitCheckpointEffectTargetRead",
+            "openRowSourceCredentialSite/init:admitCheckpointReadApproval/init:admitCheckpointReadApproval",
+            "openRowSourceCredentialSite/init:issueEffectGrant/init:issueEffectGrant",
+            "openRowSourceCredentialSite/init:issueReadGrant/init:issueReadGrant",
+            "openRowSourceCredentialSite/openRowSourceCredentialSite",
+            "openRowSourceCredentialSite/openRowSourceCredentialSite#2",
+            "openRowSourceCredentialSite/synchronous",
+            "openRowSourceCredentialSite/synchronous/synchronous",
+            "rowSourceCheckEnvironment",
+            "rowSourceMapping",
+            "text/text",
+            "valueCid/valueCid"
+          ],
+          "exports": [
+            "createInstalledRowSource",
+            "installRowSourceAuthorization",
+            "openRowSourceCredentialCustody",
+            "openRowSourceCredentialSite",
+            "rowSourceCheckEnvironment",
+            "rowSourceMapping"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "No provider name or type appears here"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "## Installed collection issuer"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "# Original installed row reader custody"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "The installed Row Credential Site accepts this alternative"
+              },
+              {
+                "path": "adapters/host-node/installation-metadata-site.test.mjs",
+                "anchor": "same publication, Account and original issuer"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "## Original credential acquisition retirement"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "When the same Site has already authorized and issued a grant,"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "createInstalledRowSource"
+              },
+              {
+                "path": "src/connectors/gcs/host_node/pkg.generated.mbti",
+                "anchor": "pub fn gcs_collection_issue_reference"
+              },
+              {
+                "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
+                "anchor": "issueOriginalCollectionReference(pair, maxWork)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "admitCheckpointEffectTargetRead(decision, physicalBinding, operation)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-run.mjs",
+                "anchor": "async function readProvider({prepare, receiver, options})"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "Each registered metadata occurrence retains its original selected target,"
+              },
+              {
+                "path": "adapters/host-node/installation-metadata-site.test.mjs",
+                "anchor": "same publication, Account and original issuer"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "## Original credential acquisition retirement"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "function bindRunAcquisition(authorization, callbacks)"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "exact version/target text"
+              },
+              {
+                "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
+                "anchor": "installationCid: bindingCid"
+              },
+              {
+                "path": "src/connectors/gcs/original_reference/collection.mbt",
+                "anchor": "actual_catalog != expected_catalog"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "openRowSourceCredentialCustody"
+              },
+              {
+                "path": "src/client_local_host/provider_capture_capacity.mbt",
+                "anchor": "physical_equal(original, selected)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "clientProgramInstalledProviderRowCaptureCapacityMatches"
+              },
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "The ordinary row Source Check Environment assembly preserves"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "pair, original declaration alongside its source CID, Account gate and captured"
+              },
+              {
+                "path": "adapters/host-node/installation-metadata-site.test.mjs",
+                "anchor": "same publication, Account and original issuer"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "## Original credential acquisition retirement"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "issuedRunAuthorizations.has(authorization)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "clientProgramInstalledSourceReadAttachAcquisition("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "startInstalledRowRun"
+              },
+              {
+                "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
+                "anchor": "site.referenceCurrent()"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "referenceCurrent: () => !closing"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "kind: 'effect_target'"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "openRowSourceCredentialCustody"
+              },
+              {
+                "path": "src/client_row_source_host/provider_capacity.mbt",
+                "anchor": "@resources.reserve_attempt"
+              },
+              {
+                "path": "adapters/host-node/installed-row-run.mjs",
+                "anchor": "clientProgramRowSourceBorrowResponses(run, acquisition)"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "Admission failure returns the existing initialization cleanup Owner with the"
+              },
+              {
+                "path": "adapters/host-node/installation-metadata-site.test.mjs",
+                "anchor": "unsafe mutable Journal admission"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "## Original credential acquisition retirement"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "Retain the opening child before invoking a current callback"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "prepareSourceRead(Object.freeze({checkedOwner, effectful, declaration, requirement, occurrence}))"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "authorizationFor"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "closing = true"
+              },
+              {
+                "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
+                "anchor": "close() { closed = true; adapter.close(); }"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "currentEffectRead(approved)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "openRowSourceCredentialCustody"
+              },
+              {
+                "path": "adapters/host-node/installed-row-run.mjs",
+                "anchor": "clientProgramRowSourceBindResponseCleanup(borrow, readerRetired)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-run.mjs",
+                "anchor": "await Reflect.apply(verifyRead, options, [])"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "Before signing, the Site checks the bounded Host-profile observation, actual"
+              },
+              {
+                "path": "adapters/host-node/installation-metadata-site.test.mjs",
+                "anchor": "same publication, Account and original issuer"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "## Original credential acquisition retirement"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "issued.state = 'opening'"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "checked(moon.clientProgramInstalledSourceReadCheckCurrent(originalRead));"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "const verifyRead = () => currentRead(prepared, access, signal);"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "Completion is never"
+              },
+              {
+                "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
+                "anchor": "GcsCollectionProviderUnavailable"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-installed-collection-issuer.test.mjs",
+                "anchor": "the same credential Site invalidates reference currentness before failed close"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "RowSourceEffectTargetReadApprovalNotAdmitted"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "openRowSourceCredentialCustody"
+              },
+              {
+                "path": "adapters/host-node/installed-row-provider-reader.test.mjs",
+                "anchor": "throwing factory or method getter retains the installed original borrow without retry"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "occurrences cannot issue another grant, and observed Account/profile failure"
+              },
+              {
+                "path": "adapters/host-node/installation-metadata-site.test.mjs",
+                "anchor": "Account file revoked across await"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "## Original credential acquisition retirement"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "issued.state = 'failed'"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "signal"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "Closing"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "False means closing, not physical cleanup ACK"
+              },
+              {
+                "path": "adapters/host-node/installed-row-run.mjs",
+                "anchor": "readerStopRequested = true"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "pending read and stop Promises"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "Publication completion, failure and abort close new-operation admission."
+              },
+              {
+                "path": "adapters/host-node/installation-metadata-site.test.mjs",
+                "anchor": "same publication, Account and original issuer"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "## Original credential acquisition retirement"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "const observeCurrent = async () =>"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "maxPageBytes"
+              },
+              {
+                "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
+                "anchor": "const declarationLimits"
+              },
+              {
+                "path": "src/client_row_source_host/host.mbt",
+                "anchor": "let declaration_limits"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "Additional declarations/trees/strings"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "Each such approval adds a seven-field record"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "## Installed Row Site physical custody"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "Supplemental provider retention and workspace remain reserved through capture"
+              },
+              {
+                "path": "src/client_row_source_host/provider_capacity.mbt",
+                "anchor": "provider_retained"
+              },
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "The ordinary row Source Check Environment assembly preserves"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "The simultaneous preparation inventory includes bounded issuer PEM bytes and"
+              },
+              {
+                "path": "adapters/host-node/installation-metadata-site.test.mjs",
+                "anchor": "same publication, Account and original issuer"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "## Original credential acquisition retirement"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "Original issued-authorization membership also retains a private weak-map entry"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "one original Run Ledger. The Source reads and the generated managed DAG"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "rowSourceMapping"
+              },
+              {
+                "path": "src/connectors/gcs/host-bundle.json",
+                "anchor": "\"providerBundle\""
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "An explicitly supplied legacy"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "foreign preparation and unsupported listing/keyed profile combinations refuse"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "The legacy Run Site retains its existing signing and close behavior."
+              },
+              {
+                "path": "adapters/host-node/installation-metadata-site.test.mjs",
+                "anchor": "same publication, Account and original issuer"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "## Original credential acquisition retirement"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "signing another grant. Its private issuer membership rejects a wrapper copy,"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "const credentialRead = owner.originalRead === undefined;"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-row-source.test.mjs",
+                "anchor": "test("
+              },
+              {
+                "path": "adapters/host-node/row-source-command-environment.test.mjs",
+                "anchor": "real GCS complete Command and original input role survive ordinary Check Environment assembly"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-installed-collection-issuer.test.mjs",
+                "anchor": "ordinary installed GCS supplies its original checked collection"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-installed-collection-issuer.test.mjs",
+                "anchor": "a different installed scope cannot substitute"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-installed-source.test.mjs",
+                "anchor": "LIST_FILES paths=[]"
+              },
+              {
+                "path": "adapters/host-node/row-site-effect-target-read.test.mjs",
+                "anchor": "actual target continuation decision survives Site admission"
+              },
+              {
+                "path": "adapters/host-node/row-source-authorization-installation.test.mjs",
+                "anchor": "shared installer retains its default context"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.test.mjs",
+                "anchor": "shared generic credential custody preserves its original task"
+              },
+              {
+                "path": "adapters/host-node/installed-row-provider-common.test.mjs",
+                "anchor": "actual Common provider projection and original reader retain one reservation through capture"
+              },
+              {
+                "path": "adapters/host-node/installed-row-provider-reader.test.mjs",
+                "anchor": "current refusal after factory keeps the same reader for cleanup and sends nothing"
+              },
+              {
+                "path": "adapters/connectors/notion/test/database-read-source-preparation.test.mjs",
+                "anchor": "enum survives installed Check Environment and SQL/AQL preparation"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "exact Scope, current authorization and confirmed same-Journal claim. This"
+              },
+              {
+                "path": "adapters/host-node/installation-metadata-site.test.mjs",
+                "anchor": "same publication, Account and original issuer"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "## Original credential acquisition retirement"
+              },
+              {
+                "path": "adapters/host-node/row-source-credential-acquisition.test.mjs",
+                "anchor": "run acquisition custody waits through the final response observation"
+              },
+              {
+                "path": "adapters/host-node/row-source-credential-acquisition.test.mjs",
+                "anchor": "authorized run acquisition binds the original issued grant without signing another grant"
+              },
+              {
+                "path": "adapters/host-node/row-source-credential-acquisition.test.mjs",
+                "anchor": "authorized run acquisition retains the opening child across reentrant original Journal close"
+              },
+              {
+                "path": "adapters/host-node/row-source-credential-acquisition.test.mjs",
+                "anchor": "authorized run acquisition refuses copied equal grant wrappers before current callbacks or I/O"
+              },
+              {
+                "path": "adapters/host-node/row-source-credential-acquisition.test.mjs",
+                "anchor": "authorized run acquisition does not infer binding capacity from an existing grant"
+              },
+              {
+                "path": "adapters/host-node/installed-source-read-row-run.test.mjs",
+                "anchor": "foreign or stale original Source Ledger refuses before every RowRun constructor"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "openRowSourceCredentialCustody/installationMetadataJournal",
+            "openRowSourceCredentialCustody/installationMetadataJournal/init:close/init:close",
+            "openRowSourceCredentialCustody/installationMetadataJournal/installationMetadataJournal",
+            "openRowSourceCredentialCustody/signInstallationMetadata",
+            "prepareInstallationMetadataSite",
+            "prepareInstallationMetadataSite/account/account",
+            "prepareInstallationMetadataSite/accountMethods/accountMethods",
+            "prepareInstallationMetadataSite/callAccount/callAccount",
+            "prepareInstallationMetadataSite/current/current",
+            "prepareInstallationMetadataSite/data/data",
+            "prepareInstallationMetadataSite/data/data/data",
+            "prepareInstallationMetadataSite/data/data/data#2",
+            "prepareInstallationMetadataSite/ensureCurrent/ensureCurrent",
+            "prepareInstallationMetadataSite/factsFor/factsFor",
+            "prepareInstallationMetadataSite/init:attach/init:attach",
+            "prepareInstallationMetadataSite/init:attach/init:attach/site/init:close/init:close",
+            "prepareInstallationMetadataSite/init:attach/init:attach/site/init:credential/init:credential",
+            "prepareInstallationMetadataSite/init:attach/init:attach/site/init:issueMetadataGrant/init:issueMetadataGrant",
+            "prepareInstallationMetadataSite/init:attach/init:attach/site/init:issueMetadataGrant/init:issueMetadataGrant/init:issueMetadataGrant",
+            "prepareInstallationMetadataSite/init:attach/init:attach/site/init:issueMetadataGrant/init:issueMetadataGrant/init:issueMetadataGrant#2",
+            "prepareInstallationMetadataSite/init:attach/init:attach/site/site",
+            "prepareInstallationMetadataSite/init:attach/init:attach/site/site#2",
+            "prepareInstallationMetadataSite/init:close/init:close",
+            "prepareInstallationMetadataSite/invalid/invalid",
+            "prepareInstallationMetadataSite/pair/pair",
+            "prepareInstallationMetadataSite/positive/positive",
+            "prepareInstallationMetadataSite/prepareInstallationMetadataSite",
+            "prepareInstallationMetadataSite/prepareInstallationMetadataSite#2",
+            "prepareInstallationMetadataSite/prepareInstallationMetadataSite#3",
+            "prepareInstallationMetadataSite/profileCurrent/profileCurrent",
+            "prepareInstallationMetadataSite/profileCurrent/profileCurrent/profileCurrent",
+            "prepareInstallationMetadataSite/selectedProfile/selectedProfile",
+            "prepareInstallationMetadataSite/synchronous/synchronous",
+            "prepareInstallationMetadataSite/synchronous/synchronous/synchronous"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "The installed Row Credential Site accepts this alternative"
+              },
+              {
+                "path": "adapters/host-node/installation-metadata-site.test.mjs",
+                "anchor": "same publication, Account and original issuer"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "Each registered metadata occurrence retains its original selected target,"
+              },
+              {
+                "path": "adapters/host-node/installation-metadata-site.test.mjs",
+                "anchor": "same publication, Account and original issuer"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "pair, original declaration alongside its source CID, Account gate and captured"
+              },
+              {
+                "path": "adapters/host-node/installation-metadata-site.test.mjs",
+                "anchor": "same publication, Account and original issuer"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "Admission failure returns the existing initialization cleanup Owner with the"
+              },
+              {
+                "path": "adapters/host-node/installation-metadata-site.test.mjs",
+                "anchor": "unsafe mutable Journal admission"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "Before signing, the Site checks the bounded Host-profile observation, actual"
+              },
+              {
+                "path": "adapters/host-node/installation-metadata-site.test.mjs",
+                "anchor": "same publication, Account and original issuer"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "occurrences cannot issue another grant, and observed Account/profile failure"
+              },
+              {
+                "path": "adapters/host-node/installation-metadata-site.test.mjs",
+                "anchor": "Account file revoked across await"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "Publication completion, failure and abort close new-operation admission."
+              },
+              {
+                "path": "adapters/host-node/installation-metadata-site.test.mjs",
+                "anchor": "same publication, Account and original issuer"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "The simultaneous preparation inventory includes bounded issuer PEM bytes and"
+              },
+              {
+                "path": "adapters/host-node/installation-metadata-site.test.mjs",
+                "anchor": "same publication, Account and original issuer"
+              },
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "Closing that Site or its Journal does not retire"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "The legacy Run Site retains its existing signing and close behavior."
+              },
+              {
+                "path": "adapters/host-node/installation-metadata-site.test.mjs",
+                "anchor": "same publication, Account and original issuer"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "exact Scope, current authorization and confirmed same-Journal claim. This"
+              },
+              {
+                "path": "adapters/host-node/installation-metadata-site.test.mjs",
+                "anchor": "same publication, Account and original issuer"
+              },
+              {
+                "path": "adapters/connectors/notion/test/site-metadata-discovery.test.mjs",
+                "anchor": "actual original Site signs and claims separate database and dependent schema uses through Notion discovery"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "loadRowSourceCredentialCustody",
+            "loadRowSourceCredentialCustody/loadRowSourceCredentialCustody"
+          ],
+          "exports": [
+            "loadRowSourceCredentialCustody"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "No provider name or type appears here"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "## Installed collection issuer"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "# Original installed row reader custody"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "The installed Row Credential Site accepts this alternative"
+              },
+              {
+                "path": "adapters/host-node/installation-metadata-site.test.mjs",
+                "anchor": "same publication, Account and original issuer"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "## Original credential acquisition retirement"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Installed Row credential issuer loading"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "createInstalledRowSource"
+              },
+              {
+                "path": "src/connectors/gcs/host_node/pkg.generated.mbti",
+                "anchor": "pub fn gcs_collection_issue_reference"
+              },
+              {
+                "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
+                "anchor": "issueOriginalCollectionReference(pair, maxWork)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "admitCheckpointEffectTargetRead(decision, physicalBinding, operation)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-run.mjs",
+                "anchor": "async function readProvider({prepare, receiver, options})"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "Each registered metadata occurrence retains its original selected target,"
+              },
+              {
+                "path": "adapters/host-node/installation-metadata-site.test.mjs",
+                "anchor": "same publication, Account and original issuer"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "## Original credential acquisition retirement"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Installed Row credential issuer loading"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "exact version/target text"
+              },
+              {
+                "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
+                "anchor": "installationCid: bindingCid"
+              },
+              {
+                "path": "src/connectors/gcs/original_reference/collection.mbt",
+                "anchor": "actual_catalog != expected_catalog"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "openRowSourceCredentialCustody"
+              },
+              {
+                "path": "src/client_local_host/provider_capture_capacity.mbt",
+                "anchor": "physical_equal(original, selected)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "clientProgramInstalledProviderRowCaptureCapacityMatches"
+              },
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "The ordinary row Source Check Environment assembly preserves"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "pair, original declaration alongside its source CID, Account gate and captured"
+              },
+              {
+                "path": "adapters/host-node/installation-metadata-site.test.mjs",
+                "anchor": "same publication, Account and original issuer"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "## Original credential acquisition retirement"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Installed Row credential issuer loading"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "startInstalledRowRun"
+              },
+              {
+                "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
+                "anchor": "site.referenceCurrent()"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "referenceCurrent: () => !closing"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "kind: 'effect_target'"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "openRowSourceCredentialCustody"
+              },
+              {
+                "path": "src/client_row_source_host/provider_capacity.mbt",
+                "anchor": "@resources.reserve_attempt"
+              },
+              {
+                "path": "adapters/host-node/installed-row-run.mjs",
+                "anchor": "clientProgramRowSourceBorrowResponses(run, acquisition)"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "Admission failure returns the existing initialization cleanup Owner with the"
+              },
+              {
+                "path": "adapters/host-node/installation-metadata-site.test.mjs",
+                "anchor": "unsafe mutable Journal admission"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "## Original credential acquisition retirement"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Installed Row credential issuer loading"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "authorizationFor"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "closing = true"
+              },
+              {
+                "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
+                "anchor": "close() { closed = true; adapter.close(); }"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "currentEffectRead(approved)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "openRowSourceCredentialCustody"
+              },
+              {
+                "path": "adapters/host-node/installed-row-run.mjs",
+                "anchor": "clientProgramRowSourceBindResponseCleanup(borrow, readerRetired)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-run.mjs",
+                "anchor": "await Reflect.apply(verifyRead, options, [])"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "Before signing, the Site checks the bounded Host-profile observation, actual"
+              },
+              {
+                "path": "adapters/host-node/installation-metadata-site.test.mjs",
+                "anchor": "same publication, Account and original issuer"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "## Original credential acquisition retirement"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Installed Row credential issuer loading"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "Completion is never"
+              },
+              {
+                "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
+                "anchor": "GcsCollectionProviderUnavailable"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-installed-collection-issuer.test.mjs",
+                "anchor": "the same credential Site invalidates reference currentness before failed close"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "RowSourceEffectTargetReadApprovalNotAdmitted"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "openRowSourceCredentialCustody"
+              },
+              {
+                "path": "adapters/host-node/installed-row-provider-reader.test.mjs",
+                "anchor": "throwing factory or method getter retains the installed original borrow without retry"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "occurrences cannot issue another grant, and observed Account/profile failure"
+              },
+              {
+                "path": "adapters/host-node/installation-metadata-site.test.mjs",
+                "anchor": "Account file revoked across await"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "## Original credential acquisition retirement"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Installed Row credential issuer loading"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "signal"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "Closing"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "False means closing, not physical cleanup ACK"
+              },
+              {
+                "path": "adapters/host-node/installed-row-run.mjs",
+                "anchor": "readerStopRequested = true"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "pending read and stop Promises"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "Publication completion, failure and abort close new-operation admission."
+              },
+              {
+                "path": "adapters/host-node/installation-metadata-site.test.mjs",
+                "anchor": "same publication, Account and original issuer"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "## Original credential acquisition retirement"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Installed Row credential issuer loading"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "maxPageBytes"
+              },
+              {
+                "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
+                "anchor": "const declarationLimits"
+              },
+              {
+                "path": "src/client_row_source_host/host.mbt",
+                "anchor": "let declaration_limits"
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "Additional declarations/trees/strings"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "Each such approval adds a seven-field record"
+              },
+              {
+                "path": "docs/development/credential-scope-interface.md",
+                "anchor": "## Installed Row Site physical custody"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "Supplemental provider retention and workspace remain reserved through capture"
+              },
+              {
+                "path": "src/client_row_source_host/provider_capacity.mbt",
+                "anchor": "provider_retained"
+              },
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "The ordinary row Source Check Environment assembly preserves"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "The simultaneous preparation inventory includes bounded issuer PEM bytes and"
+              },
+              {
+                "path": "adapters/host-node/installation-metadata-site.test.mjs",
+                "anchor": "same publication, Account and original issuer"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "## Original credential acquisition retirement"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Installed Row credential issuer loading"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "rowSourceMapping"
+              },
+              {
+                "path": "src/connectors/gcs/host-bundle.json",
+                "anchor": "\"providerBundle\""
+              },
+              {
+                "path": "adapters/connectors/gcs/README.md",
+                "anchor": "An explicitly supplied legacy"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "foreign preparation and unsupported listing/keyed profile combinations refuse"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "The legacy Run Site retains its existing signing and close behavior."
+              },
+              {
+                "path": "adapters/host-node/installation-metadata-site.test.mjs",
+                "anchor": "same publication, Account and original issuer"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "## Original credential acquisition retirement"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Installed Row credential issuer loading"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-row-source.test.mjs",
+                "anchor": "test("
+              },
+              {
+                "path": "adapters/host-node/row-source-command-environment.test.mjs",
+                "anchor": "real GCS complete Command and original input role survive ordinary Check Environment assembly"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-installed-collection-issuer.test.mjs",
+                "anchor": "ordinary installed GCS supplies its original checked collection"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-installed-collection-issuer.test.mjs",
+                "anchor": "a different installed scope cannot substitute"
+              },
+              {
+                "path": "adapters/connectors/gcs/test/gcs-installed-source.test.mjs",
+                "anchor": "LIST_FILES paths=[]"
+              },
+              {
+                "path": "adapters/host-node/row-site-effect-target-read.test.mjs",
+                "anchor": "actual target continuation decision survives Site admission"
+              },
+              {
+                "path": "adapters/host-node/row-source-authorization-installation.test.mjs",
+                "anchor": "shared installer retains its default context"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.test.mjs",
+                "anchor": "shared generic credential custody preserves its original task"
+              },
+              {
+                "path": "adapters/host-node/installed-row-provider-common.test.mjs",
+                "anchor": "actual Common provider projection and original reader retain one reservation through capture"
+              },
+              {
+                "path": "adapters/host-node/installed-row-provider-reader.test.mjs",
+                "anchor": "current refusal after factory keeps the same reader for cleanup and sends nothing"
+              },
+              {
+                "path": "adapters/connectors/notion/test/database-read-source-preparation.test.mjs",
+                "anchor": "enum survives installed Check Environment and SQL/AQL preparation"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "exact Scope, current authorization and confirmed same-Journal claim. This"
+              },
+              {
+                "path": "adapters/host-node/installation-metadata-site.test.mjs",
+                "anchor": "same publication, Account and original issuer"
+              },
+              {
+                "path": "docs/design/installed-row-reader-custody.md",
+                "anchor": "## Original credential acquisition retirement"
+              },
+              {
+                "path": "adapters/host-node/row-source-credential-acquisition.test.mjs",
+                "anchor": "run acquisition custody waits through the final response observation"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Installed Row credential issuer loading"
+              },
+              {
+                "path": "adapters/connectors/salesforce/test/installed-salesforce-site.test.mjs",
+                "anchor": "shared Site loading preserves Salesforce key and CA refusal before resolver or journal admission"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createInstalledRowSource/createInstalledRowSource#2",
+            "createInstalledRowSource/createInstalledRowSource#3",
+            "createInstalledRowSource/createInstalledRowSource#6"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "const originalRead = prepareSourceRead === undefined ? undefined :"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "prepareSourceRead(Object.freeze({checkedOwner, effectful, declaration, requirement, occurrence}));"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "const properties = Object.getOwnPropertyDescriptors(originalPageLimits);"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": ".map(name => readAsset(`spec/contracts/${name}`));"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "clientProgramInstalledSourceReadBindProgram(originalRead, checkedOwner)"
+              },
+              {
+                "path": "adapters/host-node/installed-row-run.mjs",
+                "anchor": "clientProgramInstalledSourceReadCheckLedger(originalRead, ledger)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "clientProgramInstalledSourceReadAttachAcquisition("
+              },
+              {
+                "path": "adapters/host-node/installed-row-run.mjs",
+                "anchor": "clientProgramInstalledSourceReadStartRows(originalRead, acquisition,"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "clientProgramInstalledSourceReadCheckCurrent(originalRead)"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "if (originalRead === undefined || nodeTypes.isPromise(originalRead)) fail('InstalledSourceReadUnavailable');"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-row-run.mjs",
+                "anchor": "if (originalRead !== undefined) checked(moon.clientProgramInstalledSourceReadRetire(originalRead));"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "occurrence, physicalBindingCid, providerCaptureCapacity, originalRead}));"
+              },
+              {
+                "path": "adapters/host-node/source-managed-phase-envelope.cjs",
+                "anchor": "function declareSourceComputePhaseEnvelope(sourceDeclaration) {"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "// supplier; no local scalar/fallback Ledger or cleanup ACK is created."
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "if (readAsset !== undefined && (prepareSourceRead === undefined ||"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-source-read-row-run.test.mjs",
+                "anchor": "original Source read checks the same Run Ledger before starting and retires only after capture cleanup"
+              },
+              {
+                "path": "adapters/host-node/installed-source-read-row-run.test.mjs",
+                "anchor": "foreign or stale original Source Ledger refuses before every RowRun constructor"
+              },
+              {
+                "path": "adapters/host-node/installed-source-read-row-run.test.mjs",
+                "anchor": "Source-only scope cannot replace a missing Run Ledger or rescue an unavailable typed consumer"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createInstalledRowSource/createInstalledRowSource#11",
+            "createInstalledRowSource/openKeyed/cleanup/cleanup",
+            "createInstalledRowSource/openKeyed/closeOriginal/closeOriginal",
+            "createInstalledRowSource/openKeyed/init:close/init:close",
+            "createInstalledRowSource/openKeyed/openKeyed#10",
+            "createInstalledRowSource/openKeyed/openKeyed#11",
+            "createInstalledRowSource/openKeyed/openKeyed#12"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "For a selected Local keyed Content path, the ordinary Source installation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "prepareSourceRead, prepareKeyedSourceRead, closeKeyedSourceRead,"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "checked(moon.clientProgramInstalledKeyedSourceReadCheckCurrent(originalKeyedRead));"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "originalKeyedRead = prepareKeyedSourceRead(Object.freeze({"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "consumeObservation: charge => checked(moon.clientProgramRowSourceConsumeObservationCharge(run, charge)),"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "const rowRecovery = state.recovery;"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "const closeOriginal = async () => {"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_local_host/installed_managed_keyed_content.mbt",
+                "anchor": "pub fn check_installed_keyed_source_read_ledger("
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "other unsupported backend shapes remain separate connections, not language"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-keyed-original-read.test.mjs",
+                "anchor": "test('installed keyed failure retains the same physical recovery before Core and parent retirement'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createInstalledRowSource/createInstalledRowSource#12"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "For a selected Local keyed Content path, the ordinary Source installation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "prepareSourceRead, prepareKeyedSourceRead, closeKeyedSourceRead,"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "checked(moon.clientProgramInstalledKeyedSourceReadCheckCurrent(originalKeyedRead));"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "originalKeyedRead = prepareKeyedSourceRead(Object.freeze({"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "consumeObservation: charge => checked(moon.clientProgramRowSourceConsumeObservationCharge(run, charge)),"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "const rowRecovery = state.recovery;"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "const closeOriginal = async () => {"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_local_host/installed_managed_keyed_content.mbt",
+                "anchor": "pub fn check_installed_keyed_source_read_ledger("
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "other unsupported backend shapes remain separate connections, not language"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-keyed-original-read.test.mjs",
+                "anchor": "test('installed keyed failure retains the same physical recovery before Core and parent retirement'"
+              }
+            ]
+          }
+        }
       ],
+      "sha256": "c4df751b4beba307a3a97503ab7d847e1611e35a886b3cc0d21cac0994a9fa2d",
       "operations": [
         {
           "name": "byCid/byCid",
@@ -7313,7 +9469,13 @@
             "prepareRead",
             "grantBeforeBegin",
             "originalSourceAccess",
-            "providerReader"
+            "providerReader",
+            "prepareSourceRead",
+            "prepareKeyedSourceRead",
+            "closeKeyedSourceRead",
+            "originalKeyedTransport",
+            "readAsset",
+            "originalPageLimits"
           ],
           "async": true
         },
@@ -7407,6 +9569,26 @@
           "async": false
         },
         {
+          "name": "createInstalledRowSource/createInstalledRowSource#10",
+          "parameters": [
+            "resource",
+            "operation"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/createInstalledRowSource#11",
+          "parameters": [
+            "sourceRef"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/createInstalledRowSource#12",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "createInstalledRowSource/createInstalledRowSource#2",
           "parameters": [
             "name"
@@ -7423,28 +9605,43 @@
         {
           "name": "createInstalledRowSource/createInstalledRowSource#4",
           "parameters": [
-            "key"
+            "name"
           ],
           "async": false
         },
         {
           "name": "createInstalledRowSource/createInstalledRowSource#5",
           "parameters": [
-            "resource",
-            "operation"
+            "name"
           ],
           "async": false
         },
         {
           "name": "createInstalledRowSource/createInstalledRowSource#6",
           "parameters": [
-            "sourceRef"
+            "name"
           ],
           "async": false
         },
         {
           "name": "createInstalledRowSource/createInstalledRowSource#7",
-          "parameters": [],
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/createInstalledRowSource#8",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/createInstalledRowSource#9",
+          "parameters": [
+            "name"
+          ],
           "async": false
         },
         {
@@ -7526,6 +9723,21 @@
           "async": true
         },
         {
+          "name": "createInstalledRowSource/openKeyed/cleanup/cleanup",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createInstalledRowSource/openKeyed/closeOriginal/closeOriginal",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createInstalledRowSource/openKeyed/init:close/init:close",
+          "parameters": [],
+          "async": true
+        },
+        {
           "name": "createInstalledRowSource/openKeyed/observedMs/observedMs",
           "parameters": [],
           "async": false
@@ -7537,6 +9749,23 @@
         },
         {
           "name": "createInstalledRowSource/openKeyed/openKeyed/expire/expire",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/openKeyed/openKeyed#10",
+          "parameters": [
+            "lookup"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/openKeyed/openKeyed#11",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowSource/openKeyed/openKeyed#12",
           "parameters": [],
           "async": false
         },
@@ -7571,14 +9800,16 @@
         {
           "name": "createInstalledRowSource/openKeyed/openKeyed#6",
           "parameters": [
-            "rows",
             "charge"
           ],
           "async": false
         },
         {
           "name": "createInstalledRowSource/openKeyed/openKeyed#7",
-          "parameters": [],
+          "parameters": [
+            "rows",
+            "charge"
+          ],
           "async": false
         },
         {
@@ -7588,9 +9819,7 @@
         },
         {
           "name": "createInstalledRowSource/openKeyed/openKeyed#9",
-          "parameters": [
-            "lookup"
-          ],
+          "parameters": [],
           "async": false
         },
         {
@@ -8452,1202 +10681,14 @@
           "async": false
         }
       ],
-      "contracts": [
-        {
-          "operations": [
-            "<module>",
-            "byCid/byCid",
-            "byCid/byCid/byCid",
-            "byCid/byCid/byCid#2",
-            "cid/cid",
-            "createInstalledRowSource",
-            "createInstalledRowSource/acquire",
-            "createInstalledRowSource/acquire/complete/complete",
-            "createInstalledRowSource/acquire/complete/complete/verifyRead/verifyRead",
-            "createInstalledRowSource/createInstalledRowSource",
-            "createInstalledRowSource/createInstalledRowSource#2",
-            "createInstalledRowSource/createInstalledRowSource#3",
-            "createInstalledRowSource/createInstalledRowSource#4",
-            "createInstalledRowSource/createInstalledRowSource#5",
-            "createInstalledRowSource/currentRead/currentRead",
-            "createInstalledRowSource/decideRead/decideRead",
-            "createInstalledRowSource/init:keyedLedgerCapacity/init:keyedLedgerCapacity",
-            "createInstalledRowSource/init:ledgerCapacity/init:ledgerCapacity",
-            "createInstalledRowSource/init:retainedCapture/init:retainedCapture",
-            "createInstalledRowSource/keyedRecoveryBinding",
-            "createInstalledRowSource/open",
-            "createInstalledRowSource/openCapture",
-            "createInstalledRowSource/openKeyed",
-            "createInstalledRowSource/openKeyed/observedMs/observedMs",
-            "createInstalledRowSource/openKeyed/openKeyed",
-            "createInstalledRowSource/openKeyed/openKeyed/expire/expire",
-            "createInstalledRowSource/openKeyed/openKeyed#2",
-            "createInstalledRowSource/openKeyed/openKeyed#3",
-            "createInstalledRowSource/openKeyed/openKeyed#4",
-            "createInstalledRowSource/openKeyed/openKeyed#5",
-            "createInstalledRowSource/openKeyed/openKeyed#6",
-            "createInstalledRowSource/openKeyed/openKeyed#7",
-            "createInstalledRowSource/openKeyed/openKeyed#8",
-            "createInstalledRowSource/openKeyed/openKeyed#9",
-            "createInstalledRowSource/openKeyed/verifyRead/verifyRead",
-            "createInstalledRowSource/openKeyedLookup",
-            "createInstalledRowSource/openKeyedLookup/cleanup/cleanup",
-            "createInstalledRowSource/openKeyedLookup/close/close",
-            "createInstalledRowSource/openKeyedLookup/init:borrowSerializationInput/init:borrowSerializationInput",
-            "createInstalledRowSource/openKeyedLookup/init:issueObservation/init:issueObservation",
-            "createInstalledRowSource/openKeyedLookup/init:openDag/init:openDag",
-            "createInstalledRowSource/openKeyedLookup/init:openHost/init:openHost",
-            "createInstalledRowSource/openKeyedLookup/init:prepareJoin/init:prepareJoin",
-            "createInstalledRowSource/openKeyedLookup/openKeyedLookup",
-            "createInstalledRowSource/openKeyedLookup/openKeyedLookup#2",
-            "createInstalledRowSource/openKeyedLookup/openKeyedLookup#3",
-            "createInstalledRowSource/openKeyedLookup/openKeyedLookup#4",
-            "createInstalledRowSource/openKeyedLookup/openKeyedLookup#5",
-            "createInstalledRowSource/openKeyedLookup/recovery/recovery",
-            "createInstalledRowSource/openKeyedLookup/stop/stop",
-            "createInstalledRowSource/operationBindings/operationBindings",
-            "createInstalledRowSource/ordinaryRecoveryBinding",
-            "createInstalledRowSource/prepare",
-            "createInstalledRowSource/prepare/prepare",
-            "createInstalledRowSource/prepareKeyed",
-            "createInstalledRowSource/prepareKeyed/prepareKeyed",
-            "createInstalledRowSource/prepareKeyed/prepareKeyed#2",
-            "createInstalledRowSource/resources/resources",
-            "createInstalledRowSource/selectedKeyedContent/selectedKeyedContent",
-            "createInstalledRowSource/sourceReadAccesses/sourceReadAccesses",
-            "createInstalledRowSource/sourceRefs/sourceRefs",
-            "createInstalledRowSource/verifyKeyedRead",
-            "createInstalledRowSource/verifyKeyedRead/recheck/recheck",
-            "fail/fail",
-            "installRowSourceAuthorization",
-            "installRowSourceAuthorization/installRowSourceAuthorization",
-            "installRowSourceAuthorization/installRowSourceAuthorization#2",
-            "installRowSourceAuthorization/installRowSourceAuthorization#3",
-            "installRowSourceAuthorization/own/own",
-            "openRowSourceCredentialSite",
-            "openRowSourceCredentialSite/bindingWire/bindingWire",
-            "openRowSourceCredentialSite/callResource/callResource",
-            "openRowSourceCredentialSite/currentEffectRead",
-            "openRowSourceCredentialSite/currentEffectRead/currentEffectRead",
-            "openRowSourceCredentialSite/init:admitCheckpointEffectTargetRead/init:admitCheckpointEffectTargetRead",
-            "openRowSourceCredentialSite/init:admitCheckpointEffectTargetRead/init:admitCheckpointEffectTargetRead/init:admitCheckpointEffectTargetRead",
-            "openRowSourceCredentialSite/init:admitCheckpointReadApproval/init:admitCheckpointReadApproval",
-            "openRowSourceCredentialSite/init:issueEffectGrant/init:issueEffectGrant",
-            "openRowSourceCredentialSite/init:issueReadGrant/init:issueReadGrant",
-            "openRowSourceCredentialSite/openRowSourceCredentialSite",
-            "openRowSourceCredentialSite/openRowSourceCredentialSite#2",
-            "openRowSourceCredentialSite/synchronous",
-            "openRowSourceCredentialSite/synchronous/synchronous",
-            "rowSourceCheckEnvironment",
-            "rowSourceMapping",
-            "text/text",
-            "valueCid/valueCid",
-            "createInstalledRowSource/acquire/issueGrant/issueGrant",
-            "createInstalledRowSource/createInstalledRowSource#6",
-            "createInstalledRowSource/ordinarySubject/ordinarySubject",
-            "createInstalledRowSource/prepare/authorizePreparation/authorizePreparation",
-            "openRowSourceCredentialCustody",
-            "openRowSourceCredentialCustody/checkGrantRequest",
-            "openRowSourceCredentialCustody/close",
-            "openRowSourceCredentialCustody/ensureOpen/ensureOpen",
-            "openRowSourceCredentialCustody/init:closeOnce/init:closeOnce",
-            "openRowSourceCredentialCustody/openRowSourceCredentialCustody",
-            "openRowSourceCredentialCustody/openRowSourceCredentialCustody#2",
-            "openRowSourceCredentialCustody/sign",
-            "createInstalledRowSource/acquire/readerOptions/consumeObservation",
-            "createInstalledRowSource/acquire/readerOptions/readerOptions",
-            "createInstalledRowSource/acquire/readerOptions/readerOptions#2",
-            "createInstalledRowSource/acquire/readerOptions/readerOptions#3",
-            "createInstalledRowSource/acquire/readerOptions/readerOptions#4",
-            "createInstalledRowSource/acquire/readerOptions/readerOptions#5",
-            "createInstalledRowSource/captureCapacity/captureCapacity",
-            "createInstalledRowSource/createInstalledRowSource#7",
-            "openRowSourceCredentialCustody/close/close",
-            "openRowSourceCredentialCustody/closeRunBindings",
-            "openRowSourceCredentialCustody/openRowSourceCredentialCustody#3",
-            "openRowSourceCredentialCustody/openRowSourceCredentialCustody#4",
-            "openRowSourceCredentialCustody/openRowSourceCredentialCustody#5",
-            "openRowSourceCredentialCustody/openRunAcquisition",
-            "openRowSourceCredentialCustody/openRunAcquisition/openRunAcquisition",
-            "openRowSourceCredentialCustody/openRunAcquisition/openRunAcquisition#2",
-            "openRowSourceCredentialCustody/openRunAcquisition/openRunAcquisition#3",
-            "openRowSourceCredentialCustody/openRunAcquisition/originalRequest/originalRequest",
-            "openRowSourceCredentialCustody/bindRunAcquisition",
-            "openRowSourceCredentialCustody/captureRunCurrent",
-            "openRowSourceCredentialCustody/captureRunCurrent/assertCurrent/assertCurrent",
-            "openRowSourceCredentialCustody/captureRunCurrent/assertCurrent/assertCurrent/assertCurrent",
-            "openRowSourceCredentialCustody/captureRunCurrent/captureRunCurrent",
-            "openRowSourceCredentialCustody/captureRunCurrent/observeCurrent/observeCurrent",
-            "openRowSourceCredentialCustody/retainRunBinding",
-            "openRowSourceCredentialCustody/retainRunBinding/init:close/init:close"
-          ],
-          "exports": [
-            "createInstalledRowSource",
-            "installRowSourceAuthorization",
-            "openRowSourceCredentialSite",
-            "rowSourceCheckEnvironment",
-            "rowSourceMapping",
-            "openRowSourceCredentialCustody"
-          ],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "adapters/host-node/installed-row-source.mjs",
-                "anchor": "No provider name or type appears here"
-              },
-              {
-                "path": "adapters/connectors/gcs/README.md",
-                "anchor": "## Installed collection issuer"
-              },
-              {
-                "path": "docs/design/installed-row-reader-custody.md",
-                "anchor": "# Original installed row reader custody"
-              },
-              {
-                "path": "docs/design/remote-site-execution.md",
-                "anchor": "The installed Row Credential Site accepts this alternative"
-              },
-              {
-                "path": "adapters/host-node/installation-metadata-site.test.mjs",
-                "anchor": "same publication, Account and original issuer"
-              },
-              {
-                "path": "docs/design/installed-row-reader-custody.md",
-                "anchor": "## Original credential acquisition retirement"
-              },
-              {
-                "path": "docs/design/installed-row-reader-custody.md",
-                "anchor": "When the same Site has already authorized and issued a grant,"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "adapters/host-node/installed-row-source.mjs",
-                "anchor": "createInstalledRowSource"
-              },
-              {
-                "path": "src/connectors/gcs/host_node/pkg.generated.mbti",
-                "anchor": "pub fn gcs_collection_issue_reference"
-              },
-              {
-                "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
-                "anchor": "issueOriginalCollectionReference(pair, maxWork)"
-              },
-              {
-                "path": "adapters/host-node/installed-row-source.mjs",
-                "anchor": "admitCheckpointEffectTargetRead(decision, physicalBinding, operation)"
-              },
-              {
-                "path": "adapters/host-node/installed-row-run.mjs",
-                "anchor": "async function readProvider({prepare, receiver, options})"
-              },
-              {
-                "path": "docs/design/remote-site-execution.md",
-                "anchor": "Each registered metadata occurrence retains its original selected target,"
-              },
-              {
-                "path": "adapters/host-node/installation-metadata-site.test.mjs",
-                "anchor": "same publication, Account and original issuer"
-              },
-              {
-                "path": "docs/design/installed-row-reader-custody.md",
-                "anchor": "## Original credential acquisition retirement"
-              },
-              {
-                "path": "adapters/host-node/installed-row-source.mjs",
-                "anchor": "function bindRunAcquisition(authorization, callbacks)"
-              }
-            ],
-            "identity": [
-              {
-                "path": "adapters/host-node/installed-row-source.mjs",
-                "anchor": "exact version/target text"
-              },
-              {
-                "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
-                "anchor": "installationCid: bindingCid"
-              },
-              {
-                "path": "src/connectors/gcs/original_reference/collection.mbt",
-                "anchor": "actual_catalog != expected_catalog"
-              },
-              {
-                "path": "adapters/host-node/installed-row-source.mjs",
-                "anchor": "openRowSourceCredentialCustody"
-              },
-              {
-                "path": "src/client_local_host/provider_capture_capacity.mbt",
-                "anchor": "physical_equal(original, selected)"
-              },
-              {
-                "path": "adapters/host-node/installed-row-source.mjs",
-                "anchor": "clientProgramInstalledProviderRowCaptureCapacityMatches"
-              },
-              {
-                "path": "docs/design/notion-database-catalog.md",
-                "anchor": "The ordinary row Source Check Environment assembly preserves"
-              },
-              {
-                "path": "docs/design/remote-site-execution.md",
-                "anchor": "pair, original declaration alongside its source CID, Account gate and captured"
-              },
-              {
-                "path": "adapters/host-node/installation-metadata-site.test.mjs",
-                "anchor": "same publication, Account and original issuer"
-              },
-              {
-                "path": "docs/design/installed-row-reader-custody.md",
-                "anchor": "## Original credential acquisition retirement"
-              },
-              {
-                "path": "adapters/host-node/installed-row-source.mjs",
-                "anchor": "issuedRunAuthorizations.has(authorization)"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "adapters/host-node/installed-row-source.mjs",
-                "anchor": "startInstalledRowRun"
-              },
-              {
-                "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
-                "anchor": "site.referenceCurrent()"
-              },
-              {
-                "path": "adapters/host-node/installed-row-source.mjs",
-                "anchor": "referenceCurrent: () => !closing"
-              },
-              {
-                "path": "adapters/host-node/installed-row-source.mjs",
-                "anchor": "kind: 'effect_target'"
-              },
-              {
-                "path": "adapters/host-node/installed-row-source.mjs",
-                "anchor": "openRowSourceCredentialCustody"
-              },
-              {
-                "path": "src/client_row_source_host/provider_capacity.mbt",
-                "anchor": "@resources.reserve_attempt"
-              },
-              {
-                "path": "adapters/host-node/installed-row-run.mjs",
-                "anchor": "clientProgramRowSourceBorrowResponses(run, acquisition)"
-              },
-              {
-                "path": "docs/design/remote-site-execution.md",
-                "anchor": "Admission failure returns the existing initialization cleanup Owner with the"
-              },
-              {
-                "path": "adapters/host-node/installation-metadata-site.test.mjs",
-                "anchor": "unsafe mutable Journal admission"
-              },
-              {
-                "path": "docs/design/installed-row-reader-custody.md",
-                "anchor": "## Original credential acquisition retirement"
-              },
-              {
-                "path": "adapters/host-node/installed-row-source.mjs",
-                "anchor": "Retain the opening child before invoking a current callback"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "adapters/host-node/installed-row-source.mjs",
-                "anchor": "authorizationFor"
-              },
-              {
-                "path": "adapters/host-node/installed-row-source.mjs",
-                "anchor": "closing = true"
-              },
-              {
-                "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
-                "anchor": "close() { closed = true; adapter.close(); }"
-              },
-              {
-                "path": "adapters/host-node/installed-row-source.mjs",
-                "anchor": "currentEffectRead(approved)"
-              },
-              {
-                "path": "adapters/host-node/installed-row-source.mjs",
-                "anchor": "openRowSourceCredentialCustody"
-              },
-              {
-                "path": "adapters/host-node/installed-row-run.mjs",
-                "anchor": "clientProgramRowSourceBindResponseCleanup(borrow, readerRetired)"
-              },
-              {
-                "path": "adapters/host-node/installed-row-run.mjs",
-                "anchor": "await Reflect.apply(verifyRead, options, [])"
-              },
-              {
-                "path": "docs/design/remote-site-execution.md",
-                "anchor": "Before signing, the Site checks the bounded Host-profile observation, actual"
-              },
-              {
-                "path": "adapters/host-node/installation-metadata-site.test.mjs",
-                "anchor": "same publication, Account and original issuer"
-              },
-              {
-                "path": "docs/design/installed-row-reader-custody.md",
-                "anchor": "## Original credential acquisition retirement"
-              },
-              {
-                "path": "adapters/host-node/installed-row-source.mjs",
-                "anchor": "issued.state = 'opening'"
-              }
-            ],
-            "failure": [
-              {
-                "path": "adapters/host-node/installed-row-source.mjs",
-                "anchor": "Completion is never"
-              },
-              {
-                "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
-                "anchor": "GcsCollectionProviderUnavailable"
-              },
-              {
-                "path": "adapters/connectors/gcs/test/gcs-installed-collection-issuer.test.mjs",
-                "anchor": "the same credential Site invalidates reference currentness before failed close"
-              },
-              {
-                "path": "adapters/host-node/installed-row-source.mjs",
-                "anchor": "RowSourceEffectTargetReadApprovalNotAdmitted"
-              },
-              {
-                "path": "adapters/host-node/installed-row-source.mjs",
-                "anchor": "openRowSourceCredentialCustody"
-              },
-              {
-                "path": "adapters/host-node/installed-row-provider-reader.test.mjs",
-                "anchor": "throwing factory or method getter retains the installed original borrow without retry"
-              },
-              {
-                "path": "docs/design/remote-site-execution.md",
-                "anchor": "occurrences cannot issue another grant, and observed Account/profile failure"
-              },
-              {
-                "path": "adapters/host-node/installation-metadata-site.test.mjs",
-                "anchor": "Account file revoked across await"
-              },
-              {
-                "path": "docs/design/installed-row-reader-custody.md",
-                "anchor": "## Original credential acquisition retirement"
-              },
-              {
-                "path": "adapters/host-node/installed-row-source.mjs",
-                "anchor": "issued.state = 'failed'"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "adapters/host-node/installed-row-source.mjs",
-                "anchor": "signal"
-              },
-              {
-                "path": "adapters/connectors/gcs/README.md",
-                "anchor": "Closing"
-              },
-              {
-                "path": "adapters/host-node/installed-row-source.mjs",
-                "anchor": "False means closing, not physical cleanup ACK"
-              },
-              {
-                "path": "adapters/host-node/installed-row-run.mjs",
-                "anchor": "readerStopRequested = true"
-              },
-              {
-                "path": "docs/design/installed-row-reader-custody.md",
-                "anchor": "pending read and stop Promises"
-              },
-              {
-                "path": "docs/design/remote-site-execution.md",
-                "anchor": "Publication completion, failure and abort close new-operation admission."
-              },
-              {
-                "path": "adapters/host-node/installation-metadata-site.test.mjs",
-                "anchor": "same publication, Account and original issuer"
-              },
-              {
-                "path": "docs/design/installed-row-reader-custody.md",
-                "anchor": "## Original credential acquisition retirement"
-              },
-              {
-                "path": "adapters/host-node/installed-row-source.mjs",
-                "anchor": "const observeCurrent = async () =>"
-              }
-            ],
-            "resources": [
-              {
-                "path": "adapters/host-node/installed-row-source.mjs",
-                "anchor": "maxPageBytes"
-              },
-              {
-                "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
-                "anchor": "const declarationLimits"
-              },
-              {
-                "path": "src/client_row_source_host/host.mbt",
-                "anchor": "let declaration_limits"
-              },
-              {
-                "path": "adapters/connectors/gcs/README.md",
-                "anchor": "Additional declarations/trees/strings"
-              },
-              {
-                "path": "adapters/host-node/installed-row-source.mjs",
-                "anchor": "Each such approval adds a seven-field record"
-              },
-              {
-                "path": "docs/development/credential-scope-interface.md",
-                "anchor": "## Installed Row Site physical custody"
-              },
-              {
-                "path": "docs/design/installed-row-reader-custody.md",
-                "anchor": "Supplemental provider retention and workspace remain reserved through capture"
-              },
-              {
-                "path": "src/client_row_source_host/provider_capacity.mbt",
-                "anchor": "provider_retained"
-              },
-              {
-                "path": "docs/design/notion-database-catalog.md",
-                "anchor": "The ordinary row Source Check Environment assembly preserves"
-              },
-              {
-                "path": "docs/design/remote-site-execution.md",
-                "anchor": "The simultaneous preparation inventory includes bounded issuer PEM bytes and"
-              },
-              {
-                "path": "adapters/host-node/installation-metadata-site.test.mjs",
-                "anchor": "same publication, Account and original issuer"
-              },
-              {
-                "path": "docs/design/installed-row-reader-custody.md",
-                "anchor": "## Original credential acquisition retirement"
-              },
-              {
-                "path": "docs/design/installed-row-reader-custody.md",
-                "anchor": "Original issued-authorization membership also retains a private weak-map entry"
-              }
-            ],
-            "extension": [
-              {
-                "path": "adapters/host-node/installed-row-source.mjs",
-                "anchor": "rowSourceMapping"
-              },
-              {
-                "path": "src/connectors/gcs/host-bundle.json",
-                "anchor": "\"providerBundle\""
-              },
-              {
-                "path": "adapters/connectors/gcs/README.md",
-                "anchor": "An explicitly supplied legacy"
-              },
-              {
-                "path": "docs/design/installed-row-reader-custody.md",
-                "anchor": "foreign preparation and unsupported listing/keyed profile combinations refuse"
-              },
-              {
-                "path": "docs/design/remote-site-execution.md",
-                "anchor": "The legacy Run Site retains its existing signing and close behavior."
-              },
-              {
-                "path": "adapters/host-node/installation-metadata-site.test.mjs",
-                "anchor": "same publication, Account and original issuer"
-              },
-              {
-                "path": "docs/design/installed-row-reader-custody.md",
-                "anchor": "## Original credential acquisition retirement"
-              },
-              {
-                "path": "docs/design/installed-row-reader-custody.md",
-                "anchor": "signing another grant. Its private issuer membership rejects a wrapper copy,"
-              }
-            ],
-            "verification": [
-              {
-                "path": "adapters/host-node/installed-row-source.test.mjs",
-                "anchor": "test("
-              },
-              {
-                "path": "adapters/host-node/row-source-command-environment.test.mjs",
-                "anchor": "real GCS complete Command and original input role survive ordinary Check Environment assembly"
-              },
-              {
-                "path": "adapters/connectors/gcs/test/gcs-installed-collection-issuer.test.mjs",
-                "anchor": "ordinary installed GCS supplies its original checked collection"
-              },
-              {
-                "path": "adapters/connectors/gcs/test/gcs-installed-collection-issuer.test.mjs",
-                "anchor": "a different installed scope cannot substitute"
-              },
-              {
-                "path": "adapters/connectors/gcs/test/gcs-installed-source.test.mjs",
-                "anchor": "LIST_FILES paths=[]"
-              },
-              {
-                "path": "adapters/host-node/row-site-effect-target-read.test.mjs",
-                "anchor": "actual target continuation decision survives Site admission"
-              },
-              {
-                "path": "adapters/host-node/row-source-authorization-installation.test.mjs",
-                "anchor": "shared installer retains its default context"
-              },
-              {
-                "path": "adapters/host-node/installed-row-source.test.mjs",
-                "anchor": "shared generic credential custody preserves its original task"
-              },
-              {
-                "path": "adapters/host-node/installed-row-provider-common.test.mjs",
-                "anchor": "actual Common provider projection and original reader retain one reservation through capture"
-              },
-              {
-                "path": "adapters/host-node/installed-row-provider-reader.test.mjs",
-                "anchor": "current refusal after factory keeps the same reader for cleanup and sends nothing"
-              },
-              {
-                "path": "adapters/connectors/notion/test/database-read-source-preparation.test.mjs",
-                "anchor": "enum survives installed Check Environment and SQL/AQL preparation"
-              },
-              {
-                "path": "docs/design/remote-site-execution.md",
-                "anchor": "exact Scope, current authorization and confirmed same-Journal claim. This"
-              },
-              {
-                "path": "adapters/host-node/installation-metadata-site.test.mjs",
-                "anchor": "same publication, Account and original issuer"
-              },
-              {
-                "path": "docs/design/installed-row-reader-custody.md",
-                "anchor": "## Original credential acquisition retirement"
-              },
-              {
-                "path": "adapters/host-node/row-source-credential-acquisition.test.mjs",
-                "anchor": "run acquisition custody waits through the final response observation"
-              },
-              {
-                "path": "adapters/host-node/row-source-credential-acquisition.test.mjs",
-                "anchor": "authorized run acquisition binds the original issued grant without signing another grant"
-              },
-              {
-                "path": "adapters/host-node/row-source-credential-acquisition.test.mjs",
-                "anchor": "authorized run acquisition retains the opening child across reentrant original Journal close"
-              },
-              {
-                "path": "adapters/host-node/row-source-credential-acquisition.test.mjs",
-                "anchor": "authorized run acquisition refuses copied equal grant wrappers before current callbacks or I/O"
-              },
-              {
-                "path": "adapters/host-node/row-source-credential-acquisition.test.mjs",
-                "anchor": "authorized run acquisition does not infer binding capacity from an existing grant"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [
-            "openRowSourceCredentialCustody/installationMetadataJournal",
-            "openRowSourceCredentialCustody/installationMetadataJournal/init:close/init:close",
-            "openRowSourceCredentialCustody/installationMetadataJournal/installationMetadataJournal",
-            "openRowSourceCredentialCustody/signInstallationMetadata",
-            "prepareInstallationMetadataSite",
-            "prepareInstallationMetadataSite/account/account",
-            "prepareInstallationMetadataSite/accountMethods/accountMethods",
-            "prepareInstallationMetadataSite/callAccount/callAccount",
-            "prepareInstallationMetadataSite/current/current",
-            "prepareInstallationMetadataSite/data/data",
-            "prepareInstallationMetadataSite/data/data/data",
-            "prepareInstallationMetadataSite/data/data/data#2",
-            "prepareInstallationMetadataSite/ensureCurrent/ensureCurrent",
-            "prepareInstallationMetadataSite/factsFor/factsFor",
-            "prepareInstallationMetadataSite/init:attach/init:attach",
-            "prepareInstallationMetadataSite/init:attach/init:attach/site/init:close/init:close",
-            "prepareInstallationMetadataSite/init:attach/init:attach/site/init:credential/init:credential",
-            "prepareInstallationMetadataSite/init:attach/init:attach/site/init:issueMetadataGrant/init:issueMetadataGrant",
-            "prepareInstallationMetadataSite/init:attach/init:attach/site/init:issueMetadataGrant/init:issueMetadataGrant/init:issueMetadataGrant",
-            "prepareInstallationMetadataSite/init:attach/init:attach/site/init:issueMetadataGrant/init:issueMetadataGrant/init:issueMetadataGrant#2",
-            "prepareInstallationMetadataSite/init:attach/init:attach/site/site",
-            "prepareInstallationMetadataSite/init:attach/init:attach/site/site#2",
-            "prepareInstallationMetadataSite/invalid/invalid",
-            "prepareInstallationMetadataSite/pair/pair",
-            "prepareInstallationMetadataSite/positive/positive",
-            "prepareInstallationMetadataSite/prepareInstallationMetadataSite",
-            "prepareInstallationMetadataSite/prepareInstallationMetadataSite#2",
-            "prepareInstallationMetadataSite/prepareInstallationMetadataSite#3",
-            "prepareInstallationMetadataSite/selectedProfile/selectedProfile",
-            "prepareInstallationMetadataSite/synchronous/synchronous",
-            "prepareInstallationMetadataSite/synchronous/synchronous/synchronous",
-            "prepareInstallationMetadataSite/init:close/init:close",
-            "prepareInstallationMetadataSite/profileCurrent/profileCurrent",
-            "prepareInstallationMetadataSite/profileCurrent/profileCurrent/profileCurrent"
-          ],
-          "exports": [],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "docs/design/remote-site-execution.md",
-                "anchor": "The installed Row Credential Site accepts this alternative"
-              },
-              {
-                "path": "adapters/host-node/installation-metadata-site.test.mjs",
-                "anchor": "same publication, Account and original issuer"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "docs/design/remote-site-execution.md",
-                "anchor": "Each registered metadata occurrence retains its original selected target,"
-              },
-              {
-                "path": "adapters/host-node/installation-metadata-site.test.mjs",
-                "anchor": "same publication, Account and original issuer"
-              }
-            ],
-            "identity": [
-              {
-                "path": "docs/design/remote-site-execution.md",
-                "anchor": "pair, original declaration alongside its source CID, Account gate and captured"
-              },
-              {
-                "path": "adapters/host-node/installation-metadata-site.test.mjs",
-                "anchor": "same publication, Account and original issuer"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "docs/design/remote-site-execution.md",
-                "anchor": "Admission failure returns the existing initialization cleanup Owner with the"
-              },
-              {
-                "path": "adapters/host-node/installation-metadata-site.test.mjs",
-                "anchor": "unsafe mutable Journal admission"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "docs/design/remote-site-execution.md",
-                "anchor": "Before signing, the Site checks the bounded Host-profile observation, actual"
-              },
-              {
-                "path": "adapters/host-node/installation-metadata-site.test.mjs",
-                "anchor": "same publication, Account and original issuer"
-              }
-            ],
-            "failure": [
-              {
-                "path": "docs/design/remote-site-execution.md",
-                "anchor": "occurrences cannot issue another grant, and observed Account/profile failure"
-              },
-              {
-                "path": "adapters/host-node/installation-metadata-site.test.mjs",
-                "anchor": "Account file revoked across await"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "docs/design/remote-site-execution.md",
-                "anchor": "Publication completion, failure and abort close new-operation admission."
-              },
-              {
-                "path": "adapters/host-node/installation-metadata-site.test.mjs",
-                "anchor": "same publication, Account and original issuer"
-              }
-            ],
-            "resources": [
-              {
-                "path": "docs/design/remote-site-execution.md",
-                "anchor": "The simultaneous preparation inventory includes bounded issuer PEM bytes and"
-              },
-              {
-                "path": "adapters/host-node/installation-metadata-site.test.mjs",
-                "anchor": "same publication, Account and original issuer"
-              },
-              {
-                "path": "docs/design/notion-database-catalog.md",
-                "anchor": "Closing that Site or its Journal does not retire"
-              }
-            ],
-            "extension": [
-              {
-                "path": "docs/design/remote-site-execution.md",
-                "anchor": "The legacy Run Site retains its existing signing and close behavior."
-              },
-              {
-                "path": "adapters/host-node/installation-metadata-site.test.mjs",
-                "anchor": "same publication, Account and original issuer"
-              }
-            ],
-            "verification": [
-              {
-                "path": "docs/design/remote-site-execution.md",
-                "anchor": "exact Scope, current authorization and confirmed same-Journal claim. This"
-              },
-              {
-                "path": "adapters/host-node/installation-metadata-site.test.mjs",
-                "anchor": "same publication, Account and original issuer"
-              },
-              {
-                "path": "adapters/connectors/notion/test/site-metadata-discovery.test.mjs",
-                "anchor": "actual original Site signs and claims separate database and dependent schema uses through Notion discovery"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [
-            "loadRowSourceCredentialCustody",
-            "loadRowSourceCredentialCustody/loadRowSourceCredentialCustody"
-          ],
-          "exports": [
-            "loadRowSourceCredentialCustody"
-          ],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "adapters/host-node/installed-row-source.mjs",
-                "anchor": "No provider name or type appears here"
-              },
-              {
-                "path": "adapters/connectors/gcs/README.md",
-                "anchor": "## Installed collection issuer"
-              },
-              {
-                "path": "docs/design/installed-row-reader-custody.md",
-                "anchor": "# Original installed row reader custody"
-              },
-              {
-                "path": "docs/design/remote-site-execution.md",
-                "anchor": "The installed Row Credential Site accepts this alternative"
-              },
-              {
-                "path": "adapters/host-node/installation-metadata-site.test.mjs",
-                "anchor": "same publication, Account and original issuer"
-              },
-              {
-                "path": "docs/design/installed-row-reader-custody.md",
-                "anchor": "## Original credential acquisition retirement"
-              },
-              {
-                "path": "docs/design/remote-site-execution.md",
-                "anchor": "## Installed Row credential issuer loading"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "adapters/host-node/installed-row-source.mjs",
-                "anchor": "createInstalledRowSource"
-              },
-              {
-                "path": "src/connectors/gcs/host_node/pkg.generated.mbti",
-                "anchor": "pub fn gcs_collection_issue_reference"
-              },
-              {
-                "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
-                "anchor": "issueOriginalCollectionReference(pair, maxWork)"
-              },
-              {
-                "path": "adapters/host-node/installed-row-source.mjs",
-                "anchor": "admitCheckpointEffectTargetRead(decision, physicalBinding, operation)"
-              },
-              {
-                "path": "adapters/host-node/installed-row-run.mjs",
-                "anchor": "async function readProvider({prepare, receiver, options})"
-              },
-              {
-                "path": "docs/design/remote-site-execution.md",
-                "anchor": "Each registered metadata occurrence retains its original selected target,"
-              },
-              {
-                "path": "adapters/host-node/installation-metadata-site.test.mjs",
-                "anchor": "same publication, Account and original issuer"
-              },
-              {
-                "path": "docs/design/installed-row-reader-custody.md",
-                "anchor": "## Original credential acquisition retirement"
-              },
-              {
-                "path": "docs/design/remote-site-execution.md",
-                "anchor": "## Installed Row credential issuer loading"
-              }
-            ],
-            "identity": [
-              {
-                "path": "adapters/host-node/installed-row-source.mjs",
-                "anchor": "exact version/target text"
-              },
-              {
-                "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
-                "anchor": "installationCid: bindingCid"
-              },
-              {
-                "path": "src/connectors/gcs/original_reference/collection.mbt",
-                "anchor": "actual_catalog != expected_catalog"
-              },
-              {
-                "path": "adapters/host-node/installed-row-source.mjs",
-                "anchor": "openRowSourceCredentialCustody"
-              },
-              {
-                "path": "src/client_local_host/provider_capture_capacity.mbt",
-                "anchor": "physical_equal(original, selected)"
-              },
-              {
-                "path": "adapters/host-node/installed-row-source.mjs",
-                "anchor": "clientProgramInstalledProviderRowCaptureCapacityMatches"
-              },
-              {
-                "path": "docs/design/notion-database-catalog.md",
-                "anchor": "The ordinary row Source Check Environment assembly preserves"
-              },
-              {
-                "path": "docs/design/remote-site-execution.md",
-                "anchor": "pair, original declaration alongside its source CID, Account gate and captured"
-              },
-              {
-                "path": "adapters/host-node/installation-metadata-site.test.mjs",
-                "anchor": "same publication, Account and original issuer"
-              },
-              {
-                "path": "docs/design/installed-row-reader-custody.md",
-                "anchor": "## Original credential acquisition retirement"
-              },
-              {
-                "path": "docs/design/remote-site-execution.md",
-                "anchor": "## Installed Row credential issuer loading"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "adapters/host-node/installed-row-source.mjs",
-                "anchor": "startInstalledRowRun"
-              },
-              {
-                "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
-                "anchor": "site.referenceCurrent()"
-              },
-              {
-                "path": "adapters/host-node/installed-row-source.mjs",
-                "anchor": "referenceCurrent: () => !closing"
-              },
-              {
-                "path": "adapters/host-node/installed-row-source.mjs",
-                "anchor": "kind: 'effect_target'"
-              },
-              {
-                "path": "adapters/host-node/installed-row-source.mjs",
-                "anchor": "openRowSourceCredentialCustody"
-              },
-              {
-                "path": "src/client_row_source_host/provider_capacity.mbt",
-                "anchor": "@resources.reserve_attempt"
-              },
-              {
-                "path": "adapters/host-node/installed-row-run.mjs",
-                "anchor": "clientProgramRowSourceBorrowResponses(run, acquisition)"
-              },
-              {
-                "path": "docs/design/remote-site-execution.md",
-                "anchor": "Admission failure returns the existing initialization cleanup Owner with the"
-              },
-              {
-                "path": "adapters/host-node/installation-metadata-site.test.mjs",
-                "anchor": "unsafe mutable Journal admission"
-              },
-              {
-                "path": "docs/design/installed-row-reader-custody.md",
-                "anchor": "## Original credential acquisition retirement"
-              },
-              {
-                "path": "docs/design/remote-site-execution.md",
-                "anchor": "## Installed Row credential issuer loading"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "adapters/host-node/installed-row-source.mjs",
-                "anchor": "authorizationFor"
-              },
-              {
-                "path": "adapters/host-node/installed-row-source.mjs",
-                "anchor": "closing = true"
-              },
-              {
-                "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
-                "anchor": "close() { closed = true; adapter.close(); }"
-              },
-              {
-                "path": "adapters/host-node/installed-row-source.mjs",
-                "anchor": "currentEffectRead(approved)"
-              },
-              {
-                "path": "adapters/host-node/installed-row-source.mjs",
-                "anchor": "openRowSourceCredentialCustody"
-              },
-              {
-                "path": "adapters/host-node/installed-row-run.mjs",
-                "anchor": "clientProgramRowSourceBindResponseCleanup(borrow, readerRetired)"
-              },
-              {
-                "path": "adapters/host-node/installed-row-run.mjs",
-                "anchor": "await Reflect.apply(verifyRead, options, [])"
-              },
-              {
-                "path": "docs/design/remote-site-execution.md",
-                "anchor": "Before signing, the Site checks the bounded Host-profile observation, actual"
-              },
-              {
-                "path": "adapters/host-node/installation-metadata-site.test.mjs",
-                "anchor": "same publication, Account and original issuer"
-              },
-              {
-                "path": "docs/design/installed-row-reader-custody.md",
-                "anchor": "## Original credential acquisition retirement"
-              },
-              {
-                "path": "docs/design/remote-site-execution.md",
-                "anchor": "## Installed Row credential issuer loading"
-              }
-            ],
-            "failure": [
-              {
-                "path": "adapters/host-node/installed-row-source.mjs",
-                "anchor": "Completion is never"
-              },
-              {
-                "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
-                "anchor": "GcsCollectionProviderUnavailable"
-              },
-              {
-                "path": "adapters/connectors/gcs/test/gcs-installed-collection-issuer.test.mjs",
-                "anchor": "the same credential Site invalidates reference currentness before failed close"
-              },
-              {
-                "path": "adapters/host-node/installed-row-source.mjs",
-                "anchor": "RowSourceEffectTargetReadApprovalNotAdmitted"
-              },
-              {
-                "path": "adapters/host-node/installed-row-source.mjs",
-                "anchor": "openRowSourceCredentialCustody"
-              },
-              {
-                "path": "adapters/host-node/installed-row-provider-reader.test.mjs",
-                "anchor": "throwing factory or method getter retains the installed original borrow without retry"
-              },
-              {
-                "path": "docs/design/remote-site-execution.md",
-                "anchor": "occurrences cannot issue another grant, and observed Account/profile failure"
-              },
-              {
-                "path": "adapters/host-node/installation-metadata-site.test.mjs",
-                "anchor": "Account file revoked across await"
-              },
-              {
-                "path": "docs/design/installed-row-reader-custody.md",
-                "anchor": "## Original credential acquisition retirement"
-              },
-              {
-                "path": "docs/design/remote-site-execution.md",
-                "anchor": "## Installed Row credential issuer loading"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "adapters/host-node/installed-row-source.mjs",
-                "anchor": "signal"
-              },
-              {
-                "path": "adapters/connectors/gcs/README.md",
-                "anchor": "Closing"
-              },
-              {
-                "path": "adapters/host-node/installed-row-source.mjs",
-                "anchor": "False means closing, not physical cleanup ACK"
-              },
-              {
-                "path": "adapters/host-node/installed-row-run.mjs",
-                "anchor": "readerStopRequested = true"
-              },
-              {
-                "path": "docs/design/installed-row-reader-custody.md",
-                "anchor": "pending read and stop Promises"
-              },
-              {
-                "path": "docs/design/remote-site-execution.md",
-                "anchor": "Publication completion, failure and abort close new-operation admission."
-              },
-              {
-                "path": "adapters/host-node/installation-metadata-site.test.mjs",
-                "anchor": "same publication, Account and original issuer"
-              },
-              {
-                "path": "docs/design/installed-row-reader-custody.md",
-                "anchor": "## Original credential acquisition retirement"
-              },
-              {
-                "path": "docs/design/remote-site-execution.md",
-                "anchor": "## Installed Row credential issuer loading"
-              }
-            ],
-            "resources": [
-              {
-                "path": "adapters/host-node/installed-row-source.mjs",
-                "anchor": "maxPageBytes"
-              },
-              {
-                "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
-                "anchor": "const declarationLimits"
-              },
-              {
-                "path": "src/client_row_source_host/host.mbt",
-                "anchor": "let declaration_limits"
-              },
-              {
-                "path": "adapters/connectors/gcs/README.md",
-                "anchor": "Additional declarations/trees/strings"
-              },
-              {
-                "path": "adapters/host-node/installed-row-source.mjs",
-                "anchor": "Each such approval adds a seven-field record"
-              },
-              {
-                "path": "docs/development/credential-scope-interface.md",
-                "anchor": "## Installed Row Site physical custody"
-              },
-              {
-                "path": "docs/design/installed-row-reader-custody.md",
-                "anchor": "Supplemental provider retention and workspace remain reserved through capture"
-              },
-              {
-                "path": "src/client_row_source_host/provider_capacity.mbt",
-                "anchor": "provider_retained"
-              },
-              {
-                "path": "docs/design/notion-database-catalog.md",
-                "anchor": "The ordinary row Source Check Environment assembly preserves"
-              },
-              {
-                "path": "docs/design/remote-site-execution.md",
-                "anchor": "The simultaneous preparation inventory includes bounded issuer PEM bytes and"
-              },
-              {
-                "path": "adapters/host-node/installation-metadata-site.test.mjs",
-                "anchor": "same publication, Account and original issuer"
-              },
-              {
-                "path": "docs/design/installed-row-reader-custody.md",
-                "anchor": "## Original credential acquisition retirement"
-              },
-              {
-                "path": "docs/design/remote-site-execution.md",
-                "anchor": "## Installed Row credential issuer loading"
-              }
-            ],
-            "extension": [
-              {
-                "path": "adapters/host-node/installed-row-source.mjs",
-                "anchor": "rowSourceMapping"
-              },
-              {
-                "path": "src/connectors/gcs/host-bundle.json",
-                "anchor": "\"providerBundle\""
-              },
-              {
-                "path": "adapters/connectors/gcs/README.md",
-                "anchor": "An explicitly supplied legacy"
-              },
-              {
-                "path": "docs/design/installed-row-reader-custody.md",
-                "anchor": "foreign preparation and unsupported listing/keyed profile combinations refuse"
-              },
-              {
-                "path": "docs/design/remote-site-execution.md",
-                "anchor": "The legacy Run Site retains its existing signing and close behavior."
-              },
-              {
-                "path": "adapters/host-node/installation-metadata-site.test.mjs",
-                "anchor": "same publication, Account and original issuer"
-              },
-              {
-                "path": "docs/design/installed-row-reader-custody.md",
-                "anchor": "## Original credential acquisition retirement"
-              },
-              {
-                "path": "docs/design/remote-site-execution.md",
-                "anchor": "## Installed Row credential issuer loading"
-              }
-            ],
-            "verification": [
-              {
-                "path": "adapters/host-node/installed-row-source.test.mjs",
-                "anchor": "test("
-              },
-              {
-                "path": "adapters/host-node/row-source-command-environment.test.mjs",
-                "anchor": "real GCS complete Command and original input role survive ordinary Check Environment assembly"
-              },
-              {
-                "path": "adapters/connectors/gcs/test/gcs-installed-collection-issuer.test.mjs",
-                "anchor": "ordinary installed GCS supplies its original checked collection"
-              },
-              {
-                "path": "adapters/connectors/gcs/test/gcs-installed-collection-issuer.test.mjs",
-                "anchor": "a different installed scope cannot substitute"
-              },
-              {
-                "path": "adapters/connectors/gcs/test/gcs-installed-source.test.mjs",
-                "anchor": "LIST_FILES paths=[]"
-              },
-              {
-                "path": "adapters/host-node/row-site-effect-target-read.test.mjs",
-                "anchor": "actual target continuation decision survives Site admission"
-              },
-              {
-                "path": "adapters/host-node/row-source-authorization-installation.test.mjs",
-                "anchor": "shared installer retains its default context"
-              },
-              {
-                "path": "adapters/host-node/installed-row-source.test.mjs",
-                "anchor": "shared generic credential custody preserves its original task"
-              },
-              {
-                "path": "adapters/host-node/installed-row-provider-common.test.mjs",
-                "anchor": "actual Common provider projection and original reader retain one reservation through capture"
-              },
-              {
-                "path": "adapters/host-node/installed-row-provider-reader.test.mjs",
-                "anchor": "current refusal after factory keeps the same reader for cleanup and sends nothing"
-              },
-              {
-                "path": "adapters/connectors/notion/test/database-read-source-preparation.test.mjs",
-                "anchor": "enum survives installed Check Environment and SQL/AQL preparation"
-              },
-              {
-                "path": "docs/design/remote-site-execution.md",
-                "anchor": "exact Scope, current authorization and confirmed same-Journal claim. This"
-              },
-              {
-                "path": "adapters/host-node/installation-metadata-site.test.mjs",
-                "anchor": "same publication, Account and original issuer"
-              },
-              {
-                "path": "docs/design/installed-row-reader-custody.md",
-                "anchor": "## Original credential acquisition retirement"
-              },
-              {
-                "path": "adapters/host-node/row-source-credential-acquisition.test.mjs",
-                "anchor": "run acquisition custody waits through the final response observation"
-              },
-              {
-                "path": "docs/design/remote-site-execution.md",
-                "anchor": "## Installed Row credential issuer loading"
-              },
-              {
-                "path": "adapters/connectors/salesforce/test/installed-salesforce-site.test.mjs",
-                "anchor": "shared Site loading preserves Salesforce key and CA refusal before resolver or journal admission"
-              }
-            ]
-          }
-        }
+      "exports": [
+        "createInstalledRowSource",
+        "installRowSourceAuthorization",
+        "loadRowSourceCredentialCustody",
+        "openRowSourceCredentialCustody",
+        "openRowSourceCredentialSite",
+        "rowSourceCheckEnvironment",
+        "rowSourceMapping"
       ],
       "imports": [
         "../../packages/sdk/host-port.mjs",
@@ -10291,10 +11332,9 @@
             "createInstalledTableEffect/cleanupOwner/cleanupOwner/owner/owner",
             "createInstalledTableEffect/commonStage/commonStage",
             "createInstalledTableEffect/commonStage/commonStage/commonStage",
-            "createInstalledTableEffect/commonStage/commonStage/commonStage/commonStage",
             "createInstalledTableEffect/commonStage/commonStage/commonStage#2",
+            "createInstalledTableEffect/commonStage/commonStage/commonStage/commonStage",
             "createInstalledTableEffect/createInstalledTableEffect",
-            "createInstalledTableEffect/createInstalledTableEffect/createInstalledTableEffect",
             "createInstalledTableEffect/createInstalledTableEffect#2",
             "createInstalledTableEffect/createInstalledTableEffect#3",
             "createInstalledTableEffect/createInstalledTableEffect#4",
@@ -10302,6 +11342,7 @@
             "createInstalledTableEffect/createInstalledTableEffect#6",
             "createInstalledTableEffect/createInstalledTableEffect#7",
             "createInstalledTableEffect/createInstalledTableEffect#8",
+            "createInstalledTableEffect/createInstalledTableEffect/createInstalledTableEffect",
             "createInstalledTableEffect/dispatchBinder/dispatchBinder",
             "createInstalledTableEffect/dispatchBinder/dispatchBinder/dispatchBinder",
             "createInstalledTableEffect/dispose/dispose",
@@ -10419,7 +11460,28 @@
             ]
           }
         }
-      ]
+      ],
+      "imports": [
+        "../../packages/sdk/host-port.mjs",
+        "../host-common/authorization-gate.mjs",
+        "../host-common/compiler-binding.generated.mjs",
+        "../host-common/completed-run-publication.mjs",
+        "../host-common/runtime-core.mjs",
+        "../host-common/runtime-result.mjs",
+        "./effect-input-export.mjs",
+        "./effect-ledger.mjs",
+        "./installed-row-effect.mjs",
+        "./local-values-plan.mjs",
+        "./table-capture-recovery.mjs",
+        "./table-commit-apply.mjs",
+        "./table-commit-reconciliation.mjs",
+        "./table-operation-preview.mjs",
+        "./table-write-binding.mjs",
+        "node:crypto",
+        "node:fs/promises"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/host-node/table-operation-preview.mjs",
@@ -10575,7 +11637,16 @@
             ]
           }
         }
-      ]
+      ],
+      "imports": [
+        "../../packages/sdk/host-port.mjs",
+        "../host-common/compiler-binding.generated.mjs",
+        "../host-common/runtime-result.mjs",
+        "./table-write-binding.mjs",
+        "node:crypto"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/host-node/table-write-binding.mjs",
@@ -10679,7 +11750,13 @@
             ]
           }
         }
-      ]
+      ],
+      "imports": [
+        "../host-common/compiler-binding.generated.mjs",
+        "../host-common/runtime-result.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/connectors/notion/host/database-reader.mjs",

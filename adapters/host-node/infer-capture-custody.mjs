@@ -428,6 +428,9 @@ export function openNodeInferCaptureCustody({moon, control, operation, plan,
     captureStored = true;
   };
   return Object.freeze({custody, retainCompleted, persistStoppedAttempts,
+    // Count of the actual retained completed capture, not a persistence proof
+    // or publication grant. The same Core issuer verifies the complete slots.
+    completedCallCount() {return capture !== undefined && !publicationCleaned && !reclaimed ? count : undefined;},
     modelEvidence() {return !publicationRetired && !reclaimed && captureStored ? Object.freeze([...modelEvidence]) : undefined;},
     // This immutable original is available only after the existing Store
     // commit. It conveys no read/capture permission and retains no new owner.

@@ -15,7 +15,7 @@ function ownerDouble() {
     clientProgramSourcePublicationValid: (owner, wire) => {
       calls.push({kind: 'validate', owner, wire}); return true;
     },
-    clientProgramPrepareSourceComputationWithParameters: (...args) => {
+    clientProgramPreparePublicSourceComputationWithParameters: (...args) => {
       calls.push({kind: 'source', args}); return {pure: result};
     },
     clientProgramSourceComputationPure: value => value.pure,

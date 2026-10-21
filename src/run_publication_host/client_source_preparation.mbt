@@ -55,6 +55,7 @@ pub fn prepare_client_source_computation(
   intent : ClientSubmittedIntent,
   environment : @checked.CheckEnvironment,
   publication : String,
+  public_primary? : Bool = false,
 ) -> Result[ClientSourcePreparation, ClientSourcePreparationIssue] {
   try {
     let limits = client_standard_program_preparation_limits()
@@ -168,6 +169,7 @@ pub fn prepare_client_source_computation(
         update_targets~,
         store_targets~,
         command_targets~,
+        public_primary~,
       ).map_err(issue => ClientSourcePreparationIssue::Frontend(issue)),
     )
     guard lowered.program is Some(parsed) else { return Err(Input) }

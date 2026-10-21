@@ -1,5 +1,5 @@
 {
-  "source": "2a3160d8ae98ed9f19c36010b34537a473ad40d8",
+  "source": "1b87ca139a399e91773ebdb99dc658fcabe6b07a",
   "qualification": "Original functional Owner reference projection, separate from the existing supplemental representation facet; not actual target or artifact acceptance",
   "input": {
     "file": "a-r1-sixteen-functional-references.json",
@@ -160,11 +160,17 @@
             ]
           }
         }
-      ]
+      ],
+      "imports": [
+        "./compiler-binding.generated.mjs",
+        "./runtime-result.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/host-common/runtime-core.mjs",
-      "sha256": "f397e799835e7a38479dac64920c928f41ee9b47a2a232ddce961afd1f1a14ee",
+      "sha256": "d3bf765b1e13181a794f0d3e54cdc7b1b5fd3f956a1278f496b06b9504bdf219",
       "role": "physical-io",
       "exports": [
         "contentCaptureControl",
@@ -1608,6 +1614,20 @@
           "async": false
         },
         {
+          "name": "publicationControl/init:beginCheckedClientEffectMockModelManagedRun/init:beginCheckedClientEffectMockModelManagedRun",
+          "parameters": [
+            "admission",
+            "prepared",
+            "request",
+            "compiled",
+            "compilation",
+            "definition",
+            "graph",
+            "budget"
+          ],
+          "async": false
+        },
+        {
           "name": "publicationControl/init:beginCheckedClientInferOriginalReadScope/init:beginCheckedClientInferOriginalReadScope",
           "parameters": [
             "compiled",
@@ -1619,6 +1639,19 @@
             "maxReservations",
             "maxHoldings",
             "maxDelegations"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:beginCheckedClientMockModelManagedRun/init:beginCheckedClientMockModelManagedRun",
+          "parameters": [
+            "admission",
+            "prepared",
+            "request",
+            "compiled",
+            "definition",
+            "graph",
+            "budget"
           ],
           "async": false
         },
@@ -2214,6 +2247,27 @@
           "async": false
         },
         {
+          "name": "publicationControl/init:checkedClientEffectMockModelRunRequirements/init:checkedClientEffectMockModelRunRequirements",
+          "parameters": [
+            "prepared",
+            "compiled",
+            "compilation",
+            "definition",
+            "occurrence",
+            "graph",
+            "declarations",
+            "query",
+            "evidence",
+            "transport",
+            "scratch",
+            "registry",
+            "values",
+            "fragment",
+            "ordered"
+          ],
+          "async": false
+        },
+        {
           "name": "publicationControl/init:checkedClientInferOriginalReadScopeLive/init:checkedClientInferOriginalReadScopeLive",
           "parameters": [
             "compiled",
@@ -2237,6 +2291,26 @@
             "probability",
             "storage",
             "field"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:checkedClientMockModelRunRequirements/init:checkedClientMockModelRunRequirements",
+          "parameters": [
+            "prepared",
+            "compiled",
+            "definition",
+            "occurrence",
+            "graph",
+            "declarations",
+            "query",
+            "evidence",
+            "transport",
+            "scratch",
+            "registry",
+            "values",
+            "fragment",
+            "ordered"
           ],
           "async": false
         },
@@ -2365,6 +2439,18 @@
             "runtimeArtifactCid",
             "layoutArtifactCid",
             "probability"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:claimCheckedClientInferOriginalComposedPreparation/init:claimCheckedClientInferOriginalComposedPreparation",
+          "parameters": [
+            "compiled",
+            "definition",
+            "graph",
+            "read",
+            "readRetainedBytes",
+            "readExecutionBytes"
           ],
           "async": false
         },
@@ -3676,6 +3762,17 @@
           "async": false
         },
         {
+          "name": "publicationControl/init:prepareCheckedClientInferOriginalRead/init:prepareCheckedClientInferOriginalRead",
+          "parameters": [
+            "compiled",
+            "definition",
+            "graph",
+            "scope",
+            "budget"
+          ],
+          "async": false
+        },
+        {
           "name": "publicationControl/init:prepareCheckedClientRetainedContentOutput/init:prepareCheckedClientRetainedContentOutput",
           "parameters": [
             "compiled",
@@ -4102,6 +4199,56 @@
           "async": false
         },
         {
+          "name": "publicationControl/init:recoverEffectCommandContent/init:recoverEffectCommandContent",
+          "parameters": [
+            "compiled",
+            "prepared",
+            "definition",
+            "captured",
+            "preview",
+            "invocation",
+            "source",
+            "storeAuthorityCid",
+            "generationIndex",
+            "memberIndex",
+            "row",
+            "inputName",
+            "candidate",
+            "issued",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:recoverEffectCommandContent/init:recoverEffectCommandContent/current/current",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:recoverEffectCommandContent/init:recoverEffectCommandContent/init:matchesIssued/init:matchesIssued",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:recoverEffectCommandContent/init:recoverEffectCommandContent/init:recoverEffectCommandContent",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:recoverEffectCommandContent/init:recoverEffectCommandContent/init:release/init:release",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:recoverEffectCommandContent/init:recoverEffectCommandContent/init:wire/init:wire",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "publicationControl/init:registerCheckedClientInferRawCapture/init:registerCheckedClientInferRawCapture",
           "parameters": [
             "compiled",
@@ -4283,6 +4430,14 @@
           "async": false
         },
         {
+          "name": "publicationControl/init:runDefinitionLifetime/init:runDefinitionLifetime",
+          "parameters": [
+            "runDefinition",
+            "expectedCid"
+          ],
+          "async": false
+        },
+        {
           "name": "publicationControl/init:runDefinitionRunId/init:runDefinitionRunId",
           "parameters": [
             "runDefinition"
@@ -4402,6 +4557,25 @@
             "modelExecutionBytes",
             "fragment",
             "ordered"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:startCheckedClientOriginalComposedInferExecution/init:startCheckedClientOriginalComposedInferExecution",
+          "parameters": [
+            "compiled",
+            "definition",
+            "occurrence",
+            "graph",
+            "prefix",
+            "inputs",
+            "provider",
+            "consumer",
+            "readRetainedBytes",
+            "readExecutionBytes",
+            "modelRetainedBytes",
+            "modelExecutionBytes",
+            "sources"
           ],
           "async": false
         },
@@ -6990,6 +7164,7 @@
             "publicationControl/init:bindTableInput/init:bindTableInput",
             "publicationControl/init:bindTablePreview/init:bindTablePreview",
             "publicationControl/init:cancelDurableResultRowFrames/init:cancelDurableResultRowFrames",
+            "publicationControl/init:captureOriginalClientRunPlan/init:captureOriginalClientRunPlan",
             "publicationControl/init:capturedContentGenerationCount/init:capturedContentGenerationCount",
             "publicationControl/init:capturedContentGenerationStorage/init:capturedContentGenerationStorage",
             "publicationControl/init:capturedContentGenerationStorage/init:capturedContentGenerationStorage/init:capturedContentGenerationStorage",
@@ -7020,12 +7195,14 @@
             "publicationControl/init:capturedEffectSourceRecoveryInventoryValid/init:capturedEffectSourceRecoveryInventoryValid/init:capturedEffectSourceRecoveryInventoryValid#2",
             "publicationControl/init:capturedEffectSourceRecoveryInventoryValid/init:capturedEffectSourceRecoveryInventoryValid/init:capturedEffectSourceRecoveryInventoryValid#3",
             "publicationControl/init:capturedEffectSourceStoreAuthorityCid/init:capturedEffectSourceStoreAuthorityCid",
-            "publicationControl/init:captureOriginalClientRunPlan/init:captureOriginalClientRunPlan",
             "publicationControl/init:checkCheckedClientInferOriginalParkedStorageOrigin/init:checkCheckedClientInferOriginalParkedStorageOrigin",
             "publicationControl/init:checkCheckedClientInferOriginalPreRestoreOrigin/init:checkCheckedClientInferOriginalPreRestoreOrigin",
             "publicationControl/init:checkClientCompiledRunDefinition/init:checkClientCompiledRunDefinition",
             "publicationControl/init:checkClientCompiledRunOwner/init:checkClientCompiledRunOwner",
             "publicationControl/init:checkClientRunDefinitionBinding/init:checkClientRunDefinitionBinding",
+            "publicationControl/init:checkRecoveredTableSchemaWire/init:checkRecoveredTableSchemaWire",
+            "publicationControl/init:checkSourceFreeLocalEffectPreviewIdentities/init:checkSourceFreeLocalEffectPreviewIdentities",
+            "publicationControl/init:checkSourceFreeLocalEffectPreviewIdentities/init:checkSourceFreeLocalEffectPreviewIdentities/owned/owned",
             "publicationControl/init:checkedClientCompiledEffectProgram/init:checkedClientCompiledEffectProgram",
             "publicationControl/init:checkedClientEffectInferInvocation/init:checkedClientEffectInferInvocation",
             "publicationControl/init:checkedClientInferOriginalReadScopeLive/init:checkedClientInferOriginalReadScopeLive",
@@ -7038,9 +7215,6 @@
             "publicationControl/init:checkedClientSerializationRecoveryBindings/init:checkedClientSerializationRecoveryBindings",
             "publicationControl/init:checkedClientSerializationRecoveryBindings/init:checkedClientSerializationRecoveryBindings/init:checkedClientSerializationRecoveryBindings",
             "publicationControl/init:checkedClientStoredRunCapturedContentCandidate/init:checkedClientStoredRunCapturedContentCandidate",
-            "publicationControl/init:checkRecoveredTableSchemaWire/init:checkRecoveredTableSchemaWire",
-            "publicationControl/init:checkSourceFreeLocalEffectPreviewIdentities/init:checkSourceFreeLocalEffectPreviewIdentities",
-            "publicationControl/init:checkSourceFreeLocalEffectPreviewIdentities/init:checkSourceFreeLocalEffectPreviewIdentities/owned/owned",
             "publicationControl/init:claimCheckedClientInferNodePreparationLayout/init:claimCheckedClientInferNodePreparationLayout",
             "publicationControl/init:committedPublicationFinalizationAction/init:committedPublicationFinalizationAction",
             "publicationControl/init:compiledInferEvaluationPolicy/init:compiledInferEvaluationPolicy",
@@ -7063,10 +7237,6 @@
             "publicationControl/init:effectComputationRecordHoldingCid/init:effectComputationRecordHoldingCid",
             "publicationControl/init:effectFreeChainValid/init:effectFreeChainValid",
             "publicationControl/init:effectFreeCommitValid/init:effectFreeCommitValid",
-            "publicationControl/init:effectfulCommitValid/init:effectfulCommitValid",
-            "publicationControl/init:effectfulCommitValid/init:effectfulCommitValid/init:effectfulCommitValid",
-            "publicationControl/init:effectfulCommitValid/init:effectfulCommitValid/init:effectfulCommitValid#2",
-            "publicationControl/init:effectfulComputationEvidenceChainValid/init:effectfulComputationEvidenceChainValid",
             "publicationControl/init:effectPrivateEvidenceBinding/init:effectPrivateEvidenceBinding",
             "publicationControl/init:effectReconciliationRunState/init:effectReconciliationRunState",
             "publicationControl/init:effectReconciliationRunState/init:effectReconciliationRunState/init:effectReconciliationRunState",
@@ -7075,6 +7245,10 @@
             "publicationControl/init:effectSetReceiptRunDisposition/init:effectSetReceiptRunDisposition/init:effectSetReceiptRunDisposition",
             "publicationControl/init:effectSourceArtifactPreviewBinding/init:effectSourceArtifactPreviewBinding",
             "publicationControl/init:effectTableSourceArtifactPreviewBinding/init:effectTableSourceArtifactPreviewBinding",
+            "publicationControl/init:effectfulCommitValid/init:effectfulCommitValid",
+            "publicationControl/init:effectfulCommitValid/init:effectfulCommitValid/init:effectfulCommitValid",
+            "publicationControl/init:effectfulCommitValid/init:effectfulCommitValid/init:effectfulCommitValid#2",
+            "publicationControl/init:effectfulComputationEvidenceChainValid/init:effectfulComputationEvidenceChainValid",
             "publicationControl/init:encodeModelOriginalResourceDocument/init:encodeModelOriginalResourceDocument",
             "publicationControl/init:encodeModelOriginalResourceDocument/init:encodeModelOriginalResourceDocument/init:encodeModelOriginalResourceDocument",
             "publicationControl/init:existingDeliveryAttemptAction/init:existingDeliveryAttemptAction",
@@ -7119,12 +7293,6 @@
             "publicationControl/init:issueEffectFreeRunReceipt/init:issueEffectFreeRunReceipt",
             "publicationControl/init:issueEffectFreeRunReceipt/init:issueEffectFreeRunReceipt/init:issueEffectFreeRunReceipt",
             "publicationControl/init:issueEffectFreeRunReceipt/init:issueEffectFreeRunReceipt/init:issueEffectFreeRunReceipt#2",
-            "publicationControl/init:issueEffectfulCapturedRun/init:issueEffectfulCapturedRun",
-            "publicationControl/init:issueEffectfulCapturedRun/init:issueEffectfulCapturedRun/init:issueEffectfulCapturedRun",
-            "publicationControl/init:issueEffectfulCapturedRun/init:issueEffectfulCapturedRun/preparation/preparation",
-            "publicationControl/init:issueEffectfulCapturedRun/init:issueEffectfulCapturedRun/preparation/preparation#2",
-            "publicationControl/init:issueEffectfulFinalRunReceipt/init:issueEffectfulFinalRunReceipt",
-            "publicationControl/init:issueEffectfulFinalRunReceipt/init:issueEffectfulFinalRunReceipt/init:issueEffectfulFinalRunReceipt",
             "publicationControl/init:issueEffectResultImportObservation/init:issueEffectResultImportObservation",
             "publicationControl/init:issueEffectSetApplyReceiptFromMembers/init:issueEffectSetApplyReceiptFromMembers",
             "publicationControl/init:issueEffectSetApplyReceiptFromMembers/init:issueEffectSetApplyReceiptFromMembers/init:issueEffectSetApplyReceiptFromMembers",
@@ -7132,6 +7300,12 @@
             "publicationControl/init:issueEffectSetApplyReceiptFromMembers/init:issueEffectSetApplyReceiptFromMembers/init:issueEffectSetApplyReceiptFromMembers#3",
             "publicationControl/init:issueEffectSourceArtifactFromExport/init:issueEffectSourceArtifactFromExport",
             "publicationControl/init:issueEffectTableSourceArtifactFromExport/init:issueEffectTableSourceArtifactFromExport",
+            "publicationControl/init:issueEffectfulCapturedRun/init:issueEffectfulCapturedRun",
+            "publicationControl/init:issueEffectfulCapturedRun/init:issueEffectfulCapturedRun/init:issueEffectfulCapturedRun",
+            "publicationControl/init:issueEffectfulCapturedRun/init:issueEffectfulCapturedRun/preparation/preparation",
+            "publicationControl/init:issueEffectfulCapturedRun/init:issueEffectfulCapturedRun/preparation/preparation#2",
+            "publicationControl/init:issueEffectfulFinalRunReceipt/init:issueEffectfulFinalRunReceipt",
+            "publicationControl/init:issueEffectfulFinalRunReceipt/init:issueEffectfulFinalRunReceipt/init:issueEffectfulFinalRunReceipt",
             "publicationControl/init:issueImportedEffectEvidence/init:issueImportedEffectEvidence",
             "publicationControl/init:issueImportedEffectEvidence/init:issueImportedEffectEvidence/owned/owned",
             "publicationControl/init:issueImportedEffectEvidence/init:issueImportedEffectEvidence/value/value",
@@ -7139,10 +7313,10 @@
             "publicationControl/init:issueLocalEffectResultManifest/init:issueLocalEffectResultManifest",
             "publicationControl/init:issueLocalEffectResultManifest/init:issueLocalEffectResultManifest/owned/owned",
             "publicationControl/init:issueManifestReadGrant/init:issueManifestReadGrant",
+            "publicationControl/init:issuePublicIndexEntry/init:issuePublicIndexEntry",
             "publicationControl/init:issuePublicationAttempt/init:issuePublicationAttempt",
             "publicationControl/init:issuePublicationRecord/init:issuePublicationRecord",
             "publicationControl/init:issuePublicationRequest/init:issuePublicationRequest",
-            "publicationControl/init:issuePublicIndexEntry/init:issuePublicIndexEntry",
             "publicationControl/init:issueResultArtifact/init:issueResultArtifact",
             "publicationControl/init:issueResultDeliveryReceipt/init:issueResultDeliveryReceipt",
             "publicationControl/init:issueResultManifest/init:issueResultManifest",
@@ -7185,6 +7359,7 @@
             "publicationControl/init:prepareLocalEffectDependencyInventory/init:prepareLocalEffectDependencyInventory/init:prepareLocalEffectDependencyInventory",
             "publicationControl/init:prepareResultDeliverySerializer/init:prepareResultDeliverySerializer",
             "publicationControl/init:projectCommittedPublicationState/init:projectCommittedPublicationState",
+            "publicationControl/init:publicIndexSameCommittedContent/init:publicIndexSameCommittedContent",
             "publicationControl/init:publicationAttemptAction/init:publicationAttemptAction",
             "publicationControl/init:publicationCancellationAction/init:publicationCancellationAction",
             "publicationControl/init:publicationCleanupOwnerAction/init:publicationCleanupOwnerAction",
@@ -7198,7 +7373,6 @@
             "publicationControl/init:publicationPreparedReleaseAction/init:publicationPreparedReleaseAction",
             "publicationControl/init:publicationSetupAction/init:publicationSetupAction",
             "publicationControl/init:publicationUnknownRetryAction/init:publicationUnknownRetryAction",
-            "publicationControl/init:publicIndexSameCommittedContent/init:publicIndexSameCommittedContent",
             "publicationControl/init:readCheckedClientComposedInferSavedInputScope/init:readCheckedClientComposedInferSavedInputScope",
             "publicationControl/init:readCheckedClientInferSavedInputScope/init:readCheckedClientInferSavedInputScope",
             "publicationControl/init:readCheckedClientInferSlotReplay/init:readCheckedClientInferSlotReplay",
@@ -7206,10 +7380,10 @@
             "publicationControl/init:readCurrentClientRunView/init:readCurrentClientRunView",
             "publicationControl/init:readInstalledModelResponseProfile/init:readInstalledModelResponseProfile",
             "publicationControl/init:readInstalledModelResponseProfile/init:readInstalledModelResponseProfile/init:readInstalledModelResponseProfile",
-            "publicationControl/init:readmitCheckedClientSerializationGeneration/init:readmitCheckedClientSerializationGeneration",
             "publicationControl/init:readModelOriginalResourceDocument/init:readModelOriginalResourceDocument",
             "publicationControl/init:readStoredRunPlanOriginal/init:readStoredRunPlanOriginal",
             "publicationControl/init:readStoredRunPlanOriginal/init:readStoredRunPlanOriginal/init:readStoredRunPlanOriginal",
+            "publicationControl/init:readmitCheckedClientSerializationGeneration/init:readmitCheckedClientSerializationGeneration",
             "publicationControl/init:recordAllowsCommit/init:recordAllowsCommit",
             "publicationControl/init:recordResultAccessGrant/init:recordResultAccessGrant",
             "publicationControl/init:recordResultAccessInitialAvailability/init:recordResultAccessInitialAvailability",
@@ -7236,6 +7410,7 @@
             "publicationControl/init:runCancellationConfirmed/init:runCancellationConfirmed/init:runCancellationConfirmed",
             "publicationControl/init:runCancellationConfirmed/init:runCancellationConfirmed/init:runCancellationConfirmed#2",
             "publicationControl/init:runChainValid/init:runChainValid",
+            "publicationControl/init:runDefinitionLifetime/init:runDefinitionLifetime",
             "publicationControl/init:runDefinitionRunId/init:runDefinitionRunId",
             "publicationControl/init:seal/init:seal",
             "publicationControl/init:sealRequestedEffectStop/init:sealRequestedEffectStop",
@@ -7282,10 +7457,6 @@
             "publicationControl/token/token",
             "remoteBundleControl",
             "remoteBundleControl/remoteBundleControl",
-            "remoteBundleControl/remoteBundleControl/remoteBundleControl",
-            "remoteBundleControl/remoteBundleControl/remoteBundleControl#2",
-            "remoteBundleControl/remoteBundleControl/remoteBundleControl#3",
-            "remoteBundleControl/remoteBundleControl/remoteBundleControl#4",
             "remoteBundleControl/remoteBundleControl#10",
             "remoteBundleControl/remoteBundleControl#11",
             "remoteBundleControl/remoteBundleControl#12",
@@ -7329,6 +7500,10 @@
             "remoteBundleControl/remoteBundleControl#7",
             "remoteBundleControl/remoteBundleControl#8",
             "remoteBundleControl/remoteBundleControl#9",
+            "remoteBundleControl/remoteBundleControl/remoteBundleControl",
+            "remoteBundleControl/remoteBundleControl/remoteBundleControl#2",
+            "remoteBundleControl/remoteBundleControl/remoteBundleControl#3",
+            "remoteBundleControl/remoteBundleControl/remoteBundleControl#4",
             "remoteCredentialControl",
             "remoteCredentialControl/grantFields/grantFields",
             "remoteCredentialControl/init:authorizeUse/init:authorizeUse",
@@ -7473,9 +7648,6 @@
             "remoteTransferControl",
             "remoteTransferControl/int64/int64",
             "remoteTransferControl/remoteTransferControl",
-            "remoteTransferControl/remoteTransferControl/remoteTransferControl",
-            "remoteTransferControl/remoteTransferControl/remoteTransferControl#2",
-            "remoteTransferControl/remoteTransferControl/remoteTransferControl#3",
             "remoteTransferControl/remoteTransferControl#10",
             "remoteTransferControl/remoteTransferControl#11",
             "remoteTransferControl/remoteTransferControl#12",
@@ -7513,6 +7685,9 @@
             "remoteTransferControl/remoteTransferControl#7",
             "remoteTransferControl/remoteTransferControl#8",
             "remoteTransferControl/remoteTransferControl#9",
+            "remoteTransferControl/remoteTransferControl/remoteTransferControl",
+            "remoteTransferControl/remoteTransferControl/remoteTransferControl#2",
+            "remoteTransferControl/remoteTransferControl/remoteTransferControl#3",
             "remoteTransferControl/requestFields/requestFields",
             "remoteTransferControl/requestFields/requestFields/requestFields",
             "remoteTransferControl/requestFields/requestFields/requestFields#2",
@@ -7522,7 +7697,6 @@
             "runtimeCore/init:resultInventory/init:resultInventory",
             "runtimeCore/init:resultInventory/init:resultInventory/init:resultInventory",
             "runtimeCore/runtimeCore",
-            "runtimeCore/runtimeCore/runtimeCore",
             "runtimeCore/runtimeCore#10",
             "runtimeCore/runtimeCore#11",
             "runtimeCore/runtimeCore#12",
@@ -7545,11 +7719,12 @@
             "runtimeCore/runtimeCore#7",
             "runtimeCore/runtimeCore#8",
             "runtimeCore/runtimeCore#9",
+            "runtimeCore/runtimeCore/runtimeCore",
             "siteControl",
             "siteControl/siteControl",
-            "siteControl/siteControl/siteControl",
             "siteControl/siteControl#2",
             "siteControl/siteControl#3",
+            "siteControl/siteControl/siteControl",
             "tuplePair/tuplePair"
           ],
           "exports": [
@@ -7582,6 +7757,10 @@
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "### Original INFER materials in the installed Host"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "An Effect Checkpoint, whether issued by genuine Account delegation or an"
               }
             ],
             "inputsOutputs": [
@@ -7608,6 +7787,10 @@
               {
                 "path": "adapters/host-node/local-values-plan.mjs",
                 "anchor": "export function restoreInferTaskRunAdmission({control, preparedProgram, restored, requestIdentity}) {"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_local_signing_bridge.mbt",
+                "anchor": "pub fn client_local_checkpoint_run_lifetime("
               }
             ],
             "identity": [
@@ -7634,6 +7817,10 @@
               {
                 "path": "adapters/host-node/infer-run-original-host.test.mjs",
                 "anchor": "test('Common compiled Infer projection rejects foreign nominal preparation and copied compilation'"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_local_signing_bridge.mbt",
+                "anchor": "if @publication.publication_contract_identity(definition) != expected_cid {"
               }
             ],
             "ownership": [
@@ -7660,6 +7847,10 @@
               {
                 "path": "adapters/host-common/runtime-core.mjs",
                 "anchor": "const restoredInferRuns = new WeakSet();"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "runDefinition: facts.retained?.runDefinition ?? facts.runDefinition,"
               }
             ],
             "synchronization": [
@@ -7686,6 +7877,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "const admitted = journal.resolveDefinition(requested.requested,"
+              },
+              {
+                "path": "adapters/host-node/client-checkpoints.mjs",
+                "anchor": "const expires = checkpointEnd(created, requestedStop === undefined"
               }
             ],
             "failure": [
@@ -7712,6 +7907,10 @@
               {
                 "path": "adapters/host-node/infer-run-original-host.test.mjs",
                 "anchor": "test('restored Infer plan refuses equal-byte foreign graph or original caller preparation substitution'"
+              },
+              {
+                "path": "adapters/host-node/client-checkpoints.mjs",
+                "anchor": "if (!Number.isFinite(expires) || expires <= created) {"
               }
             ],
             "cancellation": [
@@ -7734,6 +7933,10 @@
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "physical-input, reservation, claim, cancellation and cleanup gates remain."
+              },
+              {
+                "path": "adapters/host-node/client-checkpoints.mjs",
+                "anchor": "options.signal?.throwIfAborted();"
               }
             ],
             "resources": [
@@ -7764,6 +7967,10 @@
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "reference retirement are neither zero cost, GC evidence nor physical ACK."
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "and reference retirement remain with the original Host/Run resource lifetime."
               }
             ],
             "extension": [
@@ -7790,6 +7997,10 @@
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "compilation and existing custody path."
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "does not renew the Run, replace a saved Checkpoint or relax Common's lifetime"
               }
             ],
             "verification": [
@@ -7828,6 +8039,14 @@
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
                 "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+              },
+              {
+                "path": "adapters/host-node/requested-effect-checkpoints.test.mjs",
+                "anchor": "test(`delegated Effect expiry preserves the original Run deadline:"
+              },
+              {
+                "path": "adapters/host-common/publication-contract-control.test.mjs",
+                "anchor": "test('Checkpoint lifetime projects only the same original admitted Run without renewal'"
               }
             ]
           }
@@ -7837,8 +8056,8 @@
             "publicationControl/init:borrowEffectCommandContent/init:borrowEffectCommandContent",
             "publicationControl/init:borrowEffectCommandContent/init:borrowEffectCommandContent/current/current",
             "publicationControl/init:borrowEffectCommandContent/init:borrowEffectCommandContent/init:borrowEffectCommandContent",
-            "publicationControl/init:borrowEffectCommandContent/init:borrowEffectCommandContent/init:release/init:release",
             "publicationControl/init:borrowEffectCommandContent/init:borrowEffectCommandContent/init:matchesIssued/init:matchesIssued",
+            "publicationControl/init:borrowEffectCommandContent/init:borrowEffectCommandContent/init:release/init:release",
             "publicationControl/init:borrowEffectCommandContent/init:borrowEffectCommandContent/init:wire/init:wire"
           ],
           "exports": [],
@@ -8500,8 +8719,8 @@
         },
         {
           "operations": [
-            "publicationControl/init:checkedClientCompiledInferOriginal/init:checkedClientCompiledInferOriginal",
-            "publicationControl/init:checkRestoredClientInferRunOwner/init:checkRestoredClientInferRunOwner"
+            "publicationControl/init:checkRestoredClientInferRunOwner/init:checkRestoredClientInferRunOwner",
+            "publicationControl/init:checkedClientCompiledInferOriginal/init:checkedClientCompiledInferOriginal"
           ],
           "exports": [],
           "attributes": {
@@ -8673,6 +8892,280 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "publicationControl/init:beginCheckedClientMockModelManagedRun/init:beginCheckedClientMockModelManagedRun",
+            "publicationControl/init:checkedClientMockModelRunRequirements/init:checkedClientMockModelRunRequirements",
+            "publicationControl/init:claimCheckedClientInferOriginalComposedPreparation/init:claimCheckedClientInferOriginalComposedPreparation",
+            "publicationControl/init:prepareCheckedClientInferOriginalRead/init:prepareCheckedClientInferOriginalRead",
+            "publicationControl/init:startCheckedClientOriginalComposedInferExecution/init:startCheckedClientOriginalComposedInferExecution"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Ordinary Host composition"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_local_host/installed_mock_model_run.mbt",
+                "anchor": "pub fn begin_installed_mock_model_managed_run("
+              },
+              {
+                "path": "adapters/host-node/installed-project-mock.mjs",
+                "anchor": "function prepareManagedMockModelRun("
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_local_host/installed_mock_model_run.mbt",
+                "anchor": "pub fn begin_installed_mock_model_managed_run("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-project-mock.mjs",
+                "anchor": "function prepareManagedMockModelRun("
+              },
+              {
+                "path": "adapters/host-node/installed-project-mock.mjs",
+                "anchor": "function retireModelRead(model) {"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-project-mock.mjs",
+                "anchor": "if (model.readAttempted && model.readFailure !== undefined) throw model.readFailure;"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-project-mock.mjs",
+                "anchor": "if (model.readAttempted && model.readFailure !== undefined) throw model.readFailure;"
+              },
+              {
+                "path": "adapters/host-node/mock-model-early-run-custody.test.mjs",
+                "anchor": "test('Mock read refusal retains the already issued Scope and its original admission'"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-project-mock.mjs",
+                "anchor": "function retireModelRead(model) {"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Ordinary Host composition"
+              },
+              {
+                "path": "src/client_local_host/installed_mock_model_run.mbt",
+                "anchor": "pub fn begin_installed_mock_model_managed_run("
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Ordinary Host composition"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/mock-model-early-run-custody.test.mjs",
+                "anchor": "test('Mock read refusal retains the already issued Scope and its original admission'"
+              },
+              {
+                "path": "adapters/host-node/ordinary-source-managed.test.mjs",
+                "anchor": "test('ordinary Mock purpose retains one request original and both real Source children without conversion'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "publicationControl/init:beginCheckedClientEffectMockModelManagedRun/init:beginCheckedClientEffectMockModelManagedRun",
+            "publicationControl/init:checkedClientEffectMockModelRunRequirements/init:checkedClientEffectMockModelRunRequirements"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "Responsibility stays with the existing normal Host, Resource, Source, Model,"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "Inputs are the checked Effect preparation and compilation, allowed Run,"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "Identity is retained with the same Host, installation and Run."
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "Ownership of Source capture, Model work and file requests is separate."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "Synchronization captures each private operation and its receiver before later"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "Failure preserves the original constructor, Source, Model, FileHandle, write,"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "Cancellation prevents new work but does not make cleanup require current"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "Resources include the retained preparation, compilation, definition, request,"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "Extension remains private to the installed Host and the existing typed"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/embedded-host-trust-boundary.md",
+                "anchor": "Verification distinguishes the real Row Effect factory's original-binding and"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "publicationControl/init:recoverEffectCommandContent/init:recoverEffectCommandContent",
+            "publicationControl/init:recoverEffectCommandContent/init:recoverEffectCommandContent/current/current",
+            "publicationControl/init:recoverEffectCommandContent/init:recoverEffectCommandContent/init:matchesIssued/init:matchesIssued",
+            "publicationControl/init:recoverEffectCommandContent/init:recoverEffectCommandContent/init:recoverEffectCommandContent",
+            "publicationControl/init:recoverEffectCommandContent/init:recoverEffectCommandContent/init:release/init:release",
+            "publicationControl/init:recoverEffectCommandContent/init:recoverEffectCommandContent/init:wire/init:wire"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "recoverEffectCommandContent({compiled, prepared, definition, captured, preview,"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Saved Command Content"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "moon.clientProgramRecoverEffectCommandContent("
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Saved Command Content"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const run = compiledContent(compiled);"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Saved Command Content"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "let retained = original;"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Saved Command Content"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "retained === original;"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Saved Command Content"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "Recovered Effect Content unavailable"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Saved Command Content"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "moon.clientProgramRecoveredEffectCommandContentRelease(view);"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Saved Command Content"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "issuanceLimits(limits,"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Saved Command Content"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "computationPreviewTokens.get(preview)"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Saved Command Content"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/run_publication/content_generation_recovery_test.mbt",
+                "anchor": "test \"saved Content generation needs original identity"
+              },
+              {
+                "path": "adapters/host-node/recovered-command-content.test.mjs",
+                "anchor": "test('recovered Command retains the same Store original"
+              }
+            ]
+          }
         }
       ],
       "imports": [
@@ -8821,7 +9314,12 @@
             ]
           }
         }
-      ]
+      ],
+      "imports": [
+        "./compiler-binding.generated.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/host-node/infer-evaluation-evidence.mjs",
@@ -9024,13 +9522,13 @@
             "projectInferEvidence/bySlot/bySlot",
             "projectInferEvidence/bytes/bytes",
             "projectInferEvidence/projectInferEvidence",
-            "projectInferEvidence/projectInferEvidence/projectInferEvidence",
             "projectInferEvidence/projectInferEvidence#2",
             "projectInferEvidence/projectInferEvidence#3",
             "projectInferEvidence/projectInferEvidence#4",
             "projectInferEvidence/projectInferEvidence#5",
             "projectInferEvidence/projectInferEvidence#6",
             "projectInferEvidence/projectInferEvidence#7",
+            "projectInferEvidence/projectInferEvidence/projectInferEvidence",
             "projectInferEvidence/releaseCopy/releaseCopy",
             "projectInferEvidence/unavailable/unavailable",
             "withPreparedInferEvidence",
@@ -9151,13 +9649,21 @@
             ]
           }
         }
-      ]
+      ],
+      "imports": [
+        "../../packages/sdk/host-port.mjs",
+        "../host-common/compiler-binding.generated.mjs",
+        "node:crypto"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/host-node/infer-operation.mjs",
-      "sha256": "1627e3327fbbc71c305c2b051d1978781af7d1d5879956f2321b2ca926af330d",
+      "sha256": "4a4fe5df15808b3926f5d587c062374ff6d7f0725f0063e8c08239b2a74f2ebf",
       "role": "physical-io",
       "exports": [
+        "inferOriginalReadCleanupComplete",
         "openNodeComposedInferProvider",
         "openNodeInferOperation",
         "selectOriginalInferMetadataAcquisition",
@@ -9191,6 +9697,13 @@
           "async": false
         },
         {
+          "name": "inferOriginalReadCleanupComplete",
+          "parameters": [
+            "read"
+          ],
+          "async": false
+        },
+        {
           "name": "metadataUnavailable/metadataUnavailable",
           "parameters": [],
           "async": false
@@ -9210,7 +9723,8 @@
             "retainCompleted",
             "durableCalls",
             "restoredInput",
-            "generatedInput"
+            "generatedInput",
+            "originalPreparation"
           ],
           "async": false
         },
@@ -9236,6 +9750,11 @@
           "parameters": [
             "value"
           ],
+          "async": false
+        },
+        {
+          "name": "openNodeComposedInferProvider/provider/provider/provider",
+          "parameters": [],
           "async": false
         },
         {
@@ -10115,6 +10634,13 @@
           "async": false
         },
         {
+          "name": "startCompleteInferObservation/startCompleteInferObservation",
+          "parameters": [
+            "operation"
+          ],
+          "async": false
+        },
+        {
           "name": "withNodeInferResult",
           "parameters": [
             "moon",
@@ -10161,10 +10687,10 @@
             "openNodeComposedInferProvider/openNodeComposedInferProvider",
             "openNodeComposedInferProvider/openNodeComposedInferProvider#2",
             "openNodeComposedInferProvider/provider/provider",
-            "openNodeComposedInferProvider/provider/provider/init:retainOperation/init:retainOperation",
             "openNodeComposedInferProvider/provider/provider#2",
             "openNodeComposedInferProvider/provider/provider#3",
             "openNodeComposedInferProvider/provider/provider#4",
+            "openNodeComposedInferProvider/provider/provider/init:retainOperation/init:retainOperation",
             "openNodeInferOperation",
             "openNodeInferOperation/bindOriginalRuntimeObservation",
             "openNodeInferOperation/cleanup",
@@ -10174,12 +10700,12 @@
             "openNodeInferOperation/drive",
             "openNodeInferOperation/observeOriginalRuntime",
             "openNodeInferOperation/openNodeInferOperation",
-            "openNodeInferOperation/openNodeInferOperation/openNodeInferOperation",
             "openNodeInferOperation/openNodeInferOperation#2",
             "openNodeInferOperation/openNodeInferOperation#3",
             "openNodeInferOperation/openNodeInferOperation#4",
             "openNodeInferOperation/openNodeInferOperation#5",
             "openNodeInferOperation/openNodeInferOperation#6",
+            "openNodeInferOperation/openNodeInferOperation/openNodeInferOperation",
             "openNodeInferOperation/operation/init:advanceOriginalCurrentStateComparison/init:advanceOriginalCurrentStateComparison",
             "openNodeInferOperation/operation/init:advanceOriginalCurrentStateComparisonWithMatch/init:advanceOriginalCurrentStateComparisonWithMatch",
             "openNodeInferOperation/operation/init:advanceOriginalCurrentStateDecode/init:advanceOriginalCurrentStateDecode",
@@ -10187,6 +10713,7 @@
             "openNodeInferOperation/operation/init:advanceStoppedAttemptUsage/init:advanceStoppedAttemptUsage",
             "openNodeInferOperation/operation/init:beginOriginalResourceInvalidation/init:beginOriginalResourceInvalidation",
             "openNodeInferOperation/operation/init:bindModelRawCapture/init:bindModelRawCapture",
+            "openNodeInferOperation/operation/init:bindModelRawCapture/init:bindModelRawCapture/init:bindModelRawCapture",
             "openNodeInferOperation/operation/init:cancelOriginalCurrentStateWriter/init:cancelOriginalCurrentStateWriter",
             "openNodeInferOperation/operation/init:completeOriginalJournalInvalidation/init:completeOriginalJournalInvalidation",
             "openNodeInferOperation/operation/init:finishOriginalCurrentStateWriter/init:finishOriginalCurrentStateWriter",
@@ -10209,12 +10736,6 @@
             "openNodeInferOperation/operation/init:startOriginalCurrentStateComparison/init:startOriginalCurrentStateComparison",
             "openNodeInferOperation/operation/init:startOriginalCurrentStateDecode/init:startOriginalCurrentStateDecode",
             "openNodeInferOperation/operation/operation",
-            "openNodeInferOperation/operation/operation/operation",
-            "openNodeInferOperation/operation/operation/operation#2",
-            "openNodeInferOperation/operation/operation/operation#3",
-            "openNodeInferOperation/operation/operation/operation#4",
-            "openNodeInferOperation/operation/operation/saved/saved",
-            "openNodeInferOperation/operation/operation/slotWires/slotWires",
             "openNodeInferOperation/operation/operation#10",
             "openNodeInferOperation/operation/operation#11",
             "openNodeInferOperation/operation/operation#12",
@@ -10263,6 +10784,12 @@
             "openNodeInferOperation/operation/operation#7",
             "openNodeInferOperation/operation/operation#8",
             "openNodeInferOperation/operation/operation#9",
+            "openNodeInferOperation/operation/operation/operation",
+            "openNodeInferOperation/operation/operation/operation#2",
+            "openNodeInferOperation/operation/operation/operation#3",
+            "openNodeInferOperation/operation/operation/operation#4",
+            "openNodeInferOperation/operation/operation/saved/saved",
+            "openNodeInferOperation/operation/operation/slotWires/slotWires",
             "openNodeInferOperation/prepare/prepare",
             "openNodeInferOperation/requestStop/requestStop",
             "openNodeInferOperation/retainRawCaptureBinder/retainRawCaptureBinder",
@@ -10284,8 +10811,7 @@
             "withNodeInferResult/cancel/cancel",
             "withNodeInferResult/retained/init:retry/init:retry",
             "withNodeInferResult/retained/retained",
-            "withNodeInferResult/withNodeInferResult",
-            "openNodeInferOperation/operation/init:bindModelRawCapture/init:bindModelRawCapture/init:bindModelRawCapture"
+            "withNodeInferResult/withNodeInferResult"
           ],
           "exports": [
             "openNodeComposedInferProvider",
@@ -10319,6 +10845,10 @@
               {
                 "path": "src/client_infer_host/pkg.generated.mbti",
                 "anchor": "pub fn acquire_capture(Execution) -> @model_execution.VerifiedModelCapture?"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_composed_infer_bridge.mbt",
+                "anchor": "pub fn client_program_composed_infer_local_provider("
               }
             ],
             "identity": [
@@ -10329,6 +10859,10 @@
               {
                 "path": "src/client_infer_host/pkg.generated.mbti",
                 "anchor": "pub fn acquire_capture(Execution) -> @model_execution.VerifiedModelCapture?"
+              },
+              {
+                "path": "src/connectors/local/module.mbt",
+                "anchor": "fn local_module_relation_obligation_segment("
               }
             ],
             "ownership": [
@@ -10339,6 +10873,10 @@
               {
                 "path": "docs/design/infer-async-response-custody.md",
                 "anchor": "# Retained asynchronous Model response custody"
+              },
+              {
+                "path": "src/connectors/local/managed_provider.mbt",
+                "anchor": "infer_relation_prefix : ("
               }
             ],
             "synchronization": [
@@ -10379,6 +10917,10 @@
               {
                 "path": "src/client_infer_host/pkg.generated.mbti",
                 "anchor": "pub fn acquire_capture(Execution) -> @model_execution.VerifiedModelCapture?"
+              },
+              {
+                "path": "src/client_infer_host/local_provider.mbt",
+                "anchor": "@local.managed_provider_with_infer_relation_prefix("
               }
             ],
             "extension": [
@@ -10399,6 +10941,209 @@
               {
                 "path": "src/client_infer_host/pkg.generated.mbti",
                 "anchor": "pub fn acquire_capture(Execution) -> @model_execution.VerifiedModelCapture?"
+              },
+              {
+                "path": "src/client_infer_host/local_provider_wbtest.mbt",
+                "anchor": "test \"Local retains the original INFER Result prefix before a later independent projection\" {"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "openNodeComposedInferProvider/provider/provider/provider"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Ordinary Host composition"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_local_host/installed_mock_model_run.mbt",
+                "anchor": "pub fn begin_installed_mock_model_managed_run("
+              },
+              {
+                "path": "adapters/host-node/installed-project-mock.mjs",
+                "anchor": "function prepareManagedMockModelRun("
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_local_host/installed_mock_model_run.mbt",
+                "anchor": "pub fn begin_installed_mock_model_managed_run("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-project-mock.mjs",
+                "anchor": "function prepareManagedMockModelRun("
+              },
+              {
+                "path": "adapters/host-node/installed-project-mock.mjs",
+                "anchor": "function retireModelRead(model) {"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-project-mock.mjs",
+                "anchor": "if (model.readAttempted && model.readFailure !== undefined) throw model.readFailure;"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-project-mock.mjs",
+                "anchor": "if (model.readAttempted && model.readFailure !== undefined) throw model.readFailure;"
+              },
+              {
+                "path": "adapters/host-node/mock-model-early-run-custody.test.mjs",
+                "anchor": "test('Mock read refusal retains the already issued Scope and its original admission'"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-project-mock.mjs",
+                "anchor": "function retireModelRead(model) {"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Ordinary Host composition"
+              },
+              {
+                "path": "src/client_local_host/installed_mock_model_run.mbt",
+                "anchor": "pub fn begin_installed_mock_model_managed_run("
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Ordinary Host composition"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/mock-model-early-run-custody.test.mjs",
+                "anchor": "test('Mock read refusal retains the already issued Scope and its original admission'"
+              },
+              {
+                "path": "adapters/host-node/ordinary-source-managed.test.mjs",
+                "anchor": "test('ordinary Mock purpose retains one request original and both real Source children without conversion'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "inferOriginalReadCleanupComplete",
+            "startCompleteInferObservation/startCompleteInferObservation"
+          ],
+          "exports": [
+            "inferOriginalReadCleanupComplete"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Ordinary Host composition"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/infer-operation.mjs",
+                "anchor": "export function inferOriginalReadCleanupComplete(read) {"
+              },
+              {
+                "path": "adapters/host-node/infer-operation.mjs",
+                "anchor": "export function startCompleteInferObservation("
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/infer-operation.mjs",
+                "anchor": "export function inferOriginalReadCleanupComplete(read) {"
+              },
+              {
+                "path": "adapters/host-node/infer-operation.mjs",
+                "anchor": "if (operations.some(operation => originalOperations.has(operation))) {"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/infer-operation.mjs",
+                "anchor": "cleanedOriginalReads.add(originalRead);"
+              },
+              {
+                "path": "adapters/host-node/infer-operation.mjs",
+                "anchor": "let originalPublicationCapacity;"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/infer-operation.mjs",
+                "anchor": "reclaimed = checked(moon.clientProgramCleanupInferExecution(active));"
+              },
+              {
+                "path": "adapters/host-node/infer-operation.mjs",
+                "anchor": "if (originalPublicationCapacity !== undefined) return false;"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/infer-operation.mjs",
+                "anchor": "if (!moon.clientProgramInferExecutionStopped(active)) return false;"
+              },
+              {
+                "path": "adapters/host-node/infer-operation.mjs",
+                "anchor": "if (operations.length !== 1 || ledger !== undefined || content !== undefined) {"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/infer-operation.mjs",
+                "anchor": "function cleanup() {"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Ordinary Host composition"
+              },
+              {
+                "path": "src/client_local_host/installed_mock_model_run.mbt",
+                "anchor": "pub fn begin_installed_mock_model_managed_run("
+              },
+              {
+                "path": "src/model_execution/original_publication_capacity.mbt",
+                "anchor": "pub fn original_model_publication_capacity_current("
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Ordinary Host composition"
+              },
+              {
+                "path": "adapters/host-node/infer-operation.mjs",
+                "anchor": "return checked(moon.clientProgramStartCompleteInferObservationIssuance(active,"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/infer-original-composed-operation.test.mjs",
+                "anchor": "inferOriginalReadCleanupComplete"
+              },
+              {
+                "path": "adapters/host-node/infer-original-publication-caller.test.mjs",
+                "anchor": "test('complete original observation consumes the same single Model publication borrow without a Ledger'"
+              },
+              {
+                "path": "adapters/host-node/infer-original-publication-caller.test.mjs",
+                "anchor": "test('complete original observation rejects foreign copied missing mixed and alternate Ledger owners'"
               }
             ]
           }
@@ -10410,14 +11155,15 @@
         "./infer-io-notification.mjs",
         "./infer-original-installation.mjs",
         "./infer-raw-capture.mjs",
-        "node:timers/promises"
+        "node:timers/promises",
+        "node:util"
       ],
       "compilerFields": [],
       "unresolvedSyntax": []
     },
     {
       "module": "adapters/host-node/installed-composed-infer-run.mjs",
-      "sha256": "e98731b94d6e2aa4c3b1ff40116e8277390877b5d9901aeb6dc85e28429ca00d",
+      "sha256": "204d7697f4effe3a54b2dd4f3301ca95de4c27b2ae92c653f8e8d12892770472",
       "role": "physical-io",
       "exports": [
         "runInstalledComposedInfers"
@@ -10456,7 +11202,8 @@
             "values",
             "fragment",
             "ordered",
-            "computeConfigurations"
+            "computeConfigurations",
+            "originalPreparation"
           ],
           "async": true
         },
@@ -10472,6 +11219,13 @@
           "name": "runInstalledComposedInfers/candidates/candidates",
           "parameters": [
             "record"
+          ],
+          "async": false
+        },
+        {
+          "name": "runInstalledComposedInfers/captures/captures",
+          "parameters": [
+            "source"
           ],
           "async": false
         },
@@ -10552,8 +11306,29 @@
           "async": false
         },
         {
+          "name": "runInstalledComposedInfers/originals/originals",
+          "parameters": [
+            "source"
+          ],
+          "async": false
+        },
+        {
+          "name": "runInstalledComposedInfers/retainCompleted",
+          "parameters": [
+            "child"
+          ],
+          "async": false
+        },
+        {
           "name": "runInstalledComposedInfers/runInstalledComposedInfers",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "runInstalledComposedInfers/runInstalledComposedInfers#10",
+          "parameters": [
+            "child"
+          ],
           "async": false
         },
         {
@@ -10587,9 +11362,7 @@
         },
         {
           "name": "runInstalledComposedInfers/runInstalledComposedInfers#7",
-          "parameters": [
-            "child"
-          ],
+          "parameters": [],
           "async": false
         },
         {
@@ -10610,6 +11383,62 @@
           "name": "runInstalledComposedInfers/setup/setup",
           "parameters": [
             "child"
+          ],
+          "async": false
+        },
+        {
+          "name": "runInstalledComposedInfers/setup/setup#2",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "runInstalledComposedInfers/setup/setup#3",
+          "parameters": [
+            "child"
+          ],
+          "async": false
+        },
+        {
+          "name": "runInstalledComposedInfers/setup/setup#4",
+          "parameters": [
+            "child"
+          ],
+          "async": false
+        },
+        {
+          "name": "runInstalledComposedInfers/sources/sources",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "runInstalledComposedInfers/sources/sources#2",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "runInstalledComposedInfers/sources/sources#3",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "runInstalledComposedInfers/sources/sources#4",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "runInstalledComposedInfers/wires/wires",
+          "parameters": [
+            "source"
           ],
           "async": false
         }
@@ -10754,12 +11583,318 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "runInstalledComposedInfers/captures/captures",
+            "runInstalledComposedInfers/originals/originals",
+            "runInstalledComposedInfers/runInstalledComposedInfers#10",
+            "runInstalledComposedInfers/setup/setup#2",
+            "runInstalledComposedInfers/setup/setup#3",
+            "runInstalledComposedInfers/sources/sources",
+            "runInstalledComposedInfers/sources/sources#2",
+            "runInstalledComposedInfers/sources/sources#3",
+            "runInstalledComposedInfers/sources/sources#4",
+            "runInstalledComposedInfers/wires/wires"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Ordinary Host composition"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_local_host/installed_mock_model_run.mbt",
+                "anchor": "pub fn begin_installed_mock_model_managed_run("
+              },
+              {
+                "path": "adapters/host-node/installed-project-mock.mjs",
+                "anchor": "function prepareManagedMockModelRun("
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_local_host/installed_mock_model_run.mbt",
+                "anchor": "pub fn begin_installed_mock_model_managed_run("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-project-mock.mjs",
+                "anchor": "function prepareManagedMockModelRun("
+              },
+              {
+                "path": "adapters/host-node/installed-project-mock.mjs",
+                "anchor": "function retireModelRead(model) {"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-project-mock.mjs",
+                "anchor": "if (model.readAttempted && model.readFailure !== undefined) throw model.readFailure;"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-project-mock.mjs",
+                "anchor": "if (model.readAttempted && model.readFailure !== undefined) throw model.readFailure;"
+              },
+              {
+                "path": "adapters/host-node/mock-model-early-run-custody.test.mjs",
+                "anchor": "test('Mock read refusal retains the already issued Scope and its original admission'"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-project-mock.mjs",
+                "anchor": "function retireModelRead(model) {"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Ordinary Host composition"
+              },
+              {
+                "path": "src/client_local_host/installed_mock_model_run.mbt",
+                "anchor": "pub fn begin_installed_mock_model_managed_run("
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Ordinary Host composition"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/mock-model-early-run-custody.test.mjs",
+                "anchor": "test('Mock read refusal retains the already issued Scope and its original admission'"
+              },
+              {
+                "path": "adapters/host-node/ordinary-source-managed.test.mjs",
+                "anchor": "test('ordinary Mock purpose retains one request original and both real Source children without conversion'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "runInstalledComposedInfers/retainCompleted"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Ordinary Host composition"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-composed-infer-run.mjs",
+                "anchor": "function retainCompleted(child) {"
+              },
+              {
+                "path": "adapters/host-node/installed-composed-infer-run.mjs",
+                "anchor": "issuance ??= startCompleteInferObservation({moon, operations: [child.operation],"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-composed-infer-run.mjs",
+                "anchor": "if (children.length !== 1 || children[0] !== child) {"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-composed-infer-run.mjs",
+                "anchor": "if (!child.capture.retainCompleted()) return false;"
+              },
+              {
+                "path": "adapters/host-node/installed-composed-infer-run.mjs",
+                "anchor": "if (!checked(moon.clientProgramCleanupInferObservationIssuance(issuance))) return false;"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-composed-infer-run.mjs",
+                "anchor": "for (let step = 0; step < calls + 2 && !issuanceComplete; step++) {"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-composed-infer-run.mjs",
+                "anchor": "if (!issuanceComplete) throw new Error('InstalledComposedInferOriginalObservationUnavailable');"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-composed-infer-run.mjs",
+                "anchor": "if (moon.clientProgramCancelInferObservationIssuance(issuance)) {"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Ordinary Host composition"
+              },
+              {
+                "path": "src/client_infer_host/observation_issuance.mbt",
+                "anchor": "pub fn start_original_observation_issuance("
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/installed-composed-infer-run.mjs",
+                "anchor": "} else if (issuance === undefined || !issuanceComplete) {"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/composed-infer-observation-frontier.test.mjs",
+                "anchor": "test('original Model observation seals at completion before the Local output ownership handoff'"
+              },
+              {
+                "path": "adapters/host-node/composed-infer-observation-frontier.test.mjs",
+                "anchor": "test('original Model observation failed advance retains the same partial issuer for cleanup'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "runInstalledComposedInfers/setup/setup#4"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "For a checked source-free Program, the same connection has no Source children"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "prepareOriginalMockRun(prepared, plan) {"
+              },
+              {
+                "path": "adapters/host-node/installed-project-mock.mjs",
+                "anchor": "openSourceFreeHost(registry, values, fragment, ordered, providers) {"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_composed_infer_bridge.mbt",
+                "anchor": "pub fn client_program_open_installed_managed_source_free_composed_infer_host("
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_local_host/installed_mock_model_run.mbt",
+                "anchor": "pub fn begin_installed_mock_model_managed_run("
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "prepareOriginalMockRun(prepared, plan) {"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-composed-infer-run.mjs",
+                "anchor": "if (originalPreparation !== undefined) originalPreparation.retain();"
+              },
+              {
+                "path": "adapters/host-node/installed-composed-infer-run.mjs",
+                "anchor": "if (originalPreparation !== undefined && await originalPreparation.retire() !== true) return false;"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-project-mock.mjs",
+                "anchor": "model.hostAttempted = true;"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/source-free-mock-run-custody.test.mjs",
+                "anchor": "test('source-free Mock cannot manufacture a Scope when its original Host preparation is absent'"
+              },
+              {
+                "path": "adapters/host-node/source-free-mock-run-custody.test.mjs",
+                "anchor": "test('source-free Mock keeps the same driver and Scope until their separate retirement completes'"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-composed-infer-run.mjs",
+                "anchor": "if (originalPreparation !== undefined && await originalPreparation.retire() !== true) return false;"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_local_host/installed_mock_model_run.mbt",
+                "anchor": "pub fn begin_installed_mock_model_managed_run("
+              },
+              {
+                "path": "src/connectors_builtin_node/client_composed_infer_bridge.mbt",
+                "anchor": "pub fn client_program_open_installed_managed_source_free_composed_infer_host("
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "For a checked source-free Program, the same connection has no Source children"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/installed-project-mock.mjs",
+                "anchor": "openSourceFreeHost(registry, values, fragment, ordered, providers) {"
+              },
+              {
+                "path": "adapters/host-node/installed-project-mock.mjs",
+                "anchor": "if (run.effectful || run.retired || model.closed || !model.taken || model.hostAttempted ||"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/source-free-mock-run-custody.test.mjs",
+                "anchor": "test('source-free Mock forwards its early original Scope and same-Run driver without captured Sources'"
+              },
+              {
+                "path": "adapters/host-node/source-free-mock-run-custody.test.mjs",
+                "anchor": "test('source-free Mock keeps the same driver and Scope until their separate retirement completes'"
+              },
+              {
+                "path": "adapters/host-node/source-free-mock-run-custody.test.mjs",
+                "anchor": "test('source-free Mock cannot manufacture a Scope when its original Host preparation is absent'"
+              }
+            ]
+          }
         }
-      ]
+      ],
+      "imports": [
+        "../../packages/sdk/host-port.mjs",
+        "../host-common/compiler-binding.generated.mjs",
+        "../host-common/completed-run-publication.mjs",
+        "../host-common/private-publication-holding.mjs",
+        "../host-common/runtime-result.mjs",
+        "../local-node/retained-store.mjs",
+        "./acquired-effect-continuation.mjs",
+        "./entry.mjs",
+        "./infer-capture-custody.mjs",
+        "./infer-evaluation-evidence.mjs",
+        "./infer-operation.mjs",
+        "./local-values-plan.mjs",
+        "node:timers/promises"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/host-node/installed-infer-run.mjs",
-      "sha256": "a1d095cd38dcb67b245090104381019b7af8e0d2683f500df610b0a1ca6dadf3",
+      "sha256": "f033485fd23383b134fd004eff3fab9afc8ebdc6dd2416682b1d82df757f975e",
       "role": "physical-io",
       "exports": [
         "installNodeInferRun"
@@ -10787,6 +11922,7 @@
             "sourceAccessFor",
             "runContent",
             "prepareKeyedRecovery",
+            "prepareOriginalMockRun",
             "computeConfigurations"
           ],
           "async": false
@@ -11135,11 +12271,26 @@
             ]
           }
         }
-      ]
+      ],
+      "imports": [
+        "../host-common/compiler-binding.generated.mjs",
+        "../host-common/completed-run-publication.mjs",
+        "../host-common/runtime-result.mjs",
+        "./infer-capture-custody.mjs",
+        "./infer-evaluation-evidence.mjs",
+        "./infer-io-notification.mjs",
+        "./infer-operation.mjs",
+        "./infer-original-installation.mjs",
+        "./infer-result-publication.mjs",
+        "./installed-composed-infer-run.mjs",
+        "./local-values-plan.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/host-node/installed-model-continuation.mjs",
-      "sha256": "628db51c88e518b8643808717d990e159730726b50d6b2abf269b391b53a6fd4",
+      "sha256": "a794d669b085b34ffc371dd77158d829d4c88c4a4649b24592de0e2008f56ad9",
       "role": "physical-io",
       "exports": [
         "installNodeModelContinuation"
@@ -11864,6 +13015,14 @@
           "async": false
         },
         {
+          "name": "requireModelDispatchPreparation",
+          "parameters": [
+            "moon",
+            "selected"
+          ],
+          "async": false
+        },
+        {
           "name": "same/same",
           "parameters": [
             "a",
@@ -12105,6 +13264,86 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "requireModelDispatchPreparation"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Ordinary Host composition"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-model-continuation.mjs",
+                "anchor": "function requireModelDispatchPreparation(moon, selected) {"
+              },
+              {
+                "path": "src/model_execution/mock_installation.mbt",
+                "anchor": "pub fn original_model_mock_provider("
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/model_execution/mock_installation.mbt",
+                "anchor": "pub fn original_model_mock_provider("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-model-continuation.mjs",
+                "anchor": "const cp = originalPreparation === undefined ? checkpoints() : installOriginalJournal();"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-model-continuation.mjs",
+                "anchor": "if (!owner.currentProvider()) fail('ModelProviderBindingChanged');"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-model-continuation.mjs",
+                "anchor": "function requireModelDispatchPreparation(moon, selected) {"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-model-continuation.mjs",
+                "anchor": "signal?.throwIfAborted();"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Ordinary Host composition"
+              },
+              {
+                "path": "src/client_local_host/installed_mock_model_run.mbt",
+                "anchor": "pub fn begin_installed_mock_model_managed_run("
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/installed-model-continuation.mjs",
+                "anchor": "throw selected.egressFailure ?? new Error('InstalledModelEgressUnavailable');"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-project-mock-models.actual.test.mjs",
+                "anchor": "test('same live Core Mock installation admits no-I/O preparation without fabricating egress'"
+              },
+              {
+                "path": "adapters/host-node/installed-project-mock-models.actual.test.mjs",
+                "anchor": "test('external Provider preparation keeps the original egress refusal'"
+              }
+            ]
+          }
         }
       ],
       "imports": [
@@ -12130,7 +13369,7 @@
     },
     {
       "module": "adapters/host-node/installed-model.mjs",
-      "sha256": "3412344b15458fa7c9212e86038b0dc8ae7221b9abc4904114a26f6cc1008e38",
+      "sha256": "8937c6e81fec6018d2347ed9727d0781e4a094f563a144a3d261a703bef77205",
       "role": "physical-io",
       "exports": [
         "admitInstalledModelProvider",
@@ -13291,16 +14530,12 @@
             "localStrategyContribution/init:prepareNext/init:prepareNext/rowPlan/rowPlan",
             "localStrategyContribution/init:run/init:run",
             "localStrategyContribution/init:run/init:run/init:run",
-            "localStrategyContribution/init:run/init:run/init:run/failure/failure",
             "localStrategyContribution/init:run/init:run/init:run#2",
             "localStrategyContribution/init:run/init:run/init:run#3",
+            "localStrategyContribution/init:run/init:run/init:run/failure/failure",
             "localStrategyContribution/init:run/init:run/stopped/stopped",
             "localStrategyContribution/init:runPrepared/init:runPrepared",
             "localStrategyContribution/init:runPrepared/init:runPrepared/init:runPrepared",
-            "localStrategyContribution/init:runPrepared/init:runPrepared/init:runPrepared/init:runPrepared",
-            "localStrategyContribution/init:runPrepared/init:runPrepared/init:runPrepared/init:runPrepared#2",
-            "localStrategyContribution/init:runPrepared/init:runPrepared/init:runPrepared/init:runPrepared#3",
-            "localStrategyContribution/init:runPrepared/init:runPrepared/init:runPrepared/init:runPrepared#4",
             "localStrategyContribution/init:runPrepared/init:runPrepared/init:runPrepared#2",
             "localStrategyContribution/init:runPrepared/init:runPrepared/init:runPrepared#3",
             "localStrategyContribution/init:runPrepared/init:runPrepared/init:runPrepared#4",
@@ -13309,6 +14544,10 @@
             "localStrategyContribution/init:runPrepared/init:runPrepared/init:runPrepared#7",
             "localStrategyContribution/init:runPrepared/init:runPrepared/init:runPrepared#8",
             "localStrategyContribution/init:runPrepared/init:runPrepared/init:runPrepared#9",
+            "localStrategyContribution/init:runPrepared/init:runPrepared/init:runPrepared/init:runPrepared",
+            "localStrategyContribution/init:runPrepared/init:runPrepared/init:runPrepared/init:runPrepared#2",
+            "localStrategyContribution/init:runPrepared/init:runPrepared/init:runPrepared/init:runPrepared#3",
+            "localStrategyContribution/init:runPrepared/init:runPrepared/init:runPrepared/init:runPrepared#4",
             "localStrategyContribution/init:runPrepared/init:runPrepared/memory/init:read/init:read",
             "localStrategyContribution/init:runPrepared/init:runPrepared/memory/memory",
             "localStrategyContribution/init:runPrepared/init:runPrepared/memory/memory#2",
@@ -13317,9 +14556,9 @@
             "localStrategyContribution/init:runPrepared/init:runPrepared/plannedMaterials/plannedMaterials#2",
             "localStrategyContribution/init:runPrepared/init:runPrepared/relationInputs/relationInputs",
             "localStrategyContribution/init:runPrepared/init:runPrepared/resolved/resolved",
-            "localStrategyContribution/init:runPrepared/init:runPrepared/resolved/resolved/resolved",
             "localStrategyContribution/init:runPrepared/init:runPrepared/resolved/resolved#2",
             "localStrategyContribution/init:runPrepared/init:runPrepared/resolved/resolved#3",
+            "localStrategyContribution/init:runPrepared/init:runPrepared/resolved/resolved/resolved",
             "localStrategyContribution/init:runPrepared/init:runPrepared/resolvedRowPlan/resolvedRowPlan",
             "localStrategyContribution/init:runPrepared/init:runPrepared/siteInputs/siteInputs",
             "managedSiteCapacity/managedSiteCapacity",
@@ -13441,7 +14680,19 @@
             ]
           }
         }
-      ]
+      ],
+      "imports": [
+        "../host-common/compiler-binding.generated.mjs",
+        "../host-common/managed-failure.mjs",
+        "../store-local/managed-memory-representations.mjs",
+        "./carrier-snapshot.mjs",
+        "./managed-output-custody.mjs",
+        "./retained-input.mjs",
+        "./retained-output.mjs",
+        "./retained-store.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/reference-compute-node/strategy-bundle.mjs",
@@ -13634,12 +14885,12 @@
             "numericStrategyContribution/init:run/init:run/init:run",
             "numericStrategyContribution/init:runPrepared/init:runPrepared",
             "numericStrategyContribution/init:runPrepared/init:runPrepared/init:runPrepared",
-            "numericStrategyContribution/init:runPrepared/init:runPrepared/init:runPrepared/init:runPrepared",
             "numericStrategyContribution/init:runPrepared/init:runPrepared/init:runPrepared#2",
             "numericStrategyContribution/init:runPrepared/init:runPrepared/init:runPrepared#3",
             "numericStrategyContribution/init:runPrepared/init:runPrepared/init:runPrepared#4",
             "numericStrategyContribution/init:runPrepared/init:runPrepared/init:runPrepared#5",
             "numericStrategyContribution/init:runPrepared/init:runPrepared/init:runPrepared#6",
+            "numericStrategyContribution/init:runPrepared/init:runPrepared/init:runPrepared/init:runPrepared",
             "numericStrategyContribution/init:runPrepared/init:runPrepared/memory/init:read/init:read",
             "numericStrategyContribution/init:runPrepared/init:runPrepared/memory/memory",
             "numericStrategyContribution/init:runPrepared/init:runPrepared/memory/memory#2",
@@ -13757,7 +15008,14 @@
             ]
           }
         }
-      ]
+      ],
+      "imports": [
+        "../host-common/compiler-binding.generated.mjs",
+        "../host-common/managed-failure.mjs",
+        "../store-local/managed-memory-representations.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/workers/finite.mjs",
@@ -14029,7 +15287,16 @@
             ]
           }
         }
-      ]
+      ],
+      "imports": [
+        "../connectors-workers/strategy.generated.mjs",
+        "../host-common/compiler-binding.generated.mjs",
+        "../host-common/runtime-core.mjs",
+        "../host-common/runtime-result.mjs",
+        "../host-common/scoped-strategy.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "packages/coordinator-core/index.mjs",
@@ -15163,11 +16430,11 @@
             "durableOutputPublicationFacts/durableOutputPublicationFacts/durableOutputPublicationFacts",
             "durableOutputRequestJson/durableOutputRequestJson",
             "effectCheckpointReports/effectCheckpointReports",
-            "effectCheckpointReports/effectCheckpointReports/effectCheckpointReports",
             "effectCheckpointReports/effectCheckpointReports#2",
             "effectCheckpointReports/effectCheckpointReports#3",
             "effectCheckpointReports/effectCheckpointReports#4",
             "effectCheckpointReports/effectCheckpointReports#5",
+            "effectCheckpointReports/effectCheckpointReports/effectCheckpointReports",
             "effectCheckpointValue/effectCheckpointValue",
             "effectCurrentLimits/effectCurrentLimits",
             "effectCurrentLimits/effectCurrentLimits/effectCurrentLimits",
@@ -15231,12 +16498,12 @@
             "siteInteger/siteInteger",
             "siteOptionalInteger/siteOptionalInteger",
             "sitePlanning/sitePlanning",
+            "sitePlanning/sitePlanning#2",
             "sitePlanning/sitePlanning/sitePlanning",
             "sitePlanning/sitePlanning/sitePlanning#2",
             "sitePlanning/sitePlanning/sitePlanning#3",
             "sitePlanning/sitePlanning/sitePlanning#4",
             "sitePlanning/sitePlanning/sitePlanning#5",
-            "sitePlanning/sitePlanning#2",
             "snapshotTextRecord/snapshotTextRecord",
             "snapshotTextRecord/snapshotTextRecord/snapshot/snapshot",
             "snapshotTextRecord/snapshotTextRecord/snapshotTextRecord",
@@ -15448,11 +16715,17 @@
             ]
           }
         }
-      ]
+      ],
+      "imports": [
+        "./compiler-binding.generated.mjs",
+        "./dist/remote_coordinator_abi.js"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "packages/run-host-core/index.mjs",
-      "sha256": "a0c6d61c8e35b06bce63e9c7db7c0b41ba1ccef75b8a9dea3cc693ac59d1bc53",
+      "sha256": "bf9cd8d65f9a410918d6c672bff6c7074e0e0d9e51b750494ddafe89b5713e71",
       "role": "physical-io",
       "exports": [
         "admitCapturedResultSnapshot",
@@ -17763,6 +19036,16 @@
           "async": false
         },
         {
+          "name": "prepareSourceProgramOriginal",
+          "parameters": [
+            "intent",
+            "environment",
+            "publicationWire",
+            "primaryResultRecipe"
+          ],
+          "async": false
+        },
+        {
           "name": "prepareSourceRequest",
           "parameters": [
             "prepared",
@@ -18986,19 +20269,7 @@
             "validateRunMaterialsInput/validateRunMaterialsInput",
             "validateTaskPhysicalStartClaim",
             "validateTaskPhysicalStartClaim/validateTaskPhysicalStartClaim",
-            "validateTaskPhysicalStartClaim/validateTaskPhysicalStartClaim#2",
-            "admitSourceRequestFields",
-            "prepareSourceProgram",
-            "prepareSourceRequest",
-            "restoreSourceProgram",
-            "restoreSourceProgram/restoreSourceProgram",
-            "restoreSourceProgram/restoreSourceProgram#2",
-            "sourceProgramMaterialInput",
-            "sourceProgramOriginals",
-            "sourceProgramOriginals/sourceProgramOriginals",
-            "sourceProgramSourceInput",
-            "sourceProgramSourceInput/sourceProgramSourceInput",
-            "sourceProgramSourceInput/sourceProgramSourceInput#2"
+            "validateTaskPhysicalStartClaim/validateTaskPhysicalStartClaim#2"
           ],
           "exports": [
             "admitCapturedResultSnapshot",
@@ -19151,7 +20422,172 @@
             "validatePublicationChain",
             "validatePublicationRecordTransition",
             "validateRetainedInputPlan",
-            "validateRetainedTaskInput",
+            "validateRetainedTaskInput"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "export function beginResultMaterialHolds(bindingCid, materialGenerationCid) {"
+              },
+              {
+                "path": "docs/design/portable-execution-boundary.md",
+                "anchor": "# Portable execution boundary"
+              },
+              {
+                "path": "src/client_values_host_abi/pkg.generated.mbti",
+                "anchor": "pub fn client_values_host_admit_captured_result_snapshot(@run_publication.PublicationContract, @run_publication.PublicationContract, String, Array[String], Int, Int, Int) -> Result[@run_publication.CapturedResultSnapshot, @run_publication.CapturedRunIssuanceIssue]"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Pre-Checkpoint Effect Run observation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "export function beginResultMaterialHolds(bindingCid, materialGenerationCid) {"
+              },
+              {
+                "path": "src/client_values_host_abi/pkg.generated.mbti",
+                "anchor": "pub fn client_values_host_admit_captured_result_snapshot(@run_publication.PublicationContract, @run_publication.PublicationContract, String, Array[String], Int, Int, Int) -> Result[@run_publication.CapturedResultSnapshot, @run_publication.CapturedRunIssuanceIssue]"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Pre-Checkpoint Effect Run observation"
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "import {runtimeField, runtimeIsError, runtimeIsBoxedNone, runtimeIsOk, runtimeIsBoxedSome} from './compiler-binding.generated.mjs';"
+              },
+              {
+                "path": "src/client_values_host_abi/pkg.generated.mbti",
+                "anchor": "pub fn client_values_host_admit_captured_result_snapshot(@run_publication.PublicationContract, @run_publication.PublicationContract, String, Array[String], Int, Int, Int) -> Result[@run_publication.CapturedResultSnapshot, @run_publication.CapturedRunIssuanceIssue]"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Pre-Checkpoint Effect Run observation"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "import * as owner from './dist/client_values_host_abi.js';"
+              },
+              {
+                "path": "docs/design/portable-execution-boundary.md",
+                "anchor": "# Portable execution boundary"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Pre-Checkpoint Effect Run observation"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "export function beginResultMaterialHolds(bindingCid, materialGenerationCid) {"
+              },
+              {
+                "path": "src/client_values_host_abi/pkg.generated.mbti",
+                "anchor": "pub fn client_values_host_admit_captured_result_snapshot(@run_publication.PublicationContract, @run_publication.PublicationContract, String, Array[String], Int, Int, Int) -> Result[@run_publication.CapturedResultSnapshot, @run_publication.CapturedRunIssuanceIssue]"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Pre-Checkpoint Effect Run observation"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "import {runtimeField, runtimeIsError, runtimeIsBoxedNone, runtimeIsOk, runtimeIsBoxedSome} from './compiler-binding.generated.mjs';"
+              },
+              {
+                "path": "docs/design/portable-execution-boundary.md",
+                "anchor": "# Portable execution boundary"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Pre-Checkpoint Effect Run observation"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "const cancellationIdentities = new WeakMap();"
+              },
+              {
+                "path": "docs/design/portable-execution-boundary.md",
+                "anchor": "# Portable execution boundary"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Pre-Checkpoint Effect Run observation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "if (!Array.isArray(counts) || counts.length !== 3 ||"
+              },
+              {
+                "path": "src/client_values_host_abi/pkg.generated.mbti",
+                "anchor": "pub fn client_values_host_admit_captured_result_snapshot(@run_publication.PublicationContract, @run_publication.PublicationContract, String, Array[String], Int, Int, Int) -> Result[@run_publication.CapturedResultSnapshot, @run_publication.CapturedRunIssuanceIssue]"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Pre-Checkpoint Effect Run observation"
+              }
+            ],
+            "extension": [
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "const profileKeys = new Set(['textTime', 'veca', 'rela', 'sga', 'tea',"
+              },
+              {
+                "path": "docs/design/portable-execution-boundary.md",
+                "anchor": "# Portable execution boundary"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Pre-Checkpoint Effect Run observation"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/run-host-core/index.test.mjs",
+                "anchor": "test('profile admission preserves omitted and explicit false selections', () => {"
+              },
+              {
+                "path": "src/client_values_host_abi/pkg.generated.mbti",
+                "anchor": "pub fn client_values_host_admit_captured_result_snapshot(@run_publication.PublicationContract, @run_publication.PublicationContract, String, Array[String], Int, Int, Int) -> Result[@run_publication.CapturedResultSnapshot, @run_publication.CapturedRunIssuanceIssue]"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Pre-Checkpoint Effect Run observation"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "admitSourceRequestFields",
+            "prepareSourceProgram",
+            "prepareSourceProgramOriginal",
+            "prepareSourceRequest",
+            "restoreSourceProgram",
+            "restoreSourceProgram/restoreSourceProgram",
+            "restoreSourceProgram/restoreSourceProgram#2",
+            "sourceProgramMaterialInput",
+            "sourceProgramOriginals",
+            "sourceProgramOriginals/sourceProgramOriginals",
+            "sourceProgramSourceInput",
+            "sourceProgramSourceInput/sourceProgramSourceInput",
+            "sourceProgramSourceInput/sourceProgramSourceInput#2"
+          ],
+          "exports": [
             "admitSourceRequestFields",
             "prepareSourceProgram",
             "prepareSourceRequest",
@@ -19663,7 +21099,13 @@
             ]
           }
         }
-      ]
+      ],
+      "imports": [
+        "./compiler-binding.generated.mjs",
+        "./dist/client_values_host_abi.js"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "packages/transfer-core/index.mjs",
@@ -20046,7 +21488,13 @@
             ]
           }
         }
-      ]
+      ],
+      "imports": [
+        "./compiler-binding.generated.mjs",
+        "./dist/remote_transfer_abi.js"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/host-common/local-signing-metadata.mjs",
@@ -21033,6 +22481,643 @@
               {
                 "path": "scripts/installation-preparation-binding.test.mjs",
                 "anchor": "metadata typed bridge derives constructor and projection together from the same Owner"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/client_local_host/installed_source_read.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "fc1428b5b99eb557e036a054aaf9d2cf0ed1069a53204db6b63caff326c09063",
+      "exports": [],
+      "operations": [
+        {
+          "name": "attach_installed_source_read_acquisition",
+          "declaration": "attach_installed_source_read_acquisition ( value : ClientInstalledSourceRead , declaration : @ row_source_host . RowDeclaration , requirement : @ planning . QueryRequirement , acquisition : @ row_source_host . RowAcquisition , stage : Int , source_index : Int , ) - > Result [ Unit , ClientInstalledSourceReadIssue ]"
+        },
+        {
+          "name": "begin_installed_source_read",
+          "declaration": "begin_installed_source_read ( child : @ resources . ImportedChildLedger , ) - > Result [ ClientInstalledSourceRead , ClientInstalledSourceReadIssue ]"
+        },
+        {
+          "name": "bind_installed_source_read_effect_program",
+          "declaration": "bind_installed_source_read_effect_program ( value : ClientInstalledSourceRead , prepared : @ publication_host . PreparedClientEffectComputation , ) - > Result [ Unit , ClientInstalledSourceReadIssue ]"
+        },
+        {
+          "name": "bind_installed_source_read_owner",
+          "declaration": "bind_installed_source_read_owner ( value : ClientInstalledSourceRead , owner : ClientLocalSequenceOwner , ) - > Result [ Unit , ClientInstalledSourceReadIssue ]"
+        },
+        {
+          "name": "bind_installed_source_read_program",
+          "declaration": "bind_installed_source_read_program ( value : ClientInstalledSourceRead , prepared : @ publication_host . PreparedClientProgram , ) - > Result [ Unit , ClientInstalledSourceReadIssue ]"
+        },
+        {
+          "name": "check_installed_source_read_current",
+          "declaration": "check_installed_source_read_current ( value : ClientInstalledSourceRead , ) - > Result [ Unit , ClientInstalledSourceReadIssue ]"
+        },
+        {
+          "name": "check_installed_source_read_ledger",
+          "declaration": "check_installed_source_read_ledger ( value : ClientInstalledSourceRead , expected : @ resources . Ledger , ) - > Result [ Unit , ClientInstalledSourceReadIssue ]"
+        },
+        {
+          "name": "claim_installed_source_read_start",
+          "declaration": "claim_installed_source_read_start ( value : ClientInstalledSourceRead , acquisition : @ row_source_host . RowAcquisition , ) - > Result [ @ resources . Ledger , ClientInstalledSourceReadIssue ]"
+        },
+        {
+          "name": "require_installed_source_read_current",
+          "declaration": "require_installed_source_read_current ( value : ClientInstalledSourceRead , ) - > Result [ @ resources . Ledger , ClientInstalledSourceReadIssue ]"
+        },
+        {
+          "name": "require_installed_source_read_original",
+          "declaration": "require_installed_source_read_original ( value : ClientInstalledSourceRead , ) - > Result [ Unit , ClientInstalledSourceReadIssue ]"
+        },
+        {
+          "name": "retain_installed_source_read_run",
+          "declaration": "retain_installed_source_read_run ( value : ClientInstalledSourceRead , result : Result [ @ row_source_host . RowRun , @ row_source_host . RowHostIssue ] , ) - > Result [ @ row_source_host . RowRun , ClientInstalledSourceReadIssue ]"
+        },
+        {
+          "name": "retire_installed_source_read",
+          "declaration": "retire_installed_source_read ( value : ClientInstalledSourceRead , ) - > Result [ Unit , ClientInstalledSourceReadIssue ]"
+        },
+        {
+          "name": "start_installed_source_read_listing_rows",
+          "declaration": "start_installed_source_read_listing_rows ( value : ClientInstalledSourceRead , acquisition : @ row_source_host . RowAcquisition , capacity : @ execution . ExecutionCapacity ? , nonce : String , original_stop : ( @ row_source_host . RowAttempt ) - > Bool , transfer_bytes : Int64 , execution_bytes : Int64 , ) - > Result [ @ row_source_host . RowRun , ClientInstalledSourceReadIssue ]"
+        },
+        {
+          "name": "start_installed_source_read_provider_rows",
+          "declaration": "start_installed_source_read_provider_rows ( value : ClientInstalledSourceRead , acquisition : @ row_source_host . RowAcquisition , capacity : @ execution . ExecutionCapacity ? , nonce : String , original_stop : ( @ row_source_host . RowAttempt ) - > Bool , transfer_bytes : Int64 , execution_bytes : Int64 , ) - > Result [ @ row_source_host . RowRun , ClientInstalledSourceReadIssue ]"
+        },
+        {
+          "name": "start_installed_source_read_rows",
+          "declaration": "start_installed_source_read_rows ( value : ClientInstalledSourceRead , acquisition : @ row_source_host . RowAcquisition , nonce : String , original_stop : ( @ row_source_host . RowAttempt ) - > Bool , transfer_bytes : Int64 , execution_bytes : Int64 , ) - > Result [ @ row_source_host . RowRun , ClientInstalledSourceReadIssue ]"
+        }
+      ],
+      "role": "common-semantics",
+      "owner": "Existing Common Source acquisition, original Resource child and retained Run preparation owners",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "attach_installed_source_read_acquisition",
+            "begin_installed_source_read",
+            "bind_installed_source_read_effect_program",
+            "bind_installed_source_read_owner",
+            "bind_installed_source_read_program",
+            "check_installed_source_read_current",
+            "check_installed_source_read_ledger",
+            "claim_installed_source_read_start",
+            "require_installed_source_read_current",
+            "require_installed_source_read_original",
+            "retain_installed_source_read_run",
+            "retire_installed_source_read",
+            "start_installed_source_read_listing_rows",
+            "start_installed_source_read_provider_rows",
+            "start_installed_source_read_rows"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_local_host/installed_source_read.mbt",
+                "anchor": "/// Consumer of an already issued original Resource child, never a capacity"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_local_host/installed_source_read.mbt",
+                "anchor": "pub fn attach_installed_source_read_acquisition("
+              },
+              {
+                "path": "src/client_local_host/installed_source_read.mbt",
+                "anchor": "pub fn begin_installed_source_read("
+              },
+              {
+                "path": "src/client_local_host/installed_source_read.mbt",
+                "anchor": "pub fn check_installed_source_read_ledger("
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_local_host/installed_source_read.mbt",
+                "anchor": "guard value.original is Some(original) && physical_equal(original, value) else {"
+              },
+              {
+                "path": "src/client_local_host/installed_source_read.mbt",
+                "anchor": "if physical_equal(original, expected) {"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_local_host/installed_source_read.mbt",
+                "anchor": "/// consumer. A failed start/take keeps the original child with its issuer."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_local_host/installed_source_read.mbt",
+                "anchor": "match @resources.check_imported_original_child_ledger(child, ledger) {"
+              },
+              {
+                "path": "src/client_local_host/installed_source_read.mbt",
+                "anchor": "let original = match require_installed_source_read_current(value) {"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_local_host/installed_source_read.mbt",
+                "anchor": "pub(all) enum ClientInstalledSourceReadIssue {"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_local_host/installed_source_read.mbt",
+                "anchor": "/// the child for reporting and its distinct physical ACK; do not stop it here."
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_local_host/installed_source_read.mbt",
+                "anchor": "@resources.take_imported_original_child_ledger(child)"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Extension keeps supported ordinary options and normal factory acquisition"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/installed_source_read_wbtest.mbt",
+                "anchor": "test \"Source read requirement keeps the same checked Program and occurrence\""
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/connectors_builtin_node/client_installed_source_read_bridge.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "bcf6d280fa54e94240d8b2790754e9451dac6474431ed9e0014926c65a1072a6",
+      "exports": [],
+      "operations": [
+        {
+          "name": "client_program_installed_source_read_attach_acquisition",
+          "declaration": "client_program_installed_source_read_attach_acquisition ( value : @ client_local_host . ClientInstalledSourceRead , declaration : @ client_row_source_host . RowDeclaration , requirement : @ planning . QueryRequirement , acquisition : @ client_row_source_host . RowAcquisition , stage : Int , source_index : Int , ) - > Result [ Unit , @ client_local_host . ClientInstalledSourceReadIssue ]"
+        },
+        {
+          "name": "client_program_installed_source_read_begin",
+          "declaration": "client_program_installed_source_read_begin ( child : @ resources . ImportedChildLedger , ) - > Result [ @ client_local_host . ClientInstalledSourceRead , @ client_local_host . ClientInstalledSourceReadIssue , ]"
+        },
+        {
+          "name": "client_program_installed_source_read_bind_effect_program",
+          "declaration": "client_program_installed_source_read_bind_effect_program ( value : @ client_local_host . ClientInstalledSourceRead , prepared : @ publication_host . PreparedClientEffectComputation , ) - > Result [ Unit , @ client_local_host . ClientInstalledSourceReadIssue ]"
+        },
+        {
+          "name": "client_program_installed_source_read_bind_program",
+          "declaration": "client_program_installed_source_read_bind_program ( value : @ client_local_host . ClientInstalledSourceRead , prepared : @ publication_host . PreparedClientProgram , ) - > Result [ Unit , @ client_local_host . ClientInstalledSourceReadIssue ]"
+        },
+        {
+          "name": "client_program_installed_source_read_check_current",
+          "declaration": "client_program_installed_source_read_check_current ( value : @ client_local_host . ClientInstalledSourceRead , ) - > Result [ Unit , @ client_local_host . ClientInstalledSourceReadIssue ]"
+        },
+        {
+          "name": "client_program_installed_source_read_check_ledger",
+          "declaration": "client_program_installed_source_read_check_ledger ( value : @ client_local_host . ClientInstalledSourceRead , expected : @ resources . Ledger , ) - > Result [ Unit , @ client_local_host . ClientInstalledSourceReadIssue ]"
+        },
+        {
+          "name": "client_program_installed_source_read_retire",
+          "declaration": "client_program_installed_source_read_retire ( value : @ client_local_host . ClientInstalledSourceRead , ) - > Result [ Unit , @ client_local_host . ClientInstalledSourceReadIssue ]"
+        },
+        {
+          "name": "client_program_installed_source_read_start_listing_rows",
+          "declaration": "client_program_installed_source_read_start_listing_rows ( value : @ client_local_host . ClientInstalledSourceRead , acquisition : @ client_row_source_host . RowAcquisition , capacity : @ execution . ExecutionCapacity ? , nonce : String , original_stop : ( @ client_row_source_host . RowAttempt ) - > Bool , transfer_bytes : Int64 , execution_bytes : Int64 , ) - > Result [ @ client_row_source_host . RowRun , @ client_local_host . ClientInstalledSourceReadIssue , ]"
+        },
+        {
+          "name": "client_program_installed_source_read_start_provider_rows",
+          "declaration": "client_program_installed_source_read_start_provider_rows ( value : @ client_local_host . ClientInstalledSourceRead , acquisition : @ client_row_source_host . RowAcquisition , capacity : @ execution . ExecutionCapacity ? , nonce : String , original_stop : ( @ client_row_source_host . RowAttempt ) - > Bool , transfer_bytes : Int64 , execution_bytes : Int64 , ) - > Result [ @ client_row_source_host . RowRun , @ client_local_host . ClientInstalledSourceReadIssue , ]"
+        },
+        {
+          "name": "client_program_installed_source_read_start_rows",
+          "declaration": "client_program_installed_source_read_start_rows ( value : @ client_local_host . ClientInstalledSourceRead , acquisition : @ client_row_source_host . RowAcquisition , nonce : String , original_stop : ( @ client_row_source_host . RowAttempt ) - > Bool , transfer_bytes : Int64 , execution_bytes : Int64 , ) - > Result [ @ client_row_source_host . RowRun , @ client_local_host . ClientInstalledSourceReadIssue , ]"
+        }
+      ],
+      "role": "common-semantics",
+      "owner": "Existing Common Source acquisition, original Resource child and retained Run preparation owners",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "client_program_installed_source_read_attach_acquisition",
+            "client_program_installed_source_read_begin",
+            "client_program_installed_source_read_bind_effect_program",
+            "client_program_installed_source_read_bind_program",
+            "client_program_installed_source_read_check_current",
+            "client_program_installed_source_read_check_ledger",
+            "client_program_installed_source_read_retire",
+            "client_program_installed_source_read_start_listing_rows",
+            "client_program_installed_source_read_start_provider_rows",
+            "client_program_installed_source_read_start_rows"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_local_host/installed_source_read.mbt",
+                "anchor": "/// Consumer of an already issued original Resource child, never a capacity"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_local_host/installed_source_read.mbt",
+                "anchor": "pub fn attach_installed_source_read_acquisition("
+              },
+              {
+                "path": "src/connectors_builtin_node/client_installed_source_read_bridge.mbt",
+                "anchor": "pub fn client_program_installed_source_read_begin("
+              },
+              {
+                "path": "src/connectors_builtin_node/client_installed_source_read_bridge.mbt",
+                "anchor": "pub fn client_program_installed_source_read_check_ledger("
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_local_host/installed_source_read.mbt",
+                "anchor": "guard value.original is Some(original) && physical_equal(original, value) else {"
+              },
+              {
+                "path": "src/client_local_host/installed_source_read.mbt",
+                "anchor": "if physical_equal(original, expected) {"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_local_host/installed_source_read.mbt",
+                "anchor": "/// consumer. A failed start/take keeps the original child with its issuer."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_local_host/installed_source_read.mbt",
+                "anchor": "match @resources.check_imported_original_child_ledger(child, ledger) {"
+              },
+              {
+                "path": "src/client_local_host/installed_source_read.mbt",
+                "anchor": "let original = match require_installed_source_read_current(value) {"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_local_host/installed_source_read.mbt",
+                "anchor": "pub(all) enum ClientInstalledSourceReadIssue {"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_local_host/installed_source_read.mbt",
+                "anchor": "/// the child for reporting and its distinct physical ACK; do not stop it here."
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_local_host/installed_source_read.mbt",
+                "anchor": "@resources.take_imported_original_child_ledger(child)"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Extension keeps supported ordinary options and normal factory acquisition"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/installed_source_read_wbtest.mbt",
+                "anchor": "test \"Source read requirement keeps the same checked Program and occurrence\""
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/physical_resources/imported_child_ledger.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "c047cf42144cc712e368dec3341ba0a44eb88e7e9afbcab9672f25117c4d5173",
+      "exports": [],
+      "operations": [
+        {
+          "name": "check_imported_child_admission",
+          "declaration": "check_imported_child_admission ( ledger : Ledger ) - > Result [ Unit , LedgerIssue ]"
+        },
+        {
+          "name": "check_imported_child_ledger",
+          "declaration": "check_imported_child_ledger ( ledger : Ledger ) - > Result [ Unit , LedgerIssue ]"
+        },
+        {
+          "name": "check_imported_original_child_ledger",
+          "declaration": "check_imported_original_child_ledger ( value : ImportedChildLedger , ledger : Ledger , ) - > Result [ Unit , ImportedChildLedgerIssue ]"
+        },
+        {
+          "name": "imported_child_fixed_capacity",
+          "declaration": "imported_child_fixed_capacity ( ledger : Ledger , reservation : Reservation , ) - > Bool"
+        },
+        {
+          "name": "imported_child_original",
+          "declaration": "imported_child_original ( value : ImportedChildLedger , ) - > Result [ Unit , ImportedChildLedgerIssue ]"
+        },
+        {
+          "name": "imported_child_seed_capacity",
+          "declaration": "imported_child_seed_capacity ( ledger : Ledger , serial : Int , bytes : Int64 , ) - > SharedCapacity"
+        },
+        {
+          "name": "imported_child_status",
+          "declaration": "imported_child_status ( code : Int ) - > Result [ Unit , ImportedChildLedgerIssue ]"
+        },
+        {
+          "name": "prepare_imported_child_ledger",
+          "declaration": "prepare_imported_child_ledger ( nonce : Int64 , ) - > Result [ ImportedChildLedger , ImportedChildLedgerIssue ]"
+        },
+        {
+          "name": "prepare_imported_child_port",
+          "declaration": "prepare_imported_child_port ( nonce : Int64 , admit : ( Int64 ) - > Int , current : ( Int64 ) - > Int , limit : ( Int64 , Int ) - > Int64 , capacity : ( Int64 , Int ) - > Int64 , report : ( Int64 , LedgerUsage ) - > Int , stop : ( Int64 ) - > Int , fixed_capacities ? : Bool"
+        },
+        {
+          "name": "report_imported_child_ledger",
+          "declaration": "report_imported_child_ledger ( value : ImportedChildLedger , ) - > Result [ Unit , ImportedChildLedgerIssue ]"
+        },
+        {
+          "name": "require_imported_child_vm_capacity",
+          "declaration": "require_imported_child_vm_capacity ( value : ImportedChildLedger , ledger : Ledger , capacity : SharedCapacity , ) - > Result [ Unit , ImportedChildLedgerIssue ]"
+        },
+        {
+          "name": "start_imported_child_ledger",
+          "declaration": "start_imported_child_ledger ( value : ImportedChildLedger , ) - > Result [ Unit , ImportedChildLedgerIssue ]"
+        },
+        {
+          "name": "stop_imported_child_ledger",
+          "declaration": "stop_imported_child_ledger ( value : ImportedChildLedger , ) - > Result [ Unit , ImportedChildLedgerIssue ]"
+        },
+        {
+          "name": "take_imported_child_ledger",
+          "declaration": "take_imported_child_ledger ( value : ImportedChildLedger , ) - > Result [ ( Ledger , SharedCapacity , SharedCapacity ) , ImportedChildLedgerIssue ]"
+        },
+        {
+          "name": "take_imported_original_child_ledger",
+          "declaration": "take_imported_original_child_ledger ( value : ImportedChildLedger , ) - > Result [ Ledger , ImportedChildLedgerIssue ]"
+        }
+      ],
+      "role": "common-semantics",
+      "owner": "Existing Common Source acquisition, original Resource child and retained Run preparation owners",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "check_imported_child_admission",
+            "check_imported_child_ledger",
+            "check_imported_original_child_ledger",
+            "imported_child_fixed_capacity",
+            "imported_child_original",
+            "imported_child_seed_capacity",
+            "imported_child_status",
+            "prepare_imported_child_ledger",
+            "prepare_imported_child_port",
+            "report_imported_child_ledger",
+            "require_imported_child_vm_capacity",
+            "start_imported_child_ledger",
+            "stop_imported_child_ledger",
+            "take_imported_child_ledger",
+            "take_imported_original_child_ledger"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_local_host/installed_source_read.mbt",
+                "anchor": "/// Consumer of an already issued original Resource child, never a capacity"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_local_host/installed_source_read.mbt",
+                "anchor": "pub fn attach_installed_source_read_acquisition("
+              },
+              {
+                "path": "src/physical_resources/imported_child_ledger.mbt",
+                "anchor": "pub fn check_imported_original_child_ledger("
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_local_host/installed_source_read.mbt",
+                "anchor": "guard value.original is Some(original) && physical_equal(original, value) else {"
+              },
+              {
+                "path": "src/physical_resources/imported_child_ledger.mbt",
+                "anchor": "physical_equal(original, ledger) &&"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_local_host/installed_source_read.mbt",
+                "anchor": "/// consumer. A failed start/take keeps the original child with its issuer."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_local_host/installed_source_read.mbt",
+                "anchor": "match @resources.check_imported_original_child_ledger(child, ledger) {"
+              },
+              {
+                "path": "src/physical_resources/imported_child_ledger.mbt",
+                "anchor": "if value.taken || value.origin.stopping {"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_local_host/installed_source_read.mbt",
+                "anchor": "pub(all) enum ClientInstalledSourceReadIssue {"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/physical_resources/imported_child_ledger.mbt",
+                "anchor": "pub fn stop_imported_child_ledger("
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_local_host/installed_source_read.mbt",
+                "anchor": "@resources.take_imported_original_child_ledger(child)"
+              },
+              {
+                "path": "src/physical_resources/imported_child_ledger.mbt",
+                "anchor": "pub fn check_imported_original_child_ledger("
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Extension keeps supported ordinary options and normal factory acquisition"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/physical_resources/imported_original_correspondence_wbtest.mbt",
+                "anchor": "test \"original imported child check is read-only and refuses copied or fresh views\""
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/run_publication_host/client_acquisition.mbt",
+      "responsibilityFacet": "primary",
+      "sha256": "b068f13ab711af46e395fd997b7dac641b7143868c9b5a650d900b66ad4d815e",
+      "exports": [],
+      "operations": [
+        {
+          "name": "client_captured_task_tuple_matches",
+          "declaration": "client_captured_task_tuple_matches ( value : PreparedClientProgram , source : @ query . CapturedInputSource , identity : @ query . CapturedSourceRelationIdentity , requirement : @ planning . QueryRequirement , task : Int , ) - > Bool"
+        },
+        {
+          "name": "client_query_requirement_matches_effect_program",
+          "declaration": "client_query_requirement_matches_effect_program ( prepared : PreparedClientEffectComputation , stage : Int , source_index : Int , requirement : @ planning . QueryRequirement , ) - > Bool"
+        },
+        {
+          "name": "client_query_requirement_matches_program",
+          "declaration": "client_query_requirement_matches_program ( prepared : PreparedClientProgram , stage : Int , source_index : Int , requirement : @ planning . QueryRequirement , ) - > Bool"
+        },
+        {
+          "name": "prepare_client_effect_query_acquisition",
+          "declaration": "prepare_client_effect_query_acquisition ( prepared : PreparedClientEffectComputation , stage : Int , source_index : Int , ) - > Result [ @ acquisition . QueryAcquisition , ClientAcquisitionIssue ]"
+        },
+        {
+          "name": "prepare_client_effect_query_requirement",
+          "declaration": "prepare_client_effect_query_requirement ( prepared : PreparedClientEffectComputation , generated : @ execution . GeneratedSequence , stage : Int , source_index : Int , guards : @ planning . QueryLogicalGuards , limits : @ planning . QueryMaterialLimits , ) - > Result [ @ planning . QueryRequirement , ClientQueryRequirementIssue ]"
+        },
+        {
+          "name": "prepare_client_query_acquisition",
+          "declaration": "prepare_client_query_acquisition ( prepared : PreparedClientProgram , stage : Int , source_index : Int , ) - > Result [ @ acquisition . QueryAcquisition , ClientAcquisitionIssue ]"
+        },
+        {
+          "name": "prepare_client_query_acquisition_shape",
+          "declaration": "prepare_client_query_acquisition_shape ( prepared : PreparedClientProgram , stage : Int , source_index : Int , ) - > Result [ @ acquisition . QueryAcquisition , ClientAcquisitionIssue ]"
+        },
+        {
+          "name": "prepare_client_query_requirement",
+          "declaration": "prepare_client_query_requirement ( prepared : PreparedClientProgram , generated : @ execution . GeneratedSequence , stage : Int , source_index : Int , guards : @ planning . QueryLogicalGuards , limits : @ planning . QueryMaterialLimits , ) - > Result [ @ planning . QueryRequirement , ClientQueryRequirementIssue ]"
+        },
+        {
+          "name": "prepare_client_query_requirement_from_acquisition",
+          "declaration": "prepare_client_query_requirement_from_acquisition ( prepared : PreparedClientProgram , generated : @ execution . GeneratedSequence , acquisition : @ acquisition . QueryAcquisition , guards : @ planning . QueryLogicalGuards , limits : @ planning . QueryMaterialLimits , ) - > Result [ @ planning . QueryRequirement , ClientQueryRequirementIssue ]"
+        },
+        {
+          "name": "prepared_client_acquisition_count",
+          "declaration": "prepared_client_acquisition_count ( value : PreparedClientProgram ) - > Int"
+        },
+        {
+          "name": "prepared_client_captured_task_source_matches",
+          "declaration": "prepared_client_captured_task_source_matches ( value : PreparedClientProgram , source : @ query . CapturedInputSource , task : Int , ) - > Bool"
+        },
+        {
+          "name": "prepared_client_publication_data_policy_cid",
+          "declaration": "prepared_client_publication_data_policy_cid ( value : PreparedClientProgram , ) - > String ?"
+        },
+        {
+          "name": "prepared_client_source_evidence_facts",
+          "declaration": "prepared_client_source_evidence_facts ( value : PreparedClientProgram , stage : Int , source_index : Int , ) - > @ planning . QuerySourceEvidenceFacts ?"
+        }
+      ],
+      "role": "common-semantics",
+      "owner": "Existing Common Source acquisition, original Resource child and retained Run preparation owners",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "client_captured_task_tuple_matches",
+            "client_query_requirement_matches_effect_program",
+            "client_query_requirement_matches_program",
+            "prepare_client_effect_query_acquisition",
+            "prepare_client_effect_query_requirement",
+            "prepare_client_query_acquisition",
+            "prepare_client_query_acquisition_shape",
+            "prepare_client_query_requirement",
+            "prepare_client_query_requirement_from_acquisition",
+            "prepared_client_acquisition_count",
+            "prepared_client_captured_task_source_matches",
+            "prepared_client_publication_data_policy_cid",
+            "prepared_client_source_evidence_facts"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_local_host/installed_source_read.mbt",
+                "anchor": "/// Consumer of an already issued original Resource child, never a capacity"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_local_host/installed_source_read.mbt",
+                "anchor": "pub fn attach_installed_source_read_acquisition("
+              },
+              {
+                "path": "src/run_publication_host/client_acquisition.mbt",
+                "anchor": "pub fn client_query_requirement_matches_program("
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_local_host/installed_source_read.mbt",
+                "anchor": "guard value.original is Some(original) && physical_equal(original, value) else {"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_local_host/installed_source_read.mbt",
+                "anchor": "/// consumer. A failed start/take keeps the original child with its issuer."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_local_host/installed_source_read.mbt",
+                "anchor": "match @resources.check_imported_original_child_ledger(child, ledger) {"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_local_host/installed_source_read.mbt",
+                "anchor": "pub(all) enum ClientInstalledSourceReadIssue {"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_local_host/installed_source_read.mbt",
+                "anchor": "/// the child for reporting and its distinct physical ACK; do not stop it here."
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_local_host/installed_source_read.mbt",
+                "anchor": "@resources.take_imported_original_child_ledger(child)"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Extension keeps supported ordinary options and normal factory acquisition"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/installed_source_read_wbtest.mbt",
+                "anchor": "test \"Source read requirement keeps the same checked Program and occurrence\""
               }
             ]
           }

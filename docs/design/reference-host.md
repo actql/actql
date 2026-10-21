@@ -14,6 +14,31 @@ the Host. Conflicting account settings are errors, not a rule-priority system.
 Encrypted evidence, secure defaults, retention and recovery guarantees remain
 unchanged.
 
+An admitted Account configuration does not itself select the optional signed
+Checkpoint service. Account-only ordinary installations still evaluate the
+same Host-resolved request tuple and current principal/configuration, and may
+execute Account-Allow reads without Reviewer or Checkpoint signer settings.
+Omitted signing settings mean that capability is absent; explicitly supplied
+partial or malformed Checkpoint settings remain installation errors. Delegate
+and operations requiring an approval, claim or requested-stop Checkpoint stay
+unavailable without their real signing and durable continuation support. This
+does not create an Account grant or replace Store integrity keys with Reviewer
+keys; existing saved Preview, Run and Unknown recovery remains unchanged.
+For a newly selected Run, an original submitted request for a commit stop
+requires the actual Host's Checkpoint capability before new Run preparation or
+publication. Missing support returns the existing typed preparation refusal;
+it does not start Source/Compute work merely to discover the missing signer.
+The Journal's existing-Run lookup does not issue a replacement Run or invoke
+that new-Run capability check. An Account-only Host has no held Checkpoint
+settlement service; the original Run Journal retains its physical-stop duties.
+
+Optional Source diagnostics use the installed Host observer and the same
+durable Run reference, including acquired Effect computation. A Source start
+means the original adapter is being called after its current admission; using
+an already retained capture or refusing that admission is not another start.
+Diagnostic delivery never supplies read authority, permission or a physical
+cleanup acknowledgement.
+
 The [OSS authorization behavior draft](oss-host-authorization.md) details Local
 configuration, immediate/deferred adapters, CLI resolution and crash recovery.
 Its pending product choices are not changes to current defaults.
@@ -125,6 +150,16 @@ commits the exact record under the original Run and task occurrence before
 entering the existing driver's one-shot send callback. Current Source,
 Account, Credential and physical resource checks remain separate.
 
+The Infer material inverse keeps the legacy single-task compiler unchanged.
+For a composed Program it selects exactly one original checked Model occurrence
+and rebuilds the installed graph together with both producers and enclosing
+Results. The complete graph and saved Run identity must agree; ambiguous Model
+inventories and substituted dependency graphs refuse. Result policy is the
+whole original checked publication policy, not a source-free unknown substitute.
+The journal retains its kind, CID and bytes, and restore compares all three to
+the policy derived from the restored original compilation. Neither this material
+nor its policy grants current Source, Model, resource or continuation authority.
+
 A prior record or a lost COMMIT reply never authorizes another POST. Cold
 lookup yields unresolved original DATA only; it does not reconstruct a live
 Job, Source, Run, permission or reservation. Missing storage bounds or Common
@@ -192,6 +227,16 @@ graph. Encoded configuration and external requests retain their bounded
 read/decode/parse/type checks. Package integrity and API/ABI compatibility remain
 relevant; one compiler pin, exact runtime patch, load-cache ancestry, pristine
 stdout or absent diagnostic options is not an ordinary initialization authority.
+
+Configured Model Providers follow the same ordinary factory boundary. The Host
+retains its actual Provider callback and loaded SDK module originals, checks
+the same installation and Store while they are borrowed, and retires those
+references with the Host. Early import or eager compilation history is not
+required. An explicitly selected diagnostic startup may still check its own
+history; normal initialization neither manufactures nor borrows that proof.
+Provider registration alone supplies no Model I/O admission, quantity budget,
+current authorization or permission to send. Model preparation and dispatch
+retain their original Common Scope, same-Run limits and physical child cleanup.
 
 Each Host owns its active/closing/closed lifecycle. Independent Hosts and reopen
 are supported within the same process, subject to actual directory locks and
@@ -322,6 +367,116 @@ itself authority, and an invalid configured policy never falls back to these
 defaults. Mock fixture replacement remains explicit and cannot substitute
 fixture credentials or permissions into a real connection.
 
+### Bundled mock catalogue declarations
+
+The documented churn-risk mock installation has an explicit product catalogue
+for Salesforce `Account` and Snowflake `usage_30d`. The Host selects that
+catalogue under the original mock Project/Profile and installation generation;
+it does not identify a contract from a Task, filename, row count or observed
+values. Hand-authored equivalent projects and changed fixture rows use the same
+declared schemas. Other resources require their own supplied catalogue.
+
+`mock-churn-risk-catalogue.mjs` supplies immutable field-map schema wires,
+their complete existing schema CIDs, positive query aliases and candidate-key
+facts to the existing Common Relation declaration constructor. It does not
+calculate a semantic CID, parse rows or check logical types in JavaScript.
+Common validates the schema originals and constructs the Catalog, SourceViews,
+contracts and evidence members. The `salesforce.accounts` read alias refers to
+the original `Account` resource; it does not rename the UPDATE target or issue
+an Effect Mapping.
+
+The single owned `mock_churn_risk_catalogue.json` DATA source supplies both
+that immutable Node asset and the generated typed Common input. The portable
+Common factory admits the same declarations through the existing Relation
+owner. Its opaque catalogue keeps private source and alias arrays; count/index
+getters return the same original declarations for each logical name. Another
+factory invocation creates different originals, even when their complete
+Catalog bytes match. Native consumers reuse this factory rather than copying
+schema wires, pins or alias tables into a second implementation.
+
+Temporary typed inputs, view/alias arrays, schema parsing and hashing overlap
+the two returned declarations and private catalogue arrays. Returned tuples and
+declaration references retain their own caller lifetime. Factory construction,
+alias membership and dropping a DATA reference do not establish an installed
+generation, Source capacity, current permission or physical cleanup.
+
+The declared Snowflake `active_users` type is logical Int64. Its physical
+JSON codec must preserve full signed64 values without a binary64 round trip;
+an admitted Number is not implicitly promoted. Salesforce `Risk_Reason__c`
+is declared nullable Text even when all initial fixture values are null.
+Candidate keys are `id` and `account_id` respectively. The actual fixture's
+explicit key must be retained and validated against these contracts, never
+replaced with the bundled key after missing or invalid input. Every known
+field and row remains subject to original Source admission.
+
+The descriptors supply no acquisition override: the existing empty bound
+request, finite scan and projection-only contract remain with Common. Selecting
+these declarations supplies neither an Account grant nor resources, business
+Run custody, a Model profile, approval, target versions or cold restoration.
+Those original responsibilities remain independently required. The immutable
+module objects, schema/facts Strings and aliases remain retained alongside the
+Common parsed declarations, encoding/hash workspace and Host installation;
+module lifetime and bounds do not make that storage free or physically closed.
+
+The existing Row Source owner also derives the mock Account UPDATE Mapping
+from that same original declaration. It checks the selected implementation
+generation, complete fixed field contracts, original View/facts correspondence
+and `id` candidate key before calling its existing RelationUpdate constructor.
+The private Node bridge forwards that original and returns Common's Mapping
+body. It does not relabel a create Mapping or rebuild a CID in JavaScript.
+The original Host still supplies the positive `salesforce.Account` target alias
+and its installation provenance; a readable Source alias cannot supply it.
+`salesforce:record:update` remains an operation requirement, not a current grant,
+and the Mapping requires review. Neither construction nor successful checking
+observes a target version, writes a row or confirms an approval.
+
+#### Original physical Mock records
+
+The existing Row Source owner accepts the full original Mock JSON document
+under both installed Relation declarations. It consumes the selected RowRun's
+own pending byte ticket before decoding, and requires the same acquisition,
+prepared input schema and original declared view. A foreign declaration,
+copied view, another attempt's ticket or repeated admission cannot substitute.
+The ticket accounts for bytes; equal length is not original-body provenance.
+The Host must retain the actual body, file/current observation and operation
+correspondence independently.
+
+Strict preserving parsing retains exact field spelling and numeric byte spans.
+The two connection/resource objects are closed, each explicit file key must
+match its original declared candidate key, and duplicate physical keys refuse.
+Both complete tables, every row and every declared field are admitted before
+any selected row is appended. Missing fields remain distinct from explicit
+nullable values. A projected-out column or unconsumed relation cannot hide an
+invalid physical value in this selected document.
+
+For the original Int64 contract, the physical profile takes an ASCII integer
+number token from that same parser span and original bytes. It never converts
+the parser's binary64 value to Int64, and does not accept an external String,
+fraction, exponent token, negative zero or overflow as an integer observation.
+Canonical decimal String encoding is an internal schema-directed Value wire,
+not a relabelled physical Text cell. Selected values use the checked input's
+exact Contract objects and enter its existing typed-row receiver. Query request,
+Parameter, residual filtering and eventual capture remain with the same
+acquisition; no Source completion or current grant follows from decoding.
+
+The shared full-file holding, each Run's independent ticket, parser String and
+Nodes/spans, decoded tree, both schema/key originals, temporary checked cells,
+selected row arrays, integer text/cursor conversion and append workspace may
+overlap. Byte/node/depth/row/work bounds remain independent and are not funding.
+Failure aborts only the same attempt. Data-reference retirement, ticket
+consumption and successful row append are not physical cleanup acknowledgements.
+
+The standard RowRun page entry retains its 400,000-node and depth-32 defaults.
+An installed Source may narrow that page envelope on the same pending RowRun
+through `begin_row_run_with_page_limits`; it cannot widen those defaults or
+replace the original acquisition, schema, attempt or reference issuer. Invalid
+bounds abort only that attempt. The Host must bind the selected limits to its
+actual Source original. Explicit byte, node, depth, row and work limits remain
+DATA, independent of the Resource reservation and current read permission.
+A successful small document does not prove that the Source phase covers every
+combination of its permitted input bounds. Exhaustion still refuses without
+capture, replacement publication or a cleanup acknowledgement.
+
 ### Purpose-confined initial Local signing issuer
 
 The original explicit Local initialization/adoption may retain an internal
@@ -367,3 +522,777 @@ and saved-outcome reads cannot initialize missing originals or issue again.
 The [Local signing contract](../../spec/contracts/local-signing-credential.md)
 owns this distinction and the unchanged grant/use bytes. A metadata/key
 component test is not evidence of initialized default or installed approval.
+
+## Selected Node Source and managed Compute original
+
+Source-read managed admission and Common managed Compute admission are separate
+operational scopes of the existing Host and Resource owners. Neither borrows
+initial-control credits. The actual selected ordinary package prefix retains
+the original startup, runtime/module, installation and generation and declares
+the complete joint disposition before covered input acquisition or preparation.
+A matching image, scalar budget, callback, CID or accounting Ledger cannot issue
+that disposition. Selected managed-runtime assumptions are not OS reservations,
+universal V8/RSS guarantees or requirements for individual V8-object leases.
+
+The joint recipe counts the shared process heap, compiler and native/module
+domains once through their actual process and escaped-reference lifetimes.
+Preparation, original wire, decoded rows, captured inputs, sequences, DAGs,
+provider/import/output workspace, value/key frames, callbacks, failures and
+pending cleanup overlap that same domain. Both Source capture holdings remain
+beside the managed outputs. Standard direct capture settles its execution
+reservation after capture; a serial Source-to-DAG path may therefore use the
+actual maximum execution overlap, not a second whole-runtime allowance. Extended
+provider captures cannot inherit that settlement argument. Insufficient or
+uncovered scopes remain unavailable; no source or provider ceiling is reduced
+to manufacture a fitting execution.
+
+One original Run record is retained before the first packet snapshot. Its later
+claim binds the actual original SDK request and opaque checked preparation; it
+does not issue capacity retrospectively. The fixed Root compares the exact
+prepared reference before returning its one imported-child port. Resource keeps
+the typed preparation and checks physical identity again at the Host consumer.
+The private JS ABI representation is used only for that reference comparison:
+it has no public constructor, raw-field reader or admission semantics.
+
+Source-free managed Compute uses a separately selected original in this same
+Root, before the SDK's first packet traversal or snapshot. It does not create
+a dummy Source installation, file, response backing or Source child. The same
+Host's actual Journal request/control facility must already be retained and
+open; its captured crypto originals cover request/epoch control only, not
+Compute capacity. Neither facility can replace the other's operational purpose.
+
+The fixed Host namespace follows the original pending request to its exact
+checked preparation. The same Local sequence and receiving-port inventory
+quotes source-free retained-output demand; it does not create another Ledger.
+The existing imported admission then supplies the original Run Ledger, with
+the same mutable-resource/park fence, usage reporting and partial cleanup.
+Source-free preparations reject supplied Source capacities and transport
+amounts, and cannot obtain a Source read. The supported two-Source path keeps
+its original acquisition correspondence. Other unsupported backend shapes are
+not invalid public Programs and do not silently fall back to accounting limits.
+
+The Host retains the original admission before beginning the Run. A failed
+begin keeps that same admission's unpublished or started cleanup, never a
+replacement attempt. The source-free dispatcher opens its configured Compute
+Host through this opaque Run and rechecks the original Ledger after sequence
+preparation. It cannot use the legacy scalar constructor on refusal. Successful
+cleanup callbacks and receivers are captured before another child can await;
+the original Run retires only after dispatch/DAG cleanup, before its installation
+scope closes. Unknown retirement retains both duties and their aliases.
+
+Both private views retain their fixed purpose-specific startup callbacks.
+Currentness for a Source view cannot authenticate a Compute view or vice versa.
+Shared process/module domains remain one original, with packet, preparation,
+DAG, result aliases and pending cleanup overlapping their actual lifetimes.
+Closing either view does not replenish that domain. Physical buffers, Result
+or Content storage, Model, Effect and external I/O keep their separate actual
+suppliers; a source-free quote or successful claim does not supply them.
+
+The selected query entry acquires the same Source/Compute producer before its
+first raw option read, not merely before the later `startSource` call. Its
+private synchronous continuation consumes that receipt once; SDK-owned query
+defaults cannot issue another snapshot. The initial supported query has absent
+options and absent or null parameters. Unsupported original graphs are refused
+without getters or enumeration, while unselected public grammar stays unchanged.
+
+The bounded original raw snapshot and SDK submission are different DATA
+representations: AQL input becomes `{text, format, parameterDeclarations?}`,
+parameters default to null, and the SDK adds its original submission/attempt
+control. The Root verifies that projection under the same nominal receipt,
+retains the deeply frozen body, and rechecks it at intent and request binding.
+A copied receipt or equal body cannot establish the original installation or
+request lineage. Snapshot, projection copies and traversal workspace coexist
+with the original packet/body, query continuation and failure aliases in the
+same selected phase; no copy or Promise retirement refills the shared domain.
+
+The in-process Host lease preserves both private connections: query intake
+uses the same pending producer inventory as direct Source submission, while
+Result read/current operations forward to their independently captured pair.
+Sealing refuses new query/read work but still permits the same producer's
+alias-retirement retry. A pending producer prevents both its lease and a last
+sibling lease from finalizing the Host; Result forwarding supplies no Source
+admission, Result permission or physical close acknowledgement.
+
+The ordinary selected Node Host has a separate finite Local Result/publication
+service. Its actual package prefix retains the same startup/runtime/module and
+filesystem, crypto, Buffer, WebCrypto and Journal native originals before the
+covered namespace and facility acquisition. The fixed namespace checks those
+same imports and derives the Store authority and publication control from the
+actual Host/root/principal and same Common instance. Matching support DATA,
+capacity counters or a callback alone cannot issue this service.
+
+The Host binds the Result control original after its actual Journal opens and
+before exposing the SDK receiver. This covers an eager query collection's first
+raw argument capture, not only a later Host request. The private SDK captures
+the original read/current pair, checks before schema/option traversal or UUID
+creation, and retains an opaque one-shot continuation across the query wait.
+Internal defaults do not become a second caller intake or admission. The first
+selected recipe supports absent read arguments; unsupported valid schemas or
+options stay backend Unavailable before traversal, not invalid public input.
+
+Store construction remains lazy and adopts the same prepared publication
+exclusion. Its separate finite service includes retained initial/Journal and
+selected Source/Compute originals, publication encodings, Store metadata and
+payloads, Result readers/frames, actual native/managed controls, failed
+constructors and escaped aliases. Shared process/module domains are counted
+once. Historical Host/Store/read attempts are bounded without refill; request
+and encoded-history demand is distinct from an actual backed amount or an
+allocation-success guarantee. The existing actual Store capacity checks and
+all independent physical close duties remain mandatory.
+
+Before a first durable business Submission/Run admission, the existing Host
+derives its finite Result candidate from the original checked Program and same
+admitted managed Run. Existing epoch/name control and read-only/ready lookup
+retain their Journal responsibility; an already accepted physical start is
+never repaired by a new Run or replacement resource admission. Key creation,
+first-initialization, Account, Result and business-I/O authorization remain
+separate. A selected no-key Result Store does not load or manufacture the
+legacy private Evidence key; a later key-dependent operation keeps its original
+missing-key refusal. Content, Model, Effect and other physical suppliers are
+not acquired by constructing shared service controls.
+
+The original Store is retained before post-constructor current checks. Partial
+opening failure keeps the same cleanup carrier while the acquired Journal
+drains independently; their shared token survives until both original ACKs.
+Cleanup does not require current admission. If a failure carrier completes the
+same duty before its returned view observes it, that view receives the retained
+original close observation, never another physical close or revived service.
+Process-lived module/native and escaped managed aliases are not reclaimed by
+that Store ACK, Promise completion or an empty DATA projection.
+
+###### Ordinary generated Content Run
+
+The ordinary Host prepares a source-free checked serialization Run before its
+durable admission. The existing Content prefix provider and workspace derive
+its managed limits; normal platform allocation supplies the actual memory.
+The existing Content owner retains one Ledger with that exact prepared Program
+and compiled Run, and consumes it once before prefix construction. A copied
+plan, failed preparation or later currentness refusal cannot issue another
+Ledger or fall back to the legacy execution-time constructor. A previously
+started durable Run is observed, not regenerated under a new preparation.
+Acquired or Model-composed shapes require their own connected same-Run path;
+their absence is a backend gap, not an authored-language restriction.
+
+For a selected Local keyed Content path, the ordinary Source installation
+retains a separate Content-purpose Resource original before durable business
+admission. Its checked preparation combines the Direct capture, bounded keyed
+requests, lookup assembly and Content prefix on one Run Ledger. Source-only
+and Mock Model originals cannot be converted into this purpose. The actual
+Direct acquisition is rechecked against that same prepared Program and its
+original RowRun before the Ledger is borrowed; there is no standalone Ledger
+fallback. Each keyed request receives its own nominal child, with cumulative
+history that close cannot refill. The installed Source retains its acquired
+native reader before a fallible current check, and its physical recovery must
+finish before capture cleanup and the parent original can retire. Received
+file bytes consume their original RowRun observation ticket before the next
+encoded row is charged. Neither a lookup counter nor a captured path grants
+read authority or acknowledges physical cleanup. Model-composed Content and
+other unsupported backend shapes remain separate connections, not language
+restrictions.
+
+The Host retains the first checked keyed selection in its original Content
+preparation and forwards that same handle through the Source recipe and later
+dispatch. Reselecting an equivalent operation is not the original child bound
+to the managed Run. The Local Source explicitly selects Run-owned Content
+capture before file I/O. Its read grant uses the same Account gate's captured
+current-decision fence and receiver, not a second evaluator or a copied Allow.
+
+Task splitting does not replace this original inventory: the JOIN and Serialize
+may have different task ordinals. The checked same-owner dependency path, not
+ordinal equality, binds the selected barrier. Prefix preparation retains its
+original acquisition contexts and executes only the range after the completed
+Direct capture, using the same sealed keyed inputs without Source replay.
+
+The original response schema identifies one typed Content column. An absent
+MIME refinement permits the actual MIME validated by the existing capture
+owner; a present refinement must match it exactly. Initial capture and saved
+reference restoration use the same schema compatibility check. Restoration
+keeps the original reported MIME and complete reference evidence instead of
+issuing a replacement candidate from an expected type string.
+
+The Local Connector resolves keyed Content through the original captured
+listing path and exact Resource/version pair, then obtains a current original
+Account read decision. It does not reverse a Resource CID into a path, scan a
+replacement listing or borrow metadata permission for content. The same native
+Root child is retained before construction/current checks; failed physical
+cleanup is reachable independently of Core capture retirement. Native reads
+use one bounded exact-size output buffer and at most one 64 KiB temporary
+chunk, rather than an unbounded collection of short-read control records.
+That output overlaps the Store writer's append snapshot and the encoded row
+workspace in the original declared Content demand. Raw bytes and encoded rows
+consume distinct ordered observation tickets; neither ticket grants access or
+acknowledges the other owner's cleanup.
+
+This preparation grants no key, Account, Content reference or Result authority.
+Private derivation evidence still requires its original purpose-confined key;
+a no-key Result Store cannot infer key initialization from a missing file.
+The ordinary Host selects its real 32-byte random AEAD key during the existing
+Store initialization, without a Mock Account, Reviewer or signer prerequisite.
+The same initializer's actual Root creation and prepared Store admission must
+positively establish first initialization; absent Store and key directories in
+an existing installation cannot supply it. Key selection completes before the
+ordinary client is exposed, even if no query will open the lazy Store.
+An owner-only immutable intent precedes the key write, and adoption records the
+same key generation and Store contract after the actual Store opens. Reopen
+validates and durably reconciles those originals without rewriting the key.
+Missing or corrupt adopted/interrupted material refuses rather than rekeying.
+An old no-key Store without positive first-adoption metadata keeps plain Result
+support but cannot infer a Content key capability from absence. Key setup adds
+no Account, Effect, approval or egress right and changes no evidence AAD.
+
+The actual Store writer, generated bytes, private evidence and publication keep
+their original custody. Cleanup stops and settles the same prefix only after
+its physical writer and holding duties acknowledge retirement. Retrying cleanup
+does not repeat generation or an uncertain commit. Managed limit arithmetic is
+not physical capacity, an allocation-success guarantee or another child's ACK.
+The Journal can close independently of a failed initialization FD, but the same
+Store exclusion remains held until that FD and the actual Store acknowledge
+their separate cleanup. A close-only retry neither repeats a partial write or
+sync nor regenerates a key or Content object.
+
+The Host retains the unstarted admission before fallible start/take, and takes
+one original Run Ledger. The Source reads and the generated managed DAG
+borrow that same Ledger internally. The existing physical Ledger equality at
+capture transfer remains mandatory. Independent Source-only children, equal
+limits, copied prepared values or a fresh scalar Ledger cannot replace it.
+Currentness and the existing mutable-resource/park fence both apply before
+preparation and after callbacks. Account and read/send authority stay separate.
+
+The shared Source/Compute limit projection follows the checked capture-prefix
+count, including a single installed RowSource. Declaration, capture, transport
+and workspace arrays must match that original count; each capture must retain
+the corresponding checked QueryRequirement. All captured inputs stay retained
+beside the generated Compute suffix. The source-free entry requires empty
+Source arrays rather than silently treating a missing acquisition as free.
+This projection remains managed demand, not a physical supplier or read grant.
+The separate local Mock Model purpose retains its own supported shape and
+early original Scope; extending plain Source bookkeeping does not issue it.
+
+An ordinary Project Local Source retains its exact connection declaration and
+the same issued Project/runtime before installing the actual rooted reader.
+The checked QueryRequirement selects a declaration for each capture occurrence;
+the number of configured connections is not the Run's capture count. Repeated
+reads of one declaration have distinct occurrence and child custody. The same
+joint service can also admit a checked source-free Compute graph with empty
+Source arrays, without creating another parent or borrowing listing bytes.
+Captured original reader close/status callbacks and their receivers survive
+currentness refusal. A pending child does not suppress independent sibling
+cleanup, and every actual reader must acknowledge retirement before its Run
+and installation retire. Managed reference retirement is not a native ACK.
+Changing original connection bytes changes installation reuse identity; equal
+Source labels cannot replace the retained declaration. Explicit Mock setup is
+separate and never follows merely from installing a normal Local Source.
+
+The selected ordinary Local factory supplies the existing finite
+`lookup_execution` policy from those same installed Local limits before
+admitting the Host Environment. The retained Project Source preparation must
+belong to the same runtime and remain current. This is a managed service
+ceiling, not physical backing, Account/egress/Model authority or a cleanup ACK.
+An explicit valid Host lookup policy takes precedence; an explicit invalid or
+refused policy must not become the omitted-default case. Generic, unselected
+and Mock-only paths retain unresolved absence and Common's `MissingPolicy`
+refusal when no actual lookup policy was configured. The selected Local ceiling
+uses one attempt per request and the declared file, page, byte and duration
+limits; historical network-field names do not issue a network plan or retry.
+
+Partial initialization retains the same admission even when no Run view was
+returned. If Resource proves that neither the imported child nor its origin
+published a Ledger, cleanup reports a distinct unpublished-initialization
+outcome to the original Root, never fabricated zero usage. If a Ledger exists,
+cleanup preserves its actual usage, parked state, delegated resources,
+reservations, holdings, uncertain transfers and pending report. Logical stop
+cannot settle those obligations prematurely. Unknown stays with the original
+carrier; neither a retry nor process/Promise completion issues a replacement.
+
+If a separately supplied read purpose needs the first bootstrap on that same
+Run, Resource retains the reservation inside the already owned admission
+before post-reservation currentness or Scope construction. The reservation is
+one-shot and must precede every ordinary child, including spent zero-byte
+identities. A failed Scope constructor leaves that exact token reachable via
+admission cleanup; an installed census still requires all of its original
+children to retire before bootstrap settlement. This does not relax the park
+fence, clear uncertain usage, reset serials or acknowledge external backing.
+The admission's resident optional reference and attempt latch, bootstrap,
+census and constructor overlap belong to the selected phase even when absent.
+
+A local no-I/O OriginalMock Model purpose is a separate fixed Root selection,
+not a conversion of the Source/Compute purpose. Its Resource admission retains
+that distinction even when the actual imported Ledger ABI and limits match.
+The Host retains the original admission before starting the one Run, verifies
+the exact prepared Program, request, compiled Run, Definition and infer graph,
+and installs the existing Model read Scope with the first retained bootstrap
+before Source children. Failed Scope construction or post-current checks stay
+under the same admission cleanup; they cannot issue a replacement Run or late
+census. Neither this binding nor its opaque returned Scope supplies the actual
+Model service, a generic/async Provider, permission, or an allocation-success
+guarantee. Missing separately selected Root supply remains unavailable without
+falling back to Source/Compute ports.
+Reserving these bytes supplies neither a missing operational purpose nor
+Model or Account authority. The Host's normal Run retirement uses the same
+admission cleanup rather than separately stopping around this retained duty.
+
+After the original Model read has handed off, a producer on the same Run may
+complete its reserved input into an independently retained output. Publication
+currentness recognizes that Resource-recorded completion only on the same
+reservation and its still-live original inventory holding (or a completed empty
+output). The original bootstrap, read token, other input holdings and delegation
+snapshots remain exact. Initial read admission and durable snapshot comparison
+do not accept a changed snapshot. Observing completed output neither refunds
+pending producer scratch nor acknowledges its separate physical cleanup; park,
+stop, foreign owners and retired output still refuse publication use.
+
+An owning consumer may read each original reservation's current retained and
+execution amounts without mutating the shared Ledger or invoking currentness.
+Foreign Ledger/token pairs refuse even after settlement. A closed reservation
+reports no reserved bytes, but separate holdings, escaped aliases and physical
+ACKs remain independent; attempt and wire history are not inferred from this
+read. The consumer's own finite inventory and original purpose still govern
+its admission, rather than treating aggregate shared-Run usage as its budget.
+
+Original file handles and distinct response ArrayBuffers keep their physical
+supplier and cleanup duties. Logical Run stop, Source retirement or a sibling
+ACK does not acknowledge their release, and escaped bytes remain charged.
+Host/Journal/Store initialization, external SQLite or other engines, Model,
+Effect, signing, Result/Content publication and transport require their own
+actual scopes and authority; the selected Source/managed-Compute admission does
+not fund them implicitly.
+
+The Journal's selected facility must precede the first covered Host-format or
+Journal filesystem operation, not merely database construction. It retains the
+same Host, installation, generation, principal and original paths. Database
+wrappers and their original close/native-open-state observations are retained
+before fallible open, including isolated inspection copies. Copy/source FDs are
+not retired before the database's own close is confirmed. Cleanup retries are
+close-only, retain first/latest diagnostics and observe an existing synchronous
+close flight rather than reentering it.
+
+Selected primary, observation and isolated-copy constructors receive closed
+null-prototype internal option packets; native property lookup must not acquire
+inherited callbacks. Selected Journal and copy path canonicalization uses the
+captured `realpathSync.native` operation, whose identity and descriptor are part
+of the original facility's currentness checks. This avoids the ordinary JS
+symlink walk's intermediate path and Map/Set history, not its separate libc,
+libuv, managed result, allocator or stack obligations. The same native operation
+and option packets issue no admission or physical ACK; unselected paths retain
+their existing constructor and canonicalization behavior.
+
+An optional private Journal database-byte ceiling is an implementation support
+bound, not admission or a new format rule. It bounds original DB/WAL extent
+before copy/inspection and the same connection's main database growth before
+schema work. Unselected callers retain their existing behavior. That ceiling
+does not bound native heap, aggregate WAL growth, other connections or shared
+library state; those remain separate terms in the selected facility's complete
+simultaneous disposition. Unsupported originals are refused without reclassifying
+valid input as a language error, and no cleanup observation supplies authority.
+
+The selected request-Journal connection also has finite lifetime compilation
+and execution support conditions. Original SQL preparation, execution, UTF8
+measurement and statement methods are captured with their receivers. Native
+failures and refused attempts do not refill those counters. Positional scalar
+operand count and extent are checked before native binding. These conditions
+are not a heap reservation or permission and leave unselected callers unchanged.
+
+When those execution support conditions are selected, the same connection
+latches a synchronous prepare/execute call before invoking its original
+currentness or native callbacks. Reentry cannot begin another SQL call inside
+that original operation. A current boundary outside an active SQL call is not
+retroactively classified as native overlap. Settling the synchronous latch on
+return or failure is not a database, allocator or physical-close ACK: an
+unresolved original cursor still blocks new SQL and stays under database-close
+custody. This connection-local support condition supplies no capacity or new
+process-wide lock.
+
+Selected metadata reads use the original SQLite iterator instead of native
+`All()`'s complete result vector. They retain at most the supported row count
+and one lookahead row. Statements and unresolved cursors remain under the same
+actual connection; a failed cursor close prevents new SQL and cannot retire
+its original. Only the database's confirmed close can finalize that remaining
+native custody. Isolated cold inspection applies the same conditions and keeps
+its native statements alongside the original copy/FD cleanup carrier. The
+read-only inspection connection and subsequent writable connection are separate
+sequential originals, not a refill of one live connection or two whole-process
+allowances. Native single-row conversion, schema/connection/cache/transaction
+workspace and the optional observation connection still require their complete
+selected facility coverage before acquisition.
+
+A conditional native result estimate may use the same fixed authored SQL's
+output lists, exact admitted own-schema wildcard expansion and selected pragma
+definitions. It must not extrapolate a measured result width to future queries
+or confuse a representation ceiling with that narrower source argument. The
+original SQL/schema and receiving graph remain dependencies of the estimate;
+changing them requires renewed correspondence. Neither estimate selects a
+public column limit or supplies allocator, managed-result or physical capacity.
+
+The physical request-Journal Owner also observes custody for its own actual
+factory results. This private nominal observation separates logical Journal
+closure from the confirmed native database close and records whether the
+separate observation connection was attempted and whether that same secondary
+connection's original close has completed. Its historical attempted flag is
+never reset by cleanup. A copied Journal, a caller's
+Boolean or a successful semantic transaction cannot provide this observation.
+It issues no capacity or authority and does not certify the optional observation
+connection from the primary connection's close. The secondary wrapper and its
+close/native-open-state operations are retained before fallible open, so a
+partially opened secondary connection follows the same close-only duty.
+
+The selected Root captures the actual Journal constructor and nominal custody
+observer from its delivered Host namespace. It retains a returned Journal and
+its original close operation before any post-constructor current check. A
+refusal at that check therefore keeps the same native child reachable through
+the existing cleanup carrier. Constructor failures retain their original
+cleanup handle and captured status/retry receiver; cleanup cannot issue a
+replacement Journal. A close flight is published before callbacks, and only an
+explicit original pending-false observation can retire that constructor duty.
+The complete separate Journal disposition must precede this preparation: the
+captured namespace operations and initial-control or Source recipe are not its
+issuer. Primary native close cannot settle a separately attempted observation
+connection; Root retirement additionally requires that child's own confirmed
+native close and never releases process-lived module/native backing.
+
+When the selected Journal recipe relies on the existing Publication Store's
+physical exclusion, that exclusion is acquired after Host-format admission and
+before the Journal's native constructor. It does not fund the earlier format
+work: the separate complete operational facility already precedes that work.
+The Root publishes one opening flight, retains the returned prepared ownership
+before the next current check, and waits for the same flight during cleanup.
+A refusal after acquisition cannot discard the owner or start another Journal.
+
+The Root forwards that same nominal prepared original once through its captured
+private adapter and Host receiver to the existing Store factory's prepared
+argument. It does not reconstruct ownership from paths or tokens, issue another
+owner, or supply Store/key/payload authority. Ordinary unselected writable Hosts
+also acquire this existing Store exclusion before opening their same-root
+Journal, then pass that exact original to Store adoption. Moving this custody
+does not select an operational resource recipe for those callers. Fresh-prefix handling remains
+limited to the same prepared original; global unknown-format refusal remains.
+
+Journal and Store cleanup attempts remain independent. Store payload cleanup
+does not release shared exclusion while the same Journal's primary, secondary
+or constructor cleanup is unresolved. Conversely, Journal close cannot certify
+the adopted Store's payload cleanup. Only both original physical duties allow
+the existing Store owner to release its token. Captured dependency observations
+must explicitly return an own-data pending-false result; replacement callbacks,
+exceptions or ambiguous observations cannot settle it. Cleanup retries retain
+the same owner and cannot disturb a successor after its original staged release.
+
+Every prepared selected Host defers Publication services, including an ordinary
+Host with no selected Source profile. Connection negotiation uses its existing
+Journal; it does not construct a Publication Store or acquire an evidence key.
+The first validated and currently authorized non-connect request enters the same
+single-flight initializer. Its missing Publication preparation still refuses
+before key or Store work; Journal preparation is not payload funding. A Source
+lineage callback or private Source symbol is present only for a Source-selected
+installation. Unprepared Hosts retain their existing eager initialization.
+Shutdown waits for any original initialization flight and retains its sticky
+failure and cleanup before closing the same Journal and shared exclusion.
+
+A failed Store constructor can retain a cleanup child whose ownership release
+depends on the acquired Journal. For that same pre-service constructor failure,
+Host initialization drains the original Journal independently of the dependent
+child. It does not wait for that child before attempting Journal close, release
+the exclusion early, or reopen initialization. Other initialization cleanup
+ordering remains unchanged. Host Journal close remains retryable until both
+primary and optional secondary native connections have acknowledged close.
+An optional database-extent selection is applied and checked separately on each
+connection; one Pager's limit does not constrain another Pager or fund native
+heap, WAL, external writers or retained output.
+
+The same selected Journal can additionally impose a finite writable WAL-frame
+lifetime. This is a support boundary, not physical storage, mapped-memory or
+native-heap backing. The primary and optional observation connection share one
+counter under that Journal; opening the latter does not issue another allowance.
+Before cold native acquisition it retains a conservative frame allowance for
+the bounded original DB/WAL source. The actual native page geometry then selects
+the same bounded page-number set for both connections. Before native SQL work,
+the counter consumes a conservative transaction allowance for dirty pages,
+possible final commit repetition and FULL-sync sector padding. Batch SQL counts
+every semicolon plus its final statement, deliberately overestimating literal,
+comment and trigger-body separators rather than introducing another SQL parser.
+Failed attempts, rollback, checkpoint and one child's close never refill it.
+Refusal leaves the original connection and its independent cleanup reachable.
+This condition depends on the same original cooperative writer exclusion; it
+does not constrain arbitrary external writers. The actual facility must cover
+the full selected frame, index-region, array-growth and failure lifetime before
+work. A frame count, support counter or successful close cannot issue that
+facility or acknowledge process-lived native backing.
+
+For its execution-bounded SQLite recipe, each original connection selects
+connection-local memory temporary storage before the Journal's schema/control
+statements, including the schema-loading `max_page_count` pragma. The observed
+page geometry configures the same non-refilling WAL counter first; subsequent
+temporary and extent operations retain their conservative charges. The pinned
+`TEMP_STORE=1` compile choice and effective `temp_store`
+selection are both checked; unsupported or ineffective selection refuses with
+the acquired original connection still owned by its existing cleanup. An
+unselected connection keeps its prior temporary-storage behavior. The selected
+own-DDL cold inspection applies the same checked selection to its original
+read-only isolated-copy connection before schema queries. It retains that
+connection's captured operations and cleanup through failed configuration;
+read-only source custody is unchanged. This selection
+removes the transient-file branch from this recipe, not its native allocations:
+the fixed CHECK-IN index still has a distinct Btree, Pager, cache, cursor and
+KeyInfo lifetime beside the main database. Its native requests and allocator
+classes, old/new growth, failure custody and managed aliases remain in the same
+complete disposition before acquisition. Selecting memory or reading a PRAGMA
+is not heap backing, an operational issuer or a release acknowledgement.
+
+That disposition includes the actual selected SQLite allocator's necessary
+zone/class/control metadata. It binds the same selected runtime and facility,
+installation and generation before covered work; a default-zone probe, CPU
+count, scalar limit or unused Buffer does not identify or back that original.
+The shared allocator controls and escaped native/module state are retained
+once for their process lifetime, not refilled by a connection or Host close.
+This is the finite Journal facility, not a universal allocator lease or another
+business, Model or Effect allowance.
+
+Its supported request/history envelope is distinct from backed numerical
+capacity. A demand sum over separate original allocations can exceed the size
+of any single native request; the private request vector retains that sum as
+exact BigInt demand, not as a reserved heap or a successful allocation. Native
+request and SQLite representation bounds still apply to their individual
+operations. The actual same-startup service must cover the complete selected
+co-phase before use, including allocator controls and failed attempts; request
+arithmetic does not issue that service. Allocation failure retains the same
+original cleanup, and neither failure nor close refills process-lived terms.
+
+The ordinary prefix retains a separate fixed Journal service recipe before
+loading the SQLite builtin or Host namespace. The recipe selects the existing
+database/source extent, SQL compilation, statement/parameter/result, schema,
+WAL and operation support counters together. It retains the same shared control
+declaration by reference; it does not duplicate that declaration's heap or
+native amounts. Recipe retention alone does not issue the operational service.
+The actual prefix must still bind the complete co-phase and original facility
+before native acquisition.
+
+The private service original is retained by the selected prefix before its
+builtin acquisition, then bound to the returned actual SQLite constructor and
+method chain, original filesystem/crypto modules and checked Host namespace.
+The native operation descriptors are captured before namespace initialization;
+the namespace's later baseline cannot replace these earlier method originals.
+Its temporary-directory function and bounded original environment are captured
+before namespace callbacks. The same retained directory is used by image load
+and cold inspection. A detected service-original change retires it permanently;
+restoring a property cannot issue another service. The original process/module
+terms remain retained after the Host's native children acknowledge close.
+
+One nominal Host installation/generation may claim this original before its
+first subject/root-format operation. Its fixed argument selection captures that
+same entry's current callback. The cold native/copy phase must acknowledge its
+original physical cleanup before the writable phase; retained decoded records
+and process-lived terms remain beside both phases. Primary and observation
+connections sum within the writable phase. The service covers its selected
+stock native request/realloc/cache/control implementation and catchable refusal,
+without converting request demand into reserved capacity or promising that all
+maxima allocate together. Store payload, Result, Source, Compute and other
+business purposes still require their respective original admissions.
+
+Its argument selector preserves the Host's original update control and the
+Root's current callback, nominal directory inspector and retained temporary
+directory. Caller-provided limits, accessor/Proxy packets and caller clock
+closures cannot replace this fixed selection. The selected service uses the
+Journal's ordinary clock defaults; unselected private diagnostic clock behavior
+is unchanged. The same arguments apply the bounded own-DDL cold inspection and
+each actual writable connection, whose physical cleanup remains independent.
+
+Native wrapper and result-conversion history is separate from simultaneous
+live cardinality. The selected bounded cursor includes lookahead, terminal
+`next` and one original `return`; each may construct new protocol vectors even
+without a returned row. Cover cumulative wrapper, membership, vector/root-entry
+and result-backing requests. Retried payload allocations are attempts, not four
+successful originals. A client-side free-call upper neither accounts for the
+allocator's own cache eviction and metadata allocations nor acknowledges any
+region retirement. Those internal histories and shared baseline remain in the
+same complete service; they cannot be replaced by the peak live-vector count.
+
+The actual selected public prefix also retains its filesystem/crypto bindings
+before Host namespace initialization. The existing Journal facility-current
+operation compares those same functions, used filesystem constants, directory
+read/close and Hash/Hmac operations with the namespace consumer. A foreign
+receipt or accessor is refused without dispatch; a detected operation change
+does not revive after restoration. The legacy constructor-pair-only call is
+unchanged, while the actual prefix supplies its earlier captured bindings.
+These references do not supply native extent, earlier acquisition coverage,
+an operational disposition, key/first-init permission or a physical ACK. The
+selected filesystem/library branch, native instance custody and complete
+simultaneous facility amount remain separate obligations.
+
+The selected Darwin Journal directory path uses an instance-bound native
+descriptor, APFS/non-union admission and a fixed kernel attribute buffer, rather
+than asking libc to construct a potentially eager directory stream. Entry,
+name-byte and work ceilings apply before returning names. The same descriptor
+and path identity remain current through enumeration; the existing full-name
+snapshot and cold-copy checks consume that private inspector without falling
+back after a selected refusal. An unselected Journal retains its existing path.
+The native module, loader and all native/managed aliases require their own
+pre-use correspondence and complete facility coverage; the inspector's private
+membership or bounds do not issue that admission.
+
+The same inspector captures a finite cumulative acquisition allowance before
+its first callback. Each accepted invocation consumes one attempt before
+currentness or native open, including known refusal and failed construction.
+Successful close does not refill it. This bounds construction history as well
+as one live enumeration: native wrappers, buffers and returned immutable names
+may outlive descriptor close until their separate original lifetimes retire.
+Mutating a later limits record cannot increase the captured allowance. These
+private recipe conditions do not change unselected Journal or public limits.
+
+Selected Host root-format admission consumes a one-entry view of that same
+native module, with its own two-attempt construction history. It does not use
+stock `Dir`, enumerate the rest of a directory or decode an unrelated name
+merely to establish nonemptiness. The existing fixed marker and legacy-name
+probes retain their precedence, without a new full-directory cardinality or
+Unicode format rule. The Root binds the original namespace operation and same
+Host subject before the call, retains its single flight and partial cleanup
+through close, and refuses a second admission or Journal work during that
+flight. Unselected format admission keeps its existing path. The original
+native 64-KiB buffer, returned first-entry bytes, wrappers, callbacks and marker
+FD/work overlap belong to the same complete pre-use facility; the bounded
+view and a successful marker write are not that operational supplier.
+
+The selected Store exclusion uses a separate nominal view of that same retained
+native module before Journal construction. Its explicit entry/work/history
+allowance is included beside the Journal view, not credited twice from one
+allowance. Store adoption retains the same cumulative reader rather than
+resetting its counters. A whole bounded native scan and its returned names
+precede Store's cumulative processed-entry/UTF8 checks; both holdings and this
+refusal overlap belong in the original facility envelope. Unselected Store
+bootstrap and later independently scoped Store operations are unchanged.
+
+Physical directory close is consumed once before entering the native call.
+A failed or uncertain result retains the same original and pending duty; retry
+only observes that outcome and never closes a possibly reused numeric FD.
+Neither JavaScript alias retirement nor native finalization supplies a close
+acknowledgement. The loaded module and shared allocator/library domains remain
+charged for their actual lifetimes after a successful child close.
+
+Fixed Journal marker descriptors also consume their captured numeric-FD close
+once. A thrown or ambiguous result retains its original Unknown observation;
+cleanup retry does not close the same integer again, which may now belong to
+another descriptor. This differs from a retained object with an explicit
+retryable close protocol. A successful marker close and the original marker
+classification remain unchanged; restoration or EBADF is not an Unknown ACK.
+The isolated-copy Owner applies the same one-shot rule to its pinned source,
+copy writer and schema-reader numeric descriptors. It retains a failed close
+and the original inspection cause without touching a reused descriptor on
+retry. Its separately retained native database still follows that original
+wrapper's retryable close protocol before file/copy retirement.
+
+The private directory image loader keeps native binary facts separate from JS
+Source. After independent pre-use module/filesystem coverage, it verifies the
+selected package image, creates one nonescaping private copy and retains its
+same read descriptor. It closes the only writable descriptor and checks the
+copy hash before the ordinary named-image load, then verifies that same inode
+and hash before unlinking and closing it. This selected Darwin load does not
+disable code-signing or platform policy. No filename or writable descriptor is
+published during the load/unlink sequence. Actual startup ownership and the
+selected originals remain obligations; matching public DATA cannot supply them.
+The temporary directory is an explicit bounded input from that disposition,
+not an ambient environment read performed by the loader as its own supplier.
+The same Root retains that path before native-image acquisition and passes it
+through the original Journal argument selector into isolated format inspection.
+The selected Journal refuses a missing or substituted path before ownership or
+database acquisition; its copy uses that retained input rather than reacquiring
+ambient `TMPDIR`. Unsupported supplied paths refuse without fallback. Unselected
+inspection callers keep their existing temporary-directory behavior. The path
+alias coexists with the image, Journal, source and copy duties until their
+original close observations; alias retirement is not physical backing or ACK.
+
+The same startup also captures the asynchronous filesystem operations used by
+the prepared Store exclusion, separately from synchronous Journal filesystem
+operations. The fixed namespace checks those same originals before subject or
+ownership acquisition. A detected replacement does not revive on restoration;
+the correspondence table itself grants neither a facility nor authority.
+The selected Node SQLite iterator entry also reads the global `Iterator` and
+its `prototype` before returning a native cursor. The prefix captures that
+own-DATA constructor/prototype pair without invoking accessors or Proxy traps;
+the namespace compares the same originals and their descriptors before selected
+native use. A later getter or substituted pair refuses without invoking it,
+and restoration cannot revive detected invalidation. No global property is
+frozen by this check. The retained descriptors, constructor/prototype aliases
+and currentness records share the original module/Host lifetime; they are not
+additional capacity, a proof of arbitrary earlier runtime history, or a physical
+ACK. Returned cursors remain under their original connection's cleanup duty.
+Selected ownership retirement reads its original token through the bounded
+metadata reader, never an unrestricted `readFile`. That reader captures the
+original FileHandle close and receiver before stat/read callbacks. A failed
+reader remains with the same ownership through its captured cleanup; no new
+read or owner removal precedes that original FD acknowledgement. This duty is
+distinct from Journal close, Store payload close and exclusion retirement.
+
+The loader keeps the original native instance, captured operations and runtime
+current fence. Detected loader replacement does not revive after restoration.
+An initialization attempt, including a failure after native entry, is never
+replaced by another load. Partial file cleanup retains its own one-shot close
+outcomes independently of the process-lived loaded image and native allocator
+domain. Importing the loader control module does not acquire native bytes or
+issue the missing complete operational disposition.
+
+SQL and native-statement counters do not bound an operation that refuses
+before reaching SQL, including its validation and any earlier native crypto
+work. The selected Journal may therefore additionally impose an original
+lifetime operation ceiling before its delivered methods inspect arguments or
+invoke currentness. Failed validation or currentness consumes that attempt;
+reentrancy, rollback and property replacement cannot refill it. The same
+original receiver and method are captured from the authored Journal record.
+Its asynchronous admission remains asynchronous. Once exhausted, it retains
+and rethrows one refusal original rather than allocating a new error on each
+denied call. Close and separate observation-close remain their exact original
+operations, available without operation credit or currentness.
+
+The delivered method record remains a nominal member of the original Journal
+custody observer; copying it is not independent custody. Its original method
+record, forwarding closures/receivers, operation count, retained refusal and
+escaped method aliases coexist for their real lifetimes. This support ceiling
+does not bound each operation's input/work by itself, fund any native or managed
+backing, create permission, or reset shared allocation domains. The full recipe
+must combine it with the original per-operation input/cardinality/SQL limits
+and physical facility before use. An unselected Journal is unchanged.
+
+Selected cold inspection may additionally bound the SQLite schema table's
+declared row payload and traversal before native SQLite opens the isolated
+copy. The resource reader follows table-btree pages and the same last valid
+committed WAL prefix; an uncommitted or invalid-checksum trailer cannot hide
+an earlier schema. It streams bounded buffers and a bounded frame index rather
+than materializing schema SQL or a complete file. The same copy Owner retains
+its read descriptors through this inspection and original cleanup. This is a
+backend preparation support condition, not a new Journal format, SQL decoder,
+physical capacity issuer or semantic admission. SQLite still performs format
+and SQL checking; native schema construction and all other facility terms must
+remain in the complete phase disposition.
+
+A selected finite native recipe may additionally support only byte-exact DDL
+programs already belonging to its original Journal implementation. The same
+bounded binary resource reader can extract that record field, including bounded
+overflow pages and the committed WAL overlay, without interpreting SQL. Native
+automatic-index entries with no SQL introduce no additional program. An extra
+view, alternate spelling or unsupported schema stays backend Unavailable before
+native schema expansion; it is not declared invalid in the language or in an
+unselected Journal. The original native SQLite checks still follow. Support
+DATA narrows the selected recipe and never issues capacity or custody. Its
+original allowlist Strings, bounded record backings, overflow buffer and all
+FD/current/cleanup overlap belong in that same complete phase.
+
+For this selected own-DDL path, the same copied schema records also identify
+the saved table and index root pages, including automatic indexes with NULL
+SQL. A bounded binary walk follows those Btree pages through the same committed
+WAL view and checks declared cell payload lengths before native open. It does
+not allocate or decode row values. This is necessary because a native large
+column cache may allocate from the declared length before a later overflow
+read discovers corruption; a file-size check at that later read is not an
+earlier allocation bound. The existing source-byte ceiling bounds the selected
+record declarations. An unsupported declaration refuses preparation rather
+than changing SQLite's format or SQL semantics. Unselected inspection remains
+unchanged. The additional root/worklist array, visited-page set, bounded page
+reads and retained copy/source duties coexist with the schema buffers and WAL
+index in the complete facility phase; this preflight issues no backing or ACK.
+
+Installation-time Mock answer documents are bounded Host-preparation
+definitions, not Model execution capacity. The selected control recipe includes
+the additional original Task reread and answer document for each selected Task,
+their UTF8/read/parse/checked-value/normalization work and retained definition,
+typed Provider, clock and callback aliases. These extra originals are declared
+before the selected images and acquisition; they do not reuse the earlier Task
+wire allowance. The same Host/runtime/current predicate and original preparation
+lifetime apply through partial failure and escaped aliases. Creating a typed
+mock Provider does not fund its requests, Entry, quantity, output, invocation or
+transport; those remain separately admitted Model duties.

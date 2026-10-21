@@ -53,6 +53,25 @@ test('format inspection refuses a source modified during the isolated read', t =
   }), {code: 'UnknownSqliteJournalFormat'});
 });
 
+test('selected copy constructor ignores inherited SQLite option callbacks', t => {
+  const {root,path}=fixture(t);
+  const before=snapshot(root);
+  const previous=Object.getOwnPropertyDescriptor(Object.prototype,'allowBareNamedParameters');
+  let reads=0;
+  Object.defineProperty(Object.prototype,'allowBareNamedParameters',{configurable:true,
+    get(){reads++;throw new Error('InheritedInspectionOptionMustNotRun');}});
+  try {
+    assert.equal(inspectSqliteSnapshot(path,database=>
+      database.prepare('SELECT value FROM metadata').get().value,
+    {assertCurrent(){}}),'before-wal');
+    assert.equal(reads,0);
+    assert.deepEqual(snapshot(root),before);
+  } finally {
+    if(previous===undefined)delete Object.prototype.allowBareNamedParameters;
+    else Object.defineProperty(Object.prototype,'allowBareNamedParameters',previous);
+  }
+});
+
 test('inspection refuses scratch inside the source root before creating any file', t => {
   const {root, path} = fixture(t);
   const before = snapshot(root);
@@ -66,6 +85,33 @@ test('inspection refuses scratch inside the source root before creating any file
   } finally {
     if (previous === undefined) delete process.env.TMPDIR;
     else process.env.TMPDIR = previous;
+  }
+});
+
+test('selected inspection uses its supplied temporary directory without reacquiring ambient TMPDIR', t => {
+  const temporaryDirectory = tmpdir();
+  const {root, path} = fixture(t);
+  const before = snapshot(root);
+  const previous = process.env.TMPDIR;
+  process.env.TMPDIR = root;
+  try {
+    assert.equal(inspectSqliteSnapshot(path, database =>
+      database.prepare('SELECT value FROM metadata').get().value,
+    {assertCurrent() {}, temporaryDirectory}), 'before-wal');
+    assert.deepEqual(snapshot(root), before);
+  } finally {
+    if (previous === undefined) delete process.env.TMPDIR;
+    else process.env.TMPDIR = previous;
+  }
+});
+
+test('supplied inspection scratch rejects unsupported paths without fallback or native acquisition', () => {
+  for (const temporaryDirectory of ['', '.', 'a'.repeat(4097), '/invalid\0path', null, {}]) {
+    let currents = 0;
+    assert.throws(() => inspectSqliteSnapshot('/must-not-be-opened', () => assert.fail(),
+      {temporaryDirectory, assertCurrent() { currents++; }}),
+    {code: 'InvalidSqliteSnapshotInspectionConfiguration'});
+    assert.equal(currents, 0);
   }
 });
 

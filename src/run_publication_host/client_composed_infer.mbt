@@ -60,7 +60,9 @@ pub fn client_infer_occurrence_matches(
 ) -> Bool {
   physical_equal(value.owner, owner) &&
   @strategy.graph_task_selected_step(owner.graph, value.task) is None &&
-  @strategy.graph_task_prefix_end(owner.graph, value.task) is None &&
+  client_infer_occurrence_output_step(value)
+  .map(last => value.step <= last)
+  .unwrap_or(false) &&
   @strategy.graph_task_owner(owner.graph, value.task)
   .map(preparation => physical_equal(preparation, value.preparation))
   .unwrap_or(false)
@@ -69,8 +71,8 @@ pub fn client_infer_occurrence_matches(
 ///|
 /// Select by checked ownership and task boundaries, never Program JSON. A
 /// selected Compute task cannot claim an INFER elsewhere in the same Unit.
-/// The initial composition increment accepts exactly one Model occurrence in
-/// a complete Unit task. Split-task input custody needs a separate connection.
+/// A retained prefix keeps the same complete Model occurrence and its original
+/// Stage inputs; independently selected suffix tasks cannot claim that Model.
 pub fn prepared_client_composed_infer_occurrence(
   owner : PreparedClientProgram,
 ) -> ClientInferOccurrence? {
@@ -83,8 +85,8 @@ pub fn prepared_client_composed_infer_occurrence(
 
 ///|
 /// Enumerate exact checked occurrences in graph order. Each component retains
-/// one whole Unit; split tasks and two Model boundaries in one Unit still need
-/// their own input-custody connection. This inventory grants no dispatch.
+/// one whole Unit or fused prefix; selected tasks and two Model boundaries in
+/// one Unit still need their own input-custody connection. This grants no dispatch.
 pub fn prepared_client_composed_infer_occurrences(
   owner : PreparedClientProgram,
 ) -> Array[ClientInferOccurrence]? {
@@ -111,8 +113,7 @@ pub fn prepared_client_composed_infer_occurrences(
       if @lower.payload(node) is @lower.Infer(_) {
         if selected_in_task ||
           selected.length() >= 128 ||
-          @strategy.graph_task_selected_step(graph, task) is Some(_) ||
-          @strategy.graph_task_prefix_end(graph, task) is Some(_) {
+          @strategy.graph_task_selected_step(graph, task) is Some(_) {
           return None
         }
         selected.push({ owner, task, stage, step, preparation, })
@@ -172,9 +173,19 @@ pub fn client_infer_occurrence_terminal(
   occurrence : ClientInferOccurrence,
 ) -> Bool {
   client_infer_occurrence_matches(occurrence, occurrence.owner) &&
-  occurrence.step + 1 ==
-  @pipeline.step_count(
-    @lower.pipeline(@lower.bound_preparation(occurrence.preparation)),
+  client_infer_occurrence_output_step(occurrence) == Some(occurrence.step)
+}
+
+///|
+/// The original physical task's checked output, not the terminal of a later
+/// independently owned suffix in the same authored Unit.
+pub fn client_infer_occurrence_output_step(
+  occurrence : ClientInferOccurrence,
+) -> Int? {
+  client_task_output_step(
+    occurrence.owner.graph,
+    occurrence.task,
+    @lower.node_count(@lower.bound_preparation(occurrence.preparation)),
   )
 }
 

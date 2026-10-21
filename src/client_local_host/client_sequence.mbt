@@ -169,6 +169,46 @@ pub fn prepare_client_acquired_serialization_prefix(
   fragment_body : String?,
   ordered_body : String?,
 ) -> @execution.GeneratedSequence? {
+  if @publication_host.select_client_single_keyed_acquisition(prepared)
+    is Ok(Some(keyed)) {
+    // A split task ordinal is not the Direct acquisition coordinate. Retain
+    // the same checked JOIN-to-Serialize path and select only the prefix after
+    // its actual capture; no acquisition operation is executed a second time.
+    guard @publication_host.client_keyed_acquisition_reaches_serialization(
+        prepared, keyed, task, step,
+      ) &&
+      @publication_host.client_keyed_direct_acquisition_coordinates(keyed)
+      is Some((_, input, direct_task)) &&
+      @publication_host.prepare_client_query_acquisition(
+        prepared, direct_task, input,
+      )
+      is Ok(query) &&
+      @sourceviews.query_acquisition_capture(query) is @pipeline.Step(capture) &&
+      prepare_client_serialization_prefix_owned(
+        Pure(prepared),
+        task,
+        step,
+        registry_body,
+        values_body,
+        fragment_body,
+        ordered_body,
+      )
+      is Some(prefix) else {
+      return None
+    }
+    let count = @execution.generated_sequence_step_count(prefix)
+    guard count > 0 &&
+      @execution.generated_sequence_step_index_at(prefix, count - 1)
+      is Some(terminal) &&
+      terminal > capture else {
+      return None
+    }
+    return @execution.select_generated_sequence_range(
+      prefix,
+      capture + 1,
+      terminal,
+    )
+  }
   if task == 1 {
     // The checked Stage producer is bound at runtime by bind_captured_source;
     // this is preparation of its consumer, not replay of the Source task.
@@ -670,8 +710,14 @@ fn prepare_client_local_sequences_owned(
   for task in 0..<count {
     let composed_boundary = composed_boundaries
       .filter(occurrence => {
-        @publication_host.client_infer_occurrence_coordinates(occurrence).0 ==
-        task
+        @strategy.graph_task_owner(graph, task)
+        .map(owner => {
+          physical_equal(
+            owner,
+            @publication_host.client_infer_occurrence_preparation(occurrence),
+          )
+        })
+        .unwrap_or(false)
       })
       .get(0)
       .map(@publication_host.client_infer_occurrence_coordinates)
@@ -719,6 +765,25 @@ fn prepare_client_local_sequences_owned(
         })
         is Ok(_)
     }
+    // Whole serialization-prefix preparation retains the original acquisition
+    // expression contexts even when the selected barrier has a later task
+    // ordinal. Its execution range still excludes the completed capture.
+    let acquiring = acquiring ||
+      (match (serialization_input, prepared) {
+        (Some((selected, barrier)), Pure(value)) if selected == task =>
+          match
+            @publication_host.select_client_single_keyed_acquisition(value) {
+            Ok(Some(keyed)) =>
+              @publication_host.client_keyed_acquisition_reaches_serialization(
+                value,
+                keyed,
+                task,
+                @lower.serialization_step(barrier),
+              )
+            _ => false
+          }
+        _ => false
+      })
     let sequence = match
       (match serialization_restore {
         Some((selected, producer, consumer)) if selected == task =>
@@ -754,7 +819,7 @@ fn prepare_client_local_sequences_owned(
                       )
                     _ =>
                       match composed_boundary {
-                        Some((infer_task, _, step)) if infer_task == task =>
+                        Some((_, _, step)) =>
                           @lower.prepare_sequence_with_infer_boundary(
                             owner,
                             step,
@@ -943,7 +1008,9 @@ fn prepare_client_local_sequences_owned(
       guard @execution.select_generated_sequence_range(
           sequence,
           boundary + 1,
-          @execution.generated_sequence_step_count(sequence) - 1,
+          @strategy.graph_task_prefix_end(graph, task).unwrap_or(
+            @execution.generated_sequence_step_count(sequence) - 1,
+          ),
         )
         is Some(selected) else {
         return None

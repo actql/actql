@@ -232,6 +232,35 @@ export function acquiredEffectPublicationAdmission(options) {
   return effectPublicationAdmission(options);
 }
 
+// Source-free Content is generated before its real Observation Set is issued.
+// Use the original Common generation and explicit compiled policy, without a
+// fabricated Source capture, Model call, input relation or second Run.
+export function sourceFreeContentEffectPublicationPlan({acquired,compiled,generation}) {
+  const {moon,control,prepared,compilation,admission,runDefinition,compiledPlan,
+    authorityScopeCid,namespaceId,storeAuthorityCid,now}=acquired;
+  if(moon.clientProgramEffectAcquisitionCount(prepared)!==0)
+    throw new TypeError('InvalidSourceFreeContentEffectPublication');
+  const {observation,invocation,owner:invocationOwner}=
+    control.issueCheckedClientSerializationInvocation(compiled,runDefinition,generation,limits);
+  const policy=control.compiledSerializationPolicy(compiled);
+  if(policy===undefined)throw new TypeError('ContentPolicyMissing');
+  const run=JSON.parse(runDefinition.wire);
+  const {plan,retention,retentionDependencies}=buildLocalPublicationPlan({control,admission,
+    runDefinition,invocation,observation,compiledPlanCid:compiledPlan.identity,
+    programDefinitionCid:moon.clientProgramEffectDefinitionCid(prepared),
+    inputRelationCids:JSON.parse(observation.wire).captured_input_artifact_cids,
+    sourceEvidence:[],authorityScopeCid,namespaceId,storeAuthorityCid,dataPolicyCid:policy.cid,
+    createdAt:run.created_at,now,retainUntil:run.valid_until,
+    resultCount:moon.clientProgramEffectCompilationResultNames(compilation).length,
+    moon,effectCompilation:compilation,preparedEffect:prepared});
+  const contentGenerations=Object.freeze([generation]);
+  return Object.freeze({...plan,effectInputRetention:retention,invocationOwner,
+    receiptEvidence:Object.freeze({...plan.receiptEvidence,contentGenerations}),
+    captureEvidence:Object.freeze({...plan.captureEvidence,contentGenerations}),
+    localEvidenceContext:Object.freeze({admission,runDefinition,runInvocation:invocation,observation,
+      retentionDependencies,resultDataPolicy:policy,sourceFreeDependencyClosure:true})});
+}
+
 // A source-free Model still issues its real Observation Set after dispatch.
 // Keep the original Effect admission and bind that exact Model issuer instead
 // of issuing a no-external-work observation during Run preparation.

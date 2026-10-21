@@ -2366,7 +2366,7 @@ function publicationControl(moon) {
           !moon.clientProgramCheckCompiledRunDefinition(value, token(definition))) {
         throw new TypeError('Foreign Client original Infer Run');
       }
-      const resultPolicyOriginal = compiledSourceFreeResultPolicy(compiled);
+      const resultPolicyOriginal = control.compiledInferEvaluationPolicy(compiled);
       if (resultPolicyOriginal === undefined) throw new TypeError('Missing Client original Infer Result policy');
       const materialsWire = compiledRunResult(moon.clientProgramIssueInferRunMaterials(
         value, token(definition), environment, parameters), 'RunHostInferMaterialsRejected');
@@ -2403,7 +2403,19 @@ function publicationControl(moon) {
           !Array.isArray(profiles) || profiles.length !== 7 || profiles.some(value => typeof value !== 'boolean')) {
         throw new TypeError('Invalid Client original Infer materials');
       }
-      const policy = control.admitSourceFreeResultPolicy(original.resultPolicyOriginal, limits);
+      // A Source-backed Run retains its checked publication policy, not the
+      // source-free unknown policy. This copy is evidence only: after restoring
+      // the original compiler Owner, compare its complete policy below.
+      const savedPolicy = original.resultPolicyOriginal;
+      if (savedPolicy === null || typeof savedPolicy !== 'object' || Array.isArray(savedPolicy) ||
+          Object.keys(savedPolicy).sort().join(',') !== 'cid,kind,wire' ||
+          savedPolicy.kind !== 'data_policy' || typeof savedPolicy.cid !== 'string' ||
+          typeof savedPolicy.wire !== 'string' || savedPolicy.wire.length === 0 ||
+          Buffer.byteLength(savedPolicy.cid) > limits.maxWireBytes ||
+          Buffer.byteLength(savedPolicy.wire) > limits.maxWireBytes) {
+        throw new TypeError('Invalid Client original Infer Result policy');
+      }
+      const policy = Object.freeze({kind: savedPolicy.kind, cid: savedPolicy.cid, wire: savedPolicy.wire});
       const materials = compiledRunResult(moon.clientProgramAdmitInferRunMaterials(
         original.materialsWire, definition.identity, ...profiles), 'RunHostInferMaterialsRejected');
       let value = compiledRunResult(moon.clientProgramInferRunMaterialsCompiled(materials),
@@ -2419,6 +2431,11 @@ function publicationControl(moon) {
       value = compiledRunResult(moon.clientProgramBindCompiledInferResultPolicy(value,
         policy.cid, policy.wire, limits.maxWireBytes, limits.maxNodes, limits.maxDepth),
       'RunHostResultPolicyRejected');
+      const actualPolicy = moon.clientProgramCompiledRunEvaluationPolicy(value);
+      if (actualPolicy === undefined || runtimeField(actualPolicy, 0) !== policy.kind ||
+          runtimeField(actualPolicy, 1) !== policy.cid || runtimeField(actualPolicy, 2) !== policy.wire) {
+        throw new TypeError('Foreign Client original Infer Result policy');
+      }
       const compiled = Object.freeze({kind: 'infer',
         template: inspectEvidence(moon.clientProgramCompiledRunTemplate(value)),
         compiledPlan: inspect(moon.clientProgramCompiledRunPlan(value)),
@@ -3042,6 +3059,55 @@ function publicationControl(moon) {
         preparedCallSet, admitted, beginEntry));
       return admitted;
     },
+    checkedClientMockModelRunRequirements(prepared, compiled, definition, occurrence, graph,
+      declarations, query, evidence, transport, scratch, registry, values, fragment, ordered) {
+      const value = compiledRunTokens.get(compiled);
+      if (value === undefined || compiled.kind !== 'infer') {
+        throw new TypeError('Foreign Client compiled Infer preparation');
+      }
+      return checked(moon.clientProgramInstalledMockModelManagedRunRequirements(
+        prepared, value, token(definition), occurrence, graph, declarations,
+        query, evidence, transport, scratch, registry, values, fragment, ordered));
+    },
+    beginCheckedClientMockModelManagedRun(admission, prepared, request, compiled, definition, graph, budget) {
+      const value = compiledRunTokens.get(compiled);
+      if (value === undefined || compiled.kind !== 'infer') {
+        throw new TypeError('Foreign Client compiled Infer preparation');
+      }
+      return checked(moon.clientProgramInstalledMockModelManagedRunBegin(admission,
+        prepared, request, value, token(definition), graph,
+        budget.bootstrapRetainedBytes, budget.bootstrapExecutionBytes,
+        budget.maxReservations, budget.maxHoldings, budget.maxDelegations));
+    },
+    checkedClientEffectMockModelRunRequirements(prepared, compiled, compilation, definition, occurrence, graph,
+      declarations, query, evidence, transport, scratch, registry, values, fragment, ordered) {
+      const value = compiledRunTokens.get(compiled);
+      if (value === undefined || compiled.kind !== 'infer') {
+        throw new TypeError('Foreign Client compiled Effect Infer preparation');
+      }
+      return checked(moon.clientProgramInstalledEffectMockModelManagedRunRequirements(
+        prepared, value, compilation, token(definition), occurrence, graph, declarations,
+        query, evidence, transport, scratch, registry, values, fragment, ordered));
+    },
+    beginCheckedClientEffectMockModelManagedRun(admission, prepared, request, compiled, compilation,
+      definition, graph, budget) {
+      const value = compiledRunTokens.get(compiled);
+      if (value === undefined || compiled.kind !== 'infer') {
+        throw new TypeError('Foreign Client compiled Effect Infer preparation');
+      }
+      return checked(moon.clientProgramInstalledEffectMockModelManagedRunBegin(admission,
+        prepared, request, value, compilation, token(definition), graph,
+        budget.bootstrapRetainedBytes, budget.bootstrapExecutionBytes,
+        budget.maxReservations, budget.maxHoldings, budget.maxDelegations));
+    },
+    prepareCheckedClientInferOriginalRead(compiled, definition, graph, scope, budget) {
+      const value = compiledRunTokens.get(compiled);
+      if (value === undefined || compiled.kind !== 'infer') {
+        throw new TypeError('Foreign Client compiled Infer preparation');
+      }
+      return checked(moon.clientProgramPrepareInferOriginalRead(scope, value, token(definition),
+        graph, budget.readRetainedBytes, budget.readExecutionBytes));
+    },
     // Installation-only original bootstrap: caller custody must keep this
     // same scope on failure/recovery, never issue a replacement Ledger.
     // Initial allocation and the full preset projection require pre-funding
@@ -3212,6 +3278,27 @@ function publicationControl(moon) {
       }
       return checked(moon.clientProgramStopInferOriginalReadPreparation(scope,
         read, value, token(definition), graph));
+    },
+    claimCheckedClientInferOriginalComposedPreparation(compiled, definition, graph,
+      read, readRetainedBytes, readExecutionBytes) {
+      const value = compiledRunTokens.get(compiled);
+      if (value === undefined || compiled.kind !== 'infer') {
+        throw new TypeError('Foreign Client compiled Infer preparation');
+      }
+      return checked(moon.clientProgramClaimInferOriginalPreparation(read,
+        value, token(definition), graph, readRetainedBytes, readExecutionBytes));
+    },
+    startCheckedClientOriginalComposedInferExecution(compiled, definition,
+      occurrence, graph, prefix, inputs, provider, consumer, readRetainedBytes,
+      readExecutionBytes, modelRetainedBytes, modelExecutionBytes, sources) {
+      const value = compiledRunTokens.get(compiled);
+      if (value === undefined || compiled.kind !== 'infer') {
+        throw new TypeError('Foreign Client compiled Infer preparation');
+      }
+      return checked(moon.clientProgramStartOriginalComposedInferExecution(
+        occurrence, graph, prefix, inputs, provider, value, token(definition),
+        consumer, readRetainedBytes, readExecutionBytes, modelRetainedBytes,
+        modelExecutionBytes, sources));
     },
     // Reuse the original compiled/definition token domains. A public wrapper
     // object cannot be passed as a nominal MoonBit compiled Run or contract.
@@ -3893,6 +3980,44 @@ function publicationControl(moon) {
           if (original === undefined) return;
           moon.clientProgramEffectCommandContentRelease(original.view);
           original = undefined;
+        }});
+    },
+    recoverEffectCommandContent({compiled, prepared, definition, captured, preview,
+      invocation, source, storeAuthorityCid, generationIndex, memberIndex, row,
+      inputName, candidate, issued, limits}) {
+      issuanceLimits(limits, 'Recovered Effect Content');
+      const run = compiledContent(compiled);
+      const admittedPreview = computationPreviewTokens.get(preview);
+      if (admittedPreview === undefined || typeof inputName !== 'string' ||
+          ![generationIndex, memberIndex, row, limits.maxFields, limits.maxWork]
+            .every(value => Number.isSafeInteger(value) && value >= 0)) {
+        throw new TypeError('Invalid recovered Effect Content input');
+      }
+      const original = {run, prepared, definition: token(definition), captured: token(captured),
+        preview: admittedPreview, memberIndex, row, inputName};
+      const view = checked(moon.clientProgramRecoverEffectCommandContent(run, prepared,
+        original.definition, original.captured, admittedPreview, token(invocation), source,
+        storeAuthorityCid, generationIndex, memberIndex, row, inputName, candidate, issued,
+        limits.maxFields, limits.maxWork, limits.maxWireBytes, limits.maxNodes, limits.maxDepth));
+      let retained = original;
+      const current = () => retained !== undefined &&
+        moon.clientProgramRecoveredEffectCommandContentMatches(view, original.run,
+          original.prepared, original.definition, original.captured, original.preview,
+          original.memberIndex, original.row, original.inputName) && retained === original;
+      return Object.freeze({binding: view, current,
+        matchesIssued(value) {
+          return retained !== undefined &&
+            moon.clientProgramRecoveredEffectCommandContentMatchesIssued(view, value) &&
+            retained === original;
+        },
+        wire() {
+          if (!current()) throw new TypeError('Recovered Effect Content unavailable');
+          return checked(moon.clientProgramRecoveredEffectCommandContentWire(view));
+        },
+        release() {
+          if (retained === undefined) return;
+          moon.clientProgramRecoveredEffectCommandContentRelease(view);
+          retained = undefined;
         }});
     },
     localEffectTableStorageMapping(artifact, limits) {
@@ -5133,6 +5258,12 @@ function publicationControl(moon) {
     },
     runDefinitionRunId(runDefinition) {
       return checked(moon.strategyRunDefinitionRunId(token(runDefinition)));
+    },
+    runDefinitionLifetime(runDefinition, expectedCid) {
+      const lifetime = checked(moon.clientLocalCheckpointRunLifetime(
+        token(runDefinition), expectedCid));
+      return Object.freeze({createdAt: runtimeField(lifetime, 0),
+        validUntil: runtimeField(lifetime, 1)});
     },
     // The Common reader checks the exact canonical document and embedded
     // resource CID. This private handle carries data, never restored custody.

@@ -92,7 +92,14 @@ pub fn client_program_infer_run_materials_definition(
 pub fn client_program_infer_run_materials_graph(
   materials : @publication_host.ClientTaskRunMaterials,
 ) -> @publication_host.ClientInferPlanGraph? {
-  @publication_host.client_task_compilation_infer(materials.compilation)
+  let graphs = @publication_host.client_task_compilation_infers(
+    materials.compilation,
+  )
+  if graphs.length() == 1 {
+    graphs.get(0)
+  } else {
+    None
+  }
 }
 
 ///|
@@ -109,7 +116,8 @@ pub fn client_program_compiled_infer_original(
   guard @publication_host.client_compiled_run_matches(compiled, prepared) else {
     return None
   }
-  guard @publication_host.client_compiled_run_infer(compiled) is Some(graph) else {
+  let graphs = @publication_host.client_compiled_run_infers(compiled)
+  guard graphs.length() == 1 && graphs.get(0) is Some(graph) else {
     return None
   }
   Some(

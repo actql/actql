@@ -10,6 +10,7 @@ import test from 'node:test';
 import {independentCid, valuesUnitIdentity, valuesPublicationRowsBinding, valuesResultPlan} from
   '../../scripts/fixtures/string-contract-identities.mjs';
 import {inputStageResultProgram} from '../../scripts/fixtures/input-stage-result.mjs';
+import {createOwnedScratch} from '../../scripts/owned-scratch.mjs';
 import {installLocalRetainedStore} from '../local-node/retained-store.mjs';
 import {createLocalRetainedStore} from '../store-local/files.mjs';
 import {connectEmbeddedLocal} from './embedded-local.mjs';
@@ -24,6 +25,7 @@ import {composeInstalledCheckEnvironment} from
   './installed-check-environment.mjs';
 import {installNodeClientRequestLookup} from './client-request-lookup.mjs';
 import {installNodeClientRunAttach} from './client-run-attach.mjs';
+import {installNodeClientRunStateObservation} from './client-run-state.mjs';
 import {installNodeClientRunStart} from './client-run-start.mjs';
 import {createClientHttpHandler} from './client-http.mjs';
 import {installNodeClientEffectProgramPreparation,
@@ -2112,8 +2114,9 @@ test('public Values submit computes and reads its real Local Result',
     const control = runtimeCore(moon).publicationControl;
     let plan;
     await mkdir(scratch, {recursive: true});
-    const directory = await mkdtemp(join(scratch.pathname, 'result-'));
-    t.after(() => rm(directory, {recursive: true, force: true}));
+    const original = await createOwnedScratch({parent: scratch.pathname,
+      prefix: 'result-', label: 'original public Values restart'});
+    const directory = original.path;
     const configuration = {
       directory: join(directory, 'publication'), storeAuthorityCid: cid('7'),
       capacityBytes: 4 * 1024 * 1024,
@@ -2350,6 +2353,9 @@ test('public Values submit computes and reads its real Local Result',
         now: () => '2026-09-24T00:30:00.000Z',
         limits: publicationLimits,
       });
+      const runStateObservation = installNodeClientRunStateObservation({
+        journal: lookupJournal, requestControl: moon, publicationControl: control,
+      });
       const server = createServer(createClientHttpHandler({
         authenticate: header => header === 'Bearer scoped-token'
           ? 'principal-after-restart' : undefined,
@@ -2385,6 +2391,7 @@ test('public Values submit computes and reads its real Local Result',
               authorityScopeCid: cid('a')} : undefined,
         }),
         stateService, resultService: service,
+        runStateObservation,
       }));
       await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
       try {
@@ -2401,6 +2408,7 @@ test('public Values submit computes and reads its real Local Result',
         const state = await execution.status();
         assert.equal(validRunState(state), true);
         assert.equal(state.status, 'succeeded');
+        assert.equal(Number.isSafeInteger(state.revision), true);
         assert.deepEqual(await execution.result('answer').all(), expected);
         const reader = execution.result('answer').rows();
         assert.deepEqual(await Array.fromAsync(reader), expected);
@@ -2444,12 +2452,14 @@ test('public Values submit computes and reads its real Local Result',
               maxRetainedValueBytes: 4096, maxRows: 100,
               maxBatchRows: 10, maxBatchRetainedValueBytes: 2048},
           }),
-          attach: localAttach, stateService, resultService: service,
+          attach: localAttach, stateService, runStateObservation, resultService: service,
           maxRowBytes: 1024,
         }));
         try {
           const localExecution = await embedded.attach(ref);
-          assert.equal((await localExecution.status()).status, 'succeeded');
+          const localState = await localExecution.status();
+          assert.equal(localState.status, 'succeeded');
+          assert.ok(localState.revision >= state.revision);
           const localRows = localExecution.result('answer').rows();
           assert.deepEqual(await Array.fromAsync(localRows), expected);
           assert.equal(localRows.state(), 'complete');
@@ -2479,6 +2489,7 @@ test('public Values submit computes and reads its real Local Result',
       await published?.close();
       await store.close();
     }
+    original.passed();
   });
 const runChildWithLiveSite = (script, input) => new Promise((resolve,
   reject) => {

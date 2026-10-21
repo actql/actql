@@ -1478,6 +1478,19 @@ it does not carry complete-listing evidence.
 The listing metadata includes `resource`, `version`, `path`, `media_type` and
 `size`, with types, presence and available version guarantees declared
 by the published Source contract. Listing does not download bytes.
+The listing profile's canonical required roles are `resource`, `version`,
+`name`, `path`, `media_type`, `size_bytes` and `modified_at`; these are a base,
+not an exclusive output schema. The full declared Source metadata remains
+visible through `LIST_FILES`, including Local `size:int64` and
+`modified_time:timestamp`. Canonical role domains, required presence,
+Resource kind and version capability remain checked. A Source may strengthen
+nullable metadata to nonnullable; actual NULL or missing values then fail
+ordinary full-schema row admission, rather than receiving invented defaults.
+The profile's `listing_schema_contract_cid` MUST identify that complete actual
+schema. Acquisition, capture, Result and restore MUST preserve its extra typed
+columns and charge their full schema/value/byte work under existing budgets.
+Additional Source columns do not extend the separate fixed completed-listing
+report or establish its original correlation, authority or physical custody.
 `connection.contents` is the corresponding keyed Source: JOIN binds both
 `resource` and `version` to fetch exactly that Resource version, returning the
 columns `resource`, `version`, `content` (a `content_ref`) and `media_type`.
@@ -1712,6 +1725,16 @@ from the configured primary export when that export is needed. If the last
 operator is `RESULT x`, the primary output references that same `x`; no second
 anonymous export is constructed. Otherwise the continuing Relation uses the
 existing configured primary export.
+
+For new public read-only SQL/AQL Source preparation without an authored RESULT,
+the shared frontend/preparation Owner configures that export as `main`. This
+selects the actual Program export before canonical identity is issued; it is
+not a transport alias or a second Result. Explicit Program input, authored
+Result names and operator-specific export rules remain unchanged. A saved Run
+or existing durable request name retains its original Program, manifest and
+Result names; lookup and cold observation do not compile a replacement merely
+to apply this default. Historical source-preparation originals without a public
+primary recipe retain their original configured recipe on re-admission.
 
 A terminal `CREATE TABLE` or `CREATE OR REPLACE TABLE` is the explicit
 exception: only authored public Results are exported. Its final Relation feeds

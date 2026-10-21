@@ -21,9 +21,9 @@ pub fn bind_query_context(Array[PublishedAlias], String, program_id? : String, p
 
 pub fn check_array_profile(@program_check.CheckedProgram, max_work~ : Int, max_slots~ : Int) -> Result[Unit, ArrayProfileIssue]
 
-pub fn lower(String, Format, @query_program.Context?, source_path? : String, table_writes? : Array[@query_program.TableWriteBinding], update_targets? : @query_program.UpdateTargetPublication?, store_targets? : @query_program.StoreTargetPublication?, command_targets? : @query_program.CommandTargetPublication?) -> Result[Lowered, Issue]
+pub fn lower(String, Format, @query_program.Context?, source_path? : String, table_writes? : Array[@query_program.TableWriteBinding], update_targets? : @query_program.UpdateTargetPublication?, store_targets? : @query_program.StoreTargetPublication?, command_targets? : @query_program.CommandTargetPublication?, public_primary? : Bool) -> Result[Lowered, Issue]
 
-pub fn lower_with_source(String, Format, @query_program.Context?, source_path? : String, table_writes? : Array[@query_program.TableWriteBinding], update_targets? : @query_program.UpdateTargetPublication?, store_targets? : @query_program.StoreTargetPublication?, command_targets? : @query_program.CommandTargetPublication?) -> Result[(Lowered, @program_source_builder.Source?), Issue]
+pub fn lower_with_source(String, Format, @query_program.Context?, source_path? : String, table_writes? : Array[@query_program.TableWriteBinding], update_targets? : @query_program.UpdateTargetPublication?, store_targets? : @query_program.StoreTargetPublication?, command_targets? : @query_program.CommandTargetPublication?, public_primary? : Bool) -> Result[(Lowered, @program_source_builder.Source?), Issue]
 
 pub fn parse_query(String, Format, source_path? : String) -> Result[@query_syntax.Query, Issue]
 

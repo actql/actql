@@ -121,6 +121,22 @@ pub fn client_installation_preparation_use_projection(@remote_credential.Install
 
 pub fn client_installation_preparation_use_wire(@remote_credential.InstallationPreparationCredentialUse) -> String raise NodeHostFailure
 
+pub fn client_local_checkpoint_proof_actor(@run_publication_host.ClientLocalCheckpointProof) -> String
+
+pub fn client_local_checkpoint_proof_effect_subject(@run_publication_host.ClientEffectRunMaterials, String, String) -> Result[(String, String), @run_publication_host.ClientLocalCheckpointProofIssue]
+
+pub fn client_local_checkpoint_proof_preimage(@run_publication_host.ClientLocalCheckpointProof) -> String
+
+pub fn client_local_checkpoint_proof_prepare(String, String) -> Result[@run_publication_host.ClientLocalCheckpointProof, @run_publication_host.ClientLocalCheckpointProofIssue]
+
+pub fn client_local_checkpoint_proof_seal(@run_publication_host.ClientLocalCheckpointProof, String, String) -> Result[String, @run_publication_host.ClientLocalCheckpointProofIssue]
+
+pub fn client_local_checkpoint_run_lifetime(@run_publication.PublicationContract, String) -> Result[(String, String), @run_publication_host.ClientLocalCheckpointProofIssue]
+
+pub fn client_local_signing_bootstrap_issue(String, String, String, Int64, Int64) -> Result[(String, Int64, Int64, Int), @run_publication_host.ClientLocalSigningBootstrapIssueError]
+
+pub fn client_local_signing_bootstrap_original() -> (String, String)
+
 pub fn client_local_signing_grant_admit(String, String) -> @remote_credential.LocalSigningCredentialGrant raise NodeHostFailure
 
 pub fn client_local_signing_grant_cid(@remote_credential.LocalSigningCredentialGrant) -> String
@@ -132,6 +148,8 @@ pub fn client_local_signing_grant_max_uses(@remote_credential.LocalSigningCreden
 pub fn client_local_signing_grant_scope(@remote_credential.LocalSigningCredentialGrant) -> @remote_credential.LocalSigningCredentialScope
 
 pub fn client_local_signing_grant_wire(@remote_credential.LocalSigningCredentialGrant) -> String raise NodeHostFailure
+
+pub fn client_local_signing_public_key_original(Bytes) -> Result[(String, String), @remote_credential.LocalSigningPublicKeyIssue]
 
 pub fn client_local_signing_use_admit(@remote_credential.LocalSigningCredentialGrant, String, String) -> @remote_credential.LocalSigningCredentialUse raise NodeHostFailure
 
@@ -731,6 +749,8 @@ pub fn client_program_effect_semantics_cid(@run_publication_host.PreparedClientE
 
 pub fn client_program_effect_source_artifact_preview_binding(@run_publication.PublicationContract, String, String, String) -> Result[(String, String), @run_publication.EffectSourceArtifactIssue]
 
+pub fn client_program_effect_store_command_selection(@check_environment.StoreCommandBinding) -> Result[Array[String], @value_admission.ReferenceIssue]
+
 pub fn client_program_effect_table_input_at(@physical_strategy.CapturedEffectInputs, Int) -> @physical_strategy.CapturedEffectTableInput?
 
 pub fn client_program_effect_table_input_export_advance(@execution_relation.CompletedTableInputRelationExportPreparation, Int) -> Result[(Bool, Int), @execution_relation.CompletedExportIssue]
@@ -930,6 +950,8 @@ pub fn client_program_issue_source_free_local_effect_invocation(@run_publication
 pub fn client_program_issue_source_free_local_effect_result_artifact(@run_publication_host.PreparedClientEffectComputation, @physical_strategy.CapturedEffectInputs, Int, ClientEffectManagedInputImport, @run_publication_host.ClientEffectLocalResultDefinition, @run_publication_host.ClientEffectLocalInvocation, @execution_relation.CompletedRelationExportReceipt, @run_publication.PublicationContract, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.RunEvidenceValue, Int, Int, Int) -> Result[@run_publication_host.ClientEffectLocalResultArtifact, ClientEffectLocalArtifactBridgeIssue]
 
 pub fn client_program_issue_source_free_local_effect_table_artifact(@run_publication_host.PreparedClientEffectComputation, @physical_strategy.CapturedEffectInputs, Int, ClientEffectManagedInputImport, @run_publication_host.ClientEffectLocalTableDefinition, @run_publication_host.ClientEffectLocalInvocation, @execution_relation.CompletedRelationExportReceipt, @run_publication.PublicationContract, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.RunEvidenceValue, Int, Int, Int) -> Result[@run_publication_host.ClientEffectLocalResultArtifact, ClientEffectLocalArtifactBridgeIssue]
+
+pub fn client_program_issue_store_collection_reference(@check_environment.StoreCommandBinding, @value_admission.ReferenceIssuer, String, Int, Int, Int) -> Result[@value_admission.CheckedValue, @value_admission.ReferenceIssue]
 
 pub fn client_program_issue_task_compiled_run(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientTaskCompilation, String, String, String) -> Result[@run_publication_host.ClientCompiledRun, @run_publication_host.ClientCompiledRunIssue]
 
@@ -1165,6 +1187,8 @@ pub fn client_program_local_effect_table_definition_json(@run_publication_host.C
 
 pub fn client_program_local_effect_table_storage_mapping(@run_publication_host.ClientEffectLocalResultArtifact, Int, Int, Int) -> Result[@table.IcebergStorageMapping, @table.IcebergStorageMappingIssue]
 
+pub fn client_program_local_file_timestamp(Int64, Int) -> String?
+
 pub fn client_program_local_table_commit_response(String, Int, Int, Int, Int) -> Result[String, @effect_application.TableCommitIssue]
 
 pub fn client_program_local_table_storage_mapping_cid(@table.IcebergStorageMapping) -> String
@@ -1197,6 +1221,20 @@ pub fn client_program_local_values_plan_graph_wire(@run_publication_host.ClientV
 
 pub fn client_program_local_values_unit_source_json(@run_publication_host.PreparedClientProgram, Int) -> Result[String, @run_publication_host.ClientValuesUnitSourceIssue]
 
+pub fn client_program_mock_churn_risk_accept_charged_document(@client_row_source_host.RowRun, @client_row_source_host.RowPageCharge, @client_row_source_host.RowAcquisition, @client_row_source_host.RowDeclaration, @client_row_source_host.RowDeclaration, Bytes, Int) -> Result[Int, @client_row_source_host.RowHostIssue]
+
+pub fn client_program_mock_churn_risk_admit_target_document(@client_row_source_host.RowDeclaration, @client_row_source_host.RowDeclaration, Bytes, Int, Int, Int, Int, Int) -> Result[@client_row_source_host.MockTargetDocument, @client_row_source_host.RowSourceIssue]
+
+pub fn client_program_mock_churn_risk_observe_target(@client_row_source_host.MockTargetDocument, @client_row_source_host.RowDeclaration, String) -> Result[@client_row_source_host.MockTargetRow, @client_row_source_host.RowSourceIssue]
+
+pub fn client_program_mock_churn_risk_prepare_target_update(@client_row_source_host.MockTargetDocument, @client_row_source_host.MockTargetRow, String, String, Int) -> Result[Bytes, @client_row_source_host.RowSourceIssue]
+
+pub fn client_program_mock_churn_risk_target_before(@client_row_source_host.MockTargetRow) -> String?
+
+pub fn client_program_mock_churn_risk_target_version(@client_row_source_host.MockTargetRow) -> String?
+
+pub fn client_program_mock_churn_risk_update_mapping(@client_row_source_host.RowDeclaration) -> Result[String, @client_row_source_host.RowMappingIssue]
+
 pub fn client_program_multi_captured_ledger_usage(@physical_resources.Ledger) -> Array[Int64]
 
 pub fn client_program_normalize_project_model_task(@run_publication_host.ClientProjectModelTaskSelection, @run_publication_host.ClientProjectModelRegistry, @check_environment.PublicModelTaskDeclaration, @run_publication_host.ClientModelProviderDefaults, Int, Int, Int, Int, Int, Int, Int, Int) -> Result[@check_environment.NormalizedPublicModelTask, @check_environment.ModelTaskIssue]
@@ -1220,6 +1258,8 @@ pub fn client_program_open_captured_local_effect_host(@run_publication_host.Prep
 pub fn client_program_open_captured_local_host(@run_publication_host.PreparedClientProgram, @execution_query.CapturedInputSource, String, String, Int64, Int64, Int64, Int64, String?, String?) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]?
 
 pub fn client_program_open_captured_local_retained_host(@run_publication_host.PreparedClientProgram, @execution_query.CapturedInputSource, String, String, Int64, Int64, Int64, Int64, String?, String?) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]?
+
+pub fn client_program_open_installed_managed_source_free_host(@client_local_host.ClientInstalledManagedRun, @run_publication_host.PreparedClientProgram, @run_publication_host.ClientRequestIdentity, String, String, String?, String?, Bool) -> Result[@connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]?, @client_local_host.ClientInstalledManagedRunIssue]
 
 pub fn client_program_open_local_effect_host_at_query_time(@run_publication_host.PreparedClientEffectRun, @run_publication_host.ClientQueryTimePreparation, @run_publication_host.ClientRequestIdentity, Array[@execution_query.CapturedInputSource], @physical_resources.Ledger?, String, String, String?, String?, Array[@local.ManagedProvider]) -> ClientLocalEffectHost?
 
@@ -1295,6 +1335,8 @@ pub fn client_program_prepare_multi_captured_local_installed_ledger(@run_publica
 
 pub fn client_program_prepare_multi_captured_local_ledger(@run_publication_host.PreparedClientProgram, Array[@actql/actql/connectors/duckdb/host.NativeHostConfiguration], Array[Int64], Array[Int64], String, String, String?, String?) -> @physical_resources.Ledger?
 
+pub fn client_program_prepare_public_source_computation_with_parameters(String, String, @program_check.CheckEnvironment, String, String?, String?, Bool, Array[@pipeline_check_context.StageCapacityInput]) -> ClientSourceComputationBridgeOutcome
+
 pub fn client_program_prepare_published_effect_computation_with_parameters(String, String, @program_check.CheckEnvironment, String, String?, Array[@pipeline_check_context.StageCapacityInput]) -> ClientEffectProgramBridgeOutcome
 
 pub fn client_program_prepare_query_acquisition(@run_publication_host.PreparedClientProgram, Int, Int) -> Result[@sourceview_resolution.QueryAcquisition, @run_publication_host.ClientAcquisitionIssue]
@@ -1369,7 +1411,17 @@ pub fn client_program_read_public_model_task(String, String, Int, Int, Int, Int,
 
 pub fn client_program_recheck_salesforce_row_projection(@actql/actql/connectors/salesforce/host.InstalledSalesforceDeclaration, @client_row_source_host.RowAcquisition, @actql/actql/connectors/salesforce/catalog.CatalogObservation, Int) -> Result[@actql/actql/connectors/salesforce/catalog.ReadProjection, @actql/actql/connectors/salesforce/host.InstalledSalesforceIssue]
 
+pub fn client_program_recover_effect_command_content(@run_publication_host.ClientCompiledRun, @run_publication_host.PreparedClientEffectComputation, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.EffectPreviewIdentity, @run_publication.PublicationContract, @run_publication.CapturedEffectSourceArtifact, String, Int, Int, Int, String, @run_publication.StoredGeneratedContentReference, @value_admission.CheckedValue, Int, Int, Int, Int, Int) -> Result[@run_publication_host.RecoveredClientEffectCommandContent, @run_publication_host.ClientEffectCommandContentIssue]
+
 pub fn client_program_recover_effect_target_guards(@run_publication.EffectPreviewIdentity, Array[Array[@logical_request_scope.LogicalRequestScope]], Array[Array[@effect_application.LogicalItemLocator]], Array[Array[@effect_application.EffectDispatchKey]], Array[Array[@effect_application.EffectLedgerBasis]], Array[Array[@effect_application.EffectLedgerEntry?]], Array[Array[Bool]], Int, Int, Int) -> Result[@effect_application.RecoveredEffectTargetGuards, @effect_application.EffectSetProgressIssue]
+
+pub fn client_program_recovered_effect_command_content_matches(@run_publication_host.RecoveredClientEffectCommandContent, @run_publication_host.ClientCompiledRun, @run_publication_host.PreparedClientEffectComputation, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.EffectPreviewIdentity, Int, Int, String) -> Bool
+
+pub fn client_program_recovered_effect_command_content_matches_issued(@run_publication_host.RecoveredClientEffectCommandContent, @value_admission.CheckedValue) -> Bool
+
+pub fn client_program_recovered_effect_command_content_release(@run_publication_host.RecoveredClientEffectCommandContent) -> Unit
+
+pub fn client_program_recovered_effect_command_content_wire(@run_publication_host.RecoveredClientEffectCommandContent) -> Result[String, @run_publication_host.ClientEffectCommandContentIssue]
 
 pub fn client_program_recovered_table_preview_commit_outcome(@run_publication_host.RecoveredClientTablePreview, String, Int, Int, Int, Int) -> Result[String, @run_publication_host.ClientTableInputIssue]
 
@@ -1458,6 +1510,8 @@ pub fn client_program_row_source_begin(@client_row_source_host.RowRun, Int, Int,
 pub fn client_program_row_source_begin_listing_page(@client_row_source_host.RowRun, Bytes, Int64, @client_row_source_host.RowPageCharge?) -> Result[Bool, @client_row_source_host.RowHostIssue]
 
 pub fn client_program_row_source_begin_listing_request(@client_row_source_host.RowRun, String?, Int64) -> Result[Bool, @client_row_source_host.RowHostIssue]
+
+pub fn client_program_row_source_begin_with_page_limits(@client_row_source_host.RowRun, Int, Int, Int, Int, Int, @value_admission.ReferenceIssuer?) -> Result[Bool, @client_row_source_host.RowHostIssue]
 
 pub fn client_program_row_source_bind_response_cleanup(@client_row_source_host.RowRunResponseBorrow, () -> Bool) -> Result[Unit, @client_row_source_host.RowHostIssue]
 

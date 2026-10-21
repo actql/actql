@@ -2168,3 +2168,27 @@ This extends the closed public check Reason schema and corresponding check
 outcome identity, validators, generated SDK types and Native response validation.
 It does not modify `actql-diagnostics/0.1` or introduce a compatibility adapter.
 A mismatched Host/SDK schema identity remains a protocol failure.
+
+### Original UPDATE target disclosure
+
+The installed check caller retains UPDATE target publication separately from
+Source aliases and Table write capabilities. Its optional Effect-owned
+`updateTargetDisclosure.visibleFor({principalId, signal})` selects only exact
+members of the original installed publication. The method and its receiver are
+captured once during installation. The Effect owner must retain the actual
+installation, actor, Account and currentness checks, including after its own
+awaits. Neither the callback's existence nor returned target DATA issues a
+grant, an approval or an executable Effect.
+
+Missing or failed disclosure, copied members and duplicate selections expose no
+targets. An abort after the callback await precedes Common checking. The exact
+visible members accompany both source and Program checking and participate in
+the Host-keyed context reference. Hidden targets do not affect that reference;
+the empty selection preserves the prior preimage. The Common publication owner
+still checks the complete original Mapping inventory and its installation
+binding. A visible subset does not prove absence or global uniqueness.
+
+The retained publication array, callback, receiver, selected references and
+context/canonical-encoding workspace overlap with the installed check lifetime.
+These references and their bounds are not capacity reservations or physical
+cleanup acknowledgements.

@@ -74,6 +74,9 @@
 //   and approved Preview row name. `recoverMemberRequests` explicitly supports
 //   composed recovery: the same full Preview and claims are passed with the
 //   original global `memberIndexes`; result arrays follow that index order.
+// - `prepareRecoveredContentChild(...)` optionally restores original Content
+//   bindings for those already validated requests. Its factory performs no I/O;
+//   the existing recovery owner retains the child before awaiting prepare.
 // Commands require recheckRequests and all three recovery hooks. Target
 // validation must use current reference authority; a parsed envelope alone
 // is not an authority decision. An asynchronous recheck is awaited before send.
@@ -313,6 +316,31 @@ const parseExactJson = wire => {
 const optionalFunction = value => value === undefined ||
   typeof value === 'function';
 
+// The actual Host supplies this private service. Capturing its methods does
+// not issue a Run or turn limits into capacity; the retained owner validates
+// the original preparation/Run before each physical use.
+function captureEffectResources(receiver) {
+  if (receiver === undefined) return undefined;
+  const methods = {};
+  for (const name of ['bindRunOriginal', 'assertCurrent', 'limits']) {
+    const field = receiver === null || typeof receiver !== 'object'
+      ? undefined : Object.getOwnPropertyDescriptor(receiver, name);
+    if (field === undefined || !Object.hasOwn(field, 'value') ||
+        typeof field.value !== 'function') fail('InstalledEffectResourcesUnavailable');
+    const method = field.value;
+    methods[name] = (...args) => Reflect.apply(method, receiver, args);
+  }
+  return Object.freeze(methods);
+}
+
+function requireSynchronousEffectResource(value) {
+  if (typeof value?.then === 'function') {
+    void Promise.resolve(value).catch(() => {});
+    fail('InstalledEffectResourcesUnavailable');
+  }
+  return value;
+}
+
 function checkDriver(driver) {
   if (driver === null || typeof driver !== 'object' ||
       !Array.isArray(driver.kinds) || driver.kinds.length === 0 ||
@@ -327,7 +355,8 @@ function checkDriver(driver) {
         driver.observeTargets, driver.recoveryEntry, driver.recoverRequests,
         driver.recoverMemberRequests,
         driver.requestCid, driver.checkRequest,
-        driver.admitTargetReadApproval, driver.prepareRequestChild].every(optionalFunction) ||
+        driver.admitTargetReadApproval, driver.prepareRequestChild,
+        driver.prepareRecoveredContentChild].every(optionalFunction) ||
       (driver.check !== undefined && (!text(driver.check?.resource) ||
         !text(driver.check.operation) ||
         typeof driver.checkRequest !== 'function')) ||
@@ -414,7 +443,8 @@ export async function createInstalledRowEffect({moon, mappings = [], commands = 
   environmentWire, connectorId, connectorRegistration, connectorRevision,
   connection, site, authorization, runtimeBundleCid, bindingCid, driver,
   ledgerRoot, installation, continuationBinding = bindingCid,
-  limits: suppliedLimits}) {
+  limits: suppliedLimits, effectResources, issueOriginalCollectionReference}) {
+  const resources = captureEffectResources(effectResources);
   const limits = Object.freeze({...defaultLimits, ...suppliedLimits});
   const owned = checkDriver(driver);
   const profile = profileOf(installation);
@@ -428,6 +458,7 @@ export async function createInstalledRowEffect({moon, mappings = [], commands = 
       !text(connection) || typeof site?.issueEffectGrant !== 'function' ||
       typeof site.issueReadGrant !== 'function' ||
       typeof authorization?.authorize !== 'function' ||
+      !optionalFunction(issueOriginalCollectionReference) ||
       !cidPattern.test(runtimeBundleCid ?? '') ||
       !text(bindingCid) || !text(continuationBinding) || !text(ledgerRoot)) {
     fail('InvalidInstalledRowEffect');
@@ -467,7 +498,8 @@ export async function createInstalledRowEffect({moon, mappings = [], commands = 
   return createRowEffectStage([Object.freeze({moon, limits, owned, profile,
     installed, installedCommands, environmentWire, connectorId,
     connectorRegistration, connectorRevision, connection, site, authorization,
-    runtimeBundleCid, bindingCid, ledgerRoot, continuationBinding})], environmentWire);
+    runtimeBundleCid, bindingCid, ledgerRoot, continuationBinding, resources,
+    issueOriginalCollectionReference})], environmentWire);
 }
 
 // Each physical occurrence retains its own admitted installation. Shared Run,
@@ -552,13 +584,45 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
     memberInstallations.set(retained, owner);
     return retained;
   };
+  const runResources = new WeakMap();
+  const bindRunResources = (facts, members) => {
+    const originals = new Map();
+    for (const member of members) {
+      const owner = ownerOf(member);
+      if (owner.resources === undefined) continue;
+      if (!originals.has(owner)) {
+        const original = requireSynchronousEffectResource(owner.resources.bindRunOriginal(facts));
+        if (original === null || typeof original !== 'object') {
+          fail('InstalledEffectResourcesUnavailable');
+        }
+        originals.set(owner, original);
+      }
+      runResources.set(member, originals.get(owner));
+    }
+  };
+  const resourceFields = member => {
+    if (ownerOf(member).resources === undefined) return {};
+    const runOriginal = runResources.get(member);
+    if (runOriginal === undefined) fail('InstalledEffectResourcesUnavailable');
+    return {runOriginal};
+  };
   const selectionFence = (facts, members, stageIndex) => {
     const selections = validateOwnerSelections(owners, facts.updateTargetSelections, facts.prepared);
-    if (selections === undefined) return undefined;
+    const resourceOwners = [...new Map(members.flatMap(member => {
+      const owner = ownerOf(member);
+      return owner.resources === undefined ? [] : [[owner, resourceFields(member).runOriginal]];
+    })).entries()];
+    if (selections === undefined && resourceOwners.length === 0) return undefined;
     const liveAssertion = facts.assertUpdateSelectionCurrent;
-    if (typeof liveAssertion !== 'function') selectionChanged();
+    if (selections !== undefined && typeof liveAssertion !== 'function') selectionChanged();
     const updates = members.filter(member => member.kind === 'update' || member.kind === 'delete');
     const assertCurrent = () => {
+      for (const [owner, original] of resourceOwners) {
+        if (requireSynchronousEffectResource(owner.resources.assertCurrent(original)) !== undefined) {
+          fail('InstalledEffectResourcesUnavailable');
+        }
+      }
+      if (selections === undefined) return;
       validateOwnerSelections(owners, selections, facts.prepared);
       try {
         assertUpdateTargetSelectionMembersCurrent(selections, updates.map(member => {
@@ -686,7 +750,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
   const requestsOf = (member, rows, current, contentOf) => Object.freeze(rows.map((row, index) => {
     const {owned} = ownerOf(member);
     return requestEntry(member, row, owned.prepareRequest({member, value: row.value,
-      selector: row.selector, current,
+      selector: row.selector, current, ...resourceFields(member),
       ...(contentOf === undefined ? {} : {content: commandContentRow(contentOf, index)})}));
   }));
 
@@ -828,7 +892,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
     const {owned} = ownerOf(member);
     assertCurrent?.();
     const observed = await owned.observeTargets({member, entries, current,
-      authorizationForRow: read.authorizationForRow, signal});
+      authorizationForRow: read.authorizationForRow, signal, ...resourceFields(member)});
     assertCurrent?.();
     if (!Array.isArray(observed) || observed.length !== entries.length) {
       fail('ForeignInstalledRowEffectObservation');
@@ -965,10 +1029,10 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
         const description = owned.describe === undefined ? undefined :
           await owned.describe({member, runInvocationCid,
             dispatchRequestCid: dispatches[index], label: `apply-${index}`,
-            approval: reads[index]?.approval, signal});
+            approval: reads[index]?.approval, signal, ...resourceFields(member)});
         assertCurrent?.();
         await owned.recheckRequests?.({member, entries: entries[index],
-          current: description});
+          current: description, ...resourceFields(member)});
         assertCurrent?.();
         fresh.push(description);
       }
@@ -1037,7 +1101,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
           claim, member, entry,
           previewRow: previewRows[memberIndex][sourceIndex]});
         await owned.recheckRequests?.({member, entries: [entry],
-          current: now[memberIndex]});
+          current: now[memberIndex], ...resourceFields(member)});
         assertCurrent?.();
         const grant = site.issueEffectGrant({
           operation: owned.writeOperation(member),
@@ -1053,7 +1117,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
               authorization: {...grant, useId:
                 `${dispatches[memberIndex]}-write-${subjectCid}-${rowIndex}`},
               credential: site.credential, callResource: site.callResource,
-              signal});
+              signal, ...resourceFields(member)});
           }});
         assertClaimedCurrent();
         if (!captured.claimed) {
@@ -1322,7 +1386,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
   async function captureStage({control, store, execution, checkedHost,
     prepared, identity, plan, previewContext, unit, members,
     runInvocationCid, dispatches, requestScope, storedResults, signal,
-    targetReads, own, ownInputs, ownChildren, assertCurrent}) {
+    targetReads, contentOwner, own, ownInputs, ownChildren, assertCurrent}) {
     assertCurrent?.();
     const inputs = checked(moon.clientProgramPinEffectSources(checkedHost,
       limits.maxPinnedResults));
@@ -1379,8 +1443,35 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
           checkedHost, inputs, index, sourceLimits, limits.maxWork)));
       }
     }
+    let publishedTargets;
+    if (typeof moon.clientProgramEffectPublishedStoreBinding === 'function') {
+      let selected = false;
+      const targets = members.map(member => {
+        const pair = checked(moon.clientProgramEffectPublishedStoreBinding(
+          inputs, member.memberIndex, limits.maxWork));
+        if (pair === undefined) return undefined;
+        const owner = ownerOf(member);
+        if (member.kind !== 'command' ||
+            typeof owner.issueOriginalCollectionReference !== 'function' ||
+            typeof moon.clientProgramBindEffectCommandTarget !== 'function') {
+          fail('InstalledEffectPublishedTargetUnavailable');
+        }
+        assertCurrent?.();
+        const reference = owner.issueOriginalCollectionReference(pair, limits.maxWork);
+        assertCurrent?.();
+        const target = checked(moon.clientProgramBindEffectCommandTarget(
+          inputs, member.memberIndex, pair, reference, limits.maxWork));
+        selected = true;
+        return target;
+      });
+      if (selected) publishedTargets = Object.freeze(targets);
+    } else if (members.some(member =>
+      typeof ownerOf(member).issueOriginalCollectionReference === 'function')) {
+      fail('InstalledEffectPublishedTargetUnavailable');
+    }
     const sourceSet = await preparePinnedEffectSourceSet({moon,
       ...(commandWorkspaces.length ? {commandWorkspaces: Object.freeze([...commandWorkspaces])} : {}),
+      ...(publishedTargets === undefined ? {} : {publishedTargets}),
       onCommandKey(memberIndex, key) { commandKeys[memberIndex] = key; },
       checkedOwner: prepared, execution, inputs,
       maxMembers: members.length,
@@ -1441,7 +1532,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
       const description = owned.describe === undefined ? undefined :
         await owned.describe({member, runInvocationCid,
           dispatchRequestCid: dispatches[index], label: `preview-${index}`,
-          approval: reads[index]?.approval, signal});
+          approval: reads[index]?.approval, signal, ...resourceFields(member)});
       assertCurrent?.();
       currents.push(description);
       const contentOf = member.kind !== 'command' ? undefined : commandContentBorrower({
@@ -1462,6 +1553,8 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
           if (requestChildren.length >= limits.maxRows) fail('InstalledRowEffectRowLimit');
           const context = {member, value: row.value, selector: row.selector,
             current: description, content: commandContentRow(contentOf, rowIndex), signal,
+            ...(contentOwner === undefined ? {} : {contentOwner}),
+            ...resourceFields(member),
             ...(guarded(member.kind) ? {rowIndex, assertCurrent,
               authorizationForRow: () => reads[index].authorizationForRow(rowIndex)} :
               {authorizationForRow: reads[index]?.authorizationForRow})};
@@ -1478,7 +1571,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
         continue;
       }
       if (member.kind === 'command') {
-        await owned.recheckRequests({member, entries, current: description});
+        await owned.recheckRequests({member, entries, current: description, ...resourceFields(member)});
         assertCurrent?.();
         rowsOf.push(Object.freeze(entries.map(entry => Object.freeze({entry}))));
         observations.push(undefined);
@@ -1644,7 +1737,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
   async function prepareCaptured(facts) {
     assertPrepared(facts ?? {});
     const {moon: runMoon, control, store, execution, checkedHost, prepared,
-      identity, definition, compilation, signal, targetReads} = facts ?? {};
+      identity, definition, compilation, signal, targetReads, contentOwner} = facts ?? {};
     const plan = facts?.publicationPlan ?? facts?.plan;
     if (runMoon !== moon || !plan || !execution || !checkedHost ||
         !prepared || !identity || ((definition === undefined ||
@@ -1661,6 +1754,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
         plan.contractLimits.maxDepth))};
     const unit = facts.unit ?? installedRowEffectUnit(moon, compilation);
     const members = membersOf(prepared, unit);
+    bindRunResources(facts, members);
     const assertCurrent = selectionFence(facts, members, unit.stageIndex);
     const runInvocationCid = plan.invocation.identity;
     const dispatches = members.map(member =>
@@ -1678,7 +1772,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
       return await captureStage({control, store, execution, checkedHost,
         prepared, identity, plan, previewContext, unit, members,
         runInvocationCid, dispatches, requestScope, storedResults, signal,
-        targetReads, assertCurrent, own: value => { sourceSet = value; },
+        targetReads, contentOwner, assertCurrent, own: value => { sourceSet = value; },
         ownChildren: value => { requestChildren = value; },
         ownInputs: release => { releaseInputs = release; }});
     } catch (error) {
@@ -1744,9 +1838,11 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
   // exactly the request its durable claim names, the value the Preview
   // approved and, for an update, the Preview's target.
   const recoveredEntries = ({members, body, durable, recorded,
-    previewWire}) => {
+    previewWire, runInvocationCid, dispatches}) => {
     const rebuilt = singular?.owned.recoverRequests === undefined ? undefined :
-      singular.owned.recoverRequests({durable, recorded, previewWire, body});
+      singular.owned.recoverRequests({durable, recorded, previewWire, body,
+        members, runInvocationCid, dispatches,
+        ...resourceFields(members[0])});
     const requests = members.map((_, index) => rebuilt?.requests?.[index]);
     const usesRecovery = members.map(() => rebuilt !== undefined);
     const currents = members.map((_, index) => rebuilt?.currents?.[index]);
@@ -1755,8 +1851,10 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
         if (owner.owned.recoverMemberRequests === undefined) continue;
         const memberIndexes = Object.freeze(members.flatMap((member, index) =>
           ownerOf(member) === owner ? [index] : []));
+        if (memberIndexes.length === 0) continue;
         const recovered = owner.owned.recoverMemberRequests({durable, recorded,
-          previewWire, body, memberIndexes});
+          previewWire, body, memberIndexes, members, runInvocationCid, dispatches,
+          ...resourceFields(members[memberIndexes[0]])});
         if (!Array.isArray(recovered?.requests) ||
             recovered.requests.length !== memberIndexes.length ||
             (recovered.currents !== undefined &&
@@ -1789,7 +1887,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
         ? changes.map(change => {
           const prepared = owned.prepareRequest({member,
             value: change.after?.value, selector: undefined,
-            current: currents[index]});
+            current: currents[index], ...resourceFields(member)});
           return entryOf(member, prepared?.request, prepared?.requestCid);
         })
         : (requests[index] ?? []).map(request =>
@@ -1849,6 +1947,7 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
     const previewWire = control.effectComputationPreviewWire(preview);
     const body = JSON.parse(previewWire);
     const members = recoveredMembers(body, provider, selected);
+    bindRunResources(facts, members);
     const assertCurrent = selectionFence(facts, members, provider.stage_index);
     const runInvocationCid = body.invocation_cid;
     const dispatches = members.map(member =>
@@ -1886,15 +1985,27 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
     // its close succeeds, so a failed close stays this owner's pending
     // cleanup and a retry by the same owner closes it.
     let closed = false;
+    const recoveryChildren = [];
+    const recoveryPending = () => recoveryChildren.some(child => child.status().pending !== false);
+    const releaseRecoveryChildren = async () => {
+      for (const child of recoveryChildren) await child.release();
+      if (recoveryPending()) fail('InstalledRowEffectContentCleanupPending');
+    };
     const releaseLedger = () => {
       if (closed) return;
       ledger.close();
       closed = true;
     };
     const ledgerOwner = Object.freeze({
-      async close() { releaseLedger(); },
-      async cleanup() { releaseLedger(); return true; },
-      cleanupPending: () => !closed});
+      async close() {
+        if (recoveryChildren.length) await releaseRecoveryChildren();
+        releaseLedger();
+      },
+      async cleanup() {
+        if (recoveryChildren.length) await releaseRecoveryChildren();
+        releaseLedger(); return true;
+      },
+      cleanupPending: () => !closed || recoveryPending()});
     if (retainRecoveryOwner !== undefined) {
       try { retainRecoveryOwner(ledgerOwner); }
       catch (error) { releaseLedger(); throw error; }
@@ -1906,92 +2017,127 @@ function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
         maxWork: limits.maxWork});
       assertCurrent?.();
       const {entries, currents} = recoveredEntries({members, body, durable,
-        recorded, previewWire});
+        recorded, previewWire, runInvocationCid, dispatches});
       assertCurrent?.();
-      // The installation as loaded now must issue and admit the same
-      // capability the Preview carries, for the same requests, before any
-      // provider I/O.
-      members.forEach((member, index) => {
-        let capability;
-        try {
-          capability = admitCapability(member, entries[index],
-            currents[index], runInvocationCid, dispatches[index]);
-        } catch (error) {
-          fail('InstalledRowEffectInstallationChanged', error);
-        }
-        if (capability.identity !==
-            body.effects[index].capability_evidence_cid) {
-          fail('InstalledRowEffectInstallationChanged');
-        }
-      });
-      const previewRows = body.effects.map(member => member.changes);
-      const dispatchIndexes = body.effects.map(orderedSourceIndexes);
-      const route = physicalRoute({members, entries, previewRows, dispatchIndexes,
-        runInvocationCid, dispatches,
-        subjectCid: control.effectComputationPreviewSemanticCid(preview),
-        applyPreview, ledger, targetReads, assertCurrent});
-      const reconcileStoredResponses = async ({members: claims,
-        preview: ledgerPreview}) => {
-        route.assertClaimedCurrent();
-        for (const [memberIndex, member] of claims.entries()) {
-          for (const [rowIndex, claim] of member.claims.entries()) {
-            route.assertClaimedCurrent();
-            if (ledger.readClaimedResponse(claim) === undefined) continue;
-            const sourceIndex = dispatchIndexes[memberIndex][rowIndex];
-            const entry = entries[memberIndex][sourceIndex];
-            const ownedClaim = admitRow({applyPreview: ledgerPreview,
-              memberIndex, rowIndex, claim, member: members[memberIndex],
-              entry, previewRow: previewRows[memberIndex][sourceIndex]});
-            const recovery = await recoverProjectedEffectResponse({ledger,
-              claims: ownedClaim, commonMoon: moon,
-              expectedRequestCid: entry.requestCid,
-              authorizeEvidenceRead: async () => true,
-              projectStored: stored => {
-                route.assertClaimedCurrent();
-                return ownerOf(members[memberIndex]).owned.project({
-                  member: members[memberIndex], memberIndex, rowIndex,
-                  preview: ledgerPreview, request: entry.request,
-                  current: currents[memberIndex],
-                  observation: Object.freeze({useCid: stored.credentialUseCid,
-                    statusCode: stored.statusCode,
-                    body: stored.responseBytes}),
-                  headers: undefined});
-              }});
-            route.assertClaimedCurrent();
-            settle({ledger, claim: ownedClaim, applyPreview: ledgerPreview,
-              memberIndex, rowIndex, projected: recovery.recovered});
+      const finish = () => {
+        // The installation as loaded now must issue and admit the same
+        // capability the Preview carries, for the same requests, before any
+        // provider I/O.
+        members.forEach((member, index) => {
+          let capability;
+          try {
+            capability = admitCapability(member, entries[index],
+              currents[index], runInvocationCid, dispatches[index]);
+          } catch (error) {
+            fail('InstalledRowEffectInstallationChanged', error);
           }
-        }
+          if (capability.identity !==
+              body.effects[index].capability_evidence_cid) {
+            fail('InstalledRowEffectInstallationChanged');
+          }
+        });
+        const previewRows = body.effects.map(member => member.changes);
+        const dispatchIndexes = body.effects.map(orderedSourceIndexes);
+        const route = physicalRoute({members, entries, previewRows, dispatchIndexes,
+          runInvocationCid, dispatches,
+          subjectCid: control.effectComputationPreviewSemanticCid(preview),
+          applyPreview, ledger, targetReads, assertCurrent});
+        const reconcileStoredResponses = async ({members: claims,
+          preview: ledgerPreview}) => {
+          route.assertClaimedCurrent();
+          for (const [memberIndex, member] of claims.entries()) {
+            for (const [rowIndex, claim] of member.claims.entries()) {
+              route.assertClaimedCurrent();
+              if (ledger.readClaimedResponse(claim) === undefined) continue;
+              const sourceIndex = dispatchIndexes[memberIndex][rowIndex];
+              const entry = entries[memberIndex][sourceIndex];
+              const ownedClaim = admitRow({applyPreview: ledgerPreview,
+                memberIndex, rowIndex, claim, member: members[memberIndex],
+                entry, previewRow: previewRows[memberIndex][sourceIndex]});
+              const recovery = await recoverProjectedEffectResponse({ledger,
+                claims: ownedClaim, commonMoon: moon,
+                expectedRequestCid: entry.requestCid,
+                authorizeEvidenceRead: async () => true,
+                projectStored: stored => {
+                  route.assertClaimedCurrent();
+                  return ownerOf(members[memberIndex]).owned.project({
+                    member: members[memberIndex], memberIndex, rowIndex,
+                    preview: ledgerPreview, request: entry.request,
+                    current: currents[memberIndex],
+                    observation: Object.freeze({useCid: stored.credentialUseCid,
+                      statusCode: stored.statusCode,
+                      body: stored.responseBytes}),
+                    headers: undefined});
+                }});
+              route.assertClaimedCurrent();
+              settle({ledger, claim: ownedClaim, applyPreview: ledgerPreview,
+                memberIndex, rowIndex, projected: recovery.recovered});
+            }
+          }
+        };
+        return Object.freeze({preview, computation, storedResults,
+          ...(requestedStop === undefined ? {} : {requestedStop, assertRequestedStopCurrent}),
+          apply: {moon, store, publicationControl: control, computation,
+            preview, ledger, requestScope, programId: provider.program_id,
+            nodeId: provider.stage_id, maxRows: limits.maxRows,
+            maxFrontierWork: limits.maxFrontierWork,
+            maxRecoveryWork: limits.maxWork,
+            keyLimits: {...limits.key, maxWork: limits.maxWork},
+            reconcileStoredResponses,
+            refreshPreflight: ({signal: refreshSignal} = {}) => route.current({
+              signal: refreshSignal, preflight: basePreflight({
+                effects: body.effects, members, requestScope})}),
+            bindDispatch: route.bindDispatch,
+            authorization: {gate: singular?.authorization, scopes: scopes(members)}},
+          receipt: {ledger, preview: applyPreview, commonMoon: moon,
+            publicationPreview: preview,
+            authorizeEvidenceRead: async () => true,
+            members: recorded.members.map(member => ({rowOwners:
+              member.claims.map(claim => ({claim})), replayed: true})),
+            limits: contractLimits},
+          publication: {execution: null, store, storedResults, control,
+            computation, preview, ledger, request: provider.request,
+            attempt: {...provider.attempt, externalIdempotencyKey:
+              provider.attempt?.externalIdempotencyKey}, contractLimits,
+            now: () => new Date().toISOString()},
+          scopes: scopes(members),
+          continuationWire: canonicalJson(provider),
+          cleanupOwner: ledgerOwner,
+          dispose: () => {
+            if (recoveryPending()) fail('InstalledRowEffectContentCleanupPending');
+            releaseLedger();
+          }});
       };
-      return Object.freeze({preview, computation, storedResults,
-        ...(requestedStop === undefined ? {} : {requestedStop, assertRequestedStopCurrent}),
-        apply: {moon, store, publicationControl: control, computation,
-          preview, ledger, requestScope, programId: provider.program_id,
-          nodeId: provider.stage_id, maxRows: limits.maxRows,
-          maxFrontierWork: limits.maxFrontierWork,
-          maxRecoveryWork: limits.maxWork,
-          keyLimits: {...limits.key, maxWork: limits.maxWork},
-          reconcileStoredResponses,
-          refreshPreflight: ({signal: refreshSignal} = {}) => route.current({
-            signal: refreshSignal, preflight: basePreflight({
-              effects: body.effects, members, requestScope})}),
-          bindDispatch: route.bindDispatch,
-          authorization: {gate: singular?.authorization, scopes: scopes(members)}},
-        receipt: {ledger, preview: applyPreview, commonMoon: moon,
-          publicationPreview: preview,
-          authorizeEvidenceRead: async () => true,
-          members: recorded.members.map(member => ({rowOwners:
-            member.claims.map(claim => ({claim})), replayed: true})),
-          limits: contractLimits},
-        publication: {execution: null, store, storedResults, control,
-          computation, preview, ledger, request: provider.request,
-          attempt: {...provider.attempt, externalIdempotencyKey:
-            provider.attempt?.externalIdempotencyKey}, contractLimits,
-          now: () => new Date().toISOString()},
-        scopes: scopes(members),
-        continuationWire: canonicalJson(provider),
-        cleanupOwner: ledgerOwner,
-        dispose: () => { releaseLedger(); }});
+      for (const owner of owners) {
+        if (owner.owned.prepareRecoveredContentChild === undefined) continue;
+        if (typeof retainRecoveryOwner !== 'function') {
+          fail('InstalledEffectRecoveryCustodyRequired');
+        }
+        const memberIndexes = Object.freeze(members.flatMap((member, index) =>
+          ownerOf(member) === owner ? [index] : []));
+        if (memberIndexes.length === 0) continue;
+        const child = owner.owned.prepareRecoveredContentChild({
+          recovered, members, entries, memberIndexes, control, store, signal,
+          contentRun: facts.contentRun, principalId: facts.principalId,
+          assertCurrent, limits, ...resourceFields(members[memberIndexes[0]])});
+        if (typeof child?.prepare !== 'function' || typeof child.release !== 'function' ||
+            typeof child.status !== 'function') {
+          fail('InvalidInstalledEffectRecoveryChild');
+        }
+        // The same already-retained ledger owner keeps every child before
+        // current callbacks or the first awaited physical Store confirmation.
+        recoveryChildren.push(child);
+        assertCurrent?.();
+      }
+      if (recoveryChildren.length === 0) return finish();
+      return (async () => {
+        for (const child of recoveryChildren) {
+          await child.prepare();
+          signal?.throwIfAborted();
+          assertCurrent?.();
+        }
+        return finish();
+      })();
     } catch (error) {
       if (retainRecoveryOwner === undefined) releaseLedger();
       throw error;

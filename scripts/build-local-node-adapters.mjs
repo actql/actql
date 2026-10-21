@@ -6,6 +6,7 @@ import {build} from 'esbuild';
 import {adapterModuleGraph} from './adapter-module-graph.mjs';
 import {rewriteLocalNodePackageImports} from './local-node-package-imports.mjs';
 import {localNodePackageInputs} from './local-node-package-inputs.mjs';
+import {buildNodeDirectoryNative} from './build-node-directory-native.mjs';
 import {initialControlPackageOriginal, renderInitialControlPackageOriginal}
   from './initial-control-package-images.mjs';
 
@@ -162,9 +163,10 @@ for (const {path, source} of sourcePaths) {
 const dataInputs = external === undefined
   ? inputs.dataFiles.map(path => ({source: join(root, path), destination: path})) : inputs.dataInputs;
 for (const entry of dataInputs) outputs.set(entry.destination, readFileSync(entry.source));
+const nativeOutputs = external === undefined ? buildNodeDirectoryNative({root, destination, check}) : new Map();
 if (outputs.has(initialControlPackageOriginal)) {
   outputs.set(initialControlPackageOriginal,
-    renderInitialControlPackageOriginal({root, destination, inputs, outputs}));
+    renderInitialControlPackageOriginal({root, destination, inputs, outputs, nativeOutputs}));
 }
 for (const {path} of sourcePaths) {
   const output = join(destination, path), bytes = outputs.get(path);

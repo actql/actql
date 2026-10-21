@@ -103,6 +103,7 @@ export function installNodeClientDispatchOwner({moon, control, journal,
   ordered, namespaceId, authorityScopeCid, storeAuthorityCid, now,
   faultInjection, runInfer, runContent, computeConfigurations = {},
   observation,
+  managedComputeRequired = false,
   retainedRelationOutput = false,
   runPublished = runPublishedCapturedStrategy}) {
   const entries = new Map();
@@ -485,7 +486,7 @@ export function installNodeClientDispatchOwner({moon, control, journal,
         // A listing-only inventory must not authorize keyed content I/O.
         throw new Error('InstalledKeyedSourceAdmissionInventoryUnavailable');
       }
-      if (inferring && multiple) {
+      if (inferring && multiple && typeof sourceProfile?.modelPreparation !== 'function') {
         throw new Error('InstalledInferMultiSourceUnsupported');
       }
       const installedSource = acquiring && !multiple
@@ -589,11 +590,28 @@ export function installNodeClientDispatchOwner({moon, control, journal,
           }
           return source.adapter.ledgerCapacity(source.preparedSource);
         });
-        ledger = moon.clientProgramPrepareMultiCapturedLocalInstalledLedger(preparedProgram,
-          capacities.map(value => value.capacity),
-          capacities.map(value => value.transferBytes),
-          capacities.map(value => value.executionBytes),
-          registry, values, fragment, ordered);
+        const managedRun = capacities[0]?.managedRun;
+        if (capacities.some(value => value.managedRun !== undefined)) {
+          if (managedRun === undefined || capacities.some(value => value.managedRun !== managedRun) ||
+              typeof moon.clientProgramInstalledManagedRunPrepareLedger !== 'function') {
+            throw new Error('InstalledMultiSourceOriginalRunUnavailable');
+          }
+          // The original operational parent was admitted before preparation.
+          // Do not replace it with the legacy scalar accounting constructor,
+          // even when another Source has equal capacities or matching CIDs.
+          ledger = checked(moon.clientProgramInstalledManagedRunPrepareLedger(
+            managedRun, preparedProgram, requested,
+            capacities.map(value => value.capacity),
+            capacities.map(value => value.transferBytes),
+            capacities.map(value => value.executionBytes),
+            registry, values, fragment, ordered));
+        } else {
+          ledger = moon.clientProgramPrepareMultiCapturedLocalInstalledLedger(preparedProgram,
+            capacities.map(value => value.capacity),
+            capacities.map(value => value.transferBytes),
+            capacities.map(value => value.executionBytes),
+            registry, values, fragment, ordered);
+        }
         if (ledger === undefined) throw new Error('InstalledMultiSourceLedgerUnavailable');
         entry.acquisitionLedger = ledger;
       }
@@ -626,9 +644,21 @@ export function installNodeClientDispatchOwner({moon, control, journal,
           throw new Error('InstalledSingleSourceCapacityUnavailable');
         }
         const capacity = installedSource.ledgerCapacity(held.preparedSource);
-        ledger = moon.clientProgramPrepareSingleCapturedLocalInstalledLedger(preparedProgram,
-          capacity.capacity, capacity.transferBytes, capacity.executionBytes,
-          registry, values, fragment, ordered);
+        if (capacity.managedRun !== undefined) {
+          if (typeof moon.clientProgramInstalledManagedRunPrepareLedger !== 'function') {
+            throw new Error('InstalledSingleSourceOriginalRunUnavailable');
+          }
+          // One Source uses the same operational parent as the checked
+          // capture prefix. Equal scalar capacity is not a replacement Run.
+          ledger = checked(moon.clientProgramInstalledManagedRunPrepareLedger(
+            capacity.managedRun, preparedProgram, requested,
+            [capacity.capacity], [capacity.transferBytes], [capacity.executionBytes],
+            registry, values, fragment, ordered));
+        } else {
+          ledger = moon.clientProgramPrepareSingleCapturedLocalInstalledLedger(preparedProgram,
+            capacity.capacity, capacity.transferBytes, capacity.executionBytes,
+            registry, values, fragment, ordered);
+        }
         if (ledger === undefined) throw new Error('InstalledSingleSourceLedgerUnavailable');
         entry.acquisitionLedger = ledger;
       }
@@ -636,12 +666,26 @@ export function installNodeClientDispatchOwner({moon, control, journal,
       let acquiredInfer;
       let acquiredContent;
       if (!acquiring && !inferring && !serializing) {
-        const open = retainedRelationOutput
-          ? moon.clientProgramOpenSourceFreeLocalRetainedHost
-          : moon.clientProgramOpenSourceFreeLocalHost;
-        setup = open(
-          preparedProgram, registry, values, 1n, 0n, 0n, 0n,
-          fragment, ordered);
+        if (managedComputeRequired && held.managedRun === undefined) {
+          throw new Error('InstalledManagedComputeRunUnavailable');
+        }
+        if (held.managedRun !== undefined) {
+          if (typeof moon.clientProgramOpenInstalledManagedSourceFreeHost !== 'function') {
+            throw new Error('InstalledManagedComputeHostUnavailable');
+          }
+          // This opaque Run already owns the original operational Ledger.
+          // Missing/foreign/parked originals cannot fall back to accounting.
+          setup = checked(moon.clientProgramOpenInstalledManagedSourceFreeHost(
+            held.managedRun, preparedProgram, requested, registry, values,
+            fragment, ordered, retainedRelationOutput));
+        } else {
+          const open = retainedRelationOutput
+            ? moon.clientProgramOpenSourceFreeLocalRetainedHost
+            : moon.clientProgramOpenSourceFreeLocalHost;
+          setup = open(
+            preparedProgram, registry, values, 1n, 0n, 0n, 0n,
+            fragment, ordered);
+        }
         if (setup === undefined) throw new Error('ClientProgramNeedsInputs');
         // Retain before the reservation/fault boundary: cancellation can
         // arrive there before runPublished transfers execution custody.
@@ -749,11 +793,16 @@ export function installNodeClientDispatchOwner({moon, control, journal,
             resourceUsage: resourceUsage(ledger)});
           const sourceEvidenceWire = await captured.issueSourceEvidence({authorityScopeCid,
             effectiveDataPolicyCid: captured.checkedSource.sourceDataPolicyCid});
-          sources.push({captured, sourceEvidenceWire});
+          sources.push({...source, captured, sourceEvidenceWire});
         }
         const captureCompletedAt = now();
         const effectiveDataPolicyCid = moon.clientProgramPublicationDataPolicyCid(preparedProgram);
         if (effectiveDataPolicyCid === undefined) throw new Error('InstalledMultiSourcePolicyUnavailable');
+        if (inferring) {
+          acquiredInfer = {sources, ledger, captureStartedAt, captureCompletedAt,
+            sourceEvidence: sources.map(source => control.admitRunEvidence('source_evidence', source.sourceEvidenceWire,
+              {maxWireBytes: 100000, maxNodes: 10000, maxDepth: 100}))};
+        } else {
         held.plan = acquiredMultiTaskPublicationPlan({moon, control, acquired: held.plan,
           preparedProgram, sources, authorityScopeCid, effectiveDataPolicyCid,
           captureStartedAt, captureCompletedAt, namespaceId, storeAuthorityCid, now});
@@ -766,6 +815,7 @@ export function installNodeClientDispatchOwner({moon, control, journal,
         entry.pendingSetup = setup;
         const dag = moon.strategyHostRun(setup);
         for (const [task, captured] of captures.entries()) captured.capture.retainTask(dag, task);
+        }
       } else if (acquiring) {
         if (held.preparedSourceAccess !== sourceAccess) {
           held.preparedSource = await prepareAcquisition(preparedProgram,
@@ -849,6 +899,8 @@ export function installNodeClientDispatchOwner({moon, control, journal,
       if (inferring) {
         const result = await runInfer({preparedProgram, plan: held.plan, store,
           acquiredInfer, acquiredContent,
+          ...(acquiredInfer?.sources === undefined ? {} : {
+            originalPreparation: sourceProfile.modelPreparation(preparedProgram, held.plan)}),
           submission: Object.fromEntries(['requestId', 'principalId', 'connection',
             'kind', 'input', 'parameters'].filter(key => Object.hasOwn(submission, key))
             .map(key => [key, submission[key]])),

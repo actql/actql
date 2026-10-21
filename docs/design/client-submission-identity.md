@@ -110,7 +110,8 @@ not execute.
 
 ## Scoped durable request names
 
-The public Python `request_id` convenience denotes a scoped durable name for
+The public Python `request_id` and Node SDK requestId-only conveniences denote
+a scoped durable name for
 one original submitted operation, not a nonce to reuse under each connection's
 new epoch. The existing request Journal resolves or binds the authenticated
 workspace/actor/name key before preparation or I/O. Its authority scope and
@@ -132,6 +133,15 @@ and intent identity. This authentication is neither a canonical public CID nor
 a bearer permit. The key and original Common-admitted epoch/intent remain
 necessary. Equal-looking data from a different Journal cannot issue a reference.
 Old explicit epoch nonces are not searched, inferred, or retroactively named.
+
+The SDK retains the exact candidate reference in its captured submitted input;
+that input is not a durable binding certificate. Its named invocation envelope
+is validated against the original name, intent, attempt and current authority
+scope before an observed older reference can be used. An explicit
+`submissionRef` with an optional matching `requestId` remains the old nonce
+assertion and unchanged explicit submission packet. Transport loss retains
+Unknown; neither an error code nor an unavailable named supplier selects a
+legacy operation, automatic restart or new preparation.
 
 Names have finite admission capacity under the existing Journal limit. There
 is no automatic eviction: formal pre-Run intent retirement leaves its named

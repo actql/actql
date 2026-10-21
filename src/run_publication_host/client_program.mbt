@@ -570,12 +570,20 @@ pub fn emit_prepared_client_task_pipeline(
   // Selected consumers of a Content completion retain the original checked
   // producer boundary, rather than trying to lower generation as pure Compute.
   let mut completed_serialization = None
+  let mut completed_infer = None
   if selected is Some(step) {
     let prepared = @lower.bound_preparation(owner)
     for producer in 0..<step {
       if @lower.node_at(prepared, producer) is Some(node) &&
         @lower.payload(node) is @lower.Serialize(_) {
         completed_serialization = Some((producer, end_step))
+      }
+    }
+    for
+      occurrence in prepared_client_composed_infer_occurrences(value).unwrap_or([],
+      ) {
+      if physical_equal(occurrence.preparation, owner) && occurrence.step < step {
+        completed_infer = Some(occurrence.step)
       }
     }
   }
@@ -590,6 +598,7 @@ pub fn emit_prepared_client_task_pipeline(
     max_wire_bytes,
     max_nodes,
     max_depth,
+    infer_boundary=completed_infer,
     completed_serialization~,
   )
 }
