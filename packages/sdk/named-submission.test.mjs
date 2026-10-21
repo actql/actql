@@ -110,3 +110,31 @@ test('invalid names and reference-less restart never enter a named or legacy Hos
     unresolvedHistory: {}}), {code: 'SubmissionReferenceRequired'});
   assert.equal(f.calls.length, 0);
 });
+
+test('a named original with unresolvable custody is not preparing, replaced or resubmitted', async t => {
+  const original = originalSubmission('old-unresolved-original');
+  const f = await fixture(t, (_operation, body) => ({...observed(body),
+    outcome: {kind: 'unresolvable', submissionRef: original,
+      problem: {code: 'OriginalCustodyUnavailable'}}}));
+  await assert.rejects(f.client.startSource('SELECT 1 AS id', {format: 'sql', requestId: 'retained-name'}), error => {
+    assert.equal(error.code, 'SubmissionUnresolvable');
+    assert.equal(error.requestName, 'retained-name');
+    assert.deepEqual(error.submissionRef, original);
+    assert.equal(getSubmissionOutcome(error).kind, 'unresolvable');
+    assert.equal(getSubmissionAttempt(error).kind, 'observed');
+    return true;
+  });
+  assert.equal(f.calls.length, 1);
+});
+
+test('a typed named refusal certifies only the same invocation and carries no original outcome', async t => {
+  let reply;
+  const f = await fixture(t, (_operation, body) => (reply = {kind: 'refused',
+    requestName: body.requestName, intentCid: body.intentCid, attemptRef: body.attemptRef,
+    reason: 'authorization', guarantee: 'attempt_uncommitted_unconsumed'}));
+  await assert.rejects(f.client.startSource('SELECT 1 AS id', {format: 'sql', requestId: 'denied-name'}), error => {
+    assert.equal(error.code, 'SubmissionRefused'); assert.deepEqual(getSubmissionAttempt(error), reply);
+    assert.equal(getSubmissionOutcome(error), undefined); return true;
+  });
+  assert.equal(f.calls.length, 1);
+});

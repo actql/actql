@@ -221,18 +221,20 @@ test('ordinary SDK submission exposes its original identity and input before fir
   client.close();
 });
 
-test('bare legacy request ID never silently selects a new epoch-bound operation', async () => {
+test('public name never falls back to a legacy epoch operation when the named supplier is absent', async () => {
   let submissions = 0;
   const client = await connectInProcess({mode: 'local', owner: 'local'}, {
-    async perform(operation) {
+    async perform(operation, body) {
       if (operation === 'connect') return profile;
       submissions++;
-      throw new Error('fixture must not receive this ambiguous operation');
+      assert.equal(operation, 'submit-named-intent');
+      assert.equal(body.requestName, 'unknown-old-operation');
+      throw new Error('named supplier unavailable');
     },
   });
   await assert.rejects(client.start({}, {requestId: 'unknown-old-operation'}),
-    {code: 'SubmissionReferenceRequired'});
-  assert.equal(submissions, 0);
+    {code: 'SubmissionUnknown'});
+  assert.equal(submissions, 1);
   client.close();
 });
 
