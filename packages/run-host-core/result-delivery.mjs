@@ -49,9 +49,18 @@ function validateControl(control) {
 }
 
 function selectDeliveryAttempt(control, admitted, proposed, index, manifest,
-  grant, request, limits) {
+  grant, request, limits, original) {
   try {
-    if (typeof admitted?.created !== 'boolean' || admitted.attempt === null ||
+    if (typeof admitted?.created !== 'boolean') fail('InvalidResultDeliveryAttemptState');
+    if (admitted.original !== undefined) {
+      if (original === undefined || admitted.original !== original) {
+        fail('InvalidResultDeliveryAttemptState');
+      }
+      // The physical owner selected this exact issued immutable attempt.
+      // The opaque echo is not a claim, durability ACK or read permission.
+      return proposed;
+    }
+    if (admitted.attempt === null ||
         typeof admitted.attempt !== 'object' || Array.isArray(admitted.attempt)) {
       fail('InvalidResultDeliveryAttemptState');
     }
@@ -303,11 +312,14 @@ export async function deliverPublishedResult(options, resolvedPublication) {
     {resultName, format, attemptId, requestedAt},
     limits,
   );
+  const original = typeof control.captureIssuedDeliveryAttempt === 'function'
+    ? control.captureIssuedDeliveryAttempt(proposed, index, manifest, grant, limits)
+    : undefined;
   const admitted = await store.createDeliveryAttempt(
-    proposed.wire, grant.wire,
+    proposed.wire, grant.wire, original,
   );
   const attempt = selectDeliveryAttempt(control, admitted, proposed, index,
-    manifest, grant, {resultName, format, attemptId}, limits);
+    manifest, grant, {resultName, format, attemptId}, limits, original);
   if (!admitted.created) {
     const existing = await store.latestDeliveryRecordContract(
       attempt.identity,
