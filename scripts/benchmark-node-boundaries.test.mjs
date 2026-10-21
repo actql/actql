@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
-import {mkdtemp, mkdir, readFile, rm, writeFile} from 'node:fs/promises';
+import {lstat, mkdtemp, mkdir, readFile, rm, writeFile} from 'node:fs/promises';
 import {arch, cpus, platform, release, tmpdir, totalmem} from 'node:os';
 import {join} from 'node:path';
 import test from 'node:test';
@@ -17,7 +17,7 @@ async function fixture(t, fault = '') {
   // fault safety. It is not ordinary product execution or a latency sample.
   const code = Buffer.from(`import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
-import {appendFile,mkdir,readFile,symlink,writeFile} from 'node:fs/promises';
+import {appendFile,link,mkdir,readFile,symlink,writeFile} from 'node:fs/promises';
 import {join} from 'node:path';
 await writeFile(${JSON.stringify(join(root, 'imported'))},'yes');
 export async function open({stateDir}) {
@@ -40,6 +40,7 @@ export async function open({stateDir}) {
   const h=createHash('sha256').update('actql-local-public-index-key/0.1\\0');
   for(const value of[ref.namespaceId,ref.authorityScopeCid,ref.runDefinitionCid]){const b=Buffer.from(value),n=Buffer.alloc(8);n.writeBigUInt64BE(BigInt(b.length));h.update(n).update(b);}
   await writeFile(material,payload);
+  ${fault === 'hardlink' ? `await link(material,${JSON.stringify(join(root, 'outside-original'))});` : ''}
   await writeFile(join(stateDir,'publication/indexes',h.digest('hex')+'.json'),JSON.stringify({namespace_id:ref.namespaceId,authority_scope_cid:ref.authorityScopeCid,run_definition_cid:ref.runDefinitionCid,durable_result_binding_cids:${fault === 'ambiguous' ? '[bindingCid,bindingCid]' : '[bindingCid]'}}));
   await writeFile(join(stateDir,'publication/contracts',bindingCid.slice(7)+'.json'),JSON.stringify({run_definition_cid:ref.runDefinitionCid,result_definition_cid:definitionCid,material_generation_cid:cid,byte_count:payload.length}));
   await writeFile(join(stateDir,'publication/contracts',definitionCid.slice(7)+'.json'),JSON.stringify({result_name:'main'}));
@@ -59,7 +60,7 @@ export async function open({stateDir}) {
       cpuModel: cpus()[0].model, logicalCpus: cpus().length, memoryBytes: totalmem()},
     historyProtocolSha256: hash(Buffer.from(JSON.stringify(nodeOperationProtocol('diagnostic'))))}));
   return {manifestPath, consumer: join(root, 'consumer'), controlsPath, output: join(root, 'new-boundary'),
-    importMarker: join(root, 'imported')};
+    importMarker: join(root, 'imported'), outsideOriginal: join(root, 'outside-original')};
 }
 const events = async options => (await readFile(join(options.output, 'new-state/events'), 'utf8')).trim().split('\n');
 
@@ -114,4 +115,15 @@ test('an existing output is never reused for initialization or fault injection',
   const options = await fixture(t); await mkdir(options.output);
   await assert.rejects(runNodeUsedMaterialBoundary(options), {code: 'EEXIST'});
   await assert.rejects(readFile(options.importMarker), {code: 'ENOENT'});
+});
+test('hardlinked selected material refuses before mutation and leaves the outside original unchanged', async t => {
+  const options = await fixture(t, 'hardlink'), report = await runNodeUsedMaterialBoundary(options);
+  assert.equal(report.selectedBoundaryPassed, false); assert.equal(report.cleanup.closed, true);
+  assert.equal(report.firstFailure.step, 'selected test-owned material mutation');
+  assert.match(report.firstFailure.message, /unshared bounded material/u);
+  assert.equal(report.mutation, undefined); assert.deepEqual(report.boundaries.rows, []);
+  assert.deepEqual(await events(options), ['submit', 'read', 'close']);
+  assert.equal((await lstat(options.outsideOriginal)).nlink, 2);
+  assert.equal((await readFile(options.outsideOriginal)).toString(), 'one original test-owned row frame');
+  await assert.rejects(readFile(join(options.output, 'original-selected-generation.bin')), {code: 'ENOENT'});
 });
