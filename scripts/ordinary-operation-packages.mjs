@@ -9,7 +9,7 @@ import {join, resolve} from 'node:path';
 import {pathToFileURL} from 'node:url';
 import {CLIENT_PACKAGES, checkoutState} from './packed-client-packages.mjs';
 import {inventory, unpack} from './package-release.mjs';
-import {nodeOperationProtocol} from './benchmark-node-operations.mjs';
+import {nodeOperationProtocol, nodeWarmSmallQueryFixtures} from './benchmark-node-operations.mjs';
 
 const hash = (value, algorithm = 'sha256', encoding = 'hex') =>
   createHash(algorithm).update(value).digest(encoding);
@@ -123,7 +123,8 @@ export async function combineOrdinaryPerformanceMeasurements(root) {
   const combined = {sourceSha: controls.sourceSha, ...binding, latency: [],
     functional: {...binding, rows: []}, collectors: [],
     qualification: 'Actual warm and process reports only; unmeasured release gates remain incomplete.'};
-  for (const [family, operations] of Object.entries({warm: ['warm-select', 'warm-result', 'warm-status'],
+  for (const [family, operations] of Object.entries({warm: ['warm-select', 'warm-result', 'warm-status',
+    ...nodeWarmSmallQueryFixtures.map(fixture => fixture.operation)],
     'cold-existing': ['cold-existing'], 'first-init': ['first-init']})) {
     const directory = join(root, 'measurement', family);
     let bytes;
@@ -150,6 +151,14 @@ export async function combineOrdinaryPerformanceMeasurements(root) {
     for (const series of report.latency) {
       assert(operations.includes(series.operation) && !seen.has(series.operation), 'Foreign or duplicate operation');
       seen.add(series.operation);
+      const fixture = nodeWarmSmallQueryFixtures.find(value => value.operation === series.operation);
+      if (fixture) {
+        assert.deepEqual(series.query, fixture, 'Collector query differs from the fixed protocol');
+        const fixtureSha256 = hash(JSON.stringify(fixture));
+        assert.equal(series.fixtureSha256, fixtureSha256, 'Collector query identity differs');
+        assert(series.samples.every(sample => sample.fixtureSha256 === fixtureSha256),
+          'Raw sample query identity differs');
+      }
     }
     assert(report.functional.rows.every(row => seen.has(row.operation)));
     const raw = await readFile(join(directory, 'samples.jsonl'), 'utf8');

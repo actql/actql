@@ -11,7 +11,7 @@ import {parse} from 'yaml';
 import {CLIENT_PACKAGES} from './packed-client-packages.mjs';
 import {validatePerformancePackageProducer, inspectPerformancePackageProducer,
   prepareOrdinaryPerformanceConsumer, combineOrdinaryPerformanceMeasurements} from './ordinary-operation-packages.mjs';
-import {nodeOperationProtocol} from './benchmark-node-operations.mjs';
+import {nodeOperationProtocol, nodeWarmSmallQueryFixtures} from './benchmark-node-operations.mjs';
 import {assessPerformanceEvidence} from './operation-performance.mjs';
 
 const sha = 'a'.repeat(40), hash = bytes => createHash('sha256').update(bytes).digest('hex');
@@ -196,7 +196,12 @@ async function reports(t) {
     const report = {sourceSha: sha, mode: 'final', ...binding, latency,
       functional: {...binding, rows: []}, installedPayloadsUnchanged: true,
       cleanup: family === 'warm' ? {closed: true} : {allChildrenExited: true, allOriginalClientsClosed: true}};
-    for (const series of latency) series.samples.push({iteration: 0, wallNs: 1, synthetic: true});
+    for (const series of latency) {
+      const query = nodeWarmSmallQueryFixtures.find(fixture => fixture.operation === series.operation);
+      if (query) Object.assign(series, {query: structuredClone(query), fixtureSha256: hash(JSON.stringify(query))});
+      series.samples.push({iteration: 0, wallNs: 1, synthetic: true,
+        ...(query ? {fixtureSha256: series.fixtureSha256} : {})});
+    }
     const save = async () => {
       await writeFile(join(directory, 'measurements.json'), JSON.stringify(report));
       await writeFile(join(directory, 'samples.jsonl'), latency.flatMap(series =>
@@ -209,11 +214,13 @@ async function reports(t) {
 
 test('same-cohort warm and process reports retain their exact raw samples without inventing missing gates', async t => {
   const p = await reports(t);
-  await p.add('warm', ['warm-select', 'warm-result', 'warm-status']);
+  await p.add('warm', ['warm-select', 'warm-result', 'warm-status',
+    'warm-join', 'warm-union', 'warm-decimal-sum']);
   await p.add('cold-existing', ['cold-existing']); await p.add('first-init', ['first-init']);
   const result = JSON.parse(await readFile(await combineOrdinaryPerformanceMeasurements(p.root)));
   assert.deepEqual(result.latency.map(row => row.operation),
-    ['warm-select', 'warm-result', 'warm-status', 'cold-existing', 'first-init']);
+    ['warm-select', 'warm-result', 'warm-status', 'warm-join', 'warm-union', 'warm-decimal-sum',
+      'cold-existing', 'first-init']);
   assert.equal(result.collectors.length, 3);
   assert.equal(Object.hasOwn(result, 'structure'), false);
   assert.equal(Object.hasOwn(result, 'history'), false);
@@ -225,6 +232,38 @@ test('missing collector families stay incomplete instead of manufacturing succes
   const output = JSON.parse(await readFile(await combineOrdinaryPerformanceMeasurements(p.root)));
   assert.deepEqual(output.latency, []); assert.deepEqual(output.functional.rows, []);
   assert.equal(assessPerformanceEvidence(output).status, 'incomplete');
+});
+
+test('small-query reports retain the exact protocol query, oracle and raw identity without completing release evidence', async t => {
+  const p = await reports(t);
+  const original = await p.add('warm', ['warm-join', 'warm-union', 'warm-decimal-sum']);
+  for (const series of original.report.latency) {
+    Object.assign(series, {profiled: false, load: 'isolated'});
+    Object.assign(series.samples[0], {cohortSha256: series.cohortSha256,
+      cpuUserUs: 1, cpuSystemUs: 1, pid: 1, cpuScope: 'synthetic fixture',
+      hostId: 'synthetic-host', stateId: 'synthetic-state', completed: true, verified: true});
+  }
+  original.report.functional.rows = original.report.latency.map(({operation, query}) => ({operation,
+    completed: true, expectedSha256: hash(JSON.stringify(query.expected)),
+    actualSha256: hash(JSON.stringify(query.expected))}));
+  await original.save();
+  const output = JSON.parse(await readFile(await combineOrdinaryPerformanceMeasurements(p.root)));
+  assert.deepEqual(output.latency, original.report.latency);
+  assert.deepEqual(output.functional.rows, original.report.functional.rows);
+  assert.deepEqual(output.latency.map(series => series.query.expected),
+    [[{id: 1, label: 'joined'}], [{id: 1}, {id: 2}], [{total: '4.00'}]]);
+  assert.equal(assessPerformanceEvidence(output).status, 'incomplete');
+  for (const mutation of ['query', 'oracle', 'series-identity', 'sample-identity']) {
+    const invalid = await reports(t), report = await invalid.add('warm', ['warm-decimal-sum']);
+    const series = report.report.latency[0];
+    if (mutation === 'query') series.query.text = 'SELECT 1 AS total';
+    if (mutation === 'oracle') series.query.expected = [{total: 4}];
+    if (mutation === 'series-identity') series.fixtureSha256 = 'b'.repeat(64);
+    if (mutation === 'sample-identity') delete series.samples[0].fixtureSha256;
+    await report.save();
+    await assert.rejects(combineOrdinaryPerformanceMeasurements(invalid.root), /query identity|query differs/u);
+    await assert.rejects(readFile(join(invalid.root, 'measurements.json')), {code: 'ENOENT'});
+  }
 });
 
 test('foreign identities and missing or changed raw measurements refuse aggregation', async t => {
