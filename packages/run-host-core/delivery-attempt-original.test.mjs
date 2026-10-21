@@ -96,3 +96,19 @@ test('normal Result access preserves the issued attempt through Store selection'
   await assert.rejects(f.deliver(), {code: 'ResultDeliveryDenied'});
   assert.equal(f.state.readers, 1);
 });
+
+
+test('copied Store selection echoes cannot expose Result rows', async () => {
+  const control = openResultDeliveryControl();
+  const f = createResultDeliveryFixture(api, control, {originals: true});
+  const select = f.store.createDeliveryAttempt;
+  f.store.createDeliveryAttempt = async (...args) => {
+    const reply = await select(...args);
+    return {...reply, original: {...reply.original}};
+  };
+  await assert.rejects(f.deliver(), {code: 'InvalidResultDeliveryAttemptState'});
+  assert.equal(f.state.readers, 0);
+  assert.equal(f.state.records.length, 0);
+  assert.equal(f.state.chunks.length, 0);
+  assert.equal(f.state.grantUses, 1);
+});
