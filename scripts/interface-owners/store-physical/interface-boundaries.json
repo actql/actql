@@ -8653,7 +8653,7 @@
               },
               {
                 "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "const readOriginal = (cid, includeNative = true) => {"
+                "anchor": "const readOriginal = (cid, includeNative = cid !== admitted.identity) => {"
               },
               {
                 "path": "adapters/store-local/publication-store.mjs",
