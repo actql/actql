@@ -280,6 +280,12 @@ and creation custody. Trusted copy I/O does not repeat that source admission.
 Journal opening consumes this observation through its closed Read/SQLite steps,
 while retaining the actual opened database target, selected stored originals,
 adoption/epoch anchors and each physical return or partial-failure duty.
+The same-pair command read may perform its first Journal open inside that entry
+and consume the actual opening observation. A read entry on an already-open
+capture observes current state afresh; no persistent opening success skips it.
+Inactive Store routing metadata may precede opening, but cannot activate without
+the acquired original Host/pair/Library. If opening leaves a pending flight,
+that original return precedes retirement of the inactive routing metadata.
 
 ### Operation-scoped Journal reads
 

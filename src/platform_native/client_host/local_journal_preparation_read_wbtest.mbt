@@ -167,3 +167,34 @@ test "finishing a captured scope fences new work without acknowledging original 
   assert_true(library.close_checked() is Err(Physical(_)))
   crypto.close_checked().unwrap()
 }
+
+///|
+// Actual inactive routing metadata can precede open. A legacy Library still
+// cannot acquire the paired Read or initialize a Journal through this entrance.
+test "prepared read refuses a missing pair and retires inactive routing without opening" {
+  let capture = journal_capture_fixture("read-unopened-routing")
+  let session = capture.original_session()
+  let library = capture.library.unwrap()
+  let runtime = local_runtime_empty(None)
+  let routing = prepare_native_local_run_observation_store_operation(
+    capture, runtime, library,
+  ).unwrap()
+  assert_false(routing.pending_scope().unwrap())
+  let calls = Ref(0)
+  assert_true(
+    capture.with_original_read(fn(_host) { calls.val += 1 })
+    is Err(InvalidInput),
+  )
+  assert_eq(calls.val, 0)
+  assert_true(capture.original_host() is None)
+  assert_true(capture.original_failure() is None)
+  assert_eq(capture.check_current().issue_family(), 1)
+  assert_eq(session.root.inspect_generation("client.sqlite3").unwrap(), None)
+  routing.close_checked().unwrap()
+  assert_false(session.closed)
+  adoption_open_require_locked(session.parent)
+  assert_eq(capture.close().issue_family(), 0)
+  runtime.close().unwrap()
+  assert_true(library.close_checked() is Err(Physical(_)))
+  capture.crypto.close_checked().unwrap()
+}

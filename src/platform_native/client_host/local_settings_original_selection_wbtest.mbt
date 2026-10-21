@@ -130,3 +130,33 @@ test "journal opening validates the unchanged source once" {
   host.close().unwrap()
   assert_true(host.closed && host.session.closed)
 }
+
+///|
+// A new public Host observation is a real entry, not a pure internal getter.
+// Slot 37 counts one opening admission and one fresh, refusing next entry.
+test "next Host operation refuses a changed original after opening" {
+  let name = "local-settings-next-operation"
+  let session = local_settings_fixture(name)
+  let host = session
+    .open_journal(
+      local_journal_test_library(),
+      epoch_test_crypto(),
+      100.0,
+      8,
+      8388608L,
+    )
+    .unwrap()
+  let file = name + ".settings.json"
+  let generation = session.source_root
+    .inspect_generation(file)
+    .unwrap()
+    .unwrap()
+  session.source_root.reclaim_generation(file, generation).unwrap()
+  let writer = session.source_root
+    .create_writer(name + ".next.stage", 65536L)
+    .unwrap()
+  writer.append(b"{\"changed\":true}").unwrap()
+  writer.seal(file).unwrap() |> ignore
+  assert_true(host.selected_configuration(file) is Err(SourceChanged))
+  host.close().unwrap()
+}
