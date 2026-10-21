@@ -1,8 +1,30 @@
 ///|
+fn source_free_requirements_prepared() -> @publication_host.PreparedClientProgram raise {
+  let assets = @publication_host.client_local_product_assets()
+  guard @json.parse(assets.environment) is Object(fields) &&
+    fields.get("evidence_bundle_cid") is Some(String(cid)) else {
+    fail("packaged Environment evidence missing")
+  }
+  let environment = @publication_host.admit_client_check_environment(
+    assets.environment,
+    cid,
+    { text_time: false, veca: false, },
+    { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
+  ).unwrap()
+  @publication_host.prepare_effect_free_client_program(
+    "{\"version\":\"actql/0.1\",\"id\":\"source-free-requirements\",\"stages\":[{\"id\":\"source\",\"inputs\":{},\"steps\":[{\"values\":{\"schema\":{\"id\":{\"type\":\"number\",\"nullable\":false}},\"rows\":[{\"id\":1},{\"id\":2}]},\"as\":\"selected\"}],\"results\":{\"rows\":{\"from\":\"selected\",\"fields\":[\"id\"]}}}],\"results\":{\"answer\":{\"from\":{\"stage\":\"source\",\"result\":\"rows\"}}}}",
+    Json,
+    environment,
+    None,
+    @publication_host.client_standard_program_preparation_limits(),
+  ).unwrap()
+}
+
+///|
 // Real checked Program and Local provider, with a nominal Resource Ledger.
 // This is not Native physical backing, Account or durable Run admission.
 test "source-free requirements keep maximum allowances separate and execute the same prepared rows" {
-  let prepared = single_source_free_capacity_prepared()
+  let prepared = source_free_requirements_prepared()
   let assets = @publication_host.client_local_product_assets()
   let quote = prepare_source_free_local_requirements(
     prepared,
@@ -57,7 +79,7 @@ test "source-free requirements keep maximum allowances separate and execute the 
 
 ///|
 test "source-free requirements cannot select a different preparation or installed input" {
-  let prepared = single_source_free_capacity_prepared()
+  let prepared = source_free_requirements_prepared()
   let assets = @publication_host.client_local_product_assets()
   let quote = prepare_source_free_local_requirements(
     prepared,
@@ -66,7 +88,7 @@ test "source-free requirements cannot select a different preparation or installe
     Some(assets.fragment),
     assets.ordered,
   ).unwrap()
-  let foreign = single_source_free_capacity_prepared()
+  let foreign = source_free_requirements_prepared()
   assert_true(
     quote.matches(
       prepared,
