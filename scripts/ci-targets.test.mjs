@@ -13,6 +13,17 @@ const all = ['js', 'wasm', 'native'];
 const workflow = parse(readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8'));
 const {jobs} = workflow;
 
+test('normal lint executes behavioral operation performance assessment tests', () => {
+  const step = jobs.lint.steps.find(row =>
+    row.name === 'Test ordinary operation performance assessment');
+  assert.ok(step);
+  assert.equal(step.run, 'node --test scripts/operation-performance.test.mjs');
+  assert.equal(step.if, "${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}");
+  // These tests validate raw samples, frame counts, faults and incomplete
+  // evidence. Running them is not an ordinary-package performance result.
+  assert.ok(jobs.host.steps.some(row => row.run === 'npm run check:checkpoint-runtime'));
+});
+
 test('manual integration keeps full core and explicit macOS opt-in', () => {
   assert.deepEqual(selectTargets(['README.md'], {event: 'push'}).targets, all);
   assert.equal(selectTargets(['README.md'], {event: 'push'}).macos, true);
