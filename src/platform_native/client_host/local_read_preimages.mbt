@@ -66,6 +66,8 @@ fn local_read_preimage(
     Err(CapacityExceeded) => return Err(CapacityExceeded)
     Err(Encoding) => return Err(Encoding)
   }
+  // One concrete preimage digest attempt, separate from scope/config hashes.
+  native_timing_count(40)
   let cid = match local_adoption_digest(crypto, @utf8.encode(wire)) {
     Ok(value) => value
     Err(_) => return Err(Encoding)

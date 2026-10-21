@@ -112,6 +112,8 @@ fn NativeLocalHostConnection::validate_read_evidence(
 ) -> Result[String, NativeClientRunJournalIssue] {
   let reads = operations.map(value => value.reads)
   guard row.revision == 0L else { return Err(CustodyLost) }
+  // Count actual archived-packet admission attempts, not cache hits/getters.
+  native_timing_count(42)
   let packet = match
     local_read_evidence_object(
       row.body,
@@ -491,6 +493,8 @@ fn NativeLocalHostConnection::read_evidence_custody(
   )
   let mut cursor = ""
   let mut observed = 0
+  // This is a complete evidence-namespace inventory attempt, even if empty.
+  native_timing_count(41)
   while true {
     let row = match
       scan_client_journal_value(
