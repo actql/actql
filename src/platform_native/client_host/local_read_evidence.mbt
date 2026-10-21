@@ -416,6 +416,32 @@ fn NativeLocalHostConnection::validate_read_evidence(
 }
 
 ///|
+fn local_read_evidence_issuance_count(
+  body : Bytes,
+  revision : Int64,
+  max_records : Int,
+) -> Result[Int, NativeClientRunJournalIssue] {
+  let count_text = @utf8.decode(body) catch { _ => return Err(CustodyLost) }
+  if count_text.is_empty() || count_text.length() > 5 {
+    return Err(CustodyLost)
+  }
+  let mut count = 0
+  for unit in count_text {
+    let digit = unit.to_int() - 48
+    if digit < 0 || digit > 9 {
+      return Err(CustodyLost)
+    }
+    count = count * 10 + digit
+  }
+  if count.to_string() != count_text ||
+    count > max_records * 64 ||
+    revision != count.to_int64() {
+    return Err(CustodyLost)
+  }
+  Ok(count)
+}
+
+///|
 fn NativeLocalHostConnection::read_evidence_custody(
   self : NativeLocalHostConnection,
   crypto : @crypto.Library,
@@ -450,24 +476,14 @@ fn NativeLocalHostConnection::read_evidence_custody(
     is Err(@sqlite.NotFound) else {
     return Err(CustodyLost)
   }
-  let count_text = @utf8.decode(issued.body) catch {
-    _ => return Err(CustodyLost)
-  }
-  if count_text.is_empty() || count_text.length() > 5 {
-    return Err(CustodyLost)
-  }
-  let mut count = 0
-  for unit in count_text {
-    let digit = unit.to_int() - 48
-    if digit < 0 || digit > 9 {
-      return Err(CustodyLost)
-    }
-    count = count * 10 + digit
-  }
-  if count.to_string() != count_text ||
-    count > self.journal.max_records * 64 ||
-    issued.revision != count.to_int64() {
-    return Err(CustodyLost)
+  let count = match
+    local_read_evidence_issuance_count(
+      issued.body,
+      issued.revision,
+      self.journal.max_records,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
   }
   let runs : Map[String, (Int, Int)] = Map(
     [],
@@ -755,4 +771,59 @@ fn local_read_egress_fields(
     ],
     16384,
   )
+}
+
+///|
+// Ordinary disclosure joins only this target's actual reserved holding and
+// fixed adoption/issuance anchors. Whole retained-evidence integrity remains
+// an explicit audit; unrelated history cannot authorize or block this target.
+fn NativeLocalHostConnection::require_retained_read_evidence_target(
+  original : NativeLocalHostConnection,
+  request : @host.ClientRequestIdentity,
+  operations? : NativeClientJournalOperationAccess? = None,
+) -> Result[Unit, NativeClientRunJournalIssue] {
+  let reads = operations.map(value => value.reads)
+  match
+    read_client_journal_value(
+      original.database,
+      "client_local_read_custody",
+      "host",
+      reads,
+    ) {
+    Ok(row) if row.revision == 0L && row.body == original.adoption_body => ()
+    Ok(_) | Err(@sqlite.NotFound) => return Err(CustodyLost)
+    Err(issue) => return Err(Physical(issue))
+  }
+  let issued = match
+    read_client_journal_value(
+      original.database,
+      "client_local_read_custody",
+      "issued",
+      reads,
+    ) {
+    Ok(value) => value
+    Err(@sqlite.NotFound) => return Err(CustodyLost)
+    Err(issue) => return Err(Physical(issue))
+  }
+  match
+    local_read_evidence_issuance_count(
+      issued.body,
+      issued.revision,
+      original.journal.max_records,
+    ) {
+    Ok(count) if count > 0 => ()
+    _ => return Err(CustodyLost)
+  }
+  match
+    read_client_journal_capacity(
+      original.database,
+      "client_local_read_evidence",
+      @host.client_request_scope_cid(request),
+      operations,
+    ) {
+    Ok(holding) if holding.reserved_bytes == 65536L &&
+      holding.reserved_objects == 1L => Ok(())
+    Ok(_) | Err(@sqlite.NotFound) => Err(CustodyLost)
+    Err(issue) => Err(Physical(issue))
+  }
 }

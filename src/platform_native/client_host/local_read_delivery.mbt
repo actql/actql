@@ -126,17 +126,10 @@ fn NativeLocalReadPolicyBinding::retained_read_admission_with_operations(
           return Err(AuthorizationDenied)
         }
       }
-      let (_, _, runs) = match
-        self.host.read_evidence_custody(
-          self.crypto,
-          operations~,
-          capture=self.capture,
-        ) {
-        Ok(value) => value
+      match
+        self.host.require_retained_read_evidence_target(original, operations~) {
+        Ok(_) => ()
         Err(issue) => return Err(issue)
-      }
-      if runs.get(@host.client_request_scope_cid(original)) is None {
-        return Err(CustodyLost)
       }
       let packet = match local_read_evidence_packet(original, bodies) {
         Ok(value) => value

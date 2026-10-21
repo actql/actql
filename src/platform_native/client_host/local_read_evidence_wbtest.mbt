@@ -438,14 +438,20 @@ test "Routed read evidence preserves reservation CAS rollback and complete custo
   )
   host.database.insert("client_local_read_evidence", "foreign", b"{}").unwrap()
   |> ignore
-  assert_true(
-    binding.retained_read_admission_with_operations(
+  let delivered = binding
+    .retained_read_admission_with_operations(
       original,
       facts,
       policy,
       operations=Some(access),
     )
-    is Err(Journal(CustodyLost)),
+    .unwrap()
+  assert_eq(delivered.egress_admission_cid, admitted.egress_admission_cid)
+  // Whole-history corruption is still diagnosed explicitly. An unrelated
+  // row is not part of this target's read authority or retained reservation.
+  assert_true(
+    host.read_evidence_custody(binding.crypto, operations=Some(access))
+    is Err(CustodyLost),
   )
   assert_eq(
     host.database.read("client_local_read_evidence", "foreign").unwrap().body,

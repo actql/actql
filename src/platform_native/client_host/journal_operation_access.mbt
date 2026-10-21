@@ -21,6 +21,10 @@ priv struct NativeClientJournalOperationAccess {
     @sqlite.NativeCapacityUsage,
     @sqlite.NativeSqliteIssue,
   ]
+  read_capacity : (String, String) -> Result[
+    @sqlite.NativeCapacityUsage,
+    @sqlite.NativeSqliteIssue,
+  ]
   reserve_capacity : (String, String, Int64, Int64, Int64, Int64) -> Result[
     Bool,
     @sqlite.NativeSqliteIssue,
@@ -143,5 +147,22 @@ fn remove_exact_client_journal_value(
       }
       (original.remove_exact)(table_name, key, revision, body)
     }
+  }
+}
+
+///|
+// Read the existing exact reservation through the same physical SQL route.
+// Absence cannot create, reserve, release or acknowledge another holding.
+fn read_client_journal_capacity(
+  database : @sqlite.Database,
+  table_name : String,
+  key : String,
+  access : NativeClientJournalOperationAccess?,
+) -> Result[@sqlite.NativeCapacityUsage, @sqlite.NativeSqliteIssue] {
+  match access {
+    None => database.read_capacity(table_name, key)
+    Some(original) if physical_equal(database, original.reads.database) =>
+      (original.read_capacity)(table_name, key)
+    _ => Err(@sqlite.Collision)
   }
 }

@@ -15,6 +15,10 @@ fn journal_test_operation_access(
       calls.push("capacity:" + table)
       database.capacity_usage(table)
     },
+    read_capacity: (table, key) => {
+      calls.push("read-capacity:" + table + ":" + key)
+      database.read_capacity(table, key)
+    },
     reserve_capacity: (table, key, bytes, objects, max_bytes, max_objects) => {
       calls.push("reserve:" + table + ":" + key)
       database.reserve_capacity_in_transaction(
@@ -87,7 +91,24 @@ test "Original Journal capacity routing keeps the transaction and refuses foreig
   ).unwrap()
   assert_eq(usage.reserved_bytes, 512L)
   assert_eq(usage.reserved_objects, 1L)
+  let selected = read_client_journal_capacity(
+    database,
+    "read-evidence",
+    "original",
+    Some(access),
+  ).unwrap()
+  assert_eq(selected.reserved_bytes, 512L)
+  assert_eq(selected.reserved_objects, 1L)
   calls.clear()
+  assert_true(
+    read_client_journal_capacity(
+      foreign,
+      "read-evidence",
+      "original",
+      Some(access),
+    )
+    is Err(@sqlite.Collision),
+  )
   assert_true(
     client_journal_capacity_usage(foreign, "read-evidence", Some(access))
     is Err(@sqlite.Collision),
@@ -110,6 +131,15 @@ test "Original Journal capacity routing keeps the transaction and refuses foreig
   assert_eq(
     client_journal_capacity_usage(database, "read-evidence", Some(access)).unwrap().reserved_bytes,
     0L,
+  )
+  assert_true(
+    read_client_journal_capacity(
+      database,
+      "read-evidence",
+      "original",
+      Some(access),
+    )
+    is Err(@sqlite.NotFound),
   )
   assert_eq(foreign.capacity_usage("read-evidence").unwrap().reserved_bytes, 0L)
   database.close_checked().unwrap()

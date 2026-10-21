@@ -230,6 +230,12 @@ fn NativeLocalJournalReadQueries::operation_access(
         Err(issue) => Err(issue)
       }
     },
+    read_capacity: (table, key) => {
+      match self.query(() => self.database.read_capacity(table, key)) {
+        Ok(value) => value
+        Err(issue) => Err(issue)
+      }
+    },
     reserve_capacity: (table, key, bytes, objects, max_bytes, max_objects) => {
       match
         self.query(() => {
