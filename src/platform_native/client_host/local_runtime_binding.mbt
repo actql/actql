@@ -272,6 +272,8 @@ fn NativeLocalHostConnection::bind_packaged_runtime_with_access(
   runtime_file : String,
   access : NativeLocalRuntimeBindingAccess,
 ) -> Result[Unit, NativeClientRunJournalIssue] {
+  native_timing_begin(16)
+  defer native_timing_end(16)
   let scope = match (access.scope)(principal, connection) {
     Ok(value) => value
     Err(_) => return Err(CustodyLost)

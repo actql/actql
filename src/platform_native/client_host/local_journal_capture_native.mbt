@@ -125,6 +125,8 @@ fn NativeLocalJournalCapture::reply(
 pub fn NativeLocalJournalCapture::open(
   self : NativeLocalJournalCapture,
 ) -> NativeLocalJournalCaptureReply {
+  native_timing_begin(15)
+  defer native_timing_end(15)
   if self.closing {
     return self.reply(OpenCapturedJournal, Some(JournalCaptureClosed))
   }

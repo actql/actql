@@ -190,6 +190,8 @@ fn LocalCommandPreparationOriginal::prepare_business_execution(
 fn LocalCommandPreparationOriginal::close_business_execution(
   self : LocalCommandPreparationOriginal,
 ) -> Result[Unit, LocalCommandPreparationIssue] {
+  native_timing_begin(28)
+  defer native_timing_end(28)
   guard self.business is Some(business) else { return Ok(()) }
   guard self.host is Some(host) else {
     return if business.domain is None && business.execution is None {
@@ -325,6 +327,8 @@ fn LocalCommandPreparationOriginal::prepare_business_operation(
 fn LocalCommandPreparationOriginal::close_business_operation(
   self : LocalCommandPreparationOriginal,
 ) -> Result[Unit, LocalCommandPreparationIssue] {
+  native_timing_begin(29)
+  defer native_timing_end(29)
   guard self.business is Some(business) else { return Ok(()) }
   if business.operation is Some(operation) {
     match operation.pending_scope() {

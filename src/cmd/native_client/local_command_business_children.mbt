@@ -165,6 +165,8 @@ fn LocalCommandPreparationOriginal::open_business_store(
 fn LocalCommandPreparationOriginal::close_business_children(
   self : LocalCommandPreparationOriginal,
 ) -> Result[Unit, LocalCommandPreparationIssue] {
+  native_timing_begin(17)
+  defer native_timing_end(17)
   guard self.business is Some(business) else { return Ok(()) }
   if self.journal_read_open || self.phase_open {
     return Err(CommandBusinessChildren)

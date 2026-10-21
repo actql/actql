@@ -280,6 +280,8 @@ fn LocalCommandPreparationOriginal::acquire(
 fn LocalCommandPreparationOriginal::acquire_physical_read(
   self : LocalCommandPreparationOriginal,
 ) -> Result[Unit, LocalCommandPreparationIssue] {
+  native_timing_begin(9)
+  defer native_timing_end(9)
   if self.host is Some(_) ||
     self.closing ||
     self.closed ||
@@ -419,6 +421,8 @@ fn LocalCommandPreparationOriginal::acquire_runtime(
   platform : String,
   manifest_digest : String,
 ) -> Result[Unit, LocalCommandPreparationIssue] {
+  native_timing_begin(10)
+  defer native_timing_end(10)
   if self.closing ||
     self.closed ||
     self.primary is Some(_) ||
@@ -767,12 +771,16 @@ fn LocalCommandPreparationOriginal::close_checked(
     self.cleanup_stage = "business-execution"
     command_preparation_value(self.close_business_execution())
     if self.runtime is Some(runtime) {
+      native_timing_begin(18)
+      defer native_timing_end(18)
       self.cleanup_stage = "runtime"
       command_preparation_value(
         runtime.close().map_err(issue => CommandRuntime(issue)),
       )
     }
     if self.journal is Some(journal) {
+      native_timing_begin(19)
+      defer native_timing_end(19)
       self.cleanup_stage = "journal"
       let reply = journal.close()
       if reply.issue() is Some(issue) {
@@ -805,6 +813,8 @@ fn LocalCommandPreparationOriginal::close_checked(
           self.read_failure = None
         }
         if self.adoption is Some(adoption) {
+          native_timing_begin(20)
+          defer native_timing_end(20)
           self.cleanup_stage = "adoption"
           let reply = adoption.close()
           if reply.issue() is Some(issue) {
@@ -831,6 +841,8 @@ fn LocalCommandPreparationOriginal::close_checked(
           self.product_parent = None
         }
         if self.product is Some(product) {
+          native_timing_begin(21)
+          defer native_timing_end(21)
           self.cleanup_stage = "product"
           command_preparation_value(
             product.close().map_err(issue => CommandAdoption(issue)),
@@ -877,6 +889,8 @@ fn LocalCommandPreparationOriginal::close_checked(
         self.crypto_path = ""
         self.crypto_member = None
         if self.component is Some(component) {
+          native_timing_begin(26)
+          defer native_timing_end(26)
           self.cleanup_stage = "crypto-component"
           guard self.pair is Some(pair) else { return Err(CommandUnavailable) }
           // This caller already owns the exact original cleanup frame. Do not
@@ -900,6 +914,8 @@ fn LocalCommandPreparationOriginal::close_checked(
         }
       }
       if self.pair is Some(pair) {
+        native_timing_begin(22)
+        defer native_timing_end(22)
         if self.journal is Some(_) || self.adoption is Some(_) {
           self.cleanup_stage = "closed-journal-aliases"
           command_preparation_value(
@@ -944,6 +960,8 @@ fn LocalCommandPreparationOriginal::close_checked(
         }
       }
       if self.read_domain is Some(domain) {
+        native_timing_begin(23)
+        defer native_timing_end(23)
         self.cleanup_stage = "read-domain"
         command_preparation_value(
           host
@@ -953,6 +971,8 @@ fn LocalCommandPreparationOriginal::close_checked(
         self.read_domain = None
       }
       if self.sqlite_domain is Some(domain) {
+        native_timing_begin(24)
+        defer native_timing_end(24)
         self.cleanup_stage = "sqlite-domain"
         command_preparation_value(
           host
@@ -962,9 +982,13 @@ fn LocalCommandPreparationOriginal::close_checked(
         self.sqlite_domain = None
       }
       self.cleanup_stage = "host"
-      command_preparation_value(
-        host.try_close().map_err(issue => CommandHost(issue)),
-      )
+      {
+        native_timing_begin(25)
+        defer native_timing_end(25)
+        command_preparation_value(
+          host.try_close().map_err(issue => CommandHost(issue)),
+        )
+      }
       self.host = None
     }
     self.closed = true
@@ -985,6 +1009,8 @@ fn LocalCommandPreparationOriginal::read_command(
     @local_host.NativeLocalJournalCapture,
   ) -> Result[String, String],
 ) -> Result[String, LocalCommandPreparationIssue] {
+  native_timing_begin(27)
+  defer native_timing_end(27)
   if self.closing ||
     self.closed ||
     self.phase_open ||
@@ -1035,6 +1061,8 @@ fn LocalCommandPreparationOriginal::stage_product(
   name : String,
   originals : Array[(String, Bytes)]?,
 ) -> Result[Unit, LocalCommandPreparationIssue] {
+  native_timing_begin(13)
+  defer native_timing_end(13)
   if !self.phase_open || self.closing || self.closed || self.primary is Some(_) {
     return Err(CommandUnavailable)
   }
@@ -1151,6 +1179,8 @@ fn LocalCommandPreparationOriginal::prepare_adoption(
   @local_host.NativeLocalAdoptionSession,
   LocalCommandPreparationIssue,
 ] {
+  native_timing_begin(14)
+  defer native_timing_end(14)
   if !self.phase_open ||
     self.closing ||
     self.closed ||

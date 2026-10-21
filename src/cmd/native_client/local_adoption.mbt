@@ -180,6 +180,8 @@ fn execute_native_local_adoption(
   preparation? : LocalCommandPreparationOriginal? = None,
   preparation_runtime? : LocalPackagedRuntime? = None,
 ) -> String raise ClientStop {
+  native_timing_begin(12)
+  defer native_timing_end(12)
   if operation == "adopt" && child.flags.get("migrate-journal").unwrap_or(false) {
     command_preparation_diagnostic.val = JournalMaintenanceFailed
   }

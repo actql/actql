@@ -134,6 +134,8 @@ fn local_command_preparation_selected(
 fn prepare_native_command_invocation(
   matches : @argparse.Matches,
 ) -> Unit raise ClientStop {
+  native_timing_begin(8)
+  defer native_timing_end(8)
   if !local_command_preparation_selected(matches) {
     return
   }
