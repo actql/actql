@@ -4739,7 +4739,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "f198aa63aeb535b564bc63b7e4f7b9f7d1b770cdd27d7a5a4741f294f1eb3d46",
+      "sha256": "a788f8d93ded4be91e40f8578c9edb88f7d68d814e7a741702ef15a5d2bc0a46",
       "exports": [
         "PublicationStoreError",
         "assertOriginalLocalPublicationStoreFacilityCurrent",
@@ -5442,6 +5442,13 @@
           "name": "openOriginalLocalPublicationStore/confirmPrivateEvidence/confirmPrivateEvidence",
           "parameters": [
             "binding"
+          ],
+          "async": true
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/confirmSelectedCommittedIndex/confirmSelectedCommittedIndex",
+          "parameters": [
+            "key"
           ],
           "async": true
         },
@@ -6961,6 +6968,13 @@
           "async": true
         },
         {
+          "name": "openOriginalLocalPublicationStore/readCommittedMetadataInventory/readCommittedMetadataInventory",
+          "parameters": [
+            "entry"
+          ],
+          "async": true
+        },
+        {
           "name": "openOriginalLocalPublicationStore/readCommittedResultDescriptionEvidence/readCommittedResultDescriptionEvidence",
           "parameters": [
             "key",
@@ -7438,6 +7452,13 @@
           "async": true
         },
         {
+          "name": "openOriginalLocalPublicationStore/requireCommittedMetadataInventory/requireCommittedMetadataInventory",
+          "parameters": [
+            "entry"
+          ],
+          "async": true
+        },
+        {
           "name": "openOriginalLocalPublicationStore/requireCommittedResultBinding/requireCommittedResultBinding",
           "parameters": [
             "key",
@@ -7747,11 +7768,6 @@
             "value"
           ],
           "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/validateCommittedMetadataInventories/validateCommittedMetadataInventories",
-          "parameters": [],
-          "async": true
         },
         {
           "name": "openOriginalLocalPublicationStore/validateModelRawBinding/validateModelRawBinding",
@@ -8451,8 +8467,10 @@
         {
           "operations": [
             "<module>",
+            "PublicationStoreError/constructor:constructor/constructor:constructor",
             "acquireStoreOwnership",
             "acquireStoreOwnership/ownership/init:release/init:release",
+            "acquireStoreOwnership/ownership/init:release/init:release/acknowledged/acknowledged",
             "cidHex/cidHex",
             "encodePrivateEvidenceEnvelope",
             "encodePrivateEvidenceEnvelope/envelopeBytes/envelopeBytes",
@@ -8460,15 +8478,21 @@
             "exactUtf8WireMatches/exactUtf8WireMatches",
             "fail/fail",
             "indexKey",
+            "metadataContractObject/metadataContractObject",
+            "nativeContractRead/nativeContractRead",
+            "nativePublicationContract/nativePublicationContract",
             "openOriginalLocalPublicationStore",
+            "openOriginalLocalPublicationStore/accountNativePublication/accountNativePublication",
             "openOriginalLocalPublicationStore/active/active",
             "openOriginalLocalPublicationStore/admitContract/admitContract",
+            "openOriginalLocalPublicationStore/admitNativeContract/admitNativeContract",
             "openOriginalLocalPublicationStore/admitPhysicalHolding/admitPhysicalHolding",
             "openOriginalLocalPublicationStore/admitPhysicalHolding/admitPhysicalHolding/admitPhysicalHolding",
             "openOriginalLocalPublicationStore/admitPhysicalHolding/admitPhysicalHolding/record/record",
             "openOriginalLocalPublicationStore/adoptPreparedObjects/adoptPreparedObjects",
             "openOriginalLocalPublicationStore/adoptPreparedSchemas/adoptPreparedSchemas",
             "openOriginalLocalPublicationStore/adoptPreparedSchemas/adoptPreparedSchemas/adopted/adopted",
+            "openOriginalLocalPublicationStore/adoptPreparedSchemas/adoptPreparedSchemas/durable/durable",
             "openOriginalLocalPublicationStore/appendDeliveryRecord/appendDeliveryRecord",
             "openOriginalLocalPublicationStore/appendRecord/appendRecord",
             "openOriginalLocalPublicationStore/beginPreparedCommit/beginPreparedCommit",
@@ -8477,6 +8501,7 @@
             "openOriginalLocalPublicationStore/beginPreparedCommit/beginPreparedCommit/settleUncommitted/settleUncommitted",
             "openOriginalLocalPublicationStore/beginPreparedCommit/beginPreparedCommit/status/status",
             "openOriginalLocalPublicationStore/bindMetadataContractObjects/bindMetadataContractObjects",
+            "openOriginalLocalPublicationStore/bootstrap/bootstrap",
             "openOriginalLocalPublicationStore/captureCustodyPath/captureCustodyPath",
             "openOriginalLocalPublicationStore/captureCustodyRun/captureCustodyRun",
             "openOriginalLocalPublicationStore/clockObservationPath/clockObservationPath",
@@ -8488,6 +8513,7 @@
             "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal",
             "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/adoptObjects/adoptObjects",
             "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/adoptSchemas/adoptSchemas",
+            "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/boundPhysicalCids/boundPhysicalCids",
             "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/commitIndexInternal",
             "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/commitIndexInternal#2",
             "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/init:adopt/init:adopt",
@@ -8500,6 +8526,7 @@
             "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/init:verifyExistingInventory/init:verifyExistingInventory/init:verifyExistingInventory",
             "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/init:verifyExistingInventory/init:verifyExistingInventory/init:verifyExistingInventory/init:verifyExistingInventory",
             "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/inventorySemanticCids/inventorySemanticCids",
+            "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/readOriginal/readOriginal",
             "openOriginalLocalPublicationStore/commitPhysicalHolding/commitPhysicalHolding",
             "openOriginalLocalPublicationStore/commitPhysicalHolding/commitPhysicalHolding/commitPhysicalHolding",
             "openOriginalLocalPublicationStore/commitPhysicalHolding/commitPhysicalHolding/operation/operation",
@@ -8515,6 +8542,7 @@
             "openOriginalLocalPublicationStore/confirmModelRawCaptureOriginals/confirmModelRawCaptureOriginals/expected/expected",
             "openOriginalLocalPublicationStore/confirmModelRawEvidence/confirmModelRawEvidence",
             "openOriginalLocalPublicationStore/confirmPrivateEvidence/confirmPrivateEvidence",
+            "openOriginalLocalPublicationStore/confirmSelectedCommittedIndex/confirmSelectedCommittedIndex",
             "openOriginalLocalPublicationStore/consumeCommittedResult/consumeCommittedResult",
             "openOriginalLocalPublicationStore/consumeCommittedResult/consumeCommittedResult/consumeCommittedResult",
             "openOriginalLocalPublicationStore/consumeManifestReadGrant/consumeManifestReadGrant",
@@ -8616,11 +8644,6 @@
             "openOriginalLocalPublicationStore/inspectPhysicalHoldingForRetirement/inspectPhysicalHoldingForRetirement",
             "openOriginalLocalPublicationStore/latestDeliveryRecord/latestDeliveryRecord",
             "openOriginalLocalPublicationStore/latestDeliveryRecordContract/latestDeliveryRecordContract",
-            "openOriginalLocalPublicationStore/readLatestDeliveryRecordContract/readLatestDeliveryRecordContract/readLatestDeliveryRecordContract",
-            "openOriginalLocalPublicationStore/readLatestDeliveryRecordContract/readLatestDeliveryRecordContract/names/names",
-            "openOriginalLocalPublicationStore/readLatestDeliveryRecordContract/readLatestDeliveryRecordContract/names/names#2",
-            "openOriginalLocalPublicationStore/readLatestDeliveryRecordContract/readLatestDeliveryRecordContract/names/names#3",
-            "openOriginalLocalPublicationStore/readLatestDeliveryRecordContract/readLatestDeliveryRecordContract/names/names#4",
             "openOriginalLocalPublicationStore/latestRecord/latestRecord",
             "openOriginalLocalPublicationStore/latestRecordContract/latestRecordContract",
             "openOriginalLocalPublicationStore/latestRecordContract/latestRecordContract/latestRecordContract",
@@ -8668,15 +8691,15 @@
             "openOriginalLocalPublicationStore/parsePreparedSchema/parsePreparedSchema/parsePreparedSchema",
             "openOriginalLocalPublicationStore/physicalHoldingDeletionPath/physicalHoldingDeletionPath",
             "openOriginalLocalPublicationStore/physicalHoldingPath/physicalHoldingPath",
+            "openOriginalLocalPublicationStore/prepareModelRawEvidence/prepareModelRawEvidence",
+            "openOriginalLocalPublicationStore/preparePrivateEvidence/preparePrivateEvidence",
+            "openOriginalLocalPublicationStore/preparePrivateEvidenceBytes/preparePrivateEvidenceBytes",
+            "openOriginalLocalPublicationStore/preparePrivateEvidenceInput/preparePrivateEvidenceInput",
             "openOriginalLocalPublicationStore/preparedSchemaHandle/preparedSchemaHandle",
             "openOriginalLocalPublicationStore/preparedSchemaHandle/preparedSchemaHandle/init:retry/init:retry",
             "openOriginalLocalPublicationStore/preparedSchemaHandle/preparedSchemaHandle/preparedSchemaHandle",
             "openOriginalLocalPublicationStore/preparedSchemaHandle/preparedSchemaHandle/preparedSchemaHandle#2",
             "openOriginalLocalPublicationStore/preparedSchemaPath/preparedSchemaPath",
-            "openOriginalLocalPublicationStore/prepareModelRawEvidence/prepareModelRawEvidence",
-            "openOriginalLocalPublicationStore/preparePrivateEvidence/preparePrivateEvidence",
-            "openOriginalLocalPublicationStore/preparePrivateEvidenceBytes/preparePrivateEvidenceBytes",
-            "openOriginalLocalPublicationStore/preparePrivateEvidenceInput/preparePrivateEvidenceInput",
             "openOriginalLocalPublicationStore/privateEvidenceAad/privateEvidenceAad",
             "openOriginalLocalPublicationStore/privateEvidenceField/privateEvidenceField",
             "openOriginalLocalPublicationStore/privateEvidenceHolding/privateEvidenceHolding",
@@ -8689,13 +8712,28 @@
             "openOriginalLocalPublicationStore/putCommittedResultRetentionExtension/putCommittedResultRetentionExtension",
             "openOriginalLocalPublicationStore/putCommittedResultRetentionExtension/putCommittedResultRetentionExtension/operation/operation",
             "openOriginalLocalPublicationStore/putCommittedResultRetentionExtension/putCommittedResultRetentionExtension/putCommittedResultRetentionExtension",
+            "openOriginalLocalPublicationStore/putNativePublicationContracts/putNativePublicationContracts",
+            "openOriginalLocalPublicationStore/putNativePublicationContracts/putNativePublicationContracts/finish/finish",
+            "openOriginalLocalPublicationStore/putNativePublicationContracts/putNativePublicationContracts/init:retry/init:retry",
+            "openOriginalLocalPublicationStore/putNativePublicationContracts/putNativePublicationContracts/init:retry/init:retry/init:retry",
+            "openOriginalLocalPublicationStore/putNativePublicationContracts/putNativePublicationContracts/init:retry/init:retry/init:retry#2",
+            "openOriginalLocalPublicationStore/putNativePublicationContracts/putNativePublicationContracts/status/status",
+            "openOriginalLocalPublicationStore/putOriginalPublicationContracts/putOriginalPublicationContracts",
             "openOriginalLocalPublicationStore/putPreparedResultSchema/putPreparedResultSchema",
             "openOriginalLocalPublicationStore/putPreparedResultSchema/putPreparedResultSchema/putPreparedResultSchema",
             "openOriginalLocalPublicationStore/putPreparedResultSchema/putPreparedResultSchema/putPreparedResultSchema/init:retry/init:retry",
             "openOriginalLocalPublicationStore/putPreparedResultSchema/putPreparedResultSchema/putPreparedResultSchema/putPreparedResultSchema",
             "openOriginalLocalPublicationStore/putPublicationContract/putPublicationContract",
+            "openOriginalLocalPublicationStore/putPublicationContractBatch/putPublicationContractBatch",
+            "openOriginalLocalPublicationStore/putPublicationContractBatch/putPublicationContractBatch/inputs/inputs",
+            "openOriginalLocalPublicationStore/putPublicationContractBatch/putPublicationContractBatch/nativeOnly/nativeOnly",
+            "openOriginalLocalPublicationStore/putPublicationContractBatch/putPublicationContractBatch/putPublicationContractBatch",
+            "openOriginalLocalPublicationStore/putPublicationContractBatch/putPublicationContractBatch/stored/stored",
+            "openOriginalLocalPublicationStore/putPublicationContractBatch/putPublicationContractBatch/stored/stored#2",
+            "openOriginalLocalPublicationStore/putPublicationContracts/putPublicationContracts",
             "openOriginalLocalPublicationStore/putSemantic/putSemantic",
             "openOriginalLocalPublicationStore/readClockObservation/readClockObservation",
+            "openOriginalLocalPublicationStore/readCommittedMetadataInventory/readCommittedMetadataInventory",
             "openOriginalLocalPublicationStore/readCommittedResultDescriptionEvidence/readCommittedResultDescriptionEvidence",
             "openOriginalLocalPublicationStore/readCommittedResultDescriptionEvidence/readCommittedResultDescriptionEvidence/bindings/bindings",
             "openOriginalLocalPublicationStore/readCommittedResultRetentionExtension/readCommittedResultRetentionExtension",
@@ -8705,6 +8743,11 @@
             "openOriginalLocalPublicationStore/readEffectCaptureCustody/readEffectCaptureCustody/readEffectCaptureCustody",
             "openOriginalLocalPublicationStore/readEffectCaptureCustody/readEffectCaptureCustody/readEffectCaptureCustody#2",
             "openOriginalLocalPublicationStore/readJsonObject/readJsonObject",
+            "openOriginalLocalPublicationStore/readLatestDeliveryRecordContract/readLatestDeliveryRecordContract/names/names",
+            "openOriginalLocalPublicationStore/readLatestDeliveryRecordContract/readLatestDeliveryRecordContract/names/names#2",
+            "openOriginalLocalPublicationStore/readLatestDeliveryRecordContract/readLatestDeliveryRecordContract/names/names#3",
+            "openOriginalLocalPublicationStore/readLatestDeliveryRecordContract/readLatestDeliveryRecordContract/names/names#4",
+            "openOriginalLocalPublicationStore/readLatestDeliveryRecordContract/readLatestDeliveryRecordContract/readLatestDeliveryRecordContract",
             "openOriginalLocalPublicationStore/readMetadataDeletion/readMetadataDeletion",
             "openOriginalLocalPublicationStore/readMetadataDeletion/readMetadataDeletion/readMetadataDeletion",
             "openOriginalLocalPublicationStore/readMetadataDeletion/readMetadataDeletion/readMetadataDeletion#2",
@@ -8729,6 +8772,7 @@
             "openOriginalLocalPublicationStore/readResultRetentionExtension/readResultRetentionExtension/records/records#2",
             "openOriginalLocalPublicationStore/readRetainedResultExtension/readRetainedResultExtension",
             "openOriginalLocalPublicationStore/readSemanticBytes/readSemanticBytes",
+            "openOriginalLocalPublicationStore/readSemanticOriginal/readSemanticBytes",
             "openOriginalLocalPublicationStore/readSemanticOriginal/readSemanticBytes/cleanup/init:retry/init:retry",
             "openOriginalLocalPublicationStore/readSemanticOriginal/readSemanticBytes/cleanup/init:retry/init:retry/init:retry",
             "openOriginalLocalPublicationStore/readSemanticOriginal/readSemanticBytes/cleanup/init:retry/init:retry/init:retry#2",
@@ -8755,6 +8799,7 @@
             "openOriginalLocalPublicationStore/releasePreparedSchema/releasePreparedSchema/releasePreparedSchema#2",
             "openOriginalLocalPublicationStore/removeCustodyRecord/removeCustodyRecord",
             "openOriginalLocalPublicationStore/removeRunMetadataDirectories/removeRunMetadataDirectories",
+            "openOriginalLocalPublicationStore/requireCommittedMetadataInventory/requireCommittedMetadataInventory",
             "openOriginalLocalPublicationStore/requireCommittedResultBinding/requireCommittedResultBinding",
             "openOriginalLocalPublicationStore/requireResultNotDeleted/requireResultNotDeleted",
             "openOriginalLocalPublicationStore/reserveObjectCapacity/reserveObjectCapacity",
@@ -8788,7 +8833,7 @@
             "openOriginalLocalPublicationStore/sharePhysicalHolding/sharePhysicalHolding/sharePhysicalHolding",
             "openOriginalLocalPublicationStore/validateCommittedEffectfulEvidence/validateCommittedEffectfulEvidence",
             "openOriginalLocalPublicationStore/validateCommittedEvidence/validateCommittedEvidence",
-            "openOriginalLocalPublicationStore/validateCommittedMetadataInventories/validateCommittedMetadataInventories",
+            "openOriginalLocalPublicationStore/validateCommittedEvidence/validateCommittedEvidence/validateCommittedEvidence",
             "openOriginalLocalPublicationStore/validateModelRawBinding/validateModelRawBinding",
             "openOriginalLocalPublicationStore/verifyCommitEvidence/verifyCommitEvidence",
             "openOriginalLocalPublicationStore/verifyDurableResultBinding/verifyDurableResultBinding",
@@ -8816,9 +8861,9 @@
             "openOriginalLocalPublicationStore/writePhysicalHoldingRecord/writePhysicalHoldingRecord/status/status",
             "privateEvidenceWireLimitForObject",
             "processIsAlive",
-            "PublicationStoreError/constructor:constructor/constructor:constructor",
             "quantity/quantity",
             "readBounded",
+            "readBounded/captureClose/captureClose",
             "readBounded/cleanup/init:retry/init:retry",
             "readBounded/cleanup/init:retry/init:retry/init:retry",
             "readBounded/cleanup/init:retry/init:retry/init:retry#2",
@@ -8865,34 +8910,7 @@
             "syncDirectoryPath/syncDirectoryPath",
             "validateConfiguration",
             "validateContractControl",
-            "writeExclusive",
-            "acquireStoreOwnership/ownership/init:release/init:release/acknowledged/acknowledged",
-            "openOriginalLocalPublicationStore/bootstrap/bootstrap",
-            "readBounded/captureClose/captureClose",
-            "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/readOriginal/readOriginal",
-            "openOriginalLocalPublicationStore/readSemanticOriginal/readSemanticBytes",
-            "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/boundPhysicalCids/boundPhysicalCids",
-            "openOriginalLocalPublicationStore/validateCommittedEvidence/validateCommittedEvidence/validateCommittedEvidence",
-            "openOriginalLocalPublicationStore/putPublicationContracts/putPublicationContracts",
-            "openOriginalLocalPublicationStore/adoptPreparedSchemas/adoptPreparedSchemas/durable/durable",
-            "openOriginalLocalPublicationStore/putOriginalPublicationContracts/putOriginalPublicationContracts",
-            "openOriginalLocalPublicationStore/putPublicationContractBatch/putPublicationContractBatch",
-            "openOriginalLocalPublicationStore/putPublicationContractBatch/putPublicationContractBatch/inputs/inputs",
-            "openOriginalLocalPublicationStore/putPublicationContractBatch/putPublicationContractBatch/putPublicationContractBatch",
-            "openOriginalLocalPublicationStore/putPublicationContractBatch/putPublicationContractBatch/stored/stored",
-            "metadataContractObject/metadataContractObject",
-            "nativeContractRead/nativeContractRead",
-            "nativePublicationContract/nativePublicationContract",
-            "openOriginalLocalPublicationStore/accountNativePublication/accountNativePublication",
-            "openOriginalLocalPublicationStore/admitNativeContract/admitNativeContract",
-            "openOriginalLocalPublicationStore/putNativePublicationContracts/putNativePublicationContracts",
-            "openOriginalLocalPublicationStore/putNativePublicationContracts/putNativePublicationContracts/finish/finish",
-            "openOriginalLocalPublicationStore/putNativePublicationContracts/putNativePublicationContracts/init:retry/init:retry",
-            "openOriginalLocalPublicationStore/putNativePublicationContracts/putNativePublicationContracts/init:retry/init:retry/init:retry",
-            "openOriginalLocalPublicationStore/putNativePublicationContracts/putNativePublicationContracts/init:retry/init:retry/init:retry#2",
-            "openOriginalLocalPublicationStore/putNativePublicationContracts/putNativePublicationContracts/status/status",
-            "openOriginalLocalPublicationStore/putPublicationContractBatch/putPublicationContractBatch/nativeOnly/nativeOnly",
-            "openOriginalLocalPublicationStore/putPublicationContractBatch/putPublicationContractBatch/stored/stored#2"
+            "writeExclusive"
           ],
           "exports": [
             "PublicationStoreError",
@@ -8947,6 +8965,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "This does not repair a corrupt final record. Each selected holding read admits"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "Committed publication owner links are also selected-use facts. Ordinary open"
               }
             ],
             "inputsOutputs": [
@@ -8989,6 +9011,10 @@
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "const readPhysicalHoldingAt = async (path, holdingCid) => {"
+              },
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "const readCommittedMetadataInventory = async entry => {"
               }
             ],
             "identity": [
@@ -9039,6 +9065,10 @@
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "if (record.holding_cid !== holdingCid) {"
+              },
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "if (inventory.public_index_entry_cid !== publicIndexEntryCid) {"
               }
             ],
             "ownership": [
@@ -9081,6 +9111,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "pending-deletion recovery still reads its own original records and refuses"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "inventory's holding links are read; missing, retiring, malformed or foreign"
               }
             ],
             "synchronization": [
@@ -9123,6 +9157,10 @@
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "const recoverPhysicalHoldingDeletions = async () => {"
+              },
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "const confirmSelectedCommittedIndex = async key => {"
               }
             ],
             "failure": [
@@ -9165,6 +9203,10 @@
               {
                 "path": "adapters/store-local/publication-store.test.mjs",
                 "anchor": "test('ordinary Store selected holding refuses a different valid record under its name', async t => {"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "test(`selected committed Result refuses its missing ${missing} before returning the Index`, async t => {"
               }
             ],
             "cancellation": [
@@ -9203,6 +9245,10 @@
               {
                 "path": "adapters/store-local/publication-store.test.mjs",
                 "anchor": "test('ordinary Store pending holding recovery still refuses a foreign deletion record', async t => {"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "Pending deletion, prepared custody,"
               }
             ],
             "resources": [
@@ -9245,6 +9291,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "unapplied operation, permission or cleanup success. Physical capacity accounting,"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "test('committed Result opening defers holding proof to the selected publication', async t => {"
               }
             ],
             "extension": [
@@ -9287,6 +9337,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "this does not make all remaining opening inventories history-independent."
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "walk history; removing the extra committed-wide validation does not establish"
               }
             ],
             "verification": [
@@ -9401,6 +9455,10 @@
               {
                 "path": "adapters/store-local/publication-store.test.mjs",
                 "anchor": "test('ordinary Store reopen reads no unrelated immutable physical holding bodies', async t => {"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "test('selected committed Result entrypoints reuse only their own current owner links', async t => {"
               }
             ]
           }
