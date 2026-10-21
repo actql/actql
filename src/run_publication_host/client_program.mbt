@@ -1435,6 +1435,7 @@ pub fn prepare_parsed_effect_free_client_program(
   environment : @checked.CheckEnvironment,
   supplied : @decode.Cursor?,
   limits : ClientProgramPreparationLimits,
+  source_catalog? : @checked.PreparedSourceCatalog? = None,
 ) -> Result[PreparedClientProgram, ClientProgramPreparationIssue] {
   for stage in @syntax.stages(parsed) {
     if !@syntax.effect_names(stage).is_empty() {
@@ -1442,7 +1443,13 @@ pub fn prepare_parsed_effect_free_client_program(
     }
   }
   let checked = match
-    @checked.check_parsed(parsed, environment, supplied, limits.checking) {
+    @checked.check_parsed(
+      parsed,
+      environment,
+      supplied,
+      limits.checking,
+      source_catalog~,
+    ) {
     Checked(value) => value
     NeedsInputs(requests) => return Err(NeedsInputs(requests))
     Rejected(diagnostic) => return Err(Check(diagnostic))

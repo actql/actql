@@ -142,8 +142,16 @@ pub fn check_parsed(
   environment : CheckEnvironment,
   supplied : @decode.Cursor?,
   limits : CheckLimits,
+  source_catalog? : PreparedSourceCatalog? = None,
 ) -> CheckOutcome {
-  check_parsed_with_evidence(program, environment, supplied, [], limits)
+  check_parsed_with_evidence(
+    program,
+    environment,
+    supplied,
+    [],
+    limits,
+    source_catalog~,
+  )
 }
 
 ///|
