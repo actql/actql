@@ -98,6 +98,9 @@ distinct preparation reads its own original, and a failed reader close keeps its
 same cleanup duty. A newly created schema retains the existing durable marker,
 generation checks and crash-reclamation protocol. Existing schema ownership is
 not replaced or refunded when the temporary holder retires.
+An unsettled physical writer is not an established durable schema owner merely
+because its final link is visible; that case keeps the original write/ACK and
+pending-cleanup protocol before schema preparation can succeed.
 
 Within that commit, the admitted Index body is persisted directly rather than
 sent through the public raw-contract admission again. Verified Binding facts

@@ -2987,7 +2987,10 @@ async function openOriginalLocalPublicationStore(
       }
       const token = randomUUID();
       const holder = {
-        path: group.removable ? preparedSchemaPath(token) : undefined,
+        // A visible link from an unsettled writer is not a durable original.
+        // Keep the existing write/ACK protocol until those duties complete.
+        path: group.removable || activePhysicalRecordWriters.size !== 0
+          ? preparedSchemaPath(token) : undefined,
         active: true,
         releasing: undefined, errors: [], runDefinitionCid,
       };
