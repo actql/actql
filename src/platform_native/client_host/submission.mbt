@@ -334,7 +334,11 @@ fn NativeClientRunJournal::retained_submission_with_run(
         }
         if @host.validate_client_submitted_retained_run(
             original.reference.original,
-            (admission.request, admission.run_definition_cid, admission.revision),
+            (
+              admission.request,
+              admission.run_definition_cid,
+              admission.revision,
+            ),
             retained.request,
             retained.definition,
             retained.revision,

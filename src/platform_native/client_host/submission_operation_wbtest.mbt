@@ -68,12 +68,16 @@ test "one unchanged command admits its selected Submission once and observes act
     .retained_submission_with_run(reference, reads=Some(reads))
     .unwrap()
     .unwrap()
+  assert_true(physical_equal(first.0, changed.0))
   assert_true(changed.1.unwrap().dispatch_reserved)
   assert_eq(changed.1.unwrap().revision, first.1.unwrap().revision + 1L)
+  assert_false(
+    calls.contains("read:client_submitted_intents:" + reference.request_id),
+  )
   assert_eq(
     calls
     .filter(value => {
-      value == "read:client_submitted_intents:" + reference.request_id
+      value == "read:client_runs:" + @host.client_request_scope_cid(request)
     })
     .length(),
     1,
