@@ -63,7 +63,8 @@ fn initialize_native_local_client_rows(
   for
     record_namespace in [
       "client_local_adoption", "client_local_settings", "client_submission_epoch",
-      "client_run_custody", "client_runs", "client_run_id_index", "client_run_id_index_coverage",
+      "client_run_custody", "client_runs", "client_run_definition_index", "client_run_append_coverage",
+      "client_submitted_intent_usage", "client_run_id_index", "client_run_id_index_coverage",
       "client_run_reference_index", "client_effect_custody", "client_effect_response_meta",
       "client_effect_response_bytes", "client_effect_row_receipt", "client_cancellations",
       "client_cancel_custody", "client_cancel_originals", "client_submitted_intent_custody",

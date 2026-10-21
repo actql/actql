@@ -2412,3 +2412,28 @@ use of the original loan. The separate loan return then permits parent extent
 retirement, and only the original parent close unmaps its backing. Copied,
 foreign, spent and closed carriers retain the existing refusal and idempotent
 cleanup rules. No local-view close is represented as an OS unmap acknowledgement.
+
+### Local Journal append metadata
+
+A fresh submitted intent uses the existing Journal's retained-intent byte
+usage and issuance coordinate in its original transaction. The same transaction
+advances the usage CAS and issuance CAS and inserts the intent. Retained
+requests still select their original row before any append decision; expiry,
+changed intent, query failure and COMMIT uncertainty keep their existing
+meaning. The cumulative canonical-intent byte cap and record cap are unchanged.
+
+Fresh Run binding reads its issuance coordinate and a subordinate definition
+locator. Complete locator coverage is tied to that issuance snapshot. The
+locator authenticates the selected Run identity before duplicate refusal; it
+is not Run authority. The Run insertion, definition locator, coverage and
+issuance CAS share the same existing transaction and rollback/Unknown rules.
+Ordinary opening and append do not audit unrelated Runs or Effects.
+
+Older Journals without complete append metadata refuse fresh insertion rather
+than treating missing metadata as absence or resend permission. The existing
+explicit saved-Run indexing operation also derives append metadata from a
+bounded, authenticated original inventory in its current transaction. It does
+not run on ordinary open or read, repair missing originals, renew an epoch,
+rekey, or authorize execution. Unindexed Common callers retain their existing
+inventory route until their physical counter port supplies the retained usage
+original and commits its additional CAS in that same transaction.

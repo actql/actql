@@ -309,6 +309,10 @@ pub fn NativeLocalHostConnection::index_saved_run_ids(
       Ok(_) => ()
       Err(issue) => return Err(issue)
     }
+    match self.journal.index_legacy_append_metadata_locked() {
+      Ok(_) => ()
+      Err(issue) => return Err(issue)
+    }
     if !current() {
       return Err(AuthorizationDenied)
     }

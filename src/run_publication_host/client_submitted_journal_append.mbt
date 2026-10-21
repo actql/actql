@@ -6,6 +6,7 @@ pub struct ClientSubmittedJournalAppend {
   body : Bytes
   issued_revision : Int64
   issued_body : Bytes
+  usage : (Int64, Bytes)?
 }
 
 ///|
@@ -33,6 +34,64 @@ pub fn client_submitted_journal_append_rows(
 }
 
 ///|
+/// The optional usage CAS belongs to the same transaction as the issued CAS
+/// and intent insertion. It is neither a new admission nor a COMMIT ACK.
+pub fn client_submitted_journal_append_usage(
+  value : ClientSubmittedJournalAppend,
+) -> (Int64, Bytes)? {
+  value.usage
+}
+
+///|
+/// Canonical cumulative retained-intent usage within the existing Journal.
+/// A compatibility indexer must derive these values from the original bounded
+/// inventory; ordinary append may only advance its retained original.
+pub fn client_submitted_journal_usage_body(
+  count : Int,
+  retained_bytes : Int64,
+  max_records : Int,
+) -> Result[Bytes, ClientJournalDecodingIssue] {
+  if max_records < 1 ||
+    max_records > 1024 ||
+    count < 0 ||
+    count > max_records ||
+    retained_bytes < 0L ||
+    retained_bytes > 67108864L ||
+    (count == 0 && retained_bytes != 0L) {
+    return Err(CustodyLost)
+  }
+  Ok(@utf8.encode(count.to_string() + ":" + retained_bytes.to_string()))
+}
+
+///|
+fn client_submitted_journal_usage(
+  row : ClientJournalPhysicalRow,
+  count : Int,
+  max_records : Int,
+) -> Result[Int64, ClientJournalDecodingIssue] {
+  if row.key != "retained" || row.revision < 0L || row.body.length() > 14 {
+    return Err(CustodyLost)
+  }
+  let text = @utf8.decode(row.body) catch { _ => return Err(CustodyLost) }
+  let prefix = count.to_string() + ":"
+  if !text.has_prefix(prefix) {
+    return Err(CustodyLost)
+  }
+  let mut bytes = 0L
+  for unit in text[prefix.length():].to_string() {
+    let digit = unit.to_int() - 48
+    if digit < 0 || digit > 9 || bytes > 67108864L {
+      return Err(CustodyLost)
+    }
+    bytes = bytes * 10L + digit.to_int64()
+  }
+  match client_submitted_journal_usage_body(count, bytes, max_records) {
+    Ok(body) if body == row.body => Ok(bytes)
+    _ => Err(CustodyLost)
+  }
+}
+
+///|
 /// Delegate the original Native record_submitted_intent decision. The Host
 /// authenticates the original epoch/current scope before entering its same
 /// transaction. Ports observe actual original rows; query failure is Err, not
@@ -53,15 +112,16 @@ pub fn[E] prepare_client_submitted_journal_append(
     E,
   ],
   custody_lost : E,
+  usage? : (() -> Result[ClientJournalPhysicalRow?, E])? = None,
 ) -> Result[
   ClientSubmittedJournalAppendPlan,
   ClientSubmittedJournalAppendIssue[E],
 ] {
-  match
+  let issuance = match
     journal_issuance_anchor(
       "client_submitted_intent_custody", max_records, read, custody_lost,
     ) {
-    Ok(_) => ()
+    Ok(value) => value
     Err(issue) => return Err(Observation(issue))
   }
   match
@@ -76,12 +136,30 @@ pub fn[E] prepare_client_submitted_journal_append(
     Ok(None) => ()
     Err(issue) => return Err(Observation(issue))
   }
-  let (count, retained_bytes, revision) = match
-    inspect_client_submitted_journal_inventory(
-      max_records, scan, read, validate_submission, custody_lost,
-    ) {
-    Ok(value) => value
-    Err(issue) => return Err(Observation(issue))
+  let (count, retained_bytes, revision, usage_revision) = match usage {
+    Some(observe) => {
+      let row = match observe() {
+        Ok(Some(value)) => value
+        Ok(None) => return Err(Observation(custody_lost))
+        Err(issue) => return Err(Observation(issue))
+      }
+      let bytes = match
+        client_submitted_journal_usage(row, issuance.0, max_records) {
+        Ok(value) => value
+        Err(_) => return Err(Observation(custody_lost))
+      }
+      (issuance.0, bytes, issuance.1, Some(row.revision))
+    }
+    // Existing unindexed callers retain their explicit inventory algorithm.
+    // They do not acquire indexed completeness from an absent usage original.
+    None =>
+      match
+        inspect_client_submitted_journal_inventory(
+          max_records, scan, read, validate_submission, custody_lost,
+        ) {
+        Ok((count, bytes, revision)) => (count, bytes, revision, None)
+        Err(issue) => return Err(Observation(issue))
+      }
   }
   // The original Native order preserves retained identity after expiry; only
   // an actually missing original intent may reach this fresh-insertion check.
@@ -108,6 +186,14 @@ pub fn[E] prepare_client_submitted_journal_append(
       body,
       issued_revision: revision,
       issued_body: @utf8.encode((count + 1).to_string()),
+      usage: usage_revision.map(original => {
+        (
+          original,
+          @utf8.encode(
+            (count + 1).to_string() + ":" + (retained_bytes + bytes).to_string(),
+          ),
+        )
+      }),
     }),
   )
 }

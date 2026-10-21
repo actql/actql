@@ -286,6 +286,7 @@ fn initialize_native_client_run_journal(
   }
   for
     table in [
+      "client_run_definition_index", "client_run_append_coverage",
       "client_checkpoint_id_index", "client_run_id_index", "client_run_id_index_coverage",
       "client_run_reference_index", "client_effect_response_meta", "client_effect_response_bytes",
       "client_effect_row_receipt", "client_cancellations", "client_cancel_custody",
@@ -306,6 +307,12 @@ fn initialize_native_client_run_journal(
     insert_bootstrap_journal_value(
       database, "client_cancel_custody", "issued", b"0", bootstrap,
     ) {
+    Ok(_) => ()
+    Err(issue) => return Err(Physical(issue))
+  }
+  match insert_bootstrap_journal_value(
+    database, "client_run_append_coverage", "issued", b"0:0", bootstrap,
+  ) {
     Ok(_) => ()
     Err(issue) => return Err(Physical(issue))
   }
@@ -842,32 +849,23 @@ fn NativeClientRunJournal::bind_run_locked(
     }
     Ok(None) => ()
   }
-  let (count, revision) = match
-    run_journal_custody(self.database, self.max_records, reads~) {
+  let issuance = match client_journal_issuance_anchor(
+    self.database, "client_run_custody", self.max_records, reads~,
+  ) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
+  let coverage = match self.run_append_coverage_locked(issuance, reads) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let (count, revision) = issuance
   if count == self.max_records {
     return Err(CapacityExceeded)
   }
-  let mut cursor = ""
-  while true {
-    let row = match
-      scan_client_journal_value(self.database, "client_runs", cursor, reads) {
-      Ok(value) => value
-      Err(@sqlite.NotFound) => break
-      Err(issue) => return Err(Physical(issue))
-    }
-    let other = match
-      read_run_record({ body: row.body, revision: row.revision, }) {
-      Ok(value) => value
-      Err(issue) => return Err(issue)
-    }
-    if @publication.publication_contract_identity(other.definition) ==
-      @publication.publication_contract_identity(definition) {
-      return Err(ForeignRun)
-    }
-    cursor = row.key
+  match self.check_run_definition_available_locked(definition, reads) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
   }
   let record : NativeClientRunRecord = {
     request,
@@ -908,6 +906,21 @@ fn NativeClientRunJournal::bind_run_locked(
         Ok(value) => value
         Err(issue) => return Err(Physical(issue))
       }
+    Err(issue) => return Err(Physical(issue))
+  }
+  match insert_client_journal_value(
+    self.database, "client_run_definition_index",
+    @publication.publication_contract_identity(definition),
+    @utf8.encode(@host.client_request_scope_cid(request)), operations,
+  ) {
+    Ok(_) => ()
+    Err(issue) => return Err(Physical(issue))
+  }
+  match compare_exchange_client_journal_value(
+    self.database, "client_run_append_coverage", "issued", coverage.revision,
+    journal_append_coverage(count + 1, issuance.1 + 1L), operations,
+  ) {
+    Ok(_) => ()
     Err(issue) => return Err(Physical(issue))
   }
   Ok({ ..record, revision, })

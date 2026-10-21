@@ -130,3 +130,149 @@ test "same Journal snapshot reuses its admitted Run and invalidates on mutation 
   assert_eq(restored.revision, first.revision)
   database.close_checked().unwrap()
 }
+
+///|
+test "fresh Run binding uses local issuance and definition index without unrelated inventory" {
+  let database = epoch_test_database("journal-local-append")
+  initialize_native_client_run_journal(database).unwrap()
+  let journal = open_native_client_run_journal(database, 8).unwrap()
+  database
+  .insert("client_runs", "unrelated", b"unrelated original not selected")
+  .unwrap()
+  |> ignore
+  database
+  .insert("client_effect_custody", "unrelated", b"unrelated effect")
+  .unwrap()
+  |> ignore
+  let (request, _, _, definition) = journal_test_run(
+    "local-append", "local-append-run",
+  )
+  let calls : Array[String] = []
+  let operations = journal_test_operation_access(database, calls)
+  let record = journal
+    .transaction_with_reads(
+      () => {
+        journal.bind_run_locked(
+          request,
+          definition,
+          operations=Some(operations),
+        )
+      },
+      reads=Some(operations.reads),
+    )
+    .unwrap()
+  assert_false(calls.any(value => value.has_prefix("scan:")))
+  assert_eq(database.read("client_run_custody", "issued").unwrap().body, b"1")
+  assert_eq(
+    database.read("client_run_append_coverage", "issued").unwrap().body,
+    b"1:1",
+  )
+  assert_eq(
+    database
+    .read(
+      "client_run_definition_index",
+      @publication.publication_contract_identity(definition),
+    )
+    .unwrap().body,
+    @utf8.encode(@host.client_request_scope_cid(record.request)),
+  )
+  assert_true(run_journal_custody(database, 8) is Err(CustodyLost))
+  database.close_checked().unwrap()
+}
+
+///|
+test "legacy Run append requires explicit complete indexing and retains duplicate refusal" {
+  let database = epoch_test_database("journal-legacy-append")
+  initialize_native_client_run_journal(database).unwrap()
+  initialize_native_client_submitted_intents(database).unwrap()
+  let journal = open_native_client_run_journal(database, 8).unwrap()
+  let (request, prepared, compiled, definition) = journal_test_run(
+    "legacy-append", "legacy-append-run",
+  )
+  let original = journal
+    .bind_run(request, prepared, compiled, definition, true)
+    .unwrap()
+  let coverage = database.read("client_run_append_coverage", "issued").unwrap()
+  database
+  .compare_exchange(
+    "client_run_append_coverage",
+    "issued",
+    coverage.revision,
+    b"0:0",
+  )
+  .unwrap()
+  |> ignore
+  let (next, next_prepared, next_compiled, next_definition) = journal_test_run(
+    "legacy-next", "legacy-next-run",
+  )
+  assert_true(
+    journal.bind_run(next, next_prepared, next_compiled, next_definition, true)
+    is Err(CustodyLost),
+  )
+  assert_eq(database.read("client_run_custody", "issued").unwrap().body, b"1")
+  journal
+  .transaction(() => journal.index_legacy_append_metadata_locked())
+  .unwrap()
+  assert_eq(
+    database.read("client_run_append_coverage", "issued").unwrap().body,
+    b"1:1",
+  )
+  assert_true(
+    journal.transaction(() => journal.bind_run_locked(next, original.definition))
+    is Err(ForeignRun),
+  )
+  journal
+  .bind_run(next, next_prepared, next_compiled, next_definition, true)
+  .unwrap()
+  |> ignore
+  assert_eq(database.read("client_run_custody", "issued").unwrap().body, b"2")
+  database.close_checked().unwrap()
+}
+
+///|
+test "definition index insertion failure restores the original Run count and coverage" {
+  let database = epoch_test_database("journal-index-rollback")
+  initialize_native_client_run_journal(database).unwrap()
+  let journal = open_native_client_run_journal(database, 8).unwrap()
+  let (request, _, _, definition) = journal_test_run(
+    "index-rollback", "index-rollback-run",
+  )
+  let calls : Array[String] = []
+  let operations : NativeClientJournalOperationAccess = {
+    ..journal_test_operation_access(database, calls),
+    insert: (table, key, body) => {
+      calls.push("insert:" + table)
+      if table == "client_run_definition_index" {
+        Err(@sqlite.Busy)
+      } else {
+        database.insert(table, key, body)
+      }
+    },
+  }
+  assert_true(
+    journal.transaction_with_reads(
+      () => {
+        journal.bind_run_locked(
+          request,
+          definition,
+          operations=Some(operations),
+        )
+      },
+      reads=Some(operations.reads),
+    )
+    is Err(Physical(@sqlite.Busy)),
+  )
+  assert_true(calls.contains("insert:client_runs"))
+  assert_true(calls.contains("insert:client_run_definition_index"))
+  assert_eq(calls[calls.length() - 1], "rollback")
+  assert_eq(database.read("client_run_custody", "issued").unwrap().body, b"0")
+  assert_eq(
+    database.read("client_run_append_coverage", "issued").unwrap().body,
+    b"0:0",
+  )
+  assert_true(
+    database.read("client_runs", @host.client_request_scope_cid(request))
+    is Err(@sqlite.NotFound),
+  )
+  database.close_checked().unwrap()
+}

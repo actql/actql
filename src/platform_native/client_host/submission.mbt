@@ -167,6 +167,18 @@ fn initialize_native_client_submitted_intents(
     Err(@sqlite.NotFound) => ()
     _ => return Err(CustodyLost)
   }
+  match scan_client_journal_value(
+    database, "client_submitted_intent_usage", "", bootstrap_journal_reads(bootstrap),
+  ) {
+    Err(@sqlite.NotFound) => ()
+    _ => return Err(CustodyLost)
+  }
+  match insert_bootstrap_journal_value(
+    database, "client_submitted_intent_usage", "retained", b"0:0", bootstrap,
+  ) {
+    Ok(_) => ()
+    Err(issue) => return Err(Physical(issue))
+  }
   insert_bootstrap_journal_value(
     database, "client_submitted_intent_custody", "issued", b"0", bootstrap,
   )
@@ -432,6 +444,9 @@ fn NativeClientRunJournal::record_submitted_intent_locked(
         })
       },
       CustodyLost,
+      usage=Some(() => {
+        client_journal_read(self.database, "client_submitted_intent_usage", "retained", reads~)
+      }),
     ) {
     Ok(@host.Retained(snapshot)) => {
       let original = @host.client_saved_submission_record(snapshot)
@@ -460,6 +475,10 @@ fn NativeClientRunJournal::record_submitted_intent_locked(
   let (key, body, revision, issued_body) = @host.client_submitted_journal_append_rows(
     plan,
   )
+  let (usage_revision, usage_body) = match @host.client_submitted_journal_append_usage(plan) {
+    Some(value) => value
+    None => return Err(CustodyLost)
+  }
   match
     compare_exchange_client_journal_value(
       self.database,
@@ -469,6 +488,13 @@ fn NativeClientRunJournal::record_submitted_intent_locked(
       issued_body,
       operations,
     ) {
+    Ok(_) => ()
+    Err(issue) => return Err(Physical(issue))
+  }
+  match compare_exchange_client_journal_value(
+    self.database, "client_submitted_intent_usage", "retained",
+    usage_revision, usage_body, operations,
+  ) {
     Ok(_) => ()
     Err(issue) => return Err(Physical(issue))
   }
