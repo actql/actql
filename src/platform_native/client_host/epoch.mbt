@@ -539,7 +539,7 @@ fn NativeClientEpochAuthority::verify_epoch_with_custody(
   key : Bytes,
   clock : Double,
 ) -> Result[@scope.SubmissionEpochValidity, NativeClientEpochIssue] {
-  if self.fenced || self.database.transaction_fenced() {
+  if self.fenced {
     return Err(Fenced)
   }
   // Counts actual authentication calls, not cheap entry checks or cache hits.
