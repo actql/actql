@@ -97067,7 +97067,7 @@
     {
       "module": "packages/run-host-core/index.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "7953c49d73de41585cb0dc72458635826b1dfb998649308f58aefb6c4e5eb6e1",
+      "sha256": "75e60315ada01905aece82d995fe04cd9f9c116e98e9ba0aec1463bd3b60a894",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -97560,6 +97560,16 @@
           "parameters": [
             "bindingCid",
             "materialGenerationCid"
+          ],
+          "async": false
+        },
+        {
+          "name": "bindPreparedEffectRunMaterials",
+          "parameters": [
+            "allowed",
+            "definition",
+            "issued",
+            "request"
           ],
           "async": false
         },
@@ -100299,16 +100309,6 @@
           "name": "validateTaskPhysicalStartClaim/validateTaskPhysicalStartClaim#2",
           "parameters": [
             "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "bindPreparedEffectRunMaterials",
-          "parameters": [
-            "allowed",
-            "definition",
-            "issued",
-            "request"
           ],
           "async": false
         }
