@@ -56,7 +56,7 @@ fn[T] NativeLocalJournalCapture::with_current_adoption_material_in_original_read
         host.journal.invalidate_operation_submission()
       }
       if table is None || table is Some("client_runs" | "client_effect_custody") {
-        host.journal.invalidate_operation_record()
+        host.journal.invalidate_operation_run()
       }
     },
   }

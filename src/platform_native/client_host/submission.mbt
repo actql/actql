@@ -319,7 +319,36 @@ fn NativeClientRunJournal::retained_submission_with_run(
   if self.operation_active &&
     self.operation_submission is Some((original, run)) &&
     original.reference.wire == reference.wire {
-    return Ok(Some((original, run)))
+    let current = match (original.run_admission, run) {
+      (Some(admission), None) => {
+        let retained = match self.retained(admission.request, reads~) {
+          Ok(Some(value)) => value
+          Ok(None) => {
+            self.invalidate_operation_record()
+            return Err(CustodyLost)
+          }
+          Err(issue) => {
+            self.invalidate_operation_record()
+            return Err(issue)
+          }
+        }
+        if @host.validate_client_submitted_retained_run(
+            original.reference.original,
+            (admission.request, admission.run_definition_cid, admission.revision),
+            retained.request,
+            retained.definition,
+            retained.revision,
+          )
+          is Err(_) {
+          self.invalidate_operation_record()
+          return Err(CustodyLost)
+        }
+        Some(retained)
+      }
+      _ => run
+    }
+    self.operation_submission = Some((original, current))
+    return Ok(Some((original, current)))
   }
   let original_reference = reference.original
   let selected_run : Ref[NativeClientRunRecord?] = Ref(None)

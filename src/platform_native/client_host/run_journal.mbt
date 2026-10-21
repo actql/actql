@@ -560,8 +560,7 @@ fn[T] NativeClientRunJournal::transaction_with_reads(
 fn NativeClientRunJournal::invalidate_operation_record(
   self : NativeClientRunJournal,
 ) -> Unit {
-  self.operation_record = None
-  self.admitted_record = None
+  self.invalidate_operation_run()
   self.invalidate_operation_submission()
 }
 
@@ -981,7 +980,7 @@ fn NativeClientRunJournal::save_with_operations(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  self.invalidate_operation_record()
+  self.invalidate_operation_run()
   let revision = match
     compare_exchange_client_journal_value(
       self.database,
@@ -1122,4 +1121,18 @@ fn NativeClientRunJournal::invalidate_operation_submission(
   self : NativeClientRunJournal,
 ) -> Unit {
   self.operation_submission = None
+}
+
+///|
+// A Run mutation changes the retained relationship, not the already admitted
+// Submission row. Reuse its immutable intent/reference and observe only the
+// new Run before returning the pair again.
+fn NativeClientRunJournal::invalidate_operation_run(
+  self : NativeClientRunJournal,
+) -> Unit {
+  self.operation_record = None
+  self.admitted_record = None
+  if self.operation_submission is Some((original, _)) {
+    self.operation_submission = Some((original, None))
+  }
 }
