@@ -64,6 +64,8 @@ function resultStorageComparison(control, baseline) {
   const protocol = control.protocol, groups = ['clock', 'start', 'end'];
   requireValue(protocol?.binding === 'node:sqlite DatabaseSync' && protocol.concurrency === 1 &&
     control.protocolSha256 === evidenceHash(protocol), 'Fixed Result control protocol required');
+  if (Object.hasOwn(protocol, 'fullfsyncRequested')) requireValue(typeof protocol.fullfsyncRequested === 'boolean' &&
+    control.settings.fullfsync === Number(protocol.fullfsyncRequested), 'Result control requested/readback synchronization differs');
   requireValue(/^[a-f0-9]{40}$/u.test(control.ownerMapping?.source ?? '') && digest(control.ownerMapping.sha256) &&
     JSON.stringify(control.ownerMapping.groups?.map(row => row.id)) === JSON.stringify(groups),
   'Existing Result Owner clock/start/end mapping required');
@@ -126,6 +128,8 @@ export function calibrateSqliteComparisonProfile(baseline, resultControl) {
     typeof baseline.settings.sqliteVersion === 'string' &&
     [0, 1].includes(baseline.settings.fullfsync) && [0, 1].includes(baseline.settings.checkpoint_fullfsync),
   'Explicit WAL/FULL/fullfsync/checkpoint synchronization settings required');
+  if (Object.hasOwn(baseline.protocol, 'fullfsyncRequested')) requireValue(typeof baseline.protocol.fullfsyncRequested === 'boolean' &&
+    baseline.settings.fullfsync === Number(baseline.protocol.fullfsyncRequested), 'Comparator requested/readback synchronization differs');
   const observed = (operation, mode) => {
     const entries = baseline.warm.filter(row => row.operation === operation && row.mode === mode);
     requireValue(entries.length <= 1, 'Duplicate comparator workload');

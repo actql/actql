@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import {createHash} from 'node:crypto';
 import test from 'node:test';
 import {operationTargets, calibrateSqliteComparisonProfile, calibratedLatencyTarget,
   assessLatency} from './operation-performance.mjs';
@@ -148,6 +149,17 @@ test('synchronization comparison records explicit modes and refuses unmatched or
     const missing = syntheticSQLiteBaseline(); delete missing.settings[key];
     assert.throws(() => calibrateSqliteComparisonProfile(missing), /synchronization settings/u);
   }
+});
+test('synchronization requests cannot relabel a different measured mode', () => {
+  const baseline = syntheticSQLiteBaseline();
+  baseline.protocol.fullfsyncRequested = true;
+  baseline.protocolSha256 = createHash('sha256').update(JSON.stringify(baseline.protocol)).digest('hex');
+  assert.throws(() => calibrateSqliteComparisonProfile(baseline), /requested\/readback/u);
+  baseline.settings.fullfsync = 1;
+  const control = syntheticResultStorageControl(baseline);
+  control.protocol.fullfsyncRequested = false;
+  control.protocolSha256 = createHash('sha256').update(JSON.stringify(control.protocol)).digest('hex');
+  assert.throws(() => calibrateSqliteComparisonProfile(baseline, control), /requested\/readback/u);
 });
 for (const [operation, p95Ms] of [['cold-existing', 2000], ['first-init', 5000], ['mock-workflow', 5000]]) {
   test(`${operation} retains its separately reported guardrail and sample minimum`, () => {
