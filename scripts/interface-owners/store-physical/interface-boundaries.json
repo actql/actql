@@ -4104,11 +4104,6 @@
       ],
       "operations": [
         {
-          "name": "<module>",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "acquireStoreOwnership",
           "parameters": [
             "root",

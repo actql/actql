@@ -6775,11 +6775,6 @@
       ],
       "operations": [
         {
-          "name": "<module>",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "deliverAuthorizedResult",
           "parameters": [
             "service",
@@ -47707,11 +47702,6 @@
       ],
       "operations": [
         {
-          "name": "<module>",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "bytesCid",
           "parameters": [
             "bytes"
@@ -69161,11 +69151,6 @@
       ],
       "operations": [
         {
-          "name": "<module>",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "deliverAuthorizedResult",
           "parameters": [
             "service",
@@ -75413,11 +75398,6 @@
         "createLocalResultAuthorization"
       ],
       "operations": [
-        {
-          "name": "<module>",
-          "parameters": [],
-          "async": false
-        },
         {
           "name": "createLocalResultAuthorization",
           "parameters": [
