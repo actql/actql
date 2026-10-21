@@ -72,10 +72,22 @@ test "compiled Effect progress retains exact keys and unchanged cancellation mea
     effect_projection_state(projected).get("status"),
     Some(Json::string("preparing")),
   )
+  // Another genuine Definition with the same compilation/admission remains
+  // compatible; the Host separately binds its retained Run Definition CID.
   assert_true(
     inspect_client_remote_effect_task_progress(
       allowed,
       baseline.progress.definition,
+      retained_input_cid("c"),
+      [],
+    )
+    is Ok(_),
+  )
+  let (_, _, _, foreign_definition) = retained_input_run("foreign-program")
+  assert_true(
+    inspect_client_remote_effect_task_progress(
+      allowed,
+      foreign_definition,
       retained_input_cid("c"),
       [],
     )
