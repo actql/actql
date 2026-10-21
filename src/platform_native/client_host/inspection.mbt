@@ -91,6 +91,7 @@ fn inspect_native_client_custody_rows(
     database,
     max_records,
     append_schema: 0,
+    observed_evidence_schema: None,
     fenced: false,
     publication_read_locked: false,
     transaction_active: false,

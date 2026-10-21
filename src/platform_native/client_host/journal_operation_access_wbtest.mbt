@@ -7,6 +7,10 @@ fn journal_test_operation_access(
 ) -> NativeClientJournalOperationAccess {
   {
     reads: journal_test_read_access(database, calls),
+    install_read_evidence_schema: max_rows => {
+      calls.push("install read evidence schema")
+      database.install_client_read_evidence_schema(max_rows)
+    },
     install_run_definition_schema: max_rows => {
       calls.push("install run definition schema")
       database.install_client_run_definition_schema(max_rows)
@@ -14,6 +18,10 @@ fn journal_test_operation_access(
     capacity_usage: table => {
       calls.push("capacity:" + table)
       database.capacity_usage(table)
+    },
+    read_evidence_usage: (wire, max_rows, max_bytes) => {
+      calls.push("read-evidence-usage")
+      database.client_read_evidence_usage(wire, max_rows, max_bytes)
     },
     read_capacity: (table, key) => {
       calls.push("read-capacity:" + table + ":" + key)

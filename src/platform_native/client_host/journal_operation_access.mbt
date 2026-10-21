@@ -4,7 +4,15 @@
 // Journal, permission, initialization route or acknowledgement.
 priv struct NativeClientJournalOperationAccess {
   reads : NativeClientJournalReadAccess
+  read_evidence_usage : (String, Int64, Int64) -> Result[
+    (Int64, Int64),
+    @sqlite.NativeSqliteIssue,
+  ]
   install_run_definition_schema : (Int64) -> Result[
+    Unit,
+    @sqlite.NativeSqliteIssue,
+  ]
+  install_read_evidence_schema : (Int64) -> Result[
     Unit,
     @sqlite.NativeSqliteIssue,
   ]
@@ -163,6 +171,37 @@ fn read_client_journal_capacity(
     None => database.read_capacity(table_name, key)
     Some(original) if physical_equal(database, original.reads.database) =>
       (original.read_capacity)(table_name, key)
+    _ => Err(@sqlite.Collision)
+  }
+}
+
+///|
+fn install_journal_read_evidence_schema(
+  database : @sqlite.Database,
+  max_inspect_rows : Int64,
+  access : NativeClientJournalOperationAccess?,
+) -> Result[Unit, @sqlite.NativeSqliteIssue] {
+  match access {
+    None => database.install_client_read_evidence_schema(max_inspect_rows)
+    Some(original) if physical_equal(database, original.reads.database) =>
+      (original.install_read_evidence_schema)(max_inspect_rows)
+    _ => Err(@sqlite.Collision)
+  }
+}
+
+///|
+fn read_client_journal_evidence_usage(
+  database : @sqlite.Database,
+  request_wire : String,
+  max_entries : Int64,
+  max_bytes : Int64,
+  access : NativeClientJournalOperationAccess?,
+) -> Result[(Int64, Int64), @sqlite.NativeSqliteIssue] {
+  match access {
+    None =>
+      database.client_read_evidence_usage(request_wire, max_entries, max_bytes)
+    Some(original) if physical_equal(database, original.reads.database) =>
+      (original.read_evidence_usage)(request_wire, max_entries, max_bytes)
     _ => Err(@sqlite.Collision)
   }
 }

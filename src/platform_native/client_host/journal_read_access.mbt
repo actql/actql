@@ -5,6 +5,7 @@
 priv struct NativeClientJournalReadAccess {
   database : @sqlite.Database
   run_definition_schema : () -> Result[Int, @sqlite.NativeSqliteIssue]
+  read_evidence_schema : () -> Result[Int, @sqlite.NativeSqliteIssue]
   fenced : () -> Bool
   fence : () -> Unit
   schema : () -> Int
@@ -160,5 +161,18 @@ fn fence_client_journal_transactions(
       if physical_equal(database, original.database) {
         (original.fence)()
       }
+  }
+}
+
+///|
+fn client_journal_read_evidence_schema(
+  database : @sqlite.Database,
+  reads : NativeClientJournalReadAccess?,
+) -> Result[Int, @sqlite.NativeSqliteIssue] {
+  match reads {
+    None => database.client_read_evidence_schema()
+    Some(original) if physical_equal(database, original.database) =>
+      (original.read_evidence_schema)()
+    _ => Err(@sqlite.Collision)
   }
 }

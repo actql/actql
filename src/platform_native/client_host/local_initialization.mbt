@@ -89,6 +89,10 @@ fn initialize_native_local_client_rows(
     Ok(_) => ()
     Err(issue) => return Err(Physical(issue))
   }
+  match install_bootstrap_read_evidence_schema(database, 0L, bootstrap) {
+    Ok(_) => ()
+    Err(issue) => return Err(Physical(issue))
+  }
   match initialize_local_read_evidence(database, adoption, bootstrap~) {
     Ok(_) => ()
     Err(issue) => return Err(issue)

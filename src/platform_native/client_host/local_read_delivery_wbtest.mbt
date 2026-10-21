@@ -197,9 +197,17 @@ test "retained delivery selects only its original evidence and reserved holding"
   )
   let policy = "sha256:470e10d347bfe887c4a91d9f616b01b3e1aba211a2fd2ba20ebf63d136543563"
   let admitted = binding.retain_read_admission(original, facts, policy).unwrap()
+  assert_true(
+    host.database.insert(
+      "client_local_read_evidence", "unrelated", b"unrelated malformed history",
+    )
+    is Err(@sqlite.Physical(_)),
+  )
   host.database
   .insert(
-    "client_local_read_evidence", "unrelated", b"unrelated malformed history",
+    "client_local_read_evidence",
+    "unrelated",
+    read_evidence_wrong_packet("unrelated"),
   )
   .unwrap()
   |> ignore
@@ -247,12 +255,30 @@ test "retained delivery selects only its original evidence and reserved holding"
     .read("client_local_read_evidence", admitted.egress_admission_cid)
     .unwrap()
   host.database.begin_immediate().unwrap()
+  assert_true(
+    host.database.compare_exchange(
+      "client_local_read_evidence",
+      admitted.egress_admission_cid,
+      packet.revision,
+      b"changed target",
+    )
+    is Err(@sqlite.Physical(_)),
+  )
   host.database
-  .compare_exchange(
+  .remove_exact(
     "client_local_read_evidence",
     admitted.egress_admission_cid,
     packet.revision,
-    b"changed target",
+    packet.body,
+  )
+  .unwrap()
+  host.database
+  .insert(
+    "client_local_read_evidence",
+    admitted.egress_admission_cid,
+    read_evidence_wrong_packet(
+      @host.client_request_identity_record_wire(original).unwrap(),
+    ),
   )
   .unwrap()
   |> ignore

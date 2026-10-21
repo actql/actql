@@ -78,6 +78,11 @@ fn NativeLocalJournalReadQueries::access(
 ) -> NativeClientJournalReadAccess {
   {
     database: self.database,
+    read_evidence_schema: () => {
+      self
+      .query(() => self.database.client_read_evidence_schema())
+      .unwrap_or(Err(@sqlite.Busy))
+    },
     run_definition_schema: () => {
       self
       .query(() => self.database.client_run_definition_schema())
@@ -156,6 +161,11 @@ fn NativeLocalJournalReadQueries::bootstrap_access(
 ) -> NativeClientJournalBootstrapAccess {
   {
     reads: self.access(),
+    install_read_evidence_schema: max_rows => {
+      self
+      .query(() => self.database.install_client_read_evidence_schema(max_rows))
+      .unwrap_or(Err(@sqlite.Busy))
+    },
     install_run_definition_schema: max_rows => {
       self
       .query(() => self.database.install_client_run_definition_schema(max_rows))
@@ -219,6 +229,11 @@ fn NativeLocalJournalReadQueries::operation_access(
 ) -> NativeClientJournalOperationAccess {
   {
     reads: self.access(),
+    install_read_evidence_schema: max_rows => {
+      self
+      .query(() => self.database.install_client_read_evidence_schema(max_rows))
+      .unwrap_or(Err(@sqlite.Busy))
+    },
     install_run_definition_schema: max_rows => {
       self
       .query(() => self.database.install_client_run_definition_schema(max_rows))
@@ -229,6 +244,13 @@ fn NativeLocalJournalReadQueries::operation_access(
         Ok(value) => value
         Err(issue) => Err(issue)
       }
+    },
+    read_evidence_usage: (wire, max_rows, max_bytes) => {
+      self
+      .query(() => {
+        self.database.client_read_evidence_usage(wire, max_rows, max_bytes)
+      })
+      .unwrap_or(Err(@sqlite.Busy))
     },
     read_capacity: (table, key) => {
       match self.query(() => self.database.read_capacity(table, key)) {

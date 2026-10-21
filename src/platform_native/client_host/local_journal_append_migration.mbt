@@ -160,15 +160,20 @@ pub fn NativeLocalHostConnection::migrate_journal_append_metadata(
     Err(_) => return Err(AuthorizationDenied)
   }
   let result = self.journal.transaction(() => {
-    self.journal.migrate_append_metadata_locked(
-      max_inspect_rows,
-      self.epoch,
-      scope,
-    )
+    match
+      self.journal.migrate_append_metadata_locked(
+        max_inspect_rows,
+        self.epoch,
+        scope,
+      ) {
+      Ok(_) => self.migrate_read_evidence_schema_locked(max_inspect_rows)
+      Err(issue) => Err(issue)
+    }
   })
   if result is Ok(_) {
     // Only the actual original COMMIT ACK publishes the new format fact.
     self.journal.append_schema = 1
+    self.journal.observed_evidence_schema = Some(1)
   }
   result
 }
@@ -207,17 +212,27 @@ pub fn NativeLocalJournalCapture::migrate_journal_append_metadata_in_original_re
     }
     let result = host.journal.transaction_with_reads(
       () => {
-        host.journal.migrate_append_metadata_locked(
-          self.max_snapshot_bytes,
-          host.epoch,
-          scope,
-          operations=Some(operations),
-        )
+        match
+          host.journal.migrate_append_metadata_locked(
+            self.max_snapshot_bytes,
+            host.epoch,
+            scope,
+            operations=Some(operations),
+          ) {
+          Ok(_) =>
+            host.migrate_read_evidence_schema_locked(
+              self.max_snapshot_bytes,
+              operations=Some(operations),
+              capture=Some(self),
+            )
+          Err(issue) => Err(issue)
+        }
       },
       reads=Some(operations.reads),
     )
     if result is Ok(_) {
       host.journal.append_schema = 1
+      host.journal.observed_evidence_schema = Some(1)
     }
     Ok(result)
   })

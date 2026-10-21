@@ -8,6 +8,7 @@ struct NativeClientRunJournal {
   mut fenced : Bool
   // Same actual Database format; only acknowledged maintenance advances it.
   mut append_schema : Int
+  mut observed_evidence_schema : Int?
   // Physical transaction ownership only; this is not a Run control revision.
   mut operation_active : Bool
   mut transaction_active : Bool
@@ -463,6 +464,7 @@ fn open_native_client_run_journal_with_reads(
         database,
         max_records,
         append_schema,
+        observed_evidence_schema: None,
         fenced: false,
         publication_read_locked: false,
         transaction_active: false,
@@ -562,6 +564,7 @@ fn NativeClientRunJournal::invalidate_operation_record(
 ) -> Unit {
   self.invalidate_operation_run()
   self.invalidate_operation_submission()
+  self.observed_evidence_schema = None
 }
 
 ///|

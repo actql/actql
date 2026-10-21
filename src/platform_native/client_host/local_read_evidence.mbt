@@ -46,10 +46,15 @@ fn initialize_local_read_evidence(
 fn local_read_evidence_packet(
   original : @host.ClientRequestIdentity,
   bodies : NativeLocalReadAdmissionOriginals,
+  request_wire? : String? = None,
 ) -> Result[Bytes, NativeClientRunJournalIssue] {
-  let request = match @host.client_request_identity_record_wire(original) {
-    Ok(value) => value
-    Err(_) => return Err(Encoding)
+  let request = match request_wire {
+    Some(wire) => wire
+    None =>
+      match @host.client_request_identity_record_wire(original) {
+        Ok(value) => value
+        Err(_) => return Err(Encoding)
+      }
   }
   try {
     let writer = @encode.writer(65536, 16, 4)
@@ -449,6 +454,7 @@ fn NativeLocalHostConnection::read_evidence_custody(
   crypto : @crypto.Library,
   operations? : NativeClientJournalOperationAccess? = None,
   capture? : NativeLocalJournalCapture? = None,
+  max_inspect_rows? : Int64? = None,
 ) -> Result[(Int, Int64, Map[String, (Int, Int)]), NativeClientRunJournalIssue] {
   let reads = operations.map(value => value.reads)
   guard scan_client_journal_value(
@@ -486,6 +492,9 @@ fn NativeLocalHostConnection::read_evidence_custody(
     ) {
     Ok(value) => value
     Err(issue) => return Err(issue)
+  }
+  if max_inspect_rows is Some(limit) && (limit < 0L || count.to_int64() > limit) {
+    return Err(CapacityExceeded)
   }
   let runs : Map[String, (Int, Int)] = Map(
     [],
@@ -648,17 +657,41 @@ fn NativeLocalReadPolicyBinding::retain_read_admission_with_operations(
         }) {
         return Err(PublicationPolicy(@checked.MissingDependency))
       }
-      let (count, revision, runs) = match
-        self.host.read_evidence_custody(
-          self.crypto,
-          operations~,
-          capture=self.capture,
-        ) {
+      match self.host.journal.require_read_evidence_schema(reads~) {
+        Ok(_) => ()
+        Err(issue) => return Err(issue)
+      }
+      let (count, revision) = match self.host.read_evidence_issuance(reads~) {
         Ok(value) => value
         Err(issue) => return Err(issue)
       }
+      let request_wire = match
+        @host.client_request_identity_record_wire(original) {
+        Ok(value) => value
+        Err(_) => return Err(Encoding)
+      }
+      let (entry_count, byte_count) = match
+        read_client_journal_evidence_usage(
+          self.host.database,
+          request_wire,
+          64L,
+          65536L,
+          operations,
+        ) {
+        Ok(value) => value
+        Err(@sqlite.CapacityExceeded) => return Err(CapacityExceeded)
+        Err(issue) => return Err(Physical(issue))
+      }
+      if entry_count < 0L ||
+        entry_count > 64L ||
+        entry_count > count.to_int64() ||
+        byte_count < 0L ||
+        byte_count > 65536L {
+        return Err(CustodyLost)
+      }
+      let entries = entry_count.to_int()
+      let used_bytes = byte_count.to_int()
       let scope = @host.client_request_scope_cid(original)
-      let (entries, used_bytes) = runs.get(scope).unwrap_or((0, 0))
       // The same durable per-Run reservation covers bounded originals, before
       // copying/encoding. Existing reservation loss cannot be silently repaired.
       match
@@ -685,7 +718,12 @@ fn NativeLocalReadPolicyBinding::retain_read_admission_with_operations(
           return Err(AuthorizationDenied)
         }
       }
-      let packet = match local_read_evidence_packet(original, bodies) {
+      let packet = match
+        local_read_evidence_packet(
+          original,
+          bodies,
+          request_wire=Some(request_wire),
+        ) {
         Ok(value) => value
         Err(issue) => return Err(issue)
       }
@@ -787,6 +825,30 @@ fn NativeLocalHostConnection::require_retained_read_evidence_target(
   operations? : NativeClientJournalOperationAccess? = None,
 ) -> Result[Unit, NativeClientRunJournalIssue] {
   let reads = operations.map(value => value.reads)
+  match original.read_evidence_issuance(reads~) {
+    Ok((count, _)) if count > 0 => ()
+    Ok(_) => return Err(CustodyLost)
+    Err(issue) => return Err(issue)
+  }
+  match
+    read_client_journal_capacity(
+      original.database,
+      "client_local_read_evidence",
+      @host.client_request_scope_cid(request),
+      operations,
+    ) {
+    Ok(holding) if holding.reserved_bytes == 65536L &&
+      holding.reserved_objects == 1L => Ok(())
+    Ok(_) | Err(@sqlite.NotFound) => Err(CustodyLost)
+    Err(issue) => Err(Physical(issue))
+  }
+}
+
+///|
+fn NativeLocalHostConnection::read_evidence_issuance(
+  original : NativeLocalHostConnection,
+  reads? : NativeClientJournalReadAccess? = None,
+) -> Result[(Int, Int64), NativeClientRunJournalIssue] {
   match
     read_client_journal_value(
       original.database,
@@ -809,25 +871,9 @@ fn NativeLocalHostConnection::require_retained_read_evidence_target(
     Err(@sqlite.NotFound) => return Err(CustodyLost)
     Err(issue) => return Err(Physical(issue))
   }
-  match
-    local_read_evidence_issuance_count(
-      issued.body,
-      issued.revision,
-      original.journal.max_records,
-    ) {
-    Ok(count) if count > 0 => ()
-    _ => return Err(CustodyLost)
-  }
-  match
-    read_client_journal_capacity(
-      original.database,
-      "client_local_read_evidence",
-      @host.client_request_scope_cid(request),
-      operations,
-    ) {
-    Ok(holding) if holding.reserved_bytes == 65536L &&
-      holding.reserved_objects == 1L => Ok(())
-    Ok(_) | Err(@sqlite.NotFound) => Err(CustodyLost)
-    Err(issue) => Err(Physical(issue))
-  }
+  local_read_evidence_issuance_count(
+    issued.body,
+    issued.revision,
+    original.journal.max_records,
+  ).map(count => (count, issued.revision))
 }
