@@ -76,6 +76,17 @@ test('ordinary process artifacts bind the actual source run and selected success
   }
 });
 
+test('ordinary process inspection cannot fall back to Client artifacts when its adapter is missing', () => {
+  for (const adapter of [undefined, '', 'node']) {
+    const env = {...process.env}; delete env.PACKAGE_ADAPTER;
+    if (adapter !== undefined) env.PACKAGE_ADAPTER = adapter;
+    const child = spawnSync(process.execPath, ['scripts/ordinary-operation-packages.mjs', 'inspect-process-producer'],
+      {env, encoding: 'utf8', timeout: 5000});
+    assert.equal(child.status, 1);
+    assert.match(child.stderr, /Exact process adapter is required/u);
+  }
+});
+
 test('ordinary Native installation resolves only fixed artifacts and always closes its registry', async t => {
   const root = await mkdtemp(join(tmpdir(), 'actql-native-performance-install-'));
   t.after(() => rm(root, {recursive: true, force: true}));

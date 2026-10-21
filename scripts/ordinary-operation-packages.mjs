@@ -294,6 +294,9 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
     const [command, ...args] = process.argv.slice(2);
     if (command === 'inspect-producer' || command === 'inspect-process-producer') {
       assert.equal(args.length, 0);
+      if (command === 'inspect-process-producer') {
+        assert(['native', 'python'].includes(process.env.PACKAGE_ADAPTER), 'Exact process adapter is required');
+      }
       console.log(JSON.stringify(await inspectPerformancePackageProducer({repository: process.env.GITHUB_REPOSITORY,
         sourceSha: process.env.GITHUB_SHA, runId: process.env.PACKAGE_RUN_ID,
         artifactId: process.env.PACKAGE_ARTIFACT_ID, token: process.env.GITHUB_TOKEN,
