@@ -10667,7 +10667,7 @@
     {
       "module": "packages/sdk/internal/result-read.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "fa4177939f1bf850c7cc823ec37bb7491d4a726160e85238f523d8b7c5dfedfd",
+      "sha256": "dab278e454f6d7587472110a7a9f702c2e4f02a0888a8b8096013a067fde390a",
       "exports": [
         "captureQueryResultRead",
         "collectCapturedResult",
@@ -10805,7 +10805,8 @@
           "parameters": [
             "options",
             "validate",
-            "collection"
+            "collection",
+            "retainSizes"
           ],
           "async": false
         },
@@ -11314,6 +11315,10 @@
               {
                 "path": "packages/sdk/typed-result-capture.test.mjs",
                 "anchor": "one typed Result frame captures borrowed fields and its row once"
+              },
+              {
+                "path": "packages/sdk/batch-row-accounting.test.mjs",
+                "anchor": "batches account each unchanged row once"
               }
             ]
           }
