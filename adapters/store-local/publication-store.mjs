@@ -3263,16 +3263,33 @@ async function openOriginalLocalPublicationStore(
       identities.set(contract.identity, original);
       wires.set(input.wire, original);
     }
-    if (admitted.every(({contract}) => nativePublicationContract(contract.name)) &&
-        (originals || admitted.some(({contract}) => deliveryIndex.publicationContract(contract.identity) !== undefined))) {
+    const nativeOnly = admitted.every(({contract}) => nativePublicationContract(contract.name));
+    if (originals && nativeOnly) {
       return putNativePublicationContracts(admitted);
     }
-    const stored = await putSemanticBatch(admitted.map(({contract}) => ({
+    const existingNative = new Map();
+    for (const original of admitted) {
+      const {contract} = original;
+      if (!nativePublicationContract(contract.name)) continue;
+      const retained = deliveryIndex.publicationContract(contract.identity);
+      if (retained === undefined) continue;
+      if (retained.name !== contract.name || retained.wire !== contract.wire) {
+        fail('PublicationSemanticIdentityConflict');
+      }
+      existingNative.set(contract.identity,Object.freeze({...original,
+        semanticCid:contract.identity,storage:'sqlite',created:false}));
+    }
+    if (nativeOnly && existingNative.size !== 0) return putNativePublicationContracts(admitted);
+    // A legacy file member does not turn an already native sibling into a
+    // second file allocation. Only the remaining original files enter the
+    // unchanged physical batch and its actual capacity/ACK protocol.
+    const stored = await putSemanticBatch(admitted.filter(({contract}) =>
+      !existingNative.has(contract.identity)).map(({contract}) => ({
       wire: contract.wire, semanticCid: contract.identity,
     })));
-    return Object.freeze(stored.map((physical, index) => Object.freeze({
-      ...admitted[index], ...physical,
-    })));
+    let physicalIndex = 0;
+    return Object.freeze(admitted.map(original => existingNative.get(original.contract.identity) ??
+      Object.freeze({...original,...stored[physicalIndex++]})));
   };
 
   const putPublicationContracts = supplied => putPublicationContractBatch(supplied, false);
