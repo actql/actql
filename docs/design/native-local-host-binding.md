@@ -11,7 +11,7 @@ metadata preserves the prior encoding when absent and the existing per-record
 intake bounds; an overflow refuses rather than omitting required new evidence.
 
 `explain --run` selects the authenticated original Run through current RunRead
-and the same bounded Journal scan and physical operation route as status. It
+and the same targeted Journal lookup and physical operation route as status. It
 rechecks the compiled Plan, Program and logical-map identities and current
 authority before returning the exact saved view. It never reads a replacement
 Program or parameters, replans, initializes a missing installation or starts a
@@ -265,12 +265,38 @@ manifest is bounded to 8 KiB and is included in the initialization intent.
 
 Finalization stores this manifest and the selected original bytes in the
 existing SQLite transaction with Submission epoch custody and final adoption.
-Reopening checks exact membership and original bytes, source generations and
-managed-root custody before returning configuration or authorization material.
+Reopening checks the selected manifest and original bytes, source generations
+and managed-root custody before returning configuration or authorization material.
 Missing stored originals are not copied back from a currently available source,
 and a byte-identical replacement file cannot assume its predecessor's identity.
 These configuration records confer no execution permission; the existing
 execution-account Owner evaluates each current access tuple.
+
+### Operation-scoped Journal reads
+
+Ordinary open uses the existing-only SQLite entrance and fixed adoption,
+epoch and issuance anchors. It does not copy the database or enumerate all
+retained Runs, Effects or submissions. Explicit integrity inspection and bounded
+compatibility indexing remain separate operations. Existing-only open refuses
+missing schema or custody; it cannot initialize, repair or regenerate keys.
+
+A selected read admits its own canonical Run and nested originals, target
+Effect witness, original Submission and epoch. Unrelated historical corruption
+is diagnosed by integrity inspection instead of invalidating every ordinary
+read. Mutations retain the original transaction, local CAS/claim and sticky
+COMMIT-Unknown behavior. Account decisions remain action/resource-specific;
+immutable admitted facts do not replace current authority or physical cleanup.
+
+A subordinate scope/Run-ID locator commits in the same transaction as fresh
+admission. Arbitrary Run IDs remain valid and duplicate IDs remain ambiguous.
+Lookup verifies the indexed original identity and epoch. Without a locator,
+the ordinary CLI's Run-ID/Submission-ID equality is only a candidate until the
+retained original proves it. Other legacy IDs require explicit bounded indexing;
+missing or inconsistent history never permits a new execution or resend.
+
+An unchanged availability observation returns its retained state and revision
+without another serialization or durable update. A changed logical observation
+still commits with the existing revision/CAS owner and current Store binding.
 
 ### Initial signing-key material
 
