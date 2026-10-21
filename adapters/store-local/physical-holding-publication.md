@@ -193,6 +193,11 @@ The original native wrapper and captured close/isOpen remain owned until real
 close. Store exclusion and key retirement follow that ACK and all independent
 payload or directory-FD ACKs, including partial opening failure. Cancellation,
 GC, a marker write or a successful sibling close is not their substitute.
+An unknown indexed retirement may retry only the same Run's idempotent
+metadata removal on a still-usable original connection. It counts only rows
+still present, so an already committed removal cannot decrement twice. Claims,
+another Run's removal and delivery remain refused during that uncertainty.
+An unusable connection is never treated as a successful cleanup.
 
 This metadata index does not change grant/attempt/record wires, authorization,
 Result binding, append transitions, stored public formats or optional delivery

@@ -136,7 +136,7 @@ export async function openDeliveryAttemptIndex(path, {create, maxEntries, maxWir
     const ready = prepare('UPDATE attempts SET ready=1 WHERE logical_key=? AND attempt_cid=?');
     const remove = prepare('DELETE FROM attempts WHERE run_cid=?');
     const updateCount = prepare('UPDATE coverage SET entries=entries+? WHERE id=1');
-    let uncertain = false;
+    let uncertain = false, uncertainRemoval;
     const run = body => {
       if (mutating) fail('DeliveryAttemptIndexBusy');
       mutating = true;
@@ -215,11 +215,26 @@ export async function openDeliveryAttemptIndex(path, {create, maxEntries, maxWir
         });
       },
       forgetRun(runCid) {
-        requireComplete();
-        run(() => {
-          for (const row of runUses.all(runCid)) removeUses.run(row.uses,row.grant_cid);
-          updateCount.run(-remove.run(runCid).changes);
-        });
+        if (uncertain && uncertainRemoval === runCid) {
+          if (closed || closing || mutating || !complete) fail('DeliveryAttemptIndexCleanupPending');
+          transaction.assertUsable();
+        } else requireComplete();
+        try {
+          // Retry only this original idempotent metadata removal. A previous
+          // COMMIT may already have removed the rows: decrement only the uses
+          // still present, never replay a claim or refund an unknown stream.
+          run(() => {
+            for (const row of runUses.all(runCid)) removeUses.run(row.uses,row.grant_cid);
+            updateCount.run(-remove.run(runCid).changes);
+          });
+          if (uncertainRemoval === runCid) {
+            uncertainRemoval = undefined;
+            uncertain = false;
+          }
+        } catch (error) {
+          if (error?.outcome === 'unknown') uncertainRemoval = runCid;
+          throw error;
+        }
       },
       close, retainFailure,
     });

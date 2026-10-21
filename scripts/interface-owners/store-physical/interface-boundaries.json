@@ -4091,7 +4091,7 @@
     {
       "module": "adapters/store-local/delivery-attempt-index.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "d8fb246395672325781f68d6784d506b2793eaaa5d23507c71355b118744de39",
+      "sha256": "d7849db1e5ce141dc1cec3c5010df3b6a99c46cdb88f9c56b0cc203fd5c9524a",
       "exports": [
         "openDeliveryAttemptIndex"
       ],
