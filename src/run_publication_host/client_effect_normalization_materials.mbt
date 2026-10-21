@@ -121,9 +121,10 @@ struct ClientEffectNormalizationMaterialCustody {
 }
 
 ///|
-/// Restore only saved journal bytes through the original admitted material
-/// Owner. This operation does not prepare, compile, issue a journal, refresh
-/// lifetime/authority, acquire Source input or perform Provider I/O.
+/// Project the journal retained by the original admitted material Owner.
+/// Saved bytes were checked at admission. This operation does not prepare,
+/// compile, issue a journal, refresh lifetime/authority, acquire Source input
+/// or perform Provider I/O.
 pub fn restore_client_effect_run_normalization(
   materials : ClientEffectRunMaterials,
 ) -> Result[@publication.RunEvidenceValue, ClientEffectNormalizationIssue] {

@@ -20,7 +20,8 @@ pub fn bind_prepared_client_effect_original_materials(
   if !physical_equal(issued.compilation, allowed.compilation) {
     return Err(Normalization(ForeignMaterials))
   }
-  // The issuer already validated this immutable permission/Run/request tuple.
+  // The issuer already validated these immutable invocation/authorization
+  // artifacts and Run/request tuple. This is not a current policy evaluation.
   // Equal canonical Definitions and equivalent admitted evidence may reuse it;
   // a different tuple still takes the original validation and error path.
   let exact = if issued.request == request &&
