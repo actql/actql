@@ -167,12 +167,24 @@ pub fn client_program_prepare_source_with_parameters(
     Ok(value) => value
     Err(issue) => return Rejected(issue)
   }
-  let prepared = client_program_prepare_effect_free_with_parameters(
-    lowered.document,
-    "json",
-    environment,
-    parameters,
-  )
+  let (_, supplied) = match client_program_input("json", parameters) {
+    Ok(value) => value
+    Err(issue) => return Rejected(issue)
+  }
+  let parsed = match client_source_program(lowered) {
+    Ok(value) => value
+    Err(issue) => return Rejected(issue)
+  }
+  let prepared = match
+    @publication_host.prepare_parsed_effect_free_client_program(
+      parsed,
+      environment,
+      supplied,
+      client_program_standard_limits(),
+    ) {
+    Ok(value) => Prepared(value)
+    Err(issue) => Rejected(Preparation(issue))
+  }
   client_source_checked_array_profile(prepared)
 }
 
@@ -253,6 +265,19 @@ fn client_program_lower_source(
 }
 
 ///|
+// Query lowering already admitted this exact Program and its authored spans.
+// The existing parsed checker applies current limits and semantic checks;
+// emitted JSON is not another input to admit during the same preparation.
+fn client_source_program(
+  lowered : @source_frontend.Lowered,
+) -> Result[@stage_syntax.Program, ClientProgramBridgeIssue] {
+  match lowered.program {
+    Some(program) => Ok(program)
+    None => Err(SourcePreparation(Frontend(Encoding)))
+  }
+}
+
+///|
 /// Select an existing computation owner from the parser's Effect inventory,
 /// before semantic checking. Neither branch is a fallback for the other.
 pub(all) enum ClientSourceComputationBridgeOutcome {
@@ -284,14 +309,9 @@ pub fn client_program_prepare_source_computation_with_parameters(
     Err(issue) => return SourcePure(Rejected(issue))
   }
   let limits = client_program_standard_limits()
-  let parsed = match
-    @stage_syntax.parse(
-      lowered.document,
-      limits.checking.input,
-      format=lowered.format,
-    ) {
+  let parsed = match client_source_program(lowered) {
     Ok(value) => value
-    Err(issue) => return SourcePure(Rejected(Preparation(Syntax(issue))))
+    Err(issue) => return SourcePure(Rejected(issue))
   }
   for stage in @stage_syntax.stages(parsed) {
     if !@stage_syntax.effect_names(stage).is_empty() {
