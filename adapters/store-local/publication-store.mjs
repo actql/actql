@@ -1708,7 +1708,7 @@ async function openOriginalLocalPublicationStore(
     return inventory;
   };
 
-  const requireCommittedMetadataInventory = async entry => {
+  const readCommittedMetadataInventory = async entry => {
     const inventory = await readMetadataInventory(entry.public_index_entry_cid);
     if (inventory === undefined ||
         inventory.namespace_id !== entry.namespace_id ||
@@ -1717,6 +1717,11 @@ async function openOriginalLocalPublicationStore(
         inventory.publication_attempt_cid !== entry.publication_attempt_cid) {
       fail('InvalidPublicationMetadataInventoryStore');
     }
+    return inventory;
+  };
+
+  const requireCommittedMetadataInventory = async entry => {
+    const inventory = await readCommittedMetadataInventory(entry);
     // Only this selected publication's owner links belong to the read.
     // Payload availability remains the actual Result consumer's duty.
     for (const holdingCid of inventory.physical_holding_cids) {
@@ -5006,7 +5011,7 @@ async function openOriginalLocalPublicationStore(
     );
     const expectedContent = await confirmCapturedContentHoldings(
       suppliedEvidence.capturedRun, suppliedEvidence.runDefinition);
-    const inventory = await requireCommittedMetadataInventory(committed);
+    const inventory = await readCommittedMetadataInventory(committed);
     if (inventory?.physical_holding_cids.join('\0') !== expectedContent.join('\0')) {
       fail('InvalidPublicationMetadataInventoryStore');
     }
@@ -5333,7 +5338,7 @@ async function openOriginalLocalPublicationStore(
       },
       conflict() { fail('PublicationCommitConflict'); },
       async verifyExistingInventory(existingCommit) {
-        const inventory = await requireCommittedMetadataInventory(existingCommit);
+        const inventory = await readCommittedMetadataInventory(existingCommit);
         const directlyRequired = [
           existingCommit.public_index_entry_cid,
           existingCommit.invocation_cid,
@@ -5433,7 +5438,7 @@ async function openOriginalLocalPublicationStore(
     if (committed?.public_index_entry_cid !== inspected.index.identity) {
       fail('InvalidCommittedPublicationIndex');
     }
-    const inventory = await requireCommittedMetadataInventory(committed);
+    const inventory = await readCommittedMetadataInventory(committed);
     const expectedHoldings = [inspected.privateHoldingCid,
       ...inspected.effectSourceHoldingCids,
       ...(inspected.captureHoldingCid === undefined ? [] :

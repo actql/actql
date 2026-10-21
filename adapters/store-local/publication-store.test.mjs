@@ -4911,6 +4911,53 @@ test(`selected committed Result refuses its missing ${missing} before returning 
 });
 }
 
+test('selected committed Result entrypoints reuse only their own current owner links', async t => {
+  const setup = await fixture(t);
+  const selected = await committedHoldingFixture(setup, 'current entrypoint');
+  const key = indexKeyFor(selected.request);
+  const operations = [
+    () => setup.store.inspectCommittedIndex(key),
+    () => setup.store.confirmCommittedIndex(key),
+    () => setup.store.readCommittedResultDescriptionEvidence(
+      key, selected.request.inventory[0].result_definition_cid),
+  ];
+  const originalOpen = fsPromises.open, reads = [];
+  t.mock.method(fsPromises, 'open', function(path, ...args) {
+    reads.push(String(path));
+    return Reflect.apply(originalOpen, this, [path, ...args]);
+  });
+  syncBuiltinESMExports();
+  t.after(() => { t.mock.restoreAll(); syncBuiltinESMExports(); });
+  for (const operation of operations) {
+    reads.length = 0;
+    await operation();
+    assert.equal(reads.filter(path => path === selected.inventoryPath).length, 1);
+    assert.equal(reads.filter(path => path === selected.holdingPath).length, 1);
+  }
+  await unlink(selected.holdingPath);
+  for (const operation of operations) {
+    await assert.rejects(operation(), code('InvalidPublicationMetadataInventoryStore'));
+  }
+});
+
+test('selected committed Result refuses foreign inventory identity and tuple without rewriting it', async t => {
+  const setup = await fixture(t);
+  const selected = await committedHoldingFixture(setup, 'inventory identity');
+  const unrelated = await committedHoldingFixture(setup, 'foreign inventory identity');
+  for (const value of [unrelated.inventory,
+    {...selected.inventory, namespace_id: 'different-namespace'},
+    {...selected.inventory, authority_scope_cid: digest('foreign scope')},
+    {...selected.inventory, run_definition_cid: digest('foreign Run')},
+    {...selected.inventory, publication_attempt_cid: digest('foreign publication attempt')}]) {
+    const bytes = Buffer.from(JSON.stringify(value));
+    await writeFile(selected.inventoryPath, bytes);
+    await assert.rejects(setup.store.lookupCommittedIndex(indexKeyFor(selected.request), () => true),
+      code('InvalidPublicationMetadataInventoryStore'));
+    assert.deepEqual(await readFile(selected.inventoryPath), bytes);
+  }
+  await writeFile(selected.inventoryPath, JSON.stringify(selected.inventory));
+});
+
 function physicalHolding(holdingCid, manifestCid, objects,
   namespace = 'remote-transfer') {
   return Object.freeze({
