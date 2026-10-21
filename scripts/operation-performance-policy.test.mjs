@@ -21,6 +21,23 @@ function evidence(operation, ms = 1) {
       completed: true, verified: true}))};
 }
 const comparison = baseline => ({baseline, profile: calibrateSqliteComparisonProfile(baseline)});
+function materializedResultControl(baseline) {
+  const control = syntheticResultStorageControl(baseline);
+  const sha = text => createHash('sha256').update(text).digest('hex');
+  control.schemaVersion = 2;
+  control.protocol.materialization = {storedFormat: 'json-array-utf8', storedBytes: 10,
+    storedSha256: sha('[{"id":1}]'), schemaFormat: 'actql-schema-json-utf8', schemaBytes: 41,
+    schemaSha256: sha('{"id":{"nullable":false,"type":"number"}}'), outputFormat: 'jsonl-utf8',
+    outputBytes: 9, outputSha256: sha('{"id":1}\n'),
+    conversion: 'stored-array-and-schema -> JSONL -> ordinary-JS-records'};
+  control.protocolSha256 = createHash('sha256').update(JSON.stringify(control.protocol)).digest('hex');
+  for (const sample of control.samples) {
+    sample.materialization = {storedBytes: 10, schemaBytes: 41, jsonlBytes: 9, decodedRows: 1,
+      outputSha256: sha('{"id":1}\n')};
+    sample.events.splice(2, 0, 'stored-array-decoded', 'jsonl-serialized');
+  }
+  return control;
+}
 function matchedDiagnostic(operation, control) {
   const entry = control.profile.entries.find(row => row.operation === operation);
   const row = evidence(operation);
@@ -135,6 +152,46 @@ test('Result storage success samples cannot hide failed cleanup, changed groups,
     const baseline = syntheticSQLiteBaseline(), control = syntheticResultStorageControl(baseline);
     mutate(control); assert.throws(() => calibrateSqliteComparisonProfile(baseline, control));
   }
+});
+test('Result v2 binds stored array, schema and output conversion without relabeling v1 profiles', () => {
+  const baseline = syntheticSQLiteBaseline(), resultControl = materializedResultControl(baseline);
+  const legacyControl = syntheticResultStorageControl(baseline);
+  legacyControl.protocol.materialization = 'indexed JSONL payload -> all ordinary JS rows; literal oracle inside timed operation';
+  legacyControl.protocolSha256 = createHash('sha256').update(JSON.stringify(legacyControl.protocol)).digest('hex');
+  const legacy = calibrateSqliteComparisonProfile(baseline, legacyControl).resultStorage;
+  const fixed = {baseline, resultControl, profile: calibrateSqliteComparisonProfile(baseline, resultControl)};
+  assert.equal(Object.hasOwn(legacy.conditions, 'materialization'), false);
+  assert.deepEqual(fixed.profile.resultStorage.conditions.materialization, resultControl.protocol.materialization);
+  const row = matchedDiagnostic('warm-result', fixed);
+  row.resultStorageMatch = structuredClone(legacy.conditions);
+  assert(calibratedLatencyTarget(row, fixed).missing.includes('actual Result key/body/group correspondence'));
+  row.resultStorageMatch = structuredClone(fixed.profile.resultStorage.conditions);
+  const result = assessLatency(row, fixed);
+  assert.equal(result.status, 'incomplete');
+  assert(!result.missing.includes('actual Result key/body/group correspondence'));
+  assert(result.missing.includes('required public work coverage outside the storage control'));
+  assert.equal(resultControl.protocol.payload, '{"id":1}\n');
+  assert.equal(fixed.profile.resultStorage.diagnosticLimits.medianMs, legacy.diagnosticLimits.medianMs);
+});
+test('Result v2 refuses missing or changed materialization observations, stages and version attribution', () => {
+  for (const mutate of [c => {delete c.protocol.materialization;}, c => {c.schemaVersion = 1;},
+    c => {c.schemaVersion = 3;}, c => {c.protocol.materialization.storedBytes = 9;},
+    c => {c.protocol.materialization.schemaSha256 = fixture;},
+    c => {c.protocol.materialization.outputSha256 = fixture;},
+    c => {c.protocol.materialization.conversion = 'direct JSONL read';},
+    c => {delete c.samples[0].materialization;}, c => {c.samples[0].materialization.storedBytes = 9;},
+    c => {c.samples[0].materialization.schemaBytes = 0;}, c => {c.samples[0].materialization.jsonlBytes = 10;},
+    c => {c.samples[0].materialization.decodedRows = 0;},
+    c => {c.samples[0].materialization.outputSha256 = fixture;},
+    c => {c.samples[0].events.splice(2, 1);}, c => {c.samples[0].events.reverse();}]) {
+    const baseline = syntheticSQLiteBaseline(), control = materializedResultControl(baseline);
+    mutate(control);
+    control.protocolSha256 = createHash('sha256').update(JSON.stringify(control.protocol)).digest('hex');
+    assert.throws(() => calibrateSqliteComparisonProfile(baseline, control));
+  }
+  const baseline = syntheticSQLiteBaseline(), legacy = syntheticResultStorageControl(baseline);
+  legacy.samples[0].materialization = {storedBytes: 10};
+  assert.throws(() => calibrateSqliteComparisonProfile(baseline, legacy));
 });
 test('synchronization comparison records explicit modes and refuses unmatched or missing fullfsync settings', () => {
   const baseline = syntheticSQLiteBaseline(); baseline.settings.fullfsync = 1;
