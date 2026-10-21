@@ -6762,7 +6762,7 @@
     {
       "module": "adapters/host-common/result-access.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "d465c3724fb242205f3f7d589ecc91d587a3a585e1c3bed52cd16a8bebaef79e",
+      "sha256": "cfd8597bd913f82ee018ea7ff7bdddb9dd35add63ea21cbb5de22f7ae567f609",
       "role": "physical-io",
       "owner": "Existing Result access/delivery/publication Owners and physical read/sink adapter",
       "exports": [
@@ -69302,7 +69302,7 @@
     {
       "module": "packages/run-host-core/result-access.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "964f6e1556ed991a4e8b68a8fb9f72397ed5bbbe45c4fd98e3c458f9b3ecd0f1",
+      "sha256": "d934a49be4ed9c98ac3e89827491c6a09ea289adac986586d64e0ae80f3374eb",
       "role": "physical-io",
       "owner": "Existing Result access/delivery/publication Owners and physical read/sink adapter",
       "exports": [
@@ -75555,7 +75555,7 @@
     {
       "module": "adapters/host-node/local-result-authorization.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "b39396722768e97a7b3210f71c16ceaa23b06581e97543be254c2abc34c4c7c1",
+      "sha256": "c0ce97c79c0754229bff6422f87744668d17f3e4acf197cc30c798a4822785bb",
       "role": "physical-io",
       "owner": "Existing installed Local Host Result access and Common execution-authorization Owners",
       "exports": [
@@ -75576,7 +75576,8 @@
         {
           "name": "createLocalResultAuthorization/createLocalResultAuthorization",
           "parameters": [
-            "facts"
+            "facts",
+            "operation"
           ],
           "async": true
         }
@@ -75630,7 +75631,7 @@
             "failure": [
               {
                 "path": "adapters/host-node/local-result-authorization.mjs",
-                "anchor": "if (outcome.outcome !== 'delegate') return false;"
+                "anchor": "if (outcome.outcome !== 'delegate') {"
               }
             ],
             "cancellation": [

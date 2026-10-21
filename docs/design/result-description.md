@@ -37,11 +37,14 @@ An Artifact CID is a reference to the published Artifact, not an access grant.
 
 ## Publication, retention and authorization
 
-Only a confirmed publication commit can be described. The installed Host checks
-current description/read and egress authority before Store access, after
-admission, and before returning the response. Unavailable authority denies
-access. Unpublished, publication-unknown, and unauthorized Results do not expose
-a description through this operation.
+Only a confirmed publication commit can be described. The installed Host admits
+the distinct current description/read and egress permissions once for this
+public operation, before protected access. Its trusted internal reads consume
+those same immutable facts instead of evaluating the same tuple again. Actual
+application callbacks or relevant authorization changes retain their current
+checks; a new public operation observes current Deny independently. Unavailable
+authority denies access. Unpublished, publication-unknown, and unauthorized
+Results do not expose a description through this operation.
 
 The physical Store returns retained immutable metadata without opening or
 rehashing a payload generation. Existing Manifest read grants authorize and
@@ -81,10 +84,13 @@ the SDK never converts description into a new submit.
 
 A returned `sampleTrustedClock` value is durably accepted, not merely a wall
 clock observation. Local Store samples after reading the same serialized floor.
-Each protected delivery callback keeps its pre-callback durable sample; pure
-internal checks reuse that admitted floor. After the callback, synchronous time
-and expiry checks still reject rollback or expiration before dispatch. Generic
-explicit-observation Stores retain their existing stricter protocol.
+Each public Result operation accepts one durable clock sample. Its existing
+owned request retains that floor through internal authorization stages and
+trusted Store reads; getters and awaits do not commit another observation.
+Synchronous time and expiry checks still reject rollback or expiration before
+dispatch and after physical I/O or application callbacks. A new public operation
+accepts its own observation. Generic explicit-observation Stores use the same
+operation boundary without weakening their original commit/Unknown handling.
 
 Local clock records keep their original names. First creation, legacy-record
 replacement and size changes commit both file data and the directory entry.

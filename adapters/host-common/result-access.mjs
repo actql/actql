@@ -117,7 +117,7 @@ export async function describeAuthorizedResult(service, input, signal) {
   signal?.throwIfAborted();
   const authorize = async facts => {
     let allowed;
-    try { allowed = await authority.authorizeResultDescription(facts); }
+    try { allowed = await authority.authorizeResultDescription(facts, request); }
     catch { fail('ResultAccessDenied'); }
     if (allowed !== true) fail('ResultAccessDenied');
     signal?.throwIfAborted();
@@ -148,16 +148,16 @@ export async function describeAuthorizedResult(service, input, signal) {
   }
   const effectiveRetention = evidence.retained?.extension ?? retention;
   const clockCid = control.resultRetentionClockContractCid(retention);
+  let checkedAt = await sampleTrustedClock(installed, clockCid);
   const checkRetained = async () => {
-    const acceptedAt = await sampleTrustedClock(installed, clockCid);
-    // A durable write may settle after metadata or grant expiry. Keep the
-    // accepted lower bound while checking the time after physical IO too.
-    const at = typeof store.sampleTrustedClock === 'function'
-      ? observedAt(installed.now) : acceptedAt;
-    if (typeof store.sampleTrustedClock === 'function' &&
-        !control.trustedClockNotBefore(acceptedAt, at)) {
+    // Trusted internal reads/awaits consume this operation's one accepted
+    // durable floor. Expiry and rollback remain cheap local time checks.
+    const at = observedAt(installed.now);
+    if (typeof control.trustedClockNotBefore === 'function' &&
+        !control.trustedClockNotBefore(checkedAt, at)) {
       fail('InvalidResultAccessClock');
     }
+    checkedAt = at;
     // Validate the stored extension's exact base binding using its owner.
     if (evidence.retained !== undefined) {
       control.resultReadExtendedAvailability(manifest, request.resultName,
@@ -170,7 +170,7 @@ export async function describeAuthorizedResult(service, input, signal) {
   const at = await checkRetained();
   const facts = Object.freeze({...request, index, manifest,
     retention: effectiveRetention, observedAt: at});
-  const admission = await authority.admitResultDescription(facts);
+  const admission = await authority.admitResultDescription(facts, request);
   validateAdmission(admission);
   // Metadata consumes the existing Manifest grant, not a payload delivery.
   const grant = control.issueManifestReadGrant(index, manifest, {
@@ -299,15 +299,10 @@ export async function inspectAuthorizedDeliveryAttempt(service, input) {
     fail('ResultAttemptLookupUnavailable');
   }
   let allowed;
-  try { allowed = await authorize(request); }
+  try { allowed = await authorize(request, request); }
   catch { fail('ResultAccessDenied'); }
   if (allowed !== true) fail('ResultAccessDenied');
   const found = await installed.store.lookupDeliveryAttempt(request);
-  // Store acquisition can outlive the original authorization decision.
-  // Recheck this same request before disclosing either metadata or absence.
-  try { allowed = await authorize(request); }
-  catch { fail('ResultAccessDenied'); }
-  if (allowed !== true) fail('ResultAccessDenied');
   if (found === undefined) return Object.freeze({kind: 'not_found'});
   const reply = Object.freeze({kind: 'found',
     attempt: found.attempt, record: found.record ?? null,
@@ -420,7 +415,7 @@ export async function deliverAuthorizedResult(
         resultName: request.resultName,
         format: request.format,
         attemptId: request.attemptId,
-      }));
+      }), request);
   } catch {
     installed.control.recordResultAccessRequestAuthorization(progress, false);
     fail('ResultAccessDenied');
@@ -510,7 +505,7 @@ export async function deliverAuthorizedResult(
   requireAction('admit_read');
   let admission;
   try {
-    admission = await installed.authority.admitResultRead(requestFacts);
+    admission = await installed.authority.admitResultRead(requestFacts, request);
     validateAdmission(admission);
   } catch (error) {
     installed.control.recordResultAccessReadAdmission(progress, false);
@@ -543,9 +538,15 @@ export async function deliverAuthorizedResult(
   }
   installed.control.recordResultAccessGrant(progress, true);
   requireAction('start_delivery');
+  let checkedAt = admittedAt;
   const authorize = async facts => {
-    const at = await sampleTrustedClock(installed,
-      clockContractCid, facts.observedAt);
+    const at = observedAt(installed.now);
+    if (typeof installed.control.trustedClockNotBefore === 'function' &&
+        (!installed.control.trustedClockNotBefore(checkedAt, at) ||
+         !installed.control.trustedClockNotBefore(facts.observedAt, at))) {
+      fail('InvalidResultAccessClock');
+    }
+    checkedAt = at;
     if (availability(at) !== 'available') {
       return false;
     }
@@ -556,23 +557,17 @@ export async function deliverAuthorizedResult(
         authorizationContextCid: admission.authorizationContextCid,
         egressAdmissionCid: admission.egressAdmissionCid,
         delivery: Object.freeze({...facts, observedAt: at}),
-      }),
+      }), request,
     );
     if (allowed !== true) return false;
-    // The pre-callback sample already durably admits this boundary's clock.
-    // Reusing that immutable floor removes a second pure clock commit after
-    // current authorization. Observe expiry/rollback again synchronously, so
-    // no clock IO separates the returned current decision from dispatch.
-    // Generic explicit-observation Stores retain their older strict protocol.
-    const authorizedAt = typeof installed.store.sampleTrustedClock === 'function'
-      ? at : await sampleTrustedClock(installed, clockContractCid);
+    // Callback/dispatch time may cross expiry, but an internal stage does
+    // not create another operation or require another durable clock write.
     const usableAt = observedAt(installed.now);
-    // Persistence can cross expiry. Retain the post-I/O expiry check, while
-    // refusing a fresh clock sample below the accepted durable observation.
-    if (typeof installed.store.sampleTrustedClock === 'function' &&
-        !installed.control.trustedClockNotBefore(authorizedAt, usableAt)) {
+    if (typeof installed.control.trustedClockNotBefore === 'function' &&
+        !installed.control.trustedClockNotBefore(checkedAt, usableAt)) {
       fail('InvalidResultAccessClock');
     }
+    checkedAt = usableAt;
     return availability(usableAt) === 'available' &&
       installed.control.resultReadGrantValidAt(grant, usableAt);
   };
