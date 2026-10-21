@@ -5,8 +5,19 @@ pub fn published_command_targets(
   environment : @program_check.CheckEnvironment,
   publication : String,
 ) -> Result[@query_program.CommandTargetPublication?, PublicationIssue] {
+  let root = match read_publication_data(publication) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  published_command_targets_from_root(environment, root)
+}
+
+///|
+fn published_command_targets_from_root(
+  environment : @program_check.CheckEnvironment,
+  root : @decode.Cursor,
+) -> Result[@query_program.CommandTargetPublication?, PublicationIssue] {
   try {
-    let root = source_publication_cursor(publication)
     let object = @decode.closed_object(root, [
       "environmentCid", "aliases", "tableWrites", "updateTargets", "storeTargets",
       "commandTargets",

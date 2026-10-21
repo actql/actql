@@ -21,6 +21,72 @@ pub fn bind_published_query_context(
 }
 
 ///|
+/// Interpret one original publication for the ordinary Source lowerer. The
+/// returned installation metadata is not a capture, grant or currentness proof.
+pub fn bind_published_query_parts(
+  environment : @program_check.CheckEnvironment,
+  publication : String,
+  declarations : String?,
+) -> Result[
+  (
+    @query_program.Context,
+    Array[@query_program.TableWriteBinding],
+    @query_program.UpdateTargetPublication?,
+    @query_program.StoreTargetPublication?,
+    @query_program.CommandTargetPublication?,
+  ),
+  PublicationIssue,
+] {
+  bind_published_query_parts_with_reader(
+    environment, publication, declarations, source_publication_cursor,
+  )
+}
+
+///|
+// Keep the one original read at this boundary. The private reader parameter
+// permits a work counter around the actual parser without a public test port.
+fn bind_published_query_parts_with_reader(
+  environment : @program_check.CheckEnvironment,
+  publication : String,
+  declarations : String?,
+  read : (String) -> @decode.Cursor raise PublicationStop,
+) -> Result[
+  (
+    @query_program.Context,
+    Array[@query_program.TableWriteBinding],
+    @query_program.UpdateTargetPublication?,
+    @query_program.StoreTargetPublication?,
+    @query_program.CommandTargetPublication?,
+  ),
+  PublicationIssue,
+] {
+  try {
+    let root = read(publication)
+    // Preserve the complete unused-section checks and their original order.
+    source_publication_closed(root)
+    let store = match published_store_targets_from_root(environment, root) {
+      Ok(value) => value
+      Err(issue) => raise PublicationStop(issue)
+    }
+    let command = match published_command_targets_from_root(environment, root) {
+      Ok(value) => value
+      Err(issue) => raise PublicationStop(issue)
+    }
+    let context = client_source_context_from_root(
+      environment, root, declarations,
+    )
+    let table = table_write_publication_from_root(environment, root)
+    let update = match published_update_targets_from_root(environment, root) {
+      Ok(value) => value
+      Err(_) => raise PublicationStop(Publication)
+    }
+    Ok((context, table, update, store, command))
+  } catch {
+    PublicationStop(issue) => Err(issue)
+  }
+}
+
+///|
 priv suberror PublicationStop {
   PublicationStop(PublicationIssue)
 }
@@ -127,21 +193,35 @@ fn client_source_context(
   declarations : String?,
 ) -> @query_program.Context raise PublicationStop {
   let root = source_publication_cursor(publication)
+  source_publication_closed(root)
+  match published_store_targets_from_root(environment, root) {
+    Ok(_) => ()
+    Err(issue) => raise PublicationStop(issue)
+  }
+  match published_command_targets_from_root(environment, root) {
+    Ok(_) => ()
+    Err(issue) => raise PublicationStop(issue)
+  }
+  client_source_context_from_root(environment, root, declarations)
+}
+
+///|
+fn source_publication_closed(
+  root : @decode.Cursor,
+) -> Unit raise PublicationStop {
   @decode.closed_object(root, [
     "environmentCid", "aliases", "tableWrites", "updateTargets", "storeTargets",
     "commandTargets",
   ]).unwrap_or_else(() => raise PublicationStop(Publication))
   |> ignore
-  // Admit the complete selected STORE section even when this query does not
-  // consume it. A malformed relationship cannot hide behind another operation.
-  match published_store_targets(environment, publication) {
-    Ok(_) => ()
-    Err(issue) => raise PublicationStop(issue)
-  }
-  match published_command_targets(environment, publication) {
-    Ok(_) => ()
-    Err(issue) => raise PublicationStop(issue)
-  }
+}
+
+///|
+fn client_source_context_from_root(
+  environment : @program_check.CheckEnvironment,
+  root : @decode.Cursor,
+  declarations : String?,
+) -> @query_program.Context raise PublicationStop {
   let environment_cid = @program_check.checking_environment_cid(environment)
   if source_publication_text(root, "environmentCid") != environment_cid {
     raise PublicationStop(Publication)

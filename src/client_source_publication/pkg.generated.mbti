@@ -13,6 +13,8 @@ import {
 // Values
 pub fn bind_published_query_context(@program_check.CheckEnvironment, String, String?) -> Result[@query_program.Context, PublicationIssue]
 
+pub fn bind_published_query_parts(@program_check.CheckEnvironment, String, String?) -> Result[(@query_program.Context, Array[@query_program.TableWriteBinding], @query_program.UpdateTargetPublication?, @query_program.StoreTargetPublication?, @query_program.CommandTargetPublication?), PublicationIssue]
+
 pub fn[T] enter_installation_preparation_read(InstallationPreparationRead[T], T) -> Result[Unit, @physical_resources.OriginalReadIssue]
 
 pub fn[T] installation_preparation_read_current(InstallationPreparationRead[T], T) -> Bool
