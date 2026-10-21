@@ -52,6 +52,24 @@ fn environment_body_caps(b : IdentityBudget) -> @environment.Limits {
 }
 
 ///|
+fn environment_contents_caps(
+  b : IdentityBudget,
+  limits : @environment.Limits?,
+) -> @environment.Limits {
+  let caps = environment_body_caps(b)
+  match limits {
+    None => caps
+    Some(limits) =>
+      {
+        max_bytes: Int::min(caps.max_bytes, limits.max_bytes),
+        max_nodes: Int::min(caps.max_nodes, limits.max_nodes),
+        max_depth: Int::min(caps.max_depth, limits.max_depth),
+        max_members: Int::min(caps.max_members, limits.max_members),
+      }
+  }
+}
+
+///|
 fn environment_work(
   b : IdentityBudget,
   work : Int,
@@ -69,6 +87,15 @@ fn prepare_environment(
   environment : @environment.WireEnvironment,
   budget : IdentityBudget,
 ) -> (@environment.SourceRequestContracts, @environment.CatalogReferences) raise EnvironmentFailure {
+  prepare_environment_with_contents_limits(environment, budget, None)
+}
+
+///|
+fn prepare_environment_with_contents_limits(
+  environment : @environment.WireEnvironment,
+  budget : IdentityBudget,
+  contents_limits : @environment.Limits?,
+) -> (@environment.SourceRequestContracts, @environment.CatalogReferences) raise EnvironmentFailure {
   let b = IdentityBudget::{
     work: budget.work,
     bytes: budget.bytes,
@@ -77,7 +104,10 @@ fn prepare_environment(
   }
   environment_begin(b)
   let registry = match
-    @environment.check_contract_registry(environment, environment_body_caps(b)) {
+    @environment.check_contract_registry(
+      environment,
+      environment_contents_caps(b, contents_limits),
+    ) {
     Ok(v) => v
     Err(e) => raise Registry(e)
   }
@@ -85,7 +115,10 @@ fn prepare_environment(
   environment_body_usage(b, bytes, nodes, entries)
   environment_begin(b)
   let contents = match
-    @environment.check_catalog_contents(registry, environment_body_caps(b)) {
+    @environment.check_catalog_contents(
+      registry,
+      environment_contents_caps(b, contents_limits),
+    ) {
     Ok(v) => v
     Err(e) => raise Catalog(e)
   }
