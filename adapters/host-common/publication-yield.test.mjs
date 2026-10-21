@@ -24,7 +24,7 @@ visit(parse(source,{ecmaVersion:'latest',sourceType:'module'}));
 assert.equal(declarations.size,2);
 const compile=new Function('moon','checked','inspect','setTimeout','setImmediate',
   [...declarations.values()].join('\n')+';return {finishCapturedPreparation,finishPublicationValidation};');
-function fixture({pending=3,advance,finish,inspect=x=>x,onYield}={}){
+function fixture({pending=3,advance,finish,inspect=x=>x,onYield,immediate=true}={}){
   const preparation=Object.freeze({original:'preparation'}),result=Object.freeze({original:'captured'});
   const counts={advance:0,finish:0,cancel:0,yields:0,timers:0};
   const moon={
@@ -32,9 +32,11 @@ function fixture({pending=3,advance,finish,inspect=x=>x,onYield}={}){
     strategyCapturedRunFinish(value){assert.strictEqual(this,moon);assert.strictEqual(value,preparation);counts.finish++;return finish?finish():result;},
     strategyCapturedRunCancel(value){assert.strictEqual(this,moon);assert.strictEqual(value,preparation);counts.cancel++;},
   };
-  const loops=compile(moon,x=>x,inspect,()=>{counts.timers++;assert.fail('A bounded serialization yield must not start a delay timer');},callback=>{
+  const timer=(callback,delay)=>{counts.timers++;assert.equal(delay,0);
+    assert(!immediate,'A bounded serialization yield must not start a delay timer');return setTimeout(callback,delay);};
+  const loops=compile(moon,x=>x,inspect,timer,immediate?callback=>{
     counts.yields++;return setImmediate(()=>{onYield?.(counts.yields);callback();});
-  });
+  }:undefined);
   return{preparation,result,counts,moon,...loops};
 }
 
@@ -92,4 +94,12 @@ test('publication finish failure preserves its original error and cancellation',
   const f=fixture(),reason=new Error('original finish failure');let cancelled=0;
   await assert.rejects(f.finishPublicationValidation(f.preparation,()=>1,()=>{throw reason;},()=>{cancelled++;}),error=>error===reason);
   assert.equal(cancelled,1);assert.equal(f.counts.yields,0);
+});
+
+test('embeddings without setImmediate retain the existing asynchronous timer fallback',async()=>{
+  const f=fixture({pending:1,immediate:false});
+  assert.strictEqual(await f.finishCapturedPreparation(f.preparation),f.result);
+  let steps=0,cancelled=0;
+  assert.strictEqual(await f.finishPublicationValidation(f.preparation,()=>++steps===2?1:0,()=>f.result,()=>{cancelled++;}),f.result);
+  assert.equal(f.counts.yields,0);assert.equal(f.counts.timers,2);assert.equal(cancelled,1);
 });
