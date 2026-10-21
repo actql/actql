@@ -520,8 +520,31 @@ pub fn NativeLocalReadPolicyBinding::resolve_policy_original(
   @publication.CapturedEffectDependencyBody,
   NativeLocalReadBindingIssue,
 ] {
+  self.resolve_policy_with_committed_result(original, store, facts, None)
+}
+
+///|
+// A closed delivery caller already selected this typed observation from the
+// same Store. It is reused only for this synchronous policy correspondence;
+// Store custody, current permissions and every original reference still join.
+fn NativeLocalReadPolicyBinding::resolve_policy_with_committed_result(
+  self : NativeLocalReadPolicyBinding,
+  original : @host.ClientRequestIdentity,
+  store : @publication_store.Store,
+  facts : @result_access.NativeResultReadFacts,
+  committed_result : @publication_store.NativeCommittedResult?,
+) -> Result[
+  @publication.CapturedEffectDependencyBody,
+  NativeLocalReadBindingIssue,
+] {
   if self.capture is Some(capture) {
-    return self.resolve_policy_from_snapshot(capture, original, store, facts)
+    return self.resolve_policy_from_snapshot(
+      capture,
+      original,
+      store,
+      facts,
+      committed_result~,
+    )
   }
   match self.require_request(original, facts) {
     Ok(_) => ()
@@ -530,13 +553,14 @@ pub fn NativeLocalReadPolicyBinding::resolve_policy_original(
   let body = match self.capture {
     None =>
       match
-        self.host.resolve_result_policy_original(
+        self.host.resolve_result_policy_original_with_operations(
           self.crypto,
           self.principal,
           self.connection,
           original,
           store,
           facts,
+          committed_result~,
         ) {
         Ok(value) => value
         Err(issue) => return Err(Journal(issue))

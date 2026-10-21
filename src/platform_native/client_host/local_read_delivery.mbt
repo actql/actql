@@ -207,6 +207,7 @@ pub fn NativeLocalReadPolicyBinding::authorize_read_delivery(
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
+  native_timing_count(43)
   let resolved = match
     store.resolve_committed_result(
       delivery.request.namespace_id,
@@ -236,7 +237,13 @@ pub fn NativeLocalReadPolicyBinding::authorize_read_delivery(
     material_generation_cid: resolved.read.material_generation_cid,
     observed_at: delivery.observed_at,
   }
-  let policy = match self.resolve_policy_original(original, store, facts) {
+  let policy = match
+    self.resolve_policy_with_committed_result(
+      original,
+      store,
+      facts,
+      Some(resolved),
+    ) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }

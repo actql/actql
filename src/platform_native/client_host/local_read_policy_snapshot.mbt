@@ -171,6 +171,7 @@ fn NativeLocalReadPolicyBinding::resolve_policy_from_snapshot(
   original : @host.ClientRequestIdentity,
   store : @publication_store.Store,
   facts : @result_access.NativeResultReadFacts,
+  committed_result? : @publication_store.NativeCommittedResult? = None,
 ) -> Result[
   @publication.CapturedEffectDependencyBody,
   NativeLocalReadBindingIssue,
@@ -236,24 +237,32 @@ fn NativeLocalReadPolicyBinding::resolve_policy_from_snapshot(
     if record.publication_binding != Some(binding) {
       return Err(Journal(ForeignRun))
     }
-    let resolved = match
-      store.resolve_committed_result(
-        facts.request.namespace_id,
-        self.scope,
-        definition_cid,
-        facts.request.result_name,
-        65536,
-        8192,
-        64,
-      ) {
-      Ok(Some(value)) => value
-      Ok(None) =>
-        return Err(
-          Journal(
-            PublicationObservation(@publication_store.DeliveryAttemptUnresolved),
-          ),
-        )
-      Err(issue) => return Err(Journal(PublicationObservation(issue)))
+    let resolved = match committed_result {
+      Some(value) => value
+      None => {
+        native_timing_count(43)
+        match
+          store.resolve_committed_result(
+            facts.request.namespace_id,
+            self.scope,
+            definition_cid,
+            facts.request.result_name,
+            65536,
+            8192,
+            64,
+          ) {
+          Ok(Some(value)) => value
+          Ok(None) =>
+            return Err(
+              Journal(
+                PublicationObservation(
+                  @publication_store.DeliveryAttemptUnresolved,
+                ),
+              ),
+            )
+          Err(issue) => return Err(Journal(PublicationObservation(issue)))
+        }
+      }
     }
     // This synchronous trusted Store metadata read changes no Host, Account,
     // Run or selected configuration fact. Select the observed Policy from the
