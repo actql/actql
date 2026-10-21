@@ -275,9 +275,9 @@ typedef struct {
     int status;
 } actql_bootstrap_region;
 
-MOONBIT_FFI_EXPORT void *actql_bootstrap_lend_region(
+static void *lend_region(
     actql_bootstrap_backing *owner, actql_bootstrap_extent *extent,
-    int64_t offset, int64_t length, int32_t writable) {
+    int64_t offset, int64_t length, int32_t writable, bool in_process) {
     actql_bootstrap_region *record = moonbit_make_external_object(
         keep_physical_custody, sizeof(*record));
     memset(record, 0, sizeof(*record));
@@ -287,11 +287,24 @@ MOONBIT_FFI_EXPORT void *actql_bootstrap_lend_region(
     if (extent->owner == owner && extent->address != NULL &&
         offset >= 0 && length > 0 && (uint64_t)offset <= SIZE_MAX &&
         (uint64_t)length <= SIZE_MAX && (writable == 0 || writable == 1)) {
-        record->status = actql_native_owned_lend_extent_range(
+        record->status = (in_process ? actql_native_owned_lend_in_process_extent_range
+                                     : actql_native_owned_lend_extent_range)(
             owner->lease, extent->address, (size_t)offset, (size_t)length,
             writable != 0, &record->loan);
     }
     return record;
+}
+
+MOONBIT_FFI_EXPORT void *actql_bootstrap_lend_region(
+    actql_bootstrap_backing *owner, actql_bootstrap_extent *extent,
+    int64_t offset, int64_t length, int32_t writable) {
+    return lend_region(owner, extent, offset, length, writable, false);
+}
+
+MOONBIT_FFI_EXPORT void *actql_bootstrap_lend_region_in_process(
+    actql_bootstrap_backing *owner, actql_bootstrap_extent *extent,
+    int64_t offset, int64_t length, int32_t writable) {
+    return lend_region(owner, extent, offset, length, writable, true);
 }
 
 MOONBIT_FFI_EXPORT int32_t actql_bootstrap_region_status(actql_bootstrap_region *record) {
@@ -393,6 +406,24 @@ MOONBIT_FFI_EXPORT void *actql_bootstrap_map_region(
                 fd, &reference, (size_t)payload_offset, (size_t)payload_length, &record->view);
         }
     }
+    return record;
+}
+
+/* Same original parent mapping. This record owns only a local view, not
+ * another mmap or an independently returnable physical holding. */
+MOONBIT_FFI_EXPORT void *actql_bootstrap_view_region_in_process(
+    actql_bootstrap_backing *owner, actql_bootstrap_extent *extent,
+    actql_bootstrap_region *loan, int64_t payload_offset, int64_t payload_length) {
+    actql_bootstrap_view *record = moonbit_make_external_object(
+        keep_physical_custody, sizeof(*record));
+    memset(record, 0, sizeof(*record));
+    record->loan = loan;
+    record->status = ACTQL_OWNED_INVALID;
+    if (loan->owner == owner && loan->extent == extent && extent->owner == owner &&
+        payload_offset >= 0 && payload_length > 0 &&
+        (uint64_t)payload_offset <= SIZE_MAX && (uint64_t)payload_length <= SIZE_MAX)
+        record->status = actql_native_owned_view_in_process_extent(&loan->loan,
+            (size_t)payload_offset, (size_t)payload_length, &record->view);
     return record;
 }
 

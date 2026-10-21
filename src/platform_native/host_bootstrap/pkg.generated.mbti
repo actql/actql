@@ -158,6 +158,7 @@ pub fn[T, C] NativeHostBootstrap::leave_backed_domain(Self[T], T, NativeBackedEx
 pub fn[T, C] NativeHostBootstrap::leave_backed_read_context(Self[T], T, NativeBackedExecutionDomain[T, C], C) -> Result[Unit, NativeBackedExecutionIssue]
 pub fn[T] NativeHostBootstrap::leave_borrow_scope(Self[T], T, NativeBootstrapBorrow[T]) -> Result[Unit, NativeBootstrapIssue]
 pub fn[T, C] NativeHostBootstrap::lend_backed_region(Self[T], T, NativeBackedExecutionRegion[T, C], NativeBootstrapBorrow[T], C, @physical_resources.BackedExecutionExtent, @physical_resources.BackedExecutionAccess, @physical_resources.LedgerLimits, Int64, Int64) -> Result[NativeBackedExecutionAcquisition[T, C], NativeBackedExecutionIssue]
+pub fn[T, C] NativeHostBootstrap::lend_backed_region_in_process(Self[T], T, NativeBackedExecutionRegion[T, C], NativeBootstrapBorrow[T], C, @physical_resources.BackedExecutionExtent, @physical_resources.BackedExecutionAccess, @physical_resources.LedgerLimits, Int64, Int64) -> Result[NativeBackedExecutionAcquisition[T, C], NativeBackedExecutionIssue]
 pub fn[T, C] NativeHostBootstrap::map_backed_view(Self[T], T, NativeBackedExecutionLoan[T, C], C, Int) -> Result[NativeBackedViewAcquisition[T, C], NativeBackedExecutionIssue]
 pub fn[T, C] NativeHostBootstrap::observe_backed_read_cleanup(Self[T], T, NativeBackedExecutionDomain[T, C], C) -> Result[NativeReadCleanupObservation, NativeBackedExecutionIssue]
 pub fn[T, C] NativeHostBootstrap::observe_backed_read_cleanup_scope(Self[T], T, NativeBackedExecutionDomain[T, C], C) -> Result[NativeBackedReadScope, NativeBackedExecutionIssue]
@@ -206,6 +207,7 @@ pub fn[T, C, R] NativeHostBootstrap::stop_backed_live_child(Self[T], T, NativeBa
 pub fn[T, C] NativeHostBootstrap::transfer_backed_domain(Self[T], T, NativeBackedExecutionDomain[T, C], C) -> Result[Unit, NativeBackedExecutionIssue]
 pub fn[T] NativeHostBootstrap::try_close(Self[T], T) -> Result[Unit, NativeBootstrapIssue]
 pub fn[T] NativeHostBootstrap::usage(Self[T]) -> @physical_resources.LedgerUsage
+pub fn[T, C] NativeHostBootstrap::view_backed_region_in_process(Self[T], T, NativeBackedExecutionLoan[T, C], C) -> Result[NativeBackedViewAcquisition[T, C], NativeBackedExecutionIssue]
 
 type NativeInstalledArenaSupplier[T]
 pub fn[T] NativeInstalledArenaSupplier::acquire(Self[T], T) -> Result[NativeBootstrapAcquisition[T], NativeBootstrapIssue]

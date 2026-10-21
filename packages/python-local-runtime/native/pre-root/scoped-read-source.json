@@ -18,15 +18,15 @@
       "root": "provider",
       "path": "owned_capacity.c",
       "output": "owned_capacity.c",
-      "bytes": 25264,
-      "sha256": "74d077db123fbb1ecb49ab9e8e5e08ecfdbdcf567e5360963aac16317749b24a"
+      "bytes": 25893,
+      "sha256": "26fb6e13b23e4865677c1f7edb6fad566c197d9acf32d0a94f6dbc6acdb7be15"
     },
     {
       "root": "provider",
       "path": "owned_region.inc",
       "output": "owned_region.inc",
-      "bytes": 21631,
-      "sha256": "aebd7984b3c8ec28ecc4507684a3bd11d438e4d05fcbe2151daf6085cc36d6fe"
+      "bytes": 24989,
+      "sha256": "0665055eb5deb58a5fe7e8fa9323aeb7e1afa2a94337e2513c71eb90fe75af9f"
     },
     {
       "root": "provider",
@@ -39,8 +39,8 @@
       "root": "provider",
       "path": "owned_region.h",
       "output": "owned_region.h",
-      "bytes": 6617,
-      "sha256": "a9046c1ab6ba8c480dcb2f848e6e6d487ee4f86b9c0e46007da9d95f7eff13dc"
+      "bytes": 7481,
+      "sha256": "178ce1aff86ca58a05d37d1b6248c874b4ac6d743ea3d4e0c98de714e689b43d"
     },
     {
       "root": "provider",
@@ -200,8 +200,8 @@
       "sha256": "4995faa31ac633768430bad1b7ea28699ab601e216fb357739a092cbea455022"
     },
     "owned_capacity.c": {
-      "bytes": 26185,
-      "sha256": "c0c4cabbac3a7c6ba064eefbd7986090b9716ba18f543b03da35a811084a1094"
+      "bytes": 26814,
+      "sha256": "04e9bc9a43d9098110a91a2c1888a87997f28c87b1aeada68b8d5b75bc30d7f4"
     },
     "owned_capacity.h": {
       "bytes": 5531,
@@ -216,12 +216,12 @@
       "sha256": "e3914075758a265d18c3a6b075053d2fe31a3f35ee8cc8aee0548493ab814373"
     },
     "owned_region.h": {
-      "bytes": 6617,
-      "sha256": "a9046c1ab6ba8c480dcb2f848e6e6d487ee4f86b9c0e46007da9d95f7eff13dc"
+      "bytes": 7481,
+      "sha256": "178ce1aff86ca58a05d37d1b6248c874b4ac6d743ea3d4e0c98de714e689b43d"
     },
     "owned_region.inc": {
-      "bytes": 21673,
-      "sha256": "a88f90d073cad59e08dc527ca9c4d7ece15298079d3115cfbc3b7629a2136840"
+      "bytes": 25031,
+      "sha256": "fe0efe397772d00b36d8e13873c2f8359070fb4df3398aa56a04d32cbef3de94"
     },
     "owned_rust_heap.inc": {
       "bytes": 12126,

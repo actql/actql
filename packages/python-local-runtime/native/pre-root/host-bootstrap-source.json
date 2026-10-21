@@ -19,13 +19,13 @@
     },
     {
       "path": "src/platform_native/host_bootstrap/backed_region_native.mbt",
-      "bytes": 7371,
-      "sha256": "031321b773f0f5156ace56c23bcde53756f0a957414f836607a6519ea70ca353"
+      "bytes": 9063,
+      "sha256": "f753e4a48b37ddd06f871d108e072a7be90c64d0e451bbf69029478bb2211320"
     },
     {
       "path": "src/platform_native/host_bootstrap/backed_view_native.mbt",
-      "bytes": 7944,
-      "sha256": "93d17155141afd2786b08d2b852f5635035cfe97779ce5956b93a13ae04aefa7"
+      "bytes": 9041,
+      "sha256": "2d65fc504096f9dc0e3e3a7d76677f770524226c0748c3bbe831d3289c853685"
     },
     {
       "path": "src/platform_native/host_bootstrap/backed_domain_native.mbt",
@@ -44,8 +44,8 @@
     },
     {
       "path": "src/platform_native/host_bootstrap/bootstrap_stub.c",
-      "bytes": 33664,
-      "sha256": "dbfe8e2552148925d51360fd1769947dd4eb1aa6ff87c4e025cd034e13c1361a"
+      "bytes": 35251,
+      "sha256": "58a3c422fcebc9c4173dc493d94d244085cd50cbfc1f5dc04ee2d663ff7c5e04"
     },
     {
       "path": "src/platform_native/host_bootstrap/process_region.h",
@@ -64,8 +64,8 @@
     },
     {
       "path": "packages/python-local-runtime/native/pre-root/owned_capacity.c",
-      "bytes": 25264,
-      "sha256": "74d077db123fbb1ecb49ab9e8e5e08ecfdbdcf567e5360963aac16317749b24a"
+      "bytes": 25893,
+      "sha256": "26fb6e13b23e4865677c1f7edb6fad566c197d9acf32d0a94f6dbc6acdb7be15"
     },
     {
       "path": "packages/python-local-runtime/native/pre-root/owned_capacity.h",
@@ -74,13 +74,13 @@
     },
     {
       "path": "packages/python-local-runtime/native/pre-root/owned_region.h",
-      "bytes": 6617,
-      "sha256": "a9046c1ab6ba8c480dcb2f848e6e6d487ee4f86b9c0e46007da9d95f7eff13dc"
+      "bytes": 7481,
+      "sha256": "178ce1aff86ca58a05d37d1b6248c874b4ac6d743ea3d4e0c98de714e689b43d"
     },
     {
       "path": "packages/python-local-runtime/native/pre-root/owned_region.inc",
-      "bytes": 21631,
-      "sha256": "aebd7984b3c8ec28ecc4507684a3bd11d438e4d05fcbe2151daf6085cc36d6fe"
+      "bytes": 24989,
+      "sha256": "0665055eb5deb58a5fe7e8fa9323aeb7e1afa2a94337e2513c71eb90fe75af9f"
     },
     {
       "path": "packages/python-local-runtime/native/pre-root/owned_domain_borrow.h",
