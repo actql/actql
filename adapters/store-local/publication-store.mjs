@@ -3089,9 +3089,21 @@ async function openOriginalLocalPublicationStore(
     });
   };
 
-  const readSemanticBytes = async cid => {
+  const nativeDeliveryContract = (cid, name, retained) => {
+    const native = deliveryIndex?.contract(cid);
+    if (native === undefined) return undefined;
+    if (name !== undefined && native.name !== name) fail('InvalidDeliveryAttemptIndex');
+    const contract = retained?.identity === cid && retained.name === native.name && retained.wire === native.wire
+      ? retained : admitContract(native.name,native.wire);
+    if (contract.identity !== cid) fail('InvalidDeliveryAttemptIndex');
+    return contract;
+  };
+
+  const readSemanticBytes = async (cid, includeNative = true) => {
     const path = contractPath(cid);
     active();
+    const native = includeNative ? nativeDeliveryContract(cid) : undefined;
+    if (native !== undefined) return Buffer.from(native.wire,'utf8');
     // This is the original read duty in the same Store lifetime. Keep its
     // private failure reachable even when a public ingress redacts the Error.
     const reader = {cleanup: undefined, failure: undefined};
@@ -3505,7 +3517,11 @@ async function openOriginalLocalPublicationStore(
   };
 
   const readContract = async (cid, contractName) => {
-    const bytes = await readSemanticBytes(cid);
+    const native = contractName === undefined ||
+      ['delivery_attempt','result_read_grant','delivery_record'].includes(contractName)
+      ? nativeDeliveryContract(cid,contractName) : undefined;
+    if (native !== undefined) return Object.freeze({wire:native.wire,value:parseContract(native),contract:native});
+    const bytes = await readSemanticBytes(cid,false);
     const wire = bytes.toString('utf8');
     if (contractName === undefined) {
       let value;
@@ -3666,6 +3682,8 @@ async function openOriginalLocalPublicationStore(
   };
 
   const readDeliveryAttemptContract = async (attemptCid, retained) => {
+    const native = nativeDeliveryContract(attemptCid,'delivery_attempt',retained);
+    if (native !== undefined) return native;
     const bytes = await readBounded(
       resolve(deliveryAttemptPath(attemptCid), 'attempt.json'),
       configuration.maxObjectBytes,
@@ -3781,10 +3799,13 @@ async function openOriginalLocalPublicationStore(
       if (!retainedChild) activePhysicalRecordWriters.delete(writer);
     }
   };
-  const restoreDeliveryClaim = async row => {
-    const attemptContract = admitContract('delivery_attempt', row.attempt_wire);
-    const grantContract = admitContract('result_read_grant', row.grant_wire);
-    const attempt = parseContract(attemptContract), grant = parseContract(grantContract);
+  const admitDeliveryClaim = (row, suppliedAttempt, suppliedGrant) => {
+    const attemptContract = suppliedAttempt?.contract.identity === row.attempt_cid && suppliedAttempt.contract.wire === row.attempt_wire
+      ? suppliedAttempt.contract : admitContract('delivery_attempt', row.attempt_wire);
+    const grantContract = suppliedGrant?.contract.identity === row.grant_cid && suppliedGrant.contract.wire === row.grant_wire
+      ? suppliedGrant.contract : admitContract('result_read_grant', row.grant_wire);
+    const attempt = attemptContract === suppliedAttempt?.contract ? suppliedAttempt.value : parseContract(attemptContract);
+    const grant = grantContract === suppliedGrant?.contract ? suppliedGrant.value : parseContract(grantContract);
     const expected = deliveryIndexRow(attempt,grant,attemptContract,grantContract);
     if (Object.keys(expected).some(name => expected[name] !== row[name]) ||
         attempt.result_read_grant_cid !== grantContract.identity ||
@@ -3796,12 +3817,17 @@ async function openOriginalLocalPublicationStore(
     if (row.initial_wire != null) {
       streaming = admitContract('delivery_record',row.initial_wire);
       const record = parseContract(streaming);
-      if (record.delivery_attempt_cid !== attemptContract.identity ||
+      if (row.initial_cid != null && streaming.identity !== row.initial_cid ||
+          record.delivery_attempt_cid !== attemptContract.identity ||
           record.sequence !== 0 || record.state !== 'streaming' ||
           Reflect.apply(deliveryStartTransition,contractControl,[undefined,streaming]) !== true) {
         fail('InvalidDeliveryAttemptIndex');
       }
     }
+    return {attemptContract,attempt,grantContract,grant,streaming};
+  };
+  const restoreDeliveryClaim = async row => {
+    const {attemptContract,attempt,grantContract,grant,streaming} = admitDeliveryClaim(row);
     await putDeliveryContracts(grantContract,attemptContract,streaming);
     await installDeliveryAttempt(attemptContract,streaming);
     if (row.ready === 0) deliveryIndex.finish(row.logical_key,attemptContract.identity);
@@ -3918,15 +3944,17 @@ async function openOriginalLocalPublicationStore(
       {runCid:attempt.run_definition_cid,phase:'preparing'};
     if (progress !== undefined) deliveryStarts.set(admitted.identity,progress);
     try {
-      const selected = deliveryIndex.claim(row,grant.max_uses,initial?.streaming.wire);
+      const selected = deliveryIndex.claim(row,grant.max_uses,initial?.streaming.wire,initial?.streaming.identity);
       if (!selected.created) fail('DeliveryAttemptConflict');
       // This SAME transaction owns uniqueness, use quota and the original
-      // initial state. File ACKs still precede success/row exposure. Failure
-      // neither refunds the claim nor turns visible files into an ACK.
-      await putDeliveryContracts(grantContract,admitted,initial?.streaming);
-      await installDeliveryAttempt(admitted,initial?.streaming);
-      if (progress === undefined) deliveryIndex.finish(row.logical_key,admitted.identity);
-      else progress.phase = 'installed';
+      // initial state. Its native COMMIT is the durable metadata original;
+      // no duplicate contract file or alias ACK is required for joint START.
+      // Legacy callers retain their original physical representation.
+      if (initial === undefined) {
+        await putDeliveryContracts(grantContract,admitted);
+        await installDeliveryAttempt(admitted);
+        deliveryIndex.finish(row.logical_key,admitted.identity);
+      } else progress.phase = 'installed';
     } catch (error) {
       if (progress !== undefined) progress.phase = 'failed';
       throw error;
@@ -4023,10 +4051,22 @@ async function openOriginalLocalPublicationStore(
     return operation;
   };
 
-  const readLatestDeliveryRecordContract = async (attemptCid, original) => {
+  const readLatestDeliveryRecordContract = async (attemptCid, original, retainedBirth) => {
     active();
     const directory = deliveryAttemptPath(attemptCid);
-    const entries = await readdir(directory);
+    const row = deliveryIndex?.attempt(attemptCid);
+    let initial;
+    if (row?.initial_cid != null) {
+      initial = retainedBirth ?? admitContract('delivery_record',row.initial_wire);
+      const record = parseContract(initial);
+      if (initial.identity !== row.initial_cid || initial.wire !== row.initial_wire ||
+          record.delivery_attempt_cid !== attemptCid || record.sequence !== 0 || record.state !== 'streaming') {
+        fail('InvalidDeliveryAttemptIndex');
+      }
+    }
+    let entries;
+    try {entries = await readdir(directory);}
+    catch(error) {if(error?.code !== 'ENOENT' || initial === undefined) throw error; entries=[];}
     if (entries.some(name => name !== 'attempt.json' &&
         !recordNamePattern.test(name))) {
       fail('InvalidDeliveryRecord');
@@ -4036,9 +4076,9 @@ async function openOriginalLocalPublicationStore(
       .map(name => ({name, sequence: Number(name.slice(0, -5))}))
       .filter(value => Number.isSafeInteger(value.sequence))
       .sort((left, right) => left.sequence - right.sequence);
-    if (names.length === 0) return undefined;
+    if (names.length === 0) return initial;
     for (let index = 0; index < names.length; index++) {
-      if (names[index].sequence !== index) fail('DeliveryRecordGap');
+      if (names[index].sequence !== index + (initial === undefined ? 0 : 1)) fail('DeliveryRecordGap');
     }
     const bytes = await readBounded(
       resolve(directory, names.at(-1).name), configuration.maxObjectBytes,
@@ -4096,7 +4136,11 @@ async function openOriginalLocalPublicationStore(
     if (row === undefined) return {match: undefined};
     if (row.ready !== 1) fail('ResultDeliveryAttemptUnresolved');
     let recovered;
-    if (row.initial_wire != null) {
+    if (row.initial_cid != null) {
+      const progress = deliveryStarts.get(row.attempt_cid);
+      if (progress !== undefined && progress.phase !== 'installed') fail('ResultDeliveryAttemptUnresolved');
+      recovered = admitDeliveryClaim(row,suppliedAttempt,suppliedGrant);
+    } else if (row.initial_wire != null) {
       let progress = deliveryStarts.get(row.attempt_cid);
       if (progress === undefined) {
         // Recovery is target-specific, not an O(history) ordinary-open pass.
@@ -4135,8 +4179,9 @@ async function openOriginalLocalPublicationStore(
         grant.result_manifest_cid !== attempt.result_manifest_cid) {
       fail('InvalidDeliveryAttemptIndex');
     }
-    const record = includeProgress
-      ? await latestDeliveryRecord(attemptContract.identity) : undefined;
+    const recordContract = includeProgress ? await readLatestDeliveryRecordContract(
+      attemptContract.identity,undefined,row.initial_cid == null ? undefined : recovered.streaming) : undefined;
+    const record = recordContract === undefined ? undefined : parseContract(recordContract);
     const hostReleaseReceipt = record?.result_delivery_receipt_cid === undefined
       ? undefined : (await readContract(record.result_delivery_receipt_cid,
         'result_delivery_receipt')).value;
@@ -4271,6 +4316,18 @@ async function openOriginalLocalPublicationStore(
       wire: value.wire, semanticCid: value.identity,
     })));
     const target = resolve(directory, `${record.sequence}.json`);
+    // Native START has no alias directory. Its first later record owns this
+    // directory ACK; a failed ACK remains pending even when mkdir is visible.
+    const start=deliveryStarts.get(record.delivery_attempt_cid);
+    if(deliveryIndex?.attempt(record.delivery_attempt_cid)?.initial_cid != null &&
+        start?.recordDirectoryAcknowledged !== true) {
+      try {await mkdir(directory,{mode:0o700});}
+      catch(error) {if(error?.code!=='EEXIST') throw error;}
+      await syncDirectory(deliveriesDirectory);
+      const progress=start ?? {runCid:attempt.run_definition_cid,phase:'installed'};
+      progress.recordDirectoryAcknowledged=true;
+      deliveryStarts.set(record.delivery_attempt_cid,progress);
+    }
     try { await link(contractPath(record.delivery_record_cid), target); }
     catch (error) {
       if (error?.code === 'EEXIST') fail('DeliveryRecordConflict');
@@ -5515,6 +5572,14 @@ async function openOriginalLocalPublicationStore(
     initial,
   ) => {
     const collected = new Set(initial);
+    // Native originals retire in the SAME indexed Run deletion transaction.
+    // Identify their exact bodies without allocating temporary shadow files
+    // or requiring spare object-file quota merely to delete native metadata.
+    for (const row of deliveryIndex?.run(runDefinitionCid) ?? []) {
+      if (row.initial_cid == null) continue;
+      const {attemptContract,grantContract,streaming}=admitDeliveryClaim(row);
+      for(const contract of [grantContract,attemptContract,streaming]) collected.add(contract.identity);
+    }
     for (const name of await readdir(attemptsDirectory)) {
       if (!/^[0-9a-f]{64}$/u.test(name)) {
         fail('InvalidPublicationAttemptStore');
@@ -5613,6 +5678,12 @@ async function openOriginalLocalPublicationStore(
   const bindMetadataContractObjects = async contractCids => {
     const objects = [];
     for (const semanticCid of contractCids) {
+      if(deliveryIndex?.contract(semanticCid) !== undefined) {
+        try {await lstat(contractPath(semanticCid));}
+        catch(error) {if(error?.code==='ENOENT') continue; throw error;}
+        // Only an independently present real file enters the physical-file
+        // inventory. Native body identity is never a fabricated file/ACK.
+      }
       const bytes = await readSemanticBytes(semanticCid);
       const physicalCid = `sha256:${createHash('sha256')
         .update(bytes).digest('hex')}`;

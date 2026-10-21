@@ -6,7 +6,7 @@ import {createSqliteTransaction} from '../host-common/sqlite-transaction.mjs';
 
 const fail = (code, cause) => { throw Object.assign(new Error(code, {cause}), {code}); };
 const cid = value => typeof value === 'string' && /^sha256:[0-9a-f]{64}$/u.test(value);
-const version = 2;
+const version = 3;
 
 export async function openDeliveryAttemptIndex(path, {create, maxEntries, maxWireBytes}) {
   const database = new DatabaseSync(path, {__proto__: null, open: false,
@@ -124,7 +124,7 @@ export async function openDeliveryAttemptIndex(path, {create, maxEntries, maxWir
     });
     const state = prepare('SELECT version,complete,entries FROM coverage WHERE id=1');
     const selected = state.get();
-    if (![1,version].includes(selected?.version) || ![0,1].includes(selected.complete) ||
+    if (![1,2,version].includes(selected?.version) || ![0,1].includes(selected.complete) ||
         !Number.isSafeInteger(selected.entries) || selected.entries < 0 || selected.entries > maxEntries) {
       fail('DeliveryAttemptIndexUnavailable');
     }
@@ -141,12 +141,32 @@ export async function openDeliveryAttemptIndex(path, {create, maxEntries, maxWir
         UPDATE coverage SET version=2 WHERE id=1;`);
     });
     else if (initialTable === undefined) fail('DeliveryAttemptIndexUnavailable');
+    // New joint START bodies are native originals. Null preserves the older
+    // file-backed protocol without scanning or parsing historical rows here.
+    if (selected.version < 3) transaction.run(() => {
+      exec(`ALTER TABLE initial_records ADD COLUMN initial_cid TEXT;
+        CREATE UNIQUE INDEX initial_record_identity ON initial_records(initial_cid);
+        UPDATE coverage SET version=3 WHERE id=1;`);
+    });
+    else if (!prepare("PRAGMA table_info(initial_records)").all().some(row=>row.name==='initial_cid') ||
+        prepare("SELECT name FROM sqlite_schema WHERE type='index' AND name='initial_record_identity'").get() === undefined) {
+      fail('DeliveryAttemptIndexUnavailable');
+    }
     let complete = selected.complete === 1;
-    const lookup = prepare(`SELECT attempts.*,initial_records.initial_wire FROM attempts
+    const lookup = prepare(`SELECT attempts.*,initial_records.initial_wire,initial_records.initial_cid FROM attempts
       LEFT JOIN initial_records USING(attempt_cid) WHERE logical_key=?`);
+    const byAttempt = prepare(`SELECT attempts.*,initial_records.initial_wire,initial_records.initial_cid FROM attempts
+      LEFT JOIN initial_records USING(attempt_cid) WHERE attempt_cid=?`);
+    const nativeContract = prepare(`SELECT 'delivery_attempt' AS name,attempt_wire AS wire
+      FROM attempts JOIN initial_records USING(attempt_cid) WHERE attempt_cid=? AND initial_cid IS NOT NULL
+      UNION ALL SELECT 'result_read_grant',grant_wire FROM attempts JOIN initial_records USING(attempt_cid)
+      WHERE grant_cid=? AND initial_cid IS NOT NULL
+      UNION ALL SELECT 'delivery_record',initial_wire FROM initial_records WHERE initial_cid=? LIMIT 1`);
+    const byRun = prepare(`SELECT attempts.*,initial_records.initial_wire,initial_records.initial_cid FROM attempts
+      LEFT JOIN initial_records USING(attempt_cid) WHERE run_cid=? LIMIT ?`);
     const pending = prepare('SELECT * FROM attempts WHERE ready=0 LIMIT ?');
     const insert = prepare('INSERT INTO attempts VALUES(?,?,?,?,?,?,?)');
-    const insertInitial = prepare('INSERT INTO initial_records VALUES(?,?)');
+    const insertInitial = prepare('INSERT INTO initial_records VALUES(?,?,?)');
     const uses = prepare('SELECT uses FROM grant_uses WHERE grant_cid=?');
     const addUse = prepare('INSERT INTO grant_uses VALUES(?,1) ON CONFLICT(grant_cid) DO UPDATE SET uses=uses+1');
     const removeUses = prepare('UPDATE grant_uses SET uses=uses-? WHERE grant_cid=?');
@@ -182,15 +202,16 @@ export async function openDeliveryAttemptIndex(path, {create, maxEntries, maxWir
           ![row.attempt_wire,row.grant_wire].every(wire => typeof wire === 'string' &&
             Buffer.byteLength(wire,'utf8') <= maxWireBytes) ||
           row.initial_wire != null && (typeof row.initial_wire !== 'string' ||
-            Buffer.byteLength(row.initial_wire,'utf8') > maxWireBytes)) fail('InvalidDeliveryAttemptIndex');
+            Buffer.byteLength(row.initial_wire,'utf8') > maxWireBytes) ||
+          row.initial_cid != null && (!cid(row.initial_cid) || row.initial_wire == null)) fail('InvalidDeliveryAttemptIndex');
       return row;
     };
     const copy = row => row === undefined ? undefined : Object.freeze({...validate(row)});
-    const add = (row, isReady, initialWire) => {
+    const add = (row, isReady, initialWire, initialCid) => {
       validate(row);
       insert.run(row.logical_key,row.attempt_cid,row.grant_cid,row.run_cid,
         row.attempt_wire,row.grant_wire,isReady);
-      if (initialWire !== undefined) insertInitial.run(row.attempt_cid,initialWire);
+      if (initialWire !== undefined) insertInitial.run(row.attempt_cid,initialWire,initialCid??null);
       updateCount.run(1);
       addUse.run(row.grant_cid);
     };
@@ -213,21 +234,31 @@ export async function openDeliveryAttemptIndex(path, {create, maxEntries, maxWir
         complete = true;
       },
       lookup(key) { requireComplete(); return copy(lookup.get(key)); },
-      pending() { requireComplete(); return Object.freeze(pending.all(maxEntries + 1).map(copy)); },
-      claim(row,maxUses,initialWire) {
+      attempt(attemptCid) { requireComplete(); return copy(byAttempt.get(attemptCid)); },
+      run(runCid) { requireComplete(); return Object.freeze(byRun.all(runCid,maxEntries+1).map(copy)); },
+      contract(semanticCid) {
         requireComplete();
-        validate({...row,initial_wire:initialWire});
+        const row=nativeContract.get(semanticCid,semanticCid,semanticCid);
+        if(row===undefined) return undefined;
+        const {name,wire}=row;
+        if(typeof wire!=='string' || Buffer.byteLength(wire,'utf8')>maxWireBytes) fail('InvalidDeliveryAttemptIndex');
+        return Object.freeze({name,wire});
+      },
+      pending() { requireComplete(); return Object.freeze(pending.all(maxEntries + 1).map(copy)); },
+      claim(row,maxUses,initialWire,initialCid) {
+        requireComplete();
+        validate({...row,initial_wire:initialWire,initial_cid:initialCid});
         const retained = lookup.get(row.logical_key);
         if (retained !== undefined) return Object.freeze({row: copy(retained), created: false});
         return run(() => {
           if ((uses.get(row.grant_cid)?.uses ?? 0) >= maxUses) fail('DeliveryGrantUseLimit');
           if (state.get().entries >= maxEntries) fail('DeliveryAttemptIndexLimit');
           // For a joint START this is a complete durable logical claim, not
-          // proof of a file ACK. The Store separately owns file readiness and
-          // only recovers the requested original on a later Store lifetime.
+          // a file ACK. A supplied initial CID selects the native metadata
+          // representation; legacy null retains its separate file protocol.
           const isReady = initialWire === undefined ? 0 : 1;
-          add(row,isReady,initialWire);
-          return Object.freeze({row: copy({...row,ready:isReady,initial_wire:initialWire}), created:true});
+          add(row,isReady,initialWire,initialCid);
+          return Object.freeze({row: copy({...row,ready:isReady,initial_wire:initialWire,initial_cid:initialCid}), created:true});
         });
       },
       finish(key,attemptCid) {
