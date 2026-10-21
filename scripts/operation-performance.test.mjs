@@ -157,6 +157,15 @@ test('raw Account material and policy snapshots remain distinct while target-bou
   delete accounts[0].accountConfigurationCid;
   assert.equal(assessStructure({operations: [row]}).status, 'incomplete');
 });
+test('raw Account optional revision metadata cannot split the same evaluator inputs into passing budgets', () => {
+  const row = publicOperation(), original = row.fullChecks.find(check => check.kind === 'account-evaluation');
+  const missingRevision = {...original}; delete missingRevision.policyRevision;
+  row.fullChecks.push(missingRevision); row.fullTotals['account-evaluation'] = 3;
+  const result = assessStructure({operations: [row]});
+  assert.equal(result.status, 'incomplete');
+  assert(result.missing.some(reason => reason.includes('consistent actual Account policy revision attribution')));
+  assert(result.operations[0].incompleteAttribution.includes('account-evaluation'));
+});
 test('Account connections remain distinct while private frames cannot split one connection permission', () => {
   const row = publicOperation(), original = row.fullChecks.find(check => check.kind === 'account-evaluation');
   row.fullChecks = row.fullChecks.filter(check => check.kind !== 'account-evaluation');

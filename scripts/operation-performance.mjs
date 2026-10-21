@@ -300,7 +300,7 @@ export function assessStructure(report) {
     for (const key of activityCounters) if (!integer(activity[key])) missing.push(`${label}: ${key}`);
     if (integer(activity.materialGetterCalls) && integer(activity.materialCacheHits) &&
         activity.materialCacheHits > activity.materialGetterCalls) failures.push(`${label}: cache hits exceed material getter calls`);
-    const facts = new Map(), incompleteAttribution = new Set();
+    const facts = new Map(), incompleteAttribution = new Set(), accountRevisionAttribution = new Map();
     if (!Array.isArray(operation.fullChecks)) missing.push(`${label}: explicit full-validation attribution`);
     else for (const check of operation.fullChecks) {
       requireValue(fullCheckKinds.includes(check.kind) && (check.kind === 'account-evaluation' ||
@@ -335,6 +335,10 @@ export function assessStructure(report) {
         // not new evaluator inputs. Target-bound grants remain separate facts.
         tuple = [check.accountConfigurationCid, scope,
           ...['subject', 'connection', 'operation', 'resource'].map(key => value[key])];
+        const inputKey = JSON.stringify(tuple);
+        const attribution = accountRevisionAttribution.get(inputKey) ?? new Set();
+        attribution.add(Object.hasOwn(check, 'policyRevision') ? 'observed-policy' : 'configuration-only');
+        accountRevisionAttribution.set(inputKey, attribution);
         // The immutable configuration CID already versions the policy bytes.
         // Use an actual policy revision if supplied, never a made-up zero or
         // the surrounding Run/adoption row revision.
@@ -360,6 +364,13 @@ export function assessStructure(report) {
       facts.set(key, fact);
     }
     const fullCallsByKind = {};
+    for (const [key, attribution] of accountRevisionAttribution) if (attribution.size > 1) {
+      missing.push(`${label}: consistent actual Account policy revision attribution`);
+      incompleteAttribution.add('account-evaluation');
+      for (const fact of facts.values()) if (fact.evaluatorInputs && JSON.stringify(fact.evaluatorInputs) === key) {
+        fact.complete = false;
+      }
+    }
     for (const fact of facts.values()) {
       if (!fact.complete) continue;
       if (fact.fullCalls !== (fact.required ? 1 : 0)) failures.push(`${label}: ${fact.kind} must run ${fact.required ? 'once' : 'zero times'} per unchanged fact`);
