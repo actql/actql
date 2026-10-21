@@ -47,6 +47,10 @@ struct actql_owned_capacity {
      * Neither value issues capacity or acknowledges physical cleanup. */
     size_t occupied_pages;
     size_t peak_occupied_pages;
+    /* Cumulative backing-extent work only. This is neither occupancy nor
+     * capacity; child retirement and reuse never reset these observations. */
+    uint64_t extent_work[5];
+    bool extent_work_overflow;
     /* Optional one-shot physical ceiling, including original control pages.
      * It never changes mapping size, ownership, reservations or retirement. */
     size_t allocation_ceiling_pages;
@@ -365,6 +369,12 @@ static int allocate_locked(actql_owned_capacity *lease, size_t bytes,
             break;
         }
         memset(base, 0, length);
+        const uint64_t work[3] = {1, length, length};
+        for (size_t i = 0; i < 3; i++) {
+            if (lease->extent_work[i] > UINT64_MAX - work[i])
+                lease->extent_work_overflow = true;
+            else lease->extent_work[i] += work[i];
+        }
         lease->extents[start].pages = pages;
         lease->extents[start].retired = false;
         lease->occupied_pages += pages;
@@ -508,12 +518,37 @@ static int clean_retired(actql_owned_capacity *lease, size_t start) {
         return ACTQL_OWNED_INVALID;
     if (mprotect(base, pages * lease->page_size, PROT_NONE) != 0)
         return ACTQL_OWNED_PHYSICAL_FAILURE;
+    const uint64_t work[2] = {1, pages * lease->page_size};
+    for (size_t i = 0; i < 2; i++) {
+        if (lease->extent_work[i + 3] > UINT64_MAX - work[i])
+            lease->extent_work_overflow = true;
+        else lease->extent_work[i + 3] += work[i];
+    }
     lease->occupied_pages -= pages;
     memset(&lease->extents[start], 0, pages * sizeof(struct extent));
     /* Failed retirement never publishes free storage. Only the same confirmed
      * physical cleanup makes this earlier hole eligible for first-fit reuse. */
     if (start < lease->first_free_page) lease->first_free_page = start;
     return ACTQL_OWNED_OK;
+}
+
+int actql_native_owned_extent_work(actql_owned_capacity *lease, uint64_t *out,
+                                   size_t count) {
+    if (lease == NULL || out == NULL || count != 5 ||
+        current_capacity != lease || current_process != getpid())
+        return ACTQL_OWNED_INVALID;
+    for (size_t i = 0; i < count; i++)
+        if (out[i] != 0) return ACTQL_OWNED_INVALID;
+    if (foreign_domain_process(lease)) return ACTQL_OWNED_BUSY;
+    lock_capacity(lease);
+    int status = ACTQL_OWNED_INVALID;
+    if (!foreign_domain_process(lease) && lease->transferred &&
+        !lease->extent_work_overflow) {
+        memcpy(out, lease->extent_work, sizeof(lease->extent_work));
+        status = ACTQL_OWNED_OK;
+    }
+    unlock_capacity(lease);
+    return status;
 }
 
 int actql_native_owned_seal_readonly(actql_owned_capacity *lease, void *allocation) {
