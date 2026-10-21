@@ -715,6 +715,7 @@ async function openInstalledHost(originalInstallation, preparation) {
   let store;
   let mockEffectObservation;
   let mockEffectObservationMethods;
+  let localFileEffectInstallation;
   const mockEffectRuns = new Map();
   let mockEffectOriginals = new WeakMap();
   const localFileEffectRuns = new Map();
@@ -790,6 +791,7 @@ async function openInstalledHost(originalInstallation, preparation) {
     // These remaining original Run associations are managed references only.
     localFileEffectRuns.clear();
     localFileEffectOriginals = new WeakMap();
+    localFileEffectInstallation = undefined;
     mockEffectObservation = mockEffectObservationMethods = undefined;
     localSigningMetadata?.retireMetadataView();
     localSigningMetadata = localCheckpointAnswer = undefined;
@@ -1165,6 +1167,7 @@ async function openInstalledHost(originalInstallation, preparation) {
         const projectEffects = await preparation.installProjectEffects(moon, baseEnvironmentWire,
           () => createLocalAuthorizationGate({...authorization, principal: principalId}),
           principalId, localFileEffectResources, sourceProfile.connectorBindings);
+        localFileEffectInstallation = projectEffects;
         if (installedEffect === undefined) installedEffect = projectEffects;
         else {
           // Both returned inventories own their original installations. Reuse
@@ -3002,8 +3005,18 @@ async function openInstalledHost(originalInstallation, preparation) {
         }
       },
       now, inferPlanFor: prepared => inferSelections.get(prepared)?.graph,
-      prepareDefinition: mockEffectObservation === undefined ? undefined : facts => {
+      prepareDefinition: mockEffectObservation === undefined && localFileEffectInstallation === undefined
+        ? undefined : facts => {
         preparation.admitEffectResultPublicationRun(facts.prepared);
+        if (mockEffectObservation === undefined) {
+          // The same actual Project installation owns these Local commands.
+          // Admit its typed compilation before publishing the winning Run;
+          // its later resource binding still checks that saved Journal original.
+          const selected = installedEffectFor(localFileEffectInstallation,
+            installedRowEffectDescriptors(moon, facts.prepared, facts.compilation));
+          selected.assertPrepared?.({moon, prepared: facts.prepared, compilation: facts.compilation});
+          return;
+        }
         const selection = inferSelections.get(facts.prepared);
         if (selection !== undefined) {
           if (!selection.localMock || facts.modelCompiled === undefined ||
@@ -3580,7 +3593,16 @@ async function openInstalledHost(originalInstallation, preparation) {
       const {requested, acquisitionCount, keyedAcquisition, effectful} = requestOf(submission);
       const selection = inferSelections.get(submission.preparedProgram);
       if (effectful) {
-        if (mockEffectObservation === undefined || acquisitionCount !== 2 ||
+        if (mockEffectObservation === undefined) {
+          if (localFileEffectInstallation === undefined || acquisitionCount !== 0 || selection !== undefined) {
+            throw clientOperationError('HostEffectRunPreparationUnavailable');
+          }
+          // Ordinary Local STORE has its own actual installation and physical
+          // children. A Mock Source/Model observation is not its supplier.
+          preparation.admitEffectResultPublicationRun(submission.preparedProgram);
+          return;
+        }
+        if (acquisitionCount !== 2 ||
             selection !== undefined && !selection.localMock) {
           throw clientOperationError('HostEffectRunPreparationUnavailable');
         }
