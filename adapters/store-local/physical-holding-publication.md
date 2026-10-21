@@ -182,6 +182,33 @@ exclusive opening recovery removes any such alias resurrected by a crash.
 Prepared-object/Content holders still use their separate original custody
 protocol; they are not converted to direct semantic writes.
 
+## Joint delivery start
+
+The existing delivery issuer can retain the exact immutable Index, Manifest,
+Grant, Attempt, request and limits used for issuance. The Node facade supplies
+the same nominal capture/read operation as the packaged Run Host. A copied
+view, equal-CID admission or another facade's original does not acquire that
+custody. These facts are not an authorization or a capacity original.
+
+When the Store supports joint start and the caller has that original, the
+existing delivery queue durably claims the logical key and grant use, then
+publishes Grant, Attempt and initial streaming record together. Each of the
+three actual payload FDs still file-syncs and closes. They share one objects
+directory ACK and one contracts directory ACK. Attempt and record links are
+installed in the same original staging directory before its ACK, rename and
+containing deliveries-directory ACK; no separate initial-record ACK is needed.
+Only then does the same indexed claim become ready and may the caller read or
+expose rows. Existing append-only names and wire identities are unchanged.
+
+A partial start preserves the same pending claim without refunding its use.
+Recovery handles only that claim's original staging/target aliases. An already
+installed streaming record remains unresolved and never starts another stream;
+absence is not permission to resend. Pending physical writers retain their
+original close and cleanup before Store retirement. No new prepared holder
+escapes, and actual object count/byte and per-body bounds remain applicable to
+the three-body group. The optional function is captured before callbacks;
+Stores or issuers without this connection retain separate create/append.
+
 ## Joint delivery completion
 
 After the sink finishes and the existing receipt authorization succeeds, the

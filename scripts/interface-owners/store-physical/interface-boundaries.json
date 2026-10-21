@@ -4437,7 +4437,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "cdb92bb8a5c42e14ff46455d48c78bd5ec73dad4c143d7af5bfab7fc2e1ff20e",
+      "sha256": "2d2c2085e14193dab2f2841f5271ff4cd79ffe87dbbdcc1898eb0d3aacc37ce7",
       "exports": [
         "PublicationStoreError",
         "assertOriginalLocalPublicationStoreFacilityCurrent",
@@ -4711,6 +4711,19 @@
             "options"
           ],
           "async": true
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/beginDeliveryAttempt/beginDeliveryAttempt",
+          "parameters": [
+            "original",
+            "streaming"
+          ],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/beginDeliveryAttempt/beginDeliveryAttempt/beginDeliveryAttempt",
+          "parameters": [],
+          "async": false
         },
         {
           "name": "openOriginalLocalPublicationStore/beginPreparedCommit/beginPreparedCommit",
@@ -5137,6 +5150,29 @@
           "async": false
         },
         {
+          "name": "openOriginalLocalPublicationStore/createAdmittedDeliveryAttempt/createAdmittedDeliveryAttempt",
+          "parameters": [
+            "admitted",
+            "grantContract",
+            "initial"
+          ],
+          "async": true
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/createAdmittedDeliveryAttempt/createAdmittedDeliveryAttempt/createAdmittedDeliveryAttempt",
+          "parameters": [
+            "result"
+          ],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/createAdmittedDeliveryAttempt/createAdmittedDeliveryAttempt/createAdmittedDeliveryAttempt#2",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
           "name": "openOriginalLocalPublicationStore/createAttempt/createAttempt",
           "parameters": [
             "suppliedWire"
@@ -5154,25 +5190,6 @@
         {
           "name": "openOriginalLocalPublicationStore/createDeliveryAttempt/createDeliveryAttempt/createDeliveryAttempt",
           "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/createDeliveryAttempt/createDeliveryAttempt/operation/operation",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/createDeliveryAttempt/createDeliveryAttempt/operation/operation/operation",
-          "parameters": [
-            "result"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/createDeliveryAttempt/createDeliveryAttempt/operation/operation/operation#2",
-          "parameters": [
-            "name"
-          ],
           "async": false
         },
         {
@@ -5530,6 +5547,18 @@
           "async": false
         },
         {
+          "name": "openOriginalLocalPublicationStore/enqueueDeliveryAdmission/enqueueDeliveryAdmission",
+          "parameters": [
+            "action"
+          ],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/enqueueDeliveryAdmission/enqueueDeliveryAdmission/enqueueDeliveryAdmission",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "openOriginalLocalPublicationStore/ensureMetadataDeletion/ensureMetadataDeletion",
           "parameters": [
             "keyHash",
@@ -5766,7 +5795,8 @@
         {
           "name": "openOriginalLocalPublicationStore/installDeliveryAttempt/installDeliveryAttempt",
           "parameters": [
-            "admitted"
+            "admitted",
+            "streaming"
           ],
           "async": true
         },
@@ -5784,6 +5814,13 @@
           "name": "openOriginalLocalPublicationStore/installDeliveryAttempt/installDeliveryAttempt/init:retry/init:retry/init:retry#2",
           "parameters": [],
           "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/installDeliveryAttempt/installDeliveryAttempt/linkInitialRecord/linkInitialRecord",
+          "parameters": [
+            "directory"
+          ],
+          "async": true
         },
         {
           "name": "openOriginalLocalPublicationStore/installDeliveryAttempt/installDeliveryAttempt/status/status",
@@ -6292,7 +6329,8 @@
           "name": "openOriginalLocalPublicationStore/putDeliveryContracts/putDeliveryContracts",
           "parameters": [
             "grant",
-            "attempt"
+            "attempt",
+            "streaming"
           ],
           "async": true
         },
@@ -8948,19 +8986,19 @@
             "inputsOutputs": [
               {
                 "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "const putDeliveryContracts = async (grant, attempt) => {"
+                "anchor": "const putDeliveryContracts = async (grant, attempt, streaming) => {"
               }
             ],
             "identity": [
               {
                 "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "await putDeliveryContracts(grantContract,admitted);"
+                "anchor": "await putDeliveryContracts(grantContract,admitted,initial?.streaming);"
               }
             ],
             "ownership": [
               {
                 "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "await putSemanticBatch([grant, attempt].map(contract => ({"
+                "anchor": "await putSemanticBatch([grant, attempt, ...(streaming === undefined ? [] : [streaming])].map(contract => ({"
               }
             ],
             "synchronization": [
@@ -9159,14 +9197,18 @@
         },
         {
           "operations": [
+            "openOriginalLocalPublicationStore/beginDeliveryAttempt/beginDeliveryAttempt",
+            "openOriginalLocalPublicationStore/beginDeliveryAttempt/beginDeliveryAttempt/beginDeliveryAttempt",
+            "openOriginalLocalPublicationStore/createAdmittedDeliveryAttempt/createAdmittedDeliveryAttempt",
+            "openOriginalLocalPublicationStore/createAdmittedDeliveryAttempt/createAdmittedDeliveryAttempt/createAdmittedDeliveryAttempt",
+            "openOriginalLocalPublicationStore/createAdmittedDeliveryAttempt/createAdmittedDeliveryAttempt/createAdmittedDeliveryAttempt#2",
             "openOriginalLocalPublicationStore/createDeliveryAttempt/createDeliveryAttempt",
             "openOriginalLocalPublicationStore/createDeliveryAttempt/createDeliveryAttempt/createDeliveryAttempt",
-            "openOriginalLocalPublicationStore/createDeliveryAttempt/createDeliveryAttempt/operation/operation",
-            "openOriginalLocalPublicationStore/createDeliveryAttempt/createDeliveryAttempt/operation/operation/operation",
-            "openOriginalLocalPublicationStore/createDeliveryAttempt/createDeliveryAttempt/operation/operation/operation#2",
             "openOriginalLocalPublicationStore/deliveryIndexRow/deliveryIndexRow",
             "openOriginalLocalPublicationStore/deliveryLogicalKey/deliveryLogicalKey",
             "openOriginalLocalPublicationStore/deliveryQuery/deliveryQuery",
+            "openOriginalLocalPublicationStore/enqueueDeliveryAdmission/enqueueDeliveryAdmission",
+            "openOriginalLocalPublicationStore/enqueueDeliveryAdmission/enqueueDeliveryAdmission/enqueueDeliveryAdmission",
             "openOriginalLocalPublicationStore/initializeDeliveryIndex/initializeDeliveryIndex",
             "openOriginalLocalPublicationStore/initializeDeliveryIndex/initializeDeliveryIndex/initializeDeliveryIndex",
             "openOriginalLocalPublicationStore/initializeDeliveryIndex/initializeDeliveryIndex/publishCoverage/publishCoverage",
@@ -9174,6 +9216,7 @@
             "openOriginalLocalPublicationStore/installDeliveryAttempt/installDeliveryAttempt/init:retry/init:retry",
             "openOriginalLocalPublicationStore/installDeliveryAttempt/installDeliveryAttempt/init:retry/init:retry/init:retry",
             "openOriginalLocalPublicationStore/installDeliveryAttempt/installDeliveryAttempt/init:retry/init:retry/init:retry#2",
+            "openOriginalLocalPublicationStore/installDeliveryAttempt/installDeliveryAttempt/linkInitialRecord/linkInitialRecord",
             "openOriginalLocalPublicationStore/installDeliveryAttempt/installDeliveryAttempt/status/status",
             "openOriginalLocalPublicationStore/readDeliveryAttemptContract/readDeliveryAttemptContract",
             "openOriginalLocalPublicationStore/restoreDeliveryClaim/restoreDeliveryClaim",
@@ -9206,12 +9249,20 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "The original native wrapper and captured close/isOpen remain owned until real"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "## Joint delivery start"
               }
             ],
             "synchronization": [
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "indexed grant-use counter together."
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "## Joint delivery start"
               }
             ],
             "failure": [
@@ -9230,6 +9281,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "Bounded input/row counts are not capacity or permission."
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "## Joint delivery start"
               }
             ],
             "extension": [
@@ -9242,6 +9297,10 @@
               {
                 "path": "adapters/store-local/publication-store.test.mjs",
                 "anchor": "ready delivery coverage opens and looks up without unrelated history reads"
+              },
+              {
+                "path": "adapters/store-local/delivery-completion.test.mjs",
+                "anchor": "delivery START shares semantic and attempt directory ACKs before any row exposure"
               }
             ]
           }

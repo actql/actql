@@ -1103,6 +1103,8 @@ async function openOriginalLocalPublicationStore(
   operationalCurrent?.();
   const configuration = validateConfiguration(supplied);
   const contractControl = validateContractControl(suppliedControl);
+  const readDeliveryOriginal = contractControl.readIssuedDeliveryAttempt;
+  const deliveryStartTransition = contractControl.deliveryTransition;
   const openingBootstrap = suppliedBootstrap === undefined ? undefined
     : storeBootstrapAcquisition(suppliedBootstrap, configuration.maxObjectBytes);
   // Adopt the selected exclusion's SAME cumulative directory reader. Creating
@@ -2600,8 +2602,8 @@ async function openOriginalLocalPublicationStore(
     for (const pending of activePhysicalRecordWriters) {
       if (pending.failed) fail('PublicationStoreCleanupPending');
     }
-    // This private caller supplies one semantic body, or the two already
-    // admitted delivery contracts. No prepared holder escapes between writes
+    // This private caller supplies one semantic body, or one already admitted
+    // delivery group. No prepared holder escapes between writes
     // and their final names, so no intermediate durable custody is needed.
     const items = supplied.map(({wire, semanticCid}) => {
       if (typeof wire !== 'string' ||
@@ -2763,10 +2765,10 @@ async function openOriginalLocalPublicationStore(
   const putSemantic = async (wire, semanticCid) =>
     (await putSemanticBatch([{wire, semanticCid}]))[0];
 
-  // Both immutable inputs were admitted by the existing delivery queue.
+  // These immutable inputs were admitted by the existing delivery queue.
   // They share final-name durability, without an exported prepared interval.
-  const putDeliveryContracts = async (grant, attempt) => {
-    await putSemanticBatch([grant, attempt].map(contract => ({
+  const putDeliveryContracts = async (grant, attempt, streaming) => {
+    await putSemanticBatch([grant, attempt, ...(streaming === undefined ? [] : [streaming])].map(contract => ({
       wire: contract.wire, semanticCid: contract.identity,
     })));
   };
@@ -3692,15 +3694,27 @@ async function openOriginalLocalPublicationStore(
     run_cid: attempt.run_definition_cid,
     attempt_wire: attemptContract.wire, grant_wire: grantContract.wire,
   });
-  const installDeliveryAttempt = async admitted => {
+  const installDeliveryAttempt = async (admitted, streaming) => {
     const writer = {cleanup: undefined, failed: false};
     activePhysicalRecordWriters.add(writer);
     let retainedChild = false;
     try {
     const target = deliveryAttemptPath(admitted.identity);
+    const linkInitialRecord = async directory => {
+      if (streaming === undefined) return;
+      const path = resolve(directory, '0.json');
+      try {await link(contractPath(streaming.identity), path);}
+      catch (error) {
+        if (error?.code !== 'EEXIST') throw error;
+        if (!exactUtf8WireMatches(await readBounded(path, configuration.maxObjectBytes), streaming.wire)) {
+          fail('DeliveryRecordConflict');
+        }
+      }
+    };
     try {
       const retained = await readDeliveryAttemptContract(admitted.identity, admitted);
       if (retained.wire !== admitted.wire) fail('DeliveryAttemptConflict');
+      await linkInitialRecord(target);
       await syncDirectory(target);
       await syncDirectory(deliveriesDirectory);
       return;
@@ -3720,6 +3734,7 @@ async function openOriginalLocalPublicationStore(
         const bytes = await readBounded(resolve(staging,'attempt.json'),configuration.maxObjectBytes);
         if (!exactUtf8WireMatches(bytes,admitted.wire)) fail('DeliveryAttemptConflict');
       }
+      await linkInitialRecord(staging);
       await syncDirectory(staging);
       await rename(staging, target);
       await syncDirectory(deliveriesDirectory);
@@ -3728,6 +3743,7 @@ async function openOriginalLocalPublicationStore(
       await rm(staging, {recursive: true, force: false});
       const retained = await readDeliveryAttemptContract(admitted.identity, admitted);
       if (retained.wire !== admitted.wire) fail('DeliveryAttemptConflict');
+      await linkInitialRecord(target);
       await syncDirectory(target);
       await syncDirectory(deliveriesDirectory);
     }
@@ -3851,49 +3867,74 @@ async function openOriginalLocalPublicationStore(
     }
   };
 
-  const createDeliveryAttempt = (suppliedWire, suppliedGrantWire) => {
+  const enqueueDeliveryAdmission = action => {
     active();
-    const operation = deliveryAdmissionBusy.then(async () => {
-      const admitted = admitContract('delivery_attempt', suppliedWire);
-      const attempt = parseContract(admitted);
-      const grantContract = admitContract('result_read_grant', suppliedGrantWire);
-      const grant = parseContract(grantContract);
-      if (await runMetadataDeletionStarted(attempt.run_definition_cid)) {
-        fail('PublicationMetadataDeleted');
-      }
-      if (attempt.result_read_grant_cid !== grantContract.identity ||
-          attempt.run_definition_cid !== grant.run_definition_cid ||
-          attempt.result_manifest_cid !== grant.result_manifest_cid ||
-          !grant.results.some(result => result.result_name === attempt.result_name &&
-            result.result_artifact_cid === attempt.result_artifact_cid)) {
-        fail('DeliveryGrantMismatch');
-      }
-      const {match: retained} = await selectDeliveryAttempt(
-        deliveryQuery(attempt,grant), {contract: admitted, value: attempt},
-        {contract: grantContract, value: grant}, false);
-      if (retained !== undefined) {
-        // Both originals were admitted. Compare every scalar field, restoring
-        // only the selected birth/identity, rather than hash the same body again.
-        const keys = Object.keys(attempt);
-        if (keys.length !== Object.keys(retained.attempt).length ||
-            keys.some(name => name !== 'requested_at' && name !== 'delivery_attempt_cid' &&
-              attempt[name] !== retained.attempt[name])) fail('DeliveryAttemptConflict');
-        return Object.freeze({attempt: retained.attempt, created: false});
-      }
-      if (deliveryIndex === undefined) fail('DeliveryAttemptIndexUnavailable');
-      const row = deliveryIndexRow(attempt,grant,admitted,grantContract);
-      const selected = deliveryIndex.claim(row,grant.max_uses);
-      if (!selected.created) fail('DeliveryAttemptConflict');
-      // The durable pending claim already owns uniqueness and the grant use.
-      // Failure never refunds it. Recovery projects these SAME stored originals;
-      // it does not dispatch a stream or invent another attempt.
-      await putDeliveryContracts(grantContract,admitted);
-      await installDeliveryAttempt(admitted);
-      deliveryIndex.finish(row.logical_key,admitted.identity);
-      return Object.freeze({attempt, created: true});
-    });
+    const operation = deliveryAdmissionBusy.then(action);
     deliveryAdmissionBusy = operation.catch(() => {});
     return operation;
+  };
+  const createAdmittedDeliveryAttempt = async (admitted, grantContract, initial) => {
+    const attempt = parseContract(admitted);
+    const grant = parseContract(grantContract);
+    if (await runMetadataDeletionStarted(attempt.run_definition_cid)) {
+      fail('PublicationMetadataDeleted');
+    }
+    if (attempt.result_read_grant_cid !== grantContract.identity ||
+        attempt.run_definition_cid !== grant.run_definition_cid ||
+        attempt.result_manifest_cid !== grant.result_manifest_cid ||
+        !grant.results.some(result => result.result_name === attempt.result_name &&
+          result.result_artifact_cid === attempt.result_artifact_cid)) {
+      fail('DeliveryGrantMismatch');
+    }
+    const {match: retained} = await selectDeliveryAttempt(
+      deliveryQuery(attempt,grant), {contract: admitted, value: attempt},
+      {contract: grantContract, value: grant}, false);
+    if (retained !== undefined) {
+      // Both originals were admitted. Compare every scalar field, restoring
+      // only the selected birth/identity, rather than hash the same body again.
+      const keys = Object.keys(attempt);
+      if (keys.length !== Object.keys(retained.attempt).length ||
+          keys.some(name => name !== 'requested_at' && name !== 'delivery_attempt_cid' &&
+            attempt[name] !== retained.attempt[name])) fail('DeliveryAttemptConflict');
+      return Object.freeze({attempt: retained.attempt, created: false});
+    }
+    if (deliveryIndex === undefined) fail('DeliveryAttemptIndexUnavailable');
+    const row = deliveryIndexRow(attempt,grant,admitted,grantContract);
+    const selected = deliveryIndex.claim(row,grant.max_uses);
+    if (!selected.created) fail('DeliveryAttemptConflict');
+    // The durable pending claim already owns uniqueness and the grant use.
+    // Failure never refunds it. Recovery projects these SAME stored originals;
+    // it does not dispatch a stream or invent another attempt.
+    await putDeliveryContracts(grantContract,admitted,initial?.streaming);
+    await installDeliveryAttempt(admitted,initial?.streaming);
+    deliveryIndex.finish(row.logical_key,admitted.identity);
+    return Object.freeze(initial === undefined ? {attempt, created: true} :
+      {original: initial.original, created: true});
+  };
+  const createDeliveryAttempt = (suppliedWire, suppliedGrantWire) => enqueueDeliveryAdmission(() =>
+    createAdmittedDeliveryAttempt(admitContract('delivery_attempt', suppliedWire),
+      admitContract('result_read_grant', suppliedGrantWire)));
+  const beginDeliveryAttempt = (original, streaming) => {
+    active();
+    let facts;
+    try {
+      facts = Reflect.apply(readDeliveryOriginal, contractControl, [original]);
+      if (Reflect.apply(deliveryStartTransition, contractControl, [undefined, streaming]) !== true) {
+        fail('InvalidDeliveryStartEvidence');
+      }
+    } catch (cause) {fail('InvalidDeliveryStartEvidence', cause);}
+    for (const contract of [facts.grant, facts.attempt, streaming]) {
+      if (!exactKeys(contract, ['name', 'identityField', 'identity', 'wire']) ||
+          !Object.isFrozen(contract) || typeof contract.wire !== 'string' ||
+          Buffer.byteLength(contract.wire, 'utf8') > configuration.maxObjectBytes) {
+        fail('InvalidDeliveryStartEvidence');
+      }
+    }
+    const record = parseContract(streaming);
+    if (streaming.name !== 'delivery_record' || record.delivery_attempt_cid !== facts.attempt.identity ||
+        record.sequence !== 0 || record.state !== 'streaming') fail('InvalidDeliveryStartEvidence');
+    return enqueueDeliveryAdmission(() => createAdmittedDeliveryAttempt(facts.attempt, facts.grant,
+      {original, streaming}));
   };
 
   const consumeManifestReadGrant = (suppliedWire, attemptId) => {
@@ -7156,6 +7197,7 @@ async function openOriginalLocalPublicationStore(
     appendRecord,
     consumeManifestReadGrant,
     createDeliveryAttempt,
+    beginDeliveryAttempt,
     lookupDeliveryAttempt,
     latestDeliveryRecord,
     latestDeliveryRecordContract,

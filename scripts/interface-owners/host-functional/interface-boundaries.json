@@ -7139,7 +7139,7 @@
     {
       "module": "adapters/host-common/result-delivery.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "32fa1d3241c5fc87fb6af600932a14f62bae82474063badc54b970d50520e087",
+      "sha256": "69d2c4d2e8969fa9411e780af7619871a6c731e6492e32a6c98806d8d146f2e3",
       "role": "physical-io",
       "owner": "Existing Result access/delivery/publication Owners and physical read/sink adapter",
       "exports": [
@@ -7493,6 +7493,10 @@
               {
                 "path": "docs/design/result-description.md",
                 "anchor": "# Committed Result descriptions"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "## Joint delivery start"
               }
             ],
             "synchronization": [
@@ -7507,6 +7511,10 @@
               {
                 "path": "src/run_publication/pkg.generated.mbti",
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "## Joint delivery start"
               }
             ],
             "failure": [
@@ -7549,6 +7557,10 @@
               {
                 "path": "docs/design/result-description.md",
                 "anchor": "# Committed Result descriptions"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "## Joint delivery start"
               }
             ],
             "extension": [
@@ -7573,6 +7585,10 @@
               {
                 "path": "src/run_publication/pkg.generated.mbti",
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
+              },
+              {
+                "path": "adapters/store-local/delivery-completion.test.mjs",
+                "anchor": "delivery START shares semantic and attempt directory ACKs before any row exposure"
               }
             ]
           }
@@ -69967,7 +69983,7 @@
     {
       "module": "packages/run-host-core/result-delivery.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "32fa1d3241c5fc87fb6af600932a14f62bae82474063badc54b970d50520e087",
+      "sha256": "69d2c4d2e8969fa9411e780af7619871a6c731e6492e32a6c98806d8d146f2e3",
       "role": "physical-io",
       "owner": "Existing Result access/delivery/publication Owners and physical read/sink adapter",
       "exports": [
@@ -70321,6 +70337,10 @@
               {
                 "path": "docs/design/result-description.md",
                 "anchor": "# Committed Result descriptions"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "## Joint delivery start"
               }
             ],
             "synchronization": [
@@ -70335,6 +70355,10 @@
               {
                 "path": "src/run_publication/pkg.generated.mbti",
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "## Joint delivery start"
               }
             ],
             "failure": [
@@ -70377,6 +70401,10 @@
               {
                 "path": "docs/design/result-description.md",
                 "anchor": "# Committed Result descriptions"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "## Joint delivery start"
               }
             ],
             "extension": [
@@ -70401,6 +70429,10 @@
               {
                 "path": "src/run_publication/pkg.generated.mbti",
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
+              },
+              {
+                "path": "adapters/store-local/delivery-completion.test.mjs",
+                "anchor": "delivery START shares semantic and attempt directory ACKs before any row exposure"
               }
             ]
           }

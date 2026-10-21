@@ -4,6 +4,8 @@ import {mkdtemp, open, readdir, rm} from 'node:fs/promises';
 import {join} from 'node:path';
 import {tmpdir} from 'node:os';
 import {createHash} from 'node:crypto';
+import fs from 'node:fs/promises';
+import {syncBuiltinESMExports} from 'node:module';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {deliverPublishedResult} from '../host-common/result-delivery.mjs';
 import {openLocalPublicationStore} from './publication-store.mjs';
@@ -242,13 +244,14 @@ test('actual delivery caller retains joint END originals through partial ACK cle
     retainedReceipt.name)).wire, retainedReceipt.wire);
 });
 
-test('delivery without joint END support retains the existing receipt then record path', async t => {
+test('delivery without joint operations retains the existing receipt then record path', async t => {
   const f = await fixture(t, undefined, false);
   const {options, facade} = deliveryOptions(f, {
     async write(bytes) { return {confirmedBytes: bytes.byteLength}; },
     async finish() { return {confirmed: true}; },
   });
   delete facade.appendDeliveryCompletion;
+  delete facade.beginDeliveryAttempt;
   const order = [];
   facade.putPublicationContract = async (...args) => {
     order.push('receipt');
@@ -260,6 +263,219 @@ test('delivery without joint END support retains the existing receipt then recor
   };
   assert.equal((await deliverPublishedResult(options)).record.name, 'delivery_record');
   assert.deepEqual(order, ['streaming', 'receipt', 'succeeded']);
+});
+
+test('delivery START shares semantic and attempt directory ACKs before any row exposure', async t => {
+  const f = await fixture(t, undefined, false);
+  const {store, root, control, directory, syncs, admissions} = f;
+  const original = control.captureIssuedDeliveryAttempt?.(root.attempt, root.index, root.manifest, root.grant, limits);
+  const nullHandle = await open('/dev/null', 'r');
+  const prototype = Object.getPrototypeOf(nullHandle), originalSync = prototype.sync;
+  await nullHandle.close();
+  let fileSyncs = 0;
+  t.mock.method(prototype, 'sync', async function() {
+    if ((await this.stat()).isFile()) fileSyncs++;
+    return Reflect.apply(originalSync, this, []);
+  });
+  if (typeof store.beginDeliveryAttempt === 'function' && original !== undefined) {
+    const admitted = await store.beginDeliveryAttempt(original, root.streaming);
+    assert.equal(admitted.created, true);
+    assert.equal(admitted.original, original);
+  } else {
+    await store.createDeliveryAttempt(root.attempt.wire, root.grant.wire);
+    await store.appendDeliveryRecord(root.streaming.wire);
+  }
+  console.info('ACTQL_DELIVERY_START_WORK', JSON.stringify({fileSyncs,
+    objects: syncs.filter(path => path === join(directory, 'objects')).length,
+    contracts: syncs.filter(path => path === join(directory, 'contracts')).length,
+    staging: syncs.filter(path => path.startsWith(join(directory, 'deliveries', '.staging-'))).length,
+    deliveries: syncs.filter(path => path === join(directory, 'deliveries')).length,
+    attempt: syncs.filter(path => path === join(directory, 'deliveries', root.attempt.identity.slice(7))).length}));
+  assert.equal(syncs.filter(path => path === join(directory, 'objects')).length, 1);
+  assert.equal(syncs.filter(path => path === join(directory, 'contracts')).length, 1);
+  assert.equal(syncs.filter(path => path === join(directory, 'deliveries')).length, 1);
+  assert.equal(syncs.filter(path => path.startsWith(join(directory, 'deliveries', '.staging-'))).length, 1);
+  assert.equal(syncs.filter(path => path === join(directory, 'deliveries', root.attempt.identity.slice(7))).length, 0);
+  assert.equal(fileSyncs, 3, 'each real immutable payload still receives its own file ACK');
+  for (const contract of [root.grant, root.attempt, root.streaming]) {
+    assert.equal(admissions.filter(identity => identity === contract.identity).length, 0);
+  }
+  assert.equal((await store.latestDeliveryRecord(root.attempt.identity)).state, 'streaming');
+  await store.close();
+  const reopened = await f.reopen();
+  assert.equal((await reopened.latestDeliveryRecord(root.attempt.identity)).state, 'streaming');
+  assert.equal((await reopened.beginDeliveryAttempt(original, root.streaming)).created, false);
+  const next = control.issueDeliveryAttempt(root.index, root.manifest, root.grant,
+    {resultName: 'answer', format: 'json', attemptId: 'another', requestedAt: at}, limits);
+  const nextOriginal = control.captureIssuedDeliveryAttempt(next, root.index, root.manifest, root.grant, limits);
+  const nextRecord = control.issueDeliveryRecord(next, undefined, {
+    state: 'streaming', confirmedByteCount: 0, exposure: 'exact',
+    possibleUnconfirmedMaxBytes: undefined, deliveredSha256: undefined,
+    receipt: undefined, failureCid: undefined, observedAt: at, cleanupOwnerCids: [],
+  }, limits);
+  await assert.rejects(reopened.beginDeliveryAttempt(nextOriginal, nextRecord), {code: 'DeliveryGrantUseLimit'});
+});
+
+test('delivery START refuses copied or foreign originals and a mismatched initial record before writes', async t => {
+  const f = await fixture(t, undefined, false);
+  const {store, root, control, syncs} = f;
+  const original = control.captureIssuedDeliveryAttempt(root.attempt, root.index, root.manifest, root.grant, limits);
+  assert.equal(control.readIssuedDeliveryAttempt(original).attempt, root.attempt);
+  assert.equal(control.captureIssuedDeliveryAttempt(root.attempt, root.index, root.manifest, root.grant,
+    {...limits, maxNodes: limits.maxNodes + 1}), undefined);
+  assert.equal(control.captureIssuedDeliveryAttempt(control.admit(root.attempt.name, root.attempt.wire, limits),
+    root.index, root.manifest, root.grant, limits), undefined);
+  let reads = 0;
+  const foreign = new Proxy(original, {get() {reads++; throw new Error('foreign original read');}});
+  const other = originals(control);
+  const different = control.issueDeliveryAttempt(other.index, other.manifest, other.grant,
+    {resultName: 'answer', format: 'json', attemptId: 'different', requestedAt: at}, limits);
+  const wrongRecord = control.issueDeliveryRecord(different, undefined, {
+    state: 'streaming', confirmedByteCount: 0, exposure: 'exact',
+    possibleUnconfirmedMaxBytes: undefined, deliveredSha256: undefined,
+    receipt: undefined, failureCid: undefined, observedAt: at, cleanupOwnerCids: [],
+  }, limits);
+  for (const [candidate, record] of [[{...original}, root.streaming], [foreign, root.streaming],
+    [original, {...root.streaming}], [original, root.succeeded], [original, wrongRecord]]) {
+    await assert.rejects(async () => store.beginDeliveryAttempt(candidate, record), {code: 'InvalidDeliveryStartEvidence'});
+  }
+  assert.equal(reads, 0);
+  const foreignControl = runtimeCore({...moon}).publicationControl;
+  const foreignRoot = originals(foreignControl);
+  const foreignOriginal = foreignControl.captureIssuedDeliveryAttempt(foreignRoot.attempt,
+    foreignRoot.index, foreignRoot.manifest, foreignRoot.grant, limits);
+  await assert.rejects(async () => store.beginDeliveryAttempt(foreignOriginal, foreignRoot.streaming),
+    {code: 'InvalidDeliveryStartEvidence'});
+  assert.deepEqual(syncs, []);
+});
+
+test('delivery START keeps the third original writer pending without retaining closed earlier staging files', async t => {
+  const f = await fixture(t, undefined, false);
+  const {store, root, control} = f;
+  const original = control.captureIssuedDeliveryAttempt(root.attempt, root.index, root.manifest, root.grant, limits);
+  const originalOpen = fs.open;
+  let held, refusing = true;
+  const files = new Set();
+  fs.open = async (...args) => {
+    const handle = await Reflect.apply(originalOpen, fs, args);
+    if (typeof args[0] === 'string' && args[0].startsWith(join(f.directory, 'staging', 'object-'))) {
+      files.add(handle);
+      if (files.size === 3) {
+        held = handle;
+        const originalClose = handle.close;
+        handle.close = async function() {
+          assert.equal(this, held);
+          if (refusing) return false;
+          return Reflect.apply(originalClose, held, []);
+        };
+      }
+    }
+    return handle;
+  };
+  syncBuiltinESMExports();
+  t.after(() => {fs.open = originalOpen; syncBuiltinESMExports();});
+  let failure;
+  try {
+    await assert.rejects(store.beginDeliveryAttempt(original, root.streaming), error => {
+      failure = error;
+      return error.cleanupPending === true;
+    });
+    assert.equal(files.size, 3);
+    assert.equal(failure.cleanupHandle.status().pending, true);
+    assert.equal((await readdir(join(f.directory, 'staging'))).length, 1);
+    await assert.rejects(store.beginDeliveryAttempt(original, root.streaming), {code: 'ResultDeliveryAttemptUnresolved'});
+  } finally {
+    refusing = false;
+    if (failure?.cleanupHandle !== undefined) assert.equal((await failure.cleanupHandle.retry()).pending, false);
+  }
+  assert.equal((await readdir(join(f.directory, 'staging'))).length, 0);
+  assert.equal(files.size, 3, 'cleanup never allocates replacement payload writers');
+});
+
+test('actual delivery caller captures START and does not append another initial record', async t => {
+  const f = await fixture(t, undefined, false);
+  let beginCalls = 0, records = 0, writes = 0;
+  const {options, facade} = deliveryOptions(f, {
+    async write(bytes) {
+      writes++;
+      assert.equal((await f.store.latestDeliveryRecord(f.root.attempt.identity)).state, 'streaming');
+      return {confirmedBytes: bytes.byteLength};
+    },
+    async finish() {return {confirmed: true};},
+  });
+  const original = facade.beginDeliveryAttempt;
+  facade.beginDeliveryAttempt = function(...args) {
+    assert.equal(this, facade);
+    beginCalls++;
+    return Reflect.apply(original, f.store, args);
+  };
+  facade.appendDeliveryRecord = () => {records++; assert.fail('START already persisted its original state');};
+  options.authorize = () => {
+    facade.beginDeliveryAttempt = () => assert.fail('late replacement is not the captured START');
+    f.control.readIssuedDeliveryAttempt = () => assert.fail('late replacement is not the Store original reader');
+    return true;
+  };
+  assert.equal((await deliverPublishedResult(options)).idempotent, false);
+  assert.equal(beginCalls, 1);
+  assert.equal(records, 0);
+  assert(writes > 0);
+});
+
+test('delivery START without issuer capture keeps the old path and malformed optional ports refuse', async t => {
+  const f = await fixture(t, undefined, false);
+  const {options, facade} = deliveryOptions(f, {
+    async write(bytes) {return {confirmedBytes: bytes.byteLength};},
+    async finish() {return {confirmed: true};},
+  });
+  options.control = {...f.control, captureIssuedDeliveryAttempt: undefined};
+  facade.beginDeliveryAttempt = () => assert.fail('missing issuer capture must use separate create/append');
+  let initialRecords = 0;
+  const append = f.store.appendDeliveryRecord;
+  facade.appendDeliveryRecord = wire => {
+    if (JSON.parse(wire).state === 'streaming') initialRecords++;
+    return Reflect.apply(append, f.store, [wire]);
+  };
+  assert.equal((await deliverPublishedResult(options)).idempotent, false);
+  assert.equal(initialRecords, 1);
+  facade.beginDeliveryAttempt = false;
+  await assert.rejects(deliverPublishedResult(options), {code: 'InvalidResultDeliveryStore'});
+});
+
+test('current Deny after joint START still prevents the first protected row exposure', async t => {
+  const f = await fixture(t, undefined, false);
+  let writes = 0;
+  const {options} = deliveryOptions(f, {
+    async write(bytes) {writes++; return {confirmedBytes: bytes.byteLength};},
+    async finish() {return {confirmed: true};},
+  });
+  options.authorize = facts => facts.stage !== 'read';
+  await assert.rejects(deliverPublishedResult(options), {code: 'ResultDeliveryDenied'});
+  assert.equal(writes, 0);
+  assert.equal((await f.store.latestDeliveryRecord(f.root.attempt.identity)).state, 'failed');
+});
+
+test('lost START directory ACK reply keeps its same attempt unresolved without sending or refunding', async t => {
+  let armed = false;
+  const f = await fixture(t, (path, phase) => {
+    if (armed && phase === 'after' && path === join(f.directory, 'deliveries')) {
+      throw Object.assign(new Error('lost START ACK reply'), {code: 'EIO'});
+    }
+  }, false);
+  let writes = 0;
+  const sink = {async write(bytes) {writes++; return {confirmedBytes: bytes.byteLength};},
+    async finish() {return {confirmed: true};}};
+  const {options} = deliveryOptions(f, sink);
+  armed = true;
+  await assert.rejects(deliverPublishedResult(options), {code: 'EIO'});
+  assert.equal(writes, 0);
+  await assert.rejects(deliverPublishedResult(options), {code: 'ResultDeliveryAttemptUnresolved'});
+  armed = false;
+  await f.store.close();
+  const recovered = await f.reopen();
+  const next = deliveryOptions({...f, store: recovered}, sink).options;
+  await assert.rejects(deliverPublishedResult(next), {code: 'ResultDeliveryAttemptUnresolved'});
+  assert.equal((await recovered.latestDeliveryRecord(f.root.attempt.identity)).state, 'streaming');
+  assert.equal(writes, 0);
 });
 
 test('joint END retains a lost final ACK reply without reissuing receipt or payload', async t => {
