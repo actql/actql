@@ -18729,7 +18729,7 @@
     {
       "module": "adapters/host-node/client-request-journal.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "ba3f4491339ab3d7aa991171ec79fdda76ba6d856be80499c23ecf79cc53991e",
+      "sha256": "89ce0b11246497bb019917df6cdcc8c69f5fcfbc6b408b03dd72cc0c31256d3a",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
@@ -18788,6 +18788,49 @@
             "primaryCurrent",
             "primaryDirectoryInspection",
             "inspectionTemporaryDirectory"
+          ],
+          "async": false
+        },
+        {
+          "name": "adoptSubmissionUsageStorage",
+          "parameters": [
+            "database",
+            "transaction"
+          ],
+          "async": false
+        },
+        {
+          "name": "adoptSubmissionUsageStorage/adoptSubmissionUsageStorage",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "adoptSubmissionUsageStorage/adoptSubmissionUsageStorage/adoptSubmissionUsageStorage",
+          "parameters": [
+            "n"
+          ],
+          "async": false
+        },
+        {
+          "name": "adoptSubmissionUsageStorage/adoptSubmissionUsageStorage/adoptSubmissionUsageStorage#2",
+          "parameters": [
+            "sql"
+          ],
+          "async": false
+        },
+        {
+          "name": "adoptSubmissionUsageStorage/adoptSubmissionUsageStorage/adoptSubmissionUsageStorage#3",
+          "parameters": [
+            "sql"
+          ],
+          "async": false
+        },
+        {
+          "name": "adoptSubmissionUsageStorage/adoptSubmissionUsageStorage/retained/retained",
+          "parameters": [
+            "table",
+            "wire",
+            "index"
           ],
           "async": false
         },
@@ -19248,6 +19291,41 @@
           "parameters": [
             "field"
           ],
+          "async": false
+        },
+        {
+          "name": "inspectSubmissionUsageStorage",
+          "parameters": [
+            "database",
+            "enabled"
+          ],
+          "async": false
+        },
+        {
+          "name": "inspectSubmissionUsageStorage/inspectSubmissionUsageStorage",
+          "parameters": [
+            "name",
+            "sql"
+          ],
+          "async": false
+        },
+        {
+          "name": "inspectSubmissionUsageStorage/inspectSubmissionUsageStorage/inspectSubmissionUsageStorage",
+          "parameters": [
+            "row"
+          ],
+          "async": false
+        },
+        {
+          "name": "inspectSubmissionUsageStorage/names/names",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "inspectSubmissionUsageStorage/schema/schema",
+          "parameters": [],
           "async": false
         },
         {
@@ -20237,7 +20315,8 @@
             "outcome",
             "restartWire",
             "requestId",
-            "control"
+            "control",
+            "originalCustody"
           ],
           "async": false
         },
@@ -20474,6 +20553,22 @@
           "async": false
         },
         {
+          "name": "submissionUsageTables/submissionUsageTables",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "submissionUsageTriggers/submissionUsageTriggers",
+          "parameters": [
+            "usage",
+            "table",
+            "wire"
+          ],
+          "async": false
+        },
+        {
           "name": "syncDirectory",
           "parameters": [
             "path"
@@ -20546,6 +20641,13 @@
         },
         {
           "name": "validEpochAuthority",
+          "parameters": [
+            "row"
+          ],
+          "async": false
+        },
+        {
+          "name": "validSubmissionUsage/validSubmissionUsage",
           "parameters": [
             "row"
           ],
@@ -21223,6 +21325,10 @@
               {
                 "path": "adapters/host-node/client-submission-operation.test.mjs",
                 "anchor": "one actual submit retains epoch authentication and one durable floor through the same Run acceptance"
+              },
+              {
+                "path": "adapters/host-node/client-submission-usage.test.mjs",
+                "anchor": "new submitted intent uses no historical aggregate with ${history} retained originals"
               }
             ]
           }
@@ -21901,6 +22007,107 @@
               {
                 "path": "adapters/host-node/client-original-plan-control.test.mjs",
                 "anchor": "restored map checks original Plan Program and self CID without another compilation"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "adoptSubmissionUsageStorage",
+            "adoptSubmissionUsageStorage/adoptSubmissionUsageStorage",
+            "adoptSubmissionUsageStorage/adoptSubmissionUsageStorage/adoptSubmissionUsageStorage",
+            "adoptSubmissionUsageStorage/adoptSubmissionUsageStorage/adoptSubmissionUsageStorage#2",
+            "adoptSubmissionUsageStorage/adoptSubmissionUsageStorage/adoptSubmissionUsageStorage#3",
+            "adoptSubmissionUsageStorage/adoptSubmissionUsageStorage/retained/retained",
+            "inspectSubmissionUsageStorage",
+            "inspectSubmissionUsageStorage/inspectSubmissionUsageStorage",
+            "inspectSubmissionUsageStorage/inspectSubmissionUsageStorage/inspectSubmissionUsageStorage",
+            "inspectSubmissionUsageStorage/names/names",
+            "inspectSubmissionUsageStorage/schema/schema",
+            "submissionUsageTables/submissionUsageTables",
+            "submissionUsageTriggers/submissionUsageTriggers",
+            "validSubmissionUsage/validSubmissionUsage"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "### Indexed submission retention usage"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "function inspectSubmissionUsageStorage(database, enabled)"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "function adoptSubmissionUsageStorage(database, transaction)"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "const counts = [issued-retired,restarts];"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "originalDatabaseClose ??= connection.close;"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "### Indexed submission retention usage"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Native triggers update these private metadata rows atomically"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "if (!enabled || schema.length !== originals.length || originals.some(([name,sql]) =>"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "if (closed) fail('ClientRequestJournalClosed');"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "retained_bytes INTEGER NOT NULL CHECK (retained_bytes >= 0 AND retained_bytes <= 67108864)"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "row.n !== counts[index]"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "### Indexed submission retention usage"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "if (!existsSync(join(root, usageMarkerName))) {"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-submission-usage.test.mjs",
+                "anchor": "new submitted intent uses no historical aggregate with ${history} retained originals"
+              },
+              {
+                "path": "adapters/host-node/client-submission-usage.test.mjs",
+                "anchor": "failed original row mutation rolls back usage and issuance in the same native transaction"
               }
             ]
           }

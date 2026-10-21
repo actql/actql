@@ -172,6 +172,28 @@ Replacing them with storage-independent transition guarantees requires a
 separately reviewed semantic change and failure/concurrency evidence.
 
 
+### Indexed submission retention usage
+
+The existing Node request Journal maintains retained count and UTF-8 wire-byte
+usage for submitted intents and explicit restart links in its own SQLite
+database. Native triggers update these private metadata rows atomically with
+the original insertion, deletion or wire mutation; they do not create another
+authority or accounting Ledger. Formal intent retirement still increments the
+existing retired counter, and retained count plus retired count must equal
+original issued count. Restart retention remains distinct and cannot refund an
+issued link. Existing record and byte quotas, target identity, current
+authorization and transaction outcomes are unchanged.
+
+A bounded one-time legacy adoption derives usage from the original
+issuance/retirement prefix and detects extra or missing rows. Its durable
+feature marker and exact private table/trigger definitions distinguish complete
+coverage from missing adopted metadata. Later ordinary opens and admissions
+read only the singleton usage rows and selected original, not aggregate
+historical intent or restart bodies. Failed row changes roll back their usage;
+an unknown COMMIT remains unknown and cannot certify another insertion or a
+safe resend. This does not replace the original Run/intent reconstruction or
+any real native close acknowledgement.
+
 ## Original query evaluation time
 
 Query invocation time belongs to the admitted Run, not to policy metadata or
