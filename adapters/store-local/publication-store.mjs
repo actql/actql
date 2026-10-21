@@ -6201,6 +6201,7 @@ async function openOriginalLocalPublicationStore(
       }
       const holding = await readPhysicalHoldingAt(
         resolve(physicalHoldingsDirectory, name),
+        `sha256:${name.slice(0, -5)}`,
       );
       if (holding.objects.some(object => object.cid === materialCid)) {
         return true;
