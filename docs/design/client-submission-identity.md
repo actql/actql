@@ -58,8 +58,16 @@ authorize issuance. Nor may a lost replay record under an unexpired identity
 be interpreted as unused: the existing submission-custody fence still applies.
 
 For an epoch-bound admission, the original binding is authenticated before
-Run-definition issuance and checked again inside atomic acceptance after any
-await. Expiry at that second boundary commits only the watermark, not a Run or
+Run-definition issuance. One public operation retains its deeply frozen epoch,
+Common handle and authenticated key binding through its internal continuations;
+an internal await or trusted Journal read does not repeat that authentication.
+Atomic acceptance still checks the same current key, authority scope, retained
+intent and interval. A changed key must authenticate again, and a new public
+operation acquires its own facts rather than inheriting the previous operation.
+One durable clock floor covers unchanged internal observations. Crossing an
+interval boundary records the new monotonic observation before returning it;
+the actual retained row, not a pending memo, establishes durable acceptance.
+Expiry at that boundary commits only the watermark, not a Run or
 an issuance-count advance. A retained matching acceptance may still be
 identified after epoch expiry without issuing another Run. Changed intent
 remains a conflict under the existing common identity relation.

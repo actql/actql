@@ -1867,22 +1867,39 @@ export function openClientRequestJournal(directory, {
   };
   const epochAuthority = database.prepare('SELECT * FROM client_submission_epoch_authority WHERE singleton = 1');
   const advanceEpochTime = database.prepare('UPDATE client_submission_epoch_authority SET observed_at = ? WHERE singleton = 1');
-  const epochClock = () => {
+  const submissionOperations = new WeakMap();
+  const epochClock = (operation, persist = true) => {
     const row = epochAuthority.get();
     if (!validEpochAuthority(row)) fail('ClientSubmissionEpochCustodyLost');
     const now = submissionEpochNow();
     if (!Number.isSafeInteger(now) || now < 0 ||
         now > Number.MAX_SAFE_INTEGER - maxEpochTtlMs) fail('ClientSubmissionEpochClockInvalid');
-    const observedAt = Math.max(now, row.observed_at);
-    advanceEpochTime.run(observedAt);
-    return {...row, observed_at: observedAt};
+    const observedAt = Math.max(now, row.observed_at, operation?.floor ?? 0);
+    let floor = observedAt;
+    if (operation !== undefined) {
+      const boundary = observedAt < operation.epoch.notBefore ? 'early' :
+        observedAt >= operation.epoch.expiresAt ? 'expired' : 'admissible';
+      // One durable floor belongs to this public operation, not each private
+      // getter. A newly observed interval boundary still has its own durable
+      // consequence. The retained row, never this memo, establishes its ACK.
+      if (operation.boundary !== boundary) {
+        operation.floor = Math.max(operation.floor ?? 0, observedAt);
+        operation.boundary = boundary;
+      }
+      floor = operation.floor;
+    }
+    const needsWrite = floor > row.observed_at;
+    if (persist && needsWrite) advanceEpochTime.run(floor);
+    return {...row, observed_at: observedAt, needsWrite};
   };
   const epochHandle = (epoch, control) => {
+    const operation = submissionOperations.get(epoch);
+    if (operation?.control === control && operation.original !== undefined) return operation.original;
     if (epoch === null || typeof epoch !== 'object' || Array.isArray(epoch) ||
         JSON.stringify(Object.keys(epoch).sort()) !== JSON.stringify([
           'authenticator', 'authorityScopeCid', 'epochNonce', 'expiresAt', 'notBefore', 'version',
         ])) fail('ClientSubmissionEpochUnverifiable');
-    const captured = Object.freeze({...epoch});
+    const captured = operation?.control === control ? epoch : Object.freeze({...epoch});
     if (captured.version !== 'actql-submission-epoch/0.1' ||
         !cid(captured.authorityScopeCid) || !hexKey(captured.epochNonce) ||
         !Number.isSafeInteger(captured.notBefore) || !Number.isSafeInteger(captured.expiresAt) ||
@@ -1891,33 +1908,55 @@ export function openClientRequestJournal(directory, {
     const handle = control.clientSubmissionEpoch(captured.authorityScopeCid,
       captured.epochNonce, captured.notBefore, captured.expiresAt);
     if (handle === undefined) fail('ClientSubmissionEpochUnverifiable');
-    return {captured, handle};
+    const original = {captured, handle};
+    if (operation?.control === control) operation.original = original;
+    return original;
   };
   const authenticateEpoch = (key, wire) => createHmac('sha256',
     Buffer.from(key, 'hex')).update(wire, 'utf8').digest('hex');
-  const verifyEpochLocked = (epoch, {authorityScopeCid, currentAuthorization,
-    purpose}, control) => {
+  const authenticateOriginalEpoch = (epoch, control, authority, code) => {
+    const original = epochHandle(epoch, control);
+    const operation = submissionOperations.get(epoch);
+    if (operation?.control !== control || operation.authenticationKey !== authority.authentication_key) {
+      const authenticated = authenticateEpoch(authority.authentication_key,
+        control.clientSubmissionEpochWire(original.handle));
+      if (!timingSafeEqual(Buffer.from(authenticated, 'hex'),
+        Buffer.from(original.captured.authenticator, 'hex'))) fail(code);
+      if (operation?.control === control) operation.authenticationKey = authority.authentication_key;
+    }
+    return original;
+  };
+  const inspectEpoch = (epoch, {authorityScopeCid, currentAuthorization,
+    purpose}, control, persist) => {
     ensureOpen();
     if (currentAuthorization !== true) fail('ClientSubmissionEpochUnauthorized');
     if (!cid(authorityScopeCid) || !['admit', 'lookup'].includes(purpose)) {
       fail('InvalidClientSubmissionEpochOperation');
     }
-    const {captured, handle} = epochHandle(epoch, control);
-    const clock = epochClock();
-    const authenticated = authenticateEpoch(clock.authentication_key,
-      control.clientSubmissionEpochWire(handle));
-    if (!timingSafeEqual(Buffer.from(authenticated, 'hex'),
-      Buffer.from(captured.authenticator, 'hex'))) fail('ClientSubmissionEpochUnverifiable');
+    const operation = submissionOperations.get(epoch);
+    const clock = epochClock(operation?.control === control ? operation : undefined, persist);
+    const {captured, handle} = authenticateOriginalEpoch(epoch, control, clock,
+      'ClientSubmissionEpochUnverifiable');
     if (captured.authorityScopeCid !== authorityScopeCid) {
       fail('ClientSubmissionEpochScopeMismatch');
     }
     const validity = control.clientSubmissionEpochValidity(handle, clock.observed_at);
     if (validity === undefined) fail('ClientSubmissionEpochClockInvalid');
-    return {handle, epoch: captured, validity,
-      epochCid: control.clientSubmissionEpochCid(handle)};
+    if (operation?.control === control && operation.epochCid === undefined) {
+      operation.epochCid = control.clientSubmissionEpochCid(handle);
+    }
+    return {verified: {handle, epoch: captured, validity,
+      epochCid: operation?.control === control ? operation.epochCid : control.clientSubmissionEpochCid(handle)},
+    needsWrite: clock.needsWrite};
   };
-  const verifyEpoch = (epoch, fields, control) =>
-    transaction.run(() => verifyEpochLocked(epoch, fields, control));
+  const verifyEpochLocked = (epoch, fields, control) => inspectEpoch(epoch, fields, control, true).verified;
+  const verifyEpoch = (epoch, fields, control) => {
+    if (submissionOperations.get(epoch)?.control === control) {
+      const observed = inspectEpoch(epoch, fields, control, false);
+      if (!observed.needsWrite) return observed.verified;
+    }
+    return transaction.run(() => verifyEpochLocked(epoch, fields, control));
+  };
   const checkSubmissionBinding = (fields, submission, control, locked = false) => {
     if (submission === undefined) return 'admissible';
     const verify = locked ? verifyEpochLocked : verifyEpoch;
@@ -1933,7 +1972,7 @@ export function openClientRequestJournal(directory, {
       assertIntentCustody();
       const row = intentSelect.get(requestId);
       if (row === undefined) fail('ClientSubmittedIntentCustodyLost');
-      const retained = retainedIntent(row, control);
+      const retained = retainedIntent(row, control, submission.epoch);
       if (retained.intentCid !== submission.intentCid ||
           !['preparing', 'held', 'ready'].includes(retained.phase)) {
         fail('ClientSubmittedIntentConflict');
@@ -2006,7 +2045,7 @@ export function openClientRequestJournal(directory, {
     assertRestartCustody();
     const existing = intentSelect.get(requestId);
     if (existing !== undefined) {
-      const previous = retainedIntent(existing, control);
+      const previous = retainedIntent(existing, control, submissionRef.epoch);
       if (previous.intentCid !== original.identity) rejectSubmission('ClientSubmittedIntentConflict', 'conflict', 'intent');
       if (restartSelect.get(requestId)?.link_wire !== restartWire) rejectSubmission('ClientSubmissionRestartConflict', 'conflict', 'restart_decision');
       return {inserted: false, ...previous};
@@ -2035,7 +2074,7 @@ export function openClientRequestJournal(directory, {
         SET issued_count = issued_count + 1 WHERE singleton = 1 AND issued_count = ?`)
         .run(restarts.n).changes) !== 1) fail('ClientSubmissionRestartCustodyLost');
     }
-    return {inserted: true, ...retainedIntent(intentSelect.get(requestId), control)};
+    return {inserted: true, ...retainedIntent(intentSelect.get(requestId), control, submissionRef.epoch)};
   };
   const restartDecision = (submissionRef, intentCid, unresolvedHistory, actorId) => {
     if (unresolvedHistory === undefined) return undefined;
@@ -2113,16 +2152,16 @@ export function openClientRequestJournal(directory, {
     Object.freeze(link.freshSubmissionRef.epoch); Object.freeze(link.freshSubmissionRef);
     return Object.freeze(link);
   };
-  const retainedIntent = (row, control) => {
+  const retainedIntent = (row, control, originalEpoch) => {
     const intent = control.clientSubmittedIntent(row.intent_wire, 1048576, 65536, 64);
     if (intent === undefined || control.clientSubmittedIntentCid(intent) !== row.intent_cid ||
         control.clientSubmittedIntentWire(intent) !== row.intent_wire) fail('ClientSubmittedIntentCorrupt');
-    const epoch = JSON.parse(row.epoch_wire);
-    const {handle} = epochHandle(epoch, control);
+    const operation = submissionOperations.get(originalEpoch);
+    const epoch = operation?.control === control &&
+      operation.wire === row.epoch_wire ? originalEpoch : JSON.parse(row.epoch_wire);
     const authority = epochAuthority.get();
     if (!validEpochAuthority(authority)) fail('ClientSubmissionEpochCustodyLost');
-    if (authenticateEpoch(authority.authentication_key, control.clientSubmissionEpochWire(handle)) !==
-        epoch.authenticator) fail('ClientSubmittedIntentCorrupt');
+    const {handle} = authenticateOriginalEpoch(epoch, control, authority, 'ClientSubmittedIntentCorrupt');
     if (control.clientSubmissionRequestId(handle, row.nonce) !== row.submission_id ||
         epoch.authorityScopeCid !== row.authority_scope_cid ||
         !Number.isSafeInteger(row.accepted_at) || row.accepted_at < epoch.notBefore ||
@@ -2371,7 +2410,7 @@ export function openClientRequestJournal(directory, {
       let originalAdmissionEvidence = admissionEvidence;
       const admittedEvidence = admissionEvidence === null ? undefined : JSON.parse(admissionEvidence);
       if (submission?.intentCid !== undefined && admittedEvidence !== undefined) {
-        const original = retainedIntent(intentSelect.get(fields.requestId), control);
+        const original = retainedIntent(intentSelect.get(fields.requestId), control, submission.epoch);
         if (admittedEvidence.submittedIntentCid !== undefined &&
             admittedEvidence.submittedIntentCid !== original.intentCid) {
           fail('ClientRequestSubmittedIntentMismatch');
@@ -2456,6 +2495,19 @@ export function openClientRequestJournal(directory, {
     observationSql?.retireClosedNativeAliases();
   };
   const journal = Object.freeze({
+    // The submission adapter owns one deeply frozen snapshot per public call.
+    // Only that exact epoch may reuse pure authentication and its durable
+    // time floor. Current permission and the retained authority row are still
+    // checked at use; releasing this scope retains no cross-operation fact.
+    retainSubmissionOperation(epoch, control) {
+      ensureOpen();
+      if (epoch === undefined) return undefined;
+      if (epoch === null || typeof epoch !== 'object' || !Object.isFrozen(epoch) ||
+          submissionOperations.has(epoch)) fail('InvalidClientSubmissionOperation');
+      const operation = {epoch, control, wire: canonicalValueJson(epoch, {dataKeys: true})};
+      submissionOperations.set(epoch, operation);
+      return () => {submissionOperations.delete(epoch);};
+    },
     closeObservationStorage,
     observationStorage() {
       ensureOpen();
@@ -2579,7 +2631,7 @@ export function openClientRequestJournal(directory, {
         if (requestId === undefined) fail('InvalidClientSubmittedIntent');
         const existing = intentSelect.get(requestId);
         if (existing !== undefined) {
-          const previous = retainedIntent(existing, control);
+          const previous = retainedIntent(existing, control, submissionRef.epoch);
           if (previous.intentCid !== original.identity) rejectSubmission('ClientSubmittedIntentConflict', 'conflict', 'intent');
           if (restartSelect.get(requestId)?.link_wire !== restartWire) rejectSubmission('ClientSubmissionRestartConflict', 'conflict', 'restart_decision');
         } else {
@@ -2632,7 +2684,7 @@ export function openClientRequestJournal(directory, {
       const requestId = control.clientSubmissionRequestId(verified.handle, submissionRef.nonce);
       if (requestId === undefined) fail('InvalidClientSubmissionNonce');
       const row = intentSelect.get(requestId);
-      return row === undefined ? undefined : retainedIntent(row, control);
+      return row === undefined ? undefined : retainedIntent(row, control, submissionRef.epoch);
     },
     // Explicit trusted-Host retention operation, not a Client cancellation
     // or evidence of nonexecution. In-progress and Run-connected custody stays
@@ -2652,7 +2704,7 @@ export function openClientRequestJournal(directory, {
         if (current.validity !== 'expired') fail('ClientSubmittedIntentNotRetirable');
         const row = intentSelect.get(requestId);
         if (row === undefined) return {retired: false};
-        const original = retainedIntent(row, control);
+        const original = retainedIntent(row, control, submissionRef.epoch);
         if (original.revision !== expectedRevision) fail('ClientSubmittedIntentRetirementConflict');
         if (!['not_accepted', 'preparation_failed'].includes(original.phase) ||
             select.get(authorityScopeCid, requestId) !== undefined) {
@@ -2679,7 +2731,7 @@ export function openClientRequestJournal(directory, {
         assertIntentCustody();
         const row = intentSelect.get(requestId);
         if (row === undefined) fail('ClientSubmittedIntentCustodyLost');
-        const retained = retainedIntent(row, control);
+        const retained = retainedIntent(row, control, submissionRef.epoch);
         if (!sameSubmissionRef(retained.submissionRef, submissionRef) ||
             !validSubmissionOutcome(outcome, connection, submissionRef, retained.intentCid)) {
           fail('InvalidClientSubmittedIntentOutcome');
@@ -2697,7 +2749,7 @@ export function openClientRequestJournal(directory, {
         database.prepare(`UPDATE client_submitted_intents SET phase = ?, outcome_wire = ?, revision = revision + 1
           WHERE submission_id = ? AND revision = ?`).run(outcome.kind,
           canonicalValueJson(outcome, {dataKeys: true}), requestId, expectedRevision);
-        return retainedIntent(intentSelect.get(requestId), control);
+        return retainedIntent(intentSelect.get(requestId), control, submissionRef.epoch);
       });
     },
     issueSubmissionEpoch({authorityScopeCid, currentAuthorization}, control) {
