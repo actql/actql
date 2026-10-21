@@ -575,10 +575,10 @@ fn NativeClientRunJournal::operation_row(
 }
 
 ///|
-// One admitted row in the same Journal transaction. Every use still reads the
-// actual row and compares its exact revision and bytes. No absence, authority,
-// currentness or physical acknowledgement is cached. The slot is cleared before
-// mutation and before transaction completion, including rollback and Unknown.
+// Reuse the admitted row in the unchanged operation or SQLite snapshot. A
+// newly observed row must match its exact revision and bytes before reuse.
+// Relevant mutation, failure and operation/transaction end invalidate the
+// slot; a retained value supplies no physical cleanup acknowledgement.
 fn NativeClientRunJournal::admit_retained_record(
   self : NativeClientRunJournal,
   key : String,
@@ -697,8 +697,8 @@ fn NativeClientRunJournal::retained_with_issuance(
 ///|
 // No Record/Checkpoint/definition escapes this boundary. Hold only the original
 // wire and a deferred identity refusal before the work's full Policy admission.
-// Policy validation must precede identity refusal, including a row changed by
-// the second current callback after the initial normal custody scan.
+// Policy admission precedes identity refusal. Relevant application reentry or
+// target mutation invalidates operation facts before a new row is selected.
 fn extract_run_policy_wire(
   row : @sqlite.NativeJournalValue,
   requested : @host.ClientRequestIdentity,
@@ -725,8 +725,8 @@ fn extract_admitted_run_policy_wire(
 }
 
 ///|
-// Re-read the selected row inside the existing transaction; no Host cache.
-// Only lookup work consumes this private raw-wire extraction.
+// Select the original row or reuse its existing operation fact in the same
+// transaction. Only lookup work consumes this private raw-wire extraction.
 fn NativeClientRunJournal::retained_policy_wire(
   self : NativeClientRunJournal,
   requested : @host.ClientRequestIdentity,
