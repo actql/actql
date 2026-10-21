@@ -1701,7 +1701,31 @@ async function openOriginalLocalPublicationStore(
       if (error?.code === 'ENOENT') return undefined;
       throw error;
     }
-    return parseMetadataInventory(bytes);
+    const inventory = parseMetadataInventory(bytes);
+    if (inventory.public_index_entry_cid !== publicIndexEntryCid) {
+      fail('InvalidPublicationMetadataInventoryStore');
+    }
+    return inventory;
+  };
+
+  const requireCommittedMetadataInventory = async entry => {
+    const inventory = await readMetadataInventory(entry.public_index_entry_cid);
+    if (inventory === undefined ||
+        inventory.namespace_id !== entry.namespace_id ||
+        inventory.authority_scope_cid !== entry.authority_scope_cid ||
+        inventory.run_definition_cid !== entry.run_definition_cid ||
+        inventory.publication_attempt_cid !== entry.publication_attempt_cid) {
+      fail('InvalidPublicationMetadataInventoryStore');
+    }
+    // Only this selected publication's owner links belong to the read.
+    // Payload availability remains the actual Result consumer's duty.
+    for (const holdingCid of inventory.physical_holding_cids) {
+      if (await readPhysicalHoldingDeletion(holdingCid) !== undefined ||
+          await readPhysicalHolding(holdingCid) === undefined) {
+        fail('InvalidPublicationMetadataInventoryStore');
+      }
+    }
+    return inventory;
   };
 
   const ensureMetadataInventory = async value => {
@@ -4641,7 +4665,9 @@ async function openOriginalLocalPublicationStore(
   const inspectCommittedIndex = async key => {
     const keyHash = indexKey(key);
     if (await readMetadataDeletion(keyHash) !== undefined) return undefined;
-    return inspectCommittedIndexRaw(key);
+    const entry = await inspectCommittedIndexRaw(key);
+    if (entry !== undefined) await requireCommittedMetadataInventory(entry);
+    return entry;
   };
 
   const confirmCommittedIndex = async key => {
@@ -4672,12 +4698,18 @@ async function openOriginalLocalPublicationStore(
     return entry;
   };
 
+  const confirmSelectedCommittedIndex = async key => {
+    const entry = await confirmCommittedIndex(key);
+    if (entry !== undefined) await requireCommittedMetadataInventory(entry);
+    return entry;
+  };
+
   const lookupCommittedIndex = async (key, authorize) => {
     active();
     if (typeof authorize !== 'function' || authorize(Object.freeze({...key})) !== true) {
       fail('PublicationLookupDenied');
     }
-    const entry = await confirmCommittedIndex(key);
+    const entry = await confirmSelectedCommittedIndex(key);
     if (entry === undefined || authorize(Object.freeze({...key, entry})) !== true) {
       // Missing and unauthorized entries deliberately share one external code.
       fail('PublicationLookupDenied');
@@ -4774,7 +4806,7 @@ async function openOriginalLocalPublicationStore(
     resultDefinitionCid,
   ) => {
     cidHex(resultDefinitionCid);
-    const entry = await confirmCommittedIndex(key);
+    const entry = await confirmSelectedCommittedIndex(key);
     if (entry === undefined) fail('PublicationLookupDenied');
     const matches = [];
     for (const bindingCid of entry.durable_result_binding_cids) {
@@ -4974,7 +5006,7 @@ async function openOriginalLocalPublicationStore(
     );
     const expectedContent = await confirmCapturedContentHoldings(
       suppliedEvidence.capturedRun, suppliedEvidence.runDefinition);
-    const inventory = await readMetadataInventory(admitted.identity);
+    const inventory = await requireCommittedMetadataInventory(committed);
     if (inventory?.physical_holding_cids.join('\0') !== expectedContent.join('\0')) {
       fail('InvalidPublicationMetadataInventoryStore');
     }
@@ -5301,9 +5333,7 @@ async function openOriginalLocalPublicationStore(
       },
       conflict() { fail('PublicationCommitConflict'); },
       async verifyExistingInventory(existingCommit) {
-        const inventory = await readMetadataInventory(
-          existingCommit.public_index_entry_cid,
-        );
+        const inventory = await requireCommittedMetadataInventory(existingCommit);
         const directlyRequired = [
           existingCommit.public_index_entry_cid,
           existingCommit.invocation_cid,
@@ -5403,7 +5433,7 @@ async function openOriginalLocalPublicationStore(
     if (committed?.public_index_entry_cid !== inspected.index.identity) {
       fail('InvalidCommittedPublicationIndex');
     }
-    const inventory = await readMetadataInventory(inspected.index.identity);
+    const inventory = await requireCommittedMetadataInventory(committed);
     const expectedHoldings = [inspected.privateHoldingCid,
       ...inspected.effectSourceHoldingCids,
       ...(inspected.captureHoldingCid === undefined ? [] :
@@ -7373,36 +7403,6 @@ async function openOriginalLocalPublicationStore(
     return Object.freeze(recovered);
   };
 
-  const validateCommittedMetadataInventories = async () => {
-    for (const name of await readdir(indexesDirectory)) {
-      if (!/^[0-9a-f]{64}\.json$/u.test(name)) {
-        fail('InvalidPublicationStoreIndex');
-      }
-      const keyHash = name.slice(0, -5);
-      const index = admitContract(
-        'public_index_entry',
-        (await readBounded(
-          resolve(indexesDirectory, name), configuration.maxObjectBytes,
-        )).toString('utf8'),
-      );
-      const inventory = await readMetadataInventory(index.identity);
-      if (inventory === undefined ||
-          inventory.public_index_entry_cid !== index.identity) {
-        fail('InvalidPublicationMetadataInventoryStore');
-      }
-      if (await readMetadataDeletion(keyHash) === undefined) {
-        for (const holdingCid of inventory.physical_holding_cids) {
-          // Validate the index-to-owner link without opening its payloads.
-          // Payload availability is checked by the actual Result consumer.
-          if (await readPhysicalHoldingDeletion(holdingCid) !== undefined ||
-              await readPhysicalHolding(holdingCid) === undefined) {
-            fail('InvalidPublicationMetadataInventoryStore');
-          }
-        }
-      }
-    }
-  };
-
   // Immutable holding bodies are admitted at their selected read. Pending
   // deletion recovery below still owns its exact records and original ACKs;
   // unrelated history is not another ordinary opening admission boundary.
@@ -7422,8 +7422,6 @@ async function openOriginalLocalPublicationStore(
   // Recovery resumes the exact durable cleanup without treating an absent
   // object name as proof that another live holding was released.
   await recoverPhysicalHoldingDeletions();
-
-  await validateCommittedMetadataInventories();
 
   // A terminal attempt that never won the public index retains an exact
   // inventory until every unshared metadata allocation is durably reclaimed.
@@ -7630,7 +7628,7 @@ async function openOriginalLocalPublicationStore(
     validateCommittedEffectfulEvidence,
     inspectEffectfulStoredEvidence,
     inspectCommittedIndex,
-    confirmCommittedIndex,
+    confirmCommittedIndex: confirmSelectedCommittedIndex,
     lookupCommittedIndex,
     publicationCapacitySupports(requirement) {
       active();
