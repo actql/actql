@@ -2490,6 +2490,7 @@ insertion, issued-counter CAS, rollback and sticky Unknown responsibilities.
 Fresh setup or explicit maintenance installs the index inside its original
 transaction after a complete finite table-work prepass. No ordinary read
 performs DDL, migration, repair or a global evidence audit.
+
 ## Retained Store DATA lifetime
 
 Within the existing validated command capture, immutable committed Result DATA
@@ -2506,3 +2507,19 @@ does not by itself invalidate immutable DATA. The query performs no SQL, scope
 transition, callback, permission evaluation, capacity return or cleanup ACK.
 The existing Host/capture still supplies current authority and actual physical
 pair/Read lifetime; this observation cannot substitute for those boundaries.
+
+### Run-definition collision lookup
+
+After a physical insert reports a constraint collision, the existing Journal
+may query `Database::client_run_definition_key` in that same transaction. The
+fixed equality lookup uses the already admitted definition index and copies at
+most one bounded record key. A second row, missing index, physical failure or
+failed statement retirement refuses; there is no namespace scan or fallback.
+The normal successful insertion path performs no added lookup.
+
+The key supplies no Run identity or authority. The Journal must read and admit
+the exact target record before classifying a duplicate definition. A confirmed
+miss preserves the original generic collision; unrelated constraints are not
+silently relabeled. This query neither owns a transaction nor acknowledges a
+commit, retry or cleanup. Input and returned key use the existing 512-byte
+physical name bound; the original CID and Run Owners retain semantic admission.

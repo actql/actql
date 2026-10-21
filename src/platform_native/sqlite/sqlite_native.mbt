@@ -150,6 +150,40 @@ pub fn Database::install_client_run_definition_schema(
 }
 
 ///|
+#borrow(database, definition)
+extern "C" fn client_run_definition_key_ffi(
+  database : Database,
+  definition : Bytes,
+  length : Int,
+) -> Int = "actql_native_client_run_definition_key"
+
+///|
+/// Bounded locator in this caller's existing transaction and already admitted
+/// exact physical definition index. The Journal must read/authenticate the
+/// target Run before classifying a collision. None authenticates no absence
+/// outside this snapshot. No body, schema scan, mutation or ACK is produced.
+pub fn Database::client_run_definition_key(
+  self : Database,
+  definition_cid : String,
+) -> Result[String?, NativeSqliteIssue] {
+  let definition = @utf8.encode(definition_cid)
+  if !valid_name(definition) {
+    return Err(InvalidName)
+  }
+  self.with_original_store_sql(true, fn() {
+    match client_run_definition_key_ffi(self, definition, definition.length()) {
+      0 => {
+        let bytes = database_result_key_ffi(self)
+        let key = @utf8.decode(bytes) catch { _ => return Err(InvalidName) }
+        Ok(Some(key))
+      }
+      1 => Ok(None)
+      code => Err(operation_issue(self, code))
+    }
+  })
+}
+
+///|
 extern "C" fn command_domain_necessary_bytes_ffi(
   domain_bytes : Int64,
   heap_bytes : Int64,

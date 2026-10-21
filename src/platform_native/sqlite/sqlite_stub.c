@@ -2808,4 +2808,65 @@ int32_t actql_native_sqlite_lookup_stopped_current(
 
 #include "journal_name_inventory.h"
 #include "journal_run_definition.h"
+
+/* Collision diagnosis only, under the caller's existing transaction and
+ * already admitted exact index. The returned locator authenticates no Run. */
+MOONBIT_FFI_EXPORT int32_t actql_native_client_run_definition_key(
+    actql_native_sqlite_database *database, moonbit_bytes_t definition,
+    int32_t length) {
+  if (!actql_run_definition_database_current(database)) return 5;
+  if (definition == NULL || length < 1 || length > 512 ||
+      memchr(definition, 0, (size_t)length) != NULL) return 6;
+  if (database->library->get_autocommit(database->database)) return -1;
+  actql_clear_result(database);
+  sqlite3_stmt *statement = NULL;
+  int code = ACTQL_NATIVE_TIMED_CALL(ACTQL_NATIVE_COUNT_SQL_QUERY,
+    database->library->prepare_v2)(database->database,
+    "SELECT record_key FROM actql_records INDEXED BY actql_client_run_definition_unique "
+    "WHERE namespace='client_runs' AND "
+    "json_extract(json_extract(CAST(body AS TEXT),'$.run_definition'),"
+    "'$.run_definition_cid')=?1 LIMIT 2", -1, &statement, NULL);
+  if (code != SQLITE_OK) {
+    if (statement != NULL) database->library->finalize(statement);
+    actql_database_error(database, "prepare Run definition locator failed");
+    return actql_operation_code(code);
+  }
+  code = database->library->bind_text(statement, 1, (const char *)definition,
+    length, SQLITE_TRANSIENT);
+  int result = 0, key_length = 0;
+  unsigned char *copy = NULL;
+  if (code == SQLITE_OK) {
+    code = ACTQL_NATIVE_TIMED_CALL(ACTQL_NATIVE_COUNT_SQL_STEP,
+      database->library->step)(statement);
+    if (code == SQLITE_DONE) result = 1;
+    else if (code != SQLITE_ROW) result = actql_operation_code(code);
+    else {
+      key_length = database->library->column_bytes(statement, 0);
+      const void *key = database->library->column_blob(statement, 0);
+      if (key == NULL || key_length < 1 || key_length > 512) result = 6;
+      else {
+        copy = actql_adapter_allocate(database->library, (size_t)key_length);
+        if (copy == NULL) result = -1;
+        else memcpy(copy, key, (size_t)key_length);
+      }
+      if (result == 0) {
+        code = ACTQL_NATIVE_TIMED_CALL(ACTQL_NATIVE_COUNT_SQL_STEP,
+          database->library->step)(statement);
+        if (code == SQLITE_ROW) result = -1;
+        else if (code != SQLITE_DONE) result = actql_operation_code(code);
+      }
+    }
+  } else result = actql_operation_code(code);
+  int finalized = database->library->finalize(statement);
+  if ((result == 0 || result == 1) && finalized != SQLITE_OK)
+    result = actql_operation_code(finalized);
+  if (result == 0) {
+    database->result_key = copy;
+    database->result_key_length = key_length;
+  } else {
+    actql_adapter_free(database->library, copy);
+    if (result != 1) actql_database_error(database, "read Run definition locator failed");
+  }
+  return result;
+}
 #include "journal_read_evidence.h"
