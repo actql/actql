@@ -17,11 +17,13 @@ function installation(category, outcome) {
   const owner = {};
   const moon = {
     clientProgramCheckingEnvironmentCid: () => `sha256:${'a'.repeat(64)}`,
+    clientProgramPreparePublicSourceEnvironment: environment => Object.freeze({environment}),
+    clientProgramPublicSourceEnvironmentMatches: (original, environment) => original.environment === environment,
     clientProgramPrepareEffectFreeWithParameters: () => {preparations++; return {issue, category};},
     clientProgramPreparationReady: value => value.prepared,
     clientProgramPreparationIssue: value => value.issue,
     clientProgramPreparationIssueCode: value => value.category,
-    clientProgramPreparePublicSourceComputationWithParameters: () => {preparations++; return {pure: {issue, category}};},
+    clientProgramPrepareSourceComputationInPublicEnvironment: () => {preparations++; return {pure: {issue, category}};},
     clientProgramSourceComputationPure: value => value.pure,
     clientProgramSourceComputationEffect: value => value.effect,
   };
@@ -87,7 +89,7 @@ for (const cause of ['absent Source', 'denied Source', 'unavailable', 'report fa
 test('successful preparation keeps its owner and never consults explanatory diagnostics', async () => {
   const f = installation('source_rejected', invalid);
   const prepared = {};
-  f.moon.clientProgramPreparePublicSourceComputationWithParameters = () => ({pure: {prepared}});
+  f.moon.clientProgramPrepareSourceComputationInPublicEnvironment = () => ({pure: {prepared}});
   assert.equal(await f.prepare(sourceRequest), prepared);
   f.prepare.assertOwned(prepared);
   assert.equal(f.prepare.kindOf(prepared), 'effect_free');

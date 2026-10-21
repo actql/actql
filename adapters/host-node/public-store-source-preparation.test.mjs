@@ -178,6 +178,33 @@ test('public Environment consumer rejects a foreign prepared original before que
   assert.equal(calls.filter(call => ['source', 'effect'].includes(call.kind)).length, 0);
 });
 
+test('retiring one public Environment consumer cuts its aliases without invalidating another holder', () => {
+  const {moon, calls} = ownerDouble();
+  const original = sourceAliasPublication(moon, environment);
+  const retained = sourceAliasPublicationOriginal(moon, environment, original);
+  let currentReads = 0;
+  const selected = installNodePublicSourcePreparation({moon, environment,
+    publication: original, allowEffects: true, getPreparedSourceEnvironment() {
+      currentReads++; return retained.preparedEnvironment;
+    }});
+  const sibling = installNodePublicSourcePreparation({moon, environment,
+    publication: original, allowEffects: true});
+  selected.prepare({document: 'SELECT 1', format: 'sql'});
+  const readsBeforeRetire = currentReads;
+  selected.retireSourceEnvironment();
+  selected.retireSourceEnvironment();
+  assert.throws(() => selected.prepare({document: 'SELECT 2', format: 'sql'}),
+    {message: 'InvalidPublicSourcePreparationEnvironment'});
+  assert.throws(() => selected.prepareEffect({document: '{}', format: 'json'}),
+    {message: 'InvalidPublicSourcePreparationEnvironment'});
+  assert.equal(currentReads, readsBeforeRetire, 'Retirement does not call the released Host slot');
+  assert.equal(calls.filter(call => ['source', 'effect'].includes(call.kind)).length, 1);
+  sibling.prepare({document: 'SELECT 3', format: 'sql'});
+  assert.equal(calls.filter(call => call.kind === 'admit').length, 1);
+  assert.equal(sourceAliasPublicationOriginal(moon, environment, original), retained);
+  assert.equal(calls.at(-1).args[3], retained.preparedEnvironment);
+});
+
 test('public Environment program factory shares publication facts without caching parameter-bound Programs', () => {
   const {moon, calls} = ownerDouble();
   let ordinal = 0;
@@ -229,4 +256,15 @@ test('public Environment program factory shares publication facts without cachin
   assert.equal(legacy.kindOf(absent), 'effectful');
   assert.equal(calls.filter(call => call.kind === 'admit').length, 1,
     'Legacy absent publication does not acquire a public Environment');
+  const beforeRetirement = calls.length;
+  prepare.retireReferences();
+  prepare.retireReferences();
+  assert.throws(() => prepare(request), {code: 'ClientProgramPreparationFailure'});
+  assert.throws(() => prepare({kind: 'program', parameters: null, input: effectDocument}),
+    {code: 'ClientProgramPreparationFailure'});
+  assert.equal(calls.length, beforeRetirement, 'Closed consumers cannot rebuild their released Environment');
+  assert.equal(legacy.kindOf(legacy({kind: 'program', parameters: null, input: effectDocument})), 'effectful');
+  legacy.retireReferences();
+  assert.throws(() => legacy({kind: 'program', parameters: null, input: effectDocument}),
+    {code: 'ClientProgramPreparationFailure'});
 });

@@ -13,14 +13,19 @@ const publication = Object.freeze({environmentCid: cid('a'), aliases: [{
 
 function installation() {
   const calls = [];
+  const admissions = [];
   const prepared = {};
+  const originals = new WeakMap();
   const moon = {
     clientProgramCheckingEnvironmentCid: value => value.generation,
-    clientProgramPrepareSourceWithParameters: (...args) => {
-      calls.push({kind: 'source', args});
-      return {prepared};
+    clientProgramPreparePublicSourceEnvironment: (owner, wire) => {
+      const original = Object.freeze({});
+      originals.set(original, owner);
+      admissions.push({owner, wire, original});
+      return original;
     },
-    clientProgramPreparePublicSourceComputationWithParameters: (...args) => {
+    clientProgramPublicSourceEnvironmentMatches: (original, owner) => originals.get(original) === owner,
+    clientProgramPrepareSourceComputationInPublicEnvironment: (...args) => {
       calls.push({kind: 'source', args});
       return {pure: {prepared}};
     },
@@ -34,12 +39,12 @@ function installation() {
     clientProgramPreparationIssue: outcome => outcome.issue,
     clientProgramPreparationIssueCode: outcome => outcome.code,
   };
-  return {moon, calls, prepared};
+  return {moon, calls, prepared, admissions};
 }
 
 test('source preparation carries one published generation and separate values',
   () => {
-    const {moon, calls, prepared} = installation();
+    const {moon, calls, prepared, admissions} = installation();
     const prepare = installNodeClientProgramPreparation({moon, environment,
       sourcePublication: publication});
     assert.equal(prepare({kind: 'aql', input: {
@@ -59,7 +64,10 @@ test('source preparation carries one published generation and separate values',
       'SELECT id FROM records WHERE id = @p');
     assert.equal(calls[0].args[1], 'sql');
     assert.equal(calls[0].args[2], environment);
-    assert.deepEqual(JSON.parse(calls[0].args[3]), publication);
+    assert.equal(admissions.length, 1);
+    assert.equal(admissions[0].owner, environment);
+    assert.deepEqual(JSON.parse(admissions[0].wire), publication);
+    assert(calls.every(call => call.args[3] === admissions[0].original));
     assert.deepEqual(JSON.parse(calls[0].args[4]),
       {p: {type: 'number'}});
     assert.deepEqual(JSON.parse(calls[0].args[5]), {p: 2});
@@ -85,7 +93,7 @@ test('JSON Program keeps its existing preparation route', () => {
 
 test('new public Source never silently substitutes the historical answer recipe', () => {
   const {moon} = installation();
-  delete moon.clientProgramPreparePublicSourceComputationWithParameters;
+  delete moon.clientProgramPrepareSourceComputationInPublicEnvironment;
   moon.clientProgramPrepareSourceComputationWithParameters = () => {
     assert.fail('an old answer bridge is not the new public primary recipe');
   };
@@ -101,15 +109,16 @@ test('text preparation retains explicitly published write bindings under the com
     mappingCid: cid('d'), capabilityCid: cid('e'), installationBindingCid: cid('f'),
     action: 'create', expectedTable: null}]};
   const validated = [];
-  moon.clientProgramSourcePublicationValid = (owner, wire) => {
-    validated.push({owner, wire}); return true;
+  const admit = moon.clientProgramPreparePublicSourceEnvironment;
+  moon.clientProgramPreparePublicSourceEnvironment = (owner, wire) => {
+    validated.push({owner, wire}); return admit(owner, wire);
   };
   const prepare = installNodeClientProgramPreparation({moon, environment, sourcePublication: writes});
   assert.equal(prepare({kind: 'aql', input: {
     text: 'CREATE TABLE analytics.report AS SELECT 1 AS id', format: 'sql'}, parameters: null}), prepared);
   assert.deepEqual(validated, [{owner: environment, wire: JSON.stringify(writes)}]);
-  assert.deepEqual(JSON.parse(calls[0].args[3]), writes);
-  moon.clientProgramSourcePublicationValid = () => false;
+  assert.equal(moon.clientProgramPublicSourceEnvironmentMatches(calls[0].args[3], environment), true);
+  moon.clientProgramPreparePublicSourceEnvironment = () => undefined;
   const refused = installNodeClientProgramPreparation({moon, environment, sourcePublication: writes});
   assert.throws(() => refused({kind: 'aql', input: {text: 'SELECT 1', format: 'sql'}, parameters: null}),
     {name: 'TypeError', message: 'InvalidPublicSourcePublication'});
@@ -120,10 +129,7 @@ test('lowered text Effect goes directly to its existing owner without resubmitti
   const {moon, calls} = installation();
   const preparedEffect = {};
   const evidence = [{}];
-  moon.clientProgramPrepareSourceWithParameters = () => ({
-    code: 'effect_not_supported', issue: {kind: 'effect'},
-  });
-  moon.clientProgramPreparePublicSourceComputationWithParameters = (...args) => {
+  moon.clientProgramPrepareSourceComputationInPublicEnvironment = (...args) => {
     calls.push({kind: 'source', args});
     return {effect: {preparedEffect}};
   };
@@ -142,8 +148,10 @@ test('lowered text Effect goes directly to its existing owner without resubmitti
     parameterDeclarations: {p: {type: 'string'}}}, parameters: {p: 'e\u0301\r\n'}}),
   preparedEffect);
   assert.equal(prepare.kindOf(preparedEffect), 'effectful');
+  const preparedEnvironment = calls[0].args[3];
+  assert.equal(moon.clientProgramPublicSourceEnvironmentMatches(preparedEnvironment, environment), true);
   assert.deepEqual(calls, [{kind: 'source', args: [text, 'aql-text', environment,
-    JSON.stringify(publication), '{"p":{"type":"string"}}', '{"p":"é\\r\\n"}',
+    preparedEnvironment, '{"p":{"type":"string"}}', '{"p":"é\\r\\n"}',
     true, [evidence[0]]]}]);
   assert.throws(() => prepare.assertOwned({}), TypeError);
 });
@@ -151,7 +159,7 @@ test('lowered text Effect goes directly to its existing owner without resubmitti
 test('text Effect closure refusal is preserved without retrying original source', () => {
   const {moon, calls} = installation();
   const issue = {kind: 'foreign_mapping'};
-  moon.clientProgramPreparePublicSourceComputationWithParameters = (...args) => {
+  moon.clientProgramPrepareSourceComputationInPublicEnvironment = (...args) => {
     calls.push({kind: 'source', args});
     return {effect: {issue, code: 'effect_mapping_rejected'}};
   };
@@ -175,7 +183,7 @@ test('text Effect closure refusal is preserved without retrying original source'
 test('contradictory source computation branches cannot issue an owned preparation', () => {
   const {moon, prepared} = installation();
   for (const outcome of [{}, {pure: {prepared}, effect: {preparedEffect: {}}}]) {
-    moon.clientProgramPreparePublicSourceComputationWithParameters = () => outcome;
+    moon.clientProgramPrepareSourceComputationInPublicEnvironment = () => outcome;
     const prepare = installNodeClientProgramPreparation({moon, environment,
       sourcePublication: publication});
     assert.throws(() => prepare({kind: 'aql', input: {text: 'SELECT 1', format: 'sql'},
@@ -204,7 +212,7 @@ test('mismatched or malformed alias publication cannot be installed', () => {
 test('source input is typed unsupported until the shared MoonBit bridge exists',
   () => {
     const {moon} = installation();
-    delete moon.clientProgramPreparePublicSourceComputationWithParameters;
+    delete moon.clientProgramPrepareSourceComputationInPublicEnvironment;
     const prepare = installNodeClientProgramPreparation({moon, environment});
     assert.throws(() => prepare({kind: 'aql', input: {
       text: 'SELECT 1', format: 'sql',
@@ -213,7 +221,7 @@ test('source input is typed unsupported until the shared MoonBit bridge exists',
 
 test('confirmed Frontend refusal keeps a typed input error', () => {
   const {moon} = installation();
-  moon.clientProgramPreparePublicSourceComputationWithParameters = () => ({pure: {
+  moon.clientProgramPrepareSourceComputationInPublicEnvironment = () => ({pure: {
     code: 'source_rejected', issue: {kind: 'unknown_alias'},
   },
   });

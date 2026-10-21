@@ -15,10 +15,10 @@ function fixture(validate = () => true) {
       assert.strictEqual(value,environment);
       return cid('c');
     },
-    clientProgramSourcePublicationValid(value,wire) {
+    clientProgramPreparePublicSourceEnvironment(value,wire) {
       assert.strictEqual(value,environment);
       observed.push(wire);
-      return validate(JSON.parse(wire));
+      return validate(JSON.parse(wire)) ? Object.freeze({}) : undefined;
     },
   };
   return {moon,environment,observed};
@@ -60,6 +60,6 @@ test('malformed or unadmitted STORE targets cannot bypass the existing Common pu
   const refusing = fixture(() => false);
   assert.throws(() => sourceAliasPublication(refusing.moon,refusing.environment,[],[],
     {storeTargets:[target()]}),{message:'InvalidPublicSourcePublication'});
-  assert.throws(() => sourceAliasPublication({...moon,clientProgramSourcePublicationValid:undefined},
+  assert.throws(() => sourceAliasPublication({...moon,clientProgramPreparePublicSourceEnvironment:undefined},
     environment,[],[],{storeTargets:[target()]}),{message:'InvalidPublicSourcePublication'});
 });
