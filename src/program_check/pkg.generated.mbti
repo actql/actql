@@ -466,6 +466,8 @@ pub fn prepare_serialization_output_source_policy(CheckedProgram, Int, Int, Int,
 
 pub fn prepare_source_catalog(CheckEnvironment, SourceCatalogLimits) -> Result[PreparedSourceCatalog, EnvironmentFailure]
 
+pub fn prepare_source_catalog_with_contents_limits(CheckEnvironment, SourceCatalogLimits, @check_environment.Limits) -> Result[PreparedSourceCatalog, EnvironmentFailure]
+
 pub fn prepare_template_declarations(@stage_syntax.Program, CheckEnvironment, CheckLimits) -> Result[TemplateDeclarationPreparation, LocalConstructionFailure]
 
 pub fn proof_application(ReidentifiedStep) -> @capacity_program_step.StepBound

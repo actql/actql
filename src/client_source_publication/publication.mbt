@@ -76,6 +76,7 @@ fn bind_published_query_parts_with_reader(
   publication : String,
   declarations : String?,
   read : (String) -> @decode.Cursor raise PublicationStop,
+  admission? : PublicationEnvironmentAdmission? = None,
 ) -> Result[
   (
     @query_program.Context,
@@ -91,19 +92,25 @@ fn bind_published_query_parts_with_reader(
     let root = read(publication)
     // Preserve the complete unused-section checks and their original order.
     source_publication_closed(root)
-    let store = match published_store_targets_from_root(environment, root) {
+    let store = match
+      published_store_targets_from_root(environment, root, admission~) {
       Ok(value) => value
       Err(issue) => raise PublicationStop(issue)
     }
-    let command = match published_command_targets_from_root(environment, root) {
+    let command = match
+      published_command_targets_from_root(environment, root, admission~) {
       Ok(value) => value
       Err(issue) => raise PublicationStop(issue)
     }
     let (context, catalog) = client_source_context_from_root(
-      environment, root, declarations,
+      environment,
+      root,
+      declarations,
+      admission~,
     )
-    let table = table_write_publication_from_root(environment, root)
-    let update = match published_update_targets_from_root(environment, root) {
+    let table = table_write_publication_from_root(environment, root, admission~)
+    let update = match
+      published_update_targets_from_root(environment, root, admission~) {
       Ok(value) => value
       Err(_) => raise PublicationStop(Publication)
     }
@@ -248,6 +255,7 @@ fn client_source_context_from_root(
   environment : @program_check.CheckEnvironment,
   root : @decode.Cursor,
   declarations : String?,
+  admission? : PublicationEnvironmentAdmission? = None,
 ) -> (@query_program.Context, @program_check.PreparedSourceCatalog) raise PublicationStop {
   let environment_cid = @program_check.checking_environment_cid(environment)
   if source_publication_text(root, "environmentCid") != environment_cid {
@@ -273,18 +281,23 @@ fn client_source_context_from_root(
   )
   let published : Array[@source_frontend.PublishedAlias] = []
   let mut field_count = 0
-  let prepared_catalog = match
-    @program_check.prepare_source_catalog(environment, {
-      max_work: 10000000,
-      max_bytes: 1048576,
-      max_nodes: 65536,
-      max_depth: 64,
-    }) {
-    Ok(value) => value
-    Err(@program_check.EnvironmentFailure::BudgetExceeded) =>
-      raise PublicationStop(Limit)
-    Err(_) => raise PublicationStop(Publication)
+  let prepared_catalog = match admission {
+    Some(admission) => publication_admission_catalog(admission)
+    None =>
+      match
+        @program_check.prepare_source_catalog(environment, {
+          max_work: 10000000,
+          max_bytes: 1048576,
+          max_nodes: 65536,
+          max_depth: 64,
+        }) {
+        Ok(value) => value
+        Err(@program_check.EnvironmentFailure::BudgetExceeded) =>
+          raise PublicationStop(Limit)
+        Err(_) => raise PublicationStop(Publication)
+      }
   }
+
   let input_schemas = []
   let mut schema_work = 1000000
   for index, entry in aliases {
@@ -383,22 +396,7 @@ fn client_source_context_from_root(
       }),
     })
   }
-  let parameter_declarations = match declarations {
-    None => None
-    Some(body) => {
-      let cursor = source_publication_cursor(body) catch {
-        _ => raise PublicationStop(Declarations)
-      }
-      Some(
-        @parameter_binding.read_declarations(Some(cursor), {
-          max_parameters: 1024,
-          max_nodes: 8192,
-          max_depth: 64,
-          max_text_bytes: 65536,
-        }).unwrap_or_else(() => raise PublicationStop(Declarations)),
-      )
-    }
-  }
+  let parameter_declarations = client_source_declarations(declarations)
   match
     @source_frontend.bind_query_context(
       published,
@@ -415,5 +413,27 @@ fn client_source_context_from_root(
     ) {
     Ok(value) => (value, prepared_catalog)
     Err(issue) => raise PublicationStop(Alias(issue))
+  }
+}
+
+///|
+fn client_source_declarations(
+  declarations : String?,
+) -> @parameter_binding.Declarations? raise PublicationStop {
+  match declarations {
+    None => None
+    Some(body) => {
+      let cursor = source_publication_cursor(body) catch {
+        _ => raise PublicationStop(Declarations)
+      }
+      Some(
+        @parameter_binding.read_declarations(Some(cursor), {
+          max_parameters: 1024,
+          max_nodes: 8192,
+          max_depth: 64,
+          max_text_bytes: 65536,
+        }).unwrap_or_else(() => raise PublicationStop(Declarations)),
+      )
+    }
   }
 }

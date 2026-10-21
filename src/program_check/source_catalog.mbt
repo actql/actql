@@ -39,6 +39,24 @@ pub fn prepare_source_catalog(
 }
 
 ///|
+/// Share one Catalog admission with an additional consumer's original registry
+/// and Catalog bounds. Value contracts and carrier schemas keep their separate
+/// Source bounds; a tighter publication limit does not narrow those domains.
+pub fn prepare_source_catalog_with_contents_limits(
+  environment : CheckEnvironment,
+  limits : SourceCatalogLimits,
+  contents_limits : @environment.Limits,
+) -> Result[PreparedSourceCatalog, EnvironmentFailure] {
+  prepare_source_catalog_with_reader(environment, limits, (wire, budget) => {
+    prepare_environment_with_contents_limits(
+      wire,
+      budget,
+      Some(contents_limits),
+    )
+  })
+}
+
+///|
 fn prepare_source_catalog_with_reader(
   environment : CheckEnvironment,
   limits : SourceCatalogLimits,
