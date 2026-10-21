@@ -262,6 +262,7 @@ pub fn open_source_free_local_retained_host_on_ledger(
   values_body : String,
   fragment_body : String?,
   ordered_body : String?,
+  requirements? : ClientLocalSourceFreeRequirements? = None,
 ) -> @builtin.ConfiguredComputeHost[@strategy.RunIssue]? {
   open_checked_local_host(
     prepared,
@@ -276,6 +277,7 @@ pub fn open_source_free_local_retained_host_on_ledger(
     ordered_body~,
     retained_output=true,
     acquisition_ledger=Some(ledger),
+    source_free_requirements=requirements,
   )
 }
 
@@ -298,6 +300,7 @@ fn open_checked_local_host(
   captured_sources? : Array[(Int, @query.CapturedInputSource)] = [],
   acquisition_ledger? : @resources.Ledger? = None,
   opened_run? : @strategy.CapturedDAG? = None,
+  source_free_requirements? : ClientLocalSourceFreeRequirements? = None,
 ) -> @builtin.ConfiguredComputeHost[@strategy.RunIssue]? {
   if registry_body.length() > 100000 ||
     values_body.length() > 100000 ||
@@ -328,12 +331,28 @@ fn open_checked_local_host(
     ) {
     return None
   }
-  let generated = match
-    prepare_client_local_sequences(
-      prepared, registry_body, values_body, fragment_body, ordered_body,
-    ) {
-    Some(value) => value
-    None => return None
+  let generated = match source_free_requirements {
+    Some(original) => {
+      if !original.matches(
+          prepared, registry_body, values_body, fragment_body, ordered_body,
+        ) ||
+        source is Some(_) ||
+        !captured_sources.is_empty() ||
+        opened_run is Some(_) ||
+        acquisition_ledger is None ||
+        !retained_output {
+        return None
+      }
+      original.sequences
+    }
+    None =>
+      match
+        prepare_client_local_sequences(
+          prepared, registry_body, values_body, fragment_body, ordered_body,
+        ) {
+        Some(value) => value
+        None => return None
+      }
   }
   let first_compute = if opened_run is Some(run) {
     @strategy.graph_captured_prefix(@strategy.captured_dag_graph(run))
@@ -371,13 +390,24 @@ fn open_checked_local_host(
   } else {
     None
   }
-  guard client_local_sequence_capacity(
-      compute_sequences,
-      task_count,
-      retained_inputs~,
-      max_rows~,
-    )
-    is Some((limits, retained_bytes, execution_bytes)) else {
+  let capacity = match source_free_requirements {
+    Some(original) =>
+      Some(
+        (
+          original.capacity.limits,
+          original.capacity.provider_retained,
+          original.capacity.provider_execution,
+        ),
+      )
+    None =>
+      client_local_sequence_capacity(
+        compute_sequences,
+        task_count,
+        retained_inputs~,
+        max_rows~,
+      )
+  }
+  guard capacity is Some((limits, retained_bytes, execution_bytes)) else {
     return None
   }
   let opened = if opened_run is Some(run) {

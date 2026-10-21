@@ -32,6 +32,49 @@ pub fn source_free_local_ledger_limits(
   fragment_body : String?,
   ordered_body : String?,
 ) -> @resources.LedgerLimits? {
+  prepare_source_free_local_requirements_original(
+    prepared, registry_body, values_body, fragment_body, ordered_body, false,
+  ).map(value => value.capacity.limits)
+}
+
+///|
+// Pure checked-plan data. This retains no Host, Account decision, Ledger or
+// physical allocation and cannot issue any of those originals.
+struct ClientLocalSourceFreeRequirements {
+  prepared : @publication_host.PreparedClientProgram
+  registry : String
+  values : String
+  fragment : String?
+  ordered : String?
+  sequences : Array[@execution.GeneratedSequence]
+  capacity : ClientLocalSequenceCapacity
+}
+
+///|
+/// Quote the checked graph's simultaneous reservations separately from the
+/// existing maximum admission limits. A conservative requirement above those
+/// maxima is not a claim that a smaller finite facility will satisfy it.
+pub fn prepare_source_free_local_requirements(
+  prepared : @publication_host.PreparedClientProgram,
+  registry_body : String,
+  values_body : String,
+  fragment_body : String?,
+  ordered_body : String?,
+) -> ClientLocalSourceFreeRequirements? {
+  prepare_source_free_local_requirements_original(
+    prepared, registry_body, values_body, fragment_body, ordered_body, true,
+  )
+}
+
+///|
+fn prepare_source_free_local_requirements_original(
+  prepared : @publication_host.PreparedClientProgram,
+  registry_body : String,
+  values_body : String,
+  fragment_body : String?,
+  ordered_body : String?,
+  include_simultaneous : Bool,
+) -> ClientLocalSourceFreeRequirements? {
   let graph = @publication_host.prepared_client_graph(prepared)
   let count = @strategy.graph_task_count(graph)
   if @publication_host.prepared_client_acquisition_count(prepared) != 0 ||
@@ -76,10 +119,55 @@ pub fn source_free_local_ledger_limits(
     }
     inputs[consumer] += 1
   }
-  client_local_sequence_capacity(
+  client_local_sequence_capacity_original(
     sequences,
     count,
     retained_inputs=Some(inputs),
     max_rows=@publication_host.prepared_client_values_max_rows(prepared),
-  ).map(value => value.0)
+    include_simultaneous~,
+  ).map(capacity => {
+    prepared,
+    registry: registry_body,
+    values: values_body,
+    fragment: fragment_body,
+    ordered: ordered_body,
+    sequences,
+    capacity,
+  })
+}
+
+///|
+pub fn ClientLocalSourceFreeRequirements::maximum_limits(
+  self : ClientLocalSourceFreeRequirements,
+) -> @resources.LedgerLimits {
+  self.capacity.limits
+}
+
+///|
+pub fn ClientLocalSourceFreeRequirements::simultaneous_limits(
+  self : ClientLocalSourceFreeRequirements,
+) -> @resources.LedgerLimits? {
+  self.capacity.simultaneous.map((retained, execution) => {
+    ..self.capacity.limits,
+    retained_bytes: retained,
+    execution_bytes: execution,
+  })
+}
+
+///|
+/// Exact immutable preparation and installed inputs only. This comparison
+/// supplies no current authorization, execution or physical capacity.
+pub fn ClientLocalSourceFreeRequirements::matches(
+  self : ClientLocalSourceFreeRequirements,
+  prepared : @publication_host.PreparedClientProgram,
+  registry_body : String,
+  values_body : String,
+  fragment_body : String?,
+  ordered_body : String?,
+) -> Bool {
+  physical_equal(self.prepared, prepared) &&
+  self.registry == registry_body &&
+  self.values == values_body &&
+  self.fragment == fragment_body &&
+  self.ordered == ordered_body
 }
