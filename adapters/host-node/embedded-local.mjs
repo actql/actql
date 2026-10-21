@@ -160,7 +160,7 @@ import {assertEffectTargetReadBinding, effectTargetReadContinuation} from
 import {EFFECT_TARGET_CONTINUATION} from './effect-target-read-inventory.mjs';
 import {canonicalJson, contentCid, createLocalAuthorizationGate,
   observeInstalledAccount} from './local-account-config.mjs';
-import {createLocalResultAuthorization} from './local-result-authorization.mjs';
+import {createLocalReadAuthorizations} from './local-result-authorization.mjs';
 import {prepareOrdinaryLocalAccount} from './ordinary-local-account.mjs';
 import {localContractLimits, localOutputLimits,
   sourceFreeValuesPlan, sourceFreeValuesAdmissionEvidence, sourceFreePlanOriginal, sourceFreeTaskPlan,
@@ -1627,8 +1627,8 @@ async function openInstalledHost(originalInstallation, preparation) {
     requestControl: moon, publicationControl: control,
     authorizeRunStart: ({principalId: actual, connection, ref}) =>
       hostConnection({principalId: actual, connection, ref})});
-  const authorizeLocalResult = createLocalResultAuthorization({moon, authorization,
-    principalId, namespaceId, authorityScopeCid});
+  const {result: authorizeLocalResult, run: authorizeLocalRun} = createLocalReadAuthorizations({
+    moon, authorization, principalId, namespaceId, authorityScopeCid});
   const resultAuthority = installResultAccessAuthority({
     authorizeResultReadRequest: authorizeLocalResult,
     admitResultRead: async (facts, operation) => {
@@ -4422,15 +4422,24 @@ async function openInstalledHost(originalInstallation, preparation) {
     authorize: authorizeObservation, observeOwners, control,
     lookupOriginal: ref => journal.lookupRunDefinition(ref, moon, control),
   });
+  const runReadOperations = new Set(['status', 'wait', 'attach', 'run-plan', 'inspect-run',
+    'owner-observations', 'lookup-request', 'lookup-submission']);
   const hostOperations = {
     observe: observed,
     // A service Workspace is an installed network target label. It does not
     // replace the Local namespace, root-derived authority scope or policy.
     workspaceForPrincipal: () => workspaceId,
-    authorizeConnection: value => checkpointOperation.has(value.operation)
-      ? checkpointConnection(value)
-      : hostConnection(value) || value.operation === 'connect' &&
-        checkpointConnection(value),
+    authorizeConnection: async value => {
+      if (checkpointOperation.has(value.operation)) return checkpointConnection(value);
+      const connected = hostConnection(value) || value.operation === 'connect' &&
+        checkpointConnection(value);
+      if (!connected || !runReadOperations.has(value.operation)) return connected;
+      // This is the original public operation entry, before any Journal read.
+      // Internal observation/revision loops consume that decision; they do not
+      // reevaluate it. Named Result access keeps its separate exact permission.
+      return authorizeLocalRun({principalId: value.principalId,
+        indexKey: value.ref ?? {namespaceId, authorityScopeCid}, purpose: 'inspect'});
+    },
     negotiate, prepareSubmit, check, plan, inspectRun, runPlan, attach,
     // New execution requires the authenticated original intent. Historical
     // request/Run observation remains available without relabeling its identity.

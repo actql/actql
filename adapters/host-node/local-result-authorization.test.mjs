@@ -99,6 +99,16 @@ test('Local Result cannot replace its installed Account with another valid Accou
   assert.equal(await f.authorize(facts), false);
 });
 
+test('a retained Result decision invalidates after the same owner observes a policy change', async t => {
+  const f = await fixture(t);
+  const operation = Object.freeze({...facts});
+  assert.equal(await f.authorize(facts, operation), true);
+  await f.change('deny');
+  assert.equal(await f.authorize(facts, Object.freeze({...facts})), false);
+  assert.equal(await f.authorize(facts, operation), false,
+    'an already observed policy revision is not unchanged operation state');
+});
+
 test('Local Result Delegate needs the existing immediate configured answer', async t => {
   const f = await fixture(t);
   await f.change('delegate');

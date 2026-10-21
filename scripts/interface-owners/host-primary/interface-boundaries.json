@@ -4448,7 +4448,7 @@
     },
     {
       "module": "adapters/host-node/embedded-local.mjs",
-      "sha256": "f59bfffacf88bdf1f8fada724f6de77f937c6c1c9a54940e3e9c7c114381da56",
+      "sha256": "1779c31b1f3390b11d63d2efedc98a30bcfb365df9a863441c07cb83ccaaa28f",
       "exports": [
         "admitOriginalHostRootFormat",
         "assertInitialControlHostPreparation",
@@ -5582,7 +5582,7 @@
           "parameters": [
             "value"
           ],
-          "async": false
+          "async": true
         },
         {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/hostOperations/hostOperations#3",
@@ -7381,6 +7381,10 @@
               {
                 "path": "docs/design/oss-host-authorization.md",
                 "anchor": "## Standard Local Account initialization"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "## Local Run observation authorization"
               }
             ],
             "inputsOutputs": [
@@ -7435,6 +7439,10 @@
               {
                 "path": "adapters/host-node/initial-control-host-input.mjs",
                 "anchor": "export function snapshotInitialControlHostInput(input, limits) {"
+              },
+              {
+                "path": "adapters/host-node/local-result-authorization.mjs",
+                "anchor": "export function createLocalReadAuthorizations({moon, authorization,"
               }
             ],
             "identity": [
@@ -7501,6 +7509,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "const controlConnection = authorization?.siteKey ?? 'actql-remote-host';"
+              },
+              {
+                "path": "adapters/host-node/local-result-authorization.mjs",
+                "anchor": "run(facts) {return authorize(facts, undefined, 'run');}"
               }
             ],
             "ownership": [
@@ -7563,6 +7575,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "standardAccountPreparation = await preparation.prepareStandardAccount("
+              },
+              {
+                "path": "adapters/host-node/local-result-authorization.mjs",
+                "anchor": "const originalAccountId = identity.state === 'admitted' ? identity.account_id : undefined;"
               }
             ],
             "synchronization": [
@@ -7625,6 +7641,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "authorization = await standardAccountPreparation.adopt(moon, {"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "return authorizeLocalRun({principalId: value.principalId,"
               }
             ],
             "failure": [
@@ -7675,6 +7695,10 @@
               {
                 "path": "adapters/host-node/initial-control-host-input.test.mjs",
                 "anchor": "test('unsupported Proxy and accessor inputs refuse without executing traps or getters'"
+              },
+              {
+                "path": "adapters/host-node/local-result-authorization.mjs",
+                "anchor": "if (originalAccountId === undefined || identity.state !== 'admitted' ||"
               }
             ],
             "cancellation": [
@@ -7721,6 +7745,10 @@
               {
                 "path": "adapters/host-node/initial-control-host-input-routing.test.mjs",
                 "anchor": "test('current refusal after initialization prevents the original packet from reaching Host copies'"
+              },
+              {
+                "path": "adapters/host-node/local-result-authorization.mjs",
+                "anchor": "} finally { gate.close(); }"
               }
             ],
             "resources": [
@@ -7787,6 +7815,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Resource coverage distinguishes managed work/data limits"
+              },
+              {
+                "path": "adapters/host-node/local-result-authorization.mjs",
+                "anchor": "if (retained !== undefined && retained.account === retainedAccount) return retained.allowed;"
               }
             ],
             "extension": [
@@ -7841,6 +7873,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Every prepared selected Host defers Publication services, including an ordinary"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "Pure checking/static planning and named Result delivery do not borrow this"
               }
             ],
             "verification": [
@@ -7943,6 +7979,10 @@
               {
                 "path": "adapters/host-node/local-file-effect-submission-original.test.mjs",
                 "anchor": "test('winning ordinary Local definition selects the same actual installation without a Mock Scope'"
+              },
+              {
+                "path": "adapters/host-node/local-run-authorization.test.mjs",
+                "anchor": "test('actual Account keeps Run-read and named-Result-read distinct and current'"
               }
             ]
           }

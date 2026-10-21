@@ -4,6 +4,14 @@ import {observeInstalledAccount, createLocalAuthorizationGate} from './local-acc
 
 export function createLocalResultAuthorization({moon, authorization,
   principalId, namespaceId, authorityScopeCid}) {
+  return createLocalReadAuthorizations({moon, authorization,
+    principalId, namespaceId, authorityScopeCid}).result;
+}
+
+// Two existing permissions share the installed Account identity, not an
+// outcome: run/read never substitutes for result/<actual name>/read.
+export function createLocalReadAuthorizations({moon, authorization,
+  principalId, namespaceId, authorityScopeCid}) {
   const connection = authorization?.siteKey ?? 'actql-remote-host';
   let retainedAccount = observeInstalledAccount(moon, authorization);
   let identity = JSON.parse(moon.executionAuthorizationAccountJson(retainedAccount));
@@ -11,11 +19,11 @@ export function createLocalResultAuthorization({moon, authorization,
   // The existing owned public request is the lifetime of this memo. No
   // outcome survives into another operation, even for identical wire/tuples.
   const operations = new WeakMap();
-  return async (facts, operation) => {
+  const authorize = async (facts, operation, resource) => {
     if (facts.principalId !== principalId || facts.indexKey?.namespaceId !== namespaceId ||
         facts.indexKey?.authorityScopeCid !== authorityScopeCid ||
-        typeof facts.resultName !== 'string' || facts.resultName.length === 0) return false;
-    const scope = {connection, resource: `result/${facts.resultName}`, operation: 'read'};
+        resource === undefined) return false;
+    const scope = {connection, resource, operation: 'read'};
     const sameOperation = operation !== null && typeof operation === 'object' &&
       Object.isFrozen(operation) && operation.principalId === facts.principalId &&
       operation.resultName === facts.resultName && operation.purpose === facts.purpose &&
@@ -23,7 +31,7 @@ export function createLocalResultAuthorization({moon, authorization,
       operation.indexKey?.authorityScopeCid === facts.indexKey.authorityScopeCid &&
       operation.indexKey?.runDefinitionCid === facts.indexKey.runDefinitionCid;
     const retained = sameOperation ? operations.get(operation) : undefined;
-    if (retained !== undefined) return retained.allowed;
+    if (retained !== undefined && retained.account === retainedAccount) return retained.allowed;
     const account = observeInstalledAccount(moon, authorization);
     if (account !== retainedAccount) {
       identity = JSON.parse(moon.executionAuthorizationAccountJson(account));
@@ -36,7 +44,7 @@ export function createLocalResultAuthorization({moon, authorization,
     const outcome = JSON.parse(moon.executionAuthorizationEvaluationJson(evaluation));
     if (outcome.outcome !== 'delegate') {
       const allowed = outcome.outcome === 'allow';
-      if (sameOperation) operations.set(operation, {allowed});
+      if (sameOperation) operations.set(operation, {allowed, account});
       return allowed;
     }
     // An immediate configured answer still belongs to the existing gate.
@@ -50,8 +58,16 @@ export function createLocalResultAuthorization({moon, authorization,
       const allowed = decision.action === 'dispatch';
       // The application's answer and its post-callback current check have
       // completed. Internal consumption does not call that application again.
-      if (sameOperation) operations.set(operation, {allowed});
+      if (sameOperation) operations.set(operation, {allowed, account});
       return allowed;
     } finally { gate.close(); }
   };
+  return Object.freeze({
+    result(facts, operation) {
+      const resource = typeof facts.resultName === 'string' && facts.resultName.length > 0
+        ? `result/${facts.resultName}` : undefined;
+      return authorize(facts, operation, resource);
+    },
+    run(facts) {return authorize(facts, undefined, 'run');},
+  });
 }
