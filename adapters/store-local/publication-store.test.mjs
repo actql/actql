@@ -563,6 +563,57 @@ async function prepareCommit(
   };
 }
 
+test('one publication commit acquires each unchanged semantic original once', async t => {
+  const {store, directory} = await fixture(t);
+  const invocationValue = invocation();
+  const request = publicationRequest(resultDefinition(), invocationValue.invocation_cid);
+  const attempt = publicationAttempt(request);
+  const prepared = await prepareCommit(store, request, attempt, invocationValue);
+  const entry = indexEntry(request, attempt, invocationValue, {
+    durable_result_binding_cids: [prepared.binding.identity],
+  });
+  const selected = join(directory, 'contracts', invocationValue.invocation_cid.slice(7) + '.json');
+  const originalOpen = fsPromises.open;
+  let acquisitions = 0;
+  fsPromises.open = async function(path, ...args) {
+    if (path === selected) acquisitions++;
+    return Reflect.apply(originalOpen, this, [path, ...args]);
+  };
+  syncBuiltinESMExports();
+  try {
+    assert.equal((await store.commitIndex(wire(entry), prepared.required, prepared.evidence)).committed, true);
+    assert.equal(acquisitions, 1, 'one commit shares its selected original across inventory and evidence');
+    acquisitions = 0;
+    const repeated = await store.commitIndex(wire(entry), prepared.required, prepared.evidence);
+    assert.equal(repeated.idempotent, true);
+    assert.equal(acquisitions, 1, 'a distinct operation acquires its own original');
+  } finally {
+    fsPromises.open = originalOpen;
+    syncBuiltinESMExports();
+  }
+});
+
+test('publication commit never reuses a prior operation semantic original after mutation', async t => {
+  const {store, directory} = await fixture(t);
+  const invocationValue = invocation();
+  const request = publicationRequest(resultDefinition(), invocationValue.invocation_cid);
+  const attempt = publicationAttempt(request);
+  const prepared = await prepareCommit(store, request, attempt, invocationValue);
+  const entry = indexEntry(request, attempt, invocationValue, {
+    durable_result_binding_cids: [prepared.binding.identity],
+  });
+  await store.commitIndex(wire(entry), prepared.required, prepared.evidence);
+  const selected = join(directory, 'contracts', invocationValue.invocation_cid.slice(7) + '.json');
+  const original = await readFile(selected);
+  const changed = Buffer.from(original);
+  changed[0] ^= 1;
+  await writeFile(selected, changed);
+  await assert.rejects(store.commitIndex(wire(entry), prepared.required, prepared.evidence),
+    code('PublicationContractCorrupt'));
+  assert.deepEqual(await readFile(selected), changed, 'refusal does not repair or replace the original');
+  await store.close();
+});
+
 test('bounded object writes are durable, streamed, and physically addressed',
   async t => {
     const {store, configuration} = await fixture(t);
