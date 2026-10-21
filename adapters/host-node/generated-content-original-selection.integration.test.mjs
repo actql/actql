@@ -86,7 +86,10 @@ async function fixture(t, {restored = false, omitRestoredOriginal = false, after
     },
   };
   owner = familyFactory({
-    moon: {...moon, clientProgramEffectCommandContentMatchesIssued(binding, value) {
+    moon: {...moon, clientProgramEffectAcquisitionCount(value) {
+      assert.strictEqual(value, prepared);
+      return 1;
+    }, clientProgramEffectCommandContentMatchesIssued(binding, value) {
       const result = moon.clientProgramEffectCommandContentMatchesIssued(binding, value);
       afterMatch?.({result, owner, port});
       return result;

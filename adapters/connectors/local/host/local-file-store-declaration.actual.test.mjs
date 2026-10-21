@@ -103,7 +103,22 @@ test('actual SQL Local STORE normalizes once to its checked Command and preserve
     assert.deepEqual(command.target,{published_store:{target_ref:'connector://local/files',
       mapping_ref:'mapping:local.local.files.store.v1'}});
     assert.equal(Object.hasOwn(command.input,'overwrite'),suffix!=='');
-    if(suffix)assert.equal(command.input.overwrite,true);
+    if(suffix){
+      // STORE evaluates SET expressions in the original Relation prefix and
+      // binds the resulting private field, not a second command literal.
+      assert.deepEqual(command.input.overwrite,{field:'overwrite'});
+      const stage=plan.execution_material.program.stages.find(value=>
+        Object.values(value.effects??{}).some(effect=>effect.command===command));
+      const result=Object.entries(stage.results).find(([name])=>
+        command.from.result===name||command.from.result===`${stage.id}.${name}`)?.[1];
+      assert(result);assert(result.fields.includes('overwrite'));
+      const selected=stage.steps.find(step=>step.as===result.from);
+      const slot=selected.select.find(value=>typeof value==='object'&&value.overwrite)?.overwrite;
+      assert.equal(typeof slot,'string');
+      const producer=stage.steps.slice(0,stage.steps.indexOf(selected))
+        .find(step=>Object.hasOwn(step.derive??{},slot));
+      assert.deepEqual(producer?.derive[slot],{literal:true});
+    }
   }
 });
 
