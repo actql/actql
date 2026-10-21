@@ -4874,8 +4874,9 @@ async function openOriginalLocalPublicationStore(
       sourceSchemaCids.push(artifact.result_schema_cid);
       await commitPhysicalHolding(holding, []);
     }
+    const verifiedBindings = [];
     for (const binding of chain.durableBindings) {
-      await verifyDurableResultBinding(binding, readOriginal);
+      verifiedBindings.push(await verifyDurableResultBinding(binding, readOriginal));
     }
     let captureHoldingCid;
     let captureRecordHoldingCid;
@@ -4958,6 +4959,7 @@ async function openOriginalLocalPublicationStore(
       }
     }
     return Object.freeze({index: admittedIndex, finalReceipt,
+      verifiedBindings: Object.freeze(verifiedBindings),
       privateHoldingCid: privateBinding.holdingCid,
       captureHoldingCid, captureRecordHoldingCid,
       effectSourceHoldingCids: Object.freeze([...seen]),
@@ -5038,10 +5040,7 @@ async function openOriginalLocalPublicationStore(
           fail('IncompletePublicationCommitInventory');
         }
       }
-      verifiedBindings = [];
-      for (const binding of suppliedEvidence.durableBindings) {
-        verifiedBindings.push(await verifyDurableResultBinding(binding, readOriginal));
-      }
+      verifiedBindings = inspected.verifiedBindings;
       physicalHoldingCids = [
         inspected.privateHoldingCid,
         ...inspected.effectSourceHoldingCids,

@@ -82,6 +82,13 @@ own selected read. No public raw input check, physical payload verification,
 directory acknowledgement or next-operation acquisition is replaced by these
 internal facts.
 
+The Effect evidence inspection returns its verified Binding facts to the same
+serialized commit. Inventory construction consumes those facts without a second
+payload acquisition, hash or schema validation. The commit obtains them from
+its own internal inspection, never from a caller-supplied inspection result.
+A separate stored-evidence inspection still acquires and validates its originals;
+these facts do not authorize an Effect or replace any durable acknowledgement.
+
 Known file-backed Index and Result-schema reads select their file representation
 directly; they do not first query the native delivery-metadata tables. The
 selected file still supplies its real bounded bytes, inode/digest checks and

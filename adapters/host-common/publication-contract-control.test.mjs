@@ -1793,6 +1793,11 @@ test('portable control validates Receipt and Captured Run references',
   };
   const checkedPreparation = await store.inspectEffectfulStoredEvidence(
     effectfulPreparation);
+  assert.equal(Object.isFrozen(checkedPreparation.verifiedBindings), true);
+  assert.equal(checkedPreparation.verifiedBindings[0].binding
+    .durable_result_binding_cid, binding.identity);
+  assert.equal(checkedPreparation.verifiedBindings[0].physical.cid, physicalCid);
+  assert.equal(checkedPreparation.verifiedBindings[0].schema.cid, resultSchemaCid);
   assert.equal(checkedPreparation.finalReceipt.identity,
     finalReceipt.identity);
   assert.equal(checkedPreparation.privateHoldingCid,
@@ -1964,6 +1969,16 @@ test('portable control validates Receipt and Captured Run references',
   assert.equal(effectfulCommitted.index.identity, effectfulIndex.identity);
   const effectfulReplay = await publishEffectfulRun(effectfulPublication);
   assert.equal(effectfulReplay.idempotent, true);
+  const effectfulPayloadPath = join(effectfulDirectory, 'objects', physicalCid.slice(7));
+  try {
+    await fs.writeFile(effectfulPayloadPath, Buffer.alloc(payloadBytes, 0));
+    await assert.rejects(effectfulStore.validateCommittedEffectfulEvidence(
+      effectfulPreparation), {code: 'PublicationObjectCorrupt'});
+  } finally {
+    await fs.writeFile(effectfulPayloadPath, payloadWire);
+  }
+  assert.equal(await effectfulStore.validateCommittedEffectfulEvidence(
+    effectfulPreparation), true);
   const effectfulKey = {
     namespaceId: 'namespace-a',
     authorityScopeCid: cid('d'),
@@ -2011,6 +2026,7 @@ test('portable control validates Receipt and Captured Run references',
   )).deleted, true);
   await assert.rejects(store.inspectEffectfulStoredEvidence(
     effectfulPreparation), {code: 'EffectfulPrivateEvidenceUnavailable'});
+  await t.test('Effect-free delivery and HTTP boundaries', async t => {
   const evidence = Object.freeze({
     runDefinition: run,
     invocation: invoked,
@@ -3950,6 +3966,7 @@ test('portable control validates Receipt and Captured Run references',
   assert.equal((await cancelledBase.latestRecord(
     cancelledContract.identity,
   )).state, 'cancelled');
+  });
 });
 
 test('local durable Store accepts only MoonBit-admitted contract wire',
