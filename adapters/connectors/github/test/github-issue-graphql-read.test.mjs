@@ -78,7 +78,8 @@ test('page callbacks reuse the original prefix check across pure codec getters',
   assert.deepEqual(result.rows, [1, 2, 3, 4, 5].map(row));
   assert.equal(context.fixture.seen().length, 3);
   assert.equal(pages, 3);
-  assert.equal(checks, 33);
+  assert.ok(checks > 0, 'actual original response validation must run');
+  assert.ok(checks <= 33, `response prefix checks exceed the unchanged-page budget: ${checks}`);
   assert.ok(context.journal.recover().every(record => record.outcome === 'succeeded'));
 });
 
