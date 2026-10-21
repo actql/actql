@@ -284,6 +284,31 @@ test('native publication bodies retain byte capacity and cold actual-wire admiss
   assert.equal(admissions,5,'a mismatched selected original does not inherit another body\'s identity');
 });
 
+test('native publication metadata is not duplicated by a mixed legacy group', async t => {
+  const control = runtimeCore(moon).publicationControl;
+  const invocation = control.seal('run_invocation',JSON.stringify({version:'actql-run-invocation/0.1',
+    invocation_template_cid:cid('1'),observation_set_cid:cid('2')}),limits);
+  const record = control.seal('publication_record',JSON.stringify({version:'actql-publication-record/0.1',
+    publication_attempt_cid:cid('3'),sequence:0,previous_record_cid:null,state:'preparing',
+    recorded_at:'2026-09-18T00:00:00.000Z'}),limits);
+  const directory = await mkdtemp(join(tmpdir(),'actql-publication-native-mixed-'));
+  let store;
+  t.after(async () => { if (store !== undefined) await store.close(); await rm(directory,{recursive:true}); });
+  store = await openLocalPublicationStore({directory,storeAuthorityCid:cid('5'),capacityBytes:1048576,
+    maxObjectBytes:65536,maxObjects:3,maxContractNodes:4096,maxContractDepth:64},control);
+  await store.putOriginalPublicationContracts([invocation]);
+  await store.putPublicationContracts([invocation,record].map(({name,wire}) => ({name,wire})));
+  assert.equal(store.status().objectCount,2,'a mixed file/native group retains each original representation once');
+  const stored = await store.putOriginalPublicationContracts([invocation,record]);
+  assert.deepEqual(stored.map(value=>value.semanticCid),[invocation.identity,record.identity]);
+  assert.equal(store.status().objectCount,2);
+  assert.equal((await readdir(join(directory,'contracts'))).length,1);
+  assert.equal((await readdir(join(directory,'objects'))).length,1);
+  for (const contract of [invocation,record]) {
+    assert.equal((await store.readPublicationContract(contract.identity,contract.name)).wire,contract.wire);
+  }
+});
+
 test('publication originals preserve owner identity and captured issuance bounds', () => {
   const control = runtimeCore(moon).publicationControl;
   const selected = {maxWireBytes: 65536, maxNodes: 4096, maxDepth: 64};
