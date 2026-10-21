@@ -998,6 +998,10 @@ fn NativeClientRunJournal::save_with_operations(
     Err(issue) => return Err(Physical(issue))
   }
   let next = { ..record, revision, }
+  match self.save_run_definition_index(before, next, operations) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
   self.save_checkpoint_id_index(before, next, operations~).map(_ => next)
 }
 

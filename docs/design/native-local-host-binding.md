@@ -2427,7 +2427,10 @@ locator. Complete locator coverage is tied to that issuance snapshot. The
 locator authenticates the selected Run identity before duplicate refusal; it
 is not Run authority. The Run insertion, definition locator, coverage and
 issuance CAS share the same existing transaction and rollback/Unknown rules.
-Ordinary opening and append do not audit unrelated Runs or Effects.
+Ordinary opening and append do not audit unrelated Runs or Effects. A trusted
+replacement of the selected definition moves its exact locator in the same Run
+CAS transaction. An unchanged definition performs no locator read or mutation;
+a failed replacement rolls back both the Run and its locators.
 
 Older Journals without complete append metadata refuse fresh insertion rather
 than treating missing metadata as absence or resend permission. The existing

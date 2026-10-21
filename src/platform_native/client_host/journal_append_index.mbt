@@ -62,6 +62,92 @@ fn NativeClientRunJournal::check_run_definition_available_locked(
 }
 
 ///|
+// Trusted mutation may replace the selected definition. Keep its subordinate
+// locator in the same Run CAS transaction; unchanged definitions do no work.
+// Legacy incomplete metadata remains incomplete rather than being backfilled
+// by an ordinary save.
+fn NativeClientRunJournal::save_run_definition_index(
+  self : NativeClientRunJournal,
+  before : NativeClientRunRecord,
+  after : NativeClientRunRecord,
+  operations : NativeClientJournalOperationAccess?,
+) -> Result[Unit, NativeClientRunJournalIssue] {
+  let previous = @publication.publication_contract_identity(before.definition)
+  let next = @publication.publication_contract_identity(after.definition)
+  if previous == next {
+    return Ok(())
+  }
+  if !self.transaction_active {
+    return Err(CustodyLost)
+  }
+  let reads = operations.map(value => value.reads)
+  let original = match
+    read_client_journal_value(
+      self.database,
+      "client_run_definition_index",
+      previous,
+      reads,
+    ) {
+    Ok(value) => value
+    Err(@sqlite.NotFound) => {
+      let issuance = match
+        client_journal_issuance_anchor(
+          self.database,
+          "client_run_custody",
+          self.max_records,
+          reads~,
+        ) {
+        Ok(value) => value
+        Err(issue) => return Err(issue)
+      }
+      return match
+        read_client_journal_value(
+          self.database,
+          "client_run_append_coverage",
+          "issued",
+          reads,
+        ) {
+        Ok(row) if row.body == journal_append_coverage(issuance.0, issuance.1) =>
+          Err(CustodyLost)
+        Ok(_) | Err(@sqlite.NotFound) => Ok(())
+        Err(issue) => Err(Physical(issue))
+      }
+    }
+    Err(issue) => return Err(Physical(issue))
+  }
+  let key = @host.client_request_scope_cid(before.request)
+  if original.body != @utf8.encode(key) ||
+    key != @host.client_request_scope_cid(after.request) {
+    return Err(CustodyLost)
+  }
+  match self.check_run_definition_available_locked(after.definition, reads) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
+  match
+    remove_exact_client_journal_value(
+      self.database,
+      "client_run_definition_index",
+      previous,
+      original.revision,
+      original.body,
+      operations,
+    ) {
+    Ok(_) => ()
+    Err(issue) => return Err(Physical(issue))
+  }
+  insert_client_journal_value(
+    self.database,
+    "client_run_definition_index",
+    next,
+    @utf8.encode(key),
+    operations,
+  )
+  .map(_ => ())
+  .map_err(issue => Physical(issue))
+}
+
+///|
 // This runs only through explicit bounded compatibility indexing, never open
 // or ordinary append. Existing originals and their full custody establish the
 // index; a missing or inconsistent original cannot be replaced or executed.

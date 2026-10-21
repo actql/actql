@@ -276,3 +276,120 @@ test "definition index insertion failure restores the original Run count and cov
   )
   database.close_checked().unwrap()
 }
+
+///|
+test "changed selected definition moves its exact locator with the original Run CAS" {
+  let database = epoch_test_database("journal-definition-mutation")
+  initialize_native_client_run_journal(database).unwrap()
+  let journal = open_native_client_run_journal(database, 8).unwrap()
+  let (request, prepared, compiled, definition) = journal_test_run(
+    "definition-mutation", "original-definition",
+  )
+  let original = journal
+    .bind_run(request, prepared, compiled, definition, true)
+    .unwrap()
+  let (_, _, _, replacement) = journal_test_run(
+    "definition-mutation", "replacement-definition",
+  )
+  let calls : Array[String] = []
+  let operations = journal_test_operation_access(database, calls)
+  let next = journal
+    .transaction_with_reads(
+      () => {
+        journal.save_with_operations(
+          { ..original, definition: replacement, },
+          operations=Some(operations),
+        )
+      },
+      reads=Some(operations.reads),
+    )
+    .unwrap()
+  assert_eq(next.revision, original.revision + 1L)
+  assert_false(calls.any(value => value.has_prefix("scan:")))
+  assert_true(
+    database.read(
+      "client_run_definition_index",
+      @publication.publication_contract_identity(definition),
+    )
+    is Err(@sqlite.NotFound),
+  )
+  assert_eq(
+    database
+    .read(
+      "client_run_definition_index",
+      @publication.publication_contract_identity(replacement),
+    )
+    .unwrap().body,
+    @utf8.encode(@host.client_request_scope_cid(request)),
+  )
+  let (other, _, _, _) = journal_test_run("different-request", "different-run")
+  assert_true(
+    journal.transaction(() => journal.bind_run_locked(other, replacement))
+    is Err(ForeignRun),
+  )
+  database.close_checked().unwrap()
+}
+
+///|
+test "definition locator mutation failure restores the original Run and both locator identities" {
+  let database = epoch_test_database("journal-definition-mutation-rollback")
+  initialize_native_client_run_journal(database).unwrap()
+  let journal = open_native_client_run_journal(database, 8).unwrap()
+  let (request, prepared, compiled, definition) = journal_test_run(
+    "definition-rollback", "original-definition",
+  )
+  let original = journal
+    .bind_run(request, prepared, compiled, definition, true)
+    .unwrap()
+  let (_, _, _, replacement) = journal_test_run(
+    "definition-rollback", "replacement-definition",
+  )
+  let calls : Array[String] = []
+  let operations : NativeClientJournalOperationAccess = {
+    ..journal_test_operation_access(database, calls),
+    insert: (table, key, body) => {
+      if table == "client_run_definition_index" {
+        Err(@sqlite.Busy)
+      } else {
+        database.insert(table, key, body)
+      }
+    },
+  }
+  assert_true(
+    journal.transaction_with_reads(
+      () => {
+        journal.save_with_operations(
+          { ..original, definition: replacement, },
+          operations=Some(operations),
+        )
+      },
+      reads=Some(operations.reads),
+    )
+    is Err(Physical(@sqlite.Busy)),
+  )
+  assert_eq(calls[calls.length() - 1], "rollback")
+  let restored = journal.lookup(request, true).unwrap()
+  guard restored is Retained(restored) else { fail("original Run lost") }
+  assert_eq(restored.revision, original.revision)
+  assert_eq(
+    @publication.publication_contract_identity(restored.definition),
+    @publication.publication_contract_identity(definition),
+  )
+  assert_eq(
+    database
+    .read(
+      "client_run_definition_index",
+      @publication.publication_contract_identity(definition),
+    )
+    .unwrap().body,
+    @utf8.encode(@host.client_request_scope_cid(request)),
+  )
+  assert_true(
+    database.read(
+      "client_run_definition_index",
+      @publication.publication_contract_identity(replacement),
+    )
+    is Err(@sqlite.NotFound),
+  )
+  database.close_checked().unwrap()
+}
