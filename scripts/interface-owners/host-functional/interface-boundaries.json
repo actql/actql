@@ -71357,7 +71357,7 @@
     },
     {
       "module": "adapters/host-node/ordinary-host-result.mjs",
-      "sha256": "3ca2e948ad9f25366a368bd7729eb833d12f2d165c9c7f140cee4399c120a8ec",
+      "sha256": "0da03a7b2b2e07062174df5394f41a1ee5f4c84a682656026fd63109d958870c",
       "exports": [
         "prepareOrdinaryHostResult"
       ],
@@ -71909,6 +71909,14 @@
               {
                 "path": "docs/design/embedded-host-trust-boundary.md",
                 "anchor": "Verification distinguishes the real Row Effect factory's original-binding and"
+              },
+              {
+                "path": "adapters/host-node/ordinary-host-result.test.mjs",
+                "anchor": "test('ordinary command-only Effect retains its Result purpose with zero requested Named Results'"
+              },
+              {
+                "path": "adapters/host-node/ordinary-host-result.test.mjs",
+                "anchor": "test('ordinary command-only Effect preserves finite result, row and contract limits'"
               }
             ]
           }
