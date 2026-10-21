@@ -1500,6 +1500,45 @@ test('existing schema preparation reacquires and refuses changed bytes', async t
   assert.equal(store.status().objectCount, 1, 'a failed observation does not refund stored bytes');
 });
 
+test('existing schema preparation never substitutes a visible link for a pending original ACK', async t => {
+  const directory = await mkdtemp(join(tmpdir(), 'actql-schema-pending-ack-'));
+  t.after(() => removeFixtureDirectory(directory));
+  const configuration = {
+    directory, storeAuthorityCid: cids.authority, capacityBytes: 1024 * 1024,
+    maxObjectBytes: 64 * 1024, maxObjects: 100,
+    maxContractNodes: limits.maxNodes, maxContractDepth: limits.maxDepth,
+  };
+  let refuse = false;
+  const failure = Object.assign(new Error('original alias ACK'), {code: 'EIO'});
+  const durability = Object.freeze({async syncDirectory(path) {
+    if (refuse && path === join(directory, 'contracts')) throw failure;
+    const handle = await open(path, 'r');
+    try { await handle.sync(); }
+    finally { await handle.close(); }
+  }});
+  const store = await openLocalPublicationStore(configuration, contractControl, durability);
+  refuse = true;
+  let originalFailure, prepared, preparationFailure;
+  try {
+    try { await store.putSemantic(resultSchemaWire, cids.schema); }
+    catch (error) { originalFailure = error; }
+    assert.equal(originalFailure?.cleanupHandle.status().pending, true);
+    try { prepared = await store.putPreparedResultSchema(resultSchemaWire, cids.schema, cids.run); }
+    catch (error) { preparationFailure = error; }
+    if (prepared !== undefined) await prepared.prepared.release();
+    assert.equal(preparationFailure?.code, 'PublicationStoreCleanupPending');
+    assert.equal(originalFailure.cleanupHandle.status().pending, true);
+  } finally {
+    refuse = false;
+    if (prepared?.prepared.status().pending) await prepared.prepared.release();
+    if (preparationFailure?.cleanupHandle.status().pending) await preparationFailure.cleanupHandle.retry();
+    if (originalFailure?.cleanupHandle.status().pending) await originalFailure.cleanupHandle.retry();
+  }
+  assert.equal(store.status().objectCount, 1);
+  const confirmed = await store.putPreparedResultSchema(resultSchemaWire, cids.schema, cids.result);
+  await confirmed.prepared.release();
+});
+
 test('restart reclaims an unpublished prepared Result schema', async t => {
   const directory = await mkdtemp(join(
     tmpdir(), 'actql-publication-schema-crash-',
