@@ -2726,6 +2726,25 @@ export function openClientRequestJournal(directory, {
     })});
   };
 
+  const resolveOriginalDefinition = (identity, fields, namespaceId,
+    requestControl, publicationControl) => {
+    const retained = lookupRecord({namespaceId,
+      authorityScopeCid: fields.authorityScopeCid,
+      requestId: fields.requestId}, requestControl, {identity, fields});
+    if (retained === undefined) return undefined;
+    // Exact saved identity fields reuse this entry's already admitted request.
+    // A distinct saved identity still follows lookupRecord's full admission.
+    const relation = requestControl.clientRequestRelation(identity, retained.identity);
+    if (relation !== 1) {
+      fail(relation === 2 ? 'ClientRequestIntentConflict' :
+        'ClientRequestJournalCorrupt');
+    }
+    return Object.freeze({...retained.found,
+      ...retainedRunFacts(retained.row, publicationControl,
+        maxRunDefinitionWireBytes, updateOriginalControl),
+    });
+  };
+
   let observationStorage;
   let observationDatabase;
   let observationSql;
@@ -3346,20 +3365,8 @@ export function openClientRequestJournal(directory, {
         fail('InvalidClientRequestLookup');
       }
       const fields = checkedIdentity(identity, requestControl);
-      const retained = lookupRecord({namespaceId,
-        authorityScopeCid: fields.authorityScopeCid,
-        requestId: fields.requestId}, requestControl);
-      if (retained === undefined) return undefined;
-      const relation = requestControl.clientRequestRelation(identity,
-        retainedIdentity(retained.row, requestControl));
-      if (relation !== 1) {
-        fail(relation === 2 ? 'ClientRequestIntentConflict' :
-          'ClientRequestJournalCorrupt');
-      }
-      return Object.freeze({...retained.found,
-        ...retainedRunFacts(retained.row, publicationControl,
-          maxRunDefinitionWireBytes, updateOriginalControl),
-      });
+      return resolveOriginalDefinition(identity, fields, namespaceId,
+        requestControl, publicationControl);
     },
     // Physical admit-or-lookup ordering for a checked request. The common
     // MoonBit relation decides whether a retained intent is the same request;
@@ -3378,7 +3385,7 @@ export function openClientRequestJournal(directory, {
       const fields = checkedIdentity(identity, requestControl);
       assertKeyedInventoryRequest(sourceInventory, fields);
       const epochValidity = checkSubmissionBinding(fields, submission, requestControl);
-      const retained = journal.resolveDefinition(identity, {namespaceId},
+      const retained = resolveOriginalDefinition(identity, fields, namespaceId,
         requestControl, publicationControl);
       if (retained !== undefined) {
         assertSourceInventory(retained, sourceInventory);
