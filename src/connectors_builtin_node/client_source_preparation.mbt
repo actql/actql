@@ -378,6 +378,20 @@ fn client_prepare_source_computation(
   guard catalogs.length() == 1 && catalogs.get(0) is Some(source_catalog) else {
     return SourcePure(Rejected(SourcePreparation(Publication)))
   }
+  client_program_finish_source_computation(
+    lowered, environment, source_catalog, parameters, allow_effects, evidence,
+  )
+}
+
+///|
+fn client_program_finish_source_computation(
+  lowered : @source_frontend.Lowered,
+  environment : @program_check.CheckEnvironment,
+  source_catalog : @program_check.PreparedSourceCatalog,
+  parameters : String?,
+  allow_effects : Bool,
+  evidence : Array[@context.StageCapacityInput],
+) -> ClientSourceComputationBridgeOutcome {
   let (_, supplied) = match client_program_input("json", parameters) {
     Ok(value) => value
     Err(issue) => return SourcePure(Rejected(issue))
