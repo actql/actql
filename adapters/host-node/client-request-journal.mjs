@@ -1648,10 +1648,10 @@ export function openClientRequestJournal(directory, {
   if (primaryCurrent !== undefined && typeof facilityNativeRealpath !== 'function') {
     fail('ClientRequestJournalFacilityUnavailable');
   }
-  const admission = admitJournalDirectory(directory, maxInspectionEntries, inspectionBytes,
+  const directoryAdmission = admitJournalDirectory(directory, maxInspectionEntries, inspectionBytes,
     primarySqlLimits, primaryExecutionLimits, primarySchemaLimits, primarySchemaSqlSupport, primaryCurrent,
     primaryDirectoryInspection, inspectionTemporaryDirectory, ownedOriginal);
-  const current = admission !== false;
+  const current = directoryAdmission !== false;
   mkdirSync(directory, {recursive: true, mode: 0o700});
   // Avoid the stock JS symlink walk's intermediate path/Map/Set history in
   // the selected recipe. Native libc/libuv path holdings remain distinct
@@ -1742,7 +1742,7 @@ export function openClientRequestJournal(directory, {
           fail('SqliteSchemaPreparationUnavailable');
         }
       }
-      inspectJournalNativeStorage(database, admission);
+      inspectJournalNativeStorage(database, directoryAdmission);
     }
     boundJournalDatabaseExtent(database, maxDatabaseBytes, primaryExecutionLimits, walFrames,
       temporarySelected, retainedGeometry);
