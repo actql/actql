@@ -609,6 +609,9 @@ test('publication commit never reuses a prior operation semantic original after 
   const entry = indexEntry(request, attempt, invocationValue, {
     durable_result_binding_cids: [prepared.binding.identity],
   });
+  const borrowed = await store.readSemanticBytes(invocationValue.invocation_cid);
+  borrowed.fill(0);
+  // The public mutable allocation is not this later commit's private original.
   await store.commitIndex(wire(entry), prepared.required, prepared.evidence);
   const selected = join(directory, 'contracts', invocationValue.invocation_cid.slice(7) + '.json');
   const original = await readFile(selected);
