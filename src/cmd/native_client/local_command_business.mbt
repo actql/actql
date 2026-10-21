@@ -1,8 +1,15 @@
 ///|
-// Installer-private facility selection for the accepted source-free Run scope.
-// This is neither all-input demand adequacy nor a physical issuer. Actual
-// backing/context/Ledger acquisition and Program quotation remain mandatory.
+// Installer-private command retention selection. Compute uses its own backed
+// domain; saved Result uses the existing bounded Read/SQLite facilities.
+// Neither selection issues resources, permissions or cleanup acknowledgements.
+priv enum LocalCommandBusinessKind {
+  SourceFreeCompute
+  SavedResultRead
+} derive(Eq)
+
+///|
 priv struct LocalCommandBusinessProfile {
+  kind : LocalCommandBusinessKind
   domain_bytes : Int64
   payload_facility_bytes : Int64
   limits : @initial_resources.LedgerLimits
@@ -123,7 +130,35 @@ fn local_command_source_free_business_profile(
       shared_control_bytes: Some(control),
     },
   }
-  (profile, { domain_bytes: bytes, payload_facility_bytes: payload, limits, })
+  (
+    profile,
+    {
+      kind: SourceFreeCompute,
+      domain_bytes: bytes,
+      payload_facility_bytes: payload,
+      limits,
+    },
+  )
+}
+
+///|
+// Saved Result performs bounded metadata, verification, decoding and output in
+// the existing command Read/SQLite facilities. This retains caller cleanup
+// state but selects no Compute domain, execution or Ledger capacity.
+fn local_command_saved_result_read_profile() -> LocalCommandBusinessProfile {
+  {
+    kind: SavedResultRead,
+    domain_bytes: 0L,
+    payload_facility_bytes: 0L,
+    limits: {
+      planning_work: 0,
+      attempts: 0,
+      holdings: 0,
+      transfer_bytes: 0L,
+      retained_bytes: 0L,
+      execution_bytes: 0L,
+    },
+  }
 }
 
 ///|
@@ -133,6 +168,17 @@ fn LocalCommandPreparationOriginal::prepare_business_domain(
   scope : @initial_arena.InstalledArenaBackingBorrow,
 ) -> Result[Unit, LocalCommandPreparationIssue] {
   guard self.business is Some(business) else { return Ok(()) }
+  if business.profile.kind == SavedResultRead {
+    return if !self.closing &&
+      !self.closed &&
+      self.primary is None &&
+      business.domain is None &&
+      business.execution is None {
+      Ok(())
+    } else {
+      Err(CommandUnavailable)
+    }
+  }
   if business.domain is Some(_) || self.closing || self.closed {
     return Err(CommandUnavailable)
   }
@@ -162,6 +208,17 @@ fn LocalCommandPreparationOriginal::prepare_business_execution(
   host : @initial_arena.InstalledArenaHost,
 ) -> Result[Unit, LocalCommandPreparationIssue] {
   guard self.business is Some(business) else { return Ok(()) }
+  if business.profile.kind == SavedResultRead {
+    return if !self.closing &&
+      !self.closed &&
+      self.primary is None &&
+      business.domain is None &&
+      business.execution is None {
+      Ok(())
+    } else {
+      Err(CommandUnavailable)
+    }
+  }
   guard business.domain is Some(domain) && business.execution is None else {
     return Err(CommandUnavailable)
   }
@@ -257,6 +314,7 @@ fn LocalCommandPreparationOriginal::require_business_program(
   }
   guard self.host is Some(host) &&
     self.business is Some(business) &&
+    business.profile.kind == SourceFreeCompute &&
     business.execution is Some(execution) else {
     return Err(CommandUnavailable)
   }
@@ -297,7 +355,6 @@ fn LocalCommandPreparationOriginal::prepare_business_operation(
     self.pair is Some(pair) &&
     self.journal is Some(capture) &&
     self.runtime is Some(runtime) &&
-    business.execution is Some(execution) &&
     business.operation is None &&
     !self.phase_open &&
     !self.journal_read_open &&
@@ -309,10 +366,25 @@ fn LocalCommandPreparationOriginal::prepare_business_operation(
     Ok(value) => value
     Err(issue) => return Err(CommandPair(issue))
   }
-  let operation = match
-    @local_host.prepare_native_local_store_operation(
-      capture, execution, runtime, library,
-    ) {
+  let prepared = match business.profile.kind {
+    SourceFreeCompute => {
+      guard business.execution is Some(execution) else {
+        return Err(CommandUnavailable)
+      }
+      @local_host.prepare_native_local_store_operation(
+        capture, execution, runtime, library,
+      )
+    }
+    SavedResultRead => {
+      if business.domain is Some(_) || business.execution is Some(_) {
+        return Err(CommandUnavailable)
+      }
+      @local_host.prepare_native_local_run_observation_store_operation(
+        capture, runtime, library,
+      )
+    }
+  }
+  let operation = match prepared {
     Ok(value) => value
     Err(issue) => return Err(CommandStoreOperation(issue))
   }

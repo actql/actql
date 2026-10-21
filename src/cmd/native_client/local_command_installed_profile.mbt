@@ -128,6 +128,29 @@ fn local_command_preparation_selected(
 }
 
 ///|
+// Selection only. Result retains the bounded command Read/SQLite facilities;
+// a new computation still selects its separate complete business candidate.
+fn local_command_profile_selection(
+  static_profile : LocalCommandPreparationProfile,
+  matches : @argparse.Matches,
+) -> (LocalCommandPreparationProfile, LocalCommandBusinessProfile?) raise ClientStop {
+  if matches.subcommand is Some(("run", _)) ||
+    (
+      matches.subcommand is Some((operation, child)) &&
+      local_quick_query_requested(operation, child)
+    ) {
+    let (profile, business) = local_command_source_free_business_profile(
+      static_profile,
+    )
+    (profile, Some(business))
+  } else if matches.subcommand is Some(("result", _)) {
+    (static_profile, Some(local_command_saved_result_read_profile()))
+  } else {
+    (static_profile, None)
+  }
+}
+
+///|
 // Successful parse precedes this call. The exact initial launcher context and
 // compiled source are retained by the same early entry. Store the same carrier
 // BEFORE its first backing/Host/Root/Reader acquisition, including failures.
@@ -175,21 +198,9 @@ fn prepare_native_command_invocation(
     stop("PackagedLocalRuntimeChanged")
   }
   let static_profile = local_command_installed_profile(actual_source, manifest)
-  // The full business candidate exists before backing/domain/Root acquisition,
-  // not after epoch issuance, Program admission or first-start claims.
-  let (profile, business) = if matches.subcommand is Some(("run", _)) ||
-    (
-      matches.subcommand is Some((operation, child)) &&
-      local_quick_query_requested(operation, child)
-    ) ||
-    matches.subcommand is Some(("result", _)) {
-    let (profile, business) = local_command_source_free_business_profile(
-      static_profile,
-    )
-    (profile, Some(business))
-  } else {
-    (static_profile, None)
-  }
+  let (profile, business) = local_command_profile_selection(
+    static_profile, matches,
+  )
   let original = command_preparation_result(
     prepare_local_command_preparation_original(profile, business~),
     stage=Some("prepare"),

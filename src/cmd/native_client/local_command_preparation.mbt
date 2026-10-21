@@ -135,26 +135,39 @@ fn prepare_local_command_preparation_original(
     profile.diagnostic_ceiling > 4096 {
     return Err(CommandInvalidProfile)
   }
-  if business is Some(candidate) &&
-    (
-      candidate.domain_bytes <= 0L ||
-      candidate.payload_facility_bytes <= 0L ||
-      profile.control_bytes >
-      profile.arena_bytes -
-      profile.read_domain_bytes -
-      profile.sqlite_domain_bytes ||
-      candidate.domain_bytes >
-      profile.arena_bytes -
-      profile.read_domain_bytes -
-      profile.sqlite_domain_bytes -
-      profile.control_bytes ||
-      candidate.limits.retained_bytes < 0L ||
-      candidate.limits.execution_bytes < 0L ||
-      candidate.limits.retained_bytes > candidate.payload_facility_bytes ||
-      candidate.limits.execution_bytes >
-      candidate.payload_facility_bytes - candidate.limits.retained_bytes
-    ) {
-    return Err(CommandInvalidProfile)
+  if business is Some(candidate) {
+    match candidate.kind {
+      SourceFreeCompute =>
+        if candidate.domain_bytes <= 0L ||
+          candidate.payload_facility_bytes <= 0L ||
+          profile.control_bytes >
+          profile.arena_bytes -
+          profile.read_domain_bytes -
+          profile.sqlite_domain_bytes ||
+          candidate.domain_bytes >
+          profile.arena_bytes -
+          profile.read_domain_bytes -
+          profile.sqlite_domain_bytes -
+          profile.control_bytes ||
+          candidate.limits.retained_bytes < 0L ||
+          candidate.limits.execution_bytes < 0L ||
+          candidate.limits.retained_bytes > candidate.payload_facility_bytes ||
+          candidate.limits.execution_bytes >
+          candidate.payload_facility_bytes - candidate.limits.retained_bytes {
+          return Err(CommandInvalidProfile)
+        }
+      SavedResultRead =>
+        if candidate.domain_bytes != 0L ||
+          candidate.payload_facility_bytes != 0L ||
+          candidate.limits.planning_work != 0 ||
+          candidate.limits.attempts != 0 ||
+          candidate.limits.holdings != 0 ||
+          candidate.limits.transfer_bytes != 0L ||
+          candidate.limits.retained_bytes != 0L ||
+          candidate.limits.execution_bytes != 0L {
+          return Err(CommandInvalidProfile)
+        }
+    }
   }
   let native_storage = match quote_local_command_native_storage(profile) {
     Err(issue) => return Err(CommandNativeStorage(issue))
