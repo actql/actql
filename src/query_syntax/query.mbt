@@ -385,17 +385,23 @@ pub fn starts_query(
     Err(issue) => Err(issue)
     Ok(tokens) => {
       let first = token_at(tokens, 0).unwrap()
-      Ok(
-        keyword(first, "SELECT") ||
-        keyword(first, "WITH") ||
-        keyword(first, "FROM") ||
-        keyword(first, "CREATE") ||
-        keyword(first, "TIME_SERIES") ||
-        keyword(first, "CALENDAR_SERIES") ||
-        first.value == Symbol(40),
-      )
+      Ok(query_head(first))
     }
   }
+}
+
+///|
+fn query_head(first : Token) -> Bool {
+  sql_head(first) ||
+  keyword(first, "FROM") ||
+  keyword(first, "TIME_SERIES") ||
+  keyword(first, "CALENDAR_SERIES") ||
+  first.value == Symbol(40)
+}
+
+///|
+fn sql_head(first : Token) -> Bool {
+  keyword(first, "SELECT") || keyword(first, "WITH") || keyword(first, "CREATE")
 }
 
 ///|
@@ -411,11 +417,7 @@ pub fn starts_sql(
     Ok(tokens) => {
       let first = token_at(tokens, 0).unwrap()
       if first.value != Symbol(40) {
-        return Ok(
-          keyword(first, "SELECT") ||
-          keyword(first, "WITH") ||
-          keyword(first, "CREATE"),
-        )
+        return Ok(sql_head(first))
       }
       // Inspect admitted tokens, not source substrings: parentheses and
       // comments do not change whether the head is SQL or FROM-headed Pipe.
@@ -3730,6 +3732,14 @@ pub fn parse_query(
     Ok(source) => source
     Err(error) => return Err(error)
   }
+  parse_query_tokens(source, limits)
+}
+
+///|
+fn parse_query_tokens(
+  source : Tokens,
+  limits : QueryLimits,
+) -> Result[Query, Diagnostic] {
   let parser : QueryParser = {
     source,
     limits,

@@ -99,13 +99,20 @@ fn scan_tokens(
   limits : LexicalLimits,
   source_path : String,
   first_only : Bool,
+  query_route? : Bool? = None,
+  read_document? : (String, Int, String) -> Result[
+    @origin.Document,
+    @origin.Issue,
+  ] = (text, max_bytes, path) => {
+    @origin.document(text, max_bytes, source_path=path)
+  },
 ) -> Result[Tokens, Diagnostic] {
   let caps = [limits.max_tokens, limits.max_literal_bytes, limits.max_work]
   if limits.max_source_bytes < 0 || caps.any(n => n < 0 || n == 2147483647) {
     return Err({ issue: InvalidLimits, span: None, })
   }
   let document = match
-    @origin.document(text, limits.max_source_bytes, source_path~) {
+    read_document(text, limits.max_source_bytes, source_path) {
     Ok(d) => d
     Err(e) => return Err({ issue: Source(e), span: None, })
   }
@@ -136,7 +143,16 @@ fn scan_tokens(
         _ => ()
       }
       tokens.push(t)
-      if first_only || t.value == End {
+      // A selected query keeps this scanner, budget and source document. A
+      // rejected first-token route must not inspect a foreign body's grammar.
+      let rejected_route = tokens.length() == 1 &&
+        (match query_route {
+          Some(sql_only) =>
+            !query_head(t) ||
+            (sql_only && t.value != Symbol(40) && !sql_head(t))
+          None => false
+        })
+      if first_only || rejected_route || t.value == End {
         break
       }
     }
