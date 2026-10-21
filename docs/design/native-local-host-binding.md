@@ -2490,3 +2490,19 @@ insertion, issued-counter CAS, rollback and sticky Unknown responsibilities.
 Fresh setup or explicit maintenance installs the index inside its original
 transaction after a complete finite table-work prepass. No ordinary read
 performs DDL, migration, repair or a global evidence audit.
+## Retained Store DATA lifetime
+
+Within the existing validated command capture, immutable committed Result DATA
+can be reused without resolving the same Store rows again. The caller retains
+the exact Store, namespace, scope, Run definition and Result name, and invalidates
+the selection on relevant mutation, failure, external reentry or operation end.
+This is not a retained authorization decision across public operations.
+
+`Store::retained_data_current` observes only the original Store/Database/Library
+lifetime and idle routing state. Closed or retiring Stores, pending returns,
+failed or cleanup-only routes, foreign process/thread use and unavailable
+Database/Library handles refuse. A live payload reader keeps its own duty and
+does not by itself invalidate immutable DATA. The query performs no SQL, scope
+transition, callback, permission evaluation, capacity return or cleanup ACK.
+The existing Host/capture still supplies current authority and actual physical
+pair/Read lifetime; this observation cannot substitute for those boundaries.

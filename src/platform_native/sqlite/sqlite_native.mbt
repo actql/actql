@@ -783,6 +783,26 @@ pub fn Database::current_component_matches_heap(
 }
 
 ///|
+#borrow(database)
+extern "C" fn database_retained_data_current_ffi(database : Database) -> Int = "actql_native_sqlite_database_retained_data_current"
+
+///|
+/// Cheap original Database/Library and idle-route lifetime only. The caller
+/// retains its actual Host/capture and distinct authority checks. This does
+/// not enter Read/SQL, invoke a callback, observe rows or acknowledge cleanup.
+pub fn Database::retained_data_current(
+  self : Database,
+) -> Result[Unit, NativeSqliteIssue] {
+  match database_retained_data_current_ffi(self) {
+    0 => Ok(())
+    1 => Err(DatabaseClosed)
+    3 => Err(Busy)
+    code =>
+      Err(Physical("original retained DATA lifetime unavailable (\{code})"))
+  }
+}
+
+///|
 pub fn Library::open_database(
   self : Library,
   path : String,

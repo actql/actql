@@ -491,3 +491,10 @@ pub fn Library::open_existing_local_store_database_with_custody(
 ) -> Result[Database, NativeSqliteOpenFailure] {
   Err({ original_issue: UnsupportedTarget, database: None, })
 }
+
+///|
+pub fn Database::retained_data_current(
+  _self : Database,
+) -> Result[Unit, NativeSqliteIssue] {
+  Err(UnsupportedTarget)
+}

@@ -51,6 +51,7 @@ pub fn Database::release_capacity_in_transaction(Self, String, String, Int64, In
 pub fn Database::remove_exact(Self, String, String, Int64, Bytes) -> Result[Unit, NativeSqliteIssue]
 pub fn Database::reserve_capacity(Self, String, String, Int64, Int64, Int64, Int64) -> Result[Bool, NativeSqliteIssue]
 pub fn Database::reserve_capacity_in_transaction(Self, String, String, Int64, Int64, Int64, Int64) -> Result[Bool, NativeSqliteIssue]
+pub fn Database::retained_data_current(Self) -> Result[Unit, NativeSqliteIssue]
 pub fn Database::rollback(Self) -> Result[Unit, NativeSqliteIssue]
 pub fn Database::scan_after(Self, String, String) -> Result[NativeJournalEntry, NativeSqliteIssue]
 pub fn Database::scan_after_with_body_limit(Self, String, String, Int64) -> Result[NativeJournalEntry, NativeSqliteIssue]

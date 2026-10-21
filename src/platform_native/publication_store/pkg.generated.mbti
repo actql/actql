@@ -281,6 +281,7 @@ pub fn Store::restore_effect_checkpoint_custody(Self, @checkpoint_runtime.Sealed
 pub fn Store::restore_effect_preview_custody(Self, @run_publication.EffectPreviewIdentity, String, String, String, @signature.Library, Bytes, Int, Int, Int) -> Result[EffectPreviewCustody, NativePublicationStoreIssue]
 pub fn Store::restore_effect_source_custody(Self, @run_publication.PublicationContract, @run_publication.CapturedEffectSourceArtifact, @publication_payload.PublicationPayloadRequest, String, Int64) -> Result[EffectSourceCustody, NativePublicationStoreIssue]
 pub fn Store::restore_local_preparation_raw_observation(Self, @remote_credential.LocalPreparationCredentialGrant, @remote_credential.LocalPreparationCredentialUse, @signature.Library, Bytes) -> Result[LocalPreparationRawCustody, NativePublicationStoreIssue]
+pub fn Store::retained_data_current(Self) -> Result[Unit, NativePublicationStoreIssue]
 pub fn Store::retry_pending_result_delivery_cleanup(Self) -> Result[Bool, NativePublicationStoreIssue]
 
 // Type aliases
