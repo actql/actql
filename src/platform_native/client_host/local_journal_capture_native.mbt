@@ -179,7 +179,14 @@ pub fn NativeLocalJournalCapture::check_current(
       JournalAcquired(host) => {
         let current = match self.original_resources {
           None => host.check_binding()
-          Some(original) => original.check_journal_current(host)
+          Some(_) =>
+            if self.read_callback_active &&
+              self.original_resources is Some(original) &&
+              original.active_phase is Some(@arena.HostRead) {
+              self.check_current_in_original_read()
+            } else {
+              self.check_current_between_original_phases()
+            }
         }
         match current {
           Ok(_) => None

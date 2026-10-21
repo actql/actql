@@ -43,11 +43,12 @@ pub fn NativeLocalReadPolicyBinding::completed_file_receipt_in_original_read(
     if !physical_equal(host, self.host) {
       return Err(SelectionMismatch)
     }
+    // The successful receipt names this exact reserved holding and packet.
+    // Unrelated retained evidence belongs to explicit audit/maintenance.
     match
-      host.read_evidence_custody(
-        self.crypto,
+      host.require_retained_read_evidence_target(
+        selected.request,
         operations=Some(operations),
-        capture=Some(capture),
       ) {
       Ok(_) => ()
       Err(issue) => return Err(Journal(issue))

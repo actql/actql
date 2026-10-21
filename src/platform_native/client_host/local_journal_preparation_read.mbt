@@ -232,3 +232,76 @@ fn NativeLocalJournalCapture::check_original_read_lifetime(
   }
   result
 }
+
+///|
+// Trusted Store/business routing temporarily leaves the original Read. That
+// physical exchange is not a second public operation or a new configuration
+// admission. Keep actual pair/runtime lifetime and the SQLite fence; reuse
+// this command's already admitted source and retained rows only while valid.
+fn NativeLocalJournalCapture::check_current_between_original_phases(
+  self : NativeLocalJournalCapture,
+) -> Result[Unit, NativeLocalAdoptionIssue] {
+  let current = if self.closing || self.read_operation_issue is Some(_) {
+    Err(self.read_operation_issue.unwrap_or(OriginalResourceScopePending))
+  } else if self.opening is JournalAcquired(host) &&
+    self.original_resources is Some(original) &&
+    !original.interrupted &&
+    original.active_phase is None {
+    if host.closed ||
+      host.database_closed ||
+      host.session_closed ||
+      host.session.closed {
+      Err(Closed)
+    } else if host.session.read_cleanup is Some(issue) {
+      Err(issue)
+    } else if host.session.initial_signing_failure.val is Some(failure) {
+      Err(failure.issue())
+    } else if host.journal.fenced {
+      Err(Fenced)
+    } else if !self.read_callback_active {
+      // A separate public observation must see current originals, including
+      // Deny or changed configuration. Open success never admits that entry.
+      original.check_journal_current(host)
+    } else if !self.read_facts_valid || !host.journal.operation_active {
+      Err(OriginalResourceScopePending)
+    } else {
+      let lifetime = match
+        original.host.observe_local_host_consuming_read_scope(
+          original.pair,
+          original.read,
+        ) {
+        Ok(@arena.ReadUnentered) => Ok(())
+        Ok(_) => Err(OriginalResourceScopePending)
+        Err(issue) => Err(OriginalResources(issue))
+      }
+      match lifetime {
+        Err(issue) => Err(issue)
+        Ok(_) => {
+          let runtime = match host.packaged_runtime {
+            None => Ok(())
+            Some(binding) =>
+              binding.current
+              .local_runtime_require_live()
+              .map_err(_ => CustodyLost)
+          }
+          match runtime {
+            Err(issue) => Err(issue)
+            Ok(_) =>
+              original.stage(@arena.HostSqlite, fn() {
+                host.check_binding_sqlite_fence()
+              })
+          }
+        }
+      }
+    }
+  } else {
+    Err(OriginalResourceScopePending)
+  }
+  if current is Err(issue) && self.read_callback_active {
+    if self.read_operation_issue is None {
+      self.read_operation_issue = Some(issue)
+    }
+    self.clear_read_operation_facts()
+  }
+  current
+}

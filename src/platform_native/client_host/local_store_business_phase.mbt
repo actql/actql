@@ -127,10 +127,10 @@ pub fn NativeLocalStoreOperation::return_business_to_original_read(
       )
     Ok(_) => receiver.business_pending = false
   }
-  guard receiver.capture.opening is JournalAcquired(host) else {
+  guard receiver.capture.opening is JournalAcquired(_) else {
     return Err(receiver.interrupt_business(original, StoreOperationUnavailable))
   }
-  match original.check_journal_current(host) {
+  match receiver.capture.check_current_between_original_phases() {
     Err(issue) =>
       return Err(
         receiver.interrupt_business(original, StoreOperationCapture(issue)),

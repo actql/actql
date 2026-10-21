@@ -179,8 +179,8 @@ test "one selected Run revision and Policy original survive trusted read-only tr
 // lifetime check must fail. This tests invalidation, never a Native supplier,
 // physical recovery, or a fabricated successful Read/cleanup acknowledgement.
 test "failed operation lifetime retires the cached adoption before cheap current can recover" {
-  for scope in [true, false] {
-    let name = "operation-lifetime-invalidation-" + scope.to_string()
+  for mode in ["scope", "account", "phase-return"] {
+    let name = "operation-lifetime-invalidation-" + mode
     let host = policy_host_fixture(name)
     let capture = prepare_native_local_journal_capture(
       host.session,
@@ -250,14 +250,21 @@ test "failed operation lifetime retires the cached adoption before cheap current
     capture.read_scopes.push(("operator", "cli", "previous-scope"))
     capture.read_decisions.push((tuple, allowed))
     cheap_current.val = false
-    if scope {
+    if mode == "scope" {
       assert_true(
         capture.operation_scope(host, material, "operator", "cli")
         is Err(OriginalResourceScopePending),
       )
-    } else {
+    } else if mode == "account" {
       assert_true(
         capture.operation_account(host, material, tuple)
+        is Err(OriginalResourceScopePending),
+      )
+    } else {
+      // The command flag and old Allow cannot replace the missing physical
+      // pair, even while the original Read is nominally unentered.
+      assert_true(
+        capture.check_current_between_original_phases()
         is Err(OriginalResourceScopePending),
       )
     }
@@ -305,6 +312,10 @@ test "failed operation lifetime retires the cached adoption before cheap current
     )
     assert_true(
       capture.check_current_in_original_read()
+      is Err(OriginalResourceScopePending),
+    )
+    assert_true(
+      capture.check_current_between_original_phases()
       is Err(OriginalResourceScopePending),
     )
     assert_eq(full.val, 2)
