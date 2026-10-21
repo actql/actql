@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import test from 'node:test';
+import test, {mock} from 'node:test';
 import {registerHooks} from 'node:module';
 import {readFileSync} from 'node:fs';
 import {createHash, generateKeyPairSync, sign} from 'node:crypto';
@@ -66,6 +66,57 @@ async function fixture(t, respond) {
   return {client, calls};
 }
 const assertPasses = expected => assert.deepEqual(Object.fromEntries(admissions), expected);
+
+for (const kind of ['effect_set', 'model_invocation']) {
+  for (const [action, decision] of [['approve', 'approved'], ['reject', 'rejected']]) {
+    test(`${action} ${kind} constructs each signed CID once from the admitted Summary`, async t => {
+      const model = kind === 'model_invocation';
+      const summary = model ? JSON.parse(readFileSync(new URL(
+        '../../portability/corpus/model-invocation-scope.json', import.meta.url))).summary
+        : {checkpointId: 'checkpoint', checkpointCid: cid('c'), kind,
+          phase: 'commit', subject: {kind: 'run_unit', runId: 'run', runDefinitionCid: cid('b')},
+          requiredArtifact: {type: 'effect_set_preview', cid: cid('d')},
+          reviewProjectionCid: cid('e'), requirements: ['effect_scope_approved'],
+          createdAt: '2026-10-18T00:00:00.000Z', expiresAt: '2027-01-01T00:00:00.000Z',
+          humanSummary: 'Original Effect'};
+      const keys = generateKeyPairSync('ed25519');
+      let signatures = 0, sent;
+      const signer = {keyId: 'key', reviewerId: 'reviewer', authorityScopeCid: cid('f'),
+        sign(bytes) {signatures++; return sign(null, bytes, keys.privateKey);}};
+      const f = await fixture(t, (operation, body) => {
+        if (operation === 'checkpoints') return {items: [summary]};
+        assert.equal(operation, 'resolve');
+        sent = body.items[0];
+        return {results: [{checkpointCid: summary.checkpointCid, status: 'committed', decision,
+          resolutionCid: JSON.parse(sent.resolutionWire).resolution_cid}]};
+      });
+      const digests = [];
+      const digest = crypto.subtle.digest;
+      mock.method(crypto.subtle, 'digest', function (algorithm, bytes) {
+        digests.push(Buffer.from(bytes).toString('hex'));
+        return Reflect.apply(digest, this, [algorithm, bytes]);
+      });
+      try {
+        admissions.clear();
+        const answer = await f.client[action](summary.checkpointId, {signer});
+        assert.equal(admissions.get('validCheckpointLookup'), 1);
+        assert.equal(admissions.get('validCheckpointPage') ?? 0, 0,
+          'the captured lookup Summary is already admitted');
+        assert.equal(admissions.get('validResolveItem'), 1,
+          'one bounded envelope check retains the application signature output boundary');
+        assert.equal(admissions.get('validResolveResults'), 1);
+        assert.equal(digests.length, decision === 'approved' ? 5 : 2,
+          'only the distinct unsigned/signature-bearing/evidence preimages are hashed');
+        assert.equal(new Set(digests).size, digests.length,
+          'no constructor-produced CID preimage is hashed again');
+        assert.equal(signatures, decision === 'approved' ? 2 : 1);
+        assert.equal(answer.signed[0], sent);
+        assert.equal(JSON.parse(sent.resolutionWire).decision, decision);
+        assert.deepEqual(f.calls, ['connect', 'checkpoints', 'resolve']);
+      } finally {mock.restoreAll();}
+    });
+  }
+}
 
 for (const [action, decision] of [['approve', 'approved'], ['reject', 'rejected']]) {
   test(`${action} reuses one admitted signed answer through resolution`, async t => {
