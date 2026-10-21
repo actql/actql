@@ -171,3 +171,14 @@ are not replaced with guessed values, synthetic Checkpoints or ordered edges.
 The same finite member/work and complete read/emit bounds apply. Host current
 readonly authorization and public installed acceptance remain independent
 requirements; a Core projection or schema registration alone installs no support.
+
+## Compiler-original plan capture
+
+Initial plan capture consumes the same nominal compiled Run, checked Program
+and admitted Run Definition. The portable compiler projection has already
+closed the logical map against that Plan and Program under its projection
+bounds. The adapter retains those immutable original strings with the existing
+wire-size ceilings; it does not immediately run the independent stored-input
+reader over its own output. An authorized durable plan read still admits the
+selected stored Plan and map and checks their identities before disclosure.
+Capture is neither a permission cache nor a replacement for that read boundary.

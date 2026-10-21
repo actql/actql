@@ -2311,10 +2311,17 @@ function publicationControl(moon) {
       const wire = compiledRunResult(moon.clientProgramCompiledRunStaticPlanView(
         value, original, limits.maxWireBytes, limits.maxNodes, limits.maxDepth),
       'RunHostOriginalPlanRejected');
+      if (typeof compiled.compiledPlan.wire !== 'string' || typeof wire !== 'string' ||
+          Buffer.byteLength(compiled.compiledPlan.wire) > limits.maxWireBytes ||
+          Buffer.byteLength(wire) > limits.maxWireBytes) {
+        throw new TypeError('Invalid Client original plan evidence');
+      }
       const originalBytes = Object.freeze({compiledPlanWire: compiled.compiledPlan.wire,
         planViewWire: wire});
       const programCid = moon.clientProgramDefinitionCid(original);
-      control.readStoredRunPlanOriginal(originalBytes, definition, programCid, limits);
+      // The nominal compiler projection already bound its map to this Plan
+      // and Program. Capture those immutable outputs, not a second stored-input
+      // admission. Independent durable reads still use the full reader below.
       const selected = Object.freeze({});
       originalRunPlanTokens.set(selected, Object.freeze({original: originalBytes,
         runDefinitionCid: definition.identity, programCid,
