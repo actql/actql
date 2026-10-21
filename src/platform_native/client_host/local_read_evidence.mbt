@@ -710,8 +710,10 @@ fn NativeLocalReadPolicyBinding::retain_read_admission_with_operations(
         Err(@sqlite.CapacityExceeded) => return Err(CapacityExceeded)
         Err(issue) => return Err(Physical(issue))
       }
+      // The same entry already admitted both permission tuples and selected
+      // policy. Pure preimage construction consumes those unchanged facts.
       let bodies = match
-        self.read_admission_originals(original, facts, actual_policy_cid) {
+        self.read_admission_preimages(original, facts, actual_policy_cid) {
         Ok(value) => value
         Err(issue) => {
           authority_refusal = Some(issue)
@@ -766,7 +768,9 @@ fn NativeLocalReadPolicyBinding::retain_read_admission_with_operations(
         }
         Err(issue) => return Err(Physical(issue))
       }
-      match self.require_request(original, facts) {
+      // Original metadata mutation/CAS has no application callback or external
+      // dispatch. Keep receiver lifetime without repeating current admission.
+      match self.require_receiver(facts) {
         Ok(_) => {
           let admission : @result_access.NativeResultReadAdmission = {
             authorization_context_cid: bodies.authorization.cid,

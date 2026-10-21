@@ -68,7 +68,9 @@ fn NativeLocalReadPolicyBinding::authorize_read_request_with_reads(
     request.run_definition_cid {
     return Err(Journal(ForeignRun))
   }
-  self.require_request(original, facts)
+  // The selected Run lookup is trusted synchronous Journal work. It does
+  // not create another authorization observation; retain the actual receiver.
+  self.require_receiver(facts)
 }
 
 ///|
@@ -146,7 +148,7 @@ fn NativeLocalReadPolicyBinding::retained_read_admission_with_operations(
         row.body == packet else {
         return Err(CustodyLost)
       }
-      match self.require_request(original, facts) {
+      match self.require_receiver(facts) {
         Err(issue) => {
           refusal = Some(issue)
           Err(AuthorizationDenied)
@@ -284,5 +286,7 @@ pub fn NativeLocalReadPolicyBinding::authorize_read_delivery(
     @publication.publication_contract_json(expected) {
     return Err(Journal(CustodyLost))
   }
-  self.require_request(original, facts)
+  // Disclosure was authorized at this operation's entry. Trusted Store and
+  // grant correspondence work preserves it; native receiver lifetime is real.
+  self.require_receiver(facts)
 }
