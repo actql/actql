@@ -700,6 +700,45 @@ test('committed evidence validation retains its actual payload and next-operatio
   assert.deepEqual(await readFile(path), changed, 'validation refuses instead of repairing the original');
 });
 
+test('known file-backed Result metadata performs no unrelated native delivery probe', async t => {
+  const prepare = DatabaseSync.prototype.prepare;
+  const probes = [];
+  let observing = false;
+  t.mock.method(DatabaseSync.prototype, 'prepare', function(sql, ...rest) {
+    const statement = Reflect.apply(prepare, this, [sql, ...rest]);
+    if (sql.startsWith("SELECT 'delivery_attempt' AS name,attempt_wire AS wire")) {
+      const get = statement.get;
+      t.mock.method(statement, 'get', function(...args) {
+        if (observing) probes.push([...args]);
+        return Reflect.apply(get, this, args);
+      });
+    }
+    return statement;
+  });
+  const {store} = await fixture(t);
+  const invocationValue = invocation();
+  const definition = resultDefinition();
+  const request = publicationRequest(definition, invocationValue.invocation_cid);
+  const attempt = publicationAttempt(request);
+  const prepared = await prepareCommit(store, request, attempt, invocationValue);
+  await store.putPublicationContract('result_definition', wire(definition));
+  const entry = indexEntry(request, attempt, invocationValue, {
+    durable_result_binding_cids: [prepared.binding.identity],
+  });
+  await store.commitIndex(wire(entry), prepared.required, prepared.evidence);
+  observing = true;
+  const description = await store.readCommittedResultDescriptionEvidence(
+    indexKeyFor(request), definition.result_definition_cid);
+  assert.equal(description.schemaWire, resultSchemaWire);
+  assert.equal(description.definition.identity, definition.result_definition_cid);
+  assert.deepEqual(probes, [], 'known Index and schema bodies are file-backed, not delivery metadata');
+  const chunks = [];
+  await store.consumeCommittedResult(indexKeyFor(request), definition.result_definition_cid,
+    () => true, chunk => chunks.push(Buffer.from(chunk)));
+  assert.equal(Buffer.concat(chunks).toString('utf8'), 'fixture durable Result payload');
+  assert.deepEqual(probes, [], 'actual payload/schema consumption uses the same selected representation');
+});
+
 test('bounded object writes are durable, streamed, and physically addressed',
   async t => {
     const {store, configuration} = await fixture(t);
