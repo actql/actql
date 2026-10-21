@@ -74,6 +74,21 @@ delivery metadata keeps its actual database original; payload holdings, current
 authorization, durable publication/claim transitions and pending cleanup retain
 their separate responsibilities and real acknowledgements.
 
+Publication setup can persist its finite immutable contract inventory through
+the existing Store's grouped contract operation. It owns the supplied name/wire
+pairs before callbacks, admits each distinct body, and applies the Store's
+object-count, per-body and aggregate storage limits before physical acquisition.
+Every new body retains its actual file write, synchronization and original
+close. The group shares the object-directory and semantic-link-directory
+acknowledgements; no caller receives provisional per-contract durability.
+A failed write or directory acknowledgement retains the same cleanup duty,
+without issuing a publication, a replacement object or a capacity refill.
+The public Index still has its independent logical commit. Stores without the
+optional group operation retain the existing per-contract protocol; a failed
+group never falls back to repeating individual writes. Empty inventories do no
+persistence work. Wire identities and the existing physical file layout remain
+unchanged.
+
 Within that commit, the admitted Index body is persisted directly rather than
 sent through the public raw-contract admission again. Verified Binding facts
 provide their original physical and schema identities to inventory construction

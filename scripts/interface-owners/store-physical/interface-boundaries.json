@@ -4598,7 +4598,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "c9ca8af362fc5856a19441dd873369b2f66841575ec102af78cf336c2a815967",
+      "sha256": "af4d3e4a759c1c14fa38f4f564fc0631c39043170493d6948a4b684555227688",
       "exports": [
         "PublicationStoreError",
         "assertOriginalLocalPublicationStoreFacilityCurrent",
@@ -6592,6 +6592,36 @@
             "suppliedWire"
           ],
           "async": true
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/putPublicationContracts/putPublicationContracts",
+          "parameters": [
+            "supplied"
+          ],
+          "async": true
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/putPublicationContracts/putPublicationContracts/inputs/inputs",
+          "parameters": [
+            "_",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/putPublicationContracts/putPublicationContracts/putPublicationContracts",
+          "parameters": [
+            "physical",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/putPublicationContracts/putPublicationContracts/stored/stored",
+          "parameters": [
+            "contract"
+          ],
+          "async": false
         },
         {
           "name": "openOriginalLocalPublicationStore/putSemantic/putSemantic",
@@ -8601,7 +8631,11 @@
             "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/readOriginal/readOriginal",
             "openOriginalLocalPublicationStore/readSemanticOriginal/readSemanticBytes",
             "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/boundPhysicalCids/boundPhysicalCids",
-            "openOriginalLocalPublicationStore/validateCommittedEvidence/validateCommittedEvidence/validateCommittedEvidence"
+            "openOriginalLocalPublicationStore/validateCommittedEvidence/validateCommittedEvidence/validateCommittedEvidence",
+            "openOriginalLocalPublicationStore/putPublicationContracts/putPublicationContracts",
+            "openOriginalLocalPublicationStore/putPublicationContracts/putPublicationContracts/inputs/inputs",
+            "openOriginalLocalPublicationStore/putPublicationContracts/putPublicationContracts/putPublicationContracts",
+            "openOriginalLocalPublicationStore/putPublicationContracts/putPublicationContracts/stored/stored"
           ],
           "exports": [
             "PublicationStoreError",
@@ -8636,6 +8670,10 @@
               {
                 "path": "docs/design/result-description.md",
                 "anchor": "Typed publication evidence selects that same representation before the commit's"
+              },
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "Publication setup can persist its finite immutable contract inventory through"
               }
             ],
             "inputsOutputs": [
@@ -8658,6 +8696,10 @@
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "return Object.freeze(verifiedBindings);"
+              },
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "const putPublicationContracts = async supplied => {"
               }
             ],
             "identity": [
@@ -8688,6 +8730,10 @@
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "const readOriginal = (cid, includeNative = cid !== admitted.identity) => {"
+              },
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "const contract = admitContract(input.name, input.wire);"
               }
             ],
             "ownership": [
@@ -8710,6 +8756,10 @@
               {
                 "path": "docs/design/result-description.md",
                 "anchor": "provide their original physical and schema identities to inventory construction"
+              },
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "return Object.freeze({name: input.name, wire: input.wire});"
               }
             ],
             "synchronization": [
@@ -8732,6 +8782,10 @@
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "await putSemantic(admitted.wire, admitted.identity);"
+              },
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "const stored = await putSemanticBatch(admitted.map(({contract}) => ({"
               }
             ],
             "failure": [
@@ -8754,6 +8808,10 @@
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "if (chainValid !== true) fail('InvalidPublicationCommitChain');"
+              },
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "if (bytes > BigInt(configuration.capacityBytes)) fail('PublicationStoreCapacity');"
               }
             ],
             "cancellation": [
@@ -8772,6 +8830,10 @@
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "await adoptPreparedObjects(verifiedBindings.map(value => value.physical.cid));"
+              },
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "A failed write or directory acknowledgement retains the same cleanup duty,"
               }
             ],
             "resources": [
@@ -8794,6 +8856,10 @@
               {
                 "path": "docs/design/result-description.md",
                 "anchor": "The selected buffers overlap for that operation and remain subject to the"
+              },
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "const count = supplied.length;"
               }
             ],
             "extension": [
@@ -8816,6 +8882,10 @@
               {
                 "path": "docs/design/result-description.md",
                 "anchor": "close duty. Generic semantic reads and the native delivery contract families"
+              },
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "optional group operation retain the existing per-contract protocol; a failed"
               }
             ],
             "verification": [
@@ -8902,6 +8972,10 @@
               {
                 "path": "adapters/store-local/publication-store.test.mjs",
                 "anchor": "assert.deepEqual(probes, [], 'typed commit evidence selects its representation before generic inventory');"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "test('publication metadata shares actual directory ACKs across its bounded contract group', async t => {"
               }
             ]
           }

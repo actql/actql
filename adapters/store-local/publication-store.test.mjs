@@ -2167,6 +2167,125 @@ test('publication records are append-only and sequence creation is CAS',
     assert.ok(['committing', 'cancelled'].includes(latest.state));
   });
 
+test('publication metadata shares actual directory ACKs across its bounded contract group', async t => {
+  const directory = await mkdtemp(join(tmpdir(), 'actql-publication-contract-group-'));
+  t.after(() => removeFixtureDirectory(directory));
+  const syncs = [], admissions = [];
+  const control = {...contractControl, admit(name, body, limits) {
+    admissions.push(body);
+    return contractControl.admit(name, body, limits);
+  }};
+  const store = await openLocalPublicationStore({directory,
+    storeAuthorityCid: cids.authority, capacityBytes: 1024 * 1024,
+    maxObjectBytes: 65536, maxObjects: 100,
+    maxContractNodes: 4096, maxContractDepth: 64}, control, {
+    async syncDirectory(path) {
+      syncs.push(path);
+      const handle = await open(path, 'r');
+      try {await handle.sync();} finally {await handle.close();}
+    },
+  });
+  const contracts = [0, 1, 2].map(index => ({name: 'run_invocation', wire: wire(seal('run_invocation', {
+    version: 'actql-run-invocation/0.1', invocation_template_cid: cids.template,
+    observation_set_cid: digest('contract-group-'+index),
+  }))}));
+  syncs.length = 0; admissions.length = 0;
+  const stored = await store.putPublicationContracts(contracts);
+  assert.equal(stored.length, 3);
+  assert.deepEqual(admissions, contracts.map(contract => contract.wire));
+  assert.equal(syncs.filter(path => path === join(directory, 'objects')).length, 1);
+  assert.equal(syncs.filter(path => path === join(directory, 'contracts')).length, 1);
+  assert.equal(syncs.filter(path => path === join(directory, 'prepared-custody')).length, 0);
+  assert.equal(syncs.filter(path => path === join(directory, 'staging')).length, 0);
+  assert.equal(store.status().objectCount, 3);
+  for (const [index, original] of stored.entries()) {
+    assert.equal((await store.readPublicationContract(original.semanticCid, 'run_invocation')).wire,
+      contracts[index].wire);
+  }
+  assert.deepEqual(await readdir(join(directory, 'staging')), []);
+  assert.equal(await store.close(), true);
+});
+
+test('publication metadata group retains the same physical ACK after partial failure', async t => {
+  for (const failed of ['objects', 'contracts']) await t.test(failed, async t => {
+    const directory = await mkdtemp(join(tmpdir(), 'actql-publication-contract-group-ack-'));
+    t.after(() => removeFixtureDirectory(directory));
+    let armed = false;
+    const configuration = {directory, storeAuthorityCid: cids.authority,
+      capacityBytes: 1024 * 1024, maxObjectBytes: 65536, maxObjects: 100,
+      maxContractNodes: 4096, maxContractDepth: 64};
+    const store = await openLocalPublicationStore(configuration, contractControl, {
+      async syncDirectory(path) {
+        if (armed && path === join(directory, failed)) throw Object.assign(new Error('original directory ACK'), {code: 'EIO'});
+        const handle = await open(path, 'r');
+        try {await handle.sync();} finally {await handle.close();}
+      },
+    });
+    const contract = {name: 'run_invocation', wire: wire(invocation())};
+    armed = true;
+    let original;
+    await assert.rejects(store.putPublicationContracts([contract]), error => {
+      original = error;
+      return error.code === 'EIO' && error.cleanupHandle.status().pending === true;
+    });
+    await assert.rejects(store.close(), code('PublicationStoreCleanupPending'));
+    assert.equal(store.status().objectCount, 1);
+    armed = false;
+    assert.equal((await original.cleanupHandle.retry()).pending, false);
+    assert.equal(store.status().reservedObjects, 0);
+    assert.equal(await store.close(), true);
+    const reopened = await openLocalPublicationStore(configuration, contractControl);
+    const [stored] = await reopened.putPublicationContracts([contract]);
+    assert.equal((await reopened.readPublicationContract(stored.semanticCid, contract.name)).wire, contract.wire);
+    assert.equal(reopened.status().objectCount, 1, 'same original metadata is not allocated again');
+    assert.equal(await reopened.close(), true);
+  });
+});
+
+test('publication metadata group rejects invalid or excessive inputs before physical acquisition', async t => {
+  const {store, directory} = await fixture(t, {maxObjects: 2});
+  const valid = {name: 'run_invocation', wire: wire(invocation())};
+  for (const [input, expected] of [
+    [undefined, 'InvalidPublicationContractWire'],
+    [new Array(3), 'PublicationStoreObjectLimit'],
+    [[{name: undefined, wire: undefined}], 'InvalidPublicationContractWire'],
+    [[valid, {name: 'run_invocation', wire: '{}'}], 'InvalidPublicationContract'],
+  ]) {
+    await assert.rejects(store.putPublicationContracts(input), code(expected));
+    assert.equal(store.status().objectCount, 0);
+    assert.equal(store.status().reservedObjects, 0);
+    for (const name of ['objects', 'contracts', 'staging']) {
+      assert.deepEqual(await readdir(join(directory, name)), []);
+    }
+  }
+  const limited = await fixture(t, {capacityBytes: 1});
+  await assert.rejects(limited.store.putPublicationContracts([valid]), code('PublicationStoreCapacity'));
+  assert.equal(limited.store.status().objectCount, 0);
+  assert.equal(limited.store.status().reservedObjects, 0);
+});
+
+test('publication metadata group owns its inputs before callbacks and deduplicates exact bodies', async t => {
+  const first = {name: 'run_invocation', wire: wire(invocation())};
+  const second = {name: 'run_invocation', wire: wire(seal('run_invocation', {
+    version: 'actql-run-invocation/0.1', invocation_template_cid: cids.template,
+    observation_set_cid: digest('second-group-input'),
+  }))};
+  const inputs = [first, {...first}, second];
+  let admissions = 0;
+  const control = {...contractControl, admit(name, body, limits) {
+    admissions++;
+    inputs[2].wire = '{}';
+    return contractControl.admit(name, body, limits);
+  }};
+  const expected = [first.wire, second.wire];
+  const {store} = await fixture(t, {}, control);
+  const stored = await store.putPublicationContracts(inputs);
+  assert.equal(admissions, 2);
+  assert.equal(stored.length, 2);
+  assert.deepEqual(stored.map(original => original.contract.wire), expected);
+  assert.equal(store.status().objectCount, 2);
+});
+
 test('delivery admission batches its immutable contracts and validates each once', async t => {
   const directory = await mkdtemp(join(tmpdir(), 'actql-delivery-batch-'));
   t.after(() => removeFixtureDirectory(directory));

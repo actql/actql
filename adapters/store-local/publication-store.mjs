@@ -2608,8 +2608,8 @@ async function openOriginalLocalPublicationStore(
     for (const pending of activePhysicalRecordWriters) {
       if (pending.failed) fail('PublicationStoreCleanupPending');
     }
-    // This private caller supplies one semantic body, or one already admitted
-    // delivery group. No prepared holder escapes between writes
+    // This private caller supplies one semantic body, an admitted delivery
+    // group or a bounded publication metadata group. No prepared holder escapes between writes
     // and their final names, so no intermediate durable custody is needed.
     const items = supplied.map(({wire, semanticCid}) => {
       if (typeof wire !== 'string' ||
@@ -3090,6 +3090,48 @@ async function openOriginalLocalPublicationStore(
       contract,
       ...await putSemantic(contract.wire, semanticCid),
     });
+  };
+
+  const putPublicationContracts = async supplied => {
+    active();
+    if (!Array.isArray(supplied)) fail('InvalidPublicationContractWire');
+    const count = supplied.length;
+    if (!Number.isSafeInteger(count) || count < 0 || count > configuration.maxObjects) {
+      fail('PublicationStoreObjectLimit');
+    }
+    // Own the finite input before an admission callback or physical await.
+    const inputs = Array.from({length: count}, (_, index) => {
+      const input = supplied[index];
+      if (!exactKeys(input, ['name', 'wire'])) fail('InvalidPublicationContractWire');
+      return Object.freeze({name: input.name, wire: input.wire});
+    });
+    const admitted = [], identities = new Map(), wires = new Map();
+    let bytes = 0n;
+    for (const input of inputs) {
+      const sameWire = wires.get(input.wire);
+      if (sameWire !== undefined && sameWire.contract.name === input.name) continue;
+      const contract = admitContract(input.name, input.wire);
+      const value = parseContract(contract);
+      const previous = identities.get(contract.identity);
+      if (previous !== undefined) {
+        if (previous.contract.name !== contract.name || previous.contract.wire !== contract.wire) {
+          fail('PublicationSemanticIdentityConflict');
+        }
+        continue;
+      }
+      bytes += BigInt(Buffer.byteLength(contract.wire, 'utf8'));
+      if (bytes > BigInt(configuration.capacityBytes)) fail('PublicationStoreCapacity');
+      const original = Object.freeze({contract, value});
+      admitted.push(original);
+      identities.set(contract.identity, original);
+      wires.set(input.wire, original);
+    }
+    const stored = await putSemanticBatch(admitted.map(({contract}) => ({
+      wire: contract.wire, semanticCid: contract.identity,
+    })));
+    return Object.freeze(stored.map((physical, index) => Object.freeze({
+      ...admitted[index], ...physical,
+    })));
   };
 
   const nativeDeliveryContract = (cid, name, retained) => {
@@ -7363,6 +7405,7 @@ async function openOriginalLocalPublicationStore(
     confirmCapturedContentHoldings,
     putPreparedResultSchema,
     putPublicationContract,
+    putPublicationContracts,
     verifyObject,
     observeTrustedClock,
     sampleTrustedClock,

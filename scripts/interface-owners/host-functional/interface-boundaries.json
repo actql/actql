@@ -8169,7 +8169,7 @@
     {
       "module": "adapters/host-common/run-publication.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "8f98d15bef853299a939904b1ab4afb3c2599248e62bbc4934c7a60e57958191",
+      "sha256": "53ea2002dec9eda2c7c6ec98d24b4a26b7f512a83e598d540dd1250e1cfb827f",
       "role": "physical-io",
       "owner": "Existing Run Publication/Artifact Owners and physical Store sequencing",
       "exports": [
@@ -8299,6 +8299,13 @@
             "contracts"
           ],
           "async": true
+        },
+        {
+          "name": "persistContracts/persistContracts",
+          "parameters": [
+            "contract"
+          ],
+          "async": false
         },
         {
           "name": "publishEffectFreeRun",
@@ -8562,7 +8569,8 @@
             "validateRequest/validateRequest",
             "validateStore",
             "validateStore/validateStore",
-            "withPublicationCleanup"
+            "withPublicationCleanup",
+            "persistContracts/persistContracts"
           ],
           "exports": [
             "RunPublicationError",
@@ -8582,6 +8590,10 @@
               {
                 "path": "src/run_publication/pkg.generated.mbti",
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
+              },
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "Publication setup can persist its finite immutable contract inventory through"
               }
             ],
             "inputsOutputs": [
@@ -8596,6 +8608,10 @@
               {
                 "path": "docs/spec/protocols/artifacts.md",
                 "anchor": "#### Run-bound publication chain"
+              },
+              {
+                "path": "adapters/host-common/run-publication.mjs",
+                "anchor": "async function persistContracts(store, contracts) {"
               }
             ],
             "identity": [
@@ -8610,6 +8626,10 @@
               {
                 "path": "src/run_publication/pkg.generated.mbti",
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
+              },
+              {
+                "path": "adapters/host-common/run-publication.mjs",
+                "anchor": "if (persisted.has(contract.identity)) continue;"
               }
             ],
             "ownership": [
@@ -8624,6 +8644,10 @@
               {
                 "path": "docs/design/retained-result-boundary.md",
                 "anchor": "# Retained result execution boundary"
+              },
+              {
+                "path": "adapters/host-common/run-publication.mjs",
+                "anchor": "Object.freeze({name: contract.name, wire: contract.wire})))]);"
               }
             ],
             "synchronization": [
@@ -8638,6 +8662,10 @@
               {
                 "path": "src/run_publication/pkg.generated.mbti",
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
+              },
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "acknowledgements; no caller receives provisional per-contract durability."
               }
             ],
             "failure": [
@@ -8652,6 +8680,10 @@
               {
                 "path": "src/run_publication/pkg.generated.mbti",
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
+              },
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "group never falls back to repeating individual writes. Empty inventories do no"
               }
             ],
             "cancellation": [
@@ -8666,6 +8698,10 @@
               {
                 "path": "docs/spec/protocols/artifacts.md",
                 "anchor": "#### Run-bound publication chain"
+              },
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "A failed write or directory acknowledgement retains the same cleanup duty,"
               }
             ],
             "resources": [
@@ -8680,6 +8716,10 @@
               {
                 "path": "docs/design/retained-result-boundary.md",
                 "anchor": "# Retained result execution boundary"
+              },
+              {
+                "path": "adapters/host-common/run-publication.mjs",
+                "anchor": "if (selected.length === 0) return;"
               }
             ],
             "extension": [
@@ -8694,6 +8734,10 @@
               {
                 "path": "docs/spec/protocols/artifacts.md",
                 "anchor": "#### Run-bound publication chain"
+              },
+              {
+                "path": "adapters/host-common/run-publication.mjs",
+                "anchor": "const batch = store.putPublicationContracts;"
               }
             ],
             "verification": [
@@ -8708,6 +8752,10 @@
               {
                 "path": "src/run_publication/pkg.generated.mbti",
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
+              },
+              {
+                "path": "adapters/host-common/publication-contract-control.test.mjs",
+                "anchor": "test('publication persister retains legacy receivers and waits for the selected group outcome', async () => {"
               }
             ]
           }
