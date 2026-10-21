@@ -8159,7 +8159,7 @@
     {
       "module": "packages/sdk/internal/checkpoint-operations.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "9a44a58638d3ae3daeaf4ba32b29c8cacc7b42d28cba66eac9ef77701f7b3ce0",
+      "sha256": "2bcfef6f064d2e0bf347bbc6fbfbe1d787ef370ec1724e77d201d13f05aeed73",
       "exports": [
         "createCheckpointOperations"
       ],
@@ -8186,13 +8186,6 @@
           "async": true
         },
         {
-          "name": "createCheckpointOperations/answerById/answerById/init:sign/init:sign",
-          "parameters": [
-            "bytes"
-          ],
-          "async": false
-        },
-        {
           "name": "createCheckpointOperations/answerMatches/answerMatches",
           "parameters": [
             "answer",
@@ -8207,6 +8200,21 @@
           "parameters": [
             "claim",
             "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "createCheckpointOperations/captureSigner/captureSigner",
+          "parameters": [
+            "signer",
+            "signal"
+          ],
+          "async": false
+        },
+        {
+          "name": "createCheckpointOperations/captureSigner/captureSigner/init:sign/init:sign",
+          "parameters": [
+            "bytes"
           ],
           "async": false
         },
@@ -8247,13 +8255,6 @@
           "async": false
         },
         {
-          "name": "createCheckpointOperations/operations/operations/operations#2",
-          "parameters": [
-            "result"
-          ],
-          "async": false
-        },
-        {
           "name": "createCheckpointOperations/operations/operations#2",
           "parameters": [
             "checkpoint",
@@ -8286,6 +8287,14 @@
             "options"
           ],
           "async": false
+        },
+        {
+          "name": "createCheckpointOperations/resolveSigned/resolveSigned",
+          "parameters": [
+            "frozen",
+            "signal"
+          ],
+          "async": true
         },
         {
           "name": "createCheckpointOperations/without/without",
@@ -8500,16 +8509,17 @@
         {
           "operations": [
             "createCheckpointOperations/answerById/answerById",
-            "createCheckpointOperations/answerById/answerById/init:sign/init:sign",
+            "createCheckpointOperations/captureSigner/captureSigner",
+            "createCheckpointOperations/captureSigner/captureSigner/init:sign/init:sign",
             "createCheckpointOperations/current/current",
             "createCheckpointOperations/operations/operations",
             "createCheckpointOperations/operations/operations/bytes/bytes",
             "createCheckpointOperations/operations/operations/operations",
-            "createCheckpointOperations/operations/operations/operations#2",
             "createCheckpointOperations/operations/operations#2",
             "createCheckpointOperations/operations/operations#3",
             "createCheckpointOperations/operations/operations#4",
-            "createCheckpointOperations/operations/operations#5"
+            "createCheckpointOperations/operations/operations#5",
+            "createCheckpointOperations/resolveSigned/resolveSigned"
           ],
           "exports": [],
           "attributes": {
