@@ -96,17 +96,12 @@ fn NativeLocalReadPolicyBinding::require_request_in_snapshot(
     Some(capture) => {
       for resource in ["run", "result/" + facts.request.result_name] {
         match
-          capture.operation_account(
-            self.host,
-            material,
-            {
-              principal: self.principal,
-              connection: self.connection,
-              resource,
-              operation: "read",
-            },
-            target=Some(@host.client_request_scope_cid(original)),
-          ) {
+          capture.operation_account(self.host, material, {
+            principal: self.principal,
+            connection: self.connection,
+            resource,
+            operation: "read",
+          }) {
           Ok(@authorization.Allow(_)) => ()
           Ok(_) => return Err(Journal(AuthorizationDenied))
           Err(issue) => return Err(Adoption(issue))

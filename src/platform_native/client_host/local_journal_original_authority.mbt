@@ -135,14 +135,7 @@ pub fn NativeLocalJournalCapture::authorize_in_original_read(
     host,
     material,
     _operations,
-  ) => {
-    self.operation_account(
-      host,
-      material,
-      request,
-      target=host.journal.admitted_record.map(record => record.0),
-    )
-  })
+  ) => self.operation_account(host, material, request))
 }
 
 ///|

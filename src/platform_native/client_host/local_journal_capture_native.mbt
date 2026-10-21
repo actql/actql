@@ -44,7 +44,7 @@ struct NativeLocalJournalCapture {
   ]?
   read_scopes : Array[(String, String, String)]
   read_decisions : Array[
-    (@authorization.AccessTuple, String?, @authorization.AccountOutcome),
+    (@authorization.AccessTuple, @authorization.AccountOutcome),
   ]
   read_bindings : Array[(NativeLocalReadPolicyBinding, Int64)]
   mut read_operation_issue : NativeLocalAdoptionIssue?

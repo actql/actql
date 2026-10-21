@@ -192,7 +192,7 @@ test "failed operation lifetime retires the cached adoption before cheap current
     assert_true(host.journal.admitted_adoption is Some(_))
     capture.read_material = Some(material)
     capture.read_scopes.push(("operator", "cli", "previous-scope"))
-    capture.read_decisions.push((tuple, None, allowed))
+    capture.read_decisions.push((tuple, allowed))
     cheap_current.val = false
     if scope {
       assert_true(

@@ -109,7 +109,6 @@ fn NativeLocalPolicyAuthority::current_with_material_for(
     self.connection,
     self.purpose,
     capture=self.capture,
-    target=Some(@host.client_request_scope_cid(request)),
   )
 }
 
@@ -126,7 +125,6 @@ fn native_local_policy_account_allowed(
   connection : String,
   purpose : NativeLocalPolicyAuthorityPurpose,
   capture? : NativeLocalJournalCapture? = None,
-  target? : String? = None,
 ) -> Bool {
   let operation = match purpose {
     SubmitOriginals => "submit"
@@ -152,7 +150,7 @@ fn native_local_policy_account_allowed(
       Some(original) =>
         match original.opening {
           JournalAcquired(host) if physical_equal(host.database, database) =>
-            original.operation_account(host, material, tuple, target~)
+            original.operation_account(host, material, tuple)
           _ => Err(CustodyLost)
         }
     }

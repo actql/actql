@@ -82,7 +82,6 @@ fn NativeLocalJournalCapture::operation_account(
     NativeLocalAdoptionIssue,
   ],
   tuple : @authorization.AccessTuple,
-  target? : String? = None,
 ) -> Result[@authorization.AccountOutcome, NativeLocalAdoptionIssue] {
   guard self.opening is JournalAcquired(actual) && physical_equal(actual, host) else {
     return Err(CustodyLost)
@@ -103,9 +102,11 @@ fn NativeLocalJournalCapture::operation_account(
       !physical_equal(original, material) {
       return Err(CustodyLost)
     }
-    for (original, run, outcome) in self.read_decisions {
-      if run == target &&
-        original.principal == tuple.principal &&
+    // Account has exactly these four decision inputs under the same admitted
+    // material. Discovery/admission of a Run is not a changed Account tuple;
+    // its independent original/definition/custody checks remain at callers.
+    for (original, outcome) in self.read_decisions {
+      if original.principal == tuple.principal &&
         original.connection == tuple.connection &&
         original.resource == tuple.resource &&
         original.operation == tuple.operation {
@@ -120,7 +121,7 @@ fn NativeLocalJournalCapture::operation_account(
     Err(issue) => return Err(local_current_material_issue(issue))
   }
   if self.read_callback_active && self.read_facts_valid {
-    self.read_decisions.push((tuple, target, outcome))
+    self.read_decisions.push((tuple, outcome))
   }
   Ok(outcome)
 }
