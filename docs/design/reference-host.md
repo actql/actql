@@ -624,11 +624,21 @@ amounts, and cannot obtain a Source read. The supported two-Source path keeps
 its original acquisition correspondence. Other unsupported backend shapes are
 not invalid public Programs and do not silently fall back to accounting limits.
 
+For an ordinary source-free Compute Run, the existing Host Run record retains
+the typed generated sequences used to quote its six managed limits. The actual
+Run and configured Compute Host consume those same sequences instead of
+reparsing the unchanged registry, Values and fragment bodies during each
+internal phase. This preparation is immutable data, not Resource admission or
+permission. It remains bound to the original checked Program and exact contract
+bodies; foreign or changed originals refuse without regenerating a replacement.
+The scalar quote returns a bounded copy, and the sequence aliases retire with
+the same Run after its actual children finish.
+
 The Host retains the original admission before beginning the Run. A failed
 begin keeps that same admission's unpublished or started cleanup, never a
 replacement attempt. The source-free dispatcher opens its configured Compute
 Host through this opaque Run and rechecks the original Ledger after sequence
-preparation. It cannot use the legacy scalar constructor on refusal. Successful
+selection. It cannot use the legacy scalar constructor on refusal. Successful
 cleanup callbacks and receivers are captured before another child can await;
 the original Run retires only after dispatch/DAG cleanup, before its installation
 scope closes. Unknown retirement retains both duties and their aliases.

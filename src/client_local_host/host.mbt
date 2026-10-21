@@ -298,6 +298,7 @@ fn open_checked_local_host(
   captured_sources? : Array[(Int, @query.CapturedInputSource)] = [],
   acquisition_ledger? : @resources.Ledger? = None,
   opened_run? : @strategy.CapturedDAG? = None,
+  source_free_preparation? : ClientInstalledManagedSourceFreePreparation? = None,
 ) -> @builtin.ConfiguredComputeHost[@strategy.RunIssue]? {
   if registry_body.length() > 100000 ||
     values_body.length() > 100000 ||
@@ -328,12 +329,34 @@ fn open_checked_local_host(
     ) {
     return None
   }
-  let generated = match
-    prepare_client_local_sequences(
-      prepared, registry_body, values_body, fragment_body, ordered_body,
-    ) {
-    Some(value) => value
-    None => return None
+  let generated = match source_free_preparation {
+    Some(value) => {
+      if source is Some(_) ||
+        !captured_sources.is_empty() ||
+        opened_run is Some(_) ||
+        !installed_source_free_preparation_matches(
+          value,
+          Pure(prepared),
+          registry_body,
+          values_body,
+          fragment_body,
+          ordered_body,
+        ) {
+        return None
+      }
+      value.sequences
+    }
+    None =>
+      match
+        prepare_client_local_sequences(
+          prepared, registry_body, values_body, fragment_body, ordered_body,
+        ) {
+        Some(value) => value
+        None => return None
+      }
+  }
+  if generated.length() != task_count {
+    return None
   }
   let first_compute = if opened_run is Some(run) {
     @strategy.graph_captured_prefix(@strategy.captured_dag_graph(run))
@@ -371,14 +394,26 @@ fn open_checked_local_host(
   } else {
     None
   }
-  guard client_local_sequence_capacity(
-      compute_sequences,
-      task_count,
-      retained_inputs~,
-      max_rows~,
-    )
-    is Some((limits, retained_bytes, execution_bytes)) else {
-    return None
+  let (limits, retained_bytes, execution_bytes) = match
+    source_free_preparation {
+    Some(value) =>
+      (
+        value.limits,
+        value.provider_retained_bytes,
+        value.provider_execution_bytes,
+      )
+    None => {
+      guard client_local_sequence_capacity(
+          compute_sequences,
+          task_count,
+          retained_inputs~,
+          max_rows~,
+        )
+        is Some(value) else {
+        return None
+      }
+      value
+    }
   }
   let opened = if opened_run is Some(run) {
     Ok(run)

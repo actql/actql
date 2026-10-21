@@ -417,7 +417,24 @@ export function readManagedComputeRunRequirements(originals, checkedPrepared) {
   }
   const asset = path => readInitialControlInstallationAsset(initialControl, originals, path);
   const aoa = JSON.parse(asset('spec/contracts/actql-aoa.json'));
-  const limits = checked(moon.clientProgramInstalledManagedRunRequirements(
+  const run = originals.installation.computeRuns?.get(checkedPrepared);
+  let limits;
+  if (run !== undefined) {
+    if (run.runtime !== moon || run.prepared !== checkedPrepared || run.closed ||
+        typeof moon.clientProgramPrepareInstalledManagedSourceFree !== 'function' ||
+        typeof moon.clientProgramPreparedInstalledManagedSourceFreeRequirements !== 'function') {
+      throw clientOperationError('NodeManagedRunRuntimeUnavailable');
+    }
+    // The existing per-Host Run record retains this same immutable preparation
+    // before limits projection or actual Resource admission can fail.
+    run.preparedSequences ??= checked(moon.clientProgramPrepareInstalledManagedSourceFree(
+      checkedPrepared, asset('spec/dependencies/aoa-pipeline-registry.json'),
+      JSON.stringify(aoa.execution_contracts['REL.values']),
+      JSON.stringify(aoa.execution_contracts['ACTQL.expression_fragment/0.1']),
+      JSON.stringify(aoa.execution_contracts['REL.derive.ordered'])));
+    limits = moon.clientProgramPreparedInstalledManagedSourceFreeRequirements(run.preparedSequences);
+  } else {
+  limits = checked(moon.clientProgramInstalledManagedRunRequirements(
     checkedPrepared, [],
     asset('spec/contracts/actql-query-acquisition.json'),
     asset('spec/contracts/actql-query-process-evidence.json'), [], [],
@@ -425,6 +442,7 @@ export function readManagedComputeRunRequirements(originals, checkedPrepared) {
     JSON.stringify(aoa.execution_contracts['REL.values']),
     JSON.stringify(aoa.execution_contracts['ACTQL.expression_fragment/0.1']),
     JSON.stringify(aoa.execution_contracts['REL.derive.ordered'])));
+  }
   if (!Array.isArray(limits) || limits.length !== 6 ||
       limits.some(value => typeof value !== 'bigint' || value < 0n) ||
       limits.slice(0, 3).some(value => value > 2147483647n)) {
@@ -5129,6 +5147,9 @@ export async function connectEmbeddedLocal(options, initialEntry) {
         ? assertSourceManagedInstallationCurrent : assertManagedComputeInstallationCurrent;
       assertCurrent(manager, originals);
       const runs = record.computeRuns ??= new Map();
+      // Same existing Run inventory, shared only with this installation's
+      // fixed requirements reader. Retirement cuts the bag's backreference.
+      originalInstallation.computeRuns = runs;
       let run = runs.get(prepared);
       if (run !== undefined) {
         if (run.failure !== undefined) throw run.failure;
@@ -5149,14 +5170,16 @@ export async function connectEmbeddedLocal(options, initialEntry) {
         run.cleanup = runtime.clientProgramNodeManagedRunCleanup;
         run.check = runtime.clientProgramInstalledManagedRunCheck;
         run.prepare = runtime.clientProgramNodeManagedRunPrepare;
-        run.begin = runtime.clientProgramInstalledManagedRunBegin;
+        run.begin = runtime.clientProgramInstalledManagedSourceFreeBegin;
         if (![run.retire, run.cleanup, run.check, run.prepare, run.begin].every(value => typeof value === 'function')) {
           throw clientOperationError('NodeManagedRunRuntimeUnavailable');
         }
         run.original = manager.prepareRun(prepared);
         assertCurrent(manager, originals);
         run.admission = checked(Reflect.apply(run.prepare, runtime, [run.original, prepared]));
-        run.value = checked(Reflect.apply(run.begin, runtime, [run.admission, prepared, request]));
+        run.value = checked(Reflect.apply(run.begin, runtime,
+          [run.admission, prepared, request, run.preparedSequences]));
+        run.preparedSequences = undefined;
         assertCurrent(manager, originals);
         checked(Reflect.apply(run.check, runtime, [run.value, prepared, request]));
         return run.value;
