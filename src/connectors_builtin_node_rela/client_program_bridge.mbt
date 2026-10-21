@@ -2999,21 +2999,14 @@ pub fn client_program_prepare_published_effect_computation_with_parameters(
   parameters : String?,
   evidence : Array[@context.StageCapacityInput],
 ) -> ClientEffectProgramBridgeOutcome {
-  if !client_program_source_publication_valid(environment, publication) {
-    return EffectRejected(Input(SourcePreparation(Publication)))
-  }
-  let update_targets = match
-    @source_publication.published_update_targets(environment, publication) {
-    Ok(value) => value
-    Err(_) => return EffectRejected(Input(SourcePreparation(Publication)))
-  }
-  let store_targets = match
-    @source_publication.published_store_targets(environment, publication) {
-    Ok(value) => value
-    Err(_) => return EffectRejected(Input(SourcePreparation(Publication)))
-  }
-  let command_targets = match
-    @source_publication.published_command_targets(environment, publication) {
+  // One interpretation validates every publication section and retains the
+  // original target parts. These facts do not authorize an Effect or a Run.
+  let (_, _, update_targets, store_targets, command_targets) = match
+    @source_publication.bind_published_query_parts(
+      environment,
+      publication,
+      None,
+    ) {
     Ok(value) => value
     Err(_) => return EffectRejected(Input(SourcePreparation(Publication)))
   }

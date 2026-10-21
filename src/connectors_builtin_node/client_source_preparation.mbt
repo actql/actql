@@ -134,17 +134,14 @@ pub fn client_program_source_publication_valid(
   environment : @program_check.CheckEnvironment,
   publication : String,
 ) -> Bool {
-  try {
-    client_source_context(environment, publication, None) |> ignore
-    client_table_write_publication(environment, publication) |> ignore
-    @source_publication.published_update_targets(environment, publication).unwrap_or_else(() => {
-        raise ClientSourceStop(Publication)
-      },
-    )
-    |> ignore
-    true
-  } catch {
-    _ => false
+  match
+    @source_publication.bind_published_query_parts(
+      environment,
+      publication,
+      None,
+    ) {
+    Ok(_) => true
+    Err(_) => false
   }
 }
 
