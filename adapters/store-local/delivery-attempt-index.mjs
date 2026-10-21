@@ -6,7 +6,7 @@ import {createSqliteTransaction} from '../host-common/sqlite-transaction.mjs';
 
 const fail = (code, cause) => { throw Object.assign(new Error(code, {cause}), {code}); };
 const cid = value => typeof value === 'string' && /^sha256:[0-9a-f]{64}$/u.test(value);
-const version = 1;
+const version = 2;
 
 export async function openDeliveryAttemptIndex(path, {create, maxEntries, maxWireBytes}) {
   const database = new DatabaseSync(path, {__proto__: null, open: false,
@@ -108,7 +108,7 @@ export async function openDeliveryAttemptIndex(path, {create, maxEntries, maxWir
       exec(`CREATE TABLE coverage (
         id INTEGER PRIMARY KEY CHECK(id=1), version INTEGER NOT NULL,
         complete INTEGER NOT NULL CHECK(complete IN (0,1)), entries INTEGER NOT NULL);
-        INSERT INTO coverage VALUES(1,1,0,0);
+        INSERT INTO coverage VALUES(1,2,0,0);
         CREATE TABLE attempts (
           logical_key TEXT PRIMARY KEY, attempt_cid TEXT NOT NULL UNIQUE,
           grant_cid TEXT NOT NULL, run_cid TEXT NOT NULL,
@@ -117,18 +117,36 @@ export async function openDeliveryAttemptIndex(path, {create, maxEntries, maxWir
         CREATE INDEX grant_attempts ON attempts(grant_cid);
         CREATE INDEX pending_attempts ON attempts(ready);
         CREATE INDEX run_attempts ON attempts(run_cid);
-        CREATE TABLE grant_uses(grant_cid TEXT PRIMARY KEY, uses INTEGER NOT NULL CHECK(uses>=0)) WITHOUT ROWID;`);
+        CREATE TABLE grant_uses(grant_cid TEXT PRIMARY KEY, uses INTEGER NOT NULL CHECK(uses>=0)) WITHOUT ROWID;
+        CREATE TABLE initial_records (
+          attempt_cid TEXT PRIMARY KEY REFERENCES attempts(attempt_cid) ON DELETE CASCADE,
+          initial_wire TEXT NOT NULL) WITHOUT ROWID;`);
     });
     const state = prepare('SELECT version,complete,entries FROM coverage WHERE id=1');
     const selected = state.get();
-    if (selected?.version !== version || ![0,1].includes(selected.complete) ||
+    if (![1,version].includes(selected?.version) || ![0,1].includes(selected.complete) ||
         !Number.isSafeInteger(selected.entries) || selected.entries < 0 || selected.entries > maxEntries) {
       fail('DeliveryAttemptIndexUnavailable');
     }
+    // Additive private progress metadata. Old attempts retain their original
+    // pending/ready protocol; a joint START stores its initial record in the
+    // SAME claim transaction, not a second progress-only COMMIT after files.
+    const initialTable = prepare(
+      "SELECT name FROM sqlite_schema WHERE type='table' AND name='initial_records'").get();
+    if (selected.version === 1) transaction.run(() => {
+      if (initialTable !== undefined) fail('DeliveryAttemptIndexUnavailable');
+      exec(`CREATE TABLE initial_records (
+        attempt_cid TEXT PRIMARY KEY REFERENCES attempts(attempt_cid) ON DELETE CASCADE,
+        initial_wire TEXT NOT NULL) WITHOUT ROWID;
+        UPDATE coverage SET version=2 WHERE id=1;`);
+    });
+    else if (initialTable === undefined) fail('DeliveryAttemptIndexUnavailable');
     let complete = selected.complete === 1;
-    const lookup = prepare('SELECT * FROM attempts WHERE logical_key=?');
+    const lookup = prepare(`SELECT attempts.*,initial_records.initial_wire FROM attempts
+      LEFT JOIN initial_records USING(attempt_cid) WHERE logical_key=?`);
     const pending = prepare('SELECT * FROM attempts WHERE ready=0 LIMIT ?');
     const insert = prepare('INSERT INTO attempts VALUES(?,?,?,?,?,?,?)');
+    const insertInitial = prepare('INSERT INTO initial_records VALUES(?,?)');
     const uses = prepare('SELECT uses FROM grant_uses WHERE grant_cid=?');
     const addUse = prepare('INSERT INTO grant_uses VALUES(?,1) ON CONFLICT(grant_cid) DO UPDATE SET uses=uses+1');
     const removeUses = prepare('UPDATE grant_uses SET uses=uses-? WHERE grant_cid=?');
@@ -162,14 +180,17 @@ export async function openDeliveryAttemptIndex(path, {create, maxEntries, maxWir
           ![row.attempt_cid,row.grant_cid,row.run_cid].every(cid) ||
           row.ready !== undefined && ![0,1].includes(row.ready) ||
           ![row.attempt_wire,row.grant_wire].every(wire => typeof wire === 'string' &&
-            Buffer.byteLength(wire,'utf8') <= maxWireBytes)) fail('InvalidDeliveryAttemptIndex');
+            Buffer.byteLength(wire,'utf8') <= maxWireBytes) ||
+          row.initial_wire != null && (typeof row.initial_wire !== 'string' ||
+            Buffer.byteLength(row.initial_wire,'utf8') > maxWireBytes)) fail('InvalidDeliveryAttemptIndex');
       return row;
     };
     const copy = row => row === undefined ? undefined : Object.freeze({...validate(row)});
-    const add = (row, isReady) => {
+    const add = (row, isReady, initialWire) => {
       validate(row);
       insert.run(row.logical_key,row.attempt_cid,row.grant_cid,row.run_cid,
         row.attempt_wire,row.grant_wire,isReady);
+      if (initialWire !== undefined) insertInitial.run(row.attempt_cid,initialWire);
       updateCount.run(1);
       addUse.run(row.grant_cid);
     };
@@ -180,7 +201,7 @@ export async function openDeliveryAttemptIndex(path, {create, maxEntries, maxWir
         if (complete) fail('DeliveryAttemptIndexAlreadyComplete');
         if (rows.length > maxEntries) fail('DeliveryAttemptIndexLimit');
         run(() => {
-          exec('DELETE FROM attempts; DELETE FROM grant_uses; UPDATE coverage SET entries=0 WHERE id=1');
+          exec('DELETE FROM initial_records; DELETE FROM attempts; DELETE FROM grant_uses; UPDATE coverage SET entries=0 WHERE id=1');
           const keys = new Set();
           for (const row of rows) {
             if (keys.has(row.logical_key)) fail('AmbiguousDeliveryAttemptLookup');
@@ -193,16 +214,20 @@ export async function openDeliveryAttemptIndex(path, {create, maxEntries, maxWir
       },
       lookup(key) { requireComplete(); return copy(lookup.get(key)); },
       pending() { requireComplete(); return Object.freeze(pending.all(maxEntries + 1).map(copy)); },
-      claim(row,maxUses) {
+      claim(row,maxUses,initialWire) {
         requireComplete();
-        validate(row);
+        validate({...row,initial_wire:initialWire});
         const retained = lookup.get(row.logical_key);
         if (retained !== undefined) return Object.freeze({row: copy(retained), created: false});
         return run(() => {
           if ((uses.get(row.grant_cid)?.uses ?? 0) >= maxUses) fail('DeliveryGrantUseLimit');
           if (state.get().entries >= maxEntries) fail('DeliveryAttemptIndexLimit');
-          add(row,0);
-          return Object.freeze({row: copy({...row,ready:0}), created:true});
+          // For a joint START this is a complete durable logical claim, not
+          // proof of a file ACK. The Store separately owns file readiness and
+          // only recovers the requested original on a later Store lifetime.
+          const isReady = initialWire === undefined ? 0 : 1;
+          add(row,isReady,initialWire);
+          return Object.freeze({row: copy({...row,ready:isReady,initial_wire:initialWire}), created:true});
         });
       },
       finish(key,attemptCid) {

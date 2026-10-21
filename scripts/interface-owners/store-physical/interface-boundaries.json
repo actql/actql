@@ -4091,7 +4091,7 @@
     {
       "module": "adapters/store-local/delivery-attempt-index.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "d7849db1e5ce141dc1cec3c5010df3b6a99c46cdb88f9c56b0cc203fd5c9524a",
+      "sha256": "979b16925be32d13d27ecf9deb04709a123497cdc28baea21fed9bdc751f17e4",
       "exports": [
         "openDeliveryAttemptIndex"
       ],
@@ -4125,7 +4125,8 @@
           "name": "openDeliveryAttemptIndex/add/add",
           "parameters": [
             "row",
-            "isReady"
+            "isReady",
+            "initialWire"
           ],
           "async": false
         },
@@ -4157,7 +4158,8 @@
           "name": "openDeliveryAttemptIndex/init:claim/init:claim",
           "parameters": [
             "row",
-            "maxUses"
+            "maxUses",
+            "initialWire"
           ],
           "async": false
         },
@@ -4222,6 +4224,11 @@
         },
         {
           "name": "openDeliveryAttemptIndex/openDeliveryAttemptIndex",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openDeliveryAttemptIndex/openDeliveryAttemptIndex#2",
           "parameters": [],
           "async": false
         },
@@ -4350,6 +4357,7 @@
             "openDeliveryAttemptIndex/init:needsMigration/init:needsMigration",
             "openDeliveryAttemptIndex/init:pending/init:pending",
             "openDeliveryAttemptIndex/openDeliveryAttemptIndex",
+            "openDeliveryAttemptIndex/openDeliveryAttemptIndex#2",
             "openDeliveryAttemptIndex/prepare/prepare",
             "openDeliveryAttemptIndex/prepare/prepare/prepare",
             "openDeliveryAttemptIndex/prepare/prepare/prepare#2",
@@ -4428,6 +4436,10 @@
               {
                 "path": "adapters/store-local/publication-store.test.mjs",
                 "anchor": "ready delivery coverage opens and looks up without unrelated history reads"
+              },
+              {
+                "path": "adapters/store-local/delivery-attempt-index.test.mjs",
+                "anchor": "joint START retains its initial original in one native claim and no open-time pending scan"
               }
             ]
           }
@@ -4437,7 +4449,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "2d2c2085e14193dab2f2841f5271ff4cd79ffe87dbbdcc1898eb0d3aacc37ce7",
+      "sha256": "207dafec816731464472d2df6a6ee427a09cf991ad0060ea4ecbbcc42a3c7201",
       "exports": [
         "PublicationStoreError",
         "assertOriginalLocalPublicationStoreFacilityCurrent",
@@ -9301,6 +9313,10 @@
               {
                 "path": "adapters/store-local/delivery-completion.test.mjs",
                 "anchor": "delivery START shares semantic and attempt directory ACKs before any row exposure"
+              },
+              {
+                "path": "adapters/store-local/delivery-completion.test.mjs",
+                "anchor": "lost joint claim COMMIT reply preserves quota and initial streaming without sending"
               }
             ]
           }

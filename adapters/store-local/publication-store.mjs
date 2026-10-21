@@ -1267,6 +1267,9 @@ async function openOriginalLocalPublicationStore(
   // A dead local owner can be reclaimed, but two live opens never maintain
   // independent counters for the same physical allocation scope.
   let ownership, deliveryIndex;
+  // This is file-preparation progress, never cached authorization or durable
+  // ACK. A failed same-lifetime preparation remains unresolved until restart.
+  const deliveryStarts = new Map();
   if (prepared === undefined) {
     ownership = await acquireStoreOwnership(root, bootstrap, configuration.privateEvidenceKey);
   } else {
@@ -3789,9 +3792,20 @@ async function openOriginalLocalPublicationStore(
         attempt.result_manifest_cid !== grant.result_manifest_cid ||
         !grant.results.some(result => result.result_name === attempt.result_name &&
           result.result_artifact_cid === attempt.result_artifact_cid)) fail('InvalidDeliveryAttemptIndex');
-    await putDeliveryContracts(grantContract,attemptContract);
-    await installDeliveryAttempt(attemptContract);
-    deliveryIndex.finish(row.logical_key,attemptContract.identity);
+    let streaming;
+    if (row.initial_wire != null) {
+      streaming = admitContract('delivery_record',row.initial_wire);
+      const record = parseContract(streaming);
+      if (record.delivery_attempt_cid !== attemptContract.identity ||
+          record.sequence !== 0 || record.state !== 'streaming' ||
+          Reflect.apply(deliveryStartTransition,contractControl,[undefined,streaming]) !== true) {
+        fail('InvalidDeliveryAttemptIndex');
+      }
+    }
+    await putDeliveryContracts(grantContract,attemptContract,streaming);
+    await installDeliveryAttempt(attemptContract,streaming);
+    if (row.ready === 0) deliveryIndex.finish(row.logical_key,attemptContract.identity);
+    return {attemptContract,attempt,grantContract,grant};
   };
 
   const initializeDeliveryIndex = async () => {
@@ -3900,14 +3914,23 @@ async function openOriginalLocalPublicationStore(
     }
     if (deliveryIndex === undefined) fail('DeliveryAttemptIndexUnavailable');
     const row = deliveryIndexRow(attempt,grant,admitted,grantContract);
-    const selected = deliveryIndex.claim(row,grant.max_uses);
-    if (!selected.created) fail('DeliveryAttemptConflict');
-    // The durable pending claim already owns uniqueness and the grant use.
-    // Failure never refunds it. Recovery projects these SAME stored originals;
-    // it does not dispatch a stream or invent another attempt.
-    await putDeliveryContracts(grantContract,admitted,initial?.streaming);
-    await installDeliveryAttempt(admitted,initial?.streaming);
-    deliveryIndex.finish(row.logical_key,admitted.identity);
+    const progress = initial === undefined ? undefined :
+      {runCid:attempt.run_definition_cid,phase:'preparing'};
+    if (progress !== undefined) deliveryStarts.set(admitted.identity,progress);
+    try {
+      const selected = deliveryIndex.claim(row,grant.max_uses,initial?.streaming.wire);
+      if (!selected.created) fail('DeliveryAttemptConflict');
+      // This SAME transaction owns uniqueness, use quota and the original
+      // initial state. File ACKs still precede success/row exposure. Failure
+      // neither refunds the claim nor turns visible files into an ACK.
+      await putDeliveryContracts(grantContract,admitted,initial?.streaming);
+      await installDeliveryAttempt(admitted,initial?.streaming);
+      if (progress === undefined) deliveryIndex.finish(row.logical_key,admitted.identity);
+      else progress.phase = 'installed';
+    } catch (error) {
+      if (progress !== undefined) progress.phase = 'failed';
+      throw error;
+    }
     return Object.freeze(initial === undefined ? {attempt, created: true} :
       {original: initial.original, created: true});
   };
@@ -4072,12 +4095,30 @@ async function openOriginalLocalPublicationStore(
     const row = deliveryIndex.lookup(key);
     if (row === undefined) return {match: undefined};
     if (row.ready !== 1) fail('ResultDeliveryAttemptUnresolved');
-    const attemptContract = await readDeliveryAttemptContract(
+    let recovered;
+    if (row.initial_wire != null) {
+      let progress = deliveryStarts.get(row.attempt_cid);
+      if (progress === undefined) {
+        // Recovery is target-specific, not an O(history) ordinary-open pass.
+        // Latch before any await/reentry and retain failure for this lifetime.
+        progress = {runCid:row.run_cid,phase:'preparing'};
+        deliveryStarts.set(row.attempt_cid,progress);
+        try {
+          if (await runMetadataDeletionStarted(row.run_cid)) fail('PublicationMetadataDeleted');
+          recovered = await restoreDeliveryClaim(row);
+          progress.phase = 'installed';
+        } catch (error) { progress.phase = 'failed'; throw error; }
+      } else if (progress.phase !== 'installed') fail('ResultDeliveryAttemptUnresolved');
+    }
+    const attemptContract = recovered?.attemptContract ?? await readDeliveryAttemptContract(
       row.attempt_cid, suppliedAttempt?.contract);
-    const attempt = attemptContract === suppliedAttempt?.contract
-      ? suppliedAttempt.value : parseContract(attemptContract);
+    const attempt = recovered?.attempt ?? (attemptContract === suppliedAttempt?.contract
+      ? suppliedAttempt.value : parseContract(attemptContract));
     let grantContract, grant;
-    if (suppliedGrant?.contract.identity === row.grant_cid) {
+    if (recovered !== undefined) {
+      grantContract = recovered.grantContract;
+      grant = recovered.grant;
+    } else if (suppliedGrant?.contract.identity === row.grant_cid) {
       const bytes = await readSemanticBytes(row.grant_cid);
       grantContract = exactUtf8WireMatches(bytes,suppliedGrant.contract.wire)
         ? suppliedGrant.contract : admitContract('result_read_grant',bytes.toString('utf8'));
@@ -5638,6 +5679,9 @@ async function openOriginalLocalPublicationStore(
     }
     await syncDirectory(deliveriesDirectory);
     deliveryIndex?.forgetRun(runDefinitionCid);
+    for (const [attemptCid,progress] of deliveryStarts) {
+      if (progress.runCid === runDefinitionCid) deliveryStarts.delete(attemptCid);
+    }
     for (const name of await readdir(manifestReadsDirectory)) {
       if (!/^[0-9a-f]{64}$/u.test(name)) {
         fail('InvalidManifestReadStore');
