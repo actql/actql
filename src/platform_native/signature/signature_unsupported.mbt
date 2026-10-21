@@ -5,6 +5,13 @@ type Library
 type Sha256Hasher
 
 ///|
+pub fn Library::require_current(
+  _self : Library,
+) -> Result[Unit, NativeSignatureIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
 pub fn Library::close_checked(
   _self : Library,
 ) -> Result[Unit, NativeSignatureIssue] {
