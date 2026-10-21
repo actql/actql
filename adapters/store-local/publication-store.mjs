@@ -33,6 +33,7 @@ import {createObjectWriterOwner} from './object-writer-owner.mjs';
 import {createResultDeletionOwner} from './result-deletion-owner.mjs';
 import {createMetadataDeletionOwner} from './metadata-deletion-owner.mjs';
 import {createPublicationCommitOwner} from './publication-commit-owner.mjs';
+import {openDeliveryAttemptIndex} from './delivery-attempt-index.mjs';
 
 // Internal physical adapter primitive, not a Client read/authority entry. Its
 // caller funds the complete metadata/decode lifetime before I/O and retains
@@ -1136,6 +1137,8 @@ async function openOriginalLocalPublicationStore(
   const preparedSchemasDirectory = resolve(root, 'prepared-schemas');
   const attemptsDirectory = resolve(root, 'attempts');
   const deliveriesDirectory = resolve(root, 'deliveries');
+  const deliveryIndexPath = resolve(root, 'delivery-attempts.sqlite3');
+  const deliveryCoveragePath = resolve(root, 'delivery-attempts-index.json');
   const manifestReadsDirectory = resolve(root, 'manifest-reads');
   const indexesDirectory = resolve(root, 'indexes');
   const metadataInventoriesDirectory = resolve(root, 'metadata-inventories');
@@ -1261,7 +1264,7 @@ async function openOriginalLocalPublicationStore(
   // One process owns the complete capacity authority for this local Store.
   // A dead local owner can be reclaimed, but two live opens never maintain
   // independent counters for the same physical allocation scope.
-  let ownership;
+  let ownership, deliveryIndex;
   if (prepared === undefined) {
     ownership = await acquireStoreOwnership(root, bootstrap, configuration.privateEvidenceKey);
   } else {
@@ -1302,17 +1305,8 @@ async function openOriginalLocalPublicationStore(
   }
   await syncDirectory(preparedSchemasDirectory);
 
-  for (const name of await readOpeningDirectory(deliveriesDirectory)) {
-    const path = resolve(deliveriesDirectory, name);
-    if (name.startsWith('.staging-')) {
-      await removeOpeningTree(path, bootstrap);
-      continue;
-    }
-    if (!/^[0-9a-f]{64}$/u.test(name) || !(await lstat(path)).isDirectory()) {
-      fail('InvalidDeliveryAttemptStore');
-    }
-  }
-  await syncDirectory(deliveriesDirectory);
+  // Delivery coverage and pending recovery below own the selected entries.
+  // Ordinary opens must not enumerate every historical delivery directory.
   for (const name of await readOpeningDirectory(manifestReadsDirectory)) {
     const path = resolve(manifestReadsDirectory, name);
     if (name.startsWith('.staging-')) {
@@ -3663,15 +3657,194 @@ async function openOriginalLocalPublicationStore(
     return record;
   };
 
-  const readDeliveryAttemptContract = async attemptCid => {
+  const readDeliveryAttemptContract = async (attemptCid, retained) => {
     const bytes = await readBounded(
       resolve(deliveryAttemptPath(attemptCid), 'attempt.json'),
       configuration.maxObjectBytes,
     );
     try {
-      return admitContract('delivery_attempt', bytes.toString('utf8'));
+      const contract = retained !== undefined && exactUtf8WireMatches(bytes, retained.wire)
+        ? retained : admitContract('delivery_attempt', bytes.toString('utf8'));
+      if (contract.identity !== attemptCid) fail('InvalidDeliveryAttempt');
+      return contract;
     } catch (error) {
       fail('InvalidDeliveryAttempt', error);
+    }
+  };
+
+  const deliveryLogicalKey = query => JSON.stringify([
+    query.indexKey.namespaceId, query.indexKey.authorityScopeCid,
+    query.indexKey.runDefinitionCid, query.principalId, query.purpose,
+    query.resultName, query.attemptId,
+  ]);
+  const deliveryQuery = (attempt, grant) => ({
+    indexKey: {namespaceId: grant.namespace_id, authorityScopeCid: grant.authority_scope_cid,
+      runDefinitionCid: attempt.run_definition_cid},
+    principalId: grant.principal_id, purpose: grant.purpose,
+    resultName: attempt.result_name, attemptId: attempt.attempt_id,
+  });
+  const deliveryIndexRow = (attempt, grant, attemptContract, grantContract) => ({
+    logical_key: deliveryLogicalKey(deliveryQuery(attempt, grant)),
+    attempt_cid: attemptContract.identity, grant_cid: grantContract.identity,
+    run_cid: attempt.run_definition_cid,
+    attempt_wire: attemptContract.wire, grant_wire: grantContract.wire,
+  });
+  const installDeliveryAttempt = async admitted => {
+    const writer = {cleanup: undefined, failed: false};
+    activePhysicalRecordWriters.add(writer);
+    let retainedChild = false;
+    try {
+    const target = deliveryAttemptPath(admitted.identity);
+    try {
+      const retained = await readDeliveryAttemptContract(admitted.identity, admitted);
+      if (retained.wire !== admitted.wire) fail('DeliveryAttemptConflict');
+      await syncDirectory(target);
+      await syncDirectory(deliveriesDirectory);
+      return;
+    } catch (error) { if (error?.code !== 'ENOENT') throw error; }
+    // A pending claim determines its one original staging alias. Recovery can
+    // revisit that alias without scanning unrelated directories on every open.
+    const staging = resolve(deliveriesDirectory, `.staging-${admitted.identity.slice(7)}`);
+    try { await mkdir(staging, {mode: 0o700}); }
+    catch (error) {
+      if (error?.code !== 'EEXIST') throw error;
+      if (!(await lstat(staging)).isDirectory()) fail('InvalidDeliveryAttemptStore');
+    }
+    try {
+      try { await link(contractPath(admitted.identity), resolve(staging, 'attempt.json')); }
+      catch (error) {
+        if (error?.code !== 'EEXIST') throw error;
+        const bytes = await readBounded(resolve(staging,'attempt.json'),configuration.maxObjectBytes);
+        if (!exactUtf8WireMatches(bytes,admitted.wire)) fail('DeliveryAttemptConflict');
+      }
+      await syncDirectory(staging);
+      await rename(staging, target);
+      await syncDirectory(deliveriesDirectory);
+    } catch (primary) {
+      if (primary?.code !== 'EEXIST') throw primary;
+      await rm(staging, {recursive: true, force: false});
+      const retained = await readDeliveryAttemptContract(admitted.identity, admitted);
+      if (retained.wire !== admitted.wire) fail('DeliveryAttemptConflict');
+      await syncDirectory(target);
+      await syncDirectory(deliveriesDirectory);
+    }
+    } catch (primary) {
+      const child = primary?.cleanupHandle;
+      if (child !== undefined) {
+        const statusOriginal = child.status, retryOriginal = child.retry;
+        let pending = true, flight;
+        const status = () => Object.freeze({pending});
+        writer.failed = retainedChild = true;
+        writer.cleanup = Object.freeze({status,retry() {
+          if (flight !== undefined) return flight;
+          flight = Promise.resolve().then(async () => {
+            if (!pending) return status();
+            if (typeof statusOriginal !== 'function' || typeof retryOriginal !== 'function') {
+              fail('PublicationStoreCleanupPending');
+            }
+            await Reflect.apply(retryOriginal,child,[]);
+            const observation = await Reflect.apply(statusOriginal,child,[]);
+            const descriptor = observation !== null && typeof observation === 'object'
+              ? Object.getOwnPropertyDescriptor(observation,'pending') : undefined;
+            if (descriptor?.value !== false) fail('PublicationStoreCleanupPending');
+            pending = false;
+            activePhysicalRecordWriters.delete(writer);
+            return status();
+          }).finally(() => { flight = undefined; });
+          return flight;
+        }});
+      }
+      throw primary;
+    } finally {
+      if (!retainedChild) activePhysicalRecordWriters.delete(writer);
+    }
+  };
+  const restoreDeliveryClaim = async row => {
+    const attemptContract = admitContract('delivery_attempt', row.attempt_wire);
+    const grantContract = admitContract('result_read_grant', row.grant_wire);
+    const attempt = parseContract(attemptContract), grant = parseContract(grantContract);
+    const expected = deliveryIndexRow(attempt,grant,attemptContract,grantContract);
+    if (Object.keys(expected).some(name => expected[name] !== row[name]) ||
+        attempt.result_read_grant_cid !== grantContract.identity ||
+        attempt.run_definition_cid !== grant.run_definition_cid ||
+        attempt.result_manifest_cid !== grant.result_manifest_cid ||
+        !grant.results.some(result => result.result_name === attempt.result_name &&
+          result.result_artifact_cid === attempt.result_artifact_cid)) fail('InvalidDeliveryAttemptIndex');
+    await putDeliveryContracts(grantContract,attemptContract);
+    await installDeliveryAttempt(attemptContract);
+    deliveryIndex.finish(row.logical_key,attemptContract.identity);
+  };
+
+  const initializeDeliveryIndex = async () => {
+    let coverage, indexExists = false;
+    try {
+      const bytes = await readBounded(deliveryCoveragePath,128);
+      coverage = JSON.parse(bytes.toString('utf8'));
+      if (!exactKeys(coverage,['version','phase']) || coverage.version !== 1 ||
+          !['building','ready'].includes(coverage.phase)) fail('DeliveryAttemptIndexUnavailable');
+    } catch (error) { if (error?.code !== 'ENOENT') throw error; }
+    try {
+      const state = await lstat(deliveryIndexPath);
+      if (!state.isFile() || state.isSymbolicLink()) fail('DeliveryAttemptIndexUnavailable');
+      indexExists = true;
+    } catch (error) { if (error?.code !== 'ENOENT') throw error; }
+    if (coverage?.phase === 'ready' && !indexExists || coverage === undefined && indexExists) {
+      fail('DeliveryAttemptIndexUnavailable');
+    }
+    const publishCoverage = async phase => {
+      const staging = resolve(stagingDirectory,`object-${randomUUID()}`);
+      await writePhysicalHoldingRecord(staging,Buffer.from(JSON.stringify({version:1,phase}),'utf8'));
+      await rename(staging,deliveryCoveragePath);
+      await syncDirectory(root);
+    };
+    // An explicit one-time legacy migration has a durable building intent.
+    // Ready coverage is never recreated from a missing adopted database.
+    if (coverage === undefined) {
+      await publishCoverage('building');
+      coverage = {version:1,phase:'building'};
+    }
+    deliveryIndex = await openDeliveryAttemptIndex(deliveryIndexPath,{
+      create: coverage.phase === 'building', maxEntries: configuration.maxObjects,
+      maxWireBytes: configuration.maxObjectBytes,
+    });
+    if (deliveryIndex.needsMigration()) {
+      if (coverage.phase !== 'building') fail('DeliveryAttemptIndexUnavailable');
+      const rows = [], grants = new Map(), uses = new Map();
+      for (const name of await readdir(deliveriesDirectory)) {
+        if (name.startsWith('.staging-')) {
+          await removeOpeningTree(resolve(deliveriesDirectory,name),bootstrap);
+          continue;
+        }
+        if (!/^[0-9a-f]{64}$/u.test(name) ||
+            !(await lstat(resolve(deliveriesDirectory,name))).isDirectory()) fail('InvalidDeliveryAttemptStore');
+        if (rows.length >= configuration.maxObjects) fail('DeliveryAttemptIndexLimit');
+        const attemptContract = await readDeliveryAttemptContract(`sha256:${name}`);
+        const attempt = parseContract(attemptContract);
+        let original = grants.get(attempt.result_read_grant_cid);
+        if (original === undefined) {
+          original = await readContract(attempt.result_read_grant_cid,'result_read_grant');
+          grants.set(attempt.result_read_grant_cid,original);
+        }
+        const grant = original.value;
+        if (grant.run_definition_cid !== attempt.run_definition_cid ||
+            grant.result_manifest_cid !== attempt.result_manifest_cid ||
+            !grant.results.some(result => result.result_name === attempt.result_name &&
+              result.result_artifact_cid === attempt.result_artifact_cid)) fail('DeliveryGrantMismatch');
+        const count = (uses.get(original.contract.identity) ?? 0) + 1;
+        if (count > grant.max_uses) fail('DeliveryGrantUseLimit');
+        uses.set(original.contract.identity,count);
+        rows.push(deliveryIndexRow(attempt,grant,attemptContract,original.contract));
+      }
+      await syncDirectory(deliveriesDirectory);
+      deliveryIndex.migrate(rows);
+    }
+    if (coverage.phase !== 'ready') await publishCoverage('ready');
+    // Only unfinished indexed claims are revisited. No ordinary open scans or
+    // re-admits all historical attempts/grants after coverage is complete.
+    const pending = deliveryIndex.pending();
+    if (pending.length > configuration.maxObjects) fail('DeliveryAttemptIndexLimit');
+    for (const row of pending) {
+      if (!await runMetadataDeletionStarted(row.run_cid)) await restoreDeliveryClaim(row);
     }
   };
 
@@ -3680,81 +3853,40 @@ async function openOriginalLocalPublicationStore(
     const operation = deliveryAdmissionBusy.then(async () => {
       const admitted = admitContract('delivery_attempt', suppliedWire);
       const attempt = parseContract(admitted);
-      const grantContract = admitContract(
-        'result_read_grant', suppliedGrantWire,
-      );
+      const grantContract = admitContract('result_read_grant', suppliedGrantWire);
       const grant = parseContract(grantContract);
       if (await runMetadataDeletionStarted(attempt.run_definition_cid)) {
         fail('PublicationMetadataDeleted');
       }
-      if (attempt.result_read_grant_cid !== grantContract.identity) {
-        fail('DeliveryGrantMismatch');
-      }
-      if (attempt.run_definition_cid !== grant.run_definition_cid ||
+      if (attempt.result_read_grant_cid !== grantContract.identity ||
+          attempt.run_definition_cid !== grant.run_definition_cid ||
           attempt.result_manifest_cid !== grant.result_manifest_cid ||
           !grant.results.some(result => result.result_name === attempt.result_name &&
             result.result_artifact_cid === attempt.result_artifact_cid)) {
         fail('DeliveryGrantMismatch');
       }
-      // The existing durable lookup owns the logical key. Selection and grant
-      // consumption stay in this one admission queue and under Store ownership;
-      // no second index or process-local attempt cache substitutes for the files.
-      const {match: retained, grantUses} = await scanDeliveryAttempts({
-        indexKey: {namespaceId: grant.namespace_id,
-          authorityScopeCid: grant.authority_scope_cid,
-          runDefinitionCid: grant.run_definition_cid},
-        principalId: grant.principal_id, purpose: grant.purpose,
-        resultName: attempt.result_name, attemptId: attempt.attempt_id,
-      }, grantContract.identity);
+      const {match: retained} = await selectDeliveryAttempt(
+        deliveryQuery(attempt,grant), {contract: admitted, value: attempt},
+        {contract: grantContract, value: grant}, false);
       if (retained !== undefined) {
-        let original;
-        try {
-          // Admission recomputes/checks the complete canonical identity after
-          // restoring only the selected birth time. All other bindings must
-          // reproduce the retained CID; no JS hashing or field subset compare.
-          original = admitContract('delivery_attempt', JSON.stringify({...attempt,
-            requested_at: retained.attempt.requested_at,
-            delivery_attempt_cid: retained.attempt.delivery_attempt_cid}));
-        } catch (cause) { fail('DeliveryAttemptConflict', cause); }
-        const existing = await readDeliveryAttemptContract(original.identity);
-        if (original.wire !== existing.wire) fail('DeliveryAttemptConflict');
-        // A previous caller may have lost the final directory-sync response.
-        // Confirm that same selection, never allocate another attempt/reader.
-        await syncDirectory(deliveryAttemptPath(original.identity));
-        await syncDirectory(deliveriesDirectory);
-        return Object.freeze({attempt: parseContract(existing), created: false});
+        // Both originals were admitted. Compare every scalar field, restoring
+        // only the selected birth/identity, rather than hash the same body again.
+        const keys = Object.keys(attempt);
+        if (keys.length !== Object.keys(retained.attempt).length ||
+            keys.some(name => name !== 'requested_at' && name !== 'delivery_attempt_cid' &&
+              attempt[name] !== retained.attempt[name])) fail('DeliveryAttemptConflict');
+        return Object.freeze({attempt: retained.attempt, created: false});
       }
-      const target = deliveryAttemptPath(attempt.delivery_attempt_cid);
-
-      if (grantUses >= grant.max_uses) fail('DeliveryGrantUseLimit');
-
-      await putDeliveryContracts(grantContract, admitted);
-      const staging = resolve(
-        deliveriesDirectory, `.staging-${randomUUID()}`,
-      );
-      await mkdir(staging, {mode: 0o700});
-      try {
-        await link(
-          contractPath(admitted.identity),
-          resolve(staging, 'attempt.json'),
-        );
-        await syncDirectory(staging);
-        await rename(staging, target);
-        await syncDirectory(deliveriesDirectory);
-      } catch (error) {
-        try { await rm(staging, {recursive: true, force: false}); }
-        catch (cleanupError) {
-          if (cleanupError?.code !== 'ENOENT') throw cleanupError;
-        }
-        if (error?.code !== 'EEXIST') throw error;
-        const existing = await readDeliveryAttemptContract(
-          attempt.delivery_attempt_cid,
-        );
-        if (existing.wire !== admitted.wire) {
-          fail('DeliveryAttemptConflict');
-        }
-        return Object.freeze({attempt, created: false});
-      }
+      if (deliveryIndex === undefined) fail('DeliveryAttemptIndexUnavailable');
+      const row = deliveryIndexRow(attempt,grant,admitted,grantContract);
+      const selected = deliveryIndex.claim(row,grant.max_uses);
+      if (!selected.created) fail('DeliveryAttemptConflict');
+      // The durable pending claim already owns uniqueness and the grant use.
+      // Failure never refunds it. Recovery projects these SAME stored originals;
+      // it does not dispatch a stream or invent another attempt.
+      await putDeliveryContracts(grantContract,admitted);
+      await installDeliveryAttempt(admitted);
+      deliveryIndex.finish(row.logical_key,admitted.identity);
       return Object.freeze({attempt, created: true});
     });
     deliveryAdmissionBusy = operation.catch(() => {});
@@ -3883,45 +4015,47 @@ async function openOriginalLocalPublicationStore(
         query.attemptId.length > 256) {
       fail('InvalidDeliveryAttemptLookup');
     }
-    return (await scanDeliveryAttempts(query)).match;
+    return (await selectDeliveryAttempt(query)).match;
   };
 
-  // Both callers use this same durable scan. Admission has already checked the
-  // full attempt/grant contracts; it must not acquire the lookup API's separate
-  // request-size restrictions as a new writer/contract restriction.
-  // Count only within this traversal. The admission queue serializes additions;
-  // metadata retirement can still remove entries after they were counted.
-  const scanDeliveryAttempts = async (query, grantCid) => {
-    let match;
-    let grantUses = 0;
-    for (const name of await readdir(deliveriesDirectory)) {
-      if (!/^[0-9a-f]{64}$/u.test(name)) continue;
-      const attempt = parseContract(await readDeliveryAttemptContract(
-        `sha256:${name}`,
-      ));
-      if (attempt.result_read_grant_cid === grantCid) grantUses++;
-      if (attempt.attempt_id !== query.attemptId ||
-          attempt.run_definition_cid !== query.indexKey.runDefinitionCid ||
-          attempt.result_name !== query.resultName) continue;
-      const grant = (await readContract(
-        attempt.result_read_grant_cid, 'result_read_grant',
-      )).value;
-      if (grant.namespace_id !== query.indexKey.namespaceId ||
-          grant.authority_scope_cid !== query.indexKey.authorityScopeCid ||
-          grant.principal_id !== query.principalId ||
-          grant.purpose !== query.purpose ||
-          grant.run_definition_cid !== query.indexKey.runDefinitionCid ||
-          grant.result_manifest_cid !== attempt.result_manifest_cid) continue;
-      if (match !== undefined) fail('AmbiguousDeliveryAttemptLookup');
-      const record = await latestDeliveryRecord(attempt.delivery_attempt_cid);
-      const hostReleaseReceipt = record?.result_delivery_receipt_cid ===
-        undefined ? undefined : (await readContract(
-          record.result_delivery_receipt_cid,
-          'result_delivery_receipt',
-        )).value;
-      match = Object.freeze({attempt, record, hostReleaseReceipt});
+  // The native index is complete before this Store escapes. Each public
+  // selection reads only its exact target and referenced grant, never unrelated
+  // attempt history. The same admission queue owns transactional claim changes.
+  const selectDeliveryAttempt = async (query, suppliedAttempt, suppliedGrant,
+    includeProgress = true) => {
+    if (deliveryIndex === undefined) fail('DeliveryAttemptIndexUnavailable');
+    const key = deliveryLogicalKey(query);
+    const row = deliveryIndex.lookup(key);
+    if (row === undefined) return {match: undefined};
+    if (row.ready !== 1) fail('ResultDeliveryAttemptUnresolved');
+    const attemptContract = await readDeliveryAttemptContract(
+      row.attempt_cid, suppliedAttempt?.contract);
+    const attempt = attemptContract === suppliedAttempt?.contract
+      ? suppliedAttempt.value : parseContract(attemptContract);
+    let grantContract, grant;
+    if (suppliedGrant?.contract.identity === row.grant_cid) {
+      const bytes = await readSemanticBytes(row.grant_cid);
+      grantContract = exactUtf8WireMatches(bytes,suppliedGrant.contract.wire)
+        ? suppliedGrant.contract : admitContract('result_read_grant',bytes.toString('utf8'));
+      grant = grantContract === suppliedGrant.contract ? suppliedGrant.value : parseContract(grantContract);
+    } else {
+      const original = await readContract(row.grant_cid,'result_read_grant');
+      grantContract = original.contract;
+      grant = original.value;
     }
-    return {match, grantUses};
+    const expected = deliveryIndexRow(attempt,grant,attemptContract,grantContract);
+    if (Object.keys(expected).some(name => expected[name] !== row[name]) ||
+        attempt.result_read_grant_cid !== row.grant_cid ||
+        grant.run_definition_cid !== attempt.run_definition_cid ||
+        grant.result_manifest_cid !== attempt.result_manifest_cid) {
+      fail('InvalidDeliveryAttemptIndex');
+    }
+    const record = includeProgress
+      ? await latestDeliveryRecord(attemptContract.identity) : undefined;
+    const hostReleaseReceipt = record?.result_delivery_receipt_cid === undefined
+      ? undefined : (await readContract(record.result_delivery_receipt_cid,
+        'result_delivery_receipt')).value;
+    return {match: Object.freeze({attempt,record,hostReleaseReceipt})};
   };
 
   const confirmDeliveryRecord = async suppliedWire => {
@@ -5390,6 +5524,7 @@ async function openOriginalLocalPublicationStore(
       }
     }
     await syncDirectory(deliveriesDirectory);
+    deliveryIndex?.forgetRun(runDefinitionCid);
     for (const name of await readdir(manifestReadsDirectory)) {
       if (!/^[0-9a-f]{64}$/u.test(name)) {
         fail('InvalidManifestReadStore');
@@ -6765,6 +6900,10 @@ async function openOriginalLocalPublicationStore(
   // retried without making the deleted Result visible again.
   await recoverRetiredResults();
 
+  // The same index must be live when interrupted metadata retirement removes
+  // its selected attempt rows. Retired pending claims are not re-published.
+  await initializeDeliveryIndex();
+
   // Metadata deletion markers hide the public index before physical cleanup.
   // Restart resumes every exact contract and payload responsibility recorded
   // by the marker rather than treating an absent index as successful cleanup.
@@ -7030,6 +7169,7 @@ async function openOriginalLocalPublicationStore(
           catch { fail('PublicationStoreCleanupPending'); }
         }
         if (activePhysicalRecordWriters.size !== 0) fail('PublicationStoreCleanupPending');
+        if (deliveryIndex?.close() !== true) fail('PublicationStoreCleanupPending');
         return ownership.release();
       }).then(released => {
         if (released !== true) fail('PublicationStoreOwnershipLost');
@@ -7042,7 +7182,8 @@ async function openOriginalLocalPublicationStore(
     },
   });
   } catch (cause) {
-    throw await retainStoreOpeningFailure(cause, ownership,
+    const primary = deliveryIndex === undefined ? cause : deliveryIndex.retainFailure(cause);
+    throw await retainStoreOpeningFailure(primary, ownership,
       configuration.privateEvidenceKey);
   }
 }
