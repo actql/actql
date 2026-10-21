@@ -69,3 +69,62 @@ test "portable Source publication parts retain unused and foreign metadata refus
     is Err(Publication(_)),
   )
 }
+
+///|
+test "portable Source Catalog reuse preserves the ordinary checked Program identities" {
+  let original = original_dispatch_source(
+    "SELECT id FROM records WHERE id > 0 ORDER BY id",
+  )
+  guard original.preparation is Pure(actual) else { fail("Expected Pure") }
+  let (
+    context,
+    table_writes,
+    update_targets,
+    store_targets,
+    command_targets,
+    catalog,
+  ) = @source_publication.bind_published_query_parts_with_catalog(
+    original.environment,
+    original.publication,
+    None,
+  ).unwrap()
+  assert_true(
+    physical_equal(@checked.source_catalog_owner(catalog), original.environment),
+  )
+  let lowered = @source_frontend.lower(
+    original.source_document,
+    @source_frontend.Sql,
+    Some(context),
+    table_writes~,
+    update_targets~,
+    store_targets~,
+    command_targets~,
+  ).unwrap()
+  guard lowered.program is Some(parsed) else { fail("Expected Program") }
+  // The legacy parsed entry still admits its Environment normally. Its
+  // checked identities must agree with the caller using the original Catalog.
+  let ordinary = prepare_parsed_effect_free_client_program(
+    parsed,
+    original.environment,
+    None,
+    client_standard_program_preparation_limits(),
+  ).unwrap()
+  let actual_checked = @strategy.graph_program(prepared_client_graph(actual))
+  let ordinary_checked = @strategy.graph_program(
+    prepared_client_graph(ordinary),
+  )
+  assert_eq(
+    @checked.unit_count(actual_checked),
+    @checked.unit_count(ordinary_checked),
+  )
+  for unit in 0..<@checked.unit_count(actual_checked) {
+    assert_eq(
+      @checked.unit_definition_cid(actual_checked, unit),
+      @checked.unit_definition_cid(ordinary_checked, unit),
+    )
+    assert_eq(
+      @checked.unit_used_values_cid(actual_checked, unit),
+      @checked.unit_used_values_cid(ordinary_checked, unit),
+    )
+  }
+}

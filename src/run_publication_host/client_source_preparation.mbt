@@ -131,8 +131,8 @@ pub fn prepare_client_source_computation(
         )
       None => return Err(Input)
     }
-    let (context, table_writes, update_targets, store_targets, command_targets) = source_result(
-      @source_publication.bind_published_query_parts(
+    let (context, table_writes, update_targets, store_targets, command_targets, source_catalog) = source_result(
+      @source_publication.bind_published_query_parts_with_catalog(
         environment, publication, declarations,
       ).map_err(issue => ClientSourcePreparationIssue::Publication(issue)),
     )
@@ -171,6 +171,7 @@ pub fn prepare_client_source_computation(
             update_targets=lowered.update_targets,
             store_targets=lowered.store_targets,
             command_targets=lowered.command_targets,
+            source_catalog=Some(source_catalog),
           ).map_err(issue => ClientSourcePreparationIssue::Effect(issue)),
         )
         let prepared = { ..prepared, source_intent: Some(intent), }
@@ -204,7 +205,7 @@ pub fn prepare_client_source_computation(
     }
     let prepared = source_result(
       prepare_parsed_effect_free_client_program(
-        parsed, environment, supplied, limits,
+        parsed, environment, supplied, limits, source_catalog=Some(source_catalog),
       ).map_err(issue => ClientSourcePreparationIssue::Pure(issue)),
     )
     source_result(
