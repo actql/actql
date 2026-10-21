@@ -1157,6 +1157,8 @@ pub fn client_submitted_journal_append_rows(ClientSubmittedJournalAppend) -> (St
 
 pub fn client_submitted_journal_append_usage(ClientSubmittedJournalAppend) -> (Int64, Bytes)?
 
+pub fn client_submitted_journal_usage(ClientJournalPhysicalRow, Int, Int) -> Result[Int64, ClientJournalDecodingIssue]
+
 pub fn client_submitted_journal_usage_body(Int, Int64, Int) -> Result[Bytes, ClientJournalDecodingIssue]
 
 pub fn client_submitted_name_authentication_input(ClientSubmittedNameBinding, Int) -> Result[String, ClientSubmittedNameIssue]
