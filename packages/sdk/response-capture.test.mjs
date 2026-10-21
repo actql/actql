@@ -13,6 +13,7 @@ const profile = {version: 'actql-client-host/0.1', mode: 'local', owner: 'local'
     maxRowRetainedValueBytes: 1024, maxRetainedValueBytes: 4096,
     maxRows: 10, maxBatchRows: 2, maxBatchRetainedValueBytes: 2048}};
 const running = () => ({version: 'actql-run-state/0.1', run_id: 'original-run',
+  revision: 31,
   status: 'needs_reconciliation', updated_at: '2026-10-07T00:00:00.000Z',
   next_action: {kind: 'reconcile', effects: ['e\u0301\r\n', 'é']},
   control: {revision: 7, cancellation_requested: true, physical_stop: 'unknown'},
@@ -124,7 +125,7 @@ test('attach capture failure is a safe refusal before constructing a handle', as
 });
 
 for (const mutateOriginal of [false, true]) {
-  test(`attach refuses conversion changes to ${mutateOriginal ? 'the captured original' : 'its verification copy'}`, async t => {
+  test(`attach admits its snapshot without converting ${mutateOriginal ? 'the captured original' : 'a verification copy'}`, async t => {
     const reply = {ref: {...ref}, durability: 'durable', revision: 7};
     const f = await attachmentFixture(t, reply);
     const clone = globalThis.structuredClone;
@@ -139,8 +140,10 @@ for (const mutateOriginal of [false, true]) {
       }
       return clone(value);
     });
-    await assert.rejects(f.client.attach(ref), {code: 'InvalidHostAdmission'});
-    assert.equal(changed, 1);
+    const run = await f.client.attach(ref);
+    assert.deepEqual(run.ref, ref);
+    assert.equal(run.profile.durability, 'durable');
+    assert.equal(changed, 0);
     assert.deepEqual(reply.ref, ref);
     assert.deepEqual(f.calls, ['connect', 'attach']);
   });

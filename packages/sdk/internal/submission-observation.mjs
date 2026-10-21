@@ -11,7 +11,7 @@ import {captureResponse, detachResponse, freezeInput, structuralKey} from './dat
 import {ClientError, RequestHeld, fail, requestCancellationCause} from './errors.mjs';
 import {copyRunObservationFailure} from './run-observation.mjs';
 import {controlValue} from './transport-response.mjs';
-import {clientSourceFormats, snapshotClientRequest, validClientAdmission, validOperationAttemptRef,
+import {clientSourceFormats, snapshotClientRequest, validOperationAttemptRef,
   validRequestCancellation, validRequestLookup, validRunRef, validSubmissionAttempt,
   validNamedSubmissionAttempt, validSubmissionName,
   validSubmissionLookup, validSubmissionRef, validSubmissionRestart} from '@actql/client-wire';
@@ -436,20 +436,15 @@ export function createSubmissionOperations(selected, confirmed, transport, execu
       catch (cause) { throw new ClientError('InvalidHostAdmission', {cause}); }
       try { admitted = captureResponse(admitted); }
       catch { fail('InvalidHostAdmission'); }
-      if (!validClientAdmission(admitted, selected.wire)) fail('InvalidHostAdmission');
-      const observedKey = structuralKey(admitted);
-      try {
-        const verification = structuredClone(admitted);
-        if (!validClientAdmission(verification, selected.wire) ||
-            structuralKey(verification) !== observedKey ||
-            structuralKey(admitted) !== observedKey) fail('InvalidHostAdmission');
-      } catch { fail('InvalidHostAdmission'); }
+      // The execution factory admits this owned snapshot once. Constructing a
+      // handle performs no I/O; a foreign reference is refused before return.
+      const run = execution(admitted);
       if (admitted.ref.namespaceId !== requested.namespaceId ||
           admitted.ref.authorityScopeCid !== requested.authorityScopeCid ||
           admitted.ref.runDefinitionCid !== requested.runDefinitionCid) {
         fail('ForeignHostAdmission');
       }
-      return execution(admitted);
+      return run;
     },
     lookupRequest: async (requestId, {signal} = {}) => {
       if (typeof requestId !== 'string' || !requestId) fail('InvalidRequestId');

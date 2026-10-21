@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {connectInProcess, explainRunObservationFailure, formatRunObservationFailure,
+import {ClientError, connectInProcess, explainRunObservationFailure, formatRunObservationFailure,
   explainEffectUncertainty} from './index.mjs';
 
 const cid = digit => `sha256:${digit.repeat(64)}`;
@@ -31,6 +31,19 @@ async function fixture(t, answer) {
   t.after(() => client.close());
   return {run: await client.attach(ref), calls};
 }
+
+test('a successful observation never caches authority for the next operation', async t => {
+  let denied = false;
+  const {run, calls} = await fixture(t, () => {
+    if (denied) throw new ClientError('ClientConnectionDenied', {status: 403});
+    return state(17);
+  });
+  assert.equal((await run.status()).status, 'succeeded');
+  denied = true;
+  await assert.rejects(run.status(), error => error.code === 'ClientConnectionDenied' &&
+    explainRunObservationFailure(error)?.problem === 'observation_unavailable');
+  assert.deepEqual(calls, ['connect', 'attach', 'status', 'status']);
+});
 
 for (const [field, value] of [['cancellation_requested', true], ['physical_stop', 'confirmed']]) {
   test(`same revision cannot change the original ${field} fact`, async t => {

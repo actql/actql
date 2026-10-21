@@ -123,25 +123,17 @@ export function createExecutionFactory(selected, confirmed, transport, lifecycle
       catch { throw rejectedRunObservation(ref, operation, 'malformed_response'); }
       const problem = rejectedRunProblem(state);
       try {
-        if (!validRunState(state)) throw rejectedRunObservation(ref, operation, problem);
+        // The wait contract includes the Run shape. Admit the captured reply
+        // once; every later operation still obtains its own Host observation.
+        if (!(operation === 'wait' ? validRunWaitContract(state, body.since)
+          : validRunState(state))) throw rejectedRunObservation(ref, operation, problem);
         if (latestState !== undefined && (state.run_id !== latestState.runId ||
             state.revision < latestState.revision)) {
           throw rejectedRunObservation(ref, operation, 'stale_observation');
         }
-        if (operation === 'wait' && !validRunWaitContract(state, body.since)) {
-          throw rejectedRunObservation(ref, operation, 'malformed_response');
-        }
-        // Each observation owns its value even if a Local port reuses a reply.
+        // Each observation already owns its data even if a Local port reuses
+        // a reply. No application callback runs between capture and admission.
         const observation = state;
-        const observedKey = structuralKey(state);
-        state = structuredClone(state);
-        if (!validRunState(state)) throw rejectedRunObservation(ref, operation, problem);
-        if (structuralKey(state) !== observedKey) {
-          throw rejectedRunObservation(ref, operation, 'malformed_response');
-        }
-        if (structuralKey(observation) !== observedKey) {
-          throw rejectedRunObservation(ref, operation, 'malformed_response');
-        }
         if (observation.control !== undefined) {
           const control = observation.control;
           if (latestControl !== undefined && (control.revision < latestControl.revision ||

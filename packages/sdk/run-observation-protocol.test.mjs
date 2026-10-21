@@ -120,17 +120,20 @@ const copyFaults = [
   }],
 ];
 for (const operation of ['status', 'wait', 'reconcile']) {
-  test(`${operation}: equivalent Run copies preserve original strings and explanation custody`, async t => {
+  test(`${operation}: one captured Run preserves original strings without verification clones`, async t => {
     const original = unresolved();
     const {run} = await fixture(t, () => original);
     const clone = globalThis.structuredClone;
     t.after(() => { globalThis.structuredClone = clone; });
+    let conversions = 0;
     globalThis.structuredClone = value => {
+      if (value?.version === 'actql-run-state/0.1') conversions++;
       const copy = clone(value);
       return value?.version === 'actql-run-state/0.1'
         ? Object.fromEntries(Object.entries(copy).reverse()) : copy;
     };
     const answer = await run[operation]();
+    assert.equal(conversions, 0);
     original.next_action.effects[0] = 'later-host-value';
     original.control.physical_stop = 'confirmed';
     assert.deepEqual(answer, unresolved());
@@ -145,25 +148,22 @@ for (const operation of ['status', 'wait', 'reconcile']) {
     assert.equal(explainEffectUncertainty(clone(answer)), undefined);
   });
   for (const [name, alter] of copyFaults) {
-    test(`${operation}: copied Run observation cannot replace ${name}`, async t => {
+    test(`${operation}: later Host getter values cannot replace captured ${name}`, async t => {
       const original = unresolved();
-      const {run, operations} = await fixture(t, () => original);
-      const clone = globalThis.structuredClone;
-      t.after(() => { globalThis.structuredClone = clone; });
-      globalThis.structuredClone = value => {
-        const copy = clone(value);
-        if (value?.version === 'actql-run-state/0.1') {
-          alter(copy);
-          assert.equal(validRunState(copy), true, 'Fault must retain the known wire shape');
-        }
-        return copy;
-      };
-      let rejected;
-      try { await run[operation](); } catch (error) { rejected = error; }
-      assert.equal(rejected?.code, 'InvalidHostRunState', '[check-mutation:run-copy-preservation]');
-      assert.deepEqual(explainRunObservationFailure(rejected)?.next, {operation: 'status', ref});
-      assert.equal(explainEffectUncertainty(rejected), undefined);
-      assert.equal(Object.hasOwn(rejected, 'cause'), false);
+      const changed = structuredClone(original); alter(changed);
+      assert.equal(validRunState(changed), true, 'Replacement retains the known wire shape');
+      const reads = {}, reply = {};
+      for (const key of Object.keys(original)) Object.defineProperty(reply, key, {
+        enumerable: true, get() {
+          reads[key] = (reads[key] ?? 0) + 1;
+          return reads[key] === 1 ? original[key] : changed[key];
+        },
+      });
+      const {run, operations} = await fixture(t, () => reply);
+      const answer = await run[operation]();
+      assert.deepEqual(answer, original);
+      assert.deepEqual(explainEffectUncertainty(answer).effects, original.next_action.effects);
+      assert.ok(Object.values(reads).every(count => count === 1));
       assert.deepEqual(operations, ['connect', 'attach', operation]);
       assert.deepEqual(original, unresolved());
     });
@@ -378,7 +378,7 @@ for (const path of paths) {
 }
 
 for (const path of paths) {
-  test(`${path.name}: verification conversion cannot mutate the admitted snapshot`, async t => {
+  test(`${path.name}: captured facts survive without trusting a verification conversion`, async t => {
     const reply = path.reply(); reply[path.key] = path.first;
     if (path.name === 'deliveryAttempt') reply.hostReleaseReceipt = null;
     const f = await responseFixture(t, reply);
@@ -390,6 +390,12 @@ for (const path of paths) {
         path.name === 'deliveryAttempt' ? {...path.first, sequence: path.first.sequence + 1} : path.later);
       return copy;
     });
+    if (['status', 'wait', 'reconcile'].includes(path.name)) {
+      const answer = await path.call(f);
+      path.assert(answer);
+      assert.equal(f.operations.length, 3);
+      return;
+    }
     let error; try { await path.call(f); } catch (cause) { error = cause; }
     assert.equal(error?.code, path.code, '[check-mutation:response-capture-original]');
     assert.equal(f.operations.length, 3);
