@@ -4111,10 +4111,39 @@ async function openOriginalLocalPublicationStore(
   const appendDeliveryRecord = async suppliedWire => {
     active();
     const contract = admitContract('delivery_record', suppliedWire);
+    return appendAdmittedDeliveryRecord(contract);
+  };
+
+  const appendDeliveryCompletion = async (attempt, receipt, contract) => {
+    active();
+    for (const [original, name, identityField] of [
+      [attempt, 'delivery_attempt', 'delivery_attempt_cid'],
+      [receipt, 'result_delivery_receipt', 'result_delivery_receipt_cid'],
+      [contract, 'delivery_record', 'delivery_record_cid'],
+    ]) {
+      if (!exactKeys(original, ['name', 'identityField', 'identity', 'wire']) ||
+          !Object.isFrozen(original) || original.name !== name ||
+          original.identityField !== identityField || !cidPattern.test(original.identity) ||
+          typeof original.wire !== 'string' ||
+          Buffer.byteLength(original.wire, 'utf8') > configuration.maxObjectBytes) {
+        fail('InvalidDeliverySuccessEvidence');
+      }
+    }
+    let valid = false;
+    try { valid = contractControl.deliverySuccessValid(attempt, receipt, contract) === true; }
+    catch (error) { fail('InvalidDeliverySuccessEvidence', error); }
+    if (!valid) fail('InvalidDeliverySuccessEvidence');
     const record = parseContract(contract);
+    if (record.state !== 'succeeded') fail('InvalidDeliverySuccessEvidence');
+    return appendAdmittedDeliveryRecord(contract, {attempt, receipt, record});
+  };
+
+  const appendAdmittedDeliveryRecord = async (contract, completion) => {
+    const suppliedReceipt = completion?.receipt;
+    const record = completion?.record ?? parseContract(contract);
     const directory = deliveryAttemptPath(record.delivery_attempt_cid);
     const attemptContract = await readDeliveryAttemptContract(
-      record.delivery_attempt_cid,
+      record.delivery_attempt_cid, completion?.attempt,
     );
     const attempt = parseContract(attemptContract);
     if (await runMetadataDeletionStarted(attempt.run_definition_cid)) {
@@ -4124,7 +4153,18 @@ async function openOriginalLocalPublicationStore(
     const previous = await readLatestDeliveryRecordContract(
       record.delivery_attempt_cid, original,
     );
+    if (completion !== undefined && attemptContract !== completion.attempt) {
+      let valid = false;
+      try {
+        valid = record.state === 'succeeded' &&
+          contractControl.deliverySuccessValid(attemptContract, suppliedReceipt, contract) === true;
+      } catch (error) { fail('InvalidDeliverySuccessEvidence', error); }
+      if (!valid) fail('InvalidDeliverySuccessEvidence');
+    }
     if (previous?.identity === contract.identity) {
+      if (suppliedReceipt !== undefined && !exactUtf8WireMatches(
+        await readSemanticBytes(suppliedReceipt.identity), suppliedReceipt.wire,
+      )) fail('InvalidDeliverySuccessEvidence');
       return confirmAdmittedDeliveryRecord(contract, record, original.bytes);
     }
     if (contractControl.deliveryTransition(previous, contract) !== true) {
@@ -4133,7 +4173,7 @@ async function openOriginalLocalPublicationStore(
     if (attempt.delivery_attempt_cid !== record.delivery_attempt_cid) {
       fail('DeliveryAttemptMismatch');
     }
-    if (record.state === 'succeeded') {
+    if (record.state === 'succeeded' && suppliedReceipt === undefined) {
       const receipt = (await readContract(
         record.result_delivery_receipt_cid,
         'result_delivery_receipt',
@@ -4144,7 +4184,10 @@ async function openOriginalLocalPublicationStore(
         fail('InvalidDeliverySuccessEvidence');
       }
     }
-    await putSemantic(contract.wire, contract.identity);
+    if (suppliedReceipt === undefined) await putSemantic(contract.wire, contract.identity);
+    else await putSemanticBatch([suppliedReceipt, contract].map(value => ({
+      wire: value.wire, semanticCid: value.identity,
+    })));
     const target = resolve(directory, `${record.sequence}.json`);
     try { await link(contractPath(record.delivery_record_cid), target); }
     catch (error) {
@@ -7118,6 +7161,7 @@ async function openOriginalLocalPublicationStore(
     latestDeliveryRecordContract,
     confirmDeliveryRecord,
     appendDeliveryRecord,
+    appendDeliveryCompletion,
     commitIndex,
     commitEffectfulIndex,
     validateCommittedEvidence,
