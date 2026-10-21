@@ -136,17 +136,14 @@ pub fn client_program_source_publication_valid(
   environment : @program_check.CheckEnvironment,
   publication : String,
 ) -> Bool {
-  try {
-    client_source_context(environment, publication, None) |> ignore
-    client_table_write_publication(environment, publication) |> ignore
-    @source_publication.published_update_targets(environment, publication).unwrap_or_else(() => {
-        raise ClientSourceStop(Publication)
-      },
-    )
-    |> ignore
-    true
-  } catch {
-    _ => false
+  match
+    @source_publication.bind_published_query_parts(
+      environment,
+      publication,
+      None,
+    ) {
+    Ok(_) => true
+    Err(_) => false
   }
 }
 
@@ -160,19 +157,41 @@ pub fn client_program_prepare_source_with_parameters(
   declarations : String?,
   parameters : String?,
 ) -> ClientProgramBridgeOutcome {
+  let catalogs : Array[@program_check.PreparedSourceCatalog] = []
   let lowered = match
     client_program_lower_source(
-      document, format, environment, publication, declarations,
+      document,
+      format,
+      environment,
+      publication,
+      declarations,
+      source_catalog_out=Some(catalogs),
     ) {
     Ok(value) => value
     Err(issue) => return Rejected(issue)
   }
-  let prepared = client_program_prepare_effect_free_with_parameters(
-    lowered.document,
-    "json",
-    environment,
-    parameters,
-  )
+  guard catalogs.length() == 1 && catalogs.get(0) is Some(source_catalog) else {
+    return Rejected(SourcePreparation(Publication))
+  }
+  let (_, supplied) = match client_program_input("json", parameters) {
+    Ok(value) => value
+    Err(issue) => return Rejected(issue)
+  }
+  let parsed = match client_source_program(lowered) {
+    Ok(value) => value
+    Err(issue) => return Rejected(issue)
+  }
+  let prepared = match
+    @publication_host.prepare_parsed_effect_free_client_program(
+      parsed,
+      environment,
+      supplied,
+      client_program_standard_limits(),
+      source_catalog=Some(source_catalog),
+    ) {
+    Ok(value) => Prepared(value)
+    Err(issue) => Rejected(Preparation(issue))
+  }
   client_source_checked_array_profile(prepared)
 }
 
@@ -205,32 +224,47 @@ fn client_program_lower_source(
   publication : String,
   declarations : String?,
   public_primary? : Bool = false,
+  source_catalog_out? : Array[@program_check.PreparedSourceCatalog]? = None,
 ) -> Result[@source_frontend.Lowered, ClientProgramBridgeIssue] {
-  let context = client_source_context(environment, publication, declarations) catch {
-    ClientSourceStop(issue) => return Err(SourcePreparation(issue))
-  }
   let selected = match @source_frontend.select_format(format) {
     Ok(Text) => @source_frontend.Text
     Ok(Sql) => @source_frontend.Sql
-    _ => return Err(InvalidFormat)
+    _ => {
+      // Retain the original context-before-format refusal on this invalid
+      // input path. The ordinary supported path binds every part once below.
+      let _ = client_source_context(environment, publication, declarations) catch {
+        ClientSourceStop(issue) => return Err(SourcePreparation(issue))
+      }
+      return Err(InvalidFormat)
+    }
   }
-  let table_writes = client_table_write_publication(environment, publication) catch {
-    ClientSourceStop(issue) => return Err(SourcePreparation(issue))
-  }
-  let update_targets = match
-    @source_publication.published_update_targets(environment, publication) {
+  let (
+    context,
+    table_writes,
+    update_targets,
+    store_targets,
+    command_targets,
+    catalog,
+  ) = match
+    @source_publication.bind_published_query_parts_with_catalog(
+      environment, publication, declarations,
+    ) {
     Ok(value) => value
-    Err(_) => return Err(SourcePreparation(Publication))
+    Err(issue) =>
+      return Err(
+        SourcePreparation(
+          match issue {
+            Publication => Publication
+            Limit => Limit
+            UnsupportedCarrier => UnsupportedCarrier
+            Declarations => Declarations
+            Alias(issue) => Alias(issue)
+          },
+        ),
+      )
   }
-  let store_targets = match
-    @source_publication.published_store_targets(environment, publication) {
-    Ok(value) => value
-    Err(_) => return Err(SourcePreparation(Publication))
-  }
-  let command_targets = match
-    @source_publication.published_command_targets(environment, publication) {
-    Ok(value) => value
-    Err(_) => return Err(SourcePreparation(Publication))
+  if source_catalog_out is Some(output) {
+    output.push(catalog)
   }
   // Both authored forms carry the same admitted publication into the ordinary
   // checked Effect owner. Selection is retained material, never a permission.
@@ -247,6 +281,19 @@ fn client_program_lower_source(
     ) {
     Ok(value) => Ok(value)
     Err(issue) => Err(SourcePreparation(Frontend(issue)))
+  }
+}
+
+///|
+// Query lowering already admitted this exact Program and its authored spans.
+// The existing parsed checker applies current limits and semantic checks;
+// emitted JSON is not another input to admit during the same preparation.
+fn client_source_program(
+  lowered : @source_frontend.Lowered,
+) -> Result[@stage_syntax.Program, ClientProgramBridgeIssue] {
+  match lowered.program {
+    Some(program) => Ok(program)
+    None => Err(SourcePreparation(Frontend(Encoding)))
   }
 }
 
@@ -316,6 +363,7 @@ fn client_prepare_source_computation(
   evidence : Array[@context.StageCapacityInput],
   public_primary? : Bool = false,
 ) -> ClientSourceComputationBridgeOutcome {
+  let catalogs : Array[@program_check.PreparedSourceCatalog] = []
   let lowered = match
     client_program_lower_source(
       document,
@@ -324,23 +372,22 @@ fn client_prepare_source_computation(
       publication,
       declarations,
       public_primary~,
+      source_catalog_out=Some(catalogs),
     ) {
     Ok(value) => value
     Err(issue) => return SourcePure(Rejected(issue))
+  }
+  guard catalogs.length() == 1 && catalogs.get(0) is Some(source_catalog) else {
+    return SourcePure(Rejected(SourcePreparation(Publication)))
   }
   let (_, supplied) = match client_program_input("json", parameters) {
     Ok(value) => value
     Err(issue) => return SourcePure(Rejected(issue))
   }
   let limits = client_program_standard_limits()
-  let parsed = match
-    @stage_syntax.parse(
-      lowered.document,
-      limits.checking.input,
-      format=lowered.format,
-    ) {
+  let parsed = match client_source_program(lowered) {
     Ok(value) => value
-    Err(issue) => return SourcePure(Rejected(Preparation(Syntax(issue))))
+    Err(issue) => return SourcePure(Rejected(issue))
   }
   for stage in @stage_syntax.stages(parsed) {
     if !@stage_syntax.effect_names(stage).is_empty() {
@@ -373,6 +420,7 @@ fn client_prepare_source_computation(
           update_targets=lowered.update_targets,
           store_targets=lowered.store_targets,
           command_targets=lowered.command_targets,
+          source_catalog=Some(source_catalog),
         ) {
         Ok(value) => value
         Err(issue) => return SourceEffect(EffectRejected(Preparation(issue)))
@@ -399,7 +447,11 @@ fn client_prepare_source_computation(
     client_source_checked_array_profile(
       match
         @publication_host.prepare_parsed_effect_free_client_program(
-          parsed, environment, supplied, limits,
+          parsed,
+          environment,
+          supplied,
+          limits,
+          source_catalog=Some(source_catalog),
         ) {
         Ok(value) => Prepared(value)
         Err(issue) => Rejected(Preparation(issue))

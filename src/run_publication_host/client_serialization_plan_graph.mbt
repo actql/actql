@@ -739,7 +739,11 @@ fn issue_client_serialization_plan_graph_with_policy(
       barrier,
       input: input.unwrap_or(output),
       output,
-      graph: { wire: @encode.finish(writer), transformations, },
+      graph: {
+        wire: @encode.finish(writer),
+        transformations,
+        standard_progress_keys: None,
+      },
       policy,
       max_rows: rows,
       max_bytes: bytes,

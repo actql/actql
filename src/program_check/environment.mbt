@@ -10,6 +10,7 @@ pub suberror EnvironmentFailure {
   Modes(@environment.SourceReadModeIssue)
   Carriers(@environment.CarrierSchemaIssue)
   Requests(@environment.SourceRequestIssue)
+  ForeignPreparedCatalog
 }
 
 ///|

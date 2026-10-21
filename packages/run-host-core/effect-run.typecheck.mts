@@ -78,3 +78,16 @@ prepareEffectTaskPhysicalStart(allowed, definition, 'authority', [], caller, cal
 issueEffectSourceDispatch(prepared, definition, caller, selection);
 // @ts-expect-error Raw binding bytes cannot replace the admitted receiver owner.
 issueEffectRetainedTaskDispatch(allowed, definition, caller, selection, {wire: '{}', cid: 'cid'});
+
+
+// Live binding accepts only the existing nominal issuer tuple.
+import {issuePreparedEffectRunMaterials, bindPreparedEffectRunMaterials,
+  type RequestIdentity, type IssuedEffectRunMaterials} from '@actql/run-host-core';
+declare const originalRequest: RequestIdentity;
+const issuedMaterials: IssuedEffectRunMaterials = issuePreparedEffectRunMaterials(allowed, definition, originalRequest);
+const liveMaterials = bindPreparedEffectRunMaterials(allowed, definition, issuedMaterials, originalRequest);
+liveMaterials.compilation satisfies typeof compiled;
+// @ts-expect-error A visible wire does not carry original material custody.
+bindPreparedEffectRunMaterials(allowed, definition, {wire: issuedMaterials.wire}, originalRequest);
+// @ts-expect-error A request field object is not its nominal identity.
+bindPreparedEffectRunMaterials(allowed, definition, issuedMaterials, {requestId: 'copied'});

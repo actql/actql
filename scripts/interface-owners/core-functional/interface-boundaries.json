@@ -170,7 +170,7 @@
     },
     {
       "module": "adapters/host-common/runtime-core.mjs",
-      "sha256": "af827116185d3a11e2ad091faf14d17165ab3d90be82bc4cc01758cbd4a6f117",
+      "sha256": "212c31c320277fa1b26b666ed89567cdfd254d5612141e963e922d3a2cc55931",
       "role": "physical-io",
       "exports": [
         "contentCaptureControl",
@@ -14237,7 +14237,7 @@
     },
     {
       "module": "adapters/local-node/strategy-bundle.mjs",
-      "sha256": "865da6ec2ea9307e5f390a9eea90f763ebde73d366eb951730d4e3b1d29eb4da",
+      "sha256": "70557f66d87c7fc2d55b52741387491e860dd8db16215458b7da45f1434be292",
       "role": "physical-io",
       "exports": [
         "localStrategyContribution"
@@ -14750,7 +14750,7 @@
             "synchronization": [
               {
                 "path": "adapters/local-node/strategy-bundle.mjs",
-                "anchor": "const yieldToHost = () => new Promise(resolve => setTimeout(resolve, 0));"
+                "anchor": "const yieldToHost = () => new Promise(resolve =>\n  typeof setImmediate === 'function' ? setImmediate(resolve) : setTimeout(resolve, 0));"
               },
               {
                 "path": "src/physical_host/pkg.generated.mbti",
@@ -16854,7 +16854,7 @@
     },
     {
       "module": "packages/run-host-core/index.mjs",
-      "sha256": "7953c49d73de41585cb0dc72458635826b1dfb998649308f58aefb6c4e5eb6e1",
+      "sha256": "713fb27fe3f3853391c462951b531de497e592c6353dd6b0f1f3e2ac2c5cd9ed",
       "role": "physical-io",
       "exports": [
         "admitCapturedResultSnapshot",
@@ -16879,6 +16879,7 @@
         "admitTaskRun",
         "admitTaskRunDefinition",
         "beginResultMaterialHolds",
+        "bindPreparedEffectRunMaterials",
         "captureOriginalRunPlan",
         "checkRunBinding",
         "compileEffect",
@@ -17345,6 +17346,16 @@
           "parameters": [
             "bindingCid",
             "materialGenerationCid"
+          ],
+          "async": false
+        },
+        {
+          "name": "bindPreparedEffectRunMaterials",
+          "parameters": [
+            "allowed",
+            "definition",
+            "issued",
+            "request"
           ],
           "async": false
         },
@@ -20446,7 +20457,8 @@
             "validateRunMaterialsInput/validateRunMaterialsInput",
             "validateTaskPhysicalStartClaim",
             "validateTaskPhysicalStartClaim/validateTaskPhysicalStartClaim",
-            "validateTaskPhysicalStartClaim/validateTaskPhysicalStartClaim#2"
+            "validateTaskPhysicalStartClaim/validateTaskPhysicalStartClaim#2",
+            "bindPreparedEffectRunMaterials"
           ],
           "exports": [
             "admitCapturedResultSnapshot",
@@ -20599,7 +20611,8 @@
             "validatePublicationChain",
             "validatePublicationRecordTransition",
             "validateRetainedInputPlan",
-            "validateRetainedTaskInput"
+            "validateRetainedTaskInput",
+            "bindPreparedEffectRunMaterials"
           ],
           "attributes": {
             "responsibility": [

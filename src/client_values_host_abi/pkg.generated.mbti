@@ -66,6 +66,8 @@ pub fn client_values_host_begin_result_delivery(@run_publication.ResultDeliveryS
 
 pub fn client_values_host_begin_result_material_holds(String, String) -> @run_publication.ResultMaterialHolds raise ClientValuesHostDeliveryIssue
 
+pub fn client_values_host_bind_prepared_effect_run_materials(@run_publication_host.ClientEffectAllowedRun, @run_publication.PublicationContract, @run_publication_host.ClientEffectIssuedNormalizationMaterials, @run_publication_host.ClientRequestIdentity) -> Result[@run_publication_host.ClientEffectRunMaterials, @run_publication_host.ClientEffectRunMaterialsIssue]
+
 pub fn client_values_host_cancel_durable_result_row_frames(@run_publication.DurableResultRowFrames) -> Unit
 
 pub fn client_values_host_cancellation_intent_cid(@run_publication_host.ClientCancellationIdentity) -> String

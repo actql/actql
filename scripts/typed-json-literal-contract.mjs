@@ -132,6 +132,19 @@ export function updateTypedJsonContracts(expressions, protocol, write = false) {
   else assert.equal(protocol.artifact_registry_cid, machineCid(protocol.artifact_schemas));
 }
 
+export function typedJsonClientPin() {
+  const wireCid = machineCid(typedJsonWireLaw);
+  const serializations = Object.fromEntries(['json', 'jsonl', 'csv'].map(format => {
+    const version = `actql-${format}/0.1`;
+    return [version, machineCid({json_value_wire_contract_cid: wireCid, version})];
+  }));
+  return '// Generated from the common typed JSON wire law. Do not edit.\n' +
+    '// Run: node scripts/typed-json-literal-contract.mjs --write\n' +
+    'export const jsonValueWireContractCid = ' + JSON.stringify(wireCid) + ';\n' +
+    'export const resultSerializationContractCids = Object.freeze(' +
+    JSON.stringify(serializations, null, 2) + ');\n';
+}
+
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const paths = ['spec/contracts/actql-expressions.json', 'spec/contracts/actql-protocol-schemas.json'];
   const bodies = paths.map(path => JSON.parse(readFileSync(path, 'utf8')));
@@ -144,9 +157,7 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
   if (process.argv.includes('--write')) writeFileSync(pinPath, pin);
   else assert.equal(readFileSync(pinPath, 'utf8'), pin, 'stale JSON value wire pin');
   const clientPinPath = 'packages/sdk/json-value-wire.generated.mjs';
-  const clientPin = '// Generated from the common typed JSON wire law. Do not edit.\n' +
-    '// Run: node scripts/typed-json-literal-contract.mjs --write\n' +
-    'export const jsonValueWireContractCid = ' + JSON.stringify(machineCid(typedJsonWireLaw)) + ';\n';
+  const clientPin = typedJsonClientPin();
   if (process.argv.includes('--write')) writeFileSync(clientPinPath, clientPin);
   else assert.equal(readFileSync(clientPinPath, 'utf8'), clientPin, 'stale Client JSON value wire pin');
   updateTypedJsonContracts(...bodies);

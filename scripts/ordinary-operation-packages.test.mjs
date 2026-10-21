@@ -148,7 +148,7 @@ test('controlled performance check consumes existing artifacts and cannot omit f
   });
   assert.ok(ci.jobs.lint.steps.some(s => s.run === 'node --test scripts/ordinary-operation-packages.test.mjs'));
   assert.equal(ci.jobs.lint.steps.find(s => s.name === 'Test ordinary operation performance assessment').run,
-    'node --test scripts/operation-performance.test.mjs scripts/benchmark-node-operations.test.mjs scripts/operation-performance-policy.test.mjs scripts/benchmark-node-process-operations.test.mjs scripts/benchmark-node-sqlite.test.mjs');
+    'node --test scripts/operation-performance.test.mjs scripts/benchmark-node-operations.test.mjs scripts/operation-performance-policy.test.mjs scripts/benchmark-node-process-operations.test.mjs scripts/benchmark-node-sqlite.test.mjs scripts/benchmark-node-boundaries.test.mjs scripts/node-operation-fs-trace.test.mjs');
   const job = workflow.jobs['ordinary-operations'];
   assert.equal(job.permissions.actions, 'read');
   const inspect = job.steps.findIndex(s => s.name === 'Validate the original normal package producer');
@@ -157,8 +157,17 @@ test('controlled performance check consumes existing artifacts and cannot omit f
   const baseline = job.steps.findIndex(s => s.name === 'Measure the same-machine local SQLite diagnostic baseline');
   const calibrate = job.steps.findIndex(s => s.name === 'Freeze the baseline-only comparison before candidate measurements');
   const measure = job.steps.findIndex(s => s.name === 'Measure completed public operations from the installed cohort');
+  const boundary = job.steps.findIndex(s => s.name === 'Check selected Result material integrity using the installed cohort');
   const assess = job.steps.findIndex(s => s.name === 'Require measured latency and structural release evidence');
   assert(inspect < download && download < baseline && baseline < calibrate && calibrate < prepare && prepare < measure && measure < assess);
+  assert(prepare < boundary && boundary < measure);
+  assert(job.steps[boundary].run.includes('scripts/benchmark-node-boundaries.mjs'));
+  assert(job.steps[boundary].run.includes('--manifest "$RUNNER_TEMP/ordinary-operation/packages/ordinary-operation-packages.json"'));
+  assert(job.steps[boundary].run.includes('--consumer "$RUNNER_TEMP/ordinary-operation/prepared/consumer"'));
+  assert(job.steps[boundary].run.includes('--controls "$RUNNER_TEMP/ordinary-operation/prepared/controls.json"'));
+  assert(job.steps[boundary].run.includes('--output "$RUNNER_TEMP/ordinary-operation/measurement/used-material"'));
+  assert(job.steps[boundary].run.endsWith('--mode final\n'));
+  assert.equal(job.steps[boundary]['continue-on-error'], undefined);
   assert(job.steps[baseline].run.includes('--warm-samples 100 --cold-samples 5 --load isolated'));
   assert(job.steps[calibrate].run.includes('--calibrate-sqlite'));
   assert(job.steps[prepare].run.endsWith('--comparison "$RUNNER_TEMP/ordinary-operation/comparison.json"'));
@@ -221,8 +230,59 @@ async function reports(t, comparison) {
     };
     await save(); return {report, directory, save};
   }
-  return {root, add};
+  async function addBoundary(outcome = 'rejected') {
+    const directory = join(root, 'measurement', 'used-material'); await mkdir(directory, {recursive: true});
+    // Synthetic collector report only; no product operation or fault injection.
+    const observedBoundary = {case: 'used-row-tamper', outcome,
+      ...(outcome === 'rejected' ? {error: {code: 'ClientHostFailure', message: 'refused'}} : {actualSha256: hash('changed')})};
+    const report = {sourceSha: sha, ...binding, mode: 'final', historyProtocol: nodeOperationProtocol('final'),
+      boundaries: {...binding, rows: [observedBoundary]}, observedBoundary,
+      cleanup: {closed: true}, installedPayloadsUnchanged: true, latencyMeasured: false,
+      selectedBoundaryPassed: outcome === 'rejected', fullAcceptance: false};
+    const save = () => writeFile(join(directory, 'boundaries.json'), JSON.stringify(report));
+    await save(); return {report, directory, save};
+  }
+  return {root, add, addBoundary};
 }
+
+test('selected boundary aggregation preserves exact observation and leaves unmeasured gates incomplete', async t => {
+  const p = await reports(t), original = await p.addBoundary();
+  const before = await readFile(join(original.directory, 'boundaries.json'));
+  const combined = JSON.parse(await readFile(await combineOrdinaryPerformanceMeasurements(p.root)));
+  assert.deepEqual(combined.boundaries, original.report.boundaries);
+  assert.deepEqual(combined.latency, []); assert.deepEqual(combined.functional.rows, []);
+  assert.equal(combined.collectors[0].family, 'used-material');
+  assert.equal(combined.collectors[0].reportSha256, hash(before));
+  const assessed = assessPerformanceEvidence(combined);
+  assert.equal(assessed.status, 'incomplete');
+  assert.equal(assessed.gates.boundaries.missing.includes('used-row-tamper'), false);
+  assert(assessed.gates.boundaries.missing.includes('commit-unknown'));
+  assert.deepEqual(await readFile(join(original.directory, 'boundaries.json')), before);
+  const failed = await reports(t); await failed.addBoundary('succeeded');
+  const bad = JSON.parse(await readFile(await combineOrdinaryPerformanceMeasurements(failed.root)));
+  assert.equal(assessPerformanceEvidence(bad).status, 'failed');
+  assert.equal(bad.boundaries.rows[0].outcome, 'succeeded');
+});
+
+test('selected boundary aggregation refuses foreign attribution, hidden observations and incomplete cleanup or package proof', async t => {
+  for (const mutate of [r => {r.sourceSha = 'b'.repeat(40);},
+    ...['cohortSha256', 'environmentSha256', 'historyProtocolSha256'].flatMap(key => [
+      r => {r[key] = 'b'.repeat(64);}, r => {r.boundaries[key] = 'b'.repeat(64);}]),
+    r => {delete r.historyProtocol.boundaries;}, r => {r.mode = 'diagnostic';},
+    r => {r.firstFailure = {message: 'failed seed'};}, r => {r.packageFailure = {message: 'changed'};},
+    r => {r.cleanup.closed = false;}, r => {delete r.cleanup;}, r => {r.cleanup.failure = {message: 'close'};},
+    r => {delete r.installedPayloadsUnchanged;}, r => {r.latencyMeasured = true;},
+    r => {r.boundaries.rows = [];}, r => {r.boundaries.rows.push(r.observedBoundary);},
+    r => {r.boundaries.rows[0].case = 'foreign-cache';},
+    r => {r.observedBoundary = {...r.observedBoundary, outcome: 'succeeded'};},
+    r => {r.selectedBoundaryPassed = false;}]) {
+    const p = await reports(t), original = await p.addBoundary(); mutate(original.report); await original.save();
+    const before = await readFile(join(original.directory, 'boundaries.json'));
+    await assert.rejects(combineOrdinaryPerformanceMeasurements(p.root));
+    await assert.rejects(readFile(join(p.root, 'measurements.json')), {code: 'ENOENT'});
+    assert.deepEqual(await readFile(join(original.directory, 'boundaries.json')), before);
+  }
+});
 
 test('baseline CLI and consumer binding freeze diagnostic history without issuing public acceptance', async t => {
   const root = await mkdtemp(join(tmpdir(), 'actql-sqlite-policy-test-'));

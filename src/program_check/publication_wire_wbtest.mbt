@@ -233,3 +233,18 @@ test "publication arithmetic context comes from retained application membership"
     _ => fail("insufficient claim collection work accepted")
   }
 }
+
+///|
+// One-shot private emitter retained for direct canonical-vector consumers.
+fn emit_publication_row_body(
+  unit : BuiltUnit,
+  index : Int,
+  host : @host.Witness,
+  writer : @encode.Writer,
+  budget : IdentityBudget,
+  cid? : String? = None,
+  proofs? : Array[ReidentifiedStep]? = None,
+) -> Unit raise UnitBuildFailure {
+  let body = prepare_publication_row_body(unit, index, host, budget, proofs~)
+  emit_prepared_publication_row_body(body, writer, budget, cid~)
+}

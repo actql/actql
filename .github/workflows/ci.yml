@@ -186,7 +186,7 @@ jobs:
         run: node --test scripts/ci-targets.test.mjs scripts/ci-main-base.test.mjs
       - name: Test ordinary operation performance assessment
         if: ${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}
-        run: node --test scripts/operation-performance.test.mjs scripts/benchmark-node-operations.test.mjs scripts/operation-performance-policy.test.mjs scripts/benchmark-node-process-operations.test.mjs scripts/benchmark-node-sqlite.test.mjs
+        run: node --test scripts/operation-performance.test.mjs scripts/benchmark-node-operations.test.mjs scripts/operation-performance-policy.test.mjs scripts/benchmark-node-process-operations.test.mjs scripts/benchmark-node-sqlite.test.mjs scripts/benchmark-node-boundaries.test.mjs scripts/node-operation-fs-trace.test.mjs
       - name: Test ordinary artifact reuse and controlled performance gate
         if: ${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}
         run: node --test scripts/ordinary-operation-packages.test.mjs
@@ -258,7 +258,7 @@ jobs:
       - name: Check common core
         run: moon check --target "${{ matrix.target }}" --deny-warn
       - name: Check independent fixed Run materials identity
-        run: node --test scripts/client-values-run-materials-vector.test.mjs scripts/client-values-compilation-work.test.mjs
+        run: node --test scripts/client-values-run-materials-vector.test.mjs scripts/client-values-compilation-work.test.mjs scripts/client-source-publication-work.test.mjs
       # Measured on these 2-vCPU runners: the default left native test
       # execution on about one CPU; one job per CPU shortened execution on
       # every target with no change in memory. Building is unaffected.

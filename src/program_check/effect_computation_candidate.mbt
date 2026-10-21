@@ -38,6 +38,7 @@ pub fn prepare_effect_computation_candidate(
   limits : CheckLimits,
   max_members : Int,
   max_header_work : Int,
+  source_catalog? : PreparedSourceCatalog? = None,
 ) -> Result[EffectComputationCandidate, EffectComputationIssue] {
   if !compile_limits_valid(limits.compilation) ||
     max_members < 0 ||
@@ -72,6 +73,7 @@ pub fn prepare_effect_computation_candidate(
     evidence,
     computation_limits,
     effect_headers=Some(headers),
+    source_catalog~,
   ) catch {
     issue => return Err(Computation(issue))
   }

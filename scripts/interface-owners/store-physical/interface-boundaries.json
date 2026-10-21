@@ -9,7 +9,7 @@
     {
       "module": "adapters/local-node/carrier-snapshot.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "1b0bcc8d2a7f812141665f199c663d8c3d70882ce57d65132916dae3f95cdac7",
+      "sha256": "89afd8dc97cc5460ba88d7ab52690e4d930e75f89e4515a3c438efd6c56f220a",
       "exports": [
         "prepareLocalCarrierSnapshot",
         "prepareLocalRelationSnapshot"

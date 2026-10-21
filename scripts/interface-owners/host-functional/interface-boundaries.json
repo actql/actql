@@ -66834,7 +66834,7 @@
     {
       "module": "packages/run-host-core/index.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "ae811c49b9c87bce76353746b3f4aa3f27039e4d8d4d64da00393bfb96c2cdfb",
+      "sha256": "b170ee98d86f5058ca0a279b8deff0556187a0b0a99ed30a127414e379cd2f3d",
       "role": "common-semantics",
       "owner": "Existing client_values_host_abi/Run Publication Owners; public same-process type projection",
       "exports": [
@@ -66915,6 +66915,7 @@
         "admitTaskRun",
         "admitTaskRunDefinition",
         "beginResultMaterialHolds",
+        "bindPreparedEffectRunMaterials",
         "captureOriginalRunPlan",
         "checkRunBinding",
         "compileEffect",
@@ -67250,6 +67251,16 @@
             "materialGenerationCid: string"
           ],
           "result": "ResultMaterialHolds"
+        },
+        {
+          "name": "bindPreparedEffectRunMaterials",
+          "parameters": [
+            "allowed: AllowedEffectRun",
+            "definition: RunDefinition",
+            "issued: IssuedEffectRunMaterials",
+            "request: RequestIdentity"
+          ],
+          "result": "RestoredEffectRun"
         },
         {
           "name": "captureOriginalRunPlan",
@@ -69159,7 +69170,8 @@
             "validatePublicationChain",
             "validatePublicationRecordTransition",
             "validateRetainedInputPlan",
-            "validateRetainedTaskInput"
+            "validateRetainedTaskInput",
+            "bindPreparedEffectRunMaterials"
           ],
           "exports": [
             "AllowedEffectRun",
@@ -69365,7 +69377,8 @@
             "validatePublicationChain",
             "validatePublicationRecordTransition",
             "validateRetainedInputPlan",
-            "validateRetainedTaskInput"
+            "validateRetainedTaskInput",
+            "bindPreparedEffectRunMaterials"
           ],
           "attributes": {
             "responsibility": [

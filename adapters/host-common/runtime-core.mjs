@@ -2076,7 +2076,8 @@ function publicationControl(moon) {
       while (true) {
         signal?.throwIfAborted();
         if (checked(moon.strategyCapturedRunAdvance(preparation, 256))) break;
-        await new Promise(resolve => setTimeout(resolve, 0));
+        await new Promise(resolve => typeof setImmediate === 'function'
+          ? setImmediate(resolve) : setTimeout(resolve, 0));
       }
       signal?.throwIfAborted();
       const captured = inspect(checked(
@@ -2102,7 +2103,8 @@ function publicationControl(moon) {
         if (progress !== 0) {
           throw new TypeError('Invalid publication validation progress');
         }
-        await new Promise(resolve => setTimeout(resolve, 0));
+        await new Promise(resolve => typeof setImmediate === 'function'
+          ? setImmediate(resolve) : setTimeout(resolve, 0));
       }
     } finally {
       cancel(preparation);

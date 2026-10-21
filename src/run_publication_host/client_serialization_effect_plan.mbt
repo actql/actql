@@ -348,7 +348,11 @@ fn issue_client_serialization_effect_component(
         serialization,
         input: serialization.input,
         output,
-        graph: { wire: @encode.finish(writer), transformations: [], },
+        graph: {
+          wire: @encode.finish(writer),
+          transformations: [],
+          standard_progress_keys: None,
+        },
         external_ports,
       }),
     )

@@ -6,7 +6,7 @@ import {buildSync} from 'esbuild';
 import {admitEnvironment, prepareEffect, compileEffect, effectExecutionShape,
   issueAllowedEffectRun, issueEffectRunDefinition, privateRunDefinition,
   privateEffectRunEvidence, privateEffectCompilationWires, prepareEffectRequest, requestFields,
-  issuePreparedEffectRunMaterials, admitEffectRunMaterials,
+  issuePreparedEffectRunMaterials, bindPreparedEffectRunMaterials, admitEffectRunMaterials,
   restoreEffectRunNormalization, sealRunEvidenceValue, effectSourceInputBinding,
   issueEffectSourceDispatch} from '@actql/run-host-core';
 
@@ -122,7 +122,7 @@ test('package normalization restoration refuses absent and substituted saved evi
 
 test('original material and normalization exports remain Worker-portable', () => {
   const result = buildSync({stdin: {contents:
-    "export {issuePreparedEffectRunMaterials, restoreEffectRunNormalization} from '@actql/run-host-core';",
+    "export {issuePreparedEffectRunMaterials, bindPreparedEffectRunMaterials, restoreEffectRunNormalization} from '@actql/run-host-core';",
   resolveDir: import.meta.dirname}, bundle: true, write: false, platform: 'browser',
   format: 'esm', target: 'es2022', metafile: true});
   const inputs = Object.keys(result.metafile.inputs);
@@ -208,4 +208,51 @@ test('finite-profile Source dispatch binds the independently issued original req
     budgetCid: fixed('3'), evidenceIssuerCapabilityCid: fixed('4'), grantCid: fixed('5')};
   assert.notEqual(issueEffectSourceDispatch(original.allowed, original.definition, original.request, selection).cid,
     issueEffectSourceDispatch(original.allowed, original.definition, other, selection).cid);
+});
+
+
+test('live package materials preserve the exact original handles and normalization', () => {
+  const original = issued(document, 'completion-free');
+  const proof = issuePreparedEffectRunMaterials(original.allowed, original.definition, original.request);
+  const bound = bindPreparedEffectRunMaterials(original.allowed, original.definition, proof, original.request);
+  assert.equal(bound.prepared, original.prepared);
+  assert.equal(bound.compilation, original.compilation);
+  assert.equal(bound.allowed, original.allowed);
+  assert.equal(bound.definition, original.definition);
+  assert.equal(bound.request, original.request);
+  assert.equal(restoreEffectRunNormalization(bound).wire, JSON.parse(proof.wire).normalization_journal_json);
+  assert.throws(() => restoreEffectRunNormalization({...bound}), /ForeignRunHostHandle/u);
+  const again = bindPreparedEffectRunMaterials(original.allowed, original.definition, proof, original.request);
+  assert.equal(again.prepared, original.prepared);
+  assert.equal(again.compilation, original.compilation);
+  assert.equal(restoreEffectRunNormalization(again).wire, restoreEffectRunNormalization(bound).wire);
+});
+
+test('live package material binding refuses copied and foreign original tuples', () => {
+  const original = issued(document, 'completion-free');
+  const proof = issuePreparedEffectRunMaterials(original.allowed, original.definition, original.request);
+  const foreign = issued(document, 'completion-free');
+  const foreignProof = issuePreparedEffectRunMaterials(foreign.allowed, foreign.definition, foreign.request);
+  const foreignDefinition = issueEffectRunDefinition(foreign.allowed, 'foreign-scope', 'foreign-run',
+    '2026-10-09T00:00:00.000Z', '2098-01-01T00:00:00.000Z');
+  const wrongRequest = prepareEffectRequest(original.prepared, original.compilation, fixed('c'), 'other-request');
+  // Run definitions are canonical contracts. A second genuine handle with
+  // exactly the same Run wire is not a different Run or a new permission.
+  assert.equal(privateRunDefinition(foreign.definition).wire, privateRunDefinition(original.definition).wire);
+  const sameRun = bindPreparedEffectRunMaterials(original.allowed, foreign.definition, proof, original.request);
+  assert.equal(sameRun.definition, foreign.definition);
+  assert.equal(restoreEffectRunNormalization(sameRun).wire, JSON.parse(proof.wire).normalization_journal_json);
+  for (const args of [
+    [{...original.allowed}, original.definition, proof, original.request],
+    [original.allowed, {...original.definition}, proof, original.request],
+    [original.allowed, original.definition, {...proof}, original.request],
+    [original.allowed, original.definition, proof, {...original.request}],
+  ]) assert.throws(() => bindPreparedEffectRunMaterials(...args), /ForeignRunHostHandle/u);
+  for (const args of [
+    [foreign.allowed, original.definition, proof, original.request],
+    [original.allowed, foreignDefinition, proof, original.request],
+    [original.allowed, original.definition, foreignProof, original.request],
+    [original.allowed, original.definition, proof, wrongRequest],
+  ]) assert.throws(() => bindPreparedEffectRunMaterials(...args),
+    {code: 'RunHostEffectOriginalMaterialsRejected'});
 });

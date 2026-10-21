@@ -350,23 +350,15 @@ fn parse_selected_query_script(
     Text | Sql => ()
     Json | Yaml => return Err(InvalidFormat)
   }
-  let query_form = match
-    @syntax.starts_query(document, syntax_limits().lexical, source_path~) {
-    Ok(value) => value
-    Err(issue) => return Err(QuerySyntax(issue))
-  }
-  if !query_form {
-    return Err(WrongQueryForm)
-  }
-  if format == Sql {
-    match @syntax.starts_sql(document, syntax_limits().lexical, source_path~) {
-      Ok(true) => ()
-      Ok(false) => return Err(WrongQueryForm)
-      Err(issue) => return Err(QuerySyntax(issue))
-    }
-  }
-  match @syntax.parse_query_script(document, syntax_limits(), source_path~) {
-    Ok(value) => Ok(value)
+  match
+    @syntax.parse_selected_query_script(
+      document,
+      syntax_limits(),
+      format == Sql,
+      source_path~,
+    ) {
+    Ok(Some(value)) => Ok(value)
+    Ok(None) => Err(WrongQueryForm)
     Err(issue) => Err(QuerySyntax(issue))
   }
 }
