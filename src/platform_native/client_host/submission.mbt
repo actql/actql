@@ -279,7 +279,7 @@ fn NativeClientRunJournal::retained_submission_with_run(
     },
     row => {
       let record = match
-        read_run_record({ body: row.body, revision: row.revision, }) {
+        self.admit_retained_record(row.key, { body: row.body, revision: row.revision, }) {
         Ok(value) => value
         Err(_) => return Err(CustodyLost)
       }

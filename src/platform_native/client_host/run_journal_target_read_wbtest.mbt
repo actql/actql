@@ -83,3 +83,50 @@ test "ordinary target lookup preserves selected Effect witness and issuance roll
   assert_true(open_native_client_run_journal(database, 8) is Err(CustodyLost))
   database.close_checked().unwrap()
 }
+
+///|
+test "same Journal snapshot reuses its admitted Run and invalidates on mutation and frame end" {
+  let database = epoch_test_database("journal-snapshot-admission")
+  initialize_native_client_run_journal(database).unwrap()
+  let journal = open_native_client_run_journal(database, 8).unwrap()
+  let (request, prepared, compiled, definition) = journal_test_run(
+    "snapshot-request", "snapshot-run",
+  )
+  journal.bind_run(request, prepared, compiled, definition, true).unwrap()
+  |> ignore
+  let first = journal
+    .transaction(() => {
+      let first = journal.retained(request).unwrap().unwrap()
+      let again = journal.retained(request).unwrap().unwrap()
+      assert_true(physical_equal(first, again))
+      Ok(first)
+    })
+    .unwrap()
+  assert_true(journal.admitted_record is None)
+  let later = journal.lookup(request, true).unwrap()
+  guard later is Retained(later) else { fail("missing original") }
+  assert_false(physical_equal(first, later))
+  let failed : Result[Unit, NativeClientRunJournalIssue] = journal.transaction(() => {
+    let original = journal.retained(request).unwrap().unwrap()
+    database
+    .compare_exchange(
+      "client_runs",
+      @host.client_request_scope_cid(request),
+      original.revision,
+      b"changed selected row",
+    )
+    .unwrap()
+    |> ignore
+    match journal.retained(request) {
+      Err(issue) => Err(issue)
+      Ok(_) => fail("changed row reused prior admission")
+    }
+  })
+  assert_true(failed is Err(CustodyLost))
+  assert_true(journal.admitted_record is None)
+  guard journal.lookup(request, true).unwrap() is Retained(restored) else {
+    fail("rollback lost original")
+  }
+  assert_eq(restored.revision, first.revision)
+  database.close_checked().unwrap()
+}

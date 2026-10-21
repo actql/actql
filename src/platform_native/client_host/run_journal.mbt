@@ -8,6 +8,7 @@ struct NativeClientRunJournal {
   mut fenced : Bool
   // Physical transaction ownership only; this is not a Run control revision.
   mut transaction_active : Bool
+  mut admitted_record : (String, Bytes, Int64, RunRecordPolicyValidation, NativeClientRunRecord)?
   // Read-only lookup may join this journal's own publication fence. Mutating
   // nested operations still fail instead of acquiring another transaction.
   mut publication_read_locked : Bool
@@ -409,6 +410,7 @@ fn open_native_client_run_journal_with_reads(
         fenced: false,
         publication_read_locked: false,
         transaction_active: false,
+        admitted_record: None,
       })
     Err(issue) => Err(issue)
   }
@@ -441,11 +443,13 @@ fn[T] NativeClientRunJournal::transaction_with_reads(
     Ok(_) => ()
     Err(issue) => return Err(Physical(issue))
   }
+  self.admitted_record = None
   self.transaction_active = true
   // The selected operation owns its target admission and local mutation
   // checks. A transaction is not a request to audit unrelated history.
   let result = work()
   self.transaction_active = false
+  self.admitted_record = None
   match result {
     Ok(value) =>
       match
@@ -479,6 +483,39 @@ fn[T] NativeClientRunJournal::transaction_with_reads(
 }
 
 ///|
+// One admitted row in the same Journal transaction. Every use still reads the
+// actual row and compares its exact revision and bytes. No absence, authority,
+// currentness or physical acknowledgement is cached. The slot is cleared before
+// mutation and before transaction completion, including rollback and Unknown.
+fn NativeClientRunJournal::admit_retained_record(
+  self : NativeClientRunJournal,
+  key : String,
+  row : @sqlite.NativeJournalValue,
+  mode? : RunRecordPolicyValidation = ValidatePublication,
+) -> Result[NativeClientRunRecord, NativeClientRunJournalIssue] {
+  if self.transaction_active && self.admitted_record is Some((original_key, body, revision, admitted_mode, record)) && original_key == key && body == row.body && revision == row.revision {
+    if admitted_mode is DeferPublicationWire && mode is ValidatePublication {
+      if record.publication_policy_originals is Some(wire) {
+        match read_run_policy_originals(wire) {
+          Ok(_) => ()
+          Err(_) => return Err(CustodyLost)
+        }
+      }
+      self.admitted_record = Some((key, body, revision, ValidatePublication, record))
+    }
+    return Ok(record)
+  }
+  let record = match read_run_record_in_mode(row, mode) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  if self.transaction_active {
+    self.admitted_record = Some((key, row.body, row.revision, mode, record))
+  }
+  Ok(record)
+}
+
+///|
 fn NativeClientRunJournal::retained(
   self : NativeClientRunJournal,
   requested : @host.ClientRequestIdentity,
@@ -499,7 +536,7 @@ fn NativeClientRunJournal::retained(
     Err(@sqlite.NotFound) => return Ok(None)
     Err(issue) => return Err(Physical(issue))
   }
-  let retained = match read_run_record(row) {
+  let retained = match self.admit_retained_record(@host.client_request_scope_cid(requested), row) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
@@ -527,6 +564,14 @@ fn extract_run_policy_wire(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
+  extract_admitted_run_policy_wire(record, requested)
+}
+
+///|
+fn extract_admitted_run_policy_wire(
+  record : NativeClientRunRecord,
+  requested : @host.ClientRequestIdentity,
+) -> Result[(String?, RunPolicyRequestComparison), NativeClientRunJournalIssue] {
   let comparison = match
     @host.client_request_identity_relation(requested, record.request) {
     SameRequest => OriginalRequest
@@ -555,7 +600,11 @@ fn NativeClientRunJournal::retained_policy_wire(
     Err(@sqlite.NotFound) => return Err(CustodyLost)
     Err(issue) => return Err(Physical(issue))
   }
-  extract_run_policy_wire(row, requested)
+  let record = match self.admit_retained_record(@host.client_request_scope_cid(requested), row, mode=DeferPublicationWire) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  extract_admitted_run_policy_wire(record, requested)
 }
 
 ///|
@@ -762,7 +811,7 @@ fn NativeClientRunJournal::save_with_operations(
       reads,
     ) {
     Ok(current) if current.revision == record.revision =>
-      match read_run_record(current) {
+      match self.admit_retained_record(@host.client_request_scope_cid(record.request), current) {
         Ok(value) => value
         Err(issue) => return Err(issue)
       }
@@ -777,6 +826,7 @@ fn NativeClientRunJournal::save_with_operations(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
+  self.admitted_record = None
   let revision = match
     compare_exchange_client_journal_value(
       self.database,

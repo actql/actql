@@ -354,6 +354,7 @@ pub fn NativeLocalHostConnection::close(
 fn NativeLocalHostConnection::close_journal_database(
   self : NativeLocalHostConnection,
 ) -> Result[Unit, NativeLocalAdoptionIssue] {
+  self.journal.admitted_record = None
   if !self.database_closed {
     match self.database.close_checked() {
       Ok(_) => self.database_closed = true

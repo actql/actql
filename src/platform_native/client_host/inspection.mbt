@@ -93,6 +93,7 @@ fn inspect_native_client_custody_rows(
     fenced: false,
     publication_read_locked: false,
     transaction_active: false,
+    admitted_record: None,
   }
   match journal.submitted_intent_custody(reads~) {
     Ok(_) => Ok(Retained)
