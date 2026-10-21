@@ -2,7 +2,7 @@
 // substitute. No package preparation, external service or application DB access.
 import assert from 'node:assert/strict';
 import {spawn} from 'node:child_process';
-import {createHash} from 'node:crypto';
+import {createHash, randomUUID} from 'node:crypto';
 import {mkdir, readFile, writeFile} from 'node:fs/promises';
 import {arch, cpus, platform, release, totalmem} from 'node:os';
 import {join, resolve} from 'node:path';
@@ -167,6 +167,151 @@ export async function runSQLiteBaseline({output, warmSamples = 100, coldSamples 
   return report;
 }
 
+// A bounded storage control for the existing Result delivery protocol. Opaque
+// size-matched envelopes below are benchmark data, never issued grants, actual
+// ActQL contracts, or an implementation of their authorization/validation.
+export const resultControlKeyWidths = Object.freeze({namespaceId: 5, authorityScopeCid: 71,
+  runDefinitionCid: 71, principalId: 4, purpose: 8, resultName: 4, attemptId: 36});
+const businessBodies = ['grant', 'attempt', 'streaming', 'receipt', 'terminalSucceeded'];
+function sizedControlBody(bytes, kind, identity) {
+  const value = {kind, identity, fixture: ''};
+  const remaining = bytes - Buffer.byteLength(JSON.stringify(value));
+  assert(remaining >= 0); value.fixture = 'x'.repeat(remaining);
+  const wire = JSON.stringify(value); assert.equal(Buffer.byteLength(wire), bytes); return wire;
+}
+export async function runSQLiteResultControl({output, resultOwnerMap, warmSamples = 100, load, warmup = 10}) {
+  assert(['isolated', 'concurrent'].includes(load));
+  assert(Number.isSafeInteger(warmSamples) && warmSamples >= 1 && warmSamples <= 1000);
+  assert(Number.isSafeInteger(warmup) && warmup >= 0 && warmup <= 100);
+  const mapBytes = await readFile(resultOwnerMap), mapping = JSON.parse(mapBytes);
+  assert.match(mapping.source?.commit ?? '', /^[a-f0-9]{40}$/u);
+  assert.deepEqual(mapping.groups?.map(row => row.id), ['clock', 'start', 'end']);
+  assert.deepEqual(mapping.minimalRowModel?.logicalKeyFields, Object.keys(resultControlKeyWidths));
+  const sizes = mapping.minimalRowModel.bytesObserved;
+  for (const key of [...businessBodies, 'clock']) assert(Number.isSafeInteger(sizes[key]) && sizes[key] >= 128 && sizes[key] <= 65536);
+  assert.equal(sizes.totalCanonicalBusinessBytes, businessBodies.reduce((sum, key) => sum + sizes[key], 0));
+  assert.equal(sizes.outputJsonlBytes, Buffer.byteLength('{"id":1}\n'));
+  output = resolve(output); await mkdir(output, {mode: 0o700});
+  const cid = () => 'sha256:' + digest(randomUUID());
+  const context = {namespaceId: 'bench', authorityScopeCid: cid(), runDefinitionCid: cid(),
+    principalId: 'test', purpose: 'fixture0', resultName: 'main'};
+  const clockCid = cid(), payloadCid = cid(), payload = '{"id":1}\n';
+  const clockEpoch = Date.now();
+  const clockBody = floor => {
+    const value = {clockContractCid: clockCid, observedAt: new Date(clockEpoch + floor).toISOString()};
+    const wire = JSON.stringify({...value, contentSha256: digest(JSON.stringify(value))});
+    assert.equal(Buffer.byteLength(wire), sizes.clock); return wire;
+  };
+  const database = join(output, 'result-control.sqlite');
+  const environment = {platform: platform(), arch: arch(), osRelease: release(), node: process.version,
+    cpuModel: cpus()[0].model, logicalCpus: cpus().length, memoryBytes: totalmem()};
+  const report = {schemaVersion: 1, kind: 'local-sqlite-result-control', environment, load,
+    ownerMapping: {source: mapping.source.commit, sha256: digest(mapBytes), groups: mapping.groups},
+    executableSha256: digest(await readFile(process.execPath)), collectorSha256: digest(await readFile(fileURLToPath(import.meta.url))),
+    protocol: {binding: 'node:sqlite DatabaseSync', concurrency: 1, preparation: 'prepared statements; fresh identities/envelopes inside each timed sample',
+      groups: ['durable clock acceptance', 'atomic grant/use/attempt/streaming before payload', 'atomic receipt/terminal/head CAS after payload completion'],
+      keyWidths: resultControlKeyWidths, bodyBytes: sizes, payload, expected: [{id: 1}], warmup,
+      materialization: 'indexed JSONL payload -> all ordinary JS rows; literal oracle inside timed operation',
+      serialization: 'Fresh size-matched opaque JSON envelopes, not actual typed/canonical ActQL contracts',
+      coverage: 'Minimal independently required durable groups only; excludes Account/cryptographic/type admission and new Run claim/publication',
+      history: 'One fixed Run/payload; fresh grant/attempt per sample; indexed keys/quota/head, no unrelated row inventory'},
+    warmSamples, samples: [], cleanup: {closed: false}, productAcceptance: false};
+  report.protocolSha256 = digest(JSON.stringify(report.protocol));
+  const flags = [...process.execArgv, process.env.NODE_OPTIONS ?? ''].join(' ');
+  report.profiled = /--(?:cpu-prof|heap-prof|prof|inspect|perf-basic-prof)(?:[=\s-]|$)/u.test(flags) || Boolean(process.env.NODE_V8_COVERAGE);
+  const db = await openDatabase(database);
+  try {
+    report.settings = settings(db);
+    db.exec(`CREATE TABLE clock (cid TEXT PRIMARY KEY, floor INTEGER NOT NULL, body TEXT NOT NULL);
+      CREATE TABLE grant_use (cid TEXT PRIMARY KEY, max_uses INTEGER NOT NULL, uses INTEGER NOT NULL, body TEXT NOT NULL);
+      CREATE TABLE attempt (cid TEXT PRIMARY KEY, namespace TEXT NOT NULL, scope TEXT NOT NULL, run TEXT NOT NULL,
+        principal TEXT NOT NULL, purpose TEXT NOT NULL, result TEXT NOT NULL, attempt_id TEXT NOT NULL,
+        grant_cid TEXT NOT NULL, head TEXT NOT NULL, body TEXT NOT NULL,
+        UNIQUE(namespace,scope,run,principal,purpose,result,attempt_id));
+      CREATE INDEX attempt_grant ON attempt(grant_cid);
+      CREATE TABLE record (attempt TEXT NOT NULL, sequence INTEGER NOT NULL, cid TEXT NOT NULL UNIQUE,
+        prior TEXT, body TEXT NOT NULL, PRIMARY KEY(attempt,sequence));
+      CREATE TABLE receipt (cid TEXT PRIMARY KEY, body TEXT NOT NULL);
+      CREATE TABLE payload (cid TEXT PRIMARY KEY, wire TEXT NOT NULL);`);
+    db.prepare('INSERT INTO clock VALUES (?,0,?)').run(clockCid, clockBody(0));
+    db.prepare('INSERT INTO payload VALUES (?,?)').run(payloadCid, payload);
+    const statement = Object.fromEntries(Object.entries({
+      clock: 'SELECT floor FROM clock WHERE cid=?',
+      floor: 'UPDATE clock SET floor=?,body=? WHERE cid=? AND floor=?',
+      lookup: 'SELECT cid FROM attempt WHERE namespace=? AND scope=? AND run=? AND principal=? AND purpose=? AND result=? AND attempt_id=?',
+      grant: 'INSERT INTO grant_use VALUES (?,1,0,?)',
+      use: 'UPDATE grant_use SET uses=uses+1 WHERE cid=? AND uses<max_uses',
+      attempt: 'INSERT INTO attempt VALUES (?,?,?,?,?,?,?,?,?,?,?)',
+      record: 'INSERT INTO record VALUES (?,?,?,?,?)',
+      payload: 'SELECT wire FROM payload WHERE cid=?',
+      receipt: 'INSERT INTO receipt VALUES (?,?)',
+      terminal: 'UPDATE attempt SET head=? WHERE cid=? AND head=?',
+    }).map(([key, sql]) => [key, db.prepare(sql)]));
+    report.indexPlans = rows(db.prepare('EXPLAIN QUERY PLAN SELECT cid FROM attempt WHERE namespace=? AND scope=? AND run=? AND principal=? AND purpose=? AND result=? AND attempt_id=?')
+      .all(...Object.values(context), randomUUID()));
+    const execute = () => {
+      const phases = {}, events = [], counts = {begins: 0, commits: 0, rollbacks: 0, reads: 0, writes: 0};
+      let mark = process.hrtime.bigint();
+      const ids = {grant: cid(), attempt: cid(), streaming: cid()};
+      const attemptId = randomUUID(), key = [...Object.values(context), attemptId];
+      assert(key.every((value, n) => Buffer.byteLength(value) === Object.values(resultControlKeyWidths)[n]));
+      const bodies = Object.fromEntries(['grant', 'attempt', 'streaming'].map(kind => [kind, sizedControlBody(sizes[kind], kind, ids[kind])]));
+      phases.fixtureConstructionNs = Number(process.hrtime.bigint() - mark);
+      const read = (key, ...args) => { counts.reads++; return statement[key].get(...args); };
+      const write = (key, ...args) => { counts.writes++; return statement[key].run(...args); };
+      const transaction = (name, action) => {
+        const start = process.hrtime.bigint(); db.exec('BEGIN IMMEDIATE'); counts.begins++;
+        try {
+          action(); const commitStart = process.hrtime.bigint(); db.exec('COMMIT'); counts.commits++;
+          phases[name] = {totalNs: Number(process.hrtime.bigint() - start), commitNs: Number(process.hrtime.bigint() - commitStart)};
+          events.push(`${name}-committed`);
+        } catch (error) { db.exec('ROLLBACK'); counts.rollbacks++; throw error; }
+      };
+      transaction('clock', () => {
+        const previous = read('clock', clockCid).floor;
+        assert.equal(write('floor', previous + 1, clockBody(previous + 1), clockCid, previous).changes, 1);
+      });
+      transaction('start', () => {
+        assert.equal(read('lookup', ...key), undefined);
+        write('grant', ids.grant, bodies.grant); assert.equal(write('use', ids.grant).changes, 1);
+        write('attempt', ids.attempt, ...key, ids.grant, ids.streaming, bodies.attempt);
+        write('record', ids.attempt, 0, ids.streaming, null, bodies.streaming);
+      });
+      mark = process.hrtime.bigint();
+      const actual = read('payload', payloadCid).wire.trimEnd().split('\n').map(line => JSON.parse(line));
+      assert.deepEqual(actual, [{id: 1}]); events.push('payload-materialized');
+      phases.payloadAndMaterializeNs = Number(process.hrtime.bigint() - mark);
+      mark = process.hrtime.bigint();
+      for (const kind of ['receipt', 'terminalSucceeded']) {
+        ids[kind] = cid(); bodies[kind] = sizedControlBody(sizes[kind], kind, ids[kind]);
+      }
+      phases.terminalConstructionNs = Number(process.hrtime.bigint() - mark);
+      transaction('end', () => {
+        write('receipt', ids.receipt, bodies.receipt);
+        write('record', ids.attempt, 1, ids.terminalSucceeded, ids.streaming, bodies.terminalSucceeded);
+        assert.equal(write('terminal', ids.terminalSucceeded, ids.attempt, ids.streaming).changes, 1);
+      });
+      assert.deepEqual(events, ['clock-committed', 'start-committed', 'payload-materialized', 'end-committed']);
+      return {actual, phases, events, counts, attemptCid: ids.attempt};
+    };
+    for (let n = 0; n < warmup; n++) execute();
+    for (let n = 0; n < warmSamples; n++) {
+      const cpu = process.cpuUsage(), start = process.hrtime.bigint(), value = execute();
+      const wallNs = Number(process.hrtime.bigint() - start), usage = process.cpuUsage(cpu);
+      report.samples.push({index: n, pid: process.pid, wallNs, userUs: usage.user, systemUs: usage.system, verified: true,
+        outputSha256: digest(JSON.stringify(value.actual)), phases: value.phases, events: value.events,
+        counts: value.counts, attemptCid: value.attemptCid});
+    }
+    report.summary = summarizeSQLiteSamples(report.samples);
+  } catch (error) {
+    report.failure = {name: error.name, message: error.message}; throw error;
+  } finally {
+    db.close(); report.cleanup.closed = true; report.observedAt = new Date().toISOString();
+    await writeFile(join(output, 'sqlite-result-control.json'), JSON.stringify(report, null, 2) + '\n', {mode: 0o600});
+  }
+  return report;
+}
+
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   try {
     if (process.argv[2] === '--sqlite-child') console.log(JSON.stringify(await coldChild(process.argv[3], process.argv[4] === 'true')));
@@ -174,13 +319,21 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
       const args = process.argv.slice(2), options = {};
       assert.equal(args.length % 2, 0);
       for (let n = 0; n < args.length; n += 2) {
-        const key = {'--output': 'output', '--warm-samples': 'warmSamples', '--cold-samples': 'coldSamples', '--load': 'load'}[args[n]];
+        const key = {'--output': 'output', '--warm-samples': 'warmSamples', '--cold-samples': 'coldSamples', '--load': 'load',
+          '--result-owner-map': 'resultOwnerMap'}[args[n]];
         assert(key && !Object.hasOwn(options, key));
         options[key] = key.endsWith('Samples') ? Number(args[n + 1]) : args[n + 1];
       }
-      assert(options.output); const report = await runSQLiteBaseline(options);
-      console.log(JSON.stringify({warm: report.warm.map(row => ({operation: row.operation, mode: row.mode, ...row.summary})),
+      assert(options.output);
+      if (options.resultOwnerMap) {
+        assert(!Object.hasOwn(options, 'coldSamples'), 'Result control does not replace cold/init sampling');
+        const report = await runSQLiteResultControl(options);
+        console.log(JSON.stringify({kind: report.kind, summary: report.summary, productAcceptance: false}));
+      } else {
+        const report = await runSQLiteBaseline(options);
+        console.log(JSON.stringify({warm: report.warm.map(row => ({operation: row.operation, mode: row.mode, ...row.summary})),
         cold: report.cold.map(row => ({operation: row.operation, ...row.summary})), productAcceptance: false}));
+      }
     }
   } catch (error) { console.error(error.stack); process.exitCode = 1; }
 }

@@ -1,9 +1,9 @@
 import assert from 'node:assert/strict';
-import {mkdtemp, readFile, rm} from 'node:fs/promises';
+import {mkdtemp, readFile, rm, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import test from 'node:test';
-import {runSQLiteBaseline, sqliteQueryFixtures, summarizeSQLiteSamples} from './benchmark-node-sqlite.mjs';
+import {resultControlKeyWidths, runSQLiteBaseline, runSQLiteResultControl, sqliteQueryFixtures, summarizeSQLiteSamples} from './benchmark-node-sqlite.mjs';
 
 test('real SQLite comparator materializes literal rows and commits a distinct minimal control', async t => {
   const root = await mkdtemp(join(tmpdir(), 'actql-sqlite-comparator-'));
@@ -50,4 +50,53 @@ test('SQLite summary retains insufficient percentile coverage and rejects malfor
   assert.equal(summarizeSQLiteSamples(samples.slice(0, 3)).p95Ms, null);
   assert.throws(() => summarizeSQLiteSamples([]));
   assert.throws(() => summarizeSQLiteSamples([{wallNs: -1, verified: true}]));
+});
+
+const resultMapping = () => ({source: {commit: 'a'.repeat(40)}, groups: ['clock', 'start', 'end'].map(id => ({id})),
+  minimalRowModel: {logicalKeyFields: Object.keys(resultControlKeyWidths), bytesObserved: {
+    grant: 1009, attempt: 740, streaming: 374, receipt: 963, terminalSucceeded: 657,
+    totalCanonicalBusinessBytes: 3743, clock: 217, outputJsonlBytes: 9}}});
+
+test('Result SQLite control commits clock/start/end in order with full-key quota and head CAS', async t => {
+  const root = await mkdtemp(join(tmpdir(), 'actql-result-sqlite-'));
+  t.after(() => rm(root, {recursive: true, force: true}));
+  const mappingPath = join(root, 'owner.json'); await writeFile(mappingPath, JSON.stringify(resultMapping()));
+  const output = join(root, 'new');
+  const report = await runSQLiteResultControl({output, resultOwnerMap: mappingPath, warmSamples: 2, warmup: 1, load: 'concurrent'});
+  assert.equal(report.cleanup.closed, true); assert.equal(report.productAcceptance, false);
+  assert.equal(report.kind, 'local-sqlite-result-control'); assert.equal(report.samples.length, 2);
+  assert.equal(report.summary.p95Ms, null); assert.equal(report.settings.synchronous, 2);
+  for (const row of report.samples) {
+    assert.deepEqual(row.events, ['clock-committed', 'start-committed', 'payload-materialized', 'end-committed']);
+    assert.deepEqual(row.counts, {begins: 3, commits: 3, rollbacks: 0, reads: 3, writes: 8});
+    assert(row.phases.clock.commitNs > 0 && row.phases.start.commitNs > 0 && row.phases.end.commitNs > 0);
+  }
+  assert(report.indexPlans.every(row => !row.detail.includes('SCAN attempt')));
+  const {DatabaseSync} = await import('node:sqlite'), db = new DatabaseSync(join(output, 'result-control.sqlite'));
+  try {
+    assert.equal(db.prepare('SELECT floor FROM clock').get().floor, 3);
+    assert.equal(db.prepare('SELECT count(*) AS n FROM attempt').get().n, 3);
+    assert.equal(db.prepare('SELECT count(*) AS n FROM receipt').get().n, 3);
+    assert.equal(db.prepare('SELECT count(*) AS n FROM record').get().n, 6);
+    const quota = db.prepare('SELECT cid FROM grant_use LIMIT 1').get().cid;
+    assert.equal(db.prepare('UPDATE grant_use SET uses=uses+1 WHERE cid=? AND uses<max_uses').run(quota).changes, 0);
+    const attempt = db.prepare('SELECT cid,head FROM attempt LIMIT 1').get();
+    assert.equal(db.prepare('UPDATE attempt SET head=? WHERE cid=? AND head=?').run('foreign', attempt.cid, 'stale').changes, 0);
+    assert.equal(db.prepare('SELECT head FROM attempt WHERE cid=?').get(attempt.cid).head, attempt.head);
+    assert.equal(db.prepare('SELECT length(CAST(body AS BLOB)) AS n FROM clock').get().n, 217);
+    const width = db.prepare('SELECT namespace,scope,run,principal,purpose,result,attempt_id FROM attempt LIMIT 1').get();
+    assert.deepEqual(Object.values(width).map(value => Buffer.byteLength(value)), Object.values(resultControlKeyWidths));
+  } finally { db.close(); }
+});
+
+test('Result SQLite control refuses a missing durable group or mismatched payload before opening state', async t => {
+  const root = await mkdtemp(join(tmpdir(), 'actql-result-map-'));
+  t.after(() => rm(root, {recursive: true, force: true}));
+  const resultOwnerMap = join(root, 'owner.json');
+  const missing = resultMapping(); missing.groups.pop(); await writeFile(resultOwnerMap, JSON.stringify(missing));
+  const options = {output: join(root, 'never-opened'), resultOwnerMap, warmSamples: 1, warmup: 0, load: 'concurrent'};
+  await assert.rejects(runSQLiteResultControl(options));
+  const wrong = resultMapping(); wrong.minimalRowModel.bytesObserved.outputJsonlBytes = 10;
+  await writeFile(resultOwnerMap, JSON.stringify(wrong)); await assert.rejects(runSQLiteResultControl(options));
+  await assert.rejects(readFile(join(options.output, 'result-control.sqlite')), {code: 'ENOENT'});
 });
