@@ -37622,7 +37622,7 @@
     {
       "module": "adapters/host-node/embedded-local.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "6ef8f0684205cdcbfd5dd47c8f384f9b28fee8fccc2d43b1a83ed4e781aafbd3",
+      "sha256": "f59bfffacf88bdf1f8fada724f6de77f937c6c1c9a54940e3e9c7c114381da56",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -39168,14 +39168,16 @@
         {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/resultAuthority/resultAuthority",
           "parameters": [
-            "facts"
+            "facts",
+            "operation"
           ],
           "async": true
         },
         {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/resultAuthority/resultAuthority#2",
           "parameters": [
-            "facts"
+            "facts",
+            "operation"
           ],
           "async": true
         },

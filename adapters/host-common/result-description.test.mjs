@@ -213,20 +213,24 @@ for (const [name, api] of [['source', {describeAuthorizedResult,
     }
   });
 
-  test(`${name}: grant expiry after sampled metadata persistence denies response`, async () => {
-    for (const boundary of [2, 3]) {
+  test(`${name}: grant expiry during metadata consumption denies response without resampling`, async () => {
+    for (const boundary of ['read', 'response']) {
       let wall = instant(0), samples = 0;
       const input = fixture({api, now: () => wall,
         grantValid: (_grant, at) => at <= instant(0),
+        authorize(facts) {
+          if (facts.stage === boundary) wall = instant(1);
+          return true;
+        },
         sampleClock(_cid, now) {
-          const at = now();
-          if (++samples === boundary) wall = instant(1);
-          return at;
+          samples++;
+          return now();
         }});
       await assert.rejects(api.describeAuthorizedResult(input.service, request()),
         {code: 'ResultAccessDenied'});
       assert.equal(input.calls.filter(([kind]) => kind === 'consume').length,
-        boundary === 2 ? 0 : 1);
+        boundary === 'read' ? 0 : 1);
+      assert.equal(samples, 1);
     }
   });
 

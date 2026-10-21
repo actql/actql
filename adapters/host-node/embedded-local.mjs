@@ -1631,8 +1631,8 @@ async function openInstalledHost(originalInstallation, preparation) {
     principalId, namespaceId, authorityScopeCid});
   const resultAuthority = installResultAccessAuthority({
     authorizeResultReadRequest: authorizeLocalResult,
-    admitResultRead: async facts => {
-      if (await authorizeLocalResult(facts) !== true) {
+    admitResultRead: async (facts, operation) => {
+      if (await authorizeLocalResult(facts, operation) !== true) {
         throw Object.assign(new Error('ResultAccessDenied'), {code: 'ResultAccessDenied'});
       }
       const {attemptId} = facts;
@@ -1648,8 +1648,8 @@ async function openInstalledHost(originalInstallation, preparation) {
     authorizeResultRead: authorizeLocalResult,
     authorizeDeliveryAttemptLookup: authorizeLocalResult,
     authorizeResultDescription: authorizeLocalResult,
-    admitResultDescription: async facts => {
-      if (await authorizeLocalResult(facts) !== true) {
+    admitResultDescription: async (facts, operation) => {
+      if (await authorizeLocalResult(facts, operation) !== true) {
         throw Object.assign(new Error('ResultAccessDenied'), {code: 'ResultAccessDenied'});
       }
       const {attemptId} = facts;

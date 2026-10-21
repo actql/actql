@@ -5,10 +5,14 @@
 Result identity and the authenticated principal do not replace the current
 Account tuple. Local payload, description and delivery-attempt reads evaluate
 the actual installed connection, `result/<name>` and `read` through the existing
-Common Account owner. Every protected boundary observes the original selected
-configuration; unchanged bytes may reuse its admitted typed value, while
-changed, missing or invalid bytes never reuse an earlier Allow. Delegate still
-requires the existing configured answer and cannot manufacture a Checkpoint or
+Common Account owner. One public operation observes and evaluates each actual
+permission tuple once, retaining its immutable facts on that operation's owned
+request. Internal getters, trusted Store reads and awaits consume those facts;
+they do not create a new authorization boundary. A new public operation observes
+the selected configuration again, including current Deny. Changed, missing or
+invalid bytes never reuse an earlier operation's Allow. Delegate still
+requires the existing configured answer and post-application-callback current
+check, and cannot manufacture a Checkpoint or
 approval. Standard Local bootstrap adoption remains the distinct initialization
 responsibility required by `policy-routing.standard-local-bootstrap`; absence
 of an adopted configuration is not an Allow.

@@ -6,6 +6,8 @@ import {join} from 'node:path';
 import {createLocalResultAuthorization} from './local-result-authorization.mjs';
 import {sourceReadAccountConfiguration} from './local-account-config.mjs';
 import {loadExecutionAuthorizationRuntime} from './authorization.mjs';
+import fs from 'node:fs';
+import {syncBuiltinESMExports} from 'node:module';
 
 const scope = `sha256:${'1'.repeat(64)}`;
 const facts = {principalId: 'person', resultName: 'main',
@@ -20,15 +22,18 @@ async function fixture(t, options = {}) {
     connection: 'local-mock', resource: 'result/main', outcome});
   await writeFile(accountConfig, configuration('allow'));
   const runtime = await loadExecutionAuthorizationRuntime();
-  let admissions = 0;
+  let admissions = 0, evaluations = 0;
   const moon = {...runtime, executionAuthorizationAdmit(wire) {
     admissions++;
     return runtime.executionAuthorizationAdmit(wire);
+  }, executionAuthorizationEvaluate(...args) {
+    evaluations++;
+    return runtime.executionAuthorizationEvaluate(...args);
   }};
   const authorization = {accountConfig, siteKey: 'local-mock', ...options};
   const authorize = createLocalResultAuthorization({moon, authorization,
     principalId: 'person', namespaceId: 'local', authorityScopeCid: scope});
-  return {authorize, admissions: () => admissions,
+  return {authorize, accountConfig, admissions: () => admissions, evaluations: () => evaluations,
     change: outcome => writeFile(accountConfig, configuration(outcome)),
     foreign: () => writeFile(accountConfig, JSON.stringify({
       ...JSON.parse(configuration('allow')), account_id: 'different-account'})),
@@ -50,6 +55,31 @@ test('Local Result reads evaluate the actual current Account without repeated ad
   assert.equal(await f.authorize(facts), false);
   await f.corrupt();
   assert.equal(await f.authorize(facts), false);
+});
+
+test('one public Result operation observes and evaluates its Account tuple once', async t => {
+  const f = await fixture(t);
+  const original = fs.openSync;
+  let reads = 0;
+  fs.openSync = function(path, ...args) {
+    if (path === f.accountConfig) reads++;
+    return Reflect.apply(original, this, [path, ...args]);
+  };
+  syncBuiltinESMExports();
+  try {
+    const operation = Object.freeze({...facts, indexKey: Object.freeze({...facts.indexKey})});
+    for (let n = 0; n < 6; n++) assert.equal(await f.authorize(facts, operation), true);
+    assert.equal(reads, 1);
+    assert.equal(f.evaluations(), 1);
+    const next = Object.freeze({...facts, indexKey: Object.freeze({...facts.indexKey})});
+    assert.equal(await f.authorize(facts, next), true);
+    assert.equal(reads, 2);
+    assert.equal(f.evaluations(), 2, 'no persistent Allow or evaluation cache across public operations');
+    await f.change('deny');
+    assert.equal(await f.authorize(facts, Object.freeze({...facts})), false);
+    assert.equal(reads, 3);
+    assert.equal(f.evaluations(), 3);
+  } finally {fs.openSync = original; syncBuiltinESMExports();}
 });
 
 test('Local Result Account does not substitute another principal scope or name', async t => {
