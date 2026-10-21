@@ -265,15 +265,21 @@ pub fn NativeLocalHostConnection::authorize(
 }
 
 ///|
-/// Inspect selected originals before journal finalization. This is not an
-/// initialized Host, authorization decision or protected dispatch permit.
+/// Select captured configuration DATA before journal finalization. This does
+/// not observe current files or authorize protected work; journal staging
+/// validates the original installation before acquiring its database.
 pub fn NativeLocalAdoptionSession::selected_configuration(
   self : NativeLocalAdoptionSession,
   name : String,
 ) -> Result[Bytes, NativeLocalAdoptionIssue] {
-  match self.check_original() {
-    Ok(_) => ()
-    Err(issue) => return Err(issue)
+  if self.closed || self.close_pending {
+    return Err(Closed)
+  }
+  if self.read_cleanup is Some(issue) {
+    return Err(issue)
+  }
+  if self.initial_signing_failure.val is Some(failure) {
+    return Err(failure.issue())
   }
   for file in self.settings.files {
     if file.name == name {
