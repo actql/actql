@@ -5398,7 +5398,7 @@
     {
       "module": "packages/sdk/index.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "a22fe8e01f418c00dbf32c7e9451bb13cb5c100fb4ae1985b0cc1a7af914b3b3",
+      "sha256": "8b3fbac77fe46f98dc1d49b401d9d003da155aa746592376e58e1183e6c2798e",
       "exports": [
         "CancellationExplanation",
         "CancellationLookup",
@@ -6619,6 +6619,10 @@
               {
                 "path": "packages/sdk/internal/run-observation.mjs",
                 "anchor": "value: observation.checkpoint.checkpoint_id"
+              },
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "## Scoped durable request names"
               }
             ],
             "ownership": [
@@ -6649,6 +6653,10 @@
               {
                 "path": "docs/design/oss-host-authorization.md",
                 "anchor": "An uncertain signing operation retains its own original claim and cleanup."
+              },
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "## Scoped durable request names"
               }
             ],
             "synchronization": [
@@ -6709,6 +6717,10 @@
               {
                 "path": "packages/sdk/internal/checkpoint-operations.mjs",
                 "anchor": "ResolutionUnknown carries"
+              },
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "## Scoped durable request names"
               }
             ],
             "cancellation": [
@@ -6845,6 +6857,10 @@
               {
                 "path": "adapters/host-node/sdk-checkpoint-actions.integration.test.mjs",
                 "anchor": "test(`public ${decision}(id) binds the original Checkpoint"
+              },
+              {
+                "path": "packages/sdk/named-submission.test.mjs",
+                "anchor": "test("
               }
             ]
           }
@@ -6880,6 +6896,10 @@
               {
                 "path": "packages/sdk/internal/run-observation.mjs",
                 "anchor": "value: observation.checkpoint.checkpoint_id"
+              },
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "## Scoped durable request names"
               }
             ],
             "ownership": [
@@ -6890,6 +6910,10 @@
               {
                 "path": "docs/design/oss-host-authorization.md",
                 "anchor": "An uncertain signing operation retains its own original claim and cleanup."
+              },
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "## Scoped durable request names"
               }
             ],
             "synchronization": [
@@ -6910,6 +6934,10 @@
               {
                 "path": "packages/sdk/internal/checkpoint-operations.mjs",
                 "anchor": "ResolutionUnknown carries"
+              },
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "## Scoped durable request names"
               }
             ],
             "cancellation": [
@@ -6954,6 +6982,10 @@
               {
                 "path": "adapters/host-node/sdk-checkpoint-actions.integration.test.mjs",
                 "anchor": "test(`public ${decision}(id) binds the original Checkpoint"
+              },
+              {
+                "path": "packages/sdk/named-submission.test.mjs",
+                "anchor": "test("
               }
             ]
           }
@@ -11812,7 +11844,7 @@
     {
       "module": "packages/sdk/internal/submission-observation.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "c46d75c7f47e1fe26c10056b01f185160ea886b90438445e6f1476b9bb516b7f",
+      "sha256": "abf040549bf1485d817758ce2bdba90a2fce2ed112c0ea55fd5d639fbb88ab2a",
       "exports": [
         "RequestHeld",
         "createSubmissionOperations",
@@ -12018,7 +12050,8 @@
             "kind",
             "input",
             "options",
-            "sourceProducer"
+            "sourceProducer",
+            "requestName"
           ],
           "async": false
         },
@@ -12281,12 +12314,20 @@
               {
                 "path": "adapters/host-node/host-journal-ordinary-prefix.test.mjs",
                 "anchor": "query intake refuses unsupported raw originals before getters and reuses its one receipt"
+              },
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "## Scoped durable request names"
               }
             ],
             "ownership": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "private synchronous continuation consumes that receipt once; SDK-owned query"
+              },
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "## Scoped durable request names"
               }
             ],
             "synchronization": [
@@ -12299,6 +12340,10 @@
               {
                 "path": "packages/sdk/original-query-intake.test.mjs",
                 "anchor": "a selected missing or accessor query method refuses without invoking raw inputs"
+              },
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "## Scoped durable request names"
               }
             ],
             "cancellation": [
@@ -12327,6 +12372,10 @@
               {
                 "path": "packages/sdk/original-query-intake.test.mjs",
                 "anchor": "submission uncertainty retains the same query receipt and never resends"
+              },
+              {
+                "path": "packages/sdk/named-submission.test.mjs",
+                "anchor": "test("
               }
             ]
           }
@@ -12455,6 +12504,10 @@
               {
                 "path": "packages/sdk/original-result-intake.test.mjs",
                 "anchor": "copied captures and another installation cannot consume a selected Result continuation"
+              },
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "## Scoped durable request names"
               }
             ],
             "ownership": [
@@ -12477,6 +12530,10 @@
               {
                 "path": "packages/sdk/internal/result-read.mjs",
                 "anchor": "capturedQueryReads.delete(token);"
+              },
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "## Scoped durable request names"
               }
             ],
             "synchronization": [
@@ -12521,6 +12578,10 @@
               {
                 "path": "packages/sdk/original-result-intake.test.mjs",
                 "anchor": "missing, accessor and nonvoid Result callbacks refuse only at the read boundary"
+              },
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "## Scoped durable request names"
               }
             ],
             "cancellation": [
@@ -12617,6 +12678,10 @@
               {
                 "path": "packages/sdk/original-result-intake.test.mjs",
                 "anchor": "Result callback retains its original receiver and does not acquire a replacement"
+              },
+              {
+                "path": "packages/sdk/named-submission.test.mjs",
+                "anchor": "test("
               }
             ]
           }
@@ -12774,7 +12839,7 @@
     {
       "module": "packages/sdk/internal/transport.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "e4d0419d7468e2ca90fa3e6027f0eb1658aa40b5e5976e46fff19623f3d1d1bf",
+      "sha256": "43674e26b85a3e9ef919ef931ef1c13fb35ceeee02d3a04f8c7d30118f1aa7e7",
       "exports": [
         "createTransport",
         "loadLoopbackTransport"
@@ -12837,6 +12902,13 @@
           "async": false
         },
         {
+          "name": "isSubmission/isSubmission",
+          "parameters": [
+            "operation"
+          ],
+          "async": false
+        },
+        {
           "name": "loadLoopbackTransport/loadLoopbackTransport",
           "parameters": [],
           "async": false
@@ -12868,7 +12940,8 @@
             "createTransport/responseValue/responseValue",
             "createTransport/sourcePreparation/init:assertResultReadCurrent/init:assertResultReadCurrent",
             "createTransport/sourcePreparation/init:beforeResultRead/init:beforeResultRead",
-            "loadLoopbackTransport/loadLoopbackTransport"
+            "loadLoopbackTransport/loadLoopbackTransport",
+            "isSubmission/isSubmission"
           ],
           "exports": [
             "createTransport",
@@ -12895,6 +12968,10 @@
               {
                 "path": "packages/sdk/internal/transport.mjs",
                 "anchor": "// One bounded Host transport. Dispatch tracking distinguishes local no-send"
+              },
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "## Scoped durable request names"
               }
             ],
             "ownership": [
@@ -12905,6 +12982,10 @@
               {
                 "path": "packages/sdk/internal/transport.mjs",
                 "anchor": "// One bounded Host transport. Dispatch tracking distinguishes local no-send"
+              },
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "## Scoped durable request names"
               }
             ],
             "synchronization": [
@@ -12925,6 +13006,10 @@
               {
                 "path": "packages/sdk/internal/transport.mjs",
                 "anchor": "// One bounded Host transport. Dispatch tracking distinguishes local no-send"
+              },
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "## Scoped durable request names"
               }
             ],
             "cancellation": [
@@ -12960,6 +13045,10 @@
             "verification": [
               {
                 "path": "packages/sdk/submission-attempt.test.mjs",
+                "anchor": "test("
+              },
+              {
+                "path": "packages/sdk/named-submission.test.mjs",
                 "anchor": "test("
               }
             ]
