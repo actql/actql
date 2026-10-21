@@ -750,6 +750,32 @@ test('known file-backed Result metadata performs no unrelated native delivery pr
   assert.deepEqual(probes[0], Array(5).fill(invocationValue.invocation_cid));
 });
 
+test('publication inventory still acquires additional untyped originals and refuses missing ones', async t => {
+  for (const missing of [false, true]) {
+    await t.test(missing ? 'missing original' : 'stored original', async t => {
+      const {store} = await fixture(t);
+      const invocationValue = invocation();
+      const request = publicationRequest(resultDefinition(), invocationValue.invocation_cid);
+      const attempt = publicationAttempt(request);
+      const prepared = await prepareCommit(store, request, attempt, invocationValue);
+      const entry = indexEntry(request, attempt, invocationValue, {
+        durable_result_binding_cids: [prepared.binding.identity],
+      });
+      const extraWire = '{"auxiliary":true}', extraCid = digest(extraWire);
+      if (!missing) await store.putSemantic(extraWire, extraCid);
+      const commit = store.commitIndex(wire(entry), [...prepared.required, extraCid], prepared.evidence);
+      if (missing) {
+        await assert.rejects(commit, code('PublicationContractMissing'));
+        assert.equal(await store.inspectCommittedIndex(indexKeyFor(request)), undefined);
+        assert.equal((await store.latestRecord(attempt.publication_attempt_cid)).state, 'committing');
+      } else {
+        assert.equal((await commit).committed, true);
+        assert.equal((await store.readSemanticBytes(extraCid)).toString('utf8'), extraWire);
+      }
+    });
+  }
+});
+
 test('bounded object writes are durable, streamed, and physically addressed',
   async t => {
     const {store, configuration} = await fixture(t);

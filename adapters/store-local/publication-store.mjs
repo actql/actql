@@ -73,6 +73,9 @@ const localContinuationEvidenceNames = Object.freeze([
   'review_projection', 'continuation_record', 'source_capture',
   'original_model_state',
 ]);
+const nativeDeliveryContractNames = Object.freeze([
+  'delivery_attempt', 'result_read_grant', 'delivery_record', 'result_delivery_receipt',
+]);
 const recordNamePattern = /^(0|[1-9][0-9]*)\.json$/u;
 const custodyNamePattern =
   /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\.json$/u;
@@ -3523,7 +3526,7 @@ async function openOriginalLocalPublicationStore(
 
   const readContract = async (cid, contractName, readOriginal = readSemanticOriginal) => {
     const includeNative = contractName === undefined ||
-      ['delivery_attempt','result_read_grant','delivery_record','result_delivery_receipt'].includes(contractName);
+      nativeDeliveryContractNames.includes(contractName);
     const original = await readOriginal(cid, includeNative);
     const native = original.native;
     if (native !== undefined) {
@@ -4682,7 +4685,8 @@ async function openOriginalLocalPublicationStore(
           required !== undefined && !required.has(contract.identity)) {
         fail('InvalidPublicationCommitEvidence');
       }
-      const persisted = (await readOriginal(contract.identity)).bytes;
+      const persisted = (await readOriginal(contract.identity,
+        nativeDeliveryContractNames.includes(contract.name))).bytes;
       if (!persisted.equals(Buffer.from(contract.wire, 'utf8'))) {
         fail('PublicationCommitEvidenceMismatch');
       }
@@ -4822,7 +4826,8 @@ async function openOriginalLocalPublicationStore(
       if (!exactKeys(contract, [
         'name', 'identityField', 'identity', 'wire',
       ]) || !cidPattern.test(contract.identity) ||
-          !(await readOriginal(contract.identity)).bytes.equals(
+          !(await readOriginal(contract.identity,
+            nativeDeliveryContractNames.includes(contract.name))).bytes.equals(
             Buffer.from(contract.wire, 'utf8'))) {
         fail('EffectfulCommitEvidenceMismatch');
       }
@@ -5009,13 +5014,12 @@ async function openOriginalLocalPublicationStore(
     // Share successful acquisition/close facts across the pure evidence and
     // metadata-inventory phases; a new operation acquires new originals.
     const semanticOriginals = new Map();
-    const readOriginal = (cid, includeNative = true) => {
+    const readOriginal = (cid, includeNative = cid !== admitted.identity) => {
       if (!semanticOriginals.has(cid)) {
         semanticOriginals.set(cid, readSemanticOriginal(cid, includeNative));
       }
       return semanticOriginals.get(cid);
     };
-    for (const cid of required) await readOriginal(cid);
     let verifiedBindings;
     let physicalHoldingCids = [];
     if (effectfulEvidence === undefined) {
@@ -5052,6 +5056,9 @@ async function openOriginalLocalPublicationStore(
           suppliedEvidence.runDefinition),
       ].sort();
     }
+    // Typed evidence establishes its file/native representation first. Only
+    // remaining untyped inventory needs the generic native lookup/fallback.
+    for (const cid of required) await readOriginal(cid);
     const boundPhysicalCids = verifiedBindings.map(value => value.physical.cid);
     const bindingSchemas = new Map();
     for (const value of verifiedBindings) {

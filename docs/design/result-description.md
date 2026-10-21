@@ -95,6 +95,13 @@ selected file still supplies its real bounded bytes, inode/digest checks and
 close duty. Generic semantic reads and the native delivery contract families
 retain their existing native lookup and file fallback.
 
+Typed publication evidence selects that same representation before the commit's
+generic inventory traversal. The traversal reuses those acquired originals;
+it does not query delivery metadata merely because it encountered their CIDs
+before their known contract families. The admitted Index also has its known
+file representation. Additional untyped inventory still receives its original
+generic lookup, and missing originals refuse before publication becomes visible.
+
 ## Delivery profile and bounds
 
 `format` defaults to `jsonl`. The current public delivery owner admits `json`,

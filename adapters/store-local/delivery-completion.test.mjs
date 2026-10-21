@@ -312,6 +312,7 @@ test('native START metadata commits without duplicate contract files or director
   }
   for(const contract of [f.root.attempt,f.root.grant,f.root.streaming]) {
     assert.equal((await f.store.readPublicationContract(contract.identity,contract.name)).wire,contract.wire);
+    assert.equal((await f.store.readSemanticBytes(contract.identity)).toString('utf8'),contract.wire);
   }
   await f.store.close();
   const reopened=await f.reopen();
