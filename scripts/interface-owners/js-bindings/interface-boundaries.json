@@ -96974,7 +96974,7 @@
     {
       "module": "packages/run-host-core/index.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "bf9cd8d65f9a410918d6c672bff6c7074e0e0d9e51b750494ddafe89b5713e71",
+      "sha256": "82a786e9884e45406dec031f6929d2f69509a0324316fb404c57e8d2ea0614ac",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -97582,7 +97582,8 @@
         {
           "name": "deliveryView",
           "parameters": [
-            "contract"
+            "contract",
+            "original"
           ],
           "async": false
         },
@@ -98682,6 +98683,14 @@
           "name": "openResultDeliveryControl/init:finishResultDelivery/init:finishResultDelivery",
           "parameters": [
             "serializer"
+          ],
+          "async": false
+        },
+        {
+          "name": "openResultDeliveryControl/init:fromPublication/init:fromPublication",
+          "parameters": [
+            "contract",
+            "expectedName"
           ],
           "async": false
         },
@@ -110735,7 +110744,8 @@
             "openResultDeliveryControl/init:trustedClockNotBefore/init:trustedClockNotBefore",
             "openResultDeliveryControl/limitsOf/limitsOf",
             "openResultDeliveryControl/mark/mark",
-            "openResultDeliveryControl/progressToken/progressToken"
+            "openResultDeliveryControl/progressToken/progressToken",
+            "openResultDeliveryControl/init:fromPublication/init:fromPublication"
           ],
           "exports": [
             "openResultDeliveryControl"

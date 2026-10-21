@@ -289,6 +289,11 @@ export interface ResultDeliveryControl {
     bytes: number): boolean;
   admit<Kind extends string>(name: Kind, wire: string,
     limits: PublicationLimits): DeliveryContractView<Kind>;
+  /** Reuse an original publication from this module without wire admission. */
+  fromPublication<Kind extends string>(original: PublicationContract<Kind>):
+    DeliveryContractView<Kind>;
+  fromPublication<Kind extends string>(original: PublicationContract,
+    expectedName: Kind): DeliveryContractView<Kind>;
   beginResultAccessProgress(): ResultAccessProgress;
   resultAccessProgressAction(progress: ResultAccessProgress):
     'authorize_request' | 'resolve_committed_result' |
