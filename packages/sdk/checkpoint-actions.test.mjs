@@ -107,6 +107,24 @@ test('exact public Checkpoint lookup refuses mixed page selectors before I/O', a
   assert.equal(calls.filter(call => call.operation === 'checkpoints').length, 1);
 });
 
+test('Checkpoint page captures each original response field before admission', async t => {
+  let reads = 0;
+  const summary = {...original};
+  Object.defineProperty(summary, 'checkpointId', {enumerable: true,
+    get() { return ++reads === 1 ? original.checkpointId : 'substituted-checkpoint'; }});
+  const page = {items: [summary]};
+  const {client, calls} = await fixture(t, {lookup: () => page});
+  const captured = await client.checkpoints({limit: 1});
+  assert.equal(captured.items[0].checkpointId, original.checkpointId);
+  assert.equal(reads, 1);
+  assert.equal(Object.isFrozen(captured), true);
+  assert.equal(Object.isFrozen(captured.items[0].subject), true);
+  assert.equal(Object.isFrozen(page), false);
+  page.items.length = 0;
+  assert.equal(captured.items.length, 1);
+  assert.deepEqual(calls.map(call => call.operation), ['connect', 'checkpoints']);
+});
+
 test('original signer values and receiver survive mutation during lookup', async t => {
   let release, arrived;
   const waiting = new Promise(resolve => {arrived = resolve;});

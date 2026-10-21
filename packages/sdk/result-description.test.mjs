@@ -41,6 +41,36 @@ const description = () => ({ref: {...ref}, resultName: 'answer',
     version: 'actql-jsonl/0.1'})}});
 const expected = {ref, resultName: 'answer', format: 'jsonl'};
 
+test('Result description retains its captured Run across identity hashing awaits', async t => {
+  const answer = description(), columns = answer.columns;
+  let reads = 0;
+  Object.defineProperty(answer, 'columns', {enumerable: true, get() {
+    reads++;
+    queueMicrotask(() => {answer.ref.runDefinitionCid = cid('foreign');});
+    return columns;
+  }});
+  const calls = [];
+  const client = await connectInProcess({mode: 'local', owner: 'local'}, {
+    perform(operation) {
+      calls.push(operation);
+      if (operation === 'connect') return profile('local');
+      if (operation === 'attach') return admission;
+      if (operation === 'result-describe') return answer;
+      assert.fail(`Unexpected:${operation}`);
+    },
+  });
+  t.after(() => client.close());
+  const captured = await (await client.attach(ref)).result('answer').describe();
+  assert.deepEqual(captured.ref, ref);
+  assert.equal(reads, 1);
+  assert.equal(answer.ref.runDefinitionCid, cid('foreign'));
+  assert.equal(Object.isFrozen(answer), false);
+  assert.equal(Object.isFrozen(captured), true);
+  assert.equal(Object.isFrozen(captured.ref), true);
+  assert.equal(Object.isFrozen(captured.columns[0].contract.fields), true);
+  assert.deepEqual(calls, ['connect', 'attach', 'result-describe']);
+});
+
 test('generated contracts validate full recursive types and exact bindings', () => {
   assert.equal(validResultDescription(description(), expected), true);
   const changes = [
