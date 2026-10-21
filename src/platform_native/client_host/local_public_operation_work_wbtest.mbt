@@ -61,6 +61,135 @@ test "one selected Run revision and Policy original survive trusted read-only tr
 }
 
 ///|
+// Actual legacy Host/Account/SQLite originals plus a controlled cheap current
+// predicate. The capture deliberately has no Native OriginalRead: its real
+// lifetime check must fail. This tests invalidation, never a Native supplier,
+// physical recovery, or a fabricated successful Read/cleanup acknowledgement.
+test "failed operation lifetime retires the cached adoption before cheap current can recover" {
+  for scope in [true, false] {
+    let name = "operation-lifetime-invalidation-" + scope.to_string()
+    let host = policy_host_fixture(name)
+    let capture = prepare_native_local_journal_capture(
+      host.session,
+      local_journal_test_library(),
+      epoch_test_crypto(),
+      100.0,
+      8,
+      8388608L,
+    )
+    // Transfer this actual legacy opening into its test-owned capture. No
+    // Native original resources or entered-scope result is manufactured.
+    capture.opening = JournalAcquired(host)
+    capture.read_callback_active = true
+    capture.read_facts_valid = true
+    host.journal.operation_active = true
+    let cheap_current = Ref(true)
+    let full = Ref(0)
+    let observe = () => {
+      host.current_adoption_material_with_reads(
+        () => {
+          full.val += 1
+          host.check_binding()
+        },
+        snapshot_current=Some(() => {
+          if cheap_current.val {
+            Ok(())
+          } else {
+            Err(Closed)
+          }
+        }),
+      )
+    }
+    let material = @host.bind_client_local_adopted_host_material(
+      host.database,
+      observe,
+    ).unwrap()
+    let tuple : @authorization.AccessTuple = {
+      principal: "operator",
+      connection: "cli",
+      resource: "run",
+      operation: "submit",
+    }
+    let allowed = @host.client_local_adopted_account_outcome(
+      material,
+      host.database,
+      tuple,
+    ).unwrap()
+    assert_true(allowed is Allow(_))
+    assert_eq(full.val, 1)
+    assert_true(host.journal.admitted_adoption is Some(_))
+    capture.read_material = Some(material)
+    capture.read_scopes.push(("operator", "cli", "previous-scope"))
+    capture.read_decisions.push((tuple, None, allowed))
+    cheap_current.val = false
+    if scope {
+      assert_true(
+        capture.operation_scope(host, material, "operator", "cli")
+        is Err(OriginalResourceScopePending),
+      )
+    } else {
+      assert_true(
+        capture.operation_account(host, material, tuple)
+        is Err(OriginalResourceScopePending),
+      )
+    }
+    assert_false(capture.read_facts_valid)
+    assert_true(capture.read_material is None)
+    assert_eq(capture.read_scopes.length(), 0)
+    assert_eq(capture.read_decisions.length(), 0)
+    assert_true(host.journal.admitted_adoption is None)
+    assert_true(
+      capture.read_operation_issue is Some(OriginalResourceScopePending),
+    )
+    // Change the actual selected Account generation. This original Host must
+    // refuse it; recovery cannot adopt the replacement or regrant the old Allow.
+    let source = host.session.source_root
+    source
+    .reclaim_generation(
+      host.session.source_name,
+      host.session.source_generation,
+    )
+    .unwrap()
+    let replacement = source
+      .create_writer(name + ".replacement", 4096L)
+      .unwrap()
+    let denied = @utf8.encode(
+      @utf8.decode(policy_account_original).replace_all(
+        old="\"outcome\":\"allow\"",
+        new="\"outcome\":\"deny\"",
+      ),
+    )
+    replacement.append(denied).unwrap()
+    replacement.seal(host.session.source_name).unwrap() |> ignore
+    cheap_current.val = true
+    // The escaped old material cannot reuse its retired observation even when
+    // the controlled cheap predicate alone is restored.
+    assert_true(
+      @host.client_local_adopted_account_outcome(material, host.database, tuple)
+      is Err(@host.Physical(SourceChanged)),
+    )
+    assert_eq(full.val, 2)
+    assert_true(host.journal.admitted_adoption is None)
+    assert_true(
+      capture.operation_account(host, material, tuple)
+      is Err(OriginalResourceScopePending),
+    )
+    assert_true(
+      capture.check_current_in_original_read()
+      is Err(OriginalResourceScopePending),
+    )
+    assert_eq(full.val, 2)
+    capture.read_callback_active = false
+    host.journal.operation_active = false
+    // A later observation goes back to actual current state. It refuses this
+    // changed original rather than reviving Allow or adopting replacement data.
+    assert_true(observe() is Err(SourceChanged))
+    assert_eq(full.val, 3)
+    assert_eq(capture.close().issue_family(), 0)
+  }
+}
+
+///|
 test "operation retention refuses changed target bytes and preserves rollback and Unknown" {
   let host = policy_host_fixture("public-operation-target-change")
   let scope = host

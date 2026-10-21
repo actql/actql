@@ -73,6 +73,9 @@ pub fn NativeLocalJournalCapture::check_current_in_original_read(
       self.read_operation_issue.unwrap_or(OriginalResourceScopePending),
     )
   }
+  if self.read_callback_active && !self.read_facts_valid {
+    return Err(OriginalResourceScopePending)
+  }
   guard self.opening is JournalAcquired(host) &&
     self.original_resources is Some(original) &&
     !original.interrupted &&
@@ -183,26 +186,33 @@ pub fn NativeLocalJournalCapture::finish_pending_original_scope(
 fn NativeLocalJournalCapture::check_original_read_lifetime(
   self : NativeLocalJournalCapture,
 ) -> Result[Unit, NativeLocalAdoptionIssue] {
-  if self.closing || self.read_operation_issue is Some(_) {
-    return Err(
-      self.read_operation_issue.unwrap_or(OriginalResourceScopePending),
-    )
-  }
-  guard self.opening is JournalAcquired(host) &&
+  let result = if self.closing || self.read_operation_issue is Some(_) {
+    Err(self.read_operation_issue.unwrap_or(OriginalResourceScopePending))
+  } else if self.read_callback_active && !self.read_facts_valid {
+    Err(OriginalResourceScopePending)
+  } else if self.opening is JournalAcquired(host) &&
     !host.closed &&
     !host.journal.fenced &&
     self.original_resources is Some(original) &&
     !original.interrupted &&
-    original.active_phase is Some(@arena.HostRead) else {
-    return Err(OriginalResourceScopePending)
+    original.active_phase is Some(@arena.HostRead) {
+    match
+      original.host.observe_local_host_consuming_read_scope(
+        original.pair,
+        original.read,
+      ) {
+      Ok(@arena.ReadEntered) => Ok(())
+      Ok(_) => Err(OriginalResourceScopePending)
+      Err(issue) => Err(OriginalResources(issue))
+    }
+  } else {
+    Err(OriginalResourceScopePending)
   }
-  match
-    original.host.observe_local_host_consuming_read_scope(
-      original.pair,
-      original.read,
-    ) {
-    Ok(@arena.ReadEntered) => Ok(())
-    Ok(_) => Err(OriginalResourceScopePending)
-    Err(issue) => Err(OriginalResources(issue))
+  if result is Err(issue) && self.read_callback_active {
+    if self.read_operation_issue is None {
+      self.read_operation_issue = Some(issue)
+    }
+    self.clear_read_operation_facts()
   }
+  result
 }
