@@ -962,6 +962,7 @@ fn emit_client_values_pipeline_graph(
 pub struct ClientValuesAoAIdentity {
   wire : String
   cid : String
+  body : @canonical.CanonicalValue
 }
 
 ///|
@@ -1187,7 +1188,7 @@ fn issue_client_values_aoa_identity_graph(
   let cid = @canonical.cid_value(body, max_wire_bytes, max_nodes, max_depth) catch {
     _ => return Err(Encoding)
   }
-  Ok({ wire, cid, })
+  Ok({ wire, cid, body, })
 }
 
 ///|

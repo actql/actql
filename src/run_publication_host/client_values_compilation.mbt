@@ -84,39 +84,33 @@ pub fn issue_prepared_client_values_compilation(
   max_nodes : Int,
   max_depth : Int,
 ) -> Result[ClientValuesCompilation, ClientValuesCompilationIssue] {
-  let plan = match
-    issue_prepared_client_values_executable_plan(
+  let parts = match
+    issue_prepared_client_values_executable_plan_parts(
       value, manifests, sequence_limits, max_facts, max_witnesses, max_wire_bytes,
       max_nodes, max_depth,
     ) {
-    Ok(plan) => plan
+    Ok(parts) => parts
     Err(issue) => return Err(Plan(issue))
   }
-  let material = match
-    issue_prepared_client_values_execution_material(
-      value, manifests, sequence_limits, max_wire_bytes, max_nodes, max_depth,
-    ) {
-    Ok(material) => material
-    Err(issue) => return Err(Material(issue))
+  issue_client_values_compilation_with_parts(
+    value, parts, max_wire_bytes, max_nodes, max_depth,
+  )
+}
+
+///|
+fn issue_client_values_compilation_with_parts(
+  value : PreparedClientProgram,
+  parts : ClientValuesExecutablePlanParts,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[ClientValuesCompilation, ClientValuesCompilationIssue] {
+  if !physical_equal(value, parts.owner) {
+    return Err(Plan(Graph(UnsupportedGraph)))
   }
-  let template = match
-    @publication.admit_run_evidence_value(
-      "bound_invocation_template",
-      material.invocation_template_wire,
-      max_wire_bytes,
-      max_nodes,
-      max_depth,
-    ) {
-    Ok(template) => template
-    Err(issue) => return Err(Template(issue))
-  }
-  let aoa = match
-    issue_prepared_client_values_aoa_identity(
-      value, 0, sequence_limits, max_wire_bytes, max_nodes, max_depth,
-    ) {
-    Ok(aoa) => aoa
-    Err(issue) => return Err(AoA(issue))
-  }
+  let plan = parts.plan
+  let template = parts.template
+  let fragment = parts.fragment
   let identity = prepared_client_identity(value)
   let body = "{\"version\":\"actql-compiled-plan/0.1\"," +
     "\"compiler_version\":\"" +
@@ -133,7 +127,7 @@ pub fn issue_prepared_client_values_compilation(
     @environment.compiler_aoa_contract_cid() +
     "\",\"aoa_logical_cid\":\"" +
     (if plan.transformations.is_empty() {
-      client_values_aoa_identity_cid(aoa)
+      fragment.logical_cid
     } else {
       plan.graph_logical_cid.unwrap()
     }) +
@@ -144,13 +138,6 @@ pub fn issue_prepared_client_values_compilation(
     ) {
     Ok(compiled) => compiled
     Err(issue) => return Err(CompiledPlan(issue))
-  }
-  let fragment = match
-    issue_prepared_client_values_fragment(
-      value, 0, sequence_limits, max_wire_bytes, max_nodes, max_depth,
-    ) {
-    Ok(fragment) => fragment
-    Err(issue) => return Err(Fragment(issue))
   }
   let result_names : Array[String] = []
   for index in 0..<prepared_client_result_count(value) {
