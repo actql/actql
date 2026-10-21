@@ -185,9 +185,15 @@ issued link. Existing record and byte quotas, target identity, current
 authorization and transaction outcomes are unchanged.
 
 A bounded one-time legacy adoption derives usage from the original
-issuance/retirement prefix and detects extra or missing rows. Its durable
-feature marker and exact private table/trigger definitions distinguish complete
-coverage from missing adopted metadata. Later ordinary opens and admissions
+issuance/retirement prefix and detects extra or missing rows. The private
+SQLite `user_version` transition commits in the same transaction as those
+tables, triggers and singleton rows; it is not a public wire version. No
+subsequent filesystem marker is needed to complete that adoption. Complete
+metadata from the prior two-step format finishes only this original database
+transition without reaggregating history or changing issuance/retirement. An
+absent or partial old derived marker neither issues authority nor blocks that
+bounded completion. Missing adopted tables, rows or triggers still refuse.
+Later ordinary opens and admissions
 read only the singleton usage rows and selected original, not aggregate
 historical intent or restart bodies. Failed row changes roll back their usage;
 an unknown COMMIT remains unknown and cannot certify another insertion or a

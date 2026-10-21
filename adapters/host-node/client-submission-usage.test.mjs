@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {mkdtemp,readFile,rm,unlink} from 'node:fs/promises';
+import {mkdtemp,readFile,rm,writeFile} from 'node:fs/promises';
+import {existsSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {DatabaseSync,StatementSync} from 'node:sqlite';
@@ -150,8 +151,9 @@ test('legacy usage adoption scans one bounded original prefix once and never rec
       for(const suffix of ['insert','delete','update']) db.exec(`DROP TRIGGER ${table}_${suffix}`);
       db.exec(`DROP TABLE ${table}`);
     }
+    db.exec('PRAGMA user_version=0');
   });
-  await unlink(join(f.directory,'submission-usage-format.json'));
+  await rm(join(f.directory,'submission-usage-format.json'),{force:true});
   const counter = aggregateCounter(t);
   counter.arm();
   const reopened = f.open();
@@ -205,8 +207,9 @@ test('legacy usage adoption preserves formal retirements instead of treating iss
       for(const suffix of ['insert','delete','update']) db.exec(`DROP TRIGGER ${table}_${suffix}`);
       db.exec(`DROP TABLE ${table}`);
     }
+    db.exec('PRAGMA user_version=0');
   });
-  await unlink(join(f.directory,'submission-usage-format.json'));
+  await rm(join(f.directory,'submission-usage-format.json'),{force:true});
   const reopened = f.open();
   assert.equal(reopened.recordSubmittedIntent(f.ref('after-retirement',reopened),intent(),fields,moon).inserted,true);
   f.database(db => {
@@ -225,9 +228,10 @@ test('legacy usage adoption refuses missing original intent custody without repl
       for(const suffix of ['insert','delete','update']) db.exec(`DROP TRIGGER ${table}_${suffix}`);
       db.exec(`DROP TABLE ${table}`);
     }
+    db.exec('PRAGMA user_version=0');
     db.exec('DELETE FROM client_submitted_intents');
   });
-  await unlink(join(f.directory,'submission-usage-format.json'));
+  await rm(join(f.directory,'submission-usage-format.json'),{force:true});
   assert.throws(()=>f.open(),{code:'ClientSubmittedIntentCustodyLost'});
   f.database(db => {
     assert.equal(db.prepare('SELECT issued_count FROM client_submitted_intent_custody').get().issued_count,1);
@@ -249,13 +253,75 @@ test('retained byte quota refuses before changing original intent or issuance',a
   });
 });
 
-for(const loss of ['marker','table','row','trigger']) {
+for(const afterCommit of [false,true]) {
+  test(`usage adoption recovers after a lost native COMMIT response ${afterCommit?'after':'before'} commit`,async t => {
+    const directory = await mkdtemp(join(tmpdir(),'actql-submission-usage-adoption-'));
+    let journal;
+    t.after(async()=>{journal?.close(); await rm(directory,{recursive:true});});
+    const exec = DatabaseSync.prototype.exec;
+    let lost = false;
+    const intercepted = t.mock.method(DatabaseSync.prototype,'exec',function(sql) {
+      if (!lost && sql==='COMMIT' && this.prepare(
+        "SELECT name FROM sqlite_master WHERE name='client_submitted_intent_usage'").get()) {
+        lost = true;
+        if(afterCommit) Reflect.apply(exec,this,[sql]);
+        throw Object.assign(new Error('lost usage adoption commit response'),{code:'EIO'});
+      }
+      return Reflect.apply(exec,this,[sql]);
+    });
+    try {
+      assert.throws(()=>openClientRequestJournal(directory),
+        error=>error.code==='ClientRequestJournalCommitOutcomeUnknown'&&error.outcome==='unknown');
+      assert.equal(lost,true);
+    } finally {intercepted.mock.restore();}
+    const counter = aggregateCounter(t);
+    counter.arm();
+    journal = openClientRequestJournal(directory);
+    assert.equal(counter.scans.length,afterCommit?0:2);
+    journal.close();
+    counter.scans.length=0;
+    journal = openClientRequestJournal(directory);
+    assert.deepEqual(counter.scans,[]);
+    const database = new DatabaseSync(join(directory,'client-requests.sqlite3'));
+    try {
+      assert.equal(database.prepare('SELECT issued_count FROM client_submitted_intent_custody').get().issued_count,0);
+      assert.equal(database.prepare('SELECT retired_count FROM client_submitted_intent_retirement').get().retired_count,0);
+    } finally {database.close();}
+  });
+}
+
+for(const marker of ['absent','partial']) {
+  test(`complete pre-header usage finishes its original format when the old marker is ${marker}`,async t => {
+    const f = await fixture(t), reference = f.ref('same-original');
+    const retained = f.journal.recordSubmittedIntent(reference,intent(),fields,moon);
+    f.journal.close();
+    const before = f.database(db=>{
+      db.exec('PRAGMA user_version=0');
+      return {...db.prepare('SELECT * FROM client_submitted_intent_usage').get()};
+    });
+    const path = join(f.directory,'submission-usage-format.json');
+    if(marker==='partial') await writeFile(path,'{"version":',{mode:0o600});
+    const counter = aggregateCounter(t);
+    counter.arm();
+    const reopened = f.open();
+    assert.equal(reopened.lookupSubmittedIntent(reference,fields,moon).requestId,retained.requestId);
+    assert.deepEqual(counter.scans,[]);
+    f.database(db=>{
+      assert.equal(db.prepare('PRAGMA user_version').get().user_version,1);
+      assert.deepEqual({...db.prepare('SELECT * FROM client_submitted_intent_usage').get()},before);
+      assert.equal(db.prepare('SELECT issued_count FROM client_submitted_intent_custody').get().issued_count,1);
+    });
+    if(marker==='partial') assert.equal(await readFile(path,'utf8'),'{"version":');
+    else assert.equal(existsSync(path),false,'no separate marker acquisition remains');
+  });
+}
+
+for(const loss of ['table','row','trigger']) {
   test(`adopted submission usage ${loss} loss refuses without rebuilding coverage`,async t => {
     const f = await fixture(t);
     f.journal.recordSubmittedIntent(f.ref('retained'),intent(),fields,moon);
     f.journal.close();
-    if(loss==='marker') await unlink(join(f.directory,'submission-usage-format.json'));
-    else f.database(db => db.exec(loss==='table' ? 'DROP TABLE client_submitted_intent_usage' :
+    f.database(db => db.exec(loss==='table' ? 'DROP TABLE client_submitted_intent_usage' :
       loss==='row' ? 'DELETE FROM client_submitted_intent_usage' :
         'DROP TRIGGER client_submitted_intent_usage_insert'));
     const path = join(f.directory,'client-requests.sqlite3'), before = await readFile(path);

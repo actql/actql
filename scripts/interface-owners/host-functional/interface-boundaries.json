@@ -18729,7 +18729,7 @@
     {
       "module": "adapters/host-node/client-request-journal.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "89ce0b11246497bb019917df6cdcc8c69f5fcfbc6b408b03dd72cc0c31256d3a",
+      "sha256": "28b27984a79c7a36830aaa78da70333a9215d0312172e9aa3f50e157d69dd9af",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
@@ -18795,7 +18795,8 @@
           "name": "adoptSubmissionUsageStorage",
           "parameters": [
             "database",
-            "transaction"
+            "transaction",
+            "previousMarker"
           ],
           "async": false
         },
@@ -22043,7 +22044,7 @@
               },
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "function adoptSubmissionUsageStorage(database, transaction)"
+                "anchor": "function adoptSubmissionUsageStorage(database, transaction, previousMarker)"
               }
             ],
             "identity": [
@@ -22071,7 +22072,7 @@
             "failure": [
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "if (!enabled || schema.length !== originals.length || originals.some(([name,sql]) =>"
+                "anchor": "if (schema.length !== originals.length || originals.some(([name,sql]) =>"
               }
             ],
             "cancellation": [
@@ -22097,7 +22098,7 @@
               },
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "if (!existsSync(join(root, usageMarkerName))) {"
+                "anchor": "if (database.prepare('PRAGMA user_version').get().user_version === 0) {"
               }
             ],
             "verification": [

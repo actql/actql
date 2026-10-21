@@ -1056,10 +1056,9 @@ const intentMarkerName = 'submitted-intent-format.json';
 const retirementMarkerName = 'submitted-intent-retirement-format.json';
 const restartMarkerName = 'submission-restart-format.json';
 const nameMarkerName = 'submission-name-format.json';
+// Retained only to recognize the earlier two-step derived-metadata adoption.
+// New adoption commits its private format transition inside SQLite instead.
 const usageMarkerName = 'submission-usage-format.json';
-const usageMarker = Buffer.from(JSON.stringify({
-  version: 'actql-client-request-journal/0.1', feature: 'submission_usage',
-}));
 // These are lookup/quota metadata of the SAME Journal, not admission receipts.
 // Native triggers update them in the original row mutation's transaction.
 const submissionUsageSources = [
@@ -1095,22 +1094,25 @@ const validSubmissionUsage = row => row?.singleton === 1 &&
   Number.isSafeInteger(row.retained_bytes) && row.retained_bytes >= 0 && row.retained_bytes <= 67108864 &&
   Number.isSafeInteger(row.revision) && row.revision >= 0;
 function inspectSubmissionUsageStorage(database, enabled) {
+  const version = database.prepare('PRAGMA user_version').get()?.user_version;
+  if (version !== 0 && version !== 1) fail('UnknownClientRequestJournalFormat');
   const originals = [...submissionUsageTables,...submissionUsageTriggers];
   const names = originals.map(([name]) => name);
   const schema = database.prepare(`SELECT name,sql FROM sqlite_master
     WHERE name IN (${names.map(() => '?').join(',')})`).all(...names);
-  if (!enabled && schema.length === 0) return;
-  if (!enabled || schema.length !== originals.length || originals.some(([name,sql]) =>
+  if (!enabled && version === 0 && schema.length === 0) return false;
+  if (schema.length !== originals.length || originals.some(([name,sql]) =>
     schema.find(row => row.name === name)?.sql !== sql)) fail('UnknownClientRequestJournalFormat');
   for (const [table] of submissionUsageTables) {
     if (!validSubmissionUsage(database.prepare(`SELECT * FROM ${table} WHERE singleton=1`).get())) {
       fail('UnknownClientRequestJournalFormat');
     }
   }
+  return true;
 }
 
-function adoptSubmissionUsageStorage(database, transaction) {
-  inspectSubmissionUsageStorage(database,false);
+function adoptSubmissionUsageStorage(database, transaction, previousMarker) {
+  const complete = inspectSubmissionUsageStorage(database,previousMarker);
   transaction.run(() => {
     const issued = database.prepare('SELECT issued_count FROM client_submitted_intent_custody WHERE singleton=1').get()?.issued_count;
     const retired = database.prepare('SELECT retired_count FROM client_submitted_intent_retirement WHERE singleton=1').get()?.retired_count;
@@ -1120,6 +1122,17 @@ function adoptSubmissionUsageStorage(database, transaction) {
       fail('ClientSubmittedIntentCustodyLost');
     }
     const counts = [issued-retired,restarts];
+    if (complete) {
+      for (let i=0;i<submissionUsageTables.length;i++) {
+        const usage = database.prepare(`SELECT retained_count FROM ${submissionUsageTables[i][0]} WHERE singleton=1`).get();
+        if (usage?.retained_count !== counts[i]) fail('ClientSubmittedIntentCustodyLost');
+      }
+      // The previous transaction installed all derived metadata but its marker
+      // was not completed. Finish ONLY this same DB format transition; no
+      // historical aggregation, insertion, issuance or retirement is replayed.
+      database.exec('PRAGMA user_version=1');
+      return;
+    }
     // One bounded legacy adoption, never a normal-open or per-operation scan.
     // The existing original issuance/retirement bounds the selected prefix;
     // one extra row detects missing coverage instead of silently truncating it.
@@ -1137,6 +1150,7 @@ function adoptSubmissionUsageStorage(database, transaction) {
         .run(retained[i].n,retained[i].bytes);
     }
     database.exec(submissionUsageTriggers.map(([,sql]) => `${sql};`).join('\n'));
+    database.exec('PRAGMA user_version=1');
   });
 }
 const nameMarker = Buffer.from(JSON.stringify({
@@ -1342,7 +1356,7 @@ function inspectJournalSnapshot(directory, databasePath, markerPath, maxInspecti
   const usagePath = join(directory, usageMarkerName);
   const usageEnabled = entries.includes(usageMarkerName);
   if (usageEnabled && (!intentEnabled || !retirementEnabled || !restartEnabled ||
-      !lstatSync(usagePath).isFile() || !journalMarkerMatches(usagePath, usageMarker))) {
+      !lstatSync(usagePath).isFile())) {
     fail('UnknownClientRequestJournalFormat');
   }
   let inspectionSql;
@@ -1383,7 +1397,6 @@ function inspectJournalSnapshot(directory, databasePath, markerPath, maxInspecti
       (!retirementEnabled || journalMarkerMatches(retirementPath, retirementMarker)) &&
       (!restartEnabled || journalMarkerMatches(restartPath, restartMarker)) &&
       (!nameEnabled || journalMarkerMatches(namePath, nameMarker)) &&
-      (!usageEnabled || journalMarkerMatches(usagePath, usageMarker)) &&
       JSON.stringify(journalDirectoryEntries(directory, maxInspectionEntries, primaryDirectoryInspection)) === JSON.stringify(entries)});
   } catch (error) {
     if (inspectionSql !== undefined) {
@@ -1788,12 +1801,8 @@ export function openClientRequestJournal(directory, {
       finally {closeSync(marker);}
       syncDirectory(root);
     }
-    if (!existsSync(join(root, usageMarkerName))) {
-      adoptSubmissionUsageStorage(database,transaction);
-      const marker = openSync(join(root,usageMarkerName),'wx',0o600);
-      try {writeFileSync(marker,usageMarker); fsyncSync(marker);}
-      finally {closeSync(marker);}
-      syncDirectory(root);
+    if (database.prepare('PRAGMA user_version').get().user_version === 0) {
+      adoptSubmissionUsageStorage(database,transaction,existsSync(join(root,usageMarkerName)));
     }
     // This optional original-operation storage belongs to this same Journal.
     // Legacy absence grants no new dispatch: live scope issuance additionally
