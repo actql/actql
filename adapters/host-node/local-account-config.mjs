@@ -49,11 +49,27 @@ function observeAccountConfigurationWire(authorization) {
 
 // Shared by the installed Model owner and Local account gate. This reads no
 // new identity or permit and preserves the existing Model Missing fallback.
+const installedAccountObservations = new WeakMap();
 export function observeInstalledAccount(moon, authorization) {
   try {
     const wire = observeAccountConfigurationWire(authorization);
-    return wire === undefined ? moon.executionAuthorizationMissing()
-      : moon.executionAuthorizationAdmit(wire);
+    if (wire === undefined) return moon.executionAuthorizationMissing();
+    // Keep only one admitted immutable value per actual runtime/installation.
+    // The original file is still read at EVERY protected boundary. Changed,
+    // missing and rejected bytes cannot reuse the retained Account judgment.
+    if (authorization === null || typeof authorization !== 'object') {
+      return moon.executionAuthorizationAdmit(wire);
+    }
+    let observations = installedAccountObservations.get(moon);
+    if (observations === undefined) {
+      observations = new WeakMap();
+      installedAccountObservations.set(moon, observations);
+    }
+    const retained = observations.get(authorization);
+    if (retained?.wire === wire) return retained.account;
+    const account = moon.executionAuthorizationAdmit(wire);
+    observations.set(authorization, {wire, account});
+    return account;
   } catch { return moon.executionAuthorizationMissing(); }
 }
 

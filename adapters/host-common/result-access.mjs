@@ -559,7 +559,13 @@ export async function deliverAuthorizedResult(
       }),
     );
     if (allowed !== true) return false;
-    const authorizedAt = await sampleTrustedClock(installed, clockContractCid);
+    // The pre-callback sample already durably admits this boundary's clock.
+    // Reusing that immutable floor removes a second pure clock commit after
+    // current authorization. Observe expiry/rollback again synchronously, so
+    // no clock IO separates the returned current decision from dispatch.
+    // Generic explicit-observation Stores retain their older strict protocol.
+    const authorizedAt = typeof installed.store.sampleTrustedClock === 'function'
+      ? at : await sampleTrustedClock(installed, clockContractCid);
     const usableAt = observedAt(installed.now);
     // Persistence can cross expiry. Retain the post-I/O expiry check, while
     // refusing a fresh clock sample below the accepted durable observation.

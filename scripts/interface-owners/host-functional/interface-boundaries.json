@@ -6762,7 +6762,7 @@
     {
       "module": "adapters/host-common/result-access.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "3d81075742889bba2f29b2242a1f65e28ca0f1a2d9e990c3bdd1c9db753b6356",
+      "sha256": "d465c3724fb242205f3f7d589ecc91d587a3a585e1c3bed52cd16a8bebaef79e",
       "role": "physical-io",
       "owner": "Existing Result access/delivery/publication Owners and physical read/sink adapter",
       "exports": [
@@ -6954,7 +6954,6 @@
       "contracts": [
         {
           "operations": [
-            "<module>",
             "ResultAccessError/constructor:constructor/constructor:constructor",
             "deliverAuthorizedResult",
             "deliverAuthorizedResult/authorize/authorize",
@@ -47686,7 +47685,7 @@
     {
       "module": "adapters/host-node/local-account-config.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "64a675a7ee13ce9b4bb88fdd46afd9f520ea4cdbac4667f30d0801704bd25efd",
+      "sha256": "55682adfd94578ab841ef8023a7ede3202a22b9dd9869d5784c46843d6feb967",
       "role": "physical-io",
       "owner": "Existing execution_authorization/Checkpoint Owners and trusted Host gate",
       "exports": [
@@ -47843,7 +47842,6 @@
       "contracts": [
         {
           "operations": [
-            "<module>",
             "bytesCid",
             "canonicalJson",
             "canonicalJson/canonicalJson",
@@ -69138,7 +69136,7 @@
     {
       "module": "packages/run-host-core/result-access.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "00796865757107300375db45d6404c8bcb9a5fa88554baa9aeef405febf6ea51",
+      "sha256": "964f6e1556ed991a4e8b68a8fb9f72397ed5bbbe45c4fd98e3c458f9b3ecd0f1",
       "role": "physical-io",
       "owner": "Existing Result access/delivery/publication Owners and physical read/sink adapter",
       "exports": [
@@ -69330,7 +69328,6 @@
       "contracts": [
         {
           "operations": [
-            "<module>",
             "ResultAccessError/constructor:constructor/constructor:constructor",
             "deliverAuthorizedResult",
             "deliverAuthorizedResult/authorize/authorize",
@@ -75387,6 +75384,114 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": []
+    },
+    {
+      "module": "adapters/host-node/local-result-authorization.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "3a23e3d5343aabaa8a4957fe571b4d0decf17bd0a19ca18d105a1b66461c5384",
+      "role": "physical-io",
+      "owner": "Existing installed Local Host Result access and Common execution-authorization Owners",
+      "exports": [
+        "createLocalResultAuthorization"
+      ],
+      "operations": [
+        {
+          "name": "createLocalResultAuthorization",
+          "parameters": [
+            "moon",
+            "authorization",
+            "principalId",
+            "namespaceId",
+            "authorityScopeCid"
+          ],
+          "async": false
+        },
+        {
+          "name": "createLocalResultAuthorization/createLocalResultAuthorization",
+          "parameters": [
+            "facts"
+          ],
+          "async": true
+        }
+      ],
+      "imports": [
+        "./local-account-config.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "contracts": [
+        {
+          "operations": [
+            "createLocalResultAuthorization",
+            "createLocalResultAuthorization/createLocalResultAuthorization"
+          ],
+          "exports": [
+            "createLocalResultAuthorization"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "# OSS Host authorization behavior"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/local-result-authorization.mjs",
+                "anchor": "export function createLocalResultAuthorization({moon, authorization,"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/local-result-authorization.mjs",
+                "anchor": "const scope = {connection, resource: `result/${facts.resultName}`, operation: 'read'};"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/local-result-authorization.mjs",
+                "anchor": "const connection = authorization?.siteKey ?? 'actql-remote-host';"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/local-account-config.mjs",
+                "anchor": "The original file is still read at EVERY protected boundary."
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/local-result-authorization.mjs",
+                "anchor": "if (outcome.outcome !== 'delegate') return false;"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/local-result-authorization.mjs",
+                "anchor": "} finally { gate.close(); }"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/local-account-config.mjs",
+                "anchor": "Keep only one admitted immutable value per actual runtime/installation."
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/local-result-authorization.mjs",
+                "anchor": "A read cannot synthesize a Checkpoint/claim or treat Delegate as Allow."
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/local-result-authorization.test.mjs",
+                "anchor": "test('Local Result reads evaluate the actual current Account without repeated admission'"
+              }
+            ]
+          }
+        }
+      ]
     }
   ],
   "generated": [],

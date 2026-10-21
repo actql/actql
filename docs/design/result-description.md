@@ -76,3 +76,21 @@ index is `ResultDescriptionUnavailable`; caller bounds produce
 `UnsupportedResultDescriptionFormat`. Malformed or mismatched Host responses
 produce `InvalidHostResultDescription`. Transport failures remain read failures;
 the SDK never converts description into a new submit.
+
+## Clock commit and current authorization
+
+A returned `sampleTrustedClock` value is durably accepted, not merely a wall
+clock observation. Local Store samples after reading the same serialized floor.
+Each protected delivery callback keeps its pre-callback durable sample; pure
+internal checks reuse that admitted floor. After the callback, synchronous time
+and expiry checks still reject rollback or expiration before dispatch. Generic
+explicit-observation Stores retain their existing stricter protocol.
+
+Local clock records keep their original names. First creation, legacy-record
+replacement and size changes commit both file data and the directory entry.
+Equal-size updates of an already confirmed checksummed record keep the same
+inode and fsync its data before acknowledgment; they change no directory entry.
+A torn record refuses instead of selecting an older floor. Failed fsync or
+close is not acceptance, and Store retirement waits for the original operation
+and any retained failed-close duty. Existing two-field clock records remain
+readable; configurations too small for the checksum use atomic replacement.

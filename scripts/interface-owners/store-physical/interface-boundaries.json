@@ -4091,7 +4091,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "a50abdc9579a394890a376deb95e88bfdfee66061494ee82a8c44ece0d258bee",
+      "sha256": "8c0e9ce6c140b6c98a0d1d51d847bcff0a26e9f82e9700d406262b5af8ab4af1",
       "exports": [
         "PublicationStoreError",
         "assertOriginalLocalPublicationStoreFacilityCurrent",
@@ -5143,6 +5143,35 @@
           "async": true
         },
         {
+          "name": "openOriginalLocalPublicationStore/flushClockFile/flushClockFile",
+          "parameters": [
+            "clockContractCid",
+            "snapshot",
+            "bytes"
+          ],
+          "async": true
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/flushClockFile/flushClockFile/cleanup/init:retry/init:retry",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/flushClockFile/flushClockFile/cleanup/init:retry/init:retry/init:retry",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/flushClockFile/flushClockFile/cleanup/init:retry/init:retry/init:retry#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/flushClockFile/flushClockFile/status/status",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "openOriginalLocalPublicationStore/forgetEffectCaptureCustody/forgetEffectCaptureCustody",
           "parameters": [
             "suppliedRun"
@@ -5550,16 +5579,6 @@
           "async": false
         },
         {
-          "name": "openOriginalLocalPublicationStore/observeTrustedClock/observeTrustedClock/observeTrustedClock",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/observeTrustedClock/observeTrustedClock/operation/operation",
-          "parameters": [],
-          "async": true
-        },
-        {
           "name": "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore",
           "parameters": [],
           "async": false
@@ -5893,6 +5912,13 @@
         },
         {
           "name": "openOriginalLocalPublicationStore/readClockObservation/readClockObservation",
+          "parameters": [
+            "clockContractCid"
+          ],
+          "async": true
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/readClockSnapshot/readClockSnapshot",
           "parameters": [
             "clockContractCid"
           ],
@@ -6496,6 +6522,21 @@
           "async": false
         },
         {
+          "name": "openOriginalLocalPublicationStore/sampleTrustedClock/sampleTrustedClock",
+          "parameters": [
+            "clockContractCid",
+            "sample"
+          ],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/sampleTrustedClock/sampleTrustedClock/sampleTrustedClock",
+          "parameters": [
+            "observation"
+          ],
+          "async": false
+        },
+        {
           "name": "openOriginalLocalPublicationStore/scanDeliveryAttempts/scanDeliveryAttempts",
           "parameters": [
             "query",
@@ -6518,6 +6559,51 @@
         },
         {
           "name": "openOriginalLocalPublicationStore/sharePhysicalHolding/sharePhysicalHolding/sharePhysicalHolding",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/updateTrustedClock/updateTrustedClock",
+          "parameters": [
+            "clockContractCid",
+            "suppliedAt",
+            "sample"
+          ],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/updateTrustedClock/updateTrustedClock/operation/operation",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/updateTrustedClock/updateTrustedClock/operation/operation/operation",
+          "parameters": [
+            "field"
+          ],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/updateTrustedClock/updateTrustedClock/operation/operation/operation#2",
+          "parameters": [
+            "field"
+          ],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/updateTrustedClock/updateTrustedClock/operation/operation/sameConfirmedInode/sameConfirmedInode",
+          "parameters": [
+            "field"
+          ],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/updateTrustedClock/updateTrustedClock/updateTrustedClock",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/updateTrustedClock/updateTrustedClock/updateTrustedClock#2",
           "parameters": [],
           "async": false
         },
@@ -7102,7 +7188,6 @@
       "contracts": [
         {
           "operations": [
-            "<module>",
             "acquireStoreOwnership",
             "acquireStoreOwnership/ownership/init:release/init:release",
             "cidHex/cidHex",
@@ -7306,8 +7391,6 @@
             "openOriginalLocalPublicationStore/observeOriginalModelStorageBinding/observeOriginalModelStorageBinding",
             "openOriginalLocalPublicationStore/observeOriginalModelStorageBinding/observeOriginalModelStorageBinding/bytes/bytes",
             "openOriginalLocalPublicationStore/observeTrustedClock/observeTrustedClock",
-            "openOriginalLocalPublicationStore/observeTrustedClock/observeTrustedClock/observeTrustedClock",
-            "openOriginalLocalPublicationStore/observeTrustedClock/observeTrustedClock/operation/operation",
             "openOriginalLocalPublicationStore/parseContract/parseContract",
             "openOriginalLocalPublicationStore/parseCustodyRecord/parseCustodyRecord",
             "openOriginalLocalPublicationStore/parseMetadataInventory/parseMetadataInventory",
@@ -8046,6 +8129,88 @@
               {
                 "path": "adapters/host-node/ordinary-private-evidence-initialization.test.mjs",
                 "anchor": "test('ordinary existing no-key Store cannot infer first adoption from missing key metadata'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "openOriginalLocalPublicationStore/flushClockFile/flushClockFile",
+            "openOriginalLocalPublicationStore/flushClockFile/flushClockFile/cleanup/init:retry/init:retry",
+            "openOriginalLocalPublicationStore/flushClockFile/flushClockFile/cleanup/init:retry/init:retry/init:retry",
+            "openOriginalLocalPublicationStore/flushClockFile/flushClockFile/cleanup/init:retry/init:retry/init:retry#2",
+            "openOriginalLocalPublicationStore/flushClockFile/flushClockFile/status/status",
+            "openOriginalLocalPublicationStore/readClockSnapshot/readClockSnapshot",
+            "openOriginalLocalPublicationStore/sampleTrustedClock/sampleTrustedClock",
+            "openOriginalLocalPublicationStore/sampleTrustedClock/sampleTrustedClock/sampleTrustedClock",
+            "openOriginalLocalPublicationStore/updateTrustedClock/updateTrustedClock",
+            "openOriginalLocalPublicationStore/updateTrustedClock/updateTrustedClock/operation/operation",
+            "openOriginalLocalPublicationStore/updateTrustedClock/updateTrustedClock/operation/operation/operation",
+            "openOriginalLocalPublicationStore/updateTrustedClock/updateTrustedClock/operation/operation/operation#2",
+            "openOriginalLocalPublicationStore/updateTrustedClock/updateTrustedClock/operation/operation/sameConfirmedInode/sameConfirmedInode",
+            "openOriginalLocalPublicationStore/updateTrustedClock/updateTrustedClock/updateTrustedClock",
+            "openOriginalLocalPublicationStore/updateTrustedClock/updateTrustedClock/updateTrustedClock#2"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "const updateTrustedClock = (clockContractCid, suppliedAt, sample) => {"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "const readClockObservation = async clockContractCid =>"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "const checksummed = exactKeys(value, ['clockContractCid', 'observedAt', 'contentSha256']);"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "const activePhysicalRecordWriters = new Set();"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "clockObservationsPending++;"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "fail('PublicationClockUncertain');"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/store-local/publication-clock-commit.test.mjs",
+                "anchor": "test('clock commit retains Store ownership through queued and pending file sync'"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "const bytes = checked.byteLength <= configuration.maxObjectBytes"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "They retain the original atomic replacement protocol."
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/store-local/publication-clock-commit.test.mjs",
+                "anchor": "test('clock commits reject a torn in-place record live and after reopen'"
               }
             ]
           }

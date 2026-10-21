@@ -212,6 +212,28 @@ test('retained Result contracts cannot substitute a foreign Store or control', a
   assert.equal(input.state.attempts.length, 0);
 });
 
+test('one Result operation commits once per protected authorization boundary', async () => {
+  const input = fixture(source);
+  await input.deliver();
+  assert.deepEqual(input.state.authorizations.map(facts => facts.delivery.stage),
+    ['attempt', 'read', 'write', 'finish', 'receipt']);
+  assert.equal(input.state.observations, 6,
+    'one initial admission plus one durable sample before each real callback');
+  assert.equal(input.state.finishes, 1);
+});
+
+test('Result authorization is still current after every protected callback', async () => {
+  for (const stage of ['attempt', 'read', 'write', 'finish', 'receipt']) {
+    const input = fixture(source, {authorize(_state, facts) {
+      return facts.delivery.stage !== stage;
+    }});
+    await assert.rejects(input.deliver(), {code: 'ResultDeliveryDenied'});
+    assert.equal(input.state.records.some(record => record.state === 'succeeded'), false);
+    if (['attempt', 'read', 'write'].includes(stage)) assert.equal(input.state.chunks.length, 0);
+    if (stage !== 'receipt') assert.equal(input.state.finishes, 0);
+  }
+});
+
 for (const [name, api] of [['source', source], ['packaged', packaged]]) {
   test(`${name}: later concurrent observation does not reject an earlier sample`, async () => {
     const input = fixture(api, {beforeSample(state) {
@@ -247,7 +269,7 @@ for (const [name, api] of [['source', source], ['packaged', packaged]]) {
           if (phase === 'authorization') state.wall = instant(1);
         },
         afterSample(state) {
-          if (phase === 'persistence' && state.observations === 3) {
+          if (phase === 'persistence' && state.observations === 2) {
             state.wall = instant(1);
           }
         }});

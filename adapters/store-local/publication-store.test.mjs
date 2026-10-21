@@ -1023,8 +1023,16 @@ test('trusted clock notices same-sized changes with restored modification time',
   await utimes(path, fixedTime, fixedTime);
   await store.observeTrustedClock(cids.scope, earlier);
   const before = await stat(path, {bigint: true});
-  await writeFile(path, JSON.stringify({clockContractCid: cids.scope,
-    observedAt: '2026-09-18T01:00:00.002Z'}));
+  const replacement = {clockContractCid: cids.scope,
+    observedAt: '2026-09-18T01:00:00.002Z'};
+  // Exercise a valid same-length physical replacement in either supported
+  // clock format, rather than making checksum rejection the tested boundary.
+  const original = JSON.parse(await readFile(path, 'utf8'));
+  if (original.contentSha256 !== undefined) {
+    replacement.contentSha256 = createHash('sha256')
+      .update(JSON.stringify(replacement), 'utf8').digest('hex');
+  }
+  await writeFile(path, JSON.stringify(replacement));
   await utimes(path, fixedTime, fixedTime);
   const after = await stat(path, {bigint: true});
   assert.equal(after.ino, before.ino);

@@ -1431,9 +1431,11 @@ async function openOriginalLocalPublicationStore(
   };
   const durablyConfirmedIndexes = new Map();
   const durablyConfirmedClocks = new Map();
+  const durablyConfirmedClockFiles = new Map();
   let deliveryAdmissionBusy = Promise.resolve();
   let manifestReadAdmissionBusy = Promise.resolve();
   let clockObservationBusy = Promise.resolve();
+  let clockObservationsPending = 0;
   let materialRetentionBusy = Promise.resolve();
   let metadataRetentionBusy = Promise.resolve();
   const activeResultReaders = new Map();
@@ -2045,7 +2047,7 @@ async function openOriginalLocalPublicationStore(
   let lastClockObservation;
   const sameClockFile = (left, right) => ['dev', 'ino', 'size', 'mtimeNs', 'ctimeNs']
     .every(field => left[field] === right[field]);
-  const readClockObservation = async clockContractCid => {
+  const readClockSnapshot = async clockContractCid => {
     const path = clockObservationPath(clockContractCid);
     let before;
     try {
@@ -2059,7 +2061,7 @@ async function openOriginalLocalPublicationStore(
     }
     if (lastClockObservation?.clockContractCid === clockContractCid &&
         sameClockFile(lastClockObservation.state, before)) {
-      return lastClockObservation.value;
+      return lastClockObservation;
     }
     // Keep this original metadata size as the receive ceiling, not merely the
     // Store-wide limit. Growth cannot allocate a larger readFile buffer before
@@ -2070,7 +2072,8 @@ async function openOriginalLocalPublicationStore(
     let value;
     try { value = JSON.parse(bytes.toString('utf8')); }
     catch (error) { fail('InvalidPublicationClockObservation', error); }
-    if (!exactKeys(value, ['clockContractCid', 'observedAt']) ||
+    const checksummed = exactKeys(value, ['clockContractCid', 'observedAt', 'contentSha256']);
+    if ((!checksummed && !exactKeys(value, ['clockContractCid', 'observedAt'])) ||
         value.clockContractCid !== clockContractCid ||
         typeof value.observedAt !== 'string' ||
         contractControl.trustedClockNotBefore(
@@ -2078,23 +2081,103 @@ async function openOriginalLocalPublicationStore(
         ) !== true) {
       fail('InvalidPublicationClockObservation');
     }
-    const observation = Object.freeze(value);
-    lastClockObservation = {clockContractCid, state: after, value: observation};
-    return observation;
-  };
-
-  const observeTrustedClock = (clockContractCid, observedAt) => {
-    active();
-    cidHex(clockContractCid);
-    if (typeof observedAt !== 'string' ||
-        contractControl.trustedClockNotBefore(
-          undefined, observedAt,
-        ) !== true) {
+    const observation = Object.freeze({clockContractCid, observedAt: value.observedAt});
+    if (checksummed && value.contentSha256 !== createHash('sha256')
+      .update(JSON.stringify(observation), 'utf8').digest('hex')) {
       fail('InvalidPublicationClockObservation');
     }
+    lastClockObservation = {clockContractCid, state: after, value: observation, checksummed};
+    return lastClockObservation;
+  };
+  const readClockObservation = async clockContractCid =>
+    (await readClockSnapshot(clockContractCid))?.value;
+
+  // A confirmed directory entry needs no new directory commit when neither
+  // name nor inode changes. Flush every new value on that SAME file instead.
+  // Its checksum detects interrupted fixed-length writes; a torn record is
+  // unavailable, never an excuse to recover an older floor or create a clock.
+  const flushClockFile = async (clockContractCid, snapshot, bytes) => {
+    const writer = {cleanup: undefined, failed: false};
+    let handle, closeOriginal, flight;
+    const status = () => Object.freeze({pending: handle !== undefined});
+    const cleanup = Object.freeze({status, retry() {
+      if (flight !== undefined) return flight;
+      flight = Promise.resolve().then(async () => {
+        if (handle !== undefined) {
+          if (await Reflect.apply(closeOriginal, handle, []) === false) {
+            fail('PublicationStoreCleanupPending');
+          }
+          handle = undefined;
+          closeOriginal = undefined;
+        }
+        activePhysicalRecordWriters.delete(writer);
+        return status();
+      }).finally(() => { flight = undefined; });
+      return flight;
+    }});
+    activePhysicalRecordWriters.add(writer);
+    try {
+      handle = await open(clockObservationPath(clockContractCid),
+        constants.O_RDWR | constants.O_NOFOLLOW);
+      closeOriginal = handle.close;
+      const before = await handle.stat({bigint: true});
+      if (!before.isFile() || !sameClockFile(before, snapshot.state) ||
+          bytes !== undefined && BigInt(bytes.byteLength) !== before.size) {
+        fail('PublicationClockUncertain');
+      }
+      if (bytes !== undefined) {
+        let offset = 0;
+        while (offset < bytes.byteLength) {
+          const {bytesWritten} = await handle.write(bytes, offset,
+            bytes.byteLength - offset, offset);
+          if (!Number.isSafeInteger(bytesWritten) || bytesWritten <= 0 ||
+              bytesWritten > bytes.byteLength - offset) fail('IncompletePublicationWrite');
+          offset += bytesWritten;
+        }
+      }
+      await handle.sync();
+      await cleanup.retry();
+    } catch (primary) {
+      writer.failed = true;
+      writer.cleanup = cleanup;
+      try { await cleanup.retry(); } catch {}
+      if (!status().pending) throw primary;
+      const failure = new PublicationStoreError('PublicationStoreCleanupPending', primary);
+      failure.primaryFailure = primary;
+      failure.cleanupPending = true;
+      failure.cleanupHandle = cleanup;
+      throw failure;
+    }
+  };
+
+  const updateTrustedClock = (clockContractCid, suppliedAt, sample) => {
+    active();
+    cidHex(clockContractCid);
+    if (sample === undefined && (typeof suppliedAt !== 'string' ||
+        contractControl.trustedClockNotBefore(
+          undefined, suppliedAt,
+        ) !== true)) {
+      fail('InvalidPublicationClockObservation');
+    }
+    clockObservationsPending++;
     const operation = clockObservationBusy.then(async () => {
+      for (const writer of activePhysicalRecordWriters) {
+        if (writer.failed) fail('PublicationStoreCleanupPending');
+      }
       const confirmed = durablyConfirmedClocks.get(clockContractCid);
-      const previous = await readClockObservation(clockContractCid);
+      const snapshot = await readClockSnapshot(clockContractCid);
+      const previous = snapshot?.value;
+      // The same queue reads the latest original floor BEFORE sampling. A
+      // concurrent accepted observation cannot make an earlier caller sample
+      // into a false rollback. A returned sample still owns the full commit.
+      const observedAt = sample === undefined ? suppliedAt : sample();
+      if (sample !== undefined && (typeof observedAt !== 'string' ||
+          contractControl.trustedClockNotBefore(undefined, observedAt) !== true)) {
+        fail('InvalidPublicationClockObservation');
+      }
+      const confirmedFile = durablyConfirmedClockFiles.get(clockContractCid);
+      const sameConfirmedInode = confirmedFile !== undefined && snapshot !== undefined &&
+        ['dev', 'ino', 'size'].every(field => confirmedFile[field] === snapshot.state[field]);
       // A known durable floor cannot disappear or move backwards while this
       // owner is live. Missing history is not a fresh clock admission.
       if (confirmed !== undefined && (previous === undefined ||
@@ -2107,20 +2190,42 @@ async function openOriginalLocalPublicationStore(
         fail('PublicationClockUncertain');
       }
       if (previous?.observedAt === observedAt) {
-        if (confirmed !== observedAt) {
-          await syncDirectory(clocksDirectory);
-          const current = await readClockObservation(clockContractCid);
-          if (current?.observedAt !== observedAt) {
+        if (confirmed !== observedAt || !sameClockFile(confirmedFile ?? {}, snapshot.state)) {
+          if (snapshot.checksummed) await flushClockFile(clockContractCid, snapshot);
+          if (!sameConfirmedInode) await syncDirectory(clocksDirectory);
+          const current = await readClockSnapshot(clockContractCid);
+          if (current?.value.observedAt !== observedAt ||
+              !['dev', 'ino', 'size'].every(field =>
+                current.state[field] === snapshot.state[field])) {
             fail('PublicationClockUncertain');
           }
           durablyConfirmedClocks.set(clockContractCid, observedAt);
+          durablyConfirmedClockFiles.set(clockContractCid, current.state);
         }
         return previous;
       }
       const value = Object.freeze({clockContractCid, observedAt});
-      const bytes = Buffer.from(JSON.stringify(value), 'utf8');
+      const plain = JSON.stringify(value);
+      const checked = Buffer.from(JSON.stringify({...value,
+        contentSha256: createHash('sha256').update(plain, 'utf8').digest('hex')}), 'utf8');
+      // Preserve small legacy Store configurations rather than imposing a new
+      // limit. They retain the original atomic replacement protocol.
+      const bytes = checked.byteLength <= configuration.maxObjectBytes
+        ? checked : Buffer.from(plain, 'utf8');
       if (bytes.byteLength > configuration.maxObjectBytes) {
         fail('PublicationObjectLimit');
+      }
+      if (snapshot?.checksummed && sameConfirmedInode &&
+          snapshot.state.size === BigInt(bytes.byteLength)) {
+        await flushClockFile(clockContractCid, snapshot, bytes);
+        const current = await readClockSnapshot(clockContractCid);
+        if (current?.value.observedAt !== observedAt ||
+            !['dev', 'ino', 'size'].every(field => current.state[field] === snapshot.state[field])) {
+          fail('PublicationClockUncertain');
+        }
+        durablyConfirmedClocks.set(clockContractCid, observedAt);
+        durablyConfirmedClockFiles.set(clockContractCid, current.state);
+        return current.value;
       }
       const staging = resolve(clocksDirectory, `.staging-${randomUUID()}`);
       try {
@@ -2134,15 +2239,23 @@ async function openOriginalLocalPublicationStore(
         }
         throw error;
       }
-      const current = await readClockObservation(clockContractCid);
-      if (current?.observedAt !== observedAt) {
+      const current = await readClockSnapshot(clockContractCid);
+      if (current?.value.observedAt !== observedAt) {
         fail('PublicationClockUncertain');
       }
       durablyConfirmedClocks.set(clockContractCid, observedAt);
-      return current;
+      durablyConfirmedClockFiles.set(clockContractCid, current.state);
+      return current.value;
     });
     clockObservationBusy = operation.catch(() => {});
-    return operation;
+    return operation.finally(() => { clockObservationsPending--; });
+  };
+  const observeTrustedClock = (clockContractCid, observedAt) =>
+    updateTrustedClock(clockContractCid, observedAt);
+  const sampleTrustedClock = (clockContractCid, sample) => {
+    if (typeof sample !== 'function') fail('InvalidPublicationClockObservation');
+    return updateTrustedClock(clockContractCid, undefined, sample)
+      .then(observation => observation.observedAt);
   };
 
   const reserveObjectCapacity = maxBytes => {
@@ -6677,6 +6790,7 @@ async function openOriginalLocalPublicationStore(
     putPublicationContract,
     verifyObject,
     observeTrustedClock,
+    sampleTrustedClock,
     readClockObservation,
     readSemanticBytes,
     readPrivateEvidence,
@@ -6750,7 +6864,7 @@ async function openOriginalLocalPublicationStore(
     close() {
       if (closeFlight !== undefined) return closeFlight;
       if (closed) return Promise.resolve(true);
-      if (reservedObjects !== 0 || preparedObjects.size !== 0 ||
+      if (clockObservationsPending !== 0 || reservedObjects !== 0 || preparedObjects.size !== 0 ||
           preparedSchemas.size !== 0 ||
           reclaimableCustodies.size !== 0 ||
           pendingResultDeletions.size !== 0 ||
