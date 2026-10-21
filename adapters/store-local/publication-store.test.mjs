@@ -1979,13 +1979,17 @@ test('delivery admission batches its immutable contracts and validates each once
   assert.equal(admissions.get('delivery_attempt'), 1);
   assert.equal(synced.filter(path => path === join(directory, 'contracts')).length, 1,
     'both independent immutable links share one actual containing-directory ACK');
-  assert.equal(synced.filter(path => path === join(directory, 'prepared-custody')).length, 3,
-    'two original preparation ACKs and one joint retirement ACK');
+  assert.equal(synced.filter(path => path === join(directory, 'objects')).length, 1,
+    'both closed payloads share one actual object-directory ACK');
+  assert.equal(synced.filter(path => path === join(directory, 'prepared-custody')).length, 0,
+    'no prepared holder escapes this final semantic publication');
+  assert.equal(synced.filter(path => path === join(directory, 'staging')).length, 0,
+    'transient staging deletion is not a separate logical commit');
   assert.deepEqual(await readdir(join(directory, 'prepared-custody')), []);
 });
 
 test('delivery contract batches retain the same directory ACK after partial failure', async t => {
-  for (const failedDirectory of ['contracts', 'prepared-custody']) {
+  for (const failedDirectory of ['contracts', 'objects']) {
     await t.test(failedDirectory, async t => {
       const directory = await mkdtemp(join(tmpdir(), 'actql-delivery-batch-ack-'));
       t.after(() => removeFixtureDirectory(directory));
@@ -1997,9 +2001,8 @@ test('delivery contract batches retain the same directory ACK after partial fail
         async syncDirectory(path) {
           if (armed && path === join(directory, failedDirectory)) {
             selectedSyncs++;
-            // Custody has two real preparation ACKs before retirement.
-            if (selectedSyncs > (failedDirectory === 'prepared-custody' ? 2 : 0) &&
-                failures++ < 2) throw Object.assign(new Error('batch directory ACK'), {code: 'EIO'});
+            failures++;
+            throw Object.assign(new Error('batch directory ACK'), {code: 'EIO'});
           }
           const handle = await open(path, 'r');
           try {await handle.sync();} finally {await handle.close();}
@@ -2021,10 +2024,15 @@ test('delivery contract batches retain the same directory ACK after partial fail
       assert.equal((await original.cleanupHandle.retry()).pending, false);
       assert.equal(original.cleanupPending, false);
       assert.deepEqual(await readdir(join(directory, 'prepared-custody')), []);
-      assert.deepEqual(await store.createDeliveryAttempt(wire(attempt), wire(root.grant)),
-        {attempt, created: true});
-      assert.equal(store.status().objectCount, 2, 'cleanup neither reseals nor allocates replacements');
       assert.equal(await store.close(), true);
+      const reopened = await openLocalPublicationStore({directory,
+        storeAuthorityCid: cids.authority, capacityBytes: 1024 * 1024,
+        maxObjectBytes: 65536, maxObjects: 2,
+        maxContractNodes: 4096, maxContractDepth: 64}, contractControl);
+      assert.deepEqual(await reopened.createDeliveryAttempt(wire(attempt), wire(root.grant)),
+        {attempt, created: true});
+      assert.equal(reopened.status().objectCount, 2, 'cleanup neither reseals nor allocates replacements');
+      assert.equal(await reopened.close(), true);
     });
   }
 });
@@ -2042,7 +2050,7 @@ test('delivery contract batch reclaims its first preparation if the second refus
   assert.equal(await store.close(), true);
 });
 
-test('delivery contract batch cleans the first custody while retaining a failed second writer', async t => {
+test('delivery contract batch cleans the first staging file while retaining a failed second writer', async t => {
   const {store, directory} = await fixture(t);
   const originalOpen = fsPromises.open;
   const stagingOpens = [];
@@ -2050,7 +2058,7 @@ test('delivery contract batch cleans the first custody while retaining a failed 
   fsPromises.open = async function(path, ...args) {
     const handle = await Reflect.apply(originalOpen, this, [path, ...args]);
     if (String(path).startsWith(join(directory, 'staging') + sep)) stagingOpens.push({path, flags: args[0]});
-    if (String(path).startsWith(join(directory, 'staging') + sep) && ++acquisitions === 3) {
+    if (String(path).startsWith(join(directory, 'staging') + sep) && ++acquisitions === 2) {
       retained = handle; retainedFd = handle.fd;
       const close = handle.close;
       handle.close = function() {
@@ -2078,7 +2086,7 @@ test('delivery contract batch cleans the first custody while retaining a failed 
     refuseClose = false;
     assert.equal((await original.cleanupHandle.retry()).pending, false);
     assert.equal(retained.fd, -1);
-    assert.equal(acquisitions, 3, 'cleanup never opens a replacement writer');
+    assert.equal(acquisitions, 2, 'cleanup never opens a replacement writer');
     assert.equal(store.status().objectCount, 0);
     assert.equal(store.status().reservedObjects, 0);
     assert.deepEqual(await readdir(join(directory, 'prepared-custody')), []);

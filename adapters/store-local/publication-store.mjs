@@ -2598,178 +2598,180 @@ async function openOriginalLocalPublicationStore(
   // Semantic contract identities exclude their self-CID field and therefore
   // are deliberately not the physical digest of the stored complete body.
   // The binding is an exclusive hard link to one immutable physical object.
-  const putSemantic = async (wire, semanticCid) => {
-    if (typeof wire !== 'string' ||
-        Buffer.byteLength(wire, 'utf8') > configuration.maxObjectBytes) {
-      fail('InvalidPublicationSemanticWire');
+  const putSemanticBatch = async supplied => {
+    active();
+    for (const pending of activePhysicalRecordWriters) {
+      if (pending.failed) fail('PublicationStoreCleanupPending');
     }
-    cidHex(semanticCid);
-    const bytes = Buffer.from(wire, 'utf8');
-    const physical = await putBytesInternal(bytes, undefined, true);
-    const target = contractPath(semanticCid);
-    let created = true;
-    try {
-      try {
-        await link(objectPath(physical.cid), target);
-      } catch (error) {
-        if (error?.code !== 'EEXIST') throw error;
-        created = false;
-        const existing = await readBounded(
-          target, configuration.maxObjectBytes,
-        );
-        if (!existing.equals(bytes)) {
-          fail('PublicationSemanticIdentityConflict');
-        }
+    // This private caller supplies one semantic body, or the two already
+    // admitted delivery contracts. No prepared holder escapes between writes
+    // and their final names, so no intermediate durable custody is needed.
+    const items = supplied.map(({wire, semanticCid}) => {
+      if (typeof wire !== 'string' ||
+          Buffer.byteLength(wire, 'utf8') > configuration.maxObjectBytes) {
+        fail('InvalidPublicationSemanticWire');
       }
-      await syncDirectory(contractsDirectory);
-      if (physical.custody !== undefined) {
-        await removeCustodyRecord(physical.custody);
-      }
-      const visible = Object.freeze({
-        cid: physical.cid,
-        bytes: physical.bytes,
-        created: physical.created,
-      });
-      return Object.freeze({semanticCid, physical: visible, created});
-    } catch (error) {
-      if (physical.custody === undefined ||
-          !reclaimableCustodies.has(physical.custody.token)) throw error;
-      const cleanupErrors = [];
-      try { await reclaimCustody(physical.custody); }
-      catch (cleanupError) { cleanupErrors.push(cleanupError); }
-      if (!reclaimableCustodies.has(physical.custody.token)) throw error;
-      const failure = new PublicationStoreError(
-        typeof error?.code === 'string'
-          ? error.code : 'PublicationSemanticWriteFailed',
-        error,
-      );
-      failure.primaryFailure = error;
-      const status = () => Object.freeze({
-        pending: reclaimableCustodies.has(physical.custody.token),
-        errors: Object.freeze([...cleanupErrors]),
-      });
-      failure.cleanupPending = true;
-      failure.cleanupErrors = status().errors;
-      failure.cleanupHandle = Object.freeze({
-        status,
-        async retry() {
-          try { await reclaimCustody(physical.custody); }
-          catch (cleanupError) {
-            cleanupErrors.push(cleanupError);
-            throw cleanupError;
-          } finally {
-            failure.cleanupPending = status().pending;
-            failure.cleanupErrors = status().errors;
-          }
-          return status();
-        },
-      });
-      throw failure;
-    }
-  };
-
-  // The delivery admission queue already admitted both immutable contracts.
-  // Their separate original payload/custody preparations remain durable;
-  // publish their links and retire their custodies as two bounded batches.
-  const putDeliveryContracts = async (grant, attempt) => {
-    const items = [grant, attempt].map(contract => ({contract,
-      physical: undefined, linkAttempted: false, linked: false}));
-    let contractsPending = false;
-    const pendingCustodies = selected => selected.flatMap(item =>
-      item.physical?.custody !== undefined &&
-        reclaimableCustodies.has(item.physical.custody.token)
-        ? [item.physical.custody] : []);
-    const retireCustodies = async selected => {
-      const originals = pendingCustodies(selected);
-      if (originals.length === 0) return;
-      for (const custody of originals) {
-        try { await unlink(custody.path); }
-        catch (error) { if (error?.code !== 'ENOENT') throw error; }
-      }
-      // No original is retired before this real shared directory ACK.
-      await syncDirectory(custodyDirectory);
-      for (const custody of originals) reclaimableCustodies.delete(custody.token);
+      cidHex(semanticCid);
+      const bytes = Buffer.from(wire, 'utf8');
+      return {wire, semanticCid, bytes,
+        cid: `sha256:${createHash('sha256').update(bytes).digest('hex')}`,
+        handle: undefined, close: undefined, temporary: undefined,
+        reservation: undefined, state: undefined, objectLinkAttempted: false,
+        accounted: false, objectCreated: false, created: true};
+    });
+    const writer = {cleanup: undefined, failed: false};
+    const dirty = new Set();
+    activePhysicalRecordWriters.add(writer);
+    const account = item => {
+      if (item.accounted) return;
+      storedBytes += item.bytes.byteLength;
+      objectCount++;
+      item.accounted = item.objectCreated = true;
     };
-    try {
-      for (const item of items) {
-        item.physical = await putBytesInternal(
-          Buffer.from(item.contract.wire, 'utf8'), undefined, true);
+    const syncNames = async () => {
+      for (const directory of [objectsDirectory, contractsDirectory]) {
+        if (!dirty.has(directory)) continue;
+        await syncDirectory(directory);
+        dirty.delete(directory);
       }
-      for (const item of items) {
-        item.linkAttempted = true;
-        contractsPending = true;
-        try {
-          await link(objectPath(item.physical.cid), contractPath(item.contract.identity));
-        } catch (error) {
-          if (error?.code !== 'EEXIST') throw error;
-          const existing = await readBounded(
-            contractPath(item.contract.identity), configuration.maxObjectBytes);
-          if (!exactUtf8WireMatches(existing, item.contract.wire)) {
-            fail('PublicationSemanticIdentityConflict');
+    };
+    let flight, failure;
+    const status = () => Object.freeze({pending: dirty.size !== 0 || items.some(item =>
+      item.handle !== undefined || item.temporary !== undefined || item.reservation?.held)});
+    const cleanup = Object.freeze({status, retry() {
+      if (flight !== undefined) return flight;
+      flight = Promise.resolve().then(async () => {
+        let firstFailure, failed = false;
+        // Each original FD can retire independently. A failed second close
+        // must not retain an already closed unpublished first staging file.
+        for (const item of items) {
+          try {
+            if (item.handle !== undefined) {
+              if (item.close === undefined) item.close = item.handle.close;
+              if (await Reflect.apply(item.close, item.handle, []) === false) {
+                fail('PublicationStoreCleanupPending');
+              }
+              item.handle = item.close = undefined;
+            }
+            if (item.objectLinkAttempted && !item.accounted) {
+              let original;
+              try { original = await lstat(objectPath(item.cid)); }
+              catch (error) { if (error?.code !== 'ENOENT') throw error; }
+              // Observe a lost link reply without reissuing the link/write.
+              if (original?.isFile() && original.dev === item.state.dev &&
+                  original.ino === item.state.ino) account(item);
+            }
+            if (item.temporary !== undefined) {
+              try { await unlink(item.temporary); }
+              catch (error) { if (error?.code !== 'ENOENT') throw error; }
+              item.temporary = undefined;
+            }
+            item.reservation?.release();
+          } catch (error) {
+            if (!failed) firstFailure = error;
+            failed = true;
           }
         }
-        item.linked = true;
+        // Complete only those original final-name ACKs already attempted.
+        // Completed immutable objects remain charged in the Store inventory;
+        // a failed semantic publication is not permission to refill capacity.
+        try { await syncNames(); } catch (error) {
+          if (!failed) firstFailure = error;
+          failed = true;
+        }
+        if (!status().pending) activePhysicalRecordWriters.delete(writer);
+        if (failed) throw firstFailure;
+        return status();
+      }).finally(() => {
+        flight = undefined;
+        if (failure !== undefined) failure.cleanupPending = status().pending;
+      });
+      return flight;
+    }});
+    try {
+      for (const item of items) {
+        try {
+          const existing = await verifyObject(item.cid);
+          if (existing.bytes !== item.bytes.byteLength) fail('PublicationObjectIdentityMismatch');
+          continue;
+        } catch (error) { if (error?.code !== 'PublicationObjectMissing') throw error; }
+        item.reservation = reserveObjectCapacity(item.bytes.byteLength);
+        item.temporary = resolve(stagingDirectory, `object-${randomUUID()}`);
+        item.handle = await open(item.temporary,
+          constants.O_CREAT | constants.O_EXCL | constants.O_WRONLY, 0o600);
+        item.close = item.handle.close;
+        let offset = 0;
+        while (offset < item.bytes.byteLength) {
+          const {bytesWritten} = await item.handle.write(item.bytes, offset,
+            item.bytes.byteLength - offset, offset);
+          if (!quantity(bytesWritten) || bytesWritten === 0 ||
+              bytesWritten > item.bytes.byteLength - offset) fail('IncompletePublicationWrite');
+          offset += bytesWritten;
+        }
+        await item.handle.sync();
+        item.state = await item.handle.stat();
+        if (!item.state.isFile() || item.state.size !== item.bytes.byteLength) {
+          fail('IncompletePublicationWrite');
+        }
+        if (await Reflect.apply(item.close, item.handle, []) === false) {
+          fail('PublicationStoreCleanupPending');
+        }
+        item.handle = item.close = undefined;
       }
-      await syncDirectory(contractsDirectory);
-      contractsPending = false;
-      await retireCustodies(items);
+      for (const item of items) {
+        if (item.temporary === undefined) continue;
+        if (reclaimingMaterialCids.has(item.cid)) fail('PublicationObjectReclamationPending');
+        item.objectLinkAttempted = true;
+        dirty.add(objectsDirectory);
+        try { await link(item.temporary, objectPath(item.cid)); account(item); }
+        catch (error) {
+          if (error?.code !== 'EEXIST') throw error;
+          if ((await verifyObject(item.cid)).bytes !== item.bytes.byteLength) {
+            fail('PublicationObjectIdentityMismatch');
+          }
+        }
+      }
+      await syncNames();
+      for (const item of items) {
+        dirty.add(contractsDirectory);
+        try { await link(objectPath(item.cid), contractPath(item.semanticCid)); }
+        catch (error) {
+          if (error?.code !== 'EEXIST') throw error;
+          item.created = false;
+          const existing = await readBounded(contractPath(item.semanticCid), configuration.maxObjectBytes);
+          if (!exactUtf8WireMatches(existing, item.wire)) fail('PublicationSemanticIdentityConflict');
+        }
+      }
+      await syncNames();
+      // Staging names never establish durable state. They are unlinked only
+      // after original close; a name resurrected by a crash is removed by the
+      // existing exclusive opening recovery, not interpreted as a commit.
+      await cleanup.retry();
+      return Object.freeze(items.map(item => Object.freeze({semanticCid: item.semanticCid,
+        physical: Object.freeze({cid: item.cid, bytes: item.bytes.byteLength,
+          created: item.objectCreated}), created: item.created})));
     } catch (primary) {
-      // A failed second preparation may itself own an original FD. Retain
-      // that same child in addition to the first prepared allocation.
-      const child = primary?.cleanupHandle;
-      const childStatus = child?.status, childRetry = child?.retry;
-      let unknownChild = primary?.cleanupPending === true &&
-        (typeof childStatus !== 'function' || typeof childRetry !== 'function');
-      let flight, failure;
-      const childPending = () => {
-        if (unknownChild) return true;
-        if (typeof childStatus !== 'function') return false;
-        try { return Reflect.apply(childStatus, child, []).pending !== false; }
-        catch { unknownChild = true; return true; }
-      };
-      const status = () => Object.freeze({pending: contractsPending ||
-        pendingCustodies(items).length !== 0 || childPending()});
-      const cleanup = Object.freeze({status, retry() {
-        if (flight !== undefined) return flight;
-        flight = Promise.resolve().then(async () => {
-          if (childPending() && !unknownChild) await Reflect.apply(childRetry, child, []);
-          // Observe a possibly completed original link; never repeat a write
-          // or replace an unknown allocation with a new preparation.
-          for (const item of items) {
-            if (!item.linkAttempted || item.linked) continue;
-            let semantic;
-            try { semantic = await lstat(contractPath(item.contract.identity)); }
-            catch (error) { if (error?.code === 'ENOENT') continue; throw error; }
-            const physical = await lstat(objectPath(item.physical.cid));
-            if (semantic.isFile() && physical.isFile() &&
-                semantic.dev === physical.dev && semantic.ino === physical.ino) {
-              item.linked = true;
-            }
-          }
-          if (contractsPending) {
-            await syncDirectory(contractsDirectory);
-            contractsPending = false;
-          }
-          await retireCustodies(items.filter(item => item.linked));
-          for (const custody of pendingCustodies(items.filter(item => !item.linked))) {
-            await reclaimCustody(custody);
-          }
-          return status();
-        }).finally(() => {
-          flight = undefined;
-          if (failure !== undefined) failure.cleanupPending = status().pending;
-        });
-        return flight;
-      }});
+      writer.failed = true;
+      writer.cleanup = cleanup;
       try { await cleanup.retry(); } catch {}
       if (!status().pending) throw primary;
-      failure = new PublicationStoreError(
-        primary?.code ?? 'PublicationSemanticWriteFailed', primary);
+      failure = new PublicationStoreError(primary?.code ?? 'PublicationSemanticWriteFailed', primary);
       failure.primaryFailure = primary;
       failure.cleanupPending = true;
       failure.cleanupHandle = cleanup;
       throw failure;
     }
+  };
+
+  const putSemantic = async (wire, semanticCid) =>
+    (await putSemanticBatch([{wire, semanticCid}]))[0];
+
+  // Both immutable inputs were admitted by the existing delivery queue.
+  // They share final-name durability, without an exported prepared interval.
+  const putDeliveryContracts = async (grant, attempt) => {
+    await putSemanticBatch([grant, attempt].map(contract => ({
+      wire: contract.wire, semanticCid: contract.identity,
+    })));
   };
 
   const parsePreparedSchema = bytes => {

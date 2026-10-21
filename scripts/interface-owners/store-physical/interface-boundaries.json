@@ -4091,7 +4091,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "c18bfd2a416b57af2103256d803c44b1d6477ce457ea1338ed896264af1fb071",
+      "sha256": "89298b9c73c7c411fea9d59e04588554ab605846a0cf9b1acea3e419e1cea72e",
       "exports": [
         "PublicationStoreError",
         "assertOriginalLocalPublicationStoreFacilityCurrent",
@@ -5849,70 +5849,10 @@
           "async": true
         },
         {
-          "name": "openOriginalLocalPublicationStore/putDeliveryContracts/putDeliveryContracts/childPending/childPending",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/putDeliveryContracts/putDeliveryContracts/cleanup/init:retry/init:retry",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/putDeliveryContracts/putDeliveryContracts/cleanup/init:retry/init:retry/init:retry",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/putDeliveryContracts/putDeliveryContracts/cleanup/init:retry/init:retry/init:retry/init:retry",
-          "parameters": [
-            "item"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/putDeliveryContracts/putDeliveryContracts/cleanup/init:retry/init:retry/init:retry/init:retry#2",
-          "parameters": [
-            "item"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/putDeliveryContracts/putDeliveryContracts/cleanup/init:retry/init:retry/init:retry#2",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/putDeliveryContracts/putDeliveryContracts/items/items",
+          "name": "openOriginalLocalPublicationStore/putDeliveryContracts/putDeliveryContracts/putDeliveryContracts",
           "parameters": [
             "contract"
           ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/putDeliveryContracts/putDeliveryContracts/pendingCustodies/pendingCustodies",
-          "parameters": [
-            "selected"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/putDeliveryContracts/putDeliveryContracts/pendingCustodies/pendingCustodies/pendingCustodies",
-          "parameters": [
-            "item"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/putDeliveryContracts/putDeliveryContracts/retireCustodies/retireCustodies",
-          "parameters": [
-            "selected"
-          ],
-          "async": true
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/putDeliveryContracts/putDeliveryContracts/status/status",
-          "parameters": [],
           "async": false
         },
         {
@@ -5956,14 +5896,65 @@
           "async": true
         },
         {
-          "name": "openOriginalLocalPublicationStore/putSemantic/putSemantic/init:retry/init:retry",
+          "name": "openOriginalLocalPublicationStore/putSemanticBatch/putSemanticBatch",
+          "parameters": [
+            "supplied"
+          ],
+          "async": true
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/putSemanticBatch/putSemanticBatch/account/account",
+          "parameters": [
+            "item"
+          ],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/putSemanticBatch/putSemanticBatch/cleanup/init:retry/init:retry",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/putSemanticBatch/putSemanticBatch/cleanup/init:retry/init:retry/init:retry",
           "parameters": [],
           "async": true
         },
         {
-          "name": "openOriginalLocalPublicationStore/putSemantic/putSemantic/status/status",
+          "name": "openOriginalLocalPublicationStore/putSemanticBatch/putSemanticBatch/cleanup/init:retry/init:retry/init:retry#2",
           "parameters": [],
           "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/putSemanticBatch/putSemanticBatch/items/items",
+          "parameters": [
+            "wire",
+            "semanticCid"
+          ],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/putSemanticBatch/putSemanticBatch/putSemanticBatch",
+          "parameters": [
+            "item"
+          ],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/putSemanticBatch/putSemanticBatch/status/status",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/putSemanticBatch/putSemanticBatch/status/status/status",
+          "parameters": [
+            "item"
+          ],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/putSemanticBatch/putSemanticBatch/syncNames/syncNames",
+          "parameters": [],
+          "async": true
         },
         {
           "name": "openOriginalLocalPublicationStore/readClockObservation/readClockObservation",
@@ -7536,8 +7527,6 @@
             "openOriginalLocalPublicationStore/putPreparedResultSchema/putPreparedResultSchema/putPreparedResultSchema/putPreparedResultSchema",
             "openOriginalLocalPublicationStore/putPublicationContract/putPublicationContract",
             "openOriginalLocalPublicationStore/putSemantic/putSemantic",
-            "openOriginalLocalPublicationStore/putSemantic/putSemantic/init:retry/init:retry",
-            "openOriginalLocalPublicationStore/putSemantic/putSemantic/status/status",
             "openOriginalLocalPublicationStore/readClockObservation/readClockObservation",
             "openOriginalLocalPublicationStore/readCommittedResultDescriptionEvidence/readCommittedResultDescriptionEvidence",
             "openOriginalLocalPublicationStore/readCommittedResultDescriptionEvidence/readCommittedResultDescriptionEvidence/bindings/bindings",
@@ -8317,18 +8306,7 @@
         },
         {
           "operations": [
-            "openOriginalLocalPublicationStore/putDeliveryContracts/putDeliveryContracts",
-            "openOriginalLocalPublicationStore/putDeliveryContracts/putDeliveryContracts/childPending/childPending",
-            "openOriginalLocalPublicationStore/putDeliveryContracts/putDeliveryContracts/cleanup/init:retry/init:retry",
-            "openOriginalLocalPublicationStore/putDeliveryContracts/putDeliveryContracts/cleanup/init:retry/init:retry/init:retry",
-            "openOriginalLocalPublicationStore/putDeliveryContracts/putDeliveryContracts/cleanup/init:retry/init:retry/init:retry/init:retry",
-            "openOriginalLocalPublicationStore/putDeliveryContracts/putDeliveryContracts/cleanup/init:retry/init:retry/init:retry/init:retry#2",
-            "openOriginalLocalPublicationStore/putDeliveryContracts/putDeliveryContracts/cleanup/init:retry/init:retry/init:retry#2",
-            "openOriginalLocalPublicationStore/putDeliveryContracts/putDeliveryContracts/items/items",
-            "openOriginalLocalPublicationStore/putDeliveryContracts/putDeliveryContracts/pendingCustodies/pendingCustodies",
-            "openOriginalLocalPublicationStore/putDeliveryContracts/putDeliveryContracts/pendingCustodies/pendingCustodies/pendingCustodies",
-            "openOriginalLocalPublicationStore/putDeliveryContracts/putDeliveryContracts/retireCustodies/retireCustodies",
-            "openOriginalLocalPublicationStore/putDeliveryContracts/putDeliveryContracts/status/status"
+            "openOriginalLocalPublicationStore/putDeliveryContracts/putDeliveryContracts"
           ],
           "exports": [],
           "attributes": {
@@ -8353,7 +8331,7 @@
             "ownership": [
               {
                 "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "const items = [grant, attempt].map(contract => ({contract,"
+                "anchor": "await putSemanticBatch([grant, attempt].map(contract => ({"
               }
             ],
             "synchronization": [
@@ -8371,13 +8349,13 @@
             "cancellation": [
               {
                 "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "await retireCustodies(items.filter(item => item.linked));"
+                "anchor": "await cleanup.retry();"
               }
             ],
             "resources": [
               {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "for (const custody of originals) reclaimableCustodies.delete(custody.token);"
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "directory names and original reservations are bounded by the one or two input"
               }
             ],
             "extension": [
@@ -8460,6 +8438,84 @@
               {
                 "path": "adapters/store-local/publication-store.test.mjs",
                 "anchor": "test('delivery record append and confirmation admit each unchanged original once', async t => {"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "openOriginalLocalPublicationStore/putDeliveryContracts/putDeliveryContracts/putDeliveryContracts",
+            "openOriginalLocalPublicationStore/putSemanticBatch/putSemanticBatch",
+            "openOriginalLocalPublicationStore/putSemanticBatch/putSemanticBatch/account/account",
+            "openOriginalLocalPublicationStore/putSemanticBatch/putSemanticBatch/cleanup/init:retry/init:retry",
+            "openOriginalLocalPublicationStore/putSemanticBatch/putSemanticBatch/cleanup/init:retry/init:retry/init:retry",
+            "openOriginalLocalPublicationStore/putSemanticBatch/putSemanticBatch/cleanup/init:retry/init:retry/init:retry#2",
+            "openOriginalLocalPublicationStore/putSemanticBatch/putSemanticBatch/items/items",
+            "openOriginalLocalPublicationStore/putSemanticBatch/putSemanticBatch/putSemanticBatch",
+            "openOriginalLocalPublicationStore/putSemanticBatch/putSemanticBatch/status/status",
+            "openOriginalLocalPublicationStore/putSemanticBatch/putSemanticBatch/status/status/status",
+            "openOriginalLocalPublicationStore/putSemanticBatch/putSemanticBatch/syncNames/syncNames"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "Direct semantic writes use the same protocol for a single immutable metadata"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "const putSemanticBatch = async supplied => {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "cid: `sha256:${createHash('sha256').update(bytes).digest('hex')}`,"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "activePhysicalRecordWriters.add(writer);"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "for (const directory of [objectsDirectory, contractsDirectory]) {"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "failure = new PublicationStoreError(primary?.code ?? 'PublicationSemanticWriteFailed', primary);"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "if (item.close === undefined) item.close = item.handle.close;"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "the existing Store inventory even if its semantic publication failed. Recovery"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "Prepared-object/Content holders still use their separate original custody"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/store-local/semantic-publication-commit.test.mjs",
+                "anchor": "test('semantic metadata commits its payload and final names without intermediate custody persistence', async t => {"
               }
             ]
           }

@@ -133,23 +133,41 @@ layout/bootstrap costs remain unknown, and existing limits do not increase.
 ## Delivery admission durability batches
 
 The existing delivery-admission queue admits its grant and attempt once before
-writing their immutable originals. Each payload and prepared-custody record
-still receives its own original data and preparation-directory durability
-acknowledgements. After both preparations finish, their semantic hard links
-share one contracts-directory acknowledgement. Their custody-record removals
-then share one custody-directory acknowledgement; neither original leaves the
-Store's pending set before that acknowledgement succeeds.
+writing their immutable originals. The same Store's direct semantic batch
+file-syncs and closes each payload before linking either final object. Both
+objects share an objects-directory acknowledgement; both semantic hard links
+then share a contracts-directory acknowledgement. No prepared holder escapes
+between these writes and publication, so this path does not persist separate
+prepared-custody records or their later deletion.
 
 Only after this bounded batch succeeds may the existing delivery-attempt
 directory consume the grant. Failure preserves the original cause and a
-single-flight cleanup of the same prepared allocations and any failed writer.
-Cleanup observes a possibly completed original link, confirms its containing
-directory, and retires custody without resealing, allocating a replacement or
-repeating delivery. An independently reclaimed unpublished first allocation
-does not acknowledge a second writer's still-open FD. The original use quota,
+single-flight cleanup of the same allocations and any failed writer. Cleanup
+observes a possibly completed original link and confirms its containing
+directory without resealing, allocating a replacement or repeating delivery.
+An independently removed unpublished first staging file does not acknowledge a
+second writer's still-open FD. The original use quota,
 append-only records, commit uncertainty and separate physical-close duties
 remain unchanged. This changes transaction granularity, not wire identities,
 permission or the meaning of a durability acknowledgement.
+
+Direct semantic writes use the same protocol for a single immutable metadata
+contract. Payload data, final object names and final semantic names have real
+durability acknowledgements before success. Transient staging aliases do not
+establish committed state: their native FDs close before unlink, and existing
+exclusive opening recovery removes any such alias resurrected by a crash.
+Prepared-object/Content holders still use their separate original custody
+protocol; they are not converted to direct semantic writes.
+
+If an object link completed before a failed reply, its actual inode is observed
+without repeating the write. A completed immutable object remains charged to
+the existing Store inventory even if its semantic publication failed. Recovery
+and an explicit same-wire retry can reuse it; neither an error nor a crash
+refunds it or issues new authority. A pending final-name acknowledgement stays
+under the same Store writer duty, and Store close cannot release ownership
+before its original native and directory duties finish. Buffers, pending
+directory names and original reservations are bounded by the one or two input
+contracts and the Store's existing limits, not an additional capacity grant.
 
 ## Delivery record operation reuse
 
