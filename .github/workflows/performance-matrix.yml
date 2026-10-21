@@ -59,15 +59,35 @@ jobs:
         run: node scripts/ordinary-operation-packages.mjs prepare "$RUNNER_TEMP/ordinary-operation/packages" "$GITHUB_SHA" "$RUNNER_TEMP/ordinary-operation/prepared"
       - name: Measure completed public operations from the installed cohort
         run: |
+          mkdir "$RUNNER_TEMP/ordinary-operation/measurement"
           node scripts/benchmark-node-operations.mjs \
             --manifest "$RUNNER_TEMP/ordinary-operation/packages/ordinary-operation-packages.json" \
             --consumer "$RUNNER_TEMP/ordinary-operation/prepared/consumer" \
-            --output "$RUNNER_TEMP/ordinary-operation/measurement" \
+            --output "$RUNNER_TEMP/ordinary-operation/measurement/warm" \
             --controls "$RUNNER_TEMP/ordinary-operation/prepared/controls.json" \
             --mode final
+      - name: Measure existing-state reads in new processes
+        run: |
+          node scripts/benchmark-node-process-operations.mjs \
+            --manifest "$RUNNER_TEMP/ordinary-operation/packages/ordinary-operation-packages.json" \
+            --consumer "$RUNNER_TEMP/ordinary-operation/prepared/consumer" \
+            --output "$RUNNER_TEMP/ordinary-operation/measurement/cold-existing" \
+            --controls "$RUNNER_TEMP/ordinary-operation/prepared/controls.json" \
+            --mode final --operation cold-existing
+      - name: Measure first initialization in distinct new states
+        run: |
+          node scripts/benchmark-node-process-operations.mjs \
+            --manifest "$RUNNER_TEMP/ordinary-operation/packages/ordinary-operation-packages.json" \
+            --consumer "$RUNNER_TEMP/ordinary-operation/prepared/consumer" \
+            --output "$RUNNER_TEMP/ordinary-operation/measurement/first-init" \
+            --controls "$RUNNER_TEMP/ordinary-operation/prepared/controls.json" \
+            --mode final --operation first-init
+      - name: Bind actual reports to the same cohort and raw samples
+        if: always()
+        run: node scripts/ordinary-operation-packages.mjs combine "$RUNNER_TEMP/ordinary-operation"
       - name: Require measured latency and structural release evidence
         if: always()
-        run: node scripts/operation-performance.mjs --input "$RUNNER_TEMP/ordinary-operation/measurement/measurements.json" --output "$RUNNER_TEMP/ordinary-operation/assessment.json"
+        run: node scripts/operation-performance.mjs --input "$RUNNER_TEMP/ordinary-operation/measurements.json" --output "$RUNNER_TEMP/ordinary-operation/assessment.json"
       - name: Retain raw measurements and incomplete or failed assessment
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
@@ -77,8 +97,9 @@ jobs:
             ${{ runner.temp }}/ordinary-operation/producer.json
             ${{ runner.temp }}/ordinary-operation/packages/ordinary-operation-packages.json
             ${{ runner.temp }}/ordinary-operation/prepared/controls.json
-            ${{ runner.temp }}/ordinary-operation/measurement/*.json
-            ${{ runner.temp }}/ordinary-operation/measurement/*.jsonl
+            ${{ runner.temp }}/ordinary-operation/measurements.json
+            ${{ runner.temp }}/ordinary-operation/measurement/*/*.json
+            ${{ runner.temp }}/ordinary-operation/measurement/*/*.jsonl
             ${{ runner.temp }}/ordinary-operation/assessment.json
           if-no-files-found: warn
           retention-days: 30

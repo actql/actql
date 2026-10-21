@@ -9,7 +9,7 @@ import {join, resolve} from 'node:path';
 import {pathToFileURL} from 'node:url';
 import {CLIENT_PACKAGES, checkoutState} from './packed-client-packages.mjs';
 import {inventory, unpack} from './package-release.mjs';
-import {nodeWarmProtocol} from './benchmark-node-operations.mjs';
+import {nodeOperationProtocol} from './benchmark-node-operations.mjs';
 
 const hash = (value, algorithm = 'sha256', encoding = 'hex') =>
   createHash(algorithm).update(value).digest(encoding);
@@ -103,9 +103,59 @@ export async function prepareOrdinaryPerformanceConsumer({packages, sourceSha, o
   const environment = {platform: platform(), arch: arch(), osRelease: release(), node: process.version,
     cpuModel: cpus()[0].model, logicalCpus: cpus().length, memoryBytes: totalmem()};
   const controls = {sourceSha, cohortSha256: hash(await readFile(manifestPath)), environment, load: 'isolated',
-    historyProtocolSha256: hash(JSON.stringify(nodeWarmProtocol('final')))};
+    historyProtocolSha256: hash(JSON.stringify(nodeOperationProtocol('final')))};
   await writeFile(join(output, 'controls.json'), JSON.stringify(controls, null, 2) + '\n', {flag: 'wx'});
   return {manifestPath, consumer, controlsPath: join(output, 'controls.json')};
+}
+
+// Join only these existing collectors' actual reports. Missing families stay
+// absent for the full assessor; no counters, samples or successful rows are made up.
+export async function combineOrdinaryPerformanceMeasurements(root) {
+  root = resolve(root);
+  const controls = JSON.parse(await readFile(join(root, 'prepared/controls.json'), 'utf8'));
+  const manifest = await readFile(join(root, 'packages/ordinary-operation-packages.json'));
+  assert.equal(controls.cohortSha256, hash(manifest));
+  assert.equal(controls.sourceSha, JSON.parse(manifest).sourceSha);
+  assert.equal(controls.historyProtocolSha256, hash(JSON.stringify(nodeOperationProtocol('final'))));
+  const binding = {cohortSha256: controls.cohortSha256,
+    environmentSha256: hash(JSON.stringify(controls.environment)),
+    historyProtocolSha256: controls.historyProtocolSha256};
+  const combined = {sourceSha: controls.sourceSha, ...binding, latency: [],
+    functional: {...binding, rows: []}, collectors: [],
+    qualification: 'Actual warm and process reports only; unmeasured release gates remain incomplete.'};
+  for (const [family, operations] of Object.entries({warm: ['warm-select', 'warm-result', 'warm-status'],
+    'cold-existing': ['cold-existing'], 'first-init': ['first-init']})) {
+    const directory = join(root, 'measurement', family);
+    let bytes;
+    try { bytes = await readFile(join(directory, 'measurements.json')); }
+    catch (error) { if (error.code === 'ENOENT') continue; throw error; }
+    assert(bytes.length <= 16 * 1024 ** 2, 'Collector report exceeds assessor input bound');
+    const report = JSON.parse(bytes);
+    assert.equal(report.sourceSha, combined.sourceSha, 'Collector source differs');
+    for (const [key, value] of Object.entries(binding)) {
+      assert.equal(report[key], value, `Collector ${key} differs`);
+      assert.equal(report.functional[key], value, `Functional ${key} differs`);
+    }
+    assert.equal(report.mode, 'final');
+    const seen = new Set();
+    for (const series of report.latency) {
+      assert(operations.includes(series.operation) && !seen.has(series.operation), 'Foreign or duplicate operation');
+      seen.add(series.operation);
+    }
+    assert(report.functional.rows.every(row => seen.has(row.operation)));
+    const raw = await readFile(join(directory, 'samples.jsonl'), 'utf8');
+    assert(Buffer.byteLength(raw) <= 16 * 1024 ** 2, 'Raw samples exceed assessor input bound');
+    assert.deepEqual(raw.split('\n').filter(Boolean).map(line => JSON.parse(line)),
+      report.latency.flatMap(series => series.samples.map(sample => ({operation: series.operation, ...sample}))),
+      'Raw measurements differ from collector samples');
+    combined.latency.push(...report.latency);
+    combined.functional.rows.push(...report.functional.rows);
+    combined.collectors.push({family, reportSha256: hash(bytes), rawSha256: hash(raw),
+      cleanup: report.cleanup, firstFailure: report.firstFailure ?? null});
+  }
+  const output = join(root, 'measurements.json');
+  await writeFile(output, JSON.stringify(combined, null, 2) + '\n', {flag: 'wx'});
+  return output;
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
@@ -116,6 +166,9 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
       console.log(JSON.stringify(await inspectPerformancePackageProducer({repository: process.env.GITHUB_REPOSITORY,
         sourceSha: process.env.GITHUB_SHA, runId: process.env.PACKAGE_RUN_ID,
         artifactId: process.env.PACKAGE_ARTIFACT_ID, token: process.env.GITHUB_TOKEN})));
+    } else if (command === 'combine') {
+      assert.equal(args.length, 1);
+      console.log(await combineOrdinaryPerformanceMeasurements(args[0]));
     } else {
       assert.equal(command, 'prepare'); assert.equal(args.length, 3);
       const before = checkoutState(process.cwd());
