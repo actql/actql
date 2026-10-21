@@ -4687,10 +4687,9 @@ async function openOriginalLocalPublicationStore(
         fail('PublicationCommitEvidenceMismatch');
       }
     }
-    const boundPhysicalCids = [];
+    const verifiedBindings = [];
     for (const contract of suppliedEvidence.durableBindings) {
-      const verified = await verifyDurableResultBinding(contract, readOriginal);
-      boundPhysicalCids.push(verified.binding.material_generation_cid);
+      verifiedBindings.push(await verifyDurableResultBinding(contract, readOriginal));
     }
     const attemptStored = await readContract(
       entry.publication_attempt_cid, 'publication_attempt', readOriginal,
@@ -4726,7 +4725,7 @@ async function openOriginalLocalPublicationStore(
       fail('InvalidPublicationCommitChain', error);
     }
     if (chainValid !== true) fail('InvalidPublicationCommitChain');
-    return boundPhysicalCids;
+    return Object.freeze(verifiedBindings);
   };
 
   const validateCommittedEvidence = async (
@@ -4753,7 +4752,7 @@ async function openOriginalLocalPublicationStore(
     if (committed?.public_index_entry_cid !== admitted.identity) {
       fail('InvalidCommittedPublicationIndex');
     }
-    const boundPhysicalCids = await verifyCommitEvidence(
+    const verifiedBindings = await verifyCommitEvidence(
       admitted, entry, suppliedEvidence, undefined,
     );
     const expectedContent = await confirmCapturedContentHoldings(
@@ -4762,7 +4761,7 @@ async function openOriginalLocalPublicationStore(
     if (inventory?.physical_holding_cids.join('\0') !== expectedContent.join('\0')) {
       fail('InvalidPublicationMetadataInventoryStore');
     }
-    await adoptPreparedObjects(boundPhysicalCids);
+    await adoptPreparedObjects(verifiedBindings.map(value => value.physical.cid));
     return true;
   };
 
@@ -5015,10 +5014,10 @@ async function openOriginalLocalPublicationStore(
       return semanticOriginals.get(cid);
     };
     for (const cid of required) await readOriginal(cid);
-    let boundPhysicalCids;
+    let verifiedBindings;
     let physicalHoldingCids = [];
     if (effectfulEvidence === undefined) {
-      boundPhysicalCids = await verifyCommitEvidence(
+      verifiedBindings = await verifyCommitEvidence(
         admitted, entry, suppliedEvidence, required, readOriginal,
       );
       physicalHoldingCids = [...await confirmCapturedContentHoldings(
@@ -5039,10 +5038,9 @@ async function openOriginalLocalPublicationStore(
           fail('IncompletePublicationCommitInventory');
         }
       }
-      boundPhysicalCids = [];
+      verifiedBindings = [];
       for (const binding of suppliedEvidence.durableBindings) {
-        const verified = await verifyDurableResultBinding(binding, readOriginal);
-        boundPhysicalCids.push(verified.binding.material_generation_cid);
+        verifiedBindings.push(await verifyDurableResultBinding(binding, readOriginal));
       }
       physicalHoldingCids = [
         inspected.privateHoldingCid,
@@ -5055,11 +5053,15 @@ async function openOriginalLocalPublicationStore(
           suppliedEvidence.runDefinition),
       ].sort();
     }
+    const boundPhysicalCids = verifiedBindings.map(value => value.physical.cid);
+    const bindingSchemas = new Map();
+    for (const value of verifiedBindings) {
+      bindingSchemas.set(value.binding.durable_result_binding_cid, value.schema.cid);
+    }
     const inventorySemanticCids = Object.freeze([...new Set([
       ...requiredObjectCids,
       admitted.identity,
-      ...suppliedEvidence.durableBindings.map(contract =>
-        parseContract(contract).result_schema_cid),
+      ...verifiedBindings.map(value => value.schema.cid),
     ])].sort());
     const previous = await latestRecordContract(entry.publication_attempt_cid);
     if (previous === undefined ||
@@ -5095,10 +5097,10 @@ async function openOriginalLocalPublicationStore(
         ];
         for (const bindingCid of
           existingCommit.durable_result_binding_cids) {
-          const binding = (await readContract(
+          const schemaCid = bindingSchemas.get(bindingCid) ?? (await readContract(
             bindingCid, 'durable_result_binding', readOriginal,
-          )).value;
-          directlyRequired.push(binding.result_schema_cid);
+          )).value.result_schema_cid;
+          directlyRequired.push(schemaCid);
         }
         if (inventory === undefined ||
             inventory.public_index_entry_cid !==
@@ -5112,7 +5114,10 @@ async function openOriginalLocalPublicationStore(
         }
       },
       async stage() {
-        await putPublicationContract('public_index_entry', admitted.wire);
+        // The exact Index was admitted at this operation's public entry.
+        // Persist that immutable body; this internal write is not another
+        // input boundary. All actual semantic file/directory ACKs remain.
+        await putSemantic(admitted.wire, admitted.identity);
         const inventoryContractObjects = await bindMetadataContractObjects(
           inventorySemanticCids, readOriginal,
         );
