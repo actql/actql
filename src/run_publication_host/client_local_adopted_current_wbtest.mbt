@@ -257,7 +257,7 @@ test "scope retains one immutable projection but each new operation checks curre
   let again = client_local_adopted_authority_scope_body(
     material, store, "operator", "local-files",
   ).unwrap()
-  assert_true(physical_equal(first, again))
+  assert_eq(first, again)
   assert_eq(calls.val, 3)
   let other = client_local_adopted_authority_scope_body(
     material, store, "other", "local-files",
@@ -271,6 +271,38 @@ test "scope retains one immutable projection but each new operation checks curre
     ) is Err(ChangedCurrent),
   )
   assert_eq(calls.val, 5)
+}
+
+///|
+// Model the mutable byte view available to a Host/FFI consumer. This private
+// test intrinsic is the inverse of FixedArray::unsafe_reinterpret_as_bytes;
+// it changes the returned buffer, not a copied array used only by the test.
+fn adopted_current_test_buffer_view(value : Bytes) -> FixedArray[Byte] = "%identity"
+
+///|
+test "returned scope buffer mutation cannot change the retained canonical projection" {
+  let store = Ref(0)
+  let material = bind_client_local_adopted_host_material(store, () => {
+    adopted_current_test_ok(adopted_current_test_observation(store))
+  }).unwrap()
+  let first = client_local_adopted_authority_scope_body(
+    material, store, "operator", "local-files",
+  ).unwrap()
+  let expected = Bytes::makei(first.length(), index => first[index])
+  let exposed = adopted_current_test_buffer_view(first)
+  exposed[0] = b'!'
+  assert_true(first != expected)
+  let again = client_local_adopted_authority_scope_body(
+    material, store, "operator", "local-files",
+  ).unwrap()
+  assert_eq(again, expected)
+  adopted_current_test_buffer_view(again)[0] = b'?'
+  assert_eq(
+    client_local_adopted_authority_scope_body(
+      material, store, "operator", "local-files",
+    ).unwrap(),
+    expected,
+  )
 }
 
 ///|
