@@ -270,10 +270,12 @@ const selectionChanged = cause => {
 const updateObservations = owners => owners.map(owner => ({installation: ownerBinding(owner),
   update: owner.owned.kinds.includes('update'),
   ...(owner.owned.kinds.includes('delete') ? {delete: true} : {}),
+  ...(owner.storeMappings.length === 0 ? {} : {store: true}),
   mappings: owner.installed.map(mapping => ({
     target: mapping.target, mappingRef: mapping.mappingRef, mappingCid: mapping.mappingCid,
     update: mapping.rules.some(rule => rule.effect_kind === 'update'),
-    ...(mapping.rules.some(rule => rule.effect_kind === 'delete') ? {delete: true} : {})}))}));
+    ...(mapping.rules.some(rule => rule.effect_kind === 'delete') ? {delete: true} : {}),
+    ...(owner.storeMappings.includes(mapping) ? {store: true} : {})}))}));
 const validateOwnerSelections = (owners, selections, prepared) => {
   if (selections === undefined) return undefined;
   try { assertUpdateTargetSelectionCurrent(selections, updateObservations(owners), prepared); }
@@ -474,6 +476,8 @@ export async function createInstalledRowEffect({moon, mappings = [], commands = 
     return Object.freeze({...mapping, target: body.target_ref,
       primaryIdentity: body.primary_identity,
       rules: Object.freeze(body.permission_rules ?? []),
+      ...(body.store_command === undefined ? {} : {
+        storeCommand: Object.freeze({...body.store_command})}),
       approval: body.minimum_approval});
   }));
   const installedCommands = Object.freeze(commands.map(command => {
@@ -494,9 +498,29 @@ export async function createInstalledRowEffect({moon, mappings = [], commands = 
   }));
   if (new Set(installedCommands.map(item => item.commandRef)).size !==
       installedCommands.length) fail('InvalidInstalledRowEffectCommand');
+  // STORE's checked Mapping resolves to a Command, but it remains a distinct
+  // original selection purpose. Retain the exact published pair beside its
+  // actual Command driver; a generic command or UPDATE flag is not STORE.
+  const storeMappings = Object.freeze(!owned.kinds.includes('command') ? [] :
+    installed.filter(mapping => mapping.storeCommand !== undefined).map(mapping => {
+      const pair = mapping.storeCommand;
+      const catalogs = JSON.parse(environmentWire).connector_catalogs;
+      const commands = installedCommands.filter(command => command.commandRef === pair.command_ref &&
+        command.commandCid === pair.command_contract_cid && command.resource === mapping.resource);
+      const {mapping_contract_cid: self, ...body} = JSON.parse(mapping.body);
+      if (Object.keys(pair).sort().join('\0') !==
+          ['catalog_cid', 'command_contract_cid', 'command_ref'].join('\0') ||
+          self !== mapping.mappingCid || cid(body) !== self || commands.length !== 1 ||
+          !Array.isArray(catalogs) || catalogs.filter(catalog => catalog.catalog_cid === pair.catalog_cid &&
+            catalog.commands.some(command => command.command_id === pair.command_ref &&
+              command.contract_cid === pair.command_contract_cid)).length !== 1) {
+        fail('InvalidInstalledRowEffectStoreMapping');
+      }
+      return mapping;
+    }));
   await mkdir(ledgerRoot, {recursive: true, mode: 0o700});
   return createRowEffectStage([Object.freeze({moon, limits, owned, profile,
-    installed, installedCommands, environmentWire, connectorId,
+    installed, installedCommands, storeMappings, environmentWire, connectorId,
     connectorRegistration, connectorRevision, connection, site, authorization,
     runtimeBundleCid, bindingCid, ledgerRoot, continuationBinding, resources,
     issueOriginalCollectionReference})], environmentWire);

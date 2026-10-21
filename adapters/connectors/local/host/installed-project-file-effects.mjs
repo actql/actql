@@ -65,14 +65,17 @@ export async function installPreparedProjectLocalFileEffects({moon,preparation,s
       const target=prepareLocalFileStoreTarget(moon,{declaredWire:entry.wire,
         connectorId:entry.connectorId,rootPath:entry.rootPath,scopeCid:entry.scopeCid,
         authorityScopeCid:authorization.context.contextCid,assertCurrent:current,...declarationLimits});
-      const declared=JSON.parse(target.declarationWire),command=JSON.parse(target.commandWire);
+      const declared=JSON.parse(target.declarationWire),command=JSON.parse(target.commandWire),
+        mapping=JSON.parse(target.mappingWire);
       const environment=rowSourceCheckEnvironment(baseEnvironmentWire,declared,[target.mappingWire]);
       const limits=Object.freeze({...LOCAL_STORE_LIMITS,maxFileBytes:entry.limits.maxFileBytes});
       const {driver,site}=createLocalFileStoreDriver({entry,target,command,bindingCid,principalId,
         authorization,assertCurrent:current,resources,limits,nativeFilesystem});
       let effect;
       try{
-        effect=await createInstalledRowEffect({moon,mappings:[],
+        effect=await createInstalledRowEffect({moon,
+          mappings:[{resource:'files',mappingRef:mapping.mapping_ref,
+            mappingCid:mapping.mapping_contract_cid,body:target.mappingWire}],
           commands:[{resource:'files',commandRef:command.command_id,
             commandCid:command.contract_cid,body:target.commandWire}],
           environmentWire:environment.wire,connectorId:entry.connectorId,

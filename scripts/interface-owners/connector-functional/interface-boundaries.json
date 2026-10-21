@@ -4077,7 +4077,7 @@
     },
     {
       "module": "adapters/host-node/installed-row-effect.mjs",
-      "sha256": "0a622c0955e402419bdc38dc9ae04738322be02d668877a35c8e7a3051e10821",
+      "sha256": "207e73cf7c5e3e520b6c53164ad8ca8dd1ed333ece556f59c6469fb37681b645",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral installed row/Command Effect hooks; original capture/Preview/Ledger/apply/publication owners retain authority",
@@ -4337,6 +4337,41 @@
           "name": "createInstalledRowEffect/installedCommands/installedCommands",
           "parameters": [
             "command"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffect/storeMappings/storeMappings",
+          "parameters": [
+            "mapping"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffect/storeMappings/storeMappings/commands/commands",
+          "parameters": [
+            "command"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffect/storeMappings/storeMappings/storeMappings",
+          "parameters": [
+            "catalog"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffect/storeMappings/storeMappings/storeMappings/storeMappings",
+          "parameters": [
+            "command"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffect/storeMappings/storeMappings#2",
+          "parameters": [
+            "mapping"
           ],
           "async": false
         },
@@ -6074,7 +6109,12 @@
             "createRowEffectStage/prepareRecovered/finish/finish/previewRows/previewRows",
             "createRowEffectStage/prepareRecovered/finish/finish/reconcileStoredResponses/reconcileStoredResponses",
             "createRowEffectStage/prepareRecovered/finish/finish/reconcileStoredResponses/reconcileStoredResponses/recovery/recovery",
-            "createRowEffectStage/prepareRecovered/finish/finish/reconcileStoredResponses/reconcileStoredResponses/recovery/recovery#2"
+            "createRowEffectStage/prepareRecovered/finish/finish/reconcileStoredResponses/reconcileStoredResponses/recovery/recovery#2",
+            "createInstalledRowEffect/storeMappings/storeMappings",
+            "createInstalledRowEffect/storeMappings/storeMappings/commands/commands",
+            "createInstalledRowEffect/storeMappings/storeMappings/storeMappings",
+            "createInstalledRowEffect/storeMappings/storeMappings/storeMappings/storeMappings",
+            "createInstalledRowEffect/storeMappings/storeMappings#2"
           ],
           "exports": [
             "composeInstalledRowEffectOwners",
@@ -6386,6 +6426,10 @@
               {
                 "path": "adapters/host-node/installed-row-effect-routing.test.mjs",
                 "anchor": "test("
+              },
+              {
+                "path": "adapters/connectors/local/host/local-file-store-declaration.actual.test.mjs",
+                "anchor": "test('actual Local STORE current selection refuses missing purpose foreign owner and foreign preparation'"
               },
               {
                 "path": "src/query_integration/client_requested_effect_stop_wbtest.mbt",

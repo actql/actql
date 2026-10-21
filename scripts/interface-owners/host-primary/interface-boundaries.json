@@ -4448,7 +4448,7 @@
     },
     {
       "module": "adapters/host-node/embedded-local.mjs",
-      "sha256": "db93e6b738fe59ed0f8a32a8ca7aeeb6df97c9c3094202a88033e3c23bc85269",
+      "sha256": "0bd254118011d8e18a1746c2ad6f153b2968abddd23cc4788eae64b6eaa2fa1c",
       "exports": [
         "admitOriginalHostRootFormat",
         "assertInitialControlHostPreparation",
@@ -6665,20 +6665,6 @@
           "async": false
         },
         {
-          "name": "openInstalledHost/recoveredInstalledEffect/recoveredInstalledEffect",
-          "parameters": [
-            "member"
-          ],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/recoveredInstalledEffect/recoveredInstalledEffect#2",
-          "parameters": [
-            "member"
-          ],
-          "async": false
-        },
-        {
           "name": "openInstalledHost/releaseLocalSigningRecovery",
           "parameters": [
             "recovered"
@@ -7947,9 +7933,7 @@
             "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareInferSelection/prepareInferSelection/prepareInferSelection",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareInferSelection/prepareInferSelection/prepareInferSelection#2",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/recoverEffectCapture/recoverEffectCapture/recoverEffectCapture#3",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/flight/flight/init:assertContinuationCurrent/init:assertContinuationCurrent",
-            "openInstalledHost/recoveredInstalledEffect/recoveredInstalledEffect",
-            "openInstalledHost/recoveredInstalledEffect/recoveredInstalledEffect#2"
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/flight/flight/init:assertContinuationCurrent/init:assertContinuationCurrent"
           ],
           "exports": [],
           "attributes": {
@@ -10224,7 +10208,6 @@
         }
       ],
       "imports": [
-        "../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js",
         "../../_build/native/directory-darwin-arm64.node",
         "../../_build/native/directory-darwin-x64.node",
         "../../packages/client-wire/index.mjs",
@@ -10325,7 +10308,9 @@
         "node:url"
       ],
       "compilerFields": [],
-      "unresolvedSyntax": [],
+      "unresolvedSyntax": [
+        "runtime-dependent module dependency requires original owner/artifact mapping"
+      ],
       "referenceQualification": "Existing Host/Source/Resource and compiler-binding responsibilities only. Declaration coverage and explicit-port tests do not issue capacity, authority, cleanup ACK or installed acceptance."
     },
     {
@@ -12650,7 +12635,7 @@
   ],
   "counts": {
     "modules": 16,
-    "operations": 751,
+    "operations": 766,
     "exports": 93,
     "explicitContractGroups": 43
   }
