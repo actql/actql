@@ -9095,7 +9095,7 @@
               },
               {
                 "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "const stored = await putSemanticBatch(admitted.map(({contract}) => ({"
+                "anchor": "const stored = await putSemanticBatch(admitted.filter(({contract}) =>"
               },
               {
                 "path": "adapters/store-local/publication-store.mjs",
