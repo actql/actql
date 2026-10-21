@@ -233,7 +233,15 @@ test('live package material binding refuses copied and foreign original tuples',
   const proof = issuePreparedEffectRunMaterials(original.allowed, original.definition, original.request);
   const foreign = issued(document, 'completion-free');
   const foreignProof = issuePreparedEffectRunMaterials(foreign.allowed, foreign.definition, foreign.request);
+  const foreignDefinition = issueEffectRunDefinition(foreign.allowed, 'foreign-scope', 'foreign-run',
+    '2026-10-09T00:00:00.000Z', '2098-01-01T00:00:00.000Z');
   const wrongRequest = prepareEffectRequest(original.prepared, original.compilation, fixed('c'), 'other-request');
+  // Run definitions are canonical contracts. A second genuine handle with
+  // exactly the same Run wire is not a different Run or a new permission.
+  assert.equal(privateRunDefinition(foreign.definition).wire, privateRunDefinition(original.definition).wire);
+  const sameRun = bindPreparedEffectRunMaterials(original.allowed, foreign.definition, proof, original.request);
+  assert.equal(sameRun.definition, foreign.definition);
+  assert.equal(restoreEffectRunNormalization(sameRun).wire, JSON.parse(proof.wire).normalization_journal_json);
   for (const args of [
     [{...original.allowed}, original.definition, proof, original.request],
     [original.allowed, {...original.definition}, proof, original.request],
@@ -242,7 +250,7 @@ test('live package material binding refuses copied and foreign original tuples',
   ]) assert.throws(() => bindPreparedEffectRunMaterials(...args), /ForeignRunHostHandle/u);
   for (const args of [
     [foreign.allowed, original.definition, proof, original.request],
-    [original.allowed, foreign.definition, proof, original.request],
+    [original.allowed, foreignDefinition, proof, original.request],
     [original.allowed, original.definition, foreignProof, original.request],
     [original.allowed, original.definition, proof, wrongRequest],
   ]) assert.throws(() => bindPreparedEffectRunMaterials(...args),
