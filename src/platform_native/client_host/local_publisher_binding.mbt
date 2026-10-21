@@ -207,6 +207,26 @@ fn NativeLocalPublisherBinding::current_in_owned_transaction(
 }
 
 ///|
+// A publication callback already owns the original Journal transaction. Join
+// that explicit read fence; attempting another BEGIN would reject the same
+// current publisher. Other callbacks acquire their own bounded snapshot.
+fn NativeClientRunJournal::publisher_current_snapshot(
+  self : NativeClientRunJournal,
+  current : () -> Bool,
+  reads? : NativeClientJournalReadAccess? = None,
+) -> Bool {
+  if self.publication_read_locked {
+    if !self.transaction_active ||
+      self.fenced ||
+      client_journal_transaction_fenced(self.database, reads) {
+      return false
+    }
+    return current()
+  }
+  self.transaction_with_reads(() => Ok(current()), reads~) is Ok(true)
+}
+
+///|
 fn NativeLocalPublisherBinding::current_in_mode(
   self : NativeLocalPublisherBinding,
   join_owned_transaction : Bool,
@@ -219,11 +239,10 @@ fn NativeLocalPublisherBinding::current_in_mode(
     // Scope, Account and selected Run belong to one private synchronous
     // predicate. Keep one existing SQLite snapshot around all of them rather
     // than opening a new target transaction after each material getter.
-    return journal.transaction_with_reads(
-        () => Ok(self.current_in_mode(true, reads~)),
-        reads~,
-      )
-      is Ok(true)
+    return journal.publisher_current_snapshot(
+      () => self.current_in_mode(true, reads~),
+      reads~,
+    )
   }
   if join_owned_transaction &&
     (
