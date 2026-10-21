@@ -48,6 +48,8 @@ fn command_preparation_cleanup_kind(
     CommandBusinessChildren => "business-children"
     CommandBusinessPublication => "business-publication"
     CommandBusinessStore(_) => "business-store"
+    CommandRunObservationPending => "run-observation-pending"
+    CommandRunObservationStore(_) => "run-observation-store"
     CommandBusinessResult(_) => "business-result"
     CommandBusinessFileOutput(_) => "business-file-output"
     CommandPair(value) =>
@@ -297,6 +299,11 @@ fn LocalCommandPreparationOriginal::execute_adopted_command(
   public_run? : Bool = false,
   preparation_runtime? : LocalPackagedRuntime? = None,
 ) -> String raise ClientStop {
+  // This selected status route returns State only on success. Its failures
+  // are command diagnostics, never a legacy Run/Unknown response container.
+  if operation == "status" {
+    command_preparation_diagnostic.val = RunObservationFailed
+  }
   let session = command_preparation_result(
     self.prepare_adoption(
       {
@@ -350,6 +357,9 @@ fn LocalCommandPreparationOriginal::execute_adopted_command(
     stage=Some("journal-open"),
   )
   |> ignore
+  if operation == "status" {
+    command_preparation_result(self.prepare_run_observation_operation())
+  }
   let crypto = self.inner_library.unwrap()
   command_preparation_result(
     self.read_command(fn(host, capture) {
@@ -387,6 +397,9 @@ fn LocalCommandPreparationOriginal::execute_adopted_command(
             capture=Some(capture),
           )
         } else if operation == "status" {
+          let runtime = preparation_runtime.unwrap_or_else(() => {
+            stop("LocalRunObservationOriginalUnavailable")
+          })
           local_saved_run_status_command(
             host,
             settings,
@@ -394,6 +407,11 @@ fn LocalCommandPreparationOriginal::execute_adopted_command(
             input_root,
             child,
             capture=Some(capture),
+            original_reader=Some(id => {
+              self.refresh_run_observation_state(
+                host, capture, settings, name, runtime, id,
+              )
+            }),
           )
         } else if local_quick_query_requested(operation, child) {
           let runtime = preparation_runtime.unwrap_or_else(() => {

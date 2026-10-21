@@ -1,0 +1,372 @@
+///|
+// Caller retention within the existing command. Observation owns no Work,
+// business domain, Result grant, Reader or replacement installation.
+priv struct LocalCommandRunObservationOriginal {
+  operation : @local_host.NativeLocalStoreOperation
+  mut root_bridge : @local_sqlite.NativeStoreOperationOriginal?
+  mut store : @local_store.Store?
+  mut failure : @local_store.NativePublicationStoreOpenFailure?
+  mut parent : @local_filesystem.Root?
+  mut parent_failure : @local_filesystem.NativeRootOpenFailure?
+  mut root : @local_filesystem.Root?
+  mut root_failure : @local_filesystem.NativeRootOpenFailure?
+  mut namespace : String?
+  mut attempted : Bool
+  mut store_issue : @local_store.NativePublicationStoreIssue?
+}
+
+///|
+// Construct the routing receiver in outer control before entering the command
+// Read. Activation and all original/configuration checks occur before Store IO.
+fn LocalCommandPreparationOriginal::prepare_run_observation_operation(
+  self : LocalCommandPreparationOriginal,
+) -> Result[Unit, LocalCommandPreparationIssue] {
+  guard self.host is Some(host) &&
+    self.pair is Some(pair) &&
+    self.journal is Some(capture) &&
+    self.runtime is Some(runtime) &&
+    self.business is None &&
+    self.run_observation is None &&
+    !self.phase_open &&
+    !self.journal_read_open &&
+    !self.closing &&
+    !self.closed else {
+    return Err(CommandRunObservationPending)
+  }
+  let library = match host.borrow_local_host_sqlite(pair) {
+    Ok(value) => value
+    Err(issue) => return Err(CommandPair(issue))
+  }
+  let operation = match
+    @local_host.prepare_native_local_run_observation_store_operation(
+      capture, runtime, library,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(CommandStoreOperation(issue))
+  }
+  self.run_observation = Some({
+    operation,
+    root_bridge: None,
+    store: None,
+    failure: None,
+    parent: None,
+    parent_failure: None,
+    root: None,
+    root_failure: None,
+    namespace: None,
+    attempted: false,
+    store_issue: None,
+  })
+  Ok(())
+}
+
+///|
+fn LocalCommandPreparationOriginal::open_run_observation_store(
+  self : LocalCommandPreparationOriginal,
+  library : @local_sqlite.Library,
+  managed : String,
+  run : LocalRunInstallation,
+) -> @local_store.Store raise ClientStop {
+  guard self.run_observation is Some(original) &&
+    self.business is None &&
+    self.journal_read_open &&
+    !self.closing &&
+    !self.closed else {
+    stop("LocalRunObservationOriginalUnavailable")
+  }
+  if original.store is Some(store) {
+    guard original.namespace == Some(run.namespace_id) &&
+      original.root_bridge is Some(bridge) &&
+      store.matches_original_operation(bridge) else {
+      stop("LocalRunObservationForeignStore")
+    }
+    return store
+  }
+  if original.attempted {
+    stop("LocalRunObservationStoreUnavailable")
+  }
+  // A failed first acquisition never becomes a second open or initializer.
+  original.attempted = true
+  original.namespace = Some(run.namespace_id)
+  command_preparation_result(
+    original.operation.activate().map_err(issue => CommandStoreOperation(issue)),
+  )
+  let bridge = original.operation
+    .sqlite_original()
+    .unwrap_or_else(() => stop("LocalRunObservationOriginalUnavailable"))
+  original.root_bridge = Some(bridge)
+  let parent = match
+    @local_filesystem.open_private_root_in_current_read_context_with_custody(
+      managed,
+      self.profile.diagnostic_ceiling,
+    ) {
+    Ok(value) => {
+      original.parent = Some(value)
+      value
+    }
+    Err(failure) => {
+      original.parent_failure = Some(failure)
+      stop("LocalRunObservationRootCleanupPending")
+    }
+  }
+  match parent.inspect_directory(run.store_name) {
+    Ok(Some(_)) => ()
+    Ok(None) => stop("LocalOriginalStoreUnavailable")
+    Err(_) => stop("LocalRunObservationStoreCustodyUnavailable")
+  }
+  let root = match parent.open_child_with_custody(run.store_name) {
+    Ok(value) => {
+      original.root = Some(value)
+      value
+    }
+    Err(failure) => {
+      original.root_failure = Some(failure)
+      stop("LocalRunObservationRootCleanupPending")
+    }
+  }
+  root
+  .private_ownership()
+  .unwrap_or_else(() => stop("LocalRunObservationStoreCustodyUnavailable"))
+  |> ignore
+  match
+    @local_store.open_original_local_store_with_custody(
+      library,
+      bridge,
+      managed + "/" + run.store_name,
+      run.store_authority_cid,
+      run.store_capacity_bytes,
+      run.store_objects,
+      run.store_record_bytes,
+      existing=true,
+      diagnostic_ceiling=Some(self.profile.diagnostic_ceiling),
+    ) {
+    Ok(store) => {
+      original.store = Some(store)
+      store
+    }
+    Err(CleanupRequired(failure)) => {
+      original.failure = Some(failure)
+      original.store_issue = Some(failure.issue())
+      stop("LocalRunObservationStoreCleanupPending")
+    }
+    Err(RefusedBeforeAcquisition(issue)) => {
+      original.store_issue = Some(issue)
+      stop("LocalRunObservationStoreUnavailable")
+    }
+  }
+}
+
+///|
+// Run only after the borrowed command Read returns. The same Store mirror is
+// reconciled before lower-level scope recovery, child close or Root retirement.
+fn LocalCommandPreparationOriginal::close_run_observation(
+  self : LocalCommandPreparationOriginal,
+) -> Result[Unit, LocalCommandPreparationIssue] {
+  guard self.run_observation is Some(original) else { return Ok(()) }
+  if self.journal_read_open || self.phase_open {
+    return Err(CommandRunObservationPending)
+  }
+  if original.store is Some(store) {
+    match store.reconcile_original_return() {
+      Err(issue) => return Err(CommandRunObservationStore(issue))
+      Ok(_) => ()
+    }
+  }
+  match original.operation.pending_scope() {
+    Err(issue) => return Err(CommandStoreOperation(issue))
+    Ok(true) =>
+      match original.operation.retry_scope_cleanup() {
+        Err(issue) => return Err(CommandStoreOperation(issue))
+        Ok(_) => ()
+      }
+    Ok(false) => ()
+  }
+  if original.failure is Some(failure) {
+    match failure.retry_cleanup() {
+      Err(issue) => return Err(CommandRunObservationStore(issue))
+      Ok(_) => original.failure = None
+    }
+  }
+  if original.store is Some(store) {
+    match store.close() {
+      Err(issue) => return Err(CommandRunObservationStore(issue))
+      Ok(_) => original.store = None
+    }
+  }
+  if original.parent is Some(_) ||
+    original.parent_failure is Some(_) ||
+    original.root is Some(_) ||
+    original.root_failure is Some(_) {
+    guard original.root_bridge is Some(bridge) else {
+      return Err(CommandRunObservationPending)
+    }
+    match bridge.enter_cleanup_work() {
+      Err(issue) =>
+        return Err(CommandStoreOperation(StoreOperationSqlite(issue)))
+      Ok(_) => ()
+    }
+    let closed = original.close_root_descriptors()
+    let returned = bridge.leave_store()
+    match (closed, returned) {
+      (Err(issue), _) => return Err(issue)
+      (Ok(_), Err(issue)) =>
+        return Err(CommandStoreOperation(StoreOperationSqlite(issue)))
+      (Ok(_), Ok(_)) => {
+        original.root_failure = None
+        original.root = None
+        original.parent_failure = None
+        original.parent = None
+      }
+    }
+  }
+  original.root_bridge = None
+  match original.operation.close_checked() {
+    Err(issue) => Err(CommandStoreOperation(issue))
+    Ok(_) => {
+      self.run_observation = None
+      Ok(())
+    }
+  }
+}
+
+///|
+fn LocalCommandRunObservationOriginal::close_root_descriptors(
+  self : LocalCommandRunObservationOriginal,
+) -> Result[Unit, LocalCommandPreparationIssue] {
+  if self.root_failure is Some(failure) {
+    match failure.retry_cleanup() {
+      Err(issue) => return Err(CommandFilesystemCleanup(issue))
+      Ok(_) => ()
+    }
+  }
+  if self.root is Some(root) {
+    match root.close() {
+      Err(issue) => return Err(CommandFilesystemCleanup(issue))
+      Ok(_) => ()
+    }
+  }
+  if self.parent_failure is Some(failure) {
+    match failure.retry_cleanup() {
+      Err(issue) => return Err(CommandFilesystemCleanup(issue))
+      Ok(_) => ()
+    }
+  }
+  if self.parent is Some(parent) {
+    match parent.close() {
+      Err(issue) => return Err(CommandFilesystemCleanup(issue))
+      Ok(_) => ()
+    }
+  }
+  Ok(())
+}
+
+///|
+// Exact current RunRead selection precedes any Store open. The adopted Runtime
+// and original namespace join this same installed Store; no Result read grant
+// or business installation is selected merely to observe availability.
+fn LocalCommandPreparationOriginal::refresh_run_observation_state(
+  self : LocalCommandPreparationOriginal,
+  host : @local_host.NativeLocalHostConnection,
+  capture : @local_host.NativeLocalJournalCapture,
+  settings : LocalHostSettings,
+  configuration_name : String,
+  runtime : LocalPackagedRuntime,
+  id : String,
+) -> @local_host.NativeClientSavedRunStateSelection raise ClientStop {
+  guard self.journal is Some(actual_capture) &&
+    physical_equal(actual_capture, capture) &&
+    capture.original_host() is Some(actual_host) &&
+    physical_equal(actual_host, host) &&
+    self.runtime is Some(actual_runtime) &&
+    physical_equal(actual_runtime, runtime.physical) &&
+    self.run_observation is Some(observation) &&
+    self.business is None &&
+    self.journal_read_open &&
+    !self.closing &&
+    !self.closed &&
+    self.primary is None else {
+    stop("LocalRunObservationOriginalUnavailable")
+  }
+  let configuration = local_check_original_text(
+    local_host_result(
+      capture.selected_configuration_in_original_read(configuration_name),
+    ),
+  )
+  let (environment_name, _) = local_configuration(configuration)
+  let run_file = settings.run_file.unwrap_or_else(() => {
+    stop("LocalRunOriginalNotSelected")
+  })
+  local_host_result(
+    capture.bind_packaged_runtime_in_original_read(
+      runtime.physical,
+      settings.principal,
+      settings.connection,
+      environment_name,
+      run_file,
+      "runtime.json",
+    ),
+  )
+  |> ignore
+  local_host_result(capture.require_packaged_runtime_upgrade_in_original_read())
+  |> ignore
+  let original = match
+    local_host_result(
+      capture.lookup_submitted_run_original_by_id_in_original_read(
+        settings.principal,
+        settings.connection,
+        id,
+      ),
+    ) {
+    Ok(value) => value
+    Err(issue) => stop(local_saved_state_issue(issue))
+  }
+  let scope = local_host_result(
+    capture.authority_scope_cid_in_original_read(
+      settings.principal,
+      settings.connection,
+    ),
+  )
+  let reference = local_original_run_reference(original.definition(), scope)
+  guard reference is Object(fields) &&
+    json_text(fields, "namespaceId") is Some(namespace_id) else {
+    stop("LocalOriginalRunUnavailable")
+  }
+  let run = local_run_installation(
+    local_check_original_text(
+      local_host_result(
+        capture.selected_configuration_in_original_read(run_file),
+      ),
+    ),
+  )
+  if run.namespace_id != namespace_id {
+    stop("LocalOriginalRunReferenceMismatch")
+  }
+  let managed = local_host_result(capture.managed_root_path_in_original_read()).unwrap_or_else(() => {
+      stop("LocalManagedRootRequired")
+    },
+  )
+  local_host_result(capture.check_current_in_original_read()) |> ignore
+  guard self.host is Some(physical) && self.pair is Some(pair) else {
+    stop("LocalRunObservationOriginalUnavailable")
+  }
+  let library = physical
+    .borrow_local_host_sqlite(pair)
+    .unwrap_or_else(() => stop("LocalRunObservationOriginalUnavailable"))
+  let store = self.open_run_observation_store(library, managed, run)
+  let refreshed = local_host_result(
+    capture.refresh_original_run_availability_in_original_read(
+      settings.principal,
+      settings.connection,
+      original,
+      store,
+      namespace_id,
+      observation.operation,
+      local_utc_now(),
+      @env.now().to_double(),
+    ),
+  )
+  match refreshed {
+    Ok(value) => value
+    Err(issue) => stop(local_saved_state_issue(issue))
+  }
+}

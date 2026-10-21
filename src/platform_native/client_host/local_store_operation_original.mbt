@@ -14,6 +14,14 @@ priv enum LocalStoreOperationPhase {
 } derive(Eq)
 
 ///|
+// The observation route owns only the existing Host Read/SQLite pair. It has
+// no retained execution to suspend or resume, and cannot enter business work.
+priv enum LocalStoreOperationDomain {
+  StoreBusinessDomain(@arena.InstalledArenaRetainedExecution)
+  StoreRunObservationDomain
+}
+
+///|
 pub(all) enum NativeLocalStoreOperationIssue {
   StoreOperationUnavailable
   StoreOperationForeignOriginal
@@ -28,7 +36,7 @@ pub(all) enum NativeLocalStoreOperationIssue {
 // bridge retains this receiver; it does not retain the bridge in return.
 priv struct NativeLocalStoreOperationReceiver {
   capture : NativeLocalJournalCapture
-  execution : @arena.InstalledArenaRetainedExecution
+  domain : LocalStoreOperationDomain
   runtime : NativeLocalPackagedRuntime
   library : @sqlite.Library
   mut original : NativeLocalJournalOriginalResources?
@@ -77,12 +85,44 @@ pub fn prepare_native_local_store_operation(
   runtime : NativeLocalPackagedRuntime,
   library : @sqlite.Library,
 ) -> Result[NativeLocalStoreOperation, NativeLocalStoreOperationIssue] {
+  prepare_native_local_store_operation_for_domain(
+    capture,
+    StoreBusinessDomain(execution),
+    runtime,
+    library,
+  )
+}
+
+///|
+/// Retain routing for original saved-Run metadata observation. Activation still
+/// requires the same actual Host/pair, SQLite Library and runtime. This does
+/// not create a Run, payload reader, grant, retained execution or new domain.
+pub fn prepare_native_local_run_observation_store_operation(
+  capture : NativeLocalJournalCapture,
+  runtime : NativeLocalPackagedRuntime,
+  library : @sqlite.Library,
+) -> Result[NativeLocalStoreOperation, NativeLocalStoreOperationIssue] {
+  prepare_native_local_store_operation_for_domain(
+    capture,
+    StoreRunObservationDomain,
+    runtime,
+    library,
+  )
+}
+
+///|
+fn prepare_native_local_store_operation_for_domain(
+  capture : NativeLocalJournalCapture,
+  domain : LocalStoreOperationDomain,
+  runtime : NativeLocalPackagedRuntime,
+  library : @sqlite.Library,
+) -> Result[NativeLocalStoreOperation, NativeLocalStoreOperationIssue] {
   if store_operation_control_clear_ffi() != 1 {
     return Err(StoreOperationUnavailable)
   }
   let receiver = {
     capture,
-    execution,
+    domain,
     runtime,
     library,
     original: None,
@@ -167,10 +207,13 @@ fn NativeLocalStoreOperationReceiver::originals(
       return Err(StoreOperationForeignOriginal)
     Ok(_) => ()
   }
-  match
-    original.host.require_domain_retained_execution_current(self.execution) {
-    Err(issue) => Err(StoreOperationExecution(issue))
-    Ok(_) => Ok((host, original))
+  match self.domain {
+    StoreBusinessDomain(execution) =>
+      match original.host.require_domain_retained_execution_current(execution) {
+        Err(issue) => Err(StoreOperationExecution(issue))
+        Ok(_) => Ok((host, original))
+      }
+    StoreRunObservationDomain => Ok((host, original))
   }
 }
 
@@ -240,13 +283,15 @@ fn NativeLocalStoreOperationReceiver::activate_original(
     Ok(value) => value
     Err(issue) => return Err(StoreOperationResources(issue))
   }
-  let business = match
-    original.host.observe_domain_retained_execution_scope(self.execution) {
-    Ok(value) => value
-    Err(issue) => return Err(StoreOperationExecution(issue))
-  }
-  if business != @bootstrap.BackedReadUnentered {
-    return Err(StoreOperationUnavailable)
+  if self.domain is StoreBusinessDomain(execution) {
+    let business = match
+      original.host.observe_domain_retained_execution_scope(execution) {
+      Ok(value) => value
+      Err(issue) => return Err(StoreOperationExecution(issue))
+    }
+    if business != @bootstrap.BackedReadUnentered {
+      return Err(StoreOperationUnavailable)
+    }
   }
   let current = match read {
     @arena.ReadEntered => self.capture.check_current_in_original_read()
@@ -292,16 +337,19 @@ fn NativeLocalStoreOperationReceiver::begin_original(
     Ok(value) => value
     Err(issue) => return Err(StoreOperationResources(issue))
   }
-  let business = match
-    original.host.observe_domain_retained_execution_scope(self.execution) {
-    Ok(value) => value
-    Err(issue) => return Err(StoreOperationExecution(issue))
+  let business = match self.domain {
+    StoreBusinessDomain(execution) =>
+      match original.host.observe_domain_retained_execution_scope(execution) {
+        Ok(value) => Some(value)
+        Err(issue) => return Err(StoreOperationExecution(issue))
+      }
+    StoreRunObservationDomain => None
   }
   if original.store_operation is Some(_) {
     return Err(StoreOperationUnavailable)
   }
   match (read, business) {
-    (@arena.ReadEntered, @bootstrap.BackedReadUnentered) => {
+    (@arena.ReadEntered, None | Some(@bootstrap.BackedReadUnentered)) => {
       if !(original.active_phase is Some(@arena.HostRead)) {
         return Err(StoreOperationUnavailable)
       }
@@ -317,10 +365,13 @@ fn NativeLocalStoreOperationReceiver::begin_original(
         return Err(StoreOperationUnavailable)
       }
       original.store_operation = Some(self)
-      if business == @bootstrap.BackedReadEntered {
+      if business is Some(@bootstrap.BackedReadEntered) {
+        guard self.domain is StoreBusinessDomain(execution) else {
+          return Err(StoreOperationUnavailable)
+        }
         self.origin = Some(StoreFromBusiness)
         self.business_pending = true
-        match original.host.leave_domain_retained_execution(self.execution) {
+        match original.host.leave_domain_retained_execution(execution) {
           Err(issue) => return Err(StoreOperationExecution(issue))
           Ok(_) => self.business_pending = false
         }
@@ -358,37 +409,45 @@ fn NativeLocalStoreOperationReceiver::begin_cleanup(
   original.store_operation = Some(self)
   self.closing = true
   self.ready = false
-  let business_scope = match
-    original.host.observe_domain_retained_execution_scope(self.execution) {
-    Ok(scope) => Ok(scope)
-    Err(_) =>
-      original.host.observe_domain_retained_execution_cleanup_scope(
-        self.execution,
-      )
-  }
-  match business_scope {
-    Ok(@bootstrap.BackedReadUnentered) => self.business_pending = false
-    Ok(@bootstrap.BackedReadEntered) | Err(_) =>
-      // A successful prior resume can leave the real business frame entered
-      // after its attempted-switch latch cleared. Observe that same frame;
-      // neither the latch nor a failed observation proves it was left.
-      match original.host.leave_domain_retained_execution(self.execution) {
-        Err(issue) =>
-          // A failed original C entry can retain only its nominal attempt. The
-          // existing cleanup port verifies this SAME context/lease had no C
-          // entry, unwinds its saved preparation scope, and never revives use.
-          match
-            original.host.finish_domain_retained_execution_failed_entry_cleanup(
-              self.execution,
-            ) {
-            Err(cleanup) => {
-              self.refuse(StoreOperationExecution(issue)) |> ignore
-              self.refuse(StoreOperationExecution(cleanup)) |> ignore
-              return Err(self.primary.unwrap_or(StoreOperationUnavailable))
-            }
+  match self.domain {
+    StoreBusinessDomain(execution) => {
+      let business_scope = match
+        original.host.observe_domain_retained_execution_scope(execution) {
+        Ok(scope) => Ok(scope)
+        Err(_) =>
+          original.host.observe_domain_retained_execution_cleanup_scope(
+            execution,
+          )
+      }
+      match business_scope {
+        Ok(@bootstrap.BackedReadUnentered) => self.business_pending = false
+        Ok(@bootstrap.BackedReadEntered) | Err(_) =>
+          // A successful prior resume can leave the real business frame entered
+          // after its attempted-switch latch cleared. Observe that same frame;
+          // neither the latch nor a failed observation proves it was left.
+          match original.host.leave_domain_retained_execution(execution) {
+            Err(issue) =>
+              // A failed original C entry can retain only its nominal attempt. The
+              // existing cleanup port verifies this SAME context/lease had no C
+              // entry, unwinds its saved preparation scope, and never revives use.
+              match
+                original.host.finish_domain_retained_execution_failed_entry_cleanup(
+                  execution,
+                ) {
+                Err(cleanup) => {
+                  self.refuse(StoreOperationExecution(issue)) |> ignore
+                  self.refuse(StoreOperationExecution(cleanup)) |> ignore
+                  return Err(self.primary.unwrap_or(StoreOperationUnavailable))
+                }
+                Ok(_) => self.business_pending = false
+              }
             Ok(_) => self.business_pending = false
           }
-        Ok(_) => self.business_pending = false
+      }
+    }
+    StoreRunObservationDomain =>
+      if self.business_pending || self.origin is Some(StoreFromBusiness) {
+        return Err(StoreOperationUnavailable)
       }
   }
   match original.finish_pending_store_leave(self) {
@@ -484,12 +543,17 @@ fn NativeLocalStoreOperationReceiver::route(
                       origin is StoreFromBusiness {
                       match original.check_journal_current(host) {
                         Err(issue) => Err(StoreOperationCapture(issue))
-                        Ok(_) => {
-                          self.business_pending = true
-                          original.host
-                          .enter_domain_retained_execution(self.execution)
-                          .map_err(issue => StoreOperationExecution(issue))
-                        }
+                        Ok(_) =>
+                          match self.domain {
+                            StoreRunObservationDomain =>
+                              Err(StoreOperationUnavailable)
+                            StoreBusinessDomain(execution) => {
+                              self.business_pending = true
+                              original.host
+                              .enter_domain_retained_execution(execution)
+                              .map_err(issue => StoreOperationExecution(issue))
+                            }
+                          }
                       }
                     } else {
                       Ok(())

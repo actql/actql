@@ -242,6 +242,7 @@ fn local_saved_run_status_command(
   input_root : String,
   child : @argparse.Matches,
   capture? : @local_host.NativeLocalJournalCapture? = None,
+  original_reader? : ((String) -> @local_host.NativeClientSavedRunStateSelection raise ClientStop)? = None,
 ) -> String raise ClientStop {
   guard local_status_watch_options(child) is Some(options) else {
     return local_saved_run_status(
@@ -251,6 +252,7 @@ fn local_saved_run_status_command(
       input_root,
       child,
       capture~,
+      original_reader~,
     )
   }
   let scope = local_host_result(
@@ -284,6 +286,7 @@ fn local_saved_run_status_command(
         child,
         state_only=true,
         capture~,
+        original_reader~,
       )
     },
     current: () => {

@@ -35,6 +35,8 @@ priv enum LocalCommandPreparationIssue {
   CommandBusinessChildren
   CommandBusinessPublication
   CommandBusinessStore(@local_store.NativePublicationStoreIssue)
+  CommandRunObservationPending
+  CommandRunObservationStore(@local_store.NativePublicationStoreIssue)
   CommandBusinessResult(@local_result.NativeResultAccessIssue)
   CommandBusinessFileOutput(@local_host.NativeLocalReadBindingIssue)
   CommandSqlite(@initial_arena.InstalledArenaSqliteIssue)
@@ -73,6 +75,7 @@ priv struct LocalCommandPreparationOriginal {
   profile : LocalCommandPreparationProfile
   native_storage : LocalCommandNativeStorageQuote
   business : LocalCommandBusinessOriginal?
+  mut run_observation : LocalCommandRunObservationOriginal?
   mut backing : InitialCryptoBacking?
   mut host : @initial_arena.InstalledArenaHost?
   mut backing_scope : @initial_arena.InstalledArenaBackingBorrow?
@@ -165,6 +168,7 @@ fn prepare_local_command_preparation_original(
   Ok({
     profile,
     native_storage,
+    run_observation: None,
     business: business.map(candidate => {
       profile: candidate,
       domain: None,
@@ -736,6 +740,8 @@ fn LocalCommandPreparationOriginal::close_checked(
     if self.journal_read_open {
       return Err(CommandUnavailable)
     }
+    self.cleanup_stage = "run-observation"
+    command_preparation_value(self.close_run_observation())
     self.cleanup_stage = "business-children"
     command_preparation_value(self.close_business_children())
     self.cleanup_stage = "business-operation"

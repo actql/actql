@@ -222,6 +222,13 @@ that needs you: `waiting_checkpoint`, `needs_reconciliation` or a final state.
 either. A request that policy held before the Run started shows as `held`
 with its Checkpoint, and `approve` resolves it the same way.
 
+For a saved Local Run, Result availability is a current observation of that
+Run's original Store and retention policy, separate from its immutable outcome.
+An unconfirmed Store query remains `unknown`; availability grants no payload
+read or delivery permission. A logical availability change advances the existing
+saved observation revision without starting the Run again. Pending physical
+cleanup remains a command failure rather than an availability acknowledgement.
+
 **`approve`** and **`reject`** answer a Checkpoint — one inside a Run, or
 one that held a request before the Run started. The answer is bound to the
 exact preview the Checkpoint holds. When `signers` are configured, it is

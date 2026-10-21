@@ -55,6 +55,9 @@ fn[T] NativeLocalValuesOriginalAccess::in_original_read(
     NativeClientValuesWorkIssue,
   ],
 ) -> Result[T, NativeClientValuesWorkIssue] {
+  guard self.operation.receiver.domain is StoreBusinessDomain(execution) else {
+    return Err(self.retain(OriginalOperation(None, StoreOperationUnavailable)))
+  }
   guard self.operation.bridge is Some(bridge) &&
     self.operation.receiver.ready &&
     !self.operation.receiver.closed &&
@@ -85,9 +88,7 @@ fn[T] NativeLocalValuesOriginalAccess::in_original_read(
     }
     if !same_flight ||
       !(original.active_phase is Some(@arena.HostRead)) ||
-      !(original.host.observe_domain_retained_execution_scope(
-        self.operation.receiver.execution,
-      )
+      !(original.host.observe_domain_retained_execution_scope(execution)
       is Ok(@bootstrap.BackedReadUnentered)) {
       return Err(
         self.retain(OriginalOperation(None, StoreOperationUnavailable)),
@@ -277,6 +278,13 @@ pub fn NativeLocalHostConnection::open_original_values_work(
   max_finalization_rounds : Int,
 ) -> Result[NativeClientValuesWork, NativeClientValuesWorkFailure] {
   let receiver = operation.receiver
+  guard receiver.domain is StoreBusinessDomain(execution) else {
+    return Err(
+      local_values_work_failure(
+        OriginalOperation(None, StoreOperationUnavailable),
+      ),
+    )
+  }
   if !receiver.ready || receiver.closing || receiver.closed {
     return Err(
       local_values_work_failure(
@@ -290,7 +298,7 @@ pub fn NativeLocalHostConnection::open_original_values_work(
     Ok(value) => value
   }
   if !physical_equal(self, host) ||
-    !(original.host.observe_domain_retained_execution_scope(receiver.execution)
+    !(original.host.observe_domain_retained_execution_scope(execution)
     is Ok(@bootstrap.BackedReadEntered)) {
     return Err(
       local_values_work_failure(
@@ -299,7 +307,7 @@ pub fn NativeLocalHostConnection::open_original_values_work(
     )
   }
   let ledger = match
-    original.host.borrow_domain_retained_execution_ledger(receiver.execution) {
+    original.host.borrow_domain_retained_execution_ledger(execution) {
     Err(issue) =>
       return Err(
         local_values_work_failure(
@@ -351,17 +359,18 @@ fn values_original_cleanup_entered(
     None => true
     Some(value) => {
       let receiver = value.operation.receiver
+      guard receiver.domain is StoreBusinessDomain(execution) else {
+        return false
+      }
       guard receiver.original is Some(original) else { return false }
       let entered = match
-        original.host.observe_domain_retained_execution_scope(
-          receiver.execution,
-        ) {
+        original.host.observe_domain_retained_execution_scope(execution) {
         Ok(scope) => Ok(scope)
         // Cleanup has a separate original/current port once normal current is
         // retired. Neither an observation failure nor Unentered is a close ACK.
         Err(_) =>
           original.host.observe_domain_retained_execution_cleanup_scope(
-            receiver.execution,
+            execution,
           )
       }
       entered is Ok(@bootstrap.BackedReadEntered)

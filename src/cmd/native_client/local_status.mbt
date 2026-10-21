@@ -28,6 +28,7 @@ fn local_saved_run_status(
   child : @argparse.Matches,
   state_only? : Bool = false,
   capture? : @local_host.NativeLocalJournalCapture? = None,
+  original_reader? : ((String) -> @local_host.NativeClientSavedRunStateSelection raise ClientStop)? = None,
 ) -> String raise ClientStop {
   let scope = local_host_result(
     match capture {
@@ -54,24 +55,28 @@ fn local_saved_run_status(
         optional(child, "submission-ref-file") is Some(_) {
         stop("InvalidLocalStatusSelection")
       }
-      let lookup = match capture {
-        None =>
-          host.lookup_submitted_run_state_by_id(
-            crypto,
-            settings.principal,
-            settings.connection,
-            id,
-            @env.now().to_double(),
-          )
-        Some(original) =>
-          local_host_result(
-            original.lookup_submitted_run_state_by_id_in_original_read(
+      let lookup = if original_reader is Some(read) {
+        Ok(read(id))
+      } else {
+        match capture {
+          None =>
+            host.lookup_submitted_run_state_by_id(
+              crypto,
               settings.principal,
               settings.connection,
               id,
               @env.now().to_double(),
-            ),
-          )
+            )
+          Some(original) =>
+            local_host_result(
+              original.lookup_submitted_run_state_by_id_in_original_read(
+                settings.principal,
+                settings.connection,
+                id,
+                @env.now().to_double(),
+              ),
+            )
+        }
       }
       let selected = match lookup {
         Ok(value) => value
