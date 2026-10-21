@@ -3,7 +3,7 @@
 import {projectDeliveryExplanation, projectDeliveryLookupFailure, projectReadExplanation,
   localizeOperation} from '../operation-presentation.mjs';
 import {contentCid} from '../checkpoints.mjs';
-import {jsonValueWireContractCid} from '../json-value-wire.generated.mjs';
+import {resultSerializationContractCids} from '../json-value-wire.generated.mjs';
 import {awaitValidation, captureReadOptions, captureResultRead, validationOutcome} from '../result-schema.mjs';
 import {captureResponse, freezeInput, positive} from './data.mjs';
 import {ClientError, fail, ownedClientFailure, markOwnedFailure, ownedFailureCode,
@@ -511,8 +511,7 @@ export function createResultFactory({ref, limits, lookupContext, redactErrors, t
         const schema = Object.fromEntries(answer.columns.map(column =>
           [column.name, column.contract]));
         if (await contentCid(schema) !== answer.resultSchemaCid ||
-            await contentCid({json_value_wire_contract_cid: jsonValueWireContractCid,
-              version: answer.serialization.version}) !==
+            resultSerializationContractCids[answer.serialization.version] !==
               answer.serialization.contractCid ||
             await contentCid({version: 'actql-result-definition/0.1',
               program_definition_cid: answer.programDefinitionCid,
