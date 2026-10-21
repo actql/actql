@@ -6762,7 +6762,7 @@
     {
       "module": "adapters/host-common/result-access.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "bc1b49d687dcd17bb19840323a19cf45af067f8d3407c0d90a0e8dc854e1bd20",
+      "sha256": "3d81075742889bba2f29b2242a1f65e28ca0f1a2d9e990c3bdd1c9db753b6356",
       "role": "physical-io",
       "owner": "Existing Result access/delivery/publication Owners and physical read/sink adapter",
       "exports": [
@@ -7139,7 +7139,7 @@
     {
       "module": "adapters/host-common/result-delivery.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "a69c93ec48d44345ca51e7efea5155db727d457b0065ce91d8a3d37dd62a629b",
+      "sha256": "4617722b18d311d8f1d5f2600d86c9e9e313b35fed694ea4fdb0588373a9fb6b",
       "role": "physical-io",
       "owner": "Existing Result access/delivery/publication Owners and physical read/sink adapter",
       "exports": [
@@ -7165,7 +7165,8 @@
         {
           "name": "deliverPublishedResult",
           "parameters": [
-            "options"
+            "options",
+            "resolvedPublication"
           ],
           "async": true
         },
@@ -69137,7 +69138,7 @@
     {
       "module": "packages/run-host-core/result-access.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "5313c18736996b7cc24de7f53fda4e3f642d30400db313619d96242a1cd1e1e2",
+      "sha256": "00796865757107300375db45d6404c8bcb9a5fa88554baa9aeef405febf6ea51",
       "role": "physical-io",
       "owner": "Existing Result access/delivery/publication Owners and physical read/sink adapter",
       "exports": [
@@ -69514,7 +69515,7 @@
     {
       "module": "packages/run-host-core/result-delivery.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "a69c93ec48d44345ca51e7efea5155db727d457b0065ce91d8a3d37dd62a629b",
+      "sha256": "4617722b18d311d8f1d5f2600d86c9e9e313b35fed694ea4fdb0588373a9fb6b",
       "role": "physical-io",
       "owner": "Existing Result access/delivery/publication Owners and physical read/sink adapter",
       "exports": [
@@ -69540,7 +69541,8 @@
         {
           "name": "deliverPublishedResult",
           "parameters": [
-            "options"
+            "options",
+            "resolvedPublication"
           ],
           "async": true
         },

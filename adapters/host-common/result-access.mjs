@@ -585,5 +585,7 @@ export async function deliverAuthorizedResult(
     createDigest: installed.createDigest,
     authorize,
     signal,
-  });
+  }, Object.isFrozen(index) && Object.isFrozen(manifest)
+    ? Object.freeze({store: installed.store, control: installed.control,
+      index, manifest}) : undefined);
 }
