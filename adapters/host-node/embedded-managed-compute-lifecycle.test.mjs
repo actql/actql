@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import test from 'node:test';
 import {parse} from 'acorn';
+import {installedHostShutdown} from './embedded-local-lifecycle.mjs';
 
 // Selected actual Host statements/methods with explicit original ports. These
 // counters prove consumer order/custody, not physical admission or a full Host.
@@ -40,6 +41,104 @@ function opening() {
     'journalOptions', 'let journal;' + statements.map(text).join('\n') +
     ';return {journal, originalRequestPreparation};');
 }
+
+function preparedEnvironmentLifetime({missing = false, retire = () => {}} = {}) {
+  const opening = declared('openInstalledHost');
+  const functions = new Map(opening.body.body.filter(node => node.type === 'FunctionDeclaration')
+    .map(node => [node.id.name,node]));
+  const getter = functions.get('getPreparedSourceEnvironment');
+  const retirement = functions.get('retireModelPreparationReferences');
+  assert(getter && retirement);
+  let capture, install, retain;
+  visit(opening.body,node => {
+    if (node.type === 'VariableDeclaration' && node.declarations.length === 1) {
+      if (node.declarations[0].id.name === 'sourceEnvironmentOriginal') capture = node;
+      if (node.declarations[0].id.name === 'prepareSubmit') install = node;
+    }
+    if (node.type === 'IfStatement' && text(node.test) === 'sourceEnvironmentOriginal !== undefined') retain = node;
+  });
+  assert(capture && retain && install);
+  const original = {host:{},moon:{},environment:{},publication:{},preparedEnvironment:{}};
+  let reads = 0, retirements = 0;
+  const sourceAliasPublicationOriginal = (moon,environment,publication) => {
+    assert.strictEqual(moon,original.moon);assert.strictEqual(environment,original.environment);
+    assert.strictEqual(publication,original.publication);reads++;
+    return missing ? undefined : Object.freeze({wire:'{}',preparedEnvironment:original.preparedEnvironment});
+  };
+  const retireSourceAliasPublicationOriginal = (moon,environment,publication) => {
+    assert.strictEqual(moon,original.moon);assert.strictEqual(environment,original.environment);
+    assert.strictEqual(publication,original.publication);retirements++;retire();
+  };
+  const create = new Function('original','sourceAliasPublicationOriginal','retireSourceAliasPublicationOriginal',`
+    const host=original.host,moon=original.moon;
+    let environment=original.environment,sourcePublication=original.publication;
+    let preparedSourceEnvironment,modelRuntimeClosing=false;
+    let modelSdkStaticOriginals,originalInstallation={},registerModelProviders,modelProviders;
+    let projectTasks,projectProfile,projectRuntime,project;
+    const mockEffectRuns=new Map(),localFileEffectRuns=new Map();
+    let mockEffectOriginals,localFileEffectOriginals,localFileEffectInstallation;
+    let mockEffectObservation,mockEffectObservationMethods,localSigningMetadata,localCheckpointAnswer;
+    let mockAccount,standardAccountPreparation;
+    const retireInstalledProjectConfiguration=()=>{throw new Error('UnexpectedProject');};
+    const clientOperationError=code=>Object.assign(new Error(code),{code});
+    const valuesMaxRows=undefined,check=()=>{},verifyRequestValuePolicy=()=>{};
+    const updateTargetOriginals={restorePrepared:()=>{}},control={},calendarArtifact=undefined;
+    const effectInstallation=undefined;
+    const installNodeClientProgramPreparation=options=>options;
+    ${text(getter)}
+    ${text(retirement)}
+    ${text(capture)}
+    ${text(retain)}
+    ${text(install)}
+    return {get:getPreparedSourceEnvironment,retire:retireModelPreparationReferences,
+      get slot(){return preparedSourceEnvironment;},options:prepareSubmit,
+      stop(){modelRuntimeClosing=true;},replaceEnvironment(value){environment=value;},
+      replacePublication(value){sourcePublication=value;}};
+  `);
+  return {fixture:create(original,sourceAliasPublicationOriginal,retireSourceAliasPublicationOriginal),original,
+    get reads(){return reads;},get retirements(){return retirements;}};
+}
+
+test('Host prepared Environment keeps one original and forwards only its cheap lifetime getter', () => {
+  const f = preparedEnvironmentLifetime();
+  assert.equal(f.reads,1);
+  assert.strictEqual(f.fixture.options.getPreparedSourceEnvironment,f.fixture.get);
+  for (let index=0;index<8;index++) assert.strictEqual(f.fixture.get(),f.original.preparedEnvironment);
+  assert.equal(f.reads,1,'unchanged Host use does not re-read, encode or prepare its publication');
+  assert.equal(f.retirements,0);
+  const legacy = preparedEnvironmentLifetime({missing:true});
+  assert.equal(Object.hasOwn(legacy.fixture.options,'getPreparedSourceEnvironment'),false);
+});
+
+test('Host prepared Environment waits for the original child shutdown before cutting its aliases', async () => {
+  const f = preparedEnvironmentLifetime(),marker=new Error('OriginalJournalClosePending');
+  let closes=0,storeCloses=0;
+  const host={stopModelRuntime:f.fixture.stop,dispatchOwner:{drain(){}},retireTerminalEffects(){},
+    journal:{close(){if(++closes===1)throw marker;}},store:{close(){storeCloses++;}},
+    retireModelRuntime:f.fixture.retire};
+  const shutdown=installedHostShutdown(host);
+  await assert.rejects(shutdown.close(),error=>error.code==='InstalledHostCleanupPending');
+  assert.equal(closes,1);assert.equal(storeCloses,1,'independent Store cleanup is still attempted');
+  assert.equal(f.retirements,0);assert.ok(f.fixture.slot);
+  assert.throws(f.fixture.get,{code:'ClientHostClosing'});
+  await shutdown.close();
+  assert.equal(f.retirements,1);assert.equal(f.fixture.slot,undefined);
+  assert.equal(closes,2);assert.equal(storeCloses,1);
+  await shutdown.close();assert.equal(f.retirements,1);
+});
+
+test('Host prepared Environment refuses changed originals and retires only its captured association', () => {
+  const marker=new Error('OriginalAssociationRetirement');let attempts=0;
+  const f=preparedEnvironmentLifetime({retire(){if(++attempts===1)throw marker;}});
+  f.fixture.replaceEnvironment({});
+  assert.throws(f.fixture.get,{code:'InstalledPublicSourceEnvironmentChanged'});
+  f.fixture.replacePublication({});
+  assert.throws(f.fixture.get,{code:'InstalledPublicSourceEnvironmentChanged'});
+  assert.throws(f.fixture.retire,error=>error===marker);
+  assert.ok(f.fixture.slot,'a failed reference-cut callback retains the same original for retry');
+  f.fixture.retire();assert.equal(f.fixture.slot,undefined);assert.equal(f.retirements,2);
+  assert.equal(f.reads,1);
+});
 
 test('actual Host acquires its same Journal before Compute and before publishing the SDK receiver', async () => {
   const journal = {}, receiver = {}, options = {}, log = [];

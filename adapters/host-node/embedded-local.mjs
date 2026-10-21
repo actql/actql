@@ -51,7 +51,8 @@ import {retireCompletedEffectfulCapture, suspendCompletedEffectfulComputation} f
   '../host-common/completed-run-publication.mjs';
 import {installNodeClientProgramPreparation} from
   './client-program-preparation.mjs';
-import {sourceAliasPublication} from './source-alias-publication.mjs';
+import {sourceAliasPublication, sourceAliasPublicationOriginal,
+  retireSourceAliasPublicationOriginal} from './source-alias-publication.mjs';
 import {installedModelEnvironment, readInstalledModelExecution,
   readInstalledModelDependencies, installModelProviders,
   admitInstalledModelProvider, admitInstalledModelProviderBinding} from
@@ -723,6 +724,7 @@ async function openInstalledHost(originalInstallation, preparation) {
   // domains as trusted implementation responsibility, NOT zero bytes or RSS.
   const host = preparation?.host ?? {};
   let modelRuntimeClosing = false;
+  let preparedSourceEnvironment;
   let modelRuntimeView;
   let modelRuntimeStartupView;
   let modelSdkStaticOriginals;
@@ -766,6 +768,15 @@ async function openInstalledHost(originalInstallation, preparation) {
     if (modelRuntimeClosing) throw clientOperationError('ClientHostClosing');
     assertModelRuntime();
   }
+  function getPreparedSourceEnvironment() {
+    if (modelRuntimeClosing) throw clientOperationError('ClientHostClosing');
+    const original = preparedSourceEnvironment;
+    if (original === undefined || original.host !== host || original.moon !== moon ||
+        original.environment !== environment || original.publication !== sourcePublication) {
+      throw clientOperationError('InstalledPublicSourceEnvironmentChanged');
+    }
+    return original.preparedEnvironment;
+  }
   function bindModelSdkStaticOriginals(originals) {
     // Existing borrow/current rechecks remain legal while cleanup is pending;
     // this check is not new-allocation or send admission during Host closing.
@@ -789,6 +800,14 @@ async function openInstalledHost(originalInstallation, preparation) {
       modelSdkStaticOriginals);
   }
   function retireModelPreparationReferences() {
+    const original = preparedSourceEnvironment;
+    if (original !== undefined) {
+      // Cut this Host's association only after its existing shutdown duties.
+      // Other holders may retain the pure immutable Environment; no physical
+      // ACK or global invalidation is implied by releasing these aliases.
+      retireSourceAliasPublicationOriginal(original.moon, original.environment, original.publication);
+      preparedSourceEnvironment = undefined;
+    }
     modelSdkStaticOriginals = undefined;
     // Drop the installer's borrowed configuration/callback and table links
     // only at the same final cleanup boundary. This is NOT process/native ACK.
@@ -1351,6 +1370,11 @@ async function openInstalledHost(originalInstallation, preparation) {
           selectorNamespace: sourceSelectorNamespace === undefined ? undefined : {
             name: sourceSelectorNamespace, profilePaths: selectedSourcePaths},
           installedSources: sourceProfile?.sources ?? (sourceProfile === undefined ? [] : [sourceProfile])});
+      const sourceEnvironmentOriginal = sourceAliasPublicationOriginal(moon, environment, sourcePublication);
+      if (sourceEnvironmentOriginal !== undefined) {
+        preparedSourceEnvironment = Object.freeze({host, moon, environment, publication:sourcePublication,
+          preparedEnvironment:sourceEnvironmentOriginal.preparedEnvironment});
+      }
     }
   } catch (cause) {
     throw await retainInstalledHostInitializationFailure(cause,
@@ -1730,6 +1754,7 @@ async function openInstalledHost(originalInstallation, preparation) {
     limits: localContractLimits});
   const prepareSubmit = installNodeClientProgramPreparation({moon,
     environment, sourcePublication, valuesMaxRows, check,
+    ...(preparedSourceEnvironment?.preparedEnvironment === undefined ? {} : {getPreparedSourceEnvironment}),
     verifyRequestValuePolicy, restoreEffectOriginal: updateTargetOriginals.restorePrepared,
     restoreInferOriginal: (original, definition, request, evidence) =>
       control.admitStoredClientInferRunOriginal(original, definition, request, evidence,
