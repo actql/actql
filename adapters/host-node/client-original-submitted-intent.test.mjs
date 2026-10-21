@@ -5,10 +5,13 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {DatabaseSync} from 'node:sqlite';
 import test from 'node:test';
-import * as moon from '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {canonicalJson} from '../../packages/sdk/host-port.mjs';
 import {openClientRequestJournal} from './client-request-journal.mjs';
+
+const moon = await import(process.env.ACTQL_TEST_COMMON_RUNTIME ?? new URL(
+  '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js',
+  import.meta.url).href);
 
 const cid = digit => `sha256:${digit.repeat(64)}`;
 const hash = value => `sha256:${createHash('sha256').update(canonicalJson(value)).digest('hex')}`;
@@ -65,7 +68,8 @@ async function fixture(t, {selected = true, readOnly = false, link = true} = {})
   };
   return {path, reference, intent, request, identity, accepted, readRow, mutate,
     get journal() {return journal;},
-    read: () => journal.originalSubmittedIntent(identity, fields, moon, publication),
+    read: (requestControl = moon, publicationControl = publication) =>
+      journal.originalSubmittedIntent(identity, fields, requestControl, publicationControl),
     reopen() {journal.close(); journal = openClientRequestJournal(path);}};
 }
 
@@ -88,6 +92,34 @@ test('original submitted content is bound in the same Run acceptance and survive
   assert.equal(restored.referenceWire, original.referenceWire);
   restored.assertCurrent();
   assert.deepEqual(f.readRow(), row);
+});
+
+test('one original submitted-content handle admits each unchanged row once', async t => {
+  const f = await fixture(t);
+  const counts = {identity: 0, intent: 0, definition: 0};
+  const requestControl = {...moon,
+    clientRequestAdmitRecord(...args) {
+      counts.identity++;
+      return Reflect.apply(moon.clientRequestAdmitRecord, moon, args);
+    },
+    clientSubmittedIntent(...args) {
+      counts.intent++;
+      return Reflect.apply(moon.clientSubmittedIntent, moon, args);
+    },
+  };
+  const publicationControl = {...publication, admit(name, ...args) {
+    if (name === 'run_definition') counts.definition++;
+    return Reflect.apply(publication.admit, publication, [name, ...args]);
+  }};
+  const original = f.read(requestControl, publicationControl);
+  assert.deepEqual(counts, {identity: 1, intent: 1, definition: 1});
+  original.assertCurrent();
+  original.assertCurrent();
+  assert.deepEqual(counts, {identity: 1, intent: 1, definition: 1},
+    'same selected scalar rows reuse the actual admitted originals, not another decode/hash');
+  f.read(requestControl, publicationControl).assertCurrent();
+  assert.deepEqual(counts, {identity: 2, intent: 2, definition: 2},
+    'a distinct original operation has its own initial admission');
 });
 
 for (const [label, selected, expected] of [
