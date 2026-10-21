@@ -89,6 +89,16 @@ group never falls back to repeating individual writes. Empty inventories do no
 persistence work. Wire identities and the existing physical file layout remain
 unchanged.
 
+Preparing a Result schema that already has an immutable semantic owner acquires
+and validates that schema's selected file original, then retains a holder in the
+same Store. It does not create another allocation or rewrite durable preparation
+markers for bytes that this preparation cannot reclaim. The holder still blocks
+Store close and same-Store metadata reclamation until release or adoption. Each
+distinct preparation reads its own original, and a failed reader close keeps its
+same cleanup duty. A newly created schema retains the existing durable marker,
+generation checks and crash-reclamation protocol. Existing schema ownership is
+not replaced or refunded when the temporary holder retires.
+
 Within that commit, the admitted Index body is persisted directly rather than
 sent through the public raw-contract admission again. Verified Binding facts
 provide their original physical and schema identities to inventory construction
