@@ -16,7 +16,8 @@ fn initialize_native_client_run_journal(
       Err(issue) => return Err(Physical(issue))
     }
   }
-  let result = match database.install_client_run_definition_schema(1024L) {
+  let result : Result[Unit, NativeClientRunJournalIssue] = match
+    database.install_client_run_definition_schema(1024L) {
     Err(issue) => Err(Physical(issue))
     Ok(_) => initialize_native_client_run_journal_rows(database)
   }
