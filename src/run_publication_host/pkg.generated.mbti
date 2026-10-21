@@ -4231,6 +4231,7 @@ pub struct ClientTaskCompilation {
   infer : ClientInferPlanGraph?
   infers : Array[ClientInferPlanGraph]
   serialization : ClientSerializationPlanGraph?
+  // private fields
 }
 
 pub(all) enum ClientTaskCompilationIssue {
@@ -4298,6 +4299,7 @@ pub(all) enum ClientTaskPipelineIssue {
 pub struct ClientTaskPlanGraph {
   wire : String
   transformations : Array[ClientResultTransformation]
+  // private fields
 }
 
 pub(all) enum ClientTaskPlanGraphAdmissionIssue {
