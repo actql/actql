@@ -4914,6 +4914,7 @@ test(`selected committed Result refuses its missing ${missing} before returning 
 test('selected committed Result entrypoints reuse only their own current owner links', async t => {
   const setup = await fixture(t);
   const selected = await committedHoldingFixture(setup, 'current entrypoint');
+  await setup.store.putPublicationContract('result_definition', wire(resultDefinition()));
   const key = indexKeyFor(selected.request);
   const operations = [
     () => setup.store.inspectCommittedIndex(key),
