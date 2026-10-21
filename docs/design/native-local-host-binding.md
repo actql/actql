@@ -1685,6 +1685,16 @@ extent, implicit growth or configuration of shared system/Python OpenSSL is allo
 The recipe binds source, headers, static archive, license and actual deployment
 requirements; a linker flag cannot lower the ABI of a precompiled archive.
 
+The allocator keeps an exact-live-start bitmap and preceding-block links inside
+that same finite extent. Bitmap storage and aligned headers reduce the available
+payload; they do not enlarge the selected heap. Pointer lookup checks integer
+range, alignment and the original live bit before reading a header. Interior,
+foreign and retired addresses therefore cannot cause speculative header reads.
+Free clears the original live bit, cleanses its complete aligned payload and
+coalesces only its two adjacent free blocks. Allocation retains bounded first-fit
+selection and realloc retains simultaneous old/new storage. Internal free and
+metadata reuse acknowledge neither the outer extent nor any parent resource.
+
 The existing Signature Owner retains one original component receiver independently
 of the outer and inner Library borrows. Its bind out-slot is set only by the
 original component CAS winner, before any fallible context/extent initialization.
