@@ -32,8 +32,8 @@ test('keyed Join capability and journal match independent complete preimages', (
     assert.equal(canonical(JSON.parse(value.journal_preimage)), value.journal_preimage);
     assert.equal(hash(value.journal_preimage), value.journal_cid);
   }
-  assert.deepEqual(load('catalog.json'), JSON.parse(expected.join.catalog_preimage));
-  assert.deepEqual(load('fixture.json'), expected.join);
+  assert.deepEqual(load('pre-decimal-sum-catalog.json'), JSON.parse(expected.join.catalog_preimage));
+  assert.deepEqual(load('pre-decimal-sum-fixture.json'), expected.join);
   assert.deepEqual(load('pre-join-catalog.json'), JSON.parse(expected.previous.catalog_preimage));
   assert.deepEqual(load('pre-join-fixture.json'), expected.previous);
 });
@@ -49,7 +49,7 @@ test('closed keyed Join capability retains the complete assertion predecessor an
   body.applicability.checked_operations = body.applicability.checked_operations.filter(name => name !== 'join');
   for (const name of ["join_scope", "join_kinds", "join_pending", "join_rows", "join_guard", "join_journal", "join_roots"]) delete body.applicability[name];
   assert.deepEqual(body, previous);
-  const schema = load('catalog.schema.json');
+  const schema = load('pre-decimal-sum-catalog.schema.json');
   assert.equal(schema.additionalProperties, false);
   assert.deepEqual(schema.properties.applicability, {const: JSON.parse(expected.join.catalog_preimage).applicability});
   schema.properties.applicability = {const: previous.applicability};

@@ -5,7 +5,8 @@
       "count",
       "count_if",
       "max",
-      "min"
+      "min",
+      "sum"
     ],
     "append_order": "original-left-then-right",
     "assertion_journal": "fixed-operation-laws-are-not-Source-completion; actual-Sort-and-projection-entries-retained",
@@ -198,7 +199,10 @@
     "join_rows": "existing-complete-input-admission-exact-key-comparison-null-extension-multiplicity-and-output-owners",
     "join_guard": "original-literal-or-same-BoundValues-and-operation-scalar-resolution; existing-SafeInteger-positive-limit",
     "join_journal": "fixed-operation-laws-are-not-Source-completion; actual-Sort-and-projection-entries-retained",
-    "join_roots": "all-original-Values-roots-and-units-under-same-10000-work-limit; maximum-one-selected-Source"
+    "join_roots": "all-original-Values-roots-and-units-under-same-10000-work-limit; maximum-one-selected-Source",
+    "decimal_sum_domain": "original-checked-Decimal-input-and-Decimal38-result-at-original-scale; Number-Sum-and-Avg-require-separate-numeric-observation",
+    "decimal_sum_scope": "same-original-group-aggregate-argument-filter-distinct-and-pending-result-checks; exact-accumulation-null-overflow-and-workspace-remain-with-existing-execution",
+    "decimal_sum_journal": "fixed-exact-aggregate-law-is-not-Source-completion; actual-Sort-and-projection-entries-retained"
   },
   "profile": "actql-effect-free-local-completion-free/0.1",
   "rules": [

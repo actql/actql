@@ -350,6 +350,8 @@ pub fn local_completion_free_inventory_uses_assertions(LocalCompletionFreeInvent
 
 pub fn local_completion_free_inventory_uses_checked_expressions(LocalCompletionFreeInventory) -> Bool
 
+pub fn local_completion_free_inventory_uses_decimal_sum(LocalCompletionFreeInventory) -> Bool
+
 pub fn local_completion_free_inventory_uses_dedupe(LocalCompletionFreeInventory) -> Bool
 
 pub fn local_completion_free_inventory_uses_distinct(LocalCompletionFreeInventory) -> Bool
@@ -383,6 +385,8 @@ pub fn local_sort_normalization_inventory_matches(LocalSortNormalizationInventor
 pub fn local_sort_normalization_inventory_parameters_defaulted(LocalSortNormalizationInventory) -> Bool
 
 pub fn local_sort_normalization_inventory_uses_assertions(LocalSortNormalizationInventory) -> Bool
+
+pub fn local_sort_normalization_inventory_uses_decimal_sum(LocalSortNormalizationInventory) -> Bool
 
 pub fn local_sort_normalization_inventory_uses_dedupe(LocalSortNormalizationInventory) -> Bool
 
