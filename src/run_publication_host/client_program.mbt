@@ -1387,13 +1387,14 @@ pub fn prepare_effect_free_client_program(
   environment : @checked.CheckEnvironment,
   supplied : @decode.Cursor?,
   limits : ClientProgramPreparationLimits,
+  source_catalog? : @checked.PreparedSourceCatalog? = None,
 ) -> Result[PreparedClientProgram, ClientProgramPreparationIssue] {
   let parsed = match @syntax.parse(document, limits.checking.input, format~) {
     Ok(value) => value
     Err(issue) => return Err(Syntax(issue))
   }
   prepare_parsed_effect_free_client_program(
-    parsed, environment, supplied, limits,
+    parsed, environment, supplied, limits, source_catalog~,
   )
 }
 
