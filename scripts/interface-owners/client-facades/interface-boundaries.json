@@ -4340,7 +4340,7 @@
     {
       "module": "packages/sdk/checkpoints.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "9a56474adc002a50a5cdcfa474f47e129bd3ea94e40e6b867254070db7b7a0c2",
+      "sha256": "1548bde2896d3456323cda85d818df04358fed087cf5aa93624c188ac69cc935",
       "exports": [
         "bytesCid",
         "canonicalJson",
@@ -4426,6 +4426,26 @@
           "async": false
         },
         {
+          "name": "constructSignedAnswer",
+          "parameters": [
+            "summary",
+            "decision",
+            "signer",
+            "decidedAt",
+            "effect",
+            "acquiredRead",
+            "model"
+          ],
+          "async": true
+        },
+        {
+          "name": "constructSignedAnswer/constructSignedAnswer",
+          "parameters": [
+            "claim"
+          ],
+          "async": false
+        },
+        {
           "name": "contentCid/contentCid",
           "parameters": [
             "value"
@@ -4497,9 +4517,9 @@
           "async": true
         },
         {
-          "name": "signedAnswerFromAdmittedSummary/signedAnswerFromAdmittedSummary",
+          "name": "supportedAnswerProfile",
           "parameters": [
-            "claim"
+            "summary"
           ],
           "async": false
         },
@@ -4533,6 +4553,8 @@
             "canonicalJson/entries/entries",
             "canonicalJson/entries/entries#2",
             "checkedSigner",
+            "constructSignedAnswer",
+            "constructSignedAnswer/constructSignedAnswer",
             "contentCid/contentCid",
             "hex/hex",
             "hex/hex/hex",
@@ -4542,7 +4564,7 @@
             "signedAnswer",
             "signedAnswer/signedAnswer",
             "signedAnswerFromAdmittedSummary",
-            "signedAnswerFromAdmittedSummary/signedAnswerFromAdmittedSummary",
+            "supportedAnswerProfile",
             "wellFormed"
           ],
           "exports": [
