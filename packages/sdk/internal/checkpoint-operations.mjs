@@ -83,7 +83,7 @@ export function createCheckpointOperations(connection, exchange, responseValue,
     const page = await operations.checkpoints({checkpointId, limit: 1, signal});
     current(signal);
     if (page.items.length !== 1) fail('CheckpointUnavailable');
-    const summary = freezeInput(page.items[0]);
+    const summary = page.items[0];
     let answer;
     if (selectedSigner !== undefined) {
       answer = await signedAnswer(summary, decision, selectedSigner,
