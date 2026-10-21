@@ -2651,7 +2651,7 @@ pub(all) enum ClientEffectUpdateTargetIssue {
 
 pub struct ClientEffectUpdateTargetSelections {
   wire : String
-  cid : String
+  // private fields
 }
 
 pub(all) enum ClientEffectfulStaticPlanIssue {
