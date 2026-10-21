@@ -138,8 +138,16 @@ export function createExplorerGateway({client, origin, assets = new Map(),
         new URL(c.req.url).origin !== origin) return c.json({error: 'ExplorerHostRefused'}, 403);
     const requestOrigin = c.req.header('origin');
     const site = c.req.header('sec-fetch-site');
+    // A user opening the printed URL can navigate from another site. Only
+    // the public HTML document may use that entry: it contains no bootstrap
+    // secret, while API requests retain exact Origin and session/CSRF checks.
+    const documentNavigation = c.req.method === 'GET' && requestOrigin === undefined &&
+      ['/', '/index.html'].includes(c.req.path) &&
+      c.req.header('sec-fetch-mode') === 'navigate' &&
+      c.req.header('sec-fetch-dest') === 'document' &&
+      c.req.header('sec-fetch-user') === '?1';
     if ((requestOrigin !== undefined && requestOrigin !== origin) ||
-        (site !== undefined && !['same-origin', 'none'].includes(site))) {
+        (site !== undefined && !['same-origin', 'none'].includes(site) && !documentNavigation)) {
       return c.json({error: 'ExplorerOriginRefused'}, 403);
     }
     if (c.req.method === 'POST' && requestOrigin !== origin) {
