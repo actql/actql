@@ -328,6 +328,50 @@ test('Resolution reply captures original result fields before validation', async
   assert.deepEqual(calls.map(call => call.operation), ['connect', 'resolve']);
 });
 
+test('unreadable Resolution reply remains Unknown with the exact original signed bytes', async t => {
+  const item = await signedAnswer(original, 'approved', signer, '2026-10-18T00:01:00.000Z');
+  const privateFailure = new Error('private response getter');
+  const {client, calls} = await fixture(t, {resolve: () => ({get results() {throw privateFailure;}})});
+  await assert.rejects(client.resolveCheckpoints([item]), error => {
+    assert.equal(error.code, 'ResolutionUnknown');
+    assert.deepEqual(error.signed, [item]);
+    assert.equal(error.cause.code, 'InvalidHostResolveReply');
+    assert.equal(error.cause.cause, undefined);
+    return true;
+  });
+  assert.deepEqual(calls.map(call => call.operation), ['connect', 'resolve']);
+});
+
+test('a Resolution batch retains original items and signer across the first awaited signature', async t => {
+  let arrive, release, signatures = 0;
+  const arrived = new Promise(resolve => {arrive = resolve;});
+  const pending = new Promise(resolve => {release = resolve;});
+  const second = {...original, checkpointId: 'second-original', checkpointCid: cid('f')};
+  const items = [{checkpoint: {...original}, decision: 'approved'},
+    {checkpoint: second, decision: 'approved'}];
+  const selected = {...signer, async sign(bytes) {
+    assert.equal(this, selected);
+    if (++signatures === 1) {arrive(); await pending;}
+    return signer.sign(bytes);
+  }};
+  const {client, calls} = await fixture(t);
+  const flight = client.resolveCheckpoints(items, {signer: selected});
+  await arrived;
+  items[1].decision = 'rejected'; second.checkpointId = 'substituted';
+  selected.keyId = 'replacement'; selected.reviewerId = 'replacement';
+  selected.sign = () => assert.fail('replacement callback');
+  release();
+  const answer = await flight;
+  assert.equal(signatures, 4);
+  assert.deepEqual(answer.signed.map(item => {
+    const resolution = JSON.parse(item.resolutionWire);
+    return {id: resolution.checkpoint_id, decision: resolution.decision,
+      key: resolution.proof.key_id, actor: resolution.actor};
+  }), [original.checkpointId, 'second-original'].map(id =>
+    ({id, decision: 'approved', key: signer.keyId, actor: signer.reviewerId})));
+  assert.deepEqual(calls.map(call => call.operation), ['connect', 'resolve']);
+});
+
 test('abort during a pending signature observes settlement and makes no second signature or resolve', async t => {
   let release, arrived, signatures = 0;
   const waiting = new Promise(resolve => {arrived = resolve;});
