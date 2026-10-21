@@ -16,7 +16,7 @@ test('known startup profiling cannot be labeled uninstrumented latency', () => {
   assert.equal(nodeBenchmarkInstrumentation({...ordinary, nodeOptions: '--cpu-prof'}).profiled, true);
   assert.equal(nodeBenchmarkInstrumentation({...ordinary, coverage: 'coverage'}).profiled, true);
 });
-async function fixture(t, fail = false, slow = false, wrong = '') {
+async function fixture(t, fail = false, slow = false, wrong = '', markImport = false) {
   const root = await mkdtemp(join(tmpdir(), 'actql-benchmark-oracle-'));
   t.after(() => rm(root, {recursive: true, force: true}));
   const packageRoot = join(root, 'consumer/node_modules/@actql/node');
@@ -25,6 +25,7 @@ async function fixture(t, fail = false, slow = false, wrong = '') {
   // These bytes are not an ordinary product cohort or a latency observation.
   const code = Buffer.from(`import {appendFile,mkdir,writeFile} from 'node:fs/promises';
 import {setTimeout as delay} from 'node:timers/promises';
+${markImport ? `await writeFile(${JSON.stringify(join(root, 'imported'))},'yes');` : ''}
 export async function open({stateDir}) {
  await mkdir(stateDir); let closed=false;
  const run={ref:{id:'same'}, wait:async()=>({status:'succeeded'}),
@@ -51,10 +52,18 @@ export async function open({stateDir}) {
     environment: {platform: platform(), arch: arch(), node: process.version,
     osRelease: release(), cpuModel: cpus()[0].model, logicalCpus: cpus().length, memoryBytes: totalmem()},
     load: 'isolated', historyProtocolSha256: hash(Buffer.from(JSON.stringify(nodeWarmProtocol('diagnostic'))))}));
-  return {manifestPath, consumer: join(root, 'consumer'), controlsPath, output: join(root, 'new-benchmark'), mode: 'diagnostic'};
+  return {manifestPath, consumer: join(root, 'consumer'), controlsPath, output: join(root, 'new-benchmark'),
+    importMarker: join(root, 'imported'), mode: 'diagnostic'};
 }
 test('public warm adapter verifies output, awaits close, retains samples without claiming final p95', async t => {
   const options = await fixture(t);
+  const controls = JSON.parse(await readFile(options.controlsPath));
+  // Explicitly incomplete synthetic metadata tests transport only; no baseline
+  // measurements, actual durability correspondence or speed are invented here.
+  controls.comparison = {baseline: null, profile: {qualification: 'synthetic incomplete profile'}};
+  controls.comparisonMatches = {'warm-select': {qualification: 'explicit synthetic workload statement'}};
+  controls.comparisonSettings = {qualification: 'not a measured product setting'};
+  await writeFile(options.controlsPath, JSON.stringify(controls));
   const report = await runNodeWarmBenchmark(options);
   assert.equal(report.cleanup.closed, true); assert.equal(report.installedPayloadsUnchanged, true);
   assert.equal(report.latency.length, 6);
@@ -63,6 +72,11 @@ test('public warm adapter verifies output, awaits close, retains samples without
   assert.equal(await readFile(join(options.output, 'new-state/closed'), 'utf8'), 'yes');
   assert.equal(report.functional.rows.length, 6);
   assert(report.functional.rows.every(row => row.completed && row.expectedSha256 === row.actualSha256));
+  assert.deepEqual(report.comparison, controls.comparison);
+  assert.deepEqual(report.latency[0].comparisonMatch, controls.comparisonMatches['warm-select']);
+  assert.deepEqual(report.latency[0].comparisonSettings, controls.comparisonSettings);
+  assert.equal(report.latency[0].expectedSha256, report.functional.rows[0].expectedSha256);
+  assert.match(report.latency[0].executableSha256, /^[a-f0-9]{64}$/u);
 });
 test('public functional Unknown stops without another sample and still awaits the original close', async t => {
   const options = await fixture(t, true);
@@ -118,7 +132,19 @@ test('small public SQL is fixed in the experiment and uses distinct independent 
     assert.equal(series.fixtureSha256, hash(Buffer.from(JSON.stringify(series.query))));
     assert(series.samples.every(row => row.verified && row.hostId === series.hostId && row.fixtureSha256 === series.fixtureSha256));
   }
-  assert(report.assessments.slice(3).every(row => row.target.p95Ms === 500 && row.summary.p95Ms === null));
+  assert(report.assessments.slice(3).every(row => row.target.comparison === 'local-sqlite' &&
+    row.summary.p95Ms === null && row.missing.includes('measured fixed SQLite comparison profile')));
+});
+test('final collector refuses a missing comparison before importing or opening the public product', async t => {
+  const options = await fixture(t, false, false, '', true);
+  options.mode = 'final';
+  const controls = JSON.parse(await readFile(options.controlsPath));
+  controls.historyProtocolSha256 = hash(Buffer.from(JSON.stringify(nodeWarmProtocol('final'))));
+  await writeFile(options.controlsPath, JSON.stringify(controls));
+  await assert.rejects(runNodeWarmBenchmark(options), /Final comparison profile incomplete before public open/u);
+  await assert.rejects(readFile(options.importMarker), {code: 'ENOENT'});
+  await assert.rejects(readFile(join(options.output, 'new-state/closed')), {code: 'ENOENT'});
+  await assert.rejects(readFile(join(options.output, 'new-state/queries')), {code: 'ENOENT'});
 });
 for (const [wrong, operation] of [['join', 'warm-join'], ['union', 'warm-union'], ['decimal', 'warm-decimal-sum']]) {
   test(`${operation} refuses a wrong materialized result without retry or later families`, async t => {
