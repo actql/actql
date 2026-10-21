@@ -33,6 +33,17 @@ async function fixture() {
 
 // Actual fixed Journal, SQLite and filesystem with explicit diagnostic bounds.
 // The support asset is DATA, not the missing operational prefix disposition.
+test('selected Journal reopens its own durable usage metadata without changing original bytes', async () => {
+  const {scratch, directory} = await fixture();
+  openClientRequestJournal(directory, options).close();
+  const before = snapshot(directory);
+  const reopened = openClientRequestJournal(directory, options);
+  reopened.close();
+  assert.deepEqual(snapshot(directory), before);
+  assert.equal(observeOriginalClientRequestJournalCustody(reopened).databaseClosed, true);
+  scratch.passed();
+});
+
 test('selected own-DDL bytes cover the actual primary, Source and observation schema then cold reopen', async () => {
   const {scratch, directory} = await fixture();
   const selected = {...options, primaryCurrent() {
@@ -47,7 +58,7 @@ test('selected own-DDL bytes cover the actual primary, Source and observation sc
   const actual = inspectSqliteSnapshot(join(directory, 'client-requests.sqlite3'), original =>
     original.prepare('SELECT sql FROM sqlite_schema WHERE sql IS NOT NULL')
       .all().map(row => row.sql).sort(), {maxSourceBytes: options.maxDatabaseBytes});
-  assert.equal(actual.length, 17);
+  assert.equal(actual.length, 25);
   assert.deepEqual(actual, [...support.sql].sort());
   const before = snapshot(directory);
   const restored = openClientRequestJournal(directory, selected);
