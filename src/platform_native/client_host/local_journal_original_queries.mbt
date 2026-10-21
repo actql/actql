@@ -88,6 +88,11 @@ fn NativeLocalJournalReadQueries::access(
       .query(() => self.database.client_run_definition_schema())
       .unwrap_or(Err(@sqlite.Busy))
     },
+    run_definition_key: definition_cid => {
+      self
+      .query(() => self.database.client_run_definition_key(definition_cid))
+      .unwrap_or(Err(@sqlite.Busy))
+    },
     fenced: () => {
       self.query(() => self.database.transaction_fenced()).unwrap_or(true)
     },

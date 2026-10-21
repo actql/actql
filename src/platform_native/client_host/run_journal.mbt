@@ -930,11 +930,58 @@ fn NativeClientRunJournal::bind_run_locked(
           operations,
         ) {
         Ok(value) => value
+        Err(@sqlite.Collision) =>
+          return Err(
+            self.classify_run_definition_collision(request, definition, reads~),
+          )
         Err(issue) => return Err(Physical(issue))
       }
     Err(issue) => return Err(Physical(issue))
   }
   Ok({ ..record, revision, })
+}
+
+///|
+// The ordinary successful insert has already enforced uniqueness and needs no
+// second lookup. Only its typed Collision selects the exact indexed candidate
+// to preserve the original logical ForeignRun refusal. No history is scanned,
+// no admission is retried and the surrounding transaction still rolls back.
+fn NativeClientRunJournal::classify_run_definition_collision(
+  self : NativeClientRunJournal,
+  request : @host.ClientRequestIdentity,
+  definition : @publication.PublicationContract,
+  reads? : NativeClientJournalReadAccess? = None,
+) -> NativeClientRunJournalIssue {
+  if !self.transaction_active || self.append_schema != 1 {
+    return CustodyLost
+  }
+  let definition_cid = @publication.publication_contract_identity(definition)
+  let key = match
+    client_journal_run_definition_key(self.database, definition_cid, reads) {
+    Ok(Some(value)) => value
+    Ok(None) => return Physical(@sqlite.Collision)
+    Err(issue) => return Physical(issue)
+  }
+  let row = match
+    read_client_journal_value(self.database, "client_runs", key, reads) {
+    Ok(value) => value
+    Err(@sqlite.NotFound) => return CustodyLost
+    Err(issue) => return Physical(issue)
+  }
+  let original = match self.admit_retained_record(key, row) {
+    Ok(value) => value
+    Err(issue) => return issue
+  }
+  if @host.client_request_scope_cid(original.request) != key ||
+    @publication.publication_contract_identity(original.definition) !=
+    definition_cid ||
+    @host.client_request_scope_cid(request) == key {
+    return CustodyLost
+  }
+  match confirm_effect_ledger_custody(self.database, original, reads~) {
+    Ok(_) => ForeignRun
+    Err(issue) => issue
+  }
 }
 
 ///|

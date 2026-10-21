@@ -725,6 +725,11 @@ test "typed Local Host terminal fence accepts actual state and refuses purpose o
   )
   .unwrap()
   |> ignore
+  assert_eq(@publication.publication_contract_identity(duplicate_definition), definition_cid)
+  let duplicate_run_before = run_record_body(reopened_journal.retained(request).unwrap().unwrap()).unwrap()
+  let duplicate_issued_before = reopened.database.read("client_run_custody", "issued").unwrap()
+  let duplicate_locator_key = run_id_index_key(scope, "values-state-original")
+  let duplicate_locator_before = reopened.database.read("client_run_id_index", duplicate_locator_key).unwrap()
   let duplicate_admission = reopened_journal.accept_submitted_run(
     reopened.epoch,
     duplicate_reference,
@@ -736,7 +741,21 @@ test "typed Local Host terminal fence accepts actual state and refuses purpose o
     true,
     1004.0,
   )
+  if !(duplicate_admission is Err(ForeignRun)) {
+    fail("duplicate original admission: " + match duplicate_admission {
+      Ok(_) => "unexpected-success"
+      Err(issue) => original_selection_journal_kind(issue)
+    })
+  }
   assert_true(duplicate_admission is Err(ForeignRun))
+  assert_eq(run_record_body(reopened_journal.retained(request).unwrap().unwrap()).unwrap(), duplicate_run_before)
+  let duplicate_issued_after = reopened.database.read("client_run_custody", "issued").unwrap()
+  assert_eq(duplicate_issued_after.body, duplicate_issued_before.body)
+  assert_eq(duplicate_issued_after.revision, duplicate_issued_before.revision)
+  let duplicate_locator_after = reopened.database.read("client_run_id_index", duplicate_locator_key).unwrap()
+  assert_eq(duplicate_locator_after.body, duplicate_locator_before.body)
+  assert_eq(duplicate_locator_after.revision, duplicate_locator_before.revision)
+  assert_true(reopened_journal.retained_submission(duplicate_reference).unwrap().unwrap().run_admission is None)
   // The existing Owner correctly forbids reusing one exact definition CID.
   // Ambiguity therefore needs two independently issued namespace definitions,
   // each retained under its own authentic new Submission, not a rewritten row.

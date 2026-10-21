@@ -31,6 +31,10 @@ fn journal_test_read_access(
       calls.push("run-definition-schema")
       database.client_run_definition_schema()
     },
+    run_definition_key: definition_cid => {
+      calls.push("run-definition-key:" + definition_cid)
+      database.client_run_definition_key(definition_cid)
+    },
     schema: () => {
       calls.push("schema")
       submission_name_schema_ffi(database)
