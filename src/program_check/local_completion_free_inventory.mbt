@@ -1,5 +1,6 @@
 ///|
 priv enum LocalCompletionFreeAudit {
+  DecimalSumAudit(LocalCompletionFreeAudit)
   Complete(Int, @parameters.BoundValues?, Bool, Bool, Bool, Bool, Bool, Bool)
   DistinctComplete(
     Int,
@@ -107,13 +108,37 @@ struct LocalCompletionFreeInventory {
 }
 
 ///|
-fn local_audit_uses_distinct(audit : LocalCompletionFreeAudit) -> Bool {
+fn local_audit_base(
+  audit : LocalCompletionFreeAudit,
+) -> LocalCompletionFreeAudit {
   match audit {
+    DecimalSumAudit(original) => original
+    _ => audit
+  }
+}
+
+///|
+// Mark only the existing successful audit, retaining its original completion
+// entries and feature flags. No second Program traversal or new rule is issued.
+fn local_decimal_sum_audit(
+  audit : LocalCompletionFreeAudit,
+  decimal_sum : Bool,
+) -> LocalCompletionFreeAudit {
+  if decimal_sum {
+    DecimalSumAudit(audit)
+  } else {
+    audit
+  }
+}
+
+///|
+fn local_audit_uses_distinct(audit : LocalCompletionFreeAudit) -> Bool {
+  match local_audit_base(audit) {
     JoinComplete(_, _, _, _, _, _, _, value, _, _, _, _)
     | JoinSortCompleted(_, _, value, _, _, _, _) => return value
     _ => ()
   }
-  match audit {
+  match local_audit_base(audit) {
     DistinctComplete(_, _, _, _, _, _, _, _) | DistinctSortCompleted(_, _, _) =>
       true
     SetComplete(_, _, _, _, _, _, _, distincts, _)
@@ -128,12 +153,12 @@ fn local_audit_uses_distinct(audit : LocalCompletionFreeAudit) -> Bool {
 
 ///|
 fn local_audit_uses_set(audit : LocalCompletionFreeAudit) -> Bool {
-  match audit {
+  match local_audit_base(audit) {
     JoinComplete(_, _, _, _, _, _, _, _, value, _, _, _)
     | JoinSortCompleted(_, _, _, value, _, _, _) => return value
     _ => ()
   }
-  match audit {
+  match local_audit_base(audit) {
     SetComplete(_, _, _, _, _, _, _, _, _) | SetSortCompleted(_, _, _, _) =>
       true
     DedupeComplete(_, _, _, _, _, _, _, _, sets, _)
@@ -146,12 +171,12 @@ fn local_audit_uses_set(audit : LocalCompletionFreeAudit) -> Bool {
 
 ///|
 fn local_audit_uses_dedupe(audit : LocalCompletionFreeAudit) -> Bool {
-  match audit {
+  match local_audit_base(audit) {
     JoinComplete(_, _, _, _, _, _, _, _, _, value, _, _)
     | JoinSortCompleted(_, _, _, _, value, _, _) => return value
     _ => ()
   }
-  match audit {
+  match local_audit_base(audit) {
     DedupeComplete(_, _, _, _, _, _, _, _, _, _)
     | DedupeSortCompleted(_, _, _, _, _) => true
     AssertionComplete(_, _, _, _, _, _, _, _, _, dedupes, _)
@@ -434,18 +459,19 @@ fn audit_local_completion_free_take(
 }
 
 ///|
-// Audit the existing count and extrema reduction family. Ordered, collection and
-// numeric-policy reductions keep their separate completion/resource owners.
+// Audit exact Decimal sum alongside the count/extrema family. Ordered,
+// collection and binary64 reductions keep their separate resource/observation owners.
 // Returning a remaining budget never grants execution or validates an input row.
 fn audit_local_completion_free_group(
   operation : @relation.CheckedOperation,
   available : Int,
-) -> Int? {
+) -> (Int, Bool)? {
   guard @relation.group(operation) is Some(group) else { return None }
   if @relation.group_has_additional_prefix(group) {
     return None
   }
   let mut remaining = available
+  let mut decimal_sum = false
   for index in 0..<@relation.group_key_count(group) {
     if remaining <= 0 {
       return None
@@ -465,6 +491,14 @@ fn audit_local_completion_free_group(
     let call = @relation.aggregate_at(group, index).unwrap()
     match @relation.aggregate_function(call) {
       Count | CountIf | Min | Max => ()
+      Sum => {
+        // This original checked result is Decimal only for an admitted Decimal
+        // input. Integral-looking Number values cannot discharge observation.
+        guard @relation.aggregate_result(call).shape is @contract.Decimal(..) else {
+          return None
+        }
+        decimal_sum = true
+      }
       _ => return None
     }
     if @relation.aggregate_order_count(call) != 0 ||
@@ -490,7 +524,7 @@ fn audit_local_completion_free_group(
       return None
     }
   }
-  Some(remaining)
+  Some((remaining, decimal_sum))
 }
 
 ///|
@@ -694,6 +728,7 @@ fn audit_local_completion_free_units(
   let mut explicit_cast = false
   let mut checked_expressions = false
   let mut groups = false
+  let mut decimal_sums = false
   let mut takes = false
   let mut sorts = false
   let mut distincts = false
@@ -841,10 +876,11 @@ fn audit_local_completion_free_units(
             }
             Group => {
               guard audit_local_completion_free_group(operation, remaining)
-                is Some(left) else {
+                is Some((left, decimal_sum)) else {
                 return ProfileNotInstalled
               }
               remaining = left
+              decimal_sums = decimal_sums || decimal_sum
               groups = true
             }
             _ => return ProfileNotInstalled
@@ -908,106 +944,136 @@ fn audit_local_completion_free_units(
     guard canonical_local_sort_entries(sort_entries, remaining) is Some(left) else {
       return ProfileNotInstalled
     }
-    return if joins {
-      JoinSortCompleted(
-        10000 - left,
-        sort_entries,
+    return local_decimal_sum_audit(
+      if joins {
+        JoinSortCompleted(
+          10000 - left,
+          sort_entries,
+          distincts,
+          sets,
+          dedupes,
+          assertions,
+          defaulted_parameters,
+        )
+      } else if assertions {
+        AssertionSortCompleted(
+          10000 - left,
+          sort_entries,
+          distincts,
+          sets,
+          dedupes,
+          defaulted_parameters,
+        )
+      } else if dedupes {
+        DedupeSortCompleted(
+          10000 - left,
+          sort_entries,
+          distincts,
+          sets,
+          defaulted_parameters,
+        )
+      } else if sets {
+        SetSortCompleted(
+          10000 - left,
+          sort_entries,
+          distincts,
+          defaulted_parameters,
+        )
+      } else if distincts {
+        DistinctSortCompleted(10000 - left, sort_entries, defaulted_parameters)
+      } else {
+        SortCompleted(10000 - left, sort_entries, defaulted_parameters)
+      },
+      decimal_sums,
+    )
+  }
+  if joins {
+    return local_decimal_sum_audit(
+      JoinComplete(
+        10000 - remaining,
+        bound_parameters,
+        explicit_cast,
+        checked_expressions,
+        groups,
+        takes,
+        sorts,
         distincts,
         sets,
         dedupes,
         assertions,
         defaulted_parameters,
-      )
-    } else if assertions {
-      AssertionSortCompleted(
-        10000 - left,
-        sort_entries,
+      ),
+      decimal_sums,
+    )
+  }
+  if assertions {
+    return local_decimal_sum_audit(
+      AssertionComplete(
+        10000 - remaining,
+        bound_parameters,
+        explicit_cast,
+        checked_expressions,
+        groups,
+        takes,
+        sorts,
         distincts,
         sets,
         dedupes,
         defaulted_parameters,
-      )
-    } else if dedupes {
-      DedupeSortCompleted(
-        10000 - left,
-        sort_entries,
-        distincts,
-        sets,
-        defaulted_parameters,
-      )
-    } else if sets {
-      SetSortCompleted(
-        10000 - left,
-        sort_entries,
-        distincts,
-        defaulted_parameters,
-      )
-    } else if distincts {
-      DistinctSortCompleted(10000 - left, sort_entries, defaulted_parameters)
-    } else {
-      SortCompleted(10000 - left, sort_entries, defaulted_parameters)
-    }
-  }
-  if joins {
-    return JoinComplete(
-      10000 - remaining,
-      bound_parameters,
-      explicit_cast,
-      checked_expressions,
-      groups,
-      takes,
-      sorts,
-      distincts,
-      sets,
-      dedupes,
-      assertions,
-      defaulted_parameters,
-    )
-  }
-  if assertions {
-    return AssertionComplete(
-      10000 - remaining,
-      bound_parameters,
-      explicit_cast,
-      checked_expressions,
-      groups,
-      takes,
-      sorts,
-      distincts,
-      sets,
-      dedupes,
-      defaulted_parameters,
+      ),
+      decimal_sums,
     )
   }
   if dedupes {
-    return DedupeComplete(
-      10000 - remaining,
-      bound_parameters,
-      explicit_cast,
-      checked_expressions,
-      groups,
-      takes,
-      sorts,
-      distincts,
-      sets,
-      defaulted_parameters,
+    return local_decimal_sum_audit(
+      DedupeComplete(
+        10000 - remaining,
+        bound_parameters,
+        explicit_cast,
+        checked_expressions,
+        groups,
+        takes,
+        sorts,
+        distincts,
+        sets,
+        defaulted_parameters,
+      ),
+      decimal_sums,
     )
   }
   if sets {
-    return SetComplete(
-      10000 - remaining,
-      bound_parameters,
-      explicit_cast,
-      checked_expressions,
-      groups,
-      takes,
-      sorts,
-      distincts,
-      defaulted_parameters,
+    return local_decimal_sum_audit(
+      SetComplete(
+        10000 - remaining,
+        bound_parameters,
+        explicit_cast,
+        checked_expressions,
+        groups,
+        takes,
+        sorts,
+        distincts,
+        defaulted_parameters,
+      ),
+      decimal_sums,
     )
   }
   if distincts {
-    return DistinctComplete(
+    return local_decimal_sum_audit(
+      DistinctComplete(
+        10000 - remaining,
+        bound_parameters,
+        explicit_cast,
+        checked_expressions,
+        groups,
+        takes,
+        sorts,
+        defaulted_parameters,
+      ),
+      decimal_sums,
+    )
+  }
+  local_decimal_sum_audit(
+    Complete(
       10000 - remaining,
       bound_parameters,
       explicit_cast,
@@ -1016,17 +1082,8 @@ fn audit_local_completion_free_units(
       takes,
       sorts,
       defaulted_parameters,
-    )
-  }
-  Complete(
-    10000 - remaining,
-    bound_parameters,
-    explicit_cast,
-    checked_expressions,
-    groups,
-    takes,
-    sorts,
-    defaulted_parameters,
+    ),
+    decimal_sums,
   )
 }
 
@@ -1037,7 +1094,7 @@ pub fn local_program_completion_free_inventory(
   if owner.has_effects {
     return Err(ProfileNotInstalled)
   }
-  match owner.local_completion_free_audit {
+  match local_audit_base(owner.local_completion_free_audit) {
     Complete(
       work,
       bound_parameters,
@@ -1126,7 +1183,7 @@ pub fn local_program_completion_free_inventory(
         ),
         joins: local_audit_uses_join(owner.local_completion_free_audit),
       })
-    ProfileNotInstalled => Err(ProfileNotInstalled)
+    ProfileNotInstalled | DecimalSumAudit(_) => Err(ProfileNotInstalled)
     CompletionObserved
     | SortCompleted(_, _, _)
     | DistinctSortCompleted(_, _, _)
@@ -1242,7 +1299,7 @@ pub fn local_completion_free_inventory_uses_assertions(
 
 ///|
 fn local_audit_uses_assertions(audit : LocalCompletionFreeAudit) -> Bool {
-  match audit {
+  match local_audit_base(audit) {
     AssertionComplete(_, _, _, _, _, _, _, _, _, _, _)
     | AssertionSortCompleted(_, _, _, _, _, _) => true
     JoinComplete(_, _, _, _, _, _, _, _, _, _, value, _)
@@ -1253,7 +1310,7 @@ fn local_audit_uses_assertions(audit : LocalCompletionFreeAudit) -> Bool {
 
 ///|
 fn local_audit_uses_join(audit : LocalCompletionFreeAudit) -> Bool {
-  match audit {
+  match local_audit_base(audit) {
     JoinComplete(_, _, _, _, _, _, _, _, _, _, _, _)
     | JoinSortCompleted(_, _, _, _, _, _, _) => true
     _ => false
@@ -1266,4 +1323,12 @@ pub fn local_completion_free_inventory_uses_join(
   inventory : LocalCompletionFreeInventory,
 ) -> Bool {
   inventory.joins
+}
+
+///|
+/// Exact Decimal reduction metadata from the original nominal audit only.
+pub fn local_completion_free_inventory_uses_decimal_sum(
+  inventory : LocalCompletionFreeInventory,
+) -> Bool {
+  inventory.owner.local_completion_free_audit is DecimalSumAudit(_)
 }

@@ -214,7 +214,7 @@ pub fn local_program_sort_normalization_inventory(
   if owner.has_effects {
     return Err(ProfileNotInstalled)
   }
-  match owner.local_completion_free_audit {
+  match local_audit_base(owner.local_completion_free_audit) {
     Complete(_, _, _, _, _, _, _, _)
     | DistinctComplete(_, _, _, _, _, _, _, _)
     | SetComplete(_, _, _, _, _, _, _, _, _)
@@ -245,7 +245,7 @@ pub fn local_program_sort_normalization_inventory(
         }),
       )
     CompletionObserved => Err(CompletionObserved)
-    ProfileNotInstalled => Err(ProfileNotInstalled)
+    ProfileNotInstalled | DecimalSumAudit(_) => Err(ProfileNotInstalled)
   }
 }
 
@@ -371,4 +371,12 @@ pub fn local_sort_normalization_inventory_uses_join(
   value : LocalSortNormalizationInventory,
 ) -> Bool {
   value.joins
+}
+
+///|
+/// Exact Decimal sums retain the same original Source/Sort completion entries.
+pub fn local_sort_normalization_inventory_uses_decimal_sum(
+  inventory : LocalSortNormalizationInventory,
+) -> Bool {
+  inventory.owner.local_completion_free_audit is DecimalSumAudit(_)
 }
