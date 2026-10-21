@@ -14,6 +14,7 @@ export function nodeWarmProtocol(mode) {
   return {entry: 'ordinary open/stateDir', mode, priorState: 'new empty directory',
     seed: {source: 'SELECT 1 AS id', format: 'sql', expected: [{id: 1}], successfulRuns: 1},
     operationOrder: ['warm-select', 'warm-result', 'warm-status'], samplesPerOperation: mode === 'final' ? 100 : 3,
+    diagnosticContinuation: mode === 'diagnostic' ? 'verified success only; stop each slow family' : 'none',
     newShortQueries: 'one per warm-select sample', savedReads: 'same original seed Run',
     status: 'same original revision after initial status observation', close: 'await original Client in finally'};
 }
@@ -72,7 +73,7 @@ export async function runNodeWarmBenchmark({manifestPath, consumer, output, cont
     historyProtocolSha256: controls.historyProtocolSha256, mode, ordinaryPackageManifest: manifestPath,
     observedEnvironment: actualEnvironment,
     historyProtocol: protocol,
-    load: controls.load, latency: [], functional: {cohortSha256: identity.cohortSha256,
+    load: controls.load, latency: [], diagnosticFindings: [], functional: {cohortSha256: identity.cohortSha256,
       environmentSha256, historyProtocolSha256: controls.historyProtocolSha256, rows: []}, cleanup: {closed: false},
     qualification: 'Selected warm public operations only. Other latency, structural, history, chunk and fault gates remain unmeasured.'};
   const save = () => writeFile(join(output, 'measurements.json'), JSON.stringify(report, null, 2) + '\n', {mode: 0o600});
@@ -86,9 +87,12 @@ export async function runNodeWarmBenchmark({manifestPath, consumer, output, cont
     assert.deepEqual(await original.result('main').all(), [{id: 1}]);
     report.originalRun = original.ref;
     report.initialOpenAndResultNs = Number(process.hrtime.bigint() - initial);
-    // This first operation is diagnostic and lacks close, so it is not a
-    // first-init percentile. Stop here if the known fixed-cost problem remains.
-    if (report.initialOpenAndResultNs > 5e9) report.stoppedAt = 'initial operation exceeded 5s; no repeated slow baseline';
+    // This observation lacks close, so it is not a first-init percentile.
+    // Diagnostic mode may still locate the separate saved-Result/status cost
+    // after a slow SUCCESS. It never repeats an unknown or failed submission.
+    report.initialLatencyExceeded = report.initialOpenAndResultNs > 5e9;
+    if (report.initialLatencyExceeded) report.diagnosticFindings.push('initial operation exceeded 5s');
+    if (report.initialLatencyExceeded && mode === 'final') report.stoppedAt = 'initial operation exceeded 5s; final sampling not started';
     else {
       const baseline = await original.status();
       for (const operation of ['warm-select', 'warm-result', 'warm-status']) {
@@ -113,10 +117,12 @@ export async function runNodeWarmBenchmark({manifestPath, consumer, output, cont
           ...(observed === undefined ? {} : {actualSha256: hash(Buffer.from(JSON.stringify(observed)))})});
         await save();
         if (collected.stoppedEarly) {
-          report.stoppedAt = operation;
           const failed = collected.samples.find(row => row.verified !== true);
-          if (failed) report.firstFailure = {operation, message: failed.error};
-          break;
+          if (failed) {
+            report.firstFailure = {operation, message: failed.error}; report.stoppedAt = operation; break;
+          }
+          report.diagnosticFindings.push(`${operation}: ${collected.stopReason}`);
+          if (mode !== 'diagnostic') { report.stoppedAt = operation; break; }
         }
       }
     }
@@ -153,6 +159,6 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
     const report = await runNodeWarmBenchmark(options);
     console.log(JSON.stringify({sourceSha: report.sourceSha, stoppedAt: report.stoppedAt ?? null,
       assessments: report.assessments, fullAcceptance: false}));
-    process.exitCode = report.stoppedAt || report.assessments.some(row => row.status !== 'passed') ? 1 : 0;
+    process.exitCode = report.initialLatencyExceeded || report.stoppedAt || report.assessments.some(row => row.status !== 'passed') ? 1 : 0;
   } catch (error) { console.error(error.message); process.exitCode = 2; }
 }

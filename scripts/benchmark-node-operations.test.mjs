@@ -7,7 +7,7 @@ import test from 'node:test';
 import {runNodeWarmBenchmark, nodeWarmProtocol} from './benchmark-node-operations.mjs';
 
 const hash = bytes => createHash('sha256').update(bytes).digest('hex');
-async function fixture(t, fail = false) {
+async function fixture(t, fail = false, slow = false) {
   const root = await mkdtemp(join(tmpdir(), 'actql-benchmark-oracle-'));
   t.after(() => rm(root, {recursive: true, force: true}));
   const packageRoot = join(root, 'consumer/node_modules/@actql/node');
@@ -15,11 +15,12 @@ async function fixture(t, fail = false) {
   // Explicit synthetic public-port double tests collector/cleanup behavior only.
   // These bytes are not an ordinary product cohort or a latency observation.
   const code = Buffer.from(`import {mkdir,writeFile} from 'node:fs/promises';
+import {setTimeout as delay} from 'node:timers/promises';
 export async function open({stateDir}) {
  await mkdir(stateDir); let closed=false;
  const run={ref:{id:'same'}, wait:async()=>({status:'succeeded'}),
-   result:()=>({all:async()=>[{id:1}]}),status:async()=>({status:'succeeded',revision:1})};
- return {startSource:async()=>run,sql:()=>({all:async()=>{${fail ? "throw new Error('Unknown; no resend');" : 'await Promise.resolve();return [{id:1}];'}}}),
+   result:()=>({all:async()=>{${slow ? 'await delay(110);' : ''}return [{id:1}];}}),status:async()=>({status:'succeeded',revision:1})};
+ return {startSource:async()=>run,sql:()=>({all:async()=>{${fail ? "throw new Error('Unknown; no resend');" : (slow ? 'await delay(110);return [{id:1}];' : 'await Promise.resolve();return [{id:1}];')}}}),
  close:async()=>{if(closed)throw new Error('close twice');closed=true;await writeFile(stateDir+'/closed','yes');}};
 }`);
   const product = join(packageRoot, 'index.mjs'); await writeFile(product, code, {mode: 0o644});
@@ -63,4 +64,16 @@ test('adapter refuses a changed cohort or altered history protocol before public
   controls.cohortSha256 = hash(await readFile(options.manifestPath));
   controls.historyProtocolSha256 = '0'.repeat(64); await writeFile(options.controlsPath, JSON.stringify(controls));
   await assert.rejects(runNodeWarmBenchmark(options));
+});
+test('slow successful diagnostic families stay failed/incomplete but do not hide other family costs', async t => {
+  const options = await fixture(t, false, true);
+  const report = await runNodeWarmBenchmark(options);
+  assert.equal(report.latency.length, 3);
+  assert.equal(report.latency[0].samples.length, 1);
+  assert.equal(report.latency[1].samples.length, 1);
+  assert(report.latency.every(row => row.samples.every(sample => sample.verified)));
+  assert(report.diagnosticFindings.some(reason => reason.startsWith('warm-select:')));
+  assert(report.diagnosticFindings.some(reason => reason.startsWith('warm-result:')));
+  assert(report.assessments.every(row => row.status !== 'passed'));
+  assert.equal(report.cleanup.closed, true); assert.equal(report.fullAcceptance, false);
 });
