@@ -176,6 +176,13 @@ class CollectorTests(unittest.TestCase):
         result,report,_=self.collect('native',fixture,'cold-existing')
         self.assertNotEqual(result.returncode,0);self.assertIsNone(report)
 
+    def test_source_symlink_is_not_an_installed_consumer(self):
+        manifest,consumer,environment=self.native()
+        link=self.root/'linked-consumer';link.symlink_to(consumer,target_is_directory=True)
+        result,report,_=self.collect('native',(manifest,link,environment),'first-init')
+        self.assertNotEqual(result.returncode,0);self.assertIsNone(report)
+        self.assertIn('source symlink',result.stderr)
+
     def test_python_warm_keeps_one_real_host_and_returns_cleanup(self):
         result,report,output=self.collect('python',self.python(),'warm-result')
         self.assertEqual(result.returncode,0,result.stderr)

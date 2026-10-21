@@ -63,6 +63,7 @@ def safe_member(name):
 
 def verify_packages(adapter, manifest_path, consumer, source):
     """Compare actual formal packages and installed payloads, not filenames."""
+    assert consumer.is_dir() and not consumer.is_symlink(), 'Installed consumer cannot be a source symlink'
     raw = manifest_path.read_bytes()
     manifest = json.loads(raw)
     if adapter == 'native':
@@ -129,6 +130,9 @@ def verify_packages(adapter, manifest_path, consumer, source):
         assert (consumer / 'actql/__init__.py').is_file()
     observed = {}
     for name, expected in payloads.items():
+        for parent in Path(name).parents:
+            directory = consumer / parent
+            assert directory.is_dir() and not directory.is_symlink(), 'Installed product directory cannot be linked'
         actual = regular(consumer / name)
         assert actual == expected, f'Installed payload differs: {name}'
         observed[name] = actual
@@ -266,7 +270,7 @@ def python_sample(config):
 
 def collect(args):
     output = Path(args.output).resolve()
-    consumer = Path(args.consumer).resolve()
+    consumer = Path(args.consumer).absolute()
     manifest_path = Path(args.manifest).resolve()
     manifest, cohort, before = verify_packages(args.adapter, manifest_path, consumer, args.source)
     assert args.adapter != 'native' or not args.operation.startswith('warm-'), 'CLI process launches are not retained-Host warm samples'
