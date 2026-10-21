@@ -159,7 +159,7 @@ pub fn issue_prepared_source_free_client_bound_template(
 fn issue_source_free_client_bound_template_from_aoa(
   value : PreparedClientProgram,
   manifests : ClientCompilationManifests,
-  aoa : ClientValuesAoAIdentity,
+  aoa : ClientValuesAoAParts,
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,

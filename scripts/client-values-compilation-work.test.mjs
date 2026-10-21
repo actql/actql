@@ -48,7 +48,7 @@ test('Values private construction emits one graph, template, execution material 
   const graph=body('client_values_plan_graph','issue_prepared_client_values_plan_graph_parts');
   assert.equal(calls(graph,'issue_client_values_fragment_parts_graph'),1);
   const fragment=body('client_values_fragment','issue_client_values_fragment_parts_graph');
-  assert.equal(calls(fragment,'issue_client_values_aoa_identity_graph'),1);
+  assert.equal(calls(fragment,'issue_client_values_aoa_parts_graph'),1);
   assert.equal(calls(fragment,'parse_plan_identity_value'),0);
   const template=body('client_bound_template','issue_source_free_client_bound_template_from_aoa');
   for(const name of ['issue_prepared_client_values_plan_graph',

@@ -50,7 +50,7 @@ fn issue_prepared_client_values_plan_graph_parts(
   max_nodes : Int,
   max_depth : Int,
 ) -> Result[
-  (ClientValuesPlanGraph, ClientValuesFragmentNode, ClientValuesAoAIdentity),
+  (ClientValuesPlanGraph, ClientValuesFragmentNode, ClientValuesAoAParts),
   ClientValuesPlanGraphIssue,
 ] {
   if max_wire_bytes <= 0 || max_nodes <= 0 || max_depth <= 0 {

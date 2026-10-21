@@ -1340,3 +1340,15 @@ wire allowance. The same Host/runtime/current predicate and original preparation
 lifetime apply through partial failure and escaped aliases. Creating a typed
 mock Provider does not fund its requests, Entry, quantity, output, invocation or
 transport; those remain separately admitted Model duties.
+
+### Values compilation component reuse
+
+A single source-free Values compilation constructs its checked graph, AoA
+identity, fragment, bound template and executable Plan once. Private compiler
+parts retain the original checked Program together with those typed immutable
+components; subsequent assembly consumes them without serializing and admitting
+the same component again. Standalone public issuers retain their existing
+behaviour, bounds and canonical bytes. Compiler-local reuse neither carries
+authorization into another operation nor turns equal serialized identities into
+the same checked original. The compiled Run still belongs to its original
+prepared Program and retains its existing preparation, fact and encoding limits.

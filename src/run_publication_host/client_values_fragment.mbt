@@ -125,14 +125,14 @@ fn issue_client_values_fragment_parts_graph(
   max_nodes : Int,
   max_depth : Int,
 ) -> Result[
-  (ClientValuesFragmentNode, ClientValuesAoAIdentity),
+  (ClientValuesFragmentNode, ClientValuesAoAParts),
   ClientValuesFragmentIssue,
 ] {
   if max_wire_bytes <= 0 || max_nodes <= 0 || max_depth <= 0 {
     return Err(InvalidLimits)
   }
   let aoa = match
-    issue_client_values_aoa_identity_graph(
+    issue_client_values_aoa_parts_graph(
       graph, task, sequence_limits, max_wire_bytes, max_nodes, max_depth,
     ) {
     Ok(value) => value
@@ -173,7 +173,7 @@ fn issue_client_values_fragment_parts_graph(
     @encode.key(writer, "kind")
     @encode.string_value(writer, "aoa_fragment")
     @encode.key(writer, "logical_cid")
-    @encode.string_value(writer, client_values_aoa_identity_cid(aoa))
+    @encode.string_value(writer, client_values_aoa_identity_cid(aoa.identity))
     @encode.key(writer, "node_id")
     @encode.string_value(writer, node_id)
     @encode.key(writer, "output_contracts")
@@ -190,7 +190,7 @@ fn issue_client_values_fragment_parts_graph(
         {
           wire,
           node_id,
-          logical_cid: client_values_aoa_identity_cid(aoa),
+          logical_cid: client_values_aoa_identity_cid(aoa.identity),
           output_contract_wire,
           output_contract_cid,
         },
