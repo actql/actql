@@ -7,6 +7,12 @@ struct NativeClientEpochAuthority {
   crypto : @crypto.Library
   ttl_ms : Double
   mut fenced : Bool
+  // Authentication facts belong only to the existing closed command. They
+  // carry no Account decision, physical lifetime or cleanup acknowledgement.
+  mut operation_active : Bool
+  mut operation_issue : NativeClientEpochIssue?
+  mut observed_custody : (Bytes, Double, Int64)?
+  authenticated_epochs : Map[String, (Bytes, Bool)]
 }
 
 ///|
@@ -285,39 +291,144 @@ fn open_native_client_epoch_authority_with_reads(
     return Err(InvalidInput)
   }
   match read_epoch_custody(database, reads~) {
-    Ok(_) => Ok({ database, crypto, ttl_ms, fenced: false, })
+    Ok(custody) => Ok({
+      database,
+      crypto,
+      ttl_ms,
+      fenced: false,
+      operation_active: false,
+      operation_issue: None,
+      observed_custody: Some(custody),
+      authenticated_epochs: {},
+    })
     Err(issue) => Err(issue)
   }
 }
 
 ///|
-/// The watermark commits even when the subsequent admission is refused.
-/// Clock rollback must not make an expired, authenticated epoch reusable.
+// Only the captured command calls these boundaries. A newly opened authority
+// retains its just-observed original; a new operation on an existing one must
+// observe current custody again. Neither path carries authentication across
+// public operations or manufactures a current Account decision.
+fn NativeClientEpochAuthority::begin_operation(
+  self : NativeClientEpochAuthority,
+  opened_here : Bool,
+) -> Unit {
+  self.operation_active = true
+  self.operation_issue = None
+  self.authenticated_epochs.clear()
+  if !opened_here {
+    self.observed_custody = None
+  }
+}
+
+///|
+fn NativeClientEpochAuthority::end_operation(
+  self : NativeClientEpochAuthority,
+) -> Unit {
+  self.operation_active = false
+  self.operation_issue = None
+  self.observed_custody = None
+  self.authenticated_epochs.clear()
+}
+
+///|
+// A relevant row mutation invalidates the observation, not a previously
+// authenticated token under its exact original key. A different observed key
+// cannot hit that authentication entry. Failure cuts both below.
+fn NativeClientEpochAuthority::invalidate_custody(
+  self : NativeClientEpochAuthority,
+) -> Unit {
+  self.observed_custody = None
+}
+
+///|
+fn NativeClientEpochAuthority::fail_operation(
+  self : NativeClientEpochAuthority,
+  issue : NativeClientEpochIssue,
+) -> NativeClientEpochIssue {
+  self.observed_custody = None
+  self.authenticated_epochs.clear()
+  if self.operation_active {
+    if self.operation_issue is None {
+      self.operation_issue = Some(issue)
+    }
+    self.operation_issue.unwrap_or(issue)
+  } else {
+    issue
+  }
+}
+
+///|
+fn NativeClientEpochAuthority::require_operation_current(
+  self : NativeClientEpochAuthority,
+  reads : NativeClientJournalReadAccess?,
+) -> Result[Unit, NativeClientEpochIssue] {
+  if self.operation_active && self.operation_issue is Some(issue) {
+    return Err(issue)
+  }
+  // This observes the actual original SQL scope/Library, not durable row or
+  // configuration admission. It cannot release or revive a failed original.
+  if self.fenced || client_journal_transaction_fenced(self.database, reads) {
+    return Err(self.fail_operation(Fenced))
+  }
+  Ok(())
+}
+
+///|
+fn NativeClientEpochAuthority::custody(
+  self : NativeClientEpochAuthority,
+  reads : NativeClientJournalReadAccess?,
+) -> Result[(Bytes, Double, Int64), NativeClientEpochIssue] {
+  if self.operation_active && self.observed_custody is Some(original) {
+    return Ok(original)
+  }
+  match read_epoch_custody(self.database, reads~) {
+    Err(issue) => Err(self.fail_operation(issue))
+    Ok(original) => {
+      if self.operation_active {
+        self.observed_custody = Some(original)
+      }
+      Ok(original)
+    }
+  }
+}
+
+///|
+/// The watermark commits even when subsequent admission is refused. Within
+/// this command an already acknowledged watermark needs no new transaction;
+/// advancing it still performs the original revision CAS and real COMMIT.
 fn NativeClientEpochAuthority::clock(
   self : NativeClientEpochAuthority,
   now : Double,
   operations? : NativeClientJournalOperationAccess? = None,
 ) -> Result[(Bytes, Double), NativeClientEpochIssue] {
   let reads = operations.map(original => original.reads)
-  if self.fenced || client_journal_transaction_fenced(self.database, reads) {
-    return Err(Fenced)
+  if !self.operation_active {
+    self.observed_custody = None
+  }
+  match self.require_operation_current(reads) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
   }
   if !valid_epoch_clock(now) {
     return Err(InvalidInput)
   }
+  if self.operation_active && self.observed_custody is Some((key, clock, _)) &&
+    now <= clock {
+    return Ok((key, clock))
+  }
   match
     client_journal_transaction_operation(self.database, JournalBegin, reads) {
     Ok(_) => ()
-    Err(issue) => return Err(Physical(issue))
+    Err(issue) => return Err(self.fail_operation(Physical(issue)))
   }
-  let result = match read_epoch_custody(self.database, reads~) {
+  let result = match self.custody(reads) {
     Err(issue) => Err(issue)
     Ok((key, retained, revision)) => {
       let clock = if now > retained { now } else { retained }
-      // An already durable watermark needs no identical row rewrite. The
-      // original read transaction still requires its real COMMIT ACK below.
       if clock == retained {
-        Ok((key, clock))
+        Ok((key, clock, revision))
       } else {
         match epoch_custody_body(key, clock) {
           Err(issue) => Err(issue)
@@ -330,25 +441,32 @@ fn NativeClientEpochAuthority::clock(
               body,
               operations,
             )
-            .map(_ => (key, clock))
+            .map(next_revision => (key, clock, next_revision))
             .map_err(issue => Physical(issue))
         }
       }
     }
   }
   match result {
-    Ok(value) =>
+    Ok((key, clock, revision)) =>
       match
         client_journal_transaction_operation(
           self.database,
           JournalCommit,
           reads,
         ) {
-        Ok(_) => Ok(value)
+        Ok(_) => {
+          // The mutation hook has dropped the old row. Publish this observed
+          // successor only after its actual COMMIT acknowledgement.
+          if self.operation_active {
+            self.observed_custody = Some((key, clock, revision))
+          }
+          Ok((key, clock))
+        }
         Err(_) => {
           self.fenced = true
           fence_client_journal_transactions(self.database, reads)
-          Err(TransactionUnknown)
+          Err(self.fail_operation(TransactionUnknown))
         }
       }
     Err(issue) =>
@@ -358,11 +476,11 @@ fn NativeClientEpochAuthority::clock(
           JournalRollback,
           reads,
         ) {
-        Ok(_) => Err(issue)
+        Ok(_) => Err(self.fail_operation(issue))
         Err(_) => {
           self.fenced = true
           fence_client_journal_transactions(self.database, reads)
-          Err(TransactionUnknown)
+          Err(self.fail_operation(TransactionUnknown))
         }
       }
   }
@@ -433,7 +551,13 @@ fn NativeClientEpochAuthority::issue_epoch_with_operations(
     @encode.key(writer, "version")
     @encode.string_value(writer, "actql-submission-epoch/0.1")
     @encode.end_object(writer)
-    Ok({ body, authority_scope_cid, tag, wire: @encode.finish(writer), })
+    let epoch = { body, authority_scope_cid, tag, wire: @encode.finish(writer), }
+    if self.operation_active {
+      // This exact token was just authenticated by the successful original
+      // signing call. Its later pure identity lookup needs no second MAC.
+      self.authenticated_epochs.set(epoch.wire, (key, true))
+    }
+    Ok(epoch)
   } catch {
     _ => Err(Encoding)
   }
@@ -505,8 +629,9 @@ fn NativeClientEpochAuthority::verify_epoch_with_operations(
 }
 
 ///|
-/// Recheck the original key and monotonic watermark inside the caller's
-/// existing SQLite transaction. The caller must advance clock() first and
+/// Use the original key and monotonic watermark inside the caller's existing
+/// SQLite transaction. The command reuses unchanged custody; standalone calls
+/// observe it afresh. The caller must advance clock() first and
 /// share this exact physical handle; this does not begin or commit a nested
 /// transaction and does not confer an admission purpose.
 fn NativeClientEpochAuthority::verify_epoch_locked(
@@ -519,10 +644,11 @@ fn NativeClientEpochAuthority::verify_epoch_locked(
   if !current_authorization {
     return Err(AuthorizationDenied)
   }
-  if self.fenced || client_journal_transaction_fenced(self.database, reads) {
-    return Err(Fenced)
+  match self.require_operation_current(reads) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
   }
-  let (key, clock, _) = match read_epoch_custody(self.database, reads~) {
+  let (key, clock, _) = match self.custody(reads) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
@@ -530,8 +656,8 @@ fn NativeClientEpochAuthority::verify_epoch_locked(
 }
 
 ///|
-// Only the immediately preceding actual custody read reaches this private
-// helper. It is not an external key/capacity/admission constructor.
+// Only actual custody or its unchanged command observation reaches this
+// private helper. Authentication reuse is never an Account Allow or an ACK.
 fn NativeClientEpochAuthority::verify_epoch_with_custody(
   self : NativeClientEpochAuthority,
   epoch : NativeClientSubmissionEpoch,
@@ -542,17 +668,34 @@ fn NativeClientEpochAuthority::verify_epoch_with_custody(
   if self.fenced {
     return Err(Fenced)
   }
-  // Counts actual authentication calls, not cheap entry checks or cache hits.
-  native_timing_count(38)
-  match
-    self.crypto.verify_hmac_sha256(
+  let authenticated = if self.operation_active &&
+    self.authenticated_epochs.get(epoch.wire) is Some((original_key, valid)) &&
+    original_key == key {
+    // A cached MAC cannot outlive the actual Library/component/read original,
+    // including a close requested while a child context still owns cleanup.
+    match self.crypto.require_current() {
+      Err(issue) => return Err(self.fail_operation(Crypto(issue)))
+      Ok(_) => ()
+    }
+    valid
+  } else {
+    // Counts actual authentication calls, not entries or cache hits.
+    native_timing_count(38)
+    let valid = match self.crypto.verify_hmac_sha256(
       key,
       @utf8.encode(@scope.submission_epoch_wire(epoch.body)),
       epoch.tag,
     ) {
-    Ok(true) => ()
-    Ok(false) => return Err(Unverifiable)
-    Err(issue) => return Err(Crypto(issue))
+      Ok(valid) => valid
+      Err(issue) => return Err(self.fail_operation(Crypto(issue)))
+    }
+    if self.operation_active {
+      self.authenticated_epochs.set(epoch.wire, (key, valid))
+    }
+    valid
+  }
+  if !authenticated {
+    return Err(Unverifiable)
   }
   if epoch.authority_scope_cid != authority_scope_cid {
     return Err(ScopeMismatch)

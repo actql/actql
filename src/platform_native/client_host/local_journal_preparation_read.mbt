@@ -51,6 +51,7 @@ pub fn[T] NativeLocalJournalCapture::with_original_read(
   self.read_facts_valid = true
   host.journal.operation_active = true
   let result = original.stage(@arena.HostRead, fn() {
+    host.epoch.begin_operation(opened_here)
     let value = operation(host)
     match self.read_operation_issue {
       Some(issue) => Err(issue)

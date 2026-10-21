@@ -7,6 +7,7 @@ fn NativeLocalJournalCapture::clear_read_operation_facts(
 ) -> Unit {
   self.read_facts_valid = false
   if self.opening is JournalAcquired(host) {
+    host.epoch.end_operation()
     host.journal.admitted_adoption = None
     host.journal.invalidate_operation_record()
   }
