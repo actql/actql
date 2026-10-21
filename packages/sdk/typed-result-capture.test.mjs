@@ -47,7 +47,9 @@ test('retained limits apply to the captured original before a shrinking validato
   let cells = 0, validations = 0;
   const original = {get text() {cells++; return 'x'.repeat(1024);}};
   const f = await fixture(t, {value: original, byteLength: 8});
-  await assert.rejects(f.result.all(row => {validations++; return {text: ''};}),
+  const schema = {'~standard': {version: 1, vendor: 'typed-result-capture',
+    validate() {validations++; return {value: {text: ''}};}}};
+  await assert.rejects(f.result.all(schema),
     error => error.code === 'ResultRowRetainedLimit' && typeof error.attemptId === 'string');
   assert.equal(cells, 1); assert.equal(validations, 0);
   assert.deepEqual(f.cleanup(), {returns: 1, closes: 1});
