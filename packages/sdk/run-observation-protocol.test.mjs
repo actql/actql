@@ -331,73 +331,19 @@ for (const path of paths) {
   });
 }
 
-for (const path of paths.filter(value => ['lookupRequest', 'held submit', 'cancel', 'deliveryAttempt', 'check'].includes(value.name))) {
-  test(`${path.name}: a well-shaped clone cannot replace captured facts`, async t => {
-    const reply = path.reply(), f = await responseFixture(t, reply);
-    if (path.name === 'deliveryAttempt') { reply.record = {...path.first}; reply.hostReleaseReceipt = null; }
-    const nativeClone = globalThis.structuredClone;
-    t.after(() => { globalThis.structuredClone = nativeClone; });
-    globalThis.structuredClone = value => {
-      const copy = nativeClone(value);
-      const payload = value?.held ?? value;
-      const copied = copy?.held ?? copy;
-      if (payload?.[path.key] === undefined) return copy;
-      copied[path.key] = nativeClone(path.later);
-      if (path.name === 'cancel') copy.cancellation.revision = 99;
-      if (path.name === 'deliveryAttempt') copy.hostReleaseReceipt = nativeClone(delivery.hostReleaseReceipt);
-      return copy;
-    };
-    let error; try { await path.call(f); } catch (cause) { error = cause; }
-    assert.equal(error?.code, path.code, '[check-mutation:response-capture-copy]');
-    assert.equal(f.operations.length, 3);
-  });
-}
-
 for (const path of paths) {
-  test(`${path.name}: validation-copy getters cannot rebind admitted facts`, async t => {
+  test(`${path.name}: original captured facts need zero verification clones`, async t => {
     const reply = path.reply(); reply[path.key] = path.first;
     if (path.name === 'deliveryAttempt') reply.hostReleaseReceipt = null;
     const f = await responseFixture(t, reply);
     const nativeClone = globalThis.structuredClone;
-    t.after(() => { globalThis.structuredClone = nativeClone; });
-    globalThis.structuredClone = value => {
-      const copy = nativeClone(value);
-      const payload = value?.held ?? value;
-      const copied = copy?.held ?? copy;
-      if (payload?.[path.key] === undefined) return copy;
-      let settled = false;
-      queueMicrotask(() => { settled = true; });
-      Object.defineProperty(copied, path.key, {enumerable: true, configurable: true,
-        get() { return settled ? path.later : path.first; }});
-      return copy;
-    };
+  const clone = t.mock.method(globalThis, 'structuredClone', value => {
+    if (Object.hasOwn(value, 'connection')) return nativeClone(value);
+    assert.fail('Unexpected response verification clone');
+  });
     const answer = await path.call(f);
     path.assert(answer);
-    assert.equal(f.operations.length, 3);
-  });
-}
-
-for (const path of paths) {
-  test(`${path.name}: captured facts survive without trusting a verification conversion`, async t => {
-    const reply = path.reply(); reply[path.key] = path.first;
-    if (path.name === 'deliveryAttempt') reply.hostReleaseReceipt = null;
-    const f = await responseFixture(t, reply);
-    const nativeClone = globalThis.structuredClone;
-    t.mock.method(globalThis, 'structuredClone', value => {
-      const copy = nativeClone(value);
-      const payload = value?.held ?? value;
-      if (payload?.[path.key] !== undefined) payload[path.key] = nativeClone(
-        path.name === 'deliveryAttempt' ? {...path.first, sequence: path.first.sequence + 1} : path.later);
-      return copy;
-    });
-    if (['status', 'wait', 'reconcile'].includes(path.name)) {
-      const answer = await path.call(f);
-      path.assert(answer);
-      assert.equal(f.operations.length, 3);
-      return;
-    }
-    let error; try { await path.call(f); } catch (cause) { error = cause; }
-    assert.equal(error?.code, path.code, '[check-mutation:response-capture-original]');
+    assert.equal(clone.mock.calls.filter(({arguments: [value]}) => !Object.hasOwn(value, 'connection')).length, 0);
     assert.equal(f.operations.length, 3);
   });
 }

@@ -7,11 +7,11 @@ import {projectRequestCancellationExplanation, projectRequestLookupExplanation,
 import {bytesCid, canonicalJson} from '../checkpoints.mjs';
 import {sourceQuery} from '../source-query.mjs';
 import {bindCheckObservation} from './check-observation.mjs';
-import {captureResponse, detachResponse, freezeInput, structuralKey} from './data.mjs';
+import {captureResponse, freezeInput} from './data.mjs';
 import {ClientError, RequestHeld, fail, requestCancellationCause} from './errors.mjs';
 import {copyRunObservationFailure} from './run-observation.mjs';
 import {controlValue} from './transport-response.mjs';
-import {clientSourceFormats, snapshotClientRequest, validOperationAttemptRef,
+import {clientSourceFormats, snapshotClientRequest, validClientAdmission, validOperationAttemptRef,
   validRequestCancellation, validRequestLookup, validRunRef, validSubmissionAttempt,
   validNamedSubmissionAttempt, validSubmissionName,
   validSubmissionLookup, validSubmissionRef, validSubmissionRestart} from '@actql/client-wire';
@@ -266,7 +266,7 @@ export function createSubmissionOperations(selected, confirmed, transport, execu
           : body.unresolvedHistory === undefined ? 'submit-intent' : 'restart-intent';
         const response = await exchange(operation,
           {...body, intentCid}, options.signal, context, undefined, sourceProducer);
-        attempt = detachResponse(captureResponse(await controlValue(response)));
+        attempt = captureResponse(await controlValue(response));
         if (!(requestName === undefined
           ? validSubmissionAttempt(attempt, selected.wire, body.submissionRef, intentCid,
             body.attemptRef, body.unresolvedHistory)
@@ -275,7 +275,7 @@ export function createSubmissionOperations(selected, confirmed, transport, execu
           fail('InvalidHostSubmissionOutcome');
         }
         attempt = freezeInput(attempt);
-        outcome = attempt.outcome === undefined ? undefined : detachResponse(captureResponse(attempt.outcome));
+        outcome = attempt.outcome;
         if (outcome === undefined) {
           // A typed initial refusal or conflict is not the durable original's
           // receipt and supplies no automatic retry or new-submission grant.
@@ -297,14 +297,16 @@ export function createSubmissionOperations(selected, confirmed, transport, execu
               !bindCheckObservation(checkObservation, {kind: body.kind, input: body.input, parameters: body.parameters})) {
             fail('InvalidHostSubmissionCheckObservation');
           }
-          delete outcome.checkObservation;
+          // The validated attempt retains its complete original observation;
+          // the public outcome omits only this separately held presentation.
+          const {checkObservation: _checkObservation, ...publicOutcome} = outcome;
+          outcome = Object.freeze(publicOutcome);
         }
       } catch (cause) {
         if (typedRejection !== undefined && cause === typedRejection) throw cause;
         if (cause?.code === 'SubmissionUnknown' || cause?.code === 'SubmissionNotSent') throw cause;
         throw wasSubmissionDispatched(context) ? submissionUnknown(context, cause) : submissionNotSent(context, cause);
       }
-      outcome = freezeInput(outcome);
       if (outcome.kind === 'ready') {
         let run;
         try {run = execution(outcome.admission);}
@@ -411,7 +413,7 @@ export function createSubmissionOperations(selected, confirmed, transport, execu
       catch (cause) {throw retainSubmissionLookupFailure(cause, context, 'lookup_unavailable');}
       let answer;
       try {
-        answer = detachResponse(captureResponse(await controlValue(response)));
+        answer = captureResponse(await controlValue(response));
         if (!validSubmissionLookup(answer, selected.wire, owned)) fail('InvalidHostSubmissionLookup');
       } catch {
         throw retainSubmissionLookupFailure(new ClientError('InvalidHostSubmissionLookup'),
@@ -436,15 +438,13 @@ export function createSubmissionOperations(selected, confirmed, transport, execu
       catch (cause) { throw new ClientError('InvalidHostAdmission', {cause}); }
       try { admitted = captureResponse(admitted); }
       catch { fail('InvalidHostAdmission'); }
-      // The execution factory admits this owned snapshot once. Constructing a
-      // handle performs no I/O; a foreign reference is refused before return.
-      const run = execution(admitted);
+      if (!validClientAdmission(admitted, selected.wire)) fail('InvalidHostAdmission');
       if (admitted.ref.namespaceId !== requested.namespaceId ||
           admitted.ref.authorityScopeCid !== requested.authorityScopeCid ||
           admitted.ref.runDefinitionCid !== requested.runDefinitionCid) {
         fail('ForeignHostAdmission');
       }
-      return run;
+      return execution(freezeInput(admitted));
     },
     lookupRequest: async (requestId, {signal} = {}) => {
       if (typeof requestId !== 'string' || !requestId) fail('InvalidRequestId');
@@ -463,16 +463,7 @@ export function createSubmissionOperations(selected, confirmed, transport, execu
       if (!validRequestLookup(answer, requestId)) {
         throw retainRequestLookupFailure(new ClientError('InvalidHostRequestLookup'), context, 'lookup_uninterpretable');
       }
-      const observation = answer;
-      const observedKey = structuralKey(answer);
-      try {
-        answer = structuredClone(answer);
-        if (!validRequestLookup(answer, requestId) || structuralKey(answer) !== observedKey) fail('InvalidHostRequestLookup');
-        if (structuralKey(observation) !== observedKey) fail('InvalidHostRequestLookup');
-        return retainRequestLookupExplanation(freezeInput(observation), context);
-      } catch {
-        throw retainRequestLookupFailure(new ClientError('InvalidHostRequestLookup'), context, 'lookup_uninterpretable');
-      }
+      return retainRequestLookupExplanation(freezeInput(answer), context);
     },
     // One explicit lookup target across pre-Run and Run observations. Creating
     // or restoring this handle performs no I/O and grants no retry authority.
@@ -543,21 +534,7 @@ export function createSubmissionOperations(selected, confirmed, transport, execu
       if (!validRequestCancellation(answer, requestId)) {
         throw uninterpretableRequestCancellation(context);
       }
-      const observation = answer;
-      const observedKey = structuralKey(answer);
-      const original = {kind: answer.kind, revision: answer.revision,
-        ref: answer.ref === undefined ? undefined : {...answer.ref}};
-      try {
-        answer = structuredClone(answer);
-        if (!validRequestCancellation(answer, requestId) ||
-            answer.kind !== original.kind || answer.revision !== original.revision ||
-            ['namespaceId', 'authorityScopeCid', 'runDefinitionCid'].some(field =>
-              answer.ref?.[field] !== original.ref?.[field])) {
-          throw new ClientError('InvalidHostRequestCancellation');
-        }
-        if (structuralKey(observation) !== observedKey) throw new ClientError('InvalidHostRequestCancellation');
-      } catch { throw uninterpretableRequestCancellation(context); }
-      return retainRequestCancellationExplanation(freezeInput(observation), context, observation.kind);
+      return retainRequestCancellationExplanation(freezeInput(answer), context, answer.kind);
     },
       });
   return client;

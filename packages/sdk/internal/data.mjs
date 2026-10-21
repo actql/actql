@@ -33,17 +33,4 @@ export const captureResponse = (value, captured = new Map()) => {
   return copy;
 };
 
-// Keep detachment bound to the stable captured cancellation identity.
-// Copy faults cannot replace the original operation or its recorded outcome.
-export const detachResponse = value => {
-  const observedKey = structuralKey(value);
-  const copy = structuredClone(value);
-  if (structuralKey(copy) !== observedKey || structuralKey(value) !== observedKey) {
-    throw new TypeError('ChangedHostResponse');
-  }
-  // Return the stable captured facts. A substituted copy may expose getters
-  // that change after verification; it never becomes the admitted response.
-  return value;
-};
-
 export const positive = value => Number.isSafeInteger(value) && value > 0;

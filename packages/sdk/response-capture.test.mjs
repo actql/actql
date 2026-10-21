@@ -256,18 +256,16 @@ for (const item of cases) {
 }
 
 for (const item of cases.filter(value => ['lookup-request', 'submit-intent', 'cancel', 'delivery-attempt'].includes(value.operation))) {
-  test(`${item.operation}: detachment cannot substitute another valid observation`, async t => {
-    const reply = item.reply(), f = await fixture(t, reply), clone = globalThis.structuredClone;
-    t.after(() => { globalThis.structuredClone = clone; });
-    globalThis.structuredClone = value => {
-      const copy = clone(value);
-      if (value.kind === reply.kind && !Object.hasOwn(value, 'connection')) {
-        (copy.held ?? copy)[item.field] = clone(item.replacement);
-        if (item.operation === 'delivery-attempt') copy.hostReleaseReceipt = clone(delivered.hostReleaseReceipt);
-      }
-      return copy;
-    };
-    await assert.rejects(item.invoke(f.run, f.client), error => error.code === item.error);
+  test(`${item.operation}: captured observation requires no verification clone`, async t => {
+    const reply = item.reply(), f = await fixture(t, reply);
+    const nativeClone = globalThis.structuredClone;
+  const clone = t.mock.method(globalThis, 'structuredClone', value => {
+    if (Object.hasOwn(value, 'connection')) return nativeClone(value);
+    assert.fail('Unexpected response verification clone');
+  });
+    const answer = await item.invoke(f.run, f.client);
+    assert.equal(clone.mock.calls.filter(({arguments: [value]}) => !Object.hasOwn(value, 'connection')).length, 0);
+    assert.ok(item.explain(answer));
     assert.deepEqual(f.calls, ['connect', 'attach', item.operation]);
   });
 }
