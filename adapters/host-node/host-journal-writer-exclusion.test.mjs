@@ -38,12 +38,22 @@ const body = declarations.length === 0
   ? `${source.slice(assignments[0].start, assignments[0].end)};return journal;`
   : 'return openHostRequestJournal(journalOptions);';
 const stores = nodes.filter(node => node.type === 'AssignmentExpression' &&
-  node.left.name === 'store' && node.right.type === 'AwaitExpression' &&
-  node.right.argument.callee?.name === 'openLocalPublicationStore');
+  node.left.name === 'store' && (node.right.type === 'AwaitExpression' &&
+  node.right.argument.callee?.name === 'openLocalPublicationStore' ||
+  node.right.type === 'ConditionalExpression' &&
+  node.right.consequent.type === 'AwaitExpression' &&
+  node.right.consequent.argument.callee?.name === 'openLocalPublicationStore'));
 assert.equal(stores.length, 1);
 const storeTry = nodes.find(node => node.type === 'TryStatement' &&
-  node.block.body.length === 1 && node.block.body[0].type === 'ExpressionStatement' &&
-  node.block.body[0].expression === stores[0]);
+  node.block.body.some(statement => statement.type === 'ExpressionStatement' &&
+    statement.expression === stores[0]));
+assert(storeTry?.handler);
+const storeOptionsDeclaration = storeTry.block.body.find(statement =>
+  statement.type === 'VariableDeclaration' &&
+  statement.declarations.some(declaration => declaration.id.name === 'storeOptions'));
+const openStoreBody = `${storeOptionsDeclaration === undefined ? '' :
+  source.slice(storeOptionsDeclaration.start, storeOptionsDeclaration.end)}
+  ${source.slice(stores[0].start, stores[0].end)};`;
 const failureCalls = nodes.filter(node => node.type === 'CallExpression' &&
   node.callee.name === 'retainInstalledHostInitializationFailure' &&
   node.arguments[1]?.type === 'ObjectExpression' && node.arguments[1].properties.some(property =>
@@ -51,13 +61,13 @@ const failureCalls = nodes.filter(node => node.type === 'CallExpression' &&
 const load = compileFunction(`
   let journal, originalJournalClose, publicationOwnership, publicationOpeningFailure, store;
   const checkpoints=undefined,dispatchOwner=undefined,sourceProfile=undefined,
-    installedEffect=undefined,observation=undefined,ownerViews=undefined;
+    installedEffect=undefined,observation=undefined,ownerViews=undefined,
+    runAcceptance=undefined;
   let unselectedJournalAttempted=false, unselectedJournalFailure;
   const preparation=undefined, publicationDirectory=join(root,'publication');
   ${declarations.map(node => source.slice(node.start, node.end)).join('\n')}
   return {async open(journalOptions){${body}},
-    async openStore(){${storeTry === undefined ? source.slice(stores[0].start, stores[0].end) + ';'
-      : source.slice(storeTry.start, storeTry.end)}return store;},
+    async openStore(){try{${openStoreBody}}${source.slice(storeTry.handler.start, storeTry.handler.end)}return store;},
     async failInitialization(cause){return retainInstalledHostInitializationFailure(cause,
       ${failureCalls.length === 0 ? '{journal,store}' : source.slice(
         failureCalls[0].arguments[1].start, failureCalls[0].arguments[1].end)});},

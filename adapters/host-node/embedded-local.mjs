@@ -1429,7 +1429,7 @@ async function openInstalledHost(originalInstallation, preparation) {
     }
     try {
       journal = preparation === undefined
-        ? openClientRequestJournal(journalDirectory, journalOptions)
+        ? openClientRequestJournal(journalDirectory, journalOptions, publicationOwnership)
         : await preparation.openRequestJournal(journalDirectory, journalOptions);
       // Retain the acquired Journal before this fallible callback capture.
       originalJournalClose = journal.close;

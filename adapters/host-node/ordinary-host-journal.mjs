@@ -135,7 +135,7 @@ export function prepareOrdinaryHostJournal(originals) {
         await retainOwnership();
         current(); openAttempted = true;
         journal = openClientRequestJournal(directory, {...recipe.journal, ...options,
-          inspectionTemporaryDirectory: tmpdir(), primaryCurrent: current});
+          inspectionTemporaryDirectory: tmpdir(), primaryCurrent: current}, ownership);
         journalClose = journal.close;
         if (typeof journalClose !== 'function') throw new TypeError('InstalledHostJournalCleanupPending');
         observeOriginalClientRequestJournalCustody(journal);
