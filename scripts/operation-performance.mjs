@@ -80,31 +80,93 @@ export function assessLatency(series) {
   return outcome(failures, missing, {operation: series.operation, target, summary});
 }
 
-const frameLimits = Object.freeze({unrelatedRunRows: 0, unrelatedEffectRows: 0,
-  accountEvaluationsPerTupleMax: 1, rowAdmissionsPerRevisionMax: 1,
-  rowDecodePerRevisionMax: 1, rowMacPerRevisionMax: 1, rowHashPerRevisionMax: 1,
-  configurationInventories: 1});
+const fullCheckKinds = Object.freeze(['physical-validation', 'current-validation', 'account-evaluation',
+  'row-admission', 'decode', 'parse', 'mac', 'hash', 'scope-digest', 'configuration-inventory']);
+const activityCounters = Object.freeze(['materialGetterCalls', 'materialCacheHits', 'decodeCalls',
+  'databaseReads', 'sqlPrepares']);
+const nonempty = value => typeof value === 'string' && value.length > 0;
 export function assessStructure(report) {
   const failures = [], missing = [];
-  if (!Array.isArray(report.frames) || !report.frames.length) return outcome([], ['actual frame counters']);
+  if (!Array.isArray(report.operations) || !report.operations.length) return outcome([], ['actual public-operation counters']);
+  if (Object.hasOwn(report, 'frames')) missing.push('legacy frames do not establish public-operation coverage');
   const ids = new Set();
-  for (const frame of report.frames) {
-    requireValue(typeof frame.id === 'string' && frame.id && !ids.has(frame.id), 'Duplicate or missing frame');
-    ids.add(frame.id);
-    if (frame.complete !== true || frame.overflow !== false) missing.push(`${frame.id}: complete non-overflow counters`);
-    for (const [key, maximum] of Object.entries(frameLimits)) {
-      if (!integer(frame[key])) missing.push(`${frame.id}: ${key}`);
-      else if (frame[key] > maximum) failures.push(`${frame.id}: ${key} exceeds ${maximum}`);
+  const measured = [];
+  for (const operation of report.operations) {
+    requireValue(nonempty(operation.id) && !ids.has(operation.id), 'Duplicate or missing public-operation identity');
+    requireValue(Object.hasOwn(operationTargets, operation.operation), 'Unknown measured public operation');
+    ids.add(operation.id);
+    const label = operation.id;
+    if (operation.complete !== true || operation.overflow !== false) missing.push(`${label}: complete non-overflow counters`);
+    for (const key of ['unrelatedRunRows', 'unrelatedEffectRows']) {
+      if (!integer(operation[key])) missing.push(`${label}: ${key}`);
+      else if (operation[key] !== 0) failures.push(`${label}: ${key} is not zero`);
     }
-    if (!integer(frame.distinctAuthTuples) || !integer(frame.distinctAdmittedRows)) missing.push(`${frame.id}: counter coverage`);
-    if (frame.distinctAuthTuples > 0 && frame.accountEvaluationsPerTupleMax !== 1) failures.push(`${frame.id}: missing tuple evaluation`);
-    if (frame.distinctAdmittedRows > 0 && frame.rowAdmissionsPerRevisionMax !== 1) failures.push(`${frame.id}: missing row admission`);
-    if (frame.unchangedStatus === true) {
-      if (!integer(frame.statusWrites) || !integer(frame.revisionBefore) || !integer(frame.revisionAfter)) missing.push(`${frame.id}: status observation`);
-      else if (frame.statusWrites !== 0 || frame.revisionBefore !== frame.revisionAfter) failures.push(`${frame.id}: unchanged status mutated`);
+    const activity = operation.activity ?? {};
+    for (const key of activityCounters) if (!integer(activity[key])) missing.push(`${label}: ${key}`);
+    if (integer(activity.materialGetterCalls) && integer(activity.materialCacheHits) &&
+        activity.materialCacheHits > activity.materialGetterCalls) failures.push(`${label}: cache hits exceed material getter calls`);
+    const facts = new Map();
+    if (!Array.isArray(operation.fullChecks)) missing.push(`${label}: explicit full-validation attribution`);
+    else for (const check of operation.fullChecks) {
+      requireValue(fullCheckKinds.includes(check.kind) && nonempty(check.fact) &&
+        (nonempty(check.revision) || integer(check.revision)), 'Full checks require actual fact kind, identity and relevant revision');
+      requireValue(typeof check.required === 'boolean', 'Declare required versus pure fact work');
+      let tuple = null;
+      if (check.kind === 'account-evaluation') {
+        const value = check.tuple ?? {};
+        requireValue(['subject', 'operation', 'resource'].every(key => nonempty(value[key])) &&
+          ['run', 'target'].every(key => Object.hasOwn(value, key) && (value[key] === null || nonempty(value[key]))),
+        'Account checks require the exact subject/operation/resource/Run/target tuple');
+        tuple = ['subject', 'operation', 'resource', 'run', 'target'].map(key => value[key]);
+      }
+      // Internal frames, helpers, awaits, FFI phases and cache eviction are not
+      // validation identities. Sum every entry for the same actual fact and
+      // relevant revision across this entire public call. A cache hit reports
+      // zero full calls; changing an Account getter's name cannot split a tuple.
+      const key = JSON.stringify([check.kind, tuple === null ? check.fact : tuple, String(check.revision)]);
+      const fact = facts.get(key) ?? {kind: check.kind, required: check.required, fullCalls: 0, complete: true};
+      requireValue(fact.required === check.required, 'Conflicting required/pure classification for the same fact');
+      if (!integer(check.fullCalls)) {
+        fact.complete = false;
+        missing.push(`${label}: ${check.kind} full calls, separate from entries/cache hits`);
+      } else {
+        fact.fullCalls += check.fullCalls;
+        requireValue(integer(fact.fullCalls), 'Full-validation count overflow');
+      }
+      facts.set(key, fact);
     }
+    const fullCallsByKind = {};
+    for (const fact of facts.values()) {
+      if (!fact.complete) continue;
+      if (fact.fullCalls !== (fact.required ? 1 : 0)) failures.push(`${label}: ${fact.kind} must run ${fact.required ? 'once' : 'zero times'} per unchanged fact`);
+      fullCallsByKind[fact.kind] = (fullCallsByKind[fact.kind] ?? 0) + fact.fullCalls;
+    }
+    // Every physical full-work counter must be supplied, including real zeros.
+    // Attribution alone cannot hide unmeasured or omitted validation kinds.
+    for (const kind of fullCheckKinds) {
+      const total = operation.fullTotals?.[kind];
+      if (!integer(total)) missing.push(`${label}: ${kind} full total`);
+      else if (![...facts.values()].some(fact => fact.kind === kind && !fact.complete)) {
+        if (total > 0 && !Object.hasOwn(fullCallsByKind, kind)) missing.push(`${label}: ${kind} fact attribution`);
+        else if (total !== (fullCallsByKind[kind] ?? 0)) failures.push(`${label}: ${kind} full total differs from fact attribution`);
+      }
+    }
+    if (integer(activity.decodeCalls)) {
+      if (integer(operation.fullTotals?.decode) && activity.decodeCalls !== operation.fullTotals.decode) {
+        failures.push(`${label}: decode calls differ from attributed full decodes`);
+      }
+    }
+    if (operation.operation === 'warm-status' && typeof operation.unchangedStatus !== 'boolean') missing.push(`${label}: status change observation`);
+    if (operation.unchangedStatus === true) {
+      if (!integer(operation.statusWrites) || !integer(operation.revisionBefore) || !integer(operation.revisionAfter)) missing.push(`${label}: status observation`);
+      else if (operation.statusWrites !== 0 || operation.revisionBefore !== operation.revisionAfter) failures.push(`${label}: unchanged status mutated`);
+    }
+    measured.push({id: operation.id, operation: operation.operation, factCount: facts.size, fullCallsByKind,
+      // Keep physical DB/prepare work and getters observable without presenting
+      // function entries or cache hits as full validation counts.
+      activity});
   }
-  return outcome(failures, missing, {frameCount: ids.size});
+  return outcome(failures, missing, {operationCount: ids.size, operations: measured});
 }
 
 export function assessHistory(rows) {
@@ -117,7 +179,9 @@ export function assessHistory(rows) {
     requireValue(digest(row.fixtureSha256), 'History fixture identity required');
     if (!control) control = row;
     if (row.fixtureSha256 !== control.fixtureSha256) failures.push('history target fixture changed');
-    for (const key of ['targetRowsRead', 'rowAdmissions', 'decodeCalls', 'macCalls', 'hashCalls', 'accountEvaluations']) {
+    for (const key of ['targetRowsRead', 'databaseReads', 'sqlPrepares', 'materialGetterCalls', 'materialCacheHits',
+      'fullPhysicalValidations', 'fullCurrentValidations', 'fullRowAdmissions', 'decodeCalls', 'fullParses',
+      'fullMacValidations', 'fullHashValidations', 'fullScopeDigests', 'fullConfigurationInventories', 'fullAccountEvaluations']) {
       if (!integer(row[key])) missing.push(`history ${row.size}: ${key}`);
       else if (row[key] !== control[key]) failures.push(`history ${row.size}: target ${key} changed with unrelated history`);
     }
@@ -243,6 +307,12 @@ export function assessPerformanceEvidence(report) {
     requireValue(section.environmentSha256 === report.environmentSha256 &&
       section.historyProtocolSha256 === report.historyProtocolSha256, `${name} environment or history protocol differs`);
     gates[name] = assess(name === 'structure' ? section : section.rows);
+    if (name === 'structure') {
+      for (const operation of Object.keys(operationTargets)) {
+        if (!section.operations?.some(row => row.operation === operation)) gates[name].missing.push(`${operation}: public-operation work coverage`);
+      }
+      if (gates[name].status === 'passed' && gates[name].missing.length) gates[name].status = 'incomplete';
+    }
   }
   for (const [name, gate] of Object.entries(gates)) {
     failures.push(...gate.failures.map(reason => `${name}: ${reason}`));
