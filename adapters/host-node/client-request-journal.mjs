@@ -2389,14 +2389,26 @@ export function openClientRequestJournal(directory, {
     Object.freeze(link.freshSubmissionRef.epoch); Object.freeze(link.freshSubmissionRef);
     return Object.freeze(link);
   };
-  const retainedIntent = (row, control, originalEpoch) => {
+  const retainedIntentOriginal = (row, control, originalEpoch, previous) => {
+    const authority = epochAuthority.get();
+    const restartRow = restartSelect.get(row.submission_id);
+    if (previous !== undefined && validEpochAuthority(authority) &&
+        authority.authentication_key === previous.authenticationKey &&
+        Object.keys(row).length === Object.keys(previous.row).length &&
+        Object.keys(row).every(key => row[key] === previous.row[key]) &&
+        (restartRow === undefined && previous.restartRow === undefined ||
+         restartRow !== undefined && previous.restartRow !== undefined &&
+         Object.keys(restartRow).length === Object.keys(previous.restartRow).length &&
+         Object.keys(restartRow).every(key => restartRow[key] === previous.restartRow[key]))) {
+      assertRestartCustody();
+      return previous;
+    }
     const intent = control.clientSubmittedIntent(row.intent_wire, 1048576, 65536, 64);
     if (intent === undefined || control.clientSubmittedIntentCid(intent) !== row.intent_cid ||
         control.clientSubmittedIntentWire(intent) !== row.intent_wire) fail('ClientSubmittedIntentCorrupt');
     const operation = submissionOperations.get(originalEpoch);
     const epoch = operation?.control === control &&
       operation.wire === row.epoch_wire ? originalEpoch : JSON.parse(row.epoch_wire);
-    const authority = epochAuthority.get();
     if (!validEpochAuthority(authority)) fail('ClientSubmissionEpochCustodyLost');
     const {handle} = authenticateOriginalEpoch(epoch, control, authority, 'ClientSubmittedIntentCorrupt');
     if (control.clientSubmissionRequestId(handle, row.nonce) !== row.submission_id ||
@@ -2417,15 +2429,20 @@ export function openClientRequestJournal(directory, {
           run.namespace_id !== outcome.admission.ref.namespaceId) fail('ClientSubmittedIntentCorrupt');
     }
     assertRestartCustody();
-    const unresolvedHistory = retainedRestart(restartSelect.get(row.submission_id), control);
+    const unresolvedHistory = retainedRestart(restartRow, control);
     if (unresolvedHistory !== undefined && unresolvedHistory.intentCid !== row.intent_cid) {
       fail('ClientSubmissionRestartCorrupt');
     }
-    return Object.freeze({submissionRef: Object.freeze({epoch: Object.freeze(epoch), nonce: row.nonce}),
+    const value = Object.freeze({submissionRef: Object.freeze({epoch: Object.freeze(epoch), nonce: row.nonce}),
       requestId: row.submission_id, intentCid: row.intent_cid, intentWire: row.intent_wire,
       phase: row.phase, revision: row.revision, outcome,
       ...(unresolvedHistory === undefined ? {} : {unresolvedHistory})});
+    return Object.freeze({intent, value, row: Object.freeze({...row}),
+      authenticationKey: authority.authentication_key,
+      restartRow: restartRow === undefined ? undefined : Object.freeze({...restartRow})});
   };
+  const retainedIntent = (row, control, originalEpoch) =>
+    retainedIntentOriginal(row, control, originalEpoch).value;
   const cancellationUsage = database.prepare('SELECT * FROM client_cancellation_row_usage WHERE singleton=1');
   const cancellationIssued = database.prepare('SELECT issued_count FROM client_cancellation_custody WHERE singleton = 1');
   const cancellationSelect = database.prepare(`SELECT * FROM client_cancellation_operations
@@ -2680,7 +2697,7 @@ export function openClientRequestJournal(directory, {
     return outcome;
   };
 
-  const lookupRecord = ({namespaceId, authorityScopeCid, requestId}, control) => {
+  const lookupRecord = ({namespaceId, authorityScopeCid, requestId}, control, original) => {
     ensureOpen();
     if (!text(namespaceId) || !cid(authorityScopeCid) || !text(requestId) ||
         !control || typeof control.clientRequestAdmitRecord !== 'function') {
@@ -2690,7 +2707,15 @@ export function openClientRequestJournal(directory, {
     try { row = select.get(authorityScopeCid, requestId); }
     catch (error) { fail('ClientRequestLookupUnknown', error); }
     if (row === undefined || row.namespace_id !== namespaceId) return undefined;
-    const identity = retainedIdentity(row, control);
+    const identity = original !== undefined &&
+        row.authority_scope_cid === original.fields.authorityScopeCid &&
+        row.caller_request_id === original.fields.requestId &&
+        row.logical_request_scope_cid === original.fields.logicalRequestScopeCid &&
+        row.intent_fingerprint_cid === original.fields.intentFingerprintCid &&
+        row.program_definition_cid === original.fields.programDefinitionCid &&
+        row.parameter_values_cid === original.fields.parameterValuesCid &&
+        row.caller_input_intent_cid === original.fields.callerInputIntentCid
+      ? original.identity : retainedIdentity(row, control);
     if (control.clientRequestScopeCid(identity) !==
         row.logical_request_scope_cid) {
       fail('ClientRequestJournalCorrupt');
@@ -2699,6 +2724,28 @@ export function openClientRequestJournal(directory, {
       requestId: row.caller_request_id,
       ...admission(row),
     })});
+  };
+
+  const resolveOriginalDefinition = (identity, fields, namespaceId,
+    requestControl, publicationControl) => {
+    if (typeof requestControl.clientRequestRelation !== 'function') {
+      fail('InvalidClientRequestLookup');
+    }
+    const retained = lookupRecord({namespaceId,
+      authorityScopeCid: fields.authorityScopeCid,
+      requestId: fields.requestId}, requestControl, {identity, fields});
+    if (retained === undefined) return undefined;
+    // Exact saved identity fields reuse this entry's already admitted request.
+    // A distinct saved identity still follows lookupRecord's full admission.
+    const relation = requestControl.clientRequestRelation(identity, retained.identity);
+    if (relation !== 1) {
+      fail(relation === 2 ? 'ClientRequestIntentConflict' :
+        'ClientRequestJournalCorrupt');
+    }
+    return Object.freeze({...retained.found,
+      ...retainedRunFacts(retained.row, publicationControl,
+        maxRunDefinitionWireBytes, updateOriginalControl),
+    });
   };
 
   let observationStorage;
@@ -3136,52 +3183,76 @@ export function openClientRequestJournal(directory, {
         fail('InvalidClientRequestJournalControl');
       }
       const fields = checkedIdentity(identity, requestControl);
+      const requestOriginal = Object.freeze({identity, fields});
+      let previousRunRow, previousRunFacts, previousIntent;
+      let previousReference;
       const readOriginal = () => {
-        assertSubmissionCustody();
-        assertIntentCustody();
-        const run = lookupRecord({namespaceId, authorityScopeCid: fields.authorityScopeCid,
-          requestId: fields.requestId}, requestControl);
-        if (run === undefined || requestControl.clientRequestRelation(identity,
-          run.identity) !== 1) fail('ClientRequestSubmittedIntentMismatch');
-        // Re-admit the retained Definition/evidence through the existing Owner
-        // before using its private submitted-content reference.
-        const facts = retainedRunFacts(run.row, publicationControl,
-          maxRunDefinitionWireBytes, updateOriginalControl);
-        const expectedCid = facts.runAdmissionEvidence?.submittedIntentCid;
-        const row = intentSelect.get(fields.requestId);
-        if (row === undefined) {
-          if (expectedCid !== undefined) fail('ClientSubmittedIntentCustodyLost');
-          return undefined;
-        }
-        const original = retainedIntent(row, requestControl);
-        const intent = requestControl.clientSubmittedIntent(original.intentWire,
-          1048576, 65536, 64);
-        if (intent === undefined || !['preparing', 'held', 'ready'].includes(original.phase)) {
-          fail('ClientRequestSubmittedIntentMismatch');
-        }
-        if (expectedCid === undefined) {
-          if (requestControl.clientSubmittedIntentRequestsCommitStop(intent) ||
-              requestControl.clientSubmittedIntentRequestsReadOnly(intent)) {
-            fail('ClientRequestSubmittedIntentBindingMissing');
+        try {
+          assertSubmissionCustody();
+          assertIntentCustody();
+          const run = lookupRecord({namespaceId, authorityScopeCid: fields.authorityScopeCid,
+            requestId: fields.requestId}, requestControl, requestOriginal);
+          if (run === undefined || requestControl.clientRequestRelation(identity,
+            run.identity) !== 1) fail('ClientRequestSubmittedIntentMismatch');
+          // This existing handle retains only typed facts for exact unchanged
+          // scalar rows. Storage/custody is still observed in this transaction;
+          // an actual change re-enters the original admission path below.
+          if (previousRunRow === undefined ||
+              Object.keys(run.row).length !== Object.keys(previousRunRow).length ||
+              Object.keys(run.row).some(key => run.row[key] !== previousRunRow[key])) {
+            previousRunFacts = retainedRunFacts(run.row, publicationControl,
+              maxRunDefinitionWireBytes, updateOriginalControl);
+            previousRunRow = Object.freeze({...run.row});
           }
-          return undefined;
+          const facts = previousRunFacts;
+          const expectedCid = facts.runAdmissionEvidence?.submittedIntentCid;
+          const row = intentSelect.get(fields.requestId);
+          if (row === undefined) {
+            if (expectedCid !== undefined) fail('ClientSubmittedIntentCustodyLost');
+            return undefined;
+          }
+          previousIntent = retainedIntentOriginal(row, requestControl, undefined, previousIntent);
+          const {intent, value: original} = previousIntent;
+          if (intent === undefined || !['preparing', 'held', 'ready'].includes(original.phase)) {
+            fail('ClientRequestSubmittedIntentMismatch');
+          }
+          if (expectedCid === undefined) {
+            if (requestControl.clientSubmittedIntentRequestsCommitStop(intent) ||
+                requestControl.clientSubmittedIntentRequestsReadOnly(intent)) {
+              fail('ClientRequestSubmittedIntentBindingMissing');
+            }
+            return undefined;
+          }
+          if (expectedCid !== original.intentCid) fail('ClientRequestSubmittedIntentMismatch');
+          if (previousReference === undefined || previousReference.epochWire !== row.epoch_wire ||
+              previousReference.nonce !== row.nonce) {
+            previousReference = Object.freeze({epochWire: row.epoch_wire, nonce: row.nonce,
+              wire: canonicalValueJson(original.submissionRef, {dataKeys: true})});
+          }
+          return {intent, intentCid: original.intentCid, intentWire: original.intentWire,
+            referenceWire: previousReference.wire,
+            runDefinitionCid: run.row.run_definition_cid};
+        } catch (error) {
+          previousRunRow = previousRunFacts = previousIntent = previousReference = undefined;
+          throw error;
         }
-        if (expectedCid !== original.intentCid) fail('ClientRequestSubmittedIntentMismatch');
-        return {intent, intentCid: original.intentCid, intentWire: original.intentWire,
-          referenceWire: canonicalValueJson(original.submissionRef, {dataKeys: true}),
-          runDefinitionCid: run.row.run_definition_cid};
       };
       const original = transaction.run(readOriginal);
       if (original === undefined) return undefined;
       return Object.freeze({intent: original.intent, referenceWire: original.referenceWire,
         assertCurrent() {
-          ensureOpen();
-          const current = transaction.run(readOriginal);
-          if (current === undefined || current.intentCid !== original.intentCid ||
-              current.intentWire !== original.intentWire ||
-              current.referenceWire !== original.referenceWire ||
-              current.runDefinitionCid !== original.runDefinitionCid) {
-            fail('ClientRequestSubmittedIntentMismatch');
+          try {
+            ensureOpen();
+            const current = transaction.run(readOriginal);
+            if (current === undefined || current.intentCid !== original.intentCid ||
+                current.intentWire !== original.intentWire ||
+                current.referenceWire !== original.referenceWire ||
+                current.runDefinitionCid !== original.runDefinitionCid) {
+              fail('ClientRequestSubmittedIntentMismatch');
+            }
+          } catch (error) {
+            previousRunRow = previousRunFacts = previousIntent = previousReference = undefined;
+            throw error;
           }
         }});
     },
@@ -3297,20 +3368,8 @@ export function openClientRequestJournal(directory, {
         fail('InvalidClientRequestLookup');
       }
       const fields = checkedIdentity(identity, requestControl);
-      const retained = lookupRecord({namespaceId,
-        authorityScopeCid: fields.authorityScopeCid,
-        requestId: fields.requestId}, requestControl);
-      if (retained === undefined) return undefined;
-      const relation = requestControl.clientRequestRelation(identity,
-        retainedIdentity(retained.row, requestControl));
-      if (relation !== 1) {
-        fail(relation === 2 ? 'ClientRequestIntentConflict' :
-          'ClientRequestJournalCorrupt');
-      }
-      return Object.freeze({...retained.found,
-        ...retainedRunFacts(retained.row, publicationControl,
-          maxRunDefinitionWireBytes, updateOriginalControl),
-      });
+      return resolveOriginalDefinition(identity, fields, namespaceId,
+        requestControl, publicationControl);
     },
     // Physical admit-or-lookup ordering for a checked request. The common
     // MoonBit relation decides whether a retained intent is the same request;
@@ -3329,7 +3388,7 @@ export function openClientRequestJournal(directory, {
       const fields = checkedIdentity(identity, requestControl);
       assertKeyedInventoryRequest(sourceInventory, fields);
       const epochValidity = checkSubmissionBinding(fields, submission, requestControl);
-      const retained = journal.resolveDefinition(identity, {namespaceId},
+      const retained = resolveOriginalDefinition(identity, fields, namespaceId,
         requestControl, publicationControl);
       if (retained !== undefined) {
         assertSourceInventory(retained, sourceInventory);
