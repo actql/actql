@@ -118,3 +118,71 @@ test "source declarations and parameters come from the same admitted envelope" {
     @host.client_submitted_intent_wire(intent),
   )
 }
+
+///|
+test "prepared publication keeps new Source values and refuses a different original binding" {
+  let env = environment()
+  let publication = source_computation_publication(env)
+  let prepared = @publication.prepare_published_query_environment(
+    env, publication,
+  ).unwrap()
+  let value_cids : Array[String] = []
+  for number in [3, 4] {
+    let wire = "{\"kind\":\"aql\",\"input\":{\"text\":\"SELECT @n AS n\",\"format\":\"sql\",\"parameterDeclarations\":{\"n\":{\"type\":\"number\"}}},\"parameters\":{\"n\":" +
+      number.to_string() +
+      "}}"
+    let intent = @host.prepare_client_submitted_intent(wire, 65536, 8192, 64).unwrap()
+    let ordinary = prepare_local_source_computation(intent, env, publication).unwrap()
+    let reused = prepare_local_source_computation(
+      intent,
+      env,
+      publication,
+      publication_environment=Some(prepared),
+    ).unwrap()
+    assert_eq(
+      local_source_computation_originals(reused),
+      local_source_computation_originals(ordinary),
+    )
+    assert_eq(
+      local_source_computation_material(reused).1,
+      Some("{\"n\":" + number.to_string() + "}"),
+    )
+    guard local_source_computation_preparation(reused) is Pure(selected) else {
+      fail("Expected Pure")
+    }
+    guard local_source_computation_preparation(ordinary) is Pure(original) else {
+      fail("Expected Pure")
+    }
+    let identity = @host.prepared_client_identity(selected)
+    assert_eq(identity, @host.prepared_client_identity(original))
+    value_cids.push(identity.parameter_values_cid)
+    assert_true(
+      prepare_local_source_computation(
+        intent,
+        environment(),
+        publication,
+        publication_environment=Some(prepared),
+      )
+      is Err(Publication(_)),
+    )
+    assert_true(
+      prepare_local_source_computation(
+        intent,
+        env,
+        " " + publication,
+        publication_environment=Some(prepared),
+      )
+      is Err(Publication(_)),
+    )
+  }
+  assert_true(value_cids[0] != value_cids[1])
+  assert_true(
+    prepare_local_source_computation(
+      source_computation_intent("not valid SQL"),
+      env,
+      publication,
+      publication_environment=Some(prepared),
+    )
+    is Err(Frontend(_)),
+  )
+}

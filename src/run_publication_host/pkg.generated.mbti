@@ -1755,7 +1755,7 @@ pub fn prepare_client_saved_run_state_update(ClientSavedSubmissionSnapshot, Clie
 
 pub fn prepare_client_serialization(PreparedClientProgram, Int, Int, max_work~ : Int) -> Result[@lowering_relation.PreparedSerialization, ClientSerializationPreparationIssue]
 
-pub fn prepare_client_source_computation(ClientSubmittedIntent, @program_check.CheckEnvironment, String) -> Result[ClientSourcePreparation, ClientSourcePreparationIssue]
+pub fn prepare_client_source_computation(ClientSubmittedIntent, @program_check.CheckEnvironment, String, publication_environment? : @client_source_publication.PreparedPublishedQueryEnvironment?) -> Result[ClientSourcePreparation, ClientSourcePreparationIssue]
 
 pub fn prepare_client_stored_run_captured_content(ClientCompiledRun, @run_publication.PublicationContract, ClientKeyedAcquisition, String, String, @value_admission.ReferenceLimits) -> Result[ClientCapturedContent, @run_publication.GeneratedContentReferenceIssue]
 
