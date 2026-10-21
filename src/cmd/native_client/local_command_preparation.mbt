@@ -76,7 +76,6 @@ priv struct LocalCommandPreparationOriginal {
   native_storage : LocalCommandNativeStorageQuote
   business : LocalCommandBusinessOriginal?
   mut run_observation : LocalCommandRunObservationOriginal?
-  mut backing : InitialCryptoBacking?
   mut host : @initial_arena.InstalledArenaHost?
   mut backing_scope : @initial_arena.InstalledArenaBackingBorrow?
   mut backing_entered : Bool
@@ -203,7 +202,6 @@ fn prepare_local_command_preparation_original(
       result_cleanup_issue: None,
       active: false,
     }),
-    backing: None,
     host: None,
     backing_scope: None,
     backing_entered: false,
@@ -288,20 +286,7 @@ fn LocalCommandPreparationOriginal::acquire_physical_read(
     self.primary is Some(_) {
     return Err(CommandUnavailable)
   }
-  // Publish the caller record before the C backing constructor. The same
-  // external receiver is retained before inspecting a partial open result;
-  // failed return cannot become permission for a second backing acquisition.
-  if self.backing is Some(_) {
-    return Err(CommandUnavailable)
-  }
-  self.backing = Some(initial_crypto_backing_open(self.profile.arena_bytes))
-  let backing = self.backing.unwrap()
   try {
-    if !backing.current() {
-      let issue = CommandBacking(backing.acquisition_issue())
-      self.retain_primary(issue)
-      return Err(issue)
-    }
     let profile = self.profile
     let host = command_preparation_value(
       @initial_arena.prepare_installed_arena_host(
@@ -313,9 +298,11 @@ fn LocalCommandPreparationOriginal::acquire_physical_read(
         profile.control_bytes,
       ).map_err(issue => CommandHost(issue)),
     )
+    // Retain the actual original before its one anonymous mapping attempt.
+    // Failure stays with this Host; it cannot select another backing backend.
     self.host = Some(host)
     command_preparation_value(
-      host.acquire_fd(backing.descriptor()).map_err(issue => CommandHost(issue)),
+      host.acquire().map_err(issue => CommandHost(issue)),
     )
     let scope = command_preparation_value(
       host.borrow_backing().map_err(issue => CommandHost(issue)),
@@ -329,9 +316,8 @@ fn LocalCommandPreparationOriginal::acquire_physical_read(
     self.backing_entered = true
     let acquired = command_preparation_value(
       host
-      .prepare_domain(
+      .prepare_domain_in_process(
         scope,
-        backing.descriptor(),
         profile.read_domain_bytes,
         profile.read_domain_limits,
       )
@@ -350,9 +336,8 @@ fn LocalCommandPreparationOriginal::acquire_physical_read(
     )
     let acquired = command_preparation_value(
       host
-      .prepare_domain(
+      .prepare_domain_in_process(
         scope,
-        backing.descriptor(),
         profile.sqlite_domain_bytes,
         profile.sqlite_domain_limits,
       )
@@ -369,9 +354,7 @@ fn LocalCommandPreparationOriginal::acquire_physical_read(
     command_preparation_value(
       host.transfer_domain(sqlite_domain).map_err(issue => CommandDomain(issue)),
     )
-    command_preparation_value(
-      self.prepare_business_domain(host, scope, backing.descriptor()),
-    )
+    command_preparation_value(self.prepare_business_domain(host, scope))
     command_preparation_value(
       host
       .leave_backing_borrow_scope(scope)
@@ -973,13 +956,6 @@ fn LocalCommandPreparationOriginal::close_checked(
         host.try_close().map_err(issue => CommandHost(issue)),
       )
       self.host = None
-    }
-    if self.backing is Some(backing) {
-      self.cleanup_stage = "backing"
-      if !backing.close_checked() {
-        return Err(CommandBacking(backing.acquisition_issue()))
-      }
-      self.backing = None
     }
     self.closed = true
     Ok(())

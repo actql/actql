@@ -131,16 +131,14 @@ fn LocalCommandPreparationOriginal::prepare_business_domain(
   self : LocalCommandPreparationOriginal,
   host : @initial_arena.InstalledArenaHost,
   scope : @initial_arena.InstalledArenaBackingBorrow,
-  descriptor : Int,
 ) -> Result[Unit, LocalCommandPreparationIssue] {
   guard self.business is Some(business) else { return Ok(()) }
   if business.domain is Some(_) || self.closing || self.closed {
     return Err(CommandUnavailable)
   }
   let acquired = host
-    .prepare_domain(
+    .prepare_domain_in_process(
       scope,
-      descriptor,
       business.profile.domain_bytes,
       business.profile.limits,
     )

@@ -2135,14 +2135,19 @@ version, parser errors and unselected compatibility calls do not acquire the
 command Host, Journal, Root or Read.
 
 The selected static-check/explicit-initialization candidate has a 208 MiB
-original file-backed Host,
-with distinct 128 MiB Read and 64 MiB SQLite child mappings. The actual parent's
+original anonymous Host mapping,
+with distinct 128 MiB Read and 64 MiB SQLite child views. The actual parent's
 control layout must fit alongside both children before acquisition. The Read
 occupied-page ceiling is 96 MiB; the SQLite-domain ceiling is 48 MiB and contains
 its 32 MiB SQLite heap. Crypto's 2 MiB heap is contained in the Read facility.
 These are capacities, not additive demand estimates or guarantees that every
 bounded input fits. Child mappings/loans share their original parent backing;
 neither their aliases nor embedded heaps issue independent capacity credit.
+The command's in-process domains borrow actual extents of that same mapping;
+they do not acquire another anonymous mapping or an unlinked regular file.
+These original loans are not exportable or reconstructible from a serialized
+extent reference. Generic FD-backed sharing retains its original file identity,
+shared mappings and independent descriptor custody.
 
 Both domain ceilings are installed on their original leases before their first
 context allocation. The physical SQLite Owner derives its necessary total from
@@ -2176,7 +2181,7 @@ the same actual Read/SQLite phase exchange.
 The selected command copies at most one 1,048,576-code-unit metadata reply into
 its initial managed facility only after the original Read has left. The original
 Read body and the control copy coexist until their actual cleanup. Only after
-Journal, Libraries/component, contexts/domains, Host, backing descriptor and
+Journal, Libraries/component, contexts/domains, Host mapping and
 Lock cleanup acknowledge does main encode/write/flush that copy. Cleanup failure
 retains the original carrier and emits no staged success. The managed output
 text and UTF-8 encoding remain bounded, but libc's output

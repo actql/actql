@@ -32,7 +32,6 @@ priv enum InitialCryptoIssue {
 priv struct InitialCryptoOriginal {
   package_original : @local_host.NativeLocalPackagedRuntime
   profile : InitialCryptoProfile
-  backing : InitialCryptoBacking
   mut host : @initial_arena.InstalledArenaHost?
   mut backing_scope : @initial_arena.InstalledArenaBackingBorrow?
   mut backing_entered : Bool
@@ -58,8 +57,8 @@ fn InitialCryptoOriginal::retain_primary(
 }
 
 ///|
-// Return the original after physical open, including any failure. In particular
-// failed initial stat custody is never converted into an empty failure value.
+// Return the same original after its one physical attempt, including partial
+// acquisition. The actual Host retains mapping and reservation cleanup duties.
 fn prepare_initial_crypto_original(
   package_original : @local_host.NativeLocalPackagedRuntime,
   profile : InitialCryptoProfile,
@@ -82,7 +81,6 @@ fn prepare_initial_crypto_original(
   let original : InitialCryptoOriginal = {
     package_original,
     profile,
-    backing: initial_crypto_backing_open(profile.arena_bytes),
     host: None,
     backing_scope: None,
     backing_entered: false,
@@ -107,8 +105,11 @@ fn prepare_initial_crypto_original(
 fn InitialCryptoOriginal::acquire(
   self : InitialCryptoOriginal,
 ) -> Result[Unit, InitialCryptoIssue] {
-  if !self.backing.current() {
-    return Err(BackingUnavailable(self.backing.acquisition_issue()))
+  if self.host is Some(_) ||
+    self.closing ||
+    self.closed ||
+    self.primary is Some(_) {
+    return Err(Unavailable)
   }
   let profile = self.profile
   let host = match
@@ -124,8 +125,7 @@ fn InitialCryptoOriginal::acquire(
     Err(issue) => return Err(issue)
   }
   self.host = Some(host)
-  match
-    host.acquire_fd(self.backing.descriptor()).map_err(issue => Host(issue)) {
+  match host.acquire().map_err(issue => Host(issue)) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
@@ -142,9 +142,8 @@ fn InitialCryptoOriginal::acquire(
   let domain = match
     (match
       host
-      .prepare_domain(
+      .prepare_domain_in_process(
         scope,
-        self.backing.descriptor(),
         profile.domain_bytes,
         profile.domain_limits,
       )
@@ -211,7 +210,6 @@ fn InitialCryptoOriginal::require_current(
   if self.closing ||
     self.closed ||
     self.primary is Some(_) ||
-    !self.backing.current() ||
     self.package_original.check_current() is Err(_) {
     return Err(Unavailable)
   }
@@ -413,9 +411,6 @@ fn InitialCryptoOriginal::close_checked(
       Err(issue) => return Err(issue)
     }
     self.host = None
-  }
-  if !self.backing.close_checked() {
-    return Err(BackingUnavailable(self.backing.acquisition_issue()))
   }
   self.closed = true
   Ok(())
