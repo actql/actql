@@ -17,6 +17,27 @@ pub(all) struct ClientRunJournalInspection {
 }
 
 ///|
+// The selected issuance coordinate is a local capacity/CAS anchor. Reading it
+// does not request a full integrity audit of unrelated retained originals.
+fn[E] journal_issuance_anchor(
+  table_name : String,
+  max_records : Int,
+  read : (String, String) -> Result[ClientJournalPhysicalRow?, E],
+  custody_lost : E,
+) -> Result[(Int, Int64), E] {
+  let retained = match read(table_name, "issued") {
+    Ok(Some(row)) if row.key == "issued" && row.revision >= 0L => row
+    Err(issue) => return Err(issue)
+    _ => return Err(custody_lost)
+  }
+  let count = match client_journal_issuance_count(retained.body, max_records) {
+    Ok(value) => value
+    Err(_) => return Err(custody_lost)
+  }
+  Ok((count, retained.revision))
+}
+
+///|
 fn[E] journal_inventory_count(
   table_name : String,
   max_records : Int,

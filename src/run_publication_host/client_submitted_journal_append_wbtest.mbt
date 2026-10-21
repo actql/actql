@@ -168,7 +168,7 @@ test "full inventory refuses a different fresh reference but preserves retained 
 }
 
 ///|
-test "original nested Run validator failure is preserved before retained or append decision" {
+test "selected nested Run validator failure is preserved without validating unrelated submissions" {
   let rows = saved_snapshot_rows(saved_submission_ready)
   let later_validations : Array[Int] = []
   let result = prepare_client_submitted_journal_append(
@@ -181,10 +181,33 @@ test "original nested Run validator failure is preserved before retained or appe
     _ => Err("original-validator-failure"),
     _ => {
       later_validations.push(1)
-      Err("unexpected-retained-lookup")
+      Err("selected-original-validator-failure")
     },
     "custody",
   )
-  assert_true(result is Err(Observation("original-validator-failure")))
-  assert_eq(later_validations, [])
+  assert_true(result is Err(Observation("selected-original-validator-failure")))
+  assert_eq(later_validations, [1])
+}
+
+///|
+test "retained submission target does not scan unrelated Run or Effect history" {
+  let rows = saved_snapshot_rows(saved_submission_ready)
+  let calls : Array[String] = []
+  let result = prepare_client_submitted_journal_append(
+    append_original_record().reference,
+    append_original_record().intent,
+    @request_scope.Expired,
+    1024,
+    (table, _) => { calls.push("scan:" + table); Err("unexpected-inventory") },
+    (table, key) => { calls.push("read:" + table + ":" + key); inventory_read(rows, table, key) },
+    _ => Err("unexpected-submission-inventory"),
+    _ => { calls.push("validate-selected-run"); Ok(saved_snapshot_run()) },
+    "custody",
+  )
+  guard result is Ok(Retained(snapshot)) else { fail("selected original refused") }
+  assert_eq(client_saved_submission_revision(snapshot), 6L)
+  assert_eq(calls.filter(value => value.has_prefix("scan:")).length(), 0)
+  assert_eq(calls.filter(value => value == "validate-selected-run").length(), 1)
+  assert_eq(calls.filter(value => value.has_prefix("read:client_runs:")).length(), 1)
+  assert_eq(calls.filter(value => value.has_prefix("read:client_submitted_intents:")).length(), 1)
 }
