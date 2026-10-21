@@ -131,34 +131,10 @@ pub fn prepare_client_source_computation(
         )
       None => return Err(Input)
     }
-    let context = source_result(
-      @source_publication.bind_published_query_context(
+    let (context, table_writes, update_targets, store_targets, command_targets) = source_result(
+      @source_publication.bind_published_query_parts(
         environment, publication, declarations,
       ).map_err(issue => ClientSourcePreparationIssue::Publication(issue)),
-    )
-    let table_writes = source_result(
-      @source_publication.published_table_writes(environment, publication).map_err(issue => {
-          ClientSourcePreparationIssue::Publication(issue)
-        },
-      ),
-    )
-    let update_targets = source_result(
-      @source_publication.published_update_targets(environment, publication).map_err(issue => {
-          ClientSourcePreparationIssue::Publication(issue)
-        },
-      ),
-    )
-    let store_targets = source_result(
-      @source_publication.published_store_targets(environment, publication).map_err(issue => {
-          ClientSourcePreparationIssue::Publication(issue)
-        },
-      ),
-    )
-    let command_targets = source_result(
-      @source_publication.published_command_targets(environment, publication).map_err(issue => {
-          ClientSourcePreparationIssue::Publication(issue)
-        },
-      ),
     )
     let lowered = source_result(
       @source_frontend.lower(
