@@ -187,6 +187,16 @@ fn NativeClientRunJournal::index_legacy_run_ids_locked(
       Ok(_) => ()
       Err(issue) => return Err(issue)
     }
+    match
+      self.index_saved_run_reference_locked(
+        authority,
+        reference,
+        run,
+        operations~,
+      ) {
+      Ok(_) => ()
+      Err(issue) => return Err(issue)
+    }
   }
   // Completeness belongs to this exact issuance snapshot. Later admissions
   // change its anchor, so a missing locator cannot become false absence.
@@ -308,5 +318,101 @@ pub fn NativeLocalHostConnection::index_saved_run_ids(
     Err(issue) => Err(Journal(issue))
     Ok(_) if !current() => Err(Journal(AuthorizationDenied))
     Ok(_) => Ok(())
+  }
+}
+
+///|
+fn NativeClientRunJournal::index_saved_run_reference_locked(
+  self : NativeClientRunJournal,
+  authority : NativeClientEpochAuthority,
+  reference : NativeClientSubmissionReference,
+  run : NativeClientRunRecord,
+  operations? : NativeClientJournalOperationAccess? = None,
+) -> Result[Unit, NativeClientRunJournalIssue] {
+  if !self.transaction_active ||
+    !physical_equal(self.database, authority.database) {
+    return Err(CustodyLost)
+  }
+  let original = match
+    @host.admit_client_submission_reference_record(reference.wire) {
+    Ok(value) => value
+    Err(_) => return Err(CustodyLost)
+  }
+  let (key, body) = match
+    @host.client_saved_run_reference_locator(
+      original,
+      run.request,
+      run.definition,
+    ) {
+    Ok(value) => value
+    Err(_) => return Err(CustodyLost)
+  }
+  let reads = operations.map(value => value.reads)
+  match
+    read_client_journal_value(
+      self.database,
+      "client_run_reference_index",
+      key,
+      reads,
+    ) {
+    Err(@sqlite.NotFound) =>
+      insert_client_journal_value(
+        self.database,
+        "client_run_reference_index",
+        key,
+        body,
+        operations,
+      )
+      .map(_ => ())
+      .map_err(issue => Physical(issue))
+    Err(issue) => Err(Physical(issue))
+    Ok(existing) => {
+      if existing.body == body || existing.body == b"ambiguous" {
+        return Ok(())
+      }
+      let earlier = match read_run_id_index_reference(existing.body) {
+        Ok(value) => value
+        Err(issue) => return Err(issue)
+      }
+      let id = match @publication.run_definition_run_id(run.definition) {
+        Ok(value) => value
+        Err(_) => return Err(CustodyLost)
+      }
+      let (old_reference, old_request, old_definition) = match
+        self.run_id_original_locked(
+          authority,
+          earlier,
+          @host.client_request_authority_scope_cid(run.request),
+          id,
+          reads~,
+        ) {
+        Ok(Some(value)) => value
+        Ok(None) => return Err(CustodyLost)
+        Err(issue) => return Err(issue)
+      }
+      let old_original = match
+        @host.admit_client_submission_reference_record(old_reference.wire) {
+        Ok(value) => value
+        Err(_) => return Err(CustodyLost)
+      }
+      match
+        @host.client_saved_run_reference_locator(
+          old_original, old_request, old_definition,
+        ) {
+        Ok((old_key, old_body)) if old_key == key && old_body == existing.body =>
+          ()
+        _ => return Err(CustodyLost)
+      }
+      compare_exchange_client_journal_value(
+        self.database,
+        "client_run_reference_index",
+        key,
+        existing.revision,
+        b"ambiguous",
+        operations,
+      )
+      .map(_ => ())
+      .map_err(issue => Physical(issue))
+    }
   }
 }
