@@ -5,6 +5,15 @@
 compiler and runtime, and the built-in Local Host adapters.
 Connected Remote mode imports only the lightweight SDK path.
 
+Use Node.js 22.16 or later in the 22.x line, or Node.js 24.0 or later
+(`^22.16.0 || >=24.0.0`). Local Journals use the native `node:sqlite`
+`DatabaseSync.isOpen` and `DatabaseSync.isTransaction` observations, not
+substitutes inferred from SQL statements. The transaction observation is
+available in [Node.js 22.16](https://nodejs.org/download/release/v22.16.0/docs/api/sqlite.html#databaseistransaction)
+and [Node.js 24.0](https://nodejs.org/download/release/v24.0.0/docs/api/sqlite.html#databaseistransaction),
+but not Node.js 23. The transport-only `@actql/sdk` does not acquire this
+Local SQLite dependency.
+
 Trusted Host bootstrap code can create a complete, process-local installation
 table with `createInstalledConnectorTable(entries)` from `@actql/local-node`.
 Pass its opaque handle as `installation.connectorTable` to an embedded Client,

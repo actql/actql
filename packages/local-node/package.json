@@ -3,7 +3,7 @@
   "version": "0.0.0-development",
   "private": true,
   "type": "module",
-  "engines": {"node": ">=22"},
+  "engines": {"node": "^22.16.0 || >=24.0.0"},
   "scripts": {
     "prepack": "node ../../scripts/generate-credential-scope-binding.mjs --check && node ../../scripts/build-runtime-packages.mjs local-node && node ../../scripts/build-local-node-adapters.mjs"
   },
