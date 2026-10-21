@@ -1,4 +1,60 @@
 ///|
+// Actual legacy Host/Account/read originals expose the cache's Native backing
+// lifetime. This does not supply an installed pair or acknowledge its Library.
+test "operation retirement releases native binding cache references" {
+  let (host, binding, _, facts) = read_snapshot_selected_original(
+    "operation-cache-retirement",
+  )
+  let capture = prepare_native_local_journal_capture(
+    host.session,
+    local_journal_test_library(),
+    epoch_test_crypto(),
+    100.0,
+    8,
+    8388608L,
+  )
+  capture.opening = JournalAcquired(host)
+  let material = @host.bind_client_local_adopted_host_material(host.database, () => {
+    host.current_adoption_material_with_reads(() => host.check_binding())
+  }).unwrap()
+  let tuple : @authorization.AccessTuple = {
+    principal: "local-cli",
+    connection: "local",
+    resource: "run",
+    operation: "read",
+  }
+  let outcome = @host.client_local_adopted_account_outcome(
+    material,
+    host.database,
+    tuple,
+  ).unwrap()
+  assert_true(outcome is Allow(_))
+  capture.read_material = Some(material)
+  capture.read_scopes.push(
+    ("local-cli", "local", facts.request.authority_scope_cid),
+  )
+  capture.read_decisions.push((tuple, outcome))
+  // This is the same back-reference retained by a selected operation.
+  {
+    let selected = { ..binding, capture: Some(capture), }
+    capture.read_bindings.push((selected, 0L))
+  }
+  assert_true(capture.read_scopes.capacity() > 0)
+  assert_true(capture.read_decisions.capacity() > 0)
+  assert_true(capture.read_bindings.capacity() > 0)
+  capture.clear_read_operation_facts()
+  assert_true(capture.read_material is None)
+  assert_eq(capture.read_scopes.capacity(), 0)
+  assert_eq(capture.read_decisions.capacity(), 0)
+  assert_eq(capture.read_bindings.capacity(), 0)
+  // Cache retirement is not physical cleanup. The actual original remains
+  // live until its separate close, even though no cache retains a binding.
+  assert_false(capture.cleanup_acknowledged)
+  assert_false(host.closed)
+  assert_eq(capture.close().issue_family(), 0)
+}
+
+///|
 // Actual legacy SystemSQLite/explicit Crypto Journal operations. The private
 // operation flag selects only typed-fact retention; it issues no permission,
 // installed supplier, native Read claim or resource acknowledgement.

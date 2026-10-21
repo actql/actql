@@ -11,9 +11,15 @@ fn NativeLocalJournalCapture::clear_read_operation_facts(
     host.journal.invalidate_operation_record()
   }
   self.read_material = None
+  // Native Array.clear keeps removed elements in its backing buffer. Drop
+  // those slots too: a read binding retains this capture and its original DB.
+  // This cuts our references, never acknowledges any child or Library close.
   self.read_scopes.clear()
+  self.read_scopes.shrink_to_fit()
   self.read_decisions.clear()
+  self.read_decisions.shrink_to_fit()
   self.read_bindings.clear()
+  self.read_bindings.shrink_to_fit()
 }
 
 ///|
