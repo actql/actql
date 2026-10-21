@@ -2806,8 +2806,8 @@ export function projectEffectSiteRun(allowed, definition, authority, durableWire
   observedAt, cancellationRequested, savedClaims) {
   // The original checked graph bounds both complete claims and the at-most
   // one durable Coordinator record for each task, before reading elements.
-  const original = admittedEffectTaskProgress(allowed, definition, authority, []);
-  const count = owner.clientValuesHostEffectTaskProgressFields(original).length;
+  const {prepared, compilation} = requireHandle(effectAllowedRuns, allowed);
+  const count = effectExecutionShape(prepared, compilation).taskCount;
   const wires = effectProjectionArray(durableWires, count);
   const claims = effectProjectionArray(savedClaims, count);
   if (typeof observedAt !== 'string' || typeof cancellationRequested !== 'boolean') {
