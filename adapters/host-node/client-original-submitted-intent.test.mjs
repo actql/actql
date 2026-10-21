@@ -136,6 +136,34 @@ test('one original submitted-content handle admits each unchanged row once', asy
     'public submission records do not expose the private admitted intent or row snapshots');
 });
 
+for (const entry of ['resolveDefinition', 'admitOrLookupDefinition']) {
+  test(`${entry} admits one exact request once before returning its saved Run`, async t => {
+    const f = await fixture(t);
+    let admissions = 0, issuances = 0;
+    const requestControl = {...moon, clientRequestAdmitRecord(...args) {
+      admissions++;
+      return Reflect.apply(moon.clientRequestAdmitRecord, moon, args);
+    }};
+    const resolve = original => f.journal[entry](original, {
+      namespaceId: fields.namespaceId, lookupExpiresAt: '2099-01-01T00:00:00.000Z',
+      issueDefinition() {issuances++; throw new Error('SavedRunMustNotBeReissued');},
+    }, requestControl, publication);
+    const before = f.readRow();
+    const retained = await resolve(f.identity);
+    assert.deepEqual(retained.ref, f.accepted.ref);
+    assert.equal(admissions, 1, 'one exact request has one Common admission, not repeated stored copies');
+    assert.equal(issuances, 0);
+    await resolve(f.identity);
+    assert.equal(admissions, 2, 'a new public resolution has its own admission');
+    const foreign = f.request(cid('b'));
+    admissions = 0;
+    await assert.rejects(async () => resolve(foreign), {code: 'ClientRequestIntentConflict'});
+    assert.equal(admissions, 2, 'distinct requested and saved identities are each admitted once');
+    assert.equal(issuances, 0);
+    assert.deepEqual(f.readRow(), before, 'resolution and conflict never mutate or reissue the saved Run');
+  });
+}
+
 for (const [label, sql, expected] of [
   ['intent wire', "UPDATE client_submitted_intents SET intent_wire='{}'", 'ClientSubmittedIntentCorrupt'],
   ['epoch key', "UPDATE client_submission_epoch_authority SET authentication_key='" + '1'.repeat(64) + "'", 'ClientSubmittedIntentCorrupt'],
