@@ -17,16 +17,25 @@ function series(operation = 'warm-select', count = operationTargets[operation].s
       completed: true, verified: true,
     }))};
 }
-function frame() {
-  return {id: 'one', complete: true, overflow: false, unrelatedRunRows: 0, unrelatedEffectRows: 0,
-    distinctAuthTuples: 2, distinctAdmittedRows: 3, accountEvaluationsPerTupleMax: 1,
-    rowAdmissionsPerRevisionMax: 1, rowDecodePerRevisionMax: 1, rowMacPerRevisionMax: 1,
-    rowHashPerRevisionMax: 1, configurationInventories: 1, unchangedStatus: true,
-    statusWrites: 0, revisionBefore: 7, revisionAfter: 7};
+function publicOperation(operation = 'warm-result', id = 'public-call-1') {
+  const fullChecks = ['physical-validation', 'current-validation', 'row-admission', 'decode',
+    'parse', 'mac', 'hash', 'scope-digest', 'configuration-inventory'].map(kind => ({
+      kind, fact: 'original-row', revision: 7, required: true, fullCalls: 1}));
+  for (const resource of ['run', 'result/main']) fullChecks.push({kind: 'account-evaluation',
+    fact: 'original-account', revision: 'policy/key/target-7', required: true, fullCalls: 1,
+    tuple: {subject: 'local-reviewer', connection: 'configured-a', operation: 'read', resource,
+      run: 'original-run', target: null, authorityScope: 'original-authority'}});
+  return {id, operation, complete: true, overflow: false, unrelatedRunRows: 0, unrelatedEffectRows: 0,
+    fullChecks, fullTotals: {'physical-validation': 1, 'current-validation': 1, 'account-evaluation': 2,
+      'row-admission': 1, decode: 1, parse: 1, mac: 1, hash: 1, 'scope-digest': 1, 'configuration-inventory': 1},
+    activity: {materialGetterCalls: 7, materialCacheHits: 6, decodeCalls: 1,
+      databaseReads: 3, sqlPrepares: 4}, unchangedStatus: true, statusWrites: 0, revisionBefore: 7, revisionAfter: 7};
 }
 const histories = () => [1, 10, 100, 1000].map(size => ({size, supported: true, fixtureSha256: fixture,
-  targetRowsRead: 3, rowAdmissions: 3, decodeCalls: 3, macCalls: 3, hashCalls: 3,
-  accountEvaluations: 1, unrelatedRunRows: 0, unrelatedEffectRows: 0}));
+  targetRowsRead: 3, databaseReads: 3, sqlPrepares: 4, materialGetterCalls: 7, materialCacheHits: 6,
+  fullPhysicalValidations: 1, fullCurrentValidations: 1, fullRowAdmissions: 3, decodeCalls: 3,
+  fullParses: 1, fullMacValidations: 3, fullHashValidations: 3, fullScopeDigests: 1,
+  fullConfigurationInventories: 1, fullAccountEvaluations: 1, unrelatedRunRows: 0, unrelatedEffectRows: 0}));
 const chunks = () => [1024, 16384, 262144].map(bytes => ({bytes, chunkBytes: 16384,
   chunks: Math.ceil(bytes / 16384), rows: 1, boundaries: 3, hostCalls: Math.ceil(bytes / 16384) + 4,
   scalarByteCalls: 0, complete: true, overflow: false}));
@@ -81,27 +90,112 @@ test('first-init requires independent states, not thirty opens of existing state
   rows.samples.forEach((r, n) => {r.stateId = `fresh${n}`;}); assert.equal(assessLatency(rows).status, 'passed');
 });
 test('missing counters are incomplete and not silently zero', () => {
-  assert.equal(assessStructure({frames: []}).status, 'incomplete');
-  const row = frame(); delete row.unrelatedEffectRows;
-  assert.equal(assessStructure({frames: [row]}).status, 'incomplete');
+  assert.equal(assessStructure({operations: []}).status, 'incomplete');
+  assert.equal(assessStructure({frames: [{id: 'getter'}, {id: 'await'}]}).status, 'incomplete');
+  const row = publicOperation(); delete row.unrelatedEffectRows;
+  assert.equal(assessStructure({operations: [row]}).status, 'incomplete');
+  const combined = publicOperation(); delete combined.fullChecks[0].fullCalls;
+  combined.fullChecks[0].entriesIncludingCacheHits = 1;
+  assert.equal(assessStructure({operations: [combined]}).status, 'incomplete');
+  const absent = publicOperation(); delete absent.fullTotals['physical-validation'];
+  assert.equal(assessStructure({operations: [absent]}).status, 'incomplete');
 });
-test('counts distinct tuples/rows once per actual frame, not once per whole program', () => {
-  assert.equal(assessStructure({frames: [frame(), {...frame(), id: 'dispatch'}]}).status, 'passed');
-  for (const key of ['accountEvaluationsPerTupleMax', 'rowAdmissionsPerRevisionMax',
-    'rowDecodePerRevisionMax', 'rowMacPerRevisionMax', 'rowHashPerRevisionMax', 'configurationInventories']) {
-    assert.equal(assessStructure({frames: [{...frame(), [key]: 2}]}).status, 'failed', key);
+test('each required unchanged fact runs once across the whole public operation', () => {
+  assert.equal(assessStructure({operations: [publicOperation()]}).status, 'passed');
+  for (const check of publicOperation().fullChecks) {
+    const row = publicOperation(); row.fullChecks.push({...check, frame: 'internal-helper', epoch: 'after-await'});
+    assert.equal(assessStructure({operations: [row]}).status, 'failed', check.kind);
   }
+});
+test('an Account getter alias cannot split the same subject/permission/resource/Run/target', () => {
+  const row = publicOperation(), check = row.fullChecks.find(value => value.kind === 'account-evaluation');
+  row.fullChecks.push({...check, fact: 'renamed-helper-or-cache-eviction'});
+  assert.equal(assessStructure({operations: [row]}).status, 'failed');
+});
+test('Account connections remain distinct while private frames cannot split one connection permission', () => {
+  const row = publicOperation(), original = row.fullChecks.find(check => check.kind === 'account-evaluation');
+  row.fullChecks = row.fullChecks.filter(check => check.kind !== 'account-evaluation');
+  row.fullChecks.push(original, {...original, tuple: {...original.tuple, connection: 'configured-b'}});
+  assert.equal(assessStructure({operations: [row]}).status, 'passed');
+  row.fullChecks.push({...original, fact: 'another-private-getter', frame: 'after-trusted-read'});
+  row.fullTotals['account-evaluation'] = 3;
+  assert.equal(assessStructure({operations: [row]}).status, 'failed');
+  const absent = publicOperation(); delete absent.fullChecks.find(check => check.kind === 'account-evaluation').tuple.connection;
+  assert.throws(() => assessStructure({operations: [absent]}), /exact subject\/connection/u);
+});
+test('Account authority scopes are explicit or inherited only from the fixed public operation', () => {
+  const row = publicOperation();
+  const original = row.fullChecks.find(check => check.kind === 'account-evaluation');
+  row.fullChecks.push({...original, tuple: {...original.tuple, authorityScope: 'other-authority'}});
+  row.fullTotals['account-evaluation'] = 3;
+  assert.equal(assessStructure({operations: [row]}).status, 'passed');
+  const fixed = publicOperation(); fixed.authorityScope = 'original-authority';
+  fixed.fullChecks.filter(check => check.kind === 'account-evaluation').forEach(check => {delete check.tuple.authorityScope;});
+  assert.equal(assessStructure({operations: [fixed]}).status, 'passed');
+  fixed.fullChecks.find(check => check.kind === 'account-evaluation').tuple.authorityScope = 'other-authority';
+  assert.throws(() => assessStructure({operations: [fixed]}), /differs from the fixed public operation/u);
+  delete row.fullChecks.find(check => check.kind === 'account-evaluation').tuple.authorityScope;
+  assert.throws(() => assessStructure({operations: [row]}), /actual authority scope/u);
+});
+test('pure fact work runs zero heavy checks, without manufacturing an admission', () => {
+  const row = publicOperation(); row.fullChecks.forEach(check => {check.required = false; check.fullCalls = 0;});
+  Object.keys(row.fullTotals).forEach(kind => {row.fullTotals[kind] = 0;});
+  row.activity.decodeCalls = 0;
+  assert.equal(assessStructure({operations: [row]}).status, 'passed');
+  assert.equal(assessStructure({operations: [{...row, fullChecks: []}]}).status, 'passed');
+  row.fullChecks[0].fullCalls = 1;
+  assert.equal(assessStructure({operations: [row]}).status, 'failed');
+});
+test('material getters and cache hits are separate from full validation and actual decodes', () => {
+  const row = publicOperation(); row.activity = {...row.activity, materialGetterCalls: 100, materialCacheHits: 99,
+    databaseReads: 20, sqlPrepares: 30};
+  row.fullChecks.push({...row.fullChecks[0], fullCalls: 0});
+  const result = assessStructure({operations: [row]});
+  assert.equal(result.status, 'passed');
+  assert.equal(result.operations[0].fullCallsByKind['physical-validation'], 1);
+  assert.equal(result.operations[0].activity.decodeCalls, 1);
+  row.activity.materialCacheHits = 101;
+  assert.equal(assessStructure({operations: [row]}).status, 'failed');
+});
+test('decode calls cannot be hidden in DB reads or attributed only to cache entries', () => {
+  const row = publicOperation(); row.activity.decodeCalls = 2;
+  assert.equal(assessStructure({operations: [row]}).status, 'failed');
+  row.fullChecks = row.fullChecks.filter(check => check.kind !== 'decode');
+  row.activity.decodeCalls = 1;
+  assert.equal(assessStructure({operations: [row]}).status, 'incomplete');
+  delete row.activity.sqlPrepares;
+  assert.equal(assessStructure({operations: [row]}).status, 'incomplete');
+});
+test('distinct permissions and changed relevant revisions are not collapsed into one Allow', () => {
+  const row = publicOperation();
+  const auth = row.fullChecks.filter(check => check.kind === 'account-evaluation');
+  assert.deepEqual(auth.map(check => check.tuple.resource), ['run', 'result/main']);
+  row.fullChecks.push({...auth[0], revision: 'policy/key/target-8'});
+  row.fullTotals['account-evaluation'] = 3;
+  assert.equal(assessStructure({operations: [row]}).status, 'passed');
+  const second = publicOperation('warm-result', 'public-call-2');
+  second.fullChecks.find(check => check.kind === 'account-evaluation').fullCalls = 0;
+  assert.equal(assessStructure({operations: [publicOperation(), second]}).status, 'failed');
+  assert.throws(() => assessStructure({operations: [publicOperation(), publicOperation()]}), /public-operation identity/u);
+});
+test('Account tuple coverage and full count overflow cannot be replaced by frame identities', () => {
+  const row = publicOperation(); delete row.fullChecks.find(check => check.kind === 'account-evaluation').tuple.target;
+  assert.throws(() => assessStructure({operations: [row]}), /exact subject/u);
+  const huge = publicOperation(); huge.fullChecks[0].fullCalls = Number.MAX_SAFE_INTEGER;
+  huge.fullChecks.push({...huge.fullChecks[0]});
+  assert.throws(() => assessStructure({operations: [huge]}), /count overflow/u);
 });
 test('unrelated Run/Effect reads, counter overflow and invented zero admissions refuse', () => {
   for (const key of ['unrelatedRunRows', 'unrelatedEffectRows']) {
-    assert.equal(assessStructure({frames: [{...frame(), [key]: 1}]}).status, 'failed');
+    assert.equal(assessStructure({operations: [{...publicOperation(), [key]: 1}]}).status, 'failed');
   }
-  assert.equal(assessStructure({frames: [{...frame(), overflow: true}]}).status, 'incomplete');
-  assert.equal(assessStructure({frames: [{...frame(), rowAdmissionsPerRevisionMax: 0}]}).status, 'failed');
+  assert.equal(assessStructure({operations: [{...publicOperation(), overflow: true}]}).status, 'incomplete');
+  const row = publicOperation(); row.fullChecks.find(check => check.kind === 'row-admission').fullCalls = 0;
+  assert.equal(assessStructure({operations: [row]}).status, 'failed');
 });
 test('unchanged status cannot create a durable write or logical revision', () => {
   for (const patch of [{statusWrites: 1}, {revisionAfter: 8}]) {
-    assert.equal(assessStructure({frames: [{...frame(), ...patch}]}).status, 'failed');
+    assert.equal(assessStructure({operations: [{...publicOperation('warm-status'), ...patch}]}).status, 'failed');
   }
 });
 test('history gate compares identical targets and bounded supported history', () => {
@@ -113,7 +207,7 @@ test('history gate compares identical targets and bounded supported history', ()
   assert.equal(assessHistory(rows.slice(0, 3)).status, 'incomplete');
 });
 test('history fixture changes and unrelated-row scans cannot hide behind latency', () => {
-  for (const patch of [{fixtureSha256: cohort}, {unrelatedRunRows: 1}, {hashCalls: 1000}]) {
+  for (const patch of [{fixtureSha256: cohort}, {unrelatedRunRows: 1}, {fullHashValidations: 1000}, {databaseReads: 1000}, {sqlPrepares: 1000}]) {
     const rows = histories(); Object.assign(rows[2], patch); assert.equal(assessHistory(rows).status, 'failed');
   }
 });
@@ -158,7 +252,7 @@ test('a partial packet is incomplete; different runtime cohorts cannot be combin
   const report = {sourceSha: 'd'.repeat(40), cohortSha256: cohort, environmentSha256: environment,
     historyProtocolSha256: protocol, latency: [series()]};
   assert.equal(assessPerformanceEvidence(report).status, 'incomplete');
-  assert.throws(() => assessPerformanceEvidence({...report, structure: {cohortSha256: fixture, frames: [frame()]}}));
+  assert.throws(() => assessPerformanceEvidence({...report, structure: {cohortSha256: fixture, operations: [publicOperation()]}}));
   assert.throws(() => assessPerformanceEvidence({...report, latency: [series(), series()]}));
 });
 test('warm collector cannot manufacture cold child PID or first-init state samples', async () => {
@@ -177,10 +271,12 @@ test('full composition binds functional, latency, structural and faults to one c
   const report = {sourceSha: 'd'.repeat(40), ...identity, latency,
     functional: {...identity, rows: Object.keys(operationTargets).map(operation => ({operation,
       completed: true, expectedSha256: fixture, actualSha256: fixture}))},
-    structure: {...identity, frames: [frame()]}, history: {...identity, rows: histories()},
+    structure: {...identity, operations: Object.keys(operationTargets).map(operation => publicOperation(operation, operation))}, history: {...identity, rows: histories()},
     chunks: {...identity, rows: chunks()}, boundaries: {...identity,
       rows: Object.entries(boundaryExpectations).map(([name, expected]) => ({case: name, ...expected}))}};
   assert.equal(assessPerformanceEvidence(report).status, 'passed');
+  const partialWork = structuredClone(report); partialWork.structure.operations.pop();
+  assert.equal(assessPerformanceEvidence(partialWork).status, 'incomplete');
   for (const section of ['functional', 'structure', 'history', 'chunks', 'boundaries']) {
     for (const key of ['cohortSha256', 'environmentSha256', 'historyProtocolSha256']) {
       const changed = structuredClone(report); changed[section][key] = 'f'.repeat(64);

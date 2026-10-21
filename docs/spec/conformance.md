@@ -68,10 +68,18 @@ changes in Project, Store or Run history are separate measurement conditions.
 
 <!-- requirement-block: ordinary-performance.structural-regression -->
 The same cohort MUST demonstrate zero unrelated Run/Effect payload reads per
-target operation, no repeated same-tuple authorization or immutable-row
-decode/MAC/hash within an unchanged applicable frame, at most one configuration
-inventory per read frame, chunk-based Journal transfer and no unchanged-status
-logical revision or unnecessary durable write.
+target public operation and one necessary heavy validation per unchanged
+subject, permission tuple, row revision or configuration fact in that operation;
+pure work needing no heavy validation performs zero. Getter, helper, trusted
+Store read, FFI exchange or await entries cannot reset that ceiling by creating
+another internal frame. Distinct permissions, including Run read and named
+Result read, remain separate, with relevant change, uncontrolled callback/reentry
+and real protected external dispatch observations identified explicitly.
+Counters distinguish full Account evaluation, admission, parse, decode, MAC,
+hash, scope digest and configuration inventory from function entries and cache
+hits before asserting a heavy-work count; aggregate entry counts do not prove
+full-validation counts. Required row/tuple coverage, bounded chunk transfer and
+no unchanged-status logical revision or unnecessary durable write remain.
 History sizes 1, 10, 100 and 1000 exercise the same target within existing
 supported bounds; an unsupported size remains incomplete coverage, not a reason
 to increase admitted limits or omit a failing result.
