@@ -69,17 +69,16 @@ test "one selected Run revision and Policy original survive trusted read-only tr
     is Ok(Retained(value)) &&
     physical_equal(first, value),
   )
-  assert_false(
-    calls
-    .drop(before_lookup)
-    .any(value => {
+  for index = before_lookup; index < calls.length(); index = index + 1 {
+    let value = calls[index]
+    assert_false(
       value.has_prefix("read:") ||
       value.has_prefix("scan:") ||
       value == "begin" ||
       value == "commit" ||
-      value == "rollback"
-    }),
-  )
+      value == "rollback",
+    )
+  }
   // These are the same typed originals across two actual transactions, not
   // newly admitted copies selected by a private helper/transaction frame.
   journal.operation_active = false
