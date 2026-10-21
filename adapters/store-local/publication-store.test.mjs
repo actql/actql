@@ -2242,6 +2242,50 @@ test('publication metadata group retains the same physical ACK after partial fai
   });
 });
 
+test('publication metadata group rejects invalid or excessive inputs before physical acquisition', async t => {
+  const {store, directory} = await fixture(t, {maxObjects: 2});
+  const valid = {name: 'run_invocation', wire: wire(invocation())};
+  for (const [input, expected] of [
+    [undefined, 'InvalidPublicationContractWire'],
+    [new Array(3), 'PublicationStoreObjectLimit'],
+    [[{name: undefined, wire: undefined}], 'InvalidPublicationContractWire'],
+    [[valid, {name: 'run_invocation', wire: '{}'}], 'InvalidPublicationContract'],
+  ]) {
+    await assert.rejects(store.putPublicationContracts(input), code(expected));
+    assert.equal(store.status().objectCount, 0);
+    assert.equal(store.status().reservedObjects, 0);
+    for (const name of ['objects', 'contracts', 'staging']) {
+      assert.deepEqual(await readdir(join(directory, name)), []);
+    }
+  }
+  const limited = await fixture(t, {capacityBytes: 1});
+  await assert.rejects(limited.store.putPublicationContracts([valid]), code('PublicationStoreCapacity'));
+  assert.equal(limited.store.status().objectCount, 0);
+  assert.equal(limited.store.status().reservedObjects, 0);
+});
+
+test('publication metadata group owns its inputs before callbacks and deduplicates exact bodies', async t => {
+  const first = {name: 'run_invocation', wire: wire(invocation())};
+  const second = {name: 'run_invocation', wire: wire(seal('run_invocation', {
+    version: 'actql-run-invocation/0.1', invocation_template_cid: cids.template,
+    observation_set_cid: digest('second-group-input'),
+  }))};
+  const inputs = [first, {...first}, second];
+  let admissions = 0;
+  const control = {...contractControl, admit(name, body, limits) {
+    admissions++;
+    inputs[2].wire = '{}';
+    return contractControl.admit(name, body, limits);
+  }};
+  const expected = [first.wire, second.wire];
+  const {store} = await fixture(t, {}, control);
+  const stored = await store.putPublicationContracts(inputs);
+  assert.equal(admissions, 2);
+  assert.equal(stored.length, 2);
+  assert.deepEqual(stored.map(original => original.contract.wire), expected);
+  assert.equal(store.status().objectCount, 2);
+});
+
 test('delivery admission batches its immutable contracts and validates each once', async t => {
   const directory = await mkdtemp(join(tmpdir(), 'actql-delivery-batch-'));
   t.after(() => removeFixtureDirectory(directory));
