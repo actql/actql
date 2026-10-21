@@ -23,8 +23,9 @@ test "ordinary Run open and target lookup do not inspect unrelated history" {
     8,
     reads=Some(reads),
   ).unwrap()
-  assert_eq(calls, [
-    "fenced", "run-definition-schema", "read:client_run_custody:issued",
+  assert_true(calls.contains("fenced"))
+  assert_eq(calls.filter(value => value != "fenced"), [
+    "run-definition-schema", "read:client_run_custody:issued",
   ])
   calls.clear()
   let actual = reopened
@@ -32,8 +33,10 @@ test "ordinary Run open and target lookup do not inspect unrelated history" {
     .unwrap()
   guard actual is Retained(actual) else { fail("missing selected Run") }
   assert_eq(actual.revision, expected.revision)
-  assert_eq(calls, [
-    "fenced",
+  // Cheap actual-handle lifetime checks are not durable-row admission. Count
+  // each required row/transaction once without prescribing getter cadence.
+  assert_true(calls.contains("fenced"))
+  assert_eq(calls.filter(value => value != "fenced"), [
     "begin",
     "read:client_run_custody:issued",
     "read:client_runs:" + @host.client_request_scope_cid(request),
@@ -238,6 +241,15 @@ test "selected definition replacement uses the same Run CAS and actual unique co
       reads=Some(operations.reads),
     )
     is Err(Physical(@sqlite.Collision)),
+  )
+  assert_eq(
+    calls
+    .filter(value => {
+      value ==
+      "compare_exchange:client_runs:" + @host.client_request_scope_cid(request)
+    })
+    .length(),
+    1,
   )
   assert_eq(calls[calls.length() - 1], "rollback")
   guard journal.lookup(request, true).unwrap() is Retained(restored) else {
