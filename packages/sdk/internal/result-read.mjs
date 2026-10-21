@@ -135,7 +135,7 @@ export function createResultFactory({ref, limits, lookupContext, redactErrors, t
   {runRequest, responseValue}, {activeReaders, readerCleanups}, getExecution) {
   return name => {
     if (typeof name !== 'string' || !name) fail('InvalidResultName');
-    const readRows = ({options, validate}, collection) => {
+    const readRows = ({options, validate}, collection, retainSizes = false) => {
       const attemptId = crypto.randomUUID();
       const context = freezeInput({ref, resultName: name, attemptId,
         redactErrors: redactErrors,
@@ -161,7 +161,8 @@ export function createResultFactory({ref, limits, lookupContext, redactErrors, t
         retainedBytes += size;
         const rowIndex = rawRows++;
         controller.signal.throwIfAborted();
-        if (validate === undefined) return {value: row};
+        if (validate === undefined) return retainSizes
+          ? {value: row, retainedBytes: size} : {value: row};
         let response;
         try {
           response = await awaitValidation(validate(row), controller.signal);
@@ -377,7 +378,8 @@ export function createResultFactory({ref, limits, lookupContext, redactErrors, t
           const iterator = iterate(owned);
           // Do not yield transformed values from an async generator: it
           // would assimilate thenable outputs. Only unwrap IteratorResult.
-          const unwrap = item => item.done ? item : {done: false, value: item.value.value};
+          const unwrap = item => item.done || retainSizes ? item
+            : {done: false, value: item.value.value};
           return {
             next: value => iterator.next(value).then(unwrap),
             return: value => iterator.return(value).then(unwrap),
@@ -397,18 +399,24 @@ export function createResultFactory({ref, limits, lookupContext, redactErrors, t
     const batches = options => {
       beforeResultRead?.(options, undefined);
       if (options === undefined) options = {};
-      const reader = readRows(captureResultRead(ClientError, options));
+      const captured = captureResultRead(ClientError, options);
+      const batchOptions = captured.validate === undefined ? captured.options
+        : captureReadOptions(options);
+      const reader = readRows(captured, undefined, true);
       let rowsYielded = 0;
-      const maxRows = tighter(options.maxBatchRows,
+      const maxRows = tighter(batchOptions.maxBatchRows,
         limits.maxBatchRows);
-      const maxBytes = tighter(options.maxBatchRetainedValueBytes,
+      const maxBytes = tighter(batchOptions.maxBatchRetainedValueBytes,
         limits.maxBatchRetainedValueBytes);
       const iterate = async function* (ownedReader) {
         activeReaders.add(ownedReader);
         let batch = [], bytes = 0;
         try {
-          for await (const row of reader) {
-            const size = retainedValueBytes(row);
+          for await (const output of reader) {
+            const row = output.value;
+            // No application has received this row yet. Reuse its original
+            // charge unless a validator produced or could have mutated it.
+            const size = output.retainedBytes ?? retainedValueBytes(row);
             if (size > maxBytes) fail('ResultBatchLimit');
             if (batch.length === maxRows || bytes + size > maxBytes) {
               rowsYielded += batch.length;
