@@ -4,6 +4,9 @@
 pub fn client_effect_compilation_task_keys(
   value : ClientEffectCompilation,
 ) -> Result[Array[String], ClientTaskFragmentIssue] {
+  if value.compiled.standard_progress_keys is Some(keys) {
+    return Ok(keys.copy())
+  }
   let keys = []
   let prepared = value.compiled.owner
   for task in 0..<@strategy.graph_task_count(prepared.graph) {

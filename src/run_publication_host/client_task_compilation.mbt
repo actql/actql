@@ -8,6 +8,7 @@ pub struct ClientTaskCompilation {
   infer : ClientInferPlanGraph?
   infers : Array[ClientInferPlanGraph]
   serialization : ClientSerializationPlanGraph?
+  priv standard_progress_keys : Array[String]?
 }
 
 ///|
@@ -257,6 +258,7 @@ fn finish_client_task_compilation(
     infer,
     infers: retained,
     serialization,
+    standard_progress_keys: graph.standard_progress_keys,
   })
 }
 
