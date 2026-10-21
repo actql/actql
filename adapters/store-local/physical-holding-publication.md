@@ -112,6 +112,25 @@ unapplied operation, permission or cleanup success. Physical capacity accounting
 other Store recovery and their actual acknowledgement duties are unchanged;
 this does not make all remaining opening inventories history-independent.
 
+Committed publication owner links are also selected-use facts. Ordinary open
+does not enumerate and admit every committed Index merely to check all of its
+inventories and holdings. Index inspect, public durable confirmation, lookup,
+and Result Binding selection read the selected inventory and require its exact
+Index CID, namespace, authority scope, Run and publication attempt. Only that
+inventory's holding links are read; missing, retiring, malformed or foreign
+owners refuse the selected operation. A later operation acquires new originals.
+Already inspected Pure/Effect evidence reuses its own holding facts when joining
+the same inventory rather than reading the same bodies again in a pure helper.
+
+Internal index durability reconciliation remains separate from public selected
+use. It still confirms the real directory acknowledgement and original custody
+outcome, including before metadata has been fully staged or during retirement.
+This is not a durable ACK or permission cache. Pending deletion, prepared custody,
+uncommitted-publication recovery and quota accounting retain their original
+paths. In particular, legacy inventory recovery and payload accounting still
+walk history; removing the extra committed-wide validation does not establish
+history-independent Store startup or replace an explicit integrity inspection.
+
 ## Same-owner cleanup and inventory
 
 The existing Store retains each active metadata writer's record in its private
