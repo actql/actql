@@ -251,9 +251,9 @@ pub fn admit_client_effect_run_materials(
   // Profile selection is an audit of the restored checked owners, not a
   // catalog string or caller boolean. No custody escapes until saved
   // invocation/authorization and the independently selected Run/request bind it.
-  let (normalization_profile, normalization_journal) = match
+  let (normalization_profile, normalization_inventory, normalization_journal) = match
     body.normalization_wire {
-    None => (None, None)
+    None => (None, None, None)
     Some(wire) => {
       let inventory = match
         checked_client_effect_normalization_inventory(prepared) {
@@ -285,9 +285,9 @@ pub fn admit_client_effect_run_materials(
       // Generic wire cannot acquire this exception, and update never uses it.
       if original_materials is Some(issued) &&
         issued.normalization_profile is None {
-        (None, Some(journal))
+        (None, Some(inventory), Some(journal))
       } else {
-        (Some(inventory), Some(journal))
+        (Some(inventory), Some(inventory), Some(journal))
       }
     }
   }
@@ -409,10 +409,18 @@ pub fn admit_client_effect_run_materials(
         issued: original_materials,
         compilation,
         run_cid: expected_run_definition_cid,
+        prepared_cid: @publication.run_evidence_value_identity(allowed.prepared),
+        authorization_cid: @publication.run_evidence_value_identity(
+          allowed.authorization,
+        ),
         request,
         journal_wire: wire,
         journal: normalization_journal.unwrap(),
-        materials_cid: "sha256:" + @sha.hex(@utf8.encode(materials)),
+        inventory: normalization_inventory.unwrap(),
+        materials_cid: match original_materials {
+          Some(issued) => original_effect_materials_cid(issued)
+          None => "sha256:" + @sha.hex(@utf8.encode(materials))
+        },
       }
       prepared.normalization_custody = Some(custody)
       Some(custody)

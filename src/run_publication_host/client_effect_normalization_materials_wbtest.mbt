@@ -100,9 +100,12 @@ test "normalization material custody refuses copied projection and foreign prepa
     issued: original_custody.issued,
     compilation: original_custody.compilation,
     run_cid: original_custody.run_cid,
+    prepared_cid: original_custody.prepared_cid,
+    authorization_cid: original_custody.authorization_cid,
     request: original_custody.request,
     journal_wire: original_custody.journal_wire,
     journal: original_custody.journal,
+    inventory: original_custody.inventory,
     materials_cid: original_custody.materials_cid,
   }
   assert_true(

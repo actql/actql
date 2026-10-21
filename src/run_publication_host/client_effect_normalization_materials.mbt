@@ -111,9 +111,12 @@ struct ClientEffectNormalizationMaterialCustody {
   issued : ClientEffectIssuedNormalizationMaterials?
   compilation : ClientEffectCompilation
   run_cid : String
+  prepared_cid : String
+  authorization_cid : String
   request : ClientRequestIdentity?
   journal_wire : String
   journal : @publication.RunEvidenceValue
+  inventory : ClientEffectNormalizationInventory
   materials_cid : String
 }
 
@@ -126,23 +129,23 @@ pub fn restore_client_effect_run_normalization(
 ) -> Result[@publication.RunEvidenceValue, ClientEffectNormalizationIssue] {
   let prepared = materials.prepared
   if !physical_equal(materials.compilation.owner, prepared) ||
-    !physical_equal(materials.compilation, materials.allowed.compilation) ||
-    bind_client_effect_compiled_run(
-      prepared,
-      materials.allowed,
-      materials.run_definition,
-    )
-    is Err(_) {
+    !physical_equal(materials.compilation, materials.allowed.compilation) {
     return Err(ForeignMaterials)
   }
   guard materials.normalization is Some(custody) else {
     return Err(MissingOriginalJournal)
   }
+  // Issuance or saved-material admission already bound this immutable tuple.
+  // These local identity checks do not rebuild its checked Effect DAG.
   guard prepared.normalization_custody is Some(original) &&
     physical_equal(custody, original) &&
     physical_equal(custody.compilation, materials.compilation) &&
     custody.run_cid ==
     @publication.publication_contract_identity(materials.run_definition) &&
+    custody.prepared_cid ==
+    @publication.run_evidence_value_identity(materials.allowed.prepared) &&
+    custody.authorization_cid ==
+    @publication.run_evidence_value_identity(materials.allowed.authorization) &&
     custody.request == materials.request else {
     return Err(ForeignMaterials)
   }
@@ -179,11 +182,16 @@ pub fn restore_client_effect_run_normalization(
       }
       // Existing nominal create material custody on the legacy Template is
       // retained. It does not authorize update or unverified wire restoration.
-      match checked_client_effect_normalization_inventory(prepared) {
-        Ok(MappedCreate(inventory)) => MappedCreate(inventory)
-        Ok(_) => return Err(ForeignCatalog)
-        Err(issue) => return Err(issue)
+      if !(custody.inventory is MappedCreate(_)) {
+        return Err(ForeignCatalog)
       }
+      if !client_effect_normalization_inventory_matches(
+          custody.inventory,
+          prepared,
+        ) {
+        return Err(ForeignPreparation)
+      }
+      custody.inventory
     }
   }
   let journal = custody.journal

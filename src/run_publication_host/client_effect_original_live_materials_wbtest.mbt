@@ -82,6 +82,13 @@ test "issued Effect facts reuse canonical admission and retain one lazy digest a
     )
     is Err(_),
   )
+  assert_true(
+    restore_client_effect_run_normalization({
+      ..materials,
+      allowed: changed_policy,
+    })
+    is Err(ForeignMaterials),
+  )
   assert_eq(issued.materials_cid, Some(digest))
   assert_true(
     physical_equal(

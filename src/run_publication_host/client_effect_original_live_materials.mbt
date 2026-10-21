@@ -74,9 +74,14 @@ pub fn bind_prepared_client_effect_original_materials(
     issued: Some(issued),
     compilation: allowed.compilation,
     run_cid,
+    prepared_cid: @publication.run_evidence_value_identity(allowed.prepared),
+    authorization_cid: @publication.run_evidence_value_identity(
+      allowed.authorization,
+    ),
     request,
     journal_wire: @publication.run_evidence_value_json(issued.original.journal),
     journal: issued.original.journal,
+    inventory: issued.original.inventory,
     materials_cid: original_effect_materials_cid(issued),
   }
   prepared.normalization_custody = Some(custody)
