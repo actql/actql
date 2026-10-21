@@ -25,6 +25,26 @@ on:
         description: Exact existing Client package artifact for the performance check
         type: string
         default: ''
+      performance_native_package_run_id:
+        description: Exact normal native package run id
+        type: string
+        default: ''
+      performance_native_package_artifact_id:
+        description: Exact normal native package artifact id
+        type: string
+        default: ''
+      performance_python_package_run_id:
+        description: Exact normal python package run id
+        type: string
+        default: ''
+      performance_python_package_artifact_id:
+        description: Exact normal python package artifact id
+        type: string
+        default: ''
+      performance_process_package_jobs:
+        description: JSON object naming the exact native and python normal package jobs
+        type: string
+        default: '{}'
       native_macos:
         description: Also run the macOS native job (billed at ten times Linux)
         type: boolean
@@ -78,6 +98,12 @@ jobs:
     with:
       package-run-id: ${{ inputs.performance_package_run_id }}
       package-artifact-id: ${{ inputs.performance_package_artifact_id }}
+      native-package-run-id: ${{ inputs.performance_native_package_run_id }}
+      native-package-artifact-id: ${{ inputs.performance_native_package_artifact_id }}
+      native-package-producer-job: ${{ fromJSON(inputs.performance_process_package_jobs || '{}').native || '' }}
+      python-package-run-id: ${{ inputs.performance_python_package_run_id }}
+      python-package-artifact-id: ${{ inputs.performance_python_package_artifact_id }}
+      python-package-producer-job: ${{ fromJSON(inputs.performance_process_package_jobs || '{}').python || '' }}
   # Admission checks complete before any normal runtime/proof runner starts.
   # Actual retained history is checked before installing the build toolchain.
   preflight:
