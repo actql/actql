@@ -7660,7 +7660,7 @@
               },
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "cancellationRequested: current.cancellationRequested,"
+                "anchor": "cancellationRequested: frame.cancellationRequested,"
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",

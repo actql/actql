@@ -8830,7 +8830,7 @@
               },
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "const expected = runStateFrames.get(frame);"
+                "anchor": "const retained = runStateFrames.get(frame);"
               }
             ],
             "synchronization": [
@@ -8892,7 +8892,7 @@
               },
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "cancellationRequested: current.cancellationRequested"
+                "anchor": "cancellationRequested: frame.cancellationRequested"
               },
               {
                 "path": "adapters/host-node/client-run-state-fallback.test.mjs",
@@ -9207,7 +9207,7 @@
               },
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "cancellationRequested: current.cancellationRequested,"
+                "anchor": "cancellationRequested: frame.cancellationRequested,"
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
@@ -20891,7 +20891,7 @@
               },
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "cancellationRequested: current.cancellationRequested,"
+                "anchor": "cancellationRequested: frame.cancellationRequested,"
               },
               {
                 "path": "adapters/host-node/client-checkpoints.mjs",
@@ -47685,7 +47685,7 @@
     {
       "module": "adapters/host-node/local-account-config.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "92ec07719e8bef94b29947cdae8fea9ee829cde12f63227525f5fd2a4826f95b",
+      "sha256": "64a675a7ee13ce9b4bb88fdd46afd9f520ea4cdbac4667f30d0801704bd25efd",
       "role": "physical-io",
       "owner": "Existing execution_authorization/Checkpoint Owners and trusted Host gate",
       "exports": [
@@ -75066,7 +75066,7 @@
               },
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "const expected = runStateFrames.get(frame);"
+                "anchor": "const retained = runStateFrames.get(frame);"
               }
             ],
             "synchronization": [
@@ -75092,7 +75092,7 @@
             "cancellation": [
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "cancellationRequested: current.cancellationRequested"
+                "anchor": "cancellationRequested: frame.cancellationRequested"
               },
               {
                 "path": "adapters/host-node/client-run-state-fallback.test.mjs",

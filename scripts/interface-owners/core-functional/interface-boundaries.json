@@ -13905,7 +13905,7 @@
             "cancellation": [
               {
                 "path": "adapters/host-node/local-account-config.mjs",
-                "anchor": "import {openSync, readSync, closeSync} from 'node:fs';"
+                "anchor": "import {openSync, readSync, closeSync, fstatSync} from 'node:fs';"
               },
               {
                 "path": "docs/design/model-provider-registration.md",
