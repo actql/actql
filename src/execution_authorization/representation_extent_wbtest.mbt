@@ -23,6 +23,8 @@ test "original Account retained extent distinguishes empty arrays and identity S
     fixed_backing_slots: 0L,
     strings: 2L,
     text_utf16_units: 73L,
+    original_byte_buffers: 0L,
+    original_bytes: 0L,
   })
   assert_eq(admitted.configuration_cid(), before)
   assert_eq(admitted.representation_extent(), admitted.representation_extent())
@@ -54,6 +56,8 @@ test "Account extent counts compiled scopes values and exact original backing" {
     fixed_backing_slots: 4L,
     strings: 5L,
     text_utf16_units: 90L,
+    original_byte_buffers: 0L,
+    original_bytes: 0L,
   })
   let tuple : AccessTuple = {
     principal: "alice",
@@ -94,6 +98,8 @@ test "Account extent includes exclusion and bootstrap original holdings" {
     fixed_backing_slots: 8L,
     strings: 7L,
     text_utf16_units: 165L,
+    original_byte_buffers: 0L,
+    original_bytes: 0L,
   })
 }
 

@@ -96,6 +96,8 @@ pub(all) struct AccountConfigurationRepresentationExtent {
   fixed_backing_slots : Int64
   strings : Int64
   text_utf16_units : Int64
+  original_byte_buffers : Int64
+  original_bytes : Int64
 } derive(Eq, @debug.Debug)
 
 pub(all) enum AccountConfigurationState {
@@ -115,6 +117,7 @@ pub fn AdmittedAccountConfiguration::bootstrap_profile(Self) -> BootstrapProfile
 pub fn AdmittedAccountConfiguration::configuration_cid(Self) -> String
 pub fn AdmittedAccountConfiguration::entry_count(Self) -> Int
 pub fn AdmittedAccountConfiguration::representation_extent(Self) -> AccountConfigurationRepresentationExtent
+pub fn AdmittedAccountConfiguration::retains_original_bytes(Self, Bytes) -> Bool
 
 pub(all) struct AnswerBinding {
   subject : DecisionSubject

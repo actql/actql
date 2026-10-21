@@ -16,6 +16,7 @@ struct AdmittedAccountConfiguration {
   bootstrap : BootstrapProfile?
   entries : Array[CompiledEntry]
   configuration_cid : String
+  original_wire : Bytes?
 }
 
 ///|
@@ -39,6 +40,17 @@ pub fn AdmittedAccountConfiguration::configuration_cid(
   self : AdmittedAccountConfiguration,
 ) -> String {
   self.configuration_cid
+}
+
+///|
+/// Exact source correspondence retained by wire admission, not an Account
+/// decision. Typed admission has no wire original. The private backing never
+/// escapes through this query, so caller mutation cannot change the original.
+pub fn AdmittedAccountConfiguration::retains_original_bytes(
+  self : AdmittedAccountConfiguration,
+  original : Bytes,
+) -> Bool {
+  self.original_wire is Some(bytes) && bytes == original
 }
 
 ///|
@@ -281,6 +293,7 @@ fn admit_with_overlap_budget(
     bootstrap: raw.bootstrap,
     entries,
     configuration_cid,
+    original_wire: None,
   })
 }
 
