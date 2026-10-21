@@ -37666,7 +37666,7 @@
     {
       "module": "adapters/host-node/embedded-local.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "eaa31ba89796eb3a451674c93cd202bc6ec6147ce09dfe6a612f123b6501ed78",
+      "sha256": "7c46ee10142a2be40054c467aa37ddecaf2ea95b5da2d003fa4d63b9ca22dd38",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -42662,7 +42662,7 @@
               },
               {
                 "path": "adapters/host-node/local-result-authorization.mjs",
-                "anchor": "if (retained !== undefined && retained.account === retainedAccount) return retained.allowed;"
+                "anchor": "retained.sinkCallbackCount === sinkCallbackCount) return retained.allowed;"
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",

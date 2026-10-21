@@ -11,7 +11,7 @@ import {createHash, createHmac, randomBytes, timingSafeEqual} from 'node:crypto'
 import {closeSync, constants, existsSync, fstatSync, fsyncSync, lstatSync,
   mkdirSync, openSync, readSync,
   realpathSync, writeFileSync} from 'node:fs';
-import {isAbsolute, join} from 'node:path';
+import {basename, dirname, isAbsolute, join, resolve} from 'node:path';
 import {types as utilTypes} from 'node:util';
 import {createSqliteTransaction, throwSqliteInitializationFailure} from
   '../host-common/sqlite-transaction.mjs';
@@ -20,6 +20,8 @@ import {assertHostJournalDirectoryInspector, inspectHostJournalDirectory}
   from './host-journal-directory.mjs';
 import {snapshotSqliteSchemaReadLimits, snapshotSqliteSchemaSqlSupport}
   from '../host-common/sqlite-schema-resource-bounds.mjs';
+import {assertOriginalPreparedLocalPublicationStoreOwnership}
+  from '../store-local/publication-store.mjs';
 import {openClientObservationStorage} from './client-observation-journal.mjs';
 import {isHostObservationProjection} from '../host-common/observation.mjs';
 import {canonicalJson} from './local-account-config.mjs';
@@ -436,8 +438,7 @@ function boundedPrimarySql(connection, limits, executionLimits, assertCurrent, w
   }), retireClosedNativeAliases() { statements.length = cursors.length = 0; }});
 }
 
-function boundJournalDatabaseExtent(database, maxDatabaseBytes, executionLimits, walFrames) {
-  if (maxDatabaseBytes === undefined) return;
+function journalDatabaseGeometry(database, maxDatabaseBytes, walFrames) {
   const page = database.prepare('PRAGMA page_size').get().page_size;
   if (!Number.isSafeInteger(page) || page < 512 || page > 65536 ||
       (page & (page - 1)) !== 0) {
@@ -450,7 +451,14 @@ function boundJournalDatabaseExtent(database, maxDatabaseBytes, executionLimits,
   // select MEMORY before that pragma can load schema and its internal reader.
   // Neither operation supplies backing or acknowledges another connection.
   walFrames?.configure(page);
-  selectJournalTemporaryStorage(database, executionLimits);
+  return {page, pages};
+}
+
+function boundJournalDatabaseExtent(database, maxDatabaseBytes, executionLimits, walFrames,
+  temporarySelected = false, retainedGeometry) {
+  if (maxDatabaseBytes === undefined) return;
+  const {page, pages} = retainedGeometry ?? journalDatabaseGeometry(database, maxDatabaseBytes, walFrames);
+  if (!temporarySelected) selectJournalTemporaryStorage(database, executionLimits);
   const observed = database.prepare(`PRAGMA max_page_count = ${pages}`).get().max_page_count;
   if (!Number.isSafeInteger(observed) || observed < 1 || observed > pages) {
     fail('ClientRequestJournalDatabaseUnavailable');
@@ -1359,12 +1367,7 @@ function inspectCancellationStorage(database, enabled) {
       indexed && custody[0].issued_count !== records) fail('UnknownClientRequestJournalFormat');
 }
 
-// A read-only SQLite connection can still create -shm beside a WAL database.
-// Inspect a private copy and refuse a source that changes during inspection.
-function inspectJournalSnapshot(directory, databasePath, markerPath, maxInspectionEntries, maxInspectionBytes,
-  primarySqlLimits, primaryExecutionLimits, primarySchemaLimits, primarySchemaSqlSupport, primaryCurrent,
-  primaryDirectoryInspection, inspectionTemporaryDirectory) {
-  const entries = journalDirectoryEntries(directory, maxInspectionEntries, primaryDirectoryInspection);
+function readJournalFormatFeatures(directory, entries) {
   const featurePath = join(directory, cancellationMarkerName);
   const enabled = entries.includes(cancellationMarkerName);
   if (enabled && (!lstatSync(featurePath).isFile() ||
@@ -1405,6 +1408,38 @@ function inspectJournalSnapshot(directory, databasePath, markerPath, maxInspecti
       !lstatSync(usagePath).isFile())) {
     fail('UnknownClientRequestJournalFormat');
   }
+  return Object.freeze({enabled, submissionEnabled, epochEnabled, intentEnabled,
+    retirementEnabled, restartEnabled, nameEnabled, usageEnabled,
+    featurePath, submissionPath, epochPath, intentPath, retirementPath, restartPath, namePath});
+}
+
+function inspectJournalNativeStorage(database, features) {
+  const fields = database.prepare('PRAGMA table_info(client_requests)')
+    .all().map(field => field.name).sort();
+  if (JSON.stringify(fields) !== JSON.stringify(journalColumns)) {
+    fail('UnknownClientRequestJournalFormat');
+  }
+  inspectCancellationStorage(database, features.enabled);
+  inspectSubmissionStorage(database, features.submissionEnabled);
+  inspectEpochStorage(database, features.epochEnabled);
+  inspectIntentStorage(database, features.intentEnabled);
+  inspectIntentRetirementStorage(database, features.retirementEnabled);
+  inspectRestartStorage(database, features.restartEnabled);
+  inspectNameStorage(database, features.nameEnabled);
+  inspectSubmissionUsageStorage(database, features.usageEnabled);
+  inspectClientSourceOperationStorage(database);
+}
+
+// Unowned/standalone inspection still needs an isolated snapshot: merely
+// opening a read-only connection can create SHM beside an unclassified file.
+function inspectJournalSnapshot(directory, databasePath, markerPath, maxInspectionEntries, maxInspectionBytes,
+  primarySqlLimits, primaryExecutionLimits, primarySchemaLimits, primarySchemaSqlSupport, primaryCurrent,
+  primaryDirectoryInspection, inspectionTemporaryDirectory) {
+  const entries = journalDirectoryEntries(directory, maxInspectionEntries, primaryDirectoryInspection);
+  const features = readJournalFormatFeatures(directory, entries);
+  const {enabled, submissionEnabled, epochEnabled, intentEnabled,
+    retirementEnabled, restartEnabled, nameEnabled,
+    featurePath, submissionPath, epochPath, intentPath, retirementPath, restartPath, namePath} = features;
   let inspectionSql;
   try {
   inspectSqliteSnapshot(databasePath, originalDatabase => {
@@ -1415,20 +1450,7 @@ function inspectJournalSnapshot(directory, databasePath, markerPath, maxInspecti
       inspectionSql = boundedPrimarySql(originalDatabase, primarySqlLimits, primaryExecutionLimits, primaryCurrent);
     }
     const database = inspectionSql?.database ?? originalDatabase;
-    const fields = database.prepare('PRAGMA table_info(client_requests)')
-      .all().map(field => field.name).sort();
-    if (JSON.stringify(fields) !== JSON.stringify(journalColumns)) {
-      fail('UnknownClientRequestJournalFormat');
-    }
-    inspectCancellationStorage(database, enabled);
-    inspectSubmissionStorage(database, submissionEnabled);
-    inspectEpochStorage(database, epochEnabled);
-    inspectIntentStorage(database, intentEnabled);
-    inspectIntentRetirementStorage(database, retirementEnabled);
-    inspectRestartStorage(database, restartEnabled);
-    inspectNameStorage(database, nameEnabled);
-    inspectSubmissionUsageStorage(database, usageEnabled);
-    inspectClientSourceOperationStorage(database);
+    inspectJournalNativeStorage(database, features);
   }, {code: 'UnknownClientRequestJournalFormat', maxSourceBytes: maxInspectionBytes,
     unavailableCode: 'ClientRequestJournalInspectionUnavailable',
     schemaReadLimits: primarySchemaLimits,
@@ -1480,7 +1502,7 @@ function inspectJournalSnapshot(directory, databasePath, markerPath, maxInspecti
 
 function admitJournalDirectory(directory, maxInspectionEntries, maxInspectionBytes,
   primarySqlLimits, primaryExecutionLimits, primarySchemaLimits, primarySchemaSqlSupport, primaryCurrent,
-  primaryDirectoryInspection, inspectionTemporaryDirectory) {
+  primaryDirectoryInspection, inspectionTemporaryDirectory, ownedOriginal) {
   if (!existsSync(directory)) return false;
   const state = lstatSync(directory);
   if (!state.isDirectory() || state.isSymbolicLink()) {
@@ -1502,6 +1524,21 @@ function admitJournalDirectory(directory, maxInspectionEntries, maxInspectionByt
   const databasePath = join(directory, 'client-requests.sqlite3');
   if (!lstatSync(databasePath).isFile()) {
     fail('UnknownClientRequestJournalFormat');
+  }
+  if (ownedOriginal !== undefined) {
+    assertOriginalPreparedLocalPublicationStoreOwnership(ownedOriginal,
+      join(dirname(resolve(directory)), 'publication'));
+    if (existsSync(`${databasePath}-journal`)) fail('UnknownClientRequestJournalFormat');
+    let bytes = 0n;
+    for (const path of [databasePath, `${databasePath}-wal`, `${databasePath}-shm`]) {
+      if (!existsSync(path)) continue;
+      const original = lstatSync(path, {bigint: true});
+      if (!original.isFile() || original.isSymbolicLink()) fail('UnknownClientRequestJournalFormat');
+      if (path.endsWith('-shm')) continue;
+      bytes += original.size;
+      if (bytes > BigInt(maxInspectionBytes)) fail('ClientRequestJournalInspectionUnavailable');
+    }
+    return readJournalFormatFeatures(directory, entries);
   }
   try {
     inspectJournalSnapshot(directory, databasePath, markerPath, maxInspectionEntries, maxInspectionBytes,
@@ -1541,7 +1578,14 @@ export function openClientRequestJournal(directory, {
   submissionEpochNow = Date.now,
   updateOriginalControl,
   sourceOperationLimits,
-} = {}) {
+} = {}, ownedOriginal) {
+  if (ownedOriginal !== undefined) {
+    if (!pathText(directory) || basename(resolve(directory)) !== 'requests') {
+      fail('InvalidClientRequestJournalConfiguration');
+    }
+    assertOriginalPreparedLocalPublicationStoreOwnership(ownedOriginal,
+      join(dirname(resolve(directory)), 'publication'));
+  }
   if (!pathText(directory) || !Number.isSafeInteger(maxRecords) ||
       !Number.isSafeInteger(maxInspectionEntries) || maxInspectionEntries < 1 ||
       !Number.isSafeInteger(maxInspectionBytes) || maxInspectionBytes < 1 ||
@@ -1604,9 +1648,10 @@ export function openClientRequestJournal(directory, {
   if (primaryCurrent !== undefined && typeof facilityNativeRealpath !== 'function') {
     fail('ClientRequestJournalFacilityUnavailable');
   }
-  const current = admitJournalDirectory(directory, maxInspectionEntries, inspectionBytes,
+  const admission = admitJournalDirectory(directory, maxInspectionEntries, inspectionBytes,
     primarySqlLimits, primaryExecutionLimits, primarySchemaLimits, primarySchemaSqlSupport, primaryCurrent,
-    primaryDirectoryInspection, inspectionTemporaryDirectory);
+    primaryDirectoryInspection, inspectionTemporaryDirectory, ownedOriginal);
+  const current = admission !== false;
   mkdirSync(directory, {recursive: true, mode: 0o700});
   // Avoid the stock JS symlink walk's intermediate path/Map/Set history in
   // the selected recipe. Native libc/libuv path holdings remain distinct
@@ -1669,7 +1714,38 @@ export function openClientRequestJournal(directory, {
         applyOriginal(originalDatabaseIsOpen, connection, []) !== true) {
       throw new TypeError('ClientRequestJournalConnectionOpenUnavailable');
     }
-    boundJournalDatabaseExtent(database, maxDatabaseBytes, primaryExecutionLimits, walFrames);
+    let temporarySelected = false;
+    let retainedGeometry;
+    if (ownedOriginal !== undefined && current) {
+      assertOriginalPreparedLocalPublicationStoreOwnership(ownedOriginal,
+        join(dirname(resolve(directory)), 'publication'));
+      if (maxDatabaseBytes !== undefined) {
+        retainedGeometry = journalDatabaseGeometry(database, maxDatabaseBytes, walFrames);
+      }
+      selectJournalTemporaryStorage(database, primaryExecutionLimits);
+      temporarySelected = true;
+      // SQLite is the format authority for this already-owned database.
+      // Bound only schema metadata here; do not materialize historical rows.
+      const schema = database.prepare(`SELECT COUNT(*) AS entries,
+        COALESCE(SUM(length(CAST(sql AS BLOB))),0) AS bytes FROM sqlite_master`).get();
+      const schemaLimits = primarySchemaLimits ?? {
+        maxSchemaEntries: maxInspectionEntries, maxSchemaBytes: inspectionBytes};
+      if (!Number.isSafeInteger(schema?.entries) || schema.entries < 1 ||
+          schema.entries > schemaLimits.maxSchemaEntries ||
+          !Number.isSafeInteger(schema?.bytes) || schema.bytes < 0 ||
+          schema.bytes > schemaLimits.maxSchemaBytes) {
+        fail('SqliteSchemaPreparationUnavailable');
+      }
+      if (primarySchemaSqlSupport !== undefined) {
+        const statements = database.prepare('SELECT sql FROM sqlite_master WHERE sql IS NOT NULL').all();
+        if (statements.some(row => !primarySchemaSqlSupport.includes(row.sql))) {
+          fail('SqliteSchemaPreparationUnavailable');
+        }
+      }
+      inspectJournalNativeStorage(database, admission);
+    }
+    boundJournalDatabaseExtent(database, maxDatabaseBytes, primaryExecutionLimits, walFrames,
+      temporarySelected, retainedGeometry);
     database.exec('PRAGMA journal_mode = WAL');
     database.exec('PRAGMA synchronous = FULL');
     database.exec(`

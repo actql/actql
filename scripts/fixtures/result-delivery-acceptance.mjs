@@ -129,14 +129,15 @@ function fixture(api, control, options = {}) {
     },
   };
   const authority = api.installResultAccessAuthority({
-    authorizeResultReadRequest: () => true,
+    authorizeResultReadRequest: (facts, operation) => options.authorize === undefined
+      ? true : options.authorize(facts, operation),
     ...(typeof options.lookup === 'function' ? {authorizeDeliveryAttemptLookup: () => state.allowed} : {}),
     admitResultRead: () => ({authorizationContextCid: cid('2'), dataCeilingCid: cid('a'),
       egressAdmissionCid: cid('3'), expiresAt: '2026-10-02T00:00:00.000Z',
       maxBytes: options.maxBytes ?? 1024, maxUses: 1}),
-    authorizeResultRead(facts) {
+    authorizeResultRead(facts, operation) {
       state.authorizations.push(facts.delivery);
-      return state.allowed;
+      return options.authorize === undefined ? state.allowed : options.authorize(facts, operation);
     },
   });
   const service = api.installResultAccessService({store, control, authority,
@@ -153,8 +154,13 @@ function fixture(api, control, options = {}) {
     attemptId: 'same-logical-attempt',
   }, {async write(bytes) {
     state.chunks.push(new TextDecoder().decode(bytes));
+    await options.afterWrite?.(state);
     return {confirmedBytes: bytes.byteLength};
-  }, async finish() { state.finishes++; return {confirmed: true}; }})};
+  }, async finish() {
+    state.finishes++;
+    await options.afterFinish?.(state);
+    return {confirmed: true};
+  }})};
 }
 
 export {fixture as createResultDeliveryFixture};

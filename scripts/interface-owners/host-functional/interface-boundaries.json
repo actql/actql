@@ -7139,7 +7139,7 @@
     {
       "module": "adapters/host-common/result-delivery.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "69d2c4d2e8969fa9411e780af7619871a6c731e6492e32a6c98806d8d146f2e3",
+      "sha256": "5c79e6f144fdfac73e7c3a08b69231a7780e602e9242c3929f0789826101603c",
       "role": "physical-io",
       "owner": "Existing Result access/delivery/publication Owners and physical read/sink adapter",
       "exports": [
@@ -7297,7 +7297,8 @@
           "name": "requireCurrentAuthorization",
           "parameters": [
             "authorize",
-            "facts"
+            "facts",
+            "sinkCallbackCount"
           ],
           "async": true
         },
@@ -7451,6 +7452,10 @@
               {
                 "path": "src/run_publication/pkg.generated.mbti",
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
+              },
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "### Output callback Account observations"
               }
             ],
             "inputsOutputs": [
@@ -7465,6 +7470,10 @@
               {
                 "path": "docs/spec/protocols/artifacts.md",
                 "anchor": "### Result delivery"
+              },
+              {
+                "path": "adapters/host-common/result-delivery.mjs",
+                "anchor": "async function requireCurrentAuthorization(authorize, facts, sinkCallbackCount) {"
               }
             ],
             "identity": [
@@ -7502,7 +7511,7 @@
             "synchronization": [
               {
                 "path": "adapters/host-common/result-delivery.mjs",
-                "anchor": "if (await authorize(Object.freeze(facts)) !== true) {"
+                "anchor": "if (await authorize(Object.freeze({...facts, sinkCallbackCount})) !== true) {"
               },
               {
                 "path": "docs/design/result-description.md",
@@ -7589,6 +7598,14 @@
               {
                 "path": "adapters/store-local/delivery-completion.test.mjs",
                 "anchor": "delivery START uses native metadata durability before any row exposure"
+              },
+              {
+                "path": "adapters/host-node/local-result-authorization.test.mjs",
+                "anchor": "actual Result ${boundary} callback Deny stops the next dispatch or success"
+              },
+              {
+                "path": "adapters/host-node/local-result-authorization.test.mjs",
+                "anchor": "test('actual Result callbacks retain one heavy evaluation for unchanged Account and separate the next operation'"
               }
             ]
           }
@@ -18729,7 +18746,7 @@
     {
       "module": "adapters/host-node/client-request-journal.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "733393f82fdbab489db2d4d8343aa5b9ad405d7b6f2f969a4f4b2c40f03e29b9",
+      "sha256": "0cf3f7fb2e51731759b30ae280e8ac1d6ae4ff3cf64b84479e685eb856867ad9",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
@@ -18787,7 +18804,8 @@
             "primarySchemaSqlSupport",
             "primaryCurrent",
             "primaryDirectoryInspection",
-            "inspectionTemporaryDirectory"
+            "inspectionTemporaryDirectory",
+            "ownedOriginal"
           ],
           "async": false
         },
@@ -19030,7 +19048,9 @@
             "database",
             "maxDatabaseBytes",
             "executionLimits",
-            "walFrames"
+            "walFrames",
+            "temporarySelected",
+            "retainedGeometry"
           ],
           "async": false
         },
@@ -19204,6 +19224,21 @@
           "async": false
         },
         {
+          "name": "inspectJournalNativeStorage",
+          "parameters": [
+            "database",
+            "features"
+          ],
+          "async": false
+        },
+        {
+          "name": "inspectJournalNativeStorage/fields/fields",
+          "parameters": [
+            "field"
+          ],
+          "async": false
+        },
+        {
           "name": "inspectJournalRowUsage",
           "parameters": [
             "database",
@@ -19260,13 +19295,6 @@
           "name": "inspectJournalSnapshot/inspectJournalSnapshot",
           "parameters": [
             "originalDatabase"
-          ],
-          "async": false
-        },
-        {
-          "name": "inspectJournalSnapshot/inspectJournalSnapshot/fields/fields",
-          "parameters": [
-            "field"
           ],
           "async": false
         },
@@ -19401,6 +19429,15 @@
           "async": false
         },
         {
+          "name": "journalDatabaseGeometry",
+          "parameters": [
+            "database",
+            "maxDatabaseBytes",
+            "walFrames"
+          ],
+          "async": false
+        },
+        {
           "name": "journalDirectoryEntries",
           "parameters": [
             "directory",
@@ -19489,7 +19526,8 @@
             "submissionEpochTtlMs",
             "submissionEpochNow",
             "updateOriginalControl",
-            "sourceOperationLimits"
+            "sourceOperationLimits",
+            "ownedOriginal"
           ],
           "async": false
         },
@@ -20297,7 +20335,9 @@
         },
         {
           "name": "openClientRequestJournal/openClientRequestJournal",
-          "parameters": [],
+          "parameters": [
+            "row"
+          ],
           "async": false
         },
         {
@@ -20312,6 +20352,11 @@
           "parameters": [
             "sql"
           ],
+          "async": false
+        },
+        {
+          "name": "openClientRequestJournal/openClientRequestJournal#10",
+          "parameters": [],
           "async": false
         },
         {
@@ -20541,6 +20586,14 @@
           "async": false
         },
         {
+          "name": "readJournalFormatFeatures",
+          "parameters": [
+            "directory",
+            "entries"
+          ],
+          "async": false
+        },
+        {
           "name": "retainedEvidence",
           "parameters": [
             "row",
@@ -20764,7 +20817,6 @@
             "inspectJournalSnapshot",
             "inspectJournalSnapshot/inspectJournalSnapshot",
             "inspectJournalSnapshot/inspectJournalSnapshot#2",
-            "inspectJournalSnapshot/inspectJournalSnapshot/fields/fields",
             "inspectRestartStorage",
             "inspectRestartStorage/custodyFields/custodyFields",
             "inspectRestartStorage/fields/fields",
@@ -21748,6 +21800,7 @@
             "inspectJournalSnapshot/inspectJournalSnapshot#3",
             "inspectJournalSnapshot/inspectJournalSnapshot#4",
             "inspectJournalSnapshot/observe/observe",
+            "journalDatabaseGeometry",
             "observeOriginalClientRequestJournalCustody",
             "openClientRequestJournal/captureDatabaseCleanup/captureDatabaseCleanup",
             "openClientRequestJournal/captureObservationCleanup/captureObservationCleanup",
@@ -22210,6 +22263,97 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "inspectJournalNativeStorage",
+            "inspectJournalNativeStorage/fields/fields",
+            "openClientRequestJournal/openClientRequestJournal#10",
+            "readJournalFormatFeatures"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Store exclusion original to the Journal before native open."
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "function inspectJournalNativeStorage(database, features) {"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "} = {}, ownedOriginal) {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "join(dirname(resolve(directory)), 'publication'));"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "originalDatabaseClose ??= connection.close;"
+              },
+              {
+                "path": "adapters/host-node/ordinary-host-journal.mjs",
+                "anchor": "inspectionTemporaryDirectory: tmpdir(), primaryCurrent: current}, ownership);"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "exclusion, supported SQLite is the format authority: admission checks bounded"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "if (![0,1,2].includes(version)) fail('UnknownClientRequestJournalFormat');"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "fail('SqliteSchemaPreparationUnavailable');"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "throwSqliteInitializationFailure(initializationCleanup, error,"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "if (bytes > BigInt(maxInspectionBytes))"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "schema.entries > schemaLimits.maxSchemaEntries ||"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "snapshot path; deep whole-store inspection is not an ordinary-open prerequisite."
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/ordinary-host-journal.test.mjs",
+                "anchor": "test('ordinary owned Journal reopens with native admission without copying retired history'"
+              },
+              {
+                "path": "adapters/host-node/ordinary-host-journal.test.mjs",
+                "anchor": "test('owned native format refusal retains the captured close and Store exclusion until its real ACK'"
+              }
+            ]
+          }
         }
       ],
       "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred.",
@@ -22221,6 +22365,7 @@
         "../host-common/sqlite-format-inspection.mjs",
         "../host-common/sqlite-schema-resource-bounds.mjs",
         "../host-common/sqlite-transaction.mjs",
+        "../store-local/publication-store.mjs",
         "./client-observation-journal.mjs",
         "./client-source-operation.mjs",
         "./host-journal-directory.mjs",
@@ -70306,7 +70451,7 @@
     {
       "module": "packages/run-host-core/result-delivery.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "69d2c4d2e8969fa9411e780af7619871a6c731e6492e32a6c98806d8d146f2e3",
+      "sha256": "5c79e6f144fdfac73e7c3a08b69231a7780e602e9242c3929f0789826101603c",
       "role": "physical-io",
       "owner": "Existing Result access/delivery/publication Owners and physical read/sink adapter",
       "exports": [
@@ -70464,7 +70609,8 @@
           "name": "requireCurrentAuthorization",
           "parameters": [
             "authorize",
-            "facts"
+            "facts",
+            "sinkCallbackCount"
           ],
           "async": true
         },
@@ -70618,6 +70764,10 @@
               {
                 "path": "src/run_publication/pkg.generated.mbti",
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
+              },
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "### Output callback Account observations"
               }
             ],
             "inputsOutputs": [
@@ -70632,6 +70782,10 @@
               {
                 "path": "docs/spec/protocols/artifacts.md",
                 "anchor": "### Result delivery"
+              },
+              {
+                "path": "packages/run-host-core/result-delivery.mjs",
+                "anchor": "async function requireCurrentAuthorization(authorize, facts, sinkCallbackCount) {"
               }
             ],
             "identity": [
@@ -70669,7 +70823,7 @@
             "synchronization": [
               {
                 "path": "packages/run-host-core/result-delivery.mjs",
-                "anchor": "if (await authorize(Object.freeze(facts)) !== true) {"
+                "anchor": "if (await authorize(Object.freeze({...facts, sinkCallbackCount})) !== true) {"
               },
               {
                 "path": "docs/design/result-description.md",
@@ -70756,6 +70910,14 @@
               {
                 "path": "adapters/store-local/delivery-completion.test.mjs",
                 "anchor": "delivery START uses native metadata durability before any row exposure"
+              },
+              {
+                "path": "adapters/host-node/local-result-authorization.test.mjs",
+                "anchor": "actual Result ${boundary} callback Deny stops the next dispatch or success"
+              },
+              {
+                "path": "adapters/host-node/local-result-authorization.test.mjs",
+                "anchor": "test('actual Result callbacks retain one heavy evaluation for unchanged Account and separate the next operation'"
               }
             ]
           }
@@ -71898,7 +72060,7 @@
     },
     {
       "module": "adapters/host-node/ordinary-host-journal.mjs",
-      "sha256": "60f0974fc78d9baadb7edd83c41a8a3027070a65a987c469cd3193da68b1e9ec",
+      "sha256": "3ecf43ea4001e1645724268373a18e0b99834dfd4394f803f06732b4a5e039da",
       "exports": [
         "ordinaryHostJournalInstallation",
         "prepareOrdinaryHostJournal"
@@ -76291,7 +76453,7 @@
     {
       "module": "adapters/host-node/local-result-authorization.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "94b17b4f98f1370d43c5e205b363c952f64ed3d7f8ecc756bc896b885e9eff32",
+      "sha256": "2a06edec4bf39998c84ca3c37a64684a92e9dbc93ebe313615bb9655acc9ab7c",
       "role": "physical-io",
       "owner": "Existing installed Local Host Result access and Common execution-authorization Owners",
       "exports": [
@@ -76438,12 +76600,20 @@
               {
                 "path": "docs/design/oss-host-authorization.md",
                 "anchor": "## Local Run observation authorization"
+              },
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "### Output callback Account observations"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "adapters/host-node/local-result-authorization.mjs",
                 "anchor": "export function createLocalReadAuthorizations({moon, authorization,"
+              },
+              {
+                "path": "adapters/host-node/local-result-authorization.mjs",
+                "anchor": "const sinkCallbackCount = facts.delivery?.sinkCallbackCount ?? 0;"
               }
             ],
             "identity": [
@@ -76479,7 +76649,7 @@
             "resources": [
               {
                 "path": "adapters/host-node/local-result-authorization.mjs",
-                "anchor": "if (retained !== undefined && retained.account === retainedAccount) return retained.allowed;"
+                "anchor": "retained.sinkCallbackCount === sinkCallbackCount) return retained.allowed;"
               }
             ],
             "extension": [
@@ -76492,6 +76662,14 @@
               {
                 "path": "adapters/host-node/local-run-authorization.test.mjs",
                 "anchor": "test('actual Account keeps Run-read and named-Result-read distinct and current'"
+              },
+              {
+                "path": "adapters/host-node/local-result-authorization.test.mjs",
+                "anchor": "actual Result ${boundary} callback Deny stops the next dispatch or success"
+              },
+              {
+                "path": "adapters/host-node/local-result-authorization.test.mjs",
+                "anchor": "test('actual Result callbacks retain one heavy evaluation for unchanged Account and separate the next operation'"
               }
             ]
           }

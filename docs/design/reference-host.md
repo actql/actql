@@ -210,7 +210,16 @@ bounded completion. Missing adopted tables, rows or triggers still refuse.
 Later ordinary opens and admissions
 read only the singleton usage rows and selected original, not aggregate
 historical request, cancellation, intent, name or restart bodies. This removes
-those SQL censuses, not the separate existing cold DB/WAL copy inspection.
+those SQL censuses. An ordinary Local Host also passes its existing same-root
+Store exclusion original to the Journal before native open. Under that
+exclusion, supported SQLite is the format authority: admission checks bounded
+schema/version metadata and singleton custody using the actual retained native
+connection, without copying all DB/WAL bytes or scanning historical bodies.
+Configured file extents, supported schema, selected-row authentication and
+native partial-open/close duties still apply. Internally owned SHM/WAL creation
+is normal SQLite resource management, not business authority. Standalone
+inspection without that same nominal exclusion retains the isolated strict
+snapshot path; deep whole-store inspection is not an ordinary-open prerequisite.
 Failed row changes roll back their usage;
 an unknown COMMIT remains unknown and cannot certify another insertion or a
 safe resend. This does not replace the original Run/intent reconstruction or

@@ -90,6 +90,9 @@ function fixture(api, options = {}) {
   };
   if (options.legacy) delete store.sampleTrustedClock;
   const control = {...semantic,
+    // This time-handoff fixture issues bounded contract doubles, not the
+    // nominal contracts required by the optional original-attempt capture.
+    captureIssuedDeliveryAttempt: undefined,
     admit(name, wire, bounds) {
       return name === 'delivery_attempt'
         ? contract(name, 'a', JSON.parse(wire)) : semantic.admit(name, wire, bounds);
