@@ -61,9 +61,17 @@ jobs:
         run: node scripts/operation-performance.mjs --calibrate-sqlite "$RUNNER_TEMP/ordinary-operation/sqlite/sqlite-baseline.json" --output "$RUNNER_TEMP/ordinary-operation/comparison.json"
       - name: Install a fresh ordinary consumer without a producer fallback
         run: node scripts/ordinary-operation-packages.mjs prepare "$RUNNER_TEMP/ordinary-operation/packages" "$GITHUB_SHA" "$RUNNER_TEMP/ordinary-operation/prepared" --comparison "$RUNNER_TEMP/ordinary-operation/comparison.json"
-      - name: Measure completed public operations from the installed cohort
+      - name: Check selected Result material integrity using the installed cohort
         run: |
           mkdir "$RUNNER_TEMP/ordinary-operation/measurement"
+          node scripts/benchmark-node-boundaries.mjs \
+            --manifest "$RUNNER_TEMP/ordinary-operation/packages/ordinary-operation-packages.json" \
+            --consumer "$RUNNER_TEMP/ordinary-operation/prepared/consumer" \
+            --output "$RUNNER_TEMP/ordinary-operation/measurement/used-material" \
+            --controls "$RUNNER_TEMP/ordinary-operation/prepared/controls.json" \
+            --mode final
+      - name: Measure completed public operations from the installed cohort
+        run: |
           node scripts/benchmark-node-operations.mjs \
             --manifest "$RUNNER_TEMP/ordinary-operation/packages/ordinary-operation-packages.json" \
             --consumer "$RUNNER_TEMP/ordinary-operation/prepared/consumer" \

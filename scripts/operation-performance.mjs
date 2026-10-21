@@ -73,7 +73,7 @@ const comparisonQueries = Object.freeze({
     expected: [{id: 1}, {id: 2}]},
 });
 function resultStorageComparison(control, baseline) {
-  requireValue(control.kind === 'local-sqlite-result-control' && control.schemaVersion === 1 &&
+  requireValue(control.kind === 'local-sqlite-result-control' && [1, 2].includes(control.schemaVersion) &&
     control.productAcceptance === false, 'Bounded Result storage control required');
   requireValue(control.cleanup?.closed === true && control.failure == null && control.profiled === false,
     'Completed successful unprofiled Result control required');
@@ -101,10 +101,25 @@ function resultStorageComparison(control, baseline) {
     sizes.totalCanonicalBusinessBytes === bodies.reduce((sum, key) => sum + sizes[key], 0) &&
     sizes.outputJsonlBytes === 9 && protocol.payload === '{"id":1}\n' &&
     evidenceHash(protocol.expected) === evidenceHash([{id: 1}]), 'Matched Result bodies and JSONL oracle required');
+  const materialized = control.schemaVersion === 2;
+  const shaText = text => createHash('sha256').update(text).digest('hex');
+  const sameFields = (actual, expected) => actual !== null && typeof actual === 'object' &&
+    !Array.isArray(actual) && Object.keys(actual).length === Object.keys(expected).length &&
+    Object.entries(expected).every(([key, value]) => Object.hasOwn(actual, key) && actual[key] === value);
+  const materialization = {storedFormat: 'json-array-utf8', storedBytes: 10,
+    storedSha256: shaText('[{"id":1}]'), schemaFormat: 'actql-schema-json-utf8', schemaBytes: 41,
+    schemaSha256: shaText('{"id":{"nullable":false,"type":"number"}}'), outputFormat: 'jsonl-utf8',
+    outputBytes: 9, outputSha256: shaText(protocol.payload),
+    conversion: 'stored-array-and-schema -> JSONL -> ordinary-JS-records'};
+  if (materialized) requireValue(sameFields(protocol.materialization, materialization),
+    'Explicit stored array/schema/output conversion correspondence required');
+  else requireValue(!Object.hasOwn(protocol, 'materialization') || typeof protocol.materialization === 'string',
+    'Structured materialization requires Result control v2');
   requireValue(Array.isArray(control.samples) && control.samples.length >= sqliteComparisonPolicy.minimumSamples &&
     control.warmSamples === control.samples.length, 'Sufficient complete raw Result control samples required');
   const indexes = new Set(), attempts = new Set(), pids = new Set();
-  const expectedEvents = ['clock-committed', 'start-committed', 'payload-materialized', 'end-committed'];
+  const expectedEvents = ['clock-committed', 'start-committed',
+    ...(materialized ? ['stored-array-decoded', 'jsonl-serialized'] : []), 'payload-materialized', 'end-committed'];
   const expectedCounts = {begins: 3, commits: 3, rollbacks: 0, reads: 3, writes: 8};
   for (const sample of control.samples) {
     requireValue(integer(sample.index) && !indexes.has(sample.index) && integer(sample.pid) && sample.pid > 0 &&
@@ -114,6 +129,10 @@ function resultStorageComparison(control, baseline) {
     indexes.add(sample.index); attempts.add(sample.attemptCid); pids.add(sample.pid);
     requireValue(evidenceHash(sample.events) === evidenceHash(expectedEvents) &&
       evidenceHash(sample.counts) === evidenceHash(expectedCounts), 'Result durable ordering/counts differ');
+    if (materialized) requireValue(sameFields(sample.materialization, {storedBytes: 10, schemaBytes: 41,
+      jsonlBytes: 9, decodedRows: 1, outputSha256: materialization.outputSha256}),
+    'Complete Result conversion observation required');
+    else requireValue(!Object.hasOwn(sample, 'materialization'), 'Materialization observation requires Result control v2');
     const phases = sample.phases;
     requireValue(integer(phases?.fixtureConstructionNs) && integer(phases?.payloadAndMaterializeNs) &&
       groups.every(key => integer(phases[key]?.totalNs) && integer(phases[key]?.commitNs) &&
@@ -128,7 +147,8 @@ function resultStorageComparison(control, baseline) {
   const noiseMs = Math.max(0, summary.p95Ms - summary.medianMs);
   return {controlBodySha256: evidenceHash(control), protocolSha256: control.protocolSha256,
     ownerMapping: control.ownerMapping, conditions: {keyWidths, bodyBytes: sizes,
-      payload: protocol.payload, preparation: protocol.preparation, groups, settings: control.settings},
+      payload: protocol.payload, preparation: protocol.preparation, groups, settings: control.settings,
+      ...(materialized ? {materialization: protocol.materialization} : {})},
     summary, coverage: protocol.coverage, noiseMs,
     ...(synchronizationComparison.equivalentDifferences.length ? {synchronizationComparison} : {}),
     diagnosticLimits: {medianMs: 3 * summary.medianMs + noiseMs, p95Ms: 3 * summary.p95Ms + noiseMs,
@@ -436,27 +456,42 @@ export function assessStructure(report) {
 }
 
 export function assessHistory(rows) {
-  const failures = [], missing = [], sizes = new Set();
-  let control;
+  const failures = [], missing = [], operations = new Map();
   for (const row of rows) {
-    requireValue(historySizes.includes(row.size) && !sizes.has(row.size), 'Duplicate or unsupported history selection');
+    requireValue(historySizes.includes(row.size), 'Unsupported history selection');
+    if (row.operation === undefined) {
+      missing.push(`history ${row.size}: public-operation attribution`);
+      continue;
+    }
+    requireValue(Object.hasOwn(operationTargets, row.operation), 'Unknown history public operation');
+    let group = operations.get(row.operation);
+    if (!group) {group = {sizes: new Set(), control: undefined}; operations.set(row.operation, group);}
+    const {sizes} = group, label = `history ${row.operation} ${row.size}`;
+    requireValue(!sizes.has(row.size), 'Duplicate history public-operation selection');
     sizes.add(row.size);
-    if (row.supported !== true) { missing.push(`history ${row.size}: ${row.reason || 'not supported'}`); continue; }
+    if (row.supported !== true) { missing.push(`${label}: ${row.reason || 'not supported'}`); continue; }
     requireValue(digest(row.fixtureSha256), 'History fixture identity required');
-    if (!control) control = row;
-    if (row.fixtureSha256 !== control.fixtureSha256) failures.push('history target fixture changed');
+    group.control ??= row;
+    const {control} = group;
+    if (row.fixtureSha256 !== control.fixtureSha256) failures.push(`${label}: target fixture changed`);
     for (const key of ['targetRowsRead', 'databaseReads', 'sqlPrepares', 'materialGetterCalls', 'materialCacheHits',
       'fullPhysicalValidations', 'fullCurrentValidations', 'fullRowAdmissions', 'decodeCalls', 'fullParses',
       'fullMacValidations', 'fullHashValidations', 'fullScopeDigests', 'fullConfigurationInventories', 'fullAccountEvaluations']) {
-      if (!integer(row[key])) missing.push(`history ${row.size}: ${key}`);
-      else if (row[key] !== control[key]) failures.push(`history ${row.size}: target ${key} changed with unrelated history`);
+      if (!integer(row[key])) missing.push(`${label}: ${key}`);
+      else if (row[key] !== control[key]) failures.push(`${label}: target ${key} changed with unrelated history`);
     }
     for (const key of ['unrelatedRunRows', 'unrelatedEffectRows']) {
-      if (!integer(row[key])) missing.push(`history ${row.size}: ${key}`);
-      else if (row[key] !== 0) failures.push(`history ${row.size}: ${key} is not zero`);
+      if (!integer(row[key])) missing.push(`${label}: ${key}`);
+      else if (row[key] !== 0) failures.push(`${label}: ${key} is not zero`);
     }
   }
-  for (const size of historySizes) if (!sizes.has(size)) missing.push(`history ${size}`);
+  // Derive coverage from the existing warm public operations. A saved-read
+  // series cannot stand in for new query binding or another execution path.
+  for (const operation of Object.keys(operationTargets).filter(name => name.startsWith('warm-'))) {
+    for (const size of historySizes) if (!operations.get(operation)?.sizes.has(size)) {
+      missing.push(`history ${operation} ${size}`);
+    }
+  }
   return outcome(failures, missing);
 }
 
