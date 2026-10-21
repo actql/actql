@@ -4448,7 +4448,7 @@
     },
     {
       "module": "adapters/host-node/embedded-local.mjs",
-      "sha256": "0bd254118011d8e18a1746c2ad6f153b2968abddd23cc4788eae64b6eaa2fa1c",
+      "sha256": "51947b905f0ccc6e8866bd05bf82fea1ec01ca9c51771b6d8db8eef9bf957805",
       "exports": [
         "admitOriginalHostRootFormat",
         "assertInitialControlHostPreparation",
@@ -5954,44 +5954,16 @@
         {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/resultAuthority/resultAuthority",
           "parameters": [
-            "actual"
+            "facts"
           ],
-          "async": false
+          "async": true
         },
         {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/resultAuthority/resultAuthority#2",
           "parameters": [
-            "attemptId"
+            "facts"
           ],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/resultAuthority/resultAuthority#3",
-          "parameters": [
-            "actual"
-          ],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/resultAuthority/resultAuthority#4",
-          "parameters": [
-            "actual"
-          ],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/resultAuthority/resultAuthority#5",
-          "parameters": [
-            "actual"
-          ],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/resultAuthority/resultAuthority#6",
-          "parameters": [
-            "attemptId"
-          ],
-          "async": false
+          "async": true
         },
         {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/resumeHeld/resumeHeld",
@@ -7211,10 +7183,6 @@
             "openInstalledHost/initializePublicationServices/initializePublicationServices/requestOf/requestOf/requestOf#2",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/resultAuthority/resultAuthority",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/resultAuthority/resultAuthority#2",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/resultAuthority/resultAuthority#3",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/resultAuthority/resultAuthority#4",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/resultAuthority/resultAuthority#5",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/resultAuthority/resultAuthority#6",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/resumeHeld/resumeHeld",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/resumeHeld/resumeHeld/flight/init:started/init:started",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/resumeHeld/resumeHeld/observedStart/observedStart",
@@ -10286,6 +10254,7 @@
         "./local-account-config.mjs",
         "./local-checkpoint-answer.mjs",
         "./local-continuation-evidence.mjs",
+        "./local-result-authorization.mjs",
         "./local-values-plan.mjs",
         "./node-host-journal-installation.mjs",
         "./node-host-result-installation.mjs",
