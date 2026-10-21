@@ -4104,6 +4104,11 @@
       ],
       "operations": [
         {
+          "name": "<module>",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "acquireStoreOwnership",
           "parameters": [
             "root",
@@ -7188,6 +7193,7 @@
       "contracts": [
         {
           "operations": [
+            "<module>",
             "acquireStoreOwnership",
             "acquireStoreOwnership/ownership/init:release/init:release",
             "cidHex/cidHex",

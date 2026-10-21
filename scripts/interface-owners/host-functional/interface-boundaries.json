@@ -6775,6 +6775,11 @@
       ],
       "operations": [
         {
+          "name": "<module>",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "deliverAuthorizedResult",
           "parameters": [
             "service",
@@ -6954,6 +6959,7 @@
       "contracts": [
         {
           "operations": [
+            "<module>",
             "ResultAccessError/constructor:constructor/constructor:constructor",
             "deliverAuthorizedResult",
             "deliverAuthorizedResult/authorize/authorize",
@@ -47701,6 +47707,11 @@
       ],
       "operations": [
         {
+          "name": "<module>",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "bytesCid",
           "parameters": [
             "bytes"
@@ -47842,6 +47853,7 @@
       "contracts": [
         {
           "operations": [
+            "<module>",
             "bytesCid",
             "canonicalJson",
             "canonicalJson/canonicalJson",
@@ -69149,6 +69161,11 @@
       ],
       "operations": [
         {
+          "name": "<module>",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "deliverAuthorizedResult",
           "parameters": [
             "service",
@@ -69328,6 +69345,7 @@
       "contracts": [
         {
           "operations": [
+            "<module>",
             "ResultAccessError/constructor:constructor/constructor:constructor",
             "deliverAuthorizedResult",
             "deliverAuthorizedResult/authorize/authorize",
@@ -75396,6 +75414,11 @@
       ],
       "operations": [
         {
+          "name": "<module>",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "createLocalResultAuthorization",
           "parameters": [
             "moon",
@@ -75422,6 +75445,7 @@
       "contracts": [
         {
           "operations": [
+            "<module>",
             "createLocalResultAuthorization",
             "createLocalResultAuthorization/createLocalResultAuthorization"
           ],

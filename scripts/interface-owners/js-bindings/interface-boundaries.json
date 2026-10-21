@@ -37663,6 +37663,11 @@
       ],
       "operations": [
         {
+          "name": "<module>",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "assertInitialControlHostPreparation",
           "parameters": [
             "originals"
@@ -40230,7 +40235,9 @@
       ],
       "contracts": [
         {
-          "operations": [],
+          "operations": [
+            "<module>"
+          ],
           "exports": [],
           "attributes": {
             "responsibility": [
