@@ -18,7 +18,7 @@ const body = {
 };
 const identity = `sha256:${createHash('sha256')
   .update(canonicalText(body)).digest('hex')}`;
-const wire = JSON.stringify({...body, effective_retention_policy_cid: identity});
+const wire = canonicalText({...body, effective_retention_policy_cid: identity});
 
 test('delivery reuses the original publication without JSON parsing', () => {
   const original = admitPublicationContract('result_retention_policy', wire, limits);
