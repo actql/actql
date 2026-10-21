@@ -48,6 +48,18 @@ fn[T] source_result(
 }
 
 ///|
+fn source_prepared_publication_issue(
+  issue : @source_publication.PreparedPublicationIssue,
+) -> ClientSourcePreparationIssue {
+  match issue {
+    Publication(issue) => Publication(issue)
+    ForeignEnvironment =>
+      Publication(@source_publication.PublicationIssue::Publication)
+    Frontend(issue) => Frontend(issue)
+  }
+}
+
+///|
 /// Installation publication supplies names, never acquisition or permission.
 /// Read the original admitted envelope, including declarations and values;
 /// retain the lowerer's parsed Program instead of parsing its emitted JSON.
@@ -56,6 +68,7 @@ pub fn prepare_client_source_computation(
   environment : @checked.CheckEnvironment,
   publication : String,
   public_primary? : Bool = false,
+  publication_environment? : @source_publication.PreparedPublishedQueryEnvironment? = None,
 ) -> Result[ClientSourcePreparation, ClientSourcePreparationIssue] {
   try {
     let limits = client_standard_program_preparation_limits()
@@ -131,30 +144,53 @@ pub fn prepare_client_source_computation(
         )
       None => return Err(Input)
     }
-    let (
-      context,
-      table_writes,
-      update_targets,
-      store_targets,
-      command_targets,
-      source_catalog,
-    ) = source_result(
-      @source_publication.bind_published_query_parts_with_catalog(
-        environment, publication, declarations,
-      ).map_err(issue => ClientSourcePreparationIssue::Publication(issue)),
-    )
-    let lowered = source_result(
-      @source_frontend.lower(
-        document,
-        selected,
-        Some(context),
-        table_writes~,
-        update_targets~,
-        store_targets~,
-        command_targets~,
-        public_primary~,
-      ).map_err(issue => ClientSourcePreparationIssue::Frontend(issue)),
-    )
+    let (lowered, catalog) = match publication_environment {
+      Some(prepared) => {
+        if !@source_publication.prepared_published_query_environment_publication_matches(
+            prepared, environment, publication,
+          ) {
+          return Err(source_prepared_publication_issue(ForeignEnvironment))
+        }
+        let (lowered, catalog) = source_result(
+          @source_publication.lower_prepared_published_query(
+            prepared,
+            environment,
+            document,
+            selected,
+            declarations,
+            public_primary~,
+          ).map_err(source_prepared_publication_issue),
+        )
+        (lowered, Some(catalog))
+      }
+      None => {
+        let (
+          context,
+          table_writes,
+          update_targets,
+          store_targets,
+          command_targets,
+          source_catalog,
+        ) = source_result(
+          @source_publication.bind_published_query_parts_with_catalog(
+            environment, publication, declarations,
+          ).map_err(issue => ClientSourcePreparationIssue::Publication(issue)),
+        )
+        let lowered = source_result(
+          @source_frontend.lower(
+            document,
+            selected,
+            Some(context),
+            table_writes~,
+            update_targets~,
+            store_targets~,
+            command_targets~,
+            public_primary~,
+          ).map_err(issue => ClientSourcePreparationIssue::Frontend(issue)),
+        )
+        (lowered, Some(source_catalog))
+      }
+    }
     guard lowered.program is Some(parsed) else { return Err(Input) }
     for stage in @syntax.stages(parsed) {
       if !@syntax.effect_names(stage).is_empty() {
@@ -178,7 +214,7 @@ pub fn prepare_client_source_computation(
             update_targets=lowered.update_targets,
             store_targets=lowered.store_targets,
             command_targets=lowered.command_targets,
-            source_catalog=Some(source_catalog),
+            source_catalog=catalog,
           ).map_err(issue => ClientSourcePreparationIssue::Effect(issue)),
         )
         let prepared = { ..prepared, source_intent: Some(intent), }
@@ -216,7 +252,7 @@ pub fn prepare_client_source_computation(
         environment,
         supplied,
         limits,
-        source_catalog=Some(source_catalog),
+        source_catalog=catalog,
       ).map_err(issue => ClientSourcePreparationIssue::Pure(issue)),
     )
     source_result(
