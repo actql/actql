@@ -91,7 +91,7 @@ function preparedEnvironmentLifetime({missing = false, retire = () => {},
     const effectInstallation=undefined;
     const installNodeClientProgramPreparation=options=>{
       const holder=Object.assign(function(){},options);
-      holder.retireSourceEnvironment=function(){
+      holder.retireReferences=function(){
         if(this!==holder)throw new Error('ForeignPreparationReceiver');
         consumer.calls++;consumer.retire();consumer.retained=false;
       };
@@ -155,7 +155,7 @@ test('Host prepared Environment refuses changed originals and retires only its c
 
 test('Host consumer preparation retains aliases until original shutdown and releases the captured receiver', async () => {
   const f=preparedEnvironmentLifetime();let closes=0,replacementCalls=0;
-  f.fixture.options.retireSourceEnvironment=()=>{replacementCalls++;};
+  f.fixture.options.retireReferences=()=>{replacementCalls++;};
   const shutdown=installedHostShutdown({stopModelRuntime:f.fixture.stop,
     dispatchOwner:{drain(){}},retireTerminalEffects(){},
     journal:{close(){if(++closes===1)throw new Error('OriginalJournalPending');}},
