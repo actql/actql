@@ -436,27 +436,42 @@ export function assessStructure(report) {
 }
 
 export function assessHistory(rows) {
-  const failures = [], missing = [], sizes = new Set();
-  let control;
+  const failures = [], missing = [], operations = new Map();
   for (const row of rows) {
-    requireValue(historySizes.includes(row.size) && !sizes.has(row.size), 'Duplicate or unsupported history selection');
+    requireValue(historySizes.includes(row.size), 'Unsupported history selection');
+    if (row.operation === undefined) {
+      missing.push(`history ${row.size}: public-operation attribution`);
+      continue;
+    }
+    requireValue(Object.hasOwn(operationTargets, row.operation), 'Unknown history public operation');
+    let group = operations.get(row.operation);
+    if (!group) {group = {sizes: new Set(), control: undefined}; operations.set(row.operation, group);}
+    const {sizes} = group, label = `history ${row.operation} ${row.size}`;
+    requireValue(!sizes.has(row.size), 'Duplicate history public-operation selection');
     sizes.add(row.size);
-    if (row.supported !== true) { missing.push(`history ${row.size}: ${row.reason || 'not supported'}`); continue; }
+    if (row.supported !== true) { missing.push(`${label}: ${row.reason || 'not supported'}`); continue; }
     requireValue(digest(row.fixtureSha256), 'History fixture identity required');
-    if (!control) control = row;
-    if (row.fixtureSha256 !== control.fixtureSha256) failures.push('history target fixture changed');
+    group.control ??= row;
+    const {control} = group;
+    if (row.fixtureSha256 !== control.fixtureSha256) failures.push(`${label}: target fixture changed`);
     for (const key of ['targetRowsRead', 'databaseReads', 'sqlPrepares', 'materialGetterCalls', 'materialCacheHits',
       'fullPhysicalValidations', 'fullCurrentValidations', 'fullRowAdmissions', 'decodeCalls', 'fullParses',
       'fullMacValidations', 'fullHashValidations', 'fullScopeDigests', 'fullConfigurationInventories', 'fullAccountEvaluations']) {
-      if (!integer(row[key])) missing.push(`history ${row.size}: ${key}`);
-      else if (row[key] !== control[key]) failures.push(`history ${row.size}: target ${key} changed with unrelated history`);
+      if (!integer(row[key])) missing.push(`${label}: ${key}`);
+      else if (row[key] !== control[key]) failures.push(`${label}: target ${key} changed with unrelated history`);
     }
     for (const key of ['unrelatedRunRows', 'unrelatedEffectRows']) {
-      if (!integer(row[key])) missing.push(`history ${row.size}: ${key}`);
-      else if (row[key] !== 0) failures.push(`history ${row.size}: ${key} is not zero`);
+      if (!integer(row[key])) missing.push(`${label}: ${key}`);
+      else if (row[key] !== 0) failures.push(`${label}: ${key} is not zero`);
     }
   }
-  for (const size of historySizes) if (!sizes.has(size)) missing.push(`history ${size}`);
+  // Derive coverage from the existing warm public operations. A saved-read
+  // series cannot stand in for new query binding or another execution path.
+  for (const operation of Object.keys(operationTargets).filter(name => name.startsWith('warm-'))) {
+    for (const size of historySizes) if (!operations.get(operation)?.sizes.has(size)) {
+      missing.push(`history ${operation} ${size}`);
+    }
+  }
   return outcome(failures, missing);
 }
 
