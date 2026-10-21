@@ -212,20 +212,24 @@ export function createResultFactory({ref, limits, lookupContext, redactErrors, t
               if (next.done) { framesComplete = true; break; }
               const frame = next.value;
               controller.signal.throwIfAborted();
-              if (frame === null || typeof frame !== 'object' ||
-                  !Number.isSafeInteger(frame.byteLength) ||
-                  frame.byteLength < 1 ||
-                  frame.value === null ||
-                  typeof frame.value !== 'object' ||
-                  Array.isArray(frame.value)) fail('InvalidResultFrame');
-              if (frame.byteLength > maxRowWireBytes) {
+              if (frame === null || typeof frame !== 'object') fail('InvalidResultFrame');
+              const byteLength = frame.byteLength;
+              if (!Number.isSafeInteger(byteLength) || byteLength < 1) {
+                fail('InvalidResultFrame');
+              }
+              const value = frame.value;
+              if (value === null || typeof value !== 'object' ||
+                  Array.isArray(value)) fail('InvalidResultFrame');
+              if (byteLength > maxRowWireBytes) {
                 fail('ResultRowWireLimit');
               }
-              wireBytes += frame.byteLength;
+              wireBytes += byteLength;
               if (wireBytes > maxWireBytes) fail('ResultWireLimit');
-              const size = retainedValueBytes(frame.value);
+              // Capture borrowed row fields once. Accounting and application
+              // validation consume that same owned value, not later getters.
+              const row = structuredClone(value);
+              const size = retainedValueBytes(row);
               if (size > maxRowRetainedValueBytes) fail('ResultRowRetainedLimit');
-              const row = structuredClone(frame.value);
               state = 'prefix';
               const output = await acceptRow(row, size);
               controller.signal.throwIfAborted();

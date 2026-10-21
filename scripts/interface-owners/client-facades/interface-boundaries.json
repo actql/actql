@@ -10667,7 +10667,7 @@
     {
       "module": "packages/sdk/internal/result-read.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "eddadc0fb22e9b57e1305604f6cb505587324bc30157c05704cef1bffa600243",
+      "sha256": "fa4177939f1bf850c7cc823ec37bb7491d4a726160e85238f523d8b7c5dfedfd",
       "exports": [
         "captureQueryResultRead",
         "collectCapturedResult",
@@ -11310,6 +11310,10 @@
               {
                 "path": "packages/sdk/read-progress.test.mjs",
                 "anchor": "test("
+              },
+              {
+                "path": "packages/sdk/typed-result-capture.test.mjs",
+                "anchor": "one typed Result frame captures borrowed fields and its row once"
               }
             ]
           }
