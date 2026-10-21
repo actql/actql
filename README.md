@@ -10,43 +10,42 @@ program. What used to take a workflow SaaS and glue code, you write in SQL and
 run reliably as-is—from the CLI, by you or by a coding agent, or embedded in
 your TypeScript or Python app as a library.
 
-**In SQL, you describe what data you want, and the database works out how to
-get it—optimizing and executing it for you. ActQL extends that to computation
-and action across systems.**
+**ActQL lets you work with the systems you connect—a CRM, files, SaaS APIs, a
+warehouse—as if they were one database.**
 
 ## 1. What can you do with ActQL?
 
-ActQL lets you work with the systems you connect—a CRM, a warehouse, files,
-SaaS APIs—as if they were one database. For example, join Salesforce accounts
-with product usage in Snowflake, let an LLM judge churn risk, and write the
-result back to Salesforce—in one SQL pipeline. It's plain SQL, plus `INFER` to
-call an LLM and `EFFECT` to write to an external system. This example uses
-both; a query that only returns a table, or a workflow with no LLM in it, is
-the same kind of program without those steps.
+Take meeting notes in Google Drive and the deals they belong to in Salesforce.
+Read each deal's latest notes, let an LLM decide whether the stage or the next
+step has changed, and write the update back to Salesforce—in one SQL pipeline.
+It's plain SQL, plus `INFER` to call an LLM and `EFFECT` to write to an
+external system. This example uses both; a query that only returns a table, or
+a workflow with no LLM in it, is the same kind of program without those steps.
 
 ```sql
-SELECT a.id AS id, a.description AS notes,
-       u.active_users, u.trend
-FROM salesforce.accounts AS a
-JOIN snowflake.usage_30d AS u ON a.id = u.account_id
-|> INFER `model-task:churn-risk.v1`
-     INPUT (notes, active_users, trend) AS risk
-|> WHERE risk.outcome = 'ok' AND risk.value.level = 'high'
+SELECT o.id AS id, o.StageName, o.NextStep,
+       c.content AS notes
+FROM salesforce.opportunities AS o
+JOIN drive.files AS f ON f.name = o.name
+JOIN drive.contents AS c USING (resource, version)
+|> INFER `model-task:deal-review.v1`
+     INPUT (StageName, NextStep, notes) AS review
+|> WHERE review.outcome = 'ok' AND review.value.changed
 |> RESULT updates
-|> EFFECT UPDATE salesforce.Account
+|> EFFECT UPDATE salesforce.Opportunity
      ID id SET (
-       Churn_Risk__c = risk.value.level,
-       Risk_Reason__c = risk.value.reason
+       StageName = review.value.stage,
+       NextStep = review.value.next_step
      );
 ```
 
 ```text
-salesforce.accounts ─┐
-                     ├─► JOIN ─► INFER ─► WHERE ─► EFFECT ─► Salesforce
-snowflake.usage_30d ─┘             │                 │
-                                   │                 └─ paused at Checkpoint
-                                   │                    until approved
-                                   └─ typed result
+salesforce.opportunities ─┐
+                          ├─► JOIN ─► INFER ─► WHERE ─► EFFECT ─► Salesforce
+drive.contents (notes)   ─┘             │                 │
+                                        │                 └─ paused at Checkpoint
+                                        │                    until approved
+                                        └─ typed result
 ```
 
 - **One program across SaaS APIs, warehouses, and databases.** No separate
@@ -63,15 +62,15 @@ snowflake.usage_30d ─┘             │                 │
 
 ## 2. Get started
 
-### 2.1 Run the churn-risk example from the CLI
+### 2.1 Run the deal-review example from the CLI
 
 Install the CLI, create the example project, and run it against mock
-Salesforce and Snowflake Connectors and a mock model—no credentials needed:
+Salesforce and Google Drive Connectors and a mock model—no credentials needed:
 
 ```sh
 npm install -g actql
-actql init --template churn-risk-mock churn-risk && cd churn-risk
-actql run churn-risk.aql --stop-before commit
+actql init --template deal-review-mock deal-review && cd deal-review
+actql run deal-review.aql --stop-before commit
 ```
 
 <a id="checkpoint-example"></a>
@@ -83,13 +82,13 @@ about to change:
 Run run_...
   Status      waiting_checkpoint
   Checkpoint  ckpt_...
-  Effect      update  (Salesforce Account)
+  Effect      update  (Salesforce Opportunity)
   Items       2
   Changes
-    Acme Corp     Churn_Risk__c   low     → high
-                  Risk_Reason__c  (empty) → falling usage and a competitor evaluation
-    Globex Inc    Churn_Risk__c   medium  → high
-                  Risk_Reason__c  (empty) → support tickets about pricing
+    Acme Corp - Renewal   StageName  Proposal      → Negotiation
+                          NextStep   (empty)       → Send revised pricing by Friday
+    Globex - Expansion    StageName  Negotiation   → Closed Lost
+                          NextStep   Legal review  → Revisit next fiscal year
 ```
 
 Approve it, then check the Run's status:
@@ -110,7 +109,7 @@ and step.
 
 ### 2.2 Embed it in your app
 
-Run the same churn-risk example from inside your application, as a
+Run the same deal-review example from inside your application, as a
 library—no workflow server required.
 
 **TypeScript**
@@ -125,7 +124,7 @@ import {connect} from '@actql/node';
 
 const client = await connect({mode: 'local', installation: {directory: '.actql'}, profile: 'mock'});
 try {
-  const source = await readFile('churn-risk.aql', 'utf8');
+  const source = await readFile('deal-review.aql', 'utf8');
   const execution = await client.startSource(source, {format: 'aql', stopBefore: 'commit'});
   const state = await execution.wait();
   console.log(state.status); // 'waiting_checkpoint'
@@ -144,7 +143,7 @@ pip install actql
 import actql
 
 with actql.connect(mode="local", installation=".actql", profile="mock") as client:
-    source = open("churn-risk.aql").read()
+    source = open("deal-review.aql").read()
     execution = client.start_source(source, format="aql", stop_before="commit")
     state = execution.wait()
     print(state.status)  # "waiting_checkpoint"
@@ -201,9 +200,10 @@ the same order. The fifth goes a step further.
 
 ### 4.1 Any scale: the same program, whatever the data size
 
-A **Program** says only what you want done; the engine decides the
-**Plan**—where each part runs—just as a database chooses an execution plan
-for your SQL.
+In SQL, you describe what data you want, and the database works out how to
+get it—optimizing and executing it for you. ActQL extends that to computation
+and action across systems: a **Program** says only what you want done; the
+engine decides the **Plan**—where each part runs.
 
 There is one planning mechanism. A warehouse like Snowflake, a SaaS API like
 Salesforce's, and DuckDB all declare what they can compute as Capabilities,
@@ -215,9 +215,11 @@ machine: in the built-in engine, or in DuckDB for larger inputs when you use
 the package that bundles it. The join itself needs no new warehouse; large
 work stays where the data already is, by pushdown.
 
-For the churn-risk example at the top, `actql explain` shows a plan like
-this. The join's engine is chosen during the Run, once the row counts are
-known:
+Take a program that joins Salesforce accounts with usage data in Snowflake,
+judges churn risk with an LLM, and writes the result back (the
+[Quickstart](docs/getting-started/quickstart.md) example). `actql explain`
+shows a plan like this; the join's engine is chosen during the Run, once the
+row counts are known:
 
 ```text
 $ actql explain churn-risk.aql
@@ -269,7 +271,7 @@ that were hard to do with nodes on a canvas.
 
 Each API's authentication, paging, rate limits, and write semantics are
 handled inside its Connector. All the program sees are names like
-`salesforce.accounts` and `snowflake.usage_30d`, so API differences never
+`salesforce.opportunities` and `drive.contents`, so API differences never
 leak through the whole program. See [Connectors](#5-connectors) for what is
 available.
 
