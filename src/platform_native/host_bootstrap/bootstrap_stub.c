@@ -218,6 +218,23 @@ MOONBIT_FFI_EXPORT int64_t actql_bootstrap_rounded_bytes(actql_bootstrap_backing
         rounded <= INT64_MAX ? (int64_t)rounded : -1;
 }
 
+/* Fixed diagnostic DATA from the same already-entered backing. This cannot
+ * enter a scope, acquire storage, return capacity or acknowledge cleanup. */
+MOONBIT_FFI_EXPORT int32_t actql_bootstrap_extent_work(
+    actql_bootstrap_backing *record, int64_t *output, int32_t count) {
+    if (record == NULL || record->lease == NULL || output == NULL || count != 5)
+        return ACTQL_OWNED_INVALID;
+    for (int32_t index = 0; index < count; index++)
+        if (output[index] != 0) return ACTQL_OWNED_INVALID;
+    uint64_t values[5] = {0};
+    int status = actql_native_owned_extent_work(record->lease, values, 5);
+    if (status != ACTQL_OWNED_OK) return status;
+    for (int32_t index = 0; index < count; index++)
+        if (values[index] > INT64_MAX) return ACTQL_OWNED_INVALID;
+    for (int32_t index = 0; index < count; index++) output[index] = (int64_t)values[index];
+    return ACTQL_OWNED_OK;
+}
+
 MOONBIT_FFI_EXPORT int32_t actql_bootstrap_claim(actql_bootstrap_backing *record,
                                                int64_t generation,
                                                const unsigned char *recipe) {
