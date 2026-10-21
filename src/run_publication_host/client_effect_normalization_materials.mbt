@@ -11,7 +11,11 @@ struct ClientEffectIssuedNormalizationMaterials {
   original : ClientEffectNormalization
   compilation : ClientEffectCompilation
   run_cid : String
+  prepared_cid : String
+  authorization_cid : String
+  request : ClientRequestIdentity?
   wire : String
+  mut materials_cid : String?
   normalization_profile : ClientEffectNormalizationInventory?
 }
 
@@ -45,7 +49,13 @@ pub fn issue_prepared_client_effect_normalization_materials(
     original,
     compilation: allowed.compilation,
     run_cid,
+    prepared_cid: @publication.run_evidence_value_identity(allowed.prepared),
+    authorization_cid: @publication.run_evidence_value_identity(
+      allowed.authorization,
+    ),
+    request,
     wire,
+    materials_cid: None,
     normalization_profile: allowed.compilation.normalization_profile,
   })
 }
@@ -55,6 +65,22 @@ pub fn client_effect_issued_normalization_materials_wire(
   issued : ClientEffectIssuedNormalizationMaterials,
 ) -> String {
   issued.wire
+}
+
+///|
+/// The immutable wire has one derived digest in its original nominal Owner.
+/// Wire-only consumers do not request or compute it.
+fn original_effect_materials_cid(
+  issued : ClientEffectIssuedNormalizationMaterials,
+) -> String {
+  match issued.materials_cid {
+    Some(value) => value
+    None => {
+      let value = "sha256:" + @sha.hex(@utf8.encode(issued.wire))
+      issued.materials_cid = Some(value)
+      value
+    }
+  }
 }
 
 ///|
@@ -87,6 +113,7 @@ struct ClientEffectNormalizationMaterialCustody {
   run_cid : String
   request : ClientRequestIdentity?
   journal_wire : String
+  journal : @publication.RunEvidenceValue
   materials_cid : String
 }
 
@@ -122,7 +149,7 @@ pub fn restore_client_effect_run_normalization(
   match custody.issued {
     Some(issued) =>
       if !original_effect_materials_match(issued, issued.wire, custody.run_cid) ||
-        custody.materials_cid != "sha256:" + @sha.hex(@utf8.encode(issued.wire)) ||
+        custody.materials_cid != original_effect_materials_cid(issued) ||
         custody.journal_wire !=
         @publication.run_evidence_value_json(issued.original.journal) {
         return Err(UnverifiedOriginalMaterials)
@@ -159,16 +186,9 @@ pub fn restore_client_effect_run_normalization(
       }
     }
   }
-  let journal = match
-    @publication.admit_run_evidence_value(
-      "normalization_journal",
-      custody.journal_wire,
-      1024,
-      32,
-      8,
-    ) {
-    Ok(value) => value
-    Err(issue) => return Err(Evidence(issue))
+  let journal = custody.journal
+  if custody.journal_wire != @publication.run_evidence_value_json(journal) {
+    return Err(SubstitutedJournal)
   }
   // Independently frozen catalog/journal preimages are published alongside
   // the issuer. Never construct a replacement journal during restoration.

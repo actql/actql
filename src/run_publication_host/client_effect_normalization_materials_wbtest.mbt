@@ -52,6 +52,9 @@ test "saved Effect normalization restores exact original bytes without journal i
   assert_true(restored.prepared.normalization is None)
   for _ in 0..<2 {
     let journal = restore_client_effect_run_normalization(restored).unwrap()
+    assert_true(
+      physical_equal(journal, restored.normalization.unwrap().journal),
+    )
     assert_eq(
       @publication.run_evidence_value_json(journal),
       @publication.run_evidence_value_json(original_journal),
@@ -99,6 +102,7 @@ test "normalization material custody refuses copied projection and foreign prepa
     run_cid: original_custody.run_cid,
     request: original_custody.request,
     journal_wire: original_custody.journal_wire,
+    journal: original_custody.journal,
     materials_cid: original_custody.materials_cid,
   }
   assert_true(
@@ -267,12 +271,8 @@ test "unissued nominal proof and changed exact material bytes are refused" {
   // A public caller cannot construct this opaque type or obtain its private
   // issuer identity. Model an unissued lookalike within this white-box test.
   let copied : ClientEffectIssuedNormalizationMaterials = {
+    ..proof,
     issuer: Ref(()),
-    original: proof.original,
-    compilation: proof.compilation,
-    run_cid: proof.run_cid,
-    wire: proof.wire,
-    normalization_profile: proof.normalization_profile,
   }
   assert_true(
     normalization_materials_untrusted_admission(

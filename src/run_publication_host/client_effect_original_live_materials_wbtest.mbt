@@ -25,6 +25,73 @@ fn live_original_materials_fixture() -> (
 }
 
 ///|
+test "issued Effect facts reuse canonical admission and retain one lazy digest and journal" {
+  let (_, allowed, definition, request, issued) = live_original_materials_fixture()
+  assert_eq(issued.materials_cid, None)
+  let wire = client_effect_issued_normalization_materials_wire(issued)
+  assert_eq(issued.materials_cid, None)
+  let equivalent_allowed = issue_client_effect_allowed_run(
+    allowed.compilation,
+    "sha256:" + "a".repeat(64),
+    "sha256:" + "b".repeat(64),
+    "2026-10-10T00:00:00.000Z",
+  ).unwrap()
+  let equivalent_definition = issue_client_effect_run_definition(
+    equivalent_allowed, "original-scope", "original-effect-run", "2026-10-09T00:00:00.000Z",
+    "2026-10-10T00:00:00.000Z",
+  ).unwrap()
+  assert_false(physical_equal(equivalent_allowed, allowed))
+  assert_false(physical_equal(equivalent_definition, definition))
+  assert_eq(
+    @publication.publication_contract_identity(equivalent_definition),
+    @publication.publication_contract_identity(definition),
+  )
+  let materials = bind_prepared_client_effect_original_materials(
+    equivalent_allowed,
+    equivalent_definition,
+    issued,
+    request=Some(request),
+  ).unwrap()
+  let digest = issued.materials_cid.unwrap()
+  assert_eq(digest, "sha256:" + @sha.hex(@utf8.encode(wire)))
+  for _ in 0..<3 {
+    assert_true(
+      physical_equal(
+        restore_client_effect_run_normalization(materials).unwrap(),
+        issued.original.journal,
+      ),
+    )
+    assert_eq(
+      client_effect_normalization_materials_cid(materials),
+      Some(digest),
+    )
+    assert_eq(issued.materials_cid, Some(digest))
+  }
+  let changed_policy = issue_client_effect_allowed_run(
+    allowed.compilation,
+    "sha256:" + "a".repeat(64),
+    "sha256:" + "d".repeat(64),
+    "2026-10-10T00:00:00.000Z",
+  ).unwrap()
+  assert_true(
+    bind_prepared_client_effect_original_materials(
+      changed_policy,
+      definition,
+      issued,
+      request=Some(request),
+    )
+    is Err(_),
+  )
+  assert_eq(issued.materials_cid, Some(digest))
+  assert_true(
+    physical_equal(
+      materials.prepared.normalization_custody.unwrap(),
+      materials.normalization.unwrap(),
+    ),
+  )
+}
+
+///|
 test "live original Effect materials retain the same prepared compilation request and custody" {
   let (prepared, allowed, definition, request, issued) = live_original_materials_fixture()
   let wire = client_effect_issued_normalization_materials_wire(issued)
@@ -50,6 +117,12 @@ test "live original Effect materials retain the same prepared compilation reques
   assert_true(physical_equal(materials.compilation, allowed.compilation))
   assert_true(physical_equal(materials.allowed, allowed))
   assert_eq(materials.request, Some(request))
+  assert_true(
+    physical_equal(
+      restore_client_effect_run_normalization(materials).unwrap(),
+      issued.original.journal,
+    ),
+  )
   assert_true(
     bind_client_effect_compiled_run(prepared, materials.allowed, definition)
     is Ok(_),

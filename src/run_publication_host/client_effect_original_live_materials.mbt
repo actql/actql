@@ -20,15 +20,26 @@ pub fn bind_prepared_client_effect_original_materials(
   if !physical_equal(issued.compilation, allowed.compilation) {
     return Err(Normalization(ForeignMaterials))
   }
-  let exact = match
-    issue_prepared_client_effect_run_materials(
-      allowed,
-      definition,
-      request~,
-      normalization=Some(issued.original),
-    ) {
-    Ok(value) => value
-    Err(issue) => return Err(issue)
+  // The issuer already validated this immutable permission/Run/request tuple.
+  // Equal canonical Definitions and equivalent admitted evidence may reuse it;
+  // a different tuple still takes the original validation and error path.
+  let exact = if issued.request == request &&
+    issued.prepared_cid ==
+    @publication.run_evidence_value_identity(allowed.prepared) &&
+    issued.authorization_cid ==
+    @publication.run_evidence_value_identity(allowed.authorization) {
+    issued.wire
+  } else {
+    match
+      issue_prepared_client_effect_run_materials(
+        allowed,
+        definition,
+        request~,
+        normalization=Some(issued.original),
+      ) {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
+    }
   }
   if exact != issued.wire ||
     !same_client_effect_normalization_profile(
@@ -44,7 +55,7 @@ pub fn bind_prepared_client_effect_original_materials(
     if !physical_equal(custody.compilation, allowed.compilation) ||
       custody.run_cid != run_cid ||
       custody.request != request ||
-      custody.materials_cid != "sha256:" + @sha.hex(@utf8.encode(exact)) {
+      custody.materials_cid != original_effect_materials_cid(issued) {
       return Err(Normalization(ForeignMaterials))
     }
     let materials : ClientEffectRunMaterials = {
@@ -65,7 +76,8 @@ pub fn bind_prepared_client_effect_original_materials(
     run_cid,
     request,
     journal_wire: @publication.run_evidence_value_json(issued.original.journal),
-    materials_cid: "sha256:" + @sha.hex(@utf8.encode(exact)),
+    journal: issued.original.journal,
+    materials_cid: original_effect_materials_cid(issued),
   }
   prepared.normalization_custody = Some(custody)
   Ok({
