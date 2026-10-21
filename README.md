@@ -390,7 +390,7 @@ choose between, tools to combine with, and tools to hand work to.
 | Tool | How they work together |
 | --- | --- |
 | Workflow engines (Temporal) | Not a replacement for Temporal. Temporal manages long-running jobs that last days; ActQL handles the cross-system reads and writes as one step inside them |
-| dbt | Models, dependencies, and tests stay in dbt. ActQL programs use the modeled data alongside SaaS data, for cross-system queries and writes; with dbt-actql, dbt can also run supported models through ActQL |
+| dbt | Models, dependencies, and tests stay in dbt. ActQL programs use the modeled data alongside SaaS data, for cross-system queries and writes; the planned dbt-actql adapter will also let dbt run supported models through ActQL |
 | Agent frameworks (LangGraph, Mastra) | Build the agent itself with the framework; hand the checks, approvals, and execution of the work it writes to ActQL. ActQL programs can be called as tools from an agent |
 
 ### Hand work to
