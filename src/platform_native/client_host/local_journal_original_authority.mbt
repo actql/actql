@@ -1,7 +1,8 @@
 ///|
 // Only the current captured Read may invoke this observation. The same
 // physical Journal queries leave/reenter that Read around every SQLite call;
-// no candidate row, cached currentness or caller Allow replaces the original.
+// snapshot facts may be reused only while the same original remains live.
+// No candidate row, cached Allow or physical ACK replaces that original.
 fn[T] NativeLocalJournalCapture::with_current_adoption_material_in_original_read(
   self : NativeLocalJournalCapture,
   operation : (
@@ -31,12 +32,14 @@ fn[T] NativeLocalJournalCapture::with_current_adoption_material_in_original_read
     original,
     database: host.database,
     failure: None,
+    invalidate_snapshot: () => host.journal.admitted_adoption = None,
   }
   let result = match
     @host.bind_client_local_adopted_host_material(host.database, () => {
       host.current_adoption_material_with_reads(
         () => self.check_current_in_original_read(),
         reads=Some(queries.access()),
+        snapshot_current=Some(() => self.check_original_read_lifetime()),
       )
     }) {
     Err(issue) => Err(local_current_material_issue(issue))

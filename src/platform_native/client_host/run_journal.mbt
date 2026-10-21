@@ -18,6 +18,9 @@ struct NativeClientRunJournal {
   // Read-only lookup may join this journal's own publication fence. Mutating
   // nested operations still fail instead of acquiring another transaction.
   mut publication_read_locked : Bool
+  mut admitted_adoption : @host.ClientLocalAdoptionCurrentObservation[
+    @sqlite.Database,
+  ]?
 }
 
 ///|
@@ -426,6 +429,7 @@ fn open_native_client_run_journal_with_reads(
         publication_read_locked: false,
         transaction_active: false,
         admitted_record: None,
+        admitted_adoption: None,
       })
     Err(issue) => Err(issue)
   }
@@ -459,12 +463,14 @@ fn[T] NativeClientRunJournal::transaction_with_reads(
     Err(issue) => return Err(Physical(issue))
   }
   self.admitted_record = None
+  self.admitted_adoption = None
   self.transaction_active = true
   // The selected operation owns its target admission and local mutation
   // checks. A transaction is not a request to audit unrelated history.
   let result = work()
   self.transaction_active = false
   self.admitted_record = None
+  self.admitted_adoption = None
   match result {
     Ok(value) =>
       match
@@ -865,6 +871,7 @@ fn NativeClientRunJournal::save_with_operations(
     Err(issue) => return Err(issue)
   }
   self.admitted_record = None
+  self.admitted_adoption = None
   let revision = match
     compare_exchange_client_journal_value(
       self.database,

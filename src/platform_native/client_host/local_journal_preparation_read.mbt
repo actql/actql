@@ -20,6 +20,7 @@ pub fn[T] NativeLocalJournalCapture::with_original_read(
   if original.store_operation is Some(_) {
     return Err(OriginalResourceScopePending)
   }
+  host.journal.admitted_adoption = None
   match original.check_journal_current(host) {
     Err(issue) => {
       self.read_operation_issue = Some(issue)
@@ -39,13 +40,27 @@ pub fn[T] NativeLocalJournalCapture::with_original_read(
     self.read_operation_issue = Some(issue)
   }
   self.read_callback_active = false
-  result
+  host.journal.admitted_adoption = None
+  // The public callback is an actual reentry boundary, unlike private getters.
+  // Re-admit external configuration/current facts before returning success.
+  match result {
+    Ok(value) =>
+      match original.check_journal_current(host) {
+        Ok(_) => Ok(value)
+        Err(issue) => {
+          self.read_operation_issue = Some(issue)
+          Err(issue)
+        }
+      }
+    Err(issue) => Err(issue)
+  }
 }
 
 ///|
 // Suspend only the currently entered same Read. The full existing fence owns
-// Runtime, SQLite transaction, source/current and complete Run/Policy custody
-// checks. Then resume this original scope, without reissuing a consuming claim.
+// Runtime, SQLite transaction and original configuration/adoption checks. Run
+// custody belongs to the selected target reader. Then resume this original
+// scope, without reissuing a consuming claim.
 // A failed leave/exchange remains cleanup-only with its first actual issue.
 pub fn NativeLocalJournalCapture::check_current_in_original_read(
   self : NativeLocalJournalCapture,
@@ -62,6 +77,7 @@ pub fn NativeLocalJournalCapture::check_current_in_original_read(
     original.active_phase is Some(@arena.HostRead) else {
     return Err(OriginalResourceScopePending)
   }
+  host.journal.admitted_adoption = None
   match original.host.leave_local_host_phase(original.pair) {
     Err(issue) => {
       let primary = OriginalResourceLeave(None, issue)
@@ -143,5 +159,35 @@ pub fn NativeLocalJournalCapture::finish_pending_original_scope(
   match self.original_resources {
     Some(original) => original.finish_pending_leave()
     None => Ok(())
+  }
+}
+
+///|
+// Existing physical identity/lifetime observation only. This cannot admit
+// config, Account, a Run, a new scope or any cleanup acknowledgment.
+fn NativeLocalJournalCapture::check_original_read_lifetime(
+  self : NativeLocalJournalCapture,
+) -> Result[Unit, NativeLocalAdoptionIssue] {
+  if self.closing || self.read_operation_issue is Some(_) {
+    return Err(
+      self.read_operation_issue.unwrap_or(OriginalResourceScopePending),
+    )
+  }
+  guard self.opening is JournalAcquired(host) &&
+    !host.closed &&
+    !host.journal.fenced &&
+    self.original_resources is Some(original) &&
+    !original.interrupted &&
+    original.active_phase is Some(@arena.HostRead) else {
+    return Err(OriginalResourceScopePending)
+  }
+  match
+    original.host.observe_local_host_consuming_read_scope(
+      original.pair,
+      original.read,
+    ) {
+    Ok(@arena.ReadEntered) => Ok(())
+    Ok(_) => Err(OriginalResourceScopePending)
+    Err(issue) => Err(OriginalResources(issue))
   }
 }

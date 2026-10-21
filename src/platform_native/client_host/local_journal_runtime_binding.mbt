@@ -22,6 +22,7 @@ fn[T] NativeLocalJournalCapture::with_runtime_binding_access(
     original,
     database: host.database,
     failure: None,
+    invalidate_snapshot: () => host.journal.admitted_adoption = None,
   }
   let material = () => {
     @host.bind_client_local_adopted_host_material(host.database, () => {

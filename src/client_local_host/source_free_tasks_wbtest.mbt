@@ -203,3 +203,106 @@ test "source-free multi-task current loss after the first completed task retains
   assert_eq(usage.reserved_retention_bytes, 0L)
   assert_eq(usage.reserved_execution_bytes, 0L)
 }
+
+///|
+fn source_free_tasks_boundary_counts(
+  quantum : Int,
+) -> (Int, Int, Array[String]) raise {
+  let prepared = source_free_tasks_original_union()
+  let assets = @publication_host.client_local_product_assets()
+  let limits = source_free_local_ledger_limits(
+    prepared,
+    assets.registry,
+    assets.values,
+    Some(assets.fragment),
+    assets.ordered,
+  ).unwrap()
+  let ledger = @resources.create_ledger(limits).unwrap()
+  let setup = open_source_free_local_retained_host_on_ledger(
+    prepared,
+    ledger,
+    assets.registry,
+    assets.values,
+    Some(assets.fragment),
+    assets.ordered,
+  ).unwrap()
+  let boundaries = Ref(0)
+  let polls = Ref(0)
+  let execution = match
+    execute_source_free_local_tasks_guarded(
+      setup,
+      quantum,
+      100000,
+      () => {
+        boundaries.val += 1
+        true
+      },
+      require_live=Some(() => {
+        polls.val += 1
+        true
+      }),
+    ) {
+    Ok(value) => value
+    Err(failure) => {
+      retry_local_values_execution_failure_cleanup(failure) |> ignore
+      fail("source-free execution refused")
+    }
+  }
+  let rows = execution.rows().unwrap()
+  assert_true(execution.close())
+  let usage = @resources.ledger_usage(ledger)
+  assert_eq(usage.held_bytes, 0L)
+  assert_eq(usage.reserved_retention_bytes, 0L)
+  assert_eq(usage.reserved_execution_bytes, 0L)
+  (boundaries.val, polls.val, rows)
+}
+
+///|
+test "closed source-free finalization quantum changes lifetime polling but not authorization boundaries" {
+  let (small_boundaries, small_polls, small_rows) = source_free_tasks_boundary_counts(
+    1,
+  )
+  let (large_boundaries, large_polls, large_rows) = source_free_tasks_boundary_counts(
+    64,
+  )
+  assert_eq(small_rows, ["{\"n\":1}", "{\"n\":2}"])
+  assert_eq(small_rows, large_rows)
+  assert_eq(small_boundaries, large_boundaries)
+  assert_true(small_polls > large_polls)
+}
+
+///|
+test "a retired source-free lifetime refuses before dispatch despite unchanged authority" {
+  let prepared = source_free_tasks_original_union()
+  let assets = @publication_host.client_local_product_assets()
+  let limits = source_free_local_ledger_limits(
+    prepared,
+    assets.registry,
+    assets.values,
+    Some(assets.fragment),
+    assets.ordered,
+  ).unwrap()
+  let ledger = @resources.create_ledger(limits).unwrap()
+  let setup = open_source_free_local_retained_host_on_ledger(
+    prepared,
+    ledger,
+    assets.registry,
+    assets.values,
+    Some(assets.fragment),
+    assets.ordered,
+  ).unwrap()
+  guard execute_source_free_local_tasks_guarded(
+      setup,
+      64,
+      100000,
+      () => true,
+      require_live=Some(() => false),
+    )
+    is Err(failure) else {
+    fail("retired original lifetime must refuse")
+  }
+  assert_true(local_values_execution_failure_issue(failure) is Fenced)
+  assert_true(retry_local_values_execution_failure_cleanup(failure))
+  assert_eq(@resources.ledger_usage(ledger).attempts, 0)
+  assert_eq(@resources.ledger_usage(ledger).held_bytes, 0L)
+}

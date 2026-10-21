@@ -299,6 +299,21 @@ Later admissions invalidate that absence coverage. Indexing authenticates the
 existing originals and changes only subordinate locators; missing or inconsistent
 history never permits a new execution or resend.
 
+The captured Read path may reuse its admitted adoption observation only inside
+one actual Journal transaction, while the same original pair, thread, entered
+Read and failure latches remain current. Transaction boundaries, routed writes,
+explicit full revalidation and close retire the observation. Public callback
+entry and return retain full configuration/current validation; legacy uncaptured
+ports retain their full checks. A publisher predicate uses one snapshot for its
+scope, Account, selected configuration and Run joins.
+
+Source-free Compute separates cheap original-lifetime polling from authority
+validation at task dispatch, transfer and finalization entry/return. Existing
+callers keep their original guard by default. Native polling observes its actual
+entered business domain and unentered preparation Read; it neither queries the
+Journal nor enters a scope or acknowledges cleanup. Durable first-start checks,
+next-task denial and current checks before publication remain independent.
+
 An unchanged availability observation returns its retained state and revision
 without another serialization or durable update. A changed logical observation
 still commits with the existing revision/CAS owner and current Store binding.

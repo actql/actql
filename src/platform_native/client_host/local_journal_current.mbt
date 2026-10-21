@@ -1,7 +1,8 @@
 ///|
 // These physical stages have one semantic source. The legacy public fence runs
-// all four in order; a scoped consumer must bracket each actual Read/SQLite
-// stage with the original resource Owner, without skipping or caching a check.
+// all four in order. A scoped consumer admits these facts at its operation
+// boundaries and may reuse them in the same unchanged SQLite snapshot; actual
+// Read/SQLite scope and original-lifetime checks remain with their Owner.
 fn NativeLocalHostConnection::check_binding_read_prefix(
   self : NativeLocalHostConnection,
 ) -> Result[Unit, NativeLocalAdoptionIssue] {

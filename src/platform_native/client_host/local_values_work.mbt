@@ -230,6 +230,9 @@ fn open_native_client_local_values_work(
         )
         is Ok(_)
       },
+      require_live=original_access.map(access => {
+        () => access.poll_execution_original(start)
+      }),
     ) {
     Ok(value) => value
     Err(failure) =>

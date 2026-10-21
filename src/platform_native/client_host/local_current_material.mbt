@@ -31,11 +31,22 @@ fn NativeLocalHostConnection::current_adoption_material_with_reads(
   self : NativeLocalHostConnection,
   current : () -> Result[Unit, NativeLocalAdoptionIssue],
   reads? : NativeClientJournalReadAccess? = None,
+  snapshot_current? : (() -> Result[Unit, NativeLocalAdoptionIssue])? = None,
 ) -> Result[
   @host.ClientLocalAdoptionCurrentObservation[@sqlite.Database],
   NativeLocalAdoptionIssue,
 ] {
   native_timing_count(18)
+  if snapshot_current is Some(check) {
+    match check() {
+      Ok(_) => ()
+      Err(issue) => return Err(issue)
+    }
+    if self.journal.transaction_active &&
+      self.journal.admitted_adoption is Some(original) {
+      return Ok(original)
+    }
+  }
   match current() {
     Ok(_) => ()
     Err(issue) => return Err(issue)
@@ -53,15 +64,17 @@ fn NativeLocalHostConnection::current_adoption_material_with_reads(
   if row.revision != 0L || row.body != self.adoption_body {
     return Err(CustodyLost)
   }
-  Ok(
-    @host.Observed(
-      self.database,
-      self.session.configuration,
-      self.session.source_body,
-      { key: "adoption", body: row.body, revision: row.revision, },
-      (self.ownership.device, self.ownership.inode),
-    ),
+  let observation = @host.Observed(
+    self.database,
+    self.session.configuration,
+    self.session.source_body,
+    { key: "adoption", body: row.body, revision: row.revision, },
+    (self.ownership.device, self.ownership.inode),
   )
+  if snapshot_current is Some(_) && self.journal.transaction_active {
+    self.journal.admitted_adoption = Some(observation)
+  }
+  Ok(observation)
 }
 
 ///|

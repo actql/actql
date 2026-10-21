@@ -213,6 +213,18 @@ fn NativeLocalPublisherBinding::current_in_mode(
   reads? : NativeClientJournalReadAccess? = None,
 ) -> Bool {
   let journal = self.authority.host.journal
+  if !join_owned_transaction &&
+    self.authority.capture is Some(_) &&
+    self.operation is Some(_) {
+    // Scope, Account and selected Run belong to one private synchronous
+    // predicate. Keep one existing SQLite snapshot around all of them rather
+    // than opening a new target transaction after each material getter.
+    return journal.transaction_with_reads(
+        () => Ok(self.current_in_mode(true, reads~)),
+        reads~,
+      )
+      is Ok(true)
+  }
   if join_owned_transaction &&
     (
       !journal.transaction_active ||
@@ -229,6 +241,22 @@ fn NativeLocalPublisherBinding::current_in_mode(
     is Some(material) else {
     return false
   }
+  let selected = fn() -> Result[Bytes, NativeLocalAdoptionIssue] {
+    if self.authority.capture is Some(_) &&
+      self.operation is Some(_) &&
+      journal.transaction_active {
+      // The current material above admits these same immutable settings in
+      // this snapshot. No callback or physical dispatch separates the reads.
+      for file in host.session.settings.files {
+        if file.name == self.file.name {
+          return Ok(file.body)
+        }
+      }
+      Err(InvalidInput)
+    } else {
+      self.selected_original()
+    }
+  }
   if !self.authority.current_with_material_for(
       host.journal,
       self.request,
@@ -236,7 +264,7 @@ fn NativeLocalPublisherBinding::current_in_mode(
     ) ||
     host.session.source_body != self.account_body ||
     host.session.configuration.configuration_cid() != self.policy_cid ||
-    !(self.selected_original() is Ok(body) && body == self.file.body) {
+    !(selected() is Ok(body) && body == self.file.body) {
     return false
   }
   guard self.store.custody_location() is Ok((target, device, inode)) &&
