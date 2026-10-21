@@ -10667,7 +10667,7 @@
     {
       "module": "packages/sdk/internal/result-read.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "98ef1109eb768e36823a9208d82baeb86a1c2136242832ca7666c382660ea3e8",
+      "sha256": "01623388b78de5e2961ac74e433c17044c4107454e0a2ed9a8c552a76845b07f",
       "exports": [
         "captureQueryResultRead",
         "collectCapturedResult",
@@ -11142,6 +11142,10 @@
               {
                 "path": "packages/sdk/original-result-intake.test.mjs",
                 "anchor": "Result callback retains its original receiver and does not acquire a replacement"
+              },
+              {
+                "path": "packages/sdk/query-read-capture.test.mjs",
+                "anchor": "unselected query all captures"
               }
             ]
           }
@@ -14247,7 +14251,7 @@
     {
       "module": "packages/sdk/source-query.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "adfe7080cfa817bc1637d400bf381aefa542f38d43e6ba9e2ba34525c2357362",
+      "sha256": "2cf212b95d254e3dd58319459d60f85d2d90be432449bde51defe494bff1d2d9",
       "exports": [
         "sourceQuery"
       ],
@@ -14370,19 +14374,6 @@
         },
         {
           "name": "sourceQuery/sourceQuery/sourceQuery#4",
-          "parameters": [
-            "result",
-            "captured"
-          ],
-          "async": false
-        },
-        {
-          "name": "sourceQuery/sourceQuery/sourceQuery#5",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "sourceQuery/sourceQuery/sourceQuery#6",
           "parameters": [
             "result",
             "captured"
@@ -14564,6 +14555,10 @@
               {
                 "path": "packages/sdk/original-result-intake.test.mjs",
                 "anchor": "Result callback retains its original receiver and does not acquire a replacement"
+              },
+              {
+                "path": "packages/sdk/query-read-capture.test.mjs",
+                "anchor": "unselected query all captures"
               }
             ]
           }
@@ -14581,8 +14576,6 @@
             "sourceQuery/sourceQuery/sourceQuery#2",
             "sourceQuery/sourceQuery/sourceQuery#3",
             "sourceQuery/sourceQuery/sourceQuery#4",
-            "sourceQuery/sourceQuery/sourceQuery#5",
-            "sourceQuery/sourceQuery/sourceQuery#6",
             "sourceQuery/sourceQuery",
             "sourceQuery/sourceQuery#2",
             "sourceQuery/sourceQuery#3"
@@ -14594,7 +14587,7 @@
             "responsibility": [
               {
                 "path": "packages/sdk/source-query.mjs",
-                "anchor": "import {captureReadOptions, captureResultRead} from './result-schema.mjs';"
+                "anchor": "import {captureReadOptions} from './result-schema.mjs';"
               },
               {
                 "path": "docs/design/client-submission-identity.md",
@@ -14604,7 +14597,7 @@
             "inputsOutputs": [
               {
                 "path": "packages/sdk/source-query.mjs",
-                "anchor": "import {captureReadOptions, captureResultRead} from './result-schema.mjs';"
+                "anchor": "import {captureReadOptions} from './result-schema.mjs';"
               },
               {
                 "path": "spec/contracts/actql-client-host.json",
@@ -14618,7 +14611,7 @@
               },
               {
                 "path": "packages/sdk/source-query.mjs",
-                "anchor": "import {captureReadOptions, captureResultRead} from './result-schema.mjs';"
+                "anchor": "import {captureReadOptions} from './result-schema.mjs';"
               },
               {
                 "path": "src/run_publication_host/client_submitted_intent.mbt",
@@ -14632,7 +14625,7 @@
               },
               {
                 "path": "packages/sdk/source-query.mjs",
-                "anchor": "import {captureReadOptions, captureResultRead} from './result-schema.mjs';"
+                "anchor": "import {captureReadOptions} from './result-schema.mjs';"
               },
               {
                 "path": "adapters/host-node/client-program-preparation.mjs",
@@ -14646,7 +14639,7 @@
               },
               {
                 "path": "packages/sdk/source-query.mjs",
-                "anchor": "import {captureReadOptions, captureResultRead} from './result-schema.mjs';"
+                "anchor": "import {captureReadOptions} from './result-schema.mjs';"
               },
               {
                 "path": "adapters/host-node/client-submission.mjs",
@@ -14660,7 +14653,7 @@
               },
               {
                 "path": "packages/sdk/source-query.mjs",
-                "anchor": "import {captureReadOptions, captureResultRead} from './result-schema.mjs';"
+                "anchor": "import {captureReadOptions} from './result-schema.mjs';"
               },
               {
                 "path": "src/run_publication_host/client_submitted_intent.mbt",
@@ -14674,7 +14667,7 @@
               },
               {
                 "path": "packages/sdk/source-query.mjs",
-                "anchor": "import {captureReadOptions, captureResultRead} from './result-schema.mjs';"
+                "anchor": "import {captureReadOptions} from './result-schema.mjs';"
               },
               {
                 "path": "adapters/host-node/client-effect-run.mjs",
@@ -14688,7 +14681,7 @@
               },
               {
                 "path": "packages/sdk/source-query.mjs",
-                "anchor": "import {captureReadOptions, captureResultRead} from './result-schema.mjs';"
+                "anchor": "import {captureReadOptions} from './result-schema.mjs';"
               },
               {
                 "path": "src/run_publication_host/client_submitted_intent.mbt",
@@ -14702,7 +14695,7 @@
               },
               {
                 "path": "packages/sdk/source-query.mjs",
-                "anchor": "import {captureReadOptions, captureResultRead} from './result-schema.mjs';"
+                "anchor": "import {captureReadOptions} from './result-schema.mjs';"
               },
               {
                 "path": "src/run_publication_host/client_submitted_intent.mbt",

@@ -114,7 +114,7 @@ function retainedValueBytes(value) {
 const capturedResultReads = new WeakMap();
 const capturedQueryReads = new WeakMap();
 export function captureQueryResultRead(before, current, kind, schemaOrOptions, options) {
-  before(schemaOrOptions, options);
+  before?.(schemaOrOptions, options);
   const captured = kind === 'all' ? captureResultRead(ClientError, schemaOrOptions, options)
     : captureReadOptions(schemaOrOptions);
   const token = Object.freeze({});
@@ -126,7 +126,7 @@ export function collectCapturedResult(result, token) {
   if (target === undefined || original === undefined || target.before !== original.before ||
       target.current !== original.current) fail('InvalidResult');
   capturedQueryReads.delete(token);
-  original.current();
+  original.current?.();
   return target.read(original.kind, original.captured);
 }
 

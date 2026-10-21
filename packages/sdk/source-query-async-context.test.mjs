@@ -10,22 +10,32 @@ test('native short queries retain one operation when async context starts after 
     import {AsyncLocalStorage} from 'node:async_hooks';
     import {setImmediate} from 'node:timers/promises';
     import {sourceQuery} from ${JSON.stringify(new URL('./source-query.mjs', import.meta.url).href)};
+    import {createResultFactory} from ${JSON.stringify(new URL('./internal/result-read.mjs', import.meta.url).href)};
     class ClientError extends Error {}
     const calls = {start: 0, wait: 0, read: 0};
     const context = {original: 'query-observation'};
     const storage = new AsyncLocalStorage();
-    const result = {async all() {
-      assert.strictEqual(storage.getStore(), context);
-      calls.read++;
-      await setImmediate();
-      assert.strictEqual(storage.getStore(), context);
-      return [{id: 1}];
-    }};
+    let result;
     const execution = {ref: {original: 'run'}, async wait() {
       calls.wait++;
       await setImmediate();
       return {status: 'succeeded', result_availability: {answer: {state: 'available'}}};
     }, result(name) {assert.equal(name, 'answer'); return result;}};
+    result = createResultFactory({ref: {original: 'run'}, lookupContext: {}, typedRows: true,
+      limits: {maxReadWireBytes: 4096, maxRowWireBytes: 1024, maxRowRetainedValueBytes: 1024,
+        maxRetainedValueBytes: 4096, maxRows: 10, maxBatchRows: 3, maxBatchRetainedValueBytes: 1024}},
+    {async runRequest(operation) {
+      assert.equal(operation, 'read');
+      assert.strictEqual(storage.getStore(), context);
+      calls.read++;
+      await setImmediate();
+      assert.strictEqual(storage.getStore(), context);
+      return {kind: 'rows', frames: (async function* () {
+        await setImmediate();
+        assert.strictEqual(storage.getStore(), context);
+        yield {value: {id: 1}, byteLength: 9};
+      })()};
+    }}, {activeReaders: new Set(), readerCleanups: new Set()}, () => execution)('answer');
     const retain = () => undefined;
     const query = sourceQuery(() => {
       calls.start++;
