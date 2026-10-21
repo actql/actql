@@ -55,6 +55,13 @@ authorized. Description success is not a payload-read guarantee and does not
 change Result availability or the historical Run outcome. Expired or deleted
 metadata is not reconstructed by recomputing the Run.
 
+One semantic metadata acquisition hashes the bytes read from its original FD
+and checks the digest-named object path against that same unchanged hard-linked
+allocation. It does not reopen and rehash the identical allocation as another
+validation boundary. The reader retains its actual close duty, size/identity
+checks and bounded backing. Later acquisitions validate their new original;
+no persistent successful-digest cache hides changed bytes.
+
 ## Delivery profile and bounds
 
 `format` defaults to `jsonl`. The current public delivery owner admits `json`,

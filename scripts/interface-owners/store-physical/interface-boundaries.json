@@ -4091,7 +4091,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "8c0e9ce6c140b6c98a0d1d51d847bcff0a26e9f82e9700d406262b5af8ab4af1",
+      "sha256": "d0acebcb9eff734c4a6be3d03b3c60e84451bfc5c80528fa0126483f2b3484a5",
       "exports": [
         "PublicationStoreError",
         "assertOriginalLocalPublicationStoreFacilityCurrent",

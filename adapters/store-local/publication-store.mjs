@@ -3027,10 +3027,15 @@ async function openOriginalLocalPublicationStore(
       if (!after.isFile() || before.dev !== after.dev ||
           before.ino !== after.ino || before.size !== after.size ||
           before.mtimeMs !== after.mtimeMs || size !== after.size ||
-          physical.dev !== after.dev || physical.ino !== after.ino) {
+          physical.dev !== after.dev || physical.ino !== after.ino ||
+          physical.size !== after.size || physical.mtimeMs !== after.mtimeMs) {
         fail('PublicationContractCorrupt');
       }
-      await verifyObject(physicalCid);
+      // This original FD already supplied every hashed byte, and the digest's
+      // object path names the same unchanged hard-linked allocation. Reopening
+      // that allocation to hash it again adds no independent fact. A later
+      // read still acquires and validates its own original; no Store-wide
+      // successful-digest cache substitutes for that observation.
       return bytes;
     } catch (error) {
       readFailure = error;
