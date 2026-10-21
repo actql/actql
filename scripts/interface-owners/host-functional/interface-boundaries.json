@@ -18121,7 +18121,7 @@
     {
       "module": "adapters/host-node/client-program-preparation.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "c935e74a365b4ffec7efb6cd5630f9223c52c2f0586a08e8415dd2e8611df92e",
+      "sha256": "8b3786621490ed64360ab53e49979103a850a1e8caca0862dd59fa682b634fcf",
       "role": "physical-io",
       "owner": "Existing static checker/Frontend/compiled preparation Owners; no Run permission",
       "exports": [
@@ -18188,7 +18188,8 @@
             "check",
             "verifyRequestValuePolicy",
             "restoreEffectOriginal",
-            "restoreInferOriginal"
+            "restoreInferOriginal",
+            "getPreparedSourceEnvironment"
           ],
           "async": false
         },
@@ -18287,6 +18288,28 @@
           "async": false
         },
         {
+          "name": "installNodeClientProgramPreparation/prepareEffect/prepareEffect",
+          "parameters": [
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeClientProgramPreparation/preparePublishedEffect/preparePublishedEffect",
+          "parameters": [
+            "request",
+            "selectedEnvironment"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeClientProgramPreparation/publicSourcePreparation/publicSourcePreparation",
+          "parameters": [
+            "selectedEnvironment"
+          ],
+          "async": false
+        },
+        {
           "name": "installNodeClientProgramPreparation/verified/verified",
           "parameters": [
             "request"
@@ -18338,6 +18361,9 @@
             "installNodeClientProgramPreparation/init:restoreOriginal/init:restoreOriginal",
             "installNodeClientProgramPreparation/init:sourceCheckFailure/init:sourceCheckFailure",
             "installNodeClientProgramPreparation/prepare/prepare",
+            "installNodeClientProgramPreparation/prepareEffect/prepareEffect",
+            "installNodeClientProgramPreparation/preparePublishedEffect/preparePublishedEffect",
+            "installNodeClientProgramPreparation/publicSourcePreparation/publicSourcePreparation",
             "installNodeClientProgramPreparation/verified/verified",
             "installNodeClientProgramPreparation/verified/verified/verified",
             "installNodeClientProgramPreparation/verified/verified/verified#2",
@@ -18376,6 +18402,14 @@
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "### Original INFER materials in the installed Host"
+              },
+              {
+                "path": "adapters/host-node/client-program-preparation.mjs",
+                "anchor": "const publicSourcePreparation = selectedEnvironment => selectedEnvironment === environment"
+              },
+              {
+                "path": "docs/design/checked-program.md",
+                "anchor": "## Installed public Environment lifetime"
               }
             ],
             "inputsOutputs": [
@@ -18410,6 +18444,14 @@
               {
                 "path": "adapters/host-node/local-values-plan.mjs",
                 "anchor": "export function restoreInferTaskRunAdmission({control, preparedProgram, restored, requestIdentity}) {"
+              },
+              {
+                "path": "adapters/host-node/client-program-preparation.mjs",
+                "anchor": "const preparePublishedEffect = (request, selectedEnvironment) => {"
+              },
+              {
+                "path": "docs/design/checked-program.md",
+                "anchor": "## Installed public Environment lifetime"
               }
             ],
             "identity": [
@@ -18444,6 +18486,14 @@
               {
                 "path": "adapters/host-node/infer-run-original-host.test.mjs",
                 "anchor": "test('Common compiled Infer projection rejects foreign nominal preparation and copied compilation'"
+              },
+              {
+                "path": "adapters/host-node/client-program-preparation.mjs",
+                "anchor": "const owned = new WeakMap();"
+              },
+              {
+                "path": "docs/design/checked-program.md",
+                "anchor": "## Installed public Environment lifetime"
               }
             ],
             "ownership": [
@@ -18478,6 +18528,14 @@
               {
                 "path": "adapters/host-common/runtime-core.mjs",
                 "anchor": "const restoredInferRuns = new WeakSet();"
+              },
+              {
+                "path": "adapters/host-node/client-program-preparation.mjs",
+                "anchor": "effectEvidence: installedEvidence, getPreparedSourceEnvironment}))"
+              },
+              {
+                "path": "docs/design/checked-program.md",
+                "anchor": "## Installed public Environment lifetime"
               }
             ],
             "synchronization": [
@@ -18512,6 +18570,14 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "const admitted = journal.resolveDefinition(requested.requested,"
+              },
+              {
+                "path": "adapters/host-node/client-program-preparation.mjs",
+                "anchor": "publicSourcePreparation(environment);"
+              },
+              {
+                "path": "docs/design/checked-program.md",
+                "anchor": "## Installed public Environment lifetime"
               }
             ],
             "failure": [
@@ -18546,6 +18612,14 @@
               {
                 "path": "adapters/host-node/infer-run-original-host.test.mjs",
                 "anchor": "test('restored Infer plan refuses equal-byte foreign graph or original caller preparation substitution'"
+              },
+              {
+                "path": "adapters/host-node/client-program-preparation.mjs",
+                "anchor": "if (prepared === undefined) fail('ClientProgramUnsupported');"
+              },
+              {
+                "path": "docs/design/checked-program.md",
+                "anchor": "## Installed public Environment lifetime"
               }
             ],
             "cancellation": [
@@ -18572,6 +18646,10 @@
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "physical-input, reservation, claim, cancellation and cleanup gates remain."
+              },
+              {
+                "path": "docs/design/checked-program.md",
+                "anchor": "## Installed public Environment lifetime"
               }
             ],
             "resources": [
@@ -18602,6 +18680,14 @@
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "reference retirement are neither zero cost, GC evidence nor physical ACK."
+              },
+              {
+                "path": "adapters/host-node/client-program-preparation.mjs",
+                "anchor": "check_compile_limit: 'ClientProgramAnalysisLimit',"
+              },
+              {
+                "path": "docs/design/checked-program.md",
+                "anchor": "## Installed public Environment lifetime"
               }
             ],
             "extension": [
@@ -18636,6 +18722,14 @@
               {
                 "path": "docs/design/model-provider-registration.md",
                 "anchor": "compilation and existing custody path."
+              },
+              {
+                "path": "adapters/host-node/client-program-preparation.mjs",
+                "anchor": "const prepareEffect = !allowEffects ? undefined : sourcePublication === undefined"
+              },
+              {
+                "path": "docs/design/checked-program.md",
+                "anchor": "## Installed public Environment lifetime"
               }
             ],
             "verification": [
@@ -18670,6 +18764,14 @@
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
                 "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+              },
+              {
+                "path": "adapters/host-node/public-store-source-preparation.test.mjs",
+                "anchor": "test('public Environment original admits once across independent queries and JSON Effect preparation'"
+              },
+              {
+                "path": "docs/design/checked-program.md",
+                "anchor": "## Installed public Environment lifetime"
               }
             ]
           }
@@ -58634,7 +58736,7 @@
     {
       "module": "adapters/host-node/public-source-preparation.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "856112a6f8298611f56cba2e928b9842dba6fe49a8025537cf647835465fa5eb",
+      "sha256": "f8e0fd905dfdfec03f2085204aedbb146d73103d329133357b1dfdcf49070f48",
       "role": "physical-io",
       "owner": "Existing static checker/Frontend/compiled preparation Owners; no Run permission",
       "exports": [
@@ -58672,8 +58774,14 @@
             "environment",
             "publication",
             "allowEffects",
-            "effectEvidence"
+            "effectEvidence",
+            "getPreparedSourceEnvironment"
           ],
+          "async": false
+        },
+        {
+          "name": "installNodePublicSourcePreparation/currentEnvironment/currentEnvironment",
+          "parameters": [],
           "async": false
         },
         {
@@ -58704,6 +58812,7 @@
             "checkedPublication/checkedPublication",
             "exact/exact",
             "installNodePublicSourcePreparation",
+            "installNodePublicSourcePreparation/currentEnvironment/currentEnvironment",
             "installNodePublicSourcePreparation/init:prepare/init:prepare",
             "installNodePublicSourcePreparation/init:prepareEffect/init:prepareEffect"
           ],
@@ -58735,6 +58844,14 @@
               {
                 "path": "src/client_source_publication/store_targets.mbt",
                 "anchor": "pub fn published_store_targets("
+              },
+              {
+                "path": "adapters/host-node/public-source-preparation.mjs",
+                "anchor": "const original = sourceAliasPublicationOriginal(moon, environment, publication);"
+              },
+              {
+                "path": "docs/design/checked-program.md",
+                "anchor": "## Installed public Environment lifetime"
               }
             ],
             "inputsOutputs": [
@@ -58761,6 +58878,14 @@
               {
                 "path": "src/client_source_publication/store_targets.mbt",
                 "anchor": "pub fn published_store_targets("
+              },
+              {
+                "path": "adapters/host-node/public-source-preparation.mjs",
+                "anchor": "return moon.clientProgramPrepareEffectComputationInPublicEnvironment("
+              },
+              {
+                "path": "docs/design/checked-program.md",
+                "anchor": "## Installed public Environment lifetime"
               }
             ],
             "identity": [
@@ -58787,6 +58912,14 @@
               {
                 "path": "src/client_source_publication/store_targets.mbt",
                 "anchor": "pub fn published_store_targets("
+              },
+              {
+                "path": "adapters/host-node/public-source-preparation.mjs",
+                "anchor": "!moon.clientProgramPublicSourceEnvironmentMatches(preparedEnvironment, environment) ||"
+              },
+              {
+                "path": "docs/design/checked-program.md",
+                "anchor": "## Installed public Environment lifetime"
               }
             ],
             "ownership": [
@@ -58813,6 +58946,14 @@
               {
                 "path": "src/client_source_publication/store_targets.mbt",
                 "anchor": "pub fn published_store_targets("
+              },
+              {
+                "path": "adapters/host-node/public-source-preparation.mjs",
+                "anchor": "const currentEnvironment = () => {"
+              },
+              {
+                "path": "docs/design/checked-program.md",
+                "anchor": "## Installed public Environment lifetime"
               }
             ],
             "synchronization": [
@@ -58835,6 +58976,14 @@
               {
                 "path": "src/connectors_builtin_node/client_program_bridge.mbt",
                 "anchor": "pub fn client_program_prepare_published_effect_computation_with_parameters("
+              },
+              {
+                "path": "adapters/host-node/public-source-preparation.mjs",
+                "anchor": "getPreparedSourceEnvironment() !== preparedEnvironment) {"
+              },
+              {
+                "path": "docs/design/checked-program.md",
+                "anchor": "## Installed public Environment lifetime"
               }
             ],
             "failure": [
@@ -58857,6 +59006,14 @@
               {
                 "path": "src/connectors_builtin_node/client_program_bridge.mbt",
                 "anchor": "pub fn client_program_prepare_published_effect_computation_with_parameters("
+              },
+              {
+                "path": "adapters/host-node/public-source-preparation.mjs",
+                "anchor": "throw new TypeError('InvalidPublicSourcePreparationEnvironment');"
+              },
+              {
+                "path": "docs/design/checked-program.md",
+                "anchor": "## Installed public Environment lifetime"
               }
             ],
             "cancellation": [
@@ -58875,6 +59032,14 @@
               {
                 "path": "src/connectors_builtin_node/client_program_bridge.mbt",
                 "anchor": "pub fn client_program_prepare_published_effect_computation_with_parameters("
+              },
+              {
+                "path": "adapters/host-node/public-source-preparation.mjs",
+                "anchor": "const currentEnvironment = () => {"
+              },
+              {
+                "path": "docs/design/checked-program.md",
+                "anchor": "## Installed public Environment lifetime"
               }
             ],
             "resources": [
@@ -58893,6 +59058,14 @@
               {
                 "path": "src/connectors_builtin_node/client_program_bridge.mbt",
                 "anchor": "pub fn client_program_prepare_published_effect_computation_with_parameters("
+              },
+              {
+                "path": "adapters/host-node/public-source-preparation.mjs",
+                "anchor": "const maxPublicationBytes = 1024 * 1024;"
+              },
+              {
+                "path": "docs/design/checked-program.md",
+                "anchor": "## Installed public Environment lifetime"
               }
             ],
             "extension": [
@@ -58919,6 +59092,14 @@
               {
                 "path": "src/client_source_publication/store_targets.mbt",
                 "anchor": "pub fn published_store_targets("
+              },
+              {
+                "path": "adapters/host-node/public-source-preparation.mjs",
+                "anchor": "const outcome = moon.clientProgramPrepareSourceComputationInPublicEnvironment("
+              },
+              {
+                "path": "docs/design/checked-program.md",
+                "anchor": "## Installed public Environment lifetime"
               }
             ],
             "verification": [
@@ -58941,13 +59122,23 @@
               {
                 "path": "src/connectors_builtin_node/client_store_target_publication_wbtest.mbt",
                 "anchor": "test \"actual public Source publication bridge admits the original STORE pair and refuses substitution\""
+              },
+              {
+                "path": "adapters/host-node/public-store-source-preparation.test.mjs",
+                "anchor": "test('public Environment original admits once across independent queries and JSON Effect preparation'"
+              },
+              {
+                "path": "docs/design/checked-program.md",
+                "anchor": "## Installed public Environment lifetime"
               }
             ]
           }
         }
       ],
       "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred.",
-      "imports": [],
+      "imports": [
+        "./source-alias-publication.mjs"
+      ],
       "compilerFields": [],
       "unresolvedSyntax": []
     },
@@ -59413,14 +59604,16 @@
     {
       "module": "adapters/host-node/source-alias-publication.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "346ff1398ce1453fb298c7868ee01fc410c07648ff7835325e625e7e4832ce98",
+      "sha256": "afba534bb02ba09094cc40b6faf4594a3dea6c7e4c3001196af923238f9d096a",
       "role": "physical-io",
       "owner": "Existing static checker/Frontend/compiled preparation Owners; no Run permission",
       "exports": [
         "observeSourceAliasNamespace",
         "observeSourceSelectorNamespace",
+        "retireSourceAliasPublicationOriginal",
         "sourceAliasNamespaceObservationFacts",
         "sourceAliasPublication",
+        "sourceAliasPublicationOriginal",
         "sourceSelectorNamespaceObservationFacts",
         "splitSourceAliasProfile"
       ],
@@ -59602,6 +59795,15 @@
           "async": true
         },
         {
+          "name": "retireSourceAliasPublicationOriginal",
+          "parameters": [
+            "moon",
+            "environment",
+            "publication"
+          ],
+          "async": false
+        },
+        {
           "name": "sourceAliasNamespaceObservationFacts",
           "parameters": [
             "publication",
@@ -59643,6 +59845,15 @@
           "name": "sourceAliasPublication/sourceAliasPublication#2",
           "parameters": [
             "entry"
+          ],
+          "async": false
+        },
+        {
+          "name": "sourceAliasPublicationOriginal",
+          "parameters": [
+            "moon",
+            "environment",
+            "publication"
           ],
           "async": false
         },
@@ -59757,10 +59968,12 @@
             "observeNamespace/observeNamespace",
             "observeSourceAliasNamespace",
             "observeSourceSelectorNamespace",
+            "retireSourceAliasPublicationOriginal",
             "sourceAliasNamespaceObservationFacts",
             "sourceAliasPublication",
             "sourceAliasPublication/publication/publication",
             "sourceAliasPublication/sourceAliasPublication",
+            "sourceAliasPublicationOriginal",
             "sourceSelectorNamespaceObservationFacts",
             "splitSourceAliasProfile",
             "splitSourceAliasProfile/aliases/aliases",
@@ -59777,8 +59990,10 @@
           "exports": [
             "observeSourceAliasNamespace",
             "observeSourceSelectorNamespace",
+            "retireSourceAliasPublicationOriginal",
             "sourceAliasNamespaceObservationFacts",
             "sourceAliasPublication",
+            "sourceAliasPublicationOriginal",
             "sourceSelectorNamespaceObservationFacts",
             "splitSourceAliasProfile"
           ],
@@ -59799,6 +60014,14 @@
               {
                 "path": "adapters/host-node/source-alias-publication.mjs",
                 "anchor": "export function sourceAliasPublication(moon, environment, aliases = [], tableWrites = [],"
+              },
+              {
+                "path": "adapters/host-node/source-alias-publication.mjs",
+                "anchor": "const preparedEnvironment = typeof moon.clientProgramPreparePublicSourceEnvironment"
+              },
+              {
+                "path": "docs/design/checked-program.md",
+                "anchor": "## Installed public Environment lifetime"
               }
             ],
             "inputsOutputs": [
@@ -59817,6 +60040,14 @@
               {
                 "path": "adapters/host-node/source-alias-publication.mjs",
                 "anchor": "export function sourceAliasPublication(moon, environment, aliases = [], tableWrites = [],"
+              },
+              {
+                "path": "adapters/host-node/source-alias-publication.mjs",
+                "anchor": "original: Object.freeze({wire, preparedEnvironment})});"
+              },
+              {
+                "path": "docs/design/checked-program.md",
+                "anchor": "## Installed public Environment lifetime"
               }
             ],
             "identity": [
@@ -59835,6 +60066,14 @@
               {
                 "path": "adapters/host-node/source-alias-publication.mjs",
                 "anchor": "export function sourceAliasPublication(moon, environment, aliases = [], tableWrites = [],"
+              },
+              {
+                "path": "adapters/host-node/source-alias-publication.mjs",
+                "anchor": "return retained !== undefined && retained.moon === moon && retained.environment === environment"
+              },
+              {
+                "path": "docs/design/checked-program.md",
+                "anchor": "## Installed public Environment lifetime"
               }
             ],
             "ownership": [
@@ -59853,6 +60092,14 @@
               {
                 "path": "adapters/host-node/source-alias-publication.mjs",
                 "anchor": "export function sourceAliasPublication(moon, environment, aliases = [], tableWrites = [],"
+              },
+              {
+                "path": "adapters/host-node/source-alias-publication.mjs",
+                "anchor": "const publicationOriginals = new WeakMap();"
+              },
+              {
+                "path": "docs/design/checked-program.md",
+                "anchor": "## Installed public Environment lifetime"
               }
             ],
             "synchronization": [
@@ -59871,6 +60118,14 @@
               {
                 "path": "adapters/host-node/source-alias-publication.mjs",
                 "anchor": "export function sourceAliasPublication(moon, environment, aliases = [], tableWrites = [],"
+              },
+              {
+                "path": "adapters/host-node/source-alias-publication.mjs",
+                "anchor": "export function sourceAliasPublicationOriginal(moon, environment, publication) {"
+              },
+              {
+                "path": "docs/design/checked-program.md",
+                "anchor": "## Installed public Environment lifetime"
               }
             ],
             "failure": [
@@ -59889,6 +60144,14 @@
               {
                 "path": "adapters/host-node/source-alias-publication.mjs",
                 "anchor": "export function sourceAliasPublication(moon, environment, aliases = [], tableWrites = [],"
+              },
+              {
+                "path": "adapters/host-node/source-alias-publication.mjs",
+                "anchor": "throw new TypeError('InvalidPublicSourcePublication');"
+              },
+              {
+                "path": "docs/design/checked-program.md",
+                "anchor": "## Installed public Environment lifetime"
               }
             ],
             "cancellation": [
@@ -59903,6 +60166,14 @@
               {
                 "path": "docs/spec/execution.md",
                 "anchor": "### Run admission and identity"
+              },
+              {
+                "path": "adapters/host-node/source-alias-publication.mjs",
+                "anchor": "export function retireSourceAliasPublicationOriginal(moon, environment, publication) {"
+              },
+              {
+                "path": "docs/design/checked-program.md",
+                "anchor": "## Installed public Environment lifetime"
               }
             ],
             "resources": [
@@ -59917,6 +60188,10 @@
               {
                 "path": "docs/design/checked-program.md",
                 "anchor": "# Checked Program construction"
+              },
+              {
+                "path": "docs/design/checked-program.md",
+                "anchor": "## Installed public Environment lifetime"
               }
             ],
             "extension": [
@@ -59935,6 +60210,14 @@
               {
                 "path": "adapters/host-node/source-alias-publication.mjs",
                 "anchor": "export function sourceAliasPublication(moon, environment, aliases = [], tableWrites = [],"
+              },
+              {
+                "path": "adapters/host-node/source-alias-publication.mjs",
+                "anchor": "publicationOriginals.delete(publication);"
+              },
+              {
+                "path": "docs/design/checked-program.md",
+                "anchor": "## Installed public Environment lifetime"
               }
             ],
             "verification": [
@@ -59945,6 +60228,14 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "adapters/host-node/public-store-source-preparation.test.mjs",
+                "anchor": "test('public Environment original admits once across independent queries and JSON Effect preparation'"
+              },
+              {
+                "path": "docs/design/checked-program.md",
+                "anchor": "## Installed public Environment lifetime"
               }
             ]
           }
