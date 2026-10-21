@@ -74,3 +74,33 @@ test "selected configuration data preserves the original Reader refusal and clea
   assert_true(session.read_cleanup is None)
   assert_true(refused.issue() is @filesystem.GenerationMismatch)
 }
+
+///|
+// Run this case alone with existing Native diagnostics enabled. Slot 37 counts
+// actual source-validation attempts; captured DATA selections require zero.
+test "configuration staging validates the unchanged original once" {
+  let name = "local-settings-stage-once"
+  let session = local_settings_fixture(name)
+  let file = name + ".settings.json"
+  for _ in 0..<3 {
+    assert_eq(
+      session.selected_configuration(file).unwrap(),
+      local_settings_original,
+    )
+  }
+  session.stage_configuration().unwrap()
+  let (account, _) = local_adoption_read(session.root, "account.json", 1048576L).unwrap()
+  assert_eq(account, local_selected_account)
+  assert_true(
+    session.root.inspect_generation("configuration-custody.json").unwrap()
+    is Some(_),
+  )
+  for _ in 0..<3 {
+    assert_eq(
+      session.selected_configuration(file).unwrap(),
+      local_settings_original,
+    )
+  }
+  assert_eq(session.root.inspect_generation("client.sqlite3").unwrap(), None)
+  assert_true(session.close())
+}

@@ -266,6 +266,9 @@ fn NativeLocalAdoptionSession::check_original_after_read_custody(
   if self.closed {
     return Err(Closed)
   }
+  // Existing diagnostic slot: one attempted source validation, not a cheap
+  // lifetime check, cache hit or completed authorization decision.
+  native_timing_count(37)
   guard self.parent.private_ownership() is Ok(_) &&
     self.root.private_ownership() is Ok(current) &&
     current == self.root_ownership &&
