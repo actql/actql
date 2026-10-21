@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import * as source from './result-access.mjs';
+import {deliverPublishedResult} from './result-delivery.mjs';
 import * as packaged from '../../packages/run-host-core/result-access.mjs';
 import {openResultDeliveryControl} from '../../packages/run-host-core/index.mjs';
 
@@ -19,11 +20,14 @@ function fixture(api, options = {}) {
   const semantic = openResultDeliveryControl();
   const state = {wall: instant(0), bound: undefined, observations: 0,
     admissions: [], authorizations: [], availability: [], grantChecks: [],
-    attempts: [], records: [], chunks: [], finishes: 0};
+    attempts: [], records: [], chunks: [], finishes: 0,
+    contractReads: [], indexObservations: 0, replacementIndex: undefined};
   const retentionEnd = options.retentionEnd ?? instant(100);
   const grantEnd = options.grantEnd ?? instant(100);
-  const index = contract('public_index_entry', '1');
-  const manifest = contract('result_manifest', '2');
+  const publication = (name, value) => options.mutableContracts
+    ? {...contract(name, value)} : contract(name, value);
+  const index = publication('public_index_entry', '1');
+  const manifest = publication('result_manifest', '2');
   const retention = contract('result_retention_policy', '3');
   const grant = contract('result_read_grant', '4');
   const request = {
@@ -46,10 +50,13 @@ function fixture(api, options = {}) {
   };
   const store = {
     async confirmCommittedIndex() {
+      state.indexObservations++;
+      if (state.replacementIndex !== undefined) return state.replacementIndex;
       return {public_index_entry_cid: index.identity,
         result_manifest_cid: manifest.identity};
     },
     async readPublicationContract(_cid, name) {
+      state.contractReads.push(name);
       return {public_index_entry: index, result_manifest: manifest,
         result_retention_policy: retention}[name];
     },
@@ -118,6 +125,7 @@ function fixture(api, options = {}) {
     authorizeResultReadRequest: () => true,
     admitResultRead(facts) {
       state.admissions.push(facts);
+      options.afterAdmission?.(state);
       return {authorizationContextCid: cid('a'), dataCeilingCid: cid('b'),
         egressAdmissionCid: cid('c'), expiresAt: grantEnd,
         maxBytes: 1000, maxUses: 1};
@@ -131,7 +139,8 @@ function fixture(api, options = {}) {
     frameLimits: {maxRowBytes: 1000, maxDepth: 20, maxFrameBytes: 1000},
     createDigest: () => ({update() {}, async finish() { return '0'.repeat(64); }})};
   const service = api.installResultAccessService(configuration);
-  return {state, configuration,
+  return {state, configuration, request, grant,
+    publication: {store, control, index, manifest},
     deliver: () => api.deliverAuthorizedResult(service, request, {
       async write(bytes) {
         state.chunks.push(new TextDecoder().decode(bytes));
@@ -140,6 +149,68 @@ function fixture(api, options = {}) {
       async finish() { state.finishes++; return {confirmed: true}; },
     })};
 }
+
+test('one Result operation retains its admitted immutable publication contracts', async () => {
+  const input = fixture(source);
+  await input.deliver();
+  assert.deepEqual(input.state.contractReads, [
+    'public_index_entry', 'result_manifest', 'result_retention_policy',
+  ]);
+  assert.equal(input.state.indexObservations, 2,
+    'delivery still observes the current committed head after admission');
+  assert.equal(input.state.attempts.length, 1);
+  await input.deliver();
+  assert.deepEqual(input.state.contractReads, [
+    'public_index_entry', 'result_manifest', 'result_retention_policy',
+    'public_index_entry', 'result_manifest', 'result_retention_policy',
+  ], 'a new operation owns a new read frame, not a cross-operation cache');
+});
+
+test('retained Result contracts refuse a changed committed head before an attempt', async () => {
+  for (const field of ['public_index_entry_cid', 'result_manifest_cid']) {
+    const input = fixture(source, {afterAdmission(state) {
+      state.replacementIndex = {public_index_entry_cid: cid('1'),
+        result_manifest_cid: cid('2'), [field]: cid('d')};
+    }});
+    await assert.rejects(input.deliver(), {code: 'ResultDeliveryDenied'});
+    assert.equal(input.state.attempts.length, 0);
+    assert.equal(input.state.chunks.length, 0);
+    assert.equal(input.state.finishes, 0);
+  }
+});
+
+test('mutable generic Result contracts retain the existing independent resolution', async () => {
+  const input = fixture(source, {mutableContracts: true});
+  await input.deliver();
+  assert.deepEqual(input.state.contractReads, [
+    'public_index_entry', 'result_manifest', 'result_retention_policy',
+    'public_index_entry', 'result_manifest',
+  ]);
+  assert.deepEqual(input.state.chunks, ['{"id":1}\n']);
+});
+
+test('retained Result contracts cannot substitute a foreign Store or control', async () => {
+  const input = fixture(source);
+  const {configuration, request} = input;
+  const options = {
+    store: configuration.store, control: configuration.control,
+    indexKey: request.indexKey, grant: input.grant,
+    resultName: request.resultName, format: request.format,
+    attemptId: request.attemptId, limits: configuration.limits,
+    frameLimits: configuration.frameLimits, now: configuration.now,
+    createDigest: configuration.createDigest, authorize: () => true,
+    sink: {write() { assert.fail('no bytes before original binding'); },
+      finish() { assert.fail('no completion before original binding'); }},
+    signal: undefined,
+  };
+  for (const field of ['store', 'control']) {
+    await assert.rejects(deliverPublishedResult(options,
+      {...input.publication, [field]: {...input.publication[field]}}),
+    {code: 'InvalidResultDeliveryRequest'});
+  }
+  assert.equal(input.state.indexObservations, 0);
+  assert.equal(input.state.attempts.length, 0);
+});
 
 for (const [name, api] of [['source', source], ['packaged', packaged]]) {
   test(`${name}: later concurrent observation does not reject an earlier sample`, async () => {

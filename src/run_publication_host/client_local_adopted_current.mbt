@@ -162,16 +162,21 @@ pub fn[Store, E] bind_client_local_adopted_host_material(
   if account_original.length() > 1048576 {
     return Err(InvalidOriginal)
   }
-  let account_wire = @utf8.decode(account_original) catch {
-    _ => return Err(InvalidOriginal)
-  }
-  let original = match
-    @authorization.admit_account_configuration_json(account_wire) {
-    Ok(value) => value
-    Err(_) => return Err(InvalidOriginal)
-  }
-  if original.configuration_cid() != account.configuration_cid() {
-    return Err(InvalidOriginal)
+  // Wire admission already validated these exact private original bytes.
+  // Do not decode, admit or hash them again merely to bind Host material.
+  // Typed Accounts and other spellings retain the existing full check.
+  if !account.retains_original_bytes(account_original) {
+    let account_wire = @utf8.decode(account_original) catch {
+      _ => return Err(InvalidOriginal)
+    }
+    let original = match
+      @authorization.admit_account_configuration_json(account_wire) {
+      Ok(value) => value
+      Err(_) => return Err(InvalidOriginal)
+    }
+    if original.configuration_cid() != account.configuration_cid() {
+      return Err(InvalidOriginal)
+    }
   }
   let material = {
     store,
