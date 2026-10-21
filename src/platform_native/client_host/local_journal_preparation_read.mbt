@@ -22,6 +22,9 @@ pub fn[T] NativeLocalJournalCapture::with_original_read(
   if original.store_operation is Some(_) {
     return Err(OriginalResourceScopePending)
   }
+  // Retire any earlier operation before opening. A successful opening can
+  // then retain its actual row through this same closed entry.
+  self.clear_read_operation_facts()
   let opened_here = self.opening is JournalNotAttempted
   if opened_here {
     match self.open().issue() {
@@ -31,7 +34,6 @@ pub fn[T] NativeLocalJournalCapture::with_original_read(
     }
   }
   guard self.opening is JournalAcquired(host) else { return Err(InvalidInput) }
-  self.clear_read_operation_facts()
   host.journal.admitted_publications.clear()
   host.journal.admitted_record = None
   if !opened_here {
