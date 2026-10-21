@@ -2,14 +2,14 @@
 // bytes live in their existing request and Checkpoint custody; they never
 // resolve aliases, issue permissions or establish another recovery authority.
 import {checked} from '../host-common/runtime-result.mjs';
-import {installedEffectFor} from './installed-effect-inventory.mjs';
-import {installedRowEffectOwnerBinding, installedRowEffectUpdateObservations} from
+import {installedRowEffectOwnerBinding, installedRowEffectUpdateObservations,
+  installedRowEffectDescriptors} from
   './installed-row-effect.mjs';
 import {refusedEffectPreparation} from '../host-common/effect-preparation-result.mjs';
 
 import {installationsShape, updateTargetPreparedOriginalShape, updateTargetRunOriginalShape,
   runUpdateSelectionCid, originalUpdateTargetSelectionsCid as updateTargetSelectionsCid, retainUpdateTargetSelection,
-  assertUpdateTargetSelectionCurrent, updateTargetSelectionMatchesRun,
+  assertUpdateTargetSelectionCurrent, assertUpdateTargetSelectionMembersCurrent, updateTargetSelectionMatchesRun,
   updateTargetOriginalDataEqual}
   from './update-target-original-shape.mjs';
 const fail = () => { throw refusedEffectPreparation(Object.assign(
@@ -20,15 +20,19 @@ export function installUpdateTargetOriginals({moon, control, installedEffect, li
   const compilations = new WeakMap();
   const same = (left, right) => updateTargetOriginalDataEqual(moon, left, right);
   const selectionsOf = prepared => retainUpdateTargetSelection(moon, prepared);
-  const descriptors = selections => selections.map(value => ({kind: 'update',
-    effectId: value.effect_id, target: value.target_ref,
-    mappingRef: value.mapping_ref, mappingCid: value.mapping_cid}));
   const current = selections => {
     if (selections === undefined) return undefined;
     const originals = new Map();
     const observations = new Map();
-    for (const descriptor of descriptors(selections)) {
-      const owner = installedEffectFor(installedEffect, [descriptor]);
+    for (const selection of selections) {
+      // The opaque Common selection already fixes its installed Owner. Look
+      // up that actual private owner, then let Common check its original
+      // UPDATE/DELETE/STORE purpose and Mapping against current observations.
+      // Reconstructing every selection as an UPDATE loses STORE's Command.
+      const matches = (installedEffect?.effects ?? [installedEffect]).filter(owner =>
+        installedRowEffectOwnerBinding(owner)?.cid === selection.installation_owner_cid);
+      if (matches.length !== 1) fail();
+      const owner = matches[0];
       const original = installedRowEffectOwnerBinding(owner);
       if (original === undefined) fail();
       originals.set(original.cid, original);
@@ -98,6 +102,32 @@ export function installUpdateTargetOriginals({moon, control, installedEffect, li
   };
   return Object.freeze({selectionsOf, capturePrepared, restorePrepared, restoreRun,
     restoreEffectMaterials,
+    validateRecoveredSelectionMembers({prepared, compilation, selections, preview, stageIndex}) {
+      current(selections);
+      const descriptors = installedRowEffectDescriptors(moon, prepared, compilation);
+      const members = preview.effects.flatMap(member => {
+        if (member.effect_kind === 'update' || member.effect_kind === 'delete') {
+          return [{stage_index: stageIndex, effect_id: member.effect_id,
+            target_ref: member.target, mapping_ref: member.mapping,
+            mapping_cid: member.resolved_mapping_contract_cid}];
+        }
+        const selected = selections?.filter(value => value.effect_id === member.effect_id) ?? [];
+        if (selected.length === 0) return [];
+        const actual = descriptors.filter(value => value.effectId === member.effect_id);
+        if (selected.length !== 1 || actual.length !== 1 || member.effect_kind !== 'command' ||
+            actual[0].kind !== 'command' || member.target !== actual[0].target ||
+            member.contract !== actual[0].commandRef ||
+            member.resolved_command_contract_cid !== actual[0].commandCid) fail();
+        // Common's same-prepared selection has already established STORE,
+        // not a generic Command. Bind the saved Command member to that exact
+        // Mapping selection without relabeling either one as UPDATE.
+        const selection = selected[0];
+        return [{stage_index: stageIndex, effect_id: member.effect_id,
+          target_ref: selection.target_ref, mapping_ref: selection.mapping_ref,
+          mapping_cid: selection.mapping_cid}];
+      });
+      assertUpdateTargetSelectionMembersCurrent(selections, members, prepared);
+    },
     captureEffectMaterials({allowed, definition, identity}) {
       return checked(moon.clientProgramIssuePreparedEffectRunMaterials(
         allowed, definition, identity ?? null));

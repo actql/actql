@@ -45,6 +45,7 @@ async function accountFixture() {
       privateEvidenceKey: binding.evidenceKey.key}, runtimeCore(moon).publicationControl,
     undefined, undefined, journal.publicationOwnership());
     await binding.adoptStore(store);
+    return store;
   }, async close() {
     await journal.close(); await store?.close();
     assert.equal((await journal.close()).pending, false);
@@ -162,18 +163,44 @@ test('actual Common Mock profile creates real distinct purpose keys and respects
   } finally {await f.close();}
 });
 
-test('actual Mock setup never treats absent consent or a missing adopted key as fresh authority', async () => {
+test('actual Mock setup requires consent and refuses a missing adopted evidence key', async () => {
   const f = await accountFixture();
   try {
     await assert.rejects(initializeOrdinaryMockAccount({...f.options, explicitSelection: false}),
       {code: 'LocalMockInitializationConsentRequired'});
     const first = await initializeOrdinaryMockAccount(f.options);
     await f.adopt(first);
-    const path = join(f.root, 'mock-account', 'reviewer.pem');
+    const path = join(f.root, 'mock-account', 'continuation.key');
     await rename(path, path + '.test-held');
     await assert.rejects(initializeOrdinaryMockAccount(f.options), {code: 'LocalMockAdoptedStateMissing'});
     await assert.rejects(stat(path), {code: 'ENOENT'});
     first.evidenceKey.key.fill(0);
+  } finally {await f.close();}
+});
+
+test('actual Mock Reviewer absence preserves Account originals but cannot issue a signed approval', async () => {
+  const f = await accountFixture();
+  try {
+    const first = await initializeOrdinaryMockAccount(f.options);
+    const store = await f.adopt(first);
+    const directory = join(f.root, 'mock-account');
+    const names = ['initialization.json', 'adopted.json', 'account.json', 'host.pem', 'continuation.key'];
+    const before = await Promise.all(names.map(name => readFile(join(directory, name))));
+    const reviewerPath = join(directory, 'reviewer.pem');
+    const reviewerBytes = await readFile(reviewerPath);
+    await rename(reviewerPath, reviewerPath + '.test-held');
+    const accountOnly = await initializeOrdinaryMockAccount({...f.options, explicitSelection: false});
+    assert.equal(accountOnly.reviewer, undefined);
+    assert.equal(accountOnly.configurationPath, first.configurationPath);
+    assert.deepEqual(accountOnly.authorization, first.authorization);
+    assert.deepEqual(accountOnly.evidenceKey.key, first.evidenceKey.key);
+    await accountOnly.adoptStore(store);
+    await assert.rejects(accountOnly.assertSigningCurrent(store), {code: 'CheckpointSignerUnavailable'});
+    assert.throws(() => accountOnly.signingOriginal(store, 1n, 100n), {code: 'CheckpointSignerUnavailable'});
+    assert.deepEqual(await Promise.all(names.map(name => readFile(join(directory, name)))), before);
+    await assert.rejects(stat(reviewerPath), {code: 'ENOENT'});
+    assert.deepEqual(await readFile(reviewerPath + '.test-held'), reviewerBytes);
+    first.evidenceKey.key.fill(0); accountOnly.evidenceKey.key.fill(0);
   } finally {await f.close();}
 });
 

@@ -98,8 +98,8 @@ import {composeInstalledEffects, installedEffectFor, installedUpdateTargets} fro
 import {installedRowEffectDescriptors, validateInstalledUpdateOwnerSelections}
   from './installed-row-effect.mjs';
 import {installUpdateTargetOriginals} from './installed-update-originals.mjs';
-import {runUpdateSelectionCid, createUpdateTargetOriginalShapeControl,
-  assertUpdateTargetSelectionMembersCurrent} from './update-target-original-shape.mjs';
+import {runUpdateSelectionCid, createUpdateTargetOriginalShapeControl}
+  from './update-target-original-shape.mjs';
 import {assertInstalledConnectorTable} from './installed-connectors.mjs';
 import {refusedEffectPreparation} from '../host-common/effect-preparation-result.mjs';
 import {createInstalledEffectSite} from './installed-effect-site.mjs';
@@ -1096,11 +1096,9 @@ async function openInstalledHost(originalInstallation, preparation) {
       const preview = JSON.parse(facts.control.effectComputationPreviewWire(
         facts.recovered.computation.preview));
       try {
-        assertUpdateTargetSelectionMembersCurrent(selections,
-          preview.effects.filter(member => member.effect_kind === 'update').map(member => ({
-            stage_index: provider?.stage_index, effect_id: member.effect_id,
-            target_ref: member.target, mapping_ref: member.mapping,
-            mapping_cid: member.resolved_mapping_contract_cid})));
+        updateTargetOriginals.validateRecoveredSelectionMembers({
+          selections, prepared: facts.recovered.prepared,
+          compilation: facts.recovered.compilation, preview, stageIndex: provider?.stage_index});
       } catch {
         throw refusedEffectPreparation(clientOperationError('InstalledEffectOriginalSelectionChanged'));
       }

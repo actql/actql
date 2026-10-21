@@ -2,7 +2,9 @@
 // Reference issuer, Account decision, Run or approval is supplied here.
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
-import {readFile} from 'node:fs/promises';
+import {readFile, mkdtemp} from 'node:fs/promises';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
 import {pathToFileURL} from 'node:url';
 import {inspect} from 'node:util';
 import test from 'node:test';
@@ -10,6 +12,11 @@ import {checked} from '../../../host-common/runtime-result.mjs';
 import {canonicalJson} from '../../../../packages/sdk/host-port.mjs';
 import {rowSourceCheckEnvironment} from '../../../host-node/installed-row-source.mjs';
 import {localFileStoreDeclaration} from './local-file-store-declaration.mjs';
+import {createInstalledRowEffect, installedRowEffectOwnerBinding,
+  validateInstalledUpdateOwnerSelections, installedRowEffectDescriptors,
+  installedRowEffectUnit} from '../../../host-node/installed-row-effect.mjs';
+import {installUpdateTargetOriginals} from '../../../host-node/installed-update-originals.mjs';
+import {runtimeCore} from '../../../host-common/runtime-core.mjs';
 
 assert(process.env.ACTQL_TEST_PROJECT_COMMON_RUNTIME,'Select the actual qualified Common runtime');
 const moon=await import(pathToFileURL(process.env.ACTQL_TEST_PROJECT_COMMON_RUNTIME));
@@ -34,7 +41,7 @@ function fixture(){
     aliases:[],storeTargets:[{name:'local.files',targetRef:'connector://local/files',
       installationBindingCid:'sha256:'+'b'.repeat(64),installationOwnerCid:'sha256:'+'c'.repeat(64)}]});
   assert.equal(moon.clientProgramSourcePublicationValid(admitted,publication),true);
-  return{wire,data,admitted,publication};
+  return{wire,data,admitted,publication,environment};
 }
 const source=set=>"SELECT 1 AS id |> SERIALIZE FORMAT JSONL ORDER BY id OPTIONS (name = 'one.jsonl') "+
   '|> EFFECT STORE local.files SET ('+set+')';
@@ -120,4 +127,92 @@ test('actual Local STORE refuses missing or wrong typed inputs and conflicting o
   for(const malformed of ['null','[]','true','{"catalog":"null"}'])
     assert.throws(()=>localFileStoreDeclaration(malformed,options),{code:'InvalidLocalFileStoreDeclaration'});
   assert.deepEqual(JSON.parse(f.wire).catalog,canonical(catalog),'no original input mutation');
+});
+
+async function storeOwnerFixture({withMapping=true,driverKinds=['command'],continuationBinding}={}) {
+  const f=fixture(),mapping=JSON.parse(f.data.mappingWire),command=JSON.parse(f.data.commandWire);
+  const unavailable=()=>assert.fail('Selection validation cannot perform provider work');
+  const owner=await createInstalledRowEffect({moon,environmentWire:f.environment.wire,
+    connectorId:'local',connectorRegistration:'local',connectorRevision:'local/0.1',connection:'local',
+    runtimeBundleCid:'sha256:'+'d'.repeat(64),bindingCid:'sha256:'+'b'.repeat(64),
+    ...(continuationBinding===undefined?{}:{continuationBinding}),
+    ledgerRoot:await mkdtemp(join(tmpdir(),'actql-store-original-')),
+    mappings:withMapping?[{resource:'files',mappingRef:mapping.mapping_ref,
+      mappingCid:mapping.mapping_contract_cid,body:f.data.mappingWire}]:[],
+    commands:[{resource:'files',commandRef:command.command_id,
+      commandCid:command.contract_cid,body:f.data.commandWire}],
+    site:{issueReadGrant:unavailable,issueEffectGrant:unavailable,close(){}},
+    authorization:{authorize:unavailable},
+    driver:{kinds:driverKinds,...Object.fromEntries(['prepareRequest','requestFacts','writeOperation',
+      'send','project','footprint','recheckRequests','recoveryEntry','recoverRequests','requestCid']
+      .map(name=>[name,unavailable]))}});
+  try{
+    const publication=JSON.parse(f.publication);
+    publication.storeTargets[0].installationOwnerCid=installedRowEffectOwnerBinding(owner).cid;
+    const outcome=prepare({...f,publication:JSON.stringify(publication)},"path = 'copy.jsonl', content = content");
+    const prepared=moon.clientProgramEffectPreparationReady(moon.clientProgramSourceComputationEffect(outcome));
+    assert(prepared);
+    const policy='{"classification":"unknown","source_data_policy_cids":[],"source_response_policy_cids":[],"unknown_provenance":true,"version":"actql-effective-data-policy/0.1"}';
+    const compilation=checked(moon.clientProgramCompileLocalEffectsWithSourceFreePolicyBody(prepared,
+      'sha256:470e10d347bfe887c4a91d9f616b01b3e1aba211a2fd2ba20ebf63d136543563',policy,1000000,100000,100));
+    const originals=installUpdateTargetOriginals({moon,control:runtimeCore(moon).publicationControl,
+      installedEffect:{effects:[owner],environmentWire:f.environment.wire},
+      limits:{maxWireBytes:1000000,maxNodes:100000,maxDepth:100}});
+    const selections=originals.selectionsOf(prepared);
+    const descriptor=installedRowEffectDescriptors(moon,prepared,compilation)[0];
+    const stageIndex=installedRowEffectUnit(moon,compilation).stageIndex;
+    const member={effect_id:descriptor.effectId,effect_kind:'command',target:descriptor.target,
+      contract:descriptor.commandRef,resolved_command_contract_cid:descriptor.commandCid};
+    const facts={prepared,compilation,selections,stageIndex,preview:{effects:[member]}};
+    return {owner,originals,prepared,compilation,selections,member,facts,
+      close:()=>owner.close()};
+  }catch(cause){await owner.close();throw cause;}
+}
+
+test('actual Local STORE selection reaches its same command Owner without UPDATE substitution',async()=>{
+  const f=await storeOwnerFixture();
+  const {owner,originals,prepared,compilation,selections,member,facts}=f;
+  try{
+    assert.equal(selections.length,1);
+    assert.equal(validateInstalledUpdateOwnerSelections(owner,selections,prepared),selections);
+    originals.validateRecoveredSelectionMembers(facts);
+    for(const changed of [{target:'foreign'},{contract:'foreign'},
+      {resolved_command_contract_cid:'sha256:'+'f'.repeat(64)},{effect_kind:'update'}]){
+      assert.throws(()=>originals.validateRecoveredSelectionMembers({...facts,
+        preview:{effects:[{...member,...changed}]}}));
+    }
+    assert.throws(()=>originals.validateRecoveredSelectionMembers({...facts,selections:[...selections]}));
+    assert.throws(()=>originals.validateRecoveredSelectionMembers({...facts,stageIndex:facts.stageIndex+1}));
+    const saved=originals.capturePrepared(prepared,compilation);
+    assert.equal(typeof saved.preparedWire,'string');
+    assert.throws(()=>validateInstalledUpdateOwnerSelections(owner,[...selections],prepared),
+      {code:'InstalledRowEffectInstallationChanged'});
+  }finally{await f.close();}
+});
+
+test('actual Local STORE current selection refuses missing purpose foreign owner and foreign preparation',async()=>{
+  const original=await storeOwnerFixture(),others=[];
+  try{
+    for(const options of [{withMapping:false},{driverKinds:['create']},
+      {continuationBinding:'sha256:'+'f'.repeat(64)}]){
+      const other=await storeOwnerFixture(options);others.push(other);
+      assert.throws(()=>validateInstalledUpdateOwnerSelections(other.owner,
+        original.selections,original.prepared),{code:'InstalledRowEffectInstallationChanged'});
+    }
+    assert.throws(()=>validateInstalledUpdateOwnerSelections({...original.owner},
+      original.selections,original.prepared),{code:'InstalledRowEffectInstallationChanged'});
+    assert.throws(()=>validateInstalledUpdateOwnerSelections(original.owner,
+      original.selections,others[0].prepared),{code:'InstalledRowEffectInstallationChanged'});
+  }finally{for(const other of others)await other.close();await original.close();}
+});
+
+test('actual Local STORE saved preparation restores its original source-free policy',async t=>{
+  const f=await storeOwnerFixture();
+  try{
+    const saved=f.originals.capturePrepared(f.prepared,f.compilation);
+    let restored;
+    try { restored=f.originals.restorePrepared(saved); }
+    catch(cause) { t.diagnostic(inspect(cause.cause,{depth:8})); throw cause; }
+    restored.assertUpdateSelectionCurrent();
+  }finally{await f.close();}
 });

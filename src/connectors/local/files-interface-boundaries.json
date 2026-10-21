@@ -1202,7 +1202,7 @@
     {
       "module": "adapters/connectors/local/host/installed-project-file-effects.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "8f914bba9884e06a8fcc299a953dbf20f86a66730cd03f61e2e28bfa7c99c41b",
+      "sha256": "4ce39843bbdc5153b7a809d420baac1b0c4125bd6ff87a5965a77d678d8ade6b",
       "role": "connector-semantics",
       "owner": "Existing installed Local collection/Row Effect, original Account/Run and physical Root children",
       "exports": [
@@ -1850,6 +1850,10 @@
               {
                 "path": "adapters/connectors/local/host/local-file-store-driver.test.mjs",
                 "anchor": "test('Local STORE recovered request connects"
+              },
+              {
+                "path": "adapters/connectors/local/host/local-file-store-declaration.actual.test.mjs",
+                "anchor": "test('actual Local STORE selection reaches its same command Owner without UPDATE substitution'"
               }
             ]
           }
