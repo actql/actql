@@ -142,6 +142,53 @@ async function fixture() {
   return {root, originals, view};
 }
 
+for (const owned of [true, false]) {
+  test(`ordinary Journal keeps native directory admission separate from accepted row projection (${owned ? 'owned' : 'strict'})`, async t => {
+    const owner = owned ? await fixture() : undefined;
+    const directory = owned ? join(owner.root, 'requests') :
+      await mkdtemp(join(tmpdir(), 'actql-strict-journal-row-'));
+    const journal = owned ? await owner.view.openRequestJournal(directory, {}) :
+      openClientRequestJournal(directory);
+    t.after(async () => {
+      journal.close();
+      if (owner !== undefined) assert.equal((await owner.view.close()).pending, false);
+    });
+    // Explicit request-control protocol fixture only. SQLite transactions,
+    // Store exclusion and row projection are real; no Common authority or
+    // whole Host execution is supplied by these synthetic identity fields.
+    const keys = ['authorityScopeCid', 'requestId', 'programDefinitionCid',
+      'parameterValuesCid', 'callerInputIntentCid', 'logicalRequestScopeCid',
+      'intentFingerprintCid'];
+    const cid = digit => 'sha256:' + digit.repeat(64);
+    const identity = Object.freeze(Object.fromEntries(keys.map((key, index) =>
+      [key, index === 1 ? 'ordinary-row-request' : cid(String(index))])));
+    const control = {clientRequestAdmitRecord(...fields) {
+      return Object.freeze(Object.fromEntries(keys.map((key, index) => [key, fields[index]])));
+    }, clientRequestRelation(a, b) {
+      return keys.every(key => a[key] === b[key]) ? 1 : 2;
+    }};
+    for (const [method, key] of Object.entries({clientRequestAuthorityScopeCid: 'authorityScopeCid',
+      clientRequestCallerId: 'requestId', clientRequestScopeCid: 'logicalRequestScopeCid',
+      clientRequestIntentCid: 'intentFingerprintCid', clientRequestProgramCid: 'programDefinitionCid',
+      clientRequestParametersCid: 'parameterValuesCid', clientRequestInputCid: 'callerInputIntentCid'})) {
+      control[method] = value => value[key];
+    }
+    const input = {namespaceId: 'ordinary-row', runDefinitionCid: cid('a'),
+      lookupExpiresAt: '2099-01-01T00:00:00.000Z'};
+    const first = journal.accept(identity, input, control);
+    const key = {namespaceId: input.namespaceId, authorityScopeCid: identity.authorityScopeCid,
+      requestId: identity.requestId};
+    assert.deepEqual(journal.lookup(key, control).ref, first.ref);
+    assert.deepEqual(journal.accept(identity, input, control).ref, first.ref);
+    assert.equal(journal.lookup(key, control).revision, first.revision);
+    journal.close();
+    const reopened = openClientRequestJournal(directory, {},
+      owner?.view.privateEvidenceInitializationOwnership());
+    try {assert.deepEqual(reopened.lookup(key, control).ref, first.ref);}
+    finally {reopened.close();}
+  });
+}
+
 test('ordinary actual Journal opens independent Hosts and reopens the same saved state in one process', async () => {
   const a = await fixture(), b = await fixture();
   assert.equal(await a.view.admitRootFormat(a.root), 'new');
