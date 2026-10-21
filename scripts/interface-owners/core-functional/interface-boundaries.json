@@ -170,7 +170,7 @@
     },
     {
       "module": "adapters/host-common/runtime-core.mjs",
-      "sha256": "d3bf765b1e13181a794f0d3e54cdc7b1b5fd3f956a1278f496b06b9504bdf219",
+      "sha256": "b693ce62cd086442e0b8c2f788ad55d2a400dc8907c97a1d6936997689425cd8",
       "role": "physical-io",
       "exports": [
         "contentCaptureControl",
@@ -2351,6 +2351,28 @@
           "parameters": [
             "compiled",
             "generation"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:checkedClientSerializationGenerationLimits/init:checkedClientSerializationGenerationLimits",
+          "parameters": [
+            "compiled",
+            "selection"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:checkedClientSerializationGenerationLimits/init:checkedClientSerializationGenerationLimits/init:checkedClientSerializationGenerationLimits",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:checkedClientSerializationGenerationLimits/init:checkedClientSerializationGenerationLimits/nodes/nodes",
+          "parameters": [
+            "node"
           ],
           "async": false
         },
@@ -7211,6 +7233,9 @@
             "publicationControl/init:checkedClientSerializationByteHoldingCid/init:checkedClientSerializationByteHoldingCid",
             "publicationControl/init:checkedClientSerializationGenerationDerivation/init:checkedClientSerializationGenerationDerivation",
             "publicationControl/init:checkedClientSerializationGenerationEvidence/init:checkedClientSerializationGenerationEvidence",
+            "publicationControl/init:checkedClientSerializationGenerationLimits/init:checkedClientSerializationGenerationLimits",
+            "publicationControl/init:checkedClientSerializationGenerationLimits/init:checkedClientSerializationGenerationLimits/init:checkedClientSerializationGenerationLimits",
+            "publicationControl/init:checkedClientSerializationGenerationLimits/init:checkedClientSerializationGenerationLimits/nodes/nodes",
             "publicationControl/init:checkedClientSerializationGenerationOutput/init:checkedClientSerializationGenerationOutput",
             "publicationControl/init:checkedClientSerializationRecoveryBindings/init:checkedClientSerializationRecoveryBindings",
             "publicationControl/init:checkedClientSerializationRecoveryBindings/init:checkedClientSerializationRecoveryBindings/init:checkedClientSerializationRecoveryBindings",
