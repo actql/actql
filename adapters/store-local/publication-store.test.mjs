@@ -715,7 +715,7 @@ test('known file-backed Result metadata performs no unrelated native delivery pr
     }
     return statement;
   });
-  const {store} = await fixture(t);
+  const {store, directory} = await fixture(t);
   const invocationValue = invocation();
   const definition = resultDefinition();
   const request = publicationRequest(definition, invocationValue.invocation_cid);
@@ -737,6 +737,10 @@ test('known file-backed Result metadata performs no unrelated native delivery pr
     () => true, chunk => chunks.push(Buffer.from(chunk)));
   assert.equal(Buffer.concat(chunks).toString('utf8'), 'fixture durable Result payload');
   assert.deepEqual(probes, [], 'actual payload/schema consumption uses the same selected representation');
+  await unlink(join(directory, 'contracts', cids.schema.slice(7) + '.json'));
+  await assert.rejects(store.readCommittedResultDescriptionEvidence(
+    indexKeyFor(request), definition.result_definition_cid), code('PublicationContractMissing'));
+  assert.deepEqual(probes, [], 'a missing selected schema refuses without a different representation');
 });
 
 test('bounded object writes are durable, streamed, and physically addressed',
