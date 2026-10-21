@@ -1,5 +1,29 @@
 # Effect-free Local normalization evidence
 
+Fresh preparations use one common original-occurrence audit and the frozen
+`actql-effect-free-local-common-normalization-catalog.json` contract. It visits
+all original units and producer visits, expression children, actual parameter
+bindings and the original requirement closure under one cumulative work bound.
+Fixed operations do not select another catalogue solely because they occur.
+Actual Sort/projection completions retain their original rule/path/authored/
+canonical entries; unconnected completions refuse without empty evidence.
+
+This inventory is not a backend support result. Existing typed lowering,
+candidate selection, numeric observation, ordered/collection limits, Run-time
+binding, current authorization and physical execution/cleanup owners remain
+mandatory. A checked operation, matching CID or empty journal cannot supply
+those originals. Traversal, entry encoding and final wire/hash work remain
+bounded and issue atomically. Ordinary managed aliases retire as managed
+references; no journal or inventory is a physical release acknowledgement.
+
+The preceding catalogues, schemas and journals remain available for their
+original saved preparations. Their legacy applicability audit is evaluated
+only by the legacy readers, rather than run beside every fresh common audit.
+Restoration uses the saved original recipe and catalogue; it does not invoke
+the fresh default issuer, recompile a saved Run or rename its Results.
+
+## Retained legacy applicability slices
+
 The installed Local profile uses a distinct frozen catalog at
 `spec/contracts/actql-effect-free-local-completion-free-catalog.json`. Its closed
 schema and independently authored canonical preimages accompany the catalog.

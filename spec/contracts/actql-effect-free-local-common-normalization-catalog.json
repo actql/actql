@@ -1,0 +1,48 @@
+{
+  "version": "actql-normalization-rule-catalog/0.1",
+  "profile": "actql-effect-free-local-completion-free/0.1",
+  "applicability": {
+    "proof": "same-original-CheckedProgram-and-complete-requirement-closure",
+    "scope": "fresh-effect-free-Local-normalization-only-not-execution-support",
+    "occurrences": "all-original-units-producer-visits-steps-expression-children-and-parameter-references",
+    "audit_work_limit": 10000,
+    "parameter_origins": [
+      "supplied",
+      "default"
+    ],
+    "parameter_binding": "same-original-BoundValues-declaration-name-type-and-checked-value; Default-never-relabelled-Supplied",
+    "fixed_operations": "existing-typed-lowering-execution-and-requirement-owners; no-normalization-operation-or-expression-allowlist",
+    "execution_requirements": "retain-original-static-resolutions-and-mandatory-execution-checks; no-support-permission-resource-or-numeric-observation-discharge",
+    "actual_completions": "only-original-occurrence-rule-path-authored-and-canonical-values; unconnected-completion-refuses",
+    "source_selection": "original-resolver-selection; unrecorded-implicit-selection-refuses-no-Source-authority",
+    "normalization_journal_limits": {
+      "max_depth": 8,
+      "max_nodes": 32,
+      "max_wire_bytes": 1024
+    },
+    "compatibility": "old-catalogue-schema-journal-and-saved-recipe-bytes-remain-original; fresh-catalogue-never-selected-for-saved-Run"
+  },
+  "rules": [
+    {
+      "authored": "canonical JSON of the original authored drop body",
+      "canonical": "canonical JSON of existing REL.select params from the original checked projection in canonical input-name order",
+      "id": "relation.drop_projection",
+      "path": "original decoded Program drop body",
+      "requires": "original same-pipeline same-step CheckedOperation and its complete checked input schema; no caller mapping or replacement declaration"
+    },
+    {
+      "authored": "canonical JSON of the original authored rename body",
+      "canonical": "canonical JSON of existing REL.select params from the original checked projection in canonical input-name order",
+      "id": "relation.rename_projection",
+      "path": "original decoded Program rename body",
+      "requires": "original same-pipeline same-step CheckedOperation and its complete checked input schema; no caller mapping or replacement declaration"
+    },
+    {
+      "authored": "canonical JSON of the original authored Sort array",
+      "canonical": "original authored keys in priority followed by actual missing selected candidate-key fields ascending with nulls last",
+      "id": "sort.candidate_key_completion",
+      "path": "original decoded Program Sort body",
+      "requires": "original same-pipeline same-step SortOrder and selected candidate-key proof with nonzero appended_count"
+    }
+  ]
+}

@@ -1,3 +1,5 @@
+// Legacy catalogue compatibility cases retain the original recipe issuer.
+
 ///|
 // Preserve the composed fixture; only this Local regression copy has its two
 // capability members put in the existing complete-member-hash order.
@@ -30,7 +32,7 @@ fn local_normalization_fixture(
 ///|
 test "Local three-stage typed Derive has independent journal bytes and exact original custody" {
   let owner = local_normalization_fixture()
-  let issued = issue_prepared_client_local_normalization(owner).unwrap()
+  let issued = issue_prepared_client_legacy_local_normalization(owner).unwrap()
   let journal = prepared_client_local_normalization_evidence(owner, issued).unwrap()
   let preimage =
     #|{"entries":[],"rule_catalog_cid":"sha256:690a1e3eea6e0ce89e54937db070a578ec66c2c456061c28a29c7c4dba1b6587","version":"actql-normalization-journal/0.1"}
@@ -51,7 +53,8 @@ test "Local three-stage typed Derive has independent journal bytes and exact ori
     @checked.local_completion_free_inventory_work(
       match issued.audit {
         CompletionFree(value) => value
-        SortCompletion(_) => fail("completion-free original expected")
+        SortCompletion(_) | Common(_) =>
+          fail("completion-free legacy original expected")
       },
     ) >
     0,
@@ -59,7 +62,7 @@ test "Local three-stage typed Derive has independent journal bytes and exact ori
   assert_true(
     physical_equal(
       issued,
-      issue_prepared_client_local_normalization(owner).unwrap(),
+      issue_prepared_client_legacy_local_normalization(owner).unwrap(),
     ),
   )
   assert_true(
@@ -80,7 +83,7 @@ test "Local three-stage typed Derive has independent journal bytes and exact ori
   )
   let copied_owner : PreparedClientProgram = { ..owner, }
   assert_true(
-    issue_prepared_client_local_normalization(copied_owner)
+    issue_prepared_client_legacy_local_normalization(copied_owner)
     is Err(ForeignPreparation),
   )
 }
@@ -93,21 +96,31 @@ test "Local original sole-view resolution remains a completion and preserves sou
   )
   let owner = local_normalization_fixture(document~)
   assert_true(
-    issue_prepared_client_local_normalization(owner)
+    issue_prepared_client_legacy_local_normalization(owner)
     is Err(Inventory(CompletionObserved)),
   )
   assert_true(owner.local_normalization is None)
 }
 
 ///|
-test "Local uninstalled operation and actual template completion cannot issue empty evidence" {
-  let uncovered_operation = local_normalization_document.replace(
+test "legacy projection records its completion while unsupported reshape and template refuse" {
+  let projection = local_normalization_document.replace(
     old="\"select\":[\"next\"],",
     new="\"drop\":[\"id\"]},{\"select\":[\"next\"],",
   )
+  let owner = local_normalization_fixture(document=projection)
+  let issued = issue_prepared_client_legacy_local_normalization(owner).unwrap()
+  guard issued.audit is SortCompletion(inventory) else {
+    fail("the installed projection must retain its real completion")
+  }
+  assert_eq(@checked.local_sort_normalization_entry_count(inventory), 1)
+  let uncovered_operation = local_normalization_document.replace(
+    old="\"select\":[\"next\"],",
+    new="\"unpivot\":{\"columns\":[\"id\"],\"keep\":[\"next\"],\"name_column\":\"label\",\"value_column\":\"value\"}},{\"select\":[\"next\"],",
+  )
   let owner = local_normalization_fixture(document=uncovered_operation)
   assert_true(
-    issue_prepared_client_local_normalization(owner)
+    issue_prepared_client_legacy_local_normalization(owner)
     is Err(Inventory(ProfileNotInstalled)),
   )
   assert_true(owner.local_normalization is None)
@@ -117,7 +130,7 @@ test "Local uninstalled operation and actual template completion cannot issue em
   )
   let owner = local_normalization_fixture(document=template)
   assert_true(
-    issue_prepared_client_local_normalization(owner)
+    issue_prepared_client_legacy_local_normalization(owner)
     is Err(Inventory(CompletionObserved)),
   )
   assert_true(owner.local_normalization is None)
@@ -126,7 +139,7 @@ test "Local uninstalled operation and actual template completion cannot issue em
 ///|
 test "Local saved normalization bytes cannot be reissued under another catalog or preparation" {
   let owner = local_normalization_fixture()
-  let issued = issue_prepared_client_local_normalization(owner).unwrap()
+  let issued = issue_prepared_client_legacy_local_normalization(owner).unwrap()
   let journal = prepared_client_local_normalization_evidence(owner, issued).unwrap()
   let wire = @publication.run_evidence_value_json(journal)
   assert_eq(

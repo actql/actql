@@ -1,3 +1,5 @@
+// Legacy catalogue compatibility cases retain the original recipe issuer.
+
 ///|
 let local_group_catalog_cid : String = "sha256:b63098d9379e482326c612be898d13d86c0c849d6c77afb7f2574b33cb2a78d5"
 
@@ -9,7 +11,7 @@ let local_group_journal : String =
 fn local_group_normalization(
   owner : PreparedClientProgram,
 ) -> ClientLocalNormalization raise {
-  let issued = issue_prepared_client_local_normalization(owner).unwrap()
+  let issued = issue_prepared_client_legacy_local_normalization(owner).unwrap()
   assert_eq(
     @publication.run_evidence_value_json(
       prepared_client_local_normalization_evidence(owner, issued).unwrap(),
@@ -20,7 +22,8 @@ fn local_group_normalization(
     @checked.local_completion_free_inventory_uses_groups(
       match issued.audit {
         CompletionFree(value) => value
-        SortCompletion(_) => fail("completion-free original expected")
+        SortCompletion(_) | Common(_) =>
+          fail("completion-free legacy original expected")
       },
     ),
   )
@@ -92,7 +95,7 @@ test "Group normalization retains original argument completion and unsupported r
     text="SELECT COUNT(CASE WHEN TRUE THEN 1 END) AS n",
   )
   assert_true(
-    issue_prepared_client_local_normalization(implicit_else)
+    issue_prepared_client_legacy_local_normalization(implicit_else)
     is Err(Inventory(CompletionObserved)),
   )
   assert_true(implicit_else.local_normalization is None)
@@ -102,7 +105,7 @@ test "Group normalization retains original argument completion and unsupported r
     ),
   )
   assert_true(
-    issue_prepared_client_local_normalization(unsupported_relation)
+    issue_prepared_client_legacy_local_normalization(unsupported_relation)
     is Err(Inventory(ProfileNotInstalled)),
   )
   assert_true(unsupported_relation.local_normalization is None)
