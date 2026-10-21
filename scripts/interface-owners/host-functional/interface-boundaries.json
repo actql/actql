@@ -7628,7 +7628,7 @@
             "synchronization": [
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
-                "anchor": "contracts-directory ACK. The succeeded record is linked only afterwards and"
+                "anchor": "ACK, then the record alias requires its actual attempt-directory ACK. No prepared"
               }
             ],
             "failure": [
@@ -70782,13 +70782,13 @@
             "synchronization": [
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
-                "anchor": "contracts-directory ACK. The succeeded record is linked only afterwards and"
+                "anchor": "ACK, then the record alias requires its actual attempt-directory ACK. No prepared"
               }
             ],
             "failure": [
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
-                "anchor": "pending even when succeeded bytes are visible. Retry never invokes the sink,"
+                "anchor": "Retry never invokes the sink,"
               }
             ],
             "cancellation": [

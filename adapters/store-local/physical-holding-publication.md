@@ -299,7 +299,8 @@ same indexed Run rows only after the original delivery directories retire.
 
 The native database uses WAL, FULL synchronization, fullfsync and checkpoint
 fullfsync. A failed COMMIT is unknown even when the connection has left its
-transaction; further work refuses until close/reopen observes the durable
+transaction; unrelated work refuses. Only the retained same-original physical
+finalization may retry as specified here, or close/reopen observes the durable
 original state. Bounded input/row counts are not capacity or permission.
 The original native wrapper and captured close/isOpen remain owned until real
 close. Store exclusion and key retirement follow that ACK and all independent
