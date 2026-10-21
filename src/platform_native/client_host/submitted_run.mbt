@@ -547,6 +547,10 @@ fn NativeClientRunJournal::accept_original_submitted_run(
       if current_fence is Some(current) && !current() {
         return Err(AuthorizationDenied)
       }
+      match self.index_run_id_locked(authority, reference, run, operations~) {
+        Ok(_) => ()
+        Err(issue) => return Err(issue)
+      }
       compare_exchange_client_journal_value(
         self.database,
         "client_submitted_intents",

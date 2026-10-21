@@ -262,7 +262,7 @@ fn initialize_native_client_run_journal(
   }
   for
     table in [
-      "client_checkpoint_id_index", "client_effect_response_meta", "client_effect_response_bytes",
+      "client_checkpoint_id_index", "client_run_id_index", "client_effect_response_meta", "client_effect_response_bytes",
       "client_effect_row_receipt", "client_cancellations", "client_cancel_custody",
       "client_cancel_originals",
     ] {

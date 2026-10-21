@@ -40,37 +40,19 @@ fn NativeLocalHostConnection::current_adoption_material_with_reads(
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
-  let row = match
-    scan_client_journal_value(self.database, "client_local_adoption", "", reads) {
+  let row = match read_client_journal_value(self.database, "client_local_adoption", "adoption", reads) {
     Ok(value) => value
     Err(issue) => return Err(Physical(issue))
   }
-  if row.key != "adoption" ||
-    row.revision != 0L ||
-    row.body != self.adoption_body {
+  if row.revision != 0L || row.body != self.adoption_body {
     return Err(CustodyLost)
-  }
-  match
-    scan_client_journal_value(
-      self.database,
-      "client_local_adoption",
-      "adoption",
-      reads,
-    ) {
-    Err(@sqlite.NotFound) => ()
-    Err(issue) => return Err(Physical(issue))
-    Ok(_) => return Err(CustodyLost)
-  }
-  match current() {
-    Ok(_) => ()
-    Err(issue) => return Err(issue)
   }
   Ok(
     @host.Observed(
       self.database,
       self.session.configuration,
       self.session.source_body,
-      { key: row.key, body: row.body, revision: row.revision, },
+      { key: "adoption", body: row.body, revision: row.revision, },
       (self.ownership.device, self.ownership.inode),
     ),
   )

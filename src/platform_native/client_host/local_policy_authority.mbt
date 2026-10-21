@@ -48,13 +48,9 @@ fn NativeLocalPolicyAuthority::current_material_for(
     @host.client_request_authority_scope_cid(request) != self.scope {
     return None
   }
-  // Reuse admitted typed facts, not an Allow. The Common current port still
-  // compares this exact original Store, row, generation and Account before use.
-  if @host.client_local_adopted_current_account(self.material, self.host.database) is Ok(_) {
-    Some(self.material)
-  } else {
-    None
-  }
+  // Selection is pure. The immediately following scope/Account operation
+  // invokes this material's original current port before consuming its facts.
+  Some(self.material)
 }
 
 ///|

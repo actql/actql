@@ -188,27 +188,8 @@ fn NativeLocalConfigurationSelection::check_retained(
       return Err(CustodyLost)
     }
   }
-  // Exact membership, bounded independently of the database's total contents.
-  let mut cursor = ""
-  for _ in 0..<(self.files.length() + 1) {
-    guard scan_client_journal_value(
-        database, "client_local_settings", cursor, reads,
-      )
-      is Ok(row) else {
-      return Err(CustodyLost)
-    }
-    if row.key != "manifest" &&
-      !self.files.any(file => row.key == "file:" + file.name) {
-      return Err(CustodyLost)
-    }
-    cursor = row.key
-  }
-  guard scan_client_journal_value(
-      database, "client_local_settings", cursor, reads,
-    )
-    is Err(@sqlite.NotFound) else {
-    return Err(CustodyLost)
-  }
+  // This operation uses exactly these admitted files and manifest. Other
+  // configuration rows are not its targets and are not an integrity sweep.
   Ok(())
 }
 

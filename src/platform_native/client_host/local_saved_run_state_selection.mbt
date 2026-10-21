@@ -131,82 +131,48 @@ fn NativeLocalHostConnection::lookup_submitted_run_state_by_id_with_operations(
 }
 
 ///|
-// Shared journal readers validate every row/body/Run join. Keep only one
+// Shared journal readers validate the selected row/body/Run join. Keep only one
 // original selection, with no authority or caller-provided scan callback.
 fn NativeClientRunJournal::select_saved_state_run_id_locked(
   self : NativeClientRunJournal,
+  authority : NativeClientEpochAuthority,
   scope : String,
   run_id : String,
   reads? : NativeClientJournalReadAccess? = None,
-) -> Result[
-  (
-    NativeClientSubmissionReference,
-    @host.ClientRequestIdentity,
-    @publication.PublicationContract,
-  )?,
-  NativeClientRunJournalIssue,
-] {
+) -> Result[(NativeClientSubmissionReference, @host.ClientRequestIdentity, @publication.PublicationContract)?, NativeClientRunJournalIssue] {
+  if !self.transaction_active { return Err(CustodyLost) }
   match client_journal_issuance_anchor(self.database, "client_submitted_intent_custody", self.max_records, reads~) {
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
-  let mut selected : (
-    NativeClientSubmissionReference,
-    @host.ClientRequestIdentity,
-    @publication.PublicationContract,
-  )? = None
-  let mut cursor = ""
-  let mut count = 0
-  while true {
-    let row = match
-      scan_client_journal_value(
-        self.database,
-        "client_submitted_intents",
-        cursor,
-        reads,
-      ) {
-      Ok(value) => value
-      Err(@sqlite.NotFound) => break
-      Err(issue) => return Err(Physical(issue))
-    }
-    if row.key <= cursor || count >= self.max_records {
-      return Err(CustodyLost)
-    }
-    cursor = row.key
-    count = count + 1
-    let original = match
-      self.inspect_submitted_intent_row(
-        { key: row.key, revision: row.revision, body: row.body, },
-        reads~,
-      ) {
-      Ok(value) => value
-      Err(issue) => return Err(issue)
-    }
-    guard original.run_admission is Some((request, _, _)) else { continue }
-    if @host.client_request_authority_scope_cid(request) != scope {
-      continue
-    }
-    let run = match self.retained(request, reads~) {
-      Ok(Some(value)) => value
-      Ok(None) => return Err(CustodyLost)
-      Err(issue) => return Err(issue)
-    }
-    let original_id = match @publication.run_definition_run_id(run.definition) {
-      Ok(value) => value
-      Err(_) => return Err(CustodyLost)
-    }
-    if original_id == run_id {
-      if selected is Some(_) {
-        return Err(ForeignRun)
+  let reference = match read_client_journal_value(self.database, "client_run_id_index", run_id_index_key(scope, run_id), reads) {
+    Ok(row) => {
+      if row.body == b"ambiguous" { return Err(ForeignRun) }
+      match read_run_id_index_reference(row.body) {
+        Ok(value) => value
+        Err(issue) => return Err(issue)
       }
-      selected = Some(
-        (
-          native_submission_reference_record(original.reference),
-          request,
-          run.definition,
-        ),
-      )
     }
+    Err(@sqlite.NotFound) => {
+      // Ordinary CLI issuers use the original Submission ID as Run ID. This
+      // is only a locator candidate: its retained Run must prove the equality.
+      // Arbitrary legacy IDs require explicit bounded indexing, not a scan on
+      // every ordinary lookup and never permission to execute fresh work.
+      let row = match client_journal_read(self.database, "client_submitted_intents", run_id, reads~) {
+        Ok(Some(value)) => value
+        Ok(None) => return Ok(None)
+        Err(issue) => return Err(issue)
+      }
+      let decoded = match @host.decode_client_submitted_journal_row(row.body) {
+        Ok(value) => value
+        Err(_) => return Err(CustodyLost)
+      }
+      if @host.client_submission_reference_record_request_id(decoded.reference) != row.key {
+        return Err(CustodyLost)
+      }
+      native_submission_reference_record(decoded.reference)
+    }
+    Err(issue) => return Err(Physical(issue))
   }
-  Ok(selected)
+  self.run_id_original_locked(authority, reference, scope, run_id, reads~)
 }

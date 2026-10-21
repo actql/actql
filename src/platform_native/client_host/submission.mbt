@@ -252,11 +252,26 @@ fn NativeClientRunJournal::retained_submission(
   reference : NativeClientSubmissionReference,
   reads? : NativeClientJournalReadAccess? = None,
 ) -> Result[NativeClientSubmittedIntentRecord?, NativeClientRunJournalIssue] {
+  self
+  .retained_submission_with_run(reference, reads~)
+  .map(value => value.map(pair => pair.0))
+}
+
+///|
+fn NativeClientRunJournal::retained_submission_with_run(
+  self : NativeClientRunJournal,
+  reference : NativeClientSubmissionReference,
+  reads? : NativeClientJournalReadAccess? = None,
+) -> Result[
+  (NativeClientSubmittedIntentRecord, NativeClientRunRecord?)?,
+  NativeClientRunJournalIssue,
+] {
   let original_reference = match
     @host.admit_client_submission_reference_record(reference.wire) {
     Ok(value) => value
     Err(_) => return Err(CustodyLost)
   }
+  let selected_run : Ref[NativeClientRunRecord?] = Ref(None)
   @host.read_client_saved_submission(
     original_reference,
     (table_name, key) => {
@@ -268,6 +283,11 @@ fn NativeClientRunJournal::retained_submission(
         Ok(value) => value
         Err(_) => return Err(CustodyLost)
       }
+      match confirm_effect_ledger_custody(self.database, record, reads~) {
+        Ok(_) => ()
+        Err(issue) => return Err(issue)
+      }
+      selected_run.val = Some(record)
       Ok({
         request: record.request,
         definition: record.definition,
@@ -278,7 +298,7 @@ fn NativeClientRunJournal::retained_submission(
   ).map(value => {
     value.map(snapshot => {
       let decoded = @host.client_saved_submission_record(snapshot)
-      {
+      let original : NativeClientSubmittedIntentRecord = {
         reference: native_submission_reference_record(decoded.reference),
         intent: decoded.intent,
         run_admission: decoded.run_admission.map(value => {
@@ -290,6 +310,7 @@ fn NativeClientRunJournal::retained_submission(
         run_state_original: decoded.run_state_original,
         run_state_observation: decoded.run_state_observation,
       }
+      (original, selected_run.val)
     })
   })
 }
@@ -524,7 +545,13 @@ fn NativeClientRunJournal::lookup_submitted_intent_with_operations(
         Ok(_) => ()
         Err(issue) => return Err(issue)
       }
-      match self.submitted_intent_custody(reads~) {
+      match
+        client_journal_issuance_anchor(
+          self.database,
+          "client_submitted_intent_custody",
+          self.max_records,
+          reads~,
+        ) {
         Ok(_) => ()
         Err(issue) => return Err(issue)
       }

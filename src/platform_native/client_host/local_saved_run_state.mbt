@@ -58,26 +58,28 @@ fn NativeClientRunJournal::saved_run_state_locked(
   (NativeClientSubmittedIntentRecord, NativeClientRunRecord),
   NativeClientRunJournalIssue,
 ] {
-  match client_journal_issuance_anchor(self.database, "client_submitted_intent_custody", self.max_records, reads~) {
+  match
+    client_journal_issuance_anchor(
+      self.database,
+      "client_submitted_intent_custody",
+      self.max_records,
+      reads~,
+    ) {
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
-  let original = match self.retained_submission(reference, reads~) {
+  let (original, selected_run) = match
+    self.retained_submission_with_run(reference, reads~) {
     Ok(Some(value)) => value
     Ok(None) => return Err(CustodyLost)
     Err(issue) => return Err(issue)
   }
-  guard original.run_admission is Some(admission) else {
+  guard original.run_admission is Some(admission) && selected_run is Some(run) else {
     return Err(CustodyLost)
   }
   if @host.client_request_identity_relation(admission.request, request) !=
     @host.SameRequest {
     return Err(ChangedIntent)
-  }
-  let run = match self.retained(request, reads~) {
-    Ok(Some(value)) => value
-    Ok(None) => return Err(CustodyLost)
-    Err(issue) => return Err(issue)
   }
   if @publication.publication_contract_identity(run.definition) !=
     admission.run_definition_cid {
