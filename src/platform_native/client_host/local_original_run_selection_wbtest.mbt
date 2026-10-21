@@ -391,10 +391,10 @@ test "adopted Host explicitly indexes pre-index arbitrary Run IDs without changi
     is Err(Unavailable),
   )
   assert_true(
-    host.index_saved_run_ids(crypto, "foreign-principal", "cli")
-    is Err(Journal(AuthorizationDenied)),
+    host.migrate_journal_append_metadata("foreign-principal", "cli", 8388608L)
+    is Err(AuthorizationDenied),
   )
-  host.index_saved_run_ids(crypto, "operator", "cli").unwrap()
+  host.migrate_journal_append_metadata("operator", "cli", 8388608L).unwrap()
   let selected = host
     .lookup_submitted_run_original_by_id(
       crypto, "operator", "cli", "legacy-arbitrary-id",
