@@ -30,9 +30,8 @@ test "source-free Content originals leave legacy and Model bodies absent and rej
       model,
     ] {
     let compilation = allowed.compilation
-    assert_eq(
-      client_effect_original_source_free_policy_input(compilation),
-      Ok(None),
+    assert_true(
+      client_effect_original_source_free_policy_input(compilation) is Ok(None),
     )
     let original = issue_client_effect_prepared_original(compilation).unwrap()
     let materials = issue_prepared_client_effect_run_materials(

@@ -259,6 +259,18 @@ test "source-free Content originals never replace the independently selected Pla
     is Err(_),
   )
   assert_true(source_free_original_run_admit(materials, run, None) is Err(_))
+  let missing_request = source_free_original_replace(
+    materials,
+    "client_request_identity",
+    None,
+  )
+  assert_true(
+    source_free_original_run_admit(missing_request, run, None) is Err(_),
+  )
+  assert_true(
+    source_free_original_run_admit(missing_request, run, Some(request))
+    is Err(_),
+  )
   let foreign_request = client_program_effect_request_identity(
     prepared,
     "sha256:" + "a".repeat(64),

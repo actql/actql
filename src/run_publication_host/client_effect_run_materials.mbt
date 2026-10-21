@@ -389,6 +389,11 @@ pub fn admit_client_effect_run_materials(
   // request. Wire-only restoration also needs the original request selected
   // independently by the trusted durable Host/journal context. Do not derive
   // that expected identity from these candidate material bytes.
+  if source_free_policy is Some(_) &&
+    original_materials is None &&
+    (request is None || expected_request is None) {
+    return Err(Request(IdentityMismatch))
+  }
   if (
       normalization_profile is Some(_) ||
       prepared.target_selections is Some(_) ||
