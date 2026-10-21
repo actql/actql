@@ -112,6 +112,11 @@ pub fn issue_client_effect_run_materials(
   }
   // Use the same bounded encoder and Parameter Values decoder as ordinary
   // Run materials. Neither operation adds a grant or refreshes the lifetime.
+  let source_free_policy_input = match
+    client_effect_original_source_free_policy_input(allowed.compilation) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
   let request_wire = match request {
     None => None
     Some(value) => {
@@ -138,6 +143,7 @@ pub fn issue_client_effect_run_materials(
       program,
       parameters_wire,
       request_wire~,
+      source_free_policy_input~,
     ) {
     Ok(value) => value
     Err(issue) => return Err(Input(issue))
@@ -248,6 +254,14 @@ pub fn admit_client_effect_run_materials(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
+  let source_free_policy = match
+    restore_client_effect_original_source_free_policy(
+      prepared,
+      body.source_free_policy_input,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
   // Profile selection is an audit of the restored checked owners, not a
   // catalog string or caller boolean. No custody escapes until saved
   // invocation/authorization and the independently selected Run/request bind it.
@@ -301,6 +315,7 @@ pub fn admit_client_effect_run_materials(
       limits.max_evidence_depth,
       normalization_profile,
       infer~,
+      source_free_policy~,
     ) {
     Ok(value) => value
     Err(issue) => return Err(Compilation(issue))
@@ -374,7 +389,11 @@ pub fn admit_client_effect_run_materials(
   // request. Wire-only restoration also needs the original request selected
   // independently by the trusted durable Host/journal context. Do not derive
   // that expected identity from these candidate material bytes.
-  if (normalization_profile is Some(_) || prepared.target_selections is Some(_)) &&
+  if (
+      normalization_profile is Some(_) ||
+      prepared.target_selections is Some(_) ||
+      source_free_policy is Some(_)
+    ) &&
     original_materials is None &&
     request != expected_request {
     return Err(Request(IdentityMismatch))
@@ -382,6 +401,7 @@ pub fn admit_client_effect_run_materials(
   if normalization_profile is Some(_) ||
     prepared.target_selections is Some(_) ||
     infer is Some(_) ||
+    source_free_policy is Some(_) ||
     original_source is Some(_) {
     let canonical = match
       encode_prepared_client_effect_materials(

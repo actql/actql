@@ -656,6 +656,19 @@ source preparation and the independently retained expected request, then
 checks the complete canonical material projection. Shape or CID equality
 alone does not supply this original binding, current authority or a cleanup ACK.
 
+An Effect's source-free SERIALIZE component also retains the explicit Host
+data-policy body selected before compilation. Prepared-original capture and
+saved Run materials project its paired `source_free_result_policy_cid` and
+`source_free_result_policy_json` from that same component, not from current Host
+configuration. Restoration admits the exact source-free policy on the restored
+checked Program before recomputing the Plan, then verifies the independently
+retained Plan or Run identity, original request and canonical materials. Missing,
+partial, malformed or wrong-purpose pairs refuse; recovery never supplies a
+default policy. Acquired Source and Model dependency policy retain their own
+closure. Other historical materials omit these fields and keep their bytes.
+This policy DATA neither authorizes an Effect nor acknowledges Content or
+physical cleanup.
+
 Initial and retained-input task dispatch use that same original Source
 preparation when the request contains authored-source identity. Common checks
 the preparation's nominal checked computation and reconstructs the request

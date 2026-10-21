@@ -2384,6 +2384,20 @@ approval, stale-preview, request, dispatch and receipt checks remain separate.
 Unavailable or changed original selection evidence fails closed; it does not
 authorize a fresh selection or resend an unknown Effect.
 
+<!-- requirement-block: compilation-identities.source-free-content-policy-original compilation-identities.source-free-content-policy-purpose compilation-identities.source-free-content-policy-correspondence compilation-identities.source-free-content-policy-refusal compilation-identities.source-free-content-policy-absence -->
+For an Effect with a source-free SERIALIZE component, prepared-original and
+saved Run materials MUST retain the explicit data-policy original already bound
+to that component as paired `source_free_result_policy_cid` and
+`source_free_result_policy_json` Strings. Admission MUST recheck the exact policy
+and its source-free serialization purpose on the same restored checked Program
+before recompilation, and MUST preserve the independently selected Compiled Plan
+or Run, request and canonical-material correspondence. Omission when required,
+half-presence, null, malformed or substituted bodies, and presence for another
+purpose MUST refuse; no current Host default repairs missing originals. Source
+and Model policy closures remain separate. Materials without this component
+MUST omit the pair, preserving their historical bytes and identities. Policy
+body integrity supplies no grant, approval, Source completion or cleanup ACK.
+
 The bounded selection reader admits at most 65,536 UTF-8 bytes, 8,192 JSON
 nodes and depth 4. Exceeding an admission budget is a checking limitation,
 not permission to drop selection identity. Schema shape, independent canonical

@@ -93,6 +93,11 @@ fn encode_prepared_client_effect_materials(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
+  let source_free_policy_input = match
+    client_effect_original_source_free_policy_input(allowed.compilation) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
   encode_client_run_materials_body(
     allowed.admission,
     definition,
@@ -104,6 +109,7 @@ fn encode_prepared_client_effect_materials(
     normalization_wire~,
     target_selections_wire=prepared_client_effect_target_selections(prepared),
     infer_input~,
+    source_free_policy_input~,
   ).map_err(fn(issue) { ClientEffectRunMaterialsIssue::Input(issue) })
 }
 
