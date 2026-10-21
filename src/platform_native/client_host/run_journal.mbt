@@ -539,6 +539,23 @@ fn NativeClientRunJournal::invalidate_operation_record(
 }
 
 ///|
+// A deferred Policy lookup may already have observed this exact row. Full
+// admission can consume those immutable bytes instead of selecting them again.
+// The same mutation/failure/end invalidation clears this existing row slot.
+fn NativeClientRunJournal::operation_row(
+  self : NativeClientRunJournal,
+  key : String,
+) -> @sqlite.NativeJournalValue? {
+  if self.operation_active &&
+    self.admitted_record is Some((original, body, revision, _, _)) &&
+    original == key {
+    Some({ body, revision, })
+  } else {
+    None
+  }
+}
+
+///|
 // One admitted row in the same Journal transaction. Every use still reads the
 // actual row and compares its exact revision and bytes. No absence, authority,
 // currentness or physical acknowledgement is cached. The slot is cleared before
@@ -612,16 +629,16 @@ fn NativeClientRunJournal::retained(
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
-  let row = match
-    read_client_journal_value(
-      self.database,
-      "client_runs",
-      @host.client_request_scope_cid(requested),
-      reads,
-    ) {
-    Ok(value) => value
-    Err(@sqlite.NotFound) => return Ok(None)
-    Err(issue) => return Err(Physical(issue))
+  let key = @host.client_request_scope_cid(requested)
+  let row = match self.operation_row(key) {
+    Some(value) => value
+    None =>
+      match
+        read_client_journal_value(self.database, "client_runs", key, reads) {
+        Ok(value) => value
+        Err(@sqlite.NotFound) => return Ok(None)
+        Err(issue) => return Err(Physical(issue))
+      }
   }
   let retained = match
     self.admit_retained_record(@host.client_request_scope_cid(requested), row) {
@@ -694,16 +711,16 @@ fn NativeClientRunJournal::retained_policy_wire(
     @host.client_request_scope_cid(original.request) {
     return extract_admitted_run_policy_wire(original, requested)
   }
-  let row = match
-    read_client_journal_value(
-      self.database,
-      "client_runs",
-      @host.client_request_scope_cid(requested),
-      reads,
-    ) {
-    Ok(value) => value
-    Err(@sqlite.NotFound) => return Err(CustodyLost)
-    Err(issue) => return Err(Physical(issue))
+  let key = @host.client_request_scope_cid(requested)
+  let row = match self.operation_row(key) {
+    Some(value) => value
+    None =>
+      match
+        read_client_journal_value(self.database, "client_runs", key, reads) {
+        Ok(value) => value
+        Err(@sqlite.NotFound) => return Err(CustodyLost)
+        Err(issue) => return Err(Physical(issue))
+      }
   }
   let record = match
     self.admit_retained_record(

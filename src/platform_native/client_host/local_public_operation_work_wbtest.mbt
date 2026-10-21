@@ -69,8 +69,21 @@ test "one selected Run revision and Policy original survive trusted read-only tr
   journal.invalidate_operation_record()
   journal.admitted_publications.clear()
   journal.operation_active = true
+  calls.clear()
+  // The inverse order must also observe the target once: deferred Policy
+  // metadata first, then full Run/Policy/custody admission of that same row.
+  journal
+  .transaction_with_reads(
+    () => journal.retained_policy_wire(request, reads=Some(reads)),
+    reads=Some(reads),
+  )
+  .unwrap()
+  |> ignore
   let next = journal
-    .transaction(() => journal.retained(request))
+    .transaction_with_reads(
+      () => journal.retained(request, reads=Some(reads)),
+      reads=Some(reads),
+    )
     .unwrap()
     .unwrap()
   assert_false(physical_equal(first, next))
@@ -78,6 +91,10 @@ test "one selected Run revision and Policy original survive trusted read-only tr
     physical_equal(policies, journal.publication_originals(wire).unwrap()),
   )
   assert_eq(journal.admitted_publications.length(), 1)
+  assert_eq(
+    calls.filter(value => value.has_prefix("read:client_runs:")).length(),
+    1,
+  )
   journal.operation_active = false
   journal.invalidate_operation_record()
   journal.admitted_publications.clear()
