@@ -1373,6 +1373,205 @@ test('prepared schema release preserves an existing semantic owner',
       resultSchemaWire);
   });
 
+test('existing prepared schemas retain real readers and owners without new durable metadata', async t => {
+  const directory = await mkdtemp(join(tmpdir(), 'actql-existing-schema-'));
+  t.after(() => removeFixtureDirectory(directory));
+  const configuration = {
+    directory, storeAuthorityCid: cids.authority, capacityBytes: 1024 * 1024,
+    maxObjectBytes: 64 * 1024, maxObjects: 100,
+    maxContractNodes: limits.maxNodes, maxContractDepth: limits.maxDepth,
+  };
+  const directories = [];
+  let observing = false;
+  const durability = Object.freeze({async syncDirectory(path) {
+    if (observing) directories.push(path);
+    const handle = await open(path, 'r');
+    try { await handle.sync(); }
+    finally { await handle.close(); }
+  }});
+  const store = await openLocalPublicationStore(configuration, contractControl, durability);
+  await store.putSemantic(resultSchemaWire, cids.schema);
+  const originalOpen = fsPromises.open;
+  const opens = [];
+  fsPromises.open = async function(path, ...args) {
+    opens.push({path, flags: args[0]});
+    return Reflect.apply(originalOpen, this, [path, ...args]);
+  };
+  syncBuiltinESMExports();
+  let first, second;
+  observing = true;
+  try {
+    first = await store.putPreparedResultSchema(resultSchemaWire, cids.schema, cids.run);
+    second = await store.putPreparedResultSchema(resultSchemaWire, cids.schema, cids.result);
+    assert.equal(first.created, false);
+    assert.equal(second.created, false);
+    assert.equal(first.prepared.status().pending, true);
+    assert.equal(second.prepared.status().pending, true);
+    await assert.rejects(store.close(), code('PublicationStoreCleanupPending'));
+    await first.prepared.release();
+    assert.equal(second.prepared.status().pending, true);
+    await second.prepared.release();
+  } finally {
+    observing = false;
+    fsPromises.open = originalOpen;
+    syncBuiltinESMExports();
+    if (first?.prepared.status().pending) await first.prepared.release();
+    if (second?.prepared.status().pending) await second.prepared.release();
+  }
+  const semantic = join(directory, 'contracts', cids.schema.slice(7) + '.json');
+  assert.equal(opens.filter(value => value.path === semantic).length, 2,
+    'each distinct preparation acquires its own selected schema original');
+  assert.deepEqual(opens.filter(value => value.path.startsWith(join(directory, 'prepared-schemas'))), [],
+    'an existing durable body needs no new crash-reclamation marker');
+  assert.deepEqual(directories, [], 'unchanged durable bytes require no new directory ACK');
+  assert.deepEqual(await readdir(join(directory, 'prepared-schemas')), []);
+  assert.equal(store.status().objectCount, 1);
+  assert.equal(store.status().storedBytes, Buffer.byteLength(resultSchemaWire));
+  assert.equal((await store.readSemanticBytes(cids.schema)).toString(), resultSchemaWire);
+  await store.close();
+  const reopened = await openLocalPublicationStore(configuration, contractControl, durability);
+  assert.equal((await reopened.readSemanticBytes(cids.schema)).toString(), resultSchemaWire);
+  await reopened.close();
+});
+
+test('existing schema preparation retains the same failed reader close', async t => {
+  const {store, directory} = await fixture(t);
+  await store.putSemantic(resultSchemaWire, cids.schema);
+  const semantic = join(directory, 'contracts', cids.schema.slice(7) + '.json');
+  const originalOpen = fsPromises.open;
+  let original, closes = 0, liveCloseAttempts = 0, acquisitions = 0, allowClose = false;
+  const closeFailure = Object.assign(new Error('original schema close'), {code: 'EIO'});
+  fsPromises.open = async function(path, ...args) {
+    const handle = await Reflect.apply(originalOpen, this, [path, ...args]);
+    if (path === semantic) {
+      acquisitions++;
+      original = handle;
+      const close = handle.close;
+      handle.close = function() {
+        assert.equal(this, original);
+        closes++;
+        if (this.fd !== -1) liveCloseAttempts++;
+        if (!allowClose) throw closeFailure;
+        return Reflect.apply(close, this, []);
+      };
+    }
+    return handle;
+  };
+  syncBuiltinESMExports();
+  try {
+    let failure;
+    try { await store.putPreparedResultSchema(resultSchemaWire, cids.schema, cids.run); }
+    catch (error) { failure = error; }
+    assert.equal(failure?.primaryFailure, closeFailure);
+    assert.equal(failure.cleanupHandle.status().pending, true);
+    await assert.rejects(store.close(), code('PublicationStoreCleanupPending'));
+    await assert.rejects(failure.cleanupHandle.retry(), error => error === closeFailure);
+    assert.equal(failure.cleanupHandle.status().pending, true);
+    assert.equal(closes, 2);
+    allowClose = true;
+    assert.equal((await failure.cleanupHandle.retry()).pending, false);
+    // Node's stream can also observe close on the already retired wrapper.
+    // Count only attempts while this original still owns its numeric FD.
+    assert.equal(liveCloseAttempts, 3);
+    assert.equal(original.fd, -1);
+    assert.equal(acquisitions, 1, 'cleanup never acquires a replacement reader');
+    assert.deepEqual(await readdir(join(directory, 'prepared-schemas')), []);
+    assert.equal(store.status().objectCount, 1);
+  } finally {
+    allowClose = true;
+    fsPromises.open = originalOpen;
+    syncBuiltinESMExports();
+  }
+});
+
+test('existing schema preparation reacquires and refuses changed bytes', async t => {
+  const {store, directory} = await fixture(t);
+  await store.putSemantic(resultSchemaWire, cids.schema);
+  const first = await store.putPreparedResultSchema(resultSchemaWire, cids.schema, cids.run);
+  await first.prepared.release();
+  await writeFile(join(directory, 'contracts', cids.schema.slice(7) + '.json'), 'changed');
+  let failure;
+  try { await store.putPreparedResultSchema(resultSchemaWire, cids.schema, cids.result); }
+  catch (error) { failure = error; }
+  assert.equal(failure?.cleanupPending, true);
+  await assert.rejects(store.close(), code('PublicationStoreCleanupPending'));
+  assert.equal((await failure.cleanupHandle.retry()).pending, false);
+  assert.deepEqual(await readdir(join(directory, 'prepared-schemas')), []);
+  assert.equal(store.status().objectCount, 1, 'a failed observation does not refund stored bytes');
+});
+
+test('existing schema preparation never substitutes a visible link for a pending original ACK', async t => {
+  const directory = await mkdtemp(join(tmpdir(), 'actql-schema-pending-ack-'));
+  t.after(() => removeFixtureDirectory(directory));
+  const configuration = {
+    directory, storeAuthorityCid: cids.authority, capacityBytes: 1024 * 1024,
+    maxObjectBytes: 64 * 1024, maxObjects: 100,
+    maxContractNodes: limits.maxNodes, maxContractDepth: limits.maxDepth,
+  };
+  let refuse = false;
+  const failure = Object.assign(new Error('original alias ACK'), {code: 'EIO'});
+  const durability = Object.freeze({async syncDirectory(path) {
+    if (refuse && path === join(directory, 'contracts')) throw failure;
+    const handle = await open(path, 'r');
+    try { await handle.sync(); }
+    finally { await handle.close(); }
+  }});
+  const store = await openLocalPublicationStore(configuration, contractControl, durability);
+  refuse = true;
+  let originalFailure, prepared, preparationFailure;
+  try {
+    try { await store.putSemantic(resultSchemaWire, cids.schema); }
+    catch (error) { originalFailure = error; }
+    assert.equal(originalFailure?.cleanupHandle.status().pending, true);
+    try { prepared = await store.putPreparedResultSchema(resultSchemaWire, cids.schema, cids.run); }
+    catch (error) { preparationFailure = error; }
+    if (prepared !== undefined) await prepared.prepared.release();
+    assert.equal(preparationFailure?.code, 'PublicationStoreCleanupPending');
+    assert.equal(originalFailure.cleanupHandle.status().pending, true);
+  } finally {
+    refuse = false;
+    if (prepared?.prepared.status().pending) await prepared.prepared.release();
+    if (preparationFailure?.cleanupHandle.status().pending) await preparationFailure.cleanupHandle.retry();
+    if (originalFailure?.cleanupHandle.status().pending) await originalFailure.cleanupHandle.retry();
+  }
+  assert.equal(store.status().objectCount, 1);
+  const confirmed = await store.putPreparedResultSchema(resultSchemaWire, cids.schema, cids.result);
+  await confirmed.prepared.release();
+});
+
+test('publication commit adopts an existing schema holder without rewriting its metadata', async t => {
+  const {store, directory} = await fixture(t);
+  await store.putSemantic(resultSchemaWire, cids.schema);
+  const invocationValue = invocation();
+  const request = publicationRequest(resultDefinition(), invocationValue.invocation_cid);
+  const attempt = publicationAttempt(request);
+  const prepared = await prepareCommit(store, request, attempt, invocationValue, cids.policy, true);
+  assert.equal(prepared.schemaPrepared.status().pending, true);
+  assert.deepEqual(await readdir(join(directory, 'prepared-schemas')), []);
+  const originalOpen = fsPromises.open;
+  const schemaOpens = [];
+  fsPromises.open = async function(path, ...args) {
+    if (path === join(directory, 'prepared-schemas') ||
+        path.startsWith(join(directory, 'prepared-schemas') + sep)) schemaOpens.push(path);
+    return Reflect.apply(originalOpen, this, [path, ...args]);
+  };
+  syncBuiltinESMExports();
+  try {
+    const entry = indexEntry(request, attempt, invocationValue, {
+      durable_result_binding_cids: [prepared.binding.identity],
+    });
+    assert.equal((await store.commitIndex(wire(entry), prepared.required, prepared.evidence)).committed, true);
+    assert.equal(prepared.schemaPrepared.status().pending, false);
+  } finally {
+    fsPromises.open = originalOpen;
+    syncBuiltinESMExports();
+    if (prepared.schemaPrepared.status().pending) await prepared.schemaPrepared.release();
+    if (prepared.prepared.status().pending) await prepared.prepared.release();
+  }
+  assert.deepEqual(schemaOpens, [], 'the actual commit adopts only the live holder');
+  assert.equal((await store.readSemanticBytes(cids.schema)).toString(), resultSchemaWire);
+});
+
 test('restart reclaims an unpublished prepared Result schema', async t => {
   const directory = await mkdtemp(join(
     tmpdir(), 'actql-publication-schema-crash-',
