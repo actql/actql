@@ -157,12 +157,21 @@ pub fn client_program_prepare_source_with_parameters(
   declarations : String?,
   parameters : String?,
 ) -> ClientProgramBridgeOutcome {
+  let catalogs : Array[@program_check.PreparedSourceCatalog] = []
   let lowered = match
     client_program_lower_source(
-      document, format, environment, publication, declarations,
+      document,
+      format,
+      environment,
+      publication,
+      declarations,
+      source_catalog_out=Some(catalogs),
     ) {
     Ok(value) => value
     Err(issue) => return Rejected(issue)
+  }
+  guard catalogs.length() == 1 && catalogs.get(0) is Some(source_catalog) else {
+    return Rejected(SourcePreparation(Publication))
   }
   let (_, supplied) = match client_program_input("json", parameters) {
     Ok(value) => value
@@ -178,6 +187,7 @@ pub fn client_program_prepare_source_with_parameters(
       environment,
       supplied,
       client_program_standard_limits(),
+      source_catalog=Some(source_catalog),
     ) {
     Ok(value) => Prepared(value)
     Err(issue) => Rejected(Preparation(issue))
@@ -213,6 +223,7 @@ fn client_program_lower_source(
   environment : @program_check.CheckEnvironment,
   publication : String,
   declarations : String?,
+  source_catalog_out? : Array[@program_check.PreparedSourceCatalog]? = None,
 ) -> Result[@source_frontend.Lowered, ClientProgramBridgeIssue] {
   let selected = match @source_frontend.select_format(format) {
     Ok(Text) => @source_frontend.Text
@@ -226,8 +237,15 @@ fn client_program_lower_source(
       return Err(InvalidFormat)
     }
   }
-  let (context, table_writes, update_targets, store_targets, command_targets) = match
-    @source_publication.bind_published_query_parts(
+  let (
+    context,
+    table_writes,
+    update_targets,
+    store_targets,
+    command_targets,
+    catalog,
+  ) = match
+    @source_publication.bind_published_query_parts_with_catalog(
       environment, publication, declarations,
     ) {
     Ok(value) => value
@@ -243,6 +261,9 @@ fn client_program_lower_source(
           },
         ),
       )
+  }
+  if source_catalog_out is Some(output) {
+    output.push(catalog)
   }
   // Both authored forms carry the same admitted publication into the ordinary
   // checked Effect owner. Selection is retained material, never a permission.
@@ -294,12 +315,21 @@ pub fn client_program_prepare_source_computation_with_parameters(
   allow_effects : Bool,
   evidence : Array[@context.StageCapacityInput],
 ) -> ClientSourceComputationBridgeOutcome {
+  let catalogs : Array[@program_check.PreparedSourceCatalog] = []
   let lowered = match
     client_program_lower_source(
-      document, format, environment, publication, declarations,
+      document,
+      format,
+      environment,
+      publication,
+      declarations,
+      source_catalog_out=Some(catalogs),
     ) {
     Ok(value) => value
     Err(issue) => return SourcePure(Rejected(issue))
+  }
+  guard catalogs.length() == 1 && catalogs.get(0) is Some(source_catalog) else {
+    return SourcePure(Rejected(SourcePreparation(Publication)))
   }
   let (_, supplied) = match client_program_input("json", parameters) {
     Ok(value) => value
@@ -341,6 +371,7 @@ pub fn client_program_prepare_source_computation_with_parameters(
           update_targets=lowered.update_targets,
           store_targets=lowered.store_targets,
           command_targets=lowered.command_targets,
+          source_catalog=Some(source_catalog),
         ) {
         Ok(value) => value
         Err(issue) => return SourceEffect(EffectRejected(Preparation(issue)))
@@ -367,7 +398,11 @@ pub fn client_program_prepare_source_computation_with_parameters(
     client_source_checked_array_profile(
       match
         @publication_host.prepare_parsed_effect_free_client_program(
-          parsed, environment, supplied, limits,
+          parsed,
+          environment,
+          supplied,
+          limits,
+          source_catalog=Some(source_catalog),
         ) {
         Ok(value) => Prepared(value)
         Err(issue) => Rejected(Preparation(issue))

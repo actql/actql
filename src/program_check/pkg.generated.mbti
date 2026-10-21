@@ -92,11 +92,11 @@ pub fn check_document(String, CheckEnvironment, @decode_core.Cursor?, CheckLimit
 
 pub fn check_document_with_evidence(String, CheckEnvironment, @decode_core.Cursor?, Array[@pipeline_check_context.StageCapacityInput], CheckLimits, format? : @stage_syntax.Format, source_path? : String) -> CheckOutcome
 
-pub fn check_parsed(@stage_syntax.Program, CheckEnvironment, @decode_core.Cursor?, CheckLimits) -> CheckOutcome
+pub fn check_parsed(@stage_syntax.Program, CheckEnvironment, @decode_core.Cursor?, CheckLimits, source_catalog? : PreparedSourceCatalog?) -> CheckOutcome
 
 pub fn check_parsed_scoped(@stage_syntax.Program, CheckEnvironment, CheckScope, @decode_core.Cursor?, CheckLimits) -> ScopedCheckOutcome
 
-pub fn check_parsed_with_evidence(@stage_syntax.Program, CheckEnvironment, @decode_core.Cursor?, Array[@pipeline_check_context.StageCapacityInput], CheckLimits) -> CheckOutcome
+pub fn check_parsed_with_evidence(@stage_syntax.Program, CheckEnvironment, @decode_core.Cursor?, Array[@pipeline_check_context.StageCapacityInput], CheckLimits, source_catalog? : PreparedSourceCatalog?) -> CheckOutcome
 
 pub fn checked_catalog_references(CheckedProgram) -> @check_environment.CatalogReferences
 
@@ -456,7 +456,7 @@ pub fn pivot_numeric_slots_for_requirement(CheckedProgram, Int) -> PivotNumericS
 
 pub fn pivot_numeric_slots_operation(PivotNumericSlots) -> UnitOperationSource
 
-pub fn prepare_effect_computation_candidate(@stage_syntax.Program, CheckEnvironment, @decode_core.Cursor?, Array[@pipeline_check_context.StageCapacityInput], CheckLimits, Int, Int) -> Result[EffectComputationCandidate, EffectComputationIssue]
+pub fn prepare_effect_computation_candidate(@stage_syntax.Program, CheckEnvironment, @decode_core.Cursor?, Array[@pipeline_check_context.StageCapacityInput], CheckLimits, Int, Int, source_catalog? : PreparedSourceCatalog?) -> Result[EffectComputationCandidate, EffectComputationIssue]
 
 pub fn prepare_infer_input_source_policy(CheckedProgram, Int, Int, Int, Int, Int, Int) -> PublicationSourcePolicy? raise UnitBuildFailure
 
@@ -864,6 +864,7 @@ pub suberror EnvironmentFailure {
   Modes(@check_environment.SourceReadModeIssue)
   Carriers(@check_environment.CarrierSchemaIssue)
   Requests(@check_environment.SourceRequestIssue)
+  ForeignPreparedCatalog
 }
 
 pub suberror LocalConstructionFailure {
@@ -1238,7 +1239,9 @@ type PivotNumericSlots
 pub struct PreparedSourceCatalog {
   environment : CheckEnvironment
   catalog : @check_environment.SourceRequestContracts
+  references : @check_environment.CatalogReferences
   usage : SourceCatalogUsage
+  depth_limit : Int
 }
 
 type PublicationExecution
