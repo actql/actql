@@ -39,6 +39,12 @@ test "compiled Effect progress retains exact keys and unchanged cancellation mea
     ),
   ).unwrap()
   let keys = compilation.compiled.standard_progress_keys.unwrap()
+  let exported = client_effect_compilation_task_keys(compilation).unwrap()
+  assert_eq(exported, keys)
+  assert_true(!physical_equal(exported, keys))
+  let original = keys[0]
+  exported[0] = "foreign-copy"
+  assert_eq(keys[0], original)
   let allowed = issue_client_effect_allowed_run(
     compilation,
     retained_input_cid("a"),
