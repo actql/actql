@@ -3,11 +3,11 @@ import {createHash} from 'node:crypto';
 import {spawnSync} from 'node:child_process';
 import {createServer} from 'node:http';
 import test from 'node:test';
+import fs from 'node:fs/promises';
+import {syncBuiltinESMExports} from 'node:module';
 import {link, mkdir, mkdtemp, open, readdir, readFile, rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
-import * as moon from
-  '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import {runtimeCore} from './runtime-core.mjs';
 import {checked} from './runtime-result.mjs';
 import {publishEffectFreeRun, publishEffectfulRun} from
@@ -49,6 +49,10 @@ import {openLocalPublicationStore} from
   '../store-local/publication-store.mjs';
 import {createClientHttpHandler} from '../host-node/client-http.mjs';
 import {connect as connectClient} from '../../packages/sdk/index.mjs';
+
+const moon = await import(process.env.ACTQL_TEST_COMMON_RUNTIME ?? new URL(
+  '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js',
+  import.meta.url).href);
 
 const cid = digit => `sha256:${digit.repeat(64)}`;
 const limits = Object.freeze({
@@ -1070,6 +1074,16 @@ test('portable control validates the exact Run Result publication chain', () => 
 
 test('portable control validates Receipt and Captured Run references',
   async t => {
+  const retainedStores = [];
+  const retainedDirectories = [];
+  t.after(async () => {
+    for (const store of retainedStores.toReversed()) {
+      assert.equal(await store.close(), true);
+    }
+    for (const directory of retainedDirectories) {
+      await rm(directory, {recursive: true, force: true});
+    }
+  });
   const control = runtimeCore(moon).publicationControl;
   const template = control.sealRunEvidence(
     'bound_invocation_template',
@@ -1684,7 +1698,7 @@ test('portable control validates Receipt and Captured Run references',
   const directory = await mkdtemp(join(
     tmpdir(), 'actql-publication-chain-',
   ));
-  t.after(() => rm(directory, {recursive: true, force: true}));
+  retainedDirectories.push(directory);
   const store = await openLocalPublicationStore({
     directory,
     storeAuthorityCid: cid('a'),
@@ -1695,7 +1709,7 @@ test('portable control validates Receipt and Captured Run references',
     maxContractDepth: limits.maxDepth,
     privateEvidenceKey: Buffer.alloc(32, 4),
   }, control);
-  t.after(async () => { await store.close(); });
+  retainedStores.push(store);
   const privatePrepared = await store.preparePrivateEvidence(
     privateBinding.name, privateBinding.wire, privateBinding.semanticCid,
   );
@@ -1788,7 +1802,7 @@ test('portable control validates Receipt and Captured Run references',
   const effectfulDirectory = await mkdtemp(join(
     tmpdir(), 'actql-effectful-publication-commit-',
   ));
-  t.after(() => rm(effectfulDirectory, {recursive: true, force: true}));
+  retainedDirectories.push(effectfulDirectory);
   const effectfulConfiguration = {
     directory: effectfulDirectory,
     storeAuthorityCid: cid('a'),
@@ -1802,7 +1816,7 @@ test('portable control validates Receipt and Captured Run references',
   const effectfulStore = await openLocalPublicationStore(
     effectfulConfiguration, control,
   );
-  t.after(async () => { await effectfulStore.close(); });
+  retainedStores.push(effectfulStore);
   const effectfulPrivate = await effectfulStore.preparePrivateEvidence(
     privateBinding.name, privateBinding.wire, privateBinding.semanticCid,
   );
@@ -1908,10 +1922,29 @@ test('portable control validates Receipt and Captured Run references',
     runDefinitionCid: run.identity,
   }), undefined);
   let loseEffectfulCommitResponse = true;
+  const effectfulBindingPayloadReads = [];
   const lostEffectfulStore = Object.freeze({
     ...effectfulStore,
     async commitEffectfulIndex(...args) {
-      const committed = await effectfulStore.commitEffectfulIndex(...args);
+      const originalOpen = fs.open;
+      const payloadPath = join(effectfulDirectory, 'objects', physicalCid.slice(7));
+      let reads = 0;
+      fs.open = async function(path, ...options) {
+        const bindingRead = path === payloadPath &&
+          new Error().stack.includes('verifyDurableResultBinding');
+        const handle = await Reflect.apply(originalOpen, this, [path, ...options]);
+        if (bindingRead) reads++;
+        return handle;
+      };
+      syncBuiltinESMExports();
+      let committed;
+      try {
+        committed = await effectfulStore.commitEffectfulIndex(...args);
+      } finally {
+        fs.open = originalOpen;
+        syncBuiltinESMExports();
+        effectfulBindingPayloadReads.push(reads);
+      }
       if (loseEffectfulCommitResponse) {
         loseEffectfulCommitResponse = false;
         throw new Error('LostEffectfulCommitResponse');
@@ -1922,6 +1955,9 @@ test('portable control validates Receipt and Captured Run references',
   const effectfulCommitted = await publishEffectfulRun({
     ...effectfulPublication, store: lostEffectfulStore,
   });
+  assert.notEqual(effectfulBindingPayloadReads.length, 0);
+  assert.deepEqual(effectfulBindingPayloadReads,
+    effectfulBindingPayloadReads.map(() => 1));
   assert.equal(effectfulCommitted.committed, false);
   assert.equal(effectfulCommitted.idempotent, true);
   assert.equal(effectfulCommitted.state, 'succeeded');
@@ -1940,7 +1976,7 @@ test('portable control validates Receipt and Captured Run references',
     {...effectfulConfiguration, privateEvidenceKey: Buffer.alloc(32, 4)},
     control,
   );
-  t.after(async () => { await reopenedEffectfulStore.close(); });
+  retainedStores.push(reopenedEffectfulStore);
   assert.deepEqual(
     await reopenedEffectfulStore.inspectCommittedIndex(effectfulKey),
     JSON.parse(effectfulIndex.wire),
@@ -2138,9 +2174,7 @@ test('portable control validates Receipt and Captured Run references',
   const completedUnknownDirectory = await mkdtemp(join(
     tmpdir(), 'actql-completed-publication-unknown-',
   ));
-  t.after(() => rm(
-    completedUnknownDirectory, {recursive: true, force: true},
-  ));
+  retainedDirectories.push(completedUnknownDirectory);
   let completedUnknownIndexSyncFailures = 3;
   const completedUnknownDurability = Object.freeze({
     async syncDirectory(path) {
@@ -2165,6 +2199,7 @@ test('portable control validates Receipt and Captured Run references',
     maxContractNodes: limits.maxNodes,
     maxContractDepth: limits.maxDepth,
   }, control, completedUnknownDurability);
+  retainedStores.push(completedUnknownStore);
   await completedUnknownStore.putSemantic(resultSchemaWire, resultSchemaCid);
   const completedUnknownWriter =
     completedUnknownStore.createPreparedObjectWriter(payloadBytes);
@@ -2237,7 +2272,7 @@ test('portable control validates Receipt and Captured Run references',
     maxContractNodes: limits.maxNodes,
     maxContractDepth: limits.maxDepth,
   }, control);
-  t.after(async () => { await deliveryStore.close(); });
+  retainedStores.push(deliveryStore);
   const deliveryIndexValue = await deliveryStore.confirmCommittedIndex({
     namespaceId: 'namespace-a',
     authorityScopeCid: cid('d'),
@@ -3631,7 +3666,7 @@ test('portable control validates Receipt and Captured Run references',
   const lostDirectory = await mkdtemp(join(
     tmpdir(), 'actql-publication-lost-response-',
   ));
-  t.after(() => rm(lostDirectory, {recursive: true, force: true}));
+  retainedDirectories.push(lostDirectory);
   const lostBase = await openLocalPublicationStore({
     directory: lostDirectory,
     storeAuthorityCid: cid('a'),
@@ -3643,7 +3678,7 @@ test('portable control validates Receipt and Captured Run references',
   }, control);
   await lostBase.putSemantic(resultSchemaWire, resultSchemaCid);
   await lostBase.putBytes(Buffer.from(payloadWire, 'utf8'), physicalCid);
-  t.after(async () => { await lostBase.close(); });
+  retainedStores.push(lostBase);
   let loseCommitResponse = true;
   const lostStore = Object.freeze({
     ...lostBase,
@@ -3673,7 +3708,7 @@ test('portable control validates Receipt and Captured Run references',
   const raceDirectory = await mkdtemp(join(
     tmpdir(), 'actql-publication-race-',
   ));
-  t.after(() => rm(raceDirectory, {recursive: true, force: true}));
+  retainedDirectories.push(raceDirectory);
   const raceBase = await openLocalPublicationStore({
     directory: raceDirectory,
     storeAuthorityCid: cid('a'),
@@ -3685,7 +3720,7 @@ test('portable control validates Receipt and Captured Run references',
   }, control);
   await raceBase.putSemantic(resultSchemaWire, resultSchemaCid);
   await raceBase.putBytes(Buffer.from(payloadWire, 'utf8'), physicalCid);
-  t.after(async () => { await raceBase.close(); });
+  retainedStores.push(raceBase);
   let commitArrivals = 0;
   let releaseCommits;
   const commitsReady = new Promise(resolve => { releaseCommits = resolve; });
@@ -3768,7 +3803,7 @@ test('portable control validates Receipt and Captured Run references',
   const refusedDirectory = await mkdtemp(join(
     tmpdir(), 'actql-publication-finalization-refusal-',
   ));
-  t.after(() => rm(refusedDirectory, {recursive: true, force: true}));
+  retainedDirectories.push(refusedDirectory);
   const refusedBase = await openLocalPublicationStore({
     directory: refusedDirectory,
     storeAuthorityCid: cid('a'),
@@ -3778,7 +3813,7 @@ test('portable control validates Receipt and Captured Run references',
     maxContractNodes: limits.maxNodes,
     maxContractDepth: limits.maxDepth,
   }, control);
-  t.after(async () => { await refusedBase.close(); });
+  retainedStores.push(refusedBase);
   await refusedBase.putSemantic(resultSchemaWire, resultSchemaCid);
   await refusedBase.putBytes(Buffer.from(payloadWire, 'utf8'), physicalCid);
   const refusal = Object.assign(new Error('finalization not physically appended'), {
@@ -3826,7 +3861,7 @@ test('portable control validates Receipt and Captured Run references',
   const unknownDirectory = await mkdtemp(join(
     tmpdir(), 'actql-publication-unknown-',
   ));
-  t.after(() => rm(unknownDirectory, {recursive: true, force: true}));
+  retainedDirectories.push(unknownDirectory);
   const unknownBase = await openLocalPublicationStore({
     directory: unknownDirectory,
     storeAuthorityCid: cid('a'),
@@ -3838,7 +3873,7 @@ test('portable control validates Receipt and Captured Run references',
   }, control);
   await unknownBase.putSemantic(resultSchemaWire, resultSchemaCid);
   await unknownBase.putBytes(Buffer.from(payloadWire, 'utf8'), physicalCid);
-  t.after(async () => { await unknownBase.close(); });
+  retainedStores.push(unknownBase);
   let indexInspections = 0;
   const unknownStore = Object.freeze({
     ...unknownBase,
@@ -3877,7 +3912,7 @@ test('portable control validates Receipt and Captured Run references',
   const cancelledDirectory = await mkdtemp(join(
     tmpdir(), 'actql-publication-cancelled-',
   ));
-  t.after(() => rm(cancelledDirectory, {recursive: true, force: true}));
+  retainedDirectories.push(cancelledDirectory);
   const cancelledBase = await openLocalPublicationStore({
     directory: cancelledDirectory,
     storeAuthorityCid: cid('a'),
@@ -3889,7 +3924,7 @@ test('portable control validates Receipt and Captured Run references',
   }, control);
   await cancelledBase.putSemantic(resultSchemaWire, resultSchemaCid);
   await cancelledBase.putBytes(Buffer.from(payloadWire, 'utf8'), physicalCid);
-  t.after(async () => { await cancelledBase.close(); });
+  retainedStores.push(cancelledBase);
   const cancellation = new AbortController();
   const cancelledStore = Object.freeze({
     ...cancelledBase,
