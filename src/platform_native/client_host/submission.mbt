@@ -452,6 +452,9 @@ fn NativeClientRunJournal::record_submitted_intent_locked(
       },
       CustodyLost,
       usage=Some(() => {
+        if self.append_schema != 1 {
+          return Err(CustodyLost)
+        }
         client_journal_read(
           self.database,
           "client_submitted_intent_usage",

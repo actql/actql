@@ -1,160 +1,9 @@
 ///|
-// The coverage body is tied to this Journal's monotonic issuance coordinate.
-// Missing compatibility coverage is not absence or permission to create a Run.
-fn journal_append_coverage(count : Int, revision : Int64) -> Bytes {
-  @utf8.encode(count.to_string() + ":" + revision.to_string())
-}
-
-///|
-fn NativeClientRunJournal::run_append_coverage_locked(
-  self : NativeClientRunJournal,
-  issuance : (Int, Int64),
-  reads : NativeClientJournalReadAccess?,
-) -> Result[@sqlite.NativeJournalValue, NativeClientRunJournalIssue] {
-  match
-    read_client_journal_value(
-      self.database,
-      "client_run_append_coverage",
-      "issued",
-      reads,
-    ) {
-    Ok(row) if row.body == journal_append_coverage(issuance.0, issuance.1) =>
-      Ok(row)
-    Ok(_) | Err(@sqlite.NotFound) => Err(CustodyLost)
-    Err(issue) => Err(Physical(issue))
-  }
-}
-
-///|
-fn NativeClientRunJournal::check_run_definition_available_locked(
-  self : NativeClientRunJournal,
-  definition : @publication.PublicationContract,
-  reads : NativeClientJournalReadAccess?,
-) -> Result[Unit, NativeClientRunJournalIssue] {
-  let cid = @publication.publication_contract_identity(definition)
-  let locator = match
-    read_client_journal_value(
-      self.database,
-      "client_run_definition_index",
-      cid,
-      reads,
-    ) {
-    Err(@sqlite.NotFound) => return Ok(())
-    Err(issue) => return Err(Physical(issue))
-    Ok(value) => value
-  }
-  let key = @utf8.decode(locator.body) catch { _ => return Err(CustodyLost) }
-  let row = match
-    read_client_journal_value(self.database, "client_runs", key, reads) {
-    Ok(value) => value
-    Err(@sqlite.NotFound) => return Err(CustodyLost)
-    Err(issue) => return Err(Physical(issue))
-  }
-  let run = match read_run_record(row) {
-    Ok(value) => value
-    Err(issue) => return Err(issue)
-  }
-  if key != @host.client_request_scope_cid(run.request) ||
-    @publication.publication_contract_identity(run.definition) != cid {
-    return Err(CustodyLost)
-  }
-  Err(ForeignRun)
-}
-
-///|
-// Trusted mutation may replace the selected definition. Keep its subordinate
-// locator in the same Run CAS transaction; unchanged definitions do no work.
-// Legacy incomplete metadata remains incomplete rather than being backfilled
-// by an ordinary save.
-fn NativeClientRunJournal::save_run_definition_index(
-  self : NativeClientRunJournal,
-  before : NativeClientRunRecord,
-  after : NativeClientRunRecord,
-  operations : NativeClientJournalOperationAccess?,
-) -> Result[Unit, NativeClientRunJournalIssue] {
-  let previous = @publication.publication_contract_identity(before.definition)
-  let next = @publication.publication_contract_identity(after.definition)
-  if previous == next {
-    return Ok(())
-  }
-  if !self.transaction_active {
-    return Err(CustodyLost)
-  }
-  let reads = operations.map(value => value.reads)
-  let original = match
-    read_client_journal_value(
-      self.database,
-      "client_run_definition_index",
-      previous,
-      reads,
-    ) {
-    Ok(value) => value
-    Err(@sqlite.NotFound) => {
-      let issuance = match
-        client_journal_issuance_anchor(
-          self.database,
-          "client_run_custody",
-          self.max_records,
-          reads~,
-        ) {
-        Ok(value) => value
-        Err(issue) => return Err(issue)
-      }
-      return match
-        read_client_journal_value(
-          self.database,
-          "client_run_append_coverage",
-          "issued",
-          reads,
-        ) {
-        Ok(row) if row.body == journal_append_coverage(issuance.0, issuance.1) =>
-          Err(CustodyLost)
-        Ok(_) | Err(@sqlite.NotFound) => Ok(())
-        Err(issue) => Err(Physical(issue))
-      }
-    }
-    Err(issue) => return Err(Physical(issue))
-  }
-  let key = @host.client_request_scope_cid(before.request)
-  if original.body != @utf8.encode(key) ||
-    key != @host.client_request_scope_cid(after.request) {
-    return Err(CustodyLost)
-  }
-  match self.check_run_definition_available_locked(after.definition, reads) {
-    Ok(_) => ()
-    Err(issue) => return Err(issue)
-  }
-  match
-    remove_exact_client_journal_value(
-      self.database,
-      "client_run_definition_index",
-      previous,
-      original.revision,
-      original.body,
-      operations,
-    ) {
-    Ok(_) => ()
-    Err(issue) => return Err(Physical(issue))
-  }
-  insert_client_journal_value(
-    self.database,
-    "client_run_definition_index",
-    next,
-    @utf8.encode(key),
-    operations,
-  )
-  .map(_ => ())
-  .map_err(issue => Physical(issue))
-}
-
-///|
-// This runs only through explicit bounded compatibility indexing, never open
-// or ordinary append. Existing originals and their full custody establish the
-// index; a missing or inconsistent original cannot be replaced or executed.
-fn NativeClientRunJournal::index_legacy_append_metadata_locked(
+// Explicit bounded compatibility collection. No ordinary open/read enters it.
+fn NativeClientRunJournal::collect_legacy_append_usage_locked(
   self : NativeClientRunJournal,
   operations? : NativeClientJournalOperationAccess? = None,
-) -> Result[Unit, NativeClientRunJournalIssue] {
+) -> Result[Bytes, NativeClientRunJournalIssue] {
   if !self.transaction_active {
     return Err(CustodyLost)
   }
@@ -163,105 +12,34 @@ fn NativeClientRunJournal::index_legacy_append_metadata_locked(
     [],
     capacity=self.max_records,
   )
-  let issuance = match
+  let (run_count, run_revision) = match
     run_journal_custody(
       self.database,
       self.max_records,
       reads~,
       observe=Some((key, run) => {
         runs[key] = run
-        let cid = @publication.publication_contract_identity(run.definition)
-        let body = @utf8.encode(key)
-        match
-          read_client_journal_value(
-            self.database,
-            "client_run_definition_index",
-            cid,
-            reads,
-          ) {
-          Ok(value) if value.body == body => Ok(())
-          Ok(_) => Err(CustodyLost)
-          Err(@sqlite.NotFound) =>
-            insert_client_journal_value(
-              self.database,
-              "client_run_definition_index",
-              cid,
-              body,
-              operations,
-            )
-            .map(_ => ())
-            .map_err(issue => Physical(issue))
-          Err(issue) => Err(Physical(issue))
-        }
+        Ok(())
       }),
     ) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  let body = journal_append_coverage(issuance.0, issuance.1)
-  match
-    read_client_journal_value(
-      self.database,
-      "client_run_append_coverage",
-      "issued",
-      reads,
-    ) {
-    Ok(row) =>
-      match
-        compare_exchange_client_journal_value(
-          self.database,
-          "client_run_append_coverage",
-          "issued",
-          row.revision,
-          body,
-          operations,
-        ) {
-        Ok(_) => ()
-        Err(issue) => return Err(Physical(issue))
-      }
-    Err(@sqlite.NotFound) =>
-      match
-        insert_client_journal_value(
-          self.database,
-          "client_run_append_coverage",
-          "issued",
-          body,
-          operations,
-        ) {
-        Ok(_) => ()
-        Err(issue) => return Err(Physical(issue))
-      }
-    Err(issue) => return Err(Physical(issue))
+  if run_count.to_int64() != run_revision {
+    return Err(CustodyLost)
   }
-  let (count, bytes, _) = match
+  let (count, bytes, revision) = match
     self.submitted_intent_custody(reads~, runs=Some(runs)) {
     Ok(value) => value
     Err(issue) => return Err(issue)
+  }
+  if count.to_int64() != revision {
+    return Err(CustodyLost)
   }
   let body = match
     @host.client_submitted_journal_usage_body(count, bytes, self.max_records) {
     Ok(value) => value
     Err(_) => return Err(CustodyLost)
   }
-  match
-    read_client_journal_value(
-      self.database,
-      "client_submitted_intent_usage",
-      "retained",
-      reads,
-    ) {
-    Ok(row) if row.body == body => Ok(())
-    Ok(_) => Err(CustodyLost)
-    Err(@sqlite.NotFound) =>
-      insert_client_journal_value(
-        self.database,
-        "client_submitted_intent_usage",
-        "retained",
-        body,
-        operations,
-      )
-      .map(_ => ())
-      .map_err(issue => Physical(issue))
-    Err(issue) => Err(Physical(issue))
-  }
+  Ok(body)
 }

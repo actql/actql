@@ -23,6 +23,10 @@ fn journal_test_read_access(
       calls.push("scan:" + table_name + ":" + cursor)
       database.scan_after(table_name, cursor)
     },
+    run_definition_schema: () => {
+      calls.push("run-definition-schema")
+      database.client_run_definition_schema()
+    },
     schema: () => {
       calls.push("schema")
       submission_name_schema_ffi(database)

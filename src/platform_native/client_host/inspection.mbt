@@ -90,6 +90,7 @@ fn inspect_native_client_custody_rows(
   let journal : NativeClientRunJournal = {
     database,
     max_records,
+    append_schema: 0,
     fenced: false,
     publication_read_locked: false,
     transaction_active: false,

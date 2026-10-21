@@ -499,6 +499,7 @@ fn execute_native_local_adoption(
         host.migrate_journal_append_metadata(
           settings.principal,
           settings.connection,
+          settings.snapshot_bytes,
         ) {
         Ok(_) => ()
         Err(issue) => stop(local_journal_migration_issue(issue))

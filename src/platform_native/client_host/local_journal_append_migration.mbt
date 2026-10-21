@@ -1,91 +1,106 @@
 ///|
-// Format installation uses the existing bounded SQLite claim original. The
-// records API cannot remove that claim when an indexed record is deleted.
-// It supplies no permission, epoch, execution claim, or new Journal.
+// The actual SQLite schema distinguishes the legacy format from adopted
+// metadata loss. Its UNIQUE constraint is part of the original row mutation;
+// no record-level locator supplies a second definition authority.
 fn NativeClientRunJournal::migrate_append_metadata_locked(
   self : NativeClientRunJournal,
+  max_inspect_rows : Int64,
   operations? : NativeClientJournalOperationAccess? = None,
 ) -> Result[Unit, NativeClientRunJournalIssue] {
-  if !self.transaction_active {
+  if !self.transaction_active ||
+    max_inspect_rows < 1L ||
+    max_inspect_rows > 536870912L {
     return Err(CustodyLost)
   }
   let reads = operations.map(value => value.reads)
-  match lookup_journal_append_format(self.database, operations) {
-    Err(issue) => return Err(Physical(issue))
-    Ok(Some(1L)) => {
-      let issuance = match
-        client_journal_issuance_anchor(
-          self.database,
-          "client_run_custody",
-          self.max_records,
-          reads~,
-        ) {
-        Ok(value) => value
-        Err(issue) => return Err(issue)
-      }
-      match self.run_append_coverage_locked(issuance, reads) {
-        Ok(_) => ()
-        Err(issue) => return Err(issue)
-      }
-      let submitted = match
-        client_journal_issuance_anchor(
-          self.database,
-          "client_submitted_intent_custody",
-          self.max_records,
-          reads~,
-        ) {
-        Ok(value) => value
-        Err(issue) => return Err(issue)
-      }
-      let usage = match
-        client_journal_read(
-          self.database,
-          "client_submitted_intent_usage",
-          "retained",
-          reads~,
-        ) {
-        Ok(Some(value)) => value
-        Ok(None) => return Err(CustodyLost)
-        Err(issue) => return Err(issue)
-      }
-      @host.client_submitted_journal_usage(usage, submitted.0, self.max_records)
+  if self.append_schema == 1 {
+    match
+      client_journal_issuance_anchor(
+        self.database,
+        "client_run_custody",
+        self.max_records,
+        reads~,
+      ) {
+      Ok(_) => ()
+      Err(issue) => return Err(issue)
+    }
+    let submitted = match
+      client_journal_issuance_anchor(
+        self.database,
+        "client_submitted_intent_custody",
+        self.max_records,
+        reads~,
+      ) {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
+    }
+    let usage = match
+      client_journal_read(
+        self.database,
+        "client_submitted_intent_usage",
+        "retained",
+        reads~,
+      ) {
+      Ok(Some(value)) => value
+      Ok(None) => return Err(CustodyLost)
+      Err(issue) => return Err(issue)
+    }
+    return @host.client_submitted_journal_usage(
+        usage,
+        submitted.0,
+        self.max_records,
+      )
       .map(_ => ())
       .map_err(_ => CustodyLost)
-    }
-    Ok(Some(_)) => Err(CustodyLost)
-    Ok(None) => {
-      // Only the old, unindexed format can enter this explicit migration.
-      // Partial/new metadata without its installation original is not legacy.
-      for
-        table in [
-          "client_run_append_coverage", "client_run_definition_index", "client_submitted_intent_usage",
-        ] {
-        match scan_client_journal_value(self.database, table, "", reads) {
-          Err(@sqlite.NotFound) => ()
-          Ok(_) => return Err(CustodyLost)
-          Err(issue) => return Err(Physical(issue))
-        }
-      }
-      match self.index_legacy_append_metadata_locked(operations~) {
-        Ok(_) => ()
-        Err(issue) => return Err(issue)
-      }
-      match claim_journal_append_format(self.database, operations) {
-        Ok(@sqlite.Fresh(1L)) => Ok(())
-        Ok(_) => Err(CustodyLost)
-        Err(issue) => Err(Physical(issue))
-      }
-    }
   }
+  if self.append_schema != 0 {
+    return Err(CustodyLost)
+  }
+  // Only a legacy schema with no partial usage metadata can be migrated.
+  match
+    scan_client_journal_value(
+      self.database,
+      "client_submitted_intent_usage",
+      "",
+      reads,
+    ) {
+    Err(@sqlite.NotFound) => ()
+    Ok(_) => return Err(CustodyLost)
+    Err(issue) => return Err(Physical(issue))
+  }
+  let usage = match self.collect_legacy_append_usage_locked(operations~) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  match
+    install_journal_run_definition_schema(
+      self.database,
+      max_inspect_rows,
+      operations,
+    ) {
+    Ok(_) => ()
+    Err(issue) => return Err(Physical(issue))
+  }
+  insert_client_journal_value(
+    self.database,
+    "client_submitted_intent_usage",
+    "retained",
+    usage,
+    operations,
+  )
+  .map(_ => ())
+  .map_err(issue => Physical(issue))
 }
 
 ///|
-/// Explicit maintenance under this Host's actual current RunRead. No original
-/// is renewed, repaired, sent, or executed. Ordinary open/read never selects it.
+/// Explicit maintenance under this Host's actual current RunRead. The row-work
+/// bound is the existing inspection bound, not capacity or permission credit.
+/// No original is renewed, repaired, sent, or executed.
 pub fn NativeLocalHostConnection::migrate_journal_append_metadata(
   self : NativeLocalHostConnection,
   principal : String,
   connection : String,
+  max_inspect_rows : Int64,
 ) -> Result[Unit, NativeClientRunJournalIssue] {
   guard self.authorize({
       principal,
@@ -96,13 +111,19 @@ pub fn NativeLocalHostConnection::migrate_journal_append_metadata(
     is Ok(Allow(_)) else {
     return Err(AuthorizationDenied)
   }
-  self.journal.transaction(() => self.journal.migrate_append_metadata_locked())
+  let result = self.journal.transaction(() => {
+    self.journal.migrate_append_metadata_locked(max_inspect_rows)
+  })
+  if result is Ok(_) {
+    // Only the actual original COMMIT ACK publishes the new format fact.
+    self.journal.append_schema = 1
+  }
+  result
 }
 
 ///|
-/// The selected CLI maintenance consumes this capture's current Account and
-/// original Read/SQL ports. Inner Journal/Unknown and outer physical-return
-/// failures retain their existing independent Owners.
+/// Inner Journal/Unknown and outer physical-return failures retain their
+/// independent originals. A failed COMMIT cannot install a cached format.
 pub fn NativeLocalJournalCapture::migrate_journal_append_metadata_in_original_read(
   self : NativeLocalJournalCapture,
   principal : String,
@@ -127,15 +148,18 @@ pub fn NativeLocalJournalCapture::migrate_journal_append_metadata_in_original_re
     if !allowed {
       return Ok(Err(AuthorizationDenied))
     }
-    Ok(
-      host.journal.transaction_with_reads(
-        () => {
-          host.journal.migrate_append_metadata_locked(
-            operations=Some(operations),
-          )
-        },
-        reads=Some(operations.reads),
-      ),
+    let result = host.journal.transaction_with_reads(
+      () => {
+        host.journal.migrate_append_metadata_locked(
+          self.max_snapshot_bytes,
+          operations=Some(operations),
+        )
+      },
+      reads=Some(operations.reads),
     )
+    if result is Ok(_) {
+      host.journal.append_schema = 1
+    }
+    Ok(result)
   })
 }

@@ -1,6 +1,6 @@
 ///|
-// A new controlled fixture with the original pre-index rows. This is not an
-// old installation replay or an installed physical-pair qualification.
+// New controlled prior-format records assembled from the actual epoch and
+// existing checked codecs. No old installation, Run or dispatch is replayed.
 fn journal_append_legacy_fixture(
   name : String,
 ) -> (
@@ -9,60 +9,79 @@ fn journal_append_legacy_fixture(
   NativeClientEpochAuthority,
   NativeClientSubmissionReference,
 ) raise {
-  let (database, journal, authority, reference) = submitted_test_setup(name)
-  let (intent, preparation, request, compiled, definition) = submitted_run_test_input(
-    reference, "legacy-original",
+  let database = epoch_test_database(name)
+  let crypto = epoch_test_crypto()
+  initialize_native_client_epoch_authority(database, crypto).unwrap()
+  initialize_native_client_run_journal_rows(database).unwrap()
+  initialize_native_client_submitted_intents(database).unwrap()
+  let usage = database
+    .read("client_submitted_intent_usage", "retained")
+    .unwrap()
+  database
+  .remove_exact(
+    "client_submitted_intent_usage",
+    "retained",
+    usage.revision,
+    usage.body,
   )
-  journal
-  .record_submitted_intent(
-    authority,
+  .unwrap()
+  let authority = open_native_client_epoch_authority(database, crypto, 100.0).unwrap()
+  let epoch = authority
+    .issue_epoch("sha256:" + "a".repeat(64), true, 1000.0)
+    .unwrap()
+  let reference = prepare_native_client_submission_reference(
+    epoch, "legacy-submit",
+  ).unwrap()
+  let (intent, _, request, _, definition) = submitted_run_test_input(
+    reference, "legacy-arbitrary-run",
+  )
+  let record : NativeClientRunRecord = {
+    request,
+    definition,
+    dispatch_reserved: false,
+    physical_start_claimed: false,
+    cancellation_requested: false,
+    publication_binding: None,
+    publication_policy_originals: None,
+    effect_material_originals: None,
+    local_run_policy_originals: None,
+    run_observation_originals: None,
+    revision: 0L,
+    checkpoint: None,
+  }
+  let run_body = run_record_body(record).unwrap()
+  let intent_body = submitted_intent_body(
     reference,
     intent,
-    "sha256:" + "a".repeat(64),
-    true,
-    1001.0,
-  )
-  .unwrap()
-  |> ignore
-  journal
-  .accept_submitted_run(
-    authority,
-    reference,
-    preparation,
-    request,
-    compiled,
-    definition,
-    "sha256:" + "a".repeat(64),
-    true,
-    1002.0,
-  )
-  .unwrap()
-  |> ignore
+    run_admission=Some({
+      request,
+      run_definition_cid: @publication.publication_contract_identity(definition),
+      revision: 0L,
+    }),
+  ).unwrap()
   database.begin_immediate().unwrap()
-  for
-    (table, key) in [
-      ("client_submitted_intent_usage", "retained"),
-      ("client_run_append_coverage", "issued"),
-      (
-        "client_run_definition_index",
-        @publication.publication_contract_identity(definition),
-      ),
-    ] {
-    let original = database.read(table, key).unwrap()
-    database.remove_exact(table, key, original.revision, original.body).unwrap()
-  }
+  database.compare_exchange("client_run_custody", "issued", 0L, b"1").unwrap()
+  |> ignore
+  database
+  .insert("client_runs", @host.client_request_scope_cid(request), run_body)
+  .unwrap()
+  |> ignore
+  database
+  .compare_exchange("client_submitted_intent_custody", "issued", 0L, b"1")
+  .unwrap()
+  |> ignore
+  database
+  .insert("client_submitted_intents", reference.request_id, intent_body)
+  .unwrap()
+  |> ignore
   database.commit().unwrap()
-  assert_eq(
-    database
-    .lookup_claim_ordinal("client_journal_format", "append-index")
-    .unwrap(),
-    None,
-  )
+  assert_eq(database.client_run_definition_schema().unwrap(), 0)
+  let journal = open_native_client_run_journal(database, 8).unwrap()
   (database, journal, authority, reference)
 }
 
 ///|
-test "explicit legacy append migration preserves originals and permits the next new submission" {
+test "explicit legacy migration preserves arbitrary Run and permits the next new submission" {
   let (database, journal, authority, reference) = journal_append_legacy_fixture(
     "append-legacy-normal-route",
   )
@@ -76,16 +95,15 @@ test "explicit legacy append migration preserves originals and permits the next 
   let access = journal_test_operation_access(database, calls)
   journal
   .transaction_with_reads(
-    () => journal.migrate_append_metadata_locked(operations=Some(access)),
+    () => journal.migrate_append_metadata_locked(1024L, operations=Some(access)),
     reads=Some(access.reads),
   )
   .unwrap()
-  assert_eq(
-    database
-    .lookup_claim_ordinal("client_journal_format", "append-index")
-    .unwrap(),
-    Some(1L),
-  )
+  // Locked migration does not publish a process fact before COMMIT. Reopen
+  // observes the actual committed original schema, just as a new command does.
+  assert_eq(journal.append_schema, 0)
+  assert_eq(database.client_run_definition_schema().unwrap(), 1)
+  let journal = open_native_client_run_journal(database, 8).unwrap()
   let same = database
     .read("client_submitted_intents", reference.request_id)
     .unwrap()
@@ -99,7 +117,7 @@ test "explicit legacy append migration preserves originals and permits the next 
   calls.clear()
   journal
   .transaction_with_reads(
-    () => journal.migrate_append_metadata_locked(operations=Some(access)),
+    () => journal.migrate_append_metadata_locked(1024L, operations=Some(access)),
     reads=Some(access.reads),
   )
   .unwrap()
@@ -146,66 +164,61 @@ test "explicit legacy append migration preserves originals and permits the next 
 }
 
 ///|
-test "installed format never recreates deleted append metadata" {
-  for
-    selected in ["client_submitted_intent_usage", "client_run_append_coverage"] {
-    let (database, journal, authority, _) = journal_append_legacy_fixture(
-      "append-deleted-" + selected,
-    )
-    journal.transaction(() => journal.migrate_append_metadata_locked()).unwrap()
-    let key = if selected == "client_submitted_intent_usage" {
-      "retained"
-    } else {
-      "issued"
-    }
-    let row = database.read(selected, key).unwrap()
-    database.remove_exact(selected, key, row.revision, row.body).unwrap()
-    assert_true(
-      journal.transaction(() => journal.migrate_append_metadata_locked())
-      is Err(CustodyLost),
-    )
-    assert_true(database.read(selected, key) is Err(@sqlite.NotFound))
-    assert_eq(
-      database
-      .lookup_claim_ordinal("client_journal_format", "append-index")
-      .unwrap(),
-      Some(1L),
-    )
-    database.close_checked().unwrap()
-    authority.crypto.close_checked().unwrap()
-  }
+test "indexed format never recreates deleted usage metadata" {
+  let (database, journal, authority, _) = journal_append_legacy_fixture(
+    "append-deleted-usage",
+  )
+  journal
+  .transaction(() => journal.migrate_append_metadata_locked(1024L))
+  .unwrap()
+  let journal = open_native_client_run_journal(database, 8).unwrap()
+  let row = database.read("client_submitted_intent_usage", "retained").unwrap()
+  database
+  .remove_exact(
+    "client_submitted_intent_usage",
+    "retained",
+    row.revision,
+    row.body,
+  )
+  .unwrap()
+  assert_true(
+    journal.transaction(() => journal.migrate_append_metadata_locked(1024L))
+    is Err(CustodyLost),
+  )
+  assert_true(
+    database.read("client_submitted_intent_usage", "retained")
+    is Err(@sqlite.NotFound),
+  )
+  assert_eq(database.client_run_definition_schema().unwrap(), 1)
+  database.close_checked().unwrap()
+  authority.crypto.close_checked().unwrap()
 }
 
 ///|
-test "legacy migration format-claim refusal rolls back all new metadata" {
+test "legacy migration index refusal rolls back all new metadata" {
   let (database, journal, authority, _) = journal_append_legacy_fixture(
     "append-migration-rollback",
   )
   let calls : Array[String] = []
   let access : NativeClientJournalOperationAccess = {
     ..journal_test_operation_access(database, calls),
-    claim_append_format: () => Err(@sqlite.Busy),
+    install_run_definition_schema: _ => Err(@sqlite.Busy),
   }
   assert_true(
     journal.transaction_with_reads(
-      () => journal.migrate_append_metadata_locked(operations=Some(access)),
+      () => {
+        journal.migrate_append_metadata_locked(1024L, operations=Some(access))
+      },
       reads=Some(access.reads),
     )
     is Err(Physical(@sqlite.Busy)),
   )
   assert_eq(calls[calls.length() - 1], "rollback")
-  for
-    table in [
-      "client_run_append_coverage", "client_run_definition_index", "client_submitted_intent_usage",
-    ] {
-    assert_true(database.scan_after(table, "") is Err(@sqlite.NotFound))
-  }
-  assert_eq(
-    database
-    .lookup_claim_ordinal("client_journal_format", "append-index")
-    .unwrap(),
-    None,
+  assert_true(
+    database.scan_after("client_submitted_intent_usage", "")
+    is Err(@sqlite.NotFound),
   )
+  assert_eq(database.client_run_definition_schema().unwrap(), 0)
   assert_eq(database.read("client_run_custody", "issued").unwrap().body, b"1")
   assert_eq(
     database.read("client_submitted_intent_custody", "issued").unwrap().body,
@@ -216,18 +229,19 @@ test "legacy migration format-claim refusal rolls back all new metadata" {
 }
 
 ///|
-test "legacy migration commit loss keeps its original Unknown and cannot retry the same handle" {
+test "legacy migration commit loss retains Unknown without publishing a format fact" {
   let (database, journal, authority, _) = journal_append_legacy_fixture(
     "append-migration-unknown",
   )
   submitted_test_fail_commit_after(database, 0, true)
   assert_true(
-    journal.transaction(() => journal.migrate_append_metadata_locked())
+    journal.transaction(() => journal.migrate_append_metadata_locked(1024L))
     is Err(TransactionUnknown),
   )
+  assert_eq(journal.append_schema, 0)
   assert_true(database.transaction_fenced())
   assert_true(
-    journal.transaction(() => journal.migrate_append_metadata_locked())
+    journal.transaction(() => journal.migrate_append_metadata_locked(1024L))
     is Err(Fenced),
   )
   database.close_checked().unwrap()
@@ -238,14 +252,9 @@ test "legacy migration commit loss keeps its original Unknown and cannot retry t
 test "ordinary migration entry requires the actual current RunRead decision" {
   let host = local_journal_test_connection("append-migration-denied")
   assert_true(
-    host.migrate_journal_append_metadata("operator", "cli")
+    host.migrate_journal_append_metadata("operator", "cli", 1024L)
     is Err(AuthorizationDenied),
   )
-  assert_eq(
-    host.database
-    .lookup_claim_ordinal("client_journal_format", "append-index")
-    .unwrap(),
-    Some(1L),
-  )
+  assert_eq(host.database.client_run_definition_schema().unwrap(), 1)
   host.close().unwrap()
 }

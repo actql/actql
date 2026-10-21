@@ -4,9 +4,8 @@
 // Journal, permission, initialization route or acknowledgement.
 priv struct NativeClientJournalOperationAccess {
   reads : NativeClientJournalReadAccess
-  lookup_append_format : () -> Result[Int64?, @sqlite.NativeSqliteIssue]
-  claim_append_format : () -> Result[
-    @sqlite.NativeOrdinalClaim,
+  install_run_definition_schema : (Int64) -> Result[
+    Unit,
     @sqlite.NativeSqliteIssue,
   ]
   insert : (String, String, Bytes) -> Result[Int64, @sqlite.NativeSqliteIssue]
@@ -29,31 +28,15 @@ priv struct NativeClientJournalOperationAccess {
 }
 
 ///|
-fn lookup_journal_append_format(
+fn install_journal_run_definition_schema(
   database : @sqlite.Database,
+  max_inspect_rows : Int64,
   access : NativeClientJournalOperationAccess?,
-) -> Result[Int64?, @sqlite.NativeSqliteIssue] {
+) -> Result[Unit, @sqlite.NativeSqliteIssue] {
   match access {
-    None =>
-      database.lookup_claim_ordinal("client_journal_format", "append-index")
+    None => database.install_client_run_definition_schema(max_inspect_rows)
     Some(original) if physical_equal(database, original.reads.database) =>
-      (original.lookup_append_format)()
-    _ => Err(@sqlite.Collision)
-  }
-}
-
-///|
-fn claim_journal_append_format(
-  database : @sqlite.Database,
-  access : NativeClientJournalOperationAccess?,
-) -> Result[@sqlite.NativeOrdinalClaim, @sqlite.NativeSqliteIssue] {
-  match access {
-    None =>
-      database.claim_ordinal_action_in_transaction(
-        "client_journal_format", "append-index", 1L,
-      )
-    Some(original) if physical_equal(database, original.reads.database) =>
-      (original.claim_append_format)()
+      (original.install_run_definition_schema)(max_inspect_rows)
     _ => Err(@sqlite.Collision)
   }
 }

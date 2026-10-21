@@ -78,6 +78,11 @@ fn NativeLocalJournalReadQueries::access(
 ) -> NativeClientJournalReadAccess {
   {
     database: self.database,
+    run_definition_schema: () => {
+      self
+      .query(() => self.database.client_run_definition_schema())
+      .unwrap_or(Err(@sqlite.Busy))
+    },
     fenced: () => {
       self.query(() => self.database.transaction_fenced()).unwrap_or(true)
     },
@@ -151,13 +156,9 @@ fn NativeLocalJournalReadQueries::bootstrap_access(
 ) -> NativeClientJournalBootstrapAccess {
   {
     reads: self.access(),
-    claim_append_format: () => {
+    install_run_definition_schema: max_rows => {
       self
-      .query(() => {
-        self.database.claim_ordinal_action_in_transaction(
-          "client_journal_format", "append-index", 1L,
-        )
-      })
+      .query(() => self.database.install_client_run_definition_schema(max_rows))
       .unwrap_or(Err(@sqlite.Busy))
     },
     insert: (table_name, key, body) => {
@@ -218,22 +219,9 @@ fn NativeLocalJournalReadQueries::operation_access(
 ) -> NativeClientJournalOperationAccess {
   {
     reads: self.access(),
-    lookup_append_format: () => {
+    install_run_definition_schema: max_rows => {
       self
-      .query(() => {
-        self.database.lookup_claim_ordinal(
-          "client_journal_format", "append-index",
-        )
-      })
-      .unwrap_or(Err(@sqlite.Busy))
-    },
-    claim_append_format: () => {
-      self
-      .query(() => {
-        self.database.claim_ordinal_action_in_transaction(
-          "client_journal_format", "append-index", 1L,
-        )
-      })
+      .query(() => self.database.install_client_run_definition_schema(max_rows))
       .unwrap_or(Err(@sqlite.Busy))
     },
     capacity_usage: table => {

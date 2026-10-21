@@ -24,10 +24,9 @@ fn journal_test_bootstrap_access(
   }
   {
     reads,
-    claim_append_format: () => {
-      database.claim_ordinal_action_in_transaction(
-        "client_journal_format", "append-index", 1L,
-      )
+    install_run_definition_schema: max_rows => {
+      calls.push("install run definition schema")
+      database.install_client_run_definition_schema(max_rows)
     },
     insert: (table_name, key, body) => {
       calls.push("insert:" + table_name + ":" + key)

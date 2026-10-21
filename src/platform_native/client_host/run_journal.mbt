@@ -6,6 +6,8 @@ struct NativeClientRunJournal {
   database : @sqlite.Database
   max_records : Int
   mut fenced : Bool
+  // Same actual Database format; only acknowledged maintenance advances it.
+  mut append_schema : Int
   // Physical transaction ownership only; this is not a Run control revision.
   mut operation_active : Bool
   mut transaction_active : Bool
@@ -244,7 +246,7 @@ fn read_run_record_in_mode(
 ///|
 /// Only the eventual fresh-format bootstrap may call this initializer. It is
 /// private so a caller cannot repair missing custody in an adopted journal.
-fn initialize_native_client_run_journal(
+fn initialize_native_client_run_journal_rows(
   database : @sqlite.Database,
   bootstrap? : NativeClientJournalBootstrapAccess? = None,
 ) -> Result[Unit, NativeClientRunJournalIssue] {
@@ -286,10 +288,10 @@ fn initialize_native_client_run_journal(
   }
   for
     table in [
-      "client_run_definition_index", "client_run_append_coverage", "client_checkpoint_id_index",
-      "client_run_id_index", "client_run_id_index_coverage", "client_run_reference_index",
-      "client_effect_response_meta", "client_effect_response_bytes", "client_effect_row_receipt",
-      "client_cancellations", "client_cancel_custody", "client_cancel_originals",
+      "client_checkpoint_id_index", "client_run_id_index", "client_run_id_index_coverage",
+      "client_run_reference_index", "client_effect_response_meta", "client_effect_response_bytes",
+      "client_effect_row_receipt", "client_cancellations", "client_cancel_custody",
+      "client_cancel_originals",
     ] {
     match
       scan_client_journal_value(
@@ -305,13 +307,6 @@ fn initialize_native_client_run_journal(
   match
     insert_bootstrap_journal_value(
       database, "client_cancel_custody", "issued", b"0", bootstrap,
-    ) {
-    Ok(_) => ()
-    Err(issue) => return Err(Physical(issue))
-  }
-  match
-    insert_bootstrap_journal_value(
-      database, "client_run_append_coverage", "issued", b"0:0", bootstrap,
     ) {
     Ok(_) => ()
     Err(issue) => return Err(Physical(issue))
@@ -444,6 +439,12 @@ fn open_native_client_run_journal_with_reads(
   if max_records < 1 || max_records > 1024 {
     return Err(CapacityExceeded)
   }
+  let append_schema = match
+    client_journal_run_definition_schema(database, reads) {
+    Ok(value) if value == 0 || value == 1 => value
+    Ok(_) => return Err(CustodyLost)
+    Err(issue) => return Err(Physical(issue))
+  }
   match
     client_journal_issuance_anchor(
       database,
@@ -455,6 +456,7 @@ fn open_native_client_run_journal_with_reads(
       Ok({
         database,
         max_records,
+        append_schema,
         fenced: false,
         publication_read_locked: false,
         transaction_active: false,
@@ -859,6 +861,9 @@ fn NativeClientRunJournal::bind_run_locked(
     }
     Ok(None) => ()
   }
+  if self.append_schema != 1 {
+    return Err(CustodyLost)
+  }
   let issuance = match
     client_journal_issuance_anchor(
       self.database,
@@ -869,17 +874,9 @@ fn NativeClientRunJournal::bind_run_locked(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  let coverage = match self.run_append_coverage_locked(issuance, reads) {
-    Ok(value) => value
-    Err(issue) => return Err(issue)
-  }
   let (count, revision) = issuance
   if count == self.max_records {
     return Err(CapacityExceeded)
-  }
-  match self.check_run_definition_available_locked(definition, reads) {
-    Ok(_) => ()
-    Err(issue) => return Err(issue)
   }
   let record : NativeClientRunRecord = {
     request,
@@ -920,29 +917,6 @@ fn NativeClientRunJournal::bind_run_locked(
         Ok(value) => value
         Err(issue) => return Err(Physical(issue))
       }
-    Err(issue) => return Err(Physical(issue))
-  }
-  match
-    insert_client_journal_value(
-      self.database,
-      "client_run_definition_index",
-      @publication.publication_contract_identity(definition),
-      @utf8.encode(@host.client_request_scope_cid(request)),
-      operations,
-    ) {
-    Ok(_) => ()
-    Err(issue) => return Err(Physical(issue))
-  }
-  match
-    compare_exchange_client_journal_value(
-      self.database,
-      "client_run_append_coverage",
-      "issued",
-      coverage.revision,
-      journal_append_coverage(count + 1, issuance.1 + 1L),
-      operations,
-    ) {
-    Ok(_) => ()
     Err(issue) => return Err(Physical(issue))
   }
   Ok({ ..record, revision, })
@@ -1008,10 +982,6 @@ fn NativeClientRunJournal::save_with_operations(
     Err(issue) => return Err(Physical(issue))
   }
   let next = { ..record, revision, }
-  match self.save_run_definition_index(before, next, operations) {
-    Ok(_) => ()
-    Err(issue) => return Err(issue)
-  }
   self.save_checkpoint_id_index(before, next, operations~).map(_ => next)
 }
 

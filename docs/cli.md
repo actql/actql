@@ -405,8 +405,8 @@ After upgrading an older Local installation, run
 `actql --mode local adopt --migrate-journal --json` once before admitting a new
 Run. The command requires the installation's current Run-read permission and
 uses its existing Account, Journal, key and exclusion. It preserves original
-Runs and Results while installing bounded append quota metadata and definition
-locators atomically. It does not initialize signing, renew grants, issue an
+Runs and Results while installing bounded append quota metadata and the native
+definition uniqueness constraint atomically. It does not initialize signing, renew grants, issue an
 epoch or execute a Program. Existing project and Local configuration selection
 still apply.
 

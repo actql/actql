@@ -2422,28 +2422,29 @@ requests still select their original row before any append decision; expiry,
 changed intent, query failure and COMMIT uncertainty keep their existing
 meaning. The cumulative canonical-intent byte cap and record cap are unchanged.
 
-Fresh Run binding reads its issuance coordinate and a subordinate definition
-locator. Complete locator coverage is tied to that issuance snapshot. The
-locator authenticates the selected Run identity before duplicate refusal; it
-is not Run authority. The Run insertion, definition locator, coverage and
-issuance CAS share the same existing transaction and rollback/Unknown rules.
-Ordinary opening and append do not audit unrelated Runs or Effects. A trusted
-replacement of the selected definition moves its exact locator in the same Run
-CAS transaction. An unchanged definition performs no locator read or mutation;
-a failed replacement rolls back both the Run and its locators.
+Fresh Run binding reads its issuance coordinate and inserts the actual Run
+under the existing SQLite UNIQUE definition constraint. The actual schema
+format is observed once when the original Database is opened. Typed target
+identity and definition admission remain required; an index entry or SQL NULL
+is not authority. Run insertion, issuance CAS and definition replacement keep
+their existing transaction and rollback/Unknown rules. Ordinary open and
+append do not inventory unrelated Runs or Effects.
 
-Older Journals without complete append metadata refuse fresh insertion rather
-than treating missing metadata as absence or resend permission. The explicit
-`adopt --migrate-journal` command derives append metadata from a bounded,
-authenticated original inventory under the current RunRead decision and the
-same captured Read/SQL transaction. A bounded installation claim in the
-existing SQLite claim storage distinguishes the old unindexed format from
-metadata deleted after adoption. Fresh initialization and successful migration
-commit this claim with their metadata; a missing record under the retained
-claim refuses instead of rebuilding it. Repeated maintenance on a complete
-installation reads only its local metadata. Migration reuses each admitted
-Run while validating its Submission relationships. It does
-not run on ordinary open or read, repair missing originals, renew an epoch,
-rekey, or authorize execution. Unindexed Common callers retain their existing
-inventory route until their physical counter port supplies the retained usage
-original and commits its additional CAS in that same transaction.
+Older Journals without this schema and retained-byte usage metadata refuse
+fresh insertion rather than interpreting missing metadata as absence or resend
+permission. The explicit `adopt --migrate-journal` command authenticates a
+bounded original inventory under current RunRead and installs the constraint
+and usage in the same captured Read/SQL transaction. The existing inspection
+byte bound also caps the schema installation's row work conservatively: each
+stored row occupies at least one byte. This work cap is not capacity, fit or
+permission evidence. Already admitted Runs are reused for Submission checks.
+
+The actual UNIQUE-index schema distinguishes the legacy format from usage
+metadata deleted after adoption. An indexed installation with missing or
+inconsistent usage refuses instead of rebuilding it. Repeated maintenance on
+a complete installation reads only its local metadata. The cached format
+changes only after its original COMMIT ACK; uncertainty remains fenced. This
+route does not run on ordinary open/read, repair originals, renew an epoch,
+rekey or authorize execution. Unindexed Common callers retain their existing
+inventory route until their physical usage port commits its additional CAS
+in the original transaction.

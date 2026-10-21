@@ -4,6 +4,7 @@
 // capacity, new transaction or original row. Legacy callers keep direct reads.
 priv struct NativeClientJournalReadAccess {
   database : @sqlite.Database
+  run_definition_schema : () -> Result[Int, @sqlite.NativeSqliteIssue]
   fenced : () -> Bool
   fence : () -> Unit
   schema : () -> Int
@@ -20,6 +21,19 @@ priv struct NativeClientJournalReadAccess {
     @sqlite.NativeJournalEntry,
     @sqlite.NativeSqliteIssue,
   ]
+}
+
+///|
+fn client_journal_run_definition_schema(
+  database : @sqlite.Database,
+  reads : NativeClientJournalReadAccess?,
+) -> Result[Int, @sqlite.NativeSqliteIssue] {
+  match reads {
+    None => database.client_run_definition_schema()
+    Some(original) if physical_equal(database, original.database) =>
+      (original.run_definition_schema)()
+    _ => Err(@sqlite.Collision)
+  }
 }
 
 ///|

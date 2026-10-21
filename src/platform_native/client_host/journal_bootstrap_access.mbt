@@ -1,7 +1,7 @@
 ///|
 // Private routing for the already authorized first Journal transaction. The
 // actual marker/session still selects initialization; this record cannot issue
-// execution authority, start a transaction, repair originals or change its Database.
+// a claim, start a transaction, repair missing originals or change its Database.
 priv struct NativeClientJournalBootstrapAccess {
   reads : NativeClientJournalReadAccess
   insert : (String, String, Bytes) -> Result[Unit, @sqlite.NativeSqliteIssue]
@@ -10,30 +10,23 @@ priv struct NativeClientJournalBootstrapAccess {
     @sqlite.NativeSqliteIssue,
   ]
   install_names : () -> Bool
-  claim_append_format : () -> Result[
-    @sqlite.NativeOrdinalClaim,
+  install_run_definition_schema : (Int64) -> Result[
+    Unit,
     @sqlite.NativeSqliteIssue,
   ]
 }
 
 ///|
-fn claim_bootstrap_journal_append_format(
+fn install_bootstrap_run_definition_schema(
   database : @sqlite.Database,
+  max_inspect_rows : Int64,
   access : NativeClientJournalBootstrapAccess?,
-) -> Result[Unit, NativeLocalAdoptionIssue] {
-  let result = match access {
-    None =>
-      database.claim_ordinal_action_in_transaction(
-        "client_journal_format", "append-index", 1L,
-      )
+) -> Result[Unit, @sqlite.NativeSqliteIssue] {
+  match access {
+    None => database.install_client_run_definition_schema(max_inspect_rows)
     Some(original) if physical_equal(database, original.reads.database) =>
-      (original.claim_append_format)()
+      (original.install_run_definition_schema)(max_inspect_rows)
     _ => Err(@sqlite.Collision)
-  }
-  match result {
-    Ok(@sqlite.Fresh(1L)) => Ok(())
-    Ok(_) => Err(CustodyLost)
-    Err(issue) => Err(Physical(issue))
   }
 }
 
