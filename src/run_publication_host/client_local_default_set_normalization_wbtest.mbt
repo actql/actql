@@ -1,3 +1,5 @@
+// Legacy catalogue compatibility cases retain the original recipe issuer.
+
 ///|
 let local_default_set_expected_journal : String =
   #|{"entries":[],"journal_cid":"sha256:09ac554868a1d4a15b7ea357702b7da4b633024d38a2537fa6aea8f560866b81","rule_catalog_cid":"sha256:a9d402c6c62d80cc8aed4a55d0753acec16dab22e7cd31399f4bc5459a248d45","version":"actql-normalization-journal/0.1"}
@@ -6,7 +8,7 @@ let local_default_set_expected_journal : String =
 fn local_default_set_normalization(
   owner : PreparedClientProgram,
 ) -> ClientLocalNormalization raise {
-  let proof = issue_prepared_client_local_normalization(owner).unwrap()
+  let proof = issue_prepared_client_legacy_local_normalization(owner).unwrap()
   guard proof.audit is CompletionFree(inventory) else {
     fail("original default SET inventory expected")
   }
@@ -137,7 +139,7 @@ test "actual Append executes both original Default rows without Number conversio
 ///|
 test "Default with SET retains actual Sort completion and rejects an empty journal" {
   let original = local_default_set_rows(true)
-  let proof = issue_prepared_client_local_normalization(original).unwrap()
+  let proof = issue_prepared_client_legacy_local_normalization(original).unwrap()
   guard proof.audit is SortCompletion(inventory) else {
     fail("actual completed SET Sort expected")
   }

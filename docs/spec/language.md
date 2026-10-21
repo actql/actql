@@ -9551,6 +9551,24 @@ RFC 9535-compatible JSONPath subset; rule IDs MUST exist in the frozen
 authored bytes, then canonical bytes using the ActQL code-unit order. The
 journal CID is computed over `{version, rule_catalog_cid, entries}`.
 
+<!-- requirement-block: normalization-journal.common-local-original-audit normalization-journal.common-local-catalog-law -->
+Fresh Effect-free Local preparations MUST use one bounded audit of the original checked
+Program, all original producer visits and expression children, actual parameter
+bindings and their declared origins, and the existing requirement closure.
+Fixed operation semantics do not select operation-combination catalogues or
+create normalization entries. Backend applicability, numeric observations,
+Run-bound time, resource limits and execution checks remain mandatory with
+their existing owners; the audit does not discharge them. Actual source
+completions retain their owned rule, path, authored and canonical values;
+an unconnected completion or exhausted traversal/emission budget refuses
+atomically. Saved preparations retain their original catalogue, schema,
+journal and recipe; current defaults do not recompile or relabel a saved Run.
+
+<!-- normative-code: law -->
+```text
+../../spec/contracts/actql-effect-free-local-common-normalization-catalog.json# sha256:f93d91b468d850cbc63a8c8350578af8431a2256eb2b1ef3f60586fdc640561d
+```
+
 <!-- requirement-block: normalization-journal.two-implementations-claiming-the-same-normalization-rule-catalog-and-check-evidence -->
 Compiler-specific notes or prose may accompany a journal only as non-semantic
 presentation and are excluded from its CID. Two implementations claiming the

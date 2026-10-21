@@ -1,3 +1,5 @@
+// Legacy catalogue compatibility cases retain the original recipe issuer.
+
 ///|
 let local_default_parameter_expected_journal : String =
   #|{"entries":[],"journal_cid":"sha256:44e145d70edf8d9e3c00055d5b5dce68a59daa2ab4ca148b48c28ae330533b69","rule_catalog_cid":"sha256:096c228635c4a08bbe7080f3447a9ca35b439fdb5113a17b0cca2b7735a55d2d","version":"actql-normalization-journal/0.1"}
@@ -6,7 +8,7 @@ let local_default_parameter_expected_journal : String =
 fn local_default_parameter_normalization(
   owner : PreparedClientProgram,
 ) -> ClientLocalNormalization raise {
-  let proof = issue_prepared_client_local_normalization(owner).unwrap()
+  let proof = issue_prepared_client_legacy_local_normalization(owner).unwrap()
   assert_eq(
     local_normalization_catalog_cid(proof.audit),
     local_default_parameter_catalog_cid(),
@@ -92,7 +94,7 @@ test "public SQL and Pipe default Parameters execute exact signed64 original val
       )
       assert_eq(
         local_normalization_catalog_cid(
-          issue_prepared_client_local_normalization(override).unwrap().audit,
+          issue_prepared_client_legacy_local_normalization(override).unwrap().audit,
         ),
         "sha256:105e716b0494553cf970393a550ece0553787fb1967ee01f245ea607b03d0fe1",
       )
@@ -118,7 +120,9 @@ test "nullable explicit supplied NULL does not select default and missing or inv
     declaration,
     Some("{\"id\":null}"),
   )
-  assert_true(issue_prepared_client_local_normalization(explicit_null) is Ok(_))
+  assert_true(
+    issue_prepared_client_legacy_local_normalization(explicit_null) is Ok(_),
+  )
   assert_true(
     @parameter.bound_value_at(local_default_bound_values(explicit_null), 0).unwrap().origin
     is @parameter.Supplied,
@@ -260,7 +264,7 @@ test "default invocation binding never replaces actual nonempty Sort completion 
   let document =
     #|{"version":"actql/0.1","id":"default.completed-sort","params":{"delta":{"type":"number","default":7}},"stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"key":{"type":"string","nullable":false}},"rows":[{"key":"b"},{"key":"a"}]},"as":"input"},{"derive":{"extra":{"$param":"delta"}}},{"group":{"by":["key"],"aggregates":{"n":{"fn":"count"}}}},{"sort":[{"field":"n","dir":"asc","nulls":"last"}],"as":"selected"}],"results":{"rows":{"from":"selected","fields":["key","n"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}
   let original = local_group_original_document(document)
-  let proof = issue_prepared_client_local_normalization(original).unwrap()
+  let proof = issue_prepared_client_legacy_local_normalization(original).unwrap()
   guard proof.audit is SortCompletion(inventory) else {
     fail("original Sort completion expected")
   }
@@ -312,7 +316,7 @@ test "default correspondence consumes the existing Local audit work without wide
     text~,
   )
   assert_true(
-    issue_prepared_client_local_normalization(defaulted)
+    issue_prepared_client_legacy_local_normalization(defaulted)
     is Err(Inventory(ProfileNotInstalled)),
   )
   assert_true(defaulted.local_normalization is None)
@@ -323,7 +327,7 @@ test "default correspondence consumes the existing Local audit work without wide
     text="SELECT CASE WHEN TRUE THEN @id END AS id",
   )
   assert_true(
-    issue_prepared_client_local_normalization(implicit_else)
+    issue_prepared_client_legacy_local_normalization(implicit_else)
     is Err(Inventory(CompletionObserved)),
   )
   assert_true(implicit_else.local_normalization is None)

@@ -1,3 +1,5 @@
+// Legacy catalogue compatibility cases retain the original recipe issuer.
+
 ///|
 let local_join_catalog : String = "sha256:aa327c80f2a09b4a199a77da8751e04e994bbf42ff28581f6620a73a864f5b3c"
 
@@ -8,7 +10,7 @@ let local_join_public_sql : String = "WITH left_rows AS (SELECT 1 AS id), right_
 fn local_join_normalization(
   owner : PreparedClientProgram,
 ) -> ClientLocalNormalization raise {
-  let proof = match issue_prepared_client_local_normalization(owner) {
+  let proof = match issue_prepared_client_legacy_local_normalization(owner) {
     Ok(value) => value
     Err(Inventory(issue)) =>
       fail("original keyed Join: " + @debug.to_string(issue))
@@ -238,7 +240,7 @@ test "Join retains real projection journal entries and implicit completion refus
     "inner",
     tail=",{\"drop\":[\"matched\"],\"as\":\"projected\"}",
   )
-  let proof = issue_prepared_client_local_normalization(owner).unwrap()
+  let proof = issue_prepared_client_legacy_local_normalization(owner).unwrap()
   guard proof.audit is SortCompletion(inventory) else {
     fail("real projection journal required")
   }
@@ -268,7 +270,7 @@ test "Join retains real projection journal entries and implicit completion refus
     text="WITH l AS (SELECT CASE WHEN TRUE THEN 1 END AS id), r AS (SELECT 1 AS id) SELECT l.id AS id FROM l JOIN r ON l.id = r.id MAX_OUTPUT_ROWS 4",
   )
   assert_true(
-    issue_prepared_client_local_normalization(implicit)
+    issue_prepared_client_legacy_local_normalization(implicit)
     is Err(Inventory(CompletionObserved)),
   )
 }

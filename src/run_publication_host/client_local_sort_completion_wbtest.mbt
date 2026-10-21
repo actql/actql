@@ -1,3 +1,5 @@
+// Legacy catalogue compatibility cases retain the original recipe issuer.
+
 ///|
 let local_completed_sort_expected_journal : String =
   #|{"entries":[{"authored":"[{\"dir\":\"asc\",\"field\":\"n\",\"nulls\":\"last\"}]","canonical":"[{\"dir\":\"asc\",\"field\":\"n\",\"nulls\":\"last\"},{\"dir\":\"asc\",\"field\":\"key\",\"nulls\":\"last\"}]","path":"$.stages[0].steps[2].sort","rule":"sort.candidate_key_completion"}],"journal_cid":"sha256:e4285d4c0c7eab9889e52a5d3774575846c7dd2ddf221f2e41ff8a95786f0847","rule_catalog_cid":"sha256:43da977432e59fa094193c21ef4a11ba10de94f54400ef2576d6293b12500a57","version":"actql-normalization-journal/0.1"}
@@ -12,7 +14,7 @@ fn local_completed_sort_original() -> PreparedClientProgram raise {
 ///|
 test "actual Group Sort completion issues the independent journal and refuses empty evidence" {
   let original = local_completed_sort_original()
-  let proof = issue_prepared_client_local_normalization(original).unwrap()
+  let proof = issue_prepared_client_legacy_local_normalization(original).unwrap()
   guard proof.audit is SortCompletion(inventory) else {
     fail("actual completion inventory expected")
   }
@@ -24,7 +26,7 @@ test "actual Group Sort completion issues the independent journal and refuses em
   assert_true(
     physical_equal(
       proof,
-      issue_prepared_client_local_normalization(original).unwrap(),
+      issue_prepared_client_legacy_local_normalization(original).unwrap(),
     ),
   )
   let catalog = local_normalization_catalog_cid(proof.audit)
@@ -81,7 +83,7 @@ test "the original public grouped ORDER BY query retains the actual completion t
   let original = local_explicit_cast_original(
     text="SELECT 1 AS k, COUNT(*) AS n GROUP BY k ORDER BY n ASC NULLS FIRST LIMIT 1",
   )
-  let proof = issue_prepared_client_local_normalization(original).unwrap()
+  let proof = issue_prepared_client_legacy_local_normalization(original).unwrap()
   guard proof.audit is SortCompletion(inventory) else {
     fail("actual public completion expected")
   }
@@ -111,7 +113,7 @@ test "two original Sort occurrences journal in UTF16 path order rather than exec
   let document =
     #|{"version":"actql/0.1","id":"local.two-sort-occurrences","stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"key":{"type":"string","nullable":false}},"rows":[{"key":"b"},{"key":"a"}]},"as":"input"},{"group":{"by":["key"],"aggregates":{"n":{"fn":"count"}}}},{"sort":[{"field":"n","dir":"asc","nulls":"last"}],"as":"first"},{"sort":[]},{"sort":[]},{"sort":[]},{"sort":[]},{"sort":[]},{"sort":[]},{"sort":[]},{"sort":[{"field":"n","dir":"desc","nulls":"first"}],"as":"selected"}],"results":{"rows":{"from":"selected","fields":["key","n"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}
   let original = local_group_original_document(document)
-  let proof = issue_prepared_client_local_normalization(original).unwrap()
+  let proof = issue_prepared_client_legacy_local_normalization(original).unwrap()
   guard proof.audit is SortCompletion(inventory) else {
     fail("actual two-entry inventory expected")
   }
@@ -138,7 +140,8 @@ test "a journal exceeding original limits refuses atomically without an empty fa
     .unwrap()
   assert_eq(@checked.local_sort_normalization_entry_count(inventory), 3)
   assert_true(
-    issue_prepared_client_local_normalization(original) is Err(Evidence(_)),
+    issue_prepared_client_legacy_local_normalization(original)
+    is Err(Evidence(_)),
   )
   assert_true(original.local_normalization is None)
 }

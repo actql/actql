@@ -1,3 +1,5 @@
+// Legacy catalogue compatibility cases retain the original recipe issuer.
+
 ///|
 let local_distinct_catalog_cid : String = "sha256:4cbc2466af84dc925b7e79c91c0a7a19a2a16873bb6e7975e8f6855a954831d8"
 
@@ -9,7 +11,7 @@ let local_distinct_expected_journal : String =
 fn local_distinct_normalization(
   owner : PreparedClientProgram,
 ) -> ClientLocalNormalization raise {
-  let proof = issue_prepared_client_local_normalization(owner).unwrap()
+  let proof = issue_prepared_client_legacy_local_normalization(owner).unwrap()
   assert_eq(
     local_normalization_catalog_cid(proof.audit),
     local_distinct_catalog_cid,
@@ -137,7 +139,7 @@ test "DISTINCT plus actual Sort completion retains the original nonempty journal
   let source =
     #|{"version":"actql/0.1","id":"local.distinct-sort","stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"key":{"type":"string","nullable":false}},"rows":[{"key":"b"},{"key":"a"}]},"as":"input"},{"group":{"by":["key"],"aggregates":{"n":{"fn":"count"}}}},{"distinct":true},{"sort":[{"field":"n","dir":"asc","nulls":"last"}],"as":"selected"}],"results":{"rows":{"from":"selected","fields":["key","n"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}
   let owner = local_group_original_document(source)
-  let proof = issue_prepared_client_local_normalization(owner).unwrap()
+  let proof = issue_prepared_client_legacy_local_normalization(owner).unwrap()
   guard proof.audit is SortCompletion(inventory) else {
     fail("actual Sort completion expected")
   }
@@ -167,7 +169,7 @@ test "DISTINCT plus actual Sort completion retains the original nonempty journal
   assert_eq(@execution.completed_row_count(local_distinct_execute(owner)), 2)
   assert_eq(
     local_normalization_catalog_cid(
-      issue_prepared_client_local_normalization(base).unwrap().audit,
+      issue_prepared_client_legacy_local_normalization(base).unwrap().audit,
     ),
     "sha256:43da977432e59fa094193c21ef4a11ba10de94f54400ef2576d6293b12500a57",
   )

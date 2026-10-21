@@ -340,6 +340,16 @@ pub fn keyed_input_proof_execution(KeyedInputProof) -> SourceExecution
 
 pub fn keyed_input_proof_source(KeyedInputProof) -> UnitOperationSource
 
+pub fn local_common_normalization_entry_at(LocalCommonNormalizationInventory, Int) -> (String, String, String, String)?
+
+pub fn local_common_normalization_entry_count(LocalCommonNormalizationInventory) -> Int
+
+pub fn local_common_normalization_inventory_matches(LocalCommonNormalizationInventory, CheckedProgram) -> Bool
+
+pub fn local_common_normalization_inventory_requirements(LocalCommonNormalizationInventory) -> @pipeline_check_context.StageRequirementClosure
+
+pub fn local_common_normalization_inventory_work(LocalCommonNormalizationInventory) -> Int
+
 pub fn local_completion_free_inventory_matches(LocalCompletionFreeInventory, CheckedProgram) -> Bool
 
 pub fn local_completion_free_inventory_parameters_defaulted(LocalCompletionFreeInventory) -> Bool
@@ -369,6 +379,8 @@ pub fn local_completion_free_inventory_uses_sort(LocalCompletionFreeInventory) -
 pub fn local_completion_free_inventory_uses_take(LocalCompletionFreeInventory) -> Bool
 
 pub fn local_completion_free_inventory_work(LocalCompletionFreeInventory) -> Int
+
+pub fn local_program_common_normalization_inventory(CheckedProgram, Int) -> Result[LocalCommonNormalizationInventory, LocalCommonNormalizationIssue]
 
 pub fn local_program_completion_free_inventory(CheckedProgram) -> Result[LocalCompletionFreeInventory, CompletionFreeInventoryIssue]
 
@@ -1152,6 +1164,16 @@ pub struct KeyedExecution {
 }
 
 type KeyedInputProof
+
+type LocalCommonNormalizationInventory
+
+pub(all) enum LocalCommonNormalizationIssue {
+  InvalidLimits
+  BudgetExceeded
+  ForeignOriginal
+  CompletionObserved
+  UnsupportedRequirement
+} derive(Eq, @debug.Debug)
 
 type LocalCompletionFreeInventory
 

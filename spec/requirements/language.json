@@ -9727,6 +9727,28 @@
       }
     },
     {
+      "requirement_id": "actql.language/normalization-journal.common-local-original-audit",
+      "statement_sha256": "b08c173763db7ba3308d4272c895452633f74f6c67365f61690bdac4b8bebed0",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "normalization-journal",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/normalization-journal.common-local-catalog-law",
+      "statement_sha256": "2d17f5a89b3a52a0ac818de0a490e73b9fac666353b0bdeb30f88280092f0a39",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "normalization-journal",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.language/normalization-journal.two-implementations-claiming-the-same-normalization-rule-catalog-and-check-evidence",
       "statement_sha256": "56bd0e40997dbe8d45c673dba7a69f3f9d3533e454e518802ffd169c20b49332",
       "status": "pending",

@@ -1,7 +1,9 @@
 ///|
 struct CheckedProgram {
+  source : @syntax.Program
   completion_free_audit : CompletionFreeAudit
-  local_completion_free_audit : LocalCompletionFreeAudit
+  mut local_completion_free_audit : LocalCompletionFreeAudit
+  mut local_legacy_audit_prepared : Bool
   has_effects : Bool
   keyed_input_proofs : Array[KeyedInputProof]
   nest_limits : Array[Array[NestLimits]]
@@ -314,12 +316,10 @@ fn check(
     error => raise Units(error)
   }
   {
+    source: program,
     completion_free_audit: audit_completion_free_units(units),
-    local_completion_free_audit: if effect_headers is Some(_) {
-      ProfileNotInstalled
-    } else {
-      audit_local_completion_free_units(program, identity, units, requirements)
-    },
+    local_completion_free_audit: ProfileNotInstalled,
+    local_legacy_audit_prepared: false,
     has_effects: effect_headers is Some(_),
     keyed_input_proofs,
     nest_limits,
