@@ -2728,6 +2728,9 @@ export function openClientRequestJournal(directory, {
 
   const resolveOriginalDefinition = (identity, fields, namespaceId,
     requestControl, publicationControl) => {
+    if (typeof requestControl.clientRequestRelation !== 'function') {
+      fail('InvalidClientRequestLookup');
+    }
     const retained = lookupRecord({namespaceId,
       authorityScopeCid: fields.authorityScopeCid,
       requestId: fields.requestId}, requestControl, {identity, fields});
