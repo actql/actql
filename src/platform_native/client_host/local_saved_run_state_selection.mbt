@@ -160,7 +160,7 @@ fn NativeClientRunJournal::select_saved_state_run_id_locked(
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
-  let reference = match
+  let (reference, indexed) = match
     read_client_journal_value(
       self.database,
       "client_run_id_index",
