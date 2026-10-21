@@ -57,6 +57,22 @@ test('actual Run plan read validates its original once across Journal lookups', 
   assert.equal(f.owner.counts.storedReads,1,'a later Deny refuses before another plan read');
 });
 
+test('unused original map still obeys retained shape and byte limits', t => {
+  const f = fixture(t);
+  f.accept(f.owner.ticket());
+  f.owner.counts.storedReads = 0;
+  const database = new DatabaseSync(join(f.path,'client-requests.sqlite3'));
+  try {
+    const stored = JSON.parse(database.prepare('SELECT run_admission_evidence_json FROM client_requests').get().run_admission_evidence_json);
+    for (const view of ['x'.repeat(65537),42]) {
+      const changed = {...stored,logicalPlanOriginal:{...stored.logicalPlanOriginal,planViewWire:view}};
+      database.prepare('UPDATE client_requests SET run_admission_evidence_json=?').run(JSON.stringify(changed));
+      assert.throws(f.lookup,{code:'ClientRequestJournalCorrupt'});
+    }
+    assert.equal(f.owner.counts.storedReads,0,'range/shape refusal does not run semantic map admission');
+  } finally { database.close(); }
+});
+
 test('original compiler plan is retained atomically and lookup never recaptures it', t => {
   const f = fixture(t), selected = f.owner.ticket();
   const accepted = f.accept(selected);

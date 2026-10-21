@@ -977,6 +977,12 @@ function retainedRunFacts(row, publicationControl, maxWireBytes, updateOriginalC
   // Metadata/status/control consumes the admitted Run and current row flags,
   // not its logical map. Keep the bounded original bytes here; the existing
   // plan reader checks their semantic binding only when that map is used.
+  const savedPlan = runAdmissionEvidence?.logicalPlanOriginal;
+  if (savedPlan !== undefined &&
+      (Buffer.byteLength(savedPlan.compiledPlanWire) > maxWireBytes ||
+       Buffer.byteLength(savedPlan.planViewWire) > maxWireBytes)) {
+    fail('ClientRequestJournalCorrupt');
+  }
   return Object.freeze({
     runDefinition,
     programDefinitionCid: row.program_definition_cid,
