@@ -57,7 +57,15 @@ export function nodeOperationProtocol(mode) {
     wall: 'parent launch through natural child exit, including import/open/operation/close',
     cpu: 'actual child process; separate workers and subprocesses excluded',
     failedOrUnknown: 'retain sample and stop; never replay the failed Run',
-  }};
+  }, boundaries: {usedMaterial: nodeUsedMaterialProtocol()}};
+}
+export function nodeUsedMaterialProtocol() {
+  return {case: 'used-row-tamper', state: 'distinct empty directory',
+    seed: {source: 'SELECT 1 AS id', format: 'sql', result: 'main', expected: [{id: 1}]},
+    selection: 'original Run index -> single durable binding -> selected material generation',
+    mutation: 'one same-size byte change, preserving the original generation bytes',
+    observation: 'one later public Result.all must reject; no retry or restoration',
+    close: 'await the original Client; cleanup failure cannot qualify the boundary'};
 }
 export async function verifyNodeBenchmarkPackages(manifest, manifestPath, consumer) {
   assert(Array.isArray(manifest.packages) && manifest.packages.length > 0);
