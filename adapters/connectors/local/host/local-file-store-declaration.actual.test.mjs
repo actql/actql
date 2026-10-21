@@ -314,7 +314,6 @@ function compiledStoreGeneration(f,runId){
 for(const [name,serializationOptions,expected] of [
   ['Host defaults','',{maxRows:1000,maxBytes:1000}],
   ['authored tighter ceilings',', max_rows = 7, max_bytes = 41',{maxRows:7,maxBytes:41}],
-  ['zero ceilings',', max_rows = 0, max_bytes = 0',{maxRows:0,maxBytes:0}],
 ])test(`actual Local STORE generation retains original ${name} before encoding`,async()=>{
   const f=await storeOwnerFixture({serializationOptions});let foreign;
   try{
@@ -329,4 +328,35 @@ for(const [name,serializationOptions,expected] of [
       assert.throws(()=>control.checkedClientSerializationGenerationLimits(compiled,other.graph));
     }
   }finally{await foreign?.close();await f.close();}
+});
+
+test('actual Local STORE generation refuses formerly-invalid authored zero guards',()=>{
+  const f=fixture();
+  for(const serializationOptions of [', max_rows = 0',', max_bytes = 0']){
+    const outcome=prepare({...f,serializationOptions},"path = 'copy.jsonl', content = content");
+    const effect=moon.clientProgramSourceComputationEffect(outcome);
+    assert(effect===undefined||moon.clientProgramEffectPreparationReady(effect)===undefined);
+  }
+});
+
+test('actual compiled Content preserves zero private generation ceilings without widening authored guards',()=>{
+  const f=fixture(),control=runtimeCore(moon).publicationControl;
+  const program={version:'actql/0.1',id:'zero-private-generation',stages:[{
+    id:'main',inputs:{},steps:[
+      {values:{schema:{id:{type:'number',nullable:false}},rows:[]},as:'seed'},
+      {serialize:{format:'jsonl',fields:['id'],preserve_order:true,name:'empty.jsonl'},as:'file'},
+    ],results:{file:{from:'file',fields:['name','content','media_type','size_bytes','row_count']}},
+  }],results:{file:{from:{stage:'main',result:'file'}}}};
+  const preparation=moon.clientProgramPrepareEffectFreeWithParameters(JSON.stringify(program),'json',f.admitted,undefined);
+  const prepared=moon.clientProgramPreparationReady(preparation);assert(prepared);
+  const resultDataPolicy={kind:'data_policy',
+    cid:'sha256:470e10d347bfe887c4a91d9f616b01b3e1aba211a2fd2ba20ebf63d136543563',
+    wire:'{"classification":"unknown","source_data_policy_cids":[],"source_response_policy_cids":[],"unknown_provenance":true,"version":"actql-effective-data-policy/0.1"}'};
+  const graph=control.prepareCheckedClientSerializationGraph(prepared,
+    {task:0,step:1,maxRows:0,maxBytes:0,resultDataPolicy});
+  const compiled=control.prepareCheckedClientCompiledRun(prepared,'serialization',{
+    executionContextCid:'sha256:'+'1'.repeat(64),hostPolicyCid:'sha256:'+'2'.repeat(64),
+    expiresAt:'2099-01-01T00:00:00.000Z'},graph);
+  assert.deepEqual(control.checkedClientSerializationGenerationLimits(compiled,graph),
+    {maxRows:0,maxBytes:0});
 });
