@@ -1,5 +1,6 @@
 // Existing bounded Checkpoint review and signed resolution operations.
-import {checkedSigner, contentCid, reviewBytesMatchCid, signedAnswer} from '../checkpoints.mjs';
+import {checkedSigner, contentCid, reviewBytesMatchCid, signedAnswer,
+  signedAnswerFromAdmittedSummary} from '../checkpoints.mjs';
 import {validAnswerEvidence, validAnswerResolution} from './checkpoint-answer-contract.generated.mjs';
 import {captureResponse, freezeInput, positive} from './data.mjs';
 import {ClientError, fail} from './errors.mjs';
@@ -110,7 +111,7 @@ export function createCheckpointOperations(connection, exchange, responseValue,
     const summary = page.items[0];
     let answer;
     if (selectedSigner !== undefined) {
-      answer = await signedAnswer(summary, decision, selectedSigner,
+      answer = await signedAnswerFromAdmittedSummary(summary, decision, selectedSigner,
         new Date().toISOString());
     } else {
       // The installed provider must independently bind this DATA to its
@@ -119,10 +120,15 @@ export function createCheckpointOperations(connection, exchange, responseValue,
       answer = await answerOriginal(summary, decision, signal);
     }
     current(signal);
-    try { answer = freezeInput(captureResponse(answer)); }
-    catch { fail('InvalidCheckpointAnswer'); }
+    if (selectedSigner === undefined) {
+      try { answer = freezeInput(captureResponse(answer)); }
+      catch { fail('InvalidCheckpointAnswer'); }
+    }
+    // Keep the envelope's existing finite wire bounds, including application
+    // signature output. Only external original-answer bytes need admission
+    // against the Summary and their self-addressed artifact identities again.
     if (!validResolveItem(answer)) fail('InvalidCheckpointAnswer');
-    if (!await answerMatches(answer, summary, decision, selectedSigner)) {
+    if (selectedSigner === undefined && !await answerMatches(answer, summary, decision)) {
       // Preserve the actual returned bytes for inspection, not as a retry
       // permission. Never repair a foreign decision or ask for another sign.
       throw new ClientError('InvalidCheckpointAnswer', {signed: Object.freeze([answer])});

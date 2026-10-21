@@ -142,8 +142,9 @@ export async function signedAnswer(summary, decision, signer, decidedAt) {
   const effect = summary?.kind === 'effect_set' &&
     summary.phase === 'commit' && summary.subject?.kind === 'run_unit' &&
     summary.requiredArtifact?.type === 'effect_set_preview';
+  const valid = validCheckpointPage({items: [summary]}, 1);
   const model = summary?.kind === 'model_invocation' &&
-    validCheckpointPage({items: [summary]}, 1) &&
+    valid &&
     summary.phase === 'preflight' && summary.subject?.kind === 'run_unit' &&
     summary.requiredArtifact?.type === 'model_invocation_scope' &&
     /^sha256:[0-9a-f]{64}$/u.test(summary.preparedInvocationCid ?? '') &&
@@ -157,9 +158,20 @@ export async function signedAnswer(summary, decision, signer, decidedAt) {
     // evidence profiles (for example an Effect Set attestation).
     throw new TypeError('UnsupportedCheckpointAnswer');
   }
-  if (!validCheckpointPage({items: [summary]}, 1)) {
+  if (!valid) {
     throw new TypeError('InvalidCheckpointAnswer');
   }
+  return signedAnswerFromAdmittedSummary(summary, decision, signer, decidedAt);
+}
+
+// Private SDK continuation, not a package entry or an admission/authority
+// factory. Its callers already own the validated immutable Summary and the
+// captured application signer. Constructing their artifact creates no second
+// wire-admission boundary; the external signer's output is still checked below.
+export async function signedAnswerFromAdmittedSummary(summary, decision, signer, decidedAt) {
+  const effect = summary.kind === 'effect_set';
+  const acquiredRead = summary.kind === 'read_access' && summary.subject.kind === 'run_unit';
+  const model = summary.kind === 'model_invocation';
   let evidence;
   if (decision === 'approved') {
     if (effect && !/^sha256:[0-9a-f]{64}$/u.test(
