@@ -104,7 +104,7 @@ class CollectorTests(unittest.TestCase):
         path=packages/'release.json';path.write_text(json.dumps(manifest))
         return path, consumer, None
 
-    def python(self, fail_close=False):
+    def python(self, fail_close=False, alter_on_close=False):
         root=self.root
         environment=root/'venv'
         venv.EnvBuilder(with_pip=False, symlinks=True).create(environment)
@@ -115,6 +115,8 @@ class CollectorTests(unittest.TestCase):
         key='darwin-arm64' if sys.platform=='darwin' else 'linux-x64-gnu'
         cohort=dict(source_sha=SOURCE,platform=key,wheels=[])
         code = PYTHON.replace("if (state.parent/'fail-close').exists():", 'if True:') if fail_close else PYTHON
+        if alter_on_close:
+            code = code.replace("event('close')", "event('close');Path(__file__).write_text(Path(__file__).read_text()+'\\n# altered on close\\n')")
         for distribution,members in [('actql',{'actql/__init__.py':code.encode()}),
                 ('actql-sdk',{'actql_sdk/__init__.py':b'# Explicit synthetic SDK fixture\n'}),
                 ('actql-local-runtime',{'actql_local_runtime/__init__.py':b'# No real runtime\n'})]:
@@ -237,6 +239,21 @@ class CollectorTests(unittest.TestCase):
         self.assertFalse(report['functional']['rows'][0]['completed'])
         self.assertEqual(len(report['latency'][0]['samples']),1)
         self.assertFalse(report['latency'][0]['samples'][0]['verified'])
+
+    def test_payload_changed_during_close_invalidates_functional_completion(self):
+        fixture=self.python(alter_on_close=True)
+        installed=fixture[1]/'actql/__init__.py';before=installed.read_bytes()
+        result,report,_=self.collect('python',fixture,'warm-result')
+        self.assertEqual(result.returncode,1,result.stderr)
+        self.assertNotEqual(installed.read_bytes(),before)
+        self.assertTrue(report['cleanup']['closed'])
+        self.assertEqual(len(report['latency'][0]['samples']),3)
+        self.assertTrue(all(row['verified'] for row in report['latency'][0]['samples']))
+        self.assertIn('Installed payload differs',report['packageFailure'])
+        self.assertFalse(report['installedPayloadsUnchanged'])
+        self.assertFalse(report['functional']['rows'][0]['completed'])
+        self.assertNotIn('actualSha256',report['functional']['rows'][0])
+        self.assertFalse(report['fullAcceptance'])
 
     def test_existing_assessor_keeps_selected_process_success_incomplete(self):
         result,report,output=self.collect('native',self.native(),'first-init')

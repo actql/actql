@@ -291,6 +291,7 @@ def collect(args):
                   executionPath='native-cli' if args.adapter == 'native' else 'python-sdk',
                   protocol=protocol, environment=environment, latency=[series], functional={**binding, 'rows': []},
                   cleanup=dict(closed=False), fullAcceptance=False, packageFailure=None,
+                  installedPayloadsUnchanged=False,
                   missing=['Matched per-route public comparison profile', 'Actual per-operation structural/history/chunk/boundary evidence'],
                   structuralCounters=None, allocationAndInitializedBytes=None, databaseReads=None,
                   qualification='Collector-only selected public operation. Counters unavailable here are missing, never zero. Separate required assessor must reject missing coverage.')
@@ -388,7 +389,9 @@ def collect(args):
             report['installedPayloadsUnchanged'] = True
         except BaseException as error:
             report['packageFailure'] = str(error)
-        complete = bool(series['samples']) and all(r['verified'] for r in series['samples']) and report['cleanup']['closed']
+        complete = (bool(series['samples']) and all(r['verified'] for r in series['samples'])
+                    and report['cleanup']['closed'] and report['installedPayloadsUnchanged']
+                    and not report.get('firstFailure'))
         report['functional']['rows'].append(dict(operation=args.operation,completed=complete,
              expectedSha256=digest(wire(expected)), **({'actualSha256':digest(wire(expected))} if complete else {})))
         write(output/'measurements.json', report)
