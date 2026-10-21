@@ -5420,7 +5420,7 @@
     {
       "module": "packages/explorer/gateway.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "7e281af6c614e7cdf44f20145001d11a89c3778f63bbd439ef46a471d572a41b",
+      "sha256": "ce8cbc285d7ed3d66ef3ef9447d2ae25bd97192dc45e57e73f47e16f32e6ad50",
       "exports": [
         "createExplorerGateway",
         "gatewayLimits",
