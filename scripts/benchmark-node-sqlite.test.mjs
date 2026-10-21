@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import {createHash} from 'node:crypto';
 import {mkdtemp, readFile, rm, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
@@ -65,10 +66,23 @@ test('Result SQLite control commits clock/start/end in order with full-key quota
   const report = await runSQLiteResultControl({output, resultOwnerMap: mappingPath, warmSamples: 2, warmup: 1, load: 'concurrent'});
   assert.equal(report.cleanup.closed, true); assert.equal(report.productAcceptance, false);
   assert.equal(report.kind, 'local-sqlite-result-control'); assert.equal(report.samples.length, 2);
+  assert.equal(report.schemaVersion, 2);
+  const stored = '[{"id":1}]', schema = '{"id":{"nullable":false,"type":"number"}}', jsonl = '{"id":1}\n';
+  const sha256 = text => createHash('sha256').update(text).digest('hex');
+  assert.equal(report.protocol.payload, jsonl);
+  assert.deepEqual(report.protocol.materialization, {
+    storedFormat: 'json-array-utf8', storedBytes: 10, storedSha256: sha256(stored),
+    schemaFormat: 'actql-schema-json-utf8', schemaBytes: 41, schemaSha256: sha256(schema),
+    outputFormat: 'jsonl-utf8', outputBytes: 9, outputSha256: sha256(jsonl),
+    conversion: 'stored-array-and-schema -> JSONL -> ordinary-JS-records',
+  });
   assert.equal(report.summary.p95Ms, null); assert.equal(report.settings.synchronous, 2);
   for (const row of report.samples) {
-    assert.deepEqual(row.events, ['clock-committed', 'start-committed', 'payload-materialized', 'end-committed']);
+    assert.deepEqual(row.events, ['clock-committed', 'start-committed', 'stored-array-decoded',
+      'jsonl-serialized', 'payload-materialized', 'end-committed']);
     assert.deepEqual(row.counts, {begins: 3, commits: 3, rollbacks: 0, reads: 3, writes: 8});
+    assert.deepEqual(row.materialization, {storedBytes: 10, schemaBytes: 41, jsonlBytes: 9,
+      decodedRows: 1, outputSha256: sha256(jsonl)});
     assert(row.phases.clock.commitNs > 0 && row.phases.start.commitNs > 0 && row.phases.end.commitNs > 0);
   }
   assert(report.indexPlans.every(row => !row.detail.includes('SCAN attempt')));
@@ -84,6 +98,7 @@ test('Result SQLite control commits clock/start/end in order with full-key quota
     assert.equal(db.prepare('UPDATE attempt SET head=? WHERE cid=? AND head=?').run('foreign', attempt.cid, 'stale').changes, 0);
     assert.equal(db.prepare('SELECT head FROM attempt WHERE cid=?').get(attempt.cid).head, attempt.head);
     assert.equal(db.prepare('SELECT length(CAST(body AS BLOB)) AS n FROM clock').get().n, 217);
+    assert.deepEqual({...db.prepare('SELECT wire,schema FROM payload').get()}, {wire: stored, schema});
     const width = db.prepare('SELECT namespace,scope,run,principal,purpose,result,attempt_id FROM attempt LIMIT 1').get();
     assert.deepEqual(Object.values(width).map(value => Buffer.byteLength(value)), Object.values(resultControlKeyWidths));
   } finally { db.close(); }
