@@ -89,6 +89,19 @@ group never falls back to repeating individual writes. Empty inventories do no
 persistence work. Wire identities and the existing physical file layout remain
 unchanged.
 
+That setup can pass the original immutable contracts from the same publication
+control directly to its Store. The existing control retains the actual issuer's
+captured wire/node/depth bounds with each original. Compatible consumer bounds
+reuse those canonical facts without another parse, encoding or identity hash.
+Foreign controls, copies, raw wires, unavailable original bounds or stricter
+unsupported bounds use the normal admission path; none is treated as permission.
+The conservative bound on JSON nodes uses the canonical wire's UTF-16 length,
+and its UTF-8 byte upper is bounded by three bytes per code unit and the issuer's
+checked byte ceiling. These are pure immutable representation facts, not a
+Store-wide Allow or successful-disk-read cache. Selected disk reads still admit
+their actual bytes, and physical writes, durability, current authority and
+cleanup retain their independent checks and original acknowledgements.
+
 Preparing a Result schema that already has an immutable semantic owner acquires
 and validates that schema's selected file original, then retains a holder in the
 same Store. It does not create another allocation or rewrite durable preparation
