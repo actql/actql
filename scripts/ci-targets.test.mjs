@@ -17,7 +17,7 @@ test('normal lint executes behavioral operation performance assessment tests', (
   const step = jobs.lint.steps.find(row =>
     row.name === 'Test ordinary operation performance assessment');
   assert.ok(step);
-  assert.equal(step.run, 'node --test scripts/operation-performance.test.mjs');
+  assert.equal(step.run, 'node --test scripts/operation-performance.test.mjs scripts/benchmark-node-operations.test.mjs');
   assert.equal(step.if, "${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}");
   // These tests validate raw samples, frame counts, faults and incomplete
   // evidence. Running them is not an ordinary-package performance result.
