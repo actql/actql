@@ -17,6 +17,7 @@ import {createInstalledRowEffect, installedRowEffectOwnerBinding,
   installedRowEffectUnit} from '../../../host-node/installed-row-effect.mjs';
 import {installUpdateTargetOriginals} from '../../../host-node/installed-update-originals.mjs';
 import {runtimeCore} from '../../../host-common/runtime-core.mjs';
+import {installNodeContentRun} from '../../../host-node/installed-content-run.mjs';
 
 assert(process.env.ACTQL_TEST_PROJECT_COMMON_RUNTIME,'Select the actual qualified Common runtime');
 const moon=await import(pathToFileURL(process.env.ACTQL_TEST_PROJECT_COMMON_RUNTIME));
@@ -258,4 +259,41 @@ test('actual Local STORE saved Run retains its policy request and same installed
     const foreign={...retained,installations:retained.installations.map(value=>({...value,cid:'sha256:'+'f'.repeat(64)}))};
     assert.throws(()=>f.originals.restoreRun(foreign,run,identity));
   }finally{await f.close();}
+});
+
+test('actual Local STORE family admits its original source-free Host capacity',async t=>{
+  const f=await storeOwnerFixture();
+  let family;
+  try{
+    const core=runtimeCore(moon),control=core.publicationControl;
+    const registry=await readFile(new URL('../../../../spec/dependencies/aoa-pipeline-registry.json',import.meta.url),'utf8');
+    const aoa=JSON.parse(await readFile(new URL('../../../../spec/contracts/actql-aoa.json',import.meta.url),'utf8'));
+    const values=JSON.stringify(aoa.execution_contracts['REL.values']);
+    const fragment=JSON.stringify(aoa.execution_contracts['ACTQL.expression_fragment/0.1']);
+    const ordered=JSON.stringify(aoa.execution_contracts['REL.derive.ordered']);
+    const allowed=checked(moon.clientProgramIssueAllowedEffectRun(f.compilation,
+      'sha256:'+'1'.repeat(64),'sha256:'+'2'.repeat(64),'2099-01-01T00:00:00.000Z'));
+    const definition=checked(moon.clientProgramIssueEffectRunDefinition(allowed,
+      'store-capacity-scope','store-capacity-run','2026-10-21T00:00:00.000Z','2098-01-01T00:00:00.000Z'));
+    const runDefinition=control.admit('run_definition',moon.strategyPublicationContractJson(definition),
+      {maxWireBytes:1000000,maxNodes:100000,maxDepth:100});
+    const compiled=control.adoptCheckedClientEffectSerializationRun(allowed,runDefinition);
+    const storeAuthorityCid='sha256:'+'8'.repeat(64);
+    // The production family supplies the actual typed provider. Its physical
+    // ports are deliberately unaccounted fixtures and must not perform I/O.
+    const content=installNodeContentRun({moon,core,registry,values,fragment,ordered,
+      namespaceId:'store-capacity-scope',authorityScopeCid:'sha256:'+'a'.repeat(64),
+      storeAuthorityCid,ownerPrincipal:'fixture',now:()=> '2026-10-21T00:00:00.000Z',
+      authorize:()=>true});
+    family=content.effectFamily({prepared:f.prepared,plan:{kind:'effect',compiled,runDefinition,
+      serializationGraph:control.compiledSerializationGraph(compiled)},
+      store:{storeAuthorityCid,status:()=>({closed:false})},principalId:'fixture'});
+    assert(family.provider);
+    const capacity=moon.clientProgramEffectContentLedgerLimits(f.prepared,
+      registry,values,fragment,ordered,family.provider);
+    t.diagnostic(JSON.stringify({sourceFree:true,serializationCount:
+      moon.clientProgramEffectSerializationOccurrences(f.prepared).length,
+      originalFamilyProvider:true,capacityAvailable:capacity!==undefined}));
+    assert(capacity,'the supported source-free STORE family must have an admitted Host envelope');
+  }finally{await family?.close();await f.close();}
 });
