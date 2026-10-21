@@ -2112,7 +2112,7 @@
               },
               {
                 "path": "docs/design/reference-host.md",
-                "anchor": "preparation. It cannot use the legacy scalar constructor on refusal."
+                "anchor": "selection. It cannot use the legacy scalar constructor on refusal."
               }
             ],
             "extension": [
@@ -4448,7 +4448,7 @@
     },
     {
       "module": "adapters/host-node/embedded-local.mjs",
-      "sha256": "7c46ee10142a2be40054c467aa37ddecaf2ea95b5da2d003fa4d63b9ca22dd38",
+      "sha256": "b0bcb0fa8c88fd8f7b5cb04c4bb417fb2b7d24842813abb86ecb881b096c6e78",
       "exports": [
         "admitOriginalHostRootFormat",
         "assertInitialControlHostPreparation",
@@ -8876,6 +8876,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "The Host retains the original admission before beginning the Run."
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "For an ordinary source-free Compute Run, the existing Host Run record retains"
               }
             ],
             "inputsOutputs": [
@@ -8886,6 +8890,14 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "export function readManagedComputeRunRequirements("
+              },
+              {
+                "path": "src/client_local_host/installed_managed_run.mbt",
+                "anchor": "pub fn prepare_installed_managed_source_free("
+              },
+              {
+                "path": "src/client_local_host/installed_managed_run.mbt",
+                "anchor": "pub fn prepared_installed_managed_source_free_requirements("
               }
             ],
             "identity": [
@@ -8896,6 +8908,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "checked(Reflect.apply(run.check, runtime, [run.value, prepared, request]));"
+              },
+              {
+                "path": "src/client_local_host/installed_managed_run.mbt",
+                "anchor": "fn installed_source_free_preparation_matches("
               }
             ],
             "ownership": [
@@ -8906,6 +8922,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "record.computeManaged = original;"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "run.preparedSequences ??= checked(moon.clientProgramPrepareInstalledManagedSourceFree("
               }
             ],
             "synchronization": [
@@ -8916,6 +8936,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "const originalRequestPreparation = preparation?.requestPreparation();"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "run.admission = checked(Reflect.apply(run.prepare, runtime, [run.original, prepared]));"
               }
             ],
             "failure": [
@@ -8926,6 +8950,14 @@
               {
                 "path": "adapters/host-node/embedded-managed-compute-lifecycle.test.mjs",
                 "anchor": "failed begin retains the admission and original cleanup through Unknown without reissuing"
+              },
+              {
+                "path": "src/client_local_host/installed_managed_run.mbt",
+                "anchor": "return Err(ForeignOriginal)"
+              },
+              {
+                "path": "adapters/host-node/embedded-managed-compute-projection.test.mjs",
+                "anchor": "foreign or closed Run and missing typed APIs refuse without legacy regeneration"
               }
             ],
             "cancellation": [
@@ -8936,6 +8968,10 @@
               {
                 "path": "src/client_local_host/installed_managed_run.mbt",
                 "anchor": "pub fn retire_installed_managed_run("
+              },
+              {
+                "path": "src/client_local_host/installed_managed_run.mbt",
+                "anchor": "value.source_free_preparation = None"
               }
             ],
             "resources": [
@@ -8946,12 +8982,24 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Shared process/module domains remain one original, with packet, preparation,"
+              },
+              {
+                "path": "src/client_local_host/installed_managed_run.mbt",
+                "anchor": "is Some((limits, provider_retained_bytes, provider_execution_bytes))"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "This preparation is immutable data, not Resource admission or"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "or Content storage, Model, Effect and external I/O keep their separate actual"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "permission. It remains bound to the original checked Program and exact contract"
               }
             ],
             "verification": [
@@ -8962,6 +9010,14 @@
               {
                 "path": "adapters/host-node/embedded-managed-compute-lifecycle.test.mjs",
                 "anchor": "actual Host acquires its same Journal before Compute and before publishing the SDK receiver"
+              },
+              {
+                "path": "adapters/host-node/embedded-managed-compute-lifecycle.test.mjs",
+                "anchor": "actual requirements and begin share the retained typed original before Resource admission"
+              },
+              {
+                "path": "src/client_local_host/managed_source_free_preparation_wbtest.mbt",
+                "anchor": "managed source-free preparation executes the same generated originals on one diagnostic Ledger"
               }
             ]
           }

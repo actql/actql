@@ -104,7 +104,7 @@ function lifecycle({factory, beforeChild, beforeChildClose, current = () => {}, 
     const profiles={bindSourceRequest(...args){record.lineage=args;}};
     const initialControl=${text(initial.init)};
     const preparation={${methods.join(',\n')}};
-    return {preparation,initialControl,record};
+    return {preparation,initialControl,record,originals};
   `)(...Object.values(ports));
 }
 
@@ -181,7 +181,7 @@ function managedRunPorts(overrides = {}) {
   const admission = {}, value = {}, log = [];
   const runtime = {
     clientProgramNodeManagedRunPrepare(original, prepared) {log.push(['prepare', original, prepared]); return admission;},
-    clientProgramInstalledManagedRunBegin(held, prepared, request) {
+    clientProgramInstalledManagedSourceFreeBegin(held, prepared, request) {
       assert.strictEqual(held, admission); log.push(['begin', prepared, request]); return value;
     },
     clientProgramInstalledManagedRunCheck(held, prepared, request) {
@@ -193,6 +193,47 @@ function managedRunPorts(overrides = {}) {
   };
   return {runtime, admission, value, log};
 }
+
+test('actual requirements and begin share the retained typed original before Resource admission', async () => {
+  const p = managedRunPorts(), original = {}, sequences = {}, prepared = {}, request = {};
+  let f, sequencePreparations = 0;
+  const read = new Function('assertSourceManagedHostPreparation', 'originalSourceManagedHostRequest',
+    'readInitialControlInstallationAsset', 'checked', 'clientOperationError',
+    text(declared('readManagedComputeRunRequirements')) + ';return readManagedComputeRunRequirements;')(
+    held => assert.strictEqual(held, f.originals),
+    (held, value) => {assert.strictEqual(held, f.originals); assert.strictEqual(value, prepared); return request;},
+    () => '{"execution_contracts":{"REL.values":{},"ACTQL.expression_fragment/0.1":{},"REL.derive.ordered":{}}}',
+    value => value, code => Object.assign(new Error(code), {code}));
+  p.runtime.clientProgramInstalledManagedRunRequirements = () => assert.fail('No regeneration');
+  p.runtime.clientProgramPrepareInstalledManagedSourceFree = value => {
+    assert.strictEqual(value, prepared); sequencePreparations++; return sequences;
+  };
+  p.runtime.clientProgramPreparedInstalledManagedSourceFreeRequirements = held => {
+    assert.strictEqual(held, sequences);
+    assert.strictEqual(f.record.computeRuns.get(prepared).preparedSequences, sequences);
+    return [7n, 2n, 3n, 0n, 32n, 64n];
+  };
+  p.runtime.clientProgramInstalledManagedSourceFreeBegin = function(admission, value, requested, held) {
+    assert.strictEqual(this, p.runtime); assert.strictEqual(admission, p.admission);
+    assert.strictEqual(value, prepared); assert.strictEqual(requested, request); assert.strictEqual(held, sequences);
+    assert.strictEqual(f.record.computeRuns.get(prepared).admission, p.admission);
+    return p.value;
+  };
+  const raw = {prepareRun(value) {
+    assert.strictEqual(value, prepared);
+    assert.strictEqual(f.originals.installation.computeRuns, f.record.computeRuns);
+    read(f.originals, prepared); return original;
+  }, close: () => ({pending: false})};
+  f = lifecycle({runtime: p.runtime, factory: async () => raw});
+  Object.assign(f.originals.installation, {initialControl: {}, projectRuntime: p.runtime});
+  await f.preparation.prepareManagedCompute();
+  assert.strictEqual(f.preparation.prepareManagedComputeRun(p.runtime, prepared, request), p.value);
+  assert.strictEqual(f.preparation.prepareManagedComputeRun(p.runtime, prepared, request), p.value);
+  assert.equal(sequencePreparations, 1);
+  assert.strictEqual(f.record.computeRuns.get(prepared).original, original);
+  assert.strictEqual(f.record.computeRuns.get(prepared).preparedSequences, undefined);
+  await f.initialControl.close();
+});
 
 test('actual preparation binds one original Run and closes it before its same Root', async () => {
   const p = managedRunPorts(), original = {}, prepared = {}, request = {};
@@ -216,7 +257,7 @@ test('actual preparation binds one original Run and closes it before its same Ro
 
 test('failed begin retains the admission and original cleanup through Unknown without reissuing', async () => {
   const marker = new Error('OriginalBeginUnknown'), pending = new Error('OriginalCleanupPending');
-  const p = managedRunPorts({clientProgramInstalledManagedRunBegin() {throw marker;}});
+  const p = managedRunPorts({clientProgramInstalledManagedSourceFreeBegin() {throw marker;}});
   let preparations = 0, rootCloses = 0, cleanups = 0;
   p.runtime.clientProgramNodeManagedRunCleanup = function(value) {
     assert.strictEqual(this, p.runtime); assert.strictEqual(value, p.admission);
@@ -240,7 +281,7 @@ test('same ordinary Host retains separate Run records for successive prepared re
   const a = {}, b = {}, requests = new Map([[a, {}], [b, {}]]), retired = [];
   const runtime = {
     clientProgramNodeManagedRunPrepare(original, prepared) {assert.strictEqual(original, prepared); return prepared;},
-    clientProgramInstalledManagedRunBegin(admission, prepared, request) {
+    clientProgramInstalledManagedSourceFreeBegin(admission, prepared, request) {
       assert.strictEqual(admission, prepared); assert.strictEqual(request, requests.get(prepared)); return prepared;
     },
     clientProgramInstalledManagedRunCheck(run, prepared, request) {
@@ -278,7 +319,7 @@ test('Source Host opens a source-free Run on its same joint parent and retires i
 
 test('Source Host retains failed source-free start cleanup without replacing its original parent', async () => {
   const marker = new Error('OriginalSourceHostBeginUnknown');
-  const p = managedRunPorts({clientProgramInstalledManagedRunBegin() {throw marker;}});
+  const p = managedRunPorts({clientProgramInstalledManagedSourceFreeBegin() {throw marker;}});
   let cleanups = 0, rootCloses = 0, ready = false;
   p.runtime.clientProgramNodeManagedRunCleanup = function(admission) {
     assert.strictEqual(this, p.runtime); assert.strictEqual(admission, p.admission); cleanups++;

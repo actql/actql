@@ -61,6 +61,8 @@ pub fn begin_installed_mock_model_managed_run(@physical_resources.NodeManagedRun
 
 pub fn begin_installed_source_read(@physical_resources.ImportedChildLedger) -> Result[ClientInstalledSourceRead, ClientInstalledSourceReadIssue]
 
+pub fn begin_prepared_installed_managed_source_free_run(@physical_resources.NodeManagedRunAdmission[@run_publication_host.PreparedClientProgram], @run_publication_host.PreparedClientProgram, @run_publication_host.ClientRequestIdentity, ClientInstalledManagedSourceFreePreparation) -> Result[ClientInstalledManagedRun, ClientInstalledManagedRunIssue]
+
 pub fn bind_installed_source_read_effect_program(ClientInstalledSourceRead, @run_publication_host.PreparedClientEffectComputation) -> Result[Unit, ClientInstalledSourceReadIssue]
 
 pub fn bind_installed_source_read_program(ClientInstalledSourceRead, @run_publication_host.PreparedClientProgram) -> Result[Unit, ClientInstalledSourceReadIssue]
@@ -301,6 +303,8 @@ pub fn prepare_installed_managed_keyed_content(@run_publication_host.PreparedCli
 
 pub fn prepare_installed_managed_run_ledger(ClientInstalledManagedRun, @run_publication_host.PreparedClientProgram, @run_publication_host.ClientRequestIdentity, Array[ClientInstalledCaptureCapacity], Array[Int64], Array[Int64], String, String, String?, String?) -> Result[@physical_resources.Ledger, ClientInstalledManagedRunIssue]
 
+pub fn prepare_installed_managed_source_free(@run_publication_host.PreparedClientProgram, String, String, String?, String?) -> Result[ClientInstalledManagedSourceFreePreparation, ClientInstalledManagedRunIssue]
+
 pub fn prepare_keyed_captured_local_installed_ledger(@run_publication_host.PreparedClientProgram, ClientInstalledCaptureCapacity, @run_publication_host.ClientKeyedAcquisition, @client_row_source_host.RowKeyedCapacity, Array[Int64], Array[Int64], Int, Int, String, String, String?, String?, serialization? : (Int, Int, Int64, Int64)?, infer? : (Int, Int, Int64, Int64)?, captured_content? : Bool) -> @physical_resources.Ledger?
 
 pub fn prepare_local_query_requirement(@run_publication_host.PreparedClientProgram, Int, Int, String, String, String?, String?) -> Result[@query_planning.QueryRequirement, ClientLocalQueryIssue]
@@ -326,6 +330,8 @@ pub fn prepare_multi_captured_local_ledger(@run_publication_host.PreparedClientP
 pub fn prepare_serialization_captured_ledger(@run_publication_host.PreparedClientProgram, Int, ClientInstalledCaptureCapacity, Int64, Int64, Int64, Int64, String, String, String?, String?) -> @physical_resources.Ledger?
 
 pub fn prepare_single_captured_local_installed_ledger(@run_publication_host.PreparedClientProgram, ClientInstalledCaptureCapacity, Int64, Int64, String, String, String?, String?) -> @physical_resources.Ledger?
+
+pub fn prepared_installed_managed_source_free_requirements(ClientInstalledManagedSourceFreePreparation) -> Array[Int64]
 
 pub fn read_client_infer_retained_input_descriptor(String) -> Result[@execution_relation.RetainedCompletionDescriptor, ClientInferRetainedInputIssue]
 
@@ -495,6 +501,8 @@ pub(all) enum ClientInstalledManagedRunIssue {
   Ledger(@physical_resources.LedgerIssue)
   ModelRead(@run_publication_host.ClientModelReadPreparationIssue)
 }
+
+type ClientInstalledManagedSourceFreePreparation
 
 type ClientInstalledSourceRead
 

@@ -154,6 +154,51 @@ pub fn client_program_installed_managed_run_requirements(
 }
 
 ///|
+#export_name("clientProgramPrepareInstalledManagedSourceFree")
+pub fn client_program_prepare_installed_managed_source_free(
+  prepared : @publication_host.PreparedClientProgram,
+  registry_body : String,
+  values_body : String,
+  fragment_body : String?,
+  ordered_body : String?,
+) -> Result[
+  @client_local_host.ClientInstalledManagedSourceFreePreparation,
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  @client_local_host.prepare_installed_managed_source_free(
+    prepared, registry_body, values_body, fragment_body, ordered_body,
+  )
+}
+
+///|
+#export_name("clientProgramPreparedInstalledManagedSourceFreeRequirements")
+pub fn client_program_prepared_installed_managed_source_free_requirements(
+  original : @client_local_host.ClientInstalledManagedSourceFreePreparation,
+) -> Array[Int64] {
+  @client_local_host.prepared_installed_managed_source_free_requirements(
+    original,
+  )
+}
+
+///|
+#export_name("clientProgramInstalledManagedSourceFreeBegin")
+pub fn client_program_installed_managed_source_free_begin(
+  admission : @resources.NodeManagedRunAdmission[
+    @publication_host.PreparedClientProgram,
+  ],
+  prepared : @publication_host.PreparedClientProgram,
+  request : @publication_host.ClientRequestIdentity,
+  original : @client_local_host.ClientInstalledManagedSourceFreePreparation,
+) -> Result[
+  @client_local_host.ClientInstalledManagedRun,
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  @client_local_host.begin_prepared_installed_managed_source_free_run(
+    admission, prepared, request, original,
+  )
+}
+
+///|
 /// Compose the existing Source/Compute limits with the separately selected
 /// local Mock purpose before either Source starts. These are ordinary managed
 /// limits, not a RAM reservation or an allocation-success guarantee. The

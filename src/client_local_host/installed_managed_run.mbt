@@ -27,6 +27,22 @@ struct ClientInstalledManagedRun {
   reads : Array[ClientInstalledSourceRead?]
   mut keyed : ClientInstalledManagedKeyedPreparation?
   keyed_reads : Array[ClientInstalledKeyedSourceRead]
+  mut source_free_preparation : ClientInstalledManagedSourceFreePreparation?
+}
+
+///|
+/// Same-owner immutable sequence preparation, not a Resource admission or a
+/// Run. The generated originals serve both the quote and actual Host setup.
+struct ClientInstalledManagedSourceFreePreparation {
+  owner : ClientLocalSequenceOwner
+  registry_body : String
+  values_body : String
+  fragment_body : String?
+  ordered_body : String?
+  sequences : Array[@execution.GeneratedSequence]
+  limits : @resources.LedgerLimits
+  provider_retained_bytes : Int64
+  provider_execution_bytes : Int64
 }
 
 ///|
@@ -111,6 +127,20 @@ fn source_free_installed_managed_limits_owned(
   ordered_body : String?,
   mock_model : Bool,
 ) -> @resources.LedgerLimits? {
+  source_free_installed_managed_preparation_owned(
+    owner, registry_body, values_body, fragment_body, ordered_body, mock_model,
+  ).map(value => value.limits)
+}
+
+///|
+fn source_free_installed_managed_preparation_owned(
+  owner : ClientLocalSequenceOwner,
+  registry_body : String,
+  values_body : String,
+  fragment_body : String?,
+  ordered_body : String?,
+  mock_model : Bool,
+) -> ClientInstalledManagedSourceFreePreparation? {
   let graph = installed_managed_owner_graph(owner)
   if !installed_managed_owner_shape_supported(owner, mock_model) ||
     @strategy.graph_captured_prefix(graph) != 0 ||
@@ -150,10 +180,105 @@ fn source_free_installed_managed_limits_owned(
           @publication_host.client_standard_values_sequence_limits().max_rows
       },
     )
-    is Some((limits, _, _)) else {
+    is Some((limits, provider_retained_bytes, provider_execution_bytes)) else {
     return None
   }
-  Some(limits)
+  Some({
+    owner,
+    registry_body,
+    values_body,
+    fragment_body,
+    ordered_body,
+    sequences,
+    limits,
+    provider_retained_bytes,
+    provider_execution_bytes,
+  })
+}
+
+///|
+pub fn prepare_installed_managed_source_free(
+  prepared : @publication_host.PreparedClientProgram,
+  registry_body : String,
+  values_body : String,
+  fragment_body : String?,
+  ordered_body : String?,
+) -> Result[
+  ClientInstalledManagedSourceFreePreparation,
+  ClientInstalledManagedRunIssue,
+] {
+  match
+    source_free_installed_managed_preparation_owned(
+      Pure(prepared),
+      registry_body,
+      values_body,
+      fragment_body,
+      ordered_body,
+      false,
+    ) {
+    Some(value) => Ok(value)
+    None => Err(Unsupported)
+  }
+}
+
+///|
+/// Copy only the six scalar limits. Callers cannot mutate the original
+/// generated sequences or turn this quote into an admitted Ledger.
+pub fn prepared_installed_managed_source_free_requirements(
+  value : ClientInstalledManagedSourceFreePreparation,
+) -> Array[Int64] {
+  let limits = value.limits
+  [
+    limits.planning_work.to_int64(),
+    limits.attempts.to_int64(),
+    limits.holdings.to_int64(),
+    limits.transfer_bytes,
+    limits.retained_bytes,
+    limits.execution_bytes,
+  ]
+}
+
+///|
+fn installed_source_free_preparation_matches(
+  value : ClientInstalledManagedSourceFreePreparation,
+  owner : ClientLocalSequenceOwner,
+  registry_body : String,
+  values_body : String,
+  fragment_body : String?,
+  ordered_body : String?,
+) -> Bool {
+  let same_owner = match (value.owner, owner) {
+    (Pure(a), Pure(b)) => physical_equal(a, b)
+    (Effect(a), Effect(b)) => physical_equal(a, b)
+    _ => false
+  }
+  same_owner &&
+  value.registry_body == registry_body &&
+  value.values_body == values_body &&
+  value.fragment_body == fragment_body &&
+  value.ordered_body == ordered_body
+}
+
+///|
+/// The same actual Resource admission remains mandatory. Preparation DATA
+/// supplies neither capacity nor authority and cannot replace its original.
+pub fn begin_prepared_installed_managed_source_free_run(
+  admission : @resources.NodeManagedRunAdmission[
+    @publication_host.PreparedClientProgram,
+  ],
+  prepared : @publication_host.PreparedClientProgram,
+  request : @publication_host.ClientRequestIdentity,
+  original : ClientInstalledManagedSourceFreePreparation,
+) -> Result[ClientInstalledManagedRun, ClientInstalledManagedRunIssue] {
+  guard original.owner is Pure(owner) && physical_equal(owner, prepared) else {
+    return Err(ForeignOriginal)
+  }
+  let value = match begin_installed_managed_run(admission, prepared, request) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  value.source_free_preparation = Some(original)
+  Ok(value)
 }
 
 ///|
@@ -394,6 +519,7 @@ fn new_installed_managed_run_owned(
     ),
     keyed: None,
     keyed_reads: [],
+    source_free_preparation: None,
   }
   value.original = Some(value)
   value
@@ -547,8 +673,15 @@ fn prepare_installed_managed_run_ledger_owned(
     guard capacities.length() == 1 else { return Err(Unsupported) }
     guard owner is Pure(prepared) else { return Err(Unsupported) }
     installed_managed_keyed_content_limits(
-      keyed, prepared, capacities[0], transport_bytes[0], transport_execution_bytes[0],
-      registry_body, values_body, fragment_body, ordered_body,
+      keyed,
+      prepared,
+      capacities[0],
+      transport_bytes[0],
+      transport_execution_bytes[0],
+      registry_body,
+      values_body,
+      fragment_body,
+      ordered_body,
     )
   } else if value.reads.is_empty() {
     if !capacities.is_empty() ||
@@ -556,14 +689,25 @@ fn prepare_installed_managed_run_ledger_owned(
       !transport_execution_bytes.is_empty() {
       return Err(Unsupported)
     }
-    source_free_installed_managed_limits_owned(
-      owner,
-      registry_body,
-      values_body,
-      fragment_body,
-      ordered_body,
-      installed_managed_owner_shape_supported(owner, true),
-    )
+    match value.source_free_preparation {
+      Some(original) => {
+        if !installed_source_free_preparation_matches(
+            original, owner, registry_body, values_body, fragment_body, ordered_body,
+          ) {
+          return Err(ForeignOriginal)
+        }
+        Some(original.limits)
+      }
+      None =>
+        source_free_installed_managed_limits_owned(
+          owner,
+          registry_body,
+          values_body,
+          fragment_body,
+          ordered_body,
+          installed_managed_owner_shape_supported(owner, true),
+        )
+    }
   } else {
     multi_captured_installed_limits_owned(
       owner, capacities, transport_bytes, transport_execution_bytes, registry_body,
@@ -621,6 +765,26 @@ pub fn open_installed_managed_source_free_host(
   if !value.reads.is_empty() {
     return Err(Unsupported)
   }
+  match check_installed_managed_run(value, prepared, request) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  // Legacy callers also retain their first generated originals through this
+  // open. The normal prepared entry already supplies them from its quote.
+  if value.source_free_preparation is None {
+    guard source_free_installed_managed_preparation_owned(
+        Pure(prepared),
+        registry_body,
+        values_body,
+        fragment_body,
+        ordered_body,
+        installed_managed_run_shape_supported(prepared, true),
+      )
+      is Some(original) else {
+      return Err(Unsupported)
+    }
+    value.source_free_preparation = Some(original)
+  }
   let ledger = match
     prepare_installed_managed_run_ledger(
       value,
@@ -652,6 +816,7 @@ pub fn open_installed_managed_source_free_host(
       retained_output~,
       provider_factory~,
       acquisition_ledger=Some(ledger),
+      source_free_preparation=value.source_free_preparation,
     ),
   )
 }
@@ -698,5 +863,6 @@ pub fn retire_installed_managed_run(
   value.reads.clear()
   value.keyed_reads.clear()
   value.keyed = None
+  value.source_free_preparation = None
   Ok(())
 }
