@@ -25,8 +25,12 @@ fn NativeLocalJournalCapture::operation_scope(
   guard self.opening is JournalAcquired(actual) && physical_equal(actual, host) else {
     return Err(CustodyLost)
   }
+  if self.read_callback_active && !self.read_facts_valid {
+    return Err(OriginalResourceScopePending)
+  }
   match self.check_original_read_lifetime() {
     Err(issue) => {
+      self.read_facts_valid = false
       self.clear_read_operation_facts()
       return Err(issue)
     }
@@ -78,8 +82,12 @@ fn NativeLocalJournalCapture::operation_account(
   guard self.opening is JournalAcquired(actual) && physical_equal(actual, host) else {
     return Err(CustodyLost)
   }
+  if self.read_callback_active && !self.read_facts_valid {
+    return Err(OriginalResourceScopePending)
+  }
   match self.check_original_read_lifetime() {
     Err(issue) => {
+      self.read_facts_valid = false
       self.clear_read_operation_facts()
       return Err(issue)
     }
@@ -123,6 +131,7 @@ fn NativeLocalReadPolicyBinding::current_operation_fact(
   }
   match capture.check_original_read_lifetime() {
     Err(issue) => {
+      capture.read_facts_valid = false
       capture.clear_read_operation_facts()
       return Err(Adoption(issue))
     }

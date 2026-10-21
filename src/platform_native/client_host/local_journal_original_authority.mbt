@@ -25,6 +25,9 @@ fn[T] NativeLocalJournalCapture::with_current_adoption_material_in_original_read
     original.active_phase is Some(@arena.HostRead) else {
     return Err(OriginalResourceScopePending)
   }
+  if self.read_callback_active && !self.read_facts_valid {
+    return Err(OriginalResourceScopePending)
+  }
   // The public command entry admitted current originals. Retain that material
   // throughout this operation; a trusted query or phase exchange is not an
   // additional Account/configuration admission boundary.
