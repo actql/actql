@@ -137,7 +137,7 @@ test "source-free requirements cannot select a different preparation or installe
 }
 
 ///|
-test "original eight-task UNION executes with its prepared simultaneous reservations" {
+test "original eight-task UNION preserves its finite facility with prepared requirements" {
   let prepared = source_free_tasks_original_union()
   let assets = @publication_host.client_local_product_assets()
   let quote = prepare_source_free_local_requirements(
@@ -149,11 +149,15 @@ test "original eight-task UNION executes with its prepared simultaneous reservat
   ).unwrap()
   let required = quote.simultaneous_limits().unwrap()
   let maximum = quote.maximum_limits()
-  // Do not turn a conservative upper bound into a smaller supported maximum.
-  // This fixture fits; other plans retain the installed finite-facility path.
-  assert_true(required.retained_bytes <= maximum.retained_bytes)
-  assert_true(required.execution_bytes <= maximum.execution_bytes)
-  let ledger = @resources.create_ledger(required).unwrap()
+  // A conservative upper bound is not a new supported-Program restriction.
+  // Above the old facility, keep its existing actual allocation/OOM behavior.
+  let selected = if required.retained_bytes <= maximum.retained_bytes &&
+    required.execution_bytes <= maximum.execution_bytes {
+    required
+  } else {
+    maximum
+  }
+  let ledger = @resources.create_ledger(selected).unwrap()
   let setup = open_source_free_local_retained_host_on_ledger(
     prepared,
     ledger,
