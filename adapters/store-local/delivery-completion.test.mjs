@@ -6,6 +6,7 @@ import {tmpdir} from 'node:os';
 import {createHash} from 'node:crypto';
 import fs from 'node:fs/promises';
 import {syncBuiltinESMExports} from 'node:module';
+import {DatabaseSync} from 'node:sqlite';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {deliverPublishedResult} from '../host-common/result-delivery.mjs';
 import {openLocalPublicationStore} from './publication-store.mjs';
@@ -509,4 +510,113 @@ test('joint END retains a lost final ACK reply without reissuing receipt or payl
   assert.equal(writes, count);
   assert.equal(finishes, 1);
   assert.equal(issuances, 1);
+});
+
+test('actual joint START uses one native claim COMMIT and restores only its selected original', async t => {
+  const originalExec = DatabaseSync.prototype.exec;
+  let armed = false, commits = 0;
+  t.mock.method(DatabaseSync.prototype,'exec',function(sql) {
+    if (armed && sql === 'COMMIT') commits++;
+    return Reflect.apply(originalExec,this,[sql]);
+  });
+  const f = await fixture(t,undefined,false);
+  const original = f.control.captureIssuedDeliveryAttempt(f.root.attempt,f.root.index,
+    f.root.manifest,f.root.grant,limits);
+  armed = true;
+  await f.store.beginDeliveryAttempt(original,f.root.streaming);
+  console.info('ACTQL_DELIVERY_START_COMMITS',commits);
+  assert.equal(commits,1,'file readiness does not need a second progress-only COMMIT');
+  await f.store.close();
+  // An unrelated historical original must not be admitted by ordinary open or
+  // a lookup of this target. Its malformed wire makes accidental admission fail.
+  const database = new DatabaseSync(join(f.directory,'delivery-attempts.sqlite3'));
+  try {
+    database.prepare('INSERT INTO attempts VALUES(?,?,?,?,?,?,1)').run('unrelated',cid('5'),
+      cid('6'),cid('7'),'not an admitted attempt','not an admitted grant');
+    database.prepare('INSERT INTO initial_records VALUES(?,?)').run(cid('5'),'not an admitted record');
+    database.exec('UPDATE coverage SET entries=entries+1 WHERE id=1');
+  } finally {database.close();}
+  commits = 0;
+  const reopened = await f.reopen();
+  assert.equal(commits,0,'ordinary open does not recover complete joint-START history');
+  const selected = await reopened.lookupDeliveryAttempt({indexKey: {
+    namespaceId:'namespace',authorityScopeCid:cid('a'),runDefinitionCid:cid('9')},
+    principalId:'principal',purpose:'download',resultName:'answer',attemptId:'completion'});
+  assert.equal(selected.record.state,'streaming');
+  assert.equal(commits,0,'target recovery has real file ACKs but no progress-only native COMMIT');
+  await reopened.appendDeliveryCompletion(f.root.attempt,f.root.receipt,f.root.succeeded);
+  assert.equal((await reopened.latestDeliveryRecord(f.root.attempt.identity)).state,'succeeded');
+});
+
+test('lost joint claim COMMIT reply preserves quota and initial streaming without sending', async t => {
+  const originalExec = DatabaseSync.prototype.exec;
+  let armed = false, lost = false;
+  t.mock.method(DatabaseSync.prototype,'exec',function(sql) {
+    const value = Reflect.apply(originalExec,this,[sql]);
+    if (armed && !lost && sql === 'COMMIT') {
+      lost = true;
+      throw Object.assign(new Error('lost joint START COMMIT reply'),{code:'EIO'});
+    }
+    return value;
+  });
+  const f = await fixture(t,undefined,false);
+  let writes = 0;
+  const sink = {async write(bytes) {writes++; return {confirmedBytes:bytes.byteLength};},
+    async finish() {return {confirmed:true};}};
+  armed = true;
+  await assert.rejects(deliverPublishedResult(deliveryOptions(f,sink).options),
+    {code:'DeliveryAttemptIndexCommitOutcomeUnknown'});
+  assert.equal(writes,0);
+  await assert.rejects(deliverPublishedResult(deliveryOptions(f,sink).options),
+    {code:'DeliveryAttemptIndexCommitOutcomeUnknown'});
+  await f.store.close();
+  const reopened = await f.reopen();
+  await assert.rejects(deliverPublishedResult(deliveryOptions({...f,store:reopened},sink).options),
+    {code:'ResultDeliveryAttemptUnresolved'});
+  assert.equal(writes,0);
+  assert.equal((await reopened.latestDeliveryRecord(f.root.attempt.identity)).state,'streaming');
+  const next = f.control.issueDeliveryAttempt(f.root.index,f.root.manifest,f.root.grant,
+    {resultName:'answer',format:'json',attemptId:'replacement',requestedAt:at},limits);
+  await assert.rejects(reopened.createDeliveryAttempt(next.wire,f.root.grant.wire),
+    {code:'DeliveryGrantUseLimit'});
+});
+
+test('targeted joint START recovery rejects a mismatched retained initial record before file writes', async t => {
+  const f = await fixture(t,undefined,false);
+  const original = f.control.captureIssuedDeliveryAttempt(f.root.attempt,f.root.index,
+    f.root.manifest,f.root.grant,limits);
+  await f.store.beginDeliveryAttempt(original,f.root.streaming);
+  await f.store.close();
+  const database = new DatabaseSync(join(f.directory,'delivery-attempts.sqlite3'));
+  try {database.prepare('UPDATE initial_records SET initial_wire=? WHERE attempt_cid=?')
+    .run(f.root.succeeded.wire,f.root.attempt.identity);} finally {database.close();}
+  const reopened = await f.reopen();
+  f.syncs.length = 0;
+  await assert.rejects(reopened.lookupDeliveryAttempt({indexKey: {
+    namespaceId:'namespace',authorityScopeCid:cid('a'),runDefinitionCid:cid('9')},
+    principalId:'principal',purpose:'download',resultName:'answer',attemptId:'completion'}),
+  {code:'InvalidDeliveryAttemptIndex'});
+  assert.deepEqual(f.syncs,[]);
+});
+
+test('joint START cold recovery owns one file preparation through reentry', async t => {
+  let reopened, armed = false, entries = 0;
+  const query = {indexKey: {namespaceId:'namespace',authorityScopeCid:cid('a'),
+    runDefinitionCid:cid('9')},principalId:'principal',purpose:'download',
+    resultName:'answer',attemptId:'completion'};
+  const f = await fixture(t,async (path,phase) => {
+    if (armed && phase === 'before' && path === join(f.directory,'contracts')) {
+      entries++;
+      await assert.rejects(reopened.lookupDeliveryAttempt(query),
+        {code:'ResultDeliveryAttemptUnresolved'});
+    }
+  },false);
+  const original = f.control.captureIssuedDeliveryAttempt(f.root.attempt,f.root.index,
+    f.root.manifest,f.root.grant,limits);
+  await f.store.beginDeliveryAttempt(original,f.root.streaming);
+  await f.store.close();
+  reopened = await f.reopen();
+  armed = true;
+  assert.equal((await reopened.lookupDeliveryAttempt(query)).record.state,'streaming');
+  assert.equal(entries,1);
 });

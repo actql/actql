@@ -197,10 +197,13 @@ three actual payload FDs still file-syncs and closes. They share one objects
 directory ACK and one contracts directory ACK. Attempt and record links are
 installed in the same original staging directory before its ACK, rename and
 containing deliveries-directory ACK; no separate initial-record ACK is needed.
-Only then does the same indexed claim become ready and may the caller read or
+Only then is file preparation ready and may the caller read or
 expose rows. Existing append-only names and wire identities are unchanged.
 
-A partial start preserves the same pending claim without refunding its use.
+A partial start preserves the same claim without refunding its use. The joint
+claim also retains the exact initial streaming record. Its file-readiness
+state is local progress, not another logical durable transition: no second
+SQLite COMMIT is required only to mark already-acknowledged files ready.
 Recovery handles only that claim's original staging/target aliases. An already
 installed streaming record remains unresolved and never starts another stream;
 absence is not permission to resend. Pending physical writers retain their
@@ -257,11 +260,20 @@ index correspondence; unrelated history is neither read nor re-admitted.
 A durable building/ready marker distinguishes migration from ready coverage.
 The bounded legacy migration reads each original attempt and referenced grant,
 refuses ambiguous keys or excess uses, and commits complete coverage once.
-Ready opens read only pending indexed claims, not historical delivery names or
-grant bodies. A missing adopted database refuses, rather than returning false
-absence. A pending claim retains its exact attempt/grant wires and use quota;
-recovery installs those same immutable originals and their final directory
-acknowledgements before marking the row ready. It never dispatches payload,
+Ready opens read only legacy pending indexed claims, not historical delivery
+names or grant bodies. A missing adopted database refuses, rather than returning
+false absence. A legacy pending claim retains its exact attempt/grant wires and
+use quota; recovery installs those same immutable originals and their final
+directory acknowledgements before marking the row ready. Joint START claims
+retain the initial streaming wire in that same claim transaction. Their
+progress does not require a second native COMMIT. A new Store lifetime recovers
+only the requested joint START, including the same initial record, before
+reporting its files ready. Failure or reentry within the current preparation
+lifetime remains unresolved; file visibility does not substitute for an ACK.
+The additive private index upgrade records its version transactionally; a
+missing adopted initial-record table refuses rather than recreating coverage.
+This is private lookup metadata, not a public wire or contract-version change.
+Recovery never dispatches payload,
 replaces an unknown business attempt or refunds a failed preparation. Pending
 staging aliases are derived from that same attempt, so recovery locates them
 without another global directory enumeration. Metadata retirement removes the
