@@ -210,8 +210,8 @@ configuration files or subsequent commits from another connection.
 
 <!-- requirement-block: ordinary-operation.authorization-tuples -->
 The Host MUST choose the actual required authorization point once for each
-distinct permission and unchanged principal/action/resource/scope/policy-revision
-tuple in a public operation. A protected external dispatch or relevant change
+distinct permission and unchanged principal/connection/action/resource/scope/
+policy-revision tuple in a public operation. A protected external dispatch or relevant change
 requires only its affected authority observation, not unconditional before/after
 evaluation at every internal phase. Different permissions remain separate,
 including Source read, Run publication, Run read, named Result read and Effect

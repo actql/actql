@@ -10938,7 +10938,7 @@
     },
     {
       "requirement_id": "actql.execution/ordinary-operation.authorization-tuples",
-      "statement_sha256": "636c93cb6fe8656b17b1f3e1b1f0d359ee9b40204b733ac6860d5981cb9284a1",
+      "statement_sha256": "4252692ec1693f0e5f72ad5aea99a7d9d7f13eb5fade5eca1f31f99a9f819aad",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
