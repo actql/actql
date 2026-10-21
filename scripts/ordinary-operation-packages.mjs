@@ -10,10 +10,22 @@ import {pathToFileURL} from 'node:url';
 import {CLIENT_PACKAGES, checkoutState} from './packed-client-packages.mjs';
 import {inventory, unpack} from './package-release.mjs';
 import {nodeOperationProtocol, nodeWarmSmallQueryFixtures} from './benchmark-node-operations.mjs';
+import {calibrateSqliteComparisonProfile} from './operation-performance.mjs';
 
 const hash = (value, algorithm = 'sha256', encoding = 'hex') =>
   createHash(algorithm).update(value).digest(encoding);
 const positiveId = value => /^[1-9][0-9]*$/u.test(String(value ?? ''));
+
+export async function readFixedSQLiteComparison(path, environment, load) {
+  const bytes = await readFile(path);
+  assert(bytes.length <= 16 * 1024 ** 2, 'Comparison exceeds bounded input');
+  const comparison = JSON.parse(bytes);
+  assert.deepEqual(comparison.profile, calibrateSqliteComparisonProfile(comparison.baseline),
+    'Comparison differs from the baseline-only fixed policy');
+  assert.deepEqual(comparison.baseline.environment, environment, 'Comparator environment differs');
+  assert.equal(comparison.baseline.load, load, 'Comparator load differs');
+  return comparison;
+}
 
 export function validatePerformancePackageProducer({repository, sourceSha, runId, artifactId,
   artifact, run, jobs}) {
@@ -68,7 +80,7 @@ export async function inspectPerformancePackageProducer(options, fetchMetadata =
   return validatePerformancePackageProducer({...options, run, artifact, jobs});
 }
 
-export async function prepareOrdinaryPerformanceConsumer({packages, sourceSha, output,
+export async function prepareOrdinaryPerformanceConsumer({packages, sourceSha, output, comparisonPath,
   install = (args, cwd) => execFileSync('npm', args, {cwd, stdio: 'inherit', timeout: 120_000})}) {
   assert.match(sourceSha, /^[a-f0-9]{40}$/u);
   packages = resolve(packages); output = resolve(output);
@@ -104,6 +116,7 @@ export async function prepareOrdinaryPerformanceConsumer({packages, sourceSha, o
     cpuModel: cpus()[0].model, logicalCpus: cpus().length, memoryBytes: totalmem()};
   const controls = {sourceSha, cohortSha256: hash(await readFile(manifestPath)), environment, load: 'isolated',
     historyProtocolSha256: hash(JSON.stringify(nodeOperationProtocol('final')))};
+  if (comparisonPath) controls.comparison = await readFixedSQLiteComparison(comparisonPath, environment, controls.load);
   await writeFile(join(output, 'controls.json'), JSON.stringify(controls, null, 2) + '\n', {flag: 'wx'});
   return {manifestPath, consumer, controlsPath: join(output, 'controls.json')};
 }
@@ -123,6 +136,13 @@ export async function combineOrdinaryPerformanceMeasurements(root) {
   const combined = {sourceSha: controls.sourceSha, ...binding, latency: [],
     functional: {...binding, rows: []}, collectors: [],
     qualification: 'Actual warm and process reports only; unmeasured release gates remain incomplete.'};
+  if (controls.comparison) {
+    assert.deepEqual(controls.comparison.profile, calibrateSqliteComparisonProfile(controls.comparison.baseline),
+      'Comparison differs from the baseline-only fixed policy');
+    assert.deepEqual(controls.comparison.baseline.environment, controls.environment, 'Comparator environment differs');
+    assert.equal(controls.comparison.baseline.load, controls.load, 'Comparator load differs');
+    combined.comparison = controls.comparison;
+  }
   for (const [family, operations] of Object.entries({warm: ['warm-select', 'warm-result', 'warm-status',
     ...nodeWarmSmallQueryFixtures.map(fixture => fixture.operation)],
     'cold-existing': ['cold-existing'], 'first-init': ['first-init']})) {
@@ -138,6 +158,8 @@ export async function combineOrdinaryPerformanceMeasurements(root) {
       assert.equal(report.functional[key], value, `Functional ${key} differs`);
     }
     assert.equal(report.mode, 'final');
+    if (family === 'warm') assert.deepEqual(report.comparison, controls.comparison,
+      'Collector comparison differs from the fixed pre-measurement profile');
     assert(report.firstFailure == null && report.packageFailure == null,
       'Collector recorded a public operation or package failure');
     assert.equal(report.installedPayloadsUnchanged, true, 'Collector package verification did not complete');
@@ -197,11 +219,12 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
       assert.equal(args.length, 1);
       console.log(await combineOrdinaryPerformanceMeasurements(args[0]));
     } else {
-      assert.equal(command, 'prepare'); assert.equal(args.length, 3);
+      assert.equal(command, 'prepare');
+      assert(args.length === 3 || args.length === 5 && args[3] === '--comparison');
       const before = checkoutState(process.cwd());
       assert(before.clean && before.revision === args[1], 'Performance checkout differs from the package source');
       const result = await prepareOrdinaryPerformanceConsumer({packages: args[0],
-        sourceSha: args[1], output: args[2]});
+        sourceSha: args[1], output: args[2], comparisonPath: args[4]});
       assert.deepEqual(checkoutState(process.cwd()), before, 'Source changed during consumer preparation');
       console.log(JSON.stringify(result));
     }

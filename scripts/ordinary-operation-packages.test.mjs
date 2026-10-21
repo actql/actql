@@ -11,8 +11,10 @@ import {parse} from 'yaml';
 import {CLIENT_PACKAGES} from './packed-client-packages.mjs';
 import {validatePerformancePackageProducer, inspectPerformancePackageProducer,
   prepareOrdinaryPerformanceConsumer, combineOrdinaryPerformanceMeasurements} from './ordinary-operation-packages.mjs';
+import {readFixedSQLiteComparison} from './ordinary-operation-packages.mjs';
 import {nodeOperationProtocol, nodeWarmSmallQueryFixtures} from './benchmark-node-operations.mjs';
-import {assessPerformanceEvidence} from './operation-performance.mjs';
+import {assessPerformanceEvidence, calibrateSqliteComparisonProfile} from './operation-performance.mjs';
+import {syntheticSQLiteBaseline} from './fixtures/operation-performance-comparison.mjs';
 
 const sha = 'a'.repeat(40), hash = bytes => createHash('sha256').update(bytes).digest('hex');
 function provenance() {
@@ -146,15 +148,20 @@ test('controlled performance check consumes existing artifacts and cannot omit f
   });
   assert.ok(ci.jobs.lint.steps.some(s => s.run === 'node --test scripts/ordinary-operation-packages.test.mjs'));
   assert.equal(ci.jobs.lint.steps.find(s => s.name === 'Test ordinary operation performance assessment').run,
-    'node --test scripts/operation-performance.test.mjs scripts/benchmark-node-operations.test.mjs scripts/operation-performance-policy.test.mjs scripts/benchmark-node-process-operations.test.mjs');
+    'node --test scripts/operation-performance.test.mjs scripts/benchmark-node-operations.test.mjs scripts/operation-performance-policy.test.mjs scripts/benchmark-node-process-operations.test.mjs scripts/benchmark-node-sqlite.test.mjs');
   const job = workflow.jobs['ordinary-operations'];
   assert.equal(job.permissions.actions, 'read');
   const inspect = job.steps.findIndex(s => s.name === 'Validate the original normal package producer');
   const download = job.steps.findIndex(s => s.name === 'Reuse the exact existing normal package artifact');
   const prepare = job.steps.findIndex(s => s.name === 'Install a fresh ordinary consumer without a producer fallback');
+  const baseline = job.steps.findIndex(s => s.name === 'Measure the same-machine local SQLite diagnostic baseline');
+  const calibrate = job.steps.findIndex(s => s.name === 'Freeze the baseline-only comparison before candidate measurements');
   const measure = job.steps.findIndex(s => s.name === 'Measure completed public operations from the installed cohort');
   const assess = job.steps.findIndex(s => s.name === 'Require measured latency and structural release evidence');
-  assert(inspect < download && download < prepare && prepare < measure && measure < assess);
+  assert(inspect < download && download < baseline && baseline < calibrate && calibrate < prepare && prepare < measure && measure < assess);
+  assert(job.steps[baseline].run.includes('--warm-samples 100 --cold-samples 5 --load isolated'));
+  assert(job.steps[calibrate].run.includes('--calibrate-sqlite'));
+  assert(job.steps[prepare].run.endsWith('--comparison "$RUNNER_TEMP/ordinary-operation/comparison.json"'));
   assert.equal(job.steps[download].with['artifact-ids'], '${{ inputs.package-artifact-id }}');
   assert.equal(job.steps[assess].if, 'always()');
   assert.equal(job.steps[assess]['continue-on-error'], undefined);
@@ -163,6 +170,8 @@ test('controlled performance check consumes existing artifacts and cannot omit f
   assert(job.steps[assess].run.includes('scripts/operation-performance.mjs --input'));
   const upload = job.steps.at(-1); assert.equal(upload.if, 'always()');
   assert(upload.with.path.includes('/measurement/*/*.jsonl'));
+  assert(upload.with.path.includes('/sqlite/sqlite-baseline.json'));
+  assert(upload.with.path.includes('/comparison.json'));
   const cold = job.steps.findIndex(s => s.name === 'Measure existing-state reads in new processes');
   const init = job.steps.findIndex(s => s.name === 'Measure first initialization in distinct new states');
   const combine = job.steps.findIndex(s => s.name === 'Bind actual reports to the same cohort and raw samples');
@@ -179,13 +188,15 @@ test('controlled performance check consumes existing artifacts and cannot omit f
   assert(!job.steps.some(s => /\b(?:npm pack|moon build|packed-client-packages\.mjs)\b/u.test(s.run ?? '')));
 });
 
-async function reports(t) {
+async function reports(t, comparison) {
   const root = await mkdtemp(join(tmpdir(), 'actql-performance-report-test-'));
   t.after(() => rm(root, {recursive: true, force: true}));
   await mkdir(join(root, 'prepared')); await mkdir(join(root, 'packages'));
   const manifest = JSON.stringify({sourceSha: sha, packages: []});
   await writeFile(join(root, 'packages/ordinary-operation-packages.json'), manifest);
-  const controls = {sourceSha: sha, cohortSha256: hash(manifest), environment: {synthetic: true},
+  const controls = {sourceSha: sha, cohortSha256: hash(manifest),
+    environment: comparison?.baseline.environment ?? {synthetic: true}, load: 'isolated',
+    ...(comparison ? {comparison} : {}),
     historyProtocolSha256: hash(JSON.stringify(nodeOperationProtocol('final')))};
   await writeFile(join(root, 'prepared/controls.json'), JSON.stringify(controls));
   const binding = {cohortSha256: controls.cohortSha256,
@@ -194,6 +205,7 @@ async function reports(t) {
     const directory = join(root, 'measurement', family); await mkdir(directory, {recursive: true});
     const latency = operations.map(operation => ({operation, mode: 'final', ...binding, samples: []}));
     const report = {sourceSha: sha, mode: 'final', ...binding, latency,
+      ...(family === 'warm' && comparison ? {comparison: structuredClone(comparison)} : {}),
       functional: {...binding, rows: []}, installedPayloadsUnchanged: true,
       cleanup: family === 'warm' ? {closed: true} : {allChildrenExited: true, allOriginalClientsClosed: true}};
     for (const series of latency) {
@@ -211,6 +223,38 @@ async function reports(t) {
   }
   return {root, add};
 }
+
+test('baseline CLI and consumer binding freeze diagnostic history without issuing public acceptance', async t => {
+  const root = await mkdtemp(join(tmpdir(), 'actql-sqlite-policy-test-'));
+  t.after(() => rm(root, {recursive: true, force: true}));
+  const baseline = syntheticSQLiteBaseline(), input = join(root, 'baseline.json'), output = join(root, 'comparison.json');
+  await writeFile(input, JSON.stringify(baseline));
+  const script = fileURLToPath(new URL('./operation-performance.mjs', import.meta.url));
+  const result = spawnSync(process.execPath, [script, '--calibrate-sqlite', input, '--output', output], {encoding: 'utf8'});
+  assert.equal(result.status, 0, result.stderr);
+  const fixed = await readFixedSQLiteComparison(output, baseline.environment, 'isolated');
+  assert.deepEqual(fixed.baseline, baseline);
+  assert.match(fixed.profile.qualification, /not an unconditional SDK SLA/u);
+  await assert.rejects(readFixedSQLiteComparison(output, {...baseline.environment, node: 'foreign'}, 'isolated'), /environment differs/u);
+  await assert.rejects(readFixedSQLiteComparison(output, baseline.environment, 'concurrent'), /load differs/u);
+  fixed.profile.entries[0].p95Ms = 1000;
+  await writeFile(output, JSON.stringify(fixed));
+  await assert.rejects(readFixedSQLiteComparison(output, baseline.environment, 'isolated'), /fixed policy/u);
+});
+
+test('aggregation retains the exact pre-measurement comparison and refuses a missing or changed collector copy', async t => {
+  const baseline = syntheticSQLiteBaseline(), comparison = {baseline, profile: calibrateSqliteComparisonProfile(baseline)};
+  const p = await reports(t, comparison);
+  await p.add('warm', ['warm-select']);
+  const result = JSON.parse(await readFile(await combineOrdinaryPerformanceMeasurements(p.root)));
+  assert.deepEqual(result.comparison, comparison);
+  for (const mutate of [r => {delete r.comparison;}, r => {r.comparison.profile.entries[0].p95Ms += 1;}]) {
+    const invalid = await reports(t, comparison), original = await invalid.add('warm', ['warm-select']);
+    mutate(original.report); await original.save();
+    await assert.rejects(combineOrdinaryPerformanceMeasurements(invalid.root), /comparison differs/u);
+    await assert.rejects(readFile(join(invalid.root, 'measurements.json')), {code: 'ENOENT'});
+  }
+});
 
 test('same-cohort warm and process reports retain their exact raw samples without inventing missing gates', async t => {
   const p = await reports(t);
