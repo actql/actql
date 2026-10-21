@@ -2891,9 +2891,11 @@ async function openOriginalLocalPublicationStore(
           }
         }
       }
-      try { await unlink(holder.path); }
-      catch (error) { if (error?.code !== 'ENOENT') throw error; }
-      await syncDirectory(preparedSchemasDirectory);
+      if (holder.path !== undefined) {
+        try { await unlink(holder.path); }
+        catch (error) { if (error?.code !== 'ENOENT') throw error; }
+        await syncDirectory(preparedSchemasDirectory);
+      }
       group.holders.delete(holder);
       holder.active = false;
       if (group.holders.size === 0) {
@@ -2929,11 +2931,12 @@ async function openOriginalLocalPublicationStore(
       if (group === undefined) continue;
       const adopted = [...group.holders].filter(holder =>
         holder.runDefinitionCid === runDefinitionCid);
-      for (const holder of adopted) {
+      const durable = adopted.filter(holder => holder.path !== undefined);
+      for (const holder of durable) {
         try { await unlink(holder.path); }
         catch (error) { if (error?.code !== 'ENOENT') throw error; }
       }
-      await syncDirectory(preparedSchemasDirectory);
+      if (durable.length !== 0) await syncDirectory(preparedSchemasDirectory);
       for (const holder of adopted) {
         holder.active = false;
         group.holders.delete(holder);
@@ -2984,7 +2987,8 @@ async function openOriginalLocalPublicationStore(
       }
       const token = randomUUID();
       const holder = {
-        path: preparedSchemaPath(token), active: true,
+        path: group.removable ? preparedSchemaPath(token) : undefined,
+        active: true,
         releasing: undefined, errors: [], runDefinitionCid,
       };
       const record = Object.freeze({
@@ -2993,10 +2997,26 @@ async function openOriginalLocalPublicationStore(
       group.holders.add(holder);
       const prepared = preparedSchemaHandle(group, holder);
       try {
-        await writeExclusive(holder.path,
-          Buffer.from(JSON.stringify(record), 'utf8'));
-        await syncDirectory(preparedSchemasDirectory);
-        const stored = await putSemantic(wire, semanticCid);
+        let stored;
+        if (holder.path !== undefined) {
+          // Newly created bytes need the existing crash-reclamation marker.
+          await writeExclusive(holder.path,
+            Buffer.from(JSON.stringify(record), 'utf8'));
+          await syncDirectory(preparedSchemasDirectory);
+          stored = await putSemantic(wire, semanticCid);
+        } else {
+          // An already owned immutable schema creates no new durable state.
+          // Acquire this operation's real original; retain its live holder,
+          // without rewriting crash markers for an allocation we cannot delete.
+          const original = await readSemanticOriginal(semanticCid, false);
+          if (original.physicalCid !== physicalCid ||
+              !exactUtf8WireMatches(original.bytes, wire)) {
+            fail('PublicationObjectIdentityMismatch');
+          }
+          stored = Object.freeze({semanticCid, physical: Object.freeze({
+            cid: physicalCid, bytes: original.bytes.byteLength, created: false,
+          }), created: false});
+        }
         const physical = await lstat(objectPath(physicalCid));
         const semantic = await lstat(contractPath(semanticCid));
         if (!physical.isFile() || !semantic.isFile() ||
@@ -3013,18 +3033,20 @@ async function openOriginalLocalPublicationStore(
               group.generation.inode !== generation.inode)) {
           fail('PublicationPreparedSchemaGenerationMismatch');
         }
-        const staged = resolve(preparedSchemasDirectory,
-          `.staging-${randomUUID()}.json`);
-        await writeExclusive(staged, Buffer.from(JSON.stringify({
-          ...record, ...generation,
-        }), 'utf8'));
-        await rename(staged, holder.path);
-        await syncDirectory(preparedSchemasDirectory);
+        if (holder.path !== undefined) {
+          const staged = resolve(preparedSchemasDirectory,
+            `.staging-${randomUUID()}.json`);
+          await writeExclusive(staged, Buffer.from(JSON.stringify({
+            ...record, ...generation,
+          }), 'utf8'));
+          await rename(staged, holder.path);
+          await syncDirectory(preparedSchemasDirectory);
+        }
         group.generation = generation;
         return Object.freeze({...stored, prepared});
       } catch (error) {
-        // The marker remains durable if either physical or alias cleanup
-        // cannot be confirmed. The caller can retry without resending data.
+        // A new allocation keeps its durable marker. Every path retains the
+        // same acquired reader/holder cleanup without resending any data.
         const failure = new PublicationStoreError(
           typeof error?.code === 'string'
             ? error.code : 'PublicationPreparedSchemaFailed', error,
