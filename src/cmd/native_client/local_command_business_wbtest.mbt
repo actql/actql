@@ -43,6 +43,47 @@ test "Business candidate rejects parent control overlap and simultaneous allowan
 }
 
 ///|
+test "checked business requirements reduce acquisition without changing finite-facility support" {
+  let maximum : @initial_resources.LedgerLimits = {
+    planning_work: 100000,
+    attempts: 32,
+    holdings: 32,
+    transfer_bytes: 32000000L,
+    retained_bytes: 536870912L,
+    execution_bytes: 536870912L,
+  }
+  let required = {
+    ..maximum,
+    attempts: 1,
+    holdings: 1,
+    transfer_bytes: 1000000L,
+    retained_bytes: 1048576L,
+    execution_bytes: 2097152L,
+  }
+  assert_eq(
+    local_command_selected_business_limits(maximum, Some(required)),
+    required,
+  )
+  assert_eq(
+    local_command_selected_business_limits(
+      maximum,
+      Some({ ..required, execution_bytes: 536870913L, }),
+    ),
+    maximum,
+  )
+  assert_eq(local_command_selected_business_limits(maximum, None), maximum)
+  let small = local_command_business_domain_bytes(
+    required.retained_bytes + required.execution_bytes,
+  ).unwrap()
+  let large = local_command_business_domain_bytes(
+    maximum.retained_bytes + maximum.execution_bytes,
+  ).unwrap()
+  assert_true(small >= required.retained_bytes + required.execution_bytes)
+  assert_true(small < large)
+  assert_true(command_preparation_invocation.val is None)
+}
+
+///|
 test "saved Result selection preserves Read facilities without a Compute acquisition candidate" {
   let static_profile = native_storage_arithmetic_profile()
   let parsed = command().parse(

@@ -67,6 +67,7 @@ fn local_values_work_failure(
   issue : NativeClientValuesWorkIssue,
   cleanup? : () -> Bool = () => true,
   original_access? : NativeLocalValuesOriginalAccess? = None,
+  requirements? : @local.ClientLocalSourceFreeRequirements? = None,
   requires_execution_scope? : Bool = false,
 ) -> NativeClientValuesWorkFailure {
   { issue, cleanup, cleaned: false, original_access, requires_execution_scope, }
@@ -177,7 +178,13 @@ fn open_native_client_local_values_work(
   let selected = match ledger {
     Some(original) =>
       @local.open_source_free_local_retained_host_on_ledger(
-        prepared, original, registry_body, values_body, fragment_body, ordered_body,
+        prepared,
+        original,
+        registry_body,
+        values_body,
+        fragment_body,
+        ordered_body,
+        requirements~,
       )
     None =>
       @local.open_source_free_local_retained_host(

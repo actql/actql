@@ -20,6 +20,7 @@ priv struct LocalCommandBusinessProfile {
 // keep every partial physical stage and their distinct acknowledgements.
 priv struct LocalCommandBusinessOriginal {
   profile : LocalCommandBusinessProfile
+  mut selected_profile : LocalCommandBusinessProfile?
   mut domain : @initial_arena.InstalledArenaDomain?
   mut execution : @initial_arena.InstalledArenaRetainedExecution?
   mut operation : @local_host.NativeLocalStoreOperation?
@@ -55,6 +56,48 @@ priv struct LocalCommandBusinessOriginal {
   mut result_refusal : Ref[@local_host.NativeLocalReadBindingIssue?]?
   mut result_cleanup_issue : @local_result.NativeResultAccessIssue?
   mut active : Bool
+}
+
+///|
+// A checked demand below the supported facility can select a smaller actual
+// acquisition. A conservative upper bound above it does not invalidate the
+// existing finite facility or promise that every input will fit it.
+fn local_command_selected_business_limits(
+  maximum : @initial_resources.LedgerLimits,
+  required : @initial_resources.LedgerLimits?,
+) -> @initial_resources.LedgerLimits {
+  match required {
+    Some(value) if value.retained_bytes > 0L &&
+      value.execution_bytes > 0L &&
+      value.planning_work <= maximum.planning_work &&
+      value.attempts <= maximum.attempts &&
+      value.holdings <= maximum.holdings &&
+      value.transfer_bytes <= maximum.transfer_bytes &&
+      value.retained_bytes <= maximum.retained_bytes &&
+      value.execution_bytes <= maximum.execution_bytes => value
+    _ => maximum
+  }
+}
+
+///|
+fn local_command_business_domain_bytes(payload : Int64) -> Int64? {
+  if payload <= 0L {
+    return None
+  }
+  let mut bytes = payload
+  for _ in 0..<16 {
+    let necessary = @initial_bootstrap.execution_domain_necessary_bytes(
+      bytes, payload,
+    )
+    if necessary <= 0L {
+      return None
+    }
+    if necessary <= bytes {
+      return Some(bytes)
+    }
+    bytes = necessary
+  }
+  None
 }
 
 ///|
@@ -179,15 +222,14 @@ fn LocalCommandPreparationOriginal::prepare_business_domain(
       Err(CommandUnavailable)
     }
   }
+  guard business.selected_profile is Some(selected) else {
+    return Err(CommandUnavailable)
+  }
   if business.domain is Some(_) || self.closing || self.closed {
     return Err(CommandUnavailable)
   }
   let acquired = host
-    .prepare_domain_in_process(
-      scope,
-      business.profile.domain_bytes,
-      business.profile.limits,
-    )
+    .prepare_domain_in_process(scope, selected.domain_bytes, selected.limits)
     .map_err(issue => CommandDomain(issue))
   match acquired {
     Err(issue) => Err(issue)
@@ -219,13 +261,15 @@ fn LocalCommandPreparationOriginal::prepare_business_execution(
       Err(CommandUnavailable)
     }
   }
-  guard business.domain is Some(domain) && business.execution is None else {
+  guard business.selected_profile is Some(selected) &&
+    business.domain is Some(domain) &&
+    business.execution is None else {
     return Err(CommandUnavailable)
   }
   match
     host.prepare_domain_read(
       domain,
-      execution_ceiling=business.profile.payload_facility_bytes,
+      execution_ceiling=selected.payload_facility_bytes,
     ) {
     Err(issue) => return Err(CommandDomain(issue))
     Ok(_) => ()
@@ -308,6 +352,7 @@ fn LocalCommandPreparationOriginal::require_business_program(
   self : LocalCommandPreparationOriginal,
   prepared : @run_host.PreparedClientProgram,
   assets : @run_host.ClientLocalProductAssets,
+  requirements : @local_values.ClientLocalSourceFreeRequirements,
 ) -> Result[@initial_resources.LedgerLimits, LocalCommandPreparationIssue] {
   if self.closing || self.closed || self.primary is Some(_) {
     return Err(CommandUnavailable)
@@ -318,16 +363,16 @@ fn LocalCommandPreparationOriginal::require_business_program(
     business.execution is Some(execution) else {
     return Err(CommandUnavailable)
   }
-  guard @local_values.source_free_local_ledger_limits(
+  if !requirements.matches(
       prepared,
       assets.registry,
       assets.values,
       Some(assets.fragment),
       assets.ordered,
-    )
-    is Some(needed) else {
+    ) {
     return Err(CommandUnavailable)
   }
+  let needed = requirements.maximum_limits()
   let supplied = business.profile.limits
   if needed.planning_work > supplied.planning_work ||
     needed.attempts > supplied.attempts ||
@@ -357,9 +402,13 @@ fn LocalCommandPreparationOriginal::prepare_business_operation(
     self.runtime is Some(runtime) &&
     business.operation is None &&
     !self.phase_open &&
-    !self.journal_read_open &&
     !self.closing &&
     !self.closed else {
+    return Err(CommandUnavailable)
+  }
+  guard self.read is Some(read) &&
+    host.observe_local_host_consuming_read_scope(pair, read)
+    is Ok(@initial_arena.ReadUnentered) else {
     return Err(CommandUnavailable)
   }
   let library = match host.borrow_local_host_sqlite(pair) {

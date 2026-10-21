@@ -80,6 +80,7 @@ fn LocalCommandBusinessPreparation::open_values_work(
       installed.ordered_body,
       16,
       1000,
+      requirements=Some(self.requirements),
     ) {
     Ok(work) => {
       business.values_work = Some(work)

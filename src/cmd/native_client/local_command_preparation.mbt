@@ -183,6 +183,7 @@ fn prepare_local_command_preparation_original(
     run_observation: None,
     business: business.map(candidate => {
       profile: candidate,
+      selected_profile: None,
       domain: None,
       execution: None,
       operation: None,
@@ -369,7 +370,6 @@ fn LocalCommandPreparationOriginal::acquire_physical_read(
     command_preparation_value(
       host.transfer_domain(sqlite_domain).map_err(issue => CommandDomain(issue)),
     )
-    command_preparation_value(self.prepare_business_domain(host, scope))
     command_preparation_value(
       host
       .leave_backing_borrow_scope(scope)
@@ -400,7 +400,6 @@ fn LocalCommandPreparationOriginal::acquire_physical_read(
     command_preparation_value(
       sqlite_preparation.map_err(issue => CommandDomain(issue)),
     )
-    command_preparation_value(self.prepare_business_execution(host))
     let acquired = command_preparation_value(
       host
       .prepare_domain_original_read(read_domain, profile.read_budget)
@@ -1309,7 +1308,10 @@ fn LocalCommandPreparationOriginal::prepare_adopted_journal(
     // Routing preparation performs no activation, Store IO or Host admission.
     // Keep it outside the Read; read_command opens and enters the original
     // Journal in one closed call without a second configuration observation.
-    command_preparation_value(self.prepare_business_operation())
+    if self.business is Some(business) &&
+      business.profile.kind == SavedResultRead {
+      command_preparation_value(self.prepare_business_operation())
+    }
     Ok(())
   } catch {
     LocalCommandPreparationStop(issue) => {

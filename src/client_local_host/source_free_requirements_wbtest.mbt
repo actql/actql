@@ -135,3 +135,44 @@ test "source-free requirements cannot select a different preparation or installe
   assert_eq(@resources.ledger_usage(ledger).attempts, 0)
   assert_eq(@resources.ledger_usage(ledger).reserved_execution_bytes, 0L)
 }
+
+///|
+test "original eight-task UNION executes with its prepared simultaneous reservations" {
+  let prepared = source_free_tasks_original_union()
+  let assets = @publication_host.client_local_product_assets()
+  let quote = prepare_source_free_local_requirements(
+    prepared,
+    assets.registry,
+    assets.values,
+    Some(assets.fragment),
+    assets.ordered,
+  ).unwrap()
+  let required = quote.simultaneous_limits().unwrap()
+  let maximum = quote.maximum_limits()
+  // Do not turn a conservative upper bound into a smaller supported maximum.
+  // This fixture fits; other plans retain the installed finite-facility path.
+  assert_true(required.retained_bytes <= maximum.retained_bytes)
+  assert_true(required.execution_bytes <= maximum.execution_bytes)
+  let ledger = @resources.create_ledger(required).unwrap()
+  let setup = open_source_free_local_retained_host_on_ledger(
+    prepared,
+    ledger,
+    assets.registry,
+    assets.values,
+    Some(assets.fragment),
+    assets.ordered,
+    requirements=Some(quote),
+  ).unwrap()
+  let execution = match
+    execute_source_free_local_tasks_guarded(setup, 64, 100000, () => true) {
+    Ok(value) => value
+    Err(original) => {
+      retry_local_values_execution_failure_cleanup(original) |> ignore
+      fail("original multi-task execution refused its simultaneous reservation")
+    }
+  }
+  assert_eq(execution.rows().unwrap(), ["{\"n\":1}", "{\"n\":2}"])
+  assert_eq(@resources.ledger_usage(ledger).attempts, 8)
+  assert_true(execution.close())
+  assert_eq(@resources.ledger_usage(ledger).reserved_execution_bytes, 0L)
+}

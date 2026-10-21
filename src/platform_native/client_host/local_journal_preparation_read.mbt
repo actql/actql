@@ -197,6 +197,80 @@ pub fn NativeLocalJournalCapture::finish_pending_original_scope(
 }
 
 ///|
+// The trusted command may prepare its checked Compute facility in outer
+// control before durable admission. This exchange retains the same operation
+// facts; it invokes no application callback and admits no new authority.
+pub fn NativeLocalJournalCapture::suspend_original_read_for_preparation(
+  self : NativeLocalJournalCapture,
+) -> Result[Unit, NativeLocalAdoptionIssue] {
+  match self.check_original_read_lifetime() {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  guard self.read_callback_active &&
+    self.read_facts_valid &&
+    self.original_resources is Some(original) &&
+    original.store_operation is None else {
+    return Err(OriginalResourceScopePending)
+  }
+  match original.host.leave_local_host_phase(original.pair) {
+    Ok(_) => {
+      original.active_phase = None
+      Ok(())
+    }
+    Err(issue) => {
+      let primary = OriginalResourceLeave(None, issue)
+      original.interrupted = true
+      self.read_operation_issue = Some(primary)
+      self.clear_read_operation_facts()
+      Err(primary)
+    }
+  }
+}
+
+///|
+// Resume only the same suspended Read. Failed entry or an outstanding parent
+// scope spends this operation's facts and remains original cleanup duty.
+pub fn NativeLocalJournalCapture::resume_original_read_after_preparation(
+  self : NativeLocalJournalCapture,
+) -> Result[Unit, NativeLocalAdoptionIssue] {
+  guard !self.closing &&
+    self.read_callback_active &&
+    self.read_facts_valid &&
+    self.read_operation_issue is None &&
+    self.original_resources is Some(original) &&
+    !original.interrupted &&
+    original.active_phase is None else {
+    return Err(
+      self.read_operation_issue.unwrap_or(OriginalResourceScopePending),
+    )
+  }
+  let result = match
+    original.host.require_local_host_consuming_read_current(
+      original.pair,
+      original.read,
+    ) {
+    Err(issue) => Err(OriginalResources(issue))
+    Ok(_) =>
+      original.host
+      .enter_local_host_phase(original.pair, @arena.HostRead)
+      .map_err(issue => OriginalResources(issue))
+  }
+  match result {
+    Ok(_) => {
+      original.active_phase = Some(@arena.HostRead)
+      Ok(())
+    }
+    Err(issue) => {
+      original.interrupted = true
+      self.read_operation_issue = Some(issue)
+      self.clear_read_operation_facts()
+      Err(issue)
+    }
+  }
+}
+
+///|
 // Existing physical identity/lifetime observation only. This cannot admit
 // config, Account, a Run, a new scope or any cleanup acknowledgment.
 fn NativeLocalJournalCapture::check_original_read_lifetime(

@@ -48,6 +48,7 @@ test "Business child cleanup retries the same failed physical entry after origin
     PendingRetainedExecution(_, _) => fail("partial fixture execution")
   }
   let business : LocalCommandBusinessOriginal = {
+    selected_profile: None,
     profile: {
       domain_bytes: 8388608L,
       kind: SourceFreeCompute,

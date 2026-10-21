@@ -17,6 +17,7 @@ priv struct LocalCommandBusinessPreparation {
   intent : @run_host.ClientSubmittedIntent
   preparation : @local_host.NativeClientSubmittedPreparation
   prepared : @run_host.PreparedClientProgram
+  requirements : @local_values.ClientLocalSourceFreeRequirements
 }
 
 ///|
@@ -112,7 +113,19 @@ fn LocalCommandPreparationOriginal::prepare_business_submission(
   })
   |> ignore
   let assets = runtime.assets
-  command_preparation_result(self.require_business_program(prepared, assets))
+  let requirements = @local_values.prepare_source_free_local_requirements(
+    prepared,
+    assets.registry,
+    assets.values,
+    Some(assets.fragment),
+    assets.ordered,
+  ).unwrap_or_else(() => stop("LocalBusinessProgramUnavailable"))
+  command_preparation_result(
+    self.prepare_business_capacity(capture, requirements),
+  )
+  command_preparation_result(
+    self.require_business_program(prepared, assets, requirements),
+  )
   |> ignore
   let selection : LocalCommandBusinessPreparation = {
     original: self,
@@ -129,6 +142,7 @@ fn LocalCommandPreparationOriginal::prepare_business_submission(
     intent,
     preparation,
     prepared,
+    requirements,
   }
   if !selection.current(host, settings, environment) {
     stop("LocalSubmissionAuthorizationDenied")
