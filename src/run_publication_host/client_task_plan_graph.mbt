@@ -39,7 +39,7 @@ fn client_task_edge_input(
 pub struct ClientTaskPlanGraph {
   wire : String
   transformations : Array[ClientResultTransformation]
-  standard_progress_keys : Array[String]?
+  priv standard_progress_keys : Array[String]?
 }
 
 ///|

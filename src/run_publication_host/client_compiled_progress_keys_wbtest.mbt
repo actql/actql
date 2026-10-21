@@ -12,13 +12,30 @@ test "compiled Pure progress retains the original fragment keys without reconstr
     retained_input_cid("c"),
     [],
   ).unwrap()
-  assert_true(physical_equal(keys, progress.keys))
+  assert_true(
+    physical_equal(
+      keys,
+      client_remote_task_progress_keys(prepared, Some(keys)).unwrap(),
+    ),
+  )
+  assert_true(!physical_equal(keys, progress.keys))
   assert_eq(keys.length(), 2)
   let fields = client_remote_task_progress_fields(progress)
   let original = keys[0]
   fields[0][1] = "foreign-copy"
   assert_eq(keys[0], original)
   assert_eq(client_remote_task_progress_fields(progress)[0][1], original)
+  progress.keys[0] = "foreign-progress-copy"
+  assert_eq(keys[0], original)
+  let fresh = inspect_client_remote_task_progress(
+    prepared,
+    compilation,
+    admission,
+    definition,
+    retained_input_cid("c"),
+    [],
+  ).unwrap()
+  assert_eq(fresh.keys[0], original)
 }
 
 ///|
@@ -60,7 +77,13 @@ test "compiled Effect progress retains exact keys and unchanged cancellation mea
     retained_input_cid("c"),
     [],
   ).unwrap()
-  assert_true(physical_equal(keys, progress.progress.keys))
+  assert_true(
+    physical_equal(
+      keys,
+      client_remote_task_progress_keys(compilation.compiled.owner, Some(keys)).unwrap(),
+    ),
+  )
+  assert_true(!physical_equal(keys, progress.progress.keys))
   assert_eq(keys, baseline.progress.keys)
   let projected = project_client_remote_effect_task_run(
     progress,

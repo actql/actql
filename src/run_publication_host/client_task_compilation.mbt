@@ -8,7 +8,7 @@ pub struct ClientTaskCompilation {
   infer : ClientInferPlanGraph?
   infers : Array[ClientInferPlanGraph]
   serialization : ClientSerializationPlanGraph?
-  standard_progress_keys : Array[String]?
+  priv standard_progress_keys : Array[String]?
 }
 
 ///|

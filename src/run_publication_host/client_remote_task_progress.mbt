@@ -65,28 +65,19 @@ pub fn inspect_client_remote_task_progress(
 }
 
 ///|
-/// Both public entries validate their original Run before using this shared
-/// observation-only path. The private Effect computation view never escapes.
-fn inspect_bound_client_remote_task_progress(
+// This private selection retains compiler originals. Public progress values
+// and exported key getters each receive their own array of these immutable IDs.
+fn client_remote_task_progress_keys(
   prepared : PreparedClientProgram,
-  definition : @publication.PublicationContract,
-  authority : String,
-  definition_cid : String,
-  result_names : Array[String],
   standard_progress_keys : Array[String]?,
-  durable : Array[@remote.DurableCoordinatorDispatchRecord],
-) -> Result[ClientRemoteTaskProgress, ClientRemoteTaskProgressIssue] {
-  let graph = prepared_client_graph(prepared)
-  let count = @strategy.graph_task_count(graph)
-  if count == 0 || authority.is_empty() {
-    return Err(UnsupportedGraph)
-  }
-  let keys = match standard_progress_keys {
+) -> Result[Array[String], ClientRemoteTaskProgressIssue] {
+  let count = @strategy.graph_task_count(prepared.graph)
+  match standard_progress_keys {
     Some(keys) => {
       if keys.length() != count {
         return Err(UnsupportedGraph)
       }
-      keys
+      Ok(keys)
     }
     None => {
       let keys : Array[String] = []
@@ -105,8 +96,36 @@ fn inspect_bound_client_remote_task_progress(
         }
         keys.push(client_task_fragment_node_id(fragment))
       }
-      keys
+      Ok(keys)
     }
+  }
+}
+
+///|
+/// Both public entries validate their original Run before using this shared
+/// observation-only path. The private Effect computation view never escapes.
+fn inspect_bound_client_remote_task_progress(
+  prepared : PreparedClientProgram,
+  definition : @publication.PublicationContract,
+  authority : String,
+  definition_cid : String,
+  result_names : Array[String],
+  standard_progress_keys : Array[String]?,
+  durable : Array[@remote.DurableCoordinatorDispatchRecord],
+) -> Result[ClientRemoteTaskProgress, ClientRemoteTaskProgressIssue] {
+  let graph = prepared_client_graph(prepared)
+  let count = @strategy.graph_task_count(graph)
+  if count == 0 || authority.is_empty() {
+    return Err(UnsupportedGraph)
+  }
+  let original_keys = match
+    client_remote_task_progress_keys(prepared, standard_progress_keys) {
+    Ok(keys) => keys
+    Err(issue) => return Err(issue)
+  }
+  let keys = match standard_progress_keys {
+    Some(_) => original_keys.copy()
+    None => original_keys
   }
   let journal = match @remote.create_coordinator_dispatch_journal(authority) {
     Ok(value) => value
