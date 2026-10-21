@@ -260,7 +260,8 @@ async function readGitHubRowsByNode({moon, repository,
           if (current === null) {
             if (consumeObservation !== undefined) {
               try {
-                checkPrefix();
+                // The prefix was checked after exchange; the intervening
+                // selected codec getters are synchronous and byte-only.
                 await consumeObservation(charge);
                 checkPrefix();
               } catch (cause) {
@@ -271,7 +272,6 @@ async function readGitHubRowsByNode({moon, repository,
             if (rows.length + current.rows.length > owned.maxRows) stopped('GitHubReadRowLimit');
             if (consumePage !== undefined) {
               try {
-                checkPrefix();
                 await consumePage(current.rows, page, Object.freeze({charge}));
                 checkPrefix();
               } catch (cause) {
@@ -342,7 +342,8 @@ async function readGitHubRowsByNode({moon, repository,
       }
       if (consumePage !== undefined) {
         try {
-          checkPrefix();
+          // Finish/close only retire the selected codec's DATA aliases. The
+          // preceding prefix check still governs this synchronous callback entry.
           await consumePage(current.rows, page, Object.freeze({charge: rowCharge}));
           checkPrefix();
         }
@@ -369,8 +370,9 @@ async function readGitHubRowsByNode({moon, repository,
       // before the next request instead of spending one it cannot make.
       if (lastBasis.remaining === 0) stopped('GitHubRateLimited', {basis: lastBasis});
     }
-    try { checkPrefix(); }
-    catch (cause) { stopped(cause.code ?? 'GitHubReadInterrupted', {cause}); }
+    // No uncontrolled callback or await follows the last original-prefix
+    // check (including the post-consumer check). Publishing these frozen DATA
+    // arrays does not require another hash of the same response bytes.
     const result = Object.freeze({rows: Object.freeze(rows),
       pages: Object.freeze(accepted), complete: true});
     retainedReads.set(result, prefix);

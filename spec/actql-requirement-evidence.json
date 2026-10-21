@@ -10916,7 +10916,7 @@
     },
     {
       "requirement_id": "actql.execution/ordinary-operation.retained-validation-scope",
-      "statement_sha256": "d39a8dd46a33834060d04a1d20f5edd60d8298b44c03ebfb2f5649d773d6b3a9",
+      "statement_sha256": "f992dab468f02b906962e6c677f161b8b7631d1a7575ec770b57f40fa48f2a68",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
@@ -10927,7 +10927,7 @@
     },
     {
       "requirement_id": "actql.execution/ordinary-operation.revalidation-boundaries",
-      "statement_sha256": "837f9375a3f3e033e8cf5b3b20aad22ba1a58bd6f27a6023536c364f0f59ae1c",
+      "statement_sha256": "2cda498af22dde052327de857701001d1f54460e4307810f16e8781012553acb",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
@@ -10938,7 +10938,7 @@
     },
     {
       "requirement_id": "actql.execution/ordinary-operation.authorization-tuples",
-      "statement_sha256": "14708ac1aabc187273ac12d2bf81945427acb3bd2c2f53caba129ab4edf14cfd",
+      "statement_sha256": "4252692ec1693f0e5f72ad5aea99a7d9d7f13eb5fade5eca1f31f99a9f819aad",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
@@ -10960,7 +10960,7 @@
     },
     {
       "requirement_id": "actql.execution/ordinary-operation.immutable-row-validation",
-      "statement_sha256": "31d34cd4cec613b2bbc9962f42d8d7e5d3ab97f7b61fdfd5dd3c2cf4f3e1f1fd",
+      "statement_sha256": "a098a7ff91b94b957d9337716b035a33528432be104841a155c6c521d4bdbad3",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
@@ -10971,7 +10971,7 @@
     },
     {
       "requirement_id": "actql.execution/ordinary-operation.configuration-boundary",
-      "statement_sha256": "f4848a45c6e3cec65a783a34969baecbcdc9984454ffdb4c8f38e2487a4c75a7",
+      "statement_sha256": "f6884c8f66dca79b59deb1fe80ff251b7c1d299b2c0eeba3b81d548f157f10ed",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
@@ -20299,7 +20299,7 @@
     },
     {
       "requirement_id": "actql.conformance/ordinary-performance.structural-regression",
-      "statement_sha256": "21b72b10727d1aaeddcf76721530776eff4f29adf057e2783927a5f1d920b8a4",
+      "statement_sha256": "d3c2bcf22f4977fac6bb87d43d432d8750ec10c29596ef3c60d00f9dc0e98342",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
