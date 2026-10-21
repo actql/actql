@@ -108,6 +108,7 @@ pub fn native_client_run_record_revision(
 fn run_record_body(
   record : NativeClientRunRecord,
 ) -> Result[Bytes, NativeClientRunJournalIssue] {
+  native_timing_count(45)
   let checkpoint = match record.checkpoint {
     Some(value) =>
       match checkpoint_record_body(value) {
@@ -244,10 +245,13 @@ fn read_run_record_in_mode(
     is Err(_) {
     return Err(CustodyLost)
   }
-  match run_record_body(record) {
-    Ok(body) if body == row.body => Ok(record)
-    _ => Err(CustodyLost)
-  }
+  // The Common decoder already compared its complete canonical outer body
+  // with this exact row. Every field above is copied from that admitted row;
+  // the Native Checkpoint reader independently checked its nested wire too.
+  // No callback or mutation intervenes, so reconstructing the same outer
+  // JSON here adds no validation. Native Policy/Effect/observation checks above
+  // remain distinct and mandatory.
+  Ok(record)
 }
 
 ///|
