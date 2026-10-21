@@ -14,6 +14,14 @@ test "Local normalization retains original admission compilation and material ow
     local_run_normalization_evidence(other, issued) is Err(ForeignPlan),
   )
   let wire = @publication.run_evidence_value_json(evidence)
+  assert_true(
+    physical_equal(
+      evidence,
+      restore_local_run_normalization_evidence(
+        original, issued, wire, "sha256:f93d91b468d850cbc63a8c8350578af8431a2256eb2b1ef3f60586fdc640561d",
+      ).unwrap(),
+    ),
+  )
   assert_eq(
     @publication.run_evidence_value_json(
       restore_local_run_normalization_evidence(

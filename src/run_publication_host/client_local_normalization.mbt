@@ -375,9 +375,10 @@ pub fn prepared_client_local_normalization_evidence(
 }
 
 ///|
-/// Re-admit saved bytes against the original projection without issuing a new
-/// journal or repeating preparation. Cross-process materials restoration is a
-/// separate connection; an arbitrary journal alone is not an inventory proof.
+/// Match saved bytes against the original admitted projection. Equal bytes
+/// reuse its typed evidence without parsing, writing or hashing it again.
+/// Cross-process materials restoration is a separate connection; an arbitrary
+/// journal alone is not an inventory proof or current execution authority.
 pub fn restore_prepared_client_local_normalization(
   owner : PreparedClientProgram,
   original : ClientLocalNormalization,
@@ -395,13 +396,7 @@ pub fn restore_prepared_client_local_normalization(
   if wire != @publication.run_evidence_value_json(expected) {
     return Err(SubstitutedJournal)
   }
-  match
-    @publication.admit_run_evidence_value(
-      "normalization_journal", wire, 1024, 32, 8,
-    ) {
-    Ok(value) => Ok(value)
-    Err(issue) => Err(Evidence(issue))
-  }
+  Ok(expected)
 }
 
 ///|

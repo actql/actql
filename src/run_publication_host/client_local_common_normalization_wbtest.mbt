@@ -3,6 +3,47 @@ let common_local_empty_journal : String =
   #|{"entries":[],"journal_cid":"sha256:e245b445e5014e5764dab4bf1b9ddc3b3abdf821ddf75950f9bee9df29007164","rule_catalog_cid":"sha256:f93d91b468d850cbc63a8c8350578af8431a2256eb2b1ef3f60586fdc640561d","version":"actql-normalization-journal/0.1"}
 
 ///|
+test "same preparation restores its admitted journal without rebuilding typed evidence" {
+  let owner = local_completed_sort_original()
+  let original = issue_prepared_client_local_normalization(owner).unwrap()
+  let evidence = prepared_client_local_normalization_evidence(owner, original).unwrap()
+  let wire = @publication.run_evidence_value_json(evidence)
+  let catalog = local_normalization_catalog_cid(original.audit)
+  for _ in 0..<100 {
+    let issued = issue_prepared_client_local_normalization(owner).unwrap()
+    assert_true(physical_equal(original, issued))
+    let restored = restore_prepared_client_local_normalization(
+      owner, issued, wire, catalog,
+    ).unwrap()
+    assert_true(physical_equal(evidence, restored))
+  }
+  assert_eq(wire, common_local_sort_journal)
+  let copy = { ..owner, }
+  assert_true(
+    restore_prepared_client_local_normalization(copy, original, wire, catalog)
+    is Err(ForeignPreparation),
+  )
+  assert_true(
+    restore_prepared_client_local_normalization(
+      owner,
+      original,
+      wire + " ",
+      catalog,
+    )
+    is Err(SubstitutedJournal),
+  )
+  assert_true(
+    restore_prepared_client_local_normalization(
+      owner,
+      original,
+      wire,
+      client_local_completion_free_catalog_cid(),
+    )
+    is Err(ForeignCatalog),
+  )
+}
+
+///|
 test "common journal encoding cannot exceed its reserved remaining work" {
   let owner = local_explicit_cast_original(text="SELECT ABS(-3) AS value")
   let inventory = @checked.local_program_common_normalization_inventory(
