@@ -634,6 +634,19 @@ existing JSON Run material codec consumes only the Owner's retained Program
 projection; it does not replace the original submitted source. Legacy
 structured preparation and material bytes remain unchanged.
 
+For a new public read-only SQL/AQL Source without an authored RESULT, the
+existing frontend configures the actual primary export as `main` before
+constructing Program identity. It does not add an SDK alias or another Result.
+Internal preparations selecting the historical answer recipe remain explicit.
+New saved source-preparation metadata identifies the public-primary recipe;
+the original four-field metadata retains its historical recipe when re-admitted.
+Neither representation authorizes a Run: the independently retained request and
+material/definition correspondence must still match. Existing durable request
+names and cold Run observations return their saved Result names without compiling
+or dispatching a replacement. The finite Mock Account scope names only supported
+`result/main` and `result/answer` subjects; recognizing an older profile never
+adds either permission to its saved Account.
+
 A durable Host stores the original source metadata alongside the same Run's
 authenticated material record. Recovery re-admits that saved publication and
 Environment rather than rediscovering current aliases. It must retain the

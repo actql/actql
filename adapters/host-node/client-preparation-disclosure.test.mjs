@@ -21,7 +21,7 @@ function installation(category, outcome) {
     clientProgramPreparationReady: value => value.prepared,
     clientProgramPreparationIssue: value => value.issue,
     clientProgramPreparationIssueCode: value => value.category,
-    clientProgramPrepareSourceComputationWithParameters: () => {preparations++; return {pure: {issue, category}};},
+    clientProgramPreparePublicSourceComputationWithParameters: () => {preparations++; return {pure: {issue, category}};},
     clientProgramSourceComputationPure: value => value.pure,
     clientProgramSourceComputationEffect: value => value.effect,
   };
@@ -87,7 +87,7 @@ for (const cause of ['absent Source', 'denied Source', 'unavailable', 'report fa
 test('successful preparation keeps its owner and never consults explanatory diagnostics', async () => {
   const f = installation('source_rejected', invalid);
   const prepared = {};
-  f.moon.clientProgramPrepareSourceComputationWithParameters = () => ({pure: {prepared}});
+  f.moon.clientProgramPreparePublicSourceComputationWithParameters = () => ({pure: {prepared}});
   assert.equal(await f.prepare(sourceRequest), prepared);
   f.prepare.assertOwned(prepared);
   assert.equal(f.prepare.kindOf(prepared), 'effect_free');

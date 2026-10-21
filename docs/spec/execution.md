@@ -1915,15 +1915,16 @@ not treated as absence or a request to restore the bootstrap profile.
 <!-- requirement-block: policy-routing.mock-result-original-binding policy-routing.mock-request-protection-target -->
 For trusted explicit initial Local Mock selection, the limited shared profile is
 `actql-local-mock` version `0.1`, with original body CID
-`sha256:5d1edcd4312874f4621a96fa5d6a73b4015952cab8db0f6950a1622dcf0ab36f`.
+`sha256:8d3a8a44d338852bdef34d4547dc8a9c22d91e9831dac20ee42f144de8793e01`.
 Its [Common body and materializer](../../src/execution_authorization/local_mock_profile.mbt)
 instantiate only finite principal/connection/resource/operation tuples for the
 same selected Project and actual Mock installation: selected Source reads,
 exact Mock Task inference/answer retention, original Local request/control,
 and purpose-confined signing. The actual Local control connection retains
 `run` operations `cancel`, `publish`, `read`, `resolve` and `submit`.
-The established default Result uses the exact `result/answer` resource and
-`read` operation, independently of `run/read` and Source reads. Each use MUST
+The supported defaults use the exact `result/main` resource for new public
+read-only Source and `result/answer` for the historical or explicitly selected
+answer recipe, each with `read`, independently of `run/read` and Source reads. Each use MUST
 retain the actual same-Run preparation or committed Result, installation and
 current authority. This finite default scope does not authorize another Named
 Result, an alias, a caller-supplied name list or a live backend.
@@ -1939,7 +1940,9 @@ or rekey permission. Missing signer blocks signing/approval, not independently
 permitted read/inference. Saved Runs retain their originals.
 
 <!-- requirement-block: policy-routing.mock-profile-original-recovery -->
-The predecessor profile body CID
+The answer-only profile body CID
+`sha256:5d1edcd4312874f4621a96fa5d6a73b4015952cab8db0f6950a1622dcf0ab36f`
+and the earlier predecessor profile body CID
 `sha256:fe8f88f3465a18456678bf9bf32943dcc4e4a8654b6d449f0c6af174fffd7e3a`
 and its issued configurations remain exact historical originals. Recognizing
 that identity on reopen MUST NOT expand its grants, rewrite its adoption or

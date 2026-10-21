@@ -11,6 +11,15 @@ pub const LOCAL_MOCK_PROFILE_VERSION : String = "0.1"
 /// remain Host originals; these policy bytes cannot authenticate any of them.
 pub fn local_mock_profile_body() -> String {
   (
+    #|{"control":{"operations":["cancel","publish","read","resolve","submit"],"resource":"run"},"effect":{"operations":["effect"],"outcome":"delegate"},"infer":{"connection":"mock","operations":["infer","model_raw_capture"]},"profile_id":"actql-local-mock","profile_version":"0.1","read":{"operations":["read"]},"request":{"operations":["write"],"resource":"original-host-mock-realization"},"result":{"operations":["read"],"resources":["result/answer","result/main"]},"scope":"selected-mock-project-installation","sign":{"operations":["sign"],"resource":"original-local-purpose-key"}}
+  )
+}
+
+///|
+/// The previously issued answer-only body remains an exact original. It is
+/// recognized for recovery, never materialized as an upgrade on reopen.
+fn local_mock_answer_profile_body() -> String {
+  (
     #|{"control":{"operations":["cancel","publish","read","resolve","submit"],"resource":"run"},"effect":{"operations":["effect"],"outcome":"delegate"},"infer":{"connection":"mock","operations":["infer","model_raw_capture"]},"profile_id":"actql-local-mock","profile_version":"0.1","read":{"operations":["read"]},"request":{"operations":["write"],"resource":"original-host-mock-realization"},"result":{"operations":["read"],"resource":"result/answer"},"scope":"selected-mock-project-installation","sign":{"operations":["sign"],"resource":"original-local-purpose-key"}}
   )
 }
@@ -47,6 +56,7 @@ fn local_mock_profile_body_identity(wire : String) -> BootstrapProfile {
 /// This does not issue adoption, a Run, a Result or replacement permissions.
 pub fn is_known_local_mock_profile(profile : BootstrapProfile) -> Bool {
   profile == local_mock_profile_identity() ||
+  profile == local_mock_profile_body_identity(local_mock_answer_profile_body()) ||
   profile ==
   local_mock_profile_body_identity(local_mock_profile_predecessor_body())
 }
@@ -120,14 +130,22 @@ pub fn local_mock_account_configuration(
       ["cancel", "publish", "read", "resolve", "submit"],
       Allow,
     ),
-    // The existing standard Local product owns the default answer Result.
-    // Its preflight/committed-manifest and current same-Run checks still
-    // precede each read. Other Named Results are not this finite scope.
+    // Both exact supported defaults are finite subjects: legacy/explicit
+    // answer and the new public read-only Source primary main. Neither entry
+    // grants another name or substitutes for the same-Run manifest/current gate.
     local_mock_entry(
       "local-result-read",
       subjects,
       subjects.control_connection,
       "result/answer",
+      ["read"],
+      Allow,
+    ),
+    local_mock_entry(
+      "local-primary-result-read",
+      subjects,
+      subjects.control_connection,
+      "result/main",
       ["read"],
       Allow,
     ),

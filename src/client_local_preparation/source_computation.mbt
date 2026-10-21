@@ -13,8 +13,14 @@ pub fn prepare_local_source_computation(
   intent : @host.ClientSubmittedIntent,
   environment : @checked.CheckEnvironment,
   publication : String,
+  public_primary? : Bool = false,
 ) -> Result[LocalSourceComputation, LocalSourceComputationIssue] {
-  @host.prepare_client_source_computation(intent, environment, publication)
+  @host.prepare_client_source_computation(
+    intent,
+    environment,
+    publication,
+    public_primary~,
+  )
 }
 
 ///|

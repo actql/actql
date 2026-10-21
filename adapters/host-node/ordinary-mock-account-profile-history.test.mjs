@@ -8,20 +8,22 @@ import {canonicalJson,contentCid} from './local-account-config.mjs';
 
 const previous=Object.freeze({id:'actql-local-mock',version:'0.1',
   cid:'sha256:fe8f88f3465a18456678bf9bf32943dcc4e4a8654b6d449f0c6af174fffd7e3a'});
-const current=Object.freeze({...previous,
+const answerOnly=Object.freeze({...previous,
   cid:'sha256:5d1edcd4312874f4621a96fa5d6a73b4015952cab8db0f6950a1622dcf0ab36f'});
+const current=Object.freeze({...previous,
+  cid:'sha256:8d3a8a44d338852bdef34d4547dc8a9c22d91e9831dac20ee42f144de8793e01'});
 
 // Real exclusive filesystem/key initialization, with explicit Common and Store
 // ports. These doubles issue no actual Account, Run, Result or Store authority;
 // the Common policy/evaluator is tested in its own actual Owner cases.
-async function fixture({signingMetadata=true}={}) {
+async function fixture({signingMetadata=true,profile=previous}={}) {
   const root=await mkdtemp(join(process.env.ACTQL_TEST_STATE_SCRATCH??tmpdir(),'actql-mock-profile-history-'));
-  const calls={configuration:0,known:[],admitted:[],issues:0};let selected=previous;
+  const calls={configuration:0,known:[],admitted:[],issues:0};let selected=profile;
   const moon={
     clientProgramLocalMockAccountProfile(){return {_0:selected.id,_1:selected.version,_2:selected.cid,_3:'fixture policy'};},
     clientProgramLocalMockAccountProfileKnown(id,version,cid){
       assert.strictEqual(this,moon);calls.known.push([id,version,cid]);
-      return [previous,current].some(p=>p.id===id&&p.version===version&&p.cid===cid);
+      return [previous,answerOnly,current].some(p=>p.id===id&&p.version===version&&p.cid===cid);
     },
     clientProgramLocalMockAccountConfiguration(accountId,principal,connection){
       calls.configuration++;
@@ -65,6 +67,16 @@ test('saved predecessor Mock initialization reopens without profile migration or
   assert.equal(f.calls.configuration,1,'reopen must not materialize the newer grants');
   assert.deepEqual(f.calls.known.at(-1),[previous.id,previous.version,previous.cid]);
   assert.equal(reopened.reviewer.resource,first.reviewer.resource);
+  first.evidenceKey.key.fill(0);reopened.evidenceKey.key.fill(0);
+});
+
+test('saved answer-only initialization is not upgraded by the new public main recipe',async()=>{
+  const f=await fixture({profile:answerOnly}),first=await initializeOrdinaryMockAccount(f.options);
+  await f.adopt(first);const before=await f.snapshot();f.useCurrent();
+  const reopened=await initializeOrdinaryMockAccount({...f.options,explicitSelection:false});
+  assert.deepEqual(reopened.profile,answerOnly);
+  assert.deepEqual(await f.snapshot(),before);
+  assert.equal(f.calls.configuration,1,'reopen must not add a main grant or replace its Account');
   first.evidenceKey.key.fill(0);reopened.evidenceKey.key.fill(0);
 });
 

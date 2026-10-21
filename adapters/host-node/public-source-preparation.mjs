@@ -69,13 +69,13 @@ export function installNodePublicSourcePreparation({moon, environment,
         document, format, environment, aliasesWire, supplied, evidence);
     },
     prepare({document, format, declarations, supplied}) {
-      if (typeof moon.clientProgramPrepareSourceComputationWithParameters !== 'function' ||
+      if (typeof moon.clientProgramPreparePublicSourceComputationWithParameters !== 'function' ||
           typeof moon.clientProgramSourceComputationPure !== 'function' ||
           typeof moon.clientProgramSourceComputationEffect !== 'function') {
         throw Object.assign(new Error('ClientProgramUnsupported'),
           {code: 'ClientProgramUnsupported'});
       }
-      const outcome = moon.clientProgramPrepareSourceComputationWithParameters(
+      const outcome = moon.clientProgramPreparePublicSourceComputationWithParameters(
         document, format, environment, aliasesWire, declarations, supplied,
         allowEffects, evidence);
       const pure = moon.clientProgramSourceComputationPure(outcome);

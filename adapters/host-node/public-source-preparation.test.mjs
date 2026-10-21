@@ -20,7 +20,7 @@ function installation() {
       calls.push({kind: 'source', args});
       return {prepared};
     },
-    clientProgramPrepareSourceComputationWithParameters: (...args) => {
+    clientProgramPreparePublicSourceComputationWithParameters: (...args) => {
       calls.push({kind: 'source', args});
       return {pure: {prepared}};
     },
@@ -83,6 +83,17 @@ test('JSON Program keeps its existing preparation route', () => {
   }, parameters: null}), {code: 'ClientProgramInvalidInput'});
 });
 
+test('new public Source never silently substitutes the historical answer recipe', () => {
+  const {moon} = installation();
+  delete moon.clientProgramPreparePublicSourceComputationWithParameters;
+  moon.clientProgramPrepareSourceComputationWithParameters = () => {
+    assert.fail('an old answer bridge is not the new public primary recipe');
+  };
+  const prepare = installNodeClientProgramPreparation({moon, environment});
+  assert.throws(() => prepare({kind: 'aql', input: {text: 'SELECT 1', format: 'sql'},
+    parameters: null}), {code: 'ClientProgramUnsupported'});
+});
+
 test('text preparation retains explicitly published write bindings under the common validator', () => {
   const {moon, calls, prepared} = installation();
   const writes = {...publication, tableWrites: [{name: 'analytics.report',
@@ -112,7 +123,7 @@ test('lowered text Effect goes directly to its existing owner without resubmitti
   moon.clientProgramPrepareSourceWithParameters = () => ({
     code: 'effect_not_supported', issue: {kind: 'effect'},
   });
-  moon.clientProgramPrepareSourceComputationWithParameters = (...args) => {
+  moon.clientProgramPreparePublicSourceComputationWithParameters = (...args) => {
     calls.push({kind: 'source', args});
     return {effect: {preparedEffect}};
   };
@@ -140,7 +151,7 @@ test('lowered text Effect goes directly to its existing owner without resubmitti
 test('text Effect closure refusal is preserved without retrying original source', () => {
   const {moon, calls} = installation();
   const issue = {kind: 'foreign_mapping'};
-  moon.clientProgramPrepareSourceComputationWithParameters = (...args) => {
+  moon.clientProgramPreparePublicSourceComputationWithParameters = (...args) => {
     calls.push({kind: 'source', args});
     return {effect: {issue, code: 'effect_mapping_rejected'}};
   };
@@ -164,7 +175,7 @@ test('text Effect closure refusal is preserved without retrying original source'
 test('contradictory source computation branches cannot issue an owned preparation', () => {
   const {moon, prepared} = installation();
   for (const outcome of [{}, {pure: {prepared}, effect: {preparedEffect: {}}}]) {
-    moon.clientProgramPrepareSourceComputationWithParameters = () => outcome;
+    moon.clientProgramPreparePublicSourceComputationWithParameters = () => outcome;
     const prepare = installNodeClientProgramPreparation({moon, environment,
       sourcePublication: publication});
     assert.throws(() => prepare({kind: 'aql', input: {text: 'SELECT 1', format: 'sql'},
@@ -193,7 +204,7 @@ test('mismatched or malformed alias publication cannot be installed', () => {
 test('source input is typed unsupported until the shared MoonBit bridge exists',
   () => {
     const {moon} = installation();
-    delete moon.clientProgramPrepareSourceComputationWithParameters;
+    delete moon.clientProgramPreparePublicSourceComputationWithParameters;
     const prepare = installNodeClientProgramPreparation({moon, environment});
     assert.throws(() => prepare({kind: 'aql', input: {
       text: 'SELECT 1', format: 'sql',
@@ -202,7 +213,7 @@ test('source input is typed unsupported until the shared MoonBit bridge exists',
 
 test('confirmed Frontend refusal keeps a typed input error', () => {
   const {moon} = installation();
-  moon.clientProgramPrepareSourceComputationWithParameters = () => ({pure: {
+  moon.clientProgramPreparePublicSourceComputationWithParameters = () => ({pure: {
     code: 'source_rejected', issue: {kind: 'unknown_alias'},
   },
   });

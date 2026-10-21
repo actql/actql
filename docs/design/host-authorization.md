@@ -268,7 +268,7 @@ details silently decided by whichever Host is written first.
 
 The shared Common profile `actql-local-mock`, version `0.1`, has canonical
 body CID
-`sha256:5d1edcd4312874f4621a96fa5d6a73b4015952cab8db0f6950a1622dcf0ab36f`.
+`sha256:8d3a8a44d338852bdef34d4547dc8a9c22d91e9831dac20ee42f144de8793e01`.
 The original body and finite materializer belong to
 `execution_authorization/local_mock_profile.mbt`. They produce the existing
 Account configuration; they do not create an installation, key, Reviewer or
@@ -288,7 +288,8 @@ Credential, external egress or unselected target is enabled by this profile.
 
 Local control uses the same principal and original control connection, with
 finite `run` cancel/publish/read/resolve/submit entries. The existing Local
-default Result has a distinct exact `result/answer` read entry. Its original
+default Results have distinct exact `result/main` and `result/answer` read entries
+for the new public Source and historical/explicit answer recipes. Their original
 prepared publication or authenticated committed Manifest and same-Run/current
 checks remain mandatory; the Account entry cannot issue a Result. Other Named
 Results remain outside this finite profile, not wildcard-authorized by a name

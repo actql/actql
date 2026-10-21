@@ -1726,6 +1726,16 @@ operator is `RESULT x`, the primary output references that same `x`; no second
 anonymous export is constructed. Otherwise the continuing Relation uses the
 existing configured primary export.
 
+For new public read-only SQL/AQL Source preparation without an authored RESULT,
+the shared frontend/preparation Owner configures that export as `main`. This
+selects the actual Program export before canonical identity is issued; it is
+not a transport alias or a second Result. Explicit Program input, authored
+Result names and operator-specific export rules remain unchanged. A saved Run
+or existing durable request name retains its original Program, manifest and
+Result names; lookup and cold observation do not compile a replacement merely
+to apply this default. Historical source-preparation originals without a public
+primary recipe retain their original configured recipe on re-admission.
+
 A terminal `CREATE TABLE` or `CREATE OR REPLACE TABLE` is the explicit
 exception: only authored public Results are exported. Its final Relation feeds
 the existing private Table input, without another primary export. With no

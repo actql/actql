@@ -42,6 +42,45 @@ fn source_computation_failure(
 }
 
 ///|
+test "new public source recipe retains authored identity without changing historical preparation" {
+  let env = environment()
+  let intent = source_computation_intent("SELECT 1 AS n")
+  let publication = source_computation_publication(env)
+  let old = prepare_local_source_computation(intent, env, publication).unwrap()
+  let public = prepare_local_source_computation(
+    intent,
+    env,
+    publication,
+    public_primary=true,
+  ).unwrap()
+  guard local_source_computation_preparation(old) is Pure(answer) else {
+    fail("historical pure preparation")
+  }
+  guard local_source_computation_preparation(public) is Pure(main) else {
+    fail("new public pure preparation")
+  }
+  assert_eq(@host.prepared_client_result_name(answer, 0), Some("answer"))
+  assert_eq(@host.prepared_client_result_name(main, 0), Some("main"))
+  assert_eq(
+    local_source_computation_originals(public),
+    local_source_computation_originals(old),
+  )
+  let scope = "sha256:" + "a".repeat(64)
+  let old_request = local_source_computation_request(old, scope, "same-source").unwrap()
+  let public_request = local_source_computation_request(
+    public, scope, "same-source",
+  ).unwrap()
+  assert_eq(
+    @host.client_request_input_cid(old_request),
+    @host.client_request_input_cid(public_request),
+  )
+  assert_true(
+    @host.client_request_program_cid(old_request) !=
+    @host.client_request_program_cid(public_request),
+  )
+}
+
+///|
 test "public SQL and AQL keep the original intent and one parsed preparation" {
   let env = environment()
   for

@@ -81,6 +81,48 @@ fn mock_profile_at(
 }
 
 ///|
+test "answer-only Mock originals remain known without acquiring main authority" {
+  let previous = local_mock_profile_body_identity(
+    local_mock_answer_profile_body(),
+  )
+  assert_eq(
+    previous.profile_cid,
+    "sha256:5d1edcd4312874f4621a96fa5d6a73b4015952cab8db0f6950a1622dcf0ab36f",
+  )
+  assert_true(is_known_local_mock_profile(previous))
+  let fresh = decode_account_configuration_json(
+    local_mock_account_configuration(mock_profile_subjects()).unwrap(),
+  ).unwrap()
+  let saved = admit_account_configuration({
+    ..fresh,
+    bootstrap: Some(previous),
+    entries: fresh.entries.filter(entry => {
+      entry.entry_id != "local-primary-result-read"
+    }),
+  }).unwrap()
+  // Independently retained full configuration identity, not a newer policy
+  // body or a generated expected Account grant.
+  assert_eq(
+    saved.configuration_cid(),
+    "sha256:31531ccc65ed73cdef89bc21ec83864d64f264de64894c11fad50c7170a94828",
+  )
+  assert_true(
+    evaluate_account(
+      saved,
+      mock_profile_at("local-host", "result/answer", "read"),
+    )
+    is Allow(_),
+  )
+  assert_true(
+    evaluate_account(
+      saved,
+      mock_profile_at("local-host", "result/main", "read"),
+    )
+    is Deny(NoMatch),
+  )
+}
+
+///|
 test "Local Mock profile and concrete configuration match independent canonical preimages" {
   // Independently authored profile/configuration objects and canonical SHA256,
   // not expectations regenerated from this implementation's emitted bytes.
@@ -89,13 +131,13 @@ test "Local Mock profile and concrete configuration match independent canonical 
   assert_eq(profile.profile_version, "0.1")
   assert_eq(
     profile.profile_cid,
-    "sha256:5d1edcd4312874f4621a96fa5d6a73b4015952cab8db0f6950a1622dcf0ab36f",
+    "sha256:8d3a8a44d338852bdef34d4547dc8a9c22d91e9831dac20ee42f144de8793e01",
   )
   let wire = local_mock_account_configuration(mock_profile_subjects()).unwrap()
   let admitted = admit_account_configuration_json(wire).unwrap()
   assert_eq(
     admitted.configuration_cid(),
-    "sha256:31531ccc65ed73cdef89bc21ec83864d64f264de64894c11fad50c7170a94828",
+    "sha256:82722eed1a6b4cfb1a33f06b3345246076cf6802483c97eab250f5febb8826e8",
   )
   assert_eq(admitted.bootstrap_profile(), Some(profile))
   assert_true(
@@ -134,6 +176,7 @@ test "Local Mock reads inference request and key scopes remain finite and UPDATE
       mock_profile_at("local-host", "run", "publish"),
       mock_profile_at("local-host", "run", "cancel"),
       mock_profile_at("local-host", "result/answer", "read"),
+      mock_profile_at("local-host", "result/main", "read"),
       mock_profile_at("local-host", "key:reviewer", "sign"),
     ] {
     assert_true(evaluate_account(config, tuple) is Allow(_))
@@ -163,8 +206,10 @@ test "Local Mock reads inference request and key scopes remain finite and UPDATE
       mock_profile_at("local-host", "other-key", "sign"),
       mock_profile_at("local-host", "result/other", "read"),
       mock_profile_at("local-host", "result/answer", "write"),
+      mock_profile_at("local-host", "result/main", "write"),
       mock_profile_at("foreign-host", "run", "submit"),
       mock_profile_at("foreign-host", "result/answer", "read"),
+      mock_profile_at("foreign-host", "result/main", "read"),
       mock_profile_at("local-host", "answer", "read"),
       mock_profile_at("credential", "issuer", "issue"),
       { ..update, principal: "other-operator", },
@@ -182,7 +227,9 @@ test "Local Mock control and default Result preserve current restriction and ori
   let restricted = admit_account_configuration({
     ..original,
     entries: original.entries.map(entry => {
-      if entry.entry_id == "local-run" || entry.entry_id == "local-result-read" {
+      if entry.entry_id == "local-run" ||
+        entry.entry_id == "local-result-read" ||
+        entry.entry_id == "local-primary-result-read" {
         { ..entry, outcome: Deny, }
       } else {
         entry
@@ -195,6 +242,7 @@ test "Local Mock control and default Result preserve current restriction and ori
       mock_profile_at("local-host", "run", "publish"),
       mock_profile_at("local-host", "run", "cancel"),
       mock_profile_at("local-host", "result/answer", "read"),
+      mock_profile_at("local-host", "result/main", "read"),
     ] {
     assert_true(evaluate_account(before, tuple) is Allow(_))
     assert_true(evaluate_account(restricted, tuple) is Deny(Explicit(_)))
