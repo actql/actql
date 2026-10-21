@@ -328,6 +328,86 @@ test('native START metadata commits without duplicate contract files or director
   assert.equal((await reopened.latestDeliveryRecord(f.root.attempt.identity)).state,'succeeded');
 });
 
+test('native END metadata shares one real completion transaction without shadow contract files',async t=>{
+  const exec=DatabaseSync.prototype.exec;
+  let armed=false, commits=0;
+  t.mock.method(DatabaseSync.prototype,'exec',function(sql) {
+    if(armed && sql==='COMMIT') commits++;
+    return Reflect.apply(exec,this,[sql]);
+  });
+  const f=await fixture(t,undefined,false);
+  const original=f.control.captureIssuedDeliveryAttempt(f.root.attempt,f.root.index,
+    f.root.manifest,f.root.grant,limits);
+  await f.store.beginDeliveryAttempt(original,f.root.streaming);
+  const nullHandle=await open('/dev/null','r'), prototype=Object.getPrototypeOf(nullHandle);
+  const sync=prototype.sync;
+  await nullHandle.close();
+  let fileSyncs=0;
+  t.mock.method(prototype,'sync',async function() {
+    if((await this.stat()).isFile()) fileSyncs++;
+    return Reflect.apply(sync,this,[]);
+  });
+  f.syncs.length=0;
+  armed=true;
+  await f.store.appendDeliveryCompletion(f.root.attempt,f.root.receipt,f.root.succeeded);
+  assert.equal(fileSyncs,0,'native immutable completion metadata needs no duplicate contract files');
+  assert.deepEqual(f.syncs,[]);
+  assert.equal(commits,1,'receipt, record and exact head CAS share the actual durable commit');
+  assert.equal((await f.store.latestDeliveryRecord(f.root.attempt.identity)).state,'succeeded');
+  assert.equal((await f.store.readPublicationContract(f.root.receipt.identity,f.root.receipt.name)).wire,f.root.receipt.wire);
+  await f.store.close();
+  const reopened=await f.reopen();
+  assert.equal((await reopened.latestDeliveryRecord(f.root.attempt.identity)).state,'succeeded');
+  assert.equal((await reopened.readPublicationContract(f.root.receipt.identity,f.root.receipt.name)).wire,f.root.receipt.wire);
+});
+
+for(const afterCommit of [false,true]) {
+  test(`native END metadata retains original completion across ${afterCommit?'after':'before'} COMMIT reply loss`,async t=>{
+    const exec=DatabaseSync.prototype.exec;
+    let armed=false,lost=false;
+    t.mock.method(DatabaseSync.prototype,'exec',function(sql) {
+      if(armed && !lost && sql==='COMMIT') {
+        lost=true;
+        if(afterCommit) Reflect.apply(exec,this,[sql]);
+        throw Object.assign(new Error('lost original completion reply'),{code:'EIO'});
+      }
+      return Reflect.apply(exec,this,[sql]);
+    });
+    const f=await fixture(t,undefined,false);
+    let writes=0,finishes=0,receipts=0;
+    const {options}=deliveryOptions(f,{
+      async write(bytes) {writes++;return {confirmedBytes:bytes.byteLength};},
+      async finish() {finishes++;armed=true;return {confirmed:true};},
+    });
+    options.control={...f.control,issueResultDeliveryReceipt(...args) {
+      receipts++;return f.control.issueResultDeliveryReceipt(...args);
+    }};
+    let failure;
+    await assert.rejects(deliverPublishedResult(options),error=>{
+      failure=error;return error.code==='ResultDeliveryDurabilityPending' && error.cleanupPending===true;
+    });
+    assert.equal(lost,true);
+    assert.equal(finishes,1);assert.equal(receipts,1);
+    const beforeWrites=writes;
+    const first=failure.cleanupHandle.retry(),second=failure.cleanupHandle.retry();
+    assert.equal(first,second);
+    assert.equal((await first).pending,false);
+    assert.equal(writes,beforeWrites);assert.equal(finishes,1);assert.equal(receipts,1);
+    assert.equal((await f.store.latestDeliveryRecord(f.root.attempt.identity)).state,'succeeded');
+    const db=new DatabaseSync(join(f.directory,'delivery-attempts.sqlite3'),{readOnly:true});
+    try {
+      assert.equal(db.prepare('SELECT count(*) AS n FROM completions').get().n,1);
+      assert.equal(db.prepare('SELECT ack_revision FROM completions').get().ack_revision,afterCommit?2:1);
+      assert.equal(db.prepare('SELECT uses FROM grant_uses').get().uses,1);
+    } finally {db.close();}
+    await f.store.close();
+    const reopened=await f.reopen();
+    const next=deliveryOptions({...f,store:reopened},{async write(){assert.fail('completed original must not resend');},
+      async finish(){assert.fail('completed original must not finish again');}}).options;
+    assert.equal((await deliverPublishedResult(next)).idempotent,true);
+  });
+}
+
 test('delivery START uses native metadata durability before any row exposure', async t => {
   const f = await fixture(t, undefined, false);
   const {store, root, control, directory, syncs, admissions} = f;
