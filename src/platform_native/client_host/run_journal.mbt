@@ -7,6 +7,7 @@ struct NativeClientRunJournal {
   max_records : Int
   mut fenced : Bool
   // Physical transaction ownership only; this is not a Run control revision.
+  mut operation_active : Bool
   mut transaction_active : Bool
   mut admitted_record : (
     String,
@@ -15,6 +16,9 @@ struct NativeClientRunJournal {
     RunRecordPolicyValidation,
     NativeClientRunRecord,
   )?
+  admitted_publications : Array[
+    (String, Array[@publication.CapturedEffectDependencyBody]),
+  ]
   // Read-only lookup may join this journal's own publication fence. Mutating
   // nested operations still fail instead of acquiring another transaction.
   mut publication_read_locked : Bool
@@ -150,6 +154,7 @@ priv enum RunPolicyRequestComparison {
 fn read_run_record_in_mode(
   row : @sqlite.NativeJournalValue,
   mode : RunRecordPolicyValidation,
+  journal? : NativeClientRunJournal? = None,
 ) -> Result[NativeClientRunRecord, NativeClientRunJournalIssue] {
   native_timing_count(25)
   let (decoded, local_run_policy_originals, run_observation_originals) = match
@@ -171,9 +176,14 @@ fn read_run_record_in_mode(
   }
   match mode {
     ValidatePublication =>
-      if decoded.publication_policy_originals is Some(wire) &&
-        read_run_policy_originals(wire) is Err(_) {
-        return Err(CustodyLost)
+      if decoded.publication_policy_originals is Some(wire) {
+        let policies = match journal {
+          None => read_run_policy_originals(wire)
+          Some(original) => original.publication_originals(wire)
+        }
+        if policies is Err(_) {
+          return Err(CustodyLost)
+        }
       }
     DeferPublicationWire => ()
   }
@@ -428,6 +438,8 @@ fn open_native_client_run_journal_with_reads(
         fenced: false,
         publication_read_locked: false,
         transaction_active: false,
+        operation_active: false,
+        admitted_publications: [],
         admitted_record: None,
         admitted_adoption: None,
       })
@@ -462,15 +474,21 @@ fn[T] NativeClientRunJournal::transaction_with_reads(
     Ok(_) => ()
     Err(issue) => return Err(Physical(issue))
   }
-  self.admitted_record = None
-  self.admitted_adoption = None
+  if !self.operation_active {
+    self.admitted_publications.clear()
+    self.admitted_record = None
+    self.admitted_adoption = None
+  }
   self.transaction_active = true
   // The selected operation owns its target admission and local mutation
   // checks. A transaction is not a request to audit unrelated history.
   let result = work()
   self.transaction_active = false
-  self.admitted_record = None
-  self.admitted_adoption = None
+  if !self.operation_active {
+    self.admitted_publications.clear()
+    self.admitted_record = None
+    self.admitted_adoption = None
+  }
   match result {
     Ok(value) =>
       match
@@ -514,7 +532,7 @@ fn NativeClientRunJournal::admit_retained_record(
   row : @sqlite.NativeJournalValue,
   mode? : RunRecordPolicyValidation = ValidatePublication,
 ) -> Result[NativeClientRunRecord, NativeClientRunJournalIssue] {
-  if self.transaction_active &&
+  if (self.transaction_active || self.operation_active) &&
     self.admitted_record
     is Some((original_key, body, revision, admitted_mode, record)) &&
     original_key == key &&
@@ -522,7 +540,7 @@ fn NativeClientRunJournal::admit_retained_record(
     revision == row.revision {
     if admitted_mode is DeferPublicationWire && mode is ValidatePublication {
       if record.publication_policy_originals is Some(wire) {
-        match read_run_policy_originals(wire) {
+        match self.publication_originals(wire) {
           Ok(_) => ()
           Err(_) => return Err(CustodyLost)
         }
@@ -531,13 +549,14 @@ fn NativeClientRunJournal::admit_retained_record(
         (key, body, revision, ValidatePublication, record),
       )
     }
+    native_timing_count(36)
     return Ok(record)
   }
-  let record = match read_run_record_in_mode(row, mode) {
+  let record = match read_run_record_in_mode(row, mode, journal=Some(self)) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  if self.transaction_active {
+  if self.transaction_active || self.operation_active {
     self.admitted_record = Some((key, row.body, row.revision, mode, record))
   }
   Ok(record)
@@ -871,7 +890,6 @@ fn NativeClientRunJournal::save_with_operations(
     Err(issue) => return Err(issue)
   }
   self.admitted_record = None
-  self.admitted_adoption = None
   let revision = match
     compare_exchange_client_journal_value(
       self.database,

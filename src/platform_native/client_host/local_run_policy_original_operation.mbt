@@ -21,17 +21,13 @@ fn NativeLocalRunPolicyBinding::current_in_original_read(
       ) {
       return Err(CustodyLost)
     }
-    let body = match
-      @host.client_local_adopted_authority_scope_body(
+    if !(capture.operation_scope(
+        host,
         material,
-        host.database,
         self.principal,
         self.connection,
-      ) {
-      Ok(value) => value
-      Err(issue) => return Err(local_current_material_issue(issue))
-    }
-    if !(local_adoption_digest(capture.crypto, body) is Ok(scope) &&
+      )
+      is Ok(scope) &&
       scope == self.scope) {
       return Err(CustodyLost)
     }
@@ -49,15 +45,20 @@ fn NativeLocalRunPolicyBinding::current_in_original_read(
     }
     for operation in operations {
       match
-        @host.client_local_adopted_account_outcome(material, host.database, {
-          principal: self.principal,
-          connection: self.connection,
-          resource: "run",
-          operation,
-        }) {
+        capture.operation_account(
+          host,
+          material,
+          {
+            principal: self.principal,
+            connection: self.connection,
+            resource: "run",
+            operation,
+          },
+          target=request.map(value => @host.client_request_scope_cid(value)),
+        ) {
         Ok(@authorization.Allow(_)) => ()
         Ok(_) => return Err(Journal(AuthorizationDenied))
-        Err(issue) => return Err(local_current_material_issue(issue))
+        Err(issue) => return Err(issue)
       }
     }
     capture.check_current_in_original_read()

@@ -11,7 +11,7 @@ fn[T] read_binding_in_journal_snapshot(
     client_journal_transaction_fenced(journal.database, Some(reads)) {
     return Err(Journal(Fenced))
   }
-  if journal.transaction_active {
+  if journal.transaction_active || journal.operation_active {
     return call()
   }
   let output : Ref[Result[T, NativeLocalReadBindingIssue]?] = Ref(None)
@@ -80,16 +80,40 @@ fn NativeLocalReadPolicyBinding::require_request_in_snapshot(
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
-  if native_local_policy_account_allowed(
-      material,
-      self.host.database,
-      self.principal,
-      self.connection,
-      ReadResultPolicy(facts.request.result_name),
-    ) {
-    Ok(())
-  } else {
-    Err(Journal(AuthorizationDenied))
+  match self.capture {
+    None =>
+      if native_local_policy_account_allowed(
+          material,
+          self.host.database,
+          self.principal,
+          self.connection,
+          ReadResultPolicy(facts.request.result_name),
+        ) {
+        Ok(())
+      } else {
+        Err(Journal(AuthorizationDenied))
+      }
+    Some(capture) => {
+      for resource in ["run", "result/" + facts.request.result_name] {
+        match
+          capture.operation_account(
+            self.host,
+            material,
+            {
+              principal: self.principal,
+              connection: self.connection,
+              resource,
+              operation: "read",
+            },
+            target=Some(@host.client_request_scope_cid(original)),
+          ) {
+          Ok(@authorization.Allow(_)) => ()
+          Ok(_) => return Err(Journal(AuthorizationDenied))
+          Err(issue) => return Err(Adoption(issue))
+        }
+      }
+      Ok(())
+    }
   }
 }
 
@@ -102,31 +126,50 @@ fn NativeLocalReadPolicyBinding::require_current_in_snapshot(
   ],
   reads : NativeClientJournalReadAccess,
 ) -> Result[Unit, NativeLocalReadBindingIssue] {
-  let scope = match
-    @host.client_local_adopted_authority_scope_body(
-      material,
-      self.host.database,
-      self.principal,
-      self.connection,
-    ) {
-    Ok(body) =>
-      match local_adoption_digest(self.crypto, body) {
-        Ok(value) => value
-        Err(issue) => return Err(Adoption(issue))
-      }
-    Err(issue) => return Err(Adoption(local_current_material_issue(issue)))
+  match self.current_operation_fact() {
+    Ok(true) => return Ok(())
+    Ok(false) => ()
+    Err(issue) => return Err(issue)
   }
-  self.require_current_with_facts(
+  let scope = match self.capture {
+    Some(capture) =>
+      capture.operation_scope(
+        self.host,
+        material,
+        self.principal,
+        self.connection,
+      )
+    None =>
+      match
+        @host.client_local_adopted_authority_scope_body(
+          material,
+          self.host.database,
+          self.principal,
+          self.connection,
+        ) {
+        Ok(body) => local_adoption_digest(self.crypto, body)
+        Err(issue) => Err(local_current_material_issue(issue))
+      }
+  }
+  let scope = match scope {
+    Ok(value) => value
+    Err(issue) => return Err(Adoption(issue))
+  }
+  let result = self.require_current_with_facts(
     scope,
     self.file_from_snapshot(),
     reads=Some(reads),
   )
+  if result is Ok(_) {
+    self.retain_current_operation_fact()
+  }
+  result
 }
 
 ///|
-// The selected Result-policy path has two pure Journal intervals separated
-// by the actual Store call. Never hold a Journal transaction around Store work
-// or reuse an Account decision across that callback/physical return boundary.
+// The existing command retains one set of exact facts across trusted Store
+// metadata work. The Store never runs inside the Journal transaction. Its
+// physical return/cleanup is still actual; it is not a new permission frame.
 fn NativeLocalReadPolicyBinding::resolve_policy_from_snapshot(
   self : NativeLocalReadPolicyBinding,
   capture : NativeLocalJournalCapture,
@@ -217,90 +260,40 @@ fn NativeLocalReadPolicyBinding::resolve_policy_from_snapshot(
         )
       Err(issue) => return Err(Journal(PublicationObservation(issue)))
     }
-    // The Store may dispatch its real operation ports. Reobserve the full
-    // original current fence before using another Journal snapshot or tuple.
-    match capture.check_current_in_original_read() {
-      Ok(_) => ()
-      Err(issue) => return Err(Adoption(issue))
+    // This synchronous trusted Store metadata read changes no Host, Account,
+    // Run or selected configuration fact. Select the observed Policy from the
+    // same admitted original; actual disclosure remains separately authorized.
+    let body = {
+      if facts.public_index_entry_cid !=
+        @publication.publication_contract_identity(resolved.public_index_entry) ||
+        facts.result_manifest_cid !=
+        @publication.publication_contract_identity(resolved.result_manifest) ||
+        facts.result_artifact_cid != resolved.read.result_artifact_cid ||
+        facts.result_definition_cid != resolved.read.result_definition_cid ||
+        facts.material_generation_cid != resolved.read.material_generation_cid {
+        return Err(Journal(ForeignRun))
+      }
+      let (wire, comparison) = match
+        extract_admitted_run_policy_wire(record, original) {
+        Ok(value) => value
+        Err(issue) => return Err(Journal(issue))
+      }
+      let body = match
+        host.journal.select_publication_policy(
+          wire,
+          comparison,
+          resolved.read.effective_data_policy_cid,
+        ) {
+        Ok(value) => value
+        Err(issue) => return Err(Journal(issue))
+      }
+      if !self.selection.data_policy_cids.contains(
+          @publication.captured_effect_dependency_body_cid(body),
+        ) {
+        return Err(PolicyNotSelected)
+      }
+      Ok(body)
     }
-    let body = read_binding_in_journal_snapshot(
-      host.journal,
-      operations.reads,
-      () => {
-        match self.require_receiver(facts) {
-          Ok(_) => ()
-          Err(issue) => return Err(issue)
-        }
-        match
-          self.require_request_in_snapshot(
-            original,
-            facts,
-            material,
-            operations.reads,
-          ) {
-          Ok(_) => ()
-          Err(issue) => return Err(issue)
-        }
-        // Re-read the original target after Store return. A changed installation,
-        // definition or Store binding cannot be repaired by the previous facts.
-        let current = match
-          host.journal.lookup_with_reads(
-            original,
-            true,
-            reads=Some(operations.reads),
-          ) {
-          Ok(Retained(value)) => value
-          Ok(UnresolvedHistory) => return Err(Journal(CustodyLost))
-          Err(issue) => return Err(Journal(issue))
-        }
-        if current.publication_binding != Some(binding) ||
-          @publication.publication_contract_identity(current.definition) !=
-          definition_cid {
-          return Err(Journal(ForeignRun))
-        }
-        if facts.public_index_entry_cid !=
-          @publication.publication_contract_identity(
-            resolved.public_index_entry,
-          ) ||
-          facts.result_manifest_cid !=
-          @publication.publication_contract_identity(resolved.result_manifest) ||
-          facts.result_artifact_cid != resolved.read.result_artifact_cid ||
-          facts.result_definition_cid != resolved.read.result_definition_cid ||
-          facts.material_generation_cid != resolved.read.material_generation_cid {
-          return Err(Journal(ForeignRun))
-        }
-        let (wire, comparison) = match
-          host.journal.retained_policy_wire(
-            original,
-            reads=Some(operations.reads),
-          ) {
-          Ok(value) => value
-          Err(issue) => return Err(Journal(issue))
-        }
-        let body = match
-          select_run_policy_wire(
-            wire,
-            comparison,
-            resolved.read.effective_data_policy_cid,
-          ) {
-          Ok(value) => value
-          Err(issue) => return Err(Journal(issue))
-        }
-        if !self.selection.data_policy_cids.contains(
-            @publication.captured_effect_dependency_body_cid(body),
-          ) {
-          return Err(PolicyNotSelected)
-        }
-        Ok(body)
-      },
-    )
-    match body {
-      Err(issue) => Err(issue)
-      Ok(body) =>
-        match capture.check_current_in_original_read() {
-          Ok(_) => Ok(body)
-          Err(issue) => Err(Adoption(issue))
-        }
-    }
+    body
   })
 }

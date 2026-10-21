@@ -175,7 +175,7 @@ fn NativeLocalHostConnection::validate_read_evidence(
       (upgrade.files[0], wire, Some(upgrade))
     }
   }
-  let policies = match read_run_policy_originals(policy_wire) {
+  let policies = match self.journal.publication_originals(policy_wire) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
@@ -615,7 +615,8 @@ fn NativeLocalReadPolicyBinding::retain_read_admission_with_operations(
       guard record.publication_policy_originals is Some(policy_wire) else {
         return Err(PublicationPolicy(@checked.MissingDependency))
       }
-      let policies = match read_run_policy_originals(policy_wire) {
+      let policies = match
+        self.host.journal.publication_originals(policy_wire) {
         Ok(value) => value
         Err(issue) => return Err(issue)
       }

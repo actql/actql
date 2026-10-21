@@ -193,14 +193,15 @@ fn native_local_runtime_binding_access(
 }
 
 ///|
+// Binding installation metadata does not read a Run or Result. Their actual
+// consumers retain the independent Account authorization at the operation.
 fn local_runtime_binding_current_with_access(
   binding : NativeLocalRuntimeBinding,
   access : NativeLocalRuntimeBindingAccess,
 ) -> Bool {
   if binding.current.check_current() is Err(_) ||
     !((access.scope)(binding.principal, binding.connection) is Ok(scope) &&
-    scope == binding.scope) ||
-    !(access.read_allowed)(binding.principal, binding.connection) {
+    scope == binding.scope) {
     return false
   }
   for file in binding.files {
@@ -273,8 +274,7 @@ fn NativeLocalHostConnection::bind_packaged_runtime_with_access(
     Err(_) => return Err(CustodyLost)
   }
   if !((access.scope)(principal, connection) is Ok(current_scope) &&
-    current_scope == scope) ||
-    !(access.read_allowed)(principal, connection) {
+    current_scope == scope) {
     return Err(AuthorizationDenied)
   }
   let files : Array[NativeLocalSelectedFile] = []

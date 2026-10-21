@@ -6,7 +6,7 @@ priv struct NativeLocalJournalReadQueries {
   original : NativeLocalJournalOriginalResources
   database : @sqlite.Database
   mut failure : NativeLocalAdoptionIssue?
-  invalidate_snapshot : () -> Unit
+  invalidate_snapshot : (String?) -> Unit
 }
 
 ///|
@@ -82,7 +82,7 @@ fn NativeLocalJournalReadQueries::access(
       self.query(() => self.database.transaction_fenced()).unwrap_or(true)
     },
     fence: () => {
-      (self.invalidate_snapshot)()
+      (self.invalidate_snapshot)(None)
       self.query(() => self.database.fence_transactions()) |> ignore
     },
     read: (table_name, key) => {
@@ -104,7 +104,6 @@ fn NativeLocalJournalReadQueries::access(
       self.query(() => submission_name_census_ffi(self.database)).unwrap_or(-1L)
     },
     transaction: operation => {
-      (self.invalidate_snapshot)()
       match
         self.query(() => {
           match operation {
@@ -131,7 +130,7 @@ fn[T] NativeLocalJournalOriginalResources::audit_read_stage(
       original: self,
       database,
       failure: None,
-      invalidate_snapshot: () => (),
+      invalidate_snapshot: _ => (),
     }
     let result = audit(queries.access())
     match (queries.failure, result) {
@@ -153,7 +152,7 @@ fn NativeLocalJournalReadQueries::bootstrap_access(
   {
     reads: self.access(),
     insert: (table_name, key, body) => {
-      (self.invalidate_snapshot)()
+      (self.invalidate_snapshot)(Some(table_name))
       match self.query(() => self.database.insert(table_name, key, body)) {
         Ok(value) => value.map(_ => ())
         Err(issue) => Err(issue)
@@ -190,7 +189,7 @@ fn[T] NativeLocalJournalOriginalResources::bootstrap_read_stage(
       original: self,
       database,
       failure: None,
-      invalidate_snapshot: () => (),
+      invalidate_snapshot: _ => (),
     }
     let result = initialize(queries.bootstrap_access())
     match (queries.failure, result) {
@@ -217,7 +216,6 @@ fn NativeLocalJournalReadQueries::operation_access(
       }
     },
     reserve_capacity: (table, key, bytes, objects, max_bytes, max_objects) => {
-      (self.invalidate_snapshot)()
       match
         self.query(() => {
           self.database.reserve_capacity_in_transaction(
@@ -229,14 +227,14 @@ fn NativeLocalJournalReadQueries::operation_access(
       }
     },
     insert: (table, key, body) => {
-      (self.invalidate_snapshot)()
+      (self.invalidate_snapshot)(Some(table))
       match self.query(() => self.database.insert(table, key, body)) {
         Ok(value) => value
         Err(issue) => Err(issue)
       }
     },
     remove_exact: (table, key, revision, body) => {
-      (self.invalidate_snapshot)()
+      (self.invalidate_snapshot)(Some(table))
       match
         self.query(() => self.database.remove_exact(table, key, revision, body)) {
         Ok(value) => value
@@ -244,7 +242,7 @@ fn NativeLocalJournalReadQueries::operation_access(
       }
     },
     compare_exchange: (table, key, revision, body) => {
-      (self.invalidate_snapshot)()
+      (self.invalidate_snapshot)(Some(table))
       match
         self.query(() => {
           self.database.compare_exchange(table, key, revision, body)

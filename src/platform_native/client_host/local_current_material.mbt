@@ -45,7 +45,7 @@ fn NativeLocalHostConnection::current_adoption_material_with_reads(
         return Err(issue)
       }
     }
-    if self.journal.transaction_active &&
+    if (self.journal.transaction_active || self.journal.operation_active) &&
       self.journal.admitted_adoption is Some(original) {
       return Ok(original)
     }
@@ -75,7 +75,8 @@ fn NativeLocalHostConnection::current_adoption_material_with_reads(
     { key: "adoption", body: row.body, revision: row.revision, },
     (self.ownership.device, self.ownership.inode),
   )
-  if snapshot_current is Some(_) && self.journal.transaction_active {
+  if snapshot_current is Some(_) &&
+    (self.journal.transaction_active || self.journal.operation_active) {
     self.journal.admitted_adoption = Some(observation)
   }
   Ok(observation)

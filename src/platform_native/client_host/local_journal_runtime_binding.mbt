@@ -19,36 +19,21 @@ fn[T] NativeLocalJournalCapture::with_runtime_binding_access(
       () => {
         let access : NativeLocalRuntimeBindingAccess = {
           scope: (principal, connection) => {
-            match
-              @host.client_local_adopted_authority_scope_body(
-                material,
-                host.database,
-                principal,
-                connection,
-              ) {
-              Err(issue) => Err(local_current_material_issue(issue))
-              Ok(body) => local_adoption_digest(host.epoch.crypto, body)
-            }
+            self.operation_scope(host, material, principal, connection)
           },
           read_allowed: (principal, connection) => {
-            @host.client_local_adopted_account_outcome(
-              material,
-              host.database,
-              { principal, connection, resource: "run", operation: "read", },
-            )
+            self.operation_account(host, material, {
+              principal,
+              connection,
+              resource: "run",
+              operation: "read",
+            })
             is Ok(@authorization.Allow(_))
           },
           selected: name => {
             // The current original above admitted this immutable settings
             // list in the same snapshot. No caller callback or mutation is
             // dispatched between that observation and this pure selection.
-            if @host.client_local_adopted_current_account(
-                material,
-                host.database,
-              )
-              is Err(_) {
-              return Err(CustodyLost)
-            }
             match
               host.session.settings.files
               .iter()

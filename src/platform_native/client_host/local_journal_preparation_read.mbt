@@ -20,7 +20,11 @@ pub fn[T] NativeLocalJournalCapture::with_original_read(
   if original.store_operation is Some(_) {
     return Err(OriginalResourceScopePending)
   }
+  self.clear_read_operation_facts()
+  host.journal.admitted_publications.clear()
+  host.journal.admitted_record = None
   host.journal.admitted_adoption = None
+  native_timing_count(32)
   match original.check_journal_current(host) {
     Err(issue) => {
       self.read_operation_issue = Some(issue)
@@ -29,6 +33,8 @@ pub fn[T] NativeLocalJournalCapture::with_original_read(
     Ok(_) => ()
   }
   self.read_callback_active = true
+  self.read_facts_valid = true
+  host.journal.operation_active = true
   let result = original.stage(@arena.HostRead, fn() {
     let value = operation(host)
     match self.read_operation_issue {
@@ -40,20 +46,16 @@ pub fn[T] NativeLocalJournalCapture::with_original_read(
     self.read_operation_issue = Some(issue)
   }
   self.read_callback_active = false
+  self.read_facts_valid = false
+  host.journal.operation_active = false
+  host.journal.admitted_publications.clear()
+  self.clear_read_operation_facts()
+  host.journal.admitted_record = None
   host.journal.admitted_adoption = None
-  // The public callback is an actual reentry boundary, unlike private getters.
-  // Re-admit external configuration/current facts before returning success.
-  match result {
-    Ok(value) =>
-      match original.check_journal_current(host) {
-        Ok(_) => Ok(value)
-        Err(issue) => {
-          self.read_operation_issue = Some(issue)
-          Err(issue)
-        }
-      }
-    Err(issue) => Err(issue)
-  }
+  // This is the one closed trusted Native command callback. Its internal
+  // reads and phase exchanges do not create another authorization boundary.
+  // The actual Read leave/return and any recorded failure remain with stage.
+  result
 }
 
 ///|
@@ -77,6 +79,10 @@ pub fn NativeLocalJournalCapture::check_current_in_original_read(
     original.active_phase is Some(@arena.HostRead) else {
     return Err(OriginalResourceScopePending)
   }
+  if self.read_callback_active && self.read_facts_valid {
+    return self.check_original_read_lifetime()
+  }
+  native_timing_count(32)
   host.journal.admitted_adoption = None
   match original.host.leave_local_host_phase(original.pair) {
     Err(issue) => {

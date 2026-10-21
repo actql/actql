@@ -36,9 +36,9 @@ fn NativeLocalPolicyAuthority::current_for(
 }
 
 ///|
-// One trusted synchronous predicate may share original material, never an
-// Account outcome. The Common scope/Account operations retain every actual
-// before/after current callback, including after Store or journal operations.
+// The closed public operation shares its admitted material and exact Account
+// tuples. A new public operation or relevant invalidation observes current
+// originals again; internal getters and trusted reads do not create a frame.
 fn NativeLocalPolicyAuthority::current_material_for(
   self : NativeLocalPolicyAuthority,
   journal : NativeClientRunJournal,
@@ -70,20 +70,33 @@ fn NativeLocalPolicyAuthority::current_with_material_for(
     @host.client_request_authority_scope_cid(request) != self.scope {
     return false
   }
-  let scope = {
-    let body = match
-      @host.client_local_adopted_authority_scope_body(
-        material,
-        self.host.database,
-        self.principal,
-        self.connection,
-      ) {
-      Ok(value) => value
-      Err(_) => return false
-    }
-    match local_adoption_digest(self.crypto, body) {
-      Ok(value) => value
-      Err(_) => return false
+  let scope = match self.capture {
+    Some(capture) =>
+      match
+        capture.operation_scope(
+          self.host,
+          material,
+          self.principal,
+          self.connection,
+        ) {
+        Ok(value) => value
+        Err(_) => return false
+      }
+    None => {
+      let body = match
+        @host.client_local_adopted_authority_scope_body(
+          material,
+          self.host.database,
+          self.principal,
+          self.connection,
+        ) {
+        Ok(value) => value
+        Err(_) => return false
+      }
+      match local_adoption_digest(self.crypto, body) {
+        Ok(value) => value
+        Err(_) => return false
+      }
     }
   }
   if scope != self.scope {
@@ -95,6 +108,8 @@ fn NativeLocalPolicyAuthority::current_with_material_for(
     self.principal,
     self.connection,
     self.purpose,
+    capture=self.capture,
+    target=Some(@host.client_request_scope_cid(request)),
   )
 }
 
@@ -110,32 +125,42 @@ fn native_local_policy_account_allowed(
   principal : String,
   connection : String,
   purpose : NativeLocalPolicyAuthorityPurpose,
+  capture? : NativeLocalJournalCapture? = None,
+  target? : String? = None,
 ) -> Bool {
   let operation = match purpose {
     SubmitOriginals => "submit"
     PublishRun => "publish"
     ReadRunMaterials | ReadResultPolicy(_) => "read"
   }
-  if !(@host.client_local_adopted_account_outcome(material, database, {
+  let resources = match purpose {
+    ReadResultPolicy(name) => ["run", "result/" + name]
+    _ => ["run"]
+  }
+  for resource in resources {
+    let tuple : @authorization.AccessTuple = {
       principal,
       connection,
-      resource: "run",
+      resource,
       operation,
-    })
-    is Ok(@authorization.Allow(_))) {
-    return false
+    }
+    let outcome = match capture {
+      None =>
+        @host.client_local_adopted_account_outcome(material, database, tuple).map_err(
+          local_current_material_issue,
+        )
+      Some(original) =>
+        match original.opening {
+          JournalAcquired(host) if physical_equal(host.database, database) =>
+            original.operation_account(host, material, tuple, target~)
+          _ => Err(CustodyLost)
+        }
+    }
+    if !(outcome is Ok(@authorization.Allow(_))) {
+      return false
+    }
   }
-  match purpose {
-    SubmitOriginals | PublishRun | ReadRunMaterials => true
-    ReadResultPolicy(name) =>
-      @host.client_local_adopted_account_outcome(material, database, {
-        principal,
-        connection,
-        resource: "result/" + name,
-        operation: "read",
-      })
-      is Ok(@authorization.Allow(_))
-  }
+  true
 }
 
 ///|
