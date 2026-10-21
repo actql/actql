@@ -15452,7 +15452,7 @@
     },
     {
       "module": "packages/run-host-core/index.mjs",
-      "sha256": "a0c6d61c8e35b06bce63e9c7db7c0b41ba1ccef75b8a9dea3cc693ac59d1bc53",
+      "sha256": "722db147b77b7cbb79839c6e10c2c00cd0a28ef5cca5073a3a0fd67b753b67b4",
       "role": "physical-io",
       "exports": [
         "admitCapturedResultSnapshot",
@@ -16059,7 +16059,8 @@
         {
           "name": "deliveryView",
           "parameters": [
-            "contract"
+            "contract",
+            "original"
           ],
           "async": false
         },
@@ -17159,6 +17160,14 @@
           "name": "openResultDeliveryControl/init:finishResultDelivery/init:finishResultDelivery",
           "parameters": [
             "serializer"
+          ],
+          "async": false
+        },
+        {
+          "name": "openResultDeliveryControl/init:fromPublication/init:fromPublication",
+          "parameters": [
+            "contract",
+            "expectedName"
           ],
           "async": false
         },
@@ -18846,6 +18855,7 @@
             "openResultDeliveryControl/limitsOf/limitsOf",
             "openResultDeliveryControl/mark/mark",
             "openResultDeliveryControl/progressToken/progressToken",
+            "openResultDeliveryControl/init:fromPublication/init:fromPublication",
             "originalRunPlanAdmissionEvidence",
             "prepare",
             "prepareEffect",
