@@ -37726,7 +37726,7 @@
     {
       "module": "adapters/host-node/embedded-local.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "b0bcb0fa8c88fd8f7b5cb04c4bb417fb2b7d24842813abb86ecb881b096c6e78",
+      "sha256": "ae76c97be9b781aa5c5dc4422e7d715988ffe6d4740d566a5fbbab6fc20c0276",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -38365,6 +38365,11 @@
             "retain"
           ],
           "async": true
+        },
+        {
+          "name": "openInstalledHost/getPreparedSourceEnvironment",
+          "parameters": [],
+          "async": false
         },
         {
           "name": "openInstalledHost/hostConnection/hostConnection",
@@ -42341,7 +42346,8 @@
             "openInstalledHost/retireModelRuntime",
             "openInstalledHost/runtimeOriginals/runtimeOriginals",
             "openInstalledHost/runtimeTarget/runtimeTarget",
-            "openInstalledHost/selectedInstalledEffect"
+            "openInstalledHost/selectedInstalledEffect",
+            "openInstalledHost/getPreparedSourceEnvironment"
           ],
           "exports": [],
           "attributes": {
@@ -42385,6 +42391,10 @@
               {
                 "path": "docs/design/oss-host-authorization.md",
                 "anchor": "## Local Run observation authorization"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The final installed Check Environment and query-name publication retain their"
               }
             ],
             "inputsOutputs": [
@@ -42427,6 +42437,10 @@
               {
                 "path": "adapters/host-node/local-result-authorization.mjs",
                 "anchor": "export function createLocalReadAuthorizations({moon, authorization,"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "function getPreparedSourceEnvironment() {"
               }
             ],
             "identity": [
@@ -42481,6 +42495,10 @@
               {
                 "path": "adapters/host-node/local-result-authorization.mjs",
                 "anchor": "run(facts) {return authorize(facts, undefined, 'run');}"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "original.environment !== environment || original.publication !== sourcePublication)"
               }
             ],
             "ownership": [
@@ -42535,6 +42553,10 @@
               {
                 "path": "adapters/host-node/local-result-authorization.mjs",
                 "anchor": "const originalAccountId = identity.state === 'admitted' ? identity.account_id : undefined;"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "preparedSourceEnvironment = Object.freeze({host, moon, environment, publication:sourcePublication,"
               }
             ],
             "synchronization": [
@@ -42585,6 +42607,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "return authorizeLocalRun({principalId: value.principalId,"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "...(preparedSourceEnvironment?.preparedEnvironment === undefined ? {} : {getPreparedSourceEnvironment}),"
               }
             ],
             "failure": [
@@ -42627,6 +42653,10 @@
               {
                 "path": "adapters/host-node/local-result-authorization.mjs",
                 "anchor": "if (originalAccountId === undefined || identity.state !== 'admitted' ||"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "throw clientOperationError('InstalledPublicSourceEnvironmentChanged');"
               }
             ],
             "cancellation": [
@@ -42669,6 +42699,10 @@
               {
                 "path": "adapters/host-node/local-result-authorization.mjs",
                 "anchor": "} finally { gate.close(); }"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "retireSourceAliasPublicationOriginal(original.moon, original.environment, original.publication);"
               }
             ],
             "resources": [
@@ -42727,6 +42761,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "for (const unsubscribe of subscriptions.values()) unsubscribe();"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "retirement cuts its private publication association and aliases after the existing"
               }
             ],
             "extension": [
@@ -42773,6 +42811,10 @@
               {
                 "path": "docs/design/oss-host-authorization.md",
                 "anchor": "Pure checking/static planning and named Result delivery do not borrow this"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "a changed or request-specific Environment receives its own preparation rather"
               }
             ],
             "verification": [
@@ -42859,6 +42901,10 @@
               {
                 "path": "adapters/host-node/client-run-wait-notification.test.mjs",
                 "anchor": "test('settlement during the asynchronous pending observation is latched'"
+              },
+              {
+                "path": "adapters/host-node/embedded-managed-compute-lifecycle.test.mjs",
+                "anchor": "test('Host prepared Environment waits for the original child shutdown before cutting its aliases', async () => {"
               }
             ]
           }
