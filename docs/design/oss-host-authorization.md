@@ -245,6 +245,22 @@ a matching grant. An input filename that happens to lie outside the managed
 workspace is not a blanket grant to that location. Result delivery continues
 to use its separately specified destination/read/egress checks.
 
+## Reusing admitted Account originals
+
+Wire admission retains its existing bounded UTF-8 input privately with the
+typed Account. Binding that same Account to adopted Host material compares the
+exact original bytes instead of decoding, admitting and hashing them again.
+The correspondence query neither evaluates a permission nor exposes the
+retained backing. Typed admission without a wire original and different wire
+spellings keep the existing validation path; semantic equality alone does not
+select reuse. Existing Account CIDs and wire admission rules are unchanged.
+
+The retained representation reports this original byte buffer and its length
+separately from compiled entries and Strings. It extends that already allocated
+input's lifetime to the Account lifetime; it is not free storage, a capacity
+grant or a cleanup acknowledgement. A new operation still observes current
+Account state, and Run and named-Result permissions remain distinct.
+
 ## Local initialization
 
 | Scope | Initial behavior |

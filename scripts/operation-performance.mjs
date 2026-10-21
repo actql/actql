@@ -114,10 +114,18 @@ export function assessStructure(report) {
       let tuple = null;
       if (check.kind === 'account-evaluation') {
         const value = check.tuple ?? {};
-        requireValue(['subject', 'operation', 'resource'].every(key => nonempty(value[key])) &&
+        // subject is the actual AccessTuple.principal. A configured connection
+        // and authority scope are permission identities, not getter aliases.
+        requireValue(['subject', 'connection', 'operation', 'resource'].every(key => nonempty(value[key])) &&
           ['run', 'target'].every(key => Object.hasOwn(value, key) && (value[key] === null || nonempty(value[key]))),
-        'Account checks require the exact subject/operation/resource/Run/target tuple');
-        tuple = ['subject', 'operation', 'resource', 'run', 'target'].map(key => value[key]);
+        'Account checks require the exact subject/connection/operation/resource/Run/target tuple');
+        const scope = Object.hasOwn(value, 'authorityScope') ? value.authorityScope : operation.authorityScope;
+        requireValue(nonempty(scope), 'Account checks require actual authority scope');
+        if (Object.hasOwn(operation, 'authorityScope')) {
+          requireValue(nonempty(operation.authorityScope) && scope === operation.authorityScope,
+            'Account authority scope differs from the fixed public operation');
+        }
+        tuple = [...['subject', 'connection', 'operation', 'resource', 'run', 'target'].map(key => value[key]), scope];
       }
       // Internal frames, helpers, awaits, FFI phases and cache eviction are not
       // validation identities. Sum every entry for the same actual fact and
