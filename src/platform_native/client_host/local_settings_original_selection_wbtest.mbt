@@ -104,3 +104,29 @@ test "configuration staging validates the unchanged original once" {
   assert_eq(session.root.inspect_generation("client.sqlite3").unwrap(), None)
   assert_true(session.close())
 }
+
+///|
+// Existing legacy Library diagnostic. Slot 37 must remain one across the
+// trusted staging, SQLite bootstrap and retained-original opening steps.
+test "journal opening validates the unchanged source once" {
+  let name = "local-settings-open-once"
+  let session = local_settings_fixture(name)
+  let host = session
+    .open_journal(
+      local_journal_test_library(),
+      epoch_test_crypto(),
+      100.0,
+      8,
+      8388608L,
+    )
+    .unwrap()
+  assert_true(physical_equal(host.session, session))
+  local_adoption_row(host.database, host.adoption_body).unwrap()
+  assert_true(
+    host.database.read("client_local_settings", "manifest") is Ok(original) &&
+    original.revision == 0L &&
+    original.body == session.settings.manifest,
+  )
+  host.close().unwrap()
+  assert_true(host.closed && host.session.closed)
+}

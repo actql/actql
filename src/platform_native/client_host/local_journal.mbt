@@ -109,10 +109,9 @@ fn NativeLocalAdoptionSession::prepare_journal_file(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  match self.check_original() {
-    Ok(_) => Ok((ownership, body))
-    Err(issue) => Err(issue)
-  }
+  // stage_configuration admitted this source at entry. These trusted custody
+  // reads and writes do not introduce another source-admission boundary.
+  Ok((ownership, body))
 }
 
 ///|
@@ -170,10 +169,6 @@ fn NativeLocalAdoptionSession::open_journal_selected(
   if !first && (initial_signing is Some(_) || initial_policy is Some(_)) {
     return Err(AmbiguousInitialization)
   }
-  match self.check_original() {
-    Ok(_) => ()
-    Err(issue) => return Err(issue)
-  }
   let opening = if first {
     library.initialize_owned_database(
       self.state_path + "/client.sqlite3",
@@ -212,10 +207,6 @@ fn NativeLocalAdoptionSession::bind_journal(
   initial_signing : NativeLocalInitialSigningMaterial?,
   initial_policy : @host.ClientLocalSigningBootstrapPolicy?,
 ) -> Result[NativeLocalHostConnection, NativeLocalAdoptionIssue] {
-  match self.check_original() {
-    Ok(_) => ()
-    Err(issue) => return Err(issue)
-  }
   let initial = match (initial_signing, initial_policy) {
     (None, None) => None
     (Some(material), Some(policy)) if first =>
@@ -233,10 +224,6 @@ fn NativeLocalAdoptionSession::bind_journal(
       database, crypto, adoption_body, first, initial, ttl_ms, max_records,
     ) {
     Ok(value) => value
-    Err(issue) => return Err(issue)
-  }
-  match self.check_original() {
-    Ok(_) => ()
     Err(issue) => return Err(issue)
   }
   let adoption_cid = match local_adoption_digest(crypto, adoption_body) {
@@ -257,7 +244,18 @@ fn NativeLocalAdoptionSession::bind_journal(
     packaged_runtime: None,
     worker_provisioning_attempt: None,
   }
-  match connected.check_binding() {
+  match connected.check_binding_sqlite_fence() {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
+  match connected.check_database_file_original() {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
+  // The adoption row and epoch anchors were admitted above in this closed
+  // opening sequence. Retain the selected settings once on this open; there
+  // was no application callback or new source operation in between.
+  match self.settings.check_retained(database) {
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }

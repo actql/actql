@@ -41,6 +41,15 @@ fn NativeLocalHostConnection::check_binding_read_original(
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
+  self.check_database_file_original()
+}
+
+///|
+// Check the actual database target after physical open without restaging the
+// already admitted source/configuration. Ordinary current entry also uses it.
+fn NativeLocalHostConnection::check_database_file_original(
+  self : NativeLocalHostConnection,
+) -> Result[Unit, NativeLocalAdoptionIssue] {
   guard self.session.root.inspect_generation("client.sqlite3") is Ok(Some(file)) &&
     file.device == self.ownership.device &&
     file.inode == self.ownership.inode else {
