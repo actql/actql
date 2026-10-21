@@ -315,8 +315,9 @@ pub fn NativeLocalAdoptionSession::stage_configuration(
 
 ///|
 // Only the same synchronous Owner path may enter immediately after its actual
-// check_original. Public staging still checks that original itself. Keep the
-// final original check after account/custody I/O; no Allow or file fact is cached.
+// check_original. Public staging checks that source once on entry. The trusted
+// copy retains its own exact body/generation/custody checks; it does not create
+// another source-admission boundary or cache an Allow decision.
 fn NativeLocalAdoptionSession::stage_configuration_after_original(
   self : NativeLocalAdoptionSession,
 ) -> Result[Unit, NativeLocalAdoptionIssue] {
@@ -415,7 +416,7 @@ fn NativeLocalAdoptionSession::stage_configuration_after_read_custody(
     return Err(SourceChanged)
   }
   // Staging is not final journal adoption and grants no Source/Effect authority.
-  self.check_original()
+  Ok(())
 }
 
 ///|

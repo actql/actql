@@ -35,8 +35,8 @@ fn NativeLocalHostConnection::check_binding_read_original(
     Err(issue) => return Err(issue)
   }
   // The immediately preceding actual original check is staging's entry fence.
-  // Staging keeps its original terminal check, and every Common/current caller
-  // still invokes this complete binding fence before and after its own work.
+  // Trusted copy/custody I/O consumes that same observation; it does not repeat
+  // source admission. Current callers retain this complete binding entry.
   match self.session.stage_configuration_after_original() {
     Ok(_) => ()
     Err(issue) => return Err(issue)
