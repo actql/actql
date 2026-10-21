@@ -54,11 +54,11 @@ export function installNodePublicSourcePreparation({moon, environment,
       (getPreparedSourceEnvironment !== undefined && typeof getPreparedSourceEnvironment !== 'function')) {
     throw new TypeError('InvalidPublicSourcePreparationInstallation');
   }
-  const original = sourceAliasPublicationOriginal(moon, environment, publication);
+  let original = sourceAliasPublicationOriginal(moon, environment, publication);
   if (getPreparedSourceEnvironment !== undefined && original === undefined) {
     throw new TypeError('InvalidPublicSourcePublication');
   }
-  const preparedEnvironment = original === undefined
+  let preparedEnvironment = original === undefined
     ? (typeof moon.clientProgramPreparePublicSourceEnvironment !== 'function' ? undefined
       : moon.clientProgramPreparePublicSourceEnvironment(environment,
         checkedPublication(moon, environment, publication)))
@@ -71,14 +71,25 @@ export function installNodePublicSourcePreparation({moon, environment,
     throw new TypeError('InvalidPublicSourcePublication');
   }
   const currentEnvironment = () => {
+    if (preparedEnvironment === undefined) {
+      throw new TypeError('InvalidPublicSourcePreparationEnvironment');
+    }
     if (getPreparedSourceEnvironment !== undefined &&
         getPreparedSourceEnvironment() !== preparedEnvironment) {
       throw new TypeError('InvalidPublicSourcePreparationEnvironment');
     }
     return preparedEnvironment;
   };
-  const evidence = Object.isFrozen(effectEvidence) ? effectEvidence : Object.freeze([...effectEvidence]);
+  let evidence = Object.isFrozen(effectEvidence) ? effectEvidence : Object.freeze([...effectEvidence]);
+  // The active holder needs only the admitted value, not a second path through
+  // the association or the constructor's publication and evidence arguments.
+  original = publication = effectEvidence = undefined;
   return Object.freeze({
+    // Called only by the owning Host's final successful retirement. This cuts
+    // managed aliases; it neither retires another holder nor acknowledges I/O.
+    retireSourceEnvironment() {
+      preparedEnvironment = environment = evidence = getPreparedSourceEnvironment = undefined;
+    },
     // JSON has already selected its Program syntax; it must not be lowered as
     // text. Carry the same snapshotted installation into the existing Effect
     // preparation Owner instead of dropping its original target selections.

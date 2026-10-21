@@ -53,14 +53,32 @@ test "new public source recipe retains authored identity without changing histor
     publication,
     public_primary=true,
   ).unwrap()
+  let publication_environment = @publication.prepare_published_query_environment(
+    env, publication,
+  ).unwrap()
+  let reused = prepare_local_source_computation(
+    intent,
+    env,
+    publication,
+    public_primary=true,
+    publication_environment=Some(publication_environment),
+  ).unwrap()
   guard local_source_computation_preparation(old) is Pure(answer) else {
     fail("historical pure preparation")
   }
   guard local_source_computation_preparation(public) is Pure(main) else {
     fail("new public pure preparation")
   }
+  guard local_source_computation_preparation(reused) is Pure(reused_main) else {
+    fail("retained publication public pure preparation")
+  }
   assert_eq(@host.prepared_client_result_name(answer, 0), Some("answer"))
   assert_eq(@host.prepared_client_result_name(main, 0), Some("main"))
+  assert_eq(@host.prepared_client_result_name(reused_main, 0), Some("main"))
+  assert_eq(
+    @host.prepared_client_program_semantics_cid(reused_main),
+    @host.prepared_client_program_semantics_cid(main),
+  )
   assert_eq(
     local_source_computation_originals(public),
     local_source_computation_originals(old),

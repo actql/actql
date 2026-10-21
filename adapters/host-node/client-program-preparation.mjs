@@ -117,7 +117,9 @@ export function installNodeClientProgramPreparation({moon, environment,
   const owned = new WeakMap();
   const effectOwned = new WeakSet();
   const sourceCheckFailures = new WeakSet();
-  const installedEvidence = Object.freeze([...effectEvidence]);
+  let installedEvidence = Object.freeze([...effectEvidence]);
+  effectEvidence = undefined;
+  let retired = false;
   let sourcePreparation;
   const publicSourcePreparation = selectedEnvironment => selectedEnvironment === environment
     ? (sourcePreparation ??= installNodePublicSourcePreparation({moon,
@@ -136,11 +138,12 @@ export function installNodeClientProgramPreparation({moon, environment,
     // publication, not two independently reconstructed catalogs.
     publicSourcePreparation(environment);
   }
-  const prepareEffect = !allowEffects ? undefined : sourcePublication === undefined
+  let prepareEffect = !allowEffects ? undefined : sourcePublication === undefined
     ? installNodeClientEffectProgramPreparation({moon,
       environment, evidence: installedEvidence})
     : request => preparePublishedEffect(request, environment);
   const prepare = (request, selectedEnvironment = environment) => {
+    if (retired) fail('ClientProgramPreparationFailure');
     const {document, format, supplied, declarations} =
       serializeProgram(request);
     let outcome;
@@ -266,6 +269,16 @@ export function installNodeClientProgramPreparation({moon, environment,
     return prepare(request, selected);
   };
   return Object.freeze(Object.assign(verified, {
+    retireReferences() {
+      if (retired) return;
+      retired = true;
+      sourcePreparation?.retireSourceEnvironment();
+      prepareEffect?.retireSourceEnvironment?.();
+      sourcePreparation = prepareEffect = undefined;
+      environment = sourcePublication = installedEvidence = getPreparedSourceEnvironment = undefined;
+      // Installation callbacks may themselves retain the same Environment.
+      check = verifyRequestValuePolicy = restoreEffectOriginal = restoreInferOriginal = undefined;
+    },
     originalInputs(prepared) {
       const original = owned.get(prepared);
       if (original === undefined || original.inferRun !== undefined) {
@@ -364,16 +377,27 @@ export function installNodeClientEffectProgramPreparation({moon, environment,
       evidence.length > 1024) {
     throw new TypeError('InvalidClientEffectPreparationInstallation');
   }
-  const ownedEvidence = Object.freeze([...evidence]);
-  const published = publication === undefined ? undefined :
+  let ownedEvidence = Object.freeze([...evidence]);
+  let published = publication === undefined ? undefined :
     installNodePublicSourcePreparation({moon, environment, publication,
       allowEffects: true, effectEvidence: ownedEvidence});
-  return Object.freeze(request => {
+  publication = evidence = undefined;
+  let retired = false;
+  const prepare = request => {
+    if (retired) fail('ClientProgramPreparationFailure');
     const {document, format, supplied} = serializeProgram(request);
     const outcome = published === undefined
       ? moon.clientProgramPrepareEffectComputationWithParameters(
         document, format, environment, supplied, ownedEvidence)
       : published.prepareEffect({document, format, supplied});
     return effectPreparation(moon, outcome);
-  });
+  };
+  return Object.freeze(Object.assign(prepare, {
+    retireSourceEnvironment() {
+      if (retired) return;
+      retired = true;
+      published?.retireSourceEnvironment();
+      published = environment = ownedEvidence = undefined;
+    },
+  }));
 }
