@@ -4,6 +4,7 @@ import {generateKeyPairSync, sign} from 'node:crypto';
 import test from 'node:test';
 import {connectInProcess, ClientError} from './index.mjs';
 import {canonicalJson, contentCid, signedAnswer} from './checkpoints.mjs';
+import {validCheckpointLookup} from '../client-wire/index.mjs';
 
 const cid = digit => `sha256:${digit.repeat(64)}`;
 const keys = generateKeyPairSync('ed25519');
@@ -37,6 +38,31 @@ async function fixture(t, {lookup = () => ({items: [original]}), resolve = commi
   const client = await connectInProcess({mode: 'local', owner: 'local'}, port);
   t.after(() => client.close());
   return {client, calls, port};
+}
+
+for (const [name, changes] of [
+  ['cost scope', {kind: 'cost_scope', phase: 'preflight',
+    subject: {kind: 'prepare_attempt', prepareAttemptId: 'prepare', requestId: 'request'}}],
+  ['data egress', {kind: 'data_egress', phase: 'preflight',
+    subject: {kind: 'prepare_attempt', prepareAttemptId: 'prepare', requestId: 'request'}}],
+  ['preflight Effect', {phase: 'preflight'}],
+]) {
+  test(`safe but unsupported ${name} metadata refuses before signing`, async t => {
+    const summary = {...original, ...changes};
+    assert.equal(validCheckpointLookup({items: [summary]}, summary.checkpointId), true,
+      'generic safe metadata is not the signing helper supported-profile law');
+    let signatures = 0;
+    const selected = {...signer, sign(bytes) {signatures++; return signer.sign(bytes);}};
+    const {client, calls} = await fixture(t, {lookup: () => ({items: [summary]})});
+    for (const [action, decision] of [['approve', 'approved'], ['reject', 'rejected']]) {
+      await assert.rejects(signedAnswer(summary, decision, selected, original.createdAt),
+        {message: 'UnsupportedCheckpointAnswer'});
+      await assert.rejects(client[action](summary.checkpointId, {signer: selected}),
+        {message: 'UnsupportedCheckpointAnswer'});
+    }
+    assert.equal(signatures, 0);
+    assert.deepEqual(calls.map(call => call.operation), ['connect', 'checkpoints', 'checkpoints']);
+  });
 }
 
 test('approve looks up one exact original ID and signs the same Summary and claims', async t => {
