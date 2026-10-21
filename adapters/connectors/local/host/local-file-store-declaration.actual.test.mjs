@@ -216,3 +216,46 @@ test('actual Local STORE saved preparation restores its original source-free pol
     restored.assertUpdateSelectionCurrent();
   }finally{await f.close();}
 });
+
+test('actual Local STORE saved Run retains its policy request and same installed command Owner',async()=>{
+  const f=await storeOwnerFixture();
+  try{
+    const authority='sha256:'+'a'.repeat(64);
+    const allowed=checked(moon.clientProgramIssueAllowedEffectRun(f.compilation,
+      'sha256:'+'1'.repeat(64),'sha256:'+'2'.repeat(64),'2099-01-01T00:00:00.000Z'));
+    const define=runId=>checked(moon.clientProgramIssueEffectRunDefinition(allowed,
+      'store-original-scope',runId,'2026-10-21T00:00:00.000Z','2098-01-01T00:00:00.000Z'));
+    const control=runtimeCore(moon).publicationControl;
+    const limits={maxWireBytes:1000000,maxNodes:100000,maxDepth:100};
+    const admit=definition=>control.admit('run_definition',moon.strategyPublicationContractJson(definition),limits);
+    const request=requestId=>moon.clientProgramEffectRequestIdentity(f.prepared,
+      authority,requestId,moon.clientProgramSourceFreeInputIntentCid());
+    const definition=define('store-original-run'),run=admit(definition),identity=request('store-original-request');
+    assert(identity);
+    const original=f.originals.captureRun({...f,allowed,definition,identity});
+    // Exercise the production saved-material adapter, not a copied selection
+    // as an authority. Durable storage and public approval are separate cases.
+    const retained=JSON.parse(JSON.stringify(original));
+    const restored=f.originals.restoreRun(retained,run,identity);
+    restored.assertUpdateSelectionCurrent();
+    assert.deepEqual(f.originals.captureRun({...restored,identity}),original);
+    assert.equal(moon.clientProgramEffectCompilationPlanWire(restored.compilation),
+      moon.clientProgramEffectCompilationPlanWire(f.compilation));
+    f.originals.validateRecoveredSelectionMembers({...f.facts,prepared:restored.prepared,
+      compilation:restored.compilation,selections:restored.updateTargetSelections});
+    assert.throws(()=>f.originals.restoreRun(retained,run,undefined));
+    assert.throws(()=>f.originals.restoreRun(retained,run,request('foreign-store-request')));
+    assert.throws(()=>f.originals.restoreRun(retained,admit(define('foreign-store-run')),identity));
+    for(const name of ['source_free_result_policy_cid','source_free_result_policy_json']){
+      const body=JSON.parse(retained.materialsWire);
+      delete body[name];
+      assert.throws(()=>f.originals.restoreRun({...retained,materialsWire:canonical(body)},run,identity));
+    }
+    const body=JSON.parse(retained.materialsWire);
+    delete body.client_request_identity;
+    assert.throws(()=>f.originals.restoreRun({...retained,materialsWire:canonical(body)},run,undefined));
+    assert.throws(()=>f.originals.restoreRun({...retained,materialsWire:canonical(body)},run,identity));
+    const foreign={...retained,installations:retained.installations.map(value=>({...value,cid:'sha256:'+'f'.repeat(64)}))};
+    assert.throws(()=>f.originals.restoreRun(foreign,run,identity));
+  }finally{await f.close();}
+});
