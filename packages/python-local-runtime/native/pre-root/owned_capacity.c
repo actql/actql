@@ -101,7 +101,8 @@ static struct owned_scope_state *owned_scope(void) {
  * validates the original Core loan before publishing the process borrow. */
 static bool foreign_domain_process(actql_owned_capacity *lease) {
     int borrower = atomic_load_explicit(&lease->domain_borrower_pid, memory_order_acquire);
-    return lease->extent_domain && borrower != 0 && borrower != (int)getpid();
+    return (!lease->fd_backed && lease->domain_origin_pid != getpid()) ||
+        (lease->extent_domain && borrower != 0 && borrower != (int)getpid());
 }
 
 static void lock_capacity(actql_owned_capacity *lease) {
@@ -150,6 +151,7 @@ int actql_native_owned_acquire(size_t capacity, uint64_t generation,
     lease->backing_inode = 0;
     lease->fd_backed = false;
     lease->extent_domain = false;
+    lease->domain_origin_pid = getpid();
     atomic_init(&lease->domain_borrower_pid, 0);
     atomic_init(&lease->rust_process, 0);
     lease->generation = generation;
@@ -286,7 +288,14 @@ int actql_native_owned_domain_matches_view(actql_owned_capacity *lease,
     if (lease == NULL || view == NULL || original_process != (int64_t)getpid() ||
         !view->domain_live || !view->map_confirmed || view->mapping == NULL ||
         lease != (void *)((unsigned char *)view->mapping + view->payload_offset) ||
-        !lease->extent_domain || !lease->fd_backed ||
+        !lease->extent_domain ||
+        (view->local_loan == NULL ? !lease->fd_backed :
+            (lease->fd_backed || view->original != view ||
+             view->local_loan->original != view->local_loan ||
+             view->local_loan->returned || !view->local_loan->local_view_live ||
+             view->local_loan->local_process != (int64_t)getpid() ||
+             view->mapping != (unsigned char *)view->local_loan->owner +
+                                  view->local_loan->extent.offset)) ||
         lease->domain_origin_pid != original_process ||
         lease->generation != view->extent.generation ||
         lease->backing_device != view->extent.device ||
@@ -571,6 +580,7 @@ int actql_native_owned_try_close(actql_owned_capacity **slot) {
     if (slot == NULL) return ACTQL_OWNED_INVALID;
     actql_owned_capacity *lease = *slot;
     if (lease == NULL) return ACTQL_OWNED_OK;
+    if (foreign_domain_process(lease)) return ACTQL_OWNED_BUSY;
     /* An interior domain is retired through its original view, never munmap. */
     if (lease->extent_domain) return ACTQL_OWNED_INVALID;
     /* The original owner must exclude concurrent callers before final close. */

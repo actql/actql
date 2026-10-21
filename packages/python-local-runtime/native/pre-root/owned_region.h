@@ -25,6 +25,11 @@ typedef struct actql_owned_extent_loan {
     size_t start;
     actql_owned_extent_reference extent;
     bool returned;
+    /* In-process aliases are never projected as FD transport. The same
+     * address-bound loan retains its parent mapping until view retirement. */
+    int64_t local_process;
+    bool local_view_attempted;
+    bool local_view_live;
 } actql_owned_extent_loan;
 
 typedef struct actql_owned_extent_view {
@@ -39,6 +44,7 @@ typedef struct actql_owned_extent_view {
     bool domain_attempted;
     bool domain_live;
     bool domain_borrowed;
+    actql_owned_extent_loan *local_loan;
 } actql_owned_extent_view;
 
 /* Same original physical comparison used by the existing Native channel.
@@ -71,6 +77,14 @@ int actql_native_owned_lend_extent(actql_owned_capacity *owner, void *allocation
 int actql_native_owned_lend_extent_range(actql_owned_capacity *owner, void *allocation,
                                         size_t offset, size_t length, bool writable,
                                         actql_owned_extent_loan *loan);
+/* Same-process anonymous-parent ExclusiveWrite sibling. No mapping, FD or transport is
+ * issued. Actual page exclusion remains in the original parent allocation. */
+int actql_native_owned_lend_in_process_extent_range(actql_owned_capacity *owner,
+    void *allocation, size_t offset, size_t length, bool writable,
+    actql_owned_extent_loan *loan);
+/* Bind the same original local loan once; payload bounds are Core-issued. */
+int actql_native_owned_view_in_process_extent(actql_owned_extent_loan *loan,
+    size_t payload_offset, size_t payload_length, actql_owned_extent_view *view);
 int actql_native_owned_project_extent(actql_owned_extent_loan *loan,
                                      actql_owned_extent_reference *out);
 /* The original trusted child supplier validates nominal child/borrow/current

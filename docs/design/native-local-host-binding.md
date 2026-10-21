@@ -2368,3 +2368,27 @@ loan. Leaving an already entered scope and returning the stopped original loan
 remain cleanup operations through their existing Native Owner; neither needs
 to revive normal initial currentness. Those acknowledgements remain distinct
 from Host close, default restoration and process-lived allocator retirement.
+
+
+### Same-process domains in an anonymous parent mapping
+
+The installed Native Host can prepare a private in-process domain inside its
+existing anonymous backing as an exclusive writer. The same original allocation and Core delegation
+retain the physical range. A local view points into that allocation; creating
+or closing it does not create or unmap another mapping, issue capacity, or
+acknowledge parent retirement. Domain control storage remains inside the
+original delegated payload. Loan and view records remain ordinary Host control
+values outside that payload.
+
+This path requires the same address-bound loan, original process, current Host
+and child identity. It cannot project FD transport, reconstruct a view from
+scalars, or lend the domain across fork. The regular FD-backed mapping and
+process transport paths retain their existing contracts. A failed local domain
+preparation stays on its original partial carrier, without switching backends.
+
+Live child allocations or scopes keep domain close pending. Domain retirement
+precedes local-view retirement; that acknowledgement only releases the view's
+use of the original loan. The separate loan return then permits parent extent
+retirement, and only the original parent close unmaps its backing. Copied,
+foreign, spent and closed carriers retain the existing refusal and idempotent
+cleanup rules. No local-view close is represented as an OS unmap acknowledgement.

@@ -53,7 +53,39 @@ pub fn InstalledArenaHost::prepare_domain(
   InstalledArenaDomainAcquisition,
   @bootstrap.NativeBackedExecutionIssue,
 ] {
-  if bytes <= 0L || fd < 0 || self.domains.length() >= self.domain_record_limit {
+  if fd < 0 {
+    return Err(@bootstrap.Bootstrap(@bootstrap.Unavailable))
+  }
+  self.prepare_domain_original(scope, Some(fd), bytes, limits)
+}
+
+///|
+/// Same anonymous parent allocation, loan and child Ledger. This local view is
+/// non-exportable and never owns another mapping or an independent byte credit.
+pub fn InstalledArenaHost::prepare_domain_in_process(
+  self : InstalledArenaHost,
+  scope : InstalledArenaBackingBorrow,
+  bytes : Int64,
+  limits : @resources.LedgerLimits,
+) -> Result[
+  InstalledArenaDomainAcquisition,
+  @bootstrap.NativeBackedExecutionIssue,
+] {
+  self.prepare_domain_original(scope, None, bytes, limits)
+}
+
+///|
+fn InstalledArenaHost::prepare_domain_original(
+  self : InstalledArenaHost,
+  scope : InstalledArenaBackingBorrow,
+  fd : Int?,
+  bytes : Int64,
+  limits : @resources.LedgerLimits,
+) -> Result[
+  InstalledArenaDomainAcquisition,
+  @bootstrap.NativeBackedExecutionIssue,
+] {
+  if bytes <= 0L || self.domains.length() >= self.domain_record_limit {
     return Err(@bootstrap.Bootstrap(@bootstrap.Unavailable))
   }
   match self.require_backing_borrow_current(scope) {
@@ -133,7 +165,7 @@ pub fn InstalledArenaHost::prepare_initial_domain(
 fn InstalledArenaDomain::prepare_original(
   self : InstalledArenaDomain,
   scope : InstalledArenaBackingBorrow,
-  fd : Int,
+  fd : Int?,
   bytes : Int64,
   limits : @resources.LedgerLimits,
 ) -> Result[Unit, @bootstrap.NativeBackedExecutionIssue] {
@@ -153,18 +185,33 @@ fn InstalledArenaDomain::prepare_original(
     payload_offset: 0L,
     payload_length: bytes,
   }
-  let loan = match
-    self.backing.lend_backed_region(
-      self.host,
-      region,
-      scope.original,
-      self,
-      extent,
-      @resources.ExclusiveWrite,
-      limits,
-      0L,
-      0L,
-    ) {
+  let lent = match fd {
+    Some(_) =>
+      self.backing.lend_backed_region(
+        self.host,
+        region,
+        scope.original,
+        self,
+        extent,
+        @resources.ExclusiveWrite,
+        limits,
+        0L,
+        0L,
+      )
+    None =>
+      self.backing.lend_backed_region_in_process(
+        self.host,
+        region,
+        scope.original,
+        self,
+        extent,
+        @resources.ExclusiveWrite,
+        limits,
+        0L,
+        0L,
+      )
+  }
+  let loan = match lent {
     Err(issue) => return Err(issue)
     Ok(@bootstrap.Pending(value, issue)) => {
       self.loan = Some(value)
@@ -173,7 +220,11 @@ fn InstalledArenaDomain::prepare_original(
     Ok(@bootstrap.Lent(value)) => value
   }
   self.loan = Some(loan)
-  let view = match self.backing.map_backed_view(self.host, loan, self, fd) {
+  let bound = match fd {
+    Some(fd) => self.backing.map_backed_view(self.host, loan, self, fd)
+    None => self.backing.view_backed_region_in_process(self.host, loan, self)
+  }
+  let view = match bound {
     Err(issue) => return Err(issue)
     Ok(@bootstrap.PendingView(value, issue)) => {
       self.view = Some(value)
