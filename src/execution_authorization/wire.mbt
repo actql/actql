@@ -163,6 +163,13 @@ fn wire_bootstrap(cursor : @decode.Cursor) -> BootstrapProfile raise WireStop {
 pub fn decode_account_configuration_json(
   body : String,
 ) -> Result[RawAccountConfiguration, ConfigurationIssue] {
+  decode_account_configuration_original(body).map(value => value.0)
+}
+
+///|
+fn decode_account_configuration_original(
+  body : String,
+) -> Result[(RawAccountConfiguration, Bytes), ConfigurationIssue] {
   let bytes = @utf8.encode(body)
   if bytes.length() > MAX_CONFIG_INPUT_BYTES {
     return Err(MalformedWire({ kind: InputTooLarge, path: "$", }))
@@ -211,7 +218,7 @@ pub fn decode_account_configuration_json(
     let raw : RawAccountConfiguration = { account_id, entries, bootstrap, }
     match first_out_of_order(raw) {
       Some(path) => Err(NonCanonicalOrder(path))
-      None => Ok(raw)
+      None => Ok((raw, bytes))
     }
   } catch {
     WireStop(issue) => Err(MalformedWire(issue))
@@ -223,8 +230,12 @@ pub fn decode_account_configuration_json(
 pub fn admit_account_configuration_json(
   body : String,
 ) -> Result[AdmittedAccountConfiguration, ConfigurationIssue] {
-  match decode_account_configuration_json(body) {
-    Ok(raw) => admit_account_configuration(raw)
+  match decode_account_configuration_original(body) {
+    Ok((raw, bytes)) =>
+      admit_account_configuration(raw).map(account => {
+        ..account,
+        original_wire: Some(bytes),
+      })
     Err(issue) => Err(issue)
   }
 }

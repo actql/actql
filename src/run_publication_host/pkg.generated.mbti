@@ -2942,8 +2942,10 @@ pub struct ClientLocalAdoptedHostMaterial[Store, E] {
   account : @execution_authorization.AdmittedAccountConfiguration
   account_original : Bytes
   adoption : ClientJournalPhysicalRow
+  adoption_cid : String
   generation : (UInt64, UInt64)
   current : () -> Result[ClientLocalAdoptionCurrentObservation[Store], E]
+  mut scope_cache : (String, String, Bytes)?
 }
 
 pub(all) enum ClientLocalAdoptionCurrentObservation[Store] {
