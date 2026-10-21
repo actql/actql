@@ -266,6 +266,28 @@ test('small-query reports retain the exact protocol query, oracle and raw identi
   }
 });
 
+test('functional small-query hashes are bound to the independent protocol oracle', async t => {
+  for (const mutation of ['both-hashes', 'actual-hash', 'missing-functional-row']) {
+    const p = await reports(t), original = await p.add('warm', ['warm-decimal-sum']);
+    const expectedSha256 = hash(JSON.stringify([{total: '4.00'}]));
+    original.report.functional.rows.push({operation: 'warm-decimal-sum', completed: true,
+      expectedSha256, actualSha256: expectedSha256});
+    if (mutation === 'both-hashes') Object.assign(original.report.functional.rows[0],
+      {expectedSha256: 'b'.repeat(64), actualSha256: 'b'.repeat(64)});
+    if (mutation === 'actual-hash') original.report.functional.rows[0].actualSha256 = 'b'.repeat(64);
+    if (mutation === 'missing-functional-row') original.report.functional.rows = [];
+    await original.save();
+    if (mutation === 'missing-functional-row') {
+      const output = JSON.parse(await readFile(await combineOrdinaryPerformanceMeasurements(p.root)));
+      assert.deepEqual(output.functional.rows, []);
+      // Absent functional coverage remains absent for the release assessor.
+    } else {
+      await assert.rejects(combineOrdinaryPerformanceMeasurements(p.root), /Functional query oracle|functional query result/u);
+      await assert.rejects(readFile(join(p.root, 'measurements.json')), {code: 'ENOENT'});
+    }
+  }
+});
+
 test('foreign identities and missing or changed raw measurements refuse aggregation', async t => {
   for (const mutation of ['source', 'cohort', 'environment', 'protocol', 'operation', 'missing-raw', 'changed-raw']) {
     const p = await reports(t), original = await p.add('warm', ['warm-select']);

@@ -161,6 +161,15 @@ export async function combineOrdinaryPerformanceMeasurements(root) {
       }
     }
     assert(report.functional.rows.every(row => seen.has(row.operation)));
+    for (const row of report.functional.rows) {
+      const fixture = nodeWarmSmallQueryFixtures.find(value => value.operation === row.operation);
+      if (fixture) {
+        const expectedSha256 = hash(JSON.stringify(fixture.expected));
+        assert.equal(row.expectedSha256, expectedSha256, 'Functional query oracle differs');
+        if (row.completed === true) assert.equal(row.actualSha256, expectedSha256,
+          'Completed functional query result differs');
+      }
+    }
     const raw = await readFile(join(directory, 'samples.jsonl'), 'utf8');
     assert(Buffer.byteLength(raw) <= 16 * 1024 ** 2, 'Raw samples exceed assessor input bound');
     assert.deepEqual(raw.split('\n').filter(Boolean).map(line => JSON.parse(line)),
