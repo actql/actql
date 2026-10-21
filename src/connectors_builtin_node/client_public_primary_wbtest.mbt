@@ -2,6 +2,9 @@
 test "public Source main and historical answer remain separate original Programs" {
   let environment = store_source_preparation_environment()
   let publication = store_public_bridge_publication(environment)
+  let retained = client_program_prepare_public_source_environment(
+    environment, publication,
+  ).unwrap()
   for format in ["sql", "aql-text"] {
     let original = client_program_prepare_source_computation_with_parameters(
       "SELECT 1 AS id",
@@ -29,8 +32,26 @@ test "public Source main and historical answer remain separate original Programs
     guard public is SourcePure(Prepared(main)) else {
       fail("public preparation")
     }
+    let reused = client_program_prepare_source_computation_in_public_environment(
+      "SELECT 1 AS id",
+      format,
+      environment,
+      retained,
+      None,
+      None,
+      false,
+      [],
+    )
+    guard reused is SourcePure(Prepared(reused)) else {
+      fail("prepared public Environment preparation")
+    }
     assert_eq(client_program_result_name(answer, 0), Some("answer"))
     assert_eq(client_program_result_name(main, 0), Some("main"))
+    assert_eq(client_program_result_name(reused, 0), Some("main"))
+    assert_eq(
+      client_program_definition_cid(reused),
+      client_program_definition_cid(main),
+    )
     assert_true(
       client_program_definition_cid(answer) !=
       client_program_definition_cid(main),
