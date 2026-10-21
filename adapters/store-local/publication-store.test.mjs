@@ -3686,19 +3686,14 @@ test('committed payload custody remains retryable after cleanup failure',
       maxContractDepth: limits.maxDepth,
     };
     let custodySyncFailures = 0;
-    let custodySyncSkips = 0;
     const durability = Object.freeze({
       async syncDirectory(path) {
         if (path === join(directory, 'prepared-custody') &&
             custodySyncFailures > 0) {
-          if (custodySyncSkips > 0) {
-            custodySyncSkips--;
-          } else {
-            custodySyncFailures--;
-            const error = new Error('injected custody sync failure');
-            error.code = 'EIO';
-            throw error;
-          }
+          custodySyncFailures--;
+          const error = new Error('injected custody sync failure');
+          error.code = 'EIO';
+          throw error;
         }
         const handle = await open(path, 'r');
         try { await handle.sync(); }
@@ -3720,7 +3715,8 @@ test('committed payload custody remains retryable after cleanup failure',
     const entry = indexEntry(request, attempt, invocationValue, {
       durable_result_binding_cids: [prepared.binding.identity],
     });
-    custodySyncSkips = 2;
+    // No intermediate semantic preparations remain. Fail the SAME payload's
+    // adoption ACK and reconciliation, not a historical internal sync count.
     custodySyncFailures = 2;
     let unknown;
     await assert.rejects(store.commitIndex(
