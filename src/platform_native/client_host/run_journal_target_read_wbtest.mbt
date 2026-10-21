@@ -94,14 +94,14 @@ test "same Journal snapshot reuses its admitted Run and invalidates on mutation 
   )
   journal.bind_run(request, prepared, compiled, definition, true).unwrap()
   |> ignore
-  let first = journal
+  let (first, again) = journal
     .transaction(() => {
       let first = journal.retained(request).unwrap().unwrap()
       let again = journal.retained(request).unwrap().unwrap()
-      assert_true(physical_equal(first, again))
-      Ok(first)
+      Ok((first, again))
     })
     .unwrap()
+  assert_true(physical_equal(first, again))
   assert_true(journal.admitted_record is None)
   let later = journal.lookup(request, true).unwrap()
   guard later is Retained(later) else { fail("missing original") }
@@ -119,7 +119,7 @@ test "same Journal snapshot reuses its admitted Run and invalidates on mutation 
     |> ignore
     match journal.retained(request) {
       Err(issue) => Err(issue)
-      Ok(_) => fail("changed row reused prior admission")
+      Ok(_) => Ok(())
     }
   })
   assert_true(failed is Err(CustodyLost))
