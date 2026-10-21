@@ -1,6 +1,9 @@
 ///|
 /// An original public SubmissionReference, not read authority or acceptance.
 struct NativeClientSubmissionReference {
+  // Retain the existing Common Owner's admitted immutable DATA. An internal
+  // Journal helper consumes this same original without parsing its wire again.
+  original : @host.ClientSubmissionReferenceRecord
   epoch : NativeClientSubmissionEpoch
   request_id : String
   wire : String
@@ -26,6 +29,7 @@ fn native_submission_reference_record(
 ) -> NativeClientSubmissionReference {
   let epoch = @host.client_submission_reference_record_epoch(value)
   {
+    original: value,
     epoch: {
       body: @host.client_submission_epoch_token_body(epoch),
       authority_scope_cid: @host.client_submission_epoch_token_authority_scope_cid(
@@ -305,11 +309,7 @@ fn NativeClientRunJournal::retained_submission_with_run(
   (NativeClientSubmittedIntentRecord, NativeClientRunRecord?)?,
   NativeClientRunJournalIssue,
 ] {
-  let original_reference = match
-    @host.admit_client_submission_reference_record(reference.wire) {
-    Ok(value) => value
-    Err(_) => return Err(CustodyLost)
-  }
+  let original_reference = reference.original
   let selected_run : Ref[NativeClientRunRecord?] = Ref(None)
   @host.read_client_saved_submission(
     original_reference,
@@ -442,11 +442,7 @@ fn NativeClientRunJournal::record_submitted_intent_locked(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  let original_reference = match
-    @host.admit_client_submission_reference_record(reference.wire) {
-    Ok(value) => value
-    Err(_) => return Err(CustodyLost)
-  }
+  let original_reference = reference.original
   let plan = match
     @host.prepare_client_submitted_journal_append(
       original_reference,
