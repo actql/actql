@@ -8,7 +8,7 @@ fn journal_append_legacy_fixture(
   NativeClientRunJournal,
   NativeClientEpochAuthority,
   NativeClientSubmissionReference,
-) {
+) raise {
   let (database, journal, authority, reference) = submitted_test_setup(name)
   let (intent, preparation, request, compiled, definition) = submitted_run_test_input(
     reference, "legacy-original",
