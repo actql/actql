@@ -4148,7 +4148,7 @@ async function openOriginalLocalPublicationStore(
     return confirmAdmittedDeliveryRecord(contract, record, true);
   };
 
-  const inspectCommittedIndexRaw = async key => {
+  const readCommittedIndexRaw = async (key, original) => {
     active();
     const path = resolve(indexesDirectory, `${indexKey(key)}.json`);
     let bytes;
@@ -4157,6 +4157,7 @@ async function openOriginalLocalPublicationStore(
       if (error?.code === 'ENOENT') return undefined;
       throw error;
     }
+    if (original !== undefined && bytes.equals(original.bytes)) return original;
     const admitted = admitContract(
       'public_index_entry', bytes.toString('utf8'),
     );
@@ -4166,9 +4167,19 @@ async function openOriginalLocalPublicationStore(
         entry.run_definition_cid !== key.runDefinitionCid) {
       fail('PublicIndexBindingMismatch');
     }
-    await readJsonObject(entry.public_index_entry_cid, 'public_index_entry');
-    return entry;
+    const semantic = await readSemanticBytes(entry.public_index_entry_cid);
+    // The selected Index and its immutable contract alias describe the same
+    // fact. Reuse its admission for identical bytes, without skipping the
+    // alias's real FD/inode/digest checks or admitting a changed spelling as
+    // though it were the original.
+    if (!exactUtf8WireMatches(semantic, admitted.wire)) {
+      parseContract(admitContract('public_index_entry', semantic.toString('utf8')));
+    }
+    return {entry, bytes};
   };
+
+  const inspectCommittedIndexRaw = async key =>
+    (await readCommittedIndexRaw(key))?.entry;
 
   const inspectCommittedIndex = async key => {
     const keyHash = indexKey(key);
@@ -4178,9 +4189,11 @@ async function openOriginalLocalPublicationStore(
 
   const confirmCommittedIndex = async key => {
     active();
-    const entry = await inspectCommittedIndex(key);
-    if (entry === undefined) return undefined;
     const keyHash = indexKey(key);
+    if (await readMetadataDeletion(keyHash) !== undefined) return undefined;
+    const original = await readCommittedIndexRaw(key);
+    if (original === undefined) return undefined;
+    const {entry} = original;
     const durableCid = durablyConfirmedIndexes.get(keyHash);
     if (durableCid !== undefined &&
         durableCid !== entry.public_index_entry_cid) {
@@ -4191,7 +4204,8 @@ async function openOriginalLocalPublicationStore(
       // directory and then ensure that the same immutable entry is still
       // installed before reporting a durable commit.
       await syncDirectory(indexesDirectory);
-      const confirmed = await inspectCommittedIndex(key);
+      const confirmed = await readMetadataDeletion(keyHash) === undefined
+        ? (await readCommittedIndexRaw(key, original))?.entry : undefined;
       if (confirmed?.public_index_entry_cid !==
           entry.public_index_entry_cid) {
         fail('PublicIndexDurabilityMismatch');
@@ -5214,6 +5228,14 @@ async function openOriginalLocalPublicationStore(
     if (!metadataOnly) {
       await requireResultNotDeleted(keyHash, selected, resultDefinitionCid);
     }
+    return readSelectedResultRetentionExtension(
+      selected, keyHash, resultDefinitionCid,
+    );
+  };
+
+  const readSelectedResultRetentionExtension = async (
+    selected, keyHash, resultDefinitionCid,
+  ) => {
     const record = await readResultRetentionExtension(
       keyHash, resultDefinitionCid,
     );
@@ -5242,13 +5264,14 @@ async function openOriginalLocalPublicationStore(
     const selected = await requireCommittedResultBinding(key, definitionCid);
     const bindings = await Promise.all(
       selected.entry.durable_result_binding_cids.map(async cid =>
-        (await readContract(cid, 'durable_result_binding')).contract));
+        cid === selected.contract.identity ? selected.contract :
+          (await readContract(cid, 'durable_result_binding')).contract));
     const schemaWire = (await readSemanticBytes(
       selected.value.result_schema_cid)).toString('utf8');
     const definition = (await readContract(
       definitionCid, 'result_definition')).contract;
-    const retained = await readRetainedResultExtension(
-      key, definitionCid, true);
+    const retained = await readSelectedResultRetentionExtension(
+      selected, indexKey(key), definitionCid);
     return Object.freeze({bindings, schemaWire, definition, retained});
   };
 

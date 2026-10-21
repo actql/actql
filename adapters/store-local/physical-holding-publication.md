@@ -130,6 +130,28 @@ weak reference or GC opportunity is not a physical acknowledgement. This
 inventory is not a byte grant or a normal four-role Model profile; unknown
 layout/bootstrap costs remain unknown, and existing limits do not increase.
 
+## Selected Result metadata read reuse
+
+A Result description selects its committed Index and exact Result Binding once.
+The description, binding inventory and retention-extension lookup consume those
+same admitted values; a private helper is not another authorization or semantic
+boundary. The Index's immutable semantic alias still receives its original
+bounded FD, inode and digest checks, but byte-identical canonical wire reuses
+the Index admission. A different spelling follows ordinary contract admission.
+
+Cold commit confirmation retains the bounded Index bytes across the real
+containing-directory ACK. It checks metadata retirement again and rereads the
+selected Index: identical bytes reuse that operation's admitted value, while
+changed bytes receive normal admission and identity comparison. This does not
+substitute visibility for a durable ACK or change unknown-commit recovery.
+
+These values and the bounded original buffer belong only to the active read.
+No successful admission or permission is cached across public calls. A later
+read acquires its own original and observes changed or deleted metadata. All
+original FD close duties remain under the same Store, including partial failure.
+Payload deletion still permits retained descriptions; metadata retirement does
+not. This does not relax Account, Run-read or named-Result-read authorization.
+
 ## Delivery admission durability batches
 
 The existing delivery-admission queue admits its grant and attempt once before

@@ -4437,7 +4437,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "384d573fe6c9cacf688e6a9d98b1ef9058629e846e3bfd38fbc5a5104e965122",
+      "sha256": "53e134b0020a00ae348380be1d1b49828772d5ef6c383b9bd138571db17057d2",
       "exports": [
         "PublicationStoreError",
         "assertOriginalLocalPublicationStoreFacilityCurrent",
@@ -6395,6 +6395,14 @@
           "async": true
         },
         {
+          "name": "openOriginalLocalPublicationStore/readCommittedIndexRaw/readCommittedIndexRaw",
+          "parameters": [
+            "key",
+            "original"
+          ],
+          "async": true
+        },
+        {
           "name": "openOriginalLocalPublicationStore/readCommittedResultDescriptionEvidence/readCommittedResultDescriptionEvidence",
           "parameters": [
             "key",
@@ -6683,6 +6691,15 @@
             "key",
             "resultDefinitionCid",
             "metadataOnly"
+          ],
+          "async": true
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/readSelectedResultRetentionExtension/readSelectedResultRetentionExtension",
+          "parameters": [
+            "selected",
+            "keyHash",
+            "resultDefinitionCid"
           ],
           "async": true
         },
@@ -7731,6 +7748,75 @@
       "role": "physical-io",
       "owner": "Existing immutable retained Store physical generation/reader/writer/holding custody; Common owns logical content, completion, permission and limits",
       "contracts": [
+        {
+          "operations": [
+            "openOriginalLocalPublicationStore/readCommittedIndexRaw/readCommittedIndexRaw",
+            "openOriginalLocalPublicationStore/readSelectedResultRetentionExtension/readSelectedResultRetentionExtension"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "## Selected Result metadata read reuse"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "const readCommittedIndexRaw = async (key, original) => {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "if (original !== undefined && bytes.equals(original.bytes)) return original;"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "These values and the bounded original buffer belong only to the active read."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "Cold commit confirmation retains the bounded Index bytes across the real"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "fail('PublicIndexDurabilityMismatch');"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "original FD close duties remain under the same Store, including partial failure."
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "The Index's immutable semantic alias still receives its original"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "No successful admission or permission is cached across public calls."
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "test('cold index confirmation reuses unchanged admission and checks post-ACK mutation',"
+              }
+            ]
+          }
+        },
         {
           "operations": [
             "<module>",
