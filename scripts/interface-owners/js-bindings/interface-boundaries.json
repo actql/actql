@@ -37597,7 +37597,7 @@
     {
       "module": "adapters/host-node/embedded-local.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "7fa0b735cd820db6e6fec3739483c091c6680c80978c9cad6a7f579e8fdaacd1",
+      "sha256": "db93e6b738fe59ed0f8a32a8ca7aeeb6df97c9c3094202a88033e3c23bc85269",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -42623,6 +42623,14 @@
               {
                 "path": "adapters/host-node/host-deferred-publication-startup.test.mjs",
                 "anchor": "selected ordinary Host cannot borrow Journal coverage for Publication activation"
+              },
+              {
+                "path": "adapters/host-node/local-file-effect-submission-original.test.mjs",
+                "anchor": "test('ordinary Local STORE admits its actual Result purpose without a Mock observation'"
+              },
+              {
+                "path": "adapters/host-node/local-file-effect-submission-original.test.mjs",
+                "anchor": "test('winning ordinary Local definition selects the same actual installation without a Mock Scope'"
               }
             ]
           }
@@ -44973,6 +44981,14 @@
               {
                 "path": "adapters/host-node/host-result-service.test.mjs",
                 "anchor": "candidate refusal, Promise or Boolean cannot cross the actual durable record boundary"
+              },
+              {
+                "path": "adapters/host-node/local-file-effect-submission-original.test.mjs",
+                "anchor": "test('ordinary Local STORE admits its actual Result purpose without a Mock observation'"
+              },
+              {
+                "path": "adapters/host-node/local-file-effect-submission-original.test.mjs",
+                "anchor": "test('winning ordinary Local definition selects the same actual installation without a Mock Scope'"
               }
             ]
           }
