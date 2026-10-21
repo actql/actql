@@ -89,30 +89,48 @@ fn NativeLocalPolicyAuthority::current_with_material_for(
   if scope != self.scope {
     return false
   }
-  let operation = match self.purpose {
+  native_local_policy_account_allowed(
+    material,
+    self.host.database,
+    self.principal,
+    self.connection,
+    self.purpose,
+  )
+}
+
+///|
+// One admitted scope interval evaluates the Run and named-Result tuples
+// independently. The caller supplies the original material, never an Allow.
+fn native_local_policy_account_allowed(
+  material : @host.ClientLocalAdoptedHostMaterial[
+    @sqlite.Database,
+    NativeLocalAdoptionIssue,
+  ],
+  database : @sqlite.Database,
+  principal : String,
+  connection : String,
+  purpose : NativeLocalPolicyAuthorityPurpose,
+) -> Bool {
+  let operation = match purpose {
     SubmitOriginals => "submit"
     PublishRun => "publish"
     ReadRunMaterials | ReadResultPolicy(_) => "read"
   }
-  if !(@host.client_local_adopted_account_outcome(
-      material,
-      self.host.database,
-      {
-        principal: self.principal,
-        connection: self.connection,
-        resource: "run",
-        operation,
-      },
-    )
+  if !(@host.client_local_adopted_account_outcome(material, database, {
+      principal,
+      connection,
+      resource: "run",
+      operation,
+    })
     is Ok(@authorization.Allow(_))) {
     return false
   }
-  match self.purpose {
+  match purpose {
     SubmitOriginals | PublishRun | ReadRunMaterials => true
     ReadResultPolicy(name) =>
-      @host.client_local_adopted_account_outcome(material, self.host.database, {
-        principal: self.principal,
-        connection: self.connection,
+      @host.client_local_adopted_account_outcome(material, database, {
+        principal,
+        connection,
         resource: "result/" + name,
         operation: "read",
       })
