@@ -46,10 +46,7 @@ test "portable Source publication parts preserve public and legacy primary recip
 ///|
 test "portable Source publication parts retain unused and foreign metadata refusals" {
   let original = original_dispatch_source("SELECT 1 AS n")
-  let malformed = original.publication.slice(
-      start=0,
-      end=original.publication.length() - 1,
-    ) +
+  let malformed = original.publication[:original.publication.length() - 1].to_owned() +
     ",\"storeTargets\":null}"
   assert_true(
     prepare_client_source_computation(
