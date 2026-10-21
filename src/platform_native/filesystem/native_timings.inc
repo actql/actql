@@ -24,6 +24,7 @@ static pid_t actql_timing_process;
 static uint64_t actql_timing_origin;
 static _Atomic uint64_t actql_timing_initializing_drops;
 static _Atomic uint64_t actql_timing_invalid_tags;
+static _Atomic uint64_t actql_timing_invalid_amounts;
 static _Atomic uint64_t actql_timing_clock_failures;
 static _Atomic uint64_t actql_timing_stack_overflows;
 static _Atomic uint64_t actql_timing_flights;
@@ -78,6 +79,8 @@ static const char *actql_timing_counter_name(int tag) {
     case ACTQL_NATIVE_COUNT_PUBLISHER_AUTH: return "publisher_authorize_calls";
     case ACTQL_NATIVE_COUNT_RUN_RECORD_READ: return "run_record_read_calls";
     case ACTQL_NATIVE_COUNT_ADOPTION_DIGEST: return "adoption_digest_calls";
+    case ACTQL_NATIVE_COUNT_BACKING_ALLOCATED_BYTES: return "backing_allocated_bytes";
+    case ACTQL_NATIVE_COUNT_BACKING_ZEROED_BYTES: return "backing_explicit_zeroed_bytes";
     default: return "private_counter";
   }
 }
@@ -133,11 +136,12 @@ static void actql_timing_report(void) {
   ACTQL_TIMING_APPEND("ACTQL_NATIVE_TIMINGS {\"pid\":%ld,\"origin\":\"first_hook\","
     "\"elapsed_ns\":%" PRIu64 ",\"clock_current\":%s,\"nested_inclusive\":true,"
     "\"child_process_counters\":false,\"phase_slots\":32,\"counter_slots\":64,\"initializing_drops\":%" PRIu64 ","
-    "\"invalid_tags\":%" PRIu64 ",\"clock_failures\":%" PRIu64 ",\"overflow\":%s,"
+    "\"invalid_tags\":%" PRIu64 ",\"invalid_amounts\":%" PRIu64 ",\"clock_failures\":%" PRIu64 ",\"overflow\":%s,"
     "\"stack_overflows\":%" PRIu64 ",\"parallel_observed\":%s}\n",
     (long)actql_timing_process, now >= actql_timing_origin ? now - actql_timing_origin : 0,
     clock_current ? "true" : "false", ACTQL_TIMING_LOAD(actql_timing_initializing_drops),
-    ACTQL_TIMING_LOAD(actql_timing_invalid_tags), ACTQL_TIMING_LOAD(actql_timing_clock_failures),
+    ACTQL_TIMING_LOAD(actql_timing_invalid_tags), ACTQL_TIMING_LOAD(actql_timing_invalid_amounts),
+    ACTQL_TIMING_LOAD(actql_timing_clock_failures),
     ACTQL_TIMING_LOAD(actql_timing_overflow) ? "true" : "false",
     ACTQL_TIMING_LOAD(actql_timing_stack_overflows),
     ACTQL_TIMING_LOAD(actql_timing_parallel) ? "true" : "false");
@@ -179,13 +183,18 @@ static bool actql_timing_enabled(void) {
   if (selected == 1) actql_timing_add(&actql_timing_initializing_drops, 1);
   return selected == 3;
 }
-void actql_native_timing_count(int32_t tag) {
+void actql_native_timing_amount(int32_t tag, int64_t amount) {
   int saved_errno = errno;
   if (actql_timing_enabled()) {
-    if (tag >= 0 && tag < ACTQL_TIMING_COUNTERS) actql_timing_add(&actql_timing_counts[tag], 1);
+    if (amount < 0) actql_timing_add(&actql_timing_invalid_amounts, 1);
+    else if (tag >= 0 && tag < ACTQL_TIMING_COUNTERS)
+      actql_timing_add(&actql_timing_counts[tag], (uint64_t)amount);
     else actql_timing_add(&actql_timing_invalid_tags, 1);
   }
   errno = saved_errno;
+}
+void actql_native_timing_count(int32_t tag) {
+  actql_native_timing_amount(tag, 1);
 }
 void actql_native_timing_begin(int32_t tag) {
   int saved_errno = errno;

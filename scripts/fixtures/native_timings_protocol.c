@@ -56,6 +56,18 @@ int main(int argc, char **argv) {
     pid_t child = fork(); assert(child >= 0);
     if (child == 0) { for (int i = 0; i < 5; i++) actql_native_timing_count(16); exit(0); }
     int status = -1; assert(waitpid(child, &status, 0) == child); assert(WIFEXITED(status) && WEXITSTATUS(status) == 0);
+  } else if (strcmp(argv[1], "amount") == 0) {
+    errno = EDOM;
+    actql_native_timing_amount(ACTQL_NATIVE_COUNT_BACKING_ALLOCATED_BYTES, 512 * 1024 * 1024);
+    actql_native_timing_amount(ACTQL_NATIVE_COUNT_BACKING_ALLOCATED_BYTES, 16384);
+    actql_native_timing_amount(ACTQL_NATIVE_COUNT_BACKING_ZEROED_BYTES, 16384);
+    actql_native_timing_amount(ACTQL_NATIVE_COUNT_BACKING_ZEROED_BYTES, 0);
+    actql_native_timing_amount(ACTQL_NATIVE_COUNT_BACKING_ZEROED_BYTES, -1);
+    actql_native_timing_amount(64, 1);
+    assert(errno == EDOM);
+  } else if (strcmp(argv[1], "amount-overflow") == 0) {
+    for (int i = 0; i < 3; i++)
+      actql_native_timing_amount(ACTQL_NATIVE_COUNT_BACKING_ALLOCATED_BYTES, INT64_MAX);
   } else if (strcmp(argv[1], "partial") == 0) {
     for (int i = 0; i < 34; i++) actql_native_timing_begin(4);
     for (int i = 0; i < 34; i++) actql_native_timing_end(4);

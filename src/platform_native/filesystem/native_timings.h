@@ -27,11 +27,16 @@ enum {
   ACTQL_NATIVE_COUNT_CAPTURED_READ_AUTH = 23,
   ACTQL_NATIVE_COUNT_PUBLISHER_AUTH = 24,
   ACTQL_NATIVE_COUNT_RUN_RECORD_READ = 25,
-  ACTQL_NATIVE_COUNT_ADOPTION_DIGEST = 26
+  ACTQL_NATIVE_COUNT_ADOPTION_DIGEST = 26,
+  ACTQL_NATIVE_COUNT_BACKING_ALLOCATED_BYTES = 46,
+  ACTQL_NATIVE_COUNT_BACKING_ZEROED_BYTES = 47
 };
 void actql_native_timing_begin(int32_t tag);
 void actql_native_timing_end(int32_t tag);
 void actql_native_timing_count(int32_t tag);
+/* Add one already-observed nonnegative amount. Cumulative observations require
+ * caller-selected deltas; this diagnostic neither reads nor owns a resource. */
+void actql_native_timing_amount(int32_t tag, int64_t amount);
 
 /* Evaluate the same function designator once; keep original arguments/result.
  * Counts describe attempted adapter calls, not SQLite-internal statements. */
