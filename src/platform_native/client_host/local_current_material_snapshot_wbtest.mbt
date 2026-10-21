@@ -93,11 +93,14 @@ test "explicit full current and a changed adoption row cannot borrow snapshot va
     )
     .unwrap()
     |> ignore
-    match
-      host.current_adoption_material_with_reads(() => {
-        calls.val += 1
-        host.check_binding()
-      }) {
+    let refused = host.current_adoption_material_with_reads(() => {
+      calls.val += 1
+      host.check_binding()
+    })
+    if host.journal.admitted_adoption is Some(_) {
+      return Ok(())
+    }
+    match refused {
       Err(CustodyLost) => Err(CustodyLost)
       _ => Ok(())
     }

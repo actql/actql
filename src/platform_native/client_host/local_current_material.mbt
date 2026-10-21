@@ -40,13 +40,17 @@ fn NativeLocalHostConnection::current_adoption_material_with_reads(
   if snapshot_current is Some(check) {
     match check() {
       Ok(_) => ()
-      Err(issue) => return Err(issue)
+      Err(issue) => {
+        self.journal.admitted_adoption = None
+        return Err(issue)
+      }
     }
     if self.journal.transaction_active &&
       self.journal.admitted_adoption is Some(original) {
       return Ok(original)
     }
   }
+  self.journal.admitted_adoption = None
   match current() {
     Ok(_) => ()
     Err(issue) => return Err(issue)
