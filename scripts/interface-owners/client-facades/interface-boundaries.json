@@ -8159,7 +8159,7 @@
     {
       "module": "packages/sdk/internal/checkpoint-operations.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "4d29820be9b89aa5f45e7524b499ed51e24bf209d42d1c33d664173fc5a7a5cf",
+      "sha256": "9a44a58638d3ae3daeaf4ba32b29c8cacc7b42d28cba66eac9ef77701f7b3ce0",
       "exports": [
         "createCheckpointOperations"
       ],
@@ -8248,13 +8248,6 @@
         },
         {
           "name": "createCheckpointOperations/operations/operations/operations#2",
-          "parameters": [
-            "item"
-          ],
-          "async": false
-        },
-        {
-          "name": "createCheckpointOperations/operations/operations/operations#3",
           "parameters": [
             "result"
           ],
@@ -8513,7 +8506,6 @@
             "createCheckpointOperations/operations/operations/bytes/bytes",
             "createCheckpointOperations/operations/operations/operations",
             "createCheckpointOperations/operations/operations/operations#2",
-            "createCheckpointOperations/operations/operations/operations#3",
             "createCheckpointOperations/operations/operations#2",
             "createCheckpointOperations/operations/operations#3",
             "createCheckpointOperations/operations/operations#4",
@@ -10630,7 +10622,7 @@
     {
       "module": "packages/sdk/internal/result-read.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "f27d8baec6de4c6e20035ef62a4b1e8d69d051697a65e6660e2a46ff024a64b5",
+      "sha256": "98ef1109eb768e36823a9208d82baeb86a1c2136242832ca7666c382660ea3e8",
       "exports": [
         "captureQueryResultRead",
         "collectCapturedResult",
