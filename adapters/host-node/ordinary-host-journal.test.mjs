@@ -17,6 +17,8 @@ async function fixture() {
 
 test('ordinary actual Journal opens independent Hosts and reopens the same saved state in one process', async () => {
   const a = await fixture(), b = await fixture();
+  assert.equal(await a.view.admitRootFormat(a.root), 'new');
+  assert.equal(await b.view.admitRootFormat(b.root), 'new');
   const ja = await a.view.openRequestJournal(join(a.root, 'requests'), {});
   const jb = await b.view.openRequestJournal(join(b.root, 'requests'), {});
   assert.equal(observeOriginalClientRequestJournalCustody(ja).databaseClosed, false);
@@ -28,6 +30,7 @@ test('ordinary actual Journal opens independent Hosts and reopens the same saved
   assert.equal(observeOriginalClientRequestJournalCustody(ja).observationDatabaseClosed, true);
   b.view.assertCurrent();
   const reopened = await prepareHostJournalInstallation(a.originals);
+  assert.equal(await reopened.admitRootFormat(a.root), 'current');
   const ja2 = await reopened.openRequestJournal(join(a.root, 'requests'), {});
   assert.notStrictEqual(ja2, ja);
   assert.equal((await reopened.close()).pending, false);

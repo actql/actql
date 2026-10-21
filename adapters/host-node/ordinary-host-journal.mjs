@@ -121,6 +121,7 @@ export function prepareOrdinaryHostJournal(originals) {
       // The same exclusion also serializes explicitly authorized first
       // setup, before its external configuration/key files are created.
       await retainOwnership(); current();
+      return rootFormatAdmission;
     },
     openRequestJournal(directory, options) {
       current();

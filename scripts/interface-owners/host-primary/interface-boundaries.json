@@ -4448,7 +4448,7 @@
     },
     {
       "module": "adapters/host-node/embedded-local.mjs",
-      "sha256": "51947b905f0ccc6e8866bd05bf82fea1ec01ca9c51771b6d8db8eef9bf957805",
+      "sha256": "6ef8f0684205cdcbfd5dd47c8f384f9b28fee8fccc2d43b1a83ed4e781aafbd3",
       "exports": [
         "admitOriginalHostRootFormat",
         "assertInitialControlHostPreparation",
@@ -4818,6 +4818,15 @@
         {
           "name": "connectEmbeddedLocal/preparation/init:prepareResultPublication/init:prepareResultPublication/init:prepareResultPublication",
           "parameters": [],
+          "async": true
+        },
+        {
+          "name": "connectEmbeddedLocal/preparation/init:prepareStandardAccount/init:prepareStandardAccount",
+          "parameters": [
+            "principal",
+            "operatorAuthorization",
+            "rootCreation"
+          ],
           "async": true
         },
         {
@@ -5324,6 +5333,20 @@
           "async": false
         },
         {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/configuredConnections/configuredConnections",
+          "parameters": [
+            "source"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/configuredConnections/configuredConnections/configuredConnections",
+          "parameters": [
+            "access"
+          ],
+          "async": false
+        },
+        {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/continueAcceptedCancellation/continueAcceptedCancellation",
           "parameters": [
             "ref",
@@ -5676,6 +5699,21 @@
             "value"
           ],
           "async": true
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/modelTasks/modelTasks",
+          "parameters": [
+            "entry"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/modelTasks/modelTasks#2",
+          "parameters": [
+            "left",
+            "right"
+          ],
+          "async": false
         },
         {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/observeHeldRun/observeHeldRun",
@@ -7337,6 +7375,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Preparation responsibility belongs to the existing Host instance"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "## Standard Local Account initialization"
               }
             ],
             "inputsOutputs": [
@@ -7453,6 +7495,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "options = readInitialControlInstallationInput(control, originals);"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const controlConnection = authorization?.siteKey ?? 'actql-remote-host';"
               }
             ],
             "ownership": [
@@ -7511,6 +7557,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Reference ownership follows the actual Host record and its real children."
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "standardAccountPreparation = await preparation.prepareStandardAccount("
               }
             ],
             "synchronization": [
@@ -7569,6 +7619,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "const begun = beginInitialControlInstallation(originals, options);"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "authorization = await standardAccountPreparation.adopt(moon, {"
               }
             ],
             "failure": [
@@ -10173,6 +10227,78 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "connectEmbeddedLocal/preparation/init:prepareStandardAccount/init:prepareStandardAccount",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/configuredConnections/configuredConnections",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/configuredConnections/configuredConnections/configuredConnections",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/modelTasks/modelTasks",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/modelTasks/modelTasks#2"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "## Standard Local Account initialization"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/ordinary-local-account.mjs",
+                "anchor": "export async function prepareOrdinaryLocalAccount({root, principal, preparedOriginal,"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/ordinary-local-account.mjs",
+                "anchor": "adopted.initialization_cid !== initializationCid"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/ordinary-local-account.mjs",
+                "anchor": "const current = () => assertOriginalPreparedLocalPublicationStoreOwnership("
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/ordinary-local-account.mjs",
+                "anchor": "await adoptHostRootAccount(root, preparedOriginal, record);"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/ordinary-local-account.mjs",
+                "anchor": "if (rootCreation !== 'new') fail('LocalAccountFirstInitializationUnavailable');"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/ordinary-local-account.mjs",
+                "anchor": "Reflect.apply(originalStatus, originalStore, []).closed !== false"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/ordinary-local-account.mjs",
+                "anchor": "const maximum = 1_000_000;"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/spec/execution.md",
+                "anchor": "policy-routing.standard-local-bootstrap"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/ordinary-local-account.test.mjs",
+                "anchor": "test('ordinary Local preserves current Deny on the same Host and after reopening'"
+              }
+            ]
+          }
         }
       ],
       "imports": [
@@ -10261,6 +10387,7 @@
         "./node-initial-control-installation.mjs",
         "./node-source-managed-installation.mjs",
         "./ordinary-host-journal.mjs",
+        "./ordinary-local-account.mjs",
         "./ordinary-mock-account.mjs",
         "./ordinary-source-binding.mjs",
         "./result-access.mjs",

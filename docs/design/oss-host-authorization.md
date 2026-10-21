@@ -13,6 +13,31 @@ approval. Standard Local bootstrap adoption remains the distinct initialization
 responsibility required by `policy-routing.standard-local-bootstrap`; absence
 of an adopted configuration is not an Allow.
 
+## Standard Local Account initialization
+
+The ordinary exclusive Host initializer materializes Common's complete
+standard Local profile using the actual principal, control connection,
+configured connections and registered Task/provider pairs. These subjects
+have stable code-unit ordering, independent of process locale. An explicit
+Account configuration replaces this routing; its invalid or unreadable state
+never selects bootstrap instead. No Reviewer signer is created by adoption.
+
+The actual fresh root-format creation result may start the existing durable
+initialization intent before later Host setup. A valid same intent may resume
+that initialization. A legacy two-field format marker alone does not establish
+either condition. The same prepared Store exclusion protects the intent,
+materialized configuration and durable Host adoption reference. Adoption is
+confirmed before any protected dispatch uses the profile. File and directory
+sync failures retain their original uncertainty and cleanup duties.
+
+The retained profile material and initialization reference are not current
+permission. Every protected operation still observes the selected Account;
+operator restrictions, including Deny, are neither merged nor overwritten.
+After materialization a missing configuration is refused, and an adopted Host
+with a missing intent, material, configuration or Store is not initialized
+again. Reopening retains the same Account identity and durable originals,
+without depending on cross-process pointer identity or restoring old grants.
+
 ## Original Checkpoint ID answers and SDK reference views
 
 An original-answer callback remains responsible for key custody and current

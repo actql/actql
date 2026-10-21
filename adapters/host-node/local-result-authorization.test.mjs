@@ -30,6 +30,8 @@ async function fixture(t, options = {}) {
     principalId: 'person', namespaceId: 'local', authorityScopeCid: scope});
   return {authorize, admissions: () => admissions,
     change: outcome => writeFile(accountConfig, configuration(outcome)),
+    foreign: () => writeFile(accountConfig, JSON.stringify({
+      ...JSON.parse(configuration('allow')), account_id: 'different-account'})),
     remove: () => unlink(accountConfig),
     corrupt: () => writeFile(accountConfig, '{invalid')};
 }
@@ -58,6 +60,13 @@ test('Local Result Account does not substitute another principal scope or name',
     {...facts, indexKey: {...facts.indexKey, namespaceId: 'other'}}]) {
     assert.equal(await f.authorize(wrong), false);
   }
+});
+
+test('Local Result cannot replace its installed Account with another valid Account', async t => {
+  const f = await fixture(t);
+  assert.equal(await f.authorize(facts), true);
+  await f.foreign();
+  assert.equal(await f.authorize(facts), false);
 });
 
 test('Local Result Delegate needs the existing immediate configured answer', async t => {

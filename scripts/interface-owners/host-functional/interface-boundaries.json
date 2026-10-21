@@ -30511,11 +30511,13 @@
     {
       "module": "adapters/host-node/host-root-format.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "74dc6bae58c65c2dd18db68dffde91da02620a5572b2ee9db12c998ca9431ec4",
+      "sha256": "d1108e2cf61d0561701aa8f57dfdf465f09563a3b03b17959a4cf93c2bc13255",
       "role": "physical-io",
       "owner": "Existing installed Host lifecycle/Connector registration Owners; no caller-selected runtime",
       "exports": [
-        "admitHostRootFormat"
+        "admitHostRootFormat",
+        "adoptHostRootAccount",
+        "readHostRootAccountAdoption"
       ],
       "operations": [
         {
@@ -30563,12 +30565,69 @@
           "async": true
         },
         {
+          "name": "adoptHostRootAccount",
+          "parameters": [
+            "root",
+            "preparedOriginal",
+            "supplied"
+          ],
+          "async": true
+        },
+        {
+          "name": "adoptHostRootAccount/adoptHostRootAccount",
+          "parameters": [
+            "path"
+          ],
+          "async": false
+        },
+        {
+          "name": "adoptHostRootAccount/adoptHostRootAccount#2",
+          "parameters": [
+            "original"
+          ],
+          "async": true
+        },
+        {
+          "name": "adoptHostRootAccount/adoptHostRootAccount#3",
+          "parameters": [
+            "path"
+          ],
+          "async": false
+        },
+        {
+          "name": "adoptHostRootAccount/adoptHostRootAccount#4",
+          "parameters": [
+            "original"
+          ],
+          "async": false
+        },
+        {
+          "name": "adoptHostRootAccount/assertCurrent/assertCurrent",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "cid/cid",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
           "name": "entryExists",
           "parameters": [
             "root",
             "name"
           ],
           "async": true
+        },
+        {
+          "name": "exact/exact",
+          "parameters": [
+            "value",
+            "keys"
+          ],
+          "async": false
         },
         {
           "name": "firstEntry",
@@ -30598,6 +30657,28 @@
           "parameters": [
             "code",
             "root"
+          ],
+          "async": false
+        },
+        {
+          "name": "readHostRootAccountAdoption",
+          "parameters": [
+            "root",
+            "preparedOriginal"
+          ],
+          "async": true
+        },
+        {
+          "name": "validAccountAdoption",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "validAccountAdoption/validAccountAdoption",
+          "parameters": [
+            "text"
           ],
           "async": false
         }
@@ -30705,7 +30786,7 @@
             "synchronization": [
               {
                 "path": "adapters/host-node/host-root-format.mjs",
-                "anchor": "import {lstat, mkdir, open, opendir} from 'node:fs/promises';"
+                "anchor": "import {lstat, mkdir, open, opendir, rename} from 'node:fs/promises';"
               },
               {
                 "path": "docs/design/connector-layout.md",
@@ -30823,12 +30904,95 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "adoptHostRootAccount",
+            "adoptHostRootAccount/adoptHostRootAccount",
+            "adoptHostRootAccount/adoptHostRootAccount#2",
+            "adoptHostRootAccount/adoptHostRootAccount#3",
+            "adoptHostRootAccount/adoptHostRootAccount#4",
+            "adoptHostRootAccount/assertCurrent/assertCurrent",
+            "cid/cid",
+            "exact/exact",
+            "readHostRootAccountAdoption",
+            "validAccountAdoption",
+            "validAccountAdoption/validAccountAdoption"
+          ],
+          "exports": [
+            "adoptHostRootAccount",
+            "readHostRootAccountAdoption"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "## Standard Local Account initialization"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/ordinary-local-account.mjs",
+                "anchor": "export async function prepareOrdinaryLocalAccount({root, principal, preparedOriginal,"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/ordinary-local-account.mjs",
+                "anchor": "adopted.initialization_cid !== initializationCid"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/ordinary-local-account.mjs",
+                "anchor": "const current = () => assertOriginalPreparedLocalPublicationStoreOwnership("
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/ordinary-local-account.mjs",
+                "anchor": "await adoptHostRootAccount(root, preparedOriginal, record);"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/ordinary-local-account.mjs",
+                "anchor": "if (rootCreation !== 'new') fail('LocalAccountFirstInitializationUnavailable');"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/ordinary-local-account.mjs",
+                "anchor": "Reflect.apply(originalStatus, originalStore, []).closed !== false"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/ordinary-local-account.mjs",
+                "anchor": "const maximum = 1_000_000;"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/spec/execution.md",
+                "anchor": "policy-routing.standard-local-bootstrap"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/ordinary-local-account.test.mjs",
+                "anchor": "test('ordinary Local preserves current Deny on the same Host and after reopening'"
+              }
+            ]
+          }
         }
       ],
       "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred.",
       "imports": [
+        "../store-local/publication-store.mjs",
         "./host-journal-directory.mjs",
         "./source-profile-json.mjs",
+        "node:crypto",
         "node:fs",
         "node:fs/promises",
         "node:path"
@@ -70998,7 +71162,7 @@
     },
     {
       "module": "adapters/host-node/ordinary-host-journal.mjs",
-      "sha256": "d18491bc70ac6cdc34873b8e6d22e84a1209fca7e9de7aa515d1b4e7c9feea09",
+      "sha256": "60f0974fc78d9baadb7edd83c41a8a3027070a65a987c469cd3193da68b1e9ec",
       "exports": [
         "ordinaryHostJournalInstallation",
         "prepareOrdinaryHostJournal"
@@ -75391,7 +75555,7 @@
     {
       "module": "adapters/host-node/local-result-authorization.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "3a23e3d5343aabaa8a4957fe571b4d0decf17bd0a19ca18d105a1b66461c5384",
+      "sha256": "b39396722768e97a7b3210f71c16ceaa23b06581e97543be254c2abc34c4c7c1",
       "role": "physical-io",
       "owner": "Existing installed Local Host Result access and Common execution-authorization Owners",
       "exports": [
@@ -75491,6 +75655,229 @@
               {
                 "path": "adapters/host-node/local-result-authorization.test.mjs",
                 "anchor": "test('Local Result reads evaluate the actual current Account without repeated admission'"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "adapters/host-node/ordinary-local-account.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "e8b47f7ba7333f685cccd120f04e909102720ae13789f1f3b8605c1225a29371",
+      "role": "physical-io",
+      "owner": "Existing ordinary Local Host/Account initialization and Store exclusion Owners",
+      "exports": [
+        "prepareOrdinaryLocalAccount"
+      ],
+      "operations": [
+        {
+          "name": "exact/exact",
+          "parameters": [
+            "value",
+            "fields"
+          ],
+          "async": false
+        },
+        {
+          "name": "fail/fail",
+          "parameters": [
+            "code",
+            "cause"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryLocalAccount",
+          "parameters": [
+            "root",
+            "principal",
+            "preparedOriginal",
+            "rootCreation",
+            "operatorAuthorization"
+          ],
+          "async": true
+        },
+        {
+          "name": "prepareOrdinaryLocalAccount/createOriginal",
+          "parameters": [
+            "path",
+            "wire",
+            "parent"
+          ],
+          "async": true
+        },
+        {
+          "name": "prepareOrdinaryLocalAccount/createOriginal/createOriginal",
+          "parameters": [
+            "original"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryLocalAccount/createOriginal/createOriginal#2",
+          "parameters": [
+            "handle"
+          ],
+          "async": true
+        },
+        {
+          "name": "prepareOrdinaryLocalAccount/current/current",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryLocalAccount/init:adopt/init:adopt",
+          "parameters": [
+            "moon",
+            "subjects",
+            "store"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryLocalAccount/init:adopt/init:adopt/init:adopt",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "prepareOrdinaryLocalAccount/parse/parse",
+          "parameters": [
+            "wire"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryLocalAccount/prepareOrdinaryLocalAccount",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryLocalAccount/readOptional",
+          "parameters": [
+            "path"
+          ],
+          "async": true
+        },
+        {
+          "name": "prepareOrdinaryLocalAccount/syncDirectory/syncDirectory",
+          "parameters": [
+            "path"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryLocalAccount/syncDirectory/syncDirectory/syncDirectory",
+          "parameters": [
+            "original"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryLocalAccount/syncDirectory/syncDirectory/syncDirectory#2",
+          "parameters": [
+            "original"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "../host-common/compiler-binding.generated.mjs",
+        "../host-common/runtime-result.mjs",
+        "../store-local/publication-store.mjs",
+        "./host-root-format.mjs",
+        "./local-account-config.mjs",
+        "./source-profile-json.mjs",
+        "node:crypto",
+        "node:fs/promises",
+        "node:path"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "exact/exact",
+            "fail/fail",
+            "prepareOrdinaryLocalAccount",
+            "prepareOrdinaryLocalAccount/createOriginal",
+            "prepareOrdinaryLocalAccount/createOriginal/createOriginal",
+            "prepareOrdinaryLocalAccount/createOriginal/createOriginal#2",
+            "prepareOrdinaryLocalAccount/current/current",
+            "prepareOrdinaryLocalAccount/init:adopt/init:adopt",
+            "prepareOrdinaryLocalAccount/init:adopt/init:adopt/init:adopt",
+            "prepareOrdinaryLocalAccount/parse/parse",
+            "prepareOrdinaryLocalAccount/prepareOrdinaryLocalAccount",
+            "prepareOrdinaryLocalAccount/readOptional",
+            "prepareOrdinaryLocalAccount/syncDirectory/syncDirectory",
+            "prepareOrdinaryLocalAccount/syncDirectory/syncDirectory/syncDirectory",
+            "prepareOrdinaryLocalAccount/syncDirectory/syncDirectory/syncDirectory#2"
+          ],
+          "exports": [
+            "prepareOrdinaryLocalAccount"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "## Standard Local Account initialization"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/ordinary-local-account.mjs",
+                "anchor": "export async function prepareOrdinaryLocalAccount({root, principal, preparedOriginal,"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/ordinary-local-account.mjs",
+                "anchor": "adopted.initialization_cid !== initializationCid"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/ordinary-local-account.mjs",
+                "anchor": "const current = () => assertOriginalPreparedLocalPublicationStoreOwnership("
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/ordinary-local-account.mjs",
+                "anchor": "await adoptHostRootAccount(root, preparedOriginal, record);"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/ordinary-local-account.mjs",
+                "anchor": "if (rootCreation !== 'new') fail('LocalAccountFirstInitializationUnavailable');"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/ordinary-local-account.mjs",
+                "anchor": "Reflect.apply(originalStatus, originalStore, []).closed !== false"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/ordinary-local-account.mjs",
+                "anchor": "const maximum = 1_000_000;"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/spec/execution.md",
+                "anchor": "policy-routing.standard-local-bootstrap"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/ordinary-local-account.test.mjs",
+                "anchor": "test('ordinary Local preserves current Deny on the same Host and after reopening'"
               }
             ]
           }

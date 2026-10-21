@@ -161,6 +161,7 @@ import {EFFECT_TARGET_CONTINUATION} from './effect-target-read-inventory.mjs';
 import {canonicalJson, contentCid, createLocalAuthorizationGate,
   observeInstalledAccount} from './local-account-config.mjs';
 import {createLocalResultAuthorization} from './local-result-authorization.mjs';
+import {prepareOrdinaryLocalAccount} from './ordinary-local-account.mjs';
 import {localContractLimits, localOutputLimits,
   sourceFreeValuesPlan, sourceFreeValuesAdmissionEvidence, sourceFreePlanOriginal, sourceFreeTaskPlan,
   sourceFreeEffectPublicationPlan, acquiredEffectPublicationAdmission,
@@ -711,6 +712,7 @@ async function openInstalledHost(originalInstallation, preparation) {
   let projectTasks;
   let mockModels;
   let mockAccount;
+  let standardAccountPreparation;
   let localCheckpointAnswer, localSigningMetadata;
   const localSigningRecoveries = new Set();
   let store;
@@ -797,6 +799,7 @@ async function openInstalledHost(originalInstallation, preparation) {
     localSigningMetadata?.retireMetadataView();
     localSigningMetadata = localCheckpointAnswer = undefined;
     mockAccount = undefined;
+    standardAccountPreparation = undefined;
   }
   function retireModelRuntime() {
     if (modelRuntimeView !== undefined) {
@@ -841,11 +844,18 @@ async function openInstalledHost(originalInstallation, preparation) {
   // The actual Journal facility precedes even root-format creation/fsync.
   // Initial control and Source/Compute admissions cannot cover this write.
   if (preparation !== undefined) await preparation.prepareHostJournal();
-  if (preparation === undefined) await admitHostRootFormat(root);
-  else await preparation.admitRootFormat(root);
+  const rootCreation = preparation === undefined ? await admitHostRootFormat(root)
+    : await preparation.admitRootFormat(root);
   const originalSourcePreparation = preparation?.sourcePreparation();
   const mockSourceInstallation = originalSourcePreparation !== undefined &&
     projectProfile?.originalsForRuntime(projectRuntime).selected === 'mock';
+  if (!mockSourceInstallation && mode === 'local' && preparation !== undefined) {
+    // Save the actual first initialization before later Source/Model/Store
+    // setup can fail. A current marker with no reference is not permission
+    // to recreate a missing Account; only this same intent can resume it.
+    standardAccountPreparation = await preparation.prepareStandardAccount(
+      principalId, authorization, rootCreation);
+  }
   if (!mockSourceInstallation && registerModelProviders !== undefined) {
     // The normal Host trusts its supported platform and embedding application.
     // Retain the actual installation/currentness identity, not an exact patch,
@@ -1200,9 +1210,11 @@ async function openInstalledHost(originalInstallation, preparation) {
       assertProjectRuntime();
     }
     if (installedEffect !== undefined) {
-      if (authorization === undefined) {
+      if (authorization === undefined && standardAccountPreparation === undefined) {
         throw new TypeError('InstalledEffectAuthorizationRequired');
       }
+      // This constructs inert installed metadata only. Standard bootstrap is
+      // still pending; no protected dispatch precedes its actual adoption.
       effectInstallation = createInstalledEffectSite({
         ...(installedEffect.effects === undefined ? installedEffect : {}),
         environmentWire: installedEffect.environmentWire,
@@ -1578,6 +1590,20 @@ async function openInstalledHost(originalInstallation, preparation) {
       ? await openLocalPublicationStore(storeOptions, control, undefined, undefined, publicationOwnership)
       : await preparation.openResultPublicationStore(storeOptions, control);
     if (mockAccount !== undefined) await mockAccount.adoptStore(store);
+    if (standardAccountPreparation !== undefined) {
+      const configuredConnections = [...new Set((sourceProfile?.sources ??
+        (sourceProfile === undefined ? [] : [sourceProfile]))
+        .flatMap(source => installedSourceReadAccesses(source).map(access => access.connection)))].sort();
+      const modelTasks = (projectTasks?.originalsForRuntime(moon) ?? [])
+        .map(entry => [entry.providerId, entry.taskCid])
+        .sort((left, right) => left[0] < right[0] ? -1 : left[0] > right[0] ? 1
+          : left[1] < right[1] ? -1 : left[1] > right[1] ? 1 : 0);
+      const controlConnection = authorization?.siteKey ?? 'actql-remote-host';
+      authorization = await standardAccountPreparation.adopt(moon, {
+        controlConnection, configuredConnections, modelTasks,
+        requestTarget: [controlConnection, sourceProfile?.realizationKey ?? REALIZATION_KEY],
+      }, store);
+    }
     } catch (cause) {
       // This same Store opener may retain a child whose release depends on
       // the already acquired Journal. Its initializer has not started any
@@ -5168,6 +5194,15 @@ export async function connectEmbeddedLocal(options, initialEntry) {
         bindingCid: sourceBinding.bindingCid,
         ledgerRoot: join(originalInstallation.root, 'state', 'effects', 'ledger'),
         assertCurrent: () => assertSourceManagedInstallationCurrent(sourceManaged, originals)});
+    },
+    async prepareStandardAccount(principal, operatorAuthorization, rootCreation) {
+      assertInitialControlHostPreparation(originals);
+      const journal = ordinaryHostJournalInstallation(originals);
+      const ownership = journal.privateEvidenceInitializationOwnership();
+      const prepared = await prepareOrdinaryLocalAccount({root: originalInstallation.root,
+        principal, preparedOriginal: ownership, rootCreation, operatorAuthorization});
+      assertInitialControlHostPreparation(originals);
+      return prepared;
     },
     async initializeMockAccount(runtime, principal, operatorAuthorization, models) {
       if (runtime !== moon || mockPreparation === undefined || project === undefined) {
