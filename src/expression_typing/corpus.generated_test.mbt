@@ -1367,6 +1367,21 @@ test "expression type corpus accepted: 272" {
 }
 
 ///|
+test "expression type corpus accepted: 273" {
+  assert_type("\"try_timestamp('1970-01-01T00:00:00.123456789Z')\"", corpus_fields(), corpus_parameters(), "{\"type\":\"timestamp\",\"nullable\":true}")
+}
+
+///|
+test "expression type corpus accepted: 274" {
+  assert_type("\"try_timestamp(NULL)\"", corpus_fields(), corpus_parameters(), "{\"type\":\"timestamp\",\"nullable\":true}")
+}
+
+///|
+test "expression type corpus accepted: 275" {
+  assert_type("\"try_timestamp(s)\"", corpus_fields(), corpus_parameters(), "{\"type\":\"timestamp\",\"nullable\":true}")
+}
+
+///|
 test "expression type corpus rejected: 1" {
   assert_rejected("\"missing\"", corpus_fields(), corpus_parameters(), "UnknownField")
 }
@@ -3139,4 +3154,24 @@ test "expression type corpus rejected: 354" {
 ///|
 test "expression type corpus rejected: 355" {
   assert_rejected("\"decimal_divide(d,'8',3)\"", corpus_fields(), corpus_parameters(), "TypeMismatch")
+}
+
+///|
+test "expression type corpus rejected: 356" {
+  assert_rejected("\"try_timestamp(1)\"", corpus_fields(), corpus_parameters(), "TypeMismatch")
+}
+
+///|
+test "expression type corpus rejected: 357" {
+  assert_rejected("\"try_timestamp(TRUE)\"", corpus_fields(), corpus_parameters(), "TypeMismatch")
+}
+
+///|
+test "expression type corpus rejected: 358" {
+  assert_rejected("\"try_timestamp(unknown_timestamp)\"", corpus_fields(), corpus_parameters(), "UnknownField")
+}
+
+///|
+test "expression type corpus rejected: 359" {
+  assert_rejected("\"try_timestamp($unknown_timestamp)\"", corpus_fields(), corpus_parameters(), "UnknownParameter")
 }

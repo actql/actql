@@ -229,7 +229,8 @@ fn body_fields(tag : String) -> (Array[String], Array[String]) {
     "substring" => ["value", "start"]
     "utf8_truncate" => ["value", "max_bytes"]
     "try_number" => ["value"]
-    "parse_timestamp" | "try_timestamp" | "format_timestamp" | "regex_match" =>
+    "try_timestamp" => ["value"]
+    "parse_timestamp" | "format_timestamp" | "regex_match" =>
       ["value", "pattern"]
     "regex_extract" => ["value", "pattern", "capture"]
     "regex_replace" => ["value", "pattern", "replacement"]
@@ -239,6 +240,9 @@ fn body_fields(tag : String) -> (Array[String], Array[String]) {
   let allowed = required.copy()
   if tag == "substring" {
     allowed.push("length")
+  }
+  if tag == "try_timestamp" {
+    allowed.push("pattern")
   }
   if tag == "case" {
     allowed.push("else")

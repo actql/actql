@@ -1,6 +1,6 @@
 ///|
 priv enum LocalCompletionFreeAudit {
-  DecimalSumAudit(LocalCompletionFreeAudit)
+  ScalarCapabilitiesAudit(LocalCompletionFreeAudit, Bool, Bool)
   Complete(Int, @parameters.BoundValues?, Bool, Bool, Bool, Bool, Bool, Bool)
   DistinctComplete(
     Int,
@@ -112,7 +112,7 @@ fn local_audit_base(
   audit : LocalCompletionFreeAudit,
 ) -> LocalCompletionFreeAudit {
   match audit {
-    DecimalSumAudit(original) => original
+    ScalarCapabilitiesAudit(original, _, _) => original
     _ => audit
   }
 }
@@ -120,12 +120,13 @@ fn local_audit_base(
 ///|
 // Mark only the existing successful audit, retaining its original completion
 // entries and feature flags. No second Program traversal or new rule is issued.
-fn local_decimal_sum_audit(
+fn local_scalar_capabilities_audit(
   audit : LocalCompletionFreeAudit,
   decimal_sum : Bool,
+  unary_timestamp : Bool,
 ) -> LocalCompletionFreeAudit {
-  if decimal_sum {
-    DecimalSumAudit(audit)
+  if decimal_sum || unary_timestamp {
+    ScalarCapabilitiesAudit(audit, decimal_sum, unary_timestamp)
   } else {
     audit
   }
@@ -729,6 +730,7 @@ fn audit_local_completion_free_units(
   let mut checked_expressions = false
   let mut groups = false
   let mut decimal_sums = false
+  let mut unary_timestamps = false
   let mut takes = false
   let mut sorts = false
   let mut distincts = false
@@ -900,6 +902,13 @@ fn audit_local_completion_free_units(
                 ImplicitNull => return CompletionObserved
                 Expression("template", _) => return CompletionObserved
                 Expression("cast", _) => explicit_cast = true
+                Expression("try_timestamp", _) =>
+                  if @typing.child_count(expression, node) == Some(1) {
+                    checked_expressions = true
+                    unary_timestamps = true
+                  } else {
+                    return ProfileNotInstalled
+                  }
                 Expression("$param", _) =>
                   if bound_parameters is None {
                     return ProfileNotInstalled
@@ -944,7 +953,7 @@ fn audit_local_completion_free_units(
     guard canonical_local_sort_entries(sort_entries, remaining) is Some(left) else {
       return ProfileNotInstalled
     }
-    return local_decimal_sum_audit(
+    return local_scalar_capabilities_audit(
       if joins {
         JoinSortCompleted(
           10000 - left,
@@ -985,10 +994,11 @@ fn audit_local_completion_free_units(
         SortCompleted(10000 - left, sort_entries, defaulted_parameters)
       },
       decimal_sums,
+      unary_timestamps,
     )
   }
   if joins {
-    return local_decimal_sum_audit(
+    return local_scalar_capabilities_audit(
       JoinComplete(
         10000 - remaining,
         bound_parameters,
@@ -1004,10 +1014,11 @@ fn audit_local_completion_free_units(
         defaulted_parameters,
       ),
       decimal_sums,
+      unary_timestamps,
     )
   }
   if assertions {
-    return local_decimal_sum_audit(
+    return local_scalar_capabilities_audit(
       AssertionComplete(
         10000 - remaining,
         bound_parameters,
@@ -1022,10 +1033,11 @@ fn audit_local_completion_free_units(
         defaulted_parameters,
       ),
       decimal_sums,
+      unary_timestamps,
     )
   }
   if dedupes {
-    return local_decimal_sum_audit(
+    return local_scalar_capabilities_audit(
       DedupeComplete(
         10000 - remaining,
         bound_parameters,
@@ -1039,10 +1051,11 @@ fn audit_local_completion_free_units(
         defaulted_parameters,
       ),
       decimal_sums,
+      unary_timestamps,
     )
   }
   if sets {
-    return local_decimal_sum_audit(
+    return local_scalar_capabilities_audit(
       SetComplete(
         10000 - remaining,
         bound_parameters,
@@ -1055,10 +1068,11 @@ fn audit_local_completion_free_units(
         defaulted_parameters,
       ),
       decimal_sums,
+      unary_timestamps,
     )
   }
   if distincts {
-    return local_decimal_sum_audit(
+    return local_scalar_capabilities_audit(
       DistinctComplete(
         10000 - remaining,
         bound_parameters,
@@ -1070,9 +1084,10 @@ fn audit_local_completion_free_units(
         defaulted_parameters,
       ),
       decimal_sums,
+      unary_timestamps,
     )
   }
-  local_decimal_sum_audit(
+  local_scalar_capabilities_audit(
     Complete(
       10000 - remaining,
       bound_parameters,
@@ -1084,6 +1099,7 @@ fn audit_local_completion_free_units(
       defaulted_parameters,
     ),
     decimal_sums,
+    unary_timestamps,
   )
 }
 
@@ -1183,7 +1199,8 @@ pub fn local_program_completion_free_inventory(
         ),
         joins: local_audit_uses_join(owner.local_completion_free_audit),
       })
-    ProfileNotInstalled | DecimalSumAudit(_) => Err(ProfileNotInstalled)
+    ProfileNotInstalled | ScalarCapabilitiesAudit(_, _, _) =>
+      Err(ProfileNotInstalled)
     CompletionObserved
     | SortCompleted(_, _, _)
     | DistinctSortCompleted(_, _, _)
@@ -1330,5 +1347,15 @@ pub fn local_completion_free_inventory_uses_join(
 pub fn local_completion_free_inventory_uses_decimal_sum(
   inventory : LocalCompletionFreeInventory,
 ) -> Bool {
-  inventory.owner.local_completion_free_audit is DecimalSumAudit(_)
+  inventory.owner.local_completion_free_audit
+  is ScalarCapabilitiesAudit(_, true, _)
+}
+
+///|
+/// Read-only metadata from the same original unary conversion audit.
+pub fn local_completion_free_inventory_uses_unary_timestamp(
+  inventory : LocalCompletionFreeInventory,
+) -> Bool {
+  inventory.owner.local_completion_free_audit
+  is ScalarCapabilitiesAudit(_, _, true)
 }

@@ -1652,6 +1652,26 @@
           }
         ]
       }
+    },
+    {
+      "source": "try_timestamp($stamp)",
+      "tree": {
+        "try_timestamp": {
+          "value": {
+            "$param": "stamp"
+          }
+        }
+      }
+    },
+    {
+      "source": "try_timestamp(NULL)",
+      "tree": {
+        "try_timestamp": {
+          "value": {
+            "literal": null
+          }
+        }
+      }
     }
   ],
   "negative": [

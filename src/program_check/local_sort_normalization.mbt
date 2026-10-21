@@ -245,7 +245,8 @@ pub fn local_program_sort_normalization_inventory(
         }),
       )
     CompletionObserved => Err(CompletionObserved)
-    ProfileNotInstalled | DecimalSumAudit(_) => Err(ProfileNotInstalled)
+    ProfileNotInstalled | ScalarCapabilitiesAudit(_, _, _) =>
+      Err(ProfileNotInstalled)
   }
 }
 
@@ -378,5 +379,15 @@ pub fn local_sort_normalization_inventory_uses_join(
 pub fn local_sort_normalization_inventory_uses_decimal_sum(
   inventory : LocalSortNormalizationInventory,
 ) -> Bool {
-  inventory.owner.local_completion_free_audit is DecimalSumAudit(_)
+  inventory.owner.local_completion_free_audit
+  is ScalarCapabilitiesAudit(_, true, _)
+}
+
+///|
+/// The same unary original retains actual Source/Sort completion entries.
+pub fn local_sort_normalization_inventory_uses_unary_timestamp(
+  inventory : LocalSortNormalizationInventory,
+) -> Bool {
+  inventory.owner.local_completion_free_audit
+  is ScalarCapabilitiesAudit(_, _, true)
 }

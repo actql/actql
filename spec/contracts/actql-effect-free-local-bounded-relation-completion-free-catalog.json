@@ -153,6 +153,7 @@
       "trunc",
       "try_decimal",
       "try_number",
+      "try_timestamp",
       "typed_literal",
       "unicode",
       "upper",
@@ -202,7 +203,10 @@
     "join_roots": "all-original-Values-roots-and-units-under-same-10000-work-limit; maximum-one-selected-Source",
     "decimal_sum_domain": "original-checked-Decimal-input-and-Decimal38-result-at-original-scale; Number-Sum-and-Avg-require-separate-numeric-observation",
     "decimal_sum_scope": "same-original-group-aggregate-argument-filter-distinct-and-pending-result-checks; exact-accumulation-null-overflow-and-workspace-remain-with-existing-execution",
-    "decimal_sum_journal": "fixed-exact-aggregate-law-is-not-Source-completion; actual-Sort-and-projection-entries-retained"
+    "decimal_sum_journal": "fixed-exact-aggregate-law-is-not-Source-completion; actual-Sort-and-projection-entries-retained",
+    "unary_timestamp_domain": "original-String-canonical-UTC-or-admitted-Timestamp; nullable-result-no-domain-promotion",
+    "unary_timestamp_scope": "same-original-checked-unary-value-only-occurrence; explicit-pattern-profile-not-admitted-by-this-capability",
+    "unary_timestamp_journal": "fixed-conversion-law-is-not-Source-completion; preserve-real-Sort-projection-and-Parameter-originals"
   },
   "profile": "actql-effect-free-local-completion-free/0.1",
   "rules": [

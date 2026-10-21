@@ -90,7 +90,8 @@ fn Parser::call(
     | "try_number"
     | "nfkc"
     | "case_fold" => (1, 1)
-    "trim" | "ltrim" | "rtrim" | "round" | "trunc" | "log" => (1, 2)
+    "try_timestamp" | "trim" | "ltrim" | "rtrim" | "round" | "trunc" | "log" =>
+      (1, 2)
     "repeat"
     | "left"
     | "right"
@@ -109,7 +110,6 @@ fn Parser::call(
     | "nullif"
     | "utf8_truncate"
     | "parse_timestamp"
-    | "try_timestamp"
     | "format_timestamp" => (2, 2)
     "translate"
     | "replace"
@@ -206,8 +206,13 @@ fn Parser::call(
     "substring" => ["value", "start", "length"]
     "utf8_truncate" => ["value", "max_bytes"]
     "try_number" => ["value"]
-    "parse_timestamp" | "try_timestamp" | "format_timestamp" =>
-      ["value", "pattern"]
+    "try_timestamp" =>
+      if args.length() == 1 {
+        ["value"]
+      } else {
+        ["value", "pattern"]
+      }
+    "parse_timestamp" | "format_timestamp" => ["value", "pattern"]
     "regex_match" => ["value", "pattern", "flags"]
     "regex_extract" => ["value", "pattern", "capture", "flags"]
     "regex_replace" => ["value", "pattern", "replacement", "flags"]

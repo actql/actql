@@ -3,7 +3,9 @@ import {createHash} from 'node:crypto';
 import {readFileSync} from 'node:fs';
 import {gunzipSync} from 'node:zlib';
 import test from 'node:test';
-const read = path => JSON.parse(readFileSync(path, 'utf8'));
+const readCurrent = path => JSON.parse(readFileSync(path, 'utf8'));
+const beforeUnary = JSON.parse(gunzipSync(readFileSync('scripts/fixtures/try-timestamp-unary/predecessor.json.gz')));
+const read = path => Object.hasOwn(beforeUnary.bodies, path) ? structuredClone(beforeUnary.bodies[path]) : readCurrent(path);
 const prior = JSON.parse(gunzipSync(readFileSync('scripts/fixtures/try-number-identity/predecessor.json.gz')));
 const canonical = value => Array.isArray(value) ? '[' + value.map(canonical).join(',') + ']'
   : value !== null && typeof value === 'object' ? '{' + Object.keys(value).sort()
@@ -50,4 +52,9 @@ test('identity retains the authored operation, exact original operand and comple
     assert.deepEqual(Object.keys(record.value), ['try_number']);
     assert.deepEqual(Object.keys(record.value.try_number), ['value']);
   }
+});
+
+test('current unary Timestamp extension preserves the complete Number identity law', () => {
+  assert.deepEqual(readCurrent('spec/contracts/actql-expressions.json').laws.try_number, beforeUnary.bodies['spec/contracts/actql-expressions.json'].laws.try_number);
+  assert.deepEqual(readCurrent('spec/dependencies/aoa-rela-scalar-laws.json').conversion_truth_table.try_number, beforeUnary.bodies['spec/dependencies/aoa-rela-scalar-laws.json'].conversion_truth_table.try_number);
 });

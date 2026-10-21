@@ -17,7 +17,7 @@ const expected = {
   }
 };
 const stem='../spec/contracts/actql-effect-free-local-bounded-relation-completion-free-';
-const read=name=>JSON.parse(readFileSync(new URL(stem+name,import.meta.url),'utf8'));
+const read=name=>JSON.parse(readFileSync(new URL(stem+(['catalog.json','catalog.schema.json','fixture.json'].includes(name)?'pre-unary-timestamp-':'')+name,import.meta.url),'utf8'));
 const canonical=v=>v===null||typeof v!=='object'?JSON.stringify(v):Array.isArray(v)?'['+v.map(canonical).join(',')+']':'{'+Object.keys(v).sort().map(k=>JSON.stringify(k)+':'+canonical(v[k])).join(',')+'}';
 const cid=s=>'sha256:'+createHash('sha256').update(s).digest('hex');
 test('exact Decimal sum capability matches complete fixed predecessor and independent preimages',()=>{

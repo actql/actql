@@ -32,6 +32,9 @@ pub fn client_local_completion_free_catalog_cid() -> String {
 fn local_completion_free_catalog_cid(
   inventory : @checked.LocalCompletionFreeInventory,
 ) -> String {
+  if @checked.local_completion_free_inventory_uses_unary_timestamp(inventory) {
+    return local_unary_timestamp_catalog_cid()
+  }
   if @checked.local_completion_free_inventory_uses_decimal_sum(inventory) {
     return local_decimal_sum_catalog_cid()
   }
@@ -104,7 +107,11 @@ fn local_normalization_catalog_cid(
   match inventory {
     CompletionFree(value) => local_completion_free_catalog_cid(value)
     SortCompletion(value) =>
-      if @checked.local_sort_normalization_inventory_uses_decimal_sum(value) {
+      if @checked.local_sort_normalization_inventory_uses_unary_timestamp(value) {
+        local_unary_timestamp_catalog_cid()
+      } else if @checked.local_sort_normalization_inventory_uses_decimal_sum(
+          value,
+        ) {
         local_decimal_sum_catalog_cid()
       } else if @checked.local_sort_normalization_inventory_uses_join(value) {
         local_join_catalog_cid()
@@ -311,4 +318,9 @@ fn local_join_catalog_cid() -> String {
 ///|
 fn local_decimal_sum_catalog_cid() -> String {
   "sha256:58cc11cad4aac1d83ccb051ebe2c6cec97ffdff6de9133bdd881d6446b90d409"
+}
+
+///|
+fn local_unary_timestamp_catalog_cid() -> String {
+  "sha256:3c378529adb7b274f8f8293184087641f95e9f421c4315034e77c02a383b2dc1"
 }

@@ -1,3 +1,4 @@
+import {verifyUnaryTimestampContracts} from './try-timestamp-unary-contract.mjs';
 import {verifyDecimalDivisionContracts} from './decimal-division-exact-contract.mjs';
 import assert from 'node:assert/strict';
 import { readFileSync, writeFileSync } from 'node:fs';
@@ -47,6 +48,7 @@ export function generate(corpus, textCorpus) {
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  verifyUnaryTimestampContracts();
   verifyDecimalDivisionContracts();
   const corpus = JSON.parse(readFileSync('portability/corpus/actql-expression-syntax-v0.1.json', 'utf8'));
   const textCorpus = JSON.parse(readFileSync('portability/corpus/actql-expression-text-v0.1.json', 'utf8'));

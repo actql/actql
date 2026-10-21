@@ -721,6 +721,22 @@ test "structured expression corpus accepted: 90" {
 }
 
 ///|
+test "structured expression corpus accepted: 91" {
+  assert_tree("{\"try_timestamp\":{\"value\":{\"$param\":\"stamp\"}}}", "{\"try_timestamp\":{\"value\":{\"$param\":\"stamp\"}}}")
+  let expression = admit(source_cursor("{\"try_timestamp\":{\"value\":{\"$param\":\"stamp\"}}}"), test_limits()).unwrap()
+  assert_cursor(tree(admit(tree(expression), test_limits()).unwrap()), tree(expression))
+  assert_eq(parameter_references(expression).map(r => r.name), ["stamp"])
+}
+
+///|
+test "structured expression corpus accepted: 92" {
+  assert_tree("{\"try_timestamp\":{\"value\":{\"literal\":null}}}", "{\"try_timestamp\":{\"value\":{\"literal\":null}}}")
+  let expression = admit(source_cursor("{\"try_timestamp\":{\"value\":{\"literal\":null}}}"), test_limits()).unwrap()
+  assert_cursor(tree(admit(tree(expression), test_limits()).unwrap()), tree(expression))
+  assert_eq(parameter_references(expression).map(r => r.name), [])
+}
+
+///|
 test "structured expression corpus rejected: 1" {
   assert_true(admit(source_cursor("\"\\\"right.\\\"\""), test_limits()) is Err(_))
 }
@@ -1203,6 +1219,16 @@ test "structured expression corpus rejected: 96" {
 ///|
 test "structured expression corpus rejected: 97" {
   assert_true(admit(source_cursor("{\"LEAST\":[{\"literal\":1}]}"), test_limits()) is Err(_))
+}
+
+///|
+test "structured expression corpus rejected: 98" {
+  assert_true(admit(source_cursor("{\"try_timestamp\":{}}"), test_limits()) is Err(_))
+}
+
+///|
+test "structured expression corpus rejected: 99" {
+  assert_true(admit(source_cursor("{\"try_timestamp\":{\"value\":{\"literal\":null},\"unexpected\":false}}"), test_limits()) is Err(_))
 }
 
 ///|
@@ -1883,6 +1909,16 @@ test "common admission of text corpus: 135" {
 ///|
 test "common admission of text corpus: 136" {
   assert_tree("\"x IN items\"", "{\"in\":[{\"field\":\"x\"},{\"field\":\"items\"}]}")
+}
+
+///|
+test "common admission of text corpus: 137" {
+  assert_tree("\"try_timestamp($stamp)\"", "{\"try_timestamp\":{\"value\":{\"$param\":\"stamp\"}}}")
+}
+
+///|
+test "common admission of text corpus: 138" {
+  assert_tree("\"try_timestamp(NULL)\"", "{\"try_timestamp\":{\"value\":{\"literal\":null}}}")
 }
 
 ///|

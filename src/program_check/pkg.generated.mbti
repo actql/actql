@@ -368,6 +368,8 @@ pub fn local_completion_free_inventory_uses_sort(LocalCompletionFreeInventory) -
 
 pub fn local_completion_free_inventory_uses_take(LocalCompletionFreeInventory) -> Bool
 
+pub fn local_completion_free_inventory_uses_unary_timestamp(LocalCompletionFreeInventory) -> Bool
+
 pub fn local_completion_free_inventory_work(LocalCompletionFreeInventory) -> Int
 
 pub fn local_program_completion_free_inventory(CheckedProgram) -> Result[LocalCompletionFreeInventory, CompletionFreeInventoryIssue]
@@ -397,6 +399,8 @@ pub fn local_sort_normalization_inventory_uses_join(LocalSortNormalizationInvent
 pub fn local_sort_normalization_inventory_uses_projection(LocalSortNormalizationInventory) -> Bool
 
 pub fn local_sort_normalization_inventory_uses_set(LocalSortNormalizationInventory) -> Bool
+
+pub fn local_sort_normalization_inventory_uses_unary_timestamp(LocalSortNormalizationInventory) -> Bool
 
 pub fn local_sort_normalization_inventory_work(LocalSortNormalizationInventory) -> Int
 
