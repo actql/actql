@@ -28,6 +28,7 @@ pub(all) enum NativeClientEpochIssue {
 ///|
 struct NativeClientSubmissionEpoch {
   body : @scope.SubmissionEpoch
+  authority_scope_cid : String
   tag : Bytes
   wire : String
 }
@@ -313,19 +314,25 @@ fn NativeClientEpochAuthority::clock(
     Err(issue) => Err(issue)
     Ok((key, retained, revision)) => {
       let clock = if now > retained { now } else { retained }
-      match epoch_custody_body(key, clock) {
-        Err(issue) => Err(issue)
-        Ok(body) =>
-          compare_exchange_client_journal_value(
-            self.database,
-            "client_submission_epoch",
-            "authority",
-            revision,
-            body,
-            operations,
-          )
-          .map(_ => (key, clock))
-          .map_err(issue => Physical(issue))
+      // An already durable watermark needs no identical row rewrite. The
+      // original read transaction still requires its real COMMIT ACK below.
+      if clock == retained {
+        Ok((key, clock))
+      } else {
+        match epoch_custody_body(key, clock) {
+          Err(issue) => Err(issue)
+          Ok(body) =>
+            compare_exchange_client_journal_value(
+              self.database,
+              "client_submission_epoch",
+              "authority",
+              revision,
+              body,
+              operations,
+            )
+            .map(_ => (key, clock))
+            .map_err(issue => Physical(issue))
+        }
       }
     }
   }
@@ -426,7 +433,7 @@ fn NativeClientEpochAuthority::issue_epoch_with_operations(
     @encode.key(writer, "version")
     @encode.string_value(writer, "actql-submission-epoch/0.1")
     @encode.end_object(writer)
-    Ok({ body, tag, wire: @encode.finish(writer), })
+    Ok({ body, authority_scope_cid, tag, wire: @encode.finish(writer), })
   } catch {
     _ => Err(Encoding)
   }
@@ -447,6 +454,9 @@ pub fn admit_native_client_submission_epoch(
   @host.admit_client_submission_epoch_token(wire)
   .map(value => {
     body: @host.client_submission_epoch_token_body(value),
+    authority_scope_cid: @host.client_submission_epoch_token_authority_scope_cid(
+      value,
+    ),
     tag: @host.client_submission_epoch_token_tag(value),
     wire: @host.client_submission_epoch_token_wire(value),
   })
@@ -485,16 +495,13 @@ fn NativeClientEpochAuthority::verify_epoch_with_operations(
   if !current_authorization {
     return Err(AuthorizationDenied)
   }
-  match self.clock(now, operations~) {
-    Ok(_) => ()
+  let (key, clock) = match self.clock(now, operations~) {
+    Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  self.verify_epoch_locked(
-    epoch,
-    authority_scope_cid,
-    current_authorization,
-    reads=operations.map(original => original.reads),
-  )
+  // clock() just observed this original and acknowledged its watermark. No
+  // application callback or reentry separates these two synchronous steps.
+  self.verify_epoch_with_custody(epoch, authority_scope_cid, key, clock)
 }
 
 ///|
@@ -519,6 +526,24 @@ fn NativeClientEpochAuthority::verify_epoch_locked(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
+  self.verify_epoch_with_custody(epoch, authority_scope_cid, key, clock)
+}
+
+///|
+// Only the immediately preceding actual custody read reaches this private
+// helper. It is not an external key/capacity/admission constructor.
+fn NativeClientEpochAuthority::verify_epoch_with_custody(
+  self : NativeClientEpochAuthority,
+  epoch : NativeClientSubmissionEpoch,
+  authority_scope_cid : String,
+  key : Bytes,
+  clock : Double,
+) -> Result[@scope.SubmissionEpochValidity, NativeClientEpochIssue] {
+  if self.fenced || self.database.transaction_fenced() {
+    return Err(Fenced)
+  }
+  // Counts actual authentication calls, not cheap entry checks or cache hits.
+  native_timing_count(38)
   match
     self.crypto.verify_hmac_sha256(
       key,
@@ -529,12 +554,7 @@ fn NativeClientEpochAuthority::verify_epoch_locked(
     Ok(false) => return Err(Unverifiable)
     Err(issue) => return Err(Crypto(issue))
   }
-  guard epoch_cursor(@scope.submission_epoch_wire(epoch.body)) is Some(cursor) &&
-    @decode.closed_object(cursor, [
-      "authority_scope_cid", "epoch_nonce", "expires_at", "not_before", "version",
-    ])
-    is Ok(object) &&
-    epoch_text(object, "authority_scope_cid") == Some(authority_scope_cid) else {
+  if epoch.authority_scope_cid != authority_scope_cid {
     return Err(ScopeMismatch)
   }
   @scope.submission_epoch_validity(epoch.body, clock).map_err(issue => {

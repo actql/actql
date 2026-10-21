@@ -28,6 +28,9 @@ fn native_submission_reference_record(
   {
     epoch: {
       body: @host.client_submission_epoch_token_body(epoch),
+      authority_scope_cid: @host.client_submission_epoch_token_authority_scope_cid(
+        epoch,
+      ),
       tag: @host.client_submission_epoch_token_tag(epoch),
       wire: @host.client_submission_epoch_token_wire(epoch),
     },
