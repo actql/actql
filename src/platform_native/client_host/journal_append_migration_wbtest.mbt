@@ -17,6 +17,7 @@ fn journal_append_legacy_fixture(
   let usage = database
     .read("client_submitted_intent_usage", "retained")
     .unwrap()
+  database.begin_immediate().unwrap()
   database
   .remove_exact(
     "client_submitted_intent_usage",
@@ -25,6 +26,7 @@ fn journal_append_legacy_fixture(
     usage.body,
   )
   .unwrap()
+  database.commit().unwrap()
   let authority = open_native_client_epoch_authority(database, crypto, 100.0).unwrap()
   let epoch = authority
     .issue_epoch("sha256:" + "a".repeat(64), true, 1000.0)
@@ -211,6 +213,7 @@ test "indexed format never recreates deleted usage metadata" {
   .unwrap()
   let journal = open_native_client_run_journal(database, 8).unwrap()
   let row = database.read("client_submitted_intent_usage", "retained").unwrap()
+  database.begin_immediate().unwrap()
   database
   .remove_exact(
     "client_submitted_intent_usage",
@@ -219,6 +222,7 @@ test "indexed format never recreates deleted usage metadata" {
     row.body,
   )
   .unwrap()
+  database.commit().unwrap()
   assert_true(
     journal.transaction(() => {
       journal.migrate_append_metadata_locked(
