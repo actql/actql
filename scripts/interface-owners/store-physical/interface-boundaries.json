@@ -4437,7 +4437,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "53e134b0020a00ae348380be1d1b49828772d5ef6c383b9bd138571db17057d2",
+      "sha256": "cdb92bb8a5c42e14ff46455d48c78bd5ec73dad4c143d7af5bfab7fc2e1ff20e",
       "exports": [
         "PublicationStoreError",
         "assertOriginalLocalPublicationStoreFacilityCurrent",
@@ -4672,6 +4672,30 @@
             "holder"
           ],
           "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/appendAdmittedDeliveryRecord/appendAdmittedDeliveryRecord",
+          "parameters": [
+            "contract",
+            "completion"
+          ],
+          "async": true
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/appendAdmittedDeliveryRecord/appendAdmittedDeliveryRecord/appendAdmittedDeliveryRecord",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/appendDeliveryCompletion/appendDeliveryCompletion",
+          "parameters": [
+            "attempt",
+            "receipt",
+            "contract"
+          ],
+          "async": true
         },
         {
           "name": "openOriginalLocalPublicationStore/appendDeliveryRecord/appendDeliveryRecord",
@@ -7750,6 +7774,76 @@
       "contracts": [
         {
           "operations": [
+            "openOriginalLocalPublicationStore/appendAdmittedDeliveryRecord/appendAdmittedDeliveryRecord",
+            "openOriginalLocalPublicationStore/appendAdmittedDeliveryRecord/appendAdmittedDeliveryRecord/appendAdmittedDeliveryRecord",
+            "openOriginalLocalPublicationStore/appendDeliveryCompletion/appendDeliveryCompletion"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "## Joint delivery completion"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "const appendDeliveryCompletion = async (attempt, receipt, contract) => {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "try { valid = contractControl.deliverySuccessValid(attempt, receipt, contract) === true; }"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "The existing pending-record carrier retains the captured completion function,"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "contracts-directory ACK. The succeeded record is linked only afterwards and"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "pending even when succeeded bytes are visible. Retry never invokes the sink,"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "same cleanup child must acknowledge its real pending FD/directory duties before"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "The group overlaps two bounded metadata buffers/Strings, reservations and"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "optional operation retain the separate receipt/record protocol; an explicitly"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/store-local/delivery-completion.test.mjs",
+                "anchor": "test('delivery END rejects copied originals and non-success records before writing', async t => {"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
             "openOriginalLocalPublicationStore/readCommittedIndexRaw/readCommittedIndexRaw",
             "openOriginalLocalPublicationStore/readSelectedResultRetentionExtension/readSelectedResultRetentionExtension"
           ],
@@ -8961,18 +9055,26 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "The operation retains one bounded record buffer and the admitted input/attempt"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "The Store keeps at most one last-confirmed record CID as a durability"
               }
             ],
             "extension": [
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
-                "anchor": "own input; no successful-record or authorization cache persists across calls."
+"anchor": "own input; no admitted-record or authorization cache persists across calls."
               }
             ],
             "verification": [
               {
                 "path": "adapters/store-local/publication-store.test.mjs",
                 "anchor": "test('delivery record append and confirmation admit each unchanged original once', async t => {"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "test('delivery confirmation reuses its real immutable record ACK but reacquires each input', async t => {"
               }
             ]
           }

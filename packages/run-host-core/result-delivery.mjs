@@ -180,12 +180,21 @@ function pendingRecordFailure(
   control,
   records,
   recordFailure,
+  appendRecord = record => appendExactRecord(store, record),
 ) {
   const failure = new DeliveryRecordDurabilityFailure(code, reason);
   const errors = [recordFailure];
   let pending = true;
   let nextRecord = 0;
   let retrying;
+  let pendingChild;
+  const retainChild = error => {
+    const child = error?.cleanupHandle;
+    if (child !== undefined) {
+      pendingChild = {child, status: child.status, retry: child.retry};
+    }
+  };
+  retainChild(recordFailure);
   const status = () => Object.freeze({
     pending,
     errors: Object.freeze([...errors]),
@@ -215,9 +224,25 @@ function pendingRecordFailure(
             fail('InvalidResultDeliveryRecordRetry');
           }
           try {
-            await appendExactRecord(store, records[nextRecord]);
+            if (pendingChild !== undefined) {
+              const {child, status, retry} = pendingChild;
+              if (typeof status !== 'function' || typeof retry !== 'function') {
+                fail('ResultDeliveryDurabilityPending');
+              }
+              let observation = await Reflect.apply(status, child, []);
+              if (Object.getOwnPropertyDescriptor(observation ?? {}, 'pending')?.value !== false) {
+                await Reflect.apply(retry, child, []);
+                observation = await Reflect.apply(status, child, []);
+              }
+              if (Object.getOwnPropertyDescriptor(observation ?? {}, 'pending')?.value !== false) {
+                fail('ResultDeliveryDurabilityPending');
+              }
+              pendingChild = undefined;
+            }
+            await appendRecord(records[nextRecord]);
             nextRecord++;
           } catch (error) {
+            if (pendingChild === undefined) retainChild(error);
             errors.push(error);
             break;
           }
@@ -257,6 +282,10 @@ export async function deliverPublishedResult(options, resolvedPublication) {
   validateControl(options.control);
   const {store, control, indexKey, grant, resultName, format, attemptId,
     limits, frameLimits, now, sink, createDigest, authorize, signal} = options;
+  const appendCompletion = store.appendDeliveryCompletion;
+  if (appendCompletion !== undefined && typeof appendCompletion !== 'function') {
+    fail('InvalidResultDeliveryStore');
+  }
   // The access owner has already read these immutable typed contracts. This
   // operation-local handoff is neither a read grant nor a cross-call cache.
   // Capture it before the current-head await and preserve the generic path
@@ -541,7 +570,9 @@ export async function deliverPublishedResult(options, resolvedPublication) {
       {byteCount: confirmedByteCount, sha256: deliveredSha256},
       limits,
     );
-    await store.putPublicationContract(receipt.name, receipt.wire);
+    if (appendCompletion === undefined) {
+      await store.putPublicationContract(receipt.name, receipt.wire);
+    }
     const succeeded = control.issueDeliveryRecord(attempt, streaming, {
       state: 'succeeded',
       confirmedByteCount,
@@ -553,7 +584,12 @@ export async function deliverPublishedResult(options, resolvedPublication) {
       observedAt: committedAt,
       cleanupOwnerCids: [],
     }, limits);
-    try { await appendExactRecord(store, succeeded); }
+    const appendSucceeded = appendCompletion === undefined ? undefined : record =>
+      Reflect.apply(appendCompletion, store, [attempt, receipt, record]);
+    try {
+      if (appendSucceeded === undefined) await appendExactRecord(store, succeeded);
+      else await appendSucceeded(succeeded);
+    }
     catch (recordFailure) {
       throw pendingRecordFailure(
         'ResultDeliveryDurabilityPending',
@@ -562,6 +598,7 @@ export async function deliverPublishedResult(options, resolvedPublication) {
         control,
         [succeeded],
         recordFailure,
+        appendSucceeded,
       );
     }
     return Object.freeze({

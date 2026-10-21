@@ -7139,7 +7139,7 @@
     {
       "module": "adapters/host-common/result-delivery.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "2facf9ae2312cea9529a012bd6afd5083b1fdbc0c2fa85b2376691e0b24583e6",
+      "sha256": "32fa1d3241c5fc87fb6af600932a14f62bae82474063badc54b970d50520e087",
       "role": "physical-io",
       "owner": "Existing Result access/delivery/publication Owners and physical read/sink adapter",
       "exports": [
@@ -7169,6 +7169,13 @@
             "resolvedPublication"
           ],
           "async": true
+        },
+        {
+          "name": "deliverPublishedResult/appendSucceeded/appendSucceeded",
+          "parameters": [
+            "record"
+          ],
+          "async": false
         },
         {
           "name": "deliverPublishedResult/deliverPublishedResult",
@@ -7231,7 +7238,8 @@
             "store",
             "control",
             "records",
-            "recordFailure"
+            "recordFailure",
+            "appendRecord"
           ],
           "async": false
         },
@@ -7248,6 +7256,20 @@
         {
           "name": "pendingRecordFailure/init:retry/init:retry/init:retry#2",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "pendingRecordFailure/pendingRecordFailure",
+          "parameters": [
+            "record"
+          ],
+          "async": false
+        },
+        {
+          "name": "pendingRecordFailure/retainChild/retainChild",
+          "parameters": [
+            "error"
+          ],
           "async": false
         },
         {
@@ -7551,6 +7573,76 @@
               {
                 "path": "src/run_publication/pkg.generated.mbti",
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "deliverPublishedResult/appendSucceeded/appendSucceeded",
+            "pendingRecordFailure/pendingRecordFailure",
+            "pendingRecordFailure/retainChild/retainChild"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "## Joint delivery completion"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-common/result-delivery.mjs",
+                "anchor": "const appendCompletion = store.appendDeliveryCompletion;"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-common/result-delivery.mjs",
+                "anchor": "Reflect.apply(appendCompletion, store, [attempt, receipt, record]);"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "The existing pending-record carrier retains the captured completion function,"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "contracts-directory ACK. The succeeded record is linked only afterwards and"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "pending even when succeeded bytes are visible. Retry never invokes the sink,"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "same cleanup child must acknowledge its real pending FD/directory duties before"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "The group overlaps two bounded metadata buffers/Strings, reservations and"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "optional operation retain the separate receipt/record protocol; an explicitly"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/store-local/delivery-completion.test.mjs",
+                "anchor": "test('actual delivery caller retains joint END originals through partial ACK cleanup without resend', async t => {"
               }
             ]
           }
@@ -69784,7 +69876,7 @@
     {
       "module": "packages/run-host-core/result-delivery.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "2facf9ae2312cea9529a012bd6afd5083b1fdbc0c2fa85b2376691e0b24583e6",
+      "sha256": "32fa1d3241c5fc87fb6af600932a14f62bae82474063badc54b970d50520e087",
       "role": "physical-io",
       "owner": "Existing Result access/delivery/publication Owners and physical read/sink adapter",
       "exports": [
@@ -69814,6 +69906,13 @@
             "resolvedPublication"
           ],
           "async": true
+        },
+        {
+          "name": "deliverPublishedResult/appendSucceeded/appendSucceeded",
+          "parameters": [
+            "record"
+          ],
+          "async": false
         },
         {
           "name": "deliverPublishedResult/deliverPublishedResult",
@@ -69876,7 +69975,8 @@
             "store",
             "control",
             "records",
-            "recordFailure"
+            "recordFailure",
+            "appendRecord"
           ],
           "async": false
         },
@@ -69893,6 +69993,20 @@
         {
           "name": "pendingRecordFailure/init:retry/init:retry/init:retry#2",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "pendingRecordFailure/pendingRecordFailure",
+          "parameters": [
+            "record"
+          ],
+          "async": false
+        },
+        {
+          "name": "pendingRecordFailure/retainChild/retainChild",
+          "parameters": [
+            "error"
+          ],
           "async": false
         },
         {
@@ -70196,6 +70310,76 @@
               {
                 "path": "src/run_publication/pkg.generated.mbti",
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "deliverPublishedResult/appendSucceeded/appendSucceeded",
+            "pendingRecordFailure/pendingRecordFailure",
+            "pendingRecordFailure/retainChild/retainChild"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "## Joint delivery completion"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/run-host-core/result-delivery.mjs",
+                "anchor": "const appendCompletion = store.appendDeliveryCompletion;"
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/run-host-core/result-delivery.mjs",
+                "anchor": "Reflect.apply(appendCompletion, store, [attempt, receipt, record]);"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "The existing pending-record carrier retains the captured completion function,"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "contracts-directory ACK. The succeeded record is linked only afterwards and"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "pending even when succeeded bytes are visible. Retry never invokes the sink,"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "same cleanup child must acknowledge its real pending FD/directory duties before"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "The group overlaps two bounded metadata buffers/Strings, reservations and"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "optional operation retain the separate receipt/record protocol; an explicitly"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/store-local/delivery-completion.test.mjs",
+                "anchor": "test('actual delivery caller retains joint END originals through partial ACK cleanup without resend', async t => {"
               }
             ]
           }

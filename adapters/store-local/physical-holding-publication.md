@@ -182,6 +182,39 @@ exclusive opening recovery removes any such alias resurrected by a crash.
 Prepared-object/Content holders still use their separate original custody
 protocol; they are not converted to direct semantic writes.
 
+## Joint delivery completion
+
+After the sink finishes and the existing receipt authorization succeeds, the
+delivery caller may pass its same-owner issued attempt, receipt and succeeded
+record to the Store's optional joint completion operation. The existing Common
+success predicate checks those nominal originals before acquisition or writing;
+matching shapes or CIDs alone cannot supply them. The selected stored attempt
+is still read. An identical wire reuses its issued input; a changed spelling
+receives ordinary admission and binding checks. The stored predecessor and
+transition remain separate actual observations.
+
+The receipt and record keep their original wire/CID meanings. Their two payload
+FDs each file-sync and close under the existing semantic writer before either
+final object is acknowledged. They share one objects-directory ACK and one
+contracts-directory ACK. The succeeded record is linked only afterwards and
+needs its original attempt-directory ACK before completion returns success.
+No prepared holder escapes and no intermediate custody file is introduced.
+
+The existing pending-record carrier retains the captured completion function,
+its original receiver and all three nominal inputs. A partial semantic writer's
+same cleanup child must acknowledge its real pending FD/directory duties before
+the carrier retries that same metadata completion. A lost final ACK reply stays
+pending even when succeeded bytes are visible. Retry never invokes the sink,
+reissues a receipt, claims another attempt or refunds a use. Stores without the
+optional operation retain the separate receipt/record protocol; an explicitly
+malformed operation is not treated as omission.
+
+The group overlaps two bounded metadata buffers/Strings, reservations and
+original writer/FD/ACK state. Existing object count, per-object wire and aggregate
+Store limits apply; failure retains original custody and does not guarantee
+allocation success. This is logical durability batching, not a new permission,
+capacity, storage Owner, wire version or Result/Account authorization rule.
+
 ## Indexed delivery claims and coverage
 
 The exclusively owned Store keeps private SQLite lookup metadata beside its
@@ -252,7 +285,17 @@ without another parse or identity hash. A distinct valid wire spelling retains
 its existing admission fallback; an identical reread reuses that result. Changed
 record identity or content, missing records, transition conflicts and unknown
 durability remain refusals. A later public append or confirmation admits its
-own input; no successful-record or authorization cache persists across calls.
+own input; no admitted-record or authorization cache persists across calls.
+
+The Store keeps at most one last-confirmed record CID as a durability
+observation. It is set only after the real containing-directory ACK and the
+post-ACK selected-record check. Reconfirmation of that immutable record still
+admits its input and reads/checks the selected file, but does not repeat the
+already successful directory ACK. A newly installed record, a different CID or
+a fresh Store needs its own ACK; a failed ACK or changed record cannot populate
+this observation. This bounded String does not retain an admitted contract,
+policy decision, payload, native handle or history inventory. Existing record
+immutability and the same exclusive Store ownership remain required.
 
 The operation retains one bounded record buffer and the admitted input/attempt
 references until confirmation. Existing native FD close, payload/custody and
