@@ -4598,7 +4598,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "c9ca8af362fc5856a19441dd873369b2f66841575ec102af78cf336c2a815967",
+      "sha256": "af4d3e4a759c1c14fa38f4f564fc0631c39043170493d6948a4b684555227688",
       "exports": [
         "PublicationStoreError",
         "assertOriginalLocalPublicationStoreFacilityCurrent",
@@ -6594,6 +6594,36 @@
           "async": true
         },
         {
+          "name": "openOriginalLocalPublicationStore/putPublicationContracts/putPublicationContracts",
+          "parameters": [
+            "supplied"
+          ],
+          "async": true
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/putPublicationContracts/putPublicationContracts/inputs/inputs",
+          "parameters": [
+            "_",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/putPublicationContracts/putPublicationContracts/putPublicationContracts",
+          "parameters": [
+            "physical",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/putPublicationContracts/putPublicationContracts/stored/stored",
+          "parameters": [
+            "contract"
+          ],
+          "async": false
+        },
+        {
           "name": "openOriginalLocalPublicationStore/putSemantic/putSemantic",
           "parameters": [
             "wire",
@@ -8179,8 +8209,10 @@
         {
           "operations": [
             "<module>",
+            "PublicationStoreError/constructor:constructor/constructor:constructor",
             "acquireStoreOwnership",
             "acquireStoreOwnership/ownership/init:release/init:release",
+            "acquireStoreOwnership/ownership/init:release/init:release/acknowledged/acknowledged",
             "cidHex/cidHex",
             "encodePrivateEvidenceEnvelope",
             "encodePrivateEvidenceEnvelope/envelopeBytes/envelopeBytes",
@@ -8205,6 +8237,7 @@
             "openOriginalLocalPublicationStore/beginPreparedCommit/beginPreparedCommit/settleUncommitted/settleUncommitted",
             "openOriginalLocalPublicationStore/beginPreparedCommit/beginPreparedCommit/status/status",
             "openOriginalLocalPublicationStore/bindMetadataContractObjects/bindMetadataContractObjects",
+            "openOriginalLocalPublicationStore/bootstrap/bootstrap",
             "openOriginalLocalPublicationStore/captureCustodyPath/captureCustodyPath",
             "openOriginalLocalPublicationStore/captureCustodyRun/captureCustodyRun",
             "openOriginalLocalPublicationStore/clockObservationPath/clockObservationPath",
@@ -8216,6 +8249,7 @@
             "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal",
             "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/adoptObjects/adoptObjects",
             "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/adoptSchemas/adoptSchemas",
+            "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/boundPhysicalCids/boundPhysicalCids",
             "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/commitIndexInternal",
             "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/commitIndexInternal#2",
             "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/init:adopt/init:adopt",
@@ -8228,6 +8262,7 @@
             "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/init:verifyExistingInventory/init:verifyExistingInventory/init:verifyExistingInventory",
             "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/init:verifyExistingInventory/init:verifyExistingInventory/init:verifyExistingInventory/init:verifyExistingInventory",
             "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/inventorySemanticCids/inventorySemanticCids",
+            "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/readOriginal/readOriginal",
             "openOriginalLocalPublicationStore/commitPhysicalHolding/commitPhysicalHolding",
             "openOriginalLocalPublicationStore/commitPhysicalHolding/commitPhysicalHolding/commitPhysicalHolding",
             "openOriginalLocalPublicationStore/commitPhysicalHolding/commitPhysicalHolding/operation/operation",
@@ -8344,11 +8379,6 @@
             "openOriginalLocalPublicationStore/inspectPhysicalHoldingForRetirement/inspectPhysicalHoldingForRetirement",
             "openOriginalLocalPublicationStore/latestDeliveryRecord/latestDeliveryRecord",
             "openOriginalLocalPublicationStore/latestDeliveryRecordContract/latestDeliveryRecordContract",
-            "openOriginalLocalPublicationStore/readLatestDeliveryRecordContract/readLatestDeliveryRecordContract/readLatestDeliveryRecordContract",
-            "openOriginalLocalPublicationStore/readLatestDeliveryRecordContract/readLatestDeliveryRecordContract/names/names",
-            "openOriginalLocalPublicationStore/readLatestDeliveryRecordContract/readLatestDeliveryRecordContract/names/names#2",
-            "openOriginalLocalPublicationStore/readLatestDeliveryRecordContract/readLatestDeliveryRecordContract/names/names#3",
-            "openOriginalLocalPublicationStore/readLatestDeliveryRecordContract/readLatestDeliveryRecordContract/names/names#4",
             "openOriginalLocalPublicationStore/latestRecord/latestRecord",
             "openOriginalLocalPublicationStore/latestRecordContract/latestRecordContract",
             "openOriginalLocalPublicationStore/latestRecordContract/latestRecordContract/latestRecordContract",
@@ -8396,15 +8426,15 @@
             "openOriginalLocalPublicationStore/parsePreparedSchema/parsePreparedSchema/parsePreparedSchema",
             "openOriginalLocalPublicationStore/physicalHoldingDeletionPath/physicalHoldingDeletionPath",
             "openOriginalLocalPublicationStore/physicalHoldingPath/physicalHoldingPath",
+            "openOriginalLocalPublicationStore/prepareModelRawEvidence/prepareModelRawEvidence",
+            "openOriginalLocalPublicationStore/preparePrivateEvidence/preparePrivateEvidence",
+            "openOriginalLocalPublicationStore/preparePrivateEvidenceBytes/preparePrivateEvidenceBytes",
+            "openOriginalLocalPublicationStore/preparePrivateEvidenceInput/preparePrivateEvidenceInput",
             "openOriginalLocalPublicationStore/preparedSchemaHandle/preparedSchemaHandle",
             "openOriginalLocalPublicationStore/preparedSchemaHandle/preparedSchemaHandle/init:retry/init:retry",
             "openOriginalLocalPublicationStore/preparedSchemaHandle/preparedSchemaHandle/preparedSchemaHandle",
             "openOriginalLocalPublicationStore/preparedSchemaHandle/preparedSchemaHandle/preparedSchemaHandle#2",
             "openOriginalLocalPublicationStore/preparedSchemaPath/preparedSchemaPath",
-            "openOriginalLocalPublicationStore/prepareModelRawEvidence/prepareModelRawEvidence",
-            "openOriginalLocalPublicationStore/preparePrivateEvidence/preparePrivateEvidence",
-            "openOriginalLocalPublicationStore/preparePrivateEvidenceBytes/preparePrivateEvidenceBytes",
-            "openOriginalLocalPublicationStore/preparePrivateEvidenceInput/preparePrivateEvidenceInput",
             "openOriginalLocalPublicationStore/privateEvidenceAad/privateEvidenceAad",
             "openOriginalLocalPublicationStore/privateEvidenceField/privateEvidenceField",
             "openOriginalLocalPublicationStore/privateEvidenceHolding/privateEvidenceHolding",
@@ -8422,6 +8452,10 @@
             "openOriginalLocalPublicationStore/putPreparedResultSchema/putPreparedResultSchema/putPreparedResultSchema/init:retry/init:retry",
             "openOriginalLocalPublicationStore/putPreparedResultSchema/putPreparedResultSchema/putPreparedResultSchema/putPreparedResultSchema",
             "openOriginalLocalPublicationStore/putPublicationContract/putPublicationContract",
+            "openOriginalLocalPublicationStore/putPublicationContracts/putPublicationContracts",
+            "openOriginalLocalPublicationStore/putPublicationContracts/putPublicationContracts/inputs/inputs",
+            "openOriginalLocalPublicationStore/putPublicationContracts/putPublicationContracts/putPublicationContracts",
+            "openOriginalLocalPublicationStore/putPublicationContracts/putPublicationContracts/stored/stored",
             "openOriginalLocalPublicationStore/putSemantic/putSemantic",
             "openOriginalLocalPublicationStore/readClockObservation/readClockObservation",
             "openOriginalLocalPublicationStore/readCommittedResultDescriptionEvidence/readCommittedResultDescriptionEvidence",
@@ -8433,6 +8467,11 @@
             "openOriginalLocalPublicationStore/readEffectCaptureCustody/readEffectCaptureCustody/readEffectCaptureCustody",
             "openOriginalLocalPublicationStore/readEffectCaptureCustody/readEffectCaptureCustody/readEffectCaptureCustody#2",
             "openOriginalLocalPublicationStore/readJsonObject/readJsonObject",
+            "openOriginalLocalPublicationStore/readLatestDeliveryRecordContract/readLatestDeliveryRecordContract/names/names",
+            "openOriginalLocalPublicationStore/readLatestDeliveryRecordContract/readLatestDeliveryRecordContract/names/names#2",
+            "openOriginalLocalPublicationStore/readLatestDeliveryRecordContract/readLatestDeliveryRecordContract/names/names#3",
+            "openOriginalLocalPublicationStore/readLatestDeliveryRecordContract/readLatestDeliveryRecordContract/names/names#4",
+            "openOriginalLocalPublicationStore/readLatestDeliveryRecordContract/readLatestDeliveryRecordContract/readLatestDeliveryRecordContract",
             "openOriginalLocalPublicationStore/readMetadataDeletion/readMetadataDeletion",
             "openOriginalLocalPublicationStore/readMetadataDeletion/readMetadataDeletion/readMetadataDeletion",
             "openOriginalLocalPublicationStore/readMetadataDeletion/readMetadataDeletion/readMetadataDeletion#2",
@@ -8457,6 +8496,7 @@
             "openOriginalLocalPublicationStore/readResultRetentionExtension/readResultRetentionExtension/records/records#2",
             "openOriginalLocalPublicationStore/readRetainedResultExtension/readRetainedResultExtension",
             "openOriginalLocalPublicationStore/readSemanticBytes/readSemanticBytes",
+            "openOriginalLocalPublicationStore/readSemanticOriginal/readSemanticBytes",
             "openOriginalLocalPublicationStore/readSemanticOriginal/readSemanticBytes/cleanup/init:retry/init:retry",
             "openOriginalLocalPublicationStore/readSemanticOriginal/readSemanticBytes/cleanup/init:retry/init:retry/init:retry",
             "openOriginalLocalPublicationStore/readSemanticOriginal/readSemanticBytes/cleanup/init:retry/init:retry/init:retry#2",
@@ -8516,6 +8556,7 @@
             "openOriginalLocalPublicationStore/sharePhysicalHolding/sharePhysicalHolding/sharePhysicalHolding",
             "openOriginalLocalPublicationStore/validateCommittedEffectfulEvidence/validateCommittedEffectfulEvidence",
             "openOriginalLocalPublicationStore/validateCommittedEvidence/validateCommittedEvidence",
+            "openOriginalLocalPublicationStore/validateCommittedEvidence/validateCommittedEvidence/validateCommittedEvidence",
             "openOriginalLocalPublicationStore/validateCommittedMetadataInventories/validateCommittedMetadataInventories",
             "openOriginalLocalPublicationStore/validateModelRawBinding/validateModelRawBinding",
             "openOriginalLocalPublicationStore/validatePhysicalHoldingStore/validatePhysicalHoldingStore",
@@ -8545,9 +8586,9 @@
             "openOriginalLocalPublicationStore/writePhysicalHoldingRecord/writePhysicalHoldingRecord/status/status",
             "privateEvidenceWireLimitForObject",
             "processIsAlive",
-            "PublicationStoreError/constructor:constructor/constructor:constructor",
             "quantity/quantity",
             "readBounded",
+            "readBounded/captureClose/captureClose",
             "readBounded/cleanup/init:retry/init:retry",
             "readBounded/cleanup/init:retry/init:retry/init:retry",
             "readBounded/cleanup/init:retry/init:retry/init:retry#2",
@@ -8594,14 +8635,7 @@
             "syncDirectoryPath/syncDirectoryPath",
             "validateConfiguration",
             "validateContractControl",
-            "writeExclusive",
-            "acquireStoreOwnership/ownership/init:release/init:release/acknowledged/acknowledged",
-            "openOriginalLocalPublicationStore/bootstrap/bootstrap",
-            "readBounded/captureClose/captureClose",
-            "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/readOriginal/readOriginal",
-            "openOriginalLocalPublicationStore/readSemanticOriginal/readSemanticBytes",
-            "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/boundPhysicalCids/boundPhysicalCids",
-            "openOriginalLocalPublicationStore/validateCommittedEvidence/validateCommittedEvidence/validateCommittedEvidence"
+            "writeExclusive"
           ],
           "exports": [
             "PublicationStoreError",
@@ -8636,6 +8670,10 @@
               {
                 "path": "docs/design/result-description.md",
                 "anchor": "Typed publication evidence selects that same representation before the commit's"
+              },
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "Publication setup can persist its finite immutable contract inventory through"
               }
             ],
             "inputsOutputs": [
@@ -8658,6 +8696,10 @@
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "return Object.freeze(verifiedBindings);"
+              },
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "const putPublicationContracts = async supplied => {"
               }
             ],
             "identity": [
@@ -8688,6 +8730,10 @@
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "const readOriginal = (cid, includeNative = cid !== admitted.identity) => {"
+              },
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "const contract = admitContract(input.name, input.wire);"
               }
             ],
             "ownership": [
@@ -8710,6 +8756,10 @@
               {
                 "path": "docs/design/result-description.md",
                 "anchor": "provide their original physical and schema identities to inventory construction"
+              },
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "return Object.freeze({name: input.name, wire: input.wire});"
               }
             ],
             "synchronization": [
@@ -8732,6 +8782,10 @@
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "await putSemantic(admitted.wire, admitted.identity);"
+              },
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "const stored = await putSemanticBatch(admitted.map(({contract}) => ({"
               }
             ],
             "failure": [
@@ -8754,6 +8808,10 @@
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "if (chainValid !== true) fail('InvalidPublicationCommitChain');"
+              },
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "if (bytes > BigInt(configuration.capacityBytes)) fail('PublicationStoreCapacity');"
               }
             ],
             "cancellation": [
@@ -8772,6 +8830,10 @@
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "await adoptPreparedObjects(verifiedBindings.map(value => value.physical.cid));"
+              },
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "A failed write or directory acknowledgement retains the same cleanup duty,"
               }
             ],
             "resources": [
@@ -8794,6 +8856,10 @@
               {
                 "path": "docs/design/result-description.md",
                 "anchor": "The selected buffers overlap for that operation and remain subject to the"
+              },
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "const count = supplied.length;"
               }
             ],
             "extension": [
@@ -8816,6 +8882,10 @@
               {
                 "path": "docs/design/result-description.md",
                 "anchor": "close duty. Generic semantic reads and the native delivery contract families"
+              },
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "optional group operation retain the existing per-contract protocol; a failed"
               }
             ],
             "verification": [
@@ -8902,6 +8972,10 @@
               {
                 "path": "adapters/store-local/publication-store.test.mjs",
                 "anchor": "assert.deepEqual(probes, [], 'typed commit evidence selects its representation before generic inventory');"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "test('publication metadata shares actual directory ACKs across its bounded contract group', async t => {"
               }
             ]
           }
