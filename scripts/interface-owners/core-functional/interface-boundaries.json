@@ -170,7 +170,7 @@
     },
     {
       "module": "adapters/host-common/runtime-core.mjs",
-      "sha256": "b693ce62cd086442e0b8c2f788ad55d2a400dc8907c97a1d6936997689425cd8",
+      "sha256": "b3304a778da14d0f9351650fc4a2a1cf0ca061c5b09cd3a04160bd486195c3c8",
       "role": "physical-io",
       "exports": [
         "contentCaptureControl",
@@ -2140,6 +2140,24 @@
           "name": "publicationControl/init:capturedEffectSourceStoreAuthorityCid/init:capturedEffectSourceStoreAuthorityCid",
           "parameters": [
             "source"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:captureIssuedDeliveryAttempt/init:captureIssuedDeliveryAttempt",
+          "parameters": [
+            "attempt",
+            "index",
+            "manifest",
+            "grant",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:captureIssuedDeliveryAttempt/init:captureIssuedDeliveryAttempt/init:captureIssuedDeliveryAttempt",
+          "parameters": [
+            "key"
           ],
           "async": false
         },
@@ -4114,6 +4132,13 @@
           "name": "publicationControl/init:readInstalledModelResponseProfile/init:readInstalledModelResponseProfile/init:readInstalledModelResponseProfile",
           "parameters": [
             "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:readIssuedDeliveryAttempt/init:readIssuedDeliveryAttempt",
+          "parameters": [
+            "original"
           ],
           "async": false
         },
@@ -7186,6 +7211,8 @@
             "publicationControl/init:bindTableInput/init:bindTableInput",
             "publicationControl/init:bindTablePreview/init:bindTablePreview",
             "publicationControl/init:cancelDurableResultRowFrames/init:cancelDurableResultRowFrames",
+            "publicationControl/init:captureIssuedDeliveryAttempt/init:captureIssuedDeliveryAttempt",
+            "publicationControl/init:captureIssuedDeliveryAttempt/init:captureIssuedDeliveryAttempt/init:captureIssuedDeliveryAttempt",
             "publicationControl/init:captureOriginalClientRunPlan/init:captureOriginalClientRunPlan",
             "publicationControl/init:capturedContentGenerationCount/init:capturedContentGenerationCount",
             "publicationControl/init:capturedContentGenerationStorage/init:capturedContentGenerationStorage",
@@ -7405,6 +7432,7 @@
             "publicationControl/init:readCurrentClientRunView/init:readCurrentClientRunView",
             "publicationControl/init:readInstalledModelResponseProfile/init:readInstalledModelResponseProfile",
             "publicationControl/init:readInstalledModelResponseProfile/init:readInstalledModelResponseProfile/init:readInstalledModelResponseProfile",
+            "publicationControl/init:readIssuedDeliveryAttempt/init:readIssuedDeliveryAttempt",
             "publicationControl/init:readModelOriginalResourceDocument/init:readModelOriginalResourceDocument",
             "publicationControl/init:readStoredRunPlanOriginal/init:readStoredRunPlanOriginal",
             "publicationControl/init:readStoredRunPlanOriginal/init:readStoredRunPlanOriginal/init:readStoredRunPlanOriginal",
@@ -7876,6 +7904,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "runDefinition: facts.retained?.runDefinition ?? facts.runDefinition,"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "## Joint delivery start"
               }
             ],
             "synchronization": [
@@ -7906,6 +7938,10 @@
               {
                 "path": "adapters/host-node/client-checkpoints.mjs",
                 "anchor": "const expires = checkpointEnd(created, requestedStop === undefined"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "## Joint delivery start"
               }
             ],
             "failure": [
@@ -7996,6 +8032,10 @@
               {
                 "path": "docs/design/oss-host-authorization.md",
                 "anchor": "and reference retirement remain with the original Host/Run resource lifetime."
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "## Joint delivery start"
               }
             ],
             "extension": [
@@ -8072,6 +8112,10 @@
               {
                 "path": "adapters/host-common/publication-contract-control.test.mjs",
                 "anchor": "test('Checkpoint lifetime projects only the same original admitted Run without renewal'"
+              },
+              {
+                "path": "adapters/store-local/delivery-completion.test.mjs",
+                "anchor": "delivery START shares semantic and attempt directory ACKs before any row exposure"
               }
             ]
           }

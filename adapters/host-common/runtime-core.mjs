@@ -1844,6 +1844,9 @@ function publicationControl(moon) {
   let control = publicationControls.get(moon);
   if (control !== undefined) return control;
   const tokens = new WeakMap();
+  const issuedDeliveryGrants = new WeakMap();
+  const issuedDeliveryAttempts = new WeakMap();
+  const originalDeliveryAttempts = new WeakMap();
   const evidenceTokens = new WeakMap();
   const modelOriginalDocumentTokens = new WeakMap();
   const admissionTokens = new WeakMap();
@@ -5195,12 +5198,14 @@ function publicationControl(moon) {
     },
     issueResultReadGrant(index, manifest, grant, limits) {
       issuanceLimits(limits, 'Result read grant');
+      const bounds = Object.freeze({maxWireBytes: limits.maxWireBytes,
+        maxNodes: limits.maxNodes, maxDepth: limits.maxDepth});
       if (grant === null || typeof grant !== 'object' ||
           !Array.isArray(grant.resultNames) ||
           !Array.isArray(grant.formats)) {
         throw new TypeError('Invalid Result read grant');
       }
-      return inspect(checked(moon.strategyIssueResultReadGrant(
+      const result = inspect(checked(moon.strategyIssueResultReadGrant(
         token(index),
         token(manifest),
         grant.resultNames,
@@ -5213,17 +5218,21 @@ function publicationControl(moon) {
         grant.expiresAt,
         grant.authorizationContextCid,
         grant.egressAdmissionCid,
-        limits.maxWireBytes,
-        limits.maxNodes,
-        limits.maxDepth,
+        bounds.maxWireBytes,
+        bounds.maxNodes,
+        bounds.maxDepth,
       )));
+      issuedDeliveryGrants.set(result, bounds);
+      return result;
     },
     issueDeliveryAttempt(index, manifest, grant, attempt, limits) {
       issuanceLimits(limits, 'Delivery Attempt');
+      const bounds = Object.freeze({maxWireBytes: limits.maxWireBytes,
+        maxNodes: limits.maxNodes, maxDepth: limits.maxDepth});
       if (attempt === null || typeof attempt !== 'object') {
         throw new TypeError('Invalid Delivery Attempt');
       }
-      return inspect(checked(moon.strategyIssueDeliveryAttempt(
+      const result = inspect(checked(moon.strategyIssueDeliveryAttempt(
         token(index),
         token(manifest),
         token(grant),
@@ -5231,10 +5240,39 @@ function publicationControl(moon) {
         attempt.format,
         attempt.attemptId,
         attempt.requestedAt,
-        limits.maxWireBytes,
-        limits.maxNodes,
-        limits.maxDepth,
+        bounds.maxWireBytes,
+        bounds.maxNodes,
+        bounds.maxDepth,
       )));
+      const original = Object.freeze({kind: 'issued-delivery-attempt'});
+      const facts = Object.freeze({index, manifest, grant, attempt: result,
+        request: Object.freeze({resultName: attempt.resultName, format: attempt.format,
+          attemptId: attempt.attemptId, requestedAt: attempt.requestedAt}),
+        limits: bounds});
+      issuedDeliveryAttempts.set(result, {original,
+        index: token(index), manifest: token(manifest), grant: token(grant)});
+      originalDeliveryAttempts.set(original, facts);
+      return result;
+    },
+    captureIssuedDeliveryAttempt(attempt, index, manifest, grant, limits) {
+      token(attempt);
+      const actualIndex = token(index), actualManifest = token(manifest), actualGrant = token(grant);
+      const issued = issuedDeliveryAttempts.get(attempt);
+      if (issued === undefined) return undefined;
+      if (issued.index !== actualIndex || issued.manifest !== actualManifest || issued.grant !== actualGrant) {
+        throw new TypeError('PublicationDeliveryOriginalMismatch');
+      }
+      issuanceLimits(limits, 'Delivery Attempt');
+      const grantLimits = issuedDeliveryGrants.get(grant);
+      const facts = originalDeliveryAttempts.get(issued.original);
+      if (grantLimits === undefined || ['maxWireBytes', 'maxNodes', 'maxDepth'].some(
+        key => limits[key] !== grantLimits[key] || limits[key] !== facts.limits[key])) return undefined;
+      return issued.original;
+    },
+    readIssuedDeliveryAttempt(original) {
+      const facts = originalDeliveryAttempts.get(original);
+      if (facts === undefined) throw new TypeError('ForeignPublicationDeliveryOriginal');
+      return facts;
     },
     deliveryResultDefinitionCid(manifest, attempt) {
       return checked(moon.strategyDeliveryResultDefinitionCid(

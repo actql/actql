@@ -47,6 +47,7 @@ export function installNodeClientSubmission({journal, moon, authorizedScope,
     throw new TypeError('InvalidClientSubmissionInstallation');
   }
   const flights = new Map();
+  const ownedSnapshots = new WeakSet();
   const authorize = async value => scopeFields(await authorizedScope(value));
   const own = (parent, derived) => {
     if (bindOwnedRequest !== undefined && bindOwnedRequest(parent, derived) !== undefined) {
@@ -54,7 +55,19 @@ export function installNodeClientSubmission({journal, moon, authorizedScope,
     }
     return derived;
   };
-  const ownedSnapshot = value => own(value, snapshot(value));
+  const captureSnapshot = (value, bind = true) => {
+    const captured = bind ? own(value, snapshot(value)) : snapshot(value);
+    ownedSnapshots.add(captured);
+    return captured;
+  };
+  const ownedSnapshot = value => ownedSnapshots.has(value) ? value : captureSnapshot(value);
+  const operation = (action, bind = true) => async request => {
+    const value = captureSnapshot(request, bind);
+    const release = validSubmissionRef(value.submissionRef) ?
+      journal.retainSubmissionOperation?.(value.submissionRef.epoch, moon) : undefined;
+    try {return await action(value);}
+    finally {release?.();}
+  };
   const prepareOwned = (value, requestId) => {
     const request = own(value, {...value, requestId});
     const prepared = prepareSubmit(request);
@@ -147,7 +160,7 @@ export function installNodeClientSubmission({journal, moon, authorizedScope,
     return storedOutcome(updated);
   };
   const lookupSubmission = async request => {
-    const value = snapshot(request);
+    const value = ownedSnapshot(request);
     if (!validSubmissionRef(value.submissionRef)) fail('InvalidClientRequest');
     const fields = await authorize(value);
     let retained;
@@ -421,6 +434,7 @@ export function installNodeClientSubmission({journal, moon, authorizedScope,
       value.submissionRef, value.intentCid, value.attemptRef)) fail('InvalidClientHostSubmissionOutcome');
     return immutable(answer);
   };
-  return Object.freeze({submitIntent, submitAttempt, submitNamedAttempt, lookupSubmission,
+  return Object.freeze({submitIntent: operation(submitIntent), submitAttempt: operation(submitAttempt),
+    submitNamedAttempt: operation(submitNamedAttempt), lookupSubmission: operation(lookupSubmission, false),
     issueEpoch(request) {return issueNodeClientSubmissionEpoch({journal,moon,authorizedScope},request);}});
 }

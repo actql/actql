@@ -837,7 +837,7 @@
             "synchronization": [
               {
                 "path": "docs/design/client-submission-identity.md",
-                "anchor": "checked again inside atomic acceptance after any"
+                "anchor": "Atomic acceptance still checks the same current key, authority scope, retained"
               },
               {
                 "path": "packages/local-node/connector-installation.d.ts",
@@ -1128,7 +1128,7 @@
             "synchronization": [
               {
                 "path": "docs/design/client-submission-identity.md",
-                "anchor": "checked again inside atomic acceptance after any"
+                "anchor": "Atomic acceptance still checks the same current key, authority scope, retained"
               },
               {
                 "path": "packages/local-node/connector-installation.mjs",
@@ -1260,7 +1260,7 @@
             "synchronization": [
               {
                 "path": "docs/design/client-submission-identity.md",
-                "anchor": "checked again inside atomic acceptance after any"
+                "anchor": "Atomic acceptance still checks the same current key, authority scope, retained"
               },
               {
                 "path": "packages/local-node/host-policy.d.ts",
@@ -1424,7 +1424,7 @@
             "synchronization": [
               {
                 "path": "docs/design/client-submission-identity.md",
-                "anchor": "checked again inside atomic acceptance after any"
+                "anchor": "Atomic acceptance still checks the same current key, authority scope, retained"
               },
               {
                 "path": "packages/local-node/http-host.d.ts",
@@ -1544,7 +1544,7 @@
             "synchronization": [
               {
                 "path": "docs/design/client-submission-identity.md",
-                "anchor": "checked again inside atomic acceptance after any"
+                "anchor": "Atomic acceptance still checks the same current key, authority scope, retained"
               },
               {
                 "path": "packages/local-node/http-host.mjs",
@@ -1823,7 +1823,7 @@
             "synchronization": [
               {
                 "path": "docs/design/client-submission-identity.md",
-                "anchor": "checked again inside atomic acceptance after any"
+                "anchor": "Atomic acceptance still checks the same current key, authority scope, retained"
               },
               {
                 "path": "packages/local-node/index.d.ts",
@@ -2041,7 +2041,7 @@
             "synchronization": [
               {
                 "path": "docs/design/client-submission-identity.md",
-                "anchor": "checked again inside atomic acceptance after any"
+                "anchor": "Atomic acceptance still checks the same current key, authority scope, retained"
               },
               {
                 "path": "packages/local-node/index.mjs",
@@ -2392,7 +2392,7 @@
             "synchronization": [
               {
                 "path": "docs/design/client-submission-identity.md",
-                "anchor": "checked again inside atomic acceptance after any"
+                "anchor": "Atomic acceptance still checks the same current key, authority scope, retained"
               },
               {
                 "path": "packages/local-node/observation.d.ts",
@@ -2533,7 +2533,7 @@
             "synchronization": [
               {
                 "path": "docs/design/client-submission-identity.md",
-                "anchor": "checked again inside atomic acceptance after any"
+                "anchor": "Atomic acceptance still checks the same current key, authority scope, retained"
               },
               {
                 "path": "packages/local-node/selected-infer-startup.cjs",
@@ -2836,7 +2836,7 @@
             "synchronization": [
               {
                 "path": "docs/design/client-submission-identity.md",
-                "anchor": "checked again inside atomic acceptance after any"
+                "anchor": "Atomic acceptance still checks the same current key, authority scope, retained"
               },
               {
                 "path": "packages/node/index.d.ts",
@@ -3132,7 +3132,7 @@
             "synchronization": [
               {
                 "path": "docs/design/client-submission-identity.md",
-                "anchor": "checked again inside atomic acceptance after any"
+                "anchor": "Atomic acceptance still checks the same current key, authority scope, retained"
               },
               {
                 "path": "packages/node/index.mjs",
@@ -3497,7 +3497,7 @@
             "synchronization": [
               {
                 "path": "docs/design/client-submission-identity.md",
-                "anchor": "checked again inside atomic acceptance after any"
+                "anchor": "Atomic acceptance still checks the same current key, authority scope, retained"
               },
               {
                 "path": "packages/node/selected-infer-startup.cjs",
@@ -3850,7 +3850,7 @@
             "synchronization": [
               {
                 "path": "docs/design/client-submission-identity.md",
-                "anchor": "checked again inside atomic acceptance after any"
+                "anchor": "Atomic acceptance still checks the same current key, authority scope, retained"
               },
               {
                 "path": "packages/sdk/check-presentation.mjs",
@@ -4013,7 +4013,7 @@
             "synchronization": [
               {
                 "path": "docs/design/client-submission-identity.md",
-                "anchor": "checked again inside atomic acceptance after any"
+                "anchor": "Atomic acceptance still checks the same current key, authority scope, retained"
               },
               {
                 "path": "packages/sdk/check-reason-catalog.generated.d.ts",
@@ -4240,7 +4240,7 @@
             "synchronization": [
               {
                 "path": "docs/design/client-submission-identity.md",
-                "anchor": "checked again inside atomic acceptance after any"
+                "anchor": "Atomic acceptance still checks the same current key, authority scope, retained"
               },
               {
                 "path": "packages/sdk/check-reason-catalog.generated.js",
@@ -4648,7 +4648,7 @@
             "synchronization": [
               {
                 "path": "docs/design/client-submission-identity.md",
-                "anchor": "checked again inside atomic acceptance after any"
+                "anchor": "Atomic acceptance still checks the same current key, authority scope, retained"
               },
               {
                 "path": "packages/sdk/checkpoints.mjs",
@@ -4880,7 +4880,7 @@
             "synchronization": [
               {
                 "path": "docs/design/client-submission-identity.md",
-                "anchor": "checked again inside atomic acceptance after any"
+                "anchor": "Atomic acceptance still checks the same current key, authority scope, retained"
               },
               {
                 "path": "packages/sdk/connection-string.mjs",
@@ -5093,7 +5093,7 @@
             "synchronization": [
               {
                 "path": "docs/design/client-submission-identity.md",
-                "anchor": "checked again inside atomic acceptance after any"
+                "anchor": "Atomic acceptance still checks the same current key, authority scope, retained"
               },
               {
                 "path": "packages/sdk/host-port.d.ts",
@@ -5373,7 +5373,7 @@
             "synchronization": [
               {
                 "path": "docs/design/client-submission-identity.md",
-                "anchor": "checked again inside atomic acceptance after any"
+                "anchor": "Atomic acceptance still checks the same current key, authority scope, retained"
               },
               {
                 "path": "packages/sdk/host-port.mjs",
@@ -6697,7 +6697,7 @@
             "synchronization": [
               {
                 "path": "docs/design/client-submission-identity.md",
-                "anchor": "checked again inside atomic acceptance after any"
+                "anchor": "Atomic acceptance still checks the same current key, authority scope, retained"
               },
               {
                 "path": "packages/sdk/index.d.ts",
@@ -7287,7 +7287,7 @@
             "synchronization": [
               {
                 "path": "docs/design/client-submission-identity.md",
-                "anchor": "checked again inside atomic acceptance after any"
+                "anchor": "Atomic acceptance still checks the same current key, authority scope, retained"
               },
               {
                 "path": "packages/sdk/index.mjs",
@@ -7871,7 +7871,7 @@
             "synchronization": [
               {
                 "path": "docs/design/client-submission-identity.md",
-                "anchor": "checked again inside atomic acceptance after any"
+                "anchor": "Atomic acceptance still checks the same current key, authority scope, retained"
               },
               {
                 "path": "packages/sdk/internal/check-observation.mjs",
@@ -8434,7 +8434,7 @@
             "synchronization": [
               {
                 "path": "docs/design/client-submission-identity.md",
-                "anchor": "checked again inside atomic acceptance after any"
+                "anchor": "Atomic acceptance still checks the same current key, authority scope, retained"
               },
               {
                 "path": "packages/sdk/internal/checkpoint-operations.mjs",
@@ -8991,7 +8991,7 @@
             "synchronization": [
               {
                 "path": "docs/design/client-submission-identity.md",
-                "anchor": "checked again inside atomic acceptance after any"
+                "anchor": "Atomic acceptance still checks the same current key, authority scope, retained"
               },
               {
                 "path": "packages/sdk/internal/client-lifecycle.mjs",
@@ -9165,7 +9165,7 @@
             "synchronization": [
               {
                 "path": "docs/design/client-submission-identity.md",
-                "anchor": "checked again inside atomic acceptance after any"
+                "anchor": "Atomic acceptance still checks the same current key, authority scope, retained"
               },
               {
                 "path": "packages/sdk/internal/client.mjs",
@@ -9546,7 +9546,7 @@
             "synchronization": [
               {
                 "path": "docs/design/client-submission-identity.md",
-                "anchor": "checked again inside atomic acceptance after any"
+                "anchor": "Atomic acceptance still checks the same current key, authority scope, retained"
               },
               {
                 "path": "packages/sdk/internal/connection-options.mjs",
@@ -9711,7 +9711,7 @@
             "synchronization": [
               {
                 "path": "docs/design/client-submission-identity.md",
-                "anchor": "checked again inside atomic acceptance after any"
+                "anchor": "Atomic acceptance still checks the same current key, authority scope, retained"
               },
               {
                 "path": "packages/sdk/internal/data.mjs",
@@ -9911,7 +9911,7 @@
             "synchronization": [
               {
                 "path": "docs/design/client-submission-identity.md",
-                "anchor": "checked again inside atomic acceptance after any"
+                "anchor": "Atomic acceptance still checks the same current key, authority scope, retained"
               },
               {
                 "path": "packages/sdk/internal/errors.mjs",
@@ -10051,7 +10051,7 @@
             "synchronization": [
               {
                 "path": "docs/design/client-submission-identity.md",
-                "anchor": "checked again inside atomic acceptance after any"
+                "anchor": "Atomic acceptance still checks the same current key, authority scope, retained"
               },
               {
                 "path": "packages/sdk/internal/plan.mjs",
@@ -10607,7 +10607,7 @@
             "synchronization": [
               {
                 "path": "docs/design/client-submission-identity.md",
-                "anchor": "checked again inside atomic acceptance after any"
+                "anchor": "Atomic acceptance still checks the same current key, authority scope, retained"
               },
               {
                 "path": "packages/sdk/internal/resources.mjs",
@@ -11251,7 +11251,7 @@
             "synchronization": [
               {
                 "path": "docs/design/client-submission-identity.md",
-                "anchor": "checked again inside atomic acceptance after any"
+                "anchor": "Atomic acceptance still checks the same current key, authority scope, retained"
               },
               {
                 "path": "packages/sdk/internal/result-read.mjs",
@@ -11715,7 +11715,7 @@
             "synchronization": [
               {
                 "path": "docs/design/client-submission-identity.md",
-                "anchor": "checked again inside atomic acceptance after any"
+                "anchor": "Atomic acceptance still checks the same current key, authority scope, retained"
               },
               {
                 "path": "packages/sdk/internal/run-observation.mjs",
@@ -12574,7 +12574,7 @@
             "synchronization": [
               {
                 "path": "docs/design/client-submission-identity.md",
-                "anchor": "checked again inside atomic acceptance after any"
+                "anchor": "Atomic acceptance still checks the same current key, authority scope, retained"
               },
               {
                 "path": "packages/sdk/internal/submission-observation.mjs",
@@ -12814,7 +12814,7 @@
             "synchronization": [
               {
                 "path": "docs/design/client-submission-identity.md",
-                "anchor": "checked again inside atomic acceptance after any"
+                "anchor": "Atomic acceptance still checks the same current key, authority scope, retained"
               },
               {
                 "path": "packages/sdk/internal/transport-response.mjs",
@@ -13026,7 +13026,7 @@
             "synchronization": [
               {
                 "path": "docs/design/client-submission-identity.md",
-                "anchor": "checked again inside atomic acceptance after any"
+                "anchor": "Atomic acceptance still checks the same current key, authority scope, retained"
               },
               {
                 "path": "packages/sdk/internal/transport.mjs",
@@ -13149,7 +13149,7 @@
             "synchronization": [
               {
                 "path": "docs/design/client-submission-identity.md",
-                "anchor": "checked again inside atomic acceptance after any"
+                "anchor": "Atomic acceptance still checks the same current key, authority scope, retained"
               },
               {
                 "path": "packages/sdk/json-value-wire.generated.mjs",
@@ -13264,7 +13264,7 @@
             "synchronization": [
               {
                 "path": "docs/design/client-submission-identity.md",
-                "anchor": "checked again inside atomic acceptance after any"
+                "anchor": "Atomic acceptance still checks the same current key, authority scope, retained"
               },
               {
                 "path": "packages/sdk/loopback-http-unavailable.mjs",
@@ -13445,7 +13445,7 @@
             "synchronization": [
               {
                 "path": "docs/design/client-submission-identity.md",
-                "anchor": "checked again inside atomic acceptance after any"
+                "anchor": "Atomic acceptance still checks the same current key, authority scope, retained"
               },
               {
                 "path": "packages/sdk/loopback-http.mjs",
@@ -13613,7 +13613,7 @@
             "synchronization": [
               {
                 "path": "docs/design/client-submission-identity.md",
-                "anchor": "checked again inside atomic acceptance after any"
+                "anchor": "Atomic acceptance still checks the same current key, authority scope, retained"
               },
               {
                 "path": "packages/sdk/operation-formats.mjs",
@@ -13983,7 +13983,7 @@
             "synchronization": [
               {
                 "path": "docs/design/client-submission-identity.md",
-                "anchor": "checked again inside atomic acceptance after any"
+                "anchor": "Atomic acceptance still checks the same current key, authority scope, retained"
               },
               {
                 "path": "packages/sdk/operation-presentation.mjs",
@@ -14203,7 +14203,7 @@
             "synchronization": [
               {
                 "path": "docs/design/client-submission-identity.md",
-                "anchor": "checked again inside atomic acceptance after any"
+                "anchor": "Atomic acceptance still checks the same current key, authority scope, retained"
               },
               {
                 "path": "packages/sdk/result-schema.mjs",
@@ -14620,7 +14620,7 @@
             "synchronization": [
               {
                 "path": "docs/design/client-submission-identity.md",
-                "anchor": "checked again inside atomic acceptance after any"
+                "anchor": "Atomic acceptance still checks the same current key, authority scope, retained"
               },
               {
                 "path": "packages/sdk/source-query.mjs",
@@ -14792,7 +14792,7 @@
             "synchronization": [
               {
                 "path": "docs/design/client-submission-identity.md",
-                "anchor": "checked again inside atomic acceptance after any"
+                "anchor": "Atomic acceptance still checks the same current key, authority scope, retained"
               },
               {
                 "path": "packages/sdk/standard-schema.d.ts",

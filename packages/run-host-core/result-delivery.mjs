@@ -286,6 +286,10 @@ export async function deliverPublishedResult(options, resolvedPublication) {
   if (appendCompletion !== undefined && typeof appendCompletion !== 'function') {
     fail('InvalidResultDeliveryStore');
   }
+  const beginAttempt = store.beginDeliveryAttempt;
+  if (beginAttempt !== undefined && typeof beginAttempt !== 'function') {
+    fail('InvalidResultDeliveryStore');
+  }
   // The access owner has already read these immutable typed contracts. This
   // operation-local handoff is neither a read grant nor a cross-call cache.
   // Capture it before the current-head await and preserve the generic path
@@ -344,9 +348,18 @@ export async function deliverPublishedResult(options, resolvedPublication) {
   const original = typeof control.captureIssuedDeliveryAttempt === 'function'
     ? control.captureIssuedDeliveryAttempt(proposed, index, manifest, grant, limits)
     : undefined;
-  const admitted = await store.createDeliveryAttempt(
+  // The same issued attempt and initial state can become durable together.
+  // No sink or material reader runs before the physical owner returns.
+  const initialStreaming = beginAttempt === undefined || original === undefined ? undefined :
+    control.issueDeliveryRecord(proposed, undefined, {
+      state: 'streaming', confirmedByteCount: 0, exposure: 'exact',
+      possibleUnconfirmedMaxBytes: undefined, deliveredSha256: undefined,
+      receipt: undefined, failureCid: undefined, observedAt: requestedAt,
+      cleanupOwnerCids: [],
+    }, limits);
+  const admitted = initialStreaming === undefined ? await store.createDeliveryAttempt(
     proposed.wire, grant.wire, original,
-  );
+  ) : await Reflect.apply(beginAttempt, store, [original, initialStreaming]);
   const attempt = selectDeliveryAttempt(control, admitted, proposed, index,
     manifest, grant, {resultName, format, attemptId}, limits, original);
   if (!admitted.created) {
@@ -405,7 +418,7 @@ export async function deliverPublishedResult(options, resolvedPublication) {
   let confirmedByteCount = 0;
   let writeFailure;
   try {
-    streaming = control.issueDeliveryRecord(attempt, undefined, {
+    streaming = initialStreaming ?? control.issueDeliveryRecord(attempt, undefined, {
       state: 'streaming',
       confirmedByteCount: 0,
       exposure: 'exact',
@@ -416,7 +429,9 @@ export async function deliverPublishedResult(options, resolvedPublication) {
       observedAt: trustedNow(now),
       cleanupOwnerCids: [],
     }, limits);
-    try { await store.appendDeliveryRecord(streaming.wire); }
+    try {
+      if (initialStreaming === undefined) await store.appendDeliveryRecord(streaming.wire);
+    }
     catch (recordFailure) {
       const terminal = control.issueDeliveryRecord(attempt, streaming, {
         state: 'failed',
