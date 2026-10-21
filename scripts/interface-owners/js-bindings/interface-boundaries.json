@@ -97093,6 +97093,7 @@
         "admitTaskRun",
         "admitTaskRunDefinition",
         "beginResultMaterialHolds",
+        "bindPreparedEffectRunMaterials",
         "captureOriginalRunPlan",
         "checkRunBinding",
         "compileEffect",
@@ -100298,6 +100299,16 @@
           "name": "validateTaskPhysicalStartClaim/validateTaskPhysicalStartClaim#2",
           "parameters": [
             "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "bindPreparedEffectRunMaterials",
+          "parameters": [
+            "allowed",
+            "definition",
+            "issued",
+            "request"
           ],
           "async": false
         }
@@ -120960,6 +120971,128 @@
               {
                 "path": "packages/run-host-core/source-preparation.test.mjs",
                 "anchor": "test('source Effect materials require the same source preparation and independently retained request'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "bindPreparedEffectRunMaterials"
+          ],
+          "exports": [
+            "bindPreparedEffectRunMaterials"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "bindPreparedEffectRunMaterials"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Responsibility"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "bindPreparedEffectRunMaterials"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Inputs and outputs"
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "bindPreparedEffectRunMaterials"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Identity"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "bindPreparedEffectRunMaterials"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Ownership"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "bindPreparedEffectRunMaterials"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Synchronization"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "bindPreparedEffectRunMaterials"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Failure"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "bindPreparedEffectRunMaterials"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Cancellation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "bindPreparedEffectRunMaterials"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Resources"
+              }
+            ],
+            "extension": [
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "bindPreparedEffectRunMaterials"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Extension"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "bindPreparedEffectRunMaterials"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Verification"
+              },
+              {
+                "path": "scripts/js-compiler-binding-runtime.test.mjs",
+                "anchor": "actual pinned MoonBit Result"
+              },
+              {
+                "path": "packages/run-host-core/original-effect-materials.test.mjs",
+                "anchor": "live package materials preserve the exact original handles and normalization"
+              },
+              {
+                "path": "packages/run-host-core/original-effect-materials.test.mjs",
+                "anchor": "live package material binding refuses copied and foreign original tuples"
               }
             ]
           }

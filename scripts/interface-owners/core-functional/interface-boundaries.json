@@ -16819,6 +16819,7 @@
         "admitTaskRun",
         "admitTaskRunDefinition",
         "beginResultMaterialHolds",
+        "bindPreparedEffectRunMaterials",
         "captureOriginalRunPlan",
         "checkRunBinding",
         "compileEffect",
@@ -20026,6 +20027,16 @@
             "value"
           ],
           "async": false
+        },
+        {
+          "name": "bindPreparedEffectRunMaterials",
+          "parameters": [
+            "allowed",
+            "definition",
+            "issued",
+            "request"
+          ],
+          "async": false
         }
       ],
       "owner": "Existing client_values_host_abi/Run Publication same-process wrapper",
@@ -20386,7 +20397,8 @@
             "validateRunMaterialsInput/validateRunMaterialsInput",
             "validateTaskPhysicalStartClaim",
             "validateTaskPhysicalStartClaim/validateTaskPhysicalStartClaim",
-            "validateTaskPhysicalStartClaim/validateTaskPhysicalStartClaim#2"
+            "validateTaskPhysicalStartClaim/validateTaskPhysicalStartClaim#2",
+            "bindPreparedEffectRunMaterials"
           ],
           "exports": [
             "admitCapturedResultSnapshot",
@@ -20539,7 +20551,8 @@
             "validatePublicationChain",
             "validatePublicationRecordTransition",
             "validateRetainedInputPlan",
-            "validateRetainedTaskInput"
+            "validateRetainedTaskInput",
+            "bindPreparedEffectRunMaterials"
           ],
           "attributes": {
             "responsibility": [

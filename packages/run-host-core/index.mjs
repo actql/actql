@@ -419,7 +419,7 @@ export function issueAllowedEffectRun(prepared, compilation, {
   const value = checked(owner.clientValuesHostIssueAllowedEffectRun(
     effectCompilationFor(prepared, compilation), executionContextCid,
     hostPolicyCid, expiresAt), 'RunHostEffectAdmissionRejected');
-  return handle(effectAllowedRuns, {value, prepared}, 'allowed-effect-run');
+  return handle(effectAllowedRuns, {value, prepared, compilation}, 'allowed-effect-run');
 }
 
 export function privateEffectRunEvidence(allowed) {
@@ -461,6 +461,20 @@ export function issuePreparedEffectRunMaterials(allowed, definition, request) {
   return material;
 }
 
+/** Bind the same live issuer originals; no preparation, compilation or approval.
+ * The existing Common Owner verifies the Run, request and normalization custody. */
+export function bindPreparedEffectRunMaterials(allowed, definition, issued, request) {
+  const original = requireHandle(effectAllowedRuns, allowed);
+  const bound = checked(owner.clientValuesHostBindPreparedEffectRunMaterials(
+    original.value, requireHandle(definitions, definition),
+    requireHandle(issuedEffectMaterials, issued), requireHandle(requests, request)),
+  'RunHostEffectOriginalMaterialsRejected');
+  const materials = Object.freeze({prepared: original.prepared,
+    compilation: original.compilation, allowed, definition, request});
+  effectMaterialOwners.set(materials, bound);
+  return materials;
+}
+
 /** Restore saved journal bytes from this exact material admission; no approval. */
 export function restoreEffectRunNormalization(materials) {
   return runEvidence(checked(owner.clientValuesHostRestoreEffectRunNormalization(
@@ -488,9 +502,11 @@ export function admitEffectRunMaterials(wire, definitionCid, profiles, original,
   const originalRequest = owner.clientValuesHostRestoredEffectRequest(restored);
   if (!Array.isArray(originalRequest) || originalRequest.length > 1) throw new Error('InvalidRunHostOriginalRequest');
   const request = originalRequest.length === 1 ? handle(requests, originalRequest[0], 'request-identity') : undefined;
-  const materials = Object.freeze({prepared, ...(request === undefined ? {} : {request}),
-    compilation: handle(effectCompilations, {value: owner.clientValuesHostRestoredEffectCompilation(restored), prepared}, 'effect-compilation'),
-    allowed: handle(effectAllowedRuns, {value: owner.clientValuesHostRestoredEffectAllowed(restored), prepared}, 'allowed-effect-run'),
+  const compilation = handle(effectCompilations,
+    {value: owner.clientValuesHostRestoredEffectCompilation(restored), prepared}, 'effect-compilation');
+  const materials = Object.freeze({prepared, ...(request === undefined ? {} : {request}), compilation,
+    allowed: handle(effectAllowedRuns,
+      {value: owner.clientValuesHostRestoredEffectAllowed(restored), prepared, compilation}, 'allowed-effect-run'),
     definition: handle(definitions, owner.clientValuesHostRestoredEffectDefinition(restored), 'run-definition')});
   effectMaterialOwners.set(materials, restored);
   return materials;

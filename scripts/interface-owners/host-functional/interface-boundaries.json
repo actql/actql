@@ -66685,7 +66685,8 @@
         "validatePublicationChain",
         "validatePublicationRecordTransition",
         "validateRetainedInputPlan",
-        "validateRetainedTaskInput"
+        "validateRetainedTaskInput",
+        "bindPreparedEffectRunMaterials"
       ],
       "operations": [
         {
@@ -68588,6 +68589,16 @@
             "input: RetainedTaskInput"
           ],
           "result": "void"
+        },
+        {
+          "name": "bindPreparedEffectRunMaterials",
+          "parameters": [
+            "allowed: AllowedEffectRun",
+            "definition: RunDefinition",
+            "issued: IssuedEffectRunMaterials",
+            "request: RequestIdentity"
+          ],
+          "result": "RestoredEffectRun"
         }
       ],
       "contracts": [
@@ -68794,7 +68805,8 @@
             "validatePublicationChain",
             "validatePublicationRecordTransition",
             "validateRetainedInputPlan",
-            "validateRetainedTaskInput"
+            "validateRetainedTaskInput",
+            "bindPreparedEffectRunMaterials"
           ],
           "exports": [
             "AllowedEffectRun",
@@ -69000,7 +69012,8 @@
             "validatePublicationChain",
             "validatePublicationRecordTransition",
             "validateRetainedInputPlan",
-            "validateRetainedTaskInput"
+            "validateRetainedTaskInput",
+            "bindPreparedEffectRunMaterials"
           ],
           "attributes": {
             "responsibility": [
