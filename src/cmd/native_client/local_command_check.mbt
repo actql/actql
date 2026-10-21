@@ -464,6 +464,28 @@ fn LocalCommandPreparationOriginal::execute_adopted_command(
             host, capture, settings, crypto, sqlite, name, runtime, input_root, operation,
             child, selection,
           )
+        } else if operation == "adopt" &&
+          child.flags.get("migrate-journal").unwrap_or(false) {
+          let migrated = local_host_result(
+            capture.migrate_journal_append_metadata_in_original_read(
+              settings.principal,
+              settings.connection,
+            ),
+          )
+          match migrated {
+            Ok(_) => ()
+            Err(issue) => stop(local_journal_migration_issue(issue))
+          }
+          let account = local_host_result(
+            capture.configuration_in_original_read(),
+          )
+          local_adoption_metadata_reply(
+            true,
+            settings.account_id,
+            account.configuration_cid(),
+            host.adoption_cid(),
+            child,
+          )
         } else {
           let runtime = self.runtime.unwrap()
           let run_file = settings.run_file.unwrap_or_else(() => {

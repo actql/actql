@@ -64,7 +64,9 @@ pub fn client_submitted_journal_usage_body(
 }
 
 ///|
-fn client_submitted_journal_usage(
+/// Read the canonical retained usage against the same issuance count. This
+/// projection neither adopts missing metadata nor commits a quota update.
+pub fn client_submitted_journal_usage(
   row : ClientJournalPhysicalRow,
   count : Int,
   max_records : Int,

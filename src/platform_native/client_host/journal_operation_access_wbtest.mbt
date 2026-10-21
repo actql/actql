@@ -7,6 +7,16 @@ fn journal_test_operation_access(
 ) -> NativeClientJournalOperationAccess {
   {
     reads: journal_test_read_access(database, calls),
+    lookup_append_format: () => {
+      calls.push("lookup append format")
+      database.lookup_claim_ordinal("client_journal_format", "append-index")
+    },
+    claim_append_format: () => {
+      calls.push("claim append format")
+      database.claim_ordinal_action_in_transaction(
+        "client_journal_format", "append-index", 1L,
+      )
+    },
     capacity_usage: table => {
       calls.push("capacity:" + table)
       database.capacity_usage(table)

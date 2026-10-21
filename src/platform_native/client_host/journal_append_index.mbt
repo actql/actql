@@ -159,58 +159,44 @@ fn NativeClientRunJournal::index_legacy_append_metadata_locked(
     return Err(CustodyLost)
   }
   let reads = operations.map(value => value.reads)
+  let runs : Map[String, NativeClientRunRecord] = Map(
+    [],
+    capacity=self.max_records,
+  )
   let issuance = match
-    run_journal_custody(self.database, self.max_records, reads~) {
-    Ok(value) => value
-    Err(issue) => return Err(issue)
-  }
-  let mut cursor = ""
-  let mut count = 0
-  while true {
-    let row = match
-      scan_client_journal_value(self.database, "client_runs", cursor, reads) {
-      Ok(value) => value
-      Err(@sqlite.NotFound) => break
-      Err(issue) => return Err(Physical(issue))
-    }
-    count += 1
-    if count > issuance.0 || row.key <= cursor {
-      return Err(CustodyLost)
-    }
-    cursor = row.key
-    let run = match
-      read_run_record({ body: row.body, revision: row.revision, }) {
-      Ok(value) => value
-      Err(issue) => return Err(issue)
-    }
-    let cid = @publication.publication_contract_identity(run.definition)
-    let body = @utf8.encode(row.key)
-    match
-      read_client_journal_value(
-        self.database,
-        "client_run_definition_index",
-        cid,
-        reads,
-      ) {
-      Ok(value) if value.body == body => ()
-      Ok(_) => return Err(CustodyLost)
-      Err(@sqlite.NotFound) =>
+    run_journal_custody(
+      self.database,
+      self.max_records,
+      reads~,
+      observe=Some((key, run) => {
+        runs[key] = run
+        let cid = @publication.publication_contract_identity(run.definition)
+        let body = @utf8.encode(key)
         match
-          insert_client_journal_value(
+          read_client_journal_value(
             self.database,
             "client_run_definition_index",
             cid,
-            body,
-            operations,
+            reads,
           ) {
-          Ok(_) => ()
-          Err(issue) => return Err(Physical(issue))
+          Ok(value) if value.body == body => Ok(())
+          Ok(_) => Err(CustodyLost)
+          Err(@sqlite.NotFound) =>
+            insert_client_journal_value(
+              self.database,
+              "client_run_definition_index",
+              cid,
+              body,
+              operations,
+            )
+            .map(_ => ())
+            .map_err(issue => Physical(issue))
+          Err(issue) => Err(Physical(issue))
         }
-      Err(issue) => return Err(Physical(issue))
-    }
-  }
-  if count != issuance.0 {
-    return Err(CustodyLost)
+      }),
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
   }
   let body = journal_append_coverage(issuance.0, issuance.1)
   match
@@ -247,7 +233,8 @@ fn NativeClientRunJournal::index_legacy_append_metadata_locked(
       }
     Err(issue) => return Err(Physical(issue))
   }
-  let (count, bytes, _) = match self.submitted_intent_custody(reads~) {
+  let (count, bytes, _) = match
+    self.submitted_intent_custody(reads~, runs=Some(runs)) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }

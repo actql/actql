@@ -180,6 +180,9 @@ fn execute_native_local_adoption(
   preparation? : LocalCommandPreparationOriginal? = None,
   preparation_runtime? : LocalPackagedRuntime? = None,
 ) -> String raise ClientStop {
+  if operation == "adopt" && child.flags.get("migrate-journal").unwrap_or(false) {
+    command_preparation_diagnostic.val = JournalMaintenanceFailed
+  }
   let root = required(matches, "config-root")
   let name = required(matches, "config-file")
   let input_root = local_document_root(matches, root)
@@ -490,6 +493,23 @@ fn execute_native_local_adoption(
       local_public_result(host, settings, crypto, sqlite, child)
     } else if operation == "read" {
       local_result_stream(host, settings, crypto, sqlite, input_root, child)
+    } else if operation == "adopt" &&
+      child.flags.get("migrate-journal").unwrap_or(false) {
+      match
+        host.migrate_journal_append_metadata(
+          settings.principal,
+          settings.connection,
+        ) {
+        Ok(_) => ()
+        Err(issue) => stop(local_journal_migration_issue(issue))
+      }
+      local_adoption_metadata_reply(
+        true,
+        settings.account_id,
+        local_host_result(host.configuration()).configuration_cid(),
+        host.adoption_cid(),
+        child,
+      )
     } else if operation == "new-submission" {
       guard host.authorize({
           principal: settings.principal,
@@ -555,6 +575,17 @@ fn execute_native_local_adoption(
     stop("LocalHostCleanupPending")
   }
   reply
+}
+
+///|
+fn local_journal_migration_issue(
+  issue : @local_host.NativeClientRunJournalIssue,
+) -> String {
+  match issue {
+    TransactionUnknown | Fenced => "LocalJournalMigrationUnknown"
+    AuthorizationDenied => "LocalJournalMigrationAuthorizationDenied"
+    _ => "LocalJournalMigrationUnavailable"
+  }
 }
 
 ///|

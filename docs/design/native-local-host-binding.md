@@ -2433,9 +2433,16 @@ CAS transaction. An unchanged definition performs no locator read or mutation;
 a failed replacement rolls back both the Run and its locators.
 
 Older Journals without complete append metadata refuse fresh insertion rather
-than treating missing metadata as absence or resend permission. The existing
-explicit saved-Run indexing operation also derives append metadata from a
-bounded, authenticated original inventory in its current transaction. It does
+than treating missing metadata as absence or resend permission. The explicit
+`adopt --migrate-journal` command derives append metadata from a bounded,
+authenticated original inventory under the current RunRead decision and the
+same captured Read/SQL transaction. A bounded installation claim in the
+existing SQLite claim storage distinguishes the old unindexed format from
+metadata deleted after adoption. Fresh initialization and successful migration
+commit this claim with their metadata; a missing record under the retained
+claim refuses instead of rebuilding it. Repeated maintenance on a complete
+installation reads only its local metadata. Migration reuses each admitted
+Run while validating its Submission relationships. It does
 not run on ordinary open or read, repair missing originals, renew an epoch,
 rekey, or authorize execution. Unindexed Common callers retain their existing
 inventory route until their physical counter port supplies the retained usage

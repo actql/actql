@@ -357,6 +357,10 @@ fn run_journal_custody(
   database : @sqlite.Database,
   max_records : Int,
   reads? : NativeClientJournalReadAccess? = None,
+  observe? : ((String, NativeClientRunRecord) -> Result[
+    Unit,
+    NativeClientRunJournalIssue,
+  ])? = None,
 ) -> Result[(Int, Int64), NativeClientRunJournalIssue] {
   @host.inspect_client_run_journal_inventory(
     max_records,
@@ -376,6 +380,12 @@ fn run_journal_custody(
       match confirm_effect_ledger_custody(database, record, reads~) {
         Ok(_) => ()
         Err(issue) => return Err(issue)
+      }
+      if observe is Some(visit) {
+        match visit(row.key, record) {
+          Ok(_) => ()
+          Err(issue) => return Err(issue)
+        }
       }
       Ok({
         request: record.request,

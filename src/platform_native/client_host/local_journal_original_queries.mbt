@@ -151,6 +151,15 @@ fn NativeLocalJournalReadQueries::bootstrap_access(
 ) -> NativeClientJournalBootstrapAccess {
   {
     reads: self.access(),
+    claim_append_format: () => {
+      self
+      .query(() => {
+        self.database.claim_ordinal_action_in_transaction(
+          "client_journal_format", "append-index", 1L,
+        )
+      })
+      .unwrap_or(Err(@sqlite.Busy))
+    },
     insert: (table_name, key, body) => {
       (self.invalidate_snapshot)(Some(table_name))
       match self.query(() => self.database.insert(table_name, key, body)) {
@@ -209,6 +218,24 @@ fn NativeLocalJournalReadQueries::operation_access(
 ) -> NativeClientJournalOperationAccess {
   {
     reads: self.access(),
+    lookup_append_format: () => {
+      self
+      .query(() => {
+        self.database.lookup_claim_ordinal(
+          "client_journal_format", "append-index",
+        )
+      })
+      .unwrap_or(Err(@sqlite.Busy))
+    },
+    claim_append_format: () => {
+      self
+      .query(() => {
+        self.database.claim_ordinal_action_in_transaction(
+          "client_journal_format", "append-index", 1L,
+        )
+      })
+      .unwrap_or(Err(@sqlite.Busy))
+    },
     capacity_usage: table => {
       match self.query(() => self.database.capacity_usage(table)) {
         Ok(value) => value

@@ -398,3 +398,21 @@ come before or after the Program path.
   unknown outcomes.
 - [Configuration reference](reference/configuration.md): every file the CLI
   reads.
+
+### Local Journal compatibility maintenance
+
+After upgrading an older Local installation, run
+`actql --mode local adopt --migrate-journal --json` once before admitting a new
+Run. The command requires the installation's current Run-read permission and
+uses its existing Account, Journal, key and exclusion. It preserves original
+Runs and Results while installing bounded append quota metadata and definition
+locators atomically. It does not initialize signing, renew grants, issue an
+epoch or execute a Program. Existing project and Local configuration selection
+still apply.
+
+Ordinary open and read do not scan history to perform this migration. Repeating
+the explicit command on an already migrated installation checks its local
+metadata; deleted or inconsistent adopted metadata is refused. An uncertain
+COMMIT remains Unknown on its original handle and must be reconciled before
+continuing. A successful command retains the existing adoption metadata reply;
+it is not a Run receipt.

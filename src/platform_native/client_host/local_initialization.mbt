@@ -86,6 +86,10 @@ fn initialize_native_local_client_rows(
       Err(issue) => return Err(Physical(issue))
     }
   }
+  match claim_bootstrap_journal_append_format(database, bootstrap) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
   match initialize_local_read_evidence(database, adoption, bootstrap~) {
     Ok(_) => ()
     Err(issue) => return Err(issue)

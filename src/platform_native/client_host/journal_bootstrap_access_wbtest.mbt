@@ -24,6 +24,11 @@ fn journal_test_bootstrap_access(
   }
   {
     reads,
+    claim_append_format: () => {
+      database.claim_ordinal_action_in_transaction(
+        "client_journal_format", "append-index", 1L,
+      )
+    },
     insert: (table_name, key, body) => {
       calls.push("insert:" + table_name + ":" + key)
       if fail_adoption && table_name == "client_local_adoption" {

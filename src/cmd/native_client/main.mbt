@@ -881,6 +881,7 @@ fn command() -> @argparse.Command {
       @argparse.Command("adopt", flags=[
         @argparse.FlagArg("json"),
         @argparse.FlagArg("initialize-signing"),
+        @argparse.FlagArg("migrate-journal"),
       ]),
       @argparse.Command("connect", flags=[@argparse.FlagArg("json")]),
       @argparse.Command("upgrade-policy", flags=[@argparse.FlagArg("json")], options=[

@@ -195,6 +195,7 @@ fn initialize_native_client_submitted_intents(
 fn NativeClientRunJournal::submitted_intent_custody(
   self : NativeClientRunJournal,
   reads? : NativeClientJournalReadAccess? = None,
+  runs? : Map[String, NativeClientRunRecord]? = None,
 ) -> Result[(Int, Int64, Int64), NativeClientRunJournalIssue] {
   @host.inspect_client_submitted_journal_inventory(
     self.max_records,
@@ -204,7 +205,7 @@ fn NativeClientRunJournal::submitted_intent_custody(
     (table_name, key) => {
       client_journal_read(self.database, table_name, key, reads~)
     },
-    row => self.inspect_submitted_intent_row(row, reads~),
+    row => self.inspect_submitted_intent_row(row, reads~, runs~),
     CustodyLost,
   )
 }
@@ -214,6 +215,7 @@ fn NativeClientRunJournal::inspect_submitted_intent_row(
   self : NativeClientRunJournal,
   row : @host.ClientJournalPhysicalRow,
   reads? : NativeClientJournalReadAccess? = None,
+  runs? : Map[String, NativeClientRunRecord]? = None,
 ) -> Result[@host.ClientSubmittedJournalEncoding, NativeClientRunJournalIssue] {
   let original = match @host.decode_client_submitted_journal_row(row.body) {
     Ok(value) => value
@@ -234,7 +236,7 @@ fn NativeClientRunJournal::inspect_submitted_intent_row(
   if record.reference.request_id != row.key {
     return Err(CustodyLost)
   }
-  match self.validate_submitted_run_admission(record, reads~) {
+  match self.validate_submitted_run_admission(record, reads~, runs~) {
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
