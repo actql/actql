@@ -3559,7 +3559,7 @@ async function openOriginalLocalPublicationStore(
     if (physical.bytes !== binding.byte_count) {
       fail('PublicationDurableBindingMismatch');
     }
-    const original = await readOriginal(binding.result_schema_cid);
+    const original = await readOriginal(binding.result_schema_cid, false);
     const schemaBytes = original.bytes;
     const schemaCid = original.physicalCid ?? `sha256:${createHash('sha256')
       .update(schemaBytes).digest('hex')}`;
@@ -4408,7 +4408,7 @@ async function openOriginalLocalPublicationStore(
         entry.run_definition_cid !== key.runDefinitionCid) {
       fail('PublicIndexBindingMismatch');
     }
-    const semantic = await readSemanticBytes(entry.public_index_entry_cid);
+    const semantic = await readSemanticBytes(entry.public_index_entry_cid, false);
     // The selected Index and its immutable contract alias describe the same
     // fact. Reuse its admission for identical bytes, without skipping the
     // alias's real FD/inode/digest checks or admitting a changed spelling as
@@ -4869,7 +4869,7 @@ async function openOriginalLocalPublicationStore(
       const artifact = (await readContract(
         artifactCid, 'effect_source_artifact', readOriginal,
       )).value;
-      await readOriginal(artifact.result_schema_cid);
+      await readOriginal(artifact.result_schema_cid, false);
       sourceArtifactCids.push(artifactCid);
       sourceSchemaCids.push(artifact.result_schema_cid);
       await commitPhysicalHolding(holding, []);
@@ -5525,7 +5525,7 @@ async function openOriginalLocalPublicationStore(
         cid === selected.contract.identity ? selected.contract :
           (await readContract(cid, 'durable_result_binding')).contract));
     const schemaWire = (await readSemanticBytes(
-      selected.value.result_schema_cid)).toString('utf8');
+      selected.value.result_schema_cid, false)).toString('utf8');
     const definition = (await readContract(
       definitionCid, 'result_definition')).contract;
     const retained = await readSelectedResultRetentionExtension(

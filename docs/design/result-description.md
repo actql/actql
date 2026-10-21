@@ -82,6 +82,12 @@ own selected read. No public raw input check, physical payload verification,
 directory acknowledgement or next-operation acquisition is replaced by these
 internal facts.
 
+Known file-backed Index and Result-schema reads select their file representation
+directly; they do not first query the native delivery-metadata tables. The
+selected file still supplies its real bounded bytes, inode/digest checks and
+close duty. Generic semantic reads and the native delivery contract families
+retain their existing native lookup and file fallback.
+
 ## Delivery profile and bounds
 
 `format` defaults to `jsonl`. The current public delivery owner admits `json`,
