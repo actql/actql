@@ -753,7 +753,9 @@ fn NativeClientRunJournal::lookup_with_reads(
   if !current_authorization {
     return Err(AuthorizationDenied)
   }
-  if self.publication_read_locked {
+  // This closed operation already owns its original Read and selected facts.
+  // A pure lookup must not manufacture another SQLite transaction/frame.
+  if self.publication_read_locked || self.operation_active {
     return self
       .retained(requested, reads~)
       .map(record => {

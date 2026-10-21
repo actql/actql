@@ -63,6 +63,23 @@ test "one selected Run revision and Policy original survive trusted read-only tr
     1,
   )
   assert_false(calls.any(value => value.has_prefix("scan:client_runs:")))
+  let before_lookup = calls.length()
+  assert_true(
+    journal.lookup_with_reads(request, true, reads=Some(reads))
+    is Ok(Retained(value)) &&
+    physical_equal(first, value),
+  )
+  assert_false(
+    calls
+    .drop(before_lookup)
+    .any(value => {
+      value.has_prefix("read:") ||
+      value.has_prefix("scan:") ||
+      value == "begin" ||
+      value == "commit" ||
+      value == "rollback"
+    }),
+  )
   // These are the same typed originals across two actual transactions, not
   // newly admitted copies selected by a private helper/transaction frame.
   journal.operation_active = false
