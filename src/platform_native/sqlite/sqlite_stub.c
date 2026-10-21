@@ -1728,7 +1728,9 @@ int32_t actql_native_sqlite_database_compare_exchange(
   }
   if (result == 0) {
     code = ACTQL_NATIVE_TIMED_CALL(ACTQL_NATIVE_COUNT_SQL_STEP, database->library->step)(statement);
-    if (code != SQLITE_DONE) {
+    if ((code & 0xff) == SQLITE_CONSTRAINT) {
+      result = 2;
+    } else if (code != SQLITE_DONE) {
       actql_database_error(database, "update journal record failed");
       result = actql_operation_code(code);
     } else if (database->library->changes64(database->database) != 1) {
