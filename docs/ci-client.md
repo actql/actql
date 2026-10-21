@@ -88,9 +88,14 @@ The existing public collector runs in final mode and the complete performance
 assessor runs even after measurement failure. Slow, malformed or missing raw
 measurements cannot produce a successful performance workflow. Raw samples,
 controls, source/package identities and failed or incomplete assessment are
-retained separately from ordinary functional acceptance. The current collector
-covers warm SELECT, saved Result and status; missing cold, history, chunk,
-structural or fault evidence keeps the full release assessment incomplete.
+retained separately from ordinary functional acceptance. The collectors cover
+warm SELECT, saved Result and status, existing-state reads in distinct child
+processes, and first initialization in distinct new states. Each uses the same
+package consumer and explicit combined protocol. The combined report verifies
+the source, cohort, environment and protocol identities and matches each sample
+against its retained raw JSONL. Missing families remain absent; missing or
+different raw samples refuse. Missing JOIN, UNION, Decimal SUM, Mock, history,
+chunk, structural or fault evidence keeps the full release assessment incomplete.
 Harness tests or a passing subset do not establish the release latency gate.
 
 ## Focused packed Content recovery acceptance

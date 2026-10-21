@@ -10,7 +10,9 @@ import {readFileSync} from 'node:fs';
 import {parse} from 'yaml';
 import {CLIENT_PACKAGES} from './packed-client-packages.mjs';
 import {validatePerformancePackageProducer, inspectPerformancePackageProducer,
-  prepareOrdinaryPerformanceConsumer} from './ordinary-operation-packages.mjs';
+  prepareOrdinaryPerformanceConsumer, combineOrdinaryPerformanceMeasurements} from './ordinary-operation-packages.mjs';
+import {nodeOperationProtocol} from './benchmark-node-operations.mjs';
+import {assessPerformanceEvidence} from './operation-performance.mjs';
 
 const sha = 'a'.repeat(40), hash = bytes => createHash('sha256').update(bytes).digest('hex');
 function provenance() {
@@ -92,6 +94,7 @@ test('existing five tarballs become the collector manifest and a fresh ordinary-
   const controls = JSON.parse(await readFile(result.controlsPath));
   assert.equal(controls.cohortSha256, hash(await readFile(result.manifestPath)));
   assert.equal(controls.sourceSha, sha); assert.equal(controls.load, 'isolated');
+  assert.equal(controls.historyProtocolSha256, hash(JSON.stringify(nodeOperationProtocol('final'))));
   await assert.rejects(prepareOrdinaryPerformanceConsumer({...p, install: syntheticInstall}));
 });
 test('a missing or corrupted original tarball cannot trigger install or build fallback', async t => {
@@ -142,6 +145,8 @@ test('controlled performance check consumes existing artifacts and cannot omit f
     'package-artifact-id': '${{ inputs.performance_package_artifact_id }}',
   });
   assert.ok(ci.jobs.lint.steps.some(s => s.run === 'node --test scripts/ordinary-operation-packages.test.mjs'));
+  assert.equal(ci.jobs.lint.steps.find(s => s.name === 'Test ordinary operation performance assessment').run,
+    'node --test scripts/operation-performance.test.mjs scripts/benchmark-node-operations.test.mjs scripts/operation-performance-policy.test.mjs scripts/benchmark-node-process-operations.test.mjs');
   const job = workflow.jobs['ordinary-operations'];
   assert.equal(job.permissions.actions, 'read');
   const inspect = job.steps.findIndex(s => s.name === 'Validate the original normal package producer');
@@ -157,7 +162,117 @@ test('controlled performance check consumes existing artifacts and cannot omit f
   assert(job.steps[measure].run.endsWith('--mode final\n'));
   assert(job.steps[assess].run.includes('scripts/operation-performance.mjs --input'));
   const upload = job.steps.at(-1); assert.equal(upload.if, 'always()');
-  assert(upload.with.path.includes('/measurement/*.jsonl'));
+  assert(upload.with.path.includes('/measurement/*/*.jsonl'));
+  const cold = job.steps.findIndex(s => s.name === 'Measure existing-state reads in new processes');
+  const init = job.steps.findIndex(s => s.name === 'Measure first initialization in distinct new states');
+  const combine = job.steps.findIndex(s => s.name === 'Bind actual reports to the same cohort and raw samples');
+  assert(measure < cold && cold < init && init < combine && combine < assess);
+  for (const index of [cold, init]) {
+    assert(job.steps[index].run.includes('scripts/benchmark-node-process-operations.mjs'));
+    assert.equal(job.steps[index]['continue-on-error'], undefined);
+    assert(job.steps[index].run.includes('--consumer "$RUNNER_TEMP/ordinary-operation/prepared/consumer"'));
+  }
+  assert(job.steps[cold].run.includes('--operation cold-existing'));
+  assert(job.steps[init].run.includes('--operation first-init'));
+  assert.equal(job.steps[combine].if, 'always()');
   assert(!job.steps.some(s => /setup-toolchain|setup-moonbit/u.test(s.uses ?? '')));
   assert(!job.steps.some(s => /\b(?:npm pack|moon build|packed-client-packages\.mjs)\b/u.test(s.run ?? '')));
+});
+
+async function reports(t) {
+  const root = await mkdtemp(join(tmpdir(), 'actql-performance-report-test-'));
+  t.after(() => rm(root, {recursive: true, force: true}));
+  await mkdir(join(root, 'prepared')); await mkdir(join(root, 'packages'));
+  const manifest = JSON.stringify({sourceSha: sha, packages: []});
+  await writeFile(join(root, 'packages/ordinary-operation-packages.json'), manifest);
+  const controls = {sourceSha: sha, cohortSha256: hash(manifest), environment: {synthetic: true},
+    historyProtocolSha256: hash(JSON.stringify(nodeOperationProtocol('final')))};
+  await writeFile(join(root, 'prepared/controls.json'), JSON.stringify(controls));
+  const binding = {cohortSha256: controls.cohortSha256,
+    environmentSha256: hash(JSON.stringify(controls.environment)), historyProtocolSha256: controls.historyProtocolSha256};
+  async function add(family, operations) {
+    const directory = join(root, 'measurement', family); await mkdir(directory, {recursive: true});
+    const latency = operations.map(operation => ({operation, mode: 'final', ...binding, samples: []}));
+    const report = {sourceSha: sha, mode: 'final', ...binding, latency,
+      functional: {...binding, rows: []}, installedPayloadsUnchanged: true,
+      cleanup: family === 'warm' ? {closed: true} : {allChildrenExited: true, allOriginalClientsClosed: true}};
+    for (const series of latency) series.samples.push({iteration: 0, wallNs: 1, synthetic: true});
+    const save = async () => {
+      await writeFile(join(directory, 'measurements.json'), JSON.stringify(report));
+      await writeFile(join(directory, 'samples.jsonl'), latency.flatMap(series =>
+        series.samples.map(sample => JSON.stringify({operation: series.operation, ...sample}))).join('\n') + '\n');
+    };
+    await save(); return {report, directory, save};
+  }
+  return {root, add};
+}
+
+test('same-cohort warm and process reports retain their exact raw samples without inventing missing gates', async t => {
+  const p = await reports(t);
+  await p.add('warm', ['warm-select', 'warm-result', 'warm-status']);
+  await p.add('cold-existing', ['cold-existing']); await p.add('first-init', ['first-init']);
+  const result = JSON.parse(await readFile(await combineOrdinaryPerformanceMeasurements(p.root)));
+  assert.deepEqual(result.latency.map(row => row.operation),
+    ['warm-select', 'warm-result', 'warm-status', 'cold-existing', 'first-init']);
+  assert.equal(result.collectors.length, 3);
+  assert.equal(Object.hasOwn(result, 'structure'), false);
+  assert.equal(Object.hasOwn(result, 'history'), false);
+  assert(result.latency.every(row => row.samples.length === 1));
+});
+
+test('missing collector families stay incomplete instead of manufacturing successful observations', async t => {
+  const p = await reports(t);
+  const output = JSON.parse(await readFile(await combineOrdinaryPerformanceMeasurements(p.root)));
+  assert.deepEqual(output.latency, []); assert.deepEqual(output.functional.rows, []);
+  assert.equal(assessPerformanceEvidence(output).status, 'incomplete');
+});
+
+test('foreign identities and missing or changed raw measurements refuse aggregation', async t => {
+  for (const mutation of ['source', 'cohort', 'environment', 'protocol', 'operation', 'missing-raw', 'changed-raw']) {
+    const p = await reports(t), original = await p.add('warm', ['warm-select']);
+    if (mutation === 'source') original.report.sourceSha = 'b'.repeat(40);
+    if (mutation === 'cohort') original.report.cohortSha256 = 'b'.repeat(64);
+    if (mutation === 'environment') original.report.environmentSha256 = 'b'.repeat(64);
+    if (mutation === 'protocol') original.report.historyProtocolSha256 = 'b'.repeat(64);
+    if (mutation === 'operation') original.report.latency[0].operation = 'first-init';
+    await original.save();
+    if (mutation === 'missing-raw') await rm(join(original.directory, 'samples.jsonl'));
+    if (mutation === 'changed-raw') await writeFile(join(original.directory, 'samples.jsonl'), '{}\n');
+    await assert.rejects(combineOrdinaryPerformanceMeasurements(p.root), mutation);
+    if (mutation === 'missing-raw') {
+      const script = fileURLToPath(new URL('./ordinary-operation-packages.mjs', import.meta.url));
+      const result = spawnSync(process.execPath, [script, 'combine', p.root], {encoding: 'utf8'});
+      assert.equal(result.status, 1); assert.match(result.stderr, /ENOENT/u);
+    }
+  }
+});
+
+test('successful samples cannot hide failed or unfinished original cleanup and package verification', async t => {
+  const valid = await reports(t);
+  await valid.add('warm', ['warm-select']);
+  assert.equal(JSON.parse(await readFile(await combineOrdinaryPerformanceMeasurements(valid.root))).latency.length, 1);
+  for (const [family, mutate] of [
+    ['warm', r => {r.cleanup.closed = false;}],
+    ['warm', r => {delete r.cleanup.closed;}],
+    ['warm', r => {r.cleanup.failure = {message: 'close failed'};}],
+    ['warm', r => {r.firstFailure = {message: 'original operation failed'};}],
+    ['warm', r => {r.packageFailure = 'changed installed payload';}],
+    ['warm', r => {r.installedPayloadsUnchanged = false;}],
+    ['warm', r => {delete r.installedPayloadsUnchanged;}],
+    ['cold-existing', r => {r.cleanup.allChildrenExited = false;}],
+    ['first-init', r => {delete r.cleanup.allOriginalClientsClosed;}],
+  ]) {
+    const p = await reports(t), original = await p.add(family, [family === 'warm' ? 'warm-select' : family]);
+    original.report.latency[0].samples[0].completed = true;
+    original.report.latency[0].samples[0].verified = true;
+    original.report.functional.rows.push({operation: original.report.latency[0].operation, completed: true,
+      expectedSha256: 'c'.repeat(64), actualSha256: 'c'.repeat(64)});
+    mutate(original.report); await original.save();
+    const reportBefore = await readFile(join(original.directory, 'measurements.json'));
+    const rawBefore = await readFile(join(original.directory, 'samples.jsonl'));
+    await assert.rejects(combineOrdinaryPerformanceMeasurements(p.root), /Collector|Original/u);
+    await assert.rejects(readFile(join(p.root, 'measurements.json')), {code: 'ENOENT'});
+    assert.deepEqual(await readFile(join(original.directory, 'measurements.json')), reportBefore);
+    assert.deepEqual(await readFile(join(original.directory, 'samples.jsonl')), rawBefore);
+  }
 });
