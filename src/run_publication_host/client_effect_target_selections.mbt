@@ -29,7 +29,7 @@ priv struct ClientEffectUpdateTargetSelection {
 /// Retained by the existing checked preparation, never an execution permit.
 pub struct ClientEffectUpdateTargetSelections {
   wire : String
-  cid : String
+  priv cid : String
 }
 
 ///|
