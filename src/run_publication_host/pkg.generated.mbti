@@ -3040,6 +3040,7 @@ pub(all) enum ClientLocalNormalizationIssue {
   ForeignCatalog
   SubstitutedJournal
   Evidence(@run_publication.RunEvidenceValueIssue)
+  CommonInventory(@program_check.LocalCommonNormalizationIssue)
 }
 
 pub(all) enum ClientLocalOriginalCodecIssue {

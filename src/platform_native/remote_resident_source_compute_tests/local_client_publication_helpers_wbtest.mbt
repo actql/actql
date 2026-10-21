@@ -301,7 +301,7 @@ fn local_client_publication_context(
       fail("original receipt has no normalization identity")
     }
     assert_eq(
-      journal_cid, "sha256:068f6d7eefb587836c72426fb4d579406247a97b27120621880cbd4a23874880",
+      journal_cid, "sha256:e245b445e5014e5764dab4bf1b9ddc3b3abdf821ddf75950f9bee9df29007164",
     )
   }
 

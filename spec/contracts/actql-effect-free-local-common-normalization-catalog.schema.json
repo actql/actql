@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "applicability",
+    "profile",
+    "rules",
+    "version"
+  ],
+  "properties": {
+    "applicability": {
+      "const": {
+        "proof": "same-original-CheckedProgram-and-complete-requirement-closure",
+        "scope": "fresh-effect-free-Local-normalization-only-not-execution-support",
+        "occurrences": "all-original-units-producer-visits-steps-expression-children-and-parameter-references",
+        "audit_work_limit": 10000,
+        "parameter_origins": [
+          "supplied",
+          "default"
+        ],
+        "parameter_binding": "same-original-BoundValues-declaration-name-type-and-checked-value; Default-never-relabelled-Supplied",
+        "fixed_operations": "existing-typed-lowering-execution-and-requirement-owners; no-normalization-operation-or-expression-allowlist",
+        "execution_requirements": "retain-original-static-resolutions-and-mandatory-execution-checks; no-support-permission-resource-or-numeric-observation-discharge",
+        "actual_completions": "only-original-occurrence-rule-path-authored-and-canonical-values; unconnected-completion-refuses",
+        "source_selection": "original-resolver-selection; unrecorded-implicit-selection-refuses-no-Source-authority",
+        "normalization_journal_limits": {
+          "max_depth": 8,
+          "max_nodes": 32,
+          "max_wire_bytes": 1024
+        },
+        "compatibility": "old-catalogue-schema-journal-and-saved-recipe-bytes-remain-original; fresh-catalogue-never-selected-for-saved-Run"
+      }
+    },
+    "profile": {
+      "const": "actql-effect-free-local-completion-free/0.1"
+    },
+    "rules": {
+      "const": [
+        {
+          "id": "relation.drop_projection",
+          "path": "original decoded Program drop body",
+          "authored": "canonical JSON of the original authored drop body",
+          "canonical": "canonical JSON of existing REL.select params from the original checked projection in canonical input-name order",
+          "requires": "original same-pipeline same-step CheckedOperation and its complete checked input schema; no caller mapping or replacement declaration"
+        },
+        {
+          "id": "relation.rename_projection",
+          "path": "original decoded Program rename body",
+          "authored": "canonical JSON of the original authored rename body",
+          "canonical": "canonical JSON of existing REL.select params from the original checked projection in canonical input-name order",
+          "requires": "original same-pipeline same-step CheckedOperation and its complete checked input schema; no caller mapping or replacement declaration"
+        },
+        {
+          "id": "sort.candidate_key_completion",
+          "path": "original decoded Program Sort body",
+          "authored": "canonical JSON of the original authored Sort array",
+          "canonical": "original authored keys in priority followed by actual missing selected candidate-key fields ascending with nulls last",
+          "requires": "original same-pipeline same-step SortOrder and selected candidate-key proof with nonzero appended_count"
+        }
+      ]
+    },
+    "version": {
+      "const": "actql-normalization-rule-catalog/0.1"
+    }
+  }
+}

@@ -50,5 +50,5 @@ test('same original Decimal metadata selects the new identity ahead of other ret
  assert(host.includes('local_sort_normalization_inventory_uses_decimal_sum(value)'));
  const audit=readFileSync(new URL('../src/program_check/local_completion_free_inventory.mbt',import.meta.url),'utf8');
  assert(audit.includes('@relation.aggregate_result(call).shape is @contract.Decimal(..)'));
- assert(audit.includes('local_audit_base(owner.local_completion_free_audit)'));
+ assert(audit.includes('local_audit_base(local_legacy_audit(owner))'));
 });

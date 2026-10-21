@@ -1,3 +1,5 @@
+// Legacy catalogue compatibility cases retain the original recipe issuer.
+
 ///|
 fn local_dedupe_original_document() -> PreparedClientProgram raise {
   local_group_original_document(
@@ -10,7 +12,7 @@ fn local_dedupe_original_document() -> PreparedClientProgram raise {
 ///|
 test "public AQL original dedupe uses its stated order and canonical typed group order" {
   let owner = local_dedupe_original_document()
-  match issue_prepared_client_local_normalization(owner) {
+  match issue_prepared_client_legacy_local_normalization(owner) {
     Ok(_) => ()
     Err(Inventory(ProfileNotInstalled)) =>
       fail("original Local dedupe inventory: ProfileNotInstalled")
@@ -61,7 +63,7 @@ test "dedupe nullable full int64 repeated keys and order preserve typed canonica
   let rows =
     #|[{"id":"9223372036854775807","rank":2,"payload":"later"},{"id":"9223372036854775807","rank":1,"payload":"chosen"},{"id":null,"rank":3,"payload":"null-chosen"}]
   let owner = local_dedupe_checked_document(rows, "[\"id\",\"id\"]")
-  let proof = issue_prepared_client_local_normalization(owner).unwrap()
+  let proof = issue_prepared_client_legacy_local_normalization(owner).unwrap()
   guard proof.audit is CompletionFree(inventory) else {
     fail("fixed dedupe law is not a Source journal completion")
   }
@@ -89,7 +91,7 @@ test "dedupe nullable full int64 repeated keys and order preserve typed canonica
   )
   assert_true(@execution.completed_cell(output, 1, 1) is Some(Text("chosen")))
   let global = local_dedupe_checked_document(rows, "[]")
-  ignore(issue_prepared_client_local_normalization(global).unwrap())
+  ignore(issue_prepared_client_legacy_local_normalization(global).unwrap())
   let result = local_distinct_execute(global)
   assert_eq(@execution.completed_row_count(result), 1)
   assert_true(@execution.completed_cell(result, 0, 1) is Some(Text("chosen")))
@@ -99,7 +101,7 @@ test "dedupe nullable full int64 repeated keys and order preserve typed canonica
 test "empty dedupe global partition has zero survivors not an invented row" {
   for by in ["[]", "[\"id\",\"id\"]"] {
     let owner = local_dedupe_checked_document("[]", by)
-    ignore(issue_prepared_client_local_normalization(owner).unwrap())
+    ignore(issue_prepared_client_legacy_local_normalization(owner).unwrap())
     assert_eq(@execution.completed_row_count(local_distinct_execute(owner)), 0)
   }
 }
@@ -109,7 +111,7 @@ test "dedupe original normalization does not admit an unresolved identical top t
   let rows =
     #|[{"id":null,"rank":1,"payload":"same"},{"id":null,"rank":1,"payload":"same"}]
   let owner = local_dedupe_checked_document(rows, "[\"id\"]")
-  ignore(issue_prepared_client_local_normalization(owner).unwrap())
+  ignore(issue_prepared_client_legacy_local_normalization(owner).unwrap())
   let task = @strategy.graph_task_owner(owner.graph, 0).unwrap()
   let sequence = @lower.prepare_sequence(task, run_materials_limits().sequence).unwrap()
   assert_true(
@@ -126,7 +128,7 @@ test "dedupe original normalization does not admit an unresolved identical top t
 test "dedupe journal retains original preparation and refuses equal copies and old evidence" {
   let owner = local_dedupe_original_document()
   let equal = local_dedupe_original_document()
-  let proof = issue_prepared_client_local_normalization(owner).unwrap()
+  let proof = issue_prepared_client_legacy_local_normalization(owner).unwrap()
   let copied_owner = { ..owner, }
   let copied_proof = { ..proof, }
   assert_true(
@@ -159,7 +161,7 @@ test "dedupe journal retains original preparation and refuses equal copies and o
   assert_true(
     physical_equal(
       proof,
-      issue_prepared_client_local_normalization(owner).unwrap(),
+      issue_prepared_client_legacy_local_normalization(owner).unwrap(),
     ),
   )
 }
@@ -169,7 +171,7 @@ test "dedupe preserves the real original projection completion instead of an emp
   let document =
     #|{"version":"actql/0.1","id":"local.dedupe-drop","stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false},"rank":{"type":"number","nullable":false}},"rows":[{"id":2,"rank":4},{"id":1,"rank":2},{"id":1,"rank":1}]},"as":"input"},{"dedupe_rows":{"by":["id"],"order_by":[{"field":"rank","dir":"asc","nulls":"last"}]}},{"drop":["rank"],"as":"selected"}],"results":{"rows":{"from":"selected","fields":["id"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}
   let owner = local_group_original_document(document)
-  let proof = issue_prepared_client_local_normalization(owner).unwrap()
+  let proof = issue_prepared_client_legacy_local_normalization(owner).unwrap()
   guard proof.audit is SortCompletion(inventory) else {
     fail("original projection completion expected")
   }
@@ -204,7 +206,7 @@ test "dedupe preserves actual candidate key Sort completion and its original pat
   let document =
     #|{"version":"actql/0.1","id":"local.dedupe-sort","stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"key":{"type":"string","nullable":false}},"rows":[{"key":"b"},{"key":"a"}]},"as":"input"},{"group":{"by":["key"],"aggregates":{"n":{"fn":"count"}}}},{"dedupe_rows":{"by":["key"],"order_by":[{"field":"n","dir":"asc","nulls":"last"}]}},{"sort":[{"field":"n","dir":"asc","nulls":"last"}],"as":"selected"}],"results":{"rows":{"from":"selected","fields":["key","n"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}
   let owner = local_group_original_document(document)
-  let proof = issue_prepared_client_local_normalization(owner).unwrap()
+  let proof = issue_prepared_client_legacy_local_normalization(owner).unwrap()
   guard proof.audit is SortCompletion(inventory) else {
     fail("original appended Sort completion expected")
   }
@@ -248,7 +250,7 @@ test "dedupe original Default and Supplied bindings compose with actual Set with
       supplied.map(scalar_profile_cursor),
       client_standard_program_preparation_limits(),
     ).unwrap()
-    let proof = issue_prepared_client_local_normalization(owner).unwrap()
+    let proof = issue_prepared_client_legacy_local_normalization(owner).unwrap()
     guard proof.audit is CompletionFree(inventory) else {
       fail("Default/Set/Dedupe has no Source completion")
     }

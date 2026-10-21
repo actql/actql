@@ -1,3 +1,5 @@
+// Legacy catalogue compatibility cases retain the original recipe issuer.
+
 ///|
 let local_take_catalog_cid : String = "sha256:2e87dfc12f59f5755bc3a41b61fc0a9b5b5cc0c0f7861128924c852c13ce7d03"
 
@@ -9,12 +11,13 @@ let local_take_journal : String =
 fn local_take_normalization(
   owner : PreparedClientProgram,
 ) -> ClientLocalNormalization raise {
-  let issued = issue_prepared_client_local_normalization(owner).unwrap()
+  let issued = issue_prepared_client_legacy_local_normalization(owner).unwrap()
   assert_true(
     @checked.local_completion_free_inventory_uses_take(
       match issued.audit {
         CompletionFree(value) => value
-        SortCompletion(_) => fail("completion-free original expected")
+        SortCompletion(_) | Common(_) =>
+          fail("completion-free legacy original expected")
       },
     ),
   )

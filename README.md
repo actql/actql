@@ -4,9 +4,10 @@
 
 **The SQL-based data & workflow engine for AI agents.**
 
-Read across SaaS and databases, join the data, decide with an LLM, and write
-back. What used to take a workflow SaaS and glue code, you write in SQL and
-run reliably as-is. Let a coding agent drive it from the CLI, or embed it in
+Read across SaaS, databases, and files, join and transform the data, and
+write results back. When a judgment is needed, an LLM makes it inside the same
+program. What used to take a workflow SaaS and glue code, you write in SQL and
+run reliably as-is—from the CLI, by you or by a coding agent, or embedded in
 your TypeScript or Python app as a library.
 
 **In SQL, you describe what data you want, and the database works out how to
@@ -19,7 +20,9 @@ ActQL lets you work with the systems you connect—a CRM, a warehouse, files,
 SaaS APIs—as if they were one database. For example, join Salesforce accounts
 with product usage in Snowflake, let an LLM judge churn risk, and write the
 result back to Salesforce—in one SQL pipeline. It's plain SQL, plus `INFER` to
-call an LLM and `EFFECT` to write to an external system.
+call an LLM and `EFFECT` to write to an external system. This example uses
+both; a query that only returns a table, or a workflow with no LLM in it, is
+the same kind of program without those steps.
 
 ```sql
 SELECT a.id AS id, a.description AS notes,
@@ -209,8 +212,8 @@ and the engine hands each part of the work to a place that can run it
 its Capabilities to the fullest to build the best overall plan. Work no single
 source can do, like a JOIN across Salesforce and Snowflake, runs on your
 machine: in the built-in engine, or in DuckDB for larger inputs when you use
-the package that bundles it. Even mid-to-large data needs no separate
-warehouse.
+the package that bundles it. The join itself needs no new warehouse; large
+work stays where the data already is, by pushdown.
 
 For the churn-risk example at the top, `actql explain` shows a plan like
 this. The join's engine is chosen during the Run, once the row counts are
@@ -256,9 +259,9 @@ your own to operate—and takes on work too large for your local machine.
 
 ### 4.2 Cross-system: a program you can read, instead of nodes
 
-You write data acquisition, transformation, model inference, and external
-writes as one program, top to bottom. To see what the whole thing does, you
-read the program.
+You write data acquisition, transformation, model inference where you need
+it, and external writes as one program, top to bottom. To see what the whole
+thing does, you read the program.
 
 A text program is also the format agents handle best. You can review it as a
 diff, keep its history in Git, and check changes in a pull request—things
@@ -365,9 +368,9 @@ Every Connector below both reads and writes.
 | Storage & files | Amazon S3 · Google Cloud Storage · local files |
 
 Each Connector's sources, Effects, operations and setup are on its page under
-[Connectors](docs/connectors/README.md). Need another system? With the Skills
-that reference the [Building a Connector](docs/connectors/authoring.md)
-guide, a coding agent can build the Connector for you.
+[Connectors](docs/connectors/README.md). Need another system? Build the
+Connector from the [Building a Connector](docs/connectors/authoring.md)
+guide—yourself, or with a coding agent and the Skills that reference it.
 
 ## 6. How ActQL relates to existing tools
 
@@ -387,7 +390,7 @@ choose between, tools to combine with, and tools to hand work to.
 | Tool | How they work together |
 | --- | --- |
 | Workflow engines (Temporal) | Not a replacement for Temporal. Temporal manages long-running jobs that last days; ActQL handles the cross-system reads and writes as one step inside them |
-| dbt | Transformations inside the warehouse stay in dbt. Call ActQL from dbt to join the results with SaaS data, or to decide with an LLM and write back |
+| dbt | Models, dependencies, and tests stay in dbt. ActQL programs use the modeled data alongside SaaS data, for cross-system queries and writes; the planned dbt-actql adapter will also let dbt run supported models through ActQL |
 | Agent frameworks (LangGraph, Mastra) | Build the agent itself with the framework; hand the checks, approvals, and execution of the work it writes to ActQL. ActQL programs can be called as tools from an agent |
 
 ### Hand work to

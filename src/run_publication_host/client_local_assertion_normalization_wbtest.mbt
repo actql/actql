@@ -1,3 +1,5 @@
+// Legacy catalogue compatibility cases retain the original recipe issuer.
+
 ///|
 let local_assertion_expected_journal : String =
   #|{"entries":[],"journal_cid":"sha256:e3e2382ee9dce9ee95db74345b92e38779780c8cc7bff164c463d2f42d659a41","rule_catalog_cid":"sha256:108f657d51073d968109ff5d4e993503d0f0a3604aa13db8cfefca3239c6c5dc","version":"actql-normalization-journal/0.1"}
@@ -39,7 +41,7 @@ test "documented public ASSERT UNIQUE BY normalizes through the original checked
   let owner = local_explicit_cast_original(
     text="SELECT ABS(-1) AS id |> ASSERT UNIQUE BY (id)",
   )
-  let proof = issue_prepared_client_local_normalization(owner).unwrap()
+  let proof = issue_prepared_client_legacy_local_normalization(owner).unwrap()
   assert_eq(
     local_normalization_catalog_cid(proof.audit),
     local_assertion_catalog_cid(),
@@ -60,7 +62,7 @@ test "original assertions preserve full int64 row order nullable schema and empt
   let rows = "[{\"id\":\"9223372036854775807\",\"ok\":true},{\"id\":\"-9223372036854775808\",\"ok\":true}]"
   for body in ["{\"where\":\"ok\"}", "{\"unique_by\":[\"id\"]}"] {
     let owner = local_assertion_document(rows, body)
-    let proof = issue_prepared_client_local_normalization(owner).unwrap()
+    let proof = issue_prepared_client_legacy_local_normalization(owner).unwrap()
     guard proof.audit is CompletionFree(inventory) else {
       fail("fixed assertion is not Source completion")
     }
@@ -78,7 +80,7 @@ test "original assertions preserve full int64 row order nullable schema and empt
       is Some(Captured(Signed64(-9223372036854775808L))),
     )
     let empty = local_assertion_document("[]", body)
-    ignore(issue_prepared_client_local_normalization(empty).unwrap())
+    ignore(issue_prepared_client_legacy_local_normalization(empty).unwrap())
     assert_eq(@execution.completed_row_count(local_distinct_execute(empty)), 0)
   }
 }
@@ -89,14 +91,14 @@ test "normalization never establishes unique success for duplicate or NULL keys"
     "[{\"id\":\"9007199254740993\",\"ok\":true},{\"id\":\"9007199254740993\",\"ok\":true}]",
     "{\"unique_by\":[\"id\"]}",
   )
-  ignore(issue_prepared_client_local_normalization(duplicate).unwrap())
+  ignore(issue_prepared_client_legacy_local_normalization(duplicate).unwrap())
   assert_true(
     local_assertion_execute(duplicate) is Err(Rows(_, AssertionDuplicate(0, 1))),
   )
   let nullable = local_assertion_document(
     "[{\"id\":\"9007199254740993\",\"ok\":true},{\"id\":null,\"ok\":true}]", "{\"unique_by\":[\"id\"]}",
   )
-  ignore(issue_prepared_client_local_normalization(nullable).unwrap())
+  ignore(issue_prepared_client_legacy_local_normalization(nullable).unwrap())
   assert_true(
     local_assertion_execute(nullable) is Err(Rows(_, AssertionNullKey(1, 0))),
   )
@@ -109,7 +111,7 @@ test "normalization never turns false or unknown assertion rows into filtering" 
       "[{\"id\":\"1\",\"ok\":true},{\"id\":\"2\",\"ok\":" + value + "}]",
       "{\"where\":\"ok\"}",
     )
-    ignore(issue_prepared_client_local_normalization(owner).unwrap())
+    ignore(issue_prepared_client_legacy_local_normalization(owner).unwrap())
     assert_true(
       local_assertion_execute(owner) is Err(Rows(_, AssertionPredicate(1))),
     )
@@ -124,7 +126,7 @@ test "assertion evidence keeps original preparation and rejects equal copies and
   let equal = local_assertion_document(
     "[{\"id\":\"1\",\"ok\":true}]", "{\"unique_by\":[\"id\"]}",
   )
-  let proof = issue_prepared_client_local_normalization(owner).unwrap()
+  let proof = issue_prepared_client_legacy_local_normalization(owner).unwrap()
   assert_true(
     prepared_client_local_normalization_evidence(equal, proof)
     is Err(ForeignPreparation),
@@ -164,7 +166,7 @@ test "assertion catalogue retains actual projection completion and its owned pat
       #|{"version":"actql/0.1","id":"local.assertion-projection","stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"int64","nullable":true},"ok":{"type":"boolean","nullable":true}},"rows":[{"id":"1","ok":true}]},"as":"input"},{"assert_rows":{"unique_by":["id"]}},{"drop":["ok"],"as":"projected"}],"results":{"rows":{"from":"projected","fields":["id"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}
     ),
   )
-  let proof = issue_prepared_client_local_normalization(owner).unwrap()
+  let proof = issue_prepared_client_legacy_local_normalization(owner).unwrap()
   guard proof.audit is SortCompletion(inventory) else {
     fail("actual Drop expansion is not empty evidence")
   }
@@ -214,7 +216,7 @@ test "original Default and Supplied values compose with Set Dedupe and unique as
       supplied.map(scalar_profile_cursor),
       client_standard_program_preparation_limits(),
     ).unwrap()
-    let proof = issue_prepared_client_local_normalization(owner).unwrap()
+    let proof = issue_prepared_client_legacy_local_normalization(owner).unwrap()
     guard proof.audit is CompletionFree(inventory) else {
       fail("fixed operations do not create Source entries")
     }
