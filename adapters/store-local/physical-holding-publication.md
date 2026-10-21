@@ -130,6 +130,27 @@ weak reference or GC opportunity is not a physical acknowledgement. This
 inventory is not a byte grant or a normal four-role Model profile; unknown
 layout/bootstrap costs remain unknown, and existing limits do not increase.
 
+## Delivery admission durability batches
+
+The existing delivery-admission queue admits its grant and attempt once before
+writing their immutable originals. Each payload and prepared-custody record
+still receives its own original data and preparation-directory durability
+acknowledgements. After both preparations finish, their semantic hard links
+share one contracts-directory acknowledgement. Their custody-record removals
+then share one custody-directory acknowledgement; neither original leaves the
+Store's pending set before that acknowledgement succeeds.
+
+Only after this bounded batch succeeds may the existing delivery-attempt
+directory consume the grant. Failure preserves the original cause and a
+single-flight cleanup of the same prepared allocations and any failed writer.
+Cleanup observes a possibly completed original link, confirms its containing
+directory, and retires custody without resealing, allocating a replacement or
+repeating delivery. An independently reclaimed unpublished first allocation
+does not acknowledge a second writer's still-open FD. The original use quota,
+append-only records, commit uncertainty and separate physical-close duties
+remain unchanged. This changes transaction granularity, not wire identities,
+permission or the meaning of a durability acknowledgement.
+
 ## Prepared-object custody records
 
 Original prepared-object custody now uses this same Store-owned metadata
