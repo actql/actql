@@ -1539,6 +1539,39 @@ test('existing schema preparation never substitutes a visible link for a pending
   await confirmed.prepared.release();
 });
 
+test('publication commit adopts an existing schema holder without rewriting its metadata', async t => {
+  const {store, directory} = await fixture(t);
+  await store.putSemantic(resultSchemaWire, cids.schema);
+  const invocationValue = invocation();
+  const request = publicationRequest(resultDefinition(), invocationValue.invocation_cid);
+  const attempt = publicationAttempt(request);
+  const prepared = await prepareCommit(store, request, attempt, invocationValue, cids.policy, true);
+  assert.equal(prepared.schemaPrepared.status().pending, true);
+  assert.deepEqual(await readdir(join(directory, 'prepared-schemas')), []);
+  const originalOpen = fsPromises.open;
+  const schemaOpens = [];
+  fsPromises.open = async function(path, ...args) {
+    if (path === join(directory, 'prepared-schemas') ||
+        path.startsWith(join(directory, 'prepared-schemas') + sep)) schemaOpens.push(path);
+    return Reflect.apply(originalOpen, this, [path, ...args]);
+  };
+  syncBuiltinESMExports();
+  try {
+    const entry = indexEntry(request, attempt, invocationValue, {
+      durable_result_binding_cids: [prepared.binding.identity],
+    });
+    assert.equal((await store.commitIndex(wire(entry), prepared.required, prepared.evidence)).committed, true);
+    assert.equal(prepared.schemaPrepared.status().pending, false);
+  } finally {
+    fsPromises.open = originalOpen;
+    syncBuiltinESMExports();
+    if (prepared.schemaPrepared.status().pending) await prepared.schemaPrepared.release();
+    if (prepared.prepared.status().pending) await prepared.prepared.release();
+  }
+  assert.deepEqual(schemaOpens, [], 'the actual commit adopts only the live holder');
+  assert.equal((await store.readSemanticBytes(cids.schema)).toString(), resultSchemaWire);
+});
+
 test('restart reclaims an unpublished prepared Result schema', async t => {
   const directory = await mkdtemp(join(
     tmpdir(), 'actql-publication-schema-crash-',

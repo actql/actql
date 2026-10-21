@@ -4598,7 +4598,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "af4d3e4a759c1c14fa38f4f564fc0631c39043170493d6948a4b684555227688",
+      "sha256": "9681079fb34d58b41f311bdd82642087021dfe6e66beb3c1e45742ee766ee175",
       "exports": [
         "PublicationStoreError",
         "assertOriginalLocalPublicationStoreFacilityCurrent",
@@ -4852,6 +4852,13 @@
         },
         {
           "name": "openOriginalLocalPublicationStore/adoptPreparedSchemas/adoptPreparedSchemas/adopted/adopted",
+          "parameters": [
+            "holder"
+          ],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/adoptPreparedSchemas/adoptPreparedSchemas/durable/durable",
           "parameters": [
             "holder"
           ],
@@ -8635,7 +8642,8 @@
             "openOriginalLocalPublicationStore/putPublicationContracts/putPublicationContracts",
             "openOriginalLocalPublicationStore/putPublicationContracts/putPublicationContracts/inputs/inputs",
             "openOriginalLocalPublicationStore/putPublicationContracts/putPublicationContracts/putPublicationContracts",
-            "openOriginalLocalPublicationStore/putPublicationContracts/putPublicationContracts/stored/stored"
+            "openOriginalLocalPublicationStore/putPublicationContracts/putPublicationContracts/stored/stored",
+            "openOriginalLocalPublicationStore/adoptPreparedSchemas/adoptPreparedSchemas/durable/durable"
           ],
           "exports": [
             "PublicationStoreError",
@@ -8674,6 +8682,10 @@
               {
                 "path": "docs/design/result-description.md",
                 "anchor": "Publication setup can persist its finite immutable contract inventory through"
+              },
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "Preparing a Result schema that already has an immutable semantic owner acquires"
               }
             ],
             "inputsOutputs": [
@@ -8700,6 +8712,10 @@
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "const putPublicationContracts = async supplied => {"
+              },
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "const original = await readSemanticOriginal(semanticCid, false);"
               }
             ],
             "identity": [
@@ -8734,6 +8750,10 @@
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "const contract = admitContract(input.name, input.wire);"
+              },
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "if (original.physicalCid !== physicalCid ||"
               }
             ],
             "ownership": [
@@ -8760,6 +8780,10 @@
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "return Object.freeze({name: input.name, wire: input.wire});"
+              },
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "path: group.removable || activePhysicalRecordWriters.size !== 0"
               }
             ],
             "synchronization": [
@@ -8786,6 +8810,10 @@
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "const stored = await putSemanticBatch(admitted.map(({contract}) => ({"
+              },
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "if (durable.length !== 0) await syncDirectory(preparedSchemasDirectory);"
               }
             ],
             "failure": [
@@ -8812,6 +8840,10 @@
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "if (bytes > BigInt(configuration.capacityBytes)) fail('PublicationStoreCapacity');"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "test('existing schema preparation retains the same failed reader close', async t => {"
               }
             ],
             "cancellation": [
@@ -8834,6 +8866,10 @@
               {
                 "path": "docs/design/result-description.md",
                 "anchor": "A failed write or directory acknowledgement retains the same cleanup duty,"
+              },
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "if (holder.path !== undefined) {"
               }
             ],
             "resources": [
@@ -8860,6 +8896,10 @@
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "const count = supplied.length;"
+              },
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "Store close and same-Store metadata reclamation until release or adoption. Each"
               }
             ],
             "extension": [
@@ -8886,6 +8926,10 @@
               {
                 "path": "docs/design/result-description.md",
                 "anchor": "optional group operation retain the existing per-contract protocol; a failed"
+              },
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "An unsettled physical writer is not an established durable schema owner merely"
               }
             ],
             "verification": [
@@ -8976,6 +9020,14 @@
               {
                 "path": "adapters/store-local/publication-store.test.mjs",
                 "anchor": "test('publication metadata shares actual directory ACKs across its bounded contract group', async t => {"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "test('existing prepared schemas retain real readers and owners without new durable metadata', async t => {"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "test('existing schema preparation never substitutes a visible link for a pending original ACK', async t => {"
               }
             ]
           }
