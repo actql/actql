@@ -47,7 +47,8 @@ pub fn local_run_normalization_evidence(
 }
 
 ///|
-/// Re-admit saved journal bytes only against retained original preparation.
+/// Match saved journal bytes only against retained original preparation,
+/// reusing its admitted typed evidence after exact correspondence checks.
 /// Cross-process adoption of durable materials remains a separate Owner path.
 pub fn restore_local_run_normalization_evidence(
   plan : LocalRunPlan,

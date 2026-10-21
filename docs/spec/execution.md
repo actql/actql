@@ -179,6 +179,102 @@ than treating SDK object checks as that boundary. An OS quota or worker limit
 must be described by its actual coverage and failure behavior; ordinary
 embedding does not promise a universal whole-process memory ceiling.
 
+<a id="ordinary-operation-validation"></a>
+
+### Ordinary operation validation
+
+<!-- requirement-block: ordinary-operation.retained-validation-scope -->
+An ordinary Host MUST retain and reuse a needed admitted immutable fact within
+the same bounded operation, transaction or response frame, preserving its
+original Host, Store, snapshot, row revision, validator, principal, policy,
+operation, resource, target and relevant key generation correspondence.
+Content identity is not authority, and this rule creates no additional Owner,
+permission mechanism or execution profile.
+
+<!-- requirement-block: ordinary-operation.revalidation-boundaries -->
+The existing Owner MUST end reuse or revalidate the affected facts at frame
+end, relevant mutation or policy/key/target change, close, cancellation,
+deadline, uncontrolled callback or reentry, and an await that can invalidate
+those facts.
+An unrelated mutation does not itself invalidate every retained fact.
+A database read snapshot fixes its visible database revision, not external
+configuration files or subsequent commits from another connection.
+
+<!-- requirement-block: ordinary-operation.authorization-tuples -->
+The Host MUST evaluate the same principal/action/resource/scope/policy-revision
+tuple once within an unchanged frame and establish required current authority
+again at the existing protected dispatch or commit boundary.
+Different tuples remain separate, including Source read, Run publication,
+Result read and Effect application.
+An earlier Allow, repeated snapshot reads or a content CID cannot override a
+current Deny, expired authority or changed approval target.
+
+<!-- requirement-block: ordinary-operation.targeted-durable-reads -->
+An ordinary single-Run status, Result or saved Explain read MUST validate the
+target and its necessary dependency closure without reading or authenticating
+unrelated Run or Effect payloads.
+Global integrity inspection and necessary recovery are separate operations,
+not mandatory work at every transaction or ordinary process open.
+Corruption in an unrelated historical Run is detected when that material is
+used or inspected, rather than requiring its detection before another Run's
+ordinary read; applicable rollback/epoch anchors and active claim checks remain.
+
+<!-- requirement-block: ordinary-operation.immutable-row-validation -->
+The existing durable-data Owner MUST validate newly received or persisted bytes
+at admission and reuse the resulting typed value for the same original row,
+revision and validation context within an unchanged frame without repeated
+decode, canonical write, MAC, signature or digest work.
+A missing cache entry or eviction performs the applicable admission again,
+never creates authority or turns a failure into NotFound or resend permission.
+Foreign, changed and unknown-generation material does not inherit that result.
+
+<!-- requirement-block: ordinary-operation.configuration-boundary -->
+The Host MUST validate applicable configuration contents at open, operation or
+reload and retain that bounded observation through unchanged internal reads
+without repeating the full configuration inventory for each getter or row.
+If external changes are possible, the next applicable boundary observes them;
+inode, modification time and length alone are not content authority.
+
+<!-- requirement-block: ordinary-operation.normalization-original -->
+Local preparation MUST retain its bounded original checked-occurrence audit
+and issued normalization evidence for subsequent uses of that same immutable
+preparation, preserving actual occurrence-specific Sort and projection entries
+and all unresolved execution, numeric, resource and authorization requirements.
+An exact journal match against retained admitted evidence reuses that typed
+evidence rather than parsing or sealing it again.
+An equal foreign preparation or a newly reconstructed preparation cannot borrow
+that original proof, and reading saved Result or Explain material does not
+issue a new normalization identity for the saved Run.
+
+<!-- requirement-block: ordinary-operation.status-no-change -->
+A status observation with unchanged state and equivalent availability facts
+MUST preserve the logical revision and avoid an unnecessary durable write.
+Unknown availability remains unknown; metadata reuse creates no physical ACK
+or confirmed payload presence and does not replace required Result validation.
+
+<!-- requirement-block: ordinary-operation.durable-linearization -->
+The Host MUST retain actual claim, compare-and-swap, uniqueness, quota and
+durability checks at their mutation or dispatch linearization points, including
+current approval/target correspondence and Unknown/non-resend behavior after
+an uncertain commit or external send.
+Removing duplicate internal validation does not disable synchronization or
+hold a write lock across a long external network wait.
+
+<!-- requirement-block: ordinary-operation.bounded-transfer -->
+Normal Journal bulk transfer MUST use bounded chunks with original ticket,
+memory range, generation, currentness and lifetime checks at applicable
+transfer boundaries, rather than one host call per payload byte.
+Incomplete, cancelled or released transfers do not establish completed bytes
+or physical cleanup, and deterministic work limits remain distinct from a
+Host deadline or cancellation signal.
+
+<!-- requirement-block: ordinary-operation.temporary-accounting -->
+The existing resource Owner MUST distinguish bounded in-memory Host/Run/batch
+workspace accounting from reservations requiring crash-durable quota or claim
+state, retaining real allocation failures, concurrent limits and actual release
+duties without a durable transaction for every internal copy.
+Neither a counter nor reference retirement supplies a physical release ACK.
+
 <a id="initial-local-mock-authorization"></a>
 
 ### Initial Local Mock authorization

@@ -27,6 +27,7 @@ This document owns claims, profile-dependencies, corpora, evidence, release-comb
 - [Conformance profiles](#conformance-profiles)
 - [Conformance and versioning](#conformance-and-versioning)
 - [Product boundary acceptance](#product-decision-acceptance)
+- [Ordinary operation performance](#ordinary-operation-performance)
 - [Conformance claims](#conformance-claims)
 - [Module closure workloads](#module-workloads)
 - [Conformance tests and reports](#conformance-tests)
@@ -34,6 +35,49 @@ This document owns claims, profile-dependencies, corpora, evidence, release-comb
 - [Versioning](#versioning)
 - [Artifact and companion contract index (normative)](#contract-index)
 <!-- page-contents:end -->
+
+<a id="ordinary-operation-performance"></a>
+
+### Ordinary operation performance
+
+<!-- requirement-block: ordinary-performance.same-cohort -->
+Release acceptance MUST measure completed public operations through the same
+fixed ordinary distribution cohort, including required materialization,
+persistence and cleanup, with raw wall/CPU samples and relevant authorization,
+row-validation, configuration, Journal transfer, commit and poll counts.
+Internal Core timing, a private shortcut, compiler optimization alone or an
+increased timeout establishes no ordinary performance result.
+
+<!-- requirement-block: ordinary-performance.latency-targets -->
+The ordinary cohort MUST meet warm small SELECT with Result, saved small Result
+and single-Run status median at most 5 ms and nearest-rank p95 at most 10 ms;
+small JOIN, UNION and Decimal SUM p95 at most 500 ms; new-process existing-state
+open/operation/close p95 at most 2000 ms; and fresh Host initialization with a
+small query and close p95 at most 5000 ms.
+The initial Mock machine-workflow target is 5000 ms excluding human approval
+wait and actual external model/network time, without substituting a different
+execution or authority path.
+
+<!-- requirement-block: ordinary-performance.samples-and-coverage -->
+Final latency evidence MUST retain at least 100 warm and 30 cold-process
+uninstrumented samples, their individual values, median, nearest-rank p95 and
+maximum, with explicit first-use initialization and unsupported coverage.
+Focused diagnosis can use fewer samples without claiming final acceptance.
+Cold process does not imply a cold OS page cache, and instrumentation and
+changes in Project, Store or Run history are separate measurement conditions.
+
+<!-- requirement-block: ordinary-performance.structural-regression -->
+The same cohort MUST demonstrate zero unrelated Run/Effect payload reads per
+target operation, no repeated same-tuple authorization or immutable-row
+decode/MAC/hash within an unchanged applicable frame, at most one configuration
+inventory per read frame, chunk-based Journal transfer and no unchanged-status
+logical revision or unnecessary durable write.
+History sizes 1, 10, 100 and 1000 exercise the same target within existing
+supported bounds; an unsupported size remains incomplete coverage, not a reason
+to increase admitted limits or omit a failing result.
+Boundary regressions retain current Deny, changed approval/target, callback
+reentry, foreign material, tampered target, claim/CAS, Unknown/non-resend,
+cancellation and real resource lifetime behavior.
 
 <a id="conformance-profiles"></a>
 
