@@ -34,6 +34,10 @@ fn NativeLocalValuesOriginalAccess::fence_publication(
   @native_publication.NativeRunPublicationIssue,
 ] {
   let receiver = self.operation.receiver
+  guard receiver.domain is StoreBusinessDomain(execution) else {
+    self.retain(OriginalOperation(None, StoreOperationUnavailable)) |> ignore
+    return Err(@native_publication.CommitFenceUnavailable)
+  }
   guard self.operation.bridge is Some(bridge) &&
     receiver.ready &&
     !receiver.closed &&
@@ -59,7 +63,7 @@ fn NativeLocalValuesOriginalAccess::fence_publication(
       original.read,
     )
     is Ok(@arena.ReadEntered) &&
-    original.host.observe_domain_retained_execution_scope(receiver.execution)
+    original.host.observe_domain_retained_execution_scope(execution)
     is Ok(@bootstrap.BackedReadUnentered) else {
     self.retain(OriginalOperation(None, StoreOperationUnavailable)) |> ignore
     return Err(@native_publication.CommitFenceUnavailable)

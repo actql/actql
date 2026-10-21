@@ -21,6 +21,9 @@ pub fn NativeLocalStoreOperation::enter_business_from_original_read(
   self : NativeLocalStoreOperation,
 ) -> Result[Unit, NativeLocalStoreOperationIssue] {
   let receiver = self.receiver
+  guard receiver.domain is StoreBusinessDomain(execution) else {
+    return Err(StoreOperationUnavailable)
+  }
   guard self.bridge is Some(bridge) &&
     receiver.ready &&
     !receiver.closed &&
@@ -41,7 +44,7 @@ pub fn NativeLocalStoreOperation::enter_business_from_original_read(
   }
   if original.store_operation is Some(_) ||
     !(original.active_phase is Some(@arena.HostRead)) ||
-    !(original.host.observe_domain_retained_execution_scope(receiver.execution)
+    !(original.host.observe_domain_retained_execution_scope(execution)
     is Ok(@bootstrap.BackedReadUnentered)) {
     return Err(StoreOperationUnavailable)
   }
@@ -61,7 +64,7 @@ pub fn NativeLocalStoreOperation::enter_business_from_original_read(
     Ok(_) => original.active_phase = None
   }
   receiver.business_pending = true
-  match original.host.enter_domain_retained_execution(receiver.execution) {
+  match original.host.enter_domain_retained_execution(execution) {
     Err(issue) =>
       Err(receiver.interrupt_business(original, StoreOperationExecution(issue)))
     Ok(_) => {
@@ -79,6 +82,9 @@ pub fn NativeLocalStoreOperation::return_business_to_original_read(
   self : NativeLocalStoreOperation,
 ) -> Result[Unit, NativeLocalStoreOperationIssue] {
   let receiver = self.receiver
+  guard receiver.domain is StoreBusinessDomain(execution) else {
+    return Err(StoreOperationUnavailable)
+  }
   guard self.bridge is Some(bridge) &&
     receiver.borrowed_read &&
     receiver.capture.read_callback_active &&
@@ -109,10 +115,10 @@ pub fn NativeLocalStoreOperation::return_business_to_original_read(
   // This receiver attempted the original entry. An observation error cannot
   // infer inactivity; only the existing same-record leave can acknowledge it.
   let left = match
-    original.host.observe_domain_retained_execution_scope(receiver.execution) {
+    original.host.observe_domain_retained_execution_scope(execution) {
     Ok(@bootstrap.BackedReadUnentered) => Ok(())
     Ok(@bootstrap.BackedReadEntered) | Err(_) =>
-      original.host.leave_domain_retained_execution(receiver.execution)
+      original.host.leave_domain_retained_execution(execution)
   }
   match left {
     Err(issue) =>
