@@ -63,6 +63,26 @@ const sql = Object.freeze([
     UPDATE client_submission_restart_usage SET retained_bytes = retained_bytes
       - length(CAST(OLD.link_wire AS BLOB)) + length(CAST(NEW.link_wire AS BLOB)),
       revision = revision + 1 WHERE singleton = 1;
+  END`,
+  `CREATE TABLE client_request_row_usage (
+  singleton INTEGER PRIMARY KEY CHECK (singleton = 1),
+  retained_count INTEGER NOT NULL CHECK (retained_count >= 0 AND retained_count <= 9007199254740991)
+) STRICT`,
+  `CREATE TABLE client_cancellation_row_usage (
+  singleton INTEGER PRIMARY KEY CHECK (singleton = 1),
+  retained_count INTEGER NOT NULL CHECK (retained_count >= 0 AND retained_count <= 9007199254740991)
+) STRICT`,
+  `CREATE TRIGGER client_request_row_usage_insert AFTER INSERT ON client_requests BEGIN
+    UPDATE client_request_row_usage SET retained_count = retained_count + 1 WHERE singleton = 1;
+  END`,
+  `CREATE TRIGGER client_request_row_usage_delete AFTER DELETE ON client_requests BEGIN
+    UPDATE client_request_row_usage SET retained_count = retained_count - 1 WHERE singleton = 1;
+  END`,
+  `CREATE TRIGGER client_cancellation_row_usage_insert AFTER INSERT ON client_cancellation_operations BEGIN
+    UPDATE client_cancellation_row_usage SET retained_count = retained_count + 1 WHERE singleton = 1;
+  END`,
+  `CREATE TRIGGER client_cancellation_row_usage_delete AFTER DELETE ON client_cancellation_operations BEGIN
+    UPDATE client_cancellation_row_usage SET retained_count = retained_count - 1 WHERE singleton = 1;
   END`
 ]);
 module.exports = Object.freeze({sql});

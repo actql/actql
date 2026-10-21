@@ -7634,7 +7634,7 @@
             "failure": [
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
-                "anchor": "pending even when succeeded bytes are visible. Retry never invokes the sink,"
+                "anchor": "Retry never invokes the sink,"
               }
             ],
             "cancellation": [
@@ -30672,7 +30672,7 @@
     },
     {
       "module": "adapters/host-node/host-journal-schema-support.cjs",
-      "sha256": "2b0943fd525193f04f5033d6f73683ad509e9b9609d392a2525762c89798e163",
+      "sha256": "29f17c802b94833db3141020ea99252f4de83025ea31c06758146c918f2c92a2",
       "exports": [
         "commonjs:sql"
       ],

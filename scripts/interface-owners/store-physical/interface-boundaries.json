@@ -4091,7 +4091,7 @@
     {
       "module": "adapters/store-local/delivery-attempt-index.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "4633e79841b024026111bf0acb00bfbf1f55e1160ccfe31ee5159a40b9fce5aa",
+      "sha256": "9ba1837b9d7dd532791757d47ccea5a9732a143fc9050eecc5fb1f09ffa7469f",
       "exports": [
         "openDeliveryAttemptIndex"
       ],
@@ -4142,6 +4142,20 @@
           "async": false
         },
         {
+          "name": "openDeliveryAttemptIndex/completionCopy/completionCopy",
+          "parameters": [
+            "row"
+          ],
+          "async": false
+        },
+        {
+          "name": "openDeliveryAttemptIndex/completionCopy/completionCopy/completionCopy",
+          "parameters": [
+            "wire"
+          ],
+          "async": false
+        },
+        {
           "name": "openDeliveryAttemptIndex/copy/copy",
           "parameters": [
             "row"
@@ -4173,7 +4187,40 @@
           "async": false
         },
         {
-          "name": "openDeliveryAttemptIndex/init:claim/init:claim/init:claim",
+          "name": "openDeliveryAttemptIndex/init:claim/init:claim/result/result",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openDeliveryAttemptIndex/init:complete/init:complete",
+          "parameters": [
+            "entry"
+          ],
+          "async": false
+        },
+        {
+          "name": "openDeliveryAttemptIndex/init:complete/init:complete/init:complete",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openDeliveryAttemptIndex/init:completion/init:completion",
+          "parameters": [
+            "attemptCid"
+          ],
+          "async": false
+        },
+        {
+          "name": "openDeliveryAttemptIndex/init:confirmRecord/init:confirmRecord",
+          "parameters": [
+            "attemptCid",
+            "recordCid",
+            "wire"
+          ],
+          "async": false
+        },
+        {
+          "name": "openDeliveryAttemptIndex/init:confirmRecord/init:confirmRecord/init:confirmRecord",
           "parameters": [],
           "async": false
         },
@@ -4268,6 +4315,18 @@
           "async": false
         },
         {
+          "name": "openDeliveryAttemptIndex/openDeliveryAttemptIndex#5",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openDeliveryAttemptIndex/openDeliveryAttemptIndex#6",
+          "parameters": [
+            "row"
+          ],
+          "async": false
+        },
+        {
           "name": "openDeliveryAttemptIndex/prepare/prepare",
           "parameters": [
             "sql"
@@ -4340,6 +4399,21 @@
           "async": false
         },
         {
+          "name": "openDeliveryAttemptIndex/sameCompletion/sameCompletion",
+          "parameters": [
+            "left",
+            "right"
+          ],
+          "async": false
+        },
+        {
+          "name": "openDeliveryAttemptIndex/sameCompletion/sameCompletion/sameCompletion",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
           "name": "openDeliveryAttemptIndex/transaction/transaction",
           "parameters": [],
           "async": false
@@ -4378,11 +4452,18 @@
             "openDeliveryAttemptIndex/add/add",
             "openDeliveryAttemptIndex/captureClose/captureClose",
             "openDeliveryAttemptIndex/close/close",
+            "openDeliveryAttemptIndex/completionCopy/completionCopy",
+            "openDeliveryAttemptIndex/completionCopy/completionCopy/completionCopy",
             "openDeliveryAttemptIndex/copy/copy",
             "openDeliveryAttemptIndex/exec/exec",
             "openDeliveryAttemptIndex/init:attempt/init:attempt",
             "openDeliveryAttemptIndex/init:claim/init:claim",
-            "openDeliveryAttemptIndex/init:claim/init:claim/init:claim",
+            "openDeliveryAttemptIndex/init:claim/init:claim/result/result",
+            "openDeliveryAttemptIndex/init:complete/init:complete",
+            "openDeliveryAttemptIndex/init:complete/init:complete/init:complete",
+            "openDeliveryAttemptIndex/init:completion/init:completion",
+            "openDeliveryAttemptIndex/init:confirmRecord/init:confirmRecord",
+            "openDeliveryAttemptIndex/init:confirmRecord/init:confirmRecord/init:confirmRecord",
             "openDeliveryAttemptIndex/init:contract/init:contract",
             "openDeliveryAttemptIndex/init:finish/init:finish",
             "openDeliveryAttemptIndex/init:finish/init:finish/init:finish",
@@ -4398,6 +4479,8 @@
             "openDeliveryAttemptIndex/openDeliveryAttemptIndex#2",
             "openDeliveryAttemptIndex/openDeliveryAttemptIndex#3",
             "openDeliveryAttemptIndex/openDeliveryAttemptIndex#4",
+            "openDeliveryAttemptIndex/openDeliveryAttemptIndex#5",
+            "openDeliveryAttemptIndex/openDeliveryAttemptIndex#6",
             "openDeliveryAttemptIndex/prepare/prepare",
             "openDeliveryAttemptIndex/prepare/prepare/prepare",
             "openDeliveryAttemptIndex/prepare/prepare/prepare#2",
@@ -4410,6 +4493,8 @@
             "openDeliveryAttemptIndex/retainFailure/retainFailure/retry/retry/retry#2",
             "openDeliveryAttemptIndex/retainFailure/retainFailure/status/status",
             "openDeliveryAttemptIndex/run/run",
+            "openDeliveryAttemptIndex/sameCompletion/sameCompletion",
+            "openDeliveryAttemptIndex/sameCompletion/sameCompletion/sameCompletion",
             "openDeliveryAttemptIndex/transaction/transaction",
             "openDeliveryAttemptIndex/validate/validate",
             "openDeliveryAttemptIndex/validate/validate/validate"
@@ -4432,6 +4517,10 @@
               {
                 "path": "adapters/store-local/delivery-attempt-index.mjs",
                 "anchor": "contract(semanticCid) {"
+              },
+              {
+                "path": "adapters/store-local/delivery-attempt-index.mjs",
+                "anchor": "complete(entry) {"
               }
             ],
             "identity": [
@@ -4456,6 +4545,10 @@
               {
                 "path": "adapters/store-local/delivery-attempt-index.mjs",
                 "anchor": "if (error?.outcome === 'unknown') uncertain = true;"
+              },
+              {
+                "path": "adapters/store-local/delivery-attempt-index.mjs",
+                "anchor": "if(error?.outcome==='unknown') uncertainCompletion=original;"
               }
             ],
             "cancellation": [
@@ -4488,6 +4581,14 @@
               {
                 "path": "adapters/store-local/delivery-completion.test.mjs",
                 "anchor": "native START metadata commits without duplicate contract files or directory ACKs"
+              },
+              {
+                "path": "adapters/store-local/delivery-completion.test.mjs",
+                "anchor": "native END metadata shares one real completion transaction without shadow contract files"
+              },
+              {
+                "path": "adapters/store-local/delivery-completion.test.mjs",
+                "anchor": "native record confirmation retains initial-record compatibility and one real reopened ACK"
               }
             ]
           }
@@ -4497,7 +4598,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "db1fadb6fc7827eb83610854f20686d613602c645e28c01d7e1df8e58fe1040a",
+      "sha256": "f73bf085db2bb0e48cda2a51d58f49337bce0586383f4ea1b3659f8cc17a151c",
       "exports": [
         "PublicationStoreError",
         "assertOriginalLocalPublicationStoreFacilityCurrent",
@@ -4781,11 +4882,21 @@
           "async": true
         },
         {
+          "name": "openOriginalLocalPublicationStore/appendDeliveryCompletion/appendDeliveryCompletion/appendDeliveryCompletion",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "openOriginalLocalPublicationStore/appendDeliveryRecord/appendDeliveryRecord",
           "parameters": [
             "suppliedWire"
           ],
           "async": true
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/appendDeliveryRecord/appendDeliveryRecord/appendDeliveryRecord",
+          "parameters": [],
+          "async": false
         },
         {
           "name": "openOriginalLocalPublicationStore/appendRecord/appendRecord",
@@ -7926,13 +8037,13 @@
             "synchronization": [
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
-                "anchor": "contracts-directory ACK. The succeeded record is linked only afterwards and"
+                "anchor": "ACK, then the record alias requires its actual attempt-directory ACK. No prepared"
               }
             ],
             "failure": [
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
-                "anchor": "pending even when succeeded bytes are visible. Retry never invokes the sink,"
+                "anchor": "Retry never invokes the sink,"
               }
             ],
             "cancellation": [
@@ -9281,6 +9392,8 @@
             "openOriginalLocalPublicationStore/admitDeliveryClaim/admitDeliveryClaim",
             "openOriginalLocalPublicationStore/admitDeliveryClaim/admitDeliveryClaim/admitDeliveryClaim",
             "openOriginalLocalPublicationStore/admitDeliveryClaim/admitDeliveryClaim/admitDeliveryClaim#2",
+            "openOriginalLocalPublicationStore/appendDeliveryCompletion/appendDeliveryCompletion/appendDeliveryCompletion",
+            "openOriginalLocalPublicationStore/appendDeliveryRecord/appendDeliveryRecord/appendDeliveryRecord",
             "openOriginalLocalPublicationStore/beginDeliveryAttempt/beginDeliveryAttempt",
             "openOriginalLocalPublicationStore/beginDeliveryAttempt/beginDeliveryAttempt/beginDeliveryAttempt",
             "openOriginalLocalPublicationStore/createAdmittedDeliveryAttempt/createAdmittedDeliveryAttempt",
@@ -9324,6 +9437,10 @@
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "const nativeDeliveryContract = (cid, name, retained) => {"
+              },
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "const appendDeliveryCompletion = async (attempt, receipt, contract) => {"
               }
             ],
             "identity": [
@@ -9356,6 +9473,10 @@
               {
                 "path": "adapters/store-local/publication-store.test.mjs",
                 "anchor": "delivery index preserves an actual committed claim after its reply is lost"
+              },
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "progress.completion=Object.freeze({attempt:completion.attempt,receipt:suppliedReceipt,contract,entry});"
               }
             ],
             "cancellation": [
@@ -9396,6 +9517,14 @@
               {
                 "path": "adapters/store-local/delivery-completion.test.mjs",
                 "anchor": "native START metadata commits without duplicate contract files or directory ACKs"
+              },
+              {
+                "path": "adapters/store-local/delivery-completion.test.mjs",
+                "anchor": "native END metadata shares one real completion transaction without shadow contract files"
+              },
+              {
+                "path": "adapters/store-local/delivery-completion.test.mjs",
+                "anchor": "native record confirmation retains initial-record compatibility and one real reopened ACK"
               }
             ]
           }
