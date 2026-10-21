@@ -135,7 +135,7 @@ export async function combineOrdinaryPerformanceMeasurements(root) {
     historyProtocolSha256: controls.historyProtocolSha256};
   const combined = {sourceSha: controls.sourceSha, ...binding, latency: [],
     functional: {...binding, rows: []}, collectors: [],
-    qualification: 'Actual warm and process reports only; unmeasured release gates remain incomplete.'};
+    qualification: 'Actual warm, process and selected boundary reports only; unmeasured release gates remain incomplete.'};
   if (controls.comparison) {
     assert.deepEqual(controls.comparison.profile, calibrateSqliteComparisonProfile(controls.comparison.baseline, controls.comparison.resultControl),
       'Comparison differs from the baseline-only fixed policy');
@@ -201,6 +201,35 @@ export async function combineOrdinaryPerformanceMeasurements(root) {
     combined.functional.rows.push(...report.functional.rows);
     combined.collectors.push({family, reportSha256: hash(bytes), rawSha256: hash(raw),
       cleanup: report.cleanup, firstFailure: report.firstFailure ?? null});
+  }
+  let boundaryBytes;
+  try {boundaryBytes = await readFile(join(root, 'measurement/used-material/boundaries.json'));}
+  catch (error) {if (error.code !== 'ENOENT') throw error;}
+  if (boundaryBytes) {
+    assert(boundaryBytes.length <= 16 * 1024 ** 2, 'Boundary report exceeds assessor input bound');
+    const report = JSON.parse(boundaryBytes);
+    assert.equal(report.sourceSha, combined.sourceSha, 'Boundary source differs');
+    for (const [key, value] of Object.entries(binding)) {
+      assert.equal(report[key], value, `Boundary ${key} differs`);
+      assert.equal(report.boundaries[key], value, `Boundary section ${key} differs`);
+    }
+    assert.equal(hash(JSON.stringify(report.historyProtocol)), binding.historyProtocolSha256,
+      'Boundary experiment protocol differs');
+    assert.equal(report.mode, 'final');
+    assert(report.firstFailure == null && report.packageFailure == null, 'Boundary operation or package failed');
+    assert.equal(report.installedPayloadsUnchanged, true, 'Boundary package verification did not complete');
+    assert(report.cleanup?.closed === true && report.cleanup.failure == null, 'Boundary original Client cleanup failed');
+    assert.equal(report.latencyMeasured, false); assert.equal(report.fullAcceptance, false);
+    assert.equal(report.boundaries.rows.length, 1, 'Exactly one selected boundary observation required');
+    const row = report.boundaries.rows[0];
+    assert.equal(row.case, 'used-row-tamper');
+    assert(['rejected', 'succeeded'].includes(row.outcome), 'Selected boundary outcome is missing');
+    assert.deepEqual(row, report.observedBoundary, 'Selected boundary observation differs');
+    assert.equal(report.selectedBoundaryPassed, row.outcome === 'rejected');
+    // A successful corrupt read is a failing observation, not missing coverage.
+    combined.boundaries = report.boundaries;
+    combined.collectors.push({family: 'used-material', reportSha256: hash(boundaryBytes),
+      cleanup: report.cleanup, firstFailure: null, packageFailure: null});
   }
   const output = join(root, 'measurements.json');
   await writeFile(output, JSON.stringify(combined, null, 2) + '\n', {flag: 'wx'});
