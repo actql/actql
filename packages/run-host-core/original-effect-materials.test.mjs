@@ -122,7 +122,7 @@ test('package normalization restoration refuses absent and substituted saved evi
 
 test('original material and normalization exports remain Worker-portable', () => {
   const result = buildSync({stdin: {contents:
-    "export {issuePreparedEffectRunMaterials, restoreEffectRunNormalization} from '@actql/run-host-core';",
+    "export {issuePreparedEffectRunMaterials, bindPreparedEffectRunMaterials, restoreEffectRunNormalization} from '@actql/run-host-core';",
   resolveDir: import.meta.dirname}, bundle: true, write: false, platform: 'browser',
   format: 'esm', target: 'es2022', metafile: true});
   const inputs = Object.keys(result.metafile.inputs);
