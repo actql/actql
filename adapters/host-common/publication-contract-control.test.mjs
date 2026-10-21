@@ -9,6 +9,7 @@ import {link, mkdir, mkdtemp, open, readdir, readFile, rm} from 'node:fs/promise
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {parse} from 'acorn';
+import {DatabaseSync} from 'node:sqlite';
 import {runtimeCore} from './runtime-core.mjs';
 import {checked} from './runtime-result.mjs';
 import {publishEffectFreeRun, publishEffectfulRun} from
@@ -95,6 +96,65 @@ test('publication persistence consumes its same-owner immutable contracts withou
   assert.equal(store.status().objectCount, 2);
   assert.equal((await store.readPublicationContract(first.identity, first.name)).wire, first.wire);
   assert.equal((await store.readPublicationContract(second.identity, second.name)).wire, second.wire);
+});
+
+test('original publication metadata has one native durable commit without duplicate body files', async t => {
+  const control = runtimeCore(moon).publicationControl;
+  const contracts = [1, 3].map(digit => control.seal('run_invocation', JSON.stringify({
+    version: 'actql-run-invocation/0.1', invocation_template_cid: cid(String(digit)),
+    observation_set_cid: cid(String(digit + 1)),
+  }), limits));
+  const directory = await mkdtemp(join(tmpdir(), 'actql-native-publication-'));
+  const configuration = {directory, storeAuthorityCid: cid('5'),
+    capacityBytes: 1024 * 1024, maxObjectBytes: 65536, maxObjects: 100,
+    maxContractNodes: 4096, maxContractDepth: 64};
+  let store;
+  t.after(async () => {
+    if (store !== undefined) await store.close();
+    await rm(directory, {recursive: true});
+  });
+  store = await openLocalPublicationStore(configuration, control);
+  const originalExec = DatabaseSync.prototype.exec, originalOpen = fs.open;
+  let commits = 0;
+  const fileSyncs = [];
+  DatabaseSync.prototype.exec = function(sql, ...args) {
+    const result = Reflect.apply(originalExec, this, [sql, ...args]);
+    if (sql.trim() === 'COMMIT') commits++;
+    return result;
+  };
+  fs.open = async function(path, ...args) {
+    const handle = await Reflect.apply(originalOpen, this, [path, ...args]);
+    if (typeof path === 'string' && path.startsWith(directory + '/')) {
+      const originalSync = handle.sync;
+      handle.sync = async function(...parameters) {
+        const result = await Reflect.apply(originalSync, this, parameters);
+        fileSyncs.push(path);
+        return result;
+      };
+    }
+    return handle;
+  };
+  syncBuiltinESMExports();
+  try {
+    await store.putOriginalPublicationContracts(contracts);
+  } finally {
+    DatabaseSync.prototype.exec = originalExec;
+    fs.open = originalOpen;
+    syncBuiltinESMExports();
+  }
+  assert.equal(commits, 1, 'the same Store database owns the complete durable metadata group');
+  assert.deepEqual(fileSyncs, [], 'metadata bodies have no duplicate per-body file representation');
+  assert.equal(store.status().objectCount, 2);
+  assert.equal(store.status().storedBytes, contracts.reduce((sum, contract) =>
+    sum + Buffer.byteLength(contract.wire, 'utf8'), 0));
+  assert.deepEqual(await readdir(join(directory, 'contracts')), []);
+  assert.deepEqual(await readdir(join(directory, 'objects')), []);
+  await store.close();
+  store = await openLocalPublicationStore(configuration, control);
+  for (const contract of contracts) {
+    assert.equal((await store.readPublicationContract(contract.identity, contract.name)).wire, contract.wire);
+  }
+  assert.equal(store.status().objectCount, 2);
 });
 
 test('publication originals preserve owner identity and captured issuance bounds', () => {
