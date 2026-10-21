@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {operationTargets, calibrateSqliteComparisonProfile, calibratedLatencyTarget,
   assessLatency} from './operation-performance.mjs';
-import {syntheticSQLiteBaseline} from './fixtures/operation-performance-comparison.mjs';
+import {syntheticSQLiteBaseline, syntheticResultStorageControl} from './fixtures/operation-performance-comparison.mjs';
 
 // Independent arithmetic and policy expectations. Synthetic timings never
 // establish a measured baseline or product latency.
@@ -96,6 +96,43 @@ test('incomplete, failed, foreign or undersampled comparator observations refuse
     b => {b.warm[0].samples[0].verified = false;}, b => {b.warm[0].samples[0].outputSha256 = fixture;}]) {
     const baseline = syntheticSQLiteBaseline(); mutate(baseline);
     assert.throws(() => calibrateSqliteComparisonProfile(baseline));
+  }
+});
+test('Result storage control derives a whole-control limit without double-counting the indexed read', () => {
+  const baseline = syntheticSQLiteBaseline(), control = syntheticResultStorageControl(baseline);
+  control.samples.slice(94).forEach(row => {row.wallNs = 6e6;});
+  const result = calibrateSqliteComparisonProfile(baseline, control).resultStorage;
+  assert.equal(result.summary.medianMs, 4); assert.equal(result.summary.p95Ms, 6);
+  assert.equal(result.noiseMs, 2);
+  assert.equal(result.diagnosticLimits.medianMs, 14); // 3*4 + 2, not another indexed read
+  assert.equal(result.diagnosticLimits.p95Ms, 20); // 3*6 + 2
+  assert.match(result.coverage, /excludes Account/u);
+});
+test('Result storage evidence retains public total and incomplete non-storage work coverage', () => {
+  const baseline = syntheticSQLiteBaseline(), resultControl = syntheticResultStorageControl(baseline);
+  const control = {baseline, resultControl, profile: calibrateSqliteComparisonProfile(baseline, resultControl)};
+  const row = matchedDiagnostic('warm-result', control);
+  row.samples.forEach(sample => {sample.wallNs = 20e6;});
+  const absent = assessLatency(row, control);
+  assert(absent.missing.includes('actual Result key/body/group correspondence'));
+  row.resultStorageMatch = structuredClone(control.profile.resultStorage.conditions);
+  const result = assessLatency(row, control);
+  assert.equal(result.status, 'incomplete');
+  assert(result.missing.includes('required public work coverage outside the storage control'));
+  assert.deepEqual(result.resultStorage.medianMs, {publicMs: 20, storageControlMs: 4, ratio: 5,
+    deltaMs: 16, diagnosticLimitMs: 12, publicAcceptance: 'unmatched'});
+  assert.equal(result.target.p95Ms, undefined);
+});
+test('Result storage success samples cannot hide failed cleanup, changed groups, foreign runtime or missing raw facts', () => {
+  for (const mutate of [c => {c.cleanup.closed = false;}, c => {c.failure = {message: 'close failed'};},
+    c => {c.profiled = true;}, c => {c.executableSha256 = fixture;}, c => {c.settings = {...c.settings, synchronous: 0};},
+    c => {c.ownerMapping.groups.reverse();}, c => {c.protocolSha256 = fixture;}, c => {c.samples.pop();},
+    c => {c.samples[0].counts.commits = 2;}, c => {c.samples[0].counts.rollbacks = 1;},
+    c => {c.samples[0].events.reverse();}, c => {c.samples[0].verified = false;},
+    c => {c.samples[0].phases.clock.commitNs = 10;}, c => {c.samples[0].wallNs = 0;},
+    c => {c.samples[1].attemptCid = c.samples[0].attemptCid;}, c => {c.samples[1].pid = 2;}]) {
+    const baseline = syntheticSQLiteBaseline(), control = syntheticResultStorageControl(baseline);
+    mutate(control); assert.throws(() => calibrateSqliteComparisonProfile(baseline, control));
   }
 });
 for (const [operation, p95Ms] of [['cold-existing', 2000], ['first-init', 5000], ['mock-workflow', 5000]]) {

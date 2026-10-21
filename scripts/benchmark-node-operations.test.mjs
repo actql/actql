@@ -78,6 +78,17 @@ test('public warm adapter verifies output, awaits close, retains samples without
   assert.equal(report.latency[0].expectedSha256, report.functional.rows[0].expectedSha256);
   assert.match(report.latency[0].executableSha256, /^[a-f0-9]{64}$/u);
 });
+test('Result storage matching facts come only from explicit experiment controls', async t => {
+  const options = await fixture(t), controls = JSON.parse(await readFile(options.controlsPath));
+  controls.resultStorageMatches = {'warm-result': {qualification: 'explicit synthetic actual-context statement'}};
+  await writeFile(options.controlsPath, JSON.stringify(controls));
+  const report = await runNodeWarmBenchmark(options);
+  assert.deepEqual(report.latency.find(row => row.operation === 'warm-result').resultStorageMatch,
+    controls.resultStorageMatches['warm-result']);
+  assert(report.latency.filter(row => row.operation !== 'warm-result').every(row => row.resultStorageMatch === undefined));
+  assert.equal(report.cleanup.closed, true);
+  assert.equal(report.assessments.find(row => row.operation === 'warm-result').status, 'incomplete');
+});
 test('public functional Unknown stops without another sample and still awaits the original close', async t => {
   const options = await fixture(t, true);
   const report = await runNodeWarmBenchmark(options);

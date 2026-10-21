@@ -20,7 +20,7 @@ export async function readFixedSQLiteComparison(path, environment, load) {
   const bytes = await readFile(path);
   assert(bytes.length <= 16 * 1024 ** 2, 'Comparison exceeds bounded input');
   const comparison = JSON.parse(bytes);
-  assert.deepEqual(comparison.profile, calibrateSqliteComparisonProfile(comparison.baseline),
+  assert.deepEqual(comparison.profile, calibrateSqliteComparisonProfile(comparison.baseline, comparison.resultControl),
     'Comparison differs from the baseline-only fixed policy');
   assert.deepEqual(comparison.baseline.environment, environment, 'Comparator environment differs');
   assert.equal(comparison.baseline.load, load, 'Comparator load differs');
@@ -137,7 +137,7 @@ export async function combineOrdinaryPerformanceMeasurements(root) {
     functional: {...binding, rows: []}, collectors: [],
     qualification: 'Actual warm and process reports only; unmeasured release gates remain incomplete.'};
   if (controls.comparison) {
-    assert.deepEqual(controls.comparison.profile, calibrateSqliteComparisonProfile(controls.comparison.baseline),
+    assert.deepEqual(controls.comparison.profile, calibrateSqliteComparisonProfile(controls.comparison.baseline, controls.comparison.resultControl),
       'Comparison differs from the baseline-only fixed policy');
     assert.deepEqual(controls.comparison.baseline.environment, controls.environment, 'Comparator environment differs');
     assert.equal(controls.comparison.baseline.load, controls.load, 'Comparator load differs');

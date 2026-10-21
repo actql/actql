@@ -14,7 +14,7 @@ import {validatePerformancePackageProducer, inspectPerformancePackageProducer,
 import {readFixedSQLiteComparison} from './ordinary-operation-packages.mjs';
 import {nodeOperationProtocol, nodeWarmSmallQueryFixtures} from './benchmark-node-operations.mjs';
 import {assessPerformanceEvidence, calibrateSqliteComparisonProfile} from './operation-performance.mjs';
-import {syntheticSQLiteBaseline} from './fixtures/operation-performance-comparison.mjs';
+import {syntheticSQLiteBaseline, syntheticResultStorageControl} from './fixtures/operation-performance-comparison.mjs';
 
 const sha = 'a'.repeat(40), hash = bytes => createHash('sha256').update(bytes).digest('hex');
 function provenance() {
@@ -254,6 +254,26 @@ test('aggregation retains the exact pre-measurement comparison and refuses a mis
     await assert.rejects(combineOrdinaryPerformanceMeasurements(invalid.root), /comparison differs/u);
     await assert.rejects(readFile(join(invalid.root, 'measurements.json')), {code: 'ENOENT'});
   }
+});
+
+test('Result storage raw control survives calibration, binding and aggregation without claiming public coverage', async t => {
+  const root = await mkdtemp(join(tmpdir(), 'actql-result-storage-policy-test-'));
+  t.after(() => rm(root, {recursive: true, force: true}));
+  const baseline = syntheticSQLiteBaseline(), resultControl = syntheticResultStorageControl(baseline);
+  const input = join(root, 'baseline.json'), control = join(root, 'result.json'), output = join(root, 'comparison.json');
+  await writeFile(input, JSON.stringify(baseline)); await writeFile(control, JSON.stringify(resultControl));
+  const script = fileURLToPath(new URL('./operation-performance.mjs', import.meta.url));
+  const run = spawnSync(process.execPath, [script, '--calibrate-sqlite', input,
+    '--result-control', control, '--output', output], {encoding: 'utf8'});
+  assert.equal(run.status, 0, run.stderr);
+  const fixed = await readFixedSQLiteComparison(output, baseline.environment, baseline.load);
+  assert.deepEqual(fixed.resultControl, resultControl);
+  assert.match(fixed.profile.resultStorage.qualification, /not an unconditional SDK SLA/u);
+  const p = await reports(t, fixed); await p.add('warm', ['warm-result']);
+  const combined = JSON.parse(await readFile(await combineOrdinaryPerformanceMeasurements(p.root)));
+  assert.deepEqual(combined.comparison, fixed);
+  fixed.resultControl.cleanup.closed = false; await writeFile(output, JSON.stringify(fixed));
+  await assert.rejects(readFixedSQLiteComparison(output, baseline.environment, baseline.load), /successful unprofiled/u);
 });
 
 test('same-cohort warm and process reports retain their exact raw samples without inventing missing gates', async t => {

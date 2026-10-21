@@ -115,7 +115,8 @@ export async function runNodeWarmBenchmark({manifestPath, consumer, output, cont
       ...(expected === undefined ? {} : {expectedSha256: hash(Buffer.from(JSON.stringify(expected)))}),
       // These are independently stated workload/settings facts from the fixed
       // experiment, never copied from the profile's expected conditions.
-      comparisonMatch: controls.comparisonMatches?.[operation], comparisonSettings: controls.comparisonSettings};
+      comparisonMatch: controls.comparisonMatches?.[operation], comparisonSettings: controls.comparisonSettings,
+      resultStorageMatch: controls.resultStorageMatches?.[operation]};
   };
   if (mode === 'final') {
     const missing = nodeWarmProtocol(mode).operationOrder.flatMap(operation => {
