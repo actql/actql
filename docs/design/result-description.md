@@ -74,6 +74,14 @@ delivery metadata keeps its actual database original; payload holdings, current
 authorization, durable publication/claim transitions and pending cleanup retain
 their separate responsibilities and real acknowledgements.
 
+Within that commit, the admitted Index body is persisted directly rather than
+sent through the public raw-contract admission again. Verified Binding facts
+provide their original physical and schema identities to inventory construction
+and same-identity replay checks. A different stored Binding still receives its
+own selected read. No public raw input check, physical payload verification,
+directory acknowledgement or next-operation acquisition is replaced by these
+internal facts.
+
 ## Delivery profile and bounds
 
 `format` defaults to `jsonl`. The current public delivery owner admits `json`,

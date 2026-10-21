@@ -103,7 +103,7 @@ async function runStoreChild(source) {
   });
 }
 
-async function fixture(t, options = {}) {
+async function fixture(t, options = {}, control = contractControl) {
   const directory = await mkdtemp(join(tmpdir(), 'actql-publication-store-'));
   t.after(() => removeFixtureDirectory(directory));
   const configuration = {
@@ -116,7 +116,7 @@ async function fixture(t, options = {}) {
     maxContractDepth: limits.maxDepth,
     ...options,
   };
-  const store = await openLocalPublicationStore(configuration, contractControl);
+  const store = await openLocalPublicationStore(configuration, control);
   t.after(async () => { await store.close(); });
   return {
     directory,
@@ -624,6 +624,80 @@ test('publication commit never reuses a prior operation semantic original after 
         error.path?.startsWith(join(directory, 'objects') + sep));
   assert.deepEqual(await readFile(selected), changed, 'refusal does not repair or replace the original');
   await store.close();
+});
+
+test('publication commit admits its exact Index once before durable staging', async t => {
+  let selectedWire, admissions = 0;
+  const control = {...contractControl, admit(name, value, bounds) {
+    if (name === 'public_index_entry' && value === selectedWire) admissions++;
+    return contractControl.admit(name, value, bounds);
+  }};
+  const {store} = await fixture(t, {}, control);
+  const invocationValue = invocation();
+  const request = publicationRequest(resultDefinition(), invocationValue.invocation_cid);
+  const attempt = publicationAttempt(request);
+  const prepared = await prepareCommit(store, request, attempt, invocationValue);
+  const entry = indexEntry(request, attempt, invocationValue, {
+    durable_result_binding_cids: [prepared.binding.identity],
+  });
+  selectedWire = wire(entry);
+  assert.equal((await store.commitIndex(selectedWire, prepared.required, prepared.evidence)).committed, true);
+  assert.equal(admissions, 1, 'the already admitted immutable Index needs no second admission to persist');
+  await assert.rejects(store.commitIndex('{}', prepared.required, prepared.evidence),
+    code('InvalidPublicationContract'));
+});
+
+test('publication commit parses its Binding once across evidence and metadata inventory', async t => {
+  const {store} = await fixture(t);
+  const invocationValue = invocation();
+  const request = publicationRequest(resultDefinition(), invocationValue.invocation_cid);
+  const attempt = publicationAttempt(request);
+  const prepared = await prepareCommit(store, request, attempt, invocationValue);
+  const entry = indexEntry(request, attempt, invocationValue, {
+    durable_result_binding_cids: [prepared.binding.identity],
+  });
+  const parse = JSON.parse;
+  let bindingParses = 0, schemaParses = 0;
+  t.mock.method(JSON, 'parse', function(value, ...rest) {
+    if (value === prepared.binding.wire || value === resultSchemaWire) {
+      // Count direct Store DATA parsing only, not fixture/Core admission
+      // internals or cache-entry calls. This instrumentation is not timing.
+      // Node's test mock adds an apply frame; identify the actual Store
+      // function, not a fixed stack depth in the instrumentation wrapper.
+      const stack = new Error().stack;
+      if (value === prepared.binding.wire && /at parseContract \(file:.*publication-store\.mjs:/u.test(stack)) bindingParses++;
+      if (value === resultSchemaWire && /at verifyDurableResultBinding \(file:.*publication-store\.mjs:/u.test(stack)) schemaParses++;
+    }
+    return Reflect.apply(parse, this, [value, ...rest]);
+  });
+  assert.equal((await store.commitIndex(wire(entry), prepared.required, prepared.evidence)).committed, true);
+  assert.equal(bindingParses, 1, 'schema selection consumes the same parsed Binding');
+  assert.equal(schemaParses, 1, 'the selected schema still receives its actual shape check');
+  bindingParses = schemaParses = 0;
+  assert.equal((await store.commitIndex(wire(entry), prepared.required, prepared.evidence)).idempotent, true);
+  assert.equal(bindingParses, 1, 'a distinct idempotent operation validates its own Binding once');
+  assert.equal(schemaParses, 1, 'a distinct operation rechecks the same selected schema');
+});
+
+test('committed evidence validation retains its actual payload and next-operation mutation check', async t => {
+  const {store, directory} = await fixture(t);
+  const invocationValue = invocation();
+  const request = publicationRequest(resultDefinition(), invocationValue.invocation_cid);
+  const attempt = publicationAttempt(request);
+  const prepared = await prepareCommit(store, request, attempt, invocationValue);
+  const entry = indexEntry(request, attempt, invocationValue, {
+    durable_result_binding_cids: [prepared.binding.identity],
+  });
+  await store.commitIndex(wire(entry), prepared.required, prepared.evidence);
+  const index = contractControl.admit('public_index_entry', wire(entry), limits);
+  assert.equal(await store.validateCommittedEvidence(index, prepared.evidence), true);
+  const path = join(directory, 'objects', JSON.parse(prepared.binding.wire).material_generation_cid.slice(7));
+  const changed = await readFile(path);
+  changed[0] ^= 1;
+  await writeFile(path, changed);
+  await assert.rejects(store.validateCommittedEvidence(index, prepared.evidence),
+    code('PublicationObjectCorrupt'));
+  assert.deepEqual(await readFile(path), changed, 'validation refuses instead of repairing the original');
 });
 
 test('bounded object writes are durable, streamed, and physically addressed',

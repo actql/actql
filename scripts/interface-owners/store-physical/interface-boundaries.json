@@ -4598,7 +4598,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "3688c0d89e74c4b7038628d85d86e63d4f67623d71d2f96f4abb1426b3c59c06",
+      "sha256": "1100cc4efda43755e547b06ac6754e17d154cfabda2ef178d824ccfea0e1b6e9",
       "exports": [
         "PublicationStoreError",
         "assertOriginalLocalPublicationStoreFacilityCurrent",
@@ -5041,6 +5041,13 @@
           "async": false
         },
         {
+          "name": "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/boundPhysicalCids/boundPhysicalCids",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
           "name": "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/commitIndexInternal",
           "parameters": [
             "cid"
@@ -5114,7 +5121,7 @@
         {
           "name": "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/inventorySemanticCids/inventorySemanticCids",
           "parameters": [
-            "contract"
+            "value"
           ],
           "async": false
         },
@@ -7458,6 +7465,13 @@
           "async": true
         },
         {
+          "name": "openOriginalLocalPublicationStore/validateCommittedEvidence/validateCommittedEvidence/validateCommittedEvidence",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
           "name": "openOriginalLocalPublicationStore/validateCommittedMetadataInventories/validateCommittedMetadataInventories",
           "parameters": [],
           "async": true
@@ -8585,7 +8599,9 @@
             "openOriginalLocalPublicationStore/bootstrap/bootstrap",
             "readBounded/captureClose/captureClose",
             "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/readOriginal/readOriginal",
-            "openOriginalLocalPublicationStore/readSemanticOriginal/readSemanticBytes"
+            "openOriginalLocalPublicationStore/readSemanticOriginal/readSemanticBytes",
+            "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/boundPhysicalCids/boundPhysicalCids",
+            "openOriginalLocalPublicationStore/validateCommittedEvidence/validateCommittedEvidence/validateCommittedEvidence"
           ],
           "exports": [
             "PublicationStoreError",
@@ -8604,6 +8620,10 @@
               {
                 "path": "docs/design/result-description.md",
                 "anchor": "One serialized Store publication commit retains the selected semantic metadata"
+              },
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "Within that commit, the admitted Index body is persisted directly rather than"
               }
             ],
             "inputsOutputs": [
@@ -8622,6 +8642,10 @@
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "const readOriginal = (cid, includeNative = true) => {"
+              },
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "return Object.freeze(verifiedBindings);"
               }
             ],
             "identity": [
@@ -8636,6 +8660,10 @@
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "return Object.freeze({bytes, physicalCid});"
+              },
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "bindingSchemas.set(value.binding.durable_result_binding_cid, value.schema.cid);"
               }
             ],
             "ownership": [
@@ -8654,6 +8682,10 @@
               {
                 "path": "docs/design/result-description.md",
                 "anchor": "returned by the public mutable-byte API or retained as a Store-wide success or"
+              },
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "provide their original physical and schema identities to inventory construction"
               }
             ],
             "synchronization": [
@@ -8672,6 +8704,10 @@
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "for (const cid of required) await readOriginal(cid);"
+              },
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "await putSemantic(admitted.wire, admitted.identity);"
               }
             ],
             "failure": [
@@ -8690,6 +8726,10 @@
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "const primary = readFailed ? readFailure : closeFailure;"
+              },
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "if (chainValid !== true) fail('InvalidPublicationCommitChain');"
               }
             ],
             "cancellation": [
@@ -8704,6 +8744,10 @@
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "activeSemanticReaders.delete(reader);"
+              },
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "await adoptPreparedObjects(verifiedBindings.map(value => value.physical.cid));"
               }
             ],
             "resources": [
@@ -8722,6 +8766,10 @@
               {
                 "path": "docs/design/result-description.md",
                 "anchor": "The selected buffers overlap for that operation and remain subject to the"
+              },
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "The selected buffers overlap for that operation and remain subject to the"
               }
             ],
             "extension": [
@@ -8736,6 +8784,10 @@
               {
                 "path": "docs/design/result-description.md",
                 "anchor": "authorization cache. A distinct operation acquires its own originals. Native"
+              },
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "const putPublicationContract = async (name, suppliedWire) => {"
               }
             ],
             "verification": [
@@ -8798,6 +8850,18 @@
               {
                 "path": "adapters/store-local/publication-store.test.mjs",
                 "anchor": "test('publication commit never reuses a prior operation semantic original after mutation', async t => {"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "test('publication commit admits its exact Index once before durable staging', async t => {"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "test('publication commit parses its Binding once across evidence and metadata inventory', async t => {"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "test('committed evidence validation retains its actual payload and next-operation mutation check', async t => {"
               }
             ]
           }
