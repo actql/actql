@@ -6,6 +6,105 @@ type Database
 
 ///|
 #borrow(database)
+extern "C" fn client_read_evidence_schema_ffi(database : Database) -> Int = "actql_native_client_read_evidence_schema"
+
+///|
+#borrow(database)
+extern "C" fn client_read_evidence_install_ffi(
+  database : Database,
+  max_inspect_rows : Int64,
+) -> Int = "actql_native_client_read_evidence_install"
+
+///|
+#borrow(database, request)
+extern "C" fn client_read_evidence_usage_ffi(
+  database : Database,
+  request : Bytes,
+  request_length : Int,
+  max_entries : Int64,
+  max_body_bytes : Int64,
+) -> Int = "actql_native_client_read_evidence_usage"
+
+///|
+/// Zero is absent and one is the exact supported physical index. Neither is
+/// request admission, authority, available capacity or a transaction ACK.
+pub fn Database::client_read_evidence_schema(
+  self : Database,
+) -> Result[Int, NativeSqliteIssue] {
+  self.with_original_store_sql(false, fn() {
+    match client_read_evidence_schema_ffi(self) {
+      0 => Ok(0)
+      1 => Ok(1)
+      code => Err(operation_issue(self, code))
+    }
+  })
+}
+
+///|
+/// Explicit caller-owned maintenance transaction only. The complete table
+/// work bound is separate from supplied memory and typed Journal admission.
+pub fn Database::install_client_read_evidence_schema(
+  self : Database,
+  max_inspect_rows : Int64,
+) -> Result[Unit, NativeSqliteIssue] {
+  if max_inspect_rows < 0L || max_inspect_rows > 536870912L {
+    return Err(InvalidLimit)
+  }
+  self.with_original_store_sql(false, fn() {
+    let code = client_read_evidence_install_ffi(self, max_inspect_rows)
+    if code == 0 {
+      Ok(())
+    } else {
+      Err(operation_issue(self, code))
+    }
+  })
+}
+
+///|
+/// Bounded selected-request (entries, body bytes) in the same active caller
+/// transaction. Copies no body and changes no reservation, row or transaction.
+/// The coordinator admits the exact physical schema once at the relevant
+/// operation entry; no intervening external callback or schema change is valid.
+/// The exact request wire comes from its existing identity Owner; this lookup
+/// does not authenticate it or infer a fresh holding from a missing index.
+pub fn Database::client_read_evidence_usage(
+  self : Database,
+  request_wire : String,
+  max_entries : Int64,
+  max_body_bytes : Int64,
+) -> Result[(Int64, Int64), NativeSqliteIssue] {
+  let request = @utf8.encode(request_wire)
+  if request.length() < 1 ||
+    request.length() > 4096 ||
+    max_entries < 0L ||
+    max_entries > 64L ||
+    max_body_bytes < 0L ||
+    max_body_bytes > 65536L {
+    return Err(InvalidLimit)
+  }
+  self.with_original_store_sql(true, fn() {
+    let code = client_read_evidence_usage_ffi(
+      self,
+      request,
+      request.length(),
+      max_entries,
+      max_body_bytes,
+    )
+    if code == 0 {
+      Ok(
+        (
+          database_result_record_count_ffi(self),
+          database_result_record_body_bytes_ffi(self),
+        ),
+      )
+    } else {
+      Err(operation_issue(self, code))
+    }
+  })
+}
+
+///|
+#borrow(database)
 extern "C" fn client_run_definition_schema_ffi(database : Database) -> Int = "actql_native_client_run_definition_schema"
 
 ///|

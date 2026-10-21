@@ -2463,3 +2463,26 @@ not run on ordinary open or read, repair missing originals, renew an epoch,
 rekey, or authorize execution. Unindexed Common callers retain their existing
 inventory route until their physical counter port supplies the retained usage
 original and commits its additional CAS in that same transaction.
+
+
+Selected read-evidence usage is grouped by the existing request identity
+Owner's exact serialized request wire. The physical SQLite format uses a partial
+expression index over the immutable four-string evidence packets. It rejects
+malformed packet shapes, duplicate or extra fields, and nonzero revisions on
+later writes; it does not authenticate request strings or grant access.
+The existing coordinator admits the exact index format once at the relevant
+operation boundary, before using the same original Database/Library and active
+caller transaction. Internal usage queries consume that fact without another
+schema admission or unrelated history scan. Missing indexes refuse rather than
+falling back to a scan. A foreign named format refuses the entry check.
+
+The usage port returns only bounded entry and body-byte totals for that exact
+request, including the same connection's uncommitted rows. It stops at the
+sixty-fifth selected row or the supplied byte bound, copies no row body, and
+starts or completes no transaction. These are used amounts, not the separately
+retained per-Run capacity reservation, available credit, semantic admission or
+a COMMIT acknowledgement. The caller retains the original reservation,
+insertion, issued-counter CAS, rollback and sticky Unknown responsibilities.
+Fresh setup or explicit maintenance installs the index inside its original
+transaction after a complete finite table-work prepass. No ordinary read
+performs DDL, migration, repair or a global evidence audit.

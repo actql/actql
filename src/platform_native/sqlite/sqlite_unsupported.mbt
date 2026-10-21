@@ -427,6 +427,31 @@ pub fn Database::read_capacity(
 }
 
 ///|
+pub fn Database::client_read_evidence_schema(
+  _self : Database,
+) -> Result[Int, NativeSqliteIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
+pub fn Database::install_client_read_evidence_schema(
+  _self : Database,
+  _max_inspect_rows : Int64,
+) -> Result[Unit, NativeSqliteIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
+pub fn Database::client_read_evidence_usage(
+  _self : Database,
+  _request_wire : String,
+  _max_entries : Int64,
+  _max_body_bytes : Int64,
+) -> Result[(Int64, Int64), NativeSqliteIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
 pub fn Database::database_usage(
   _self : Database,
 ) -> Result[NativeDatabaseUsage, NativeSqliteIssue] {
