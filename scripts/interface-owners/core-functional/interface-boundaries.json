@@ -14690,7 +14690,7 @@
             "synchronization": [
               {
                 "path": "adapters/local-node/strategy-bundle.mjs",
-                "anchor": "const yieldToHost = () => new Promise(resolve => setTimeout(resolve, 0));"
+                "anchor": "const yieldToHost = () => new Promise(resolve =>\n  typeof setImmediate === 'function' ? setImmediate(resolve) : setTimeout(resolve, 0));"
               },
               {
                 "path": "src/physical_host/pkg.generated.mbti",

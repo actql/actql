@@ -30157,7 +30157,7 @@
             "synchronization": [
               {
                 "path": "adapters/host-node/generated-content-write.mjs",
-                "anchor": "const yieldToHost = () => new Promise(resolve => setTimeout(resolve, 0));"
+                "anchor": "const yieldToHost = () => new Promise(resolve =>\n  typeof setImmediate === 'function' ? setImmediate(resolve) : setTimeout(resolve, 0));"
               },
               {
                 "path": "docs/design/execution-completion-storage.md",
