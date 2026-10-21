@@ -965,6 +965,12 @@ pub struct ClientValuesAoAIdentity {
 }
 
 ///|
+priv struct ClientValuesAoAParts {
+  identity : ClientValuesAoAIdentity
+  body : @canonical.CanonicalValue
+}
+
+///|
 pub(all) enum ClientValuesAoAIdentityIssue {
   Pipeline(ClientValuesPipelineIssue)
   NoncanonicalPipeline
@@ -1165,6 +1171,20 @@ fn issue_client_values_aoa_identity_graph(
   max_nodes : Int,
   max_depth : Int,
 ) -> Result[ClientValuesAoAIdentity, ClientValuesAoAIdentityIssue] {
+  issue_client_values_aoa_parts_graph(
+    graph, task, limits, max_wire_bytes, max_nodes, max_depth,
+  ).map(parts => parts.identity)
+}
+
+///|
+fn issue_client_values_aoa_parts_graph(
+  graph : @strategy.CheckedDAG,
+  task : Int,
+  limits : @lower.SequenceLimits,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[ClientValuesAoAParts, ClientValuesAoAIdentityIssue] {
   let wire = match
     emit_client_values_pipeline_graph(
       graph, task, limits, max_wire_bytes, max_nodes, max_depth,
@@ -1187,7 +1207,7 @@ fn issue_client_values_aoa_identity_graph(
   let cid = @canonical.cid_value(body, max_wire_bytes, max_nodes, max_depth) catch {
     _ => return Err(Encoding)
   }
-  Ok({ wire, cid, })
+  Ok({ identity: { wire, cid, }, body, })
 }
 
 ///|
