@@ -8169,7 +8169,7 @@
     {
       "module": "adapters/host-common/run-publication.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "53ea2002dec9eda2c7c6ec98d24b4a26b7f512a83e598d540dd1250e1cfb827f",
+      "sha256": "c7de9127dbce06b7fe7319d016e180e4fe6387abfeb05327834ce1b4374b391d",
       "role": "physical-io",
       "owner": "Existing Run Publication/Artifact Owners and physical Store sequencing",
       "exports": [
@@ -8594,6 +8594,10 @@
               {
                 "path": "docs/design/result-description.md",
                 "anchor": "Publication setup can persist its finite immutable contract inventory through"
+              },
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "That setup can pass the original immutable contracts from the same publication"
               }
             ],
             "inputsOutputs": [
@@ -8612,6 +8616,10 @@
               {
                 "path": "adapters/host-common/run-publication.mjs",
                 "anchor": "async function persistContracts(store, contracts) {"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "admitOriginal(original, limits) {"
               }
             ],
             "identity": [
@@ -8630,6 +8638,10 @@
               {
                 "path": "adapters/host-common/run-publication.mjs",
                 "anchor": "if (persisted.has(contract.identity)) continue;"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "if (retained === undefined || !tokens.has(original)) return undefined;"
               }
             ],
             "ownership": [
@@ -8648,6 +8660,10 @@
               {
                 "path": "adapters/host-common/run-publication.mjs",
                 "anchor": "Object.freeze({name: contract.name, wire: contract.wire})))]);"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const contractBounds = new WeakMap();"
               }
             ],
             "synchronization": [
@@ -8666,6 +8682,10 @@
               {
                 "path": "docs/design/result-description.md",
                 "anchor": "acknowledgements; no caller receives provisional per-contract durability."
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const captureContractLimits = (limits, label) => issuanceLimits(Object.freeze({"
               }
             ],
             "failure": [
@@ -8684,6 +8704,10 @@
               {
                 "path": "docs/design/result-description.md",
                 "anchor": "group never falls back to repeating individual writes. Empty inventories do no"
+              },
+              {
+                "path": "adapters/host-common/publication-contract-control.test.mjs",
+                "anchor": "test('publication original persistence falls back for copies foreign owners and tighter limits', async t => {"
               }
             ],
             "cancellation": [
@@ -8702,6 +8726,10 @@
               {
                 "path": "docs/design/result-description.md",
                 "anchor": "A failed write or directory acknowledgement retains the same cleanup duty,"
+              },
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "cleanup retain their independent checks and original acknowledgements."
               }
             ],
             "resources": [
@@ -8720,6 +8748,10 @@
               {
                 "path": "adapters/host-common/run-publication.mjs",
                 "anchor": "if (selected.length === 0) return;"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "maxNodes: Math.min(limits.maxNodes, value.wire.length),"
               }
             ],
             "extension": [
@@ -8738,6 +8770,10 @@
               {
                 "path": "adapters/host-common/run-publication.mjs",
                 "anchor": "const batch = store.putPublicationContracts;"
+              },
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "Foreign controls, copies, raw wires, unavailable original bounds or stricter"
               }
             ],
             "verification": [
@@ -8756,6 +8792,10 @@
               {
                 "path": "adapters/host-common/publication-contract-control.test.mjs",
                 "anchor": "test('publication persister retains legacy receivers and waits for the selected group outcome', async () => {"
+              },
+              {
+                "path": "adapters/host-common/publication-contract-control.test.mjs",
+                "anchor": "test('publication persistence consumes its same-owner immutable contracts without another admission', async t => {"
               }
             ]
           }

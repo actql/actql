@@ -4598,7 +4598,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "9681079fb34d58b41f311bdd82642087021dfe6e66beb3c1e45742ee766ee175",
+      "sha256": "5f637e51746d6f4532dfe392196999d07252a0137107ad8de76a5e334e1a28c7",
       "exports": [
         "PublicationStoreError",
         "assertOriginalLocalPublicationStoreFacilityCurrent",
@@ -6569,6 +6569,13 @@
           "async": false
         },
         {
+          "name": "openOriginalLocalPublicationStore/putOriginalPublicationContracts/putOriginalPublicationContracts",
+          "parameters": [
+            "supplied"
+          ],
+          "async": false
+        },
+        {
           "name": "openOriginalLocalPublicationStore/putPreparedResultSchema/putPreparedResultSchema",
           "parameters": [
             "wire",
@@ -6601,14 +6608,15 @@
           "async": true
         },
         {
-          "name": "openOriginalLocalPublicationStore/putPublicationContracts/putPublicationContracts",
+          "name": "openOriginalLocalPublicationStore/putPublicationContractBatch/putPublicationContractBatch",
           "parameters": [
-            "supplied"
+            "supplied",
+            "originals"
           ],
           "async": true
         },
         {
-          "name": "openOriginalLocalPublicationStore/putPublicationContracts/putPublicationContracts/inputs/inputs",
+          "name": "openOriginalLocalPublicationStore/putPublicationContractBatch/putPublicationContractBatch/inputs/inputs",
           "parameters": [
             "_",
             "index"
@@ -6616,7 +6624,7 @@
           "async": false
         },
         {
-          "name": "openOriginalLocalPublicationStore/putPublicationContracts/putPublicationContracts/putPublicationContracts",
+          "name": "openOriginalLocalPublicationStore/putPublicationContractBatch/putPublicationContractBatch/putPublicationContractBatch",
           "parameters": [
             "physical",
             "index"
@@ -6624,9 +6632,16 @@
           "async": false
         },
         {
-          "name": "openOriginalLocalPublicationStore/putPublicationContracts/putPublicationContracts/stored/stored",
+          "name": "openOriginalLocalPublicationStore/putPublicationContractBatch/putPublicationContractBatch/stored/stored",
           "parameters": [
             "contract"
+          ],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/putPublicationContracts/putPublicationContracts",
+          "parameters": [
+            "supplied"
           ],
           "async": false
         },
@@ -8640,10 +8655,12 @@
             "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/boundPhysicalCids/boundPhysicalCids",
             "openOriginalLocalPublicationStore/validateCommittedEvidence/validateCommittedEvidence/validateCommittedEvidence",
             "openOriginalLocalPublicationStore/putPublicationContracts/putPublicationContracts",
-            "openOriginalLocalPublicationStore/putPublicationContracts/putPublicationContracts/inputs/inputs",
-            "openOriginalLocalPublicationStore/putPublicationContracts/putPublicationContracts/putPublicationContracts",
-            "openOriginalLocalPublicationStore/putPublicationContracts/putPublicationContracts/stored/stored",
-            "openOriginalLocalPublicationStore/adoptPreparedSchemas/adoptPreparedSchemas/durable/durable"
+            "openOriginalLocalPublicationStore/adoptPreparedSchemas/adoptPreparedSchemas/durable/durable",
+            "openOriginalLocalPublicationStore/putOriginalPublicationContracts/putOriginalPublicationContracts",
+            "openOriginalLocalPublicationStore/putPublicationContractBatch/putPublicationContractBatch",
+            "openOriginalLocalPublicationStore/putPublicationContractBatch/putPublicationContractBatch/inputs/inputs",
+            "openOriginalLocalPublicationStore/putPublicationContractBatch/putPublicationContractBatch/putPublicationContractBatch",
+            "openOriginalLocalPublicationStore/putPublicationContractBatch/putPublicationContractBatch/stored/stored"
           ],
           "exports": [
             "PublicationStoreError",
@@ -8686,6 +8703,10 @@
               {
                 "path": "docs/design/result-description.md",
                 "anchor": "Preparing a Result schema that already has an immutable semantic owner acquires"
+              },
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "That setup can pass the original immutable contracts from the same publication"
               }
             ],
             "inputsOutputs": [
@@ -8711,11 +8732,15 @@
               },
               {
                 "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "const putPublicationContracts = async supplied => {"
+                "anchor": "const putPublicationContractBatch = async (supplied, originals) => {"
               },
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "const original = await readSemanticOriginal(semanticCid, false);"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "admitOriginal(original, limits) {"
               }
             ],
             "identity": [
@@ -8749,11 +8774,15 @@
               },
               {
                 "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "const contract = admitContract(input.name, input.wire);"
+                "anchor": "contract ??= admitContract(input.name, input.wire);"
               },
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "if (original.physicalCid !== physicalCid ||"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "if (retained === undefined || !tokens.has(original)) return undefined;"
               }
             ],
             "ownership": [
@@ -8779,11 +8808,15 @@
               },
               {
                 "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "return Object.freeze({name: input.name, wire: input.wire});"
+                "anchor": "original: originals ? input : undefined});"
               },
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "path: group.removable || activePhysicalRecordWriters.size !== 0"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const contractBounds = new WeakMap();"
               }
             ],
             "synchronization": [
@@ -8814,6 +8847,10 @@
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "if (durable.length !== 0) await syncDirectory(preparedSchemasDirectory);"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const captureContractLimits = (limits, label) => issuanceLimits(Object.freeze({"
               }
             ],
             "failure": [
@@ -8844,6 +8881,10 @@
               {
                 "path": "adapters/store-local/publication-store.test.mjs",
                 "anchor": "test('existing schema preparation retains the same failed reader close', async t => {"
+              },
+              {
+                "path": "adapters/host-common/publication-contract-control.test.mjs",
+                "anchor": "test('publication original persistence falls back for copies foreign owners and tighter limits', async t => {"
               }
             ],
             "cancellation": [
@@ -8870,6 +8911,10 @@
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "if (holder.path !== undefined) {"
+              },
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "cleanup retain their independent checks and original acknowledgements."
               }
             ],
             "resources": [
@@ -8900,6 +8945,10 @@
               {
                 "path": "docs/design/result-description.md",
                 "anchor": "Store close and same-Store metadata reclamation until release or adoption. Each"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "maxNodes: Math.min(limits.maxNodes, value.wire.length),"
               }
             ],
             "extension": [
@@ -8930,6 +8979,10 @@
               {
                 "path": "docs/design/result-description.md",
                 "anchor": "An unsettled physical writer is not an established durable schema owner merely"
+              },
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "Foreign controls, copies, raw wires, unavailable original bounds or stricter"
               }
             ],
             "verification": [
@@ -9028,6 +9081,10 @@
               {
                 "path": "adapters/store-local/publication-store.test.mjs",
                 "anchor": "test('existing schema preparation never substitutes a visible link for a pending original ACK', async t => {"
+              },
+              {
+                "path": "adapters/host-common/publication-contract-control.test.mjs",
+                "anchor": "test('publication persistence consumes its same-owner immutable contracts without another admission', async t => {"
               }
             ]
           }
