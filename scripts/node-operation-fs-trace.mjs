@@ -46,7 +46,8 @@ export function calibrateFilesystemClock(events, markers, pid) {
   const bounds = markers.map(marker => {
     assert(typeof marker.path === 'string' && !paths.has(marker.path));
     paths.add(marker.path);
-    assert(Number.isFinite(marker.beforeUs) && marker.beforeUs <= marker.afterUs);
+    assert(Number.isFinite(marker.beforeUs) && Number.isFinite(marker.afterUs) &&
+      marker.beforeUs <= marker.afterUs);
     const actual = pairs.filter(pair => pair.begin.name === 'access' &&
       pair.begin.args?.path === marker.path);
     assert.equal(actual.length, 1, 'Each marker requires one actual paired access event');
@@ -62,8 +63,9 @@ export function calibrateFilesystemClock(events, markers, pid) {
 }
 
 export function attributeFilesystemOperation(events, {pid, startUs, endUs}, clock) {
-  assert(Number.isFinite(startUs) && startUs <= endUs);
-  assert(Number.isFinite(clock.minimumUs) && clock.minimumUs <= clock.maximumUs);
+  assert(Number.isFinite(startUs) && Number.isFinite(endUs) && startUs <= endUs);
+  assert(Number.isFinite(clock.minimumUs) && Number.isFinite(clock.maximumUs) &&
+    clock.minimumUs <= clock.maximumUs);
   const {pairs, unpaired} = pairFilesystemTrace(events, pid);
   const contained = [], boundary = [], outside = [];
   for (const pair of pairs) {

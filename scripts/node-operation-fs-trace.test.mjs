@@ -53,8 +53,18 @@ test('missing or failed actual markers cannot manufacture a clock relation', () 
   failed.at(-1).args.result = -2;
   assert.throws(() => calibrateFilesystemClock(failed, markers, 42), /must succeed/);
 });
-test('disjoint clock bounds reject rather than assuming a shared epoch', () => {
+test('invalid or disjoint clock bounds reject rather than assuming a shared epoch', () => {
   const events = [...pair('a', 100, 105, '/first'), ...pair('b', 200, 205, '/last')];
+  const markers = [{path: '/first', beforeUs: 110, afterUs: 120},
+    {path: '/last', beforeUs: 210, afterUs: 220}];
+  for (const invalid of [Infinity, -Infinity, NaN]) {
+    assert.throws(() => calibrateFilesystemClock(events,
+      [{...markers[0], afterUs: invalid}, markers[1]], 42));
+    assert.throws(() => attributeFilesystemOperation(events,
+      {pid: 42, startUs: 110, endUs: invalid}, {minimumUs: 10, maximumUs: 15}));
+    assert.throws(() => attributeFilesystemOperation(events,
+      {pid: 42, startUs: 110, endUs: 220}, {minimumUs: 10, maximumUs: invalid}));
+  }
   assert.throws(() => calibrateFilesystemClock(events,
     [{path: '/first', beforeUs: 110, afterUs: 120},
       {path: '/last', beforeUs: 230, afterUs: 240}], 42), /intervals disagree/);
