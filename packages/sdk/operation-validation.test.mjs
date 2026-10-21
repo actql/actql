@@ -120,6 +120,45 @@ for (const kind of ['effect_set', 'model_invocation']) {
   }
 }
 
+test('raw Model signing admits its copied Summary once and preserves the independent wires', async () => {
+  const value = JSON.parse(readFileSync(new URL(
+    '../../portability/corpus/model-invocation-scope.json', import.meta.url)));
+  // This raw helper remains an intake boundary, unlike the lookup continuation.
+  const {createPrivateKey} = await import('node:crypto');
+  const key = createPrivateKey({format: 'der', type: 'pkcs8', key: Buffer.concat([
+    Buffer.from('302e020100300506032b657004220420', 'hex'),
+    Buffer.from(Array.from({length: 32}, (_, index) => index))])});
+  admissions.clear();
+  const answer = await signedAnswer(value.summary, 'approved', {
+    keyId: 'fixture-reviewer-key', reviewerId: 'fixture-reviewer',
+    sign: bytes => sign(null, bytes, key)}, value.decided_at);
+  assertPasses({validCheckpointPage: 1});
+  assert.equal(answer.resolutionWire, value.expected_resolution_wire);
+  assert.equal(answer.approvalEvidenceWire, value.expected_approval_evidence_wire);
+});
+
+test('application signature output keeps the existing envelope limit before resolve', async t => {
+  const summary = {checkpointId: 'checkpoint', checkpointCid: cid('c'),
+    kind: 'effect_set', phase: 'commit',
+    subject: {kind: 'run_unit', runId: 'run', runDefinitionCid: cid('b')},
+    requiredArtifact: {type: 'effect_set_preview', cid: cid('d')},
+    reviewProjectionCid: cid('e'), requirements: ['effect_scope_approved'],
+    createdAt: '2026-10-18T00:00:00.000Z', expiresAt: '2027-01-01T00:00:00.000Z',
+    humanSummary: 'Original Effect'};
+  const f = await fixture(t, operation => {
+    assert.equal(operation, 'checkpoints');
+    return {items: [summary]};
+  });
+  let signatures = 0;
+  admissions.clear();
+  await assert.rejects(f.client.reject(summary.checkpointId, {signer: {
+    keyId: 'key', reviewerId: 'reviewer', sign() {signatures++; return 'A'.repeat(16384);},
+  }}), {code: 'InvalidCheckpointAnswer'});
+  assert.equal(signatures, 1);
+  assert.equal(admissions.get('validResolveItem'), 1);
+  assert.deepEqual(f.calls, ['connect', 'checkpoints']);
+});
+
 for (const [action, decision] of [['approve', 'approved'], ['reject', 'rejected']]) {
   test(`${action} reuses one admitted signed answer through resolution`, async t => {
     const summary = {checkpointId: 'checkpoint', checkpointCid: cid('c'),
