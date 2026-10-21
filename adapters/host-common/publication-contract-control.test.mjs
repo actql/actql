@@ -1928,8 +1928,17 @@ test('portable control validates Receipt and Captured Run references',
   }), undefined);
   let loseEffectfulCommitResponse = true;
   const effectfulBindingPayloadReads = [];
+  let metadataBatches = 0, individualMetadataWrites = 0;
   const lostEffectfulStore = Object.freeze({
     ...effectfulStore,
+    async putPublicationContracts(contracts) {
+      metadataBatches++;
+      return Reflect.apply(effectfulStore.putPublicationContracts, effectfulStore, [contracts]);
+    },
+    async putPublicationContract(...args) {
+      individualMetadataWrites++;
+      return Reflect.apply(effectfulStore.putPublicationContract, effectfulStore, args);
+    },
     async commitEffectfulIndex(...args) {
       const originalOpen = fs.open;
       const payloadPath = join(effectfulDirectory, 'objects', physicalCid.slice(7));
@@ -1960,6 +1969,8 @@ test('portable control validates Receipt and Captured Run references',
   const effectfulCommitted = await publishEffectfulRun({
     ...effectfulPublication, store: lostEffectfulStore,
   });
+  assert.equal(metadataBatches, 1, 'one publication setup persists its immutable metadata as one group');
+  assert.equal(individualMetadataWrites, 0, 'the grouped caller does not issue per-contract writes again');
   assert.notEqual(effectfulBindingPayloadReads.length, 0);
   assert.deepEqual(effectfulBindingPayloadReads,
     effectfulBindingPayloadReads.map(() => 1));
