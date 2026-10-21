@@ -6,11 +6,21 @@ test "one selected Run revision and Policy original survive trusted read-only tr
   let host = policy_host_fixture("public-operation-fact-reuse")
   let crypto = epoch_test_crypto()
   let scope = host.authority_scope_cid("operator", "cli", crypto).unwrap()
-  let (request, prepared, compiled, definition) = journal_test_run(
+  let (request, prepared, unselected_compiled, definition) = journal_test_run(
     "one-target",
     "one-run",
     scope~,
   )
+  // Preserve the real missing-original refusal, then supply the independent
+  // existing Policy fixture through its original Owner before retaining it.
+  assert_true(
+    run_policy_originals_wire(prepared, compiled=unselected_compiled)
+    is Err(PublicationPolicy(@checked.MissingDependency)),
+  )
+  let compiled = @host.with_client_source_free_result_policy(
+    unselected_compiled, selected_policy_fixture_cid, selected_policy_fixture_wire,
+    65536, 8192, 64,
+  ).unwrap()
   host.journal.bind_run(request, prepared, compiled, definition, true).unwrap()
   |> ignore
   host
