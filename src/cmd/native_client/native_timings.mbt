@@ -57,11 +57,12 @@ fn record_command_extent_work(
 }
 
 ///|
-// Observe only an actual existing entered cleanup frame. No diagnostic enters
+// Observe only an actual existing entered frame. No diagnostic enters
 // a scope or changes its primary/return/close result. Keep scalar counters only;
 // the returned census alias retires here before the caller leaves its domain.
-// Slots4..8/9..13 cover Read/SQLite;14,15,60..62 cover Compute. They report one
-// cleanup-point census and the original allocator's retained peak, not actual
+// Slots4..8 cover the returned normal Read;14,15,60..62 cover Compute cleanup.
+// SQLite is unobserved: its normal deep SQL scope is not entered just to sample.
+// They report one census and the original allocator's retained peak, not actual
 // requested/live-loan bytes, allocation work or a retirement acknowledgement.
 fn LocalCommandPreparationOriginal::record_domain_inventory(
   self : LocalCommandPreparationOriginal,

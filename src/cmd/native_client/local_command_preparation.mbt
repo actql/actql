@@ -77,7 +77,6 @@ priv struct LocalCommandPreparationOriginal {
   business : LocalCommandBusinessOriginal?
   extent_diagnostics : Bool
   mut read_inventory_recorded : Bool
-  mut sqlite_inventory_recorded : Bool
   mut business_inventory_recorded : Bool
   mut run_observation : LocalCommandRunObservationOriginal?
   mut host : @initial_arena.InstalledArenaHost?
@@ -186,7 +185,6 @@ fn prepare_local_command_preparation_original(
     native_storage,
     extent_diagnostics: @env.get_env_var("ACTQL_NATIVE_TIMINGS") == Some("1"),
     read_inventory_recorded: false,
-    sqlite_inventory_recorded: false,
     business_inventory_recorded: false,
     run_observation: None,
     business: business.map(candidate => {
@@ -924,13 +922,6 @@ fn LocalCommandPreparationOriginal::close_checked(
           )
           self.component = None
         }
-        // Sample only the same already-entered cleanup frame, after its
-        // children and aliases above retire. Observation is never a close ACK.
-        if !self.read_inventory_recorded && self.read_domain is Some(domain) {
-          self.read_inventory_recorded = self.record_domain_inventory(
-            host, domain, 4,
-          )
-        }
         if self.pair is Some(_) {
           command_preparation_value(self.leave())
         } else if self.standalone_cleanup_open {
@@ -958,12 +949,6 @@ fn LocalCommandPreparationOriginal::close_checked(
           // can observe its actual SQLite context. It is not a close receipt.
           self.journal = None
           self.adoption = None
-          if !self.sqlite_inventory_recorded &&
-            self.sqlite_domain is Some(domain) {
-            self.sqlite_inventory_recorded = self.record_domain_inventory(
-              host, domain, 9,
-            )
-          }
           command_preparation_value(self.leave())
         }
         self.cleanup_stage = "read-sqlite-pair"
@@ -1058,6 +1043,15 @@ fn LocalCommandPreparationOriginal::read_command(
   let executed = journal.with_original_read(fn(host) {
     self.journal_read_open = true
     self.reply_outcome = Some(operation(host, journal))
+    // The normal observer requires a live joined pair, not its later stopped
+    // cleanup route. Use this existing returned Read frame without reentry.
+    if self.host is Some(physical) &&
+      self.read_domain is Some(domain) &&
+      !self.read_inventory_recorded {
+      self.read_inventory_recorded = self.record_domain_inventory(
+        physical, domain, 4,
+      )
+    }
     self.journal_read_open = false
   })
   match executed {
