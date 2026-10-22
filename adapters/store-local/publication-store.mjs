@@ -1378,28 +1378,9 @@ async function openOriginalLocalPublicationStore(
     }
     await syncDirectory(directory);
   }
-  for (const keyHash of await readOpeningDirectory(retentionExtensionsDirectory)) {
-    const directory = resolve(retentionExtensionsDirectory, keyHash);
-    if (!/^[0-9a-f]{64}$/u.test(keyHash) ||
-        !(await lstat(directory)).isDirectory()) {
-      fail('InvalidPublicationRetentionExtensionStore');
-    }
-    for (const name of await readOpeningDirectory(directory)) {
-      const path = resolve(directory, name);
-      if (!/^[0-9a-f]{64}$/u.test(name) ||
-          !(await lstat(path)).isDirectory()) {
-        fail('InvalidPublicationRetentionExtensionStore');
-      }
-      for (const record of await readOpeningDirectory(path)) {
-        if (!recordNamePattern.test(record) ||
-            !(await lstat(resolve(path, record))).isFile()) {
-          fail('InvalidPublicationRetentionExtensionStore');
-        }
-      }
-      await syncDirectory(path);
-    }
-    await syncDirectory(directory);
-  }
+  // Each selected extension reader owns its directory types, complete chain
+  // and actual Result-directory ACK. Unrelated committed histories are not
+  // another ordinary opening admission or durability transition.
   await syncDirectory(retentionExtensionsDirectory);
   for (const keyHash of await readOpeningDirectory(deletionsDirectory)) {
     const directory = resolve(deletionsDirectory, keyHash);
@@ -4795,7 +4776,13 @@ async function openOriginalLocalPublicationStore(
       keyHash, resultDefinitionCid,
     );
     let names;
-    try { names = await readdir(directory); }
+    try {
+      if (!(await lstat(retentionExtensionDirectory(keyHash))).isDirectory() ||
+          !(await lstat(directory)).isDirectory()) {
+        fail('InvalidPublicationRetentionExtensionStore');
+      }
+      names = await readdir(directory);
+    }
     catch (error) {
       if (error?.code === 'ENOENT') return undefined;
       throw error;
