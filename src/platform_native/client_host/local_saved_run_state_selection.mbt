@@ -2,23 +2,31 @@
 /// Original identity and saved observation, not a grant or a new Run. The
 /// definition/reference come only from the authenticated retained journal.
 struct NativeClientSavedRunStateSelection {
-  reference : NativeClientSubmissionReference
-  definition : @publication.PublicationContract
+  original : NativeClientOriginalRunSelection
   state : NativeClientSavedRunState
+}
+
+///|
+/// The same authenticated original selected while restoring this state. This
+/// metadata neither repeats the lookup nor grants Result access or execution.
+pub fn NativeClientSavedRunStateSelection::original(
+  self : NativeClientSavedRunStateSelection,
+) -> NativeClientOriginalRunSelection {
+  self.original
 }
 
 ///|
 pub fn NativeClientSavedRunStateSelection::reference(
   self : NativeClientSavedRunStateSelection,
 ) -> NativeClientSubmissionReference {
-  self.reference
+  self.original.reference
 }
 
 ///|
 pub fn NativeClientSavedRunStateSelection::definition(
   self : NativeClientSavedRunStateSelection,
 ) -> @publication.PublicationContract {
-  self.definition
+  self.original.definition
 }
 
 ///|
@@ -99,7 +107,6 @@ fn NativeLocalHostConnection::lookup_submitted_run_state_by_id_with_operations(
   }
   let reference = selected.reference
   let request = selected.request
-  let definition = selected.definition
   let current = () => {
     saved_run_selection_current(
       self,
@@ -127,7 +134,7 @@ fn NativeLocalHostConnection::lookup_submitted_run_state_by_id_with_operations(
   if !current() {
     return Err(Journal(AuthorizationDenied))
   }
-  Ok({ reference, definition, state, })
+  Ok({ original: selected, state, })
 }
 
 ///|
@@ -150,6 +157,8 @@ fn NativeClientRunJournal::select_saved_state_run_id_locked(
   if !self.transaction_active {
     return Err(CustodyLost)
   }
+  // Count actual indexed identity selections, not cached Run admissions.
+  native_timing_count(30)
   let issuance = match
     client_journal_issuance_anchor(
       self.database,

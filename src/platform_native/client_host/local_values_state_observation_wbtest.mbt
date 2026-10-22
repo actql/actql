@@ -486,6 +486,21 @@ test "typed Local Host terminal fence accepts actual state and refuses purpose o
     .unwrap()
   assert_eq(selected.state().wire(), latest_saved_wire)
   assert_eq(
+    @host.client_request_identity_relation(
+      selected.original().request(),
+      request,
+    ),
+    @host.SameRequest,
+  )
+  assert_eq(
+    native_client_submission_reference_wire(selected.original().reference()),
+    native_client_submission_reference_wire(selected.reference()),
+  )
+  assert_eq(
+    @publication.publication_contract_identity(selected.original().definition()),
+    @publication.publication_contract_identity(selected.definition()),
+  )
+  assert_eq(
     native_client_submission_reference_wire(selected.reference()),
     reference.wire,
   )

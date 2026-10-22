@@ -115,14 +115,6 @@ fn LocalCommandPreparationOriginal::prepare_original_result(
     "authority",
   )
   let id = required(child, "run")
-  let original = local_result_host_value(
-    capture.lookup_submitted_run_original_by_id_in_original_read(
-      settings.principal,
-      settings.connection,
-      id,
-    ),
-    "Run identity",
-  ).unwrap_or_else(() => stop("LocalOriginalRunUnavailable"))
   let saved = local_result_host_value(
     capture.lookup_submitted_run_state_by_id_in_original_read(
       settings.principal,
@@ -132,12 +124,10 @@ fn LocalCommandPreparationOriginal::prepare_original_result(
     ),
     "saved Run",
   ).unwrap_or_else(() => stop("LocalOriginalRunStateUnavailable"))
-  if @local_host.native_client_submission_reference_wire(saved.reference()) !=
-    @local_host.native_client_submission_reference_wire(original.reference()) ||
-    @publication.publication_contract_identity(saved.definition()) !=
-    @publication.publication_contract_identity(original.definition()) {
-    stop("LocalOriginalRunReferenceMismatch")
-  }
+  // State restoration selected and authenticated this exact original already.
+  // No callback or mutation intervenes; consume it without another indexed
+  // identity transaction or comparing reconstructed copies of the same fields.
+  let original = saved.original()
   let profile_file = settings.run_policy_profile_file.unwrap_or_else(() => {
     stop("LocalRunPolicyOriginalUnavailable")
   })
