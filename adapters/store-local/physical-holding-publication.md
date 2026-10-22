@@ -111,6 +111,18 @@ A new operation reacquires its holding and payload; no successful admission is
 cached across operations. Generic public holding consumption retains its full
 pre-callback payload inspection and its original refusal behavior.
 
+Private confirmation captures its supplied scalar binding before the first
+await and serializes the actual read and acknowledgement with the existing
+material-retention queue. Its selected holding and authenticated payload are
+internal facts of that operation, not fresh inspection inputs for its pure
+helpers. Confirmation still syncs the holding directory and adopts the exact
+prepared objects only after that acknowledgement. The existing reader count
+remains held through this boundary, so close and retirement cannot discard it.
+Model raw reads likewise retain the one selected holding across descriptor and
+content acquisition, verify both AEAD envelopes and the original plaintext
+content CID/byte count, and never expose bytes after a partial read or failed
+original close. Neither reuse path persists an Allow or supplies a new grant.
+
 The existing bounded metadata reader does not publish bytes or invoke its FD
 retirement callback after an explicit false close. Its existing cleanup facade
 keeps the same native handle and callback through rejected or false close-only
