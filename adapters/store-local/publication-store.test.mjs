@@ -967,7 +967,15 @@ test('publication native original reuse retains copied and omitted-control admis
     const entry = indexEntry(request, attempt, value, {
       durable_result_binding_cids: [prepared.binding.identity],
     });
-    assert.equal((await store.commitIndex(wire(entry), prepared.required, evidence)).committed, true);
+    if (kind === 'copy') {
+      await assert.rejects(store.commitIndex(wire(entry), prepared.required, evidence),
+        code('InvalidPublicationCommitChain'));
+      // Full row admission cannot make an arbitrary copied evidence wrapper
+      // nominal for the unchanged final chain Owner. Custody has not begun.
+      assert.equal(await prepared.prepared.release(), true);
+    } else {
+      assert.equal((await store.commitIndex(wire(entry), prepared.required, evidence)).committed, true);
+    }
     assert.equal(rawAdmissions, 1, `${kind} keeps the selected native row's full admission`);
   }
 });
