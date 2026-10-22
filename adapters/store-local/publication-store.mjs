@@ -5463,7 +5463,7 @@ async function openOriginalLocalPublicationStore(
     entry,
     suppliedEvidence,
     required,
-    readOriginal = readSemanticOriginal,
+    readOriginal = (cid, includeNative) => readSemanticOriginal(cid, includeNative),
   ) => {
     if (!exactKeys(suppliedEvidence, [
       'runDefinition',
@@ -5599,7 +5599,8 @@ async function openOriginalLocalPublicationStore(
   // chain; the Store confirms its public bodies and private physical holdings.
   // A caller cannot use this result as an apply or commit permit.
   const inspectEffectfulStoredEvidence = async ({index, chain, preview,
-    receipts, privateBinding, effectSources}, readOriginal = readSemanticOriginal, retainedIndex) => {
+    receipts, privateBinding, effectSources},
+    readOriginal = (cid, includeNative) => readSemanticOriginal(cid, includeNative), retainedIndex) => {
     active();
     if (typeof contractControl.effectfulCommitValid !== 'function' ||
         typeof contractControl.effectPrivateEvidenceBinding !== 'function' ||
