@@ -5026,6 +5026,88 @@ test('publication recovery retries only the native removal after physical uncomm
   assert.equal(await store.close(),true);
 });
 
+function pendingPublicationFixture(directory, inventory) {
+  const database=new DatabaseSync(join(directory,'delivery-attempts.sqlite3'));
+  try {
+    database.exec('PRAGMA synchronous=FULL; PRAGMA fullfsync=ON; BEGIN IMMEDIATE');
+    database.prepare('INSERT INTO pending_publications VALUES(?,?)')
+      .run(inventory.public_index_entry_cid,JSON.stringify(inventory));
+    assert.equal(database.prepare('UPDATE publication_recovery SET entries=entries+1,ack_revision=ack_revision+1 WHERE id=1')
+      .run().changes,1);
+    database.exec('COMMIT');
+  } finally { database.close(); }
+}
+
+test('publication recovery transfers its pending original to the durable deletion marker before physical work',async t=>{
+  let armed=false,removed=false,lost=false;
+  const prepare=DatabaseSync.prototype.prepare,exec=DatabaseSync.prototype.exec;
+  t.mock.method(DatabaseSync.prototype,'prepare',function(sql){
+    const statement=Reflect.apply(prepare,this,[sql]);
+    if(sql==='DELETE FROM pending_publications WHERE public_index_cid=?'){
+      const run=statement.run;
+      t.mock.method(statement,'run',function(...args){const result=Reflect.apply(run,this,args);removed=true;return result;});
+    }
+    return statement;
+  });
+  t.mock.method(DatabaseSync.prototype,'exec',function(sql){
+    const result=Reflect.apply(exec,this,[sql]);
+    if(armed&&removed&&!lost&&sql==='COMMIT'){
+      lost=true;throw Object.assign(new Error('lost pending deletion transfer reply'),{code:'EIO'});
+    }
+    return result;
+  });
+  const setup=await fixture(t),selected=await committedHoldingFixture(setup,'pending deletion transfer');
+  // Exact retained metadata from the same already-published stage, modelling
+  // its still-pending native completion at the deletion transition.
+  pendingPublicationFixture(setup.directory,selected.inventory);
+  const before=setup.store.status();removed=false;armed=true;
+  const retired=await setup.store.retireCommittedPublicationMetadata(indexKeyFor(selected.request),
+    '2026-09-18T04:00:00.000Z');
+  assert.equal(lost,true);assert.equal(retired.cleanup.status().pending,true);
+  assert.equal(retired.cleanup.status().errors.at(-1).outcome,'unknown');
+  assert.equal(setup.store.status().storedBytes,before.storedBytes,'no physical object is retired before the original transfer ACK');
+  assert.deepEqual(await readFile(selected.inventoryPath,'utf8'),JSON.stringify(selected.inventory));
+  assert.equal((await retired.cleanup.retry()).pending,false);
+  assert.equal(setup.store.status().storedBytes,0);
+  await setup.store.close();
+});
+
+test('publication recovery resumes a retiring original without recreating its removed inventory',async t=>{
+  const setup=await fixture(t),selected=await committedHoldingFixture(setup,'interrupted pending deletion');
+  await setup.store.close();
+  const storeUrl=new URL('./publication-store.mjs',import.meta.url).href;
+  const controlUrl=new URL('../host-common/publication-contract-control.fixture.mjs',import.meta.url).href;
+  const child=await runStoreChild(`
+    import{open}from'node:fs/promises';import{join}from'node:path';
+    import{openLocalPublicationStore}from${JSON.stringify(storeUrl)};
+    import{createPublicationContractControlFixture}from${JSON.stringify(controlUrl)};
+    const directory=${JSON.stringify(setup.directory)};let armed=false;
+    const store=await openLocalPublicationStore(${JSON.stringify(setup.configuration)},
+      createPublicationContractControlFixture(),{async syncDirectory(path){
+        const fd=await open(path,'r');try{await fd.sync();}finally{await fd.close();}
+        if(armed&&path===join(directory,'metadata-inventories'))process.exit(73);
+      }});
+    armed=true;await store.retireCommittedPublicationMetadata(
+      ${JSON.stringify(indexKeyFor(selected.request))},'2026-09-18T04:00:00.000Z');
+  `);
+  assert.equal(child.exitCode,73,child.stderr);assert.equal(child.signal,null);
+  await assert.rejects(stat(selected.inventoryPath),code('ENOENT'));
+  // Model the prior partial native/file transition using only this stopped
+  // disposable fixture's same original inventory and durable deletion marker.
+  pendingPublicationFixture(setup.directory,selected.inventory);
+  const originalLink=fsPromises.link,restorations=[];
+  t.mock.method(fsPromises,'link',function(from,to,...args){
+    if(String(to)===selected.inventoryPath)restorations.push(String(to));
+    return Reflect.apply(originalLink,this,[from,to,...args]);
+  });
+  syncBuiltinESMExports();t.after(()=>{t.mock.restoreAll();syncBuiltinESMExports();});
+  const reopened=await openLocalPublicationStore(setup.configuration,contractControl);
+  assert.deepEqual(restorations,[]);
+  assert.equal(await reopened.confirmCommittedIndex(indexKeyFor(selected.request)),undefined);
+  assert.equal(reopened.status().storedBytes,0);assert.equal(reopened.status().objectCount,0);
+  await reopened.close();
+});
+
 test('committed Result opening defers holding proof to the selected publication', async t => {
   const setup = await fixture(t);
   const selected = await committedHoldingFixture(setup, 'selected proof');

@@ -1763,15 +1763,27 @@ async function openOriginalLocalPublicationStore(
     return ensureMetadataInventoryFile(value);
   };
 
-  const recoverMetadataInventory = async original => {
+  const publicationRecoveryValue = original => {
     const value = parseMetadataInventory(Buffer.from(original.inventory_wire,'utf8'));
     if (value.public_index_entry_cid !== original.public_index_cid) {
       fail('InvalidPublicationMetadataInventoryStore');
     }
+    return value;
+  };
+
+  const restoreMetadataInventory = async (original, value) => {
     const existing = await readMetadataInventory(original.public_index_cid);
     if (existing === undefined) return ensureMetadataInventoryFile(value);
     if (JSON.stringify(existing) !== original.inventory_wire) fail('PublicationMetadataInventoryConflict');
     return existing;
+  };
+
+  const recoverMetadataInventory = async original => {
+    const value = publicationRecoveryValue(original);
+    const marker = await readMetadataDeletion(indexKey({namespaceId:value.namespace_id,
+      authorityScopeCid:value.authority_scope_cid,runDefinitionCid:value.run_definition_cid}));
+    if (marker !== undefined) fail('PublicationMetadataDeleted');
+    return restoreMetadataInventory(original,value);
   };
 
   const readMetadataDeletion = async keyHash => {
@@ -7081,12 +7093,26 @@ async function openOriginalLocalPublicationStore(
     active();
     const recovered = [];
     for (const original of deliveryIndex.pendingPublications()) {
-      const inventory = await recoverMetadataInventory(original);
+      const retained = publicationRecoveryValue(original);
       const key = {
-        namespaceId: inventory.namespace_id,
-        authorityScopeCid: inventory.authority_scope_cid,
-        runDefinitionCid: inventory.run_definition_cid,
+        namespaceId: retained.namespace_id,
+        authorityScopeCid: retained.authority_scope_cid,
+        runDefinitionCid: retained.run_definition_cid,
       };
+      // The already durable deletion marker owns retirement. Do not restore
+      // an inventory file it has physically retired, or read its removed Run.
+      const marker = await readMetadataDeletion(indexKey(key));
+      if (marker !== undefined) {
+        if (marker.version !== 'actql-local-publication-metadata-deletion/0.1' ||
+            marker.namespace_id !== retained.namespace_id ||
+            marker.authority_scope_cid !== retained.authority_scope_cid ||
+            marker.run_definition_cid !== retained.run_definition_cid ||
+            marker.public_index_entry_cid !== retained.public_index_entry_cid) {
+          fail('InvalidPublicationMetadataDeletionStore');
+        }
+        continue;
+      }
+      const inventory = await restoreMetadataInventory(original,retained);
       if ((await confirmCommittedIndex(key))?.public_index_entry_cid ===
           inventory.public_index_entry_cid) {
         deliveryIndex.finishPublicationInventory(original);
@@ -7291,10 +7317,31 @@ async function openOriginalLocalPublicationStore(
     if (existing !== undefined) {
       return Object.freeze({marker, cleanup: existing, deleted: false});
     }
-    let recoveryOriginal;
+    let recoveryOriginal, recoveryTransferred = false;
     const cleanup = createMetadataDeletionOwner(marker, {
       serialize(run) {
-        const operation = metadataRetentionBusy.then(run);
+        const operation = metadataRetentionBusy.then(async () => {
+          if (!recoveryTransferred) {
+            recoveryOriginal ??= deliveryIndex.pendingPublication(marker.public_index_entry_cid);
+            if (recoveryOriginal !== undefined) {
+              const inventory = publicationRecoveryValue(recoveryOriginal);
+              if (inventory.namespace_id !== marker.namespace_id ||
+                  inventory.authority_scope_cid !== marker.authority_scope_cid ||
+                  inventory.run_definition_cid !== marker.run_definition_cid ||
+                  inventory.physical_holding_cids.join('\0') !== marker.physical_holding_cids.join('\0') ||
+                  inventory.contract_objects.some(object => !marker.contract_objects.some(
+                    member => member.semantic_cid === object.semantic_cid))) {
+                fail('InvalidPublicationMetadataDeletionStore');
+              }
+              // The same durable marker now owns all cleanup. Settle its
+              // pending lookup row before physical work so an Unknown retry
+              // reaches this exact native mutation before any other DB read.
+              deliveryIndex.finishPublicationInventory(recoveryOriginal);
+            }
+            recoveryTransferred = true;
+          }
+          return run();
+        });
         metadataRetentionBusy = operation.catch(() => {});
         return operation;
       },
@@ -7373,8 +7420,6 @@ async function openOriginalLocalPublicationStore(
         } catch (error) {
           if (error?.code !== 'ENOENT') throw error;
         }
-        recoveryOriginal ??= deliveryIndex.pendingPublication(marker.public_index_entry_cid);
-        if (recoveryOriginal !== undefined) deliveryIndex.finishPublicationInventory(recoveryOriginal);
       },
       compactMarker: () => compactMetadataDeletion(
         keyHash, marker.run_definition_cid,
