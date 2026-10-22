@@ -46,6 +46,19 @@ without a durable observation transaction per native read. Unknown unrelated-row
 classification and missing Run bindings stay absent; a later admitted Run cannot
 retroactively supply them. Contextless or late hooks remain unavailable rather
 than manufacturing a new operation frame.
+An installed consumer may retain that same bounded context for its original
+Promise or Result iterator continuation. Promise retention is idempotent for
+the same original in that context, never awaits or replaces submission, and
+releases on either settlement. Iterator steps and the original delivery cleanup
+run under that captured context; the terminal row aggregate waits for those
+original continuations. A failed cleanup retains its existing context until the
+same close-only retry confirms. No successful usage is emitted for partial or
+failed consumption. The existing segment and record limits still bound optional
+retention, and disabled row observations acquire no continuation.
+This lifetime is copied observation metadata, not Run authority or a physical
+cleanup acknowledgement. Observation shutdown detaches it and records unavailable
+unfinished coverage; it neither settles the retained work nor discharges its
+original resource Owner. Contextless startup or sweep work cannot borrow it.
 Their `selected-returned` coverage does not count database rows visited, hidden
 aggregate work, other readers, parses or cache hits. A missing hook or lost record
 is unavailable coverage, never an observed zero or a completeness certificate.

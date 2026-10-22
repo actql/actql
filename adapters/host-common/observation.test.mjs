@@ -12,6 +12,78 @@ const turn = () => new Promise(resolve => setImmediate(resolve));
 const selectedRows = (extra = {}) => ({ref, rowOwner: 'request-journal', selection: 'run-definition',
   rowKind: 'run', returnedRows: 1, unrelatedRows: 0, coverage: 'selected-returned', ...extra});
 
+test('retained original work settles without delaying ingress or creating a second observation context', async () => {
+  const records = [], observer = installHostObservation(createHostObservationConnection({
+    deliver: record => records.push(record), include: ['run'], measurements: {include: ['rows']}, events: {level: 'diagnostic'},
+  }), {journal: {observationStorage: () => ({consume: () => ({accepted: true})})}});
+  let release, child;
+  const gate = new Promise(resolve => {release = resolve;}), result = {};
+  assert.strictEqual(await observer.run('submit', trace, () => {
+    observer.diagnostic('selected_rows_observed', selectedRows());
+    child = gate.then(async () => {await turn(); observer.diagnostic('selected_rows_observed', selectedRows());});
+    assert.equal(observer.retainOperation(child), undefined);
+    observer.retainOperation(child);
+    return result;
+  }), result);
+  assert.equal(observer.status().activeSegments, 1);
+  assert.equal(records.filter(r => r.event === 'selected_rows_observed').length, 0);
+  release(); await child; await turn();
+  assert.equal(observer.status().activeSegments, 0);
+  await observer.close();
+  const selected = records.filter(r => r.event === 'selected_rows_observed');
+  assert.equal(selected.length, 1); assert.equal(selected[0].attributes['actql.rows.returned'], 2);
+  assert.deepEqual(selected[0].parent, trace); assert.deepEqual(observer.status().loss, {});
+  assert.equal(records.filter(r => r.event === 'segment_started').length, 1);
+});
+
+test('retained rejection preserves the original failure and thenables cannot become operation originals', async () => {
+  const observer = installHostObservation(createHostObservationConnection({deliver() {}, events: {level: 'diagnostic'}}));
+  const marker = new Error('OriginalWork'); let reject, child, thenReads = 0;
+  await observer.run('submit', trace, () => {
+    child = new Promise((_, fail) => {reject = fail;}); observer.retainOperation(child);
+    observer.retainOperation({get then() {thenReads++; throw new Error('UnownedThen');}});
+  });
+  assert.equal(thenReads, 0); assert.equal(observer.status().activeSegments, 1);
+  reject(marker); await assert.rejects(child, error => error === marker); await turn();
+  assert.equal(observer.status().activeSegments, 0); assert.equal(observer.status().loss.rowsUnavailable, 1);
+  await observer.close();
+});
+
+test('a captured continuation uses the original context once and respects existing lifetime bounds', async () => {
+  const records = [], observer = installHostObservation(createHostObservationConnection({
+    deliver: value => records.push(value), include: ['run'], measurements: {include: ['rows']},
+    events: {level: 'diagnostic'}, limits: {activeSegments: 1},
+  }), {journal: {observationStorage: () => ({consume: () => ({accepted: true})})}});
+  let capture;
+  await observer.run('read', trace, () => {capture = observer.captureCurrentOperation();});
+  let unobservedWork = 0;
+  await observer.run('read', trace, () => {unobservedWork++;});
+  assert.equal(unobservedWork, 1); assert.equal(observer.status().limited, 1);
+  await capture.run(async () => {await turn(); observer.diagnostic('selected_rows_observed', selectedRows());});
+  capture.release(); capture.release();
+  assert.equal(observer.status().activeSegments, 0);
+  await observer.close();
+  assert.equal(records.filter(r => r.event === 'selected_rows_observed').length, 1);
+  assert.equal(observer.captureCurrentOperation(), undefined);
+});
+
+test('observation close detaches its bounded metadata without settling original unfinished work', async () => {
+  const observer = installHostObservation(createHostObservationConnection({deliver() {}, events: {level: 'diagnostic'}}));
+  const other = installHostObservation(createHostObservationConnection({deliver() {}, events: {level: 'diagnostic'}}));
+  let finish, settled = false, child;
+  await observer.run('submit', trace, () => {
+    child = new Promise(resolve => {finish = resolve;});
+    assert.equal(other.captureCurrentOperation(), undefined);
+    other.retainOperation(child); observer.retainOperation(child);
+    child.then(() => {settled = true;});
+  });
+  await observer.close(); assert.equal(settled, false);
+  assert.equal(observer.status().activeSegments, 0); assert.equal(observer.status().loss.rowsUnavailable, 1);
+  assert.equal(other.status().activeSegments, 0);
+  finish(); await child; await turn(); assert.equal(settled, true); assert.equal(observer.status().activeSegments, 0);
+  await other.close();
+});
+
 test('selected row diagnostics copy only actual reader scalars and the original operation context', async () => {
   const records = [], charges = [];
   const connection = createHostObservationConnection({deliver: value => records.push(value),
@@ -407,7 +479,7 @@ test('measurement and correlation selections preserve facts while narrowing disc
     {ref, task: 0, slot: 0, attempt: 1, attemptCid: `sha256:${'c'.repeat(64)}`}, {durationMs: 100}));
   await observer.close();
   assert.deepEqual(connection.configuration().measurements.selected, []);
-  assert.deepEqual(connection.configuration().measurements.available, ['duration', 'resources']);
+  assert.deepEqual(connection.configuration().measurements.available, ['duration', 'resources', 'rows']);
   for (const record of records) {
     if (record.event === 'task_completed') assert.equal(record.durationMs, 100);
     assert.equal(record.parent, undefined);
