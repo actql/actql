@@ -43,22 +43,8 @@ fn assemble_analytic_array_limit(
   budget : IdentityBudget,
   conversion? : ProofConversion? = None,
 ) -> AnalyticLimit raise UnitBuildFailure {
-  let max_depth = budget.depth
   let host = publication_host(@context.group_array_limit_host(selected), budget)
-  let host_bytes = publication_metadata(
-    w => @host.emit(host, w) catch { e => raise Encoding(e) },
-    budget,
-  )
-  identity_charge(budget, host_bytes.length())
-  let host_witness = match
-    @wire.admit(host_bytes, @host.cid(host), {
-      max_bytes: host_bytes.length(),
-      max_nodes: host_bytes.length(),
-      max_depth,
-    }) {
-    Ok(v) => v
-    Err(e) => raise PublicationWire(e)
-  }
+  let host_witness = publication_host_wire(host, budget)
   let candidates : Array[(String, @wire.WireWitness)] = [
     (@wire.cid(host_witness), host_witness),
   ]

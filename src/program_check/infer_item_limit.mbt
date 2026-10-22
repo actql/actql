@@ -240,20 +240,7 @@ pub fn prepare_infer_item_limit(
     budget,
   )
   let host = publication_host(ceiling, budget)
-  let bytes = publication_metadata(
-    writer => @host.emit(host, writer) catch { error => raise Encoding(error) },
-    budget,
-  )
-  identity_charge(budget, bytes.length())
-  let host_witness = match
-    @wire.admit(bytes, @host.cid(host), {
-      max_bytes: bytes.length(),
-      max_nodes: bytes.length(),
-      max_depth,
-    }) {
-    Ok(value) => value
-    Err(issue) => raise PublicationWire(issue)
-  }
+  let host_witness = publication_host_wire(host, budget)
   let candidates : Array[(String, @wire.WireWitness)] = [
     (@wire.cid(host_witness), host_witness),
   ]

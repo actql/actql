@@ -48,20 +48,7 @@ fn reidentify_graph_input(
     "#/inputs/" +
     name.replace(old="~", new="~0").replace(old="/", new="~1")
   let host = publication_host(ceiling, remaining)
-  let host_bytes = publication_metadata(
-    w => @host.emit(host, w) catch { e => raise Encoding(e) },
-    remaining,
-  )
-  identity_charge(remaining, host_bytes.length())
-  let host_wire = @wire.admit(host_bytes, @host.cid(host), {
-    max_bytes: host_bytes.length(),
-    max_nodes: host_bytes.length(),
-    max_depth: remaining.depth,
-  })
-  let host_wire = match host_wire {
-    Ok(v) => v
-    Err(e) => raise PublicationWire(e)
-  }
+  let host_wire = publication_host_wire(host, remaining)
   let hash = identity_writer(remaining)
   emit_graph_input_limit(reference, label, host, hash, None)
   let limit_cid = identity_finish(remaining, hash)
