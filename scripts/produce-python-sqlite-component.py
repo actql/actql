@@ -207,7 +207,7 @@ def build(source: str, archive: Path, provider_receipt: Path, clang: Path, sdk: 
         require(result.returncode == 0, 'SQLite candidate command failed: ' + name)
         return result.stdout
 
-    common = [str(clang), '-std=c11', '-O0', '-fPIC', '-fvisibility=hidden',
+    common = [str(clang), '-std=c11', staged['optimization'], '-fPIC', '-fvisibility=hidden',
               '-mmacosx-version-min=11.0', '-isysroot', str(sdk), '-I' + str(stage),
               '-I' + str(ROOT / 'packages/python-local-runtime/native/pre-root')]
     obj, library = destination / 'component.o', bundle / LIBRARY
@@ -328,7 +328,7 @@ def build_process_import(source: str, archive: Path, clang: Path, sdk: Path,
         (destination / 'steps.json').write_text(json.dumps(steps, indent=2) + '\n')
         require(result.returncode == 0, 'Process SQLite command failed: ' + name)
     obj, library = destination / 'component.o', destination / LIBRARY
-    common = [str(clang), '-std=c11', '-O0', '-fPIC', '-fvisibility=hidden',
+    common = [str(clang), '-std=c11', staged['optimization'], '-fPIC', '-fvisibility=hidden',
               '-mmacosx-version-min=11.0', '-isysroot', str(sdk), '-I' + str(stage),
               '-I' + str(ROOT / 'packages/python-local-runtime/native/pre-root')]
     run('compile', common + ['-MD', '-MF', str(destination / 'component.d'),
@@ -460,7 +460,7 @@ def build_linux_process_import(source: str, archive: Path, clang: Path,
     stage = destination / 'source'
     staged = STAGE.prepare(archive, stage, process_target='linux-arm64-gnu')
     obj, library = destination / 'component.o', destination / LINUX_LIBRARY
-    common = [str(clang), '-std=c11', '-O0', '-fPIC', '-fvisibility=hidden',
+    common = [str(clang), '-std=c11', staged['optimization'], '-fPIC', '-fvisibility=hidden',
               '-mno-outline-atomics', '-I' + str(stage), '-I' + str(ROOT / 'packages/python-local-runtime/native/pre-root')]
     run('compile', common + ['-MD', '-MF', str(destination / 'component.d'),
                             '-c', str(stage / 'component.c'), '-o', str(obj)])

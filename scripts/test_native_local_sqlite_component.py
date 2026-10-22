@@ -63,14 +63,14 @@ class NativeLocalSQLite(unittest.TestCase):
         actual = set(re.findall(r'\(void\s*\*\)\s*(actql_[A-Za-z0-9_]+)', body))
         self.assertEqual(actual, P.PROVIDER_IMPORTS)
         self.assertEqual(len(actual), 7)
-        command = P.link_arguments(['clang', '-O0'], self.root / 'component.o', self.root / 'component.dylib')
+        command = P.link_arguments(['clang', '-O2'], self.root / 'component.o', self.root / 'component.dylib')
         self.assertIn('-Wl,-undefined,error', command)
         self.assertEqual({v for v in command if v.startswith('-Wl,-U,')},
                          {'-Wl,-U,_' + name for name in actual})
         self.assertFalse(any('dynamic_lookup' in v or 'native_control' in v or '-bundle_loader' in v
                              for v in command))
-        self.assertIn('-O0', command)
-        self.assertNotIn('-O2', command)
+        self.assertIn('-O2', command)
+        self.assertNotIn('-O0', command)
 
     def test_import_and_export_inventory_is_exact(self):
         imports = '\n'.join('_' + name for name in P.PROVIDER_IMPORTS)

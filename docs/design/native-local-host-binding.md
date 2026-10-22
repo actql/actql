@@ -2155,6 +2155,13 @@ library search path. The Native executable retains the existing closed provider
 export set; actual component binding still checks one original provider, Read
 context and physical heap before initialization.
 
+The Native, Python bundle and selected process producers take the component's
+optimization flag from the staged source recipe. The release recipe requires
+`-O2`; its identity and the retained compiler commands distinguish these builds
+from earlier unoptimized components. Optimization does not change the pinned
+SQLite source, private imports, heap geometry or cleanup contract. A component
+must still match its actual provider and supported target before use.
+
 This assembly mode produces an image only. It cannot satisfy the separate
 Python bundle's provider receipt, relocation, physical or final installation
 checks. Those existing stronger checks remain required on their original route.

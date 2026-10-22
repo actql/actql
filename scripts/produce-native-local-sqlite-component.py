@@ -159,7 +159,7 @@ def build(source: str, archive: Path, provider_receipt: Path, clang: Path,
     bundle = destination / 'bundle'
     bundle.mkdir()
     obj, library = destination / 'component.o', bundle / SQLITE.LIBRARY
-    common = [str(clang), '-std=c11', '-O0', '-fPIC', '-fvisibility=hidden',
+    common = [str(clang), '-std=c11', staged['optimization'], '-fPIC', '-fvisibility=hidden',
               '-mmacosx-version-min=26.0', '-isysroot', str(sdk), '-I' + str(stage),
               '-I' + str(ROOT / 'packages/python-local-runtime/native/pre-root')]
     run('compile', [*common, '-MD', '-MF', str(destination / 'component.d'),
