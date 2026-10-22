@@ -283,6 +283,7 @@ fn NativeLocalProductConfigurationSession::check_original(
   if self.closed {
     return Err(Closed)
   }
+  native_timing_count(60)
   guard self.parent.bootstrap_parent_ownership() is Ok(parent) &&
     parent == self.parent_ownership &&
     self.root.private_ownership() is Ok(root) &&
@@ -316,8 +317,9 @@ fn NativeLocalProductConfigurationSession::check_original(
 pub fn NativeLocalProductConfigurationSession::stage_configuration(
   self : NativeLocalProductConfigurationSession,
 ) -> Result[Unit, NativeLocalAdoptionIssue] {
-  // Diagnostic invocation count only; the public method still checks fresh
-  // originals on each explicit call and never caches an authorization result.
+  // Validate the Product once for this synchronous, locked staging interval.
+  // Every explicit call observes the originals again; no application callback
+  // or authorization decision is retained across staging calls.
   native_timing_count(58)
   match self.check_original() {
     Ok(_) => ()
@@ -342,7 +344,7 @@ pub fn NativeLocalProductConfigurationSession::stage_configuration(
       Ok(value) => value is Some(_)
       Err(issue) => return Err(Filesystem(issue))
     }
-    let generation = if !has_claim {
+    let body = if !has_claim {
       if !allow_creation {
         return Err(CustodyLost)
       }
@@ -371,9 +373,19 @@ pub fn NativeLocalProductConfigurationSession::stage_configuration(
         Err(issue) => return Err(issue)
       }
       match local_adoption_write(self.parent, witness_name, witness) {
-        Ok(_) => generation
+        Ok(_) => ()
         Err(issue) => return Err(issue)
       }
+      native_timing_count(61)
+      let (body, observed) = match
+        local_adoption_read(self.root, original.0, 65536L) {
+        Ok(value) => value
+        Err(issue) => return Err(issue)
+      }
+      if observed != generation {
+        return Err(SourceChanged)
+      }
+      body
     } else {
       let (observed_claim, _) = match
         local_adoption_read(self.parent, claim_name, 8192L) {
@@ -389,7 +401,8 @@ pub fn NativeLocalProductConfigurationSession::stage_configuration(
         Err(CustodyLost) => return Err(AmbiguousInitialization)
         Err(issue) => return Err(issue)
       }
-      let (_, generation) = match
+      native_timing_count(61)
+      let (body, generation) = match
         local_adoption_read(self.root, original.0, 65536L) {
         Ok(value) => value
         Err(issue) => return Err(issue)
@@ -399,19 +412,12 @@ pub fn NativeLocalProductConfigurationSession::stage_configuration(
         expected == witness else {
         return Err(CustodyLost)
       }
-      generation
+      // This same read proves both the witnessed generation and exact bytes.
+      // Trusted local reads do not create another validation boundary.
+      body
     }
-    let (body, observed) = match
-      local_adoption_read(self.root, original.0, 65536L) {
-      Ok(value) => value
-      Err(issue) => return Err(issue)
-    }
-    if body != original.1 || observed != generation {
+    if body != original.1 {
       return Err(SourceChanged)
-    }
-    match self.check_original() {
-      Ok(_) => ()
-      Err(issue) => return Err(issue)
     }
   }
   Ok(())
