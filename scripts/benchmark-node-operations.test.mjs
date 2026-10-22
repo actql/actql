@@ -5,6 +5,7 @@ import {mkdtemp, mkdir, readFile, writeFile, rm} from 'node:fs/promises';
 import {tmpdir, arch, platform, release, cpus, totalmem} from 'node:os';
 import {join} from 'node:path';
 import test from 'node:test';
+import {assessPriorityTransition} from './operation-performance.mjs';
 import {nodeBenchmarkInstrumentation, nodeWarmSmallQueryFixtures, runNodeWarmBenchmark, nodeWarmProtocol,
   nodePriorityProtocol, runNodePriorityBenchmark, nodeBenchmarkFailure} from './benchmark-node-operations.mjs';
 
@@ -351,4 +352,136 @@ test('failure diagnostics bound cycles and text without evaluating accessors or 
   assert.equal(report.message.length, 2048); assert.equal(report.errorChain.length, 8);
   assert.equal(report.errorChainTruncated, true); assert.equal(getterCalls, 0);
   assert.doesNotThrow(() => JSON.stringify(report)); assert.equal(toJSONCalls, 0);
+});
+
+async function resourceFixture(t, fault = '', mode = 'diagnostic') {
+  const options = await priorityFixture(t, ['unknown', 'package'].includes(fault) ? fault : '', mode);
+  const root = options.manifestPath.slice(0, -'/release.json'.length);
+  const nodeFile = join(options.consumer, 'node_modules/@actql/node/index.mjs');
+  let code = await readFile(nodeFile, 'utf8');
+  code = code.replace('open({stateDir})', 'open({stateDir,installation})')
+    .replace('const ref={id:id};', "const ref={namespaceId:'local',authorityScopeCid:'sha256:'+'a'.repeat(64),runDefinitionCid:'sha256:'+String(id).padStart(64,'0')};")
+    .replace("await event('saved',id);return[{id}];", "await event('saved',id);installation?.observation.record(ref);return[{id}];")
+    .replace('all:async()=>(await ensure()).rows', 'all:async()=>{const v=await ensure();installation?.observation.record(v.selected.execution.ref);return v.rows;}')
+    .replace("closed=true;await event('close',null);", "closed=true;await installation?.observation.close();await event('close',null);");
+  await writeFile(nodeFile, code);
+  const scalars = {
+    'actql.resource.limit.planning_work': '100000', 'actql.resource.limit.attempts': '1',
+    'actql.resource.limit.holdings': '1', 'actql.resource.limit.transfer_bytes': '1000000',
+    'actql.resource.limit.retained_bytes': '200000000', 'actql.resource.limit.execution_bytes': '536870912',
+    'actql.resource.usage.planning': '0', 'actql.resource.usage.attempts': '1',
+    'actql.resource.usage.holdings': '1', 'actql.resource.usage.transferred': '0',
+    'actql.resource.usage.uncertain': '0', 'actql.resource.usage.reserved_transfer': '0',
+    'actql.resource.usage.held_bytes': '0', 'actql.resource.usage.reserved_retention': '0',
+    'actql.resource.usage.reserved_execution': '0', 'actql.resource.usage.peak_retention': '14240000',
+  };
+  // Synthetic observation transport only. These values are not measured usage.
+  const observer = `export function createHostObservationConnection({deliver,currentContext}){
+ let sequence=0,closed=false;
+ return{record(ref){
+  const attributes={'actql.resource.scope':'managed-run-ledger','actql.run.definition_cid':ref.runDefinitionCid,...${JSON.stringify(scalars)}};
+  ${fault === 'scalar' ? "delete attributes['actql.resource.usage.held_bytes'];" : ''}
+  ${fault === 'foreign' ? "attributes['actql.run.definition_cid']='sha256:'+'f'.repeat(64);" : ''}
+  const record={version:'actql-observation/0.1',operation:'compute',event:'resources_observed',sequence:sequence++,parent:currentContext(),attributes};
+  ${fault === 'missing' ? '' : 'deliver(record);'}
+  ${fault === 'duplicate' ? 'deliver({...record,sequence:sequence++});' : ''}
+ },status(){return{dropped:0,deliveryFailed:0,budgetUnavailable:0,queueOverflow:0,limited:0,repeated:0,queued:0,queuedBytes:0,active:0,activeSegments:0,closed,cleanupPending:false,loss:{}};},async close(){closed=true;}};
+}`;
+  const file = 'adapters/host-common/observation.mjs';
+  const observerRoot = join(options.consumer, 'node_modules/@actql/local-node');
+  await mkdir(join(observerRoot, 'adapters/host-common'), {recursive: true});
+  await writeFile(join(observerRoot, file), observer, {mode: 0o644});
+  const tar = Buffer.from('synthetic observer transport, not an ordinary package');
+  await writeFile(join(root, 'observer.tgz'), tar);
+  const manifest = JSON.parse(await readFile(options.manifestPath));
+  manifest.packages[0].files[0] = {path: 'index.mjs', bytes: Buffer.byteLength(code), mode: 0o644, sha256: hash(Buffer.from(code))};
+  manifest.packages.push({name: '@actql/local-node', file: 'observer.tgz', bytes: tar.length,
+    sha256: hash(tar), integrity: 'sha512-' + createHash('sha512').update(tar).digest('base64'),
+    files: [{path: file, bytes: Buffer.byteLength(observer), mode: 0o644, sha256: hash(Buffer.from(observer))}]});
+  await writeFile(options.manifestPath, JSON.stringify(manifest));
+  const controls = JSON.parse(await readFile(options.controlsPath));
+  options.resourceObservations = 'managed-run-ledger';
+  controls.cohortSha256 = hash(await readFile(options.manifestPath));
+  controls.historyProtocolSha256 = hash(Buffer.from(JSON.stringify(nodePriorityProtocol(mode, options.resourceObservations))));
+  await writeFile(options.controlsPath, JSON.stringify(controls));
+  return options;
+}
+
+test('priority managed Run resources bind actual public calls without manufacturing a population', async t => {
+  const options = await resourceFixture(t), report = await runNodePriorityBenchmark(options);
+  const captured = report.managedRunObservations;
+  assert.equal(captured.status, 'passed'); assert.equal(captured.scope, 'managed-run-ledger');
+  assert.equal(captured.operations.length, 7); assert.equal(captured.records.length, 7);
+  assert.equal(captured.afterClose.closed, true); assert.equal(captured.afterClose.cleanupPending, false);
+  const samples = [report.firstQuery, ...report.latency.flatMap(row => row.samples)];
+  assert.deepEqual(captured.operations.map(row => row.publicOperationId), samples.map(row => row.publicOperationId));
+  assert(captured.records.every(row => Object.keys(row.scalars).length === 16));
+  assert.equal(captured.records[0].scalars['actql.resource.usage.held_bytes'], '0');
+  assert(report.latency.every(row => !Object.hasOwn(row, 'population')));
+  assert.equal(report.priorityAssessment.gates.node.status, 'incomplete');
+  assert(report.priorityAssessment.gates.node.missing.some(reason => reason.includes('population')));
+  const events = await priorityEvents(options);
+  assert.deepEqual(events.filter(row => row.kind === 'submit').map(row => row.id), [0, 1, 2, 3]);
+  assert.equal(events.filter(row => row.kind === 'saved').length, 3);
+  assert.equal(events.filter(row => row.kind === 'close').length, 1);
+  const foreign = structuredClone(report); foreign.managedRunObservations.environmentSha256 = 'f'.repeat(64);
+  assert.throws(() => assessPriorityTransition({sourceSha: foreign.sourceSha, platforms: {node: [foreign]}}), /Managed Run observation differs/u);
+  const mixed = structuredClone(report); mixed.managedRunObservations.operations[0].runRefSha256 = 'f'.repeat(64);
+  assert.equal(assessPriorityTransition({sourceSha: mixed.sourceSha, platforms: {node: [mixed]}}).gates.node.status, 'failed');
+});
+for (const fault of ['foreign', 'scalar', 'duplicate', 'missing']) {
+  test(`priority managed Run ${fault} observation cannot qualify requested collection`, async t => {
+    const options = await resourceFixture(t, fault), report = await runNodePriorityBenchmark(options);
+    const expected = fault === 'missing' ? 'incomplete' : 'failed';
+    assert.equal(report.managedRunObservations.status, expected);
+    assert.equal(report.priorityAssessment.gates.node.status, expected);
+    assert.equal(report.cleanup.closed, true);
+    assert(report.functional.rows.every(row => row.completed), 'Collection failure must not invent a failed product row');
+    assert(report.latency.every(row => !Object.hasOwn(row, 'population')));
+  });
+}
+test('priority managed Run observation retains Unknown and closes without a saved-read tail', async t => {
+  const options = await resourceFixture(t, 'unknown'), report = await runNodePriorityBenchmark(options);
+  assert.equal(report.firstFailure.code, 'SubmissionUnknown'); assert.equal(report.cleanup.closed, true);
+  assert.equal(report.managedRunObservations.status, 'incomplete');
+  assert.equal(report.managedRunObservations.afterClose.closed, true);
+  assert.equal(report.publicCallAttempts.savedResultAll, 0);
+  assert.deepEqual((await priorityEvents(options)).filter(row => row.kind === 'submit').map(row => row.id), [0, 1, 2]);
+});
+test('priority managed Run package failure retains raw observations without qualifying their cohort', async t => {
+  const options = await resourceFixture(t, 'package'), report = await runNodePriorityBenchmark(options);
+  assert(report.packageFailure); assert.equal(report.cleanup.closed, true);
+  assert.equal(report.managedRunObservations.records.length, 7);
+  assert.equal(report.managedRunObservations.status, 'failed');
+  assert(report.managedRunObservations.failures.some(row => /package correspondence/u.test(row.message)));
+  assert(report.functional.rows.every(row => !row.completed && !Object.hasOwn(row, 'actualSha256')));
+  assert.equal(report.priorityAssessment.gates.node.status, 'failed');
+});
+test('priority managed Run final synthetic transport stays bounded to the actual 201 public calls', async t => {
+  const options = await resourceFixture(t, '', 'final'), report = await runNodePriorityBenchmark(options);
+  assert.equal(report.managedRunObservations.status, 'passed');
+  assert.equal(report.managedRunObservations.records.length, 201);
+  assert.equal(report.managedRunObservations.operations.length, 201);
+  assert.equal(report.priorityAssessment.status, 'incomplete');
+});
+test('priority managed Run CLI selection is explicit and remains incomplete for missing public evidence', async t => {
+  const options = await resourceFixture(t);
+  const result = spawnSync(process.execPath, [new URL('./benchmark-node-operations.mjs', import.meta.url).pathname,
+    '--selection', 'priority-transition', '--resource-observations', 'managed-run-ledger',
+    '--manifest', options.manifestPath, '--consumer', options.consumer, '--output', options.output,
+    '--controls', options.controlsPath, '--mode', options.mode], {encoding: 'utf8'});
+  assert.equal(result.status, 1, result.stderr); assert.equal(result.signal, null);
+  const report = JSON.parse(await readFile(join(options.output, 'measurements.json')));
+  assert.equal(report.managedRunObservations.status, 'passed'); assert.equal(report.cleanup.closed, true);
+  assert.equal(report.priorityAssessment.gates.node.status, 'incomplete');
+});
+test('priority managed Run collection requires a verified installed module before public import', async t => {
+  const options = await priorityFixture(t), controls = JSON.parse(await readFile(options.controlsPath));
+  options.resourceObservations = 'managed-run-ledger';
+  controls.historyProtocolSha256 = hash(Buffer.from(JSON.stringify(nodePriorityProtocol(options.mode, options.resourceObservations))));
+  await writeFile(options.controlsPath, JSON.stringify(controls));
+  const report = await runNodePriorityBenchmark(options);
+  assert.match(report.firstFailure.message, /Verified installed observation module required/u);
+  assert.equal(report.publicCallAttempts.sql, 0); assert.equal(report.cleanup.closed, false);
+  await assert.rejects(readFile(options.importMarker), {code: 'ENOENT'});
 });
