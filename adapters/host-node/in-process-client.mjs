@@ -36,14 +36,48 @@ const fail = code => {
 const publicFailure = error => localErrors.has(error) ? error
   : publicError(publicClientErrorCode(error), publicClientErrorStatus(error));
 
-function publicResultRows(response, observeConsumed) {
+function publicResultRows(response, observeConsumed, observeOperation) {
   // Keep a failed delivery record's exact retry owner off public errors. The
   // SDK may release this response only after that owner confirms settlement.
   let cleanupFailure;
+  let original = observeOperation, resume, retire;
+  try {resume = original?.run; retire = original?.release;}
+  catch { /* An optional observation cannot replace the Result response. */ }
+  const inContext = work => {
+    if (typeof resume !== 'function') return work();
+    let called = false, value, failure, threw = false;
+    const once = () => {
+      if (called) {if (threw) throw failure; return value;}
+      called = true;
+      try {value = work(); return value;}
+      catch (error) {threw = true; failure = error; throw error;}
+    };
+    try {Reflect.apply(resume, original, [once]);}
+    catch { /* Preserve the original work's own value or error below. */ }
+    return once();
+  };
+  const releaseObservation = () => {
+    const held = original, release = retire;
+    original = resume = retire = undefined;
+    try {if (typeof release === 'function') Reflect.apply(release, held, []);}
+    catch { /* Observation release is not the delivery owner's cleanup ACK. */ }
+  };
+  const contextualFrames = frames => ({[Symbol.asyncIterator]() {
+    const iterator = inContext(() => frames[Symbol.asyncIterator]());
+    const next = inContext(() => iterator.next);
+    const method = name => {
+      const operation = inContext(() => iterator[name]);
+      return typeof operation === 'function'
+        ? (...args) => inContext(() => Reflect.apply(operation, iterator, args)) : operation;
+    };
+    return {next(...args) {return inContext(() => Reflect.apply(next, iterator, args));},
+      get return() {return method('return');}, get throw() {return method('throw');},
+      [Symbol.asyncIterator]() {return this;}};
+  }});
   return Object.freeze({kind: 'rows', frames: Object.freeze({
     async *[Symbol.asyncIterator]() {
       let consumed = false;
-      try { yield* response.frames; consumed = true; }
+      try { yield* (original === undefined ? response.frames : contextualFrames(response.frames)); consumed = true; }
       catch (error) {
         if (error?.cleanupPending === true) cleanupFailure = error;
         throw publicFailure(error);
@@ -51,17 +85,19 @@ function publicResultRows(response, observeConsumed) {
       finally {
         if (consumed) try {observeConsumed?.();}
         catch { /* Optional observation cannot replace rows or their real cleanup. */ }
+        if (cleanupFailure === undefined) releaseObservation();
       }
     },
   }), async close() {
-    if (cleanupFailure === undefined) return;
+    if (cleanupFailure === undefined) {releaseObservation(); return;}
     const handle = cleanupFailure.cleanupHandle;
     try {
       if (typeof handle?.retry !== 'function' ||
           typeof handle?.status !== 'function') throw cleanupFailure;
-      if (handle.status().pending !== false) await handle.retry();
-      if (handle.status().pending !== false) throw cleanupFailure;
+      if (inContext(() => handle.status()).pending !== false) await inContext(() => handle.retry());
+      if (inContext(() => handle.status()).pending !== false) throw cleanupFailure;
       cleanupFailure = undefined;
+      releaseObservation();
     } catch { throw publicError('ResultReadCleanupUnknown', 500); }
   }});
 }
@@ -74,6 +110,7 @@ export function createNodeInProcessClientHost({
   resources, inspectResource, peekResource, check, plan, inspectRun, runPlan, maxRowBytes, observe,
   performInstalledRequest,
   captureResultObservation,
+  captureResultOperation,
 }) {
   if (typeof authenticate !== 'function' ||
       typeof authorizeConnection !== 'function' ||
@@ -81,6 +118,7 @@ export function createNodeInProcessClientHost({
       performInstalledRequest !== undefined && typeof performInstalledRequest !== 'function' ||
       bindOwnedRequest !== undefined && typeof bindOwnedRequest !== 'function' ||
       captureResultObservation !== undefined && typeof captureResultObservation !== 'function' ||
+      captureResultOperation !== undefined && typeof captureResultOperation !== 'function' ||
       !Number.isSafeInteger(maxRowBytes) || maxRowBytes < 1) {
     throw new TypeError('InvalidInProcessClientHostInstallation');
   }
@@ -328,13 +366,15 @@ export function createNodeInProcessClientHost({
         return found;
       }
       if (operation === 'read') {
-        let consumed;
+        let consumed, observation;
         try {consumed = captureResultObservation?.(ref);}
         catch { /* An unavailable observation is not a Result permission or failure. */ }
+        try {observation = captureResultOperation?.();}
+        catch { /* Keep the same Result request even if observation is unavailable. */ }
         return publicResultRows(authorizedLocalResultFrames(resultService, {
           indexKey: ref, principalId, purpose: 'download',
           resultName: body.resultName, attemptId: body.attemptId,
-        }, signal, {maxRowBytes}), consumed);
+        }, signal, {maxRowBytes}), consumed, observation);
       }
       fail('UnknownClientOperation');
     } catch (error) {

@@ -51,9 +51,20 @@ continuation Owners retain that same optional context against their original
 work Promises, including existing settlement callbacks. The physical-start
 barrier is not the work-completion boundary. A retained observation neither
 delays acceptance nor supplies a physical release ACK; failed resource cleanup
-remains with the original Owner even after its work Promise settles. Result
-iteration borrows the original operation context through its existing consumer
-lifetime rather than creating another ingress operation.
+remains with the original Owner even after its work Promise settles.
+An installed consumer may retain that same bounded context for its original
+Promise or Result iterator continuation. Promise retention is idempotent for
+the same original in that context, never awaits or replaces submission, and
+releases on either settlement. Iterator steps and the original delivery cleanup
+run under that captured context; the terminal row aggregate waits for those
+original continuations. A failed cleanup retains its existing context until the
+same close-only retry confirms. No successful usage is emitted for partial or
+failed consumption. The existing segment and record limits still bound optional
+retention, and disabled row observations acquire no continuation.
+This lifetime is copied observation metadata, not Run authority or a physical
+cleanup acknowledgement. Observation shutdown detaches it and records unavailable
+unfinished coverage; it neither settles the retained work nor discharges its
+original resource Owner. Contextless startup or sweep work cannot borrow it.
 Their `selected-returned` coverage does not count database rows visited, hidden
 aggregate work, other readers, parses or cache hits. A missing hook or lost record
 is unavailable coverage, never an observed zero or a completeness certificate.
