@@ -764,6 +764,33 @@ test('publication inventory retains failed Index alias durability before a fresh
   }
 });
 
+test('publication completion batch avoids a separate post-Index native commit', async t => {
+  const {store, directory} = await fixture(t);
+  const invocationValue = invocation();
+  const request = publicationRequest(resultDefinition(), invocationValue.invocation_cid);
+  const attempt = publicationAttempt(request);
+  const prepared = await prepareCommit(store, request, attempt, invocationValue);
+  const entry = indexEntry(request, attempt, invocationValue, {
+    durable_result_binding_cids: [prepared.binding.identity],
+  });
+  const exec = DatabaseSync.prototype.exec;
+  let armed = true, commits = 0;
+  t.mock.method(DatabaseSync.prototype, 'exec', function(sql, ...args) {
+    if (armed && sql === 'COMMIT') commits++;
+    return Reflect.apply(exec, this, [sql, ...args]);
+  });
+  const outcome = await store.commitIndex(wire(entry), prepared.required, prepared.evidence);
+  assert.equal(outcome.committed, true);
+  assert.equal(commits, 1, 'inventory staging is durable; completion joins a later necessary transaction');
+  assert.equal((await store.inspectCommittedIndex(indexKeyFor(request))).public_index_entry_cid, entry.public_index_entry_cid);
+  const observed = new DatabaseSync(join(directory, 'delivery-attempts.sqlite3'), {readOnly: true});
+  try { assert.equal(observed.prepare('SELECT count(*) AS n FROM pending_publications').get().n, 1); }
+  finally { observed.close(); }
+  await store.close();
+  assert.equal(commits, 2, 'the existing physical-lifetime seal also completes the recovery row');
+  armed = false;
+});
+
 for (const afterCommit of [false, true]) {
 test(`publication inventory staging retains its ${afterCommit ? 'committed' : 'rolled-back'} Unknown acknowledgement at the Store boundary`, async t => {
   const directory = await mkdtemp(join(tmpdir(), 'actql-inventory-stage-unknown-'));
