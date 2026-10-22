@@ -6188,6 +6188,121 @@ test('clean Store reopening does not rescan settled Result deletion history', as
   } finally {t.mock.restoreAll(); syncBuiltinESMExports();}
 });
 
+for (const phase of ['begin', 'seal']) {
+test(`Result cleanup ${phase} lost COMMIT reply keeps the same Store duty`, async t => {
+  let armed = false, lost = false;
+  const originalExec = DatabaseSync.prototype.exec;
+  t.mock.method(DatabaseSync.prototype, 'exec', function(sql) {
+    if (armed && !lost && sql === 'COMMIT') {
+      lost = true; Reflect.apply(originalExec, this, [sql]);
+      throw Object.assign(new Error('lost same Result cleanup commit reply'), {code: 'EIO'});
+    }
+    return Reflect.apply(originalExec, this, [sql]);
+  });
+  const {store, directory} = await fixture(t);
+  const invoked = invocation(), request = publicationRequest(resultDefinition(), invoked.invocation_cid);
+  const attempt = publicationAttempt(request), prepared = await prepareCommit(store, request, attempt, invoked);
+  const entry = indexEntry(request, attempt, invoked, {durable_result_binding_cids: [prepared.binding.identity]});
+  await store.commitIndex(wire(entry), prepared.required, prepared.evidence);
+  if (phase === 'begin') armed = true;
+  const retired = await store.retireCommittedResult(indexKeyFor(request), request.inventory[0].result_definition_cid);
+  if (phase === 'begin') {
+    assert.equal(lost, true);
+    assert.equal(retired.deleted, false);
+    assert.equal(retired.cleanup.status().pending, true);
+    await assert.rejects(store.close(), code('PublicationStoreCleanupPending'));
+    assert.equal((await retired.cleanup.retry()).pending, false,
+      'same original cleanup confirms its native intent before writing the marker');
+  } else {
+    assert.equal(retired.deleted, true);
+    armed = true;
+    await assert.rejects(store.close(), error => error.outcome === 'unknown');
+    assert.equal(lost, true);
+  }
+  assert.equal(store.status().closed, false, 'visible native state is not the original close ACK');
+  assert((await stat(join(directory, 'owner'))).isDirectory());
+  await store.close();
+  assert.equal(store.status().closed, true);
+});
+}
+
+test('Result cleanup legacy coverage is audited once and a selected corrupt marker still refuses', async t => {
+  const {store, configuration, directory} = await fixture(t);
+  const invoked = invocation(), request = publicationRequest(resultDefinition(), invoked.invocation_cid);
+  const attempt = publicationAttempt(request), prepared = await prepareCommit(store, request, attempt, invoked);
+  const entry = indexEntry(request, attempt, invoked, {durable_result_binding_cids: [prepared.binding.identity]});
+  await store.commitIndex(wire(entry), prepared.required, prepared.evidence);
+  assert.equal((await store.retireCommittedResult(indexKeyFor(request), request.inventory[0].result_definition_cid)).deleted, true);
+  await store.close();
+  const database = new DatabaseSync(join(directory, 'delivery-attempts.sqlite3'));
+  try {database.exec('DROP TABLE result_deletion_recovery; UPDATE coverage SET version=10 WHERE id=1');}
+  finally {database.close();}
+  const parent = join(directory, 'deletions', (await readdir(join(directory, 'deletions')))[0]);
+  const marker = join(parent, (await readdir(parent))[0]);
+  const originalOpen = fsPromises.open;
+  let markerReads = 0;
+  t.mock.method(fsPromises, 'open', async function(path, ...args) {
+    if (String(path) === marker && typeof args[0] === 'number') markerReads++;
+    return Reflect.apply(originalOpen, this, [path, ...args]);
+  });
+  syncBuiltinESMExports();
+  try {
+    const migrated = await openLocalPublicationStore(configuration, contractControl);
+    assert(markerReads > 0, 'old producers require an actual first recovery audit');
+    await migrated.close();
+    await writeFile(marker, '{invalid');
+    markerReads = 0;
+    const reopened = await openLocalPublicationStore(configuration, contractControl);
+    try {
+      assert.equal(markerReads, 0, 'clean open does not prove unrelated committed history');
+      await assert.rejects(reopened.consumeCommittedResult(indexKeyFor(request),
+        request.inventory[0].result_definition_cid, () => true, () => assert.fail('corrupt marker exposed Result')),
+      code('InvalidPublicationDeletionStore'));
+    } finally {await reopened.close();}
+  } finally {t.mock.restoreAll(); syncBuiltinESMExports();}
+});
+
+test('a new process recovers only after an actual interrupted Result cleanup lifecycle', async t => {
+  const {store, configuration, directory} = await fixture(t);
+  const invoked = invocation(), request = publicationRequest(resultDefinition(), invoked.invocation_cid);
+  const attempt = publicationAttempt(request), prepared = await prepareCommit(store, request, attempt, invoked);
+  const entry = indexEntry(request, attempt, invoked, {durable_result_binding_cids: [prepared.binding.identity]});
+  await store.commitIndex(wire(entry), prepared.required, prepared.evidence);
+  await store.close();
+  const child = await runStoreChild(`
+    import assert from 'node:assert/strict';
+    import {open} from 'node:fs/promises';
+    import {join} from 'node:path';
+    import {createPublicationContractControlFixture} from ${JSON.stringify(new URL('../host-common/publication-contract-control.fixture.mjs', import.meta.url).href)};
+    import {openLocalPublicationStore} from ${JSON.stringify(new URL('./publication-store.mjs', import.meta.url).href)};
+    const configuration = ${JSON.stringify(configuration)};
+    let armed = false;
+    const store = await openLocalPublicationStore(configuration, createPublicationContractControlFixture(), {
+      async syncDirectory(path) {
+        if (armed && path === join(configuration.directory,'objects')) {
+          throw Object.assign(new Error('interrupted actual object directory ACK'), {code:'EIO'});
+        }
+        const handle = await open(path,'r'); try {await handle.sync();} finally {await handle.close();}
+      }
+    });
+    armed = true;
+    const retired = await store.retireCommittedResult(${JSON.stringify(indexKeyFor(request))},
+      ${JSON.stringify(request.inventory[0].result_definition_cid)});
+    assert.equal(retired.cleanup.status().pending,true);
+    process.stdout.write(JSON.stringify({pending:true}), () => process.exit(0));
+  `);
+  assert.equal(child.exitCode, 0, child.stderr);
+  assert.deepEqual(JSON.parse(child.stdout), {pending: true});
+  // Process exit is not a product ACK. The new Owner must recover the durable
+  // intent and acknowledge the actual object directory, without old callbacks.
+  const reopened = await openLocalPublicationStore(configuration, contractControl);
+  try {
+    await assert.rejects(reopened.consumeCommittedResult(indexKeyFor(request),
+      request.inventory[0].result_definition_cid, () => true, () => assert.fail('interrupted retirement resurrected Result')),
+    code('PublicationObjectMissing'));
+  } finally {await reopened.close();}
+});
+
 test('description evidence admits each selected immutable contract once per read',
   async t => {
     const directory = await mkdtemp(join(tmpdir(), 'actql-description-once-'));
