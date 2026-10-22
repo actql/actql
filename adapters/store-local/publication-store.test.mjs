@@ -831,10 +831,10 @@ test('Effectful commit inspection consumes only its original private Index obser
       .map(name=>[name,()=>assert.fail('No semantic or physical callback in the admission prefix')]))};
   const prefix = compileFunction(helpers + '\nreturn (' + text.slice(inspector.start,inspector.body.start+1) +
     text.slice(inspector.body.start+1,boundary.start) + '\nreturn {contract:admittedIndex,entry};});',
-    ['configuration','contractControl','contractLimits','fail','active','readSemanticOriginal'])(
+    ['configuration','contractControl','contractLimits','fail','active','readSemanticOriginal','cidPattern'])(
     {maxObjectBytes:limits.maxWireBytes}, control, limits,
     code=>{throw Object.assign(new Error(code),{code});}, ()=>{active++;},
-    ()=>assert.fail('No physical read in the admission prefix'));
+    ()=>assert.fail('No physical read in the admission prefix'), /^sha256:[a-f0-9]{64}$/u);
   const invocationValue = invocation();
   const request = publicationRequest(resultDefinition(), invocationValue.invocation_cid);
   const attempt = publicationAttempt(request);
