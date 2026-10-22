@@ -102,6 +102,10 @@ assert.ok(publicationAppend); assert.ok(publicationMember);
 const appendOriginalPublicationState = compileFunction(
   publicationSource.slice(publicationMember.start, publicationMember.end) + '\n' +
   publicationSource.slice(publicationAppend.start, publicationAppend.end) + '\nreturn appendState;', [])();
+const publicationPersist = publicationAst.body.find(node => node.type === 'FunctionDeclaration' && node.id.name === 'persistContracts');
+assert.ok(publicationPersist);
+const persistOriginalPublicationSetup = compileFunction(
+  publicationSource.slice(publicationPersist.start, publicationPersist.end) + '\nreturn persistContracts;', [])();
 
 async function runStoreChild(source) {
   const child = spawn(process.execPath, [
@@ -3165,11 +3169,14 @@ test('publication setup commits its immutable bodies and initial attempt in one 
   const originals = [contractControl.admit('publication_request', wire(request), limits)];
   const originalAttempt = contractControl.admit('publication_attempt', wire(attempt), limits);
   armed = true;
-  await store.beginPublicationAttempt(originals, originalAttempt);
+  assert.equal(await persistOriginalPublicationSetup(store, originals, originalAttempt), true);
   assert.equal(commits, 1);
   assert.equal(store.status().objectCount, 2);
   assert.equal((await store.createAttempt(wire(attempt))).created, false);
   assert.equal(commits, 1, 'An already committed attempt does not create another barrier');
+  assert.equal(await persistOriginalPublicationSetup(store, originals, originalAttempt), true);
+  assert.equal(commits, 1, 'Repeated exact setup does not rewrite its committed metadata');
+  assert.equal(store.status().objectCount, 2);
   assert.equal((await store.readPublicationContract(request.publication_request_cid, 'publication_request')).wire, wire(request));
   const preparing = publicationRecord(attempt, 0, 'preparing');
   await store.appendRecord(wire(preparing), {uncommittedConfirmed: false});
@@ -3188,7 +3195,108 @@ test('joint publication setup refuses its full capacity before installing any bo
   contractControl.admit('publication_attempt', wire(attempt), limits)), code('PublicationStoreObjectLimit'));
   assert.equal(store.status().objectCount, 0);
   assert.equal(store.status().reservedObjects, 0);
-  await assert.rejects(store.readPublicationContract(request.publication_request_cid, 'publication_request'), code('ENOENT'));
+  await assert.rejects(store.readPublicationContract(request.publication_request_cid, 'publication_request'), code('PublicationContractMissing'));
+});
+
+test('joint publication setup releases partial reservations without altering retained payload capacity', async t => {
+  const {store} = await fixture(t, {capacityBytes: 8192, maxObjectBytes: 8192});
+  const request = publicationRequest(), attempt = publicationAttempt(request, 'joint-retained-capacity');
+  const bodyBytes = Buffer.byteLength(wire(request)) + Buffer.byteLength(wire(attempt));
+  assert.ok(bodyBytes < 8192);
+  const bytes = Buffer.alloc(8192 - bodyBytes + 1, 7);
+  const payload = await store.putBytes(bytes), before = store.status();
+  await assert.rejects(store.beginPublicationAttempt([
+    contractControl.admit('publication_request', wire(request), limits)],
+  contractControl.admit('publication_attempt', wire(attempt), limits)), code('PublicationStoreCapacity'));
+  assert.equal(store.status().storedBytes, before.storedBytes);
+  assert.equal(store.status().objectCount, before.objectCount);
+  assert.equal(store.status().reservedObjects, 0);
+  assert.equal(store.status().reservedBytes, 0);
+  assert.deepEqual(await store.verifyObject(payload.cid), {cid: payload.cid, bytes: bytes.byteLength});
+  await assert.rejects(store.readPublicationContract(request.publication_request_cid, 'publication_request'), code('PublicationContractMissing'));
+});
+
+test('joint publication setup rejects a non-attempt original before persistence', async t => {
+  const {store} = await fixture(t);
+  const request = publicationRequest();
+  const wrong = contractControl.admit('publication_request', wire(request), limits);
+  await assert.rejects(store.beginPublicationAttempt([], wrong), code('InvalidPublicationContract'));
+  assert.equal(store.status().storedBytes, 0);
+  assert.equal(store.status().objectCount, 0);
+});
+
+for (const afterCommit of [false, true]) {
+test(`joint publication setup retains the same ${afterCommit ? 'committed' : 'rolled-back'} Unknown body group and attempt`, async t => {
+  const exec = DatabaseSync.prototype.exec;
+  let armed = false, lost = false, originalDatabase, confirmations = 0;
+  t.mock.method(DatabaseSync.prototype, 'exec', function(sql) {
+    if (armed && sql === 'COMMIT') {
+      if (!lost) {
+        lost = true; originalDatabase = this;
+        if (afterCommit) Reflect.apply(exec, this, [sql]);
+        throw Object.assign(new Error('joint publication setup reply unavailable'), {code: 'EIO'});
+      }
+      assert.equal(this, originalDatabase); confirmations++;
+    }
+    return Reflect.apply(exec, this, [sql]);
+  });
+  const {store, configuration} = await fixture(t);
+  const request = publicationRequest(), attempt = publicationAttempt(request, `joint-unknown-${afterCommit}`);
+  const originals = [contractControl.admit('publication_request', wire(request), limits)];
+  const originalAttempt = contractControl.admit('publication_attempt', wire(attempt), limits);
+  let failure;
+  armed = true;
+  await assert.rejects(persistOriginalPublicationSetup(store, originals, originalAttempt), error => {
+    failure = error; return error.outcome === 'unknown' && error.cleanupHandle.status().pending;
+  });
+  assert.equal(store.status().reservedObjects, 2);
+  await assert.rejects(store.createAttempt(wire(attempt)), code('DeliveryAttemptIndexCommitOutcomeUnknown'));
+  await failure.cleanupHandle.retry();
+  assert.equal(confirmations, 1);
+  assert.equal(failure.cleanupHandle.status().pending, false);
+  assert.equal(store.status().reservedObjects, 0);
+  assert.equal(store.status().objectCount, 2);
+  assert.equal((await store.createAttempt(wire(attempt))).created, false);
+  assert.equal(confirmations, 1);
+  armed = false;
+  await store.close();
+  const reopened = await openLocalPublicationStore(configuration, contractControl);
+  assert.equal((await reopened.createAttempt(wire(attempt))).created, false);
+  assert.equal((await reopened.readPublicationContract(request.publication_request_cid, 'publication_request')).wire, wire(request));
+});
+}
+
+test('joint publication setup preserves an independently adopted file attempt and its progress', async t => {
+  const {store, directory, configuration} = await fixture(t);
+  const request = publicationRequest(), attempt = publicationAttempt(request, 'joint-legacy-attempt');
+  await store.putSemantic(wire(attempt), attempt.publication_attempt_cid);
+  await store.createAttempt(wire(attempt));
+  const record = publicationRecord(attempt, 0, 'preparing');
+  await store.appendRecord(wire(record), {uncommittedConfirmed: false});
+  const path = join(directory, 'attempts', attempt.publication_attempt_cid.slice(7), 'attempt.json');
+  const original = await stat(path);
+  await persistOriginalPublicationSetup(store, [contractControl.admit('publication_request', wire(request), limits)],
+    contractControl.admit('publication_attempt', wire(attempt), limits));
+  assert.deepEqual(await store.latestRecord(attempt.publication_attempt_cid), record);
+  assert.equal((await stat(path)).ino, original.ino);
+  assert.equal((await stat(path)).dev, original.dev);
+  await store.close();
+  const reopened = await openLocalPublicationStore(configuration, contractControl);
+  assert.deepEqual(await reopened.latestRecord(attempt.publication_attempt_cid), record);
+});
+
+test('publication setup keeps omitted joint support and refuses a failed explicit joint port without fallback', async () => {
+  const original = {identity: digest('setup-original')}, attempt = {};
+  let oldCalls = 0;
+  const legacy = {async putOriginalPublicationContracts(items) {
+    assert.equal(this, legacy); assert.deepEqual(items, [original]); oldCalls++;
+  }};
+  assert.equal(await persistOriginalPublicationSetup(legacy, [original, original], attempt), false);
+  assert.equal(oldCalls, 1);
+  const primary = new Error('OriginalJointSetupUnavailable');
+  const selected = {...legacy, async beginPublicationAttempt() {assert.equal(this, selected); throw primary;}};
+  await assert.rejects(persistOriginalPublicationSetup(selected, [original], attempt), error => error === primary);
+  assert.equal(oldCalls, 1, 'A refused joint operation never falls back to another persistence attempt');
 });
 
 test('publication progress uses one native commit and no shadow file ACKs per transition',async t=>{

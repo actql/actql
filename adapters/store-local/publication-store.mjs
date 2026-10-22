@@ -3451,7 +3451,7 @@ async function openOriginalLocalPublicationStore(
       Object.freeze({...result,progressCreated})));
   };
 
-  const putPublicationContractBatch = async (supplied, originals) => {
+  const admitPublicationContracts = (supplied, originals) => {
     active();
     if (!Array.isArray(supplied)) fail('InvalidPublicationContractWire');
     const count = supplied.length;
@@ -3503,9 +3503,13 @@ async function openOriginalLocalPublicationStore(
       identities.set(contract.identity, original);
       wires.set(input.wire, original);
     }
+    return admitted;
+  };
+
+  const putAdmittedPublicationContracts = async (admitted, originals, progress) => {
     const nativeOnly = admitted.every(({contract}) => nativePublicationContract(contract.name));
     if (originals && nativeOnly) {
-      return putNativePublicationContracts(admitted);
+      return putNativePublicationContracts(admitted, progress);
     }
     const existingNative = new Map();
     for (const original of admitted) {
@@ -3519,7 +3523,7 @@ async function openOriginalLocalPublicationStore(
       existingNative.set(contract.identity,Object.freeze({...original,
         semanticCid:contract.identity,storage:'sqlite',created:false}));
     }
-    if (nativeOnly && existingNative.size !== 0) return putNativePublicationContracts(admitted);
+    if (nativeOnly && existingNative.size !== 0) return putNativePublicationContracts(admitted, progress);
     // A legacy file member does not turn an already native sibling into a
     // second file allocation. Only the remaining original files enter the
     // unchanged physical batch and its actual capacity/ACK protocol.
@@ -3531,6 +3535,9 @@ async function openOriginalLocalPublicationStore(
     return Object.freeze(admitted.map(original => existingNative.get(original.contract.identity) ??
       Object.freeze({...original,...stored[physicalIndex++]})));
   };
+
+  const putPublicationContractBatch = async (supplied, originals) =>
+    putAdmittedPublicationContracts(admitPublicationContracts(supplied, originals), originals);
 
   const putPublicationContracts = supplied => putPublicationContractBatch(supplied, false);
   const putOriginalPublicationContracts = supplied => putPublicationContractBatch(supplied, true);
@@ -4041,9 +4048,7 @@ async function openOriginalLocalPublicationStore(
     });
   };
 
-  const createAttempt = async suppliedWire => {
-    active();
-    const admitted = admitContract('publication_attempt', suppliedWire);
+  const createAdmittedAttempt = async admitted => {
     const attempt = parseContract(admitted);
     if (await runMetadataDeletionStarted(attempt.run_definition_cid)) {
       fail('PublicationMetadataDeleted');
@@ -4079,6 +4084,36 @@ async function openOriginalLocalPublicationStore(
       }
       return Object.freeze({attempt, created: false});
     }
+  };
+
+  const createAttempt = async suppliedWire => {
+    active();
+    return createAdmittedAttempt(admitContract('publication_attempt', suppliedWire));
+  };
+
+  const beginPublicationAttempt = async (supplied, attemptOriginal) => {
+    if (!Array.isArray(supplied)) fail('InvalidPublicationContractWire');
+    if (supplied.length >= configuration.maxObjects) fail('PublicationStoreObjectLimit');
+    const admitted = admitPublicationContracts([...supplied, attemptOriginal], true);
+    const selected = admitted.find(({contract}) => contract.identity === attemptOriginal.identity &&
+      contract.name === 'publication_attempt');
+    if (selected === undefined) fail('InvalidPublicationContract');
+    if (await runMetadataDeletionStarted(selected.value.run_definition_cid)) fail('PublicationMetadataDeleted');
+    let fileAttempt = false;
+    try { await lstat(contractPath(selected.contract.identity)); fileAttempt = true; }
+    catch (error) { if (error?.code !== 'ENOENT') throw error; }
+    // Independently adopted file attempts keep their original file progress.
+    // Only an all-native setup joins the bodies and attempt locator in one
+    // existing transaction; either path returns after its actual acknowledgements.
+    if (fileAttempt || admitted.some(({contract}) => !nativePublicationContract(contract.name))) {
+      await putAdmittedPublicationContracts(admitted, true);
+      return createAdmittedAttempt(selected.contract);
+    }
+    const stored = await putAdmittedPublicationContracts(admitted, true,
+      Object.freeze({kind: 'attempt', attemptCid: selected.contract.identity,
+        runCid: selected.value.run_definition_cid}));
+    return Object.freeze({attempt: selected.value,
+      created: stored.find(value => value.semanticCid === selected.contract.identity).progressCreated});
   };
 
   const latestRecordContract = async attemptCid => {
@@ -8100,6 +8135,7 @@ async function openOriginalLocalPublicationStore(
       return (await readContract(cid, name)).contract;
     },
     createAttempt,
+    beginPublicationAttempt,
     latestRecord,
     latestRecordContract,
     appendRecord,
