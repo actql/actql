@@ -17,6 +17,11 @@ on:
         description: Run the registered performance matrix at this revision
         type: boolean
         default: false
+      performance_priority_node_mode:
+        description: Priority Node samples; final is for a plausible fixed candidate
+        type: choice
+        options: [diagnostic, final]
+        default: diagnostic
       performance_package_run_id:
         description: Completed same-source normal CI run supplying existing Client tarballs
         type: string
@@ -96,6 +101,7 @@ jobs:
       contents: read
       actions: read
     with:
+      priority-node-mode: ${{ inputs.performance_priority_node_mode }}
       package-run-id: ${{ inputs.performance_package_run_id }}
       package-artifact-id: ${{ inputs.performance_package_artifact_id }}
       native-package-run-id: ${{ inputs.performance_native_package_run_id }}
