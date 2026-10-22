@@ -3706,6 +3706,43 @@ test('joint publication setup refuses its full capacity before installing any bo
   await assert.rejects(store.readPublicationContract(request.publication_request_cid, 'publication_request'), code('PublicationContractMissing'));
 });
 
+for (const terminal of ['committing', 'cancelled']) {
+test(`publication start retains setup and initial progress in one transaction: ${terminal}`, async t => {
+  const exec = DatabaseSync.prototype.exec;
+  let armed = false, commits = 0;
+  t.mock.method(DatabaseSync.prototype, 'exec', function(sql) {
+    if (armed && sql === 'COMMIT') commits++;
+    return Reflect.apply(exec, this, [sql]);
+  });
+  const {store, configuration} = await fixture(t);
+  const request = publicationRequest(), attempt = publicationAttempt(request, `publication-start-${terminal}`);
+  const original = contractControl.admit('publication_request', wire(request), limits);
+  const originalAttempt = contractControl.admit('publication_attempt', wire(attempt), limits);
+  const preparing = publicationRecord(attempt, 0, 'preparing');
+  const next = publicationRecord(attempt, 1, terminal, preparing);
+  const records = [preparing, next].map(value => contractControl.admit('publication_record', wire(value), limits));
+  armed = true;
+  if (typeof store.beginPublicationAttemptWithRecords === 'function') {
+    await store.beginPublicationAttemptWithRecords([original], originalAttempt, records);
+  } else {
+    // The original supported path has the same bodies and transitions, but
+    // performs two FULL transactions without a protected action between them.
+    await store.beginPublicationAttempt([original], originalAttempt);
+    await store.appendInitialPublicationRecords(records);
+  }
+  armed = false;
+  assert.equal(commits, 1);
+  assert.equal(store.status().objectCount, 4);
+  assert.deepEqual(await store.latestRecord(originalAttempt.identity), next);
+  for (const item of [original, originalAttempt, ...records]) {
+    assert.equal((await store.readPublicationContract(item.identity, item.name)).wire, item.wire);
+  }
+  await store.close();
+  const reopened = await openLocalPublicationStore(configuration, contractControl);
+  assert.deepEqual(await reopened.latestRecord(originalAttempt.identity), next);
+});
+}
+
 test('joint publication setup releases partial reservations without altering retained payload capacity', async t => {
   const {store} = await fixture(t, {capacityBytes: 8192, maxObjectBytes: 8192});
   const request = publicationRequest(), attempt = publicationAttempt(request, 'joint-retained-capacity');
