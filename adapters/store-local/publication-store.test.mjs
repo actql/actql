@@ -705,6 +705,94 @@ test('publication commit admits its exact Index once before durable staging', as
     code('InvalidPublicationContract'));
 });
 
+test('publication commit consumes its same-owner issued Index without raw readmission', async t => {
+  let original, selectedWire, rawAdmissions = 0, originalObservations = 0;
+  const control = {...contractControl,
+    admit(name, value, bounds) {
+      if (name === 'public_index_entry' && value === selectedWire) rawAdmissions++;
+      return contractControl.admit(name, value, bounds);
+    },
+    admitOriginal(value, bounds) {
+      assert.equal(bounds.maxWireBytes, limits.maxWireBytes);
+      if (value !== original) return undefined;
+      originalObservations++;
+      return original;
+    },
+  };
+  const {store} = await fixture(t, {}, control);
+  const invocationValue = invocation();
+  const request = publicationRequest(resultDefinition(), invocationValue.invocation_cid);
+  const attempt = publicationAttempt(request);
+  const prepared = await prepareCommit(store, request, attempt, invocationValue);
+  const entry = indexEntry(request, attempt, invocationValue, {
+    durable_result_binding_cids: [prepared.binding.identity],
+  });
+  selectedWire = wire(entry);
+  // This explicit contract-control fixture recognizes one exact immutable
+  // original. It is not an ordinary Common issuer or a physical ACK.
+  original = contractControl.admit('public_index_entry', selectedWire, limits);
+  assert(Object.isFrozen(original));
+  let result, failure;
+  try {result = await store.commitIndex(selectedWire, prepared.required, prepared.evidence, original);}
+  catch (error) {failure = error;}
+  assert.equal(rawAdmissions, 0, 'the issued original is not decoded/admitted/hashed again at this entry');
+  if (failure !== undefined) throw failure;
+  assert.equal(originalObservations, 1);
+  assert.equal(result.committed, true);
+});
+
+test('publication Index original reuse keeps copied and omitted-port full admission', async t => {
+  for (const kind of ['legacy', 'copy', 'omitted-port']) {
+    let original, selectedWire, admissions = 0;
+    const control = {...contractControl, admit(name, value, bounds) {
+      if (name === 'public_index_entry' && value === selectedWire) admissions++;
+      return contractControl.admit(name, value, bounds);
+    }, ...(kind === 'omitted-port' ? {} : {admitOriginal(value) {
+      return value === original ? original : undefined;
+    }})};
+    const {store} = await fixture(t, {}, control);
+    const invocationValue = invocation();
+    const request = publicationRequest(resultDefinition(), invocationValue.invocation_cid);
+    const attempt = publicationAttempt(request);
+    const prepared = await prepareCommit(store, request, attempt, invocationValue);
+    const entry = indexEntry(request, attempt, invocationValue, {
+      durable_result_binding_cids: [prepared.binding.identity],
+    });
+    selectedWire = wire(entry);
+    original = contractControl.admit('public_index_entry', selectedWire, limits);
+    const args = kind === 'legacy' ? [] : [kind === 'copy' ? Object.freeze({...original}) : original];
+    assert.equal((await store.commitIndex(selectedWire, prepared.required, prepared.evidence, ...args)).committed, true);
+    assert.equal(admissions, 1, kind + ' performs the existing full wire admission');
+  }
+});
+
+test('publication Index original refuses conflicting body and invalid nominal control', async t => {
+  let original, selectedWire, mode = 'original';
+  const control = {...contractControl, admitOriginal(value) {
+    if (mode === 'throw') throw Object.assign(new Error('original refused'), {code:'OriginalRefused'});
+    return mode === 'copy' ? Object.freeze({...value}) : original;
+  }};
+  const {store} = await fixture(t, {}, control);
+  const invocationValue = invocation();
+  const request = publicationRequest(resultDefinition(), invocationValue.invocation_cid);
+  const attempt = publicationAttempt(request);
+  const prepared = await prepareCommit(store, request, attempt, invocationValue);
+  const entry = indexEntry(request, attempt, invocationValue, {
+    durable_result_binding_cids: [prepared.binding.identity],
+  });
+  selectedWire = wire(entry);
+  original = contractControl.admit('public_index_entry', selectedWire, limits);
+  await assert.rejects(store.commitIndex(selectedWire, prepared.required, prepared.evidence,
+    Object.freeze({...original, wire:'{}'})), code('InvalidPublicationCommitEvidence'));
+  mode = 'copy';
+  await assert.rejects(store.commitIndex(selectedWire, prepared.required, prepared.evidence, original),
+    code('InvalidPublicationContractControlResult'));
+  mode = 'throw';
+  await assert.rejects(store.commitIndex(selectedWire, prepared.required, prepared.evidence, original),
+    error => error.code === 'InvalidPublicationContract' && error.cause?.code === 'OriginalRefused');
+  assert.equal(await store.inspectCommittedIndex(indexKeyFor(request)), undefined);
+});
+
 test('publication inventory reuses only its newly acknowledged Index write within the commit', async t => {
   const {store, directory} = await fixture(t);
   const invocationValue = invocation();
