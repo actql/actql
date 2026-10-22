@@ -1353,6 +1353,30 @@ successful compilation do not establish normal funding or final image, workspace
 and Result acceptance.
 
 
+#### In-process domain registration
+
+The private in-process domain preparation reserves the same complete rounded
+extent before acquisition. Its original physical record is domain-only: generic
+span checks, protection, sealing, lending and views reject it. Only a full,
+exclusive, same-process domain loan and its original view can consume that
+storage. The fixed records remain in the existing control lifetime. FD transport
+and older generic allocation paths retain their existing behavior.
+
+This registration path clears the derived child control prefix, rather than
+eagerly clearing all unused child capacity. Uninitialized capacity is never an
+exportable generic buffer. Domain acquisition consumes those same prepared
+controls once; an initialized or closed original cannot be reset into a fresh
+domain. Each actual child allocation still clears its complete page-rounded
+payload before exposure, including after reuse of old parent storage. This does
+not reduce logical claims, resize a holding or infer OS zero supply.
+
+The initial memset observation counts the actual cleared prefix within the
+parent extent; the complete extent remains occupied until its own retirement.
+Live child allocations and views keep the original parent busy. Partial failures,
+domain close, view close, loan return and parent retirement retain their separate
+duties and acknowledgements. A smaller initialized prefix is not a capacity
+return, a cleanup acknowledgement or a prediction of ordinary latency.
+
 #### Physical occupancy observation
 
 The same provider may expose a read-only census of the current original

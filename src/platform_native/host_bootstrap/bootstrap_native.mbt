@@ -62,6 +62,13 @@ extern "C" fn claim_ffi(
 extern "C" fn allocate_ffi(backing : Backing, bytes : Int64) -> Extent = "actql_bootstrap_allocate"
 
 ///|
+#borrow(backing)
+extern "C" fn allocate_in_process_domain_ffi(
+  backing : Backing,
+  bytes : Int64,
+) -> Extent = "actql_bootstrap_allocate_in_process_domain"
+
+///|
 #borrow(extent)
 extern "C" fn extent_status_ffi(extent : Extent) -> Int = "actql_bootstrap_extent_status"
 
@@ -330,6 +337,28 @@ pub fn[T] NativeHostBootstrap::allocate(
   original : T,
   bytes : Int64,
 ) -> Result[NativeBootstrapAllocation[T], NativeBootstrapIssue] {
+  self.allocate_original(original, bytes, false)
+}
+
+///|
+/// Private registration storage for the same in-process child domain. Its
+/// payload cannot be used as a generic span; actual child allocations retain
+/// their complete clearing guarantee. This reserves the same rounded capacity.
+pub fn[T] NativeHostBootstrap::allocate_in_process_domain(
+  self : NativeHostBootstrap[T],
+  original : T,
+  bytes : Int64,
+) -> Result[NativeBootstrapAllocation[T], NativeBootstrapIssue] {
+  self.allocate_original(original, bytes, true)
+}
+
+///|
+fn[T] NativeHostBootstrap::allocate_original(
+  self : NativeHostBootstrap[T],
+  original : T,
+  bytes : Int64,
+  domain_storage : Bool,
+) -> Result[NativeBootstrapAllocation[T], NativeBootstrapIssue] {
   match self.check_original(original) {
     Err(issue) => return Err(issue)
     Ok(_) => ()
@@ -351,7 +380,11 @@ pub fn[T] NativeHostBootstrap::allocate(
     Err(issue) => return Err(Resource(issue))
     Ok(value) => value
   }
-  let extent = allocate_ffi(self.backing, rounded)
+  let extent = if domain_storage {
+    allocate_in_process_domain_ffi(self.backing, rounded)
+  } else {
+    allocate_ffi(self.backing, rounded)
+  }
   let child : NativeBootstrapAllocation[T] = {
     owner: self,
     allocation,

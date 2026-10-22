@@ -141,6 +141,7 @@ pub fn[T, C] NativeHostBootstrap::acquire_backed_domain(Self[T], T, NativeBacked
 pub fn[T, C] NativeHostBootstrap::admit_backed_live_channel(Self[T], T, NativeBackedLiveChannel[T, C]) -> Result[Unit, NativeBackedExecutionIssue]
 pub fn[T, C, R] NativeHostBootstrap::admit_backed_live_child(Self[T], T, NativeBackedLiveChild[T, C, R], R) -> Result[Unit, NativeBackedExecutionIssue]
 pub fn[T] NativeHostBootstrap::allocate(Self[T], T, Int64) -> Result[NativeBootstrapAllocation[T], NativeBootstrapIssue]
+pub fn[T] NativeHostBootstrap::allocate_in_process_domain(Self[T], T, Int64) -> Result[NativeBootstrapAllocation[T], NativeBootstrapIssue]
 pub fn[T] NativeHostBootstrap::allocation_charge(Self[T], T, Int64) -> Result[Int64, NativeBootstrapIssue]
 pub fn[T, C] NativeHostBootstrap::backed_channel_ledger_limits(Self[T], T, NativeBackedLiveChannel[T, C], @physical_resources.ImportedChildLedger) -> Result[@physical_resources.LedgerLimits, NativeBackedOriginalReadIssue]
 pub fn[T, C] NativeHostBootstrap::backed_domain_capacity(Self[T], T, NativeBackedExecutionDomain[T, C], C) -> Result[(Int64, Int64), NativeBackedExecutionIssue]
