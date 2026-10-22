@@ -3839,11 +3839,13 @@ async function openOriginalLocalPublicationStore(
   const readJsonObject = async (cid, contractName) =>
     (await readContract(cid, contractName)).value;
 
-  const verifyDurableResultBinding = async (contract, readOriginal = readSemanticOriginal) => {
+  const verifyDurableResultBinding = async (contract, readOriginal = readSemanticOriginal, retainedBinding) => {
     if (contract.name !== 'durable_result_binding') {
       fail('InvalidPublicationCommitEvidence');
     }
-    const binding = parseContract(contract);
+    // Only the private selected reader supplies this same already parsed
+    // body. Other internal callers still interpret their own contract here.
+    const binding = retainedBinding === undefined ? parseContract(contract) : retainedBinding;
     if (binding.store_authority_cid !== configuration.storeAuthorityCid ||
         binding.physical_sha256 !== cidHex(binding.material_generation_cid)) {
       fail('PublicationDurableBindingMismatch');
@@ -4925,10 +4927,9 @@ async function openOriginalLocalPublicationStore(
     if (entry === undefined) fail('PublicationLookupDenied');
     const matches = [];
     for (const bindingCid of entry.durable_result_binding_cids) {
-      const contract = (await readContract(
+      const {contract, value} = await readContract(
         bindingCid, 'durable_result_binding',
-      )).contract;
-      const value = parseContract(contract);
+      );
       if (value.result_definition_cid === resultDefinitionCid) {
         matches.push({contract, value});
       }
@@ -5729,7 +5730,7 @@ async function openOriginalLocalPublicationStore(
       else activeResultReaders.set(materialCid, remaining);
     };
     try {
-      const verified = await verifyDurableResultBinding(selected.contract);
+      const verified = await verifyDurableResultBinding(selected.contract, undefined, selected.value);
       await requireResultNotDeleted(
         keyHash, selected, resultDefinitionCid,
       );
