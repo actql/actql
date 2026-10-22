@@ -5,7 +5,7 @@ import {createHash} from 'node:crypto';
 import {mkdir, mkdtemp, readFile, rm, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
-import {platformKey, admitInstalledBinary} from '../packages/native-cli/bin/actql.mjs';
+import {platformKey, macOSProductVersion, admitInstalledBinary} from '../packages/native-cli/bin/actql.mjs';
 import {admitNativeArtifact, sharedRuntimeSourceDelta} from './native-cli-release.mjs';
 import {inspectNativeAbi} from './native-cli-artifact.mjs';
 
@@ -20,6 +20,57 @@ const metadata = {version: 'actql-native-cli-artifact/0.1', sourceSha,
   toolchain: {diagnostic: 'synthetic fixture, not compiled Native evidence'},
   abi: {format: 'Mach-O', minimumMacOS: '26.0'}, testedHost: {}, generation: []};
 const expected = {sourceSha, binarySha256: metadata.binarySha256, binaryBytes: binary.length};
+
+test('macOS version uses one bounded kernel query when available', () => {
+  const calls = [];
+  assert.equal(macOSProductVersion((command, args, options) => {
+    calls.push({command, args, options});
+    return {status: 0, signal: null, stdout: '26.2\n'};
+  }), '26.2');
+  assert.deepEqual(calls, [{command: '/usr/sbin/sysctl', args: ['-n', 'kern.osproductversion'],
+    options: {encoding: 'utf8', maxBuffer: 1024, timeout: 1000,
+      env: {...process.env, SYSTEM_VERSION_COMPAT: '0'}}}]);
+});
+
+test('macOS version retains sw_vers for unavailable or invalid kernel replies', () => {
+  for (const first of [{error: {code: 'ENOENT'}}, {status: 1, stdout: '26.2'},
+    {status: 0, signal: 'SIGTERM', stdout: '26.2'}, {status: 0, stdout: 'unavailable'},
+    {status: 0, stdout: Buffer.from('26.2')},
+    {status: 0, stdout: '26.2\n26.1'}, {status: 0, stdout: '1'.repeat(48) + '.0'}]) {
+    const calls = [];
+    const version = macOSProductVersion((command, args) => {
+      calls.push({command, args});
+      return calls.length === 1 ? first : {status: 0, stdout: '26.2\n'};
+    });
+    assert.equal(version, '26.2');
+    assert.deepEqual(calls, [{command: '/usr/sbin/sysctl', args: ['-n', 'kern.osproductversion']},
+      {command: '/usr/bin/sw_vers', args: ['-productVersion']}]);
+  }
+});
+
+test('macOS version never replaces a valid unsupported version or admits missing replies', () => {
+  let calls = 0;
+  const macOS = macOSProductVersion(() => {calls++; return {status: 0, stdout: '25.9'};});
+  assert.equal(calls, 1);
+  assert.throws(() => admitInstalledBinary({key: metadata.platform, expected, metadata, binary, macOS}),
+    error => error.exitCode === 64);
+  assert.equal(macOSProductVersion(() => ({status: 1, stdout: ''})), undefined);
+  assert.throws(() => admitInstalledBinary({key: metadata.platform, expected, metadata, binary,
+    macOS: macOSProductVersion(() => ({status: 1, stdout: ''}))}), error => error.exitCode === 64);
+});
+
+test('macOS version agrees with the existing OS service and ignores compatibility spelling', {skip: process.platform !== 'darwin'}, () => {
+  const before = process.env.SYSTEM_VERSION_COMPAT;
+  try {
+    process.env.SYSTEM_VERSION_COMPAT = '1';
+    assert.equal(macOSProductVersion(), execFileSync('/usr/bin/sw_vers', ['-productVersion'], {
+      encoding: 'utf8', env: {...process.env, SYSTEM_VERSION_COMPAT: '0'},
+    }).trim());
+  } finally {
+    if (before === undefined) delete process.env.SYSTEM_VERSION_COMPAT;
+    else process.env.SYSTEM_VERSION_COMPAT = before;
+  }
+});
 
 test('platform selection refuses other CPUs, musl and unknown libc without fallback', () => {
   assert.equal(platformKey({platform: 'darwin', arch: 'arm64'}), 'darwin-arm64');
