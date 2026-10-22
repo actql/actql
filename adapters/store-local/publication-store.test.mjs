@@ -769,6 +769,7 @@ test('publication Index original reuse keeps copied and omitted-port full admiss
 test('publication Index original refuses conflicting body and invalid nominal control', async t => {
   let original, selectedWire, mode = 'original';
   const control = {...contractControl, admitOriginal(value) {
+    if (value !== original) return undefined;
     if (mode === 'throw') throw Object.assign(new Error('original refused'), {code:'OriginalRefused'});
     return mode === 'copy' ? Object.freeze({...value}) : original;
   }};
