@@ -5828,7 +5828,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "21d6389d6ede1b415e2a67214e804f66a48fe5ff39bc58f97188302973f92ad0",
+      "sha256": "0fafa788ad0cff70b62eae14005baca8c96de56e6c56dd9dac09f5ff86bdb1fd",
       "exports": [
         "PublicationStoreError",
         "assertOriginalLocalPublicationStoreFacilityCurrent",
@@ -11616,6 +11616,10 @@
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "assertHostJournalDirectoryInspector(directoryInspection, maxDirectoryEntries);"
+              },
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "const retriedWriters = new Set();"
               }
             ],
             "synchronization": [
@@ -11630,6 +11634,10 @@
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "const observation = await Reflect.apply(entry.dependencyStatus, entry.dependency, []);"
+              },
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "Store close attempts that retained failed writer's original confirmation before"
               }
             ],
             "failure": [
@@ -11644,6 +11652,10 @@
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "if (!names.includes('store.json')) fail('UnknownPublicationStoreFormat');"
+              },
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "checking its reserved capacity. An unavailable confirmation remains pending;"
               }
             ],
             "cancellation": [
@@ -11672,6 +11684,10 @@
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "entry.dependency = entry.dependencyStatus = undefined;"
+              },
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "independent live payloads, readers and other cleanup duties still refuse close."
               }
             ],
             "extension": [
@@ -11700,6 +11716,10 @@
               {
                 "path": "adapters/store-local/prepared-ownership.test.mjs",
                 "anchor": "old pending durability retry never reads or removes a successor owner"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "test('Store close confirms failed metadata without releasing an independent live payload', async t => {"
               }
             ]
           }
