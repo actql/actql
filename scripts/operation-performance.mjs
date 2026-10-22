@@ -230,6 +230,149 @@ export function calibrateSqliteComparisonProfile(baseline, resultControl) {
     ...(resultControl ? {resultStorage: resultStorageComparison(resultControl, baseline)} : {}),
     qualification: 'Frozen baseline-only diagnostic calibration, not an unconditional SDK SLA. Public essential-work mapping remains unmatched; total public latency remains primary.'};
 }
+// A process-family control is useful diagnostic evidence even when its SQLite
+// build and essential public work do not match the product. It supplies no
+// calibration profile, overhead allowance, warm gate or percentile acceptance.
+export function assessNativeSqliteDiagnostic(control, protocolText) {
+  requireValue(control?.kind === 'native-cli-sqlite-process-control-diagnostic' &&
+    control.schemaVersion === 1 && control.productAcceptance === 'incomplete',
+  'Incomplete Native SQLite diagnostic required');
+  for (const field of ['firstFailure', 'packageFailure', 'cleanupFailure', 'failure']) {
+    requireValue(control[field] == null, 'Native control records a known failure');
+  }
+  requireValue(control.childrenAllExitedSynchronously === true && Array.isArray(control.liveDuties) &&
+    control.liveDuties.length === 0 && control.publicActqlOperationMeasured === false &&
+    control.externalRunOrKeyStateOpened === false && control.comparisonProfile === null &&
+    control.essentialOverheadAllowance === null, 'Native control completion or diagnostic scope differs');
+  requireValue(typeof protocolText === 'string' && Buffer.byteLength(protocolText) <= 16 * 1024 ** 2 &&
+    control.protocol?.bytes === Buffer.byteLength(protocolText) && digest(control.protocol.sha256) &&
+    createHash('sha256').update(protocolText).digest('hex') === control.protocol.sha256,
+  'Native control differs from exact frozen protocol bytes');
+  const protocol = JSON.parse(protocolText);
+  requireValue(protocol.concurrency === 1 && protocol.prepared === 'one-shot/fresh process' &&
+    integer(protocol.samplesPerOperation) && protocol.samplesPerOperation > 0 &&
+    integer(protocol.warmupsPerOperation) &&
+    2 * (protocol.samplesPerOperation + protocol.warmupsPerOperation) <= 10000,
+  'Invalid bounded Native control sampling protocol');
+  const nonempty = value => typeof value === 'string' && value.length > 0;
+  requireValue(nonempty(protocol.nodeExecutable) && nonempty(protocol.sqliteExecutable) &&
+    protocol.nodeExecutable !== protocol.sqliteExecutable && Array.isArray(control.binaries) &&
+    control.binaries.length === 2 && control.binaries.every(row =>
+      nonempty(row.path) && integer(row.bytes) && row.bytes > 0 && digest(row.sha256)) &&
+    control.binaries.filter(row => row.path === protocol.nodeExecutable).length === 1 &&
+    control.binaries.filter(row => row.path === protocol.sqliteExecutable).length === 1,
+  'Distinct Native control binary identities required');
+  requireValue(control.environment?.concurrency === 1 && nonempty(control.environment.platform) &&
+    nonempty(control.environment.arch) && nonempty(control.environment.nodeVersion) &&
+    nonempty(control.environment.sqliteVersion) && nonempty(control.environment.startup) &&
+    nonempty(control.preparation) && nonempty(control.completion),
+  'Native control runtime and process completion conditions required');
+  const settingNames = ['journalMode', 'lockingMode', 'synchronous', 'fullfsync',
+    'checkpointFullfsync', 'cacheSize', 'tempStore', 'queryOnly', 'pageSize'];
+  requireValue(control.actualSettings && protocol.expectedSettings &&
+    settingNames.every(key => Object.hasOwn(control.actualSettings, key) &&
+      Object.hasOwn(protocol.expectedSettings, key) &&
+      control.actualSettings[key] === protocol.expectedSettings[key]) &&
+    Object.keys(control.actualSettings).length === settingNames.length &&
+    Object.keys(protocol.expectedSettings).length === settingNames.length &&
+    control.actualSettings.journalMode === 'wal' && control.actualSettings.synchronous === 2 &&
+    control.actualSettings.fullfsync === 1 && control.actualSettings.queryOnly === 1,
+  'Native control observed synchronization/settings differ from protocol');
+  for (const observed of [control.mmapSettingObservation, protocol.mmapSettingObservation]) {
+    requireValue(observed?.requestedBytes === 0 && observed.actualBytes === 0 && nonempty(observed.probeSql),
+      'Explicit Native control mmap observation required');
+  }
+  requireValue(Array.isArray(control.actualIndexedPlan) && control.actualIndexedPlan.some(row =>
+    typeof row.detail === 'string' && /^SEARCH saved_result USING PRIMARY KEY/u.test(row.detail)),
+  'Actual indexed Native control plan required');
+  const fixture = control.fixture;
+  requireValue(fixture?.totalRows === 1 && fixture.databaseBefore && fixture.databaseAfter &&
+    nonempty(fixture.databaseBefore.path) && fixture.databaseBefore.path === fixture.databaseAfter.path &&
+    integer(fixture.databaseBefore.bytes) && fixture.databaseBefore.bytes > 0 &&
+    fixture.databaseBefore.bytes === fixture.databaseAfter.bytes && digest(fixture.databaseBefore.sha256) &&
+    fixture.databaseBefore.sha256 === fixture.databaseAfter.sha256 &&
+    protocol.expectedJsonl === '{"x":1}\n' && fixture.expectedJsonl === protocol.expectedJsonl,
+  'Native control fixture/output correspondence required');
+  const names = ['select', 'savedRow'];
+  requireValue(protocol.operations && fixture.materialization && control.operations &&
+    Object.keys(protocol.operations).length === names.length &&
+    Object.keys(control.operations).length === names.length && names.every(name =>
+      nonempty(protocol.operations[name]?.sql) && nonempty(protocol.operations[name]?.materialization) &&
+      protocol.operations[name].durableLogicalTransitions === 0 &&
+      ['sql', 'materialization', 'durableLogicalTransitions'].every(key =>
+        fixture.materialization[name]?.[key] === protocol.operations[name][key])),
+  'Native query-only materialization conditions differ');
+  const unknownCounters = ['actualPhysicalDbReads', 'sqlPrepareCalls', 'engineOnlyElapsedNs', 'fullfsyncCalls'];
+  requireValue(unknownCounters.every(key => control[key] === null),
+    'Unmeasured Native counters must remain explicit null');
+  requireValue(Array.isArray(control.missingCorrespondence) && control.missingCorrespondence.length > 0 &&
+    control.missingCorrespondence.every(nonempty) &&
+    evidenceHash(control.missingCorrespondence) === evidenceHash(protocol.missingCorrespondence),
+  'Native public correspondence gaps must remain explicit');
+  requireValue(Array.isArray(control.raw) &&
+    control.raw.length === names.length * (protocol.samplesPerOperation + protocol.warmupsPerOperation),
+  'Complete bounded Native raw sample extent required');
+  const nanos = value => {
+    requireValue(typeof value === 'string' && /^(?:0|[1-9][0-9]*)$/u.test(value) &&
+      integer(Number(value)), 'Invalid exact Native duration');
+    return Number(value);
+  };
+  const positive = value => integer(value) && value > 0;
+  const measured = Object.fromEntries(names.map(name => [name, []])), seen = new Set();
+  const outputSha256 = createHash('sha256').update(protocol.expectedJsonl).digest('hex');
+  for (const row of control.raw) {
+    requireValue(names.includes(row.operation) && typeof row.warmup === 'boolean' &&
+      Number.isSafeInteger(row.index) && (row.warmup
+        ? row.index >= -protocol.warmupsPerOperation && row.index < 0
+        : row.index >= 0 && row.index < protocol.samplesPerOperation), 'Invalid Native sample coordinate');
+    const key = `${row.operation}:${row.index}`;
+    requireValue(!seen.has(key), 'Duplicate Native sample coordinate'); seen.add(key);
+    const total = nanos(row.publicLikeProcessTotalNs), sqlite = nanos(row.sqliteProcessElapsedNs),
+      conversion = nanos(row.conversionAndOracleElapsedNs), remaining = nanos(row.launcherAndRemainingNs);
+    const child = row.child;
+    requireValue(positive(row.collectorPid) && child?.kind === 'sqlite-cli-control-child' &&
+      positive(child.launcherPid) && positive(child.sqlitePid) &&
+      new Set([row.collectorPid, child.launcherPid, child.sqlitePid]).size === 3 &&
+      child.parentPid === row.collectorPid && child.operation === row.operation &&
+      child.nodeExecutable === protocol.nodeExecutable && child.stateId === fixture.databaseBefore.path &&
+      child.outputBytes === Buffer.byteLength(protocol.expectedJsonl) &&
+      child.outputSha256 === outputSha256 && row.output === protocol.expectedJsonl,
+    'Native sample process/output correspondence required');
+    const adapter = nanos(child.adapterElapsedNs);
+    requireValue(total > adapter && adapter > sqlite + conversion &&
+      total === sqlite + conversion + remaining &&
+      nanos(child.sqliteProcessElapsedNs) === sqlite &&
+      nanos(child.conversionAndOracleElapsedNs) === conversion &&
+      child.engineOnlyElapsedNs === null && child.durableLogicalTransitions === 0 &&
+      Number.isFinite(Date.parse(row.wallStart)) && Number.isFinite(Date.parse(row.wallEnd)) &&
+      Date.parse(row.wallEnd) >= Date.parse(row.wallStart), 'Invalid Native sample clock decomposition');
+    if (!row.warmup) measured[row.operation].push({total, sqlite, conversion, remaining});
+  }
+  const summary = values => {
+    const sorted = values.map(value => value / 1e6).sort((a, b) => a - b);
+    return {count: sorted.length, minMs: sorted[0], medianMs: sorted[Math.floor(sorted.length / 2)],
+      maxMs: sorted.at(-1), p95Ms: null, medianMethod: 'upper-middle order statistic'};
+  };
+  const operations = {};
+  for (const name of names) {
+    const rows = measured[name], total = summary(rows.map(row => row.total));
+    requireValue(rows.length === protocol.samplesPerOperation &&
+      ['count', 'minMs', 'medianMs', 'maxMs', 'p95Ms'].every(key => control.operations[name][key] === total[key]),
+    'Native summary differs from raw measured samples');
+    operations[name] = {total, sqliteProcess: summary(rows.map(row => row.sqlite)),
+      conversionAndOracle: summary(rows.map(row => row.conversion)),
+      launcherAndRemaining: summary(rows.map(row => row.remaining))};
+  }
+  return outcome([], ['matched Native product comparator and essential-work profile', ...control.missingCorrespondence], {
+    scope: 'query-only process diagnostic; no public operation or latency-gate coverage',
+    structuredControlSha256: evidenceHash(control), protocolSha256: control.protocol.sha256,
+    binaries: control.binaries, environment: control.environment, actualSettings: control.actualSettings,
+    preparation: control.preparation, completion: control.completion, operations,
+    unmeasuredCounters: Object.fromEntries(unknownCounters.map(key => [key, null])),
+    comparisonProfile: null, essentialOverheadAllowance: null,
+    timingQualification: 'Per-sample components sum exactly; marginal medians are not additive. No acceptance p95 or retained-Host temperature is inferred.'});
+}
+
 export function calibratedLatencyTarget(series, comparison) {
   const target = operationTargets[series.operation];
   requireValue(Object.hasOwn(operationTargets, series.operation), 'Unknown public operation');
@@ -594,6 +737,13 @@ export async function collectOperationSamples({operation, mode, identity, stateI
 export function assessPerformanceEvidence(report) {
   requireValue(/^[a-f0-9]{40}$/u.test(report.sourceSha ?? '') && digest(report.cohortSha256), 'Fixed ordinary cohort identity required');
   requireValue(digest(report.environmentSha256) && digest(report.historyProtocolSha256), 'Environment and history protocol identities required');
+  const native = report.comparison?.nativeSqliteDiagnostic;
+  let diagnostics;
+  if (native !== undefined) {
+    requireValue(native && Object.keys(native).sort().join(',') === 'control,protocolText',
+      'Explicit Native control and protocol text required');
+    diagnostics = {nativeSqlite: assessNativeSqliteDiagnostic(native.control, native.protocolText)};
+  }
   const gates = {}, failures = [], missing = [], seen = new Set();
   for (const series of report.latency ?? []) {
     requireValue(series.cohortSha256 === report.cohortSha256, 'Latency cohort differs from functional/structural cohort');
@@ -624,6 +774,7 @@ export function assessPerformanceEvidence(report) {
     missing.push(...gate.missing.map(reason => `${name}: ${reason}`));
   }
   return outcome(failures, missing, {sourceSha: report.sourceSha, cohortSha256: report.cohortSha256, gates,
+    ...(diagnostics ? {diagnostics} : {}),
     qualification: 'Assesses supplied measurements; does not authenticate their provenance or establish full product completion.'});
 }
 
@@ -645,11 +796,12 @@ async function main(args) {
   const calibration = args[0] === '--calibrate-sqlite';
   requireValue(args.length >= 2 && args.length % 2 === 0 &&
     ['--input', '--calibrate-sqlite'].includes(args[0]),
-    'Usage: --input REPORT | --calibrate-sqlite BASELINE [--result-control CONTROL] [--output JSON]');
+    'Usage: --input REPORT [--native-sqlite-control CONTROL --native-sqlite-protocol PROTOCOL] | --calibrate-sqlite BASELINE [--result-control CONTROL] [--output JSON]');
   const options = {};
   for (let index = 2; index < args.length; index += 2) {
     const key = args[index];
-    requireValue((key === '--output' || calibration && key === '--result-control') &&
+    requireValue((key === '--output' || calibration && key === '--result-control' || !calibration &&
+      ['--native-sqlite-control', '--native-sqlite-protocol'].includes(key)) &&
       !Object.hasOwn(options, key), 'Unknown or duplicate assessment option');
     options[key] = args[index + 1];
   }
@@ -658,6 +810,14 @@ async function main(args) {
     return JSON.parse(await readFile(path, 'utf8'));
   };
   const input = await boundedInput(args[1]);
+  const nativeControl = options['--native-sqlite-control'], nativeProtocol = options['--native-sqlite-protocol'];
+  requireValue(Boolean(nativeControl) === Boolean(nativeProtocol), 'Native control and protocol must be supplied together');
+  if (nativeControl) {
+    requireValue(input.comparison?.nativeSqliteDiagnostic === undefined, 'Native diagnostic already supplied');
+    requireValue((await stat(nativeProtocol)).size <= 16 * 1024 ** 2, 'Native protocol exceeds bounded input');
+    input.comparison = {...input.comparison, nativeSqliteDiagnostic: {
+      control: await boundedInput(nativeControl), protocolText: await readFile(nativeProtocol, 'utf8')}};
+  }
   const resultControl = options['--result-control'] ? await boundedInput(options['--result-control']) : undefined;
   const result = calibration ? {baseline: input, ...(resultControl ? {resultControl} : {}),
     profile: calibrateSqliteComparisonProfile(input, resultControl)}
