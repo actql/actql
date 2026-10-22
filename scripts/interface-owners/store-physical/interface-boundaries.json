@@ -5876,7 +5876,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "2ed2dab9120dce12f24e853ac79b33c208949830573c5dd58ddbb11a7189efe6",
+      "sha256": "2adb271beef18ba5330ef3531ebd9a7fdf799e9437878b2fca5af6c209e55954",
       "exports": [
         "PublicationStoreError",
         "assertOriginalLocalPublicationStoreFacilityCurrent",
@@ -9360,7 +9360,8 @@
           "parameters": [
             "path",
             "bytes",
-            "exclusive"
+            "exclusive",
+            "finalDirectory"
           ],
           "async": true
         },
@@ -10621,6 +10622,10 @@
               {
                 "path": "docs/design/result-description.md",
                 "anchor": "initial attempt together through the Store's optional `beginPublicationAttempt`"
+              },
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "const writePhysicalHoldingRecord = async (path, bytes, exclusive = true, finalDirectory) => {"
               }
             ],
             "identity": [
@@ -10959,6 +10964,10 @@
               {
                 "path": "docs/design/result-description.md",
                 "anchor": "The caller marks both setup duties complete only after that real COMMIT;"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "For prepared-object custody, that same metadata writer acknowledges the final"
               }
             ],
             "failure": [
@@ -11577,6 +11586,18 @@
               {
                 "path": "adapters/store-local/publication-store.test.mjs",
                 "anchor": "test('publication setup commits its immutable bodies and initial attempt in one native transaction', async t => {"
+              },
+              {
+                "path": "adapters/store-local/prepared-custody-atomic-record.test.mjs",
+                "anchor": "test('prepared custody acknowledges its final name without a redundant staging directory ACK'"
+              },
+              {
+                "path": "adapters/store-local/prepared-custody-atomic-record.test.mjs",
+                "anchor": "test('failed final custody directory ACK cannot install the payload and remains recoverable'"
+              },
+              {
+                "path": "adapters/store-local/prepared-custody-atomic-record.test.mjs",
+                "anchor": "test('a final-ACKed custody retains the same failed temporary unlink without repeating its ACK'"
               }
             ]
           }

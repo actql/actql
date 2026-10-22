@@ -17,6 +17,11 @@ const configuration = directory => ({directory,
   maxObjectBytes: 4096, maxObjects: 8, maxContractNodes: 256, maxContractDepth: 32});
 const openStore = directory => openLocalPublicationStore(configuration(directory),
   createPublicationContractControlFixture());
+const syncDirectory = async path => {
+  const handle = await fs.open(path, 'r');
+  try { await handle.sync(); }
+  finally { await handle.close(); }
+};
 async function scratchFor(label) {
   return createOwnedScratch({parent: new URL('../../_build/', import.meta.url).pathname,
     prefix: 'prepared-custody-atomic-', label});
@@ -164,4 +169,135 @@ test('an already corrupt final custody record is not deleted or reinterpreted as
   assert.equal(after.ino, before.ino);
   assert.deepEqual(await fs.readFile(path), Buffer.alloc(0));
   scratch.passed();
+});
+
+test('prepared custody acknowledges its final name without a redundant staging directory ACK', async () => {
+  const scratch = await scratchFor('prepared custody final name acknowledgement');
+  const directory = join(scratch.path, 'store'), observed = [];
+  const store = await openLocalPublicationStore(configuration(directory),
+    createPublicationContractControlFixture(), {syncDirectory: async path => {
+      observed.push(path);
+      await syncDirectory(path);
+    }});
+  let stored;
+  try {
+    const payload = Buffer.from('bounded prepared payload');
+    const writer = store.createPreparedObjectWriter(payload.length);
+    await writer.append(payload);
+    observed.length = 0;
+    stored = await writer.seal(cid(payload));
+    assert.deepEqual(observed, [join(directory, 'prepared-custody'), join(directory, 'objects')],
+      'The real custody-name ACK precedes installation; a temporary alias adds no durable object');
+    const names = await fs.readdir(join(directory, 'prepared-custody'));
+    assert.equal(names.length, 1);
+    const record = JSON.parse(await fs.readFile(join(directory, 'prepared-custody', names[0]), 'utf8'));
+    const state = await fs.lstat(join(directory, 'objects', cid(payload).slice(7)));
+    assert.equal(record.device, String(state.dev));
+    assert.equal(record.inode, String(state.ino));
+    assert.equal(record.byte_count, payload.length);
+    assert.deepEqual(await fs.readdir(join(directory, 'staging')), []);
+    assert.deepEqual(await fs.readFile(join(directory, 'objects', cid(payload).slice(7))), payload);
+    await stored.prepared.release();
+    assert.equal(store.status().storedBytes, 0);
+    await store.close();
+    scratch.passed();
+  } finally {
+    if (stored?.prepared.status().pending) await stored.prepared.release();
+    if (!store.status().closed) await store.close();
+  }
+});
+
+test('failed final custody directory ACK cannot install the payload and remains recoverable', async () => {
+  const scratch = await scratchFor('prepared custody final acknowledgement failure');
+  const directory = join(scratch.path, 'store');
+  const primary = Object.freeze(Object.assign(new Error('Original custody directory ACK failure'), {code: 'EIO'}));
+  let refusing = false, escaped, writer;
+  const store = await openLocalPublicationStore(configuration(directory),
+    createPublicationContractControlFixture(), {syncDirectory: async path => {
+      if (refusing && path === join(directory, 'prepared-custody')) throw primary;
+      await syncDirectory(path);
+    }});
+  try {
+    writer = store.createPreparedObjectWriter(7);
+    await writer.append('payload');
+    refusing = true;
+    await assert.rejects(writer.seal(cid('payload')).then(value => { escaped = value; }),
+      error => error === primary);
+    assert.equal(escaped, undefined);
+    assert.deepEqual(await fs.readdir(join(directory, 'objects')), []);
+    assert.deepEqual(await fs.readdir(join(directory, 'staging')), []);
+    assert.equal(store.status().storedBytes, 0);
+    await writer.cancel();
+    refusing = false;
+    await store.close();
+    const reopened = await openStore(directory);
+    try {
+      await reopened.recoverPreparedCustodies();
+      assert.deepEqual(await fs.readdir(join(directory, 'prepared-custody')), []);
+      assert.equal(reopened.status().storedBytes, 0);
+    } finally { await reopened.close(); }
+    scratch.passed();
+  } finally {
+    refusing = false;
+    await writer?.cancel();
+    if (!store.status().closed) await store.close();
+  }
+});
+
+test('a final-ACKed custody retains the same failed temporary unlink without repeating its ACK', async () => {
+  const scratch = await scratchFor('prepared custody original temporary unlink duty');
+  const directory = join(scratch.path, 'store'), originalLink = fs.link, originalUnlink = fs.unlink;
+  let temporary, refusing = true, custodyAcks = 0, failure, writer;
+  const primary = Object.freeze(Object.assign(new Error('Original temporary unlink failure'), {code: 'EIO'}));
+  const store = await openLocalPublicationStore(configuration(directory),
+    createPublicationContractControlFixture(), {syncDirectory: async path => {
+      await syncDirectory(path);
+      if (path === join(directory, 'prepared-custody')) custodyAcks++;
+    }});
+  fs.link = async (source, target) => {
+    if (target.startsWith(join(directory, 'prepared-custody') + '/')) temporary = source;
+    return originalLink(source, target);
+  };
+  fs.unlink = async path => {
+    if (refusing && path === temporary) throw primary;
+    return originalUnlink(path);
+  };
+  syncBuiltinESMExports();
+  try {
+    custodyAcks = 0;
+    writer = store.createPreparedObjectWriter(7);
+    await writer.append('payload');
+    await assert.rejects(writer.seal(cid('payload')), error => {
+      failure = error;
+      return error.code === 'PublicationStoreCleanupPending';
+    });
+    assert.equal(failure.primaryFailure, primary);
+    assert.equal(custodyAcks, 1, 'Final metadata custody was really acknowledged before temporary retirement');
+    const [name] = await fs.readdir(join(directory, 'prepared-custody'));
+    const finalPath = join(directory, 'prepared-custody', name), before = await fs.lstat(finalPath);
+    assert.equal(failure.cleanupHandle.status().pending, true);
+    await assert.rejects(store.close(), {code: 'PublicationStoreCleanupPending'});
+    refusing = false;
+    const first = failure.cleanupHandle.retry();
+    assert.equal(failure.cleanupHandle.retry(), first);
+    assert.equal((await first).pending, false);
+    assert.equal((await failure.cleanupHandle.retry()).pending, false);
+    assert.equal(custodyAcks, 1, 'Cleanup reuses only the same already-held final-name ACK');
+    const after = await fs.lstat(finalPath);
+    assert.equal(after.dev, before.dev);
+    assert.equal(after.ino, before.ino);
+    assert.deepEqual(await fs.readdir(join(directory, 'staging')), []);
+    await writer.cancel();
+    await store.close();
+    const reopened = await openStore(directory);
+    try { await reopened.recoverPreparedCustodies(); }
+    finally { await reopened.close(); }
+    scratch.passed();
+  } finally {
+    refusing = false;
+    fs.link = originalLink; fs.unlink = originalUnlink; syncBuiltinESMExports();
+    if (failure?.cleanupHandle?.status().pending) await failure.cleanupHandle.retry();
+    await writer?.cancel();
+    if (!store.status().closed) await store.close();
+  }
 });
