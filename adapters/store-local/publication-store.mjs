@@ -3334,6 +3334,26 @@ async function openOriginalLocalPublicationStore(
     return value;
   };
 
+  const admitOriginalContract = (name, wire, original) => {
+    let contract;
+    if (original !== undefined && typeof contractControl.admitOriginal === 'function') {
+      try { contract = contractControl.admitOriginal(original, contractLimits); }
+      catch (error) { fail('InvalidPublicationContract', error); }
+      if (contract !== undefined &&
+          (contract !== original || !Object.isFrozen(contract) ||
+            typeof contract.name !== 'string' || contract.name !== name ||
+            typeof contract.identityField !== 'string' ||
+            !cidPattern.test(contract.identity) || contract.wire !== wire ||
+            typeof contract.wire !== 'string' ||
+            Buffer.byteLength(contract.wire, 'utf8') > configuration.maxObjectBytes)) {
+        fail('InvalidPublicationContractControlResult');
+      }
+    }
+    // Unrecognized originals and legacy controls still use full admission.
+    // An actual refusal or malformed nominal response never takes this path.
+    return contract ?? admitContract(name, wire);
+  };
+
   // Only this Store's private incoming-contract admission supplies these
   // facts. Physical persistence remains the same original operation.
   const putAdmittedPublicationContract = async (contract, value) => {
@@ -3458,21 +3478,7 @@ async function openOriginalLocalPublicationStore(
     for (const input of inputs) {
       const sameWire = wires.get(input.wire);
       if (sameWire !== undefined && sameWire.contract.name === input.name) continue;
-      let contract;
-      if (input.original !== undefined && typeof contractControl.admitOriginal === 'function') {
-        try { contract = contractControl.admitOriginal(input.original, contractLimits); }
-        catch (error) { fail('InvalidPublicationContract', error); }
-        if (contract !== undefined &&
-            (contract !== input.original || !Object.isFrozen(contract) ||
-              typeof contract.name !== 'string' || contract.name !== input.name ||
-              typeof contract.identityField !== 'string' ||
-              !cidPattern.test(contract.identity) || contract.wire !== input.wire ||
-              typeof contract.wire !== 'string' ||
-              Buffer.byteLength(contract.wire, 'utf8') > configuration.maxObjectBytes)) {
-          fail('InvalidPublicationContractControlResult');
-        }
-      }
-      contract ??= admitContract(input.name, input.wire);
+      const contract = admitOriginalContract(input.name, input.wire, input.original);
       const value = parseContract(contract);
       const previous = identities.get(contract.identity);
       if (previous !== undefined) {
@@ -5586,7 +5592,7 @@ async function openOriginalLocalPublicationStore(
   // chain; the Store confirms its public bodies and private physical holdings.
   // A caller cannot use this result as an apply or commit permit.
   const inspectEffectfulStoredEvidence = async ({index, chain, preview,
-    receipts, privateBinding, effectSources}, readOriginal = readSemanticOriginal) => {
+    receipts, privateBinding, effectSources}, readOriginal = readSemanticOriginal, retainedIndex) => {
     active();
     if (typeof contractControl.effectfulCommitValid !== 'function' ||
         typeof contractControl.effectPrivateEvidenceBinding !== 'function' ||
@@ -5612,11 +5618,15 @@ async function openOriginalLocalPublicationStore(
         ])) {
       fail('InvalidEffectfulStoredEvidence');
     }
-    const admittedIndex = admitContract('public_index_entry', index?.wire);
+    if (retainedIndex !== undefined && retainedIndex.contract !== index) {
+      fail('InvalidEffectfulStoredEvidence');
+    }
+    const admittedIndex = retainedIndex === undefined
+      ? admitContract('public_index_entry', index?.wire) : retainedIndex.contract;
     if (admittedIndex.identity !== index?.identity) {
       fail('InvalidEffectfulStoredEvidence');
     }
-    const entry = parseContract(admittedIndex);
+    const entry = retainedIndex === undefined ? parseContract(admittedIndex) : retainedIndex.entry;
     const request = (await readContract(
       entry.publication_request_cid, 'publication_request', readOriginal,
     )).contract;
@@ -5791,9 +5801,17 @@ async function openOriginalLocalPublicationStore(
     requiredObjectCids,
     suppliedEvidence,
     effectfulEvidence,
+    indexOriginal,
   ) => {
     active();
-    const admitted = admitContract('public_index_entry', suppliedWire);
+    if (indexOriginal !== undefined &&
+        (!exactKeys(indexOriginal, ['name', 'identityField', 'identity', 'wire']) ||
+          indexOriginal.name !== 'public_index_entry' || indexOriginal.wire !== suppliedWire)) {
+      fail('InvalidPublicationCommitEvidence');
+    }
+    const admitted = admitOriginalContract('public_index_entry', suppliedWire, indexOriginal);
+    if (indexOriginal !== undefined && (admitted.identity !== indexOriginal.identity ||
+        admitted.identityField !== indexOriginal.identityField)) fail('InvalidPublicationCommitEvidence');
     const entry = parseContract(admitted);
     const key = {
       namespaceId: entry.namespace_id,
@@ -5846,7 +5864,7 @@ async function openOriginalLocalPublicationStore(
       }
       const inspected = await inspectEffectfulStoredEvidence({
         ...effectfulEvidence, index: admitted,
-      }, readOriginal);
+      }, readOriginal, {contract: admitted, entry});
       for (const cid of [
         ...inspected.publicContractCids,
         ...inspected.sourceArtifactCids,
@@ -5977,8 +5995,10 @@ async function openOriginalLocalPublicationStore(
 
   // A prepared schema cannot be retired between commit evidence validation
   // and installation of the inventory that acquires its durable ownership.
-  const commitIndex = (...args) =>
-    withSemanticCommit(() => commitIndexInternal(...args));
+  const commitIndex = (suppliedWire, requiredObjectCids, suppliedEvidence, indexOriginal) =>
+    withSemanticCommit(() => commitIndexInternal(
+      suppliedWire, requiredObjectCids, suppliedEvidence, undefined, indexOriginal,
+    ));
 
   const commitEffectfulIndex = (preparation, requiredObjectCids) => {
     if (!exactKeys(preparation, [
@@ -5989,7 +6009,7 @@ async function openOriginalLocalPublicationStore(
     }
     return withSemanticCommit(() => commitIndexInternal(
       preparation.index.wire, requiredObjectCids, preparation.chain,
-      preparation,
+      preparation, preparation.index,
     ));
   };
 
@@ -7370,9 +7390,9 @@ async function openOriginalLocalPublicationStore(
   };
   const captureCustodyPath = run => resolve(captureCustodyDirectory,
     `${cidHex(run.identity)}.json`);
-  const readEffectCaptureCustody = async suppliedRun => {
-    active();
-    const run = captureCustodyRun(suppliedRun);
+  // One same-Store durability observation, not capture completion or authority.
+  let lastConfirmedEffectCaptureCustody;
+  const readEffectCaptureCustodyOriginal = async run => {
     let bytes;
     try { bytes = await readBounded(captureCustodyPath(run),
       Math.min(configuration.maxObjectBytes, 16 * 1024 * 1024)); }
@@ -7395,13 +7415,18 @@ async function openOriginalLocalPublicationStore(
     }
     return Object.freeze({...value, holdings: Object.freeze(holdings)});
   };
+  const readEffectCaptureCustody = async suppliedRun => {
+    active();
+    return readEffectCaptureCustodyOriginal(captureCustodyRun(suppliedRun));
+  };
   const retainEffectCaptureCustody = (suppliedRun, suppliedHoldings) => {
     active();
     const run = captureCustodyRun(suppliedRun);
     const holdings = suppliedHoldings.map(value =>
       parsePhysicalHolding(Buffer.from(JSON.stringify(value))));
     return withSemanticCommit(async () => {
-      const previous = await readEffectCaptureCustody(run);
+      active();
+      const previous = await readEffectCaptureCustodyOriginal(run);
       const records = new Map((previous?.holdings ?? []).map(value =>
         [value.holding_cid, value]));
       for (const holding of holdings) {
@@ -7414,19 +7439,37 @@ async function openOriginalLocalPublicationStore(
         }
         records.set(holding.holding_cid, holding);
       }
-      const bytes = Buffer.from(JSON.stringify({
+      const wire = JSON.stringify({
         version: 'actql-effect-capture-custody/0.1',
         store_authority_cid: configuration.storeAuthorityCid,
         run_definition: run.wire, holdings: [...records.values()],
-      }));
-      if (records.size > 4096 || bytes.length >
+      });
+      const byteLength = Buffer.byteLength(wire, 'utf8');
+      if (records.size > 4096 || byteLength >
           Math.min(configuration.maxObjectBytes, 16 * 1024 * 1024)) {
         fail('EffectCaptureCustodyLimitExceeded');
       }
+      const path = captureCustodyPath(run);
+      const confirmed = lastConfirmedEffectCaptureCustody;
+      if (previous !== undefined && confirmed?.wire === wire) {
+        const current = await lstat(path, {bigint: true});
+        if (current.isFile() &&
+            ['dev', 'ino', 'size', 'mtimeNs', 'ctimeNs']
+              .every(field => current[field] === confirmed.state[field])) return;
+      }
+      // A failed write/sync/close never publishes or preserves this observation.
+      // A changed body, replacement allocation or new Store uses real I/O.
+      lastConfirmedEffectCaptureCustody = undefined;
+      const bytes = Buffer.from(wire, 'utf8');
       const staging = resolve(stagingDirectory, `object-${randomUUID()}`);
       await writeExclusive(staging, bytes);
-      await rename(staging, captureCustodyPath(run));
+      await rename(staging, path);
       await syncDirectory(captureCustodyDirectory);
+      const state = await lstat(path, {bigint: true});
+      if (!state.isFile() || state.size !== BigInt(byteLength)) {
+        fail('InvalidEffectCaptureCustody');
+      }
+      lastConfirmedEffectCaptureCustody = {wire, state};
     });
   };
   const listEffectCaptureCustodies = async ({after = '', limit = 100} = {}) => {
@@ -7456,20 +7499,27 @@ async function openOriginalLocalPublicationStore(
       if (`${cidHex(run.identity)}.json` !== name) {
         fail('InvalidEffectCaptureCustody');
       }
-      if (await readEffectCaptureCustody(run) !== undefined) result.push(run);
+      if (await readEffectCaptureCustodyOriginal(run) !== undefined) result.push(run);
     }
     return Object.freeze(result);
   };
-  const forgetEffectCaptureCustody = async suppliedRun => {
+  const forgetEffectCaptureCustodyOriginal = async run => {
     active();
-    const run = captureCustodyRun(suppliedRun);
-    await readEffectCaptureCustody(run);
+    lastConfirmedEffectCaptureCustody = undefined;
     try { await unlink(captureCustodyPath(run)); }
     catch (error) { if (error?.code !== 'ENOENT') throw error; }
     await syncDirectory(captureCustodyDirectory);
   };
+  const forgetEffectCaptureCustody = async suppliedRun => {
+    active();
+    const run = captureCustodyRun(suppliedRun);
+    await readEffectCaptureCustodyOriginal(run);
+    return forgetEffectCaptureCustodyOriginal(run);
+  };
   const retireEffectCaptureCustody = async suppliedRun => {
-    const record = await readEffectCaptureCustody(suppliedRun);
+    active();
+    const run = captureCustodyRun(suppliedRun);
+    const record = await readEffectCaptureCustodyOriginal(run);
     if (record === undefined) return false;
     // Validate the entire exact inventory before deleting any holding. A
     // missing record can be progress from an interrupted retirement pass.
@@ -7489,7 +7539,7 @@ async function openOriginalLocalPublicationStore(
         throw error;
       }
     }
-    await forgetEffectCaptureCustody(suppliedRun);
+    await forgetEffectCaptureCustodyOriginal(run);
     return true;
   };
 
@@ -8502,6 +8552,7 @@ async function openOriginalLocalPublicationStore(
         closed = true;
         configuration.privateEvidenceKey?.fill(0);
         originalInstallationPublicationStorageBinding = undefined;
+        lastConfirmedEffectCaptureCustody = undefined;
         return true;
       }).finally(() => { closeFlight = undefined; });
       return closeFlight;

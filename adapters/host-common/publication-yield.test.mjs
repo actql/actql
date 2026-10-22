@@ -278,6 +278,33 @@ function publicationLifetimeLoops(publishRun) {
     '\nreturn {publishEffectFreeRun, uncertainFailure, member};')(publishRun);
 }
 
+test('publication caller forwards its original Index to the existing Store commit', async () => {
+  const text = readFileSync(new URL('./run-publication.mjs', import.meta.url), 'utf8');
+  const calls = [];
+  function visit(node) {
+    if (!node || typeof node !== 'object') return;
+    if (node.type === 'CallExpression' && node.callee.type === 'MemberExpression' &&
+        node.callee.object.name === 'store' && node.callee.property.name === 'commitIndex') calls.push(node);
+    for (const value of Object.values(node)) {
+      if (Array.isArray(value)) value.forEach(visit);
+      else if (value && typeof value === 'object') visit(value);
+    }
+  }
+  visit(parse(text, {ecmaVersion:'latest',sourceType:'module'}));
+  assert.equal(calls.length, 1);
+  const original = Object.freeze({name:'public_index_entry',wire:'original immutable body'});
+  const inventory = Object.freeze([]), evidence = Object.freeze({original:'evidence'});
+  const result = Object.freeze({committed:true});
+  const store = {commitIndex(actualWire, actualInventory, actualEvidence, actualOriginal) {
+    assert.strictEqual(this, store); assert.equal(actualWire, original.wire);
+    assert.strictEqual(actualInventory, inventory); assert.strictEqual(actualEvidence, evidence);
+    assert.strictEqual(actualOriginal, original); return Promise.resolve(result);
+  }};
+  const call = new Function('store','index','inventory','evidence','commitEvidence',
+    'return ' + text.slice(calls[0].start,calls[0].end));
+  assert.strictEqual(await call(store,original,inventory,evidence,value=>value), result);
+});
+
 test('publication computation lifetime captures the original retirement and waits for terminal success', async () => {
   const captured = Object.freeze({original: 'captured'}), result = Object.freeze({state: 'succeeded'});
   let retired = 0, finish;
