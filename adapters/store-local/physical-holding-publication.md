@@ -11,7 +11,10 @@ and identity field must agree with the selected original.
 
 The same commit's private Effect inspector consumes that already-admitted Index
 and its parsed body. Independent stored-evidence inspection still admits its
-own input. Neither path retains authorization, present-disk integrity or a
+own input. Its public Store method forwards only the preparation and supported
+reader port; caller-supplied extra arguments cannot inject the private retained
+observation or replace the parsed Index body. Neither path retains
+authorization, present-disk integrity or a
 durability acknowledgement. Selected physical evidence, current permission,
 claim/CAS, original Unknown confirmation and real cleanup remain independent.
 No cross-operation Index cache or additional publication authority is created.

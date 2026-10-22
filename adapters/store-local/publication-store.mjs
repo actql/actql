@@ -8455,7 +8455,9 @@ async function openOriginalLocalPublicationStore(
     commitEffectfulIndex,
     validateCommittedEvidence,
     validateCommittedEffectfulEvidence,
-    inspectEffectfulStoredEvidence,
+    inspectEffectfulStoredEvidence(preparation, readOriginal) {
+      return inspectEffectfulStoredEvidence(preparation, readOriginal);
+    },
     inspectCommittedIndex,
     confirmCommittedIndex: confirmSelectedCommittedIndex,
     readCommittedPublication,
