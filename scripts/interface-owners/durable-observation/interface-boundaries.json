@@ -246,7 +246,7 @@
     {
       "module": "adapters/host-common/observation.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "06eee4f188b29819668da3f7bef05485161fe62be587cbb0d6d852a778fe6155",
+      "sha256": "f3e6e2143408670ffd5fdaa727bd1e03d314bd95c2cd3d667d978cfba4033bbc",
       "exports": [
         "captureManagedRunObservation",
         "createHostObservationConnection",
@@ -389,6 +389,23 @@
           "async": false
         },
         {
+          "name": "installHostObservation/captureCurrentOperation/captureCurrentOperation",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installHostObservation/captureCurrentOperation/captureCurrentOperation/init:release/init:release",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installHostObservation/captureCurrentOperation/captureCurrentOperation/init:run/init:run",
+          "parameters": [
+            "work"
+          ],
+          "async": false
+        },
+        {
           "name": "installHostObservation/closeStorage/closeStorage",
           "parameters": [],
           "async": false
@@ -415,6 +432,18 @@
           "parameters": [
             "key"
           ],
+          "async": false
+        },
+        {
+          "name": "installHostObservation/finishContext/finishContext",
+          "parameters": [
+            "context"
+          ],
+          "async": false
+        },
+        {
+          "name": "installHostObservation/finishContext/finishContext/finishContext",
+          "parameters": [],
           "async": false
         },
         {
@@ -502,6 +531,13 @@
         {
           "name": "installHostObservation/pump/pump/pump/pump#2",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installHostObservation/retainOperation/retainOperation",
+          "parameters": [
+            "promise"
+          ],
           "async": false
         },
         {
@@ -826,7 +862,7 @@
               },
               {
                 "path": "adapters/host-node/in-process-client.mjs",
-                "anchor": "try { yield* response.frames; consumed = true; }"
+                "anchor": "try { yield* (original === undefined ? response.frames : contextualFrames(response.frames)); consumed = true; }"
               }
             ],
             "failure": [
@@ -991,6 +1027,119 @@
               {
                 "path": "adapters/host-common/observation.test.mjs",
                 "anchor": "test('selected row diagnostics refuse contextless or late facts instead of creating another operation frame'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "installHostObservation/captureCurrentOperation/captureCurrentOperation",
+            "installHostObservation/captureCurrentOperation/captureCurrentOperation/init:release/init:release",
+            "installHostObservation/captureCurrentOperation/captureCurrentOperation/init:run/init:run",
+            "installHostObservation/finishContext/finishContext",
+            "installHostObservation/finishContext/finishContext/finishContext",
+            "installHostObservation/retainOperation/retainOperation"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "An installed consumer may retain that same bounded context for its original"
+              },
+              {
+                "path": "adapters/host-common/observation.mjs",
+                "anchor": "const captureCurrentOperation = () => {"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "An installed consumer may retain that same bounded context for its original"
+              },
+              {
+                "path": "adapters/host-common/observation.mjs",
+                "anchor": "const retainOperation = promise => {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "An installed consumer may retain that same bounded context for its original"
+              },
+              {
+                "path": "adapters/host-common/observation.mjs",
+                "anchor": "if (context?.owner !== contextOwner || context.finished) return undefined;"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "An installed consumer may retain that same bounded context for its original"
+              },
+              {
+                "path": "adapters/host-common/observation.mjs",
+                "anchor": "const held = original; original = undefined;"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "An installed consumer may retain that same bounded context for its original"
+              },
+              {
+                "path": "adapters/host-common/observation.mjs",
+                "anchor": "Promise.prototype.then.call(promise, captured.release, captured.release);"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "An installed consumer may retain that same bounded context for its original"
+              },
+              {
+                "path": "adapters/host-common/observation.mjs",
+                "anchor": "} catch {captured.release(); drop('rowsUnavailable');}"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "An installed consumer may retain that same bounded context for its original"
+              },
+              {
+                "path": "adapters/host-common/observation.mjs",
+                "anchor": "context.finished = true; context.selectedRowsClosed = true;"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "An installed consumer may retain that same bounded context for its original"
+              },
+              {
+                "path": "adapters/host-common/observation.mjs",
+                "anchor": "if (context.children >= config.selected.requestRecords) {drop('limited'); return undefined;}"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "An installed consumer may retain that same bounded context for its original"
+              },
+              {
+                "path": "adapters/host-common/observation.mjs",
+                "anchor": "if (closed || !observeRows) return undefined;"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-common/observation.test.mjs",
+                "anchor": "test('retained original work settles without delaying ingress or creating a second observation context'"
+              },
+              {
+                "path": "adapters/host-common/observation.test.mjs",
+                "anchor": "test('observation close detaches its bounded metadata without settling original unfinished work'"
               }
             ]
           }

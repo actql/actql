@@ -29812,7 +29812,7 @@
     {
       "module": "adapters/host-node/client-dispatch-owner.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "4fbfb702563af59610dd5e36ad358e9dd510ee5af84249e73c99dd22f31ec4e1",
+      "sha256": "319b360c10638cb4099e62dac0d40dd111608fc1c594557544e19ab6ee9b6707",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -30547,6 +30547,10 @@
               {
                 "path": "adapters/host-node/embedded-managed-compute-lifecycle.test.mjs",
                 "anchor": "actual dispatcher opens its opaque Run without the legacy accounting constructor"
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-observation.test.mjs",
+                "anchor": "test('tracked observation settlement cannot retire unresolved physical cleanup'"
               }
             ]
           }
@@ -37887,7 +37891,7 @@
     {
       "module": "adapters/host-node/embedded-local.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "eb9da33344c6aac73ac8115505c082045b562e67d6dc29b079b17572fcc79b46",
+      "sha256": "4ae9f421d2018d1477cdbec0e52a7d331faf75353c51cc67cc802bccbcbe0fbb",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -39075,6 +39079,11 @@
           "async": false
         },
         {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/ingress/ingress#3",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/init:stopModelRuntime/init:stopModelRuntime",
           "parameters": [],
           "async": false
@@ -39511,38 +39520,38 @@
         },
         {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/resumeHeld/resumeHeld/resumeHeld",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/resumeHeld/resumeHeld/resumeHeld#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/resumeHeld/resumeHeld/settlement/settlement",
           "parameters": [
             "result"
           ],
           "async": false
         },
         {
-          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/resumeHeld/resumeHeld/resumeHeld#2",
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/resumeHeld/resumeHeld/settlement/settlement#2",
           "parameters": [
             "error"
           ],
           "async": false
         },
         {
-          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/resumeHeld/resumeHeld/resumeHeld#3",
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/resumeHeld/resumeHeld/settlement/settlement#3",
           "parameters": [],
           "async": false
         },
         {
-          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/resumeHeld/resumeHeld/resumeHeld#4",
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/resumeHeld/resumeHeld/settlement/settlement#4",
           "parameters": [
             "error"
           ],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/resumeHeld/resumeHeld/resumeHeld#5",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/resumeHeld/resumeHeld/resumeHeld#6",
-          "parameters": [],
           "async": false
         },
         {
@@ -39758,19 +39767,19 @@
           "async": true
         },
         {
-          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/submitEffect/submitEffect/submitEffect",
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/submitEffect/submitEffect/settlement/settlement",
           "parameters": [
             "error"
           ],
           "async": false
         },
         {
-          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/submitEffect/submitEffect/submitEffect#2",
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/submitEffect/submitEffect/settlement/settlement#2",
           "parameters": [],
           "async": false
         },
         {
-          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/submitEffect/submitEffect/submitEffect#3",
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/submitEffect/submitEffect/settlement/settlement#3",
           "parameters": [
             "error"
           ],
@@ -39874,26 +39883,26 @@
           "async": false
         },
         {
-          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/sweepEffectRuns",
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/settlement/settlement",
           "parameters": [
             "error"
           ],
           "async": false
         },
         {
-          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/sweepEffectRuns#2",
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/settlement/settlement#2",
           "parameters": [],
           "async": false
         },
         {
-          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/sweepEffectRuns#3",
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/settlement/settlement#3",
           "parameters": [
             "error"
           ],
           "async": false
         },
         {
-          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/sweepEffectRuns#4",
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/settlement/settlement#4",
           "parameters": [],
           "async": false
         },
@@ -42348,6 +42357,7 @@
             "openInstalledHost/bootstrapIngress/bootstrapIngress#3",
             "openInstalledHost/bootstrapIngress/init:performInstalledRequest/init:performInstalledRequest",
             "openInstalledHost/bootstrapPort/init:perform/init:perform",
+            "openInstalledHost/getPreparedSourceEnvironment",
             "openInstalledHost/hostConnection/hostConnection",
             "openInstalledHost/init:closePublicationStore/init:closePublicationStore",
             "openInstalledHost/init:prepareShutdown/init:prepareShutdown",
@@ -42454,10 +42464,10 @@
             "openInstalledHost/initializePublicationServices/initializePublicationServices/resumeHeld/resumeHeld/observedStart/observedStart",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/resumeHeld/resumeHeld/resumeHeld",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/resumeHeld/resumeHeld/resumeHeld#2",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/resumeHeld/resumeHeld/resumeHeld#3",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/resumeHeld/resumeHeld/resumeHeld#4",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/resumeHeld/resumeHeld/resumeHeld#5",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/resumeHeld/resumeHeld/resumeHeld#6",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/resumeHeld/resumeHeld/settlement/settlement",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/resumeHeld/resumeHeld/settlement/settlement#2",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/resumeHeld/resumeHeld/settlement/settlement#3",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/resumeHeld/resumeHeld/settlement/settlement#4",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/retireEffectCapture/retireEffectCapture",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/retireEffectCapture/retireEffectCapture/flight/flight",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/retireEffectCapture/retireEffectCapture/flight/flight#2",
@@ -42482,9 +42492,9 @@
             "openInstalledHost/initializePublicationServices/initializePublicationServices/submit/submit/submit",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/submit/submit/submit#2",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/submitEffect/submitEffect",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/submitEffect/submitEffect/submitEffect",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/submitEffect/submitEffect/submitEffect#2",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/submitEffect/submitEffect/submitEffect#3",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/submitEffect/submitEffect/settlement/settlement",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/submitEffect/submitEffect/settlement/settlement#2",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/submitEffect/submitEffect/settlement/settlement#3",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/subscribeWaitWork/subscribeWaitWork",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/subscribeWaitWork/subscribeWaitWork/settled/settled",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/subscribeWaitWork/subscribeWaitWork/subscribeWaitWork",
@@ -42500,10 +42510,10 @@
             "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/flight/flight/flight/reads/init:assertCurrent/init:assertCurrent",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/flight/flight/init:assertCurrent/init:assertCurrent",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/flight/flight/renewal/renewal",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/sweepEffectRuns",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/sweepEffectRuns#2",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/sweepEffectRuns#3",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/sweepEffectRuns#4",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/settlement/settlement",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/settlement/settlement#2",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/settlement/settlement#3",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/settlement/settlement#4",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/assertCurrent/assertCurrent",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/flight/flight",
@@ -42541,8 +42551,7 @@
             "openInstalledHost/retireModelRuntime",
             "openInstalledHost/runtimeOriginals/runtimeOriginals",
             "openInstalledHost/runtimeTarget/runtimeTarget",
-            "openInstalledHost/selectedInstalledEffect",
-            "openInstalledHost/getPreparedSourceEnvironment"
+            "openInstalledHost/selectedInstalledEffect"
           ],
           "exports": [],
           "attributes": {
@@ -43180,6 +43189,10 @@
               {
                 "path": "adapters/host-node/client-run-observation-reuse.test.mjs",
                 "anchor": "Local Run observation retries changed control and final publication conflicts"
+              },
+              {
+                "path": "adapters/host-node/embedded-local-operation-observation.test.mjs",
+                "anchor": "initial Effect observation retains settlement after early acceptance"
               }
             ]
           }
@@ -45354,12 +45367,12 @@
             "connectEmbeddedLocal/preparation/init:prepareManagedComputeRun/init:prepareManagedComputeRun",
             "connectEmbeddedLocal/preparation/init:prepareManagedComputeRun/init:prepareManagedComputeRun/init:prepareManagedComputeRun",
             "connectEmbeddedLocal/preparation/init:requestPreparation/init:requestPreparation",
+            "installedManagedRunContracts",
             "managedComputeSubmittedIntentCid",
             "readManagedComputeRunRequirements",
             "readManagedComputeRunRequirements/asset/asset",
             "readManagedComputeRunRequirements/readManagedComputeRunRequirements",
-            "readManagedComputeRunRequirements/readManagedComputeRunRequirements#2",
-            "installedManagedRunContracts"
+            "readManagedComputeRunRequirements/readManagedComputeRunRequirements#2"
           ],
           "exports": [
             "managedComputeSubmittedIntentCid",
@@ -46038,8 +46051,8 @@
             "connectEmbeddedLocal/preparation/init:installMockEffects/init:installMockEffects",
             "connectEmbeddedLocal/preparation/init:installMockEffects/init:installMockEffects/init:installMockEffects",
             "openInstalledHost/assertMockEffectRunOriginal",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/effectRun/effectRun/effectRun",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/effectRun/effectRun#6",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/effectRun/effectRun/effectRun",
             "openInstalledHost/mockEffectResources/init:assertCurrent/init:assertCurrent",
             "openInstalledHost/mockEffectResources/init:bindRunOriginal/init:bindRunOriginal",
             "openInstalledHost/mockEffectResources/init:limits/init:limits",
@@ -47026,7 +47039,8 @@
             "connectEmbeddedLocal/preparation/init:bindManagedComputeRunObservation/init:bindManagedComputeRunObservation",
             "connectEmbeddedLocal/preparation/init:managedComputeUsageReader/init:managedComputeUsageReader",
             "connectEmbeddedLocal/preparation/init:managedComputeUsageReader/init:managedComputeUsageReader/init:managedComputeUsageReader",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/ingress/ingress#2"
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/ingress/ingress#2",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/ingress/ingress#3"
           ],
           "exports": [],
           "attributes": {
@@ -47077,7 +47091,7 @@
               },
               {
                 "path": "adapters/host-node/in-process-client.mjs",
-                "anchor": "try { yield* response.frames; consumed = true; }"
+                "anchor": "try { yield* (original === undefined ? response.frames : contextualFrames(response.frames)); consumed = true; }"
               }
             ],
             "failure": [
@@ -47128,6 +47142,10 @@
               {
                 "path": "adapters/host-node/embedded-managed-compute-lifecycle.test.mjs",
                 "anchor": "test('managed usage reader selects only the same admitted Run and releases its installation alias'"
+              },
+              {
+                "path": "adapters/host-node/embedded-local-operation-observation.test.mjs",
+                "anchor": "test('Result operation capture forwards the same installed optional holder on demand'"
               }
             ]
           }

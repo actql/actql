@@ -1031,6 +1031,9 @@ export function installNodeClientDispatchOwner({moon, control, journal,
       catch (failure) { entry.releaseFailure = failure; }
       retire(entry);
     });
+    // Retain only the originating optional observation, not a new operation
+    // or a release receipt. The physical-start barrier remains independent.
+    try {observation?.retainOperation?.(entry.promise);} catch { /* Optional metadata. */ }
     return physical;
   };
 
@@ -1128,6 +1131,7 @@ export function installNodeClientDispatchOwner({moon, control, journal,
     // Observation remains available through operation(), without an unhandled
     // rejection when a Client disconnects or never calls wait().
     entry.promise.catch(() => {});
+    try {observation?.retainOperation?.(entry.promise);} catch { /* Optional metadata. */ }
     return entry.promise;
   };
 

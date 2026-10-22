@@ -32497,7 +32497,7 @@
     {
       "module": "adapters/host-node/in-process-client.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "69486e6b6e8f0245898159fd7485084bef73c2c651d20d76f4f6fc4eefc00bbb",
+      "sha256": "fe4615e75393db758ac036df7be5b12785a2fc52d68fffabb48427d0607c63d4",
       "role": "physical-io",
       "owner": "Existing Client Host admission/read services and physical Node ingress",
       "exports": [
@@ -32542,7 +32542,8 @@
             "maxRowBytes",
             "observe",
             "performInstalledRequest",
-            "captureResultObservation"
+            "captureResultObservation",
+            "captureResultOperation"
           ],
           "async": false
         },
@@ -32623,8 +32624,94 @@
           "name": "publicResultRows",
           "parameters": [
             "response",
-            "observeConsumed"
+            "observeConsumed",
+            "observeOperation"
           ],
+          "async": false
+        },
+        {
+          "name": "publicResultRows/contextualFrames/contextualFrames",
+          "parameters": [
+            "frames"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicResultRows/contextualFrames/contextualFrames/init:<computed>/init:<computed>",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "publicResultRows/contextualFrames/contextualFrames/init:<computed>/init:<computed>/init:<computed>",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "publicResultRows/contextualFrames/contextualFrames/init:<computed>/init:<computed>/init:<computed>/init:<computed>",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "publicResultRows/contextualFrames/contextualFrames/init:<computed>/init:<computed>/init:<computed>#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "publicResultRows/contextualFrames/contextualFrames/init:<computed>/init:<computed>/init:next/init:next",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicResultRows/contextualFrames/contextualFrames/init:<computed>/init:<computed>/init:next/init:next/init:next",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "publicResultRows/contextualFrames/contextualFrames/init:<computed>/init:<computed>/iterator/iterator",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "publicResultRows/contextualFrames/contextualFrames/init:<computed>/init:<computed>/method/method",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicResultRows/contextualFrames/contextualFrames/init:<computed>/init:<computed>/method/method/method",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicResultRows/contextualFrames/contextualFrames/init:<computed>/init:<computed>/method/method/method/method",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "publicResultRows/contextualFrames/contextualFrames/init:<computed>/init:<computed>/method/method/operation/operation",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "publicResultRows/contextualFrames/contextualFrames/init:<computed>/init:<computed>/next/next",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "publicResultRows/inContext/inContext",
+          "parameters": [
+            "work"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicResultRows/inContext/inContext/once/once",
+          "parameters": [],
           "async": false
         },
         {
@@ -32636,6 +32723,26 @@
           "name": "publicResultRows/init:close/init:close",
           "parameters": [],
           "async": true
+        },
+        {
+          "name": "publicResultRows/init:close/init:close/init:close",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "publicResultRows/init:close/init:close/init:close#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "publicResultRows/init:close/init:close/init:close#3",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "publicResultRows/releaseObservation/releaseObservation",
+          "parameters": [],
+          "async": false
         }
       ],
       "contracts": [
@@ -32772,7 +32879,7 @@
             "synchronization": [
               {
                 "path": "adapters/host-node/in-process-client.mjs",
-                "anchor": "if (handle.status().pending !== false) await handle.retry();"
+                "anchor": "if (inContext(() => handle.status()).pending !== false) await inContext(() => handle.retry());"
               },
               {
                 "path": "docs/design/oss-host-authorization.md",
@@ -32792,7 +32899,7 @@
               },
               {
                 "path": "adapters/host-node/in-process-client.mjs",
-                "anchor": "try { yield* response.frames; consumed = true; }"
+                "anchor": "try { yield* (original === undefined ? response.frames : contextualFrames(response.frames)); consumed = true; }"
               }
             ],
             "failure": [
@@ -32935,6 +33042,132 @@
               {
                 "path": "adapters/host-node/embedded-managed-compute-lifecycle.test.mjs",
                 "anchor": "test('managed usage reader selects only the same admitted Run and releases its installation alias'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "publicResultRows/contextualFrames/contextualFrames",
+            "publicResultRows/contextualFrames/contextualFrames/init:<computed>/init:<computed>",
+            "publicResultRows/contextualFrames/contextualFrames/init:<computed>/init:<computed>/init:<computed>",
+            "publicResultRows/contextualFrames/contextualFrames/init:<computed>/init:<computed>/init:<computed>/init:<computed>",
+            "publicResultRows/contextualFrames/contextualFrames/init:<computed>/init:<computed>/init:<computed>#2",
+            "publicResultRows/contextualFrames/contextualFrames/init:<computed>/init:<computed>/init:next/init:next",
+            "publicResultRows/contextualFrames/contextualFrames/init:<computed>/init:<computed>/init:next/init:next/init:next",
+            "publicResultRows/contextualFrames/contextualFrames/init:<computed>/init:<computed>/iterator/iterator",
+            "publicResultRows/contextualFrames/contextualFrames/init:<computed>/init:<computed>/method/method",
+            "publicResultRows/contextualFrames/contextualFrames/init:<computed>/init:<computed>/method/method/method",
+            "publicResultRows/contextualFrames/contextualFrames/init:<computed>/init:<computed>/method/method/method/method",
+            "publicResultRows/contextualFrames/contextualFrames/init:<computed>/init:<computed>/method/method/operation/operation",
+            "publicResultRows/contextualFrames/contextualFrames/init:<computed>/init:<computed>/next/next",
+            "publicResultRows/inContext/inContext",
+            "publicResultRows/inContext/inContext/once/once",
+            "publicResultRows/init:close/init:close/init:close",
+            "publicResultRows/init:close/init:close/init:close#2",
+            "publicResultRows/init:close/init:close/init:close#3",
+            "publicResultRows/releaseObservation/releaseObservation"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "An installed consumer may retain that same bounded context for its original"
+              },
+              {
+                "path": "adapters/host-node/in-process-client.mjs",
+                "anchor": "function publicResultRows(response, observeConsumed, observeOperation) {"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "An installed consumer may retain that same bounded context for its original"
+              },
+              {
+                "path": "adapters/host-node/in-process-client.mjs",
+                "anchor": "captureResultOperation !== undefined && typeof captureResultOperation"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "An installed consumer may retain that same bounded context for its original"
+              },
+              {
+                "path": "adapters/host-node/in-process-client.mjs",
+                "anchor": "const iterator = inContext(() => frames[Symbol.asyncIterator]());"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "An installed consumer may retain that same bounded context for its original"
+              },
+              {
+                "path": "adapters/host-node/in-process-client.mjs",
+                "anchor": "const held = original, release = retire;"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "An installed consumer may retain that same bounded context for its original"
+              },
+              {
+                "path": "adapters/host-node/in-process-client.mjs",
+                "anchor": "try { yield* (original === undefined ? response.frames : contextualFrames(response.frames)); consumed = true; }"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "An installed consumer may retain that same bounded context for its original"
+              },
+              {
+                "path": "adapters/host-node/in-process-client.mjs",
+                "anchor": "if (error?.cleanupPending === true) cleanupFailure = error;"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "An installed consumer may retain that same bounded context for its original"
+              },
+              {
+                "path": "adapters/host-node/in-process-result-observation.test.mjs",
+                "anchor": "test('partial and unopened Result responses release optional context without inventing successful usage'"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "An installed consumer may retain that same bounded context for its original"
+              },
+              {
+                "path": "adapters/host-node/in-process-client.mjs",
+                "anchor": "original = resume = retire = undefined;"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "An installed consumer may retain that same bounded context for its original"
+              },
+              {
+                "path": "adapters/host-node/in-process-client.mjs",
+                "anchor": "try {observation = captureResultOperation?.();}"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/in-process-result-observation.test.mjs",
+                "anchor": "test('actual Result iterator continues the one ingress context through its original finally'"
+              },
+              {
+                "path": "adapters/host-node/in-process-result-observation.test.mjs",
+                "anchor": "test('failed row cleanup retains original observation until the same close-only retry confirms'"
               }
             ]
           }
