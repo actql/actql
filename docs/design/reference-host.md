@@ -629,6 +629,16 @@ the typed preparation and checks physical identity again at the Host consumer.
 The private JS ABI representation is used only for that reference comparison:
 it has no public constructor, raw-field reader or admission semantics.
 
+The installed managed Run exposes a read-only observation of its own live
+Ledger: the six declared limit fields followed by the ten usage fields, including
+reserved retention/execution, held bytes and peak retention. The private Node
+bridge returns a fresh bounded Int64 array on every observation. A caller cannot
+mutate the original accounting through a returned snapshot. Observation does not
+check or confer current permission, reserve work, report or stop the child, or
+acknowledge cleanup. Pending originals remain observable; foreign or retired
+handles refuse rather than returning fabricated zero usage. These counters cover
+that managed Ledger, not total process memory, Store storage or native/FD cleanup.
+
 Source-free managed Compute uses a separately selected original in this same
 Root, before the SDK's first packet traversal or snapshot. It does not create
 a dummy Source installation, file, response backing or Source child. The same

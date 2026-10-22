@@ -114,7 +114,8 @@ import {createDiagnosticObserver} from
   '../host-common/diagnostic-observer.mjs';
 import {createClientHttpHandler} from './client-http.mjs';
 import {createNodeInProcessClientHost} from './in-process-client.mjs';
-import {installHostObservation, observationTraceParent} from '../host-common/observation.mjs';
+import {installHostObservation, observationTraceParent,
+  captureManagedRunObservation} from '../host-common/observation.mjs';
 import {installNodeClientDispatchOwner, confirmNodeRunCancellation, cancelNodeRunContinuation,
   observeNodeRestoredModelStop, recordNodeRunPhysicalStop} from './client-dispatch-owner.mjs';
 import {retainInstalledHostInitializationFailure, retainInstalledHostRuntimeFailure} from
@@ -3432,6 +3433,10 @@ async function openInstalledHost(originalInstallation, preparation) {
         installedSourceFor(sourceProfile, preparedSource.checkedSource.sourceRef).sourceAccess};
     const accepted = await admitDefinition(submission, requested,
       resultNames, held);
+    if (managedRun !== undefined && observation?.canMeasureResources()) {
+      try {preparation.bindManagedComputeRunObservation(submission.preparedProgram, accepted.ref);}
+      catch {observation.noteLoss();}
+    }
     if (inferSelections.has(submission.preparedProgram) &&
         accepted.physicalStartReserved === true &&
         accepted.observedTerminalOutcome === null &&
@@ -4574,6 +4579,11 @@ async function openInstalledHost(originalInstallation, preparation) {
   const ingress = createNodeInProcessClientHost({
     authenticate: () => principalId,
     bindOwnedRequest,
+    captureResultObservation: observation === undefined ? undefined : ref => {
+      if (!observation.canMeasureResources()) return undefined;
+      return captureManagedRunObservation(observation, ref,
+        preparation?.managedComputeUsageReader(ref));
+    },
     ...hostOperations, maxRowBytes: 1024 * 1024,
   });
   const requestPreparation = preparation?.requestPreparation();
@@ -5233,6 +5243,31 @@ export async function connectEmbeddedLocal(options, initialEntry) {
         checked(Reflect.apply(run.check, runtime, [run.value, prepared, request]));
         return run.value;
       } catch (error) {run.failure = error; throw error;}
+    },
+    bindManagedComputeRunObservation(prepared, ref) {
+      const run = record.computeRuns?.get(prepared);
+      if (run === undefined || run.value === undefined || run.closed) return;
+      // Index only an actually admitted Run's existing holding. This does
+      // not cache authority, reconstruct a preparation or scan other Runs.
+      const key = JSON.stringify([ref.namespaceId, ref.authorityScopeCid, ref.runDefinitionCid]);
+      const index = record.computeRunObservations ??= new Map();
+      const prior = index.get(key);
+      if (prior !== undefined && prior !== run) throw clientOperationError('ForeignInstalledComputeRun');
+      index.set(key, run);
+    },
+    managedComputeUsageReader(ref) {
+      const key = JSON.stringify([ref.namespaceId, ref.authorityScopeCid, ref.runDefinitionCid]);
+      if (record.computeRunObservations?.get(key) === undefined) return undefined;
+      // Capture only the public key and existing installation bag. Final
+      // retirement clears that bag, including this index, so a held response
+      // cannot keep a prepared Program, Core Run or Ledger alive afterward.
+      return () => {
+        const run = record.computeRunObservations?.get(key);
+        if (run === undefined || run.value === undefined || run.closed) return undefined;
+        if (!Object.hasOwn(run, 'usage')) run.usage = run.runtime.clientProgramInstalledManagedRunUsage;
+        if (typeof run.usage !== 'function') return undefined;
+        return checked(Reflect.apply(run.usage, run.runtime, [run.value]));
+      };
     },
     sourcePreparation() {
       if (sourceManaged === undefined) return undefined;

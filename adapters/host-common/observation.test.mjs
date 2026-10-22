@@ -2,12 +2,60 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createHostObservationConnection, installHostObservation,
   observationTraceParent, snapshotObservationContext,
-  projectEffectApplication} from './observation.mjs';
+  projectEffectApplication, captureManagedRunObservation} from './observation.mjs';
 
 const trace = {traceId: '1'.repeat(32), spanId: '2'.repeat(16), traceFlags: 1};
 const ref = {namespaceId: 'local', authorityScopeCid: `sha256:${'a'.repeat(64)}`,
   runDefinitionCid: `sha256:${'b'.repeat(64)}`};
 const turn = () => new Promise(resolve => setImmediate(resolve));
+
+test('managed usage retains one original reader and operation correlation across row consumption', async () => {
+  const records = [], charges = [];
+  const connection = createHostObservationConnection({deliver: value => records.push(value)});
+  const observer = installHostObservation(connection, {journal: {observationStorage: () => ({
+    consume(value) {charges.push(value); return {accepted: true};},
+  })}});
+  const values = [7n, 2n, 3n, 64n, 128n, 256n, 1n, 2n, 3n, 4n, 0n, 0n, 8n, 0n, 0n, 16n];
+  let reads = 0, complete;
+  await observer.run('read', trace, () => {
+    complete = captureManagedRunObservation(observer, ref, () => {reads++; return values;});
+    assert.equal(reads, 0, 'No speculative sample before the actual row response finishes');
+  });
+  complete(); complete(); values.fill(999n);
+  await observer.close();
+  const usage = records.filter(record => record.event === 'resources_observed');
+  assert.equal(reads, 1); assert.equal(usage.length, 1);
+  assert.deepEqual(usage[0].parent, trace);
+  assert.equal(usage[0].attributes['actql.run.definition_cid'], ref.runDefinitionCid);
+  assert.equal(usage[0].attributes['actql.resource.scope'], 'managed-run-ledger');
+  assert.equal(usage[0].attributes['actql.resource.limit.retained_bytes'], '128');
+  assert.equal(usage[0].attributes['actql.resource.usage.held_bytes'], '8');
+  assert.equal(usage[0].attributes['actql.resource.usage.peak_retention'], '16');
+  assert(Object.isFrozen(usage[0].attributes));
+  assert.equal(charges.length, 1, 'The resource record spends the real existing observation allowance');
+  assert(connection.configuration().measurements.available.includes('resources'));
+});
+
+test('managed usage refuses foreign readers and missing or retired observations without zero fill', async () => {
+  const records = [];
+  const observer = installHostObservation(createHostObservationConnection({deliver: value => records.push(value)}));
+  let foreign = 0;
+  assert.equal(captureManagedRunObservation({captureManagedRun() {foreign++;}}, ref, () => []), undefined);
+  assert.equal(foreign, 0);
+  for (const value of [undefined, Array(16).fill(0), Array(15).fill(0n), Array(16).fill(-1n)]) {
+    captureManagedRunObservation(observer, ref, () => value)();
+  }
+  captureManagedRunObservation(observer, ref, () => {throw new Error('Retired');})();
+  assert.equal(observer.status().loss.resourceUnavailable, 5);
+  assert.equal(records.length, 0);
+  const excluded = installHostObservation(createHostObservationConnection({deliver() {},
+    measurements: {exclude: ['resources']}}));
+  assert.equal(captureManagedRunObservation(excluded, ref, () => {throw new Error('MustNotRead');}), undefined);
+  await excluded.close();
+  const afterClose = captureManagedRunObservation(observer, ref, () => {throw new Error('MustNotReadAfterClose');});
+  await observer.close(); afterClose();
+  assert.equal(records.length, 0);
+});
 
 test('internal Effect projection uses the active scope and defers delivery', async () => {
   const records = [];
@@ -36,7 +84,8 @@ test('metadata projection discards every unapproved value and baggage', async ()
   const sentinel = 'SECRET_SENTINEL';
   await observer.run('check', {...trace, baggage: {password: sentinel}}, async () => {
     observer.emit('check', 'check_completed', {outcome: 'failed',
-      query: sentinel, error: sentinel, name: sentinel, resource: sentinel});
+      query: sentinel, error: sentinel, name: sentinel, resource: sentinel},
+    {resources: {arbitrary: sentinel}});
   });
   await observer.close();
   assert.equal(records.length, 3);
@@ -245,7 +294,7 @@ test('measurement and correlation selections preserve facts while narrowing disc
     {ref, task: 0, slot: 0, attempt: 1, attemptCid: `sha256:${'c'.repeat(64)}`}, {durationMs: 100}));
   await observer.close();
   assert.deepEqual(connection.configuration().measurements.selected, []);
-  assert.deepEqual(connection.configuration().measurements.available, ['duration']);
+  assert.deepEqual(connection.configuration().measurements.available, ['duration', 'resources']);
   for (const record of records) {
     if (record.event === 'task_completed') assert.equal(record.durationMs, 100);
     assert.equal(record.parent, undefined);
