@@ -235,6 +235,22 @@ layout/bootstrap costs remain unknown, and existing limits do not increase.
 
 ## Selected Result metadata read reuse
 
+### Trusted clock write observation
+
+A warm fixed-length clock update consumes its already typed observation after
+the same original file completes write, sync and close. Post-sync FD state and
+post-close path state must agree in device, inode, size, modification and change
+time. A changed original refuses; a failed close retains the original writer
+and retry. The successful write is not reopened, parsed or hashed as a second
+wire input. The retained observation is private and immutable.
+
+Each later operation still checks the current physical version; changed bytes
+receive ordinary bounded checksum/time admission. Confirmed-floor loss,
+rollback, corrupt replacement and unknown durability remain refusal. No write,
+sync, close or cold directory acknowledgement is omitted. The no-write flush
+and cold/legacy replacement protocol retain their existing post-ACK read; this
+optimization introduces no new cold confirmation filesystem operations.
+
 A Result description selects its committed Index and exact Result Binding once.
 The description, binding inventory and retention-extension lookup consume those
 same admitted values; a private helper is not another authorization or semantic

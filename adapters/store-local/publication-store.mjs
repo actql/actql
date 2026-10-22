@@ -2229,10 +2229,11 @@ async function openOriginalLocalPublicationStore(
         }
       }
       await handle.sync();
-      const written = await handle.stat({bigint: true});
-      if (!written.isFile() || written.dev !== before.dev || written.ino !== before.ino ||
-          written.size !== before.size) fail('PublicationClockUncertain');
+      const written = bytes === undefined ? undefined : await handle.stat({bigint: true});
+      if (written !== undefined && (!written.isFile() || written.dev !== before.dev || written.ino !== before.ino ||
+          written.size !== before.size)) fail('PublicationClockUncertain');
       await cleanup.retry();
+      if (written === undefined) return;
       const current = await lstat(clockObservationPath(clockContractCid), {bigint: true});
       if (!current.isFile() || !sameClockFile(written,current)) fail('PublicationClockUncertain');
       return current;
