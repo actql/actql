@@ -246,7 +246,7 @@
     {
       "module": "adapters/host-common/observation.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "f3e6e2143408670ffd5fdaa727bd1e03d314bd95c2cd3d667d978cfba4033bbc",
+      "sha256": "107de7d6a7bccde0cd268f921213170db974c697643acdecfd7a00085eb4c7d3",
       "exports": [
         "captureManagedRunObservation",
         "createHostObservationConnection",
@@ -435,6 +435,16 @@
           "async": false
         },
         {
+          "name": "installHostObservation/enterApplicationCallback/enterApplicationCallback",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installHostObservation/enterApplicationCallback/enterApplicationCallback/enterApplicationCallback",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "installHostObservation/finishContext/finishContext",
           "parameters": [
             "context"
@@ -498,18 +508,23 @@
         },
         {
           "name": "installHostObservation/projection/projection#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installHostObservation/projection/projection#3",
           "parameters": [
             "operation"
           ],
           "async": false
         },
         {
-          "name": "installHostObservation/projection/projection#3",
+          "name": "installHostObservation/projection/projection#4",
           "parameters": [],
           "async": false
         },
         {
-          "name": "installHostObservation/projection/projection#4",
+          "name": "installHostObservation/projection/projection#5",
           "parameters": [],
           "async": false
         },
@@ -531,6 +546,15 @@
         {
           "name": "installHostObservation/pump/pump/pump/pump#2",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installHostObservation/resolveRunIdentity/resolveRunIdentity",
+          "parameters": [
+            "context",
+            "ref",
+            "terminal"
+          ],
           "async": false
         },
         {
@@ -698,12 +722,15 @@
             "installHostObservation/drop/drop",
             "installHostObservation/emit/emit",
             "installHostObservation/emit/emit/emit",
+            "installHostObservation/enterApplicationCallback/enterApplicationCallback",
+            "installHostObservation/enterApplicationCallback/enterApplicationCallback/enterApplicationCallback",
             "installHostObservation/projection/init:close/init:close",
             "installHostObservation/projection/init:close/init:close/init:close",
             "installHostObservation/projection/init:diagnostic/init:diagnostic",
             "installHostObservation/projection/projection",
             "installHostObservation/projection/projection#2",
             "installHostObservation/projection/projection#3",
+            "installHostObservation/projection/projection#5",
             "installHostObservation/pump/pump",
             "installHostObservation/pump/pump/pump",
             "installHostObservation/pump/pump/pump/pump",
@@ -737,6 +764,10 @@
               {
                 "path": "docs/development/durable-owner-interface.md",
                 "anchor": "| Responsibility |"
+              },
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "Delivery remains an application callback even on that later turn:"
               }
             ],
             "inputsOutputs": [
@@ -791,6 +822,10 @@
               {
                 "path": "docs/development/durable-owner-interface.md",
                 "anchor": "| Verification |"
+              },
+              {
+                "path": "adapters/host-common/observation.test.mjs",
+                "anchor": "application callback state changes at actual delivery entry and thrown settlement only"
               }
             ]
           }
@@ -962,7 +997,7 @@
               },
               {
                 "path": "adapters/host-common/observation.mjs",
-                "anchor": "const rows = context.selectedRows; context.selectedRows = undefined;"
+                "anchor": "context.selectedRowsClosed = true; context.selectedRows = undefined;"
               }
             ],
             "synchronization": [
@@ -1140,6 +1175,114 @@
               {
                 "path": "adapters/host-common/observation.test.mjs",
                 "anchor": "test('observation close detaches its bounded metadata without settling original unfinished work'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "installHostObservation/resolveRunIdentity/resolveRunIdentity"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "Run ID correlation reuses only a positively resolved immutable identifier under"
+              },
+              {
+                "path": "adapters/host-common/observation.mjs",
+                "anchor": "const resolveRunIdentity = (context, ref, terminal = false) => {"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "Run ID correlation reuses only a positively resolved immutable identifier under"
+              },
+              {
+                "path": "adapters/host-common/observation.mjs",
+                "anchor": "const id = runId?.(ref);"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "the complete namespace, authority-scope and Run-definition tuple in that same"
+              },
+              {
+                "path": "adapters/host-common/observation.mjs",
+                "anchor": "const key = JSON.stringify([ref.namespaceId, ref.authorityScopeCid, ref.runDefinitionCid]);"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "operation and installation. The bounded holder contains copied identity values,"
+              },
+              {
+                "path": "adapters/host-common/observation.mjs",
+                "anchor": "const original = context?.owner === contextOwner ? context : undefined;"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "to resolve its metadata is counted before the final row aggregate closes; the"
+              },
+              {
+                "path": "adapters/host-common/observation.mjs",
+                "anchor": "id = resolveRunIdentity(context, rows.ref, true);"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "Missing and failed lookups are not positive facts; a new operation resolves its"
+              },
+              {
+                "path": "adapters/host-common/observation.mjs",
+                "anchor": "if (typeof id !== 'string' || id.length > 128) return undefined;"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "Retirement drops these identity aliases without acknowledging physical cleanup."
+              },
+              {
+                "path": "adapters/host-common/observation.mjs",
+                "anchor": "context.runIdentities = undefined;"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "operation and installation. The bounded holder contains copied identity values,"
+              },
+              {
+                "path": "adapters/host-common/observation.mjs",
+                "anchor": "Math.min(config.selected.requestRecords, config.selected.segmentRecords)) throw runIdentityLimit;"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "not permission, currentness, a prepared Run or a durable observation cache."
+              },
+              {
+                "path": "adapters/host-common/observation.test.mjs",
+                "anchor": "test('foreign Run identity projections do not borrow the current installation context'"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-common/observation.test.mjs",
+                "anchor": "test('Run identity lookup contributes its actual row before the final selected-row record closes'"
+              },
+              {
+                "path": "adapters/host-common/observation.test.mjs",
+                "anchor": "test('positive Run identity is reused only inside the same original operation and exact Run tuple'"
               }
             ]
           }

@@ -76,6 +76,18 @@ and partial-row reads retain their actual returned count but do not invent a
 complete unrelated-Run classification. A failed native get emits no empty-row
 fact. Startup aggregates, other Journal tables and Store/Checkpoint readers are
 outside this selected-reader coverage.
+
+Run ID correlation reuses only a positively resolved immutable identifier under
+the complete namespace, authority-scope and Run-definition tuple in that same
+operation and installation. The bounded holder contains copied identity values,
+not permission, currentness, a prepared Run or a durable observation cache.
+Missing and failed lookups are not positive facts; a new operation resolves its
+own original. Excluded or already limited records do not perform this lookup.
+The ending segment keeps the selected Run binding. Any real Journal read needed
+to resolve its metadata is counted before the final row aggregate closes; the
+aggregate emits with that private resolved fact rather than querying itself.
+Retirement drops these identity aliases without acknowledging physical cleanup.
+
 Measured Source/Model attempts use standard CLIENT span kind. Finite interval
 boundaries do not duplicate lifecycle logs or spend the discrete-log allowance
 merely because a caller polls status.
@@ -88,6 +100,16 @@ publication. Elapsed time does not fill unknown billable duration or usage.
 The common projection copies fixed fields into a bounded queue and delivers
 after `setImmediate`. The Host does not import an OTel SDK. SDK/HTTP propagation
 is a syntax-checked transport header outside canonical requests and authority.
+Delivery remains an application callback even on that later turn: it can overlap
+another active public operation. The existing installed projection retains an
+immutable callback-state identity, changed at callback entry and settlement,
+with an active flag until the actual delivery Promise settles. Synchronous
+application context callbacks also advance that identity. The same Host's Result
+authorization consumes this captured projection to observe current Account
+bytes after application reentry, or before a protected boundary while delivery
+remains active. Unchanged Account bytes retain their original typed evaluation;
+pure internal helpers, trusted reads and awaits do not advance callback state.
+This state grants no permission and supplies no delivery or resource-close ACK.
 The optional package uses private SDK providers and official protobuf serializers
 with an explicitly bounded HTTP sender. Application-owned providers remain
 application-owned and have the weaker contribution-only guarantee.
