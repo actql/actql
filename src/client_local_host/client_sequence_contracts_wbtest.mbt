@@ -147,3 +147,42 @@ test "shared contracts retain distinct original query sequence preparation" {
   assert_eq(b.length(), 1)
   assert_false(physical_equal(a[0], b[0]))
 }
+
+///|
+test "equal canonical identity does not replace exact original contract wires" {
+  let assets = @publication_host.client_local_product_assets()
+  let cached = Ref(None)
+  let reads = Ref(0)
+  let read = (registry, values, fragment, ordered) => {
+    reads.val += 1
+    read_client_local_sequence_contracts(registry, values, fragment, ordered)
+  }
+  let original = client_local_sequence_contracts(
+    assets.registry,
+    assets.values,
+    None,
+    None,
+    cached~,
+    read~,
+  ).unwrap()
+  let changed = client_local_sequence_contracts(
+    " " + assets.registry,
+    assets.values,
+    None,
+    None,
+    cached~,
+    read~,
+  ).unwrap()
+  assert_eq(reads.val, 2)
+  assert_false(physical_equal(original, changed))
+  let same = client_local_sequence_contracts(
+    " " + assets.registry,
+    assets.values,
+    None,
+    None,
+    cached~,
+    read~,
+  ).unwrap()
+  assert_eq(reads.val, 2)
+  assert_true(physical_equal(changed, same))
+}

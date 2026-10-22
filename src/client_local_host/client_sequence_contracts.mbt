@@ -109,6 +109,16 @@ fn client_local_sequence_contracts(
     (ordered_body is Some(body) && body.length() > 100000) {
     return None
   }
+  // Exact complete wires select the immutable typed facts. Equal CIDs or a
+  // changed optional extent cannot borrow an earlier admission. One entry
+  // bounds retention; a changed input replaces only pure contract DATA.
+  if cached.val is Some(original) &&
+    original.registry_body == registry_body &&
+    original.values_body == values_body &&
+    original.fragment_body == fragment_body &&
+    original.ordered_body == ordered_body {
+    return original.value
+  }
   let value = read(registry_body, values_body, fragment_body, ordered_body)
   cached.val = Some({
     registry_body,
