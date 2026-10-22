@@ -16,6 +16,7 @@ fn runtime_record(state : String, sequence : Int64) -> PublicationContract {
   {
     name: "publication_record",
     identity_field: "publication_record_cid",
+    wire_usage: None,
     identity: "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
     wire,
     value,

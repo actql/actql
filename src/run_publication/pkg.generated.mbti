@@ -736,6 +736,8 @@ pub fn publication_commit_failure_action_code(PublicationCommitFailureAction) ->
 
 pub fn publication_commit_preparation_fixture_phase(PublicationCommitPreparation) -> String
 
+pub fn publication_contract_check_limits(PublicationContract, Int, Int, Int) -> Result[Unit, PublicationContractIssue]
+
 pub fn publication_contract_effect_target_selections_cid(PublicationContract) -> String?
 
 pub fn publication_contract_identity(PublicationContract) -> String

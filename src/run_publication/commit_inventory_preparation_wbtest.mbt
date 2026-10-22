@@ -200,6 +200,7 @@ fn commit_cursor_index_probe(
   {
     name: index.name,
     identity_field: index.identity_field,
+    wire_usage: None,
     identity: index.identity,
     wire,
     value: parse_contract_wire(wire, 65536, 4096, 32).unwrap(),

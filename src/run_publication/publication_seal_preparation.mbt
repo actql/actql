@@ -302,7 +302,7 @@ fn PublicationSealPreparation::step(
           self.identity = Some(identity)
           self.shape(true)
         } else {
-          let wire = @encode.finish(writer)
+          let (wire, bytes, nodes, depth) = @encode.finish_text_usage(writer)
           self.writer = None
           self.contract = Some({
             name: self.spec.name,
@@ -310,6 +310,7 @@ fn PublicationSealPreparation::step(
             identity: self.identity.unwrap(),
             wire,
             value: self.value.unwrap(),
+            wire_usage: Some((bytes, nodes, depth)),
           })
           self.value = None
           self.phase = Done
