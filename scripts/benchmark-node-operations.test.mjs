@@ -1,10 +1,12 @@
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
+import {spawnSync} from 'node:child_process';
 import {mkdtemp, mkdir, readFile, writeFile, rm} from 'node:fs/promises';
 import {tmpdir, arch, platform, release, cpus, totalmem} from 'node:os';
 import {join} from 'node:path';
 import test from 'node:test';
-import {nodeBenchmarkInstrumentation, nodeWarmSmallQueryFixtures, runNodeWarmBenchmark, nodeWarmProtocol} from './benchmark-node-operations.mjs';
+import {nodeBenchmarkInstrumentation, nodeWarmSmallQueryFixtures, runNodeWarmBenchmark, nodeWarmProtocol,
+  nodePriorityProtocol, runNodePriorityBenchmark} from './benchmark-node-operations.mjs';
 
 const hash = bytes => createHash('sha256').update(bytes).digest('hex');
 test('known startup profiling cannot be labeled uninstrumented latency', () => {
@@ -167,3 +169,133 @@ for (const [wrong, operation] of [['join', 'warm-join'], ['union', 'warm-union']
     assert.equal(report.cleanup.closed, true); assert.equal(report.fullAcceptance, false);
   });
 }
+
+async function priorityFixture(t, fault = '', mode = 'diagnostic') {
+  const root = await mkdtemp(join(tmpdir(), 'actql-priority-collector-'));
+  t.after(() => rm(root, {recursive: true, force: true}));
+  const base = join(root, 'consumer/node_modules/@actql/node'); await mkdir(base, {recursive: true});
+  // Synthetic public-port sequencing only: no ordinary package, actual product
+  // duration, resource observation or safety qualification is supplied here.
+  const code = Buffer.from(`import assert from 'node:assert/strict';
+import {appendFile,mkdir,writeFile} from 'node:fs/promises';
+await writeFile(${JSON.stringify(join(root, 'imported'))},'yes');
+export async function open({stateDir}) {
+ await mkdir(stateDir); let closed=false;
+ const event=(kind,id)=>appendFile(stateDir+'/events',JSON.stringify({kind,id})+'\\n');
+ return {info:{stateDir},sql(text) {
+  let promise;
+  const ensure=()=>promise??=(async()=>{
+   const id=Number(/^SELECT (\\d+) AS id$/.exec(text)?.[1]);assert(Number.isInteger(id));await event('submit',id);
+   ${fault === 'unknown' ? "if(id===2)throw Object.assign(new Error('Unknown; no resend'),{code:'SubmissionUnknown'});" : ''}
+   const rows=${fault === 'wrong' ? 'id===2?[{id:999}]:[{id}]' : '[{id}]'};
+   const ref={id:${fault === 'same-run' ? "'same'" : 'id'}};
+   const execution={ref,result(name){assert.equal(name,'main');return{all:async()=>{await event('saved',id);return[{id}];}};}};
+   return{rows,selected:{ref:{run:ref,resultName:'main'},execution}};
+  })();
+  return{all:async()=>(await ensure()).rows,then:(resolve,reject)=>ensure().then(value=>value.selected).then(resolve,reject)};
+ },close:async()=>{assert(!closed);closed=true;await event('close',null);
+ ${fault === 'package' ? `await appendFile(${JSON.stringify(join(base, 'index.mjs'))},'\\n// changed during close\\n');` : ''}
+ }};
+}`);
+  await writeFile(join(base, 'index.mjs'), code, {mode: 0o644});
+  const tar = Buffer.from('synthetic package identity, not an ordinary tarball'); await writeFile(join(root, 'test.tgz'), tar);
+  const manifestPath = join(root, 'release.json');
+  await writeFile(manifestPath, JSON.stringify({sourceSha: 'a'.repeat(40), packages: [{name: '@actql/node',
+    file: 'test.tgz', bytes: tar.length, sha256: hash(tar), integrity: 'sha512-' + createHash('sha512').update(tar).digest('base64'),
+    files: [{path: 'index.mjs', bytes: code.length, mode: 0o644, sha256: hash(code)}]}]}));
+  const controlsPath = join(root, 'controls.json');
+  await writeFile(controlsPath, JSON.stringify({sourceSha: 'a'.repeat(40), cohortSha256: hash(await readFile(manifestPath)),
+    environment: {platform: platform(), arch: arch(), osRelease: release(), node: process.version,
+      cpuModel: cpus()[0].model, logicalCpus: cpus().length, memoryBytes: totalmem()}, load: 'isolated',
+    historyProtocolSha256: hash(Buffer.from(JSON.stringify(nodePriorityProtocol(mode))))}));
+  return {manifestPath, controlsPath, consumer: join(root, 'consumer'), output: join(root, 'new-priority'),
+    importMarker: join(root, 'imported'), mode};
+}
+const priorityEvents = async options => (await readFile(join(options.output, 'new-state/events'), 'utf8'))
+  .trim().split('\n').map(JSON.parse);
+
+test('priority collector binds varied new Runs and saved originals to raw rows without inventing missing work', async t => {
+  const options = await priorityFixture(t), report = await runNodePriorityBenchmark(options);
+  assert.equal(report.cleanup.closed, true); assert.equal(report.installedPayloadsUnchanged, true);
+  assert.equal(report.executionPath, 'node-sdk'); assert.equal(report.selection, 'priority-transition');
+  assert.deepEqual(report.publicCallAttempts, {sql: 4, savedResultAll: 3});
+  assert.equal(report.firstQuery.verified, true); assert.equal(report.latency.length, 2);
+  const [fresh, saved] = report.latency;
+  assert.equal(fresh.samples.length, 3); assert.equal(saved.samples.length, 3);
+  assert.equal(new Set(fresh.samples.map(row => row.runRefSha256)).size, 3);
+  assert.equal(new Set(saved.samples.map(row => row.resultRefSha256)).size, 3);
+  assert.equal(new Set(fresh.samples.map(row => row.actualSha256)).size, 3);
+  assert(fresh.samples.every(row => row.publicOperationId !== report.firstQuery.publicOperationId &&
+    row.runRefSha256 !== report.firstQuery.runRefSha256));
+  for (const series of report.latency) {
+    assert.equal(series.fixtureSha256, hash(Buffer.from(JSON.stringify(series.publicWorkload))));
+    assert(series.samples.every(row => row.pid === report.firstQuery.pid && row.hostId === report.firstQuery.hostId &&
+      row.stateId === report.firstQuery.stateId && row.verified));
+    const functional = report.functional.rows.find(row => row.operation === series.operation);
+    assert.equal(functional.completed, true);
+    assert.equal(functional.expectedSha256, hash(Buffer.from(JSON.stringify(series.samples.map(row => row.expectedSha256)))));
+    assert.equal(functional.actualSha256, hash(Buffer.from(JSON.stringify(series.samples.map(row => row.actualSha256)))));
+    assert.equal(Object.hasOwn(series, 'population'), false);
+  }
+  assert.deepEqual(report.priorityConditions, {startedHost: true});
+  assert.equal(report.priorityAssessment.status, 'incomplete'); assert.equal(report.fullAcceptance, false);
+  assert.equal(report.priorityAssessment.gates.node.checks['warm-select workload'].status, 'passed');
+  assert.equal(report.priorityAssessment.gates.node.checks['warm-result workload'].status, 'passed');
+  assert.deepEqual((await priorityEvents(options)).filter(row => row.kind === 'submit').map(row => row.id), [0, 1, 2, 3]);
+});
+test('priority final selection collects 100 synthetic samples per route without requiring the full SQLite profile', async t => {
+  const options = await priorityFixture(t, '', 'final'), report = await runNodePriorityBenchmark(options);
+  assert.deepEqual(report.latency.map(row => row.samples.length), [100, 100]);
+  assert.deepEqual(report.publicCallAttempts, {sql: 101, savedResultAll: 100});
+  assert.equal(report.savedOriginals.length, 3);
+  assert.equal(report.priorityAssessment.gates.node.checks['warm-select workload'].status, 'passed');
+  assert.equal(report.priorityAssessment.gates.node.checks['warm-result workload'].status, 'passed');
+  assert.equal(report.priorityAssessment.status, 'incomplete');
+  assert(report.priorityAssessment.gates.node.missing.some(reason => reason.includes('population')));
+  assert.equal(Object.hasOwn(report, 'comparison'), false);
+});
+test('priority Unknown stops at its first actual attempt with no stale Run identity or saved-read tail', async t => {
+  const options = await priorityFixture(t, 'unknown'), report = await runNodePriorityBenchmark(options);
+  assert.equal(report.firstFailure.code, 'SubmissionUnknown'); assert.equal(report.cleanup.closed, true);
+  assert.equal(report.latency.length, 1); assert.equal(report.latency[0].samples.length, 2);
+  const failed = report.latency[0].samples[1];
+  assert.equal(failed.verified, false); assert.equal(Object.hasOwn(failed, 'runRefSha256'), false);
+  assert.equal(Object.hasOwn(failed, 'actualSha256'), false); assert.equal(report.publicCallAttempts.savedResultAll, 0);
+  assert.deepEqual((await priorityEvents(options)).filter(row => row.kind === 'submit').map(row => row.id), [0, 1, 2]);
+});
+test('priority package-fence failure cannot retain a positive functional qualification', async t => {
+  const options = await priorityFixture(t, 'package'), report = await runNodePriorityBenchmark(options);
+  assert(report.packageFailure); assert.equal(report.cleanup.closed, true);
+  assert(report.functional.rows.every(row => row.completed === false && !Object.hasOwn(row, 'actualSha256')));
+  assert.equal(report.priorityAssessment.status, 'failed');
+});
+for (const fault of ['wrong', 'same-run']) {
+  test(`priority ${fault} refuses without continuing new submissions or saved reads`, async t => {
+    const options = await priorityFixture(t, fault), report = await runNodePriorityBenchmark(options);
+    assert.equal(report.firstFailure.operation, 'warm-select'); assert.equal(report.cleanup.closed, true);
+    assert.equal(report.latency.length, 1); assert.equal(report.functional.rows[0].completed, false);
+    assert.equal(report.publicCallAttempts.savedResultAll, 0);
+    assert.equal(report.publicCallAttempts.sql, fault === 'wrong' ? 3 : 2);
+    assert.equal(report.priorityAssessment.status, 'failed');
+  });
+}
+test('priority foreign protocol refuses before public import and cannot reuse a full-mode fixture identity', async t => {
+  const options = await priorityFixture(t), controls = JSON.parse(await readFile(options.controlsPath));
+  controls.historyProtocolSha256 = hash(Buffer.from(JSON.stringify(nodeWarmProtocol('diagnostic'))));
+  await writeFile(options.controlsPath, JSON.stringify(controls));
+  await assert.rejects(runNodePriorityBenchmark(options));
+  await assert.rejects(readFile(options.importMarker), {code: 'ENOENT'});
+});
+test('priority CLI emits raw observations but remains nonzero for missing population and safety evidence', async t => {
+  const options = await priorityFixture(t);
+  const result = spawnSync(process.execPath, [new URL('./benchmark-node-operations.mjs', import.meta.url).pathname,
+    '--selection', 'priority-transition', '--manifest', options.manifestPath, '--consumer', options.consumer,
+    '--output', options.output, '--controls', options.controlsPath, '--mode', options.mode], {encoding: 'utf8'});
+  assert.equal(result.signal, null); assert.equal(result.status, 1, result.stderr);
+  const printed = JSON.parse(result.stdout);
+  assert.equal(printed.selection, 'priority-transition'); assert.equal(printed.assessment.status, 'incomplete');
+  const raw = JSON.parse(await readFile(join(options.output, 'measurements.json')));
+  assert.deepEqual(raw.latency.map(row => row.samples.length), [3, 3]);
+  assert.equal(raw.cleanup.closed, true); assert.equal(raw.installedPayloadsUnchanged, true);
+  assert.equal(Object.hasOwn(raw.latency[0], 'population'), false);
+});
