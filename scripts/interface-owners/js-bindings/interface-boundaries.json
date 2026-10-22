@@ -37887,7 +37887,7 @@
     {
       "module": "adapters/host-node/embedded-local.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "0e14284cdbad75aebc9aedcc81afb1176c14e23652bf8115ce11c12feddfbffc",
+      "sha256": "eb9da33344c6aac73ac8115505c082045b562e67d6dc29b079b17572fcc79b46",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -38027,6 +38027,14 @@
           "name": "connectEmbeddedLocal/preparation/init:beforeResultPublicationOperation/init:beforeResultPublicationOperation",
           "parameters": [
             "operation"
+          ],
+          "async": false
+        },
+        {
+          "name": "connectEmbeddedLocal/preparation/init:bindManagedComputeRunObservation/init:bindManagedComputeRunObservation",
+          "parameters": [
+            "prepared",
+            "ref"
           ],
           "async": false
         },
@@ -38190,6 +38198,18 @@
           "parameters": [
             "source"
           ],
+          "async": false
+        },
+        {
+          "name": "connectEmbeddedLocal/preparation/init:managedComputeUsageReader/init:managedComputeUsageReader",
+          "parameters": [
+            "ref"
+          ],
+          "async": false
+        },
+        {
+          "name": "connectEmbeddedLocal/preparation/init:managedComputeUsageReader/init:managedComputeUsageReader/init:managedComputeUsageReader",
+          "parameters": [],
           "async": false
         },
         {
@@ -39045,6 +39065,13 @@
         {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/ingress/ingress",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/ingress/ingress#2",
+          "parameters": [
+            "ref"
+          ],
           "async": false
         },
         {
@@ -46990,6 +47017,117 @@
               {
                 "path": "adapters/host-node/ordinary-local-account.test.mjs",
                 "anchor": "test('ordinary Local preserves current Deny on the same Host and after reopening'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "connectEmbeddedLocal/preparation/init:bindManagedComputeRunObservation/init:bindManagedComputeRunObservation",
+            "connectEmbeddedLocal/preparation/init:managedComputeUsageReader/init:managedComputeUsageReader",
+            "connectEmbeddedLocal/preparation/init:managedComputeUsageReader/init:managedComputeUsageReader/init:managedComputeUsageReader",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/ingress/ingress#2"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The selected `resources` measurement copies only the fixed six limits and ten"
+              },
+              {
+                "path": "adapters/host-common/observation.mjs",
+                "anchor": "export function captureManagedRunObservation(projection, ref, readUsage) {"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The selected `resources` measurement copies only the fixed six limits and ten"
+              },
+              {
+                "path": "src/client_local_host/installed_managed_run.mbt",
+                "anchor": "pub fn installed_managed_run_usage("
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The selected `resources` measurement copies only the fixed six limits and ten"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "bindManagedComputeRunObservation(prepared, ref) {"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The selected `resources` measurement copies only the fixed six limits and ten"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "for (const key of Object.keys(record)) record[key] = undefined;"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The selected `resources` measurement copies only the fixed six limits and ten"
+              },
+              {
+                "path": "adapters/host-node/in-process-client.mjs",
+                "anchor": "try { yield* response.frames; consumed = true; }"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The selected `resources` measurement copies only the fixed six limits and ten"
+              },
+              {
+                "path": "adapters/host-common/observation.mjs",
+                "anchor": "catch {drop('resourceUnavailable'); return;}"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The selected `resources` measurement copies only the fixed six limits and ten"
+              },
+              {
+                "path": "adapters/host-node/in-process-result-observation.test.mjs",
+                "anchor": "test('partial or failed rows never fabricate quiescent usage and observation errors preserve rows'"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The selected `resources` measurement copies only the fixed six limits and ten"
+              },
+              {
+                "path": "adapters/host-common/observation.mjs",
+                "anchor": "const snapshot = Object.freeze({'actql.resource.scope': 'managed-run-ledger',"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The selected `resources` measurement copies only the fixed six limits and ten"
+              },
+              {
+                "path": "src/client_local_host/installed_managed_run.mbt",
+                "anchor": "/// values, not a measurement of process memory or physical cleanup."
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-common/observation.test.mjs",
+                "anchor": "test('managed usage retains one original reader and operation correlation across row consumption'"
+              },
+              {
+                "path": "adapters/host-node/embedded-managed-compute-lifecycle.test.mjs",
+                "anchor": "test('managed usage reader selects only the same admitted Run and releases its installation alias'"
               }
             ]
           }

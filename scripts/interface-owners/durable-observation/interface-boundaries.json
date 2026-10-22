@@ -246,8 +246,9 @@
     {
       "module": "adapters/host-common/observation.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "5a16f8a087da52def2779a7fbcfbc399fee713a7ab6c0366f325bb677d1f18fd",
+      "sha256": "d5d7d8eeb143bb5a30227a1483c728868c475e8ed235cdbb3f3ffada4521796d",
       "exports": [
+        "captureManagedRunObservation",
         "createHostObservationConnection",
         "installHostObservation",
         "isHostObservationProjection",
@@ -259,6 +260,29 @@
         "validObservationContext"
       ],
       "operations": [
+        {
+          "name": "<anonymous>",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "<anonymous>#2",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureManagedRunObservation",
+          "parameters": [
+            "projection",
+            "ref",
+            "readUsage"
+          ],
+          "async": false
+        },
         {
           "name": "cid/cid",
           "parameters": [
@@ -379,6 +403,24 @@
           "async": false
         },
         {
+          "name": "installHostObservation/projection/init:captureManagedRun/init:captureManagedRun",
+          "parameters": [
+            "ref",
+            "readUsage"
+          ],
+          "async": false
+        },
+        {
+          "name": "installHostObservation/projection/init:captureManagedRun/init:captureManagedRun/init:captureManagedRun",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installHostObservation/projection/init:captureManagedRun/init:captureManagedRun/init:captureManagedRun/init:captureManagedRun",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "installHostObservation/projection/init:close/init:close",
           "parameters": [],
           "async": true
@@ -400,18 +442,23 @@
         },
         {
           "name": "installHostObservation/projection/projection",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installHostObservation/projection/projection#2",
           "parameters": [
             "operation"
           ],
           "async": false
         },
         {
-          "name": "installHostObservation/projection/projection#2",
+          "name": "installHostObservation/projection/projection#3",
           "parameters": [],
           "async": false
         },
         {
-          "name": "installHostObservation/projection/projection#3",
+          "name": "installHostObservation/projection/projection#4",
           "parameters": [],
           "async": false
         },
@@ -458,6 +505,37 @@
           "async": false
         },
         {
+          "name": "managedRunResources",
+          "parameters": [
+            "values"
+          ],
+          "async": false
+        },
+        {
+          "name": "managedRunResources/fields/fields",
+          "parameters": [
+            "names",
+            "offset",
+            "kind"
+          ],
+          "async": false
+        },
+        {
+          "name": "managedRunResources/fields/fields/fields",
+          "parameters": [
+            "name",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "managedRunResources/managedRunResources",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
           "name": "observationTraceParent",
           "parameters": [
             "headers"
@@ -477,6 +555,20 @@
           "name": "recordEvents/recordEvents",
           "parameters": [
             "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "resourceAttribute/resourceAttribute",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "resourceAttribute/resourceAttribute/resourceAttribute",
+          "parameters": [
+            "letter"
           ],
           "async": false
         },
@@ -641,6 +733,128 @@
               {
                 "path": "docs/development/durable-owner-interface.md",
                 "anchor": "| Verification |"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "<anonymous>",
+            "<anonymous>#2",
+            "captureManagedRunObservation",
+            "installHostObservation/projection/init:captureManagedRun/init:captureManagedRun",
+            "installHostObservation/projection/init:captureManagedRun/init:captureManagedRun/init:captureManagedRun",
+            "installHostObservation/projection/init:captureManagedRun/init:captureManagedRun/init:captureManagedRun/init:captureManagedRun",
+            "installHostObservation/projection/projection#4",
+            "managedRunResources",
+            "managedRunResources/fields/fields",
+            "managedRunResources/fields/fields/fields",
+            "managedRunResources/managedRunResources",
+            "resourceAttribute/resourceAttribute",
+            "resourceAttribute/resourceAttribute/resourceAttribute"
+          ],
+          "exports": [
+            "captureManagedRunObservation"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The selected `resources` measurement copies only the fixed six limits and ten"
+              },
+              {
+                "path": "adapters/host-common/observation.mjs",
+                "anchor": "export function captureManagedRunObservation(projection, ref, readUsage) {"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The selected `resources` measurement copies only the fixed six limits and ten"
+              },
+              {
+                "path": "src/client_local_host/installed_managed_run.mbt",
+                "anchor": "pub fn installed_managed_run_usage("
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The selected `resources` measurement copies only the fixed six limits and ten"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "bindManagedComputeRunObservation(prepared, ref) {"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The selected `resources` measurement copies only the fixed six limits and ten"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "for (const key of Object.keys(record)) record[key] = undefined;"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The selected `resources` measurement copies only the fixed six limits and ten"
+              },
+              {
+                "path": "adapters/host-node/in-process-client.mjs",
+                "anchor": "try { yield* response.frames; consumed = true; }"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The selected `resources` measurement copies only the fixed six limits and ten"
+              },
+              {
+                "path": "adapters/host-common/observation.mjs",
+                "anchor": "catch {drop('resourceUnavailable'); return;}"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The selected `resources` measurement copies only the fixed six limits and ten"
+              },
+              {
+                "path": "adapters/host-node/in-process-result-observation.test.mjs",
+                "anchor": "test('partial or failed rows never fabricate quiescent usage and observation errors preserve rows'"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The selected `resources` measurement copies only the fixed six limits and ten"
+              },
+              {
+                "path": "adapters/host-common/observation.mjs",
+                "anchor": "const snapshot = Object.freeze({'actql.resource.scope': 'managed-run-ledger',"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The selected `resources` measurement copies only the fixed six limits and ten"
+              },
+              {
+                "path": "src/client_local_host/installed_managed_run.mbt",
+                "anchor": "/// values, not a measurement of process memory or physical cleanup."
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-common/observation.test.mjs",
+                "anchor": "test('managed usage retains one original reader and operation correlation across row consumption'"
+              },
+              {
+                "path": "adapters/host-node/embedded-managed-compute-lifecycle.test.mjs",
+                "anchor": "test('managed usage reader selects only the same admitted Run and releases its installation alias'"
               }
             ]
           }
