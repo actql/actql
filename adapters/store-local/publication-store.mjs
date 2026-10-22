@@ -6931,10 +6931,14 @@ async function openOriginalLocalPublicationStore(
   };
 
   const recoverPreparedSchemas = async () => {
+    const names = await readdir(preparedSchemasDirectory);
+    // No pending original means there is no schema recovery transition to
+    // confirm. Selected reads and later mutations keep their own real ACKs.
+    if (names.length === 0) return Object.freeze([]);
     await syncDirectory(contractsDirectory);
     await syncDirectory(objectsDirectory);
     const recovered = [];
-    for (const name of await readdir(preparedSchemasDirectory)) {
+    for (const name of names) {
       if (!custodyNamePattern.test(name)) {
         fail('InvalidPublicationPreparedSchema');
       }
