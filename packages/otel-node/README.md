@@ -66,8 +66,10 @@ authorization. Baggage and tracestate are neither propagated nor persisted.
 - The adopted `operations: {include, exclude}` form selects the same categories;
   do not combine it with flat `include`/`exclude`. `measurements: {include,
   exclude}` selects registered groups independently of trace sampling. Only
-  `duration` is currently available from these observation hooks. Other selected
-  groups remain explicitly unavailable, never invented as zero. `cost` requires
+  `duration` and fixed original managed-Run `resources` log attributes are
+  available from the Host hooks. Resource counters are exact decimal strings,
+  not heap, Store or physical cleanup measurements; they are not metric labels.
+  Other selected groups remain explicitly unavailable, never invented as zero. `cost` requires
   a pricing source and is rejected in this profile. Excluding duration suppresses
   its metric instruments; actual span interval timestamps remain truthful.
 - `correlation: {include, exclude}` selects `run`, `task`, `attempt` and

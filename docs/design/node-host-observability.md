@@ -32,6 +32,13 @@ Discrete verified facts use correlated log records, including Model attempt
 receipts. They do not create instant spans or duplicate Span Events. Only a
 measured finite segment or task produces a duration span. Logical
 work/accounting is not inferred from these clocks.
+The selected `resources` measurement copies only the fixed six limits and ten
+usage counters returned by the same nominal managed Run Ledger. Decimal strings
+preserve the full integer range. The original Run and captured public-operation
+context correlate that observation after actual row consumption. An unavailable
+or retired reader and queue loss remain explicit; they do not become zero usage.
+These logical counters exclude durable Store history, shared Host holdings and
+JavaScript heap/RSS, and supply neither capacity nor a physical cleanup receipt.
 Measured Source/Model attempts use standard CLIENT span kind. Finite interval
 boundaries do not duplicate lifecycle logs or spend the discrete-log allowance
 merely because a caller polls status.
