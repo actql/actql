@@ -1175,6 +1175,24 @@ test('private evidence selected read retains its consuming FD through failed clo
   }
 });
 
+test('private evidence selected extent and missing payload keep their original refusals', async t => {
+  const f = await privateReadFixture(t);
+  const bytes = await readFile(f.holdingPath), record = JSON.parse(bytes);
+  try {
+    for (const delta of [-1, 1]) {
+      await writeFile(f.holdingPath, JSON.stringify({...record,
+        objects: record.objects.map(object => ({...object, byte_count: object.byte_count + delta}))}));
+      await assert.rejects(f.store.readPrivateEvidence('effect_preview', f.semanticCid, f.holdingCid),
+        code('InvalidPublicationPhysicalHoldingStore'));
+    }
+  } finally {await writeFile(f.holdingPath, bytes);}
+  await unlink(f.payloadPath);
+  await assert.rejects(f.store.readPrivateEvidence('effect_preview', f.semanticCid, f.holdingCid),
+    code('PublicationObjectMissing'));
+  assert.deepEqual(await readFile(f.holdingPath), bytes,
+    'A selected unavailable payload never repairs or retires its original ownership');
+});
+
 test('private evidence is encrypted, bound, and readable after restart',
   async t => {
     const suppliedKey = Buffer.alloc(32, 7);

@@ -3758,7 +3758,7 @@ async function openOriginalLocalPublicationStore(
         throw error;
       }
       if (receivedBytes !== expectedBytes) {
-        fail('PublicationPrivateEvidenceCorrupt');
+        fail('InvalidPublicationPhysicalHoldingStore');
       }
       try {
         let envelope;
