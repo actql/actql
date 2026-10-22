@@ -2534,6 +2534,23 @@ test('ordinary opening observes unchanged namespaces without directory acknowled
   await reopened.close();
 });
 
+test('unchanged opening staging and clock directories require no new durability acknowledgement', async t => {
+  const {store, directory, configuration} = await fixture(t);
+  await store.close();
+  const selected = ['staging', 'prepared-schemas', 'metadata-deletions', 'clocks']
+    .map(name => join(directory, name));
+  const acknowledgements = [];
+  const reopened = await openLocalPublicationStore(configuration, contractControl, {async syncDirectory(path) {
+    acknowledgements.push(path);
+    const handle = await open(path, 'r');
+    try {await handle.sync();} finally {await handle.close();}
+  }});
+  try {
+    assert.deepEqual(acknowledgements.filter(path => selected.includes(path)), [],
+      'unchanged private directories do not create a durable transition');
+  } finally {await reopened.close();}
+});
+
 test('ordinary opening retains an existing holding without ACK and selected writes still require their own ACK', async t => {
   const {store,directory,configuration}=await fixture(t);
   const bytes=Buffer.from('same holding through read-only open');
