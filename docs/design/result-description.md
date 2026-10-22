@@ -192,6 +192,30 @@ failure. Healthy appends perform no confirming reread.
 Run metadata retirement selects its indexed attempts and records, removes
 their actual bodies, and retires their locators with the existing Run fence.
 
+### Captured computation fact lifetime
+
+The completed Effect-free capture may retain its original typed computation
+facts through the same publication. The private runtime association belongs to
+the exact captured wrapper and original preparation, not an externally supplied
+Boolean or an authorization cache. Chain and commit checks still validate their
+selected original contracts, ordered inventories and supported bounds. Restored,
+foreign, changed or unsupported tighter inputs use full validation; new Result,
+Binding, request, attempt, Index, current permission and CAS checks remain.
+
+The optional internal `retireCapturedComputation(capturedRun)` operation releases
+only that preparation's managed aliases. The completed caller retires a capture
+cancelled before publication entry; after entry, publication owns the original
+retirement method and receiver. Ordinary terminal success or failure retires it
+once. A publication Unknown instead transfers it to the existing reconciliation
+handle, retaining the same semantic checks through failed and pending retries.
+The retry flight is installed before any original callback can reenter.
+
+A finished retry is not necessarily settled cleanup. Only resolved reconciliation
+with the same upstream non-pending observation retires the fact and clears the
+reconciliation/retirement closures. Status reads, timeouts, process exit and a
+pending upstream do not. Physical payload/Source/native/FD duties retain their
+existing independent cleanup and ACKs; this alias retirement supplies none.
+
 The private database format adds the attempt/sequence tables in one bounded
 schema transition. Existing file progress is not imported or re-admitted on
 every open. Missing adopted tables or index refuse rather than recreating

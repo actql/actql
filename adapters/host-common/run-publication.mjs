@@ -572,7 +572,10 @@ function uncertainFailure(
             // Neither that action nor a status observation retires the facts.
             if (resolved && !cleanup.pending && !computationRetired) {
               computationRetired = true;
-              retireComputation?.();
+              const retire = retireComputation;
+              retireComputation = undefined;
+              reconcile = undefined;
+              retire?.();
             }
             break;
           }

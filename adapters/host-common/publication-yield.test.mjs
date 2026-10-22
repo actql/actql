@@ -344,6 +344,50 @@ test('publication computation lifetime stays with failed or pending Unknown and 
   await error.cleanupHandle.retry(); assert.equal(retired, 1);
 });
 
+test('publication computation lifetime transfers through the actual Unknown return and commit validation', async () => {
+  const text = readFileSync(new URL('./run-publication.mjs', import.meta.url), 'utf8');
+  let block;
+  function visit(node) {
+    if (!node || typeof node !== 'object') return;
+    if (node.type === 'IfStatement' && node.test.type === 'BinaryExpression' &&
+        node.test.left.name === 'action' && node.test.right.value === 'return_unknown') {
+      assert.equal(block, undefined); block = node.consequent;
+    }
+    for (const value of Object.values(node)) {
+      if (Array.isArray(value)) value.forEach(visit); else if (value && typeof value === 'object') visit(value);
+    }
+  }
+  visit(parse(text, {ecmaVersion: 'latest', sourceType: 'module'})); assert(block);
+  const names = ['uncertainFailure', 'primary', 'reconciliationFailure', 'recordFailure', 'control',
+    'lookupCommit', 'validateCommit', 'finishResolvedCommit', 'store', 'publicationAttempt',
+    'index', 'now', 'limits', 'publicationRequest', 'withPublicationCleanup', 'computationLifetime'];
+  const originalUnknownReturn = new Function(...names, text.slice(block.start, block.end));
+  let loops, retired = 0, reads = 0, validations = 0, finalized = 0;
+  const captured = Object.freeze({original: 'capture'}), selected = Object.freeze({original: 'Index'});
+  const attempt = Object.freeze({original: 'attempt'}), store = Object.freeze({original: 'Store'});
+  const primary = new Error('original commit reply unavailable');
+  const control = {retireCapturedComputation(value) {assert.strictEqual(value, captured); retired++;},
+    publicationUnknownRetryAction: resolved => resolved ? 'finished' : 'reconcile'};
+  loops = publicationLifetimeLoops(async (_options, _effectful, lifetime) => originalUnknownReturn(
+    loops.uncertainFailure, primary, undefined, undefined, control,
+    async () => {reads++; return {index: selected};},
+    async value => {assert.strictEqual(value, selected); assert.equal(retired, 0); validations++;},
+    async (actualStore, actualControl, actualAttempt, _candidate, actualIndex) => {
+      assert.strictEqual(actualStore, store); assert.strictEqual(actualControl, control);
+      assert.strictEqual(actualAttempt, attempt); assert.strictEqual(actualIndex, selected);
+      assert.equal(retired, 0); finalized++; return {winner: attempt};
+    }, store, attempt, selected, () => 'original-time', {}, Object.freeze({original: 'request'}),
+    value => Object.freeze(value), lifetime));
+  let failure;
+  await assert.rejects(loops.publishEffectFreeRun({control, evidence: {capturedRun: captured}}), error => {
+    failure = error; return error.code === 'RunPublicationUnknown' && error.primaryFailure === primary;
+  });
+  assert.equal(retired, 0); assert.equal(reads, 0);
+  assert.equal((await failure.cleanupHandle.retry()).pending, false);
+  assert.equal(failure.publicationResult.state, 'succeeded');
+  assert.equal(reads, 1); assert.equal(validations, 1); assert.equal(finalized, 1); assert.equal(retired, 1);
+});
+
 test('publication computation lifetime latches retry before synchronous original reconciliation reentry', async () => {
   const loops = publicationLifetimeLoops();
   let error, nested, entered = false, reconciliations = 0, retired = 0;
