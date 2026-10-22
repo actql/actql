@@ -14,7 +14,7 @@ import {validatePerformancePackageProducer, inspectPerformancePackageProducer,
   prepareOrdinaryPerformanceConsumer, combineOrdinaryPerformanceMeasurements,
   validatePerformanceProcessPackageProducer, prepareOrdinaryNativePerformanceConsumer} from './ordinary-operation-packages.mjs';
 import {readFixedSQLiteComparison} from './ordinary-operation-packages.mjs';
-import {nodeOperationProtocol, nodeWarmSmallQueryFixtures} from './benchmark-node-operations.mjs';
+import {nodeOperationProtocol, nodePriorityProtocol, nodeWarmSmallQueryFixtures} from './benchmark-node-operations.mjs';
 import {assessPerformanceEvidence, calibrateSqliteComparisonProfile} from './operation-performance.mjs';
 import {syntheticSQLiteBaseline, syntheticResultStorageControl} from './fixtures/operation-performance-comparison.mjs';
 
@@ -157,6 +157,33 @@ test('existing five tarballs become the collector manifest and a fresh ordinary-
   assert.equal(controls.historyProtocolSha256, hash(JSON.stringify(nodeOperationProtocol('final'))));
   await assert.rejects(prepareOrdinaryPerformanceConsumer({...p, install: syntheticInstall}));
 });
+test('priority consumer controls bind the explicit protocol without inventing experiment observations', async t => {
+  for (const mode of ['diagnostic', 'final']) {
+    const p = await packages(t);
+    const result = await prepareOrdinaryPerformanceConsumer({...p, install: syntheticInstall,
+      selection: 'priority-transition', mode});
+    const controls = JSON.parse(await readFile(result.controlsPath));
+    assert.equal(controls.historyProtocolSha256, hash(JSON.stringify(nodePriorityProtocol(mode))));
+    assert.equal(controls.cohortSha256, hash(await readFile(result.manifestPath)));
+    assert.equal(controls.sourceSha, sha);
+    for (const key of ['comparison', 'priorityConditions', 'population', 'boundaries']) {
+      assert.equal(Object.hasOwn(controls, key), false, `${key} must come from actual observation`);
+    }
+  }
+});
+test('unknown or mixed priority preparation options refuse before installation', async t => {
+  for (const options of [
+    {selection: 'unknown'}, {mode: 'diagnostic'},
+    {selection: 'priority-transition', mode: 'unknown'},
+    {selection: 'priority-transition', comparisonPath: 'unused'},
+  ]) {
+    const p = await packages(t); let installs = 0;
+    await assert.rejects(prepareOrdinaryPerformanceConsumer({...p, ...options,
+      install: () => { installs++; }}));
+    assert.equal(installs, 0);
+    await assert.rejects(readFile(join(p.output, 'controls.json')), {code: 'ENOENT'});
+  }
+});
 test('a missing or corrupted original tarball cannot trigger install or build fallback', async t => {
   for (const corrupt of [false, true]) {
     const p = await packages(t); let installs = 0;
@@ -196,11 +223,39 @@ test('CLI uses an unchanged checkout and actual default npm installation of only
   assert.equal(JSON.parse(await readFile(join(p.output, 'consumer/node_modules/@actql/node/package.json'))).name, '@actql/node');
   assert.equal(execFileSync('git', ['status', '--porcelain'], {cwd: repository, encoding: 'utf8'}), '');
 });
+test('priority CLI prepares the tested protocol from retained synthetic tarballs', async t => {
+  const p = await packages(t), repository = join(p.root, 'checkout');
+  await mkdir(repository);
+  execFileSync('git', ['init', '-q'], {cwd: repository});
+  execFileSync('git', ['-c', 'user.name=Test', '-c', 'user.email=test@example.invalid',
+    '-c', 'commit.gpgsign=false', 'commit', '--allow-empty', '-qm', 'test: synthetic source'], {cwd: repository});
+  const source = execFileSync('git', ['rev-parse', 'HEAD'], {cwd: repository, encoding: 'utf8'}).trim();
+  const file = join(p.packages, 'packed-client-packages.json');
+  const manifest = JSON.parse(await readFile(file)); manifest.revision = source;
+  await writeFile(file, JSON.stringify(manifest));
+  const script = fileURLToPath(new URL('./ordinary-operation-packages.mjs', import.meta.url));
+  const argv = [script, 'prepare', p.packages, source, p.output,
+    '--selection', 'priority-transition', '--mode', 'diagnostic'];
+  const options = {cwd: repository, env: {...process.env, npm_config_cache: join(p.root, 'npm-cache')},
+    encoding: 'utf8', timeout: 30_000};
+  const duplicate = spawnSync(process.execPath, [...argv, '--mode', 'final'], options);
+  assert.notEqual(duplicate.status, 0);
+  assert.match(duplicate.stderr, /Unknown or duplicate preparation option/u);
+  const result = spawnSync(process.execPath, argv, options);
+  assert.equal(result.status, 0, result.stderr);
+  const controls = JSON.parse(await readFile(join(p.output, 'controls.json')));
+  assert.equal(controls.historyProtocolSha256, hash(JSON.stringify(nodePriorityProtocol('diagnostic'))));
+  assert.equal(controls.sourceSha, source);
+  assert.equal(Object.hasOwn(controls, 'comparison'), false);
+  assert.equal(Object.hasOwn(controls, 'priorityConditions'), false);
+  assert.equal(execFileSync('git', ['status', '--porcelain'], {cwd: repository, encoding: 'utf8'}), '');
+});
 
 test('controlled performance check consumes existing artifacts and cannot omit failed or missing raw assessment', () => {
   const workflow = parse(readFileSync(new URL('../.github/workflows/performance-matrix.yml', import.meta.url), 'utf8'));
   const ci = parse(readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8'));
   assert.deepEqual(ci.jobs['performance-matrix'].with, {
+    'priority-node-mode': '${{ inputs.performance_priority_node_mode }}',
     'package-run-id': '${{ inputs.performance_package_run_id }}',
     'package-artifact-id': '${{ inputs.performance_package_artifact_id }}',
     'native-package-run-id': '${{ inputs.performance_native_package_run_id }}',

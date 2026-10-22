@@ -3,6 +3,12 @@ name: Registered performance matrix
 on:
   workflow_dispatch:
     inputs:
+      priority-node-mode:
+        description: Node priority collector sample selection; final is for a plausible fixed candidate
+        type: choice
+        options: [diagnostic, final]
+        default: diagnostic
+        required: false
       package-run-id:
         description: Completed same-source normal CI run supplying existing Client tarballs
         type: string
@@ -37,6 +43,10 @@ on:
         required: true
   workflow_call:
     inputs:
+      priority-node-mode:
+        type: string
+        default: diagnostic
+        required: false
       package-run-id:
         type: string
         required: true
@@ -318,9 +328,66 @@ jobs:
             ${{ runner.temp }}/ordinary-python/assessment.json
           if-no-files-found: warn
           retention-days: 30
+  ordinary-node-priority:
+    name: Ordinary Node priority collector
+    if: ${{ vars.ACTQL_MAIN_CI_ENABLED == 'true' && github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: 22.22.0
+      - name: Validate the original normal package producer
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          PACKAGE_RUN_ID: ${{ inputs.package-run-id }}
+          PACKAGE_ARTIFACT_ID: ${{ inputs.package-artifact-id }}
+        run: |
+          mkdir "$RUNNER_TEMP/ordinary-node-priority"
+          node scripts/ordinary-operation-packages.mjs inspect-producer > "$RUNNER_TEMP/ordinary-node-priority/producer.json"
+      - name: Reuse the exact existing normal package artifact
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          github-token: ${{ github.token }}
+          run-id: ${{ inputs.package-run-id }}
+          artifact-ids: ${{ inputs.package-artifact-id }}
+          path: ${{ runner.temp }}/ordinary-node-priority/packages
+          merge-multiple: true
+      - name: Bind the selected priority protocol to a fresh ordinary consumer
+        env:
+          PRIORITY_MODE: ${{ inputs.priority-node-mode }}
+        run: |
+          node scripts/ordinary-operation-packages.mjs prepare \
+            "$RUNNER_TEMP/ordinary-node-priority/packages" "$GITHUB_SHA" \
+            "$RUNNER_TEMP/ordinary-node-priority/prepared" \
+            --selection priority-transition --mode "$PRIORITY_MODE"
+      - name: Collect actual varied public priority operations
+        env:
+          PRIORITY_MODE: ${{ inputs.priority-node-mode }}
+        run: |
+          node scripts/benchmark-node-operations.mjs \
+            --manifest "$RUNNER_TEMP/ordinary-node-priority/packages/ordinary-operation-packages.json" \
+            --consumer "$RUNNER_TEMP/ordinary-node-priority/prepared/consumer" \
+            --output "$RUNNER_TEMP/ordinary-node-priority/measurement" \
+            --controls "$RUNNER_TEMP/ordinary-node-priority/prepared/controls.json" \
+            --selection priority-transition --mode "$PRIORITY_MODE"
+      - name: Retain original priority raw reports and incomplete outcomes
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: ordinary-node-priority-${{ github.sha }}
+          path: ${{ runner.temp }}/ordinary-node-priority/
+          if-no-files-found: warn
+          retention-days: 30
   ordinary-priority-assessment:
     name: Ordinary Node and Python priority checkpoint
-    needs: [ordinary-operations, ordinary-python]
+    needs: [ordinary-node-priority, ordinary-python]
     if: ${{ vars.ACTQL_MAIN_CI_ENABLED == 'true' && github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && always() }}
     runs-on: ubuntu-24.04
     timeout-minutes: 5
@@ -338,7 +405,7 @@ jobs:
         if: always()
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
-          name: ordinary-operation-performance-${{ github.sha }}
+          name: ordinary-node-priority-${{ github.sha }}
           path: ${{ runner.temp }}/ordinary-priority/node
       - name: Download original Python operation reports
         if: always()
@@ -360,7 +427,7 @@ jobs:
           const input = {sourceSha, platforms: {node: [], python: []}};
           const operations = ['warm-select', 'warm-result'];
           const paths = {
-            node: [join(root, 'node', 'measurement', 'warm', 'measurements.json')],
+            node: [join(root, 'node', 'measurement', 'measurements.json')],
             python: operations.map(operation => join(root, 'python',
               `ordinary-python-${operation}-${sourceSha}`, 'measurement', 'measurements.json')),
           };

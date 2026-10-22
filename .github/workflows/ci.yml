@@ -17,6 +17,11 @@ on:
         description: Run the registered performance matrix at this revision
         type: boolean
         default: false
+      performance_priority_node_mode:
+        description: Priority Node samples; final is for a plausible fixed candidate
+        type: choice
+        options: [diagnostic, final]
+        default: diagnostic
       performance_package_run_id:
         description: Completed same-source normal CI run supplying existing Client tarballs
         type: string
@@ -96,6 +101,7 @@ jobs:
       contents: read
       actions: read
     with:
+      priority-node-mode: ${{ inputs.performance_priority_node_mode }}
       package-run-id: ${{ inputs.performance_package_run_id }}
       package-artifact-id: ${{ inputs.performance_package_artifact_id }}
       native-package-run-id: ${{ inputs.performance_native_package_run_id }}
@@ -777,7 +783,7 @@ jobs:
       - name: Test durable Checkpoint journal and resumed dispatch admission
         run: npm run check:checkpoint-runtime
       - name: Test operation authorization and unchanged Run observations
-        run: node --test adapters/host-node/authorization-account-current.test.mjs adapters/host-node/local-account-current.test.mjs adapters/host-node/client-run-state-revision.test.mjs adapters/host-node/client-run-observation-reuse.test.mjs adapters/host-node/client-run-stop-observation.test.mjs adapters/host-node/embedded-managed-compute-projection.test.mjs adapters/host-node/embedded-managed-compute-lifecycle.test.mjs adapters/host-node/embedded-source-environment-scope.test.mjs adapters/host-node/client-original-submitted-intent.test.mjs
+        run: node --test adapters/host-node/authorization-account-current.test.mjs adapters/host-node/local-account-current.test.mjs adapters/host-node/client-run-state-revision.test.mjs adapters/host-node/client-run-observation-reuse.test.mjs adapters/host-common/run-state-clock-order.test.mjs adapters/host-node/client-run-stop-observation.test.mjs adapters/host-node/embedded-managed-compute-projection.test.mjs adapters/host-node/embedded-managed-compute-lifecycle.test.mjs adapters/host-node/embedded-source-environment-scope.test.mjs adapters/host-node/client-original-submitted-intent.test.mjs
       - name: Test native retained task file ownership
         run: npm run check:native-retained-task-file
       - name: Test portable Remote Transfer owner package

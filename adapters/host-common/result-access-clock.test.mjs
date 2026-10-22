@@ -21,7 +21,8 @@ function fixture(api, options = {}) {
   const state = {wall: instant(0), bound: undefined, observations: 0,
     admissions: [], authorizations: [], availability: [], grantChecks: [],
     attempts: [], records: [], chunks: [], finishes: 0,
-    contractReads: [], indexObservations: 0, replacementIndex: undefined, operations: []};
+    contractReads: [], indexObservations: 0, selectedObservations: 0,
+    replacementIndex: undefined, operations: []};
   const retentionEnd = options.retentionEnd ?? instant(100);
   const grantEnd = options.grantEnd ?? instant(100);
   const publication = (name, value) => options.mutableContracts
@@ -88,6 +89,15 @@ function fixture(api, options = {}) {
       async accept => { await accept('{"id":1}'); });
     },
   };
+  if (options.selectedPublication !== undefined) {
+    store.readCommittedPublication = options.selectedPublication === null ? null : async function () {
+      assert.strictEqual(this, store);
+      state.selectedObservations++;
+      if (typeof options.selectedPublication === 'function') return options.selectedPublication();
+      return Object.freeze({entry: Object.freeze({public_index_entry_cid: index.identity,
+        result_manifest_cid: manifest.identity}), index});
+    };
+  }
   if (options.legacy) delete store.sampleTrustedClock;
   const control = {...semantic,
     // This time-handoff fixture issues bounded contract doubles, not the
@@ -125,7 +135,10 @@ function fixture(api, options = {}) {
     issueResultDeliveryReceipt: () => contract('result_delivery_receipt', 'c'),
   };
   const authority = api.installResultAccessAuthority({
-    authorizeResultReadRequest: (_facts, operation) => {state.operations.push(operation); return true;},
+    authorizeResultReadRequest: (facts, operation) => {
+      state.operations.push(operation);
+      return options.authorizeRequest?.(facts) ?? true;
+    },
     admitResultRead(facts, operation) {
       state.operations.push(operation);
       state.admissions.push(facts);
@@ -153,6 +166,61 @@ function fixture(api, options = {}) {
       },
       async finish() { state.finishes++; return {confirmed: true}; },
     })};
+}
+
+for (const [name, api] of [['source', source], ['packaged', packaged]]) {
+  test(`${name}: Result resolution consumes the same selected publication original`, async () => {
+    const input = fixture(api, {selectedPublication: true});
+    input.configuration.store.readCommittedPublication = () => assert.fail('Use the captured original');
+    await input.deliver();
+    assert.equal(input.state.selectedObservations, 1);
+    assert.equal(input.state.indexObservations, 1, 'Final delivery head confirmation remains');
+    assert.deepEqual(input.state.contractReads, ['result_manifest', 'result_retention_policy']);
+    assert.equal(input.state.attempts.length, 1);
+    assert.deepEqual(input.state.chunks, ['{"id":1}\n']);
+    await input.deliver();
+    assert.equal(input.state.selectedObservations, 2, 'A new public operation reacquires its original');
+    assert.equal(input.state.indexObservations, 2);
+  });
+
+  test(`${name}: Result selected publication errors are not a legacy fallback`, async () => {
+    for (const [read, code] of [
+      [() => undefined, 'ResultAccessDenied'],
+      [() => null, 'InvalidCommittedPublicationState'],
+      [() => ({entry: {}, index: null}), 'InvalidCommittedPublicationState'],
+      [() => { throw Object.assign(new Error('read failed'), {code: 'EIO'}); }, 'EIO'],
+    ]) {
+      const input = fixture(api, {selectedPublication: read});
+      await assert.rejects(input.deliver(), {code});
+      assert.equal(input.state.selectedObservations, 1);
+      assert.equal(input.state.indexObservations, 0);
+      assert.equal(input.state.contractReads.length, 0);
+      assert.equal(input.state.attempts.length, 0);
+      assert.equal(input.state.chunks.length, 0);
+    }
+    assert.throws(() => fixture(api, {selectedPublication: null}), {code: 'InvalidResultAccessService'});
+  });
+
+  test(`${name}: selected Result resolution keeps current denial and final target confirmation`, async () => {
+    let allowed = true;
+    const input = fixture(api, {selectedPublication: true, authorizeRequest: () => allowed});
+    await input.deliver();
+    allowed = false;
+    await assert.rejects(input.deliver(), {code: 'ResultAccessDenied'});
+    assert.equal(input.state.selectedObservations, 1, 'The denied next operation does not read publication');
+    assert.equal(input.state.attempts.length, 1);
+    for (const field of ['public_index_entry_cid', 'result_manifest_cid']) {
+      const changed = fixture(api, {selectedPublication: true, afterAdmission(state) {
+        state.replacementIndex = {public_index_entry_cid: cid('1'),
+          result_manifest_cid: cid('2'), [field]: cid('d')};
+      }});
+      await assert.rejects(changed.deliver(), {code: 'ResultDeliveryDenied'});
+      assert.equal(changed.state.selectedObservations, 1);
+      assert.equal(changed.state.indexObservations, 1);
+      assert.equal(changed.state.attempts.length, 0);
+      assert.equal(changed.state.chunks.length, 0);
+    }
+  });
 }
 
 test('one Result operation retains its admitted immutable publication contracts', async () => {

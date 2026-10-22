@@ -10,7 +10,7 @@ import {pathToFileURL} from 'node:url';
 import {promisify} from 'node:util';
 import {CLIENT_PACKAGES, checkoutState} from './packed-client-packages.mjs';
 import {inventory, unpack} from './package-release.mjs';
-import {nodeOperationProtocol, nodeWarmSmallQueryFixtures} from './benchmark-node-operations.mjs';
+import {nodeOperationProtocol, nodePriorityProtocol, nodeWarmSmallQueryFixtures} from './benchmark-node-operations.mjs';
 import {calibrateSqliteComparisonProfile} from './operation-performance.mjs';
 
 const hash = (value, algorithm = 'sha256', encoding = 'hex') =>
@@ -133,8 +133,17 @@ export async function prepareOrdinaryNativePerformanceConsumer({packages, source
   } finally { await registry.close(); }
 }
 
-export async function prepareOrdinaryPerformanceConsumer({packages, sourceSha, output, comparisonPath,
+export async function prepareOrdinaryPerformanceConsumer({packages, sourceSha, output, comparisonPath, selection, mode,
   install = (args, cwd) => execFileSync('npm', args, {cwd, stdio: 'inherit', timeout: 120_000})}) {
+  let protocol;
+  if (selection === undefined) {
+    assert.equal(mode, undefined, 'A mode requires the explicit priority selection');
+    protocol = nodeOperationProtocol('final');
+  } else {
+    assert.equal(selection, 'priority-transition', 'Unknown performance selection');
+    assert.equal(comparisonPath, undefined, 'Priority controls do not use the full-release comparator');
+    protocol = nodePriorityProtocol(mode ?? 'diagnostic');
+  }
   assert.match(sourceSha, /^[a-f0-9]{40}$/u);
   packages = resolve(packages); output = resolve(output);
   const original = JSON.parse(await readFile(join(packages, 'packed-client-packages.json'), 'utf8'));
@@ -168,7 +177,7 @@ export async function prepareOrdinaryPerformanceConsumer({packages, sourceSha, o
   const environment = {platform: platform(), arch: arch(), osRelease: release(), node: process.version,
     cpuModel: cpus()[0].model, logicalCpus: cpus().length, memoryBytes: totalmem()};
   const controls = {sourceSha, cohortSha256: hash(await readFile(manifestPath)), environment, load: 'isolated',
-    historyProtocolSha256: hash(JSON.stringify(nodeOperationProtocol('final')))};
+    historyProtocolSha256: hash(JSON.stringify(protocol))};
   if (comparisonPath) controls.comparison = await readFixedSQLiteComparison(comparisonPath, environment, controls.load);
   await writeFile(join(output, 'controls.json'), JSON.stringify(controls, null, 2) + '\n', {flag: 'wx'});
   return {manifestPath, consumer, controlsPath: join(output, 'controls.json')};
@@ -314,11 +323,17 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
       console.log(await combineOrdinaryPerformanceMeasurements(args[0]));
     } else {
       assert.equal(command, 'prepare');
-      assert(args.length === 3 || args.length === 5 && args[3] === '--comparison');
+      assert(args.length >= 3 && (args.length - 3) % 2 === 0);
+      const options = {};
+      for (let i = 3; i < args.length; i += 2) {
+        const key = {'--comparison': 'comparisonPath', '--selection': 'selection', '--mode': 'mode'}[args[i]];
+        assert(key && !Object.hasOwn(options, key), 'Unknown or duplicate preparation option');
+        options[key] = args[i + 1];
+      }
       const before = checkoutState(process.cwd());
       assert(before.clean && before.revision === args[1], 'Performance checkout differs from the package source');
       const result = await prepareOrdinaryPerformanceConsumer({packages: args[0],
-        sourceSha: args[1], output: args[2], comparisonPath: args[4]});
+        sourceSha: args[1], output: args[2], ...options});
       assert.deepEqual(checkoutState(process.cwd()), before, 'Source changed during consumer preparation');
       console.log(JSON.stringify(result));
     }
