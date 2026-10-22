@@ -1301,6 +1301,73 @@ test('private confirmation keeps the existing reader and retirement scope throug
   }
 });
 
+for (const raw of [false, true]) {
+test(`private confirmation retains a failed original directory close (${raw ? 'raw' : 'single'})`, async t => {
+  let f, binding;
+  if (!raw) {
+    f = await privateReadFixture(t);
+    binding = {name: 'effect_preview', semanticCid: f.semanticCid, holdingCid: f.holdingCid, wire: f.wire};
+  } else {
+    f = await fixture(t, {privateEvidenceKey: Buffer.alloc(32, 7)});
+    const bytes = Uint8Array.of(0, 255, 97);
+    binding = {semanticCid: digest('pending raw directory envelope'), holdingCid: digest('pending raw directory holding'),
+      wire: '{"descriptor":"same original"}', contentCid: digest(bytes), byteCount: bytes.byteLength};
+    const prepared = await f.store.prepareModelRawEvidence(binding, bytes);
+    await f.store.commitPhysicalHolding({version: 'actql-local-physical-holding/0.1', namespace: 'publication-private',
+      holding_cid: binding.holdingCid, manifest_cid: binding.semanticCid,
+      objects: prepared.map(value => ({cid: value.physicalCid, byte_count: value.bytes}))}, prepared.map(value => value.prepared));
+  }
+  const actualOpen = fsPromises.open, ownerPath = join(f.directory, 'owner', 'owner.json');
+  const token = await readFile(ownerPath);
+  let allowClose = false, opens = 0, syncs = 0, closes = 0, failure;
+  t.mock.method(fsPromises, 'open', async function(path, ...args) {
+    const handle = await Reflect.apply(actualOpen, this, [path, ...args]);
+    if (String(path) === join(f.directory, 'physical-holdings')) {
+      opens++;
+      const sync = handle.sync, close = handle.close;
+      t.mock.method(handle, 'sync', async function(...parameters) {
+        syncs++;
+        return Reflect.apply(sync, this, parameters);
+      });
+      t.mock.method(handle, 'close', async function(...parameters) {
+        closes++;
+        if (!allowClose) return false;
+        return Reflect.apply(close, this, parameters);
+      });
+    }
+    return handle;
+  });
+  syncBuiltinESMExports();
+  try {
+    await assert.rejects(raw ? f.store.confirmModelRawEvidence(binding) : f.store.confirmPrivateEvidence(binding), error => {
+      failure = error;
+      return error.cleanupHandle?.status().pending === true;
+    });
+    assert.equal(opens, 1); assert.equal(syncs, 1);
+    await assert.rejects(f.store.close(), code('PublicationStoreCleanupPending'));
+    assert.equal(f.store.status().closed, false);
+    assert.deepEqual(await readFile(ownerPath), token);
+    const retirement = await f.store.retirePhysicalHolding(binding.holdingCid);
+    assert.equal(retirement.cleanup.status().pending, true);
+    const before = closes;
+    allowClose = true;
+    const first = failure.cleanupHandle.retry(), second = failure.cleanupHandle.retry();
+    assert.strictEqual(first, second, 'Same retained child cleanup is single-flight');
+    assert.equal((await first).pending, false);
+    assert.equal(closes, before + 1);
+    assert.equal(opens, 1); assert.equal(syncs, 1, 'Cleanup does not reopen, resync, reread or return a saved observation');
+    await retirement.cleanup.retry();
+    assert.equal(retirement.cleanup.status().pending, false);
+    assert.equal(f.store.status().storedBytes, 0);
+    await f.store.close();
+  } finally {
+    allowClose = true;
+    if (failure?.cleanupHandle.status().pending) await failure.cleanupHandle.retry();
+    t.mock.restoreAll(); syncBuiltinESMExports();
+  }
+});
+}
+
 test('private evidence is encrypted, bound, and readable after restart',
   async t => {
     const suppliedKey = Buffer.alloc(32, 7);
