@@ -1654,6 +1654,40 @@ test('trusted clock warm write retains its original failed close and floor',asyn
   assert.equal((await store.readClockObservation(cids.scope)).observedAt,next);
 });
 
+test('sealed new objects need only their actual final directory ACK, not a staging alias ACK',async t=>{
+  const directory=await mkdtemp(join(tmpdir(),'actql-sealed-staging-'));
+  t.after(()=>removeFixtureDirectory(directory));
+  const events=[];
+  const configuration={directory,storeAuthorityCid:cids.authority,capacityBytes:1024*1024,
+    maxObjectBytes:65536,maxObjects:100,maxContractNodes:4096,maxContractDepth:64};
+  const durability={async syncDirectory(path){
+    events.push(path);const fd=await open(path,'r');try{await fd.sync();}finally{await fd.close();}
+  }};
+  const store=await openLocalPublicationStore(configuration,contractControl,durability);
+  const bytes=Buffer.from('one durable allocation with two temporary aliases');
+  const cid=digest(bytes),path=join(directory,'objects',cid.slice(7));
+  const writer=store.createObjectWriter(bytes.length);await writer.append(bytes);events.length=0;
+  assert.equal((await writer.seal(cid)).created,true);
+  assert.equal(events.filter(path=>path===join(directory,'objects')).length,1);
+  assert.equal(events.filter(path=>path===join(directory,'staging')).length,0);
+  assert.deepEqual(await readdir(join(directory,'staging')),[]);
+  const before=await stat(path);
+  assert.deepEqual(await readFile(path),bytes);
+  assert.equal(store.status().objectCount,1);assert.equal(store.status().storedBytes,bytes.length);
+  assert.equal(writer.status().reservationHeld,false);
+  // A duplicate has a DIFFERENT temporary allocation. It must retain its
+  // original staging-unlink ACK before that temporary reservation retires.
+  const duplicate=store.createObjectWriter(bytes.length);await duplicate.append(bytes);events.length=0;
+  assert.equal((await duplicate.seal(cid)).created,false);
+  assert.equal(events.filter(path=>path===join(directory,'staging')).length,1);
+  const after=await stat(path);assert.equal(after.dev,before.dev);assert.equal(after.ino,before.ino);
+  assert.equal(store.status().objectCount,1);assert.equal(store.status().storedBytes,bytes.length);
+  await store.close();
+  const reopened=await openLocalPublicationStore(configuration,contractControl,durability);
+  assert.deepEqual(await reopened.readBytes(cid),bytes);
+  assert.equal(reopened.status().objectCount,1);assert.equal(reopened.status().storedBytes,bytes.length);
+});
+
 test('prepared payload cleanup reuses installed directory acknowledgement before its real unlink ACK',async t=>{
   const directory=await mkdtemp(join(tmpdir(),'actql-prepared-capacity-ack-'));
   t.after(()=>removeFixtureDirectory(directory));

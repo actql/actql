@@ -7,6 +7,14 @@ const digest = value => `sha256:${createHash('sha256')
   .update(value).digest('hex')}`;
 const failure = code => Object.assign(new Error(code), {code});
 
+test('a fresh successful seal retires its redundant staging alias without another directory ACK',async()=>{
+  const {writer,counts}=fixture();
+  await writer.append('data');
+  assert.deepEqual(await writer.seal(digest('data')),{cid:digest('data'),bytes:4,created:true});
+  assert.equal(writer.status().reservationHeld,false);
+  assert.deepEqual(counts(),{releases:1,closeCalls:1,unlinkCalls:1,syncCalls:1,linked:1});
+});
+
 function fixture(maxBytes = 4) {
   let held = true;
   let releases = 0;
