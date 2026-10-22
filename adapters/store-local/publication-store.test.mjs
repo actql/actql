@@ -2096,6 +2096,85 @@ test('publication commit adopts an existing schema holder without rewriting its 
   assert.equal((await store.readSemanticBytes(cids.schema)).toString(), resultSchemaWire);
 });
 
+test('ordinary opening observes unchanged namespaces without directory acknowledgements', async t => {
+  const {store, directory, configuration} = await fixture(t);
+  await store.close();
+  const observed = ['prepared-custody','physical-holdings','physical-holding-deletions','retention-extensions','deletions']
+    .map(name=>join(directory,name));
+  const acknowledgements = [];
+  const reopened = await openLocalPublicationStore(configuration,contractControl,{async syncDirectory(path) {
+    acknowledgements.push(path);
+    const handle=await open(path,'r');try{await handle.sync();}finally{await handle.close();}
+  }});
+  assert.deepEqual(acknowledgements.filter(path=>observed.includes(path)),[],
+    'read-only opening observations do not create a durability transition');
+  await reopened.close();
+});
+
+test('ordinary opening retains an existing holding without ACK and selected writes still require their own ACK', async t => {
+  const {store,directory,configuration}=await fixture(t);
+  const bytes=Buffer.from('same holding through read-only open');
+  const payload=await preparePhysical(store,bytes);
+  const holding=physicalHolding(digest('opening holding'),digest('opening manifest'),
+    [{cid:payload.cid,byte_count:payload.bytes}]);
+  await store.commitPhysicalHolding(holding,[payload.prepared]);
+  const path=join(directory,'objects',payload.cid.slice(7)),before=await stat(path);
+  await store.close();
+  const acknowledgements=[];let failHoldingAck=false;
+  const reopened=await openLocalPublicationStore(configuration,contractControl,{async syncDirectory(path) {
+    acknowledgements.push(path);
+    if(failHoldingAck&&path===join(directory,'physical-holdings'))throw Object.assign(new Error('selected holding ACK unavailable'),{code:'EIO'});
+    const handle=await open(path,'r');try{await handle.sync();}finally{await handle.close();}
+  }});
+  assert.equal(acknowledgements.includes(join(directory,'physical-holdings')),false);
+  assert.deepEqual(await reopened.inspectPhysicalHolding(holding.holding_cid),holding);
+  const after=await stat(path);assert.equal(after.dev,before.dev);assert.equal(after.ino,before.ino);
+  assert.deepEqual(await readFile(path),bytes);
+  const alias={...holding,holding_cid:digest('opening selected alias')};
+  failHoldingAck=true;
+  await assert.rejects(reopened.sharePhysicalHolding(holding.holding_cid,alias),code('EIO'));
+  failHoldingAck=false;
+  const count=acknowledgements.length;
+  assert.deepEqual((await reopened.sharePhysicalHolding(holding.holding_cid,alias)).record,alias);
+  assert(acknowledgements.slice(count).includes(join(directory,'physical-holdings')),
+    'an earlier failed ACK never becomes a successful write observation');
+  assert.equal(reopened.status().objectCount,1);
+  await reopened.close();
+});
+
+test('ordinary opening pending holding recovery retains its actual directory ACK and same cleanup', async t => {
+  const {store,directory,configuration}=await fixture(t);
+  const payload=await preparePhysical(store,'pending selected deletion');
+  const holding=physicalHolding(digest('opening pending holding'),digest('opening pending manifest'),
+    [{cid:payload.cid,byte_count:payload.bytes}]);
+  await store.commitPhysicalHolding(holding,[payload.prepared]);
+  await store.close();
+  // A new disposable fixture models the original persisted deletion record;
+  // it does not mutate or replay any previous Run or failed Store state.
+  const marker=join(directory,'physical-holding-deletions',holding.holding_cid.slice(7)+'.json');
+  await writeFile(marker,wire(holding));
+  let failRecovery=true,attempts=0;
+  const reopened=await openLocalPublicationStore(configuration,contractControl,{async syncDirectory(path) {
+    if(path===join(directory,'physical-holding-deletions')) {
+      attempts++;
+      if(failRecovery)throw Object.assign(new Error('original pending deletion ACK unavailable'),{code:'EIO'});
+    }
+    const handle=await open(path,'r');try{await handle.sync();}finally{await handle.close();}
+  }});
+  assert(attempts>0,'actual pending recovery still reaches its own required ACK');
+  assert.equal(await reopened.inspectPhysicalHolding(holding.holding_cid),undefined);
+  const retired=await reopened.retirePhysicalHolding(holding.holding_cid);
+  assert.equal(retired.cleanup.status().pending,true);
+  await assert.rejects(reopened.close(),code('PublicationStoreCleanupPending'));
+  failRecovery=false;
+  const previous=attempts;
+  assert.equal((await retired.cleanup.retry()).pending,false);
+  assert(attempts>previous);
+  assert.deepEqual(await readdir(join(directory,'physical-holding-deletions')),[]);
+  await assert.rejects(reopened.verifyObject(payload.cid),code('PublicationObjectMissing'));
+  await reopened.close();
+});
+
 test('empty prepared schema recovery performs no payload or contract directory ACK', async t => {
   const {store, directory, configuration} = await fixture(t);
   await store.putSemantic(resultSchemaWire, cids.schema);
@@ -7396,6 +7475,67 @@ function physicalHolding(holdingCid, manifestCid, objects,
     manifest_cid: manifestCid,
     objects: Object.freeze(objects.map(object => Object.freeze({...object}))),
   });
+}
+
+test('ordinary Store opening does not enumerate or stat committed physical holding history', async t => {
+  const setup=await fixture(t),holdings=[];
+  for(let i=0;i<12;i++){
+    const payload=await preparePhysical(setup.store,`history ${i}`);
+    const holding=physicalHolding(digest(`history holding ${i}`),digest(`history manifest ${i}`),
+      [{cid:payload.cid,byte_count:payload.bytes}]);
+    await setup.store.commitPhysicalHolding(holding,[payload.prepared]);holdings.push(holding);
+  }
+  await setup.store.close();
+  const directory=join(setup.directory,'physical-holdings');
+  const originalReaddir=fsPromises.readdir,originalLstat=fsPromises.lstat,originalOpen=fsPromises.open;
+  let enumerations=0;const stats=[],reads=[];
+  t.mock.method(fsPromises,'readdir',function(path,...args){
+    if(String(path)===directory)enumerations++;
+    return Reflect.apply(originalReaddir,this,[path,...args]);
+  });
+  t.mock.method(fsPromises,'lstat',function(path,...args){
+    if(String(path).startsWith(directory+sep))stats.push(String(path));
+    return Reflect.apply(originalLstat,this,[path,...args]);
+  });
+  t.mock.method(fsPromises,'open',function(path,...args){
+    if(String(path).startsWith(directory+sep))reads.push(String(path));
+    return Reflect.apply(originalOpen,this,[path,...args]);
+  });
+  syncBuiltinESMExports();t.after(()=>{t.mock.restoreAll();syncBuiltinESMExports();});
+  const reopened=await openLocalPublicationStore(setup.configuration,contractControl);
+  assert.deepEqual({enumerations,stats,reads},{enumerations:0,stats:[],reads:[]});
+  const selected=holdings[7];
+  assert.deepEqual(await reopened.inspectPhysicalHolding(selected.holding_cid),selected);
+  const selectedPath=join(directory,selected.holding_cid.slice(7)+'.json');
+  assert.deepEqual(reads,[selectedPath]);
+  assert.equal(enumerations,0);
+  assert(stats.length>0&&stats.every(path=>path===selectedPath),
+    'the selected original retains its real path-generation checks, not an unrelated history walk');
+  const chunks=[];await reopened.consumePhysicalHolding(selected.holding_cid,0,chunk=>chunks.push(Buffer.from(chunk)));
+  assert.equal(Buffer.concat(chunks).toString(),'history 7');
+  assert.equal(reopened.status().objectCount,12);
+  await reopened.close();
+});
+
+for(const type of ['directory','symlink']) {
+test(`ordinary Store opening defers an unrelated holding ${type} but refuses its selected FD`,async t=>{
+  const setup=await fixture(t);
+  const payload=await preparePhysical(setup.store,'selected intact generation');
+  const holding=physicalHolding(digest('opening selected intact'),digest('opening selected manifest'),
+    [{cid:payload.cid,byte_count:payload.bytes}]);
+  await setup.store.commitPhysicalHolding(holding,[payload.prepared]);await setup.store.close();
+  const invalidCid=digest(`unrelated ${type}`),target=join(setup.directory,'physical-holdings',invalidCid.slice(7)+'.json');
+  if(type==='directory')await mkdir(target);
+  else await fsPromises.symlink(join(setup.directory,'physical-holdings',holding.holding_cid.slice(7)+'.json'),target);
+  const reopened=await openLocalPublicationStore(setup.configuration,contractControl);
+  assert.deepEqual(await reopened.inspectPhysicalHolding(holding.holding_cid),holding);
+  await assert.rejects(reopened.inspectPhysicalHolding(invalidCid),
+    error=>type==='directory'?error.code==='InvalidPublicationStoreObject':error.code==='ELOOP');
+  const state=await fsPromises.lstat(target);
+  assert.equal(type==='directory'?state.isDirectory():state.isSymbolicLink(),true);
+  assert.equal(reopened.status().objectCount,1);
+  await reopened.close();
+});
 }
 
 test('ordinary Store reopen reads no unrelated immutable physical holding bodies', async t => {

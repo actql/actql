@@ -5931,7 +5931,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "605c874335539b9d3ec1c51bde76428de2b158b8c68e0504f2d25c7ecb11b010",
+      "sha256": "ae9c1a837221e2cc73a16d993623820fe5fa272877e584f321a4611d3930d9b0",
       "exports": [
         "PublicationStoreError",
         "assertOriginalLocalPublicationStoreFacilityCurrent",
@@ -11707,6 +11707,26 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "The optional initial-publication operation retains the two original records,"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "test('ordinary opening observes unchanged namespaces without directory acknowledgements'"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "test('ordinary opening pending holding recovery retains its actual directory ACK and same cleanup'"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "Ordinary opening observes prepared-custody and pending physical-holding-deletion"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "test('ordinary Store opening does not enumerate or stat committed physical holding history'"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "test(`ordinary Store opening defers an unrelated holding"
               }
             ]
           }

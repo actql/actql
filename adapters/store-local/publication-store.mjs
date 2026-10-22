@@ -1362,7 +1362,8 @@ async function openOriginalLocalPublicationStore(
       fail('InvalidPublicationPreparedCustody');
     }
   }
-  await syncDirectory(custodyDirectory);
+  // Opening only observes these names. The selected custody recovery below
+  // owns any actual unlink and its acknowledgement.
   for (const name of await readOpeningDirectory(preparedSchemasDirectory)) {
     const path = resolve(preparedSchemasDirectory, name);
     if (/^\.staging-[0-9a-f-]{36}\.json$/u.test(name)) {
@@ -1412,22 +1413,18 @@ async function openOriginalLocalPublicationStore(
     openingMetadataDeletionNames.push(name);
   }
   await syncDirectory(metadataDeletionsDirectory);
-  for (const directory of [
-    physicalHoldingsDirectory,
-    physicalHoldingDeletionsDirectory,
-  ]) {
-    for (const name of await readOpeningDirectory(directory)) {
-      if (!/^[0-9a-f]{64}\.json$/u.test(name) ||
-          !(await lstat(resolve(directory, name))).isFile()) {
-        fail('InvalidPublicationPhysicalHoldingStore');
-      }
+  // Immutable holdings are checked through their selected original FD, not
+  // by enumerating all committed names at every open. Pending deletion
+  // records still require bounded opening admission and actual recovery.
+  for (const name of await readOpeningDirectory(physicalHoldingDeletionsDirectory)) {
+    if (!/^[0-9a-f]{64}\.json$/u.test(name) ||
+        !(await lstat(resolve(physicalHoldingDeletionsDirectory, name))).isFile()) {
+      fail('InvalidPublicationPhysicalHoldingStore');
     }
-    await syncDirectory(directory);
   }
   // Each selected extension reader owns its directory types, complete chain
   // and actual Result-directory ACK. Unrelated committed histories are not
   // another ordinary opening admission or durability transition.
-  await syncDirectory(retentionExtensionsDirectory);
   for (const keyHash of await readOpeningDirectory(deletionsDirectory)) {
     const directory = resolve(deletionsDirectory, keyHash);
     if (!/^[0-9a-f]{64}$/u.test(keyHash) ||
@@ -1441,7 +1438,6 @@ async function openOriginalLocalPublicationStore(
       }
     }
   }
-  await syncDirectory(deletionsDirectory);
   for (const name of await readOpeningDirectory(clocksDirectory)) {
     const path = resolve(clocksDirectory, name);
     if (name.startsWith('.staging-')) {
