@@ -46,6 +46,15 @@ directory readers or publication paths.
 
 ## Original opening directory custody
 
+Ordinary opening observes prepared-custody, physical-holding,
+physical-holding-deletion and Result-deletion directory names without mutating
+them. Those observations, and the unchanged retention-extension namespace,
+need no new directory acknowledgement. This is not a durable-write shortcut:
+the selected custody unlink, holding installation/deletion, retention append
+and Result retirement retain their own actual acknowledgements. Pending
+recovery still owns its same cleanup, and a failed required ACK cannot become
+success merely because the containing directory was observed during opening.
+
 Directory durability during initial format and ownership acquisition keeps its
 original opened FD through false or rejected close. The failure exports the
 same close-only, single-flight cleanup facade, without reopening the pathname
