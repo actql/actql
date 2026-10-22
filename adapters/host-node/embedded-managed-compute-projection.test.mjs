@@ -11,7 +11,10 @@ function actual(name, ports) {
   const node = ast.body.find(node => node.type === 'ExportNamedDeclaration' &&
     node.declaration?.type === 'FunctionDeclaration' && node.declaration.id.name === name);
   assert(node, name);
+  const helpers = ast.body.filter(node => node.type === 'FunctionDeclaration' &&
+    node.id.name === 'installedManagedRunContracts');
   return new Function(...Object.keys(ports),
+    helpers.map(node => source.slice(node.start, node.end)).join('\n') + '\n' +
     source.slice(node.declaration.start, node.declaration.end) + `;return ${name};`)(...Object.values(ports));
 }
 function fixture() {
@@ -51,11 +54,33 @@ function fixture() {
     canonicalValueJson(value, options) {assert.deepEqual(options, {dataKeys: true}); return JSON.stringify(value);},
     clientOperationError: code => Object.assign(new Error(code), {code}),
   };
-  return {prepared, request, raw, originals, moon, calls, limits, ports,
+  return {prepared, request, raw, originals, moon, calls, limits, ports, assets,
     stop: () => {current = false;},
     requirements: () => actual('readManagedComputeRunRequirements', ports),
     intent: () => actual('managedComputeSubmittedIntentCid', ports)};
 }
+
+test('installed managed contract strings are projected once across distinct Host Run requests', () => {
+  const f = fixture(), second = {}, requests = new Set([f.prepared, second]);
+  let parses = 0, stringifies = 0;
+  f.ports.JSON = {
+    parse(wire) {parses++; return JSON.parse(wire);},
+    stringify(value) {stringifies++; return JSON.stringify(value);},
+  };
+  f.ports.originalSourceManagedHostRequest = (held, prepared) => {
+    assert.strictEqual(held, f.originals); assert(requests.has(prepared)); return f.request;
+  };
+  const read = f.requirements();
+  read(f.originals, f.prepared); read(f.originals, second); read(f.originals, second);
+  assert.equal(parses, 1, 'One immutable installed AoA projection, not one per requirement read');
+  assert.equal(stringifies, 3, 'Only the original three static contract strings are retained');
+  assert.deepEqual(f.calls.map(([, args]) => args[0]), [f.prepared, second, second]);
+  for (const [, args] of f.calls) assert.deepEqual(args.slice(-3),
+    ['{"kind":"values"}', '{"kind":"expression"}', '{"kind":"derive"}']);
+  f.stop();
+  assert.throws(() => read(f.originals, second), /CurrentRefused/);
+  assert.equal(f.calls.length, 3, 'Static strings cannot supply current Run admission');
+});
 
 test('source-free requirements forward the same checked preparation and empty Source inventories', () => {
   const f = fixture();
