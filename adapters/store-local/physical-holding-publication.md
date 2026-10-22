@@ -171,6 +171,12 @@ is released merely because a callback returned or cancellation was requested.
 After confirmed cleanup, an escaped cleanup handle drops its explicit original
 Store/writer association; its retired status does not retain that live set.
 
+Prepared-schema restart recovery first selects its pending marker names. An
+empty set performs no contracts/objects directory acknowledgement: it has no
+schema transition to confirm. A nonempty set retains the original directory
+acknowledgements before recovering its exact markers and physical allocations.
+Selected reads and subsequent writes retain their own integrity and real ACKs.
+
 The original metadata envelope includes the admitted record/Buffer, temporary
 path/UUID Strings, file and hard-link/directory operations, writer-set entry,
 closure/status/cleanup record, pending Promise/flight, retained original FD and

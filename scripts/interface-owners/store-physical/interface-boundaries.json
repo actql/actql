@@ -4881,7 +4881,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "022a82749556e22cfdc3e9ec64f5f320fa8936c0a51212c5655d4377e4ea4126",
+      "sha256": "2a5311412d8b49f43c5595d65196b055bb4b39607bcc5d2831e1c871657e51e0",
       "exports": [
         "PublicationStoreError",
         "assertOriginalLocalPublicationStoreFacilityCurrent",
@@ -9184,6 +9184,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "The existing Store database retains only unfinished publication inventory"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "Prepared-schema restart recovery first selects its pending marker names."
               }
             ],
             "inputsOutputs": [
@@ -9234,6 +9238,10 @@
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "const publicationRecoveryOriginal = value => Object.freeze({"
+              },
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "const names = await readdir(preparedSchemasDirectory);"
               }
             ],
             "identity": [
@@ -9292,6 +9300,10 @@
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "const publicationRecoveryValue = original => {"
+              },
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "const record = parsePreparedSchema(await readBounded("
               }
             ],
             "ownership": [
@@ -9342,6 +9354,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "deletion marker owns the same complete inventory, recovery transfers the pending"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "schema transition to confirm. A nonempty set retains the original directory"
               }
             ],
             "synchronization": [
@@ -9392,6 +9408,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "directory acknowledgement and schema adoption. These two native transitions"
+              },
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "if (names.length === 0) return Object.freeze([]);"
               }
             ],
             "failure": [
@@ -9442,6 +9462,10 @@
               {
                 "path": "adapters/store-local/publication-store.test.mjs",
                 "anchor": "publication recovery retries only the native removal after physical uncommitted retirement"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "prepared schema cleanup retains capacity across sync failure"
               }
             ],
             "cancellation": [
@@ -9488,6 +9512,10 @@
               {
                 "path": "adapters/store-local/publication-store.test.mjs",
                 "anchor": "publication recovery transfers its pending original to the durable deletion marker before physical work"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "restart resumes schema cleanup after alias unlink before sync"
               }
             ],
             "resources": [
@@ -9538,6 +9566,10 @@
               {
                 "path": "adapters/store-local/publication-store.test.mjs",
                 "anchor": "publication recovery opens completed history without enumerating or reading its inventories and indexes"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "no pending schema or physical mutation needs these acknowledgements"
               }
             ],
             "extension": [
@@ -9588,6 +9620,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "Subsequent opens read pending rows rather than enumerating committed inventories"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "Selected reads and subsequent writes retain their own integrity and real ACKs."
               }
             ],
             "verification": [
@@ -9710,6 +9746,10 @@
               {
                 "path": "adapters/store-local/publication-store.test.mjs",
                 "anchor": "publication recovery resumes a retiring original without recreating its removed inventory"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "empty prepared schema recovery performs no payload or contract directory ACK"
               }
             ]
           }
