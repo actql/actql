@@ -4113,16 +4113,15 @@ async function openOriginalLocalPublicationStore(
     if (initialRecords !== undefined && (!Array.isArray(initialRecords) || initialRecords.length !== 2)) {
       fail('InvalidPublicationRecord');
     }
-    if (supplied.length + (initialRecords?.length ?? 0) >= configuration.maxObjects) fail('PublicationStoreObjectLimit');
-    const admitted = admitPublicationContracts([...supplied, attemptOriginal, ...(initialRecords ?? [])], true);
+    if (supplied.length >= configuration.maxObjects) fail('PublicationStoreObjectLimit');
+    const admitted = admitPublicationContracts([...supplied, attemptOriginal], true);
     const selected = admitted.find(({contract}) => contract.identity === attemptOriginal.identity &&
       contract.name === 'publication_attempt');
     if (selected === undefined) fail('InvalidPublicationContract');
     let records;
     if (initialRecords !== undefined) {
-      records = initialRecords.map(original => admitted.find(({contract}) =>
-        contract.identity === original.identity && contract.name === 'publication_record'));
-      if (records.some(value => value === undefined)) fail('InvalidPublicationRecord');
+      records = admitPublicationContracts(initialRecords,true);
+      if (records.length !== 2 || records.some(({contract}) => contract.name !== 'publication_record')) fail('InvalidPublicationRecord');
       const [first, second] = records;
       if (first.value.publication_attempt_cid !== selected.contract.identity ||
           second.value.publication_attempt_cid !== selected.contract.identity) fail('PublicationAttemptMismatch');
@@ -4131,6 +4130,12 @@ async function openOriginalLocalPublicationStore(
           contractControl.recordTransition(undefined,first.contract,false) !== true ||
           contractControl.recordTransition(first.contract,second.contract,false) !== true) {
         fail('InvalidPublicationRecordTransition');
+      }
+      for (const record of records) {
+        const prior=admitted.find(({contract})=>contract.identity===record.contract.identity);
+        if (prior!==undefined && (prior.contract.name!==record.contract.name || prior.contract.wire!==record.contract.wire)) {
+          fail('PublicationSemanticIdentityConflict');
+        }
       }
     }
     if (await runMetadataDeletionStarted(selected.value.run_definition_cid)) fail('PublicationMetadataDeleted');
@@ -4145,8 +4150,7 @@ async function openOriginalLocalPublicationStore(
       // attempt: its original append path must still create and ACK the files
       // that its sequence links select.
       try {
-        await putAdmittedPublicationContracts(records === undefined ? admitted :
-          admitted.filter(value => !records.includes(value)), true);
+        await putAdmittedPublicationContracts(admitted, true);
       } catch (error) {
         // This original mutation contains setup only, not the proposed pair.
         // Its caller must confirm exactly that group after a lost reply.
@@ -4165,10 +4169,12 @@ async function openOriginalLocalPublicationStore(
       deliveryIndex.publicationAttempt(selected.contract.identity) !== undefined &&
       deliveryIndex.latestPublicationRecord(selected.contract.identity) !== undefined;
     const initial = existingProgress ? undefined : records;
+    const combined = initial === undefined ? admitted : [...admitted,
+      ...initial.filter(value => !admitted.some(({contract})=>contract.identity===value.contract.identity))];
+    if (combined.length > configuration.maxObjects) fail('PublicationStoreObjectLimit');
     let stored;
     try {
-      stored = await putAdmittedPublicationContracts(existingProgress
-        ? admitted.filter(value => !records.includes(value)) : admitted, true,
+      stored = await putAdmittedPublicationContracts(combined, true,
       Object.freeze({kind: initial === undefined ? 'attempt' : 'initial-attempt',
         attemptCid: selected.contract.identity, runCid: selected.value.run_definition_cid,
         ...(initial === undefined ? {} : {records:Object.freeze(initial.map(({contract,value},sequence)=>

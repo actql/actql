@@ -3806,7 +3806,7 @@ test(`publication start caller confirms its original ${afterCommit ? 'committed'
 
 for (const file of [false,true]) for (const state of ['preparing','committing']) {
 test(`publication start preserves existing ${file ? 'file' : 'native'} ${state} progress without replacing it`, async t => {
-  const {store,configuration} = await fixture(t);
+  const {store,configuration} = await fixture(t,{maxObjects:state==='preparing'?3:4});
   const request = publicationRequest(), attempt = publicationAttempt(request,`prior-start-${file}-${state}`);
   const original = contractControl.admit('publication_request',wire(request),limits);
   const originalAttempt = contractControl.admit('publication_attempt',wire(attempt),limits);
