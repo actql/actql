@@ -8,6 +8,7 @@ import {compileFunction} from 'node:vm';
 import {parse} from 'acorn';
 import {createOwnedScratch} from '../../scripts/owned-scratch.mjs';
 import {openClientRequestJournal} from './client-request-journal.mjs';
+import {createSqliteTransaction} from '../host-common/sqlite-transaction.mjs';
 
 const primarySqlLimits = {maxCalls: 1000, maxPreparedStatements: 1000,
   maxSqlBytes: 65536, maxTotalSqlBytes: 1024 * 1024};
@@ -25,6 +26,10 @@ const bounded = ast.body.find(node => node.type === 'FunctionDeclaration' && nod
 assert.ok(bounded); assert.ok(declarations.every(Boolean));
 const boundedOriginalSql = compileFunction([...declarations, bounded].map(node =>
   source.slice(node.start, node.end)).join('\n') + '\nreturn boundedPrimarySql;', [])();
+const boundedWal = ast.body.find(node => node.type === 'FunctionDeclaration' && node.id.name === 'boundedJournalWalFrames');
+assert.ok(boundedWal);
+const boundedOriginalWal = compileFunction([...declarations, boundedWal].map(node =>
+  source.slice(node.start, node.end)).join('\n') + '\nreturn boundedJournalWalFrames;', [])();
 async function fixture() {
   const scratch = await createOwnedScratch({parent: fileURLToPath(new URL('../../_build/', import.meta.url)),
     prefix: 'journal-execution-bound-', label: 'actual primary SQLite statement/cursor custody'});
@@ -192,6 +197,39 @@ test('cached selected statements preserve current refusal and reentry fences bef
     database.close(); assert.equal(database.isOpen, false); port.retireClosedNativeAliases();
   }
 });
+
+for (const boundary of ['compilation', 'wal', 'current']) {
+  test(`same native rollback remains reachable after ${boundary} work refusal without refilling work`, () => {
+    const database = new DatabaseSync(':memory:');
+    const exec = database.exec, commands = [];
+    database.exec = function(sql) {commands.push(sql); return Reflect.apply(exec, this, [sql]);};
+    let allowed = true;
+    const refused = Object.assign(new Error('ExplicitCurrentRefusal'), {code: 'ExplicitCurrentRefusal'});
+    const primary = new Error('OriginalBodyFailure');
+    const wal = boundary === 'wal' ? boundedOriginalWal(18, 0, 4096) : undefined;
+    wal?.configure(4096);
+    const port = boundedOriginalSql(database,
+      {...primarySqlLimits, maxCalls: boundary === 'compilation' ? 1 : 1000}, execution,
+      () => {if (!allowed) throw refused;}, wal);
+    const transaction = createSqliteTransaction(port.database, 'ClientRequestJournal');
+    try {
+      assert.throws(() => transaction.run(() => {
+        if (boundary === 'wal') port.database.prepare('SELECT 1 AS n').get();
+        if (boundary === 'current') allowed = false;
+        throw primary;
+      }), error => boundary === 'wal' ? error.code === 'ClientRequestJournalWalUnavailable' : error === primary);
+      assert.equal(database.isTransaction, false);
+      assert.equal(transaction.connectionUsable, true);
+      assert.deepEqual(commands, ['BEGIN IMMEDIATE', 'ROLLBACK']);
+      assert.throws(() => port.database.prepare('SELECT 2 AS n'), error =>
+        boundary === 'compilation' ? error.code === 'ClientRequestJournalSqlUnavailable' :
+          boundary === 'wal' ? error.code === 'ClientRequestJournalWalUnavailable' : error === refused);
+      assert.deepEqual(commands, ['BEGIN IMMEDIATE', 'ROLLBACK']);
+    } finally {
+      database.close(); assert.equal(database.isOpen, false); port.retireClosedNativeAliases();
+    }
+  });
+}
 
 test('selected primary metadata uses original bounded cursors instead of native All vectors', async () => {
   const {scratch, directory} = await fixture();
