@@ -1487,7 +1487,7 @@
     {
       "module": "adapters/host-common/completed-run-publication.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "5a380f2e1ac15e6eddbf5f00ea5ba5c4517cf9cfa566722586b4ae5cdedd418b",
+      "sha256": "fb1799d2f0575cf949e85e2e7879ae3fba5c12bb817cfc7bef309bd51542dd1d",
       "role": "physical-io",
       "owner": "Existing Run Publication/Artifact Owners and physical Store sequencing",
       "exports": [
@@ -2531,6 +2531,10 @@
               {
                 "path": "src/run_publication_host/client_requested_effect_stop.mbt",
                 "anchor": "fn check_requested_effect_stop_original("
+              },
+              {
+                "path": "adapters/host-common/completed-run-publication.mjs",
+                "anchor": "owner.publicationFailure.error === error ||"
               }
             ],
             "ownership": [
@@ -2549,6 +2553,10 @@
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
                 "anchor": "originalSubmittedIntent("
+              },
+              {
+                "path": "adapters/host-common/completed-run-publication.mjs",
+                "anchor": "resultOwner.publicationFailure = Object.freeze({error});"
               }
             ],
             "synchronization": [
@@ -2567,6 +2575,10 @@
               {
                 "path": "adapters/host-node/client-checkpoints.mjs",
                 "anchor": "const persisted = await journalPort.persistCheckpoint({body,"
+              },
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "committed or acknowledge storage; the original cleanup confirms only its own"
               }
             ],
             "failure": [
@@ -2585,6 +2597,10 @@
               {
                 "path": "adapters/host-node/client-checkpoints.mjs",
                 "anchor": "fail('RequestedEffectStopCommitMismatch');"
+              },
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "Result owner retains the exact publication failure and any original cleanup"
               }
             ],
             "cancellation": [
@@ -2603,6 +2619,10 @@
               {
                 "path": "adapters/host-node/client-checkpoints.mjs",
                 "anchor": "options.signal?.throwIfAborted();"
+              },
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "of issuing another interrupted-apply completion. This does not mark the Run"
               }
             ],
             "resources": [
@@ -2665,6 +2685,10 @@
               {
                 "path": "adapters/host-node/requested-effect-host.integration.test.mjs",
                 "anchor": "test('requested first Effect pauses Account Allow"
+              },
+              {
+                "path": "adapters/host-node/effect-cleanup-composition.test.mjs",
+                "anchor": "test('completed Effect publication preserves its exact pending failure instead of entering interrupted completion', async () => {"
               }
             ]
           }

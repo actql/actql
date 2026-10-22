@@ -156,6 +156,15 @@ file record without replacing or refunding that physical holding. Payload and
 public Index writes retain their separate real durability and cleanup duties.
 Lost COMMIT replies retain the same bodies, capacity reservation and sequence
 mutation for an idempotent same-database confirmation, never a Run replay.
+Store close attempts that retained failed writer's original confirmation before
+checking its reserved capacity. An unavailable confirmation remains pending;
+independent live payloads, readers and other cleanup duties still refuse close.
+Once a completed Effect receipt enters publication, its existing completed
+Result owner retains the exact publication failure and any original cleanup
+receiver. Captured and recovered Site callers propagate that failure instead
+of issuing another interrupted-apply completion. This does not mark the Run
+committed or acknowledge storage; the original cleanup confirms only its own
+physical mutation, with current authority and Run reconciliation still separate.
 Run metadata retirement selects its indexed attempts and records, removes
 their actual bodies, and retires their locators with the existing Run fence.
 
@@ -197,6 +206,17 @@ directly; they do not first query the native delivery-metadata tables. The
 selected file still supplies its real bounded bytes, inode/digest checks and
 close duty. Generic semantic reads and supported native publication/delivery
 families use selected database rows with legacy file fallback.
+
+A successful fresh object seal closes its original writer, installs and
+acknowledges the final object name, and keeps that same allocation fully
+charged in the Store. Removing its private staging alias is not a second
+durable publication or capacity refund. After that success, the alias is
+unlinked without another staging-directory barrier; exclusive opening recovery
+removes any resurrected temporary alias. An existing-object duplicate has a
+different temporary allocation, and cancellation or any failed seal keeps the
+original staging-unlink acknowledgement before releasing its reservation.
+Failed unlink still retains the same writer/reservation and retry path. No
+payload sync, final-name ACK, actual close or pending custody is waived.
 
 Typed publication evidence selects its storage representation before the commit's
 generic inventory traversal. The traversal reuses those acquired originals;

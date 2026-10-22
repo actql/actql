@@ -50,7 +50,7 @@ class ObjectWriterOwner {
     return result;
   }
 
-  async cleanupTemporary() {
+  async cleanupTemporary(finalNameAcknowledged = false) {
     if (this.handle) {
       // Native FileHandle success is undefined; explicit false keeps this
       // SAME FD/reservation owned and forbids unlink or capacity retirement.
@@ -61,12 +61,19 @@ class ObjectWriterOwner {
     }
     try { await this.operations.unlink(this.temporary); }
     catch (error) { if (error?.code !== 'ENOENT') throw error; }
-    await this.operations.syncDirectory(this.operations.stagingDirectory);
+    // A fresh successful seal already retains this SAME allocation at its
+    // synced final name and full Store charge. The private staging alias is
+    // not a second durable object or publication. A resurrected crash alias
+    // is removed by existing exclusive opening recovery. Failed/cancelled or
+    // duplicate allocations retain their original staging retirement ACK.
+    if (!finalNameAcknowledged) {
+      await this.operations.syncDirectory(this.operations.stagingDirectory);
+    }
   }
 
-  async cleanupAndRelease() {
+  async cleanupAndRelease(finalNameAcknowledged = false) {
     try {
-      await this.cleanupTemporary();
+      await this.cleanupTemporary(finalNameAcknowledged);
       this.cleanupPending = false;
       this.reservation.release();
     } catch (error) {
@@ -211,7 +218,7 @@ class ObjectWriterOwner {
         }
         throw primaryFailure;
       }
-      await this.cleanupAndRelease();
+      await this.cleanupAndRelease(installed);
       this.custody = undefined;
       return result;
     });
