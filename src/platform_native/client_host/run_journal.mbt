@@ -1048,7 +1048,47 @@ fn NativeClientRunJournal::save_with_operations(
     Err(issue) => return Err(Physical(issue))
   }
   let next = { ..record, revision, }
-  self.save_checkpoint_id_index(before, next, operations~).map(_ => next)
+  match self.save_checkpoint_id_index(before, next, operations~) {
+    Err(issue) => Err(issue)
+    Ok(_) => {
+      // A control-only CAS without a Checkpoint changes flags and revision,
+      // not its admitted Run or Policy originals. Retain that typed result with
+      // the bytes just written; foreign metadata still takes full admission.
+      // Rollback, lost COMMIT and operation end clear this same existing slot.
+      if run_record_originals_unchanged(before, next) {
+        self.admitted_record = Some(
+          (
+            @host.client_request_scope_cid(next.request),
+            body,
+            revision,
+            ValidatePublication,
+            next,
+          ),
+        )
+      }
+      Ok(next)
+    }
+  }
+}
+
+///|
+// This is a reuse selection for an already admitted record, not admission of
+// changed metadata. Identity checks on opaque originals avoid decoding their
+// unchanged wire. The existing reader remains responsible for every fallback.
+fn run_record_originals_unchanged(
+  before : NativeClientRunRecord,
+  after : NativeClientRunRecord,
+) -> Bool {
+  physical_equal(before.request, after.request) &&
+  physical_equal(before.definition, after.definition) &&
+  before.publication_binding == after.publication_binding &&
+  before.publication_policy_originals == after.publication_policy_originals &&
+  before.effect_material_originals == after.effect_material_originals &&
+  before.local_run_policy_originals == after.local_run_policy_originals &&
+  before.run_observation_originals == after.run_observation_originals &&
+  before.checkpoint is None &&
+  after.checkpoint is None &&
+  (!after.physical_start_claimed || after.dispatch_reserved)
 }
 
 ///|

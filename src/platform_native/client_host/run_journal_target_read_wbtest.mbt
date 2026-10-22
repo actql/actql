@@ -279,3 +279,173 @@ test "selected definition replacement uses the same Run CAS and actual unique co
   assert_false(calls.any(value => value.has_prefix("scan:")))
   database.close_checked().unwrap()
 }
+
+///|
+test "acknowledged control CAS retains the same typed Run originals within the operation" {
+  let database = epoch_test_database("journal-control-original-reuse")
+  initialize_native_client_run_journal(database).unwrap()
+  let journal = open_native_client_run_journal(database, 8).unwrap()
+  let (request, prepared, compiled, definition) = journal_test_run(
+    "control-request", "control-run",
+  )
+  journal.bind_run(request, prepared, compiled, definition, true).unwrap()
+  |> ignore
+  journal.operation_active = true
+  let original = journal.lookup(request, true).unwrap()
+  guard original is Retained(original) else { fail("missing original") }
+  let next = journal
+    .transaction(() => {
+      let next = journal.save({ ..original, dispatch_reserved: true, }).unwrap()
+      let observed = journal.retained(request).unwrap().unwrap()
+      assert_true(physical_equal(next, observed))
+      assert_true(physical_equal(next.request, original.request))
+      assert_true(physical_equal(next.definition, original.definition))
+      Ok(next)
+    })
+    .unwrap()
+  let started = journal
+    .transaction(() => {
+      let started = journal
+        .save({ ..next, physical_start_claimed: true, })
+        .unwrap()
+      assert_true(
+        physical_equal(started, journal.retained(request).unwrap().unwrap()),
+      )
+      Ok(started)
+    })
+    .unwrap()
+  assert_eq(started.revision, original.revision + 2L)
+  assert_true(started.physical_start_claimed)
+  let row = database
+    .read("client_runs", @host.client_request_scope_cid(request))
+    .unwrap()
+  assert_eq(row.body, run_record_body(started).unwrap())
+  assert_eq(row.revision, started.revision)
+  journal.operation_active = false
+  journal.invalidate_operation_record()
+  guard journal.lookup(request, true).unwrap() is Retained(fresh) else {
+    fail("missing committed original")
+  }
+  assert_false(physical_equal(started, fresh))
+  assert_true(fresh.physical_start_claimed)
+  database.close_checked().unwrap()
+}
+
+///|
+test "changed Run metadata and invalid control shape do not inherit a typed original" {
+  let database = epoch_test_database("journal-control-changed-original")
+  initialize_native_client_run_journal(database).unwrap()
+  let journal = open_native_client_run_journal(database, 8).unwrap()
+  let (request, prepared, compiled, definition) = journal_test_run(
+    "changed", "changed-run",
+  )
+  let original = journal
+    .bind_run(request, prepared, compiled, definition, true)
+    .unwrap()
+  let (_, _, _, replacement) = journal_test_run("changed", "replacement-run")
+  assert_false(
+    run_record_originals_unchanged(original, {
+      ..original,
+      definition: replacement,
+    }),
+  )
+  assert_false(
+    run_record_originals_unchanged(original, {
+      ..original,
+      publication_policy_originals: Some("{}"),
+    }),
+  )
+  assert_false(
+    run_record_originals_unchanged(original, {
+      ..original,
+      physical_start_claimed: true,
+    }),
+  )
+  journal.operation_active = true
+  let next = journal
+    .transaction(() => {
+      let next = journal.save({ ..original, definition: replacement, }).unwrap()
+      assert_true(journal.admitted_record is None)
+      let admitted = journal.retained(request).unwrap().unwrap()
+      assert_false(physical_equal(next, admitted))
+      Ok(admitted)
+    })
+    .unwrap()
+  assert_eq(
+    @publication.publication_contract_identity(next.definition),
+    @publication.publication_contract_identity(replacement),
+  )
+  journal.operation_active = false
+  journal.invalidate_operation_record()
+  database.close_checked().unwrap()
+}
+
+///|
+test "failed control transaction retires the emitted original before rollback recovery" {
+  let database = epoch_test_database("journal-control-rollback")
+  initialize_native_client_run_journal(database).unwrap()
+  let journal = open_native_client_run_journal(database, 8).unwrap()
+  let (request, prepared, compiled, definition) = journal_test_run(
+    "rollback", "rollback-run",
+  )
+  journal.bind_run(request, prepared, compiled, definition, true).unwrap()
+  |> ignore
+  journal.operation_active = true
+  let result : Result[Unit, NativeClientRunJournalIssue] = journal.transaction(() => {
+    let original = journal.retained(request).unwrap().unwrap()
+    journal.save({ ..original, dispatch_reserved: true, }).unwrap() |> ignore
+    assert_true(journal.admitted_record is Some(_))
+    Err(CustodyLost)
+  })
+  assert_true(result is Err(CustodyLost))
+  assert_true(journal.admitted_record is None)
+  guard journal.lookup(request, true).unwrap() is Retained(restored) else {
+    fail("rollback lost original")
+  }
+  assert_false(restored.dispatch_reserved)
+  assert_eq(restored.revision, 0L)
+  journal.operation_active = false
+  journal.invalidate_operation_record()
+  database.close_checked().unwrap()
+}
+
+///|
+test "lost control COMMIT retires emitted facts and cannot issue another start" {
+  let (database, journal, request) = journal_start_operation_fixture(
+    "control-commit-lost",
+  )
+  journal.reserve_dispatch(request, true).unwrap() |> ignore
+  journal.operation_active = true
+  let calls : Array[String] = []
+  let ordinary = journal_test_read_access(database, calls)
+  let reads : NativeClientJournalReadAccess = {
+    ..ordinary,
+    transaction: operation => {
+      if operation is JournalCommit {
+        database.commit().unwrap()
+        Err(@sqlite.Busy)
+      } else {
+        (ordinary.transaction)(operation)
+      }
+    },
+  }
+  let operations = { ..journal_test_operation_access(database, calls), reads, }
+  assert_true(
+    journal.claim_physical_start_with_operations(
+      request,
+      true,
+      operations=Some(operations),
+    )
+    is Err(TransactionUnknown),
+  )
+  assert_true(journal.admitted_record is None)
+  assert_true(journal.fenced)
+  assert_true(database.transaction_fenced())
+  assert_true(journal.claim_physical_start(request, true) is Err(Fenced))
+  let row = database
+    .read("client_runs", @host.client_request_scope_cid(request))
+    .unwrap()
+  assert_true(read_run_record(row).unwrap().physical_start_claimed)
+  journal.operation_active = false
+  database.close_checked().unwrap()
+}
