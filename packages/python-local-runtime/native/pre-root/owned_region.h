@@ -45,8 +45,8 @@ typedef struct actql_owned_extent_view {
     bool domain_attempted;
     bool domain_live;
     bool domain_borrowed;
-    actql_owned_extent_loan *local_loan;
     bool domain_storage;
+    actql_owned_extent_loan *local_loan;
 } actql_owned_extent_view;
 
 /* Same original physical comparison used by the existing Native channel.

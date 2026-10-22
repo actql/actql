@@ -63,7 +63,7 @@
     },
     "packages/python-local-runtime/native/pre-root/scoped-read-source.json": {
       "bytes": 8935,
-      "sha256": "eeb942870fe6a02ac33a7556af96c2ee1af5f0ccd29677ab810530c566425afd"
+      "sha256": "f34b35d6d4fd809689a2886792da9bf60c7dcd67607bc37dbe8ceb1e2f1a8b7e"
     },
     "packages/python-local-runtime/native/pre-root/owned_capacity.h": {
       "bytes": 6288,
