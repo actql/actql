@@ -1,8 +1,15 @@
 ///|
-// Installer-private facility selection for the accepted source-free Run scope.
-// This is neither all-input demand adequacy nor a physical issuer. Actual
-// backing/context/Ledger acquisition and Program quotation remain mandatory.
+// Installer-private command retention selection. Compute uses its own backed
+// domain; saved Result uses the existing bounded Read/SQLite facilities.
+// Neither selection issues resources, permissions or cleanup acknowledgements.
+priv enum LocalCommandBusinessKind {
+  SourceFreeCompute
+  SavedResultRead
+} derive(Eq)
+
+///|
 priv struct LocalCommandBusinessProfile {
+  kind : LocalCommandBusinessKind
   domain_bytes : Int64
   payload_facility_bytes : Int64
   limits : @initial_resources.LedgerLimits
@@ -13,6 +20,7 @@ priv struct LocalCommandBusinessProfile {
 // keep every partial physical stage and their distinct acknowledgements.
 priv struct LocalCommandBusinessOriginal {
   profile : LocalCommandBusinessProfile
+  mut selected_profile : LocalCommandBusinessProfile?
   mut domain : @initial_arena.InstalledArenaDomain?
   mut execution : @initial_arena.InstalledArenaRetainedExecution?
   mut operation : @local_host.NativeLocalStoreOperation?
@@ -51,6 +59,54 @@ priv struct LocalCommandBusinessOriginal {
 }
 
 ///|
+// A checked demand below the supported facility can select a smaller actual
+// acquisition. A conservative upper bound above it does not invalidate the
+// existing finite facility or promise that every input will fit it.
+fn local_command_selected_business_limits(
+  maximum : @initial_resources.LedgerLimits,
+  required : @initial_resources.LedgerLimits?,
+) -> @initial_resources.LedgerLimits {
+  match required {
+    Some(value) if value.retained_bytes > 0L &&
+      value.execution_bytes > 0L &&
+      value.planning_work <= maximum.planning_work &&
+      value.attempts <= maximum.attempts &&
+      value.holdings <= maximum.holdings &&
+      value.transfer_bytes <= maximum.transfer_bytes &&
+      value.retained_bytes <= maximum.retained_bytes &&
+      value.execution_bytes <= maximum.execution_bytes => value
+    _ => maximum
+  }
+}
+
+///|
+fn local_command_domain_bytes(payload : Int64) -> Int64? {
+  if payload <= 0L {
+    return None
+  }
+  // The layout provider accepts a page-aligned domain candidate. Checked
+  // Program requirements count payload bytes and need not have that alignment.
+  let mut bytes = match
+    native_storage_page_round(payload, native_storage_page_bytes()) {
+    Ok(value) => value
+    Err(_) => return None
+  }
+  for _ in 0..<16 {
+    let necessary = @initial_bootstrap.execution_domain_necessary_bytes(
+      bytes, payload,
+    )
+    if necessary <= 0L {
+      return None
+    }
+    if necessary <= bytes {
+      return Some(bytes)
+    }
+    bytes = necessary
+  }
+  None
+}
+
+///|
 // Declare the selected parent before its first physical acquisition. Complete
 // external/initial overlap remains mandatory alongside this backed facility.
 // The payload is a hard backed facility, not residual space or an estimate of
@@ -71,38 +127,17 @@ fn local_command_source_free_business_profile(
     execution_bytes: 536870912L,
   }
   let payload = limits.retained_bytes + limits.execution_bytes
-  let mut bytes = payload
-  let mut converged = false
-  // The actual provider's extent table depends on the complete domain size.
-  // Iterate its checked, page-rounded layout, never add guessed spare space.
-  for _ in 0..<16 {
-    let necessary = @initial_bootstrap.execution_domain_necessary_bytes(
-      bytes, payload,
-    )
-    if necessary <= 0L {
-      stop("LocalBusinessLayoutUnavailable")
-    }
-    if necessary <= bytes {
-      converged = true
-      break
-    }
-    bytes = necessary
-  }
-  if !converged || bytes > 9223372036854775807L - static_profile.arena_bytes {
+  let bytes = local_command_domain_bytes(payload).unwrap_or_else(() => {
     stop("LocalBusinessLayoutUnavailable")
-  }
-  let arena = static_profile.arena_bytes + bytes
-  let control = @initial_bootstrap.command_backing_control_necessary_bytes(
-    arena,
-  ).unwrap_or_else(() => stop("LocalBusinessLayoutUnavailable"))
-  if control <= 0L ||
-    control >
-    arena -
-    static_profile.read_domain_bytes -
-    static_profile.sqlite_domain_bytes -
-    bytes {
+  })
+  let domains = native_storage_sum([
+    static_profile.read_domain_bytes,
+    static_profile.sqlite_domain_bytes,
+    bytes,
+  ]).unwrap_or_else(() => stop("LocalBusinessLayoutUnavailable"))
+  let (arena, control) = local_command_backing_layout(domains).unwrap_or_else(() => {
     stop("LocalBusinessLayoutUnavailable")
-  }
+  })
   let original = static_profile.host_limits
   let profile : LocalCommandPreparationProfile = {
     ..static_profile,
@@ -123,7 +158,35 @@ fn local_command_source_free_business_profile(
       shared_control_bytes: Some(control),
     },
   }
-  (profile, { domain_bytes: bytes, payload_facility_bytes: payload, limits, })
+  (
+    profile,
+    {
+      kind: SourceFreeCompute,
+      domain_bytes: bytes,
+      payload_facility_bytes: payload,
+      limits,
+    },
+  )
+}
+
+///|
+// Saved Result performs bounded metadata, verification, decoding and output in
+// the existing command Read/SQLite facilities. This retains caller cleanup
+// state but selects no Compute domain, execution or Ledger capacity.
+fn local_command_saved_result_read_profile() -> LocalCommandBusinessProfile {
+  {
+    kind: SavedResultRead,
+    domain_bytes: 0L,
+    payload_facility_bytes: 0L,
+    limits: {
+      planning_work: 0,
+      attempts: 0,
+      holdings: 0,
+      transfer_bytes: 0L,
+      retained_bytes: 0L,
+      execution_bytes: 0L,
+    },
+  }
 }
 
 ///|
@@ -131,19 +194,27 @@ fn LocalCommandPreparationOriginal::prepare_business_domain(
   self : LocalCommandPreparationOriginal,
   host : @initial_arena.InstalledArenaHost,
   scope : @initial_arena.InstalledArenaBackingBorrow,
-  descriptor : Int,
 ) -> Result[Unit, LocalCommandPreparationIssue] {
   guard self.business is Some(business) else { return Ok(()) }
+  if business.profile.kind == SavedResultRead {
+    return if !self.closing &&
+      !self.closed &&
+      self.primary is None &&
+      business.domain is None &&
+      business.execution is None {
+      Ok(())
+    } else {
+      Err(CommandUnavailable)
+    }
+  }
+  guard business.selected_profile is Some(selected) else {
+    return Err(CommandUnavailable)
+  }
   if business.domain is Some(_) || self.closing || self.closed {
     return Err(CommandUnavailable)
   }
   let acquired = host
-    .prepare_domain(
-      scope,
-      descriptor,
-      business.profile.domain_bytes,
-      business.profile.limits,
-    )
+    .prepare_domain_in_process(scope, selected.domain_bytes, selected.limits)
     .map_err(issue => CommandDomain(issue))
   match acquired {
     Err(issue) => Err(issue)
@@ -164,13 +235,28 @@ fn LocalCommandPreparationOriginal::prepare_business_execution(
   host : @initial_arena.InstalledArenaHost,
 ) -> Result[Unit, LocalCommandPreparationIssue] {
   guard self.business is Some(business) else { return Ok(()) }
-  guard business.domain is Some(domain) && business.execution is None else {
+  if business.profile.kind == SavedResultRead {
+    return if !self.closing &&
+      !self.closed &&
+      self.primary is None &&
+      business.domain is None &&
+      business.execution is None {
+      Ok(())
+    } else {
+      Err(CommandUnavailable)
+    }
+  }
+  guard business.selected_profile is Some(selected) &&
+    business.domain is Some(domain) &&
+    business.execution is None else {
     return Err(CommandUnavailable)
   }
   match
     host.prepare_domain_read(
       domain,
-      execution_ceiling=business.profile.payload_facility_bytes,
+      // The physical ceiling counts the whole acquired page span, including
+      // control and context pages. Task payload budgets remain in the Ledger.
+      execution_ceiling=selected.domain_bytes,
     ) {
     Err(issue) => return Err(CommandDomain(issue))
     Ok(_) => ()
@@ -192,6 +278,8 @@ fn LocalCommandPreparationOriginal::prepare_business_execution(
 fn LocalCommandPreparationOriginal::close_business_execution(
   self : LocalCommandPreparationOriginal,
 ) -> Result[Unit, LocalCommandPreparationIssue] {
+  native_timing_begin(28)
+  defer native_timing_end(28)
   guard self.business is Some(business) else { return Ok(()) }
   guard self.host is Some(host) else {
     return if business.domain is None && business.execution is None {
@@ -251,25 +339,27 @@ fn LocalCommandPreparationOriginal::require_business_program(
   self : LocalCommandPreparationOriginal,
   prepared : @run_host.PreparedClientProgram,
   assets : @run_host.ClientLocalProductAssets,
+  requirements : @local_values.ClientLocalSourceFreeRequirements,
 ) -> Result[@initial_resources.LedgerLimits, LocalCommandPreparationIssue] {
   if self.closing || self.closed || self.primary is Some(_) {
     return Err(CommandUnavailable)
   }
   guard self.host is Some(host) &&
     self.business is Some(business) &&
+    business.profile.kind == SourceFreeCompute &&
     business.execution is Some(execution) else {
     return Err(CommandUnavailable)
   }
-  guard @local_values.source_free_local_ledger_limits(
+  if !requirements.matches(
       prepared,
       assets.registry,
       assets.values,
       Some(assets.fragment),
       assets.ordered,
-    )
-    is Some(needed) else {
+    ) {
     return Err(CommandUnavailable)
   }
+  let needed = requirements.maximum_limits()
   let supplied = business.profile.limits
   if needed.planning_work > supplied.planning_work ||
     needed.attempts > supplied.attempts ||
@@ -297,22 +387,40 @@ fn LocalCommandPreparationOriginal::prepare_business_operation(
     self.pair is Some(pair) &&
     self.journal is Some(capture) &&
     self.runtime is Some(runtime) &&
-    business.execution is Some(execution) &&
     business.operation is None &&
     !self.phase_open &&
-    !self.journal_read_open &&
     !self.closing &&
     !self.closed else {
+    return Err(CommandUnavailable)
+  }
+  guard self.read is Some(read) &&
+    host.observe_local_host_consuming_read_scope(pair, read)
+    is Ok(@initial_arena.ReadUnentered) else {
     return Err(CommandUnavailable)
   }
   let library = match host.borrow_local_host_sqlite(pair) {
     Ok(value) => value
     Err(issue) => return Err(CommandPair(issue))
   }
-  let operation = match
-    @local_host.prepare_native_local_store_operation(
-      capture, execution, runtime, library,
-    ) {
+  let prepared = match business.profile.kind {
+    SourceFreeCompute => {
+      guard business.execution is Some(execution) else {
+        return Err(CommandUnavailable)
+      }
+      @local_host.prepare_native_local_store_operation(
+        capture, execution, runtime, library,
+      )
+    }
+    SavedResultRead => {
+      if business.domain is Some(_) || business.execution is Some(_) {
+        return Err(CommandUnavailable)
+      }
+      @local_host.prepare_native_local_run_observation_store_operation(
+        capture, runtime, library,
+      )
+    }
+  }
+  let operation = match prepared {
     Ok(value) => value
     Err(issue) => return Err(CommandStoreOperation(issue))
   }
@@ -327,6 +435,8 @@ fn LocalCommandPreparationOriginal::prepare_business_operation(
 fn LocalCommandPreparationOriginal::close_business_operation(
   self : LocalCommandPreparationOriginal,
 ) -> Result[Unit, LocalCommandPreparationIssue] {
+  native_timing_begin(29)
+  defer native_timing_end(29)
   guard self.business is Some(business) else { return Ok(()) }
   if business.operation is Some(operation) {
     match operation.pending_scope() {

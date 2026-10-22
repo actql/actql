@@ -23,6 +23,7 @@ extern int actql_read_context_release_after_owner_ack(actql_read_context *);
 typedef struct block block;
 struct block {
     size_t available, requested;
+    block *previous;
 };
 typedef struct {
     actql_owned_capacity *lease;
@@ -30,6 +31,7 @@ typedef struct {
     pid_t process;
     size_t bytes, live_bytes, aligned_bytes, blocks, peak, failures;
     block *first;
+    unsigned char *live_starts;
     atomic_flag lock;
     unsigned initialized, closing, failed, operations, libraries, cleanup_active;
     OSSL_PROVIDER *default_provider;
@@ -79,12 +81,22 @@ static block *next_block(block *b) {
     unsigned char *end = (unsigned char *)state + state->bytes;
     return next == end ? NULL : (block *)next;
 }
-/* Compare only known original block addresses; never dereference caller memory
- * to classify a foreign pointer, including after a different current scope. */
+/* One bit per aligned position, inside the same extent. Only an exact live
+ * payload start has a bit. Classify integers and this original metadata before
+ * accessing any header; foreign/interior/retired pointers are never probed. */
+static void mark_start(block *b, int live) {
+    size_t index = ((uintptr_t)payload(b) - (uintptr_t)state) / alignment;
+    unsigned char mask = (unsigned char)(1u << (index % 8));
+    if (live) state->live_starts[index / 8] |= mask;
+    else state->live_starts[index / 8] &= (unsigned char)~mask;
+}
 static block *find(void *p) {
-    for (block *b = state->first; b; b = next_block(b))
-        if (payload(b) == p && b->requested) return b;
-    return NULL;
+    uintptr_t value = (uintptr_t)p, base = (uintptr_t)state;
+    if (value < (uintptr_t)payload(state->first) || value - base >= state->bytes ||
+        (value - base) % alignment) return NULL;
+    size_t index = (value - base) / alignment;
+    if (!(state->live_starts[index / 8] & (1u << (index % 8)))) return NULL;
+    return (block *)(value - header_bytes());
 }
 static void *allocate_locked(size_t n) {
     size_t size = rounded(n);
@@ -92,11 +104,14 @@ static void *allocate_locked(size_t n) {
     for (block *b = state->first; b; b = next_block(b)) {
         if (b->requested || b->available < size) continue;
         if (b->available - size >= header_bytes() + alignment) {
+            block *after = next_block(b);
             block *tail = (block *)((unsigned char *)payload(b) + size);
-            *tail = (block){.available = b->available - size - header_bytes()};
+            *tail = (block){.available = b->available - size - header_bytes(), .previous = b};
+            if (after) after->previous = tail;
             b->available = size;
         }
         b->requested = n;
+        mark_start(b, 1);
         state->live_bytes += n; state->aligned_bytes += b->available; state->blocks++;
         if (state->aligned_bytes > state->peak) state->peak = state->aligned_bytes;
         return payload(b);
@@ -106,13 +121,20 @@ static void *allocate_locked(size_t n) {
 }
 static void free_locked(block *b) {
     state->live_bytes -= b->requested; state->aligned_bytes -= b->available; state->blocks--;
+    mark_start(b, 0);
     OPENSSL_cleanse(payload(b), b->available);
     b->requested = 0;
-    for (block *p = state->first; p && next_block(p);) {
-        block *next = next_block(p);
-        if (!p->requested && !next->requested) {
-            p->available += header_bytes() + next->available;
-        } else p = next;
+    block *next = next_block(b);
+    if (next && !next->requested) {
+        b->available += header_bytes() + next->available;
+        block *after = next_block(b);
+        if (after) after->previous = b;
+    }
+    block *previous = b->previous;
+    if (previous && !previous->requested) {
+        previous->available += header_bytes() + b->available;
+        block *after = next_block(previous);
+        if (after) after->previous = previous;
     }
 }
 static void *component_malloc(size_t n, const char *file, int line) {
@@ -155,7 +177,10 @@ static int provider_origin(void) {
 }
 static int bind_original(actql_read_context *original, size_t bytes, int *acquired) {
     *acquired = 0;
-    if (!original || bytes % alignment || bytes < rounded(sizeof(component_state)) + header_bytes() + alignment ||
+    size_t starts = rounded((bytes / alignment + 7) / 8);
+    size_t control = rounded(sizeof(component_state));
+    if (!original || bytes % alignment || !starts || starts > bytes || control > bytes - starts ||
+        bytes - starts - control < header_bytes() + alignment ||
         actql_bootstrap_current_read_context() != original ||
         !actql_native_owned_current() || !provider_origin()) return ACTQL_CRYPTO_COMPONENT_INVALID;
     int expected = 0;
@@ -174,8 +199,9 @@ static int bind_original(actql_read_context *original, size_t bytes, int *acquir
     state = original_extent; memset(state, 0, sizeof(*state));
     state->lease = original_lease; state->context = original; state->process = original_process;
     state->bytes = bytes; atomic_flag_clear(&state->lock);
-    state->first = (block *)((unsigned char *)state + rounded(sizeof(*state)));
-    *state->first = (block){.available = bytes - rounded(sizeof(*state)) - header_bytes()};
+    state->live_starts = (unsigned char *)state + control;
+    state->first = (block *)(state->live_starts + starts);
+    *state->first = (block){.available = bytes - control - starts - header_bytes()};
     if (CRYPTO_set_mem_functions(component_malloc, component_realloc, component_free) != 1) {
         state->failed = 1;
         return ACTQL_CRYPTO_COMPONENT_FAILED;
@@ -246,7 +272,7 @@ void *actql_crypto_component_symbol(const char *name) {
 }
 int actql_crypto_component_inventory(uint64_t out[12]) {
     if (!out || !lock_state()) return ACTQL_CRYPTO_COMPONENT_INVALID;
-    size_t headers = rounded(sizeof(*state)), free_bytes = 0;
+    size_t headers = (size_t)((unsigned char *)state->first - (unsigned char *)state), free_bytes = 0;
     for (block *b = state->first; b; b = next_block(b)) {
         headers += header_bytes(); if (!b->requested) free_bytes += b->available;
     }

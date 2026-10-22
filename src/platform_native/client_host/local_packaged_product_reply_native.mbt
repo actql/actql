@@ -35,8 +35,9 @@ pub fn observe_native_local_packaged_product_reply(
 }
 
 ///|
-/// The existing original identity and wire method each recheck the Runtime's
-/// physical originals. A copy cannot reconstruct their nominal current witness.
+/// The selected command consumes its already observed immutable product.
+/// An internal FFI projection is not another package-validation boundary.
+/// The separate unscoped entrance observes current product originals once.
 pub fn read_native_local_packaged_product_reply(
   runtime : NativeLocalPackagedRuntime,
 ) -> NativeLocalPackagedProductReply {

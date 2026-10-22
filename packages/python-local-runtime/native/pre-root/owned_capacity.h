@@ -42,6 +42,16 @@ int actql_native_owned_control_bytes(actql_owned_capacity *lease, uint64_t *out)
  * availability, exportable alias or cleanup acknowledgement. */
 int actql_native_owned_inventory(actql_owned_capacity *lease, uint64_t *out,
                                   size_t count);
+/* Five initially-zero uint64 slots: successful backing-extent allocations,
+ * page-rounded allocated bytes, explicit payload memset bytes, confirmed
+ * extent retirements and their bytes. Cumulative within this actual holding;
+ * excludes anonymous-map zero supply, this holding's control writes and nested
+ * allocators. A private child-domain control prefix is payload of this holding
+ * and its actual initial memset is included; untouched child capacity is not.
+ * Same entered original required. Overflow refuses observation, never changes
+ * allocation/cleanup behavior. No capacity, physical ACK or reusable credit. */
+int actql_native_owned_extent_work(actql_owned_capacity *lease, uint64_t *out,
+                                    size_t count);
 /* Reduce the same original's allocation ceiling once, before payload use.
  * Includes allocator controls and pending extents; never a capacity issuer.
  * Requires the entered original scope. Invalid first selections are consumed. */

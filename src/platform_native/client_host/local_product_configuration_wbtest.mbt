@@ -79,6 +79,28 @@ test "product originals reject invalid selection before physical creation" {
 }
 
 ///|
+test "a new product staging call reobserves a changed initialization intent" {
+  let path = product_test_parent("product-parent-intent-changed")
+  let session = begin_native_local_product_configuration(
+    path,
+    "product-intent-changed",
+    [("config.json", b"{}")],
+    epoch_test_crypto(),
+  ).unwrap()
+  session.stage_configuration().unwrap()
+  let original = session.root.inspect_generation("config.json").unwrap()
+  let writer = session.parent.create_writer("changed-intent.stage", 2L).unwrap()
+  writer.append(b"{}").unwrap()
+  session.parent
+  .reclaim_generation("product-initialization.json", session.intent_generation)
+  .unwrap()
+  writer.seal("product-initialization.json").unwrap() |> ignore
+  assert_true(session.stage_configuration() is Err(CustodyLost))
+  assert_eq(session.root.inspect_generation("config.json").unwrap(), original)
+  assert_true(session.close())
+}
+
+///|
 test "File installation refuses stale tenth and eleventh claims before creating an intent" {
   for (label, index) in [("tenth", "9"), ("eleventh", "10")] {
     let path = product_test_parent("product-parent-\{label}-claim")

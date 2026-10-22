@@ -23,6 +23,18 @@ fn journal_test_read_access(
       calls.push("scan:" + table_name + ":" + cursor)
       database.scan_after(table_name, cursor)
     },
+    read_evidence_schema: () => {
+      calls.push("read-evidence-schema")
+      database.client_read_evidence_schema()
+    },
+    run_definition_schema: () => {
+      calls.push("run-definition-schema")
+      database.client_run_definition_schema()
+    },
+    run_definition_key: definition_cid => {
+      calls.push("run-definition-key:" + definition_cid)
+      database.client_run_definition_key(definition_cid)
+    },
     schema: () => {
       calls.push("schema")
       submission_name_schema_ffi(database)

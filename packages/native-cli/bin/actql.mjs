@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // npm starts this small launcher. Every protocol operation runs in Native.
 import {createRequire} from 'node:module';
-import {readFileSync, lstatSync, realpathSync} from 'node:fs';
+import {readFileSync, lstatSync, realpathSync, writeSync} from 'node:fs';
 import {createHash} from 'node:crypto';
 import {dirname, join, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
@@ -43,6 +43,7 @@ export function admitInstalledBinary({key, expected, metadata, binary, glibc, ma
 }
 
 export function launch(args) {
+  const timingStart = process.env.ACTQL_NATIVE_TIMINGS === '1' ? process.hrtime.bigint() : null;
   const initialization = projectInitArguments(args);
   if (initialization?.help) {
     console.log('Usage: actql init [--template churn-risk-mock] [<directory>]');
@@ -84,7 +85,22 @@ export function launch(args) {
     const project = scaffoldProject(initialization.directory, initialization.template);
     selectedArguments = projectInitialAdoptionArguments(project);
   }
+  const childStart = timingStart === null ? null : process.hrtime.bigint();
   const child = spawnSync(executable, selectedArguments, {stdio: 'inherit', env: selectedEnvironment});
+  if (timingStart !== null) {
+    // Observational only: missing diagnostics cannot change the Native result
+    // or acknowledge child cleanup. Imports and OS process creation precede
+    // this entry; the external consumer measures those separately.
+    try {
+      const finish = process.hrtime.bigint();
+      writeSync(2, 'ACTQL_NATIVE_LAUNCHER_TIMINGS ' + JSON.stringify({
+        units: 'nanoseconds',
+        preparation: Number(childStart - timingStart),
+        child: Number(finish - childStart),
+        total: Number(finish - timingStart),
+      }) + '\n');
+    } catch {}
+  }
   if (child.error) throw Object.assign(Error(`Native start failed: ${child.error.code}. Reinstall the fixed package cohort and verify the supported platform.`), {exitCode: 69});
   return child.status ?? 128 + (constants.signals[child.signal] ?? 1);
 }

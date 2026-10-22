@@ -38,6 +38,8 @@ fn local_settings_text(
 // Finite physical settings are selected by the operator, never by a Program.
 // Limits are explicit; no existing Owner budget is silently increased.
 fn local_host_settings(text : String) -> LocalHostSettings raise ClientStop {
+  // Count the bounded typed decode, not consumers of these immutable fields.
+  native_timing_count(27)
   let cursor = local_input_cursor(text)
   let root = @decode.closed_object(cursor, [
     "version", "native", "state_dir", "account_config",
@@ -179,7 +181,13 @@ fn execute_native_local_adoption(
   initial_crypto? : InitialCryptoOriginal? = None,
   preparation? : LocalCommandPreparationOriginal? = None,
   preparation_runtime? : LocalPackagedRuntime? = None,
+  configuration_original? : (String, LocalHostSettings)? = None,
 ) -> String raise ClientStop {
+  native_timing_begin(12)
+  defer native_timing_end(12)
+  if operation == "adopt" && child.flags.get("migrate-journal").unwrap_or(false) {
+    command_preparation_diagnostic.val = JournalMaintenanceFailed
+  }
   let root = required(matches, "config-root")
   let name = required(matches, "config-file")
   let input_root = local_document_root(matches, root)
@@ -199,18 +207,34 @@ fn execute_native_local_adoption(
   let root_ownership = selected_root
     .private_ownership()
     .unwrap_or_else(() => stop("LocalConfigurationRootUntrusted"))
-  let configuration = text_file(root, name, 65536L)
+  // The selected Product path already read and decoded this exact body. Its
+  // original Session still compares the bytes before opening the Journal.
+  let (configuration, settings) = match configuration_original {
+    Some(original) => {
+      guard preparation is Some(_) else {
+        stop("LocalCommandPreparationUnavailable")
+      }
+      original
+    }
+    None => {
+      let body = text_file(root, name, 65536L)
+      (body, local_host_settings(body))
+    }
+  }
   let (environment_file, evidence_cid) = local_configuration(configuration)
-  let settings = local_host_settings(configuration)
   let environment = text_file(root, environment_file, 65536L)
-  guard @run_host.admit_client_check_environment(
-      environment,
-      evidence_cid,
-      { text_time: false, veca: false, },
-      { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
-    )
-    is Some(check_environment) else {
-    stop("InvalidLocalCheckEnvironment")
+  let check_environment = match preparation {
+    Some(_) =>
+      local_command_check_environment(
+        operation, child, environment, evidence_cid,
+      )
+    None =>
+      Some(
+        local_admitted_check_environment(environment, evidence_cid).unwrap_or_else(() => {
+            stop("InvalidLocalCheckEnvironment")
+          },
+        ),
+      )
   }
   guard selected_root.private_ownership() is Ok(current) &&
     current == root_ownership else {
@@ -237,15 +261,17 @@ fn execute_native_local_adoption(
       Some((file, @utf8.encode(body)))
     }
   }
-  let selected_run = match settings.run_file {
-    None => None
+  let (selected_run, run_original) = match settings.run_file {
+    None => (None, None)
     Some(file) => {
       if !settings.installation_files.contains(file) {
         stop("LocalRunOriginalNotSelected")
       }
-      let body = text_file(root, file, 65536L)
-      ignore(local_run_installation(body))
-      Some((file, @utf8.encode(body)))
+      let original = local_command_run_installation_original(
+        file,
+        text_file(root, file, 65536L),
+      )
+      (Some((file, original.body)), Some(original))
     }
   }
   let selected_read = match settings.read_file {
@@ -281,12 +307,16 @@ fn execute_native_local_adoption(
     }
     return original.execute_adopted_command(
       operation,
-      settings,
       root,
-      name,
-      configuration,
-      environment_file,
-      environment,
+      {
+        configuration_name: name,
+        configuration_body: @utf8.encode(configuration),
+        settings,
+        environment_name: environment_file,
+        environment_body: @utf8.encode(environment),
+        environment: check_environment,
+        run_original,
+      },
       selected_files,
       additional,
       input_root,
@@ -295,6 +325,11 @@ fn execute_native_local_adoption(
       preparation_runtime~,
     )
   }
+  // The unselected compatibility entrance keeps its original complete
+  // Environment admission, including commands that do not prepare a Program.
+  let check_environment = check_environment.unwrap_or_else(() => {
+    stop("InvalidLocalCheckEnvironment")
+  })
   let (sqlite_path, crypto_path) = match packaged_runtime {
     None => (settings.sqlite_library, settings.signature_library)
     Some(runtime) =>
@@ -490,6 +525,24 @@ fn execute_native_local_adoption(
       local_public_result(host, settings, crypto, sqlite, child)
     } else if operation == "read" {
       local_result_stream(host, settings, crypto, sqlite, input_root, child)
+    } else if operation == "adopt" &&
+      child.flags.get("migrate-journal").unwrap_or(false) {
+      match
+        host.migrate_journal_append_metadata(
+          settings.principal,
+          settings.connection,
+          settings.snapshot_bytes,
+        ) {
+        Ok(_) => ()
+        Err(issue) => stop(local_journal_migration_issue(issue))
+      }
+      local_adoption_metadata_reply(
+        true,
+        settings.account_id,
+        local_host_result(host.configuration()).configuration_cid(),
+        host.adoption_cid(),
+        child,
+      )
     } else if operation == "new-submission" {
       guard host.authorize({
           principal: settings.principal,
@@ -555,6 +608,17 @@ fn execute_native_local_adoption(
     stop("LocalHostCleanupPending")
   }
   reply
+}
+
+///|
+fn local_journal_migration_issue(
+  issue : @local_host.NativeClientRunJournalIssue,
+) -> String {
+  match issue {
+    TransactionUnknown | Fenced => "LocalJournalMigrationUnknown"
+    AuthorizationDenied => "LocalJournalMigrationAuthorizationDenied"
+    _ => "LocalJournalMigrationUnavailable"
+  }
 }
 
 ///|
@@ -728,13 +792,11 @@ fn local_original_run_reference(
   definition : @publication.PublicationContract,
   scope : String,
 ) -> Json raise ClientStop {
-  let original = @decode.open_object(
-    local_input_cursor(@publication.publication_contract_json(definition)),
+  // The definition already owns its admitted immutable fields. Projection
+  // does not parse its wire again or obtain another current authorization.
+  let run_namespace = @publication.publication_contract_run_definition_scope(
+    definition,
   ).unwrap_or_else(() => stop("LocalOriginalRunUnavailable"))
-  guard @decode.lookup(original, "scope_id") is Some(namespace_value) &&
-    @decode.text(namespace_value) is Ok(run_namespace) else {
-    stop("LocalOriginalRunUnavailable")
-  }
   let reference = Json::object(
     Map([
       ("namespaceId", Json::string(run_namespace)),

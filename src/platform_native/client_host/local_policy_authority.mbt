@@ -17,6 +17,10 @@ priv struct NativeLocalPolicyAuthority {
   scope : String
   purpose : NativeLocalPolicyAuthorityPurpose
   capture : NativeLocalJournalCapture?
+  material : @host.ClientLocalAdoptedHostMaterial[
+    @sqlite.Database,
+    NativeLocalAdoptionIssue,
+  ]
 }
 
 ///|
@@ -32,9 +36,9 @@ fn NativeLocalPolicyAuthority::current_for(
 }
 
 ///|
-// One trusted synchronous predicate may share original material, never an
-// Account outcome. The Common scope/Account operations retain every actual
-// before/after current callback, including after Store or journal operations.
+// The closed public operation shares its admitted material and exact Account
+// tuples. A new public operation or relevant invalidation observes current
+// originals again; internal getters and trusted reads do not create a frame.
 fn NativeLocalPolicyAuthority::current_material_for(
   self : NativeLocalPolicyAuthority,
   journal : NativeClientRunJournal,
@@ -47,23 +51,9 @@ fn NativeLocalPolicyAuthority::current_material_for(
     @host.client_request_authority_scope_cid(request) != self.scope {
     return None
   }
-  match self.capture {
-    None => self.host.adopted_current_material().to_option()
-    Some(capture) =>
-      capture
-      .with_current_adoption_material_in_original_read((
-        host,
-        material,
-        _operations,
-      ) => {
-        if physical_equal(host, self.host) {
-          Ok(material)
-        } else {
-          Err(CustodyLost)
-        }
-      })
-      .to_option()
-  }
+  // Selection is pure. The immediately following scope/Account operation
+  // invokes this material's original current port before consuming its facts.
+  Some(self.material)
 }
 
 ///|
@@ -80,54 +70,95 @@ fn NativeLocalPolicyAuthority::current_with_material_for(
     @host.client_request_authority_scope_cid(request) != self.scope {
     return false
   }
-  let scope = {
-    let body = match
-      @host.client_local_adopted_authority_scope_body(
-        material,
-        self.host.database,
-        self.principal,
-        self.connection,
-      ) {
-      Ok(value) => value
-      Err(_) => return false
-    }
-    match local_adoption_digest(self.crypto, body) {
-      Ok(value) => value
-      Err(_) => return false
+  let scope = match self.capture {
+    Some(capture) =>
+      match
+        capture.operation_scope(
+          self.host,
+          material,
+          self.principal,
+          self.connection,
+        ) {
+        Ok(value) => value
+        Err(_) => return false
+      }
+    None => {
+      let body = match
+        @host.client_local_adopted_authority_scope_body(
+          material,
+          self.host.database,
+          self.principal,
+          self.connection,
+        ) {
+        Ok(value) => value
+        Err(_) => return false
+      }
+      match local_adoption_digest(self.crypto, body) {
+        Ok(value) => value
+        Err(_) => return false
+      }
     }
   }
   if scope != self.scope {
     return false
   }
-  let operation = match self.purpose {
+  native_local_policy_account_allowed(
+    material,
+    self.host.database,
+    self.principal,
+    self.connection,
+    self.purpose,
+    capture=self.capture,
+  )
+}
+
+///|
+// One admitted scope interval evaluates the Run and named-Result tuples
+// independently. The caller supplies the original material, never an Allow.
+fn native_local_policy_account_allowed(
+  material : @host.ClientLocalAdoptedHostMaterial[
+    @sqlite.Database,
+    NativeLocalAdoptionIssue,
+  ],
+  database : @sqlite.Database,
+  principal : String,
+  connection : String,
+  purpose : NativeLocalPolicyAuthorityPurpose,
+  capture? : NativeLocalJournalCapture? = None,
+) -> Bool {
+  let operation = match purpose {
     SubmitOriginals => "submit"
     PublishRun => "publish"
     ReadRunMaterials | ReadResultPolicy(_) => "read"
   }
-  if !(@host.client_local_adopted_account_outcome(
-      material,
-      self.host.database,
-      {
-        principal: self.principal,
-        connection: self.connection,
-        resource: "run",
-        operation,
-      },
-    )
-    is Ok(@authorization.Allow(_))) {
-    return false
+  let resources = match purpose {
+    ReadResultPolicy(name) => ["run", "result/" + name]
+    _ => ["run"]
   }
-  match self.purpose {
-    SubmitOriginals | PublishRun | ReadRunMaterials => true
-    ReadResultPolicy(name) =>
-      @host.client_local_adopted_account_outcome(material, self.host.database, {
-        principal: self.principal,
-        connection: self.connection,
-        resource: "result/" + name,
-        operation: "read",
-      })
-      is Ok(@authorization.Allow(_))
+  for resource in resources {
+    let tuple : @authorization.AccessTuple = {
+      principal,
+      connection,
+      resource,
+      operation,
+    }
+    let outcome = match capture {
+      None =>
+        @host.client_local_adopted_account_outcome(material, database, tuple).map_err(
+          local_current_material_issue,
+        )
+      Some(original) =>
+        match original.opening {
+          JournalAcquired(host) if physical_equal(host.database, database) =>
+            original.operation_account(host, material, tuple)
+          _ => Err(CustodyLost)
+        }
+    }
+    if !(outcome is Ok(@authorization.Allow(_))) {
+      return false
+    }
   }
+  true
 }
 
 ///|
@@ -144,6 +175,25 @@ fn native_local_policy_authority_for(
     (name.is_empty() || name.length() > 128) {
     return Err(AuthorizationDenied)
   }
+  let material = match capture {
+    None => host.adopted_current_material()
+    Some(original) =>
+      original.with_current_adoption_material_in_original_read((
+        current,
+        material,
+        _,
+      ) => {
+        if physical_equal(current, host) {
+          Ok(material)
+        } else {
+          Err(CustodyLost)
+        }
+      })
+  }
+  let material = match material {
+    Ok(value) => value
+    Err(_) => return Err(AuthorizationDenied)
+  }
   let authority : NativeLocalPolicyAuthority = {
     host,
     crypto,
@@ -152,6 +202,7 @@ fn native_local_policy_authority_for(
     scope: @host.client_request_authority_scope_cid(request),
     purpose,
     capture,
+    material,
   }
   if !authority.current_for(host.journal, request) {
     return Err(AuthorizationDenied)

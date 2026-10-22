@@ -85,6 +85,19 @@ responses or parent death do not create those acknowledgements or new credits.
 This source/private fixture is not adopted numerical funding, a compiled
 Wasmtime runtime, worker dispatch or installed Python product acceptance.
 
+## Backing-extent work observations
+
+`actql_native_owned_extent_work` observes five cumulative values under the same
+entered original: successful extent allocations, page-rounded allocated bytes,
+explicit payload clearing bytes, confirmed extent retirements and retired bytes.
+These values do not include the anonymous mapping's initial zero supply, control
+writes or nested allocator work. Mapping capacity is not eagerly cleared work.
+Retirement does not reset the observations; secure reuse clears its actual
+rounded extent again. A failed allocation or unconfirmed retirement adds no
+successful work. Overflow makes the observation unavailable and never changes
+allocation or cleanup behavior. The observations issue no capacity or ACK and
+cannot outlive the actual holding. Its existing final close remains separate.
+
 ## Original read/workspace use
 
 The Resource Owner's `borrow_backed_execution_read_use` retains one additional

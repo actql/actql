@@ -309,7 +309,7 @@ test "original Run ID requires actual current RunRead independently of submit an
 }
 
 ///|
-test "original Run ID scans all original rows and refuses ambiguous same-ID admissions" {
+test "original Run ID locator refuses ambiguous same-ID admissions" {
   let host = policy_host_fixture("original-id-ambiguous")
   let crypto = epoch_test_crypto()
   original_selection_fixture(host, "first-nonce", "same-run-id") |> ignore
@@ -328,7 +328,7 @@ test "original Run ID scans all original rows and refuses ambiguous same-ID admi
 }
 
 ///|
-test "original Run ID does not bypass malformed unselected history" {
+test "original Run ID selects its target without auditing malformed unrelated history" {
   let host = policy_host_fixture("original-id-malformed")
   let crypto = epoch_test_crypto()
   original_selection_fixture(host, "first-valid", "valid-selected-run")
@@ -354,9 +354,87 @@ test "original Run ID does not bypass malformed unselected history" {
   })
   .unwrap()
   |> ignore
-  let malformed = host.lookup_submitted_run_original_by_id(
-    crypto, "operator", "cli", "valid-selected-run",
+  let selected = host
+    .lookup_submitted_run_original_by_id(
+      crypto, "operator", "cli", "valid-selected-run",
+    )
+    .unwrap()
+  assert_eq(
+    @publication.run_definition_run_id(selected.definition()).unwrap(),
+    "valid-selected-run",
+  )
+  // Only explicit bounded maintenance inspects the unrelated original. Its
+  // corruption cannot be adopted as complete locator coverage.
+  assert_true(
+    host.migrate_journal_append_metadata("operator", "cli", 8388608L)
+    is Err(CustodyLost),
+  )
+  assert_false(
+    journal.retained(selected.request()).unwrap().unwrap().physical_start_claimed,
   )
   host.close().unwrap()
-  assert_true(malformed is Err(Journal(CustodyLost)))
+}
+
+///|
+test "adopted Host explicitly indexes pre-index arbitrary Run IDs without changing originals" {
+  let host = policy_host_fixture("original-id-migration")
+  let crypto = epoch_test_crypto()
+  let (reference, request, _) = original_selection_fixture(
+    host, "legacy-nonce", "legacy-arbitrary-id",
+  )
+  let journal = host.run_journal().unwrap()
+  let scope = @host.client_request_authority_scope_cid(request)
+  let before = host.database
+    .read("client_runs", @host.client_request_scope_cid(request))
+    .unwrap()
+  let table = @utf8.encode("client_run_id_index")
+  let key = @utf8.encode(run_id_index_key(scope, "legacy-arbitrary-id"))
+  assert_true(
+    submitted_test_remove_record(
+      host.database,
+      table,
+      table.length(),
+      key,
+      key.length(),
+    ),
+  )
+  assert_true(
+    host.lookup_submitted_run_original_by_id(
+      crypto, "operator", "cli", "legacy-arbitrary-id",
+    )
+    is Err(Unavailable),
+  )
+  assert_true(
+    host.migrate_journal_append_metadata("foreign-principal", "cli", 8388608L)
+    is Err(AuthorizationDenied),
+  )
+  host.migrate_journal_append_metadata("operator", "cli", 8388608L).unwrap()
+  let selected = host
+    .lookup_submitted_run_original_by_id(
+      crypto, "operator", "cli", "legacy-arbitrary-id",
+    )
+    .unwrap()
+  assert_eq(selected.reference().wire, reference.wire)
+  assert_true(
+    journal
+    .transaction(() => {
+      journal.select_saved_state_run_id_locked(
+        host.epoch,
+        scope,
+        "not-an-original",
+      )
+    })
+    .unwrap()
+    is None,
+  )
+  let after = host.database
+    .read("client_runs", @host.client_request_scope_cid(request))
+    .unwrap()
+  assert_eq(after.body, before.body)
+  assert_eq(after.revision, before.revision)
+  assert_false(
+    journal.retained(request).unwrap().unwrap().physical_start_claimed,
+  )
+  host.close().unwrap()
+  crypto.close_checked().unwrap()
 }

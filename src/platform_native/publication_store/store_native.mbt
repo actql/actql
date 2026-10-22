@@ -4636,6 +4636,29 @@ pub fn Store::custody_location(
 }
 
 ///|
+/// Retained immutable DATA may be reused only within the caller's existing
+/// validated operation. This checks the actual Store and idle Database route;
+/// it grants no authority, enters no scope and acknowledges no child or return.
+/// Active payload readers retain their own separate custody and may stay live.
+pub fn Store::retained_data_current(
+  self : Store,
+) -> Result[Unit, NativePublicationStoreIssue] {
+  if self.closed {
+    return Err(Closed)
+  }
+  if self.retiring ||
+    self.operation_body_active ||
+    self.operation_return_pending ||
+    self.pending_result_delivery is Some(_) {
+    return Err(CleanupPending)
+  }
+  match self.database.retained_data_current() {
+    Ok(_) => Ok(())
+    Err(issue) => Err(Database(issue))
+  }
+}
+
+///|
 /// Same original association only. This metadata supplies no current scope,
 /// authority, physical grant or ACK; the consumer retains its original fences.
 pub fn Store::matches_original_operation(

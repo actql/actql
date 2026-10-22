@@ -575,3 +575,10 @@ pub fn open_original_local_store_with_custody(
   ignore(diagnostic_ceiling)
   Err(RefusedBeforeAcquisition(UnsupportedTarget))
 }
+
+///|
+pub fn Store::retained_data_current(
+  _self : Store,
+) -> Result[Unit, NativePublicationStoreIssue] {
+  Err(UnsupportedTarget)
+}

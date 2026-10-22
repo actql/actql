@@ -247,18 +247,17 @@ fn LocalCommandPreparationOriginal::execute_product_command(
     original_runtime,
     @run_host.client_native_local_runtime_original(runtime.manifest),
   )
-  let settings = local_host_settings(
-    text_file(configuration_root, "config.json", 65536L),
-  )
+  let configuration = text_file(configuration_root, "config.json", 65536L)
+  let settings = local_host_settings(configuration)
   if settings.sqlite_library != runtime.sqlite ||
     settings.signature_library != runtime.crypto ||
     !settings.installation_files.contains("runtime.json") {
     stop("PackagedLocalRuntimeChanged")
   }
-  command_preparation_result(
-    self.stage_product(location.parent_path, location.directory_name, None),
-    stage=Some("product-current"),
-  )
+  // The same Product capture has already staged or restored these originals
+  // under its retained Lock. Internal runtime/settings reads do not start a
+  // second Product operation; the adoption Owner still binds their exact
+  // selection and observes current Account state before protected work.
   if optional(matches, "input-root") is None {
     matches.values["input-root"] = [
       @env.current_dir().unwrap_or_else(() => {
@@ -276,6 +275,7 @@ fn LocalCommandPreparationOriginal::execute_product_command(
     packaged_runtime=Some(physical),
     preparation=Some(self),
     preparation_runtime=Some(runtime),
+    configuration_original=Some((configuration, settings)),
   )
 }
 
@@ -286,12 +286,8 @@ fn LocalCommandPreparationOriginal::execute_product_command(
 fn LocalCommandPreparationOriginal::execute_adopted_command(
   self : LocalCommandPreparationOriginal,
   operation : String,
-  settings : LocalHostSettings,
   root : String,
-  name : String,
-  configuration : String,
-  environment_name : String,
-  environment : String,
+  configuration : LocalCommandConfiguration,
   selected_files : Array[String],
   selected_additional : Array[(String, Bytes)],
   input_root : String,
@@ -299,6 +295,9 @@ fn LocalCommandPreparationOriginal::execute_adopted_command(
   public_run? : Bool = false,
   preparation_runtime? : LocalPackagedRuntime? = None,
 ) -> String raise ClientStop {
+  let settings = configuration.settings
+  let name = configuration.configuration_name
+  let environment_name = configuration.environment_name
   // This selected status route returns State only on success. Its failures
   // are command diagnostics, never a legacy Run/Unknown response container.
   if operation == "status" {
@@ -324,8 +323,8 @@ fn LocalCommandPreparationOriginal::execute_adopted_command(
     stage=Some("adoption-open"),
   )
   let expected = [
-    (name, @utf8.encode(configuration)),
-    (environment_name, @utf8.encode(environment)),
+    (name, configuration.configuration_body),
+    (environment_name, configuration.environment_body),
   ]
   for item in selected_additional {
     expected.push(item)
@@ -348,7 +347,7 @@ fn LocalCommandPreparationOriginal::execute_adopted_command(
       self.initial_product_selected
     )
   command_preparation_result(
-    self.open_adopted_journal(initialize_signing, {
+    self.prepare_adopted_journal(initialize_signing, {
       initialize_signing,
       ttl_ms: settings.ttl_ms,
       max_records: settings.record_limit,
@@ -364,6 +363,17 @@ fn LocalCommandPreparationOriginal::execute_adopted_command(
   command_preparation_result(
     self.read_command(fn(host, capture) {
       try {
+        // Join the already decoded DATA to this original captured selection
+        // once. Trusted internal consumers reuse it; Account/current admission
+        // and the actual Read/Runtime lifetime remain with their existing owners.
+        guard capture.selected_configuration_in_original_read(name)
+          is Ok(selected_configuration) &&
+          selected_configuration == configuration.configuration_body &&
+          capture.selected_configuration_in_original_read(environment_name)
+          is Ok(selected_environment) &&
+          selected_environment == configuration.environment_body else {
+          stop("LocalConfigurationChanged")
+        }
         let body = if operation == "check" {
           local_check_for_host(
             host,
@@ -372,6 +382,7 @@ fn LocalCommandPreparationOriginal::execute_adopted_command(
             input_root,
             child,
             capture=Some(capture),
+            configuration=Some(configuration),
           )
         } else if operation == "explain" {
           if optional(child, "run") is Some(_) {
@@ -383,9 +394,13 @@ fn LocalCommandPreparationOriginal::execute_adopted_command(
               capture=Some(capture),
             )
           } else {
-            local_check_context(host, crypto, name, capture=Some(capture)).explain(
-              input_root, child,
-            )
+            local_check_context(
+              host,
+              crypto,
+              name,
+              capture=Some(capture),
+              configuration=Some(configuration),
+            ).explain(input_root, child)
           }
         } else if operation == "approve" || operation == "reject" {
           local_checkpoint_answer_by_id(
@@ -409,7 +424,7 @@ fn LocalCommandPreparationOriginal::execute_adopted_command(
             capture=Some(capture),
             original_reader=Some(id => {
               self.refresh_run_observation_state(
-                host, capture, settings, name, runtime, id,
+                host, capture, configuration, runtime, id,
               )
             }),
           )
@@ -418,7 +433,7 @@ fn LocalCommandPreparationOriginal::execute_adopted_command(
             stop("LocalBusinessOriginalUnavailable")
           })
           self.execute_original_quick_query(
-            host, capture, settings, name, runtime, input_root, operation, child,
+            host, capture, configuration, runtime, input_root, operation, child,
           )
         } else if operation == "result" {
           let runtime = preparation_runtime.unwrap_or_else(() => {
@@ -434,7 +449,14 @@ fn LocalCommandPreparationOriginal::execute_adopted_command(
             .borrow_local_host_sqlite(pair)
             .unwrap_or_else(() => stop("LocalBusinessOriginalUnavailable"))
           let selected = self.prepare_original_result(
-            host, capture, settings, name, runtime, sqlite, child,
+            host,
+            capture,
+            settings,
+            name,
+            runtime,
+            sqlite,
+            child,
+            configuration=Some(configuration),
           )
           local_public_result(
             host,
@@ -449,7 +471,7 @@ fn LocalCommandPreparationOriginal::execute_adopted_command(
             stop("LocalBusinessOriginalUnavailable")
           })
           let selection = self.prepare_business_submission(
-            host, capture, name, runtime, input_root, operation, child,
+            host, capture, configuration, runtime, input_root, operation, child,
           )
           let physical = self.host.unwrap_or_else(() => {
             stop("LocalBusinessOriginalUnavailable")
@@ -463,6 +485,28 @@ fn LocalCommandPreparationOriginal::execute_adopted_command(
           self.execute_original_run_presentation(
             host, capture, settings, crypto, sqlite, name, runtime, input_root, operation,
             child, selection,
+          )
+        } else if operation == "adopt" &&
+          child.flags.get("migrate-journal").unwrap_or(false) {
+          let migrated = local_host_result(
+            capture.migrate_journal_append_metadata_in_original_read(
+              settings.principal,
+              settings.connection,
+            ),
+          )
+          match migrated {
+            Ok(_) => ()
+            Err(issue) => stop(local_journal_migration_issue(issue))
+          }
+          let account = local_host_result(
+            capture.configuration_in_original_read(),
+          )
+          local_adoption_metadata_reply(
+            true,
+            settings.account_id,
+            account.configuration_cid(),
+            host.adoption_cid(),
+            child,
           )
         } else {
           let runtime = self.runtime.unwrap()

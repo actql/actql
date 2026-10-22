@@ -36,7 +36,10 @@ fn LocalCommandPreparationOriginal::prepare_original_result(
   sqlite : @local_sqlite.Library,
   child : @argparse.Matches,
   publication? : LocalCommandBusinessPreparation? = None,
+  configuration? : LocalCommandConfiguration? = None,
 ) -> LocalCommandResultOriginal raise ClientStop {
+  native_timing_begin(6)
+  defer native_timing_end(6)
   guard self.journal is Some(actual_capture) &&
     physical_equal(actual_capture, capture) &&
     capture.original_host() is Some(actual_host) &&
@@ -59,13 +62,33 @@ fn LocalCommandPreparationOriginal::prepare_original_result(
     local_result_stdout_only(child)
   }
   ignore(local_result_format(child))
-  let configuration = local_check_original_text(
-    local_result_host_value(
-      capture.selected_configuration_in_original_read(configuration_name),
-      "configuration",
-    ),
-  )
-  let (environment_name, _) = local_configuration(configuration)
+  let environment_name = match configuration {
+    Some(original) => {
+      guard original.configuration_name == configuration_name &&
+        physical_equal(original.settings, settings) else {
+        stop("LocalConfigurationChanged")
+      }
+      original.environment_name
+    }
+    None if publication is Some(original) => {
+      guard original.configuration_name == configuration_name &&
+        physical_equal(original.original, self) &&
+        physical_equal(original.host, host) &&
+        physical_equal(original.capture, capture) else {
+        stop("LocalConfigurationChanged")
+      }
+      original.environment_name
+    }
+    None => {
+      let text = local_check_original_text(
+        local_result_host_value(
+          capture.selected_configuration_in_original_read(configuration_name),
+          "configuration",
+        ),
+      )
+      local_configuration(text).0
+    }
+  }
   let run_file = settings.run_file.unwrap_or_else(() => {
     stop("LocalRunOriginalNotSelected")
   })
@@ -92,14 +115,6 @@ fn LocalCommandPreparationOriginal::prepare_original_result(
     "authority",
   )
   let id = required(child, "run")
-  let original = local_result_host_value(
-    capture.lookup_submitted_run_original_by_id_in_original_read(
-      settings.principal,
-      settings.connection,
-      id,
-    ),
-    "Run identity",
-  ).unwrap_or_else(() => stop("LocalOriginalRunUnavailable"))
   let saved = local_result_host_value(
     capture.lookup_submitted_run_state_by_id_in_original_read(
       settings.principal,
@@ -109,12 +124,10 @@ fn LocalCommandPreparationOriginal::prepare_original_result(
     ),
     "saved Run",
   ).unwrap_or_else(() => stop("LocalOriginalRunStateUnavailable"))
-  if @local_host.native_client_submission_reference_wire(saved.reference()) !=
-    @local_host.native_client_submission_reference_wire(original.reference()) ||
-    @publication.publication_contract_identity(saved.definition()) !=
-    @publication.publication_contract_identity(original.definition()) {
-    stop("LocalOriginalRunReferenceMismatch")
-  }
+  // State restoration selected and authenticated this exact original already.
+  // No callback or mutation intervenes; consume it without another indexed
+  // identity transaction or comparing reconstructed copies of the same fields.
+  let original = saved.original()
   let profile_file = settings.run_policy_profile_file.unwrap_or_else(() => {
     stop("LocalRunPolicyOriginalUnavailable")
   })
@@ -159,14 +172,16 @@ fn LocalCommandPreparationOriginal::prepare_original_result(
     json_text(fields, "namespaceId") is Some(namespace_id) else {
     stop("LocalOriginalRunUnavailable")
   }
-  let run = local_run_installation(
-    local_check_original_text(
-      local_result_host_value(
-        capture.selected_configuration_in_original_read(run_file),
-        "Run installation",
-      ),
-    ),
+  let run_body = local_result_host_value(
+    capture.selected_configuration_in_original_read(run_file),
+    "Run installation",
   )
+  let run = match configuration {
+    Some(original) => original.run_installation(run_file, run_body)
+    None if publication is Some(original) =>
+      original.configuration.run_installation(run_file, run_body)
+    None => local_run_installation(local_check_original_text(run_body))
+  }
   if run.namespace_id != namespace_id || run.source_free is None {
     stop("LocalOriginalRunReferenceMismatch")
   }

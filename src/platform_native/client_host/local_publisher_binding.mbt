@@ -198,12 +198,32 @@ pub fn NativeLocalPublisherBinding::current(
 }
 
 ///|
-// Metadata CAS already owns this same journal TX and its full initial custody
-// scan. Joining it is private and cannot turn a supplied Bool into permission.
+// Metadata CAS already owns this same Journal transaction. Joining it is
+// private and cannot turn a supplied Bool into permission.
 fn NativeLocalPublisherBinding::current_in_owned_transaction(
   self : NativeLocalPublisherBinding,
 ) -> Bool {
   self.current_checked_in_mode(true)
+}
+
+///|
+// A publication callback already owns the original Journal transaction. Join
+// that explicit read fence; attempting another BEGIN would reject the same
+// current publisher. Other callbacks acquire their own bounded snapshot.
+fn NativeClientRunJournal::publisher_current_snapshot(
+  self : NativeClientRunJournal,
+  current : () -> Bool,
+  reads? : NativeClientJournalReadAccess? = None,
+) -> Bool {
+  if self.publication_read_locked {
+    if !self.transaction_active ||
+      self.fenced ||
+      client_journal_transaction_fenced(self.database, reads) {
+      return false
+    }
+    return current()
+  }
+  self.transaction_with_reads(() => Ok(current()), reads~) is Ok(true)
 }
 
 ///|
@@ -213,6 +233,17 @@ fn NativeLocalPublisherBinding::current_in_mode(
   reads? : NativeClientJournalReadAccess? = None,
 ) -> Bool {
   let journal = self.authority.host.journal
+  if !join_owned_transaction &&
+    self.authority.capture is Some(_) &&
+    self.operation is Some(_) {
+    // Scope, Account and selected Run belong to one private synchronous
+    // predicate. Keep one existing SQLite snapshot around all of them rather
+    // than opening a new target transaction after each material getter.
+    return journal.publisher_current_snapshot(
+      () => self.current_in_mode(true, reads~),
+      reads~,
+    )
+  }
   if join_owned_transaction &&
     (
       !journal.transaction_active ||
@@ -222,12 +253,28 @@ fn NativeLocalPublisherBinding::current_in_mode(
     return false
   }
   let host = self.authority.host
-  // This material is local to this single predicate and is not retained by
-  // the publisher. Each of the three original authority checks still invokes
-  // the Common scope and Account operations with their actual current fences.
+  // One synchronous predicate admits this exact tuple once. The retained
+  // material is local; the post-read fence observes current originals again
+  // without evaluating the unchanged Account tuple a second time.
   guard self.authority.current_material_for(host.journal, self.request)
     is Some(material) else {
     return false
+  }
+  let selected = fn() -> Result[Bytes, NativeLocalAdoptionIssue] {
+    if self.authority.capture is Some(_) &&
+      self.operation is Some(_) &&
+      journal.transaction_active {
+      // The current material above admits these same immutable settings in
+      // this snapshot. No callback or physical dispatch separates the reads.
+      for file in host.session.settings.files {
+        if file.name == self.file.name {
+          return Ok(file.body)
+        }
+      }
+      Err(InvalidInput)
+    } else {
+      self.selected_original()
+    }
   }
   if !self.authority.current_with_material_for(
       host.journal,
@@ -236,7 +283,7 @@ fn NativeLocalPublisherBinding::current_in_mode(
     ) ||
     host.session.source_body != self.account_body ||
     host.session.configuration.configuration_cid() != self.policy_cid ||
-    !(self.selected_original() is Ok(body) && body == self.file.body) {
+    !(selected() is Ok(body) && body == self.file.body) {
     return false
   }
   guard self.store.custody_location() is Ok((target, device, inode)) &&
@@ -245,16 +292,8 @@ fn NativeLocalPublisherBinding::current_in_mode(
     binding == self.store_binding else {
     return false
   }
-  // Both paths validate the same retained record. The public path still uses
-  // its original bounded transaction; the private path joins only the actual
-  // transaction above, after its mandatory all-row custody validation.
-  if !self.authority.current_with_material_for(
-      host.journal,
-      self.request,
-      material,
-    ) {
-    return false
-  }
+  // Read only this original Run. The transaction/target reader retain their
+  // physical fence and selected record custody, without a history inventory.
   let retained = if join_owned_transaction {
     host.journal.retained(self.request, reads~)
   } else {
@@ -273,7 +312,7 @@ fn NativeLocalPublisherBinding::current_in_mode(
     @publication.publication_contract_identity(self.definition) else {
     return false
   }
-  self.authority.current_with_material_for(host.journal, self.request, material)
+  @host.client_local_adopted_current_account(material, host.database) is Ok(_)
 }
 
 ///|
@@ -286,12 +325,14 @@ pub fn NativeLocalPublisherBinding::publication_policy_cid(
 
 ///|
 /// The Native publication Owner projects the actual opaque request and index.
-/// Current authorization is checked on both sides of this callback boundary.
+/// This synchronous projection contains no callback or dispatch. Its entry
+/// checks the current original tuple; the following comparisons are pure.
 pub fn NativeLocalPublisherBinding::authorize_request(
   self : NativeLocalPublisherBinding,
   context : @publication.PublicationRequestContext,
   facts : @native_publication.NativeRunPublicationAuthorization,
 ) -> Bool {
+  native_timing_count(24)
   if !self.current() {
     return false
   }
@@ -309,5 +350,5 @@ pub fn NativeLocalPublisherBinding::authorize_request(
       ("request", None) | ("commit" | "return_committed", Some(_)) => true
       _ => false
     })
-  matches && self.current()
+  matches
 }

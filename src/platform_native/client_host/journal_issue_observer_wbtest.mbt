@@ -223,6 +223,7 @@ fn test_observe_run(
     CancellationIdentity(_) => emit(520)
     CancellationOperation(_) => emit(521)
     PublicationObservation(_) => emit(522)
+    RunIdIndexIncomplete => emit(523)
   }
 }
 

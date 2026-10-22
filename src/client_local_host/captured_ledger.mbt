@@ -39,12 +39,39 @@ fn client_local_execution_limits(
 /// Use the checked task inventory and the same Local import/output envelope
 /// for ordinary and Effect computations. Provider capacity and Run capacity
 /// are derived together, before any task starts.
+priv struct ClientLocalSequenceCapacity {
+  limits : @resources.LedgerLimits
+  provider_retained : Int64
+  provider_execution : Int64
+  simultaneous : (Int64, Int64)?
+}
+
+///|
 fn client_local_sequence_capacity(
   sequences : Array[@execution.GeneratedSequence],
   task_count : Int,
   retained_inputs? : Array[Int]? = None,
   max_rows? : Int = 100,
 ) -> (@resources.LedgerLimits, Int64, Int64)? {
+  client_local_sequence_capacity_original(
+    sequences,
+    task_count,
+    retained_inputs~,
+    max_rows~,
+  ).map(value => {
+    (value.limits, value.provider_retained, value.provider_execution)
+  })
+}
+
+///|
+fn client_local_sequence_capacity_original(
+  sequences : Array[@execution.GeneratedSequence],
+  task_count : Int,
+  retained_inputs? : Array[Int]? = None,
+  max_rows? : Int = 100,
+  include_simultaneous? : Bool = false,
+  simultaneous_graph? : @strategy.CheckedDAG? = None,
+) -> ClientLocalSequenceCapacity? {
   if task_count < 1 || task_count > 32 || sequences.length() > task_count {
     return None
   }
@@ -52,7 +79,14 @@ fn client_local_sequence_capacity(
   let mut retained_bytes = 0L
   let mut execution_bytes = 0L
   let mut total_retained_bytes = 0L
-  for sequence in sequences {
+  let individual : Array[(Int64, Int64)]? = if include_simultaneous {
+    Some([])
+  } else {
+    None
+  }
+  let mut input_import_bytes = 0L
+  let mut output_export_bytes = 0L
+  for index, sequence in sequences {
     guard @execution.generated_sequence_capacity(
         sequence, execution, measurement,
       )
@@ -61,6 +95,33 @@ fn client_local_sequence_capacity(
     }
     let retained = @execution.execution_capacity_retained_bytes(required)
     let executing = @execution.execution_capacity_execution_bytes(required)
+    if individual is Some(values) {
+      guard simultaneous_graph is Some(graph) else { return None }
+      // The installed dispatch selects an exact task step or prefix before
+      // selecting its bounded provider. Quote that same provider's complete
+      // child/scratch envelope, not only the generated outer sequence.
+      let selected = match @strategy.graph_task_selected_step(graph, index) {
+        Some(step) => @execution.select_generated_sequence_step(sequence, step)
+        None =>
+          match @strategy.graph_task_prefix_end(graph, index) {
+            Some(last) =>
+              @execution.select_generated_sequence_prefix(sequence, last)
+            None => Some(sequence)
+          }
+      }
+      guard selected is Some(selected) &&
+        @local.local_bounded_relation_provider(execution, measurement, selected)
+        is Some(provider) &&
+        @local.managed_provider_capacity(provider, selected) is Some(actual) else {
+        return None
+      }
+      values.push(
+        (
+          @execution.execution_capacity_retained_bytes(actual),
+          @execution.execution_capacity_execution_bytes(actual),
+        ),
+      )
+    }
     if retained < 0L || retained > 536870912L - total_retained_bytes {
       return None
     }
@@ -99,6 +160,8 @@ fn client_local_sequence_capacity(
       is Some((retained, ports)) else {
       return None
     }
+    input_import_bytes = import_bytes
+    output_export_bytes = export_bytes
     total_retained_bytes = retained
     let imported_wire = ports * import_limits.wire.max_bytes.to_int64()
     if imported_wire > transfer_bytes {
@@ -117,7 +180,34 @@ fn client_local_sequence_capacity(
     },
     execution_bytes: 536870912L,
   }
-  Some((limits, retained_bytes, execution_bytes))
+  let simultaneous = match individual {
+    None => None
+    Some(per_task) => {
+      let mut total : (Int64, Int64)? = Some((0L, 0L))
+      for index in 0..<per_task.length() {
+        let (provider, scratch) = per_task[index]
+        let inputs = match retained_inputs {
+          Some(ports) => ports[index]
+          None => 0
+        }
+        total = match total {
+          None => None
+          Some(previous) =>
+            client_local_family_task_inventory(
+              previous, provider, scratch, inputs, input_import_bytes, output_export_bytes,
+              9223372036854775807L,
+            )
+        }
+      }
+      total
+    }
+  }
+  Some({
+    limits,
+    provider_retained: retained_bytes,
+    provider_execution: execution_bytes,
+    simultaneous,
+  })
 }
 
 ///|

@@ -20,12 +20,12 @@
   },
   "local": {
     "component.c": {
-      "bytes": 15963,
-      "sha256": "885ae5c7479d7b33d7c0f70a37eb8cb67cdc079280ae0d65f4462850d6401e7c"
+      "bytes": 17228,
+      "sha256": "ae27e06edbe5ca408d67730a238b231a4e1cdeacf3e5217925bb151e45f6a3e0"
     },
     "component.h": {
-      "bytes": 2393,
-      "sha256": "11f66859c17d50b93d45ff4a6ea90e6ca17841cbdc827786f89e6ffd0fa51757"
+      "bytes": 2404,
+      "sha256": "0784e5a064f60599fbf164d4fd79a5107379c0ec95c7f574f7d0af390af1e45d"
     },
     "NOTICE": {
       "bytes": 368,
@@ -38,6 +38,10 @@
     "fixtures/library_conformance.c": {
       "bytes": 9174,
       "sha256": "6316b8b2083c269e1caaf4aebabf1f6edff0f2352589e70863e2891ee8886877"
+    },
+    "fixtures/allocator_conformance.c": {
+      "bytes": 5466,
+      "sha256": "ea139f1c5f972d35af6c3aadc96775fa049dcbd3c15338fdcdeb9489dfb74d58"
     }
   },
   "isolation": [

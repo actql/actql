@@ -271,7 +271,7 @@ fn NativeLocalStoreOperationReceiver::activate_original(
   if self.ready || self.origin is Some(_) || self.phase != StoreRouteIdle {
     return Err(StoreOperationUnavailable)
   }
-  let (host, original) = match self.originals(library, false) {
+  let (_host, original) = match self.originals(library, false) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
@@ -300,7 +300,7 @@ fn NativeLocalStoreOperationReceiver::activate_original(
         store_operation_control_clear_ffi() != 1 {
         return Err(StoreOperationUnavailable)
       }
-      original.check_journal_current(host)
+      self.capture.check_current_between_original_phases()
     }
   }
   match current {
@@ -325,7 +325,7 @@ fn NativeLocalStoreOperationReceiver::begin_original(
     self.phase != StoreRouteIdle {
     return Err(StoreOperationUnavailable)
   }
-  let (host, original) = match self.originals(library, false) {
+  let (_host, original) = match self.originals(library, false) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
@@ -381,7 +381,7 @@ fn NativeLocalStoreOperationReceiver::begin_original(
       if store_operation_control_clear_ffi() != 1 {
         return Err(StoreOperationUnavailable)
       }
-      match original.check_journal_current(host) {
+      match self.capture.check_current_between_original_phases() {
         Err(issue) => return Err(StoreOperationCapture(issue))
         Ok(_) => ()
       }
@@ -490,7 +490,7 @@ fn NativeLocalStoreOperationReceiver::route(
       let originals = self.originals(library, self.cleanup)
       match originals {
         Err(issue) => Err(issue)
-        Ok((host, original)) =>
+        Ok((_host, original)) =>
           if !(original.store_operation is Some(active) &&
             physical_equal(active, self)) {
             Err(StoreOperationUnavailable)
@@ -541,7 +541,8 @@ fn NativeLocalStoreOperationReceiver::route(
                   Ok(_) => {
                     let resumed = if !self.cleanup &&
                       origin is StoreFromBusiness {
-                      match original.check_journal_current(host) {
+                      match
+                        self.capture.check_current_between_original_phases() {
                         Err(issue) => Err(StoreOperationCapture(issue))
                         Ok(_) =>
                           match self.domain {

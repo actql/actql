@@ -9,13 +9,34 @@ fn[T] read_binding_in_original_read(
     NativeLocalReadBindingIssue,
   ],
 ) -> Result[T, NativeLocalReadBindingIssue] {
-  let output : Ref[Result[T, NativeLocalReadBindingIssue]?] = Ref(None)
-  let captured = capture.with_current_adoption_material_in_original_read((
+  read_binding_with_material_in_original_read(capture, (
     host,
     _material,
     operations,
+  ) => call(host, operations))
+}
+
+///|
+// The closed read-policy operation consumes this already-admitted material.
+// Keep the original body/return error join identical to the other read routes.
+fn[T] read_binding_with_material_in_original_read(
+  capture : NativeLocalJournalCapture,
+  call : (
+    NativeLocalHostConnection,
+    @host.ClientLocalAdoptedHostMaterial[
+      @sqlite.Database,
+      NativeLocalAdoptionIssue,
+    ],
+    NativeClientJournalOperationAccess,
+  ) -> Result[T, NativeLocalReadBindingIssue],
+) -> Result[T, NativeLocalReadBindingIssue] {
+  let output : Ref[Result[T, NativeLocalReadBindingIssue]?] = Ref(None)
+  let captured = capture.with_current_adoption_material_in_original_read((
+    host,
+    material,
+    operations,
   ) => {
-    let result = call(host, operations)
+    let result = call(host, material, operations)
     output.val = Some(result)
     match result {
       Err(
@@ -23,6 +44,7 @@ fn[T] read_binding_in_original_read(
         | SubmittedResult(
           Journal(TransactionUnknown | Epoch(TransactionUnknown))
         )
+        | OriginalRead(_, TransactionUnknown)
       ) => Err(Journal(TransactionUnknown))
       _ => Ok(())
     }

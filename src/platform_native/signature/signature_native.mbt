@@ -37,6 +37,20 @@ extern "C" fn load_library_ffi(
 extern "C" fn library_ready_ffi(library : Library) -> Bool = "actql_native_signature_library_ready"
 
 ///|
+/// Check this original Library's actual current lifetime without cryptographic
+/// work. This observes its component/handle and closing state; it grants no
+/// permission and acknowledges no cleanup or earlier operation.
+pub fn Library::require_current(
+  self : Library,
+) -> Result[Unit, NativeSignatureIssue] {
+  if library_ready_ffi(self) {
+    Ok(())
+  } else {
+    Err(InvalidInput)
+  }
+}
+
+///|
 #borrow(library)
 extern "C" fn library_close_ffi(library : Library) -> Int = "actql_native_signature_library_close"
 

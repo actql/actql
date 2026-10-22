@@ -90,9 +90,18 @@ fn inspect_native_client_custody_rows(
   let journal : NativeClientRunJournal = {
     database,
     max_records,
+    append_schema: 0,
+    observed_evidence_schema: None,
     fenced: false,
     publication_read_locked: false,
     transaction_active: false,
+    admitted_record: None,
+    operation_run_identity: None,
+    operation_record: None,
+    operation_submission: None,
+    admitted_adoption: None,
+    operation_active: false,
+    admitted_publications: [],
   }
   match journal.submitted_intent_custody(reads~) {
     Ok(_) => Ok(Retained)

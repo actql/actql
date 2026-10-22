@@ -22,6 +22,7 @@ pub fn Library::generate_ed25519_key_pair(Self) -> Result[(Bytes, String), Nativ
 pub fn Library::hmac_sha256(Self, Bytes, Bytes) -> Result[Bytes, NativeSignatureIssue]
 pub fn Library::open_private_evidence(Self, Bytes, String, String, Bytes) -> Result[Bytes, NativePrivateEvidenceIssue]
 pub fn Library::random_bytes(Self, Int) -> Result[Bytes, NativeSignatureIssue]
+pub fn Library::require_current(Self) -> Result[Unit, NativeSignatureIssue]
 pub fn Library::seal_private_evidence(Self, Bytes, String, String, Bytes) -> Result[Bytes, NativePrivateEvidenceIssue]
 pub fn Library::sha256_hasher(Self) -> Result[Sha256Hasher, NativeSignatureIssue]
 pub fn Library::sign_ed25519(Self, Bytes, Bytes) -> Result[String, NativeSignatureIssue]

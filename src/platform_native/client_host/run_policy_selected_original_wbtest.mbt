@@ -64,6 +64,7 @@ fn selected_policy_journal_issue(issue : NativeClientRunJournalIssue) -> String 
     CancellationIdentity(_) => "CancellationIdentity"
     CancellationOperation(_) => "CancellationOperation"
     PublicationObservation(_) => "PublicationObservation"
+    RunIdIndexIncomplete => "RunIdIndexIncomplete"
   }
 }
 

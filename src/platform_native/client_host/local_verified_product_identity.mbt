@@ -22,7 +22,14 @@ pub fn NativeLocalPackagedRuntime::verified_product_identity(
     Ok(_) => ()
   }
   let result = try {
-    self.local_runtime_check_originals() |> local_runtime_result
+    let current = if self.command_preparation {
+      self.local_runtime_require_live()
+    } else {
+      // The separate unscoped constructor observes its originals once. Wire
+      // encoding below is pure and does not create another observation.
+      self.local_runtime_check_originals()
+    }
+    current |> local_runtime_result
     guard self.product is Some(product) &&
       self.selection is Some((_, source, platform, manifest_hash)) &&
       product.native_image_sha256 is Some(image_hash) &&
@@ -38,7 +45,6 @@ pub fn NativeLocalPackagedRuntime::verified_product_identity(
         source,
       ).map_err(_ => InvalidManifest)
       |> local_runtime_result
-    self.local_runtime_check_originals() |> local_runtime_result
     Ok({ runtime: self, metadata, })
   } catch {
     LocalRuntimeStop(issue) => Err(issue)
@@ -47,8 +53,9 @@ pub fn NativeLocalPackagedRuntime::verified_product_identity(
 }
 
 ///|
-/// Return the same immutable metadata under current physical fences. A stored
-/// copy does not extend this witness or supply Host/Account/release authority.
+/// Return the same immutable metadata under its actual Read lifetime. The
+/// explicit runtime observation owns package validation before this pure work;
+/// a stored copy supplies no Host/Account/release authority.
 pub fn NativeLocalVerifiedProductIdentity::wire(
   self : NativeLocalVerifiedProductIdentity,
 ) -> Result[String, NativeLocalPackagedRuntimeIssue] {
@@ -57,9 +64,8 @@ pub fn NativeLocalVerifiedProductIdentity::wire(
     Ok(_) => ()
   }
   let result = try {
-    self.runtime.local_runtime_check_originals() |> local_runtime_result
+    self.runtime.local_runtime_require_live() |> local_runtime_result
     let wire = @host.client_native_product_identity_wire(self.metadata)
-    self.runtime.local_runtime_check_originals() |> local_runtime_result
     Ok(wire)
   } catch {
     LocalRuntimeStop(issue) => Err(issue)

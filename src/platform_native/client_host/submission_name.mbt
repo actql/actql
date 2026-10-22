@@ -200,7 +200,12 @@ fn NativeClientRunJournal::resolve_submitted_name_locked(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  match self.submitted_intent_custody() {
+  match
+    client_journal_issuance_anchor(
+      self.database,
+      "client_submitted_intent_custody",
+      self.max_records,
+    ) {
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }

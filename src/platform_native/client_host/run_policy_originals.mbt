@@ -128,7 +128,7 @@ fn NativeClientRunJournal::lookup_publication_policy_original(
         Err(issue) => return Err(issue)
       }
       let body = match
-        select_run_policy_wire(wire, comparison, actual_policy_cid) {
+        self.select_publication_policy(wire, comparison, actual_policy_cid) {
         Ok(value) => value
         Err(issue) => return Err(issue)
       }
@@ -162,6 +162,18 @@ fn select_run_policy_wire(
       }
     None => None
   }
+  select_admitted_run_policy(bodies, comparison, selected_policy_cid)
+}
+
+///|
+fn select_admitted_run_policy(
+  bodies : Array[@publication.CapturedEffectDependencyBody]?,
+  comparison : RunPolicyRequestComparison,
+  selected_policy_cid : String,
+) -> Result[
+  @publication.CapturedEffectDependencyBody,
+  NativeClientRunJournalIssue,
+] {
   match comparison {
     OriginalRequest => ()
     ChangedOriginalIntent => return Err(ChangedIntent)
@@ -181,4 +193,52 @@ fn select_run_policy_wire(
     return Err(PublicationPolicy(@checked.MissingDependency))
   }
   Ok(body)
+}
+
+///|
+// Parsed immutable Policy bodies share the selected Journal operation's
+// lifetime. Equality is exact wire equality; no target or permission is cached.
+fn NativeClientRunJournal::publication_originals(
+  self : NativeClientRunJournal,
+  wire : String,
+) -> Result[
+  Array[@publication.CapturedEffectDependencyBody],
+  NativeClientRunJournalIssue,
+] {
+  if self.operation_active {
+    for (original, bodies) in self.admitted_publications {
+      if original == wire {
+        return Ok(bodies)
+      }
+    }
+  }
+  let bodies = match read_run_policy_originals(wire) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  if self.operation_active {
+    self.admitted_publications.push((wire, bodies))
+  }
+  Ok(bodies)
+}
+
+///|
+fn NativeClientRunJournal::select_publication_policy(
+  self : NativeClientRunJournal,
+  wire : String?,
+  comparison : RunPolicyRequestComparison,
+  selected_policy_cid : String,
+) -> Result[
+  @publication.CapturedEffectDependencyBody,
+  NativeClientRunJournalIssue,
+] {
+  let bodies = match wire {
+    Some(wire) =>
+      match self.publication_originals(wire) {
+        Ok(value) => Some(value)
+        Err(_) => return Err(CustodyLost)
+      }
+    None => None
+  }
+  select_admitted_run_policy(bodies, comparison, selected_policy_cid)
 }

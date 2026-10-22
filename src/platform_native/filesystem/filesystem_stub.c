@@ -3,6 +3,7 @@
 
 #include "moonbit.h"
 #include "private_file_projection.h"
+#include "native_timings.inc"
 
 #include <errno.h>
 #include <dirent.h>

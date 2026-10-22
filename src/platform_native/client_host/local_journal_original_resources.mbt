@@ -41,6 +41,13 @@ pub fn prepare_native_local_journal_capture_with_original_resources(
     command_preparation_journal: false,
     initial_signing: None,
     read_callback_active: false,
+    read_facts_valid: false,
+    read_material: None,
+    read_scopes: [],
+    read_decisions: [],
+    read_bindings: [],
+    read_committed_results: [],
+    read_preimages: [],
     read_operation_issue: None,
     opening_database: None,
     opening_physical_failure: None,
@@ -238,25 +245,19 @@ fn NativeLocalJournalCapture::open_original_journal_stages(
     Ok(value) => value
   }
   // Only the actual original marker selects first initialization. Existing
-  // Session admission and retained inspection keep missing/copy refusals.
+  // Session admission and the existing-only open retain missing-state refusals.
   let first = if marker {
     if self.session.existing_only {
       return Err(CustodyLost)
     }
     true
   } else {
-    match self.inspect_original_retained_journal(original, library) {
-      Err(issue) => return Err(issue)
-      Ok(value) => value
-    }
+    // Retain the same existing-only open and original physical cleanup. A
+    // normal command does not copy/audit unrelated retained business history.
+    false
   }
   if !first && self.initial_signing is Some(_) {
     return Err(AmbiguousInitialization)
-  }
-  match
-    original.stage(@arena.HostRead, fn() { self.session.check_original() }) {
-    Err(issue) => return Err(issue)
-    Ok(_) => ()
   }
   let database = match
     original.stage(@arena.HostSqlite, fn() {
@@ -305,11 +306,6 @@ fn NativeLocalJournalCapture::open_original_journal_stages(
     Err(issue) => return Err(issue)
     Ok(value) => value
   }
-  match
-    original.stage(@arena.HostRead, fn() { self.session.check_original() }) {
-    Err(issue) => return Err(issue)
-    Ok(_) => ()
-  }
   let (epoch, journal) = match
     original.bootstrap_read_stage(database, fn(bootstrap) {
       let initial = match self.initial_signing {
@@ -336,6 +332,7 @@ fn NativeLocalJournalCapture::open_original_journal_stages(
         self.max_records,
         reads=Some(bootstrap.reads),
         bootstrap=Some(bootstrap),
+        opening_ownership=Some(ownership),
       )
     }) {
     Err(issue) => return Err(issue)
@@ -343,10 +340,6 @@ fn NativeLocalJournalCapture::open_original_journal_stages(
   }
   let adoption_cid = match
     original.stage(@arena.HostRead, fn() {
-      match self.session.check_original() {
-        Err(issue) => return Err(issue)
-        Ok(_) => ()
-      }
       local_adoption_digest(self.crypto, adoption_body)
     }) {
     Err(issue) => return Err(issue)
@@ -366,7 +359,7 @@ fn NativeLocalJournalCapture::open_original_journal_stages(
     packaged_runtime: None,
     worker_provisioning_attempt: None,
   }
-  match original.check_journal_current(connected) {
+  match original.check_opened_journal_originals(connected) {
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
@@ -377,6 +370,35 @@ fn NativeLocalJournalCapture::open_original_journal_stages(
     Err(issue) => Err(issue)
     Ok(_) => Ok(connected)
   }
+}
+
+///|
+// The open's source admission precedes the first database acquisition. Trusted
+// Read/SQL exchanges do not create new source/configuration observations. Keep
+// the actual database target, physical fence and selected retained rows here.
+fn NativeLocalJournalOriginalResources::check_opened_journal_originals(
+  self : NativeLocalJournalOriginalResources,
+  host : NativeLocalHostConnection,
+) -> Result[Unit, NativeLocalAdoptionIssue] {
+  match
+    self.stage(@arena.HostSqlite, fn() { host.check_binding_sqlite_fence() }) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  match
+    self.stage(@arena.HostRead, fn() {
+      match host.session.require_current_original_read_roots() {
+        Err(issue) => return Err(issue)
+        Ok(_) => ()
+      }
+      host.check_database_file_original()
+    }) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  self.audit_read_stage(host.database, reads => {
+    host.session.settings.check_retained(host.database, reads=Some(reads))
+  })
 }
 
 ///|

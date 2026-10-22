@@ -198,16 +198,130 @@ test "retained submission target does not scan unrelated Run or Effect history" 
     append_original_record().intent,
     @request_scope.Expired,
     1024,
-    (table, _) => { calls.push("scan:" + table); Err("unexpected-inventory") },
-    (table, key) => { calls.push("read:" + table + ":" + key); inventory_read(rows, table, key) },
+    (table, _) => {
+      calls.push("scan:" + table)
+      Err("unexpected-inventory")
+    },
+    (table, key) => {
+      calls.push("read:" + table + ":" + key)
+      inventory_read(rows, table, key)
+    },
     _ => Err("unexpected-submission-inventory"),
-    _ => { calls.push("validate-selected-run"); Ok(saved_snapshot_run()) },
+    _ => {
+      calls.push("validate-selected-run")
+      Ok(saved_snapshot_run())
+    },
     "custody",
   )
-  guard result is Ok(Retained(snapshot)) else { fail("selected original refused") }
+  guard result is Ok(Retained(snapshot)) else {
+    fail("selected original refused")
+  }
   assert_eq(client_saved_submission_revision(snapshot), 6L)
   assert_eq(calls.filter(value => value.has_prefix("scan:")).length(), 0)
   assert_eq(calls.filter(value => value == "validate-selected-run").length(), 1)
-  assert_eq(calls.filter(value => value.has_prefix("read:client_runs:")).length(), 1)
-  assert_eq(calls.filter(value => value.has_prefix("read:client_submitted_intents:")).length(), 1)
+  assert_eq(
+    calls.filter(value => value.has_prefix("read:client_runs:")).length(),
+    1,
+  )
+  assert_eq(
+    calls
+    .filter(value => value.has_prefix("read:client_submitted_intents:"))
+    .length(),
+    1,
+  )
+}
+
+///|
+test "indexed fresh intents use fixed target and quota work across unrelated history" {
+  for count in [0, 1, 10, 100, 1000] {
+    let calls : Array[String] = []
+    let bytes = count.to_int64() * 100L
+    let rows = [
+      (
+        "client_submitted_intent_custody",
+        inventory_row("issued", @utf8.encode(count.to_string())),
+      ),
+      ("client_runs", inventory_row("unrelated", b"not this target")),
+    ]
+    let result = prepare_client_submitted_journal_append(
+      append_original_record().reference,
+      append_original_record().intent,
+      @request_scope.Admissible,
+      1024,
+      (_, _) => Err("ordinary append must not scan"),
+      (table, key) => {
+        calls.push(table + ":" + key)
+        inventory_read(rows, table, key)
+      },
+      _ => Err("ordinary append must not validate unrelated intent"),
+      _ => Err("ordinary append must not validate unrelated Run"),
+      "custody",
+      usage=Some(() => {
+        calls.push("usage")
+        Ok(
+          Some(
+            inventory_row(
+              "retained",
+              client_submitted_journal_usage_body(count, bytes, 1024).unwrap(),
+              revision=9L,
+            ),
+          ),
+        )
+      }),
+    )
+    guard result is Ok(Append(plan)) else { fail("fresh append rejected") }
+    assert_eq(calls, [
+      "client_submitted_intent_custody:issued",
+      "client_submitted_intents:" + append_request_id,
+      "usage",
+    ])
+    let (revision, body) = client_submitted_journal_append_usage(plan).unwrap()
+    assert_eq(revision, 9L)
+    assert_eq(
+      body,
+      client_submitted_journal_usage_body(
+        count + 1,
+        bytes +
+        @utf8.encode(
+          client_submitted_intent_wire(append_original_record().intent),
+        )
+        .length()
+        .to_int64(),
+        1024,
+      ).unwrap(),
+    )
+  }
+}
+
+///|
+test "indexed append refuses missing stale noncanonical and exhausted quota without scan" {
+  let rows = [
+    ("client_submitted_intent_custody", inventory_row("issued", b"1")),
+  ]
+  let decide = usage => {
+    prepare_client_submitted_journal_append(
+      append_original_record().reference,
+      append_original_record().intent,
+      @request_scope.Admissible,
+      1024,
+      (_, _) => Err("no compatibility sweep during ordinary append"),
+      (table, key) => inventory_read(rows, table, key),
+      _ => Err("no unrelated validation"),
+      _ => Err("no unrelated validation"),
+      "custody",
+      usage=Some(() => Ok(usage)),
+    )
+  }
+  assert_true(decide(None) is Err(Observation("custody")))
+  for
+    body in [b"0:0", b"1:01", b"1:", b"1:-1", b"1:67108865", b"1:999999999999"] {
+    assert_true(
+      decide(Some(inventory_row("retained", body)))
+      is Err(Observation("custody")),
+    )
+  }
+  assert_true(
+    decide(Some(inventory_row("retained", b"1:67108864")))
+    is Err(CapacityExceeded),
+  )
 }

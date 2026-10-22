@@ -17,6 +17,7 @@ test "Store close retains original owners and durable reservation through databa
     4096L,
     diagnostic_ceiling=Some(256),
   ).unwrap()
+  store.retained_data_current().unwrap()
   let request = native_payload_request(
     authority, "store-close-retry-payload", 16L,
   )
@@ -26,6 +27,9 @@ test "Store close retains original owners and durable reservation through databa
   writer.append(b"held").unwrap()
   let info = writer.seal().unwrap()
   let reader = store.open_payload_reader(info.material_generation_cid).unwrap()
+  // A live original child is not a retirement ACK and does not itself
+  // invalidate immutable DATA within the caller's admitted operation.
+  store.retained_data_current().unwrap()
   assert_true(store.close() is Err(CleanupPending))
   assert_false(store.retiring)
   assert_eq(reader.next(4).unwrap().bytes, b"held")
@@ -46,6 +50,7 @@ test "Store close retains original owners and durable reservation through databa
   assert_true(store.close() is Err(Database(@sqlite.Physical(_))))
   assert_false(store.closed)
   assert_true(store.retiring)
+  assert_true(store.retained_data_current() is Err(CleanupPending))
   assert_true(store.capacity_usage() is Err(CleanupPending))
   assert_true(store.recover() is Err(CleanupPending))
   assert_true(cleanup.retry() is Err(CleanupPending))
@@ -69,6 +74,7 @@ test "Store close retains original owners and durable reservation through databa
   )
   assert_true(store.close().unwrap())
   assert_true(store.closed)
+  assert_true(store.retained_data_current() is Err(Closed))
   assert_false(store.close().unwrap())
   // Store handle retirement does not reclaim separately retained data/holding.
   let restored = match

@@ -66,6 +66,8 @@ def prepare(archive: Path, destination: Path, *, source: Path = HERE,
     if (recipe['status'] != 'review-candidate-not-adopted'
             or recipe['normal_profile'] is not None or recipe['installed_supplier'] is not False):
         raise ValueError('SQLite candidate is not a review-only recipe')
+    if recipe.get('optimization') != '-O2':
+        raise ValueError('SQLite component requires the pinned release optimization')
     if destination.exists() or destination.is_symlink():
         raise ValueError('SQLite stage destination exists')
     if destination.resolve().is_relative_to(source.resolve()):
@@ -93,6 +95,7 @@ def prepare(archive: Path, destination: Path, *, source: Path = HERE,
     record = {'status': recipe['status'], 'recipe_sha256': hashlib.sha256(selected_raw).hexdigest(),
               'upstream': upstream, 'target': recipe['target'],
               'deployment_target': recipe['deployment_target'], 'defines': recipe['defines'],
+              'optimization': recipe['optimization'],
               'provider_inputs': recipe['provider_inputs'], 'memory': recipe['memory'],
               'outputs': {name: {'bytes': len(data), 'sha256': hashlib.sha256(data).hexdigest()}
                           for name, data in outputs.items()},

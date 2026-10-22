@@ -175,3 +175,18 @@ test "frozen scalar metadata cannot enable historical operational use in this im
     is Err(UnsupportedPreparation),
   )
 }
+
+///|
+// This empty projection owns no Root, Read, Library or capacity. Exercise only
+// the failure latch: restoring a cheap entry condition cannot revive metadata.
+test "failed Runtime observation spends its metadata snapshot" {
+  let runtime = local_runtime_empty(None)
+  runtime.ready = true
+  runtime.read_scope_entered = true
+  assert_true(runtime.check_current() is Err(CleanupPending))
+  assert_false(runtime.ready)
+  runtime.read_scope_entered = false
+  assert_true(runtime.library_paths() is Err(Changed))
+  assert_true(runtime.assets() is Err(Changed))
+  runtime.close().unwrap()
+}
