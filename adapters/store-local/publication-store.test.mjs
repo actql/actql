@@ -3804,6 +3804,34 @@ test(`publication start caller confirms its original ${afterCommit ? 'committed'
 });
 }
 
+for (const file of [false,true]) for (const state of ['preparing','committing']) {
+test(`publication start preserves existing ${file ? 'file' : 'native'} ${state} progress without replacing it`, async t => {
+  const {store,configuration} = await fixture(t);
+  const request = publicationRequest(), attempt = publicationAttempt(request,`prior-start-${file}-${state}`);
+  const original = contractControl.admit('publication_request',wire(request),limits);
+  const originalAttempt = contractControl.admit('publication_attempt',wire(attempt),limits);
+  if(file) await store.putSemantic(wire(attempt),originalAttempt.identity);
+  await store.beginPublicationAttempt([original],originalAttempt);
+  const preparing = publicationRecord(attempt,0,'preparing');
+  await store.appendRecord(wire(preparing),{uncommittedConfirmed:false});
+  const prior = state === 'preparing' ? preparing : publicationRecord(attempt,1,'committing',preparing);
+  if(state === 'committing') await store.appendRecord(wire(prior),{uncommittedConfirmed:false});
+  const first = publicationRecord(attempt,0,'preparing',undefined,{observed_at:'2026-09-18T00:00:10.000Z'});
+  const next = publicationRecord(attempt,1,'committing',first,{observed_at:'2026-09-18T00:00:11.000Z'});
+  const records = [first,next].map(value=>contractControl.admit('publication_record',wire(value),limits));
+  assert.notEqual(records[0].identity,preparing.publication_record_cid);
+  const before=store.status();
+  await store.beginPublicationAttemptWithRecords([original],originalAttempt,records);
+  assert.deepEqual(await store.latestRecord(originalAttempt.identity),prior);
+  assert.equal(store.status().storedBytes,before.storedBytes);
+  assert.equal(store.status().objectCount,before.objectCount);
+  for(const record of records) await assert.rejects(store.readPublicationContract(record.identity,'publication_record'),code('PublicationContractMissing'));
+  await store.close();
+  const reopened=await openLocalPublicationStore(configuration,contractControl);
+  assert.deepEqual(await reopened.latestRecord(originalAttempt.identity),prior);
+});
+}
+
 test('publication start refuses capacity and foreign progress before any mutation', async t => {
   const {store} = await fixture(t,{maxObjects:3});
   const request = publicationRequest(), attempt = publicationAttempt(request,'start-capacity');
