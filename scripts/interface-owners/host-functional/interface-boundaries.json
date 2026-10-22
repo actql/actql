@@ -8242,7 +8242,7 @@
     {
       "module": "adapters/host-common/run-publication.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "806fe3f28f1b1de69e01dd514098ba7b3de39749b916ae467c02288ad6d301dd",
+      "sha256": "5fd9d71a309cdf945c47b6d382f0ee9820261445f3a10302ea4e3808451ad4a5",
       "role": "physical-io",
       "owner": "Existing Run Publication/Artifact Owners and physical Store sequencing",
       "exports": [
@@ -8369,7 +8369,8 @@
           "name": "persistContracts",
           "parameters": [
             "store",
-            "contracts"
+            "contracts",
+            "attempt"
           ],
           "async": true
         },
@@ -8615,6 +8616,7 @@
             "indexKey",
             "member/member",
             "persistContracts",
+            "persistContracts/persistContracts",
             "publishEffectFreeRun",
             "publishEffectfulRun",
             "publishEffectfulRun/memberReceipts/memberReceipts",
@@ -8642,8 +8644,7 @@
             "validateRequest/validateRequest",
             "validateStore",
             "validateStore/validateStore",
-            "withPublicationCleanup",
-            "persistContracts/persistContracts"
+            "withPublicationCleanup"
           ],
           "exports": [
             "RunPublicationError",
@@ -8671,6 +8672,10 @@
               {
                 "path": "docs/design/result-description.md",
                 "anchor": "That setup can pass the original immutable contracts from the same publication"
+              },
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "The existing publication caller can supply its immutable setup bodies and"
               }
             ],
             "inputsOutputs": [
@@ -8688,11 +8693,15 @@
               },
               {
                 "path": "adapters/host-common/run-publication.mjs",
-                "anchor": "async function persistContracts(store, contracts) {"
+                "anchor": "async function persistContracts(store, contracts, attempt) {"
               },
               {
                 "path": "adapters/host-common/runtime-core.mjs",
                 "anchor": "admitOriginal(original, limits) {"
+              },
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "initial attempt together through the Store's optional `beginPublicationAttempt`"
               }
             ],
             "identity": [
@@ -8719,6 +8728,10 @@
               {
                 "path": "adapters/host-common/run-publication.mjs",
                 "anchor": "confirmed.identityField !== record.identityField || confirmed.wire !== record.wire) throw primary;"
+              },
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "bodies, complete quota change and attempt locator in the same transaction."
               }
             ],
             "ownership": [
@@ -8745,6 +8758,10 @@
               {
                 "path": "adapters/host-common/run-publication.mjs",
                 "anchor": "const cleanup = member(primary, 'cleanupHandle');"
+              },
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "The original complete group and reservations remain owned on a lost reply."
               }
             ],
             "synchronization": [
@@ -8771,6 +8788,10 @@
               {
                 "path": "docs/design/result-description.md",
                 "anchor": "It continues only after the original cleanup retires and the same Store admits"
+              },
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "The caller marks both setup duties complete only after that real COMMIT;"
               }
             ],
             "failure": [
@@ -8797,6 +8818,10 @@
               {
                 "path": "docs/design/result-description.md",
                 "anchor": "confirmation, a missing record, or any differing record retains the original"
+              },
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "setup operations; an explicit refusal never falls back to another write."
               }
             ],
             "cancellation": [
@@ -8819,6 +8844,10 @@
               {
                 "path": "docs/design/result-description.md",
                 "anchor": "cleanup retain their independent checks and original acknowledgements."
+              },
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "An independently adopted file attempt retains its file progress and actual"
               }
             ],
             "resources": [
@@ -8836,7 +8865,7 @@
               },
               {
                 "path": "adapters/host-common/run-publication.mjs",
-                "anchor": "if (selected.length === 0) return;"
+                "anchor": "if (selected.length === 0) return false;"
               },
               {
                 "path": "adapters/host-common/runtime-core.mjs",
@@ -8845,6 +8874,10 @@
               {
                 "path": "docs/design/result-description.md",
                 "anchor": "failure. Healthy appends perform no confirming reread."
+              },
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "operation. Native setup admits the bounded originals once and commits their"
               }
             ],
             "extension": [
@@ -8867,6 +8900,10 @@
               {
                 "path": "docs/design/result-description.md",
                 "anchor": "Foreign controls, copies, raw wires, unavailable original bounds or stricter"
+              },
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "acknowledgements. A Store without this optional operation keeps the separate"
               }
             ],
             "verification": [
@@ -8893,6 +8930,10 @@
               {
                 "path": "adapters/store-local/publication-store.test.mjs",
                 "anchor": "test('healthy publication progress needs no cleanup retry or confirming reread', async () => {"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "test('publication setup commits its immutable bodies and initial attempt in one native transaction', async t => {"
               }
             ]
           }

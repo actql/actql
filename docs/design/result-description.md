@@ -149,6 +149,17 @@ the locator is private persistence metadata, not authorization or a second
 publication authority. Selected reads admit the referenced body and check its
 attempt and sequence. Ordinary reads do not scan unrelated attempts.
 
+The existing publication caller can supply its immutable setup bodies and
+initial attempt together through the Store's optional `beginPublicationAttempt`
+operation. Native setup admits the bounded originals once and commits their
+bodies, complete quota change and attempt locator in the same transaction.
+The caller marks both setup duties complete only after that real COMMIT;
+preparing and committing records remain later independent transitions.
+The original complete group and reservations remain owned on a lost reply.
+An independently adopted file attempt retains its file progress and actual
+acknowledgements. A Store without this optional operation keeps the separate
+setup operations; an explicit refusal never falls back to another write.
+
 No duplicate object file, semantic alias or attempt-directory ACK is required
 for those native originals. Independently adopted file originals keep their
 file protocol and actual ACKs; a native attempt may reference an existing

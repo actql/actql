@@ -830,9 +830,10 @@ export async function openDeliveryAttemptIndex(path, {create, maxEntries, maxWir
         transaction.assertUsable();
       } else requireComplete();
       const originals = Object.freeze(entries.map(entry => publicationCopy(entry)));
-      if (progress !== undefined && (kind !== 'put' || originals.length > 1 ||
-          progress.kind === 'attempt' && (originals[0]?.name !== 'publication_attempt' ||
-            originals[0]?.semantic_cid !== progress.attemptCid) ||
+      if (progress !== undefined && (kind !== 'put' ||
+          progress.kind === 'record' && originals.length > 1 ||
+          progress.kind === 'attempt' && !originals.some(entry => entry?.name === 'publication_attempt' &&
+            entry.semantic_cid === progress.attemptCid) ||
           progress.kind === 'record' && originals.length === 1 && (originals[0].name !== 'publication_record' ||
             originals[0].semantic_cid !== progress.recordCid))) {
         fail('InvalidPublicationRecord');

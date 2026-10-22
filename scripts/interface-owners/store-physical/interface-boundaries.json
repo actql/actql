@@ -4182,7 +4182,7 @@
     {
       "module": "adapters/store-local/delivery-attempt-index.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "e29f33b0680e402ae0e6b1b24cf95a536b902997ec05ca070948431b31165a7f",
+      "sha256": "cbb58874e858e7a86c406a3d7d924f9c32e07fb0461744eddd55da1dcf941348",
       "exports": [
         "openDeliveryAttemptIndex"
       ],
@@ -5041,6 +5041,13 @@
         },
         {
           "name": "openDeliveryAttemptIndex/publicationMutation/publicationMutation/publicationMutation",
+          "parameters": [
+            "entry"
+          ],
+          "async": false
+        },
+        {
+          "name": "openDeliveryAttemptIndex/publicationMutation/publicationMutation/publicationMutation#2",
           "parameters": [],
           "async": false
         },
@@ -5261,6 +5268,7 @@
             "openDeliveryAttemptIndex/fenceCopy/fenceCopy",
             "openDeliveryAttemptIndex/fenceOriginal/fenceOriginal",
             "openDeliveryAttemptIndex/fenceState/fenceState",
+            "openDeliveryAttemptIndex/flushPublicationFinishes/flushPublicationFinishes",
             "openDeliveryAttemptIndex/init:attempt/init:attempt",
             "openDeliveryAttemptIndex/init:beginPhysicalObjectLifetime/init:beginPhysicalObjectLifetime",
             "openDeliveryAttemptIndex/init:beginPhysicalObjectLifetime/init:beginPhysicalObjectLifetime/init:beginPhysicalObjectLifetime",
@@ -5281,6 +5289,7 @@
             "openDeliveryAttemptIndex/init:forgetRun/init:forgetRun",
             "openDeliveryAttemptIndex/init:forgetRun/init:forgetRun/init:forgetRun",
             "openDeliveryAttemptIndex/init:hasRunMetadataDeletionFence/init:hasRunMetadataDeletionFence",
+            "openDeliveryAttemptIndex/init:latestPublicationRecord/init:latestPublicationRecord",
             "openDeliveryAttemptIndex/init:lookup/init:lookup",
             "openDeliveryAttemptIndex/init:metadataDeletionFence/init:metadataDeletionFence",
             "openDeliveryAttemptIndex/init:migrate/init:migrate",
@@ -5308,7 +5317,12 @@
             "openDeliveryAttemptIndex/init:physicalObject/init:physicalObject",
             "openDeliveryAttemptIndex/init:physicalObjectRecoveryRequired/init:physicalObjectRecoveryRequired",
             "openDeliveryAttemptIndex/init:physicalObjectUsage/init:physicalObjectUsage",
+            "openDeliveryAttemptIndex/init:publicationAttempt/init:publicationAttempt",
+            "openDeliveryAttemptIndex/init:publicationAttemptsForRun/init:publicationAttemptsForRun",
+            "openDeliveryAttemptIndex/init:publicationAttemptsForRun/init:publicationAttemptsForRun/init:publicationAttemptsForRun",
             "openDeliveryAttemptIndex/init:publicationContract/init:publicationContract",
+            "openDeliveryAttemptIndex/init:publicationRecords/init:publicationRecords",
+            "openDeliveryAttemptIndex/init:publicationRecords/init:publicationRecords/init:publicationRecords",
             "openDeliveryAttemptIndex/init:publicationUsage/init:publicationUsage",
             "openDeliveryAttemptIndex/init:putPublicationContracts/init:putPublicationContracts",
             "openDeliveryAttemptIndex/init:recordPhysicalObjects/init:recordPhysicalObjects",
@@ -5319,6 +5333,7 @@
             "openDeliveryAttemptIndex/init:removePhysicalObjects/init:removePhysicalObjects",
             "openDeliveryAttemptIndex/init:removePublicationContract/init:removePublicationContract",
             "openDeliveryAttemptIndex/init:retainPhysicalRemoval/init:retainPhysicalRemoval",
+            "openDeliveryAttemptIndex/init:retainPublicationInventoryFinish/init:retainPublicationInventoryFinish",
             "openDeliveryAttemptIndex/init:retireNativePublicationInventory/init:retireNativePublicationInventory",
             "openDeliveryAttemptIndex/init:run/init:run",
             "openDeliveryAttemptIndex/init:stageNativePublicationInventory/init:stageNativePublicationInventory",
@@ -5345,6 +5360,10 @@
             "openDeliveryAttemptIndex/openDeliveryAttemptIndex#10",
             "openDeliveryAttemptIndex/openDeliveryAttemptIndex#11",
             "openDeliveryAttemptIndex/openDeliveryAttemptIndex#12",
+            "openDeliveryAttemptIndex/openDeliveryAttemptIndex#13",
+            "openDeliveryAttemptIndex/openDeliveryAttemptIndex#14",
+            "openDeliveryAttemptIndex/openDeliveryAttemptIndex#15",
+            "openDeliveryAttemptIndex/openDeliveryAttemptIndex#16",
             "openDeliveryAttemptIndex/openDeliveryAttemptIndex#2",
             "openDeliveryAttemptIndex/openDeliveryAttemptIndex#3",
             "openDeliveryAttemptIndex/openDeliveryAttemptIndex#4",
@@ -5354,6 +5373,7 @@
             "openDeliveryAttemptIndex/openDeliveryAttemptIndex#8",
             "openDeliveryAttemptIndex/openDeliveryAttemptIndex#9",
             "openDeliveryAttemptIndex/openDeliveryAttemptIndex/openDeliveryAttemptIndex",
+            "openDeliveryAttemptIndex/openDeliveryAttemptIndex/openDeliveryAttemptIndex#2",
             "openDeliveryAttemptIndex/physicalOriginal/physicalOriginal",
             "openDeliveryAttemptIndex/physicalState/physicalState",
             "openDeliveryAttemptIndex/preparationKey/preparationKey",
@@ -5361,10 +5381,12 @@
             "openDeliveryAttemptIndex/prepare/prepare/prepare",
             "openDeliveryAttemptIndex/prepare/prepare/prepare#2",
             "openDeliveryAttemptIndex/prepare/prepare/prepare#3",
+            "openDeliveryAttemptIndex/progressCopy/progressCopy",
             "openDeliveryAttemptIndex/publicationCopy/publicationCopy",
             "openDeliveryAttemptIndex/publicationMutation/publicationMutation",
             "openDeliveryAttemptIndex/publicationMutation/publicationMutation/originals/originals",
             "openDeliveryAttemptIndex/publicationMutation/publicationMutation/publicationMutation",
+            "openDeliveryAttemptIndex/publicationMutation/publicationMutation/publicationMutation#2",
             "openDeliveryAttemptIndex/publicationMutation/publicationMutation/retry/retry",
             "openDeliveryAttemptIndex/recoveryOriginal/recoveryOriginal",
             "openDeliveryAttemptIndex/recoveryState/recoveryState",
@@ -5376,12 +5398,15 @@
             "openDeliveryAttemptIndex/retainFailure/retainFailure/retry/retry/retry#2",
             "openDeliveryAttemptIndex/retainFailure/retainFailure/status/status",
             "openDeliveryAttemptIndex/run/run",
+            "openDeliveryAttemptIndex/run/run/result/result",
             "openDeliveryAttemptIndex/sameCompletion/sameCompletion",
             "openDeliveryAttemptIndex/sameCompletion/sameCompletion/sameCompletion",
             "openDeliveryAttemptIndex/sameFence/sameFence",
             "openDeliveryAttemptIndex/sameOptionalPhysical/sameOptionalPhysical",
             "openDeliveryAttemptIndex/samePhysical/samePhysical",
             "openDeliveryAttemptIndex/samePhysical/samePhysical/samePhysical",
+            "openDeliveryAttemptIndex/sameProgress/sameProgress",
+            "openDeliveryAttemptIndex/sameProgress/sameProgress/sameProgress",
             "openDeliveryAttemptIndex/samePublication/samePublication",
             "openDeliveryAttemptIndex/samePublication/samePublication/samePublication",
             "openDeliveryAttemptIndex/sameRecoveryOriginal/sameRecoveryOriginal",
@@ -5390,24 +5415,7 @@
             "openDeliveryAttemptIndex/transaction/transaction",
             "openDeliveryAttemptIndex/usage/usage",
             "openDeliveryAttemptIndex/validate/validate",
-            "openDeliveryAttemptIndex/validate/validate/validate",
-            "openDeliveryAttemptIndex/flushPublicationFinishes/flushPublicationFinishes",
-            "openDeliveryAttemptIndex/init:retainPublicationInventoryFinish/init:retainPublicationInventoryFinish",
-            "openDeliveryAttemptIndex/openDeliveryAttemptIndex/openDeliveryAttemptIndex#2",
-            "openDeliveryAttemptIndex/openDeliveryAttemptIndex#13",
-            "openDeliveryAttemptIndex/openDeliveryAttemptIndex#14",
-            "openDeliveryAttemptIndex/openDeliveryAttemptIndex#15",
-            "openDeliveryAttemptIndex/run/run/result/result",
-            "openDeliveryAttemptIndex/init:latestPublicationRecord/init:latestPublicationRecord",
-            "openDeliveryAttemptIndex/init:publicationAttempt/init:publicationAttempt",
-            "openDeliveryAttemptIndex/init:publicationAttemptsForRun/init:publicationAttemptsForRun",
-            "openDeliveryAttemptIndex/init:publicationAttemptsForRun/init:publicationAttemptsForRun/init:publicationAttemptsForRun",
-            "openDeliveryAttemptIndex/init:publicationRecords/init:publicationRecords",
-            "openDeliveryAttemptIndex/init:publicationRecords/init:publicationRecords/init:publicationRecords",
-            "openDeliveryAttemptIndex/openDeliveryAttemptIndex#16",
-            "openDeliveryAttemptIndex/progressCopy/progressCopy",
-            "openDeliveryAttemptIndex/sameProgress/sameProgress",
-            "openDeliveryAttemptIndex/sameProgress/sameProgress/sameProgress"
+            "openDeliveryAttemptIndex/validate/validate/validate"
           ],
           "exports": [
             "openDeliveryAttemptIndex"
@@ -5449,6 +5457,10 @@
               {
                 "path": "docs/design/result-description.md",
                 "anchor": "New publication attempts and progress records use the existing exclusively"
+              },
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "The existing publication caller can supply its immutable setup bodies and"
               }
             ],
             "inputsOutputs": [
@@ -5495,6 +5507,10 @@
               {
                 "path": "docs/design/result-description.md",
                 "anchor": "the locator is private persistence metadata, not authorization or a second"
+              },
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "initial attempt together through the Store's optional `beginPublicationAttempt`"
               }
             ],
             "identity": [
@@ -5533,6 +5549,10 @@
               {
                 "path": "docs/design/result-description.md",
                 "anchor": "attempt and sequence. Ordinary reads do not scan unrelated attempts."
+              },
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "bodies, complete quota change and attempt locator in the same transaction."
               }
             ],
             "ownership": [
@@ -5571,6 +5591,10 @@
               {
                 "path": "docs/design/result-description.md",
                 "anchor": "file record without replacing or refunding that physical holding. Payload and"
+              },
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "The original complete group and reservations remain owned on a lost reply."
               }
             ],
             "synchronization": [
@@ -5609,6 +5633,10 @@
               {
                 "path": "docs/design/result-description.md",
                 "anchor": "transaction. Preparing a body alone does not advance progress. The sequence"
+              },
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "The caller marks both setup duties complete only after that real COMMIT;"
               }
             ],
             "failure": [
@@ -5651,6 +5679,10 @@
               {
                 "path": "docs/design/result-description.md",
                 "anchor": "Lost COMMIT replies retain the same bodies, capacity reservation and sequence"
+              },
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "setup operations; an explicit refusal never falls back to another write."
               }
             ],
             "cancellation": [
@@ -5689,6 +5721,10 @@
               {
                 "path": "docs/design/result-description.md",
                 "anchor": "mutation for an idempotent same-database confirmation, never a Run replay."
+              },
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "An independently adopted file attempt retains its file progress and actual"
               }
             ],
             "resources": [
@@ -5727,6 +5763,10 @@
               {
                 "path": "docs/design/result-description.md",
                 "anchor": "owned Store SQLite database. The admitted immutable body, object/byte quota"
+              },
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "operation. Native setup admits the bounded originals once and commits their"
               }
             ],
             "extension": [
@@ -5765,6 +5805,10 @@
               {
                 "path": "docs/design/result-description.md",
                 "anchor": "progress or treating missing coverage as an absent publication."
+              },
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "acknowledgements. A Store without this optional operation keeps the separate"
               }
             ],
             "verification": [
@@ -5819,6 +5863,10 @@
               {
                 "path": "adapters/store-local/publication-store.test.mjs",
                 "anchor": "test('native publication progress commits a real Index and retires only the selected Run metadata',async t=>{"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "test('publication setup commits its immutable bodies and initial attempt in one native transaction', async t => {"
               }
             ]
           }
@@ -5828,7 +5876,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "0fafa788ad0cff70b62eae14005baca8c96de56e6c56dd9dac09f5ff86bdb1fd",
+      "sha256": "2ed2dab9120dce12f24e853ac79b33c208949830573c5dd58ddbb11a7189efe6",
       "exports": [
         "PublicationStoreError",
         "assertOriginalLocalPublicationStoreFacilityCurrent",
@@ -6118,6 +6166,22 @@
           "async": false
         },
         {
+          "name": "openOriginalLocalPublicationStore/admitPublicationContracts/admitPublicationContracts",
+          "parameters": [
+            "supplied",
+            "originals"
+          ],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/admitPublicationContracts/admitPublicationContracts/inputs/inputs",
+          "parameters": [
+            "_",
+            "index"
+          ],
+          "async": false
+        },
+        {
           "name": "openOriginalLocalPublicationStore/adoptPreparedObjects/adoptPreparedObjects",
           "parameters": [
             "cids"
@@ -6237,6 +6301,35 @@
         {
           "name": "openOriginalLocalPublicationStore/beginPreparedCommit/beginPreparedCommit/status/status",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/beginPublicationAttempt/beginPublicationAttempt",
+          "parameters": [
+            "supplied",
+            "attemptOriginal"
+          ],
+          "async": true
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/beginPublicationAttempt/beginPublicationAttempt/beginPublicationAttempt",
+          "parameters": [
+            "contract"
+          ],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/beginPublicationAttempt/beginPublicationAttempt/beginPublicationAttempt#2",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/beginPublicationAttempt/beginPublicationAttempt/selected/selected",
+          "parameters": [
+            "contract"
+          ],
           "async": false
         },
         {
@@ -6668,6 +6761,14 @@
             "cid"
           ],
           "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/createAdmittedAttempt/createAdmittedAttempt",
+          "parameters": [
+            "admitted",
+            "retainedAttempt"
+          ],
+          "async": true
         },
         {
           "name": "openOriginalLocalPublicationStore/createAdmittedDeliveryAttempt/createAdmittedDeliveryAttempt",
@@ -7907,6 +8008,43 @@
           "async": true
         },
         {
+          "name": "openOriginalLocalPublicationStore/putAdmittedPublicationContracts/putAdmittedPublicationContracts",
+          "parameters": [
+            "admitted",
+            "originals",
+            "progress"
+          ],
+          "async": true
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/putAdmittedPublicationContracts/putAdmittedPublicationContracts/nativeOnly/nativeOnly",
+          "parameters": [
+            "contract"
+          ],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/putAdmittedPublicationContracts/putAdmittedPublicationContracts/putAdmittedPublicationContracts",
+          "parameters": [
+            "original"
+          ],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/putAdmittedPublicationContracts/putAdmittedPublicationContracts/stored/stored",
+          "parameters": [
+            "contract"
+          ],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/putAdmittedPublicationContracts/putAdmittedPublicationContracts/stored/stored#2",
+          "parameters": [
+            "contract"
+          ],
+          "async": false
+        },
+        {
           "name": "openOriginalLocalPublicationStore/putBytes/putBytes",
           "parameters": [
             "value",
@@ -8056,42 +8194,6 @@
             "originals"
           ],
           "async": true
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/putPublicationContractBatch/putPublicationContractBatch/inputs/inputs",
-          "parameters": [
-            "_",
-            "index"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/putPublicationContractBatch/putPublicationContractBatch/nativeOnly/nativeOnly",
-          "parameters": [
-            "contract"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/putPublicationContractBatch/putPublicationContractBatch/putPublicationContractBatch",
-          "parameters": [
-            "original"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/putPublicationContractBatch/putPublicationContractBatch/stored/stored",
-          "parameters": [
-            "contract"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/putPublicationContractBatch/putPublicationContractBatch/stored/stored#2",
-          "parameters": [
-            "contract"
-          ],
-          "async": false
         },
         {
           "name": "openOriginalLocalPublicationStore/putPublicationContracts/putPublicationContracts",
@@ -9830,6 +9932,8 @@
             "openOriginalLocalPublicationStore/admitPhysicalHolding/admitPhysicalHolding",
             "openOriginalLocalPublicationStore/admitPhysicalHolding/admitPhysicalHolding/admitPhysicalHolding",
             "openOriginalLocalPublicationStore/admitPhysicalHolding/admitPhysicalHolding/record/record",
+            "openOriginalLocalPublicationStore/admitPublicationContracts/admitPublicationContracts",
+            "openOriginalLocalPublicationStore/admitPublicationContracts/admitPublicationContracts/inputs/inputs",
             "openOriginalLocalPublicationStore/adoptPreparedObjects/adoptPreparedObjects",
             "openOriginalLocalPublicationStore/adoptPreparedSchemas/adoptPreparedSchemas",
             "openOriginalLocalPublicationStore/adoptPreparedSchemas/adoptPreparedSchemas/adopted/adopted",
@@ -9841,6 +9945,10 @@
             "openOriginalLocalPublicationStore/beginPreparedCommit/beginPreparedCommit/resolveConfirmed/resolveConfirmed",
             "openOriginalLocalPublicationStore/beginPreparedCommit/beginPreparedCommit/settleUncommitted/settleUncommitted",
             "openOriginalLocalPublicationStore/beginPreparedCommit/beginPreparedCommit/status/status",
+            "openOriginalLocalPublicationStore/beginPublicationAttempt/beginPublicationAttempt",
+            "openOriginalLocalPublicationStore/beginPublicationAttempt/beginPublicationAttempt/beginPublicationAttempt",
+            "openOriginalLocalPublicationStore/beginPublicationAttempt/beginPublicationAttempt/beginPublicationAttempt#2",
+            "openOriginalLocalPublicationStore/beginPublicationAttempt/beginPublicationAttempt/selected/selected",
             "openOriginalLocalPublicationStore/bindMetadataContractObjects/bindMetadataContractObjects",
             "openOriginalLocalPublicationStore/bootstrap/bootstrap",
             "openOriginalLocalPublicationStore/captureCustodyPath/captureCustodyPath",
@@ -9878,6 +9986,7 @@
             "openOriginalLocalPublicationStore/compactMetadataDeletion/compactMetadataDeletion",
             "openOriginalLocalPublicationStore/confirmCapturedContentHoldings/confirmCapturedContentHoldings",
             "openOriginalLocalPublicationStore/confirmCommittedIndex/confirmCommittedIndex",
+            "openOriginalLocalPublicationStore/confirmCommittedIndexOriginal/confirmCommittedIndexOriginal",
             "openOriginalLocalPublicationStore/confirmDeliveryRecord/confirmDeliveryRecord",
             "openOriginalLocalPublicationStore/confirmModelRawCaptureOriginals/confirmModelRawCaptureOriginals",
             "openOriginalLocalPublicationStore/confirmModelRawCaptureOriginals/confirmModelRawCaptureOriginals/expected/expected",
@@ -9900,6 +10009,7 @@
             "openOriginalLocalPublicationStore/consumePhysicalHolding/consumePhysicalHolding",
             "openOriginalLocalPublicationStore/consumePhysicalHolding/consumePhysicalHolding/closed/closed",
             "openOriginalLocalPublicationStore/contractPath/contractPath",
+            "openOriginalLocalPublicationStore/createAdmittedAttempt/createAdmittedAttempt",
             "openOriginalLocalPublicationStore/createAttempt/createAttempt",
             "openOriginalLocalPublicationStore/createMetadataDeletionCleanup/createMetadataDeletionCleanup",
             "openOriginalLocalPublicationStore/createMetadataDeletionCleanup/createMetadataDeletionCleanup/cleanup/cleanup",
@@ -10058,6 +10168,12 @@
             "openOriginalLocalPublicationStore/publicationAttemptPath/publicationAttemptPath",
             "openOriginalLocalPublicationStore/publicationRecoveryOriginal/publicationRecoveryOriginal",
             "openOriginalLocalPublicationStore/publicationRecoveryValue/publicationRecoveryValue",
+            "openOriginalLocalPublicationStore/putAdmittedPublicationContract/putAdmittedPublicationContract",
+            "openOriginalLocalPublicationStore/putAdmittedPublicationContracts/putAdmittedPublicationContracts",
+            "openOriginalLocalPublicationStore/putAdmittedPublicationContracts/putAdmittedPublicationContracts/nativeOnly/nativeOnly",
+            "openOriginalLocalPublicationStore/putAdmittedPublicationContracts/putAdmittedPublicationContracts/putAdmittedPublicationContracts",
+            "openOriginalLocalPublicationStore/putAdmittedPublicationContracts/putAdmittedPublicationContracts/stored/stored",
+            "openOriginalLocalPublicationStore/putAdmittedPublicationContracts/putAdmittedPublicationContracts/stored/stored#2",
             "openOriginalLocalPublicationStore/putBytes/putBytes",
             "openOriginalLocalPublicationStore/putBytesInternal/putBytesInternal",
             "openOriginalLocalPublicationStore/putBytesInternal/putBytesInternal/cleanupHandle/init:retry/init:retry",
@@ -10070,6 +10186,7 @@
             "openOriginalLocalPublicationStore/putNativePublicationContracts/putNativePublicationContracts/init:retry/init:retry",
             "openOriginalLocalPublicationStore/putNativePublicationContracts/putNativePublicationContracts/init:retry/init:retry/init:retry",
             "openOriginalLocalPublicationStore/putNativePublicationContracts/putNativePublicationContracts/init:retry/init:retry/init:retry#2",
+            "openOriginalLocalPublicationStore/putNativePublicationContracts/putNativePublicationContracts/putNativePublicationContracts",
             "openOriginalLocalPublicationStore/putNativePublicationContracts/putNativePublicationContracts/status/status",
             "openOriginalLocalPublicationStore/putOriginalPublicationContracts/putOriginalPublicationContracts",
             "openOriginalLocalPublicationStore/putPreparedResultSchema/putPreparedResultSchema",
@@ -10078,15 +10195,11 @@
             "openOriginalLocalPublicationStore/putPreparedResultSchema/putPreparedResultSchema/putPreparedResultSchema/putPreparedResultSchema",
             "openOriginalLocalPublicationStore/putPublicationContract/putPublicationContract",
             "openOriginalLocalPublicationStore/putPublicationContractBatch/putPublicationContractBatch",
-            "openOriginalLocalPublicationStore/putPublicationContractBatch/putPublicationContractBatch/inputs/inputs",
-            "openOriginalLocalPublicationStore/putPublicationContractBatch/putPublicationContractBatch/nativeOnly/nativeOnly",
-            "openOriginalLocalPublicationStore/putPublicationContractBatch/putPublicationContractBatch/putPublicationContractBatch",
-            "openOriginalLocalPublicationStore/putPublicationContractBatch/putPublicationContractBatch/stored/stored",
-            "openOriginalLocalPublicationStore/putPublicationContractBatch/putPublicationContractBatch/stored/stored#2",
             "openOriginalLocalPublicationStore/putPublicationContracts/putPublicationContracts",
             "openOriginalLocalPublicationStore/putSemantic/putSemantic",
             "openOriginalLocalPublicationStore/readClockObservation/readClockObservation",
             "openOriginalLocalPublicationStore/readCommittedMetadataInventory/readCommittedMetadataInventory",
+            "openOriginalLocalPublicationStore/readCommittedPublication/readCommittedPublication",
             "openOriginalLocalPublicationStore/readCommittedResultDescriptionEvidence/readCommittedResultDescriptionEvidence",
             "openOriginalLocalPublicationStore/readCommittedResultDescriptionEvidence/readCommittedResultDescriptionEvidence/bindings/bindings",
             "openOriginalLocalPublicationStore/readCommittedResultRetentionExtension/readCommittedResultRetentionExtension",
@@ -10275,11 +10388,7 @@
             "syncDirectoryPath/syncDirectoryPath",
             "validateConfiguration",
             "validateContractControl",
-            "writeExclusive",
-            "openOriginalLocalPublicationStore/confirmCommittedIndexOriginal/confirmCommittedIndexOriginal",
-            "openOriginalLocalPublicationStore/readCommittedPublication/readCommittedPublication",
-            "openOriginalLocalPublicationStore/putAdmittedPublicationContract/putAdmittedPublicationContract",
-            "openOriginalLocalPublicationStore/putNativePublicationContracts/putNativePublicationContracts/putNativePublicationContracts"
+            "writeExclusive"
           ],
           "exports": [
             "PublicationStoreError",
@@ -10398,6 +10507,10 @@
               {
                 "path": "docs/design/result-description.md",
                 "anchor": "New publication attempts and progress records use the existing exclusively"
+              },
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "The existing publication caller can supply its immutable setup bodies and"
               }
             ],
             "inputsOutputs": [
@@ -10423,7 +10536,7 @@
               },
               {
                 "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "const putPublicationContractBatch = async (supplied, originals) => {"
+                "anchor": "const admitPublicationContracts = (supplied, originals) => {"
               },
               {
                 "path": "adapters/store-local/publication-store.mjs",
@@ -10504,6 +10617,10 @@
               {
                 "path": "docs/design/result-description.md",
                 "anchor": "the locator is private persistence metadata, not authorization or a second"
+              },
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "initial attempt together through the Store's optional `beginPublicationAttempt`"
               }
             ],
             "identity": [
@@ -10618,6 +10735,10 @@
               {
                 "path": "docs/design/result-description.md",
                 "anchor": "attempt and sequence. Ordinary reads do not scan unrelated attempts."
+              },
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "bodies, complete quota change and attempt locator in the same transaction."
               }
             ],
             "ownership": [
@@ -10724,6 +10845,10 @@
               {
                 "path": "docs/design/result-description.md",
                 "anchor": "file record without replacing or refunding that physical holding. Payload and"
+              },
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "The original complete group and reservations remain owned on a lost reply."
               }
             ],
             "synchronization": [
@@ -10830,6 +10955,10 @@
               {
                 "path": "docs/design/result-description.md",
                 "anchor": "transaction. Preparing a body alone does not advance progress. The sequence"
+              },
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "The caller marks both setup duties complete only after that real COMMIT;"
               }
             ],
             "failure": [
@@ -10936,6 +11065,10 @@
               {
                 "path": "docs/design/result-description.md",
                 "anchor": "Lost COMMIT replies retain the same bodies, capacity reservation and sequence"
+              },
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "setup operations; an explicit refusal never falls back to another write."
               }
             ],
             "cancellation": [
@@ -11038,6 +11171,10 @@
               {
                 "path": "docs/design/result-description.md",
                 "anchor": "mutation for an idempotent same-database confirmation, never a Run replay."
+              },
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "An independently adopted file attempt retains its file progress and actual"
               }
             ],
             "resources": [
@@ -11144,6 +11281,10 @@
               {
                 "path": "docs/design/result-description.md",
                 "anchor": "owned Store SQLite database. The admitted immutable body, object/byte quota"
+              },
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "operation. Native setup admits the bounded originals once and commits their"
               }
             ],
             "extension": [
@@ -11250,6 +11391,10 @@
               {
                 "path": "docs/design/result-description.md",
                 "anchor": "progress or treating missing coverage as an absent publication."
+              },
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "acknowledgements. A Store without this optional operation keeps the separate"
               }
             ],
             "verification": [
@@ -11428,6 +11573,10 @@
               {
                 "path": "adapters/store-local/publication-store.test.mjs",
                 "anchor": "test('native publication progress commits a real Index and retires only the selected Run metadata',async t=>{"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "test('publication setup commits its immutable bodies and initial attempt in one native transaction', async t => {"
               }
             ]
           }
