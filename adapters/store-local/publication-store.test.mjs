@@ -1813,6 +1813,43 @@ test('restart resumes schema cleanup after alias unlink before sync',
       code('PublicationContractMissing'));
   });
 
+test('restart settles prepared schema physical capacity after unlink before directory ACK', async t => {
+  const directory = await mkdtemp(join(tmpdir(), 'actql-schema-physical-unlink-crash-'));
+  t.after(() => removeFixtureDirectory(directory));
+  const configuration = {
+    directory, storeAuthorityCid: cids.authority, capacityBytes: 1024 * 1024,
+    maxObjectBytes: 64 * 1024, maxObjects: 100,
+    maxContractNodes: limits.maxNodes, maxContractDepth: limits.maxDepth,
+  };
+  const storeUrl = new URL('./publication-store.mjs', import.meta.url).href;
+  const controlUrl = new URL('../host-common/publication-contract-control.fixture.mjs', import.meta.url).href;
+  const child = await runStoreChild(`
+    import {open} from 'node:fs/promises';
+    import {join} from 'node:path';
+    import {openLocalPublicationStore} from ${JSON.stringify(storeUrl)};
+    import {createPublicationContractControlFixture} from ${JSON.stringify(controlUrl)};
+    const configuration = ${JSON.stringify(configuration)};
+    let armed = false;
+    const durability = Object.freeze({async syncDirectory(path) {
+      if (armed && path === join(configuration.directory, 'objects')) process.exit(44);
+      const handle = await open(path, 'r');
+      try {await handle.sync();} finally {await handle.close();}
+    }});
+    const store = await openLocalPublicationStore(configuration, createPublicationContractControlFixture(), durability);
+    const schema = await store.putPreparedResultSchema(${JSON.stringify(resultSchemaWire)},
+      ${JSON.stringify(cids.schema)}, ${JSON.stringify(cids.run)});
+    armed = true;
+    await schema.prepared.release();
+  `);
+  assert.equal(child.exitCode, 44, child.stderr);
+  assert.deepEqual(await readdir(join(directory, 'objects')), []);
+  const reopened = await openLocalPublicationStore(configuration, contractControl);
+  assert.equal(reopened.status().storedBytes, 0);
+  assert.equal(reopened.status().objectCount, 0);
+  assert.deepEqual(await readdir(join(directory, 'prepared-schemas')), []);
+  await reopened.close();
+});
+
 test('prepared schema cleanup retains capacity across sync failure',
   async t => {
     const directory = await mkdtemp(join(
@@ -2116,14 +2153,25 @@ test('writer retains capacity and cleanup identity until unlink succeeds',
       maxObjectBytes: 8,
     });
     const staging = join(directory, 'staging');
+    let temporary;
+    const originalUnlink = fsPromises.unlink;
+    let refuse = true;
+    t.mock.method(fsPromises, 'unlink', function(path, ...args) {
+      if (refuse && path === temporary) {
+        throw Object.assign(new Error('original writer staging unlink'), {code: 'EACCES'});
+      }
+      return Reflect.apply(originalUnlink, this, [path, ...args]);
+    });
+    syncBuiltinESMExports();
     const writer = store.createObjectWriter(8);
     await writer.append('retained');
-    assert.equal((await readdir(staging)).length, 1);
-    await chmod(staging, 0o500);
+    const names = await readdir(staging);
+    assert.equal(names.length, 1);
+    temporary = join(staging, names[0]);
     try {
       await assert.rejects(writer.seal(digest('retained')));
     } finally {
-      await chmod(staging, 0o700);
+      refuse = false;
     }
     assert.deepEqual(store.status(), {
       storedBytes: 8,
@@ -2272,6 +2320,161 @@ test('physical object capacity survives reopen without inspecting unrelated payl
   assert.equal(inspected.length, 0,
     'A complete retained accounting index must not re-inspect every historical payload on ordinary open');
 });
+
+for (const afterCommit of [false, true]) {
+test(`physical writer retains ${afterCommit ? 'committed' : 'rolled-back'} quota Unknown until same-original cleanup`, async t => {
+  const exec = DatabaseSync.prototype.exec;
+  let armed = false, lost = false;
+  t.mock.method(DatabaseSync.prototype, 'exec', function(sql) {
+    if (armed && sql === 'COMMIT') {
+      if (!lost) {
+        lost = true;
+        if (afterCommit) Reflect.apply(exec, this, [sql]);
+      }
+      throw Object.assign(new Error('original physical accounting COMMIT reply unavailable'), {code: 'EIO'});
+    }
+    return Reflect.apply(exec, this, [sql]);
+  });
+  const {store, directory, configuration} = await fixture(t);
+  const writer = store.createObjectWriter(7);
+  await writer.append('payload');
+  armed = true;
+  try {
+    await assert.rejects(writer.seal(digest('payload')), error => error.outcome === 'unknown');
+    assert.equal(writer.status().custodyPending, true);
+    assert.equal(store.status().storedBytes, 7, 'uncertain Native accounting cannot reset the physical charge');
+    await assert.rejects(store.close(), code('PublicationStoreCleanupPending'));
+    assert.equal((await readdir(join(directory, 'prepared-custody'))).length, 1);
+  } finally {
+    armed = false;
+    await writer.cancel();
+  }
+  assert.equal(writer.status().custodyPending, false);
+  assert.equal(store.status().storedBytes, 0);
+  assert.deepEqual(await readdir(join(directory, 'objects')), []);
+  await store.close();
+  const reopened = await openLocalPublicationStore(configuration, contractControl);
+  assert.equal(reopened.status().storedBytes, 0);
+  assert.equal(reopened.status().objectCount, 0);
+  await reopened.close();
+});
+}
+
+test('physical writer observes a lost link reply without replaying the link or leaking its charge', async t => {
+  const {store, directory} = await fixture(t);
+  const originalLink = fsPromises.link;
+  const target = join(directory, 'objects', digest('payload').slice(7));
+  let links = 0;
+  t.mock.method(fsPromises, 'link', async function(from, to, ...args) {
+    if (to === target) {
+      links++;
+      await Reflect.apply(originalLink, this, [from, to, ...args]);
+      throw Object.assign(new Error('original installed link reply lost'), {code: 'EIO'});
+    }
+    return Reflect.apply(originalLink, this, [from, to, ...args]);
+  });
+  syncBuiltinESMExports();
+  const writer = store.createObjectWriter(7);
+  await writer.append('payload');
+  await assert.rejects(writer.seal(digest('payload')), code('EIO'));
+  assert.equal(links, 1);
+  assert.equal(writer.status().custodyPending, false);
+  assert.equal(store.status().storedBytes, 0);
+  assert.deepEqual(await readdir(join(directory, 'objects')), []);
+  await assert.rejects(writer.seal(digest('payload')), code('PublicationObjectWriterClosed'));
+  assert.equal(links, 1);
+});
+
+test('concurrent equal payload writers charge only the winning physical generation', async t => {
+  const {store, configuration} = await fixture(t);
+  const first = store.createObjectWriter(7), second = store.createObjectWriter(7);
+  await Promise.all([first.append('payload'), second.append('payload')]);
+  const results = await Promise.all([first.seal(digest('payload')), second.seal(digest('payload'))]);
+  assert.equal(results.filter(result => result.created).length, 1);
+  assert.equal(store.status().storedBytes, 7);
+  assert.equal(store.status().objectCount, 1);
+  await store.close();
+  const reopened = await openLocalPublicationStore(configuration, contractControl);
+  assert.equal(reopened.status().storedBytes, 7);
+  assert.equal(reopened.status().objectCount, 1);
+  assert.deepEqual(await reopened.verifyObject(digest('payload')), {cid: digest('payload'), bytes: 7});
+  await reopened.close();
+});
+
+for(const afterLink of [false,true]) {
+test(`cold native physical preparation recovers ${afterLink?'installed':'unlinked'} generation without a payload census`,async t=>{
+  const directory=await mkdtemp(join(tmpdir(),'actql-native-physical-crash-'));
+  t.after(()=>removeFixtureDirectory(directory));
+  const configuration={directory,storeAuthorityCid:cids.authority,capacityBytes:1024*1024,
+    maxObjectBytes:64*1024,maxObjects:100,maxContractNodes:limits.maxNodes,maxContractDepth:limits.maxDepth};
+  const storeUrl=new URL('./publication-store.mjs',import.meta.url).href;
+  const controlUrl=new URL('../host-common/publication-contract-control.fixture.mjs',import.meta.url).href;
+  const child=await runStoreChild(`
+    import fs from 'node:fs/promises';import {syncBuiltinESMExports} from 'node:module';
+    import {join} from 'node:path';
+    import {openLocalPublicationStore} from ${JSON.stringify(storeUrl)};
+    import {createPublicationContractControlFixture} from ${JSON.stringify(controlUrl)};
+    const configuration=${JSON.stringify(configuration)},link=fs.link;
+    const store=await openLocalPublicationStore(configuration,createPublicationContractControlFixture());
+    fs.link=async function(from,to,...args){
+      if(String(to).startsWith(join(configuration.directory,'objects')+'/')) {
+        if(${afterLink})await Reflect.apply(link,this,[from,to,...args]);
+        process.exit(45);
+      }
+      return Reflect.apply(link,this,[from,to,...args]);
+    };syncBuiltinESMExports();
+    await store.putSemantic(${JSON.stringify(resultSchemaWire)},${JSON.stringify(cids.schema)});
+  `);
+  assert.equal(child.exitCode,45,child.stderr);
+  const reopened=await openLocalPublicationStore(configuration,contractControl);
+  assert.equal(reopened.status().storedBytes,afterLink?Buffer.byteLength(resultSchemaWire):0);
+  assert.equal(reopened.status().objectCount,afterLink?1:0);
+  if(afterLink)assert.deepEqual(await reopened.verifyObject(digest(resultSchemaWire)),
+    {cid:digest(resultSchemaWire),bytes:Buffer.byteLength(resultSchemaWire)});
+  await assert.rejects(reopened.readSemanticBytes(cids.schema),code('PublicationContractMissing'));
+  await reopened.close();
+  const db=new DatabaseSync(join(directory,'delivery-attempts.sqlite3'),{readOnly:true});
+  try{assert.equal(db.prepare('SELECT count(*) AS n FROM physical_object_preparations').get().n,0);}
+  finally{db.close();}
+});
+}
+
+for(const phase of ['stage','installation'])for(const afterCommit of [false,true]) {
+test(`native physical batch ${phase} retains ${afterCommit?'committed':'rolled-back'} Unknown cleanup`,async t=>{
+  const exec=DatabaseSync.prototype.exec;
+  let armed=false,commits=0,lost=false;
+  t.mock.method(DatabaseSync.prototype,'exec',function(sql){
+    if(armed&&sql==='COMMIT'){
+      commits++;
+      if(lost||commits===(phase==='stage'?1:2)){
+        if(!lost){lost=true;if(afterCommit)Reflect.apply(exec,this,[sql]);}
+        throw Object.assign(new Error('original native batch reply unavailable'),{code:'EIO'});
+      }
+    }
+    return Reflect.apply(exec,this,[sql]);
+  });
+  const {store,directory,configuration}=await fixture(t);
+  let failure;
+  armed=true;
+  try {
+    await assert.rejects(store.putSemantic(resultSchemaWire,cids.schema),error=>{
+      failure=error;
+      return error.code==='DeliveryAttemptIndexCommitOutcomeUnknown'&&error.cleanupHandle?.status().pending===true;
+    });
+    await assert.rejects(store.close(),code('PublicationStoreCleanupPending'));
+    assert.equal(store.status().storedBytes,phase==='stage'?0:Buffer.byteLength(resultSchemaWire));
+  }finally{
+    armed=false;
+    if(failure?.cleanupHandle)assert.equal((await failure.cleanupHandle.retry()).pending,false);
+  }
+  assert.equal((await readdir(join(directory,'objects'))).length,phase==='stage'?0:1);
+  await store.close();
+  const reopened=await openLocalPublicationStore(configuration,contractControl);
+  assert.equal(reopened.status().storedBytes,phase==='stage'?0:Buffer.byteLength(resultSchemaWire));
+  await assert.rejects(reopened.readSemanticBytes(cids.schema),code('PublicationContractMissing'));
+  await reopened.close();
+});
+}
 
 test('a dead local Store owner is reclaimed without weakening live exclusion',
   async t => {
@@ -2578,6 +2781,25 @@ test('publication metadata shares actual directory ACKs across its bounded contr
   }
   assert.deepEqual(await readdir(join(directory, 'staging')), []);
   assert.equal(await store.close(), true);
+});
+
+test('physical metadata batch retains existing semantic-member deduplication and one installed charge',async t=>{
+  const {store,configuration}=await fixture(t);
+  const original={name:'run_invocation',wire:wire(seal('run_invocation',{
+    version:'actql-run-invocation/0.1',invocation_template_cid:cids.template,
+    observation_set_cid:digest('repeated physical metadata'),
+  }))};
+  const stored=await store.putPublicationContracts([original,original]);
+  // The unchanged putPublicationContractBatch owner deduplicates identical
+  // name/wire pairs before the physical batch, including in the predecessor.
+  assert.equal(stored.length,1);
+  assert.equal(store.status().objectCount,1);
+  assert.equal(store.status().storedBytes,Buffer.byteLength(original.wire));
+  await store.close();
+  const reopened=await openLocalPublicationStore(configuration,contractControl);
+  assert.equal(reopened.status().objectCount,1);
+  assert.equal((await reopened.readPublicationContract(stored[0].semanticCid,original.name)).wire,original.wire);
+  await reopened.close();
 });
 
 test('publication metadata group retains the same physical ACK after partial failure', async t => {
@@ -4858,9 +5080,13 @@ test('restart reclaims terminal uncommitted publication metadata', async t => {
   );
   await store.appendRecord(wire(cancelled), {uncommittedConfirmed: true});
   assert.equal(await prepared.prepared.release(), true);
-  assert.equal((await readdir(
-    join(directory, 'metadata-inventories'),
-  )).length, 1);
+  const nativeInventory = () => {
+    const db = new DatabaseSync(join(directory, 'delivery-attempts.sqlite3'), {readOnly: true});
+    try {return db.prepare('SELECT inventory_wire FROM native_publication_inventories WHERE public_index_cid=?')
+      .get(entry.public_index_entry_cid);}
+    finally {db.close();}
+  };
+  assert.notEqual(nativeInventory(), undefined, 'the original uncommitted native inventory remains pending');
   assert.equal(await store.close(), true);
 
   const reopened = await openLocalPublicationStore(
@@ -4870,6 +5096,7 @@ test('restart reclaims terminal uncommitted publication metadata', async t => {
   assert.deepEqual(await readdir(
     join(directory, 'metadata-inventories'),
   ), []);
+  assert.equal(nativeInventory(), undefined, 'cold cleanup retires that same native inventory');
   await assert.rejects(
     reopened.readPublicationContract(
       entry.public_index_entry_cid, 'public_index_entry',
@@ -5128,7 +5355,7 @@ test('metadata deletion history is indexed once and unrelated Run operations rea
   const {store,directory,configuration}=await fixture(t);await store.close();
   // Model the actual prior private version and its compact retired files.
   const db=new DatabaseSync(join(directory,'delivery-attempts.sqlite3'));
-  try{db.exec('DROP TABLE metadata_deletion_fences; DROP TABLE metadata_deletion_fence_coverage; UPDATE coverage SET version=7 WHERE id=1');}
+  try{db.exec('DROP TABLE physical_objects; DROP TABLE physical_object_usage; DROP TABLE physical_object_preparations; DROP TABLE metadata_deletion_fences; DROP TABLE metadata_deletion_fence_coverage; UPDATE coverage SET version=7 WHERE id=1');}
   finally{db.close();}
   const history=Array.from({length:12},(_,i)=>({key:digest(`retired key ${i}`).slice(7),run:digest(`retired Run ${i}`)}));
   for(const row of history)await writeFile(join(directory,'metadata-deletions',row.key+'.json'),wire({
@@ -5381,7 +5608,7 @@ test('publication recovery migrates the legacy inventory once and preserves adop
   // Reconstruct only this new disposable fixture's exact prior private format.
   const path=join(setup.directory,'delivery-attempts.sqlite3');
   const old=new DatabaseSync(path);
-  try{old.exec('DROP TABLE metadata_deletion_fences; DROP TABLE metadata_deletion_fence_coverage; DROP TABLE native_publication_inventories; DROP TABLE native_publication_inventory_usage; DROP TABLE pending_publications; DROP TABLE publication_recovery; UPDATE coverage SET version=5 WHERE id=1');}
+  try{old.exec('DROP TABLE physical_objects; DROP TABLE physical_object_usage; DROP TABLE physical_object_preparations; DROP TABLE metadata_deletion_fences; DROP TABLE metadata_deletion_fence_coverage; DROP TABLE native_publication_inventories; DROP TABLE native_publication_inventory_usage; DROP TABLE pending_publications; DROP TABLE publication_recovery; UPDATE coverage SET version=5 WHERE id=1');}
   finally{old.close();}
   const originalOpen=fsPromises.open,reads=[];
   t.mock.method(fsPromises,'open',function(path,...args){reads.push(String(path));return Reflect.apply(originalOpen,this,[path,...args]);});

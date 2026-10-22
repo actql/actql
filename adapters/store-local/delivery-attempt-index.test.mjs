@@ -6,6 +6,192 @@ import {join} from 'node:path';
 import {DatabaseSync} from 'node:sqlite';
 import {openDeliveryAttemptIndex} from './delivery-attempt-index.mjs';
 
+test('physical object accounting retains exact generations and bounded totals across reopen',async t=>{
+  const directory=await mkdtemp(join(tmpdir(),'actql-physical-usage-'));
+  let index;t.after(async()=>{index?.close();await rm(directory,{recursive:true});});
+  const path=join(directory,'index.sqlite3'),options={create:false,maxEntries:2,maxWireBytes:4096};
+  index=await openDeliveryAttemptIndex(path,{...options,create:true});
+  const first={cid:'sha256:'+'1'.repeat(64),byte_count:13,device:'1',inode:'2'};
+  const second={cid:'sha256:'+'2'.repeat(64),byte_count:17,device:'1',inode:'3'};
+  assert.equal(index.physicalObjectUsage().complete,0);
+  index.migratePhysicalObjects([first]);index.migrate([]);
+  assert.equal(index.recordPhysicalObjects([second]).bytes,30);
+  const revision=index.physicalObjectUsage().ack_revision;
+  assert.equal(index.recordPhysicalObjects([first,second]).ack_revision,revision);
+  assert.throws(()=>index.recordPhysicalObjects([{...first,inode:'4'}]),{code:'PublicationObjectAccountingMismatch'});
+  assert.throws(()=>index.removePhysicalObjects([{...first,inode:'4'}]),{code:'PublicationObjectAccountingMismatch'});
+  assert.throws(()=>index.recordPhysicalObjects([{...first,cid:'sha256:'+'3'.repeat(64)}]),{code:'DeliveryAttemptIndexLimit'});
+  index.close();index=await openDeliveryAttemptIndex(path,options);
+  assert.deepEqual(index.physicalObject(first.cid),first);
+  assert.equal(index.physicalObjectUsage().bytes,30);
+  assert.equal(index.removePhysicalObjects([first]).bytes,17);
+  const retired=index.physicalObjectUsage().ack_revision;
+  assert.equal(index.removePhysicalObjects([first]).ack_revision,retired);
+  assert.deepEqual(index.physicalObject(second.cid),second);
+});
+
+for(const kind of ['record','remove'])for(const afterCommit of [false,true]) {
+test(`physical object ${kind} retains ${afterCommit?'committed':'rolled-back'} Unknown until same-original confirmation`,async t=>{
+  const directory=await mkdtemp(join(tmpdir(),'actql-physical-unknown-'));
+  let index,armed=false,lost=false;
+  t.after(async()=>{index?.close();await rm(directory,{recursive:true});});
+  const exec=DatabaseSync.prototype.exec;
+  t.mock.method(DatabaseSync.prototype,'exec',function(sql){
+    if(armed&&!lost&&sql==='COMMIT'){
+      lost=true;if(afterCommit)Reflect.apply(exec,this,[sql]);
+      throw Object.assign(new Error('lost original physical accounting reply'),{code:'EIO'});
+    }
+    return Reflect.apply(exec,this,[sql]);
+  });
+  index=await openDeliveryAttemptIndex(join(directory,'index.sqlite3'),{create:true,maxEntries:2,maxWireBytes:4096});
+  index.migratePhysicalObjects([]);index.migrate([]);
+  const original={cid:'sha256:'+'1'.repeat(64),byte_count:13,device:'1',inode:'2'};
+  if(kind==='remove')index.recordPhysicalObjects([original]);
+  const mutate=value=>kind==='record'?index.recordPhysicalObjects([value]):index.removePhysicalObjects([value]);
+  armed=true;assert.throws(()=>mutate(original),error=>error.outcome==='unknown');
+  assert.throws(()=>index.physicalObjectUsage(),{code:'DeliveryAttemptIndexCommitOutcomeUnknown'});
+  assert.throws(()=>mutate({...original,inode:'3'}),{code:'DeliveryAttemptIndexCommitOutcomeUnknown'});
+  mutate(original);
+  assert.equal(index.physicalObjectUsage().bytes,kind==='record'?13:0);
+  assert.deepEqual(index.physicalObject(original.cid),kind==='record'?original:undefined);
+});
+}
+
+for(const afterCommit of [false,true]) {
+test(`physical cleanup settles only the same ${afterCommit?'committed':'rolled-back'} uncertain installation`,async t=>{
+  const directory=await mkdtemp(join(tmpdir(),'actql-physical-cleanup-'));
+  let index,armed=false,lost=false;
+  t.after(async()=>{index?.close();await rm(directory,{recursive:true});});
+  const exec=DatabaseSync.prototype.exec;
+  t.mock.method(DatabaseSync.prototype,'exec',function(sql){
+    if(armed&&!lost&&sql==='COMMIT'){
+      lost=true;if(afterCommit)Reflect.apply(exec,this,[sql]);
+      throw Object.assign(new Error('lost original physical install reply'),{code:'EIO'});
+    }
+    return Reflect.apply(exec,this,[sql]);
+  });
+  index=await openDeliveryAttemptIndex(join(directory,'index.sqlite3'),{create:true,maxEntries:2,maxWireBytes:4096});
+  index.migratePhysicalObjects([]);index.migrate([]);
+  const original={cid:'sha256:'+'1'.repeat(64),byte_count:13,device:'1',inode:'2'};
+  armed=true;assert.throws(()=>index.recordPhysicalObjects([original]),error=>error.outcome==='unknown');
+  assert.throws(()=>index.removePhysicalObjects([{...original,inode:'3'}]),{code:'DeliveryAttemptIndexCommitOutcomeUnknown'});
+  // This private index port is invoked by Store only after its real unlink
+  // and directory ACK. It supplies no physical cleanup or semantic authority.
+  assert.equal(index.removePhysicalObjects([original]).bytes,0);
+  assert.equal(index.physicalObject(original.cid),undefined);
+});
+}
+
+for(const missing of ['physical_objects','physical_object_usage','physical_object_preparations','singleton']) {
+test(`physical object accounting refuses missing adopted ${missing}`,async t=>{
+  const directory=await mkdtemp(join(tmpdir(),'actql-physical-missing-'));
+  t.after(()=>rm(directory,{recursive:true}));
+  const path=join(directory,'index.sqlite3'),options={create:false,maxEntries:2,maxWireBytes:4096};
+  const index=await openDeliveryAttemptIndex(path,{...options,create:true});
+  index.migratePhysicalObjects([]);index.close();
+  const db=new DatabaseSync(path);
+  try{db.exec(missing==='singleton'?'DELETE FROM physical_object_usage':`DROP TABLE ${missing}`);}finally{db.close();}
+  await assert.rejects(openDeliveryAttemptIndex(path,options),{code:'DeliveryAttemptIndexUnavailable'});
+});
+}
+
+test('version eight physical capacity migration is explicit and adopted only once',async t=>{
+  const directory=await mkdtemp(join(tmpdir(),'actql-physical-v8-'));
+  let index;t.after(async()=>{index?.close();await rm(directory,{recursive:true});});
+  const path=join(directory,'index.sqlite3'),options={create:false,maxEntries:2,maxWireBytes:4096};
+  index=await openDeliveryAttemptIndex(path,{...options,create:true});index.migrate([]);index.close();
+  const db=new DatabaseSync(path);
+  try{db.exec('DROP TABLE physical_objects; DROP TABLE physical_object_usage; DROP TABLE physical_object_preparations; UPDATE coverage SET version=8 WHERE id=1');}finally{db.close();}
+  index=await openDeliveryAttemptIndex(path,options);
+  assert.equal(index.physicalObjectUsage().complete,0);
+  const original={cid:'sha256:'+'1'.repeat(64),byte_count:13,device:'1',inode:'2'};
+  index.migratePhysicalObjects([original]);index.close();index=await openDeliveryAttemptIndex(path,options);
+  assert.equal(index.physicalObjectUsage().bytes,13);
+  assert.throws(()=>index.migratePhysicalObjects([]),{code:'DeliveryAttemptIndexAlreadyComplete'});
+  assert.deepEqual(index.physicalObject(original.cid),original);
+});
+
+test('native physical preparations distinguish concurrent generations and join the winning quota commit',async t=>{
+  const directory=await mkdtemp(join(tmpdir(),'actql-physical-preparations-'));
+  let index,armed=false,commits=0;t.after(async()=>{index?.close();await rm(directory,{recursive:true});});
+  const exec=DatabaseSync.prototype.exec;
+  t.mock.method(DatabaseSync.prototype,'exec',function(sql){
+    if(armed&&sql==='COMMIT')commits++;return Reflect.apply(exec,this,[sql]);
+  });
+  const path=join(directory,'index.sqlite3'),options={create:false,maxEntries:2,maxWireBytes:4096};
+  index=await openDeliveryAttemptIndex(path,{...options,create:true});index.migratePhysicalObjects([]);index.migrate([]);
+  const first={cid:'sha256:'+'1'.repeat(64),byte_count:13,device:'1',inode:'2'};
+  const second={...first,inode:'3'};
+  index.stagePhysicalObjects([first]);index.stagePhysicalObjects([second]);
+  assert.equal(index.pendingPhysicalObjects().length,2);
+  assert.equal(index.physicalObjectUsage().bytes,0,'preparation is not installed bytes');
+  armed=true;index.recordPhysicalObjects([first]);
+  assert.equal(commits,1,'physical charge and removal of its pending generation share a transaction');
+  assert.deepEqual(index.pendingPhysicalObjects(),[second]);
+  index.finishPhysicalPreparations([second]);assert.equal(commits,2);
+  index.finishPhysicalPreparations([second]);assert.equal(commits,2);
+  assert.deepEqual(index.physicalObject(first.cid),first);
+  assert.equal(index.physicalObjectUsage().bytes,13);
+  index.close();index=await openDeliveryAttemptIndex(path,options);
+  assert.deepEqual(index.pendingPhysicalObjects(),[]);
+  assert.deepEqual(index.physicalObject(first.cid),first);
+});
+
+for(const kind of ['stage','finish'])for(const afterCommit of [false,true]) {
+test(`native physical preparation ${kind} retains ${afterCommit?'committed':'rolled-back'} Unknown original`,async t=>{
+  const directory=await mkdtemp(join(tmpdir(),'actql-physical-preparation-unknown-'));
+  let index,armed=false,lost=false;t.after(async()=>{index?.close();await rm(directory,{recursive:true});});
+  const exec=DatabaseSync.prototype.exec;
+  t.mock.method(DatabaseSync.prototype,'exec',function(sql){
+    if(armed&&!lost&&sql==='COMMIT'){
+      lost=true;if(afterCommit)Reflect.apply(exec,this,[sql]);
+      throw Object.assign(new Error('original physical preparation reply lost'),{code:'EIO'});
+    }
+    return Reflect.apply(exec,this,[sql]);
+  });
+  index=await openDeliveryAttemptIndex(join(directory,'index.sqlite3'),{create:true,maxEntries:2,maxWireBytes:4096});
+  index.migratePhysicalObjects([]);index.migrate([]);
+  const original={cid:'sha256:'+'1'.repeat(64),byte_count:13,device:'1',inode:'2'};
+  if(kind==='finish')index.stagePhysicalObjects([original]);
+  const mutate=values=>kind==='stage'?index.stagePhysicalObjects(values):index.finishPhysicalPreparations(values);
+  armed=true;assert.throws(()=>mutate([original]),error=>error.outcome==='unknown');
+  assert.throws(()=>index.pendingPhysicalObjects(),{code:'DeliveryAttemptIndexCommitOutcomeUnknown'});
+  assert.throws(()=>index.finishPhysicalPreparations([{...original,inode:'3'}]),{code:'DeliveryAttemptIndexCommitOutcomeUnknown'});
+  // The Store supplies actual no-link/unlink directory ACK before this
+  // idempotent metadata cleanup; this index port cannot issue that ACK.
+  index.finishPhysicalPreparations([original]);
+  assert.deepEqual(index.pendingPhysicalObjects(),[]);
+  assert.equal(index.physicalObjectUsage().bytes,0);
+});
+}
+
+for(const afterCommit of [false,true]) {
+test(`physical capacity migration retains ${afterCommit?'committed':'rolled-back'} Unknown without partial coverage`,async t=>{
+  const directory=await mkdtemp(join(tmpdir(),'actql-physical-migration-unknown-'));
+  let index,armed=false,lost=false;
+  t.after(async()=>{index?.close();await rm(directory,{recursive:true});});
+  const exec=DatabaseSync.prototype.exec;
+  t.mock.method(DatabaseSync.prototype,'exec',function(sql){
+    if(armed&&!lost&&sql==='COMMIT'){
+      lost=true;if(afterCommit)Reflect.apply(exec,this,[sql]);
+      throw Object.assign(new Error('original migration COMMIT reply lost'),{code:'EIO'});
+    }
+    return Reflect.apply(exec,this,[sql]);
+  });
+  const path=join(directory,'index.sqlite3'),options={create:false,maxEntries:2,maxWireBytes:4096};
+  index=await openDeliveryAttemptIndex(path,{...options,create:true});index.migrate([]);
+  const original={cid:'sha256:'+'1'.repeat(64),byte_count:13,device:'1',inode:'2'};
+  armed=true;assert.throws(()=>index.migratePhysicalObjects([original]),error=>error.outcome==='unknown');
+  assert.throws(()=>index.physicalObjectUsage(),{code:'DeliveryAttemptIndexCommitOutcomeUnknown'});
+  index.close();index=await openDeliveryAttemptIndex(path,options);
+  assert.equal(index.physicalObjectUsage().complete,afterCommit?1:0);
+  assert.equal(index.physicalObjectUsage().bytes,afterCommit?13:0);
+  if(!afterCommit)index.migratePhysicalObjects([original]);
+  assert.deepEqual(index.physicalObject(original.cid),original);
+  assert.equal(index.physicalObjectUsage().bytes,13);
+});
+}
+
 test('metadata deletion fences select the exact Run and migrate retired history only once',async t=>{
   const directory=await mkdtemp(join(tmpdir(),'actql-metadata-fences-'));
   let index;t.after(async()=>{index?.close();await rm(directory,{recursive:true});});
@@ -168,7 +354,7 @@ test('native publication inventory upgrades version6 without reclassifying its p
   const original={public_index_cid:'sha256:'+'1'.repeat(64),inventory_wire:'{"legacy":1}'};
   index.migratePublicationRecovery([original]);index.close();
   const database=new DatabaseSync(path);
-  try{database.exec('DROP TABLE metadata_deletion_fences; DROP TABLE metadata_deletion_fence_coverage; DROP TABLE native_publication_inventories; DROP TABLE native_publication_inventory_usage; UPDATE coverage SET version=6 WHERE id=1');}
+  try{database.exec('DROP TABLE physical_objects; DROP TABLE physical_object_usage; DROP TABLE physical_object_preparations; DROP TABLE metadata_deletion_fences; DROP TABLE metadata_deletion_fence_coverage; DROP TABLE native_publication_inventories; DROP TABLE native_publication_inventory_usage; UPDATE coverage SET version=6 WHERE id=1');}
   finally{database.close();}
   index=await openDeliveryAttemptIndex(path,options);
   assert.equal(index.needsPublicationRecoveryMigration(),false);
@@ -388,7 +574,7 @@ test('legacy indexed attempts keep the original pending and finish protocol afte
   index.close();
   // Reconstruct the exact pre-extension schema, not an empty replacement DB.
   const database = new DatabaseSync(path);
-  try {database.exec('DROP TABLE metadata_deletion_fences; DROP TABLE metadata_deletion_fence_coverage; DROP TABLE native_publication_inventories; DROP TABLE native_publication_inventory_usage; DROP TABLE pending_publications; DROP TABLE publication_recovery; DROP TABLE publication_contracts; DROP TABLE publication_usage; DROP TABLE completions; DROP TABLE initial_records; UPDATE coverage SET version=1 WHERE id=1');}
+  try {database.exec('DROP TABLE physical_objects; DROP TABLE physical_object_usage; DROP TABLE physical_object_preparations; DROP TABLE metadata_deletion_fences; DROP TABLE metadata_deletion_fence_coverage; DROP TABLE native_publication_inventories; DROP TABLE native_publication_inventory_usage; DROP TABLE pending_publications; DROP TABLE publication_recovery; DROP TABLE publication_contracts; DROP TABLE publication_usage; DROP TABLE completions; DROP TABLE initial_records; UPDATE coverage SET version=1 WHERE id=1');}
   finally {database.close();}
   index = await openDeliveryAttemptIndex(path,{create:false,maxEntries:2,maxWireBytes:4096});
   assert.equal(index.pending().length,1);
@@ -424,7 +610,7 @@ test('version two initial records remain file-backed after additive native-origi
   index.claim(row,1,'{"initial":1}');
   index.close();
   const database=new DatabaseSync(path);
-  try {database.exec(`DROP TABLE metadata_deletion_fences; DROP TABLE metadata_deletion_fence_coverage; DROP TABLE native_publication_inventories; DROP TABLE native_publication_inventory_usage; DROP TABLE pending_publications; DROP TABLE publication_recovery; DROP TABLE publication_contracts; DROP TABLE publication_usage; DROP TABLE completions;
+  try {database.exec(`DROP TABLE physical_objects; DROP TABLE physical_object_usage; DROP TABLE physical_object_preparations; DROP TABLE metadata_deletion_fences; DROP TABLE metadata_deletion_fence_coverage; DROP TABLE native_publication_inventories; DROP TABLE native_publication_inventory_usage; DROP TABLE pending_publications; DROP TABLE publication_recovery; DROP TABLE publication_contracts; DROP TABLE publication_usage; DROP TABLE completions;
     ALTER TABLE initial_records DROP COLUMN ack_revision;
     DROP INDEX initial_record_identity;
     ALTER TABLE initial_records DROP COLUMN initial_cid; UPDATE coverage SET version=2 WHERE id=1`);}
@@ -449,7 +635,7 @@ test('version three native originals survive additive completion storage without
   index.claim(row,1,'{"initial":1}',cid('4'));
   index.close();
   const database=new DatabaseSync(path);
-  try {database.exec(`DROP TABLE metadata_deletion_fences; DROP TABLE metadata_deletion_fence_coverage; DROP TABLE native_publication_inventories; DROP TABLE native_publication_inventory_usage; DROP TABLE pending_publications; DROP TABLE publication_recovery; DROP TABLE publication_contracts; DROP TABLE publication_usage; DROP TABLE completions; ALTER TABLE initial_records DROP COLUMN ack_revision;
+  try {database.exec(`DROP TABLE physical_objects; DROP TABLE physical_object_usage; DROP TABLE physical_object_preparations; DROP TABLE metadata_deletion_fences; DROP TABLE metadata_deletion_fence_coverage; DROP TABLE native_publication_inventories; DROP TABLE native_publication_inventory_usage; DROP TABLE pending_publications; DROP TABLE publication_recovery; DROP TABLE publication_contracts; DROP TABLE publication_usage; DROP TABLE completions; ALTER TABLE initial_records DROP COLUMN ack_revision;
     UPDATE coverage SET version=3 WHERE id=1`);} finally {database.close();}
   index=await openDeliveryAttemptIndex(path,options);
   assert.deepEqual(index.contract(cid('4')),{name:'delivery_record',wire:'{"initial":1}'});

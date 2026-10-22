@@ -530,6 +530,46 @@ contract work, not any required durable write or acknowledgement.
 
 ## Prepared-object custody records
 
+### Indexed physical object usage
+
+The same exclusively owned Store database retains derived physical object
+usage: content CID, byte count and the actual device/inode generation, plus
+aggregate object/byte totals and completed migration coverage. This is private
+quota metadata, not another storage authority, Account grant or physical ACK.
+The physical-usage stage of ordinary opening reads the aggregate and only pending
+preparations; it does not enumerate every committed payload to reconstruct capacity. A bounded one-time
+legacy census completes atomically with its totals. Missing adopted tables or
+the aggregate row refuse rather than resetting or rebuilding coverage.
+
+Every possible new final object has a durable original before link. Tracked
+and untracked byte writers retain the existing internal prepared-custody record
+until installation accounting or original cleanup settles; untracked callers
+do not receive another public capability. A semantic batch instead retains its
+bounded generation originals in the same native database before linking. Its
+real object-directory ACK precedes the transaction that records installed
+usage and removes those pending originals together. No per-item custody file
+or custody-directory ACK is introduced by that batch.
+
+Pending-only cold recovery observes the selected original generations. An
+installed generation is charged after the real directory ACK; an absent or
+different generation only retires that pending preparation, never a successor's
+installed charge. Immutable objects left by an interrupted semantic publication
+remain charged even when no semantic alias was published. The existing staging
+cleanup is separate from final-name and native transaction acknowledgement.
+
+Unlink and its containing-directory ACK precede decrementing the same physical
+generation. Lost native COMMIT replies retain the original rows and cleanup
+until a real same-original idempotent transaction confirms the outcome. Reads,
+visible absence and process exit cannot provide that confirmation. A failed
+ACK keeps the charge and pending owner; retries do not relink, resend, substitute
+an inode or decrement twice. Schema recovery likewise settles its retained
+generation after an interruption between unlink and directory acknowledgement.
+
+The existing Store limits bound installed totals, pending generation rows,
+selected metadata, active reservations and cleanup. Native metadata transactions
+and byte-writer custody persistence remain real costs; they are not asserted
+minimum barriers or evidence of public-operation latency.
+
 Original prepared-object custody now uses this same Store-owned metadata
 writer: only a complete, file-synced and closed record receives its exclusive
 final `prepared-custody/<UUID>.json` name. The original custody directory still

@@ -6,7 +6,21 @@ import {createSqliteTransaction} from '../host-common/sqlite-transaction.mjs';
 
 const fail = (code, cause) => { throw Object.assign(new Error(code, {cause}), {code}); };
 const cid = value => typeof value === 'string' && /^sha256:[0-9a-f]{64}$/u.test(value);
-const version = 8;
+const version = 9;
+const physicalObjectsTable = `CREATE TABLE physical_objects (
+  cid TEXT PRIMARY KEY, byte_count INTEGER NOT NULL CHECK(byte_count>=0),
+  device TEXT NOT NULL, inode TEXT NOT NULL
+) WITHOUT ROWID`;
+const physicalPreparationsTable = `CREATE TABLE physical_object_preparations (
+  cid TEXT NOT NULL, byte_count INTEGER NOT NULL CHECK(byte_count>=0),
+  device TEXT NOT NULL, inode TEXT NOT NULL,
+  PRIMARY KEY(cid,device,inode)
+) WITHOUT ROWID`;
+const physicalUsageTable = `CREATE TABLE physical_object_usage (
+  id INTEGER PRIMARY KEY CHECK(id=1), complete INTEGER NOT NULL CHECK(complete IN (0,1)),
+  objects INTEGER NOT NULL CHECK(objects>=0), bytes INTEGER NOT NULL CHECK(bytes>=0),
+  ack_revision INTEGER NOT NULL CHECK(ack_revision>=1 AND ack_revision<=9007199254740991)
+)`;
 const metadataFenceTable = `CREATE TABLE metadata_deletion_fences (
   metadata_key TEXT PRIMARY KEY, run_cid TEXT NOT NULL,
   retired INTEGER NOT NULL CHECK(retired IN (0,1))
@@ -146,7 +160,7 @@ export async function openDeliveryAttemptIndex(path, {create, maxEntries, maxWir
       exec(`CREATE TABLE coverage (
         id INTEGER PRIMARY KEY CHECK(id=1), version INTEGER NOT NULL,
         complete INTEGER NOT NULL CHECK(complete IN (0,1)), entries INTEGER NOT NULL);
-        INSERT INTO coverage VALUES(1,8,0,0);
+        INSERT INTO coverage VALUES(1,9,0,0);
         CREATE TABLE attempts (
           logical_key TEXT PRIMARY KEY, attempt_cid TEXT NOT NULL UNIQUE,
           grant_cid TEXT NOT NULL, run_cid TEXT NOT NULL,
@@ -165,6 +179,8 @@ export async function openDeliveryAttemptIndex(path, {create, maxEntries, maxWir
         ${publicationRecoveryTable}; ${pendingPublicationTable};
         ${nativeInventoryTable}; ${nativeInventoryUsageTable};
         ${metadataFenceTable}; ${metadataFenceCoverageTable};
+        ${physicalObjectsTable}; ${physicalUsageTable}; ${physicalPreparationsTable};
+        INSERT INTO physical_object_usage VALUES(1,0,0,0,1);
         CREATE INDEX metadata_deletion_runs ON metadata_deletion_fences(run_cid);
         INSERT INTO metadata_deletion_fence_coverage VALUES(1,0,1);
         INSERT INTO native_publication_inventory_usage VALUES(1,0,1);
@@ -173,7 +189,7 @@ export async function openDeliveryAttemptIndex(path, {create, maxEntries, maxWir
     });
     const state = prepare('SELECT version,complete,entries FROM coverage WHERE id=1');
     const selected = state.get();
-    if (![1,2,3,4,5,6,7,version].includes(selected?.version) || ![0,1].includes(selected.complete) ||
+    if (![1,2,3,4,5,6,7,8,version].includes(selected?.version) || ![0,1].includes(selected.complete) ||
         !Number.isSafeInteger(selected.entries) || selected.entries < 0 || selected.entries > maxEntries) {
       fail('DeliveryAttemptIndexUnavailable');
     }
@@ -261,8 +277,28 @@ export async function openDeliveryAttemptIndex(path, {create, maxEntries, maxWir
     }
     if (prepare("SELECT sql FROM sqlite_schema WHERE type='index' AND name='metadata_deletion_runs'").get()?.sql !==
         'CREATE INDEX metadata_deletion_runs ON metadata_deletion_fences(run_cid)') fail('DeliveryAttemptIndexUnavailable');
+    if (selected.version < 9) transaction.run(() => {
+      exec(`${physicalObjectsTable}; ${physicalUsageTable}; ${physicalPreparationsTable};
+        INSERT INTO physical_object_usage VALUES(1,0,0,0,1);
+        UPDATE coverage SET version=9 WHERE id=1;`);
+    });
+    for (const [name,sql] of [['physical_objects',physicalObjectsTable],
+      ['physical_object_usage',physicalUsageTable], ['physical_object_preparations',physicalPreparationsTable]]) {
+      if (prepare("SELECT sql FROM sqlite_schema WHERE type='table' AND name=?").get(name)?.sql !== sql) {
+        fail('DeliveryAttemptIndexUnavailable');
+      }
+    }
     let complete = selected.complete === 1;
     const metadataFence = prepare('SELECT * FROM metadata_deletion_fences WHERE metadata_key=?');
+    const physicalObject = prepare('SELECT * FROM physical_objects WHERE cid=?');
+    const physicalPreparation = prepare('SELECT * FROM physical_object_preparations WHERE cid=? AND device=? AND inode=?');
+    const insertPhysicalPreparation = prepare('INSERT INTO physical_object_preparations VALUES(?,?,?,?)');
+    const deletePhysicalPreparation = prepare('DELETE FROM physical_object_preparations WHERE cid=? AND device=? AND inode=?');
+    const insertPhysicalObject = prepare('INSERT INTO physical_objects VALUES(?,?,?,?)');
+    const deletePhysicalObject = prepare('DELETE FROM physical_objects WHERE cid=?');
+    const physicalUsage = prepare('SELECT * FROM physical_object_usage WHERE id=1');
+    const updatePhysicalUsage = prepare(`UPDATE physical_object_usage SET objects=objects+?,
+      bytes=bytes+?,ack_revision=ack_revision+1 WHERE id=1`);
     const runMetadataFence = prepare('SELECT * FROM metadata_deletion_fences WHERE run_cid=? LIMIT 1');
     const insertMetadataFence = prepare('INSERT INTO metadata_deletion_fences VALUES(?,?,?)');
     const retireMetadataFence = prepare('UPDATE metadata_deletion_fences SET retired=1 WHERE metadata_key=? AND run_cid=?');
@@ -317,7 +353,8 @@ export async function openDeliveryAttemptIndex(path, {create, maxEntries, maxWir
     const remove = prepare('DELETE FROM attempts WHERE run_cid=?');
     const updateCount = prepare('UPDATE coverage SET entries=entries+? WHERE id=1');
     let uncertain = false, uncertainRemoval, uncertainCompletion, uncertainInitial, confirmedRecord,
-      uncertainPublication, uncertainPublicationRecovery, uncertainMetadataFence;
+      uncertainPublication, uncertainPublicationRecovery, uncertainMetadataFence, uncertainPhysical,
+      uncertainPhysicalPreparation;
     const run = body => {
       if (mutating) fail('DeliveryAttemptIndexBusy');
       mutating = true;
@@ -336,6 +373,117 @@ export async function openDeliveryAttemptIndex(path, {create, maxEntries, maxWir
     const requireComplete = () => {
       requireOpen();
       if (!complete) fail('DeliveryAttemptIndexUnavailable');
+    };
+    const physicalState = () => {
+      const row = physicalUsage.get();
+      if (!row || ![0,1].includes(row.complete) ||
+          ![row.objects,row.bytes,row.ack_revision].every(Number.isSafeInteger) ||
+          row.objects<0 || row.objects>maxEntries || row.bytes<0 || row.ack_revision<1 ||
+          row.complete===0 && (row.objects!==0 || row.bytes!==0)) {
+        fail('DeliveryAttemptIndexUnavailable');
+      }
+      return Object.freeze({...row});
+    };
+    const physicalOriginal = row => {
+      if (!row || !cid(row.cid) || !Number.isSafeInteger(row.byte_count) ||
+          row.byte_count<0 || row.byte_count>maxWireBytes ||
+          typeof row.device!=='string' || !/^(0|[1-9][0-9]*)$/u.test(row.device) ||
+          typeof row.inode!=='string' || !/^(0|[1-9][0-9]*)$/u.test(row.inode)) {
+        fail('InvalidDeliveryAttemptIndex');
+      }
+      return Object.freeze({cid:row.cid,byte_count:row.byte_count,device:row.device,inode:row.inode});
+    };
+    const samePhysical = (a,b) => a!==undefined && b!==undefined &&
+      ['cid','byte_count','device','inode'].every(key=>a[key]===b[key]);
+    const mutatePhysical = (kind,values) => {
+      if (!Array.isArray(values) || values.length>maxEntries) fail('DeliveryAttemptIndexLimit');
+      const originals=values.map(physicalOriginal);
+      if (new Set(originals.map(row=>row.cid)).size!==originals.length) fail('InvalidDeliveryAttemptIndex');
+      const sameOriginals = prior => prior?.length===originals.length &&
+        prior.every((row,index)=>samePhysical(row,originals[index]));
+      // Physical cleanup may settle the SAME uncertain installation only
+      // after its caller has observed unlink/directory ACK. Other work stays
+      // blocked; neither a read nor process exit confirms the lost COMMIT.
+      const retry=uncertain && sameOriginals(uncertainPhysical?.originals) &&
+        (uncertainPhysical.kind===kind || uncertainPhysical.kind==='record' && kind==='remove');
+      if (retry) {
+        if (closed||closing||mutating||!complete) fail('DeliveryAttemptIndexCleanupPending');
+        transaction.assertUsable();
+      } else requireComplete();
+      const before=physicalState();
+      if (before.complete!==1) fail('DeliveryAttemptIndexUnavailable');
+      let objects=0,bytes=0;
+      const changes=originals.filter(row=>{
+        const retained=physicalObject.get(row.cid);
+        if (retained!==undefined && !samePhysical(physicalOriginal(retained),row)) {
+          fail('PublicationObjectAccountingMismatch');
+        }
+        const change=kind==='record'?retained===undefined:retained!==undefined;
+        if(change){objects++;bytes+=row.byte_count;}
+        return change;
+      });
+      if (!Number.isSafeInteger(bytes) || kind==='record' &&
+          (before.objects+objects>maxEntries || !Number.isSafeInteger(before.bytes+bytes))) {
+        fail('DeliveryAttemptIndexLimit');
+      }
+      const prepared = kind==='record' ? originals.filter(row=>{
+        const retained=physicalPreparation.get(row.cid,row.device,row.inode);
+        if(retained!==undefined&&!samePhysical(physicalOriginal(retained),row))fail('PublicationObjectAccountingMismatch');
+        return retained!==undefined;
+      }) : [];
+      if (changes.length===0 && prepared.length===0 && !retry) return before;
+      try {
+        run(()=>{
+          for(const row of changes) {
+            if(kind==='record') insertPhysicalObject.run(row.cid,row.byte_count,row.device,row.inode);
+            else deletePhysicalObject.run(row.cid);
+          }
+          for(const row of prepared)deletePhysicalPreparation.run(row.cid,row.device,row.inode);
+          const sign=kind==='record'?1:-1;
+          updatePhysicalUsage.run(sign*objects,sign*bytes);
+        });
+        if(retry){uncertain=false;uncertainPhysical=undefined;}
+        return physicalState();
+      } catch(error) {
+        if(error?.outcome==='unknown') uncertainPhysical={kind,originals};
+        throw error;
+      }
+    };
+    const mutatePhysicalPreparation = (kind,values) => {
+      if(!Array.isArray(values)||values.length>maxEntries)fail('DeliveryAttemptIndexLimit');
+      const originals=values.map(physicalOriginal);
+      if(new Set(originals.map(row=>row.cid)).size!==originals.length)fail('InvalidDeliveryAttemptIndex');
+      const retry=uncertain && uncertainPhysicalPreparation?.originals.length===originals.length &&
+        uncertainPhysicalPreparation.originals.every((row,index)=>samePhysical(row,originals[index])) &&
+        (uncertainPhysicalPreparation.kind===kind ||
+          uncertainPhysicalPreparation.kind==='stage' && kind==='finish');
+      if(retry){
+        if(closed||closing||mutating||!complete)fail('DeliveryAttemptIndexCleanupPending');
+        transaction.assertUsable();
+      }else requireComplete();
+      if(physicalState().complete!==1)fail('DeliveryAttemptIndexUnavailable');
+      const changes=originals.filter(row=>{
+        const retained=physicalPreparation.get(row.cid,row.device,row.inode);
+        if(retained!==undefined&&!samePhysical(physicalOriginal(retained),row))fail('PublicationObjectAccountingMismatch');
+        return kind==='stage'?retained===undefined:retained!==undefined;
+      });
+      if(kind==='stage' && prepare('SELECT count(*) AS n FROM physical_object_preparations').get().n+
+          changes.length>maxEntries)fail('DeliveryAttemptIndexLimit');
+      if(changes.length===0&&!retry)return;
+      try{
+        run(()=>{
+          for(const row of changes) {
+            if(kind==='stage')insertPhysicalPreparation.run(row.cid,row.byte_count,row.device,row.inode);
+            else deletePhysicalPreparation.run(row.cid,row.device,row.inode);
+          }
+          // A real write also confirms an idempotent retry after lost COMMIT.
+          updatePhysicalUsage.run(0,0);
+        });
+        if(retry){uncertain=false;uncertainPhysicalPreparation=undefined;}
+      }catch(error){
+        if(error?.outcome==='unknown')uncertainPhysicalPreparation={kind,originals};
+        throw error;
+      }
     };
     const validate = row => {
       if (!row || typeof row.logical_key !== 'string' ||
@@ -530,8 +678,37 @@ export async function openDeliveryAttemptIndex(path, {create, maxEntries, maxWir
       }
       return usage();
     };
-    usage();recoveryState();inventoryUsage();
+    usage();recoveryState();inventoryUsage();physicalState();
     return Object.freeze({
+      physicalObjectUsage() {requireOpen();return physicalState();},
+      physicalObject(cidValue) {
+        requireComplete();if(!cid(cidValue))fail('InvalidDeliveryAttemptIndex');
+        const row=physicalObject.get(cidValue);return row===undefined?undefined:physicalOriginal(row);
+      },
+      migratePhysicalObjects(values) {
+        requireOpen();if(physicalState().complete!==0)fail('DeliveryAttemptIndexAlreadyComplete');
+        if(!Array.isArray(values)||values.length>maxEntries)fail('DeliveryAttemptIndexLimit');
+        const originals=values.map(physicalOriginal),bytes=originals.reduce((sum,row)=>sum+row.byte_count,0);
+        if(!Number.isSafeInteger(bytes)||new Set(originals.map(row=>row.cid)).size!==originals.length) {
+          fail('InvalidDeliveryAttemptIndex');
+        }
+        run(()=>{
+          for(const row of originals)insertPhysicalObject.run(row.cid,row.byte_count,row.device,row.inode);
+          prepare(`UPDATE physical_object_usage SET complete=1,objects=?,bytes=?,
+            ack_revision=ack_revision+1 WHERE id=1 AND complete=0`).run(originals.length,bytes);
+        });
+        return physicalState();
+      },
+      recordPhysicalObjects(values) {return mutatePhysical('record',values);},
+      removePhysicalObjects(values) {return mutatePhysical('remove',values);},
+      stagePhysicalObjects(values) {return mutatePhysicalPreparation('stage',values);},
+      finishPhysicalPreparations(values) {return mutatePhysicalPreparation('finish',values);},
+      pendingPhysicalObjects() {
+        requireComplete();
+        const rows=prepare('SELECT * FROM physical_object_preparations LIMIT ?').all(maxEntries+1);
+        if(rows.length>maxEntries)fail('DeliveryAttemptIndexLimit');
+        return Object.freeze(rows.map(physicalOriginal));
+      },
       nativePublicationInventory(publicIndexCid) {
         requireComplete();if(!cid(publicIndexCid))fail('InvalidDeliveryAttemptIndex');
         inventoryUsage();const row=nativeInventory.get(publicIndexCid);

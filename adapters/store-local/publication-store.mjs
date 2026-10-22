@@ -1261,29 +1261,71 @@ async function openOriginalLocalPublicationStore(
   let storedBytes = 0;
   let objectCount = 0;
   let nativePublicationBytes = 0, nativePublicationObjects = 0;
+  let physicalBytes = 0, physicalObjects = 0;
+  const unconfirmedPhysicalInstalls = new Map();
+  const physicalRemovalOriginals = new Map();
+  const physicalOriginal = (cid, bytes, state) => Object.freeze({cid,
+    byte_count: bytes, device: String(state.dev), inode: String(state.ino)});
+  const accountPhysicalUsage = usage => {
+    storedBytes += usage.bytes - physicalBytes;
+    objectCount += usage.objects - physicalObjects;
+    physicalBytes = usage.bytes;
+    physicalObjects = usage.objects;
+  };
+  const accountPhysicalInstall = original => {
+    const existing = unconfirmedPhysicalInstalls.get(original.cid);
+    if (existing !== undefined) return existing.device === original.device && existing.inode === original.inode;
+    unconfirmedPhysicalInstalls.set(original.cid, original);
+    storedBytes += original.byte_count;
+    objectCount++;
+    return true;
+  };
+  const settlePhysicalInstalls = originals => {
+    for (const original of originals) {
+      const pending = unconfirmedPhysicalInstalls.get(original.cid);
+      if (pending === undefined || pending.device !== original.device || pending.inode !== original.inode) continue;
+      storedBytes -= pending.byte_count;
+      objectCount--;
+      unconfirmedPhysicalInstalls.delete(original.cid);
+    }
+  };
+  // These calls follow the actual object directory ACK. A lost native reply
+  // retains the same originals and their in-memory charge until cleanup or
+  // same-original confirmation; no visible row alone supplies that ACK.
+  const confirmPhysicalCapacity = originals => {
+    accountPhysicalUsage(deliveryIndex.recordPhysicalObjects(originals));
+    settlePhysicalInstalls(originals);
+  };
+  const rememberPhysicalRemoval = (cid, bytes, state) => {
+    if (physicalRemovalOriginals.has(cid)) return;
+    const original = unconfirmedPhysicalInstalls.get(cid) ?? deliveryIndex.physicalObject(cid);
+    if (original === undefined) {
+      if (state !== undefined) fail('PublicationObjectAccountingMissing');
+      return;
+    }
+    if (original.byte_count !== bytes || state !== undefined &&
+        (original.device !== String(state.dev) || original.inode !== String(state.ino))) {
+      fail('PublicationObjectAccountingMismatch');
+    }
+    physicalRemovalOriginals.set(cid, original);
+  };
+  const releasePhysicalCapacity = objects => {
+    const originals = [];
+    for (const [cid, bytes] of objects) {
+      rememberPhysicalRemoval(cid, bytes);
+      const original = physicalRemovalOriginals.get(cid);
+      if (original !== undefined) originals.push(original);
+    }
+    accountPhysicalUsage(deliveryIndex.removePhysicalObjects(originals));
+    settlePhysicalInstalls(originals);
+    for (const [cid] of objects) physicalRemovalOriginals.delete(cid);
+  };
   const accountNativePublication = usage => {
     storedBytes += usage.bytes - nativePublicationBytes;
     objectCount += usage.objects - nativePublicationObjects;
     nativePublicationBytes = usage.bytes;
     nativePublicationObjects = usage.objects;
   };
-  for (const name of await readOpeningDirectory(objectsDirectory)) {
-    if (!/^[0-9a-f]{64}$/u.test(name)) {
-      fail('InvalidPublicationStoreObject');
-    }
-    const state = await lstat(resolve(objectsDirectory, name));
-    if (!state.isFile() || !quantity(state.size) ||
-        state.size > configuration.maxObjectBytes ||
-        storedBytes + state.size > configuration.capacityBytes) {
-      fail('InvalidPublicationStoreObject');
-    }
-    storedBytes += state.size;
-    objectCount++;
-  }
-  if (objectCount > configuration.maxObjects) {
-    fail('PublicationStoreObjectLimit');
-  }
-
   // One process owns the complete capacity authority for this local Store.
   // A dead local owner can be reclaimed, but two live opens never maintain
   // independent counters for the same physical allocation scope.
@@ -1974,8 +2016,7 @@ async function openOriginalLocalPublicationStore(
       const confirmUnlink = async () => {
         await syncDirectory(objectsDirectory);
         if (custody.accounted) {
-          storedBytes -= custody.record.byte_count;
-          objectCount--;
+          releasePhysicalCapacity(new Map([[cid,custody.record.byte_count]]));
           custody.accounted = false;
         }
         custody.pendingUnlink = false;
@@ -1999,12 +2040,19 @@ async function openOriginalLocalPublicationStore(
       const ownsAllocation = String(state.dev) === custody.record.device &&
         String(state.ino) === custody.record.inode;
       if (ownsAllocation) {
+        // Complete the SAME possible installation before indexed reference
+        // reads. This also settles its lost native COMMIT reply without
+        // replaying a payload write, link, business operation or authority.
+        await syncDirectory(objectsDirectory);
+        confirmPhysicalCapacity([physicalOriginal(cid,custody.record.byte_count,state)]);
+        custody.accounted = true;
         const hasLiveReference = await materialHasLiveReference(cid);
         if (!hasLiveReference) {
           // A second link is not proof that another owner accepted custody.
           // The prepared writer may still own its staging alias.
           if (state.nlink !== 1) return false;
           await verifyObject(cid);
+          rememberPhysicalRemoval(cid, custody.record.byte_count, state);
           await unlink(objectPath(cid));
           custody.pendingUnlink = true;
           await confirmUnlink();
@@ -2401,12 +2449,20 @@ async function openOriginalLocalPublicationStore(
         objectPath,
         isReclaiming: cid => reclaimingMaterialCids.has(cid),
         registerCustody,
+        protectInstallation: true,
+        async confirmInstalled(cid, bytes, state, custody, installed) {
+          if (installed) confirmPhysicalCapacity([physicalOriginal(cid, bytes, state)]);
+        },
+        discardInstallation(cid, bytes, state, custody) {
+          settlePhysicalInstalls([physicalOriginal(cid, bytes, state)]);
+          if (custody !== undefined) custody.accounted = false;
+        },
+        finishUntrackedCustody: removeCustodyRecord,
         reclaimCustody,
         verifyObject,
-        accountInstalled(bytes, custody) {
-          storedBytes += bytes;
-          objectCount++;
-          if (custody !== undefined) custody.accounted = true;
+        accountInstalled(bytes, custody, cid, state) {
+          const accounted = accountPhysicalInstall(physicalOriginal(cid, bytes, state));
+          if (custody !== undefined) custody.accounted = accounted;
         },
       },
     );
@@ -2455,8 +2511,7 @@ async function openOriginalLocalPublicationStore(
           if (pending === undefined) return;
           if (!pending.accounted) {
             await syncDirectory(objectsDirectory);
-            storedBytes -= pending.bytes;
-            objectCount--;
+            releasePhysicalCapacity(new Map([[physical.cid,pending.bytes]]));
             pending.accounted = true;
           }
           await clearCustodies();
@@ -2512,6 +2567,7 @@ async function openOriginalLocalPublicationStore(
             // not permission to unlink. Keep this exact pending handle until
             // the same commit is confirmed or its holding is lawfully retired.
             if (await materialHasLiveReference(physical.cid)) return false;
+            rememberPhysicalRemoval(physical.cid, before.size, before);
             await unlink(path);
             group.removable = false;
             group.pendingUnlink = {
@@ -2704,8 +2760,9 @@ async function openOriginalLocalPublicationStore(
       if (pending.failed) fail('PublicationStoreCleanupPending');
     }
     // This private caller supplies one semantic body, an admitted delivery
-    // group or a bounded publication metadata group. No prepared holder escapes between writes
-    // and their final names, so no intermediate durable custody is needed.
+    // group or a bounded publication metadata group. Original generation
+    // records precede final-name acquisition in the existing native metadata
+    // transaction. No per-item custody file or directory barrier is needed.
     const items = supplied.map(({wire, semanticCid}) => {
       if (typeof wire !== 'string' ||
           Buffer.byteLength(wire, 'utf8') > configuration.maxObjectBytes) {
@@ -2724,19 +2781,26 @@ async function openOriginalLocalPublicationStore(
     activePhysicalRecordWriters.add(writer);
     const account = item => {
       if (item.accounted) return;
-      storedBytes += item.bytes.byteLength;
-      objectCount++;
-      item.accounted = item.objectCreated = true;
+      item.accounted = accountPhysicalInstall(physicalOriginal(item.cid,item.bytes.byteLength,item.state));
     };
+    let physicalPreparations;
     const syncNames = async () => {
       for (const directory of [objectsDirectory, contractsDirectory]) {
         if (!dirty.has(directory)) continue;
         await syncDirectory(directory);
+        if (directory === objectsDirectory) {
+          confirmPhysicalCapacity(items.filter(item=>item.objectCreated)
+            .map(item=>physicalOriginal(item.cid,item.bytes.byteLength,item.state)));
+          if(physicalPreparations!==undefined) {
+            deliveryIndex.finishPhysicalPreparations(physicalPreparations);
+            physicalPreparations=undefined;
+          }
+        }
         dirty.delete(directory);
       }
     };
     let flight, failure;
-    const status = () => Object.freeze({pending: dirty.size !== 0 || items.some(item =>
+    const status = () => Object.freeze({pending: dirty.size !== 0 || physicalPreparations!==undefined || items.some(item =>
       item.handle !== undefined || item.temporary !== undefined || item.reservation?.held)});
     const cleanup = Object.freeze({status, retry() {
       if (flight !== undefined) return flight;
@@ -2753,13 +2817,18 @@ async function openOriginalLocalPublicationStore(
               }
               item.handle = item.close = undefined;
             }
-            if (item.objectLinkAttempted && !item.accounted) {
+            if (item.objectLinkAttempted && !item.objectCreated) {
               let original;
               try { original = await lstat(objectPath(item.cid)); }
               catch (error) { if (error?.code !== 'ENOENT') throw error; }
               // Observe a lost link reply without reissuing the link/write.
               if (original?.isFile() && original.dev === item.state.dev &&
-                  original.ino === item.state.ino) account(item);
+                  original.ino === item.state.ino) {
+                account(item);item.objectCreated=true;
+              } else {
+                settlePhysicalInstalls([physicalOriginal(item.cid,item.bytes.byteLength,item.state)]);
+                item.accounted=false;
+              }
             }
             if (item.temporary !== undefined) {
               try { await unlink(item.temporary); }
@@ -2778,6 +2847,15 @@ async function openOriginalLocalPublicationStore(
         try { await syncNames(); } catch (error) {
           if (!failed) firstFailure = error;
           failed = true;
+        }
+        if (dirty.size===0 && physicalPreparations!==undefined) {
+          try {
+            // An uncertain preparation never reached link. Confirm actual
+            // name absence before settling only its native pending originals.
+            await syncDirectory(objectsDirectory);
+            deliveryIndex.finishPhysicalPreparations(physicalPreparations);
+            physicalPreparations=undefined;
+          } catch(error){if(!failed)firstFailure=error;failed=true;}
         }
         if (!status().pending) activePhysicalRecordWriters.delete(writer);
         if (failed) throw firstFailure;
@@ -2818,17 +2896,26 @@ async function openOriginalLocalPublicationStore(
         }
         item.handle = item.close = undefined;
       }
+      const originals=items.filter(item=>item.temporary!==undefined)
+        .map(item=>physicalOriginal(item.cid,item.bytes.byteLength,item.state));
+      if(originals.length!==0) {
+        physicalPreparations=originals;
+        deliveryIndex.stagePhysicalObjects(originals);
+      }
       for (const item of items) {
         if (item.temporary === undefined) continue;
         if (reclaimingMaterialCids.has(item.cid)) fail('PublicationObjectReclamationPending');
         item.objectLinkAttempted = true;
         dirty.add(objectsDirectory);
-        try { await link(item.temporary, objectPath(item.cid)); account(item); }
+        account(item);
+        try { await link(item.temporary, objectPath(item.cid)); item.objectCreated=true; }
         catch (error) {
           if (error?.code !== 'EEXIST') throw error;
           if ((await verifyObject(item.cid)).bytes !== item.bytes.byteLength) {
             fail('PublicationObjectIdentityMismatch');
           }
+          settlePhysicalInstalls([physicalOriginal(item.cid,item.bytes.byteLength,item.state)]);
+          item.accounted=false;
         }
       }
       await syncNames();
@@ -2903,8 +2990,7 @@ async function openOriginalLocalPublicationStore(
       if (!holder.active) return false;
       if (group.unconfirmedPhysical !== undefined) {
         await syncDirectory(objectsDirectory);
-        storedBytes -= group.unconfirmedPhysical.bytes;
-        objectCount--;
+        releasePhysicalCapacity(new Map([[group.record.physical_cid,group.unconfirmedPhysical.bytes]]));
         for (const custody of reclaimableCustodies.values()) {
           if (custody.record.material_generation_cid ===
                 group.record.physical_cid &&
@@ -2956,6 +3042,24 @@ async function openOriginalLocalPublicationStore(
             group.pendingAliasSync = false;
           }
         }
+        if (!group.generationRetired && physical === undefined &&
+            group.generation !== undefined) {
+          // A crash can leave the original quota row after unlink, before
+          // its directory ACK. Only this prepared generation can settle it;
+          // absence never refunds a successor with the same content CID.
+          const original = deliveryIndex.physicalObject(group.record.physical_cid);
+          if (original !== undefined &&
+              original.byte_count === group.record.byte_count &&
+              original.device === group.generation.device &&
+              original.inode === group.generation.inode) {
+            rememberPhysicalRemoval(group.record.physical_cid, group.record.byte_count);
+            group.unconfirmedPhysical = {bytes: group.record.byte_count, ...group.generation};
+            await syncDirectory(objectsDirectory);
+            releasePhysicalCapacity(new Map([[group.record.physical_cid, group.record.byte_count]]));
+            group.unconfirmedPhysical = undefined;
+          }
+          group.generationRetired = true;
+        }
         if (!group.generationRetired && physical !== undefined &&
             group.generation !== undefined &&
             String(physical.dev) === group.generation.device &&
@@ -2965,6 +3069,7 @@ async function openOriginalLocalPublicationStore(
             !await materialHasLiveReference(group.record.physical_cid)) {
           const remaining = await lstat(physicalPath);
           if (remaining.nlink === 1) {
+            rememberPhysicalRemoval(group.record.physical_cid,group.record.byte_count,remaining);
             await unlink(physicalPath);
             group.unconfirmedPhysical = {
               bytes: group.record.byte_count,
@@ -2972,8 +3077,7 @@ async function openOriginalLocalPublicationStore(
               inode: String(remaining.ino),
             };
             await syncDirectory(objectsDirectory);
-            storedBytes -= group.unconfirmedPhysical.bytes;
-            objectCount--;
+            releasePhysicalCapacity(new Map([[group.record.physical_cid,group.unconfirmedPhysical.bytes]]));
             for (const custody of reclaimableCustodies.values()) {
               if (custody.record.material_generation_cid ===
                     group.record.physical_cid &&
@@ -4172,6 +4276,23 @@ async function openOriginalLocalPublicationStore(
       create: coverage.phase === 'building', maxEntries: configuration.maxObjects,
       maxWireBytes: configuration.maxObjectBytes,
     });
+    if (deliveryIndex.physicalObjectUsage().complete === 0) {
+      const originals = [];
+      let bytes = 0;
+      // Only an unadopted private format permits this bounded census. Ready
+      // coverage never becomes empty or rebuilds merely because it is lost.
+      for (const name of await readOpeningDirectory(objectsDirectory)) {
+        if (!/^[0-9a-f]{64}$/u.test(name)) fail('InvalidPublicationStoreObject');
+        const state = await lstat(resolve(objectsDirectory, name));
+        if (!state.isFile() || !quantity(state.size) || state.size > configuration.maxObjectBytes ||
+            bytes + state.size > configuration.capacityBytes) fail('InvalidPublicationStoreObject');
+        if (originals.length === configuration.maxObjects) fail('PublicationStoreObjectLimit');
+        bytes += state.size;
+        originals.push(physicalOriginal(`sha256:${name}`, state.size, state));
+      }
+      deliveryIndex.migratePhysicalObjects(originals);
+    }
+    accountPhysicalUsage(deliveryIndex.physicalObjectUsage());
     if (deliveryIndex.needsMigration()) {
       if (coverage.phase !== 'building') fail('DeliveryAttemptIndexUnavailable');
       const rows = [], grants = new Map(), uses = new Map();
@@ -6352,19 +6473,22 @@ async function openOriginalLocalPublicationStore(
     catch (error) {
       if (error?.code !== 'ENOENT') throw error;
     }
-    if (physicalState === undefined) return;
+    if (physicalState === undefined) {
+      rememberPhysicalRemoval(object.physical_cid,object.byte_count);
+      if(physicalRemovalOriginals.has(object.physical_cid))unconfirmedObjects.set(object.physical_cid,object.byte_count);
+      return;
+    }
     if (!physicalState.isFile() ||
         physicalState.size !== object.byte_count) {
       fail('InvalidPublicationStoreObject');
     }
     if (physicalState.nlink > 1) return;
+    rememberPhysicalRemoval(object.physical_cid,object.byte_count,physicalState);
     await unlink(objectPath(object.physical_cid));
     unconfirmedObjects.set(object.physical_cid, object.byte_count);
     await syncDirectory(objectsDirectory);
-    if (unconfirmedObjects.delete(object.physical_cid)) {
-      storedBytes -= object.byte_count;
-      objectCount--;
-    }
+    releasePhysicalCapacity(unconfirmedObjects);
+    unconfirmedObjects.clear();
   };
 
   const reclaimMetadataContract = (...args) =>
@@ -6766,20 +6890,22 @@ async function openOriginalLocalPublicationStore(
             catch (error) {
               if (error?.code !== 'ENOENT') throw error;
             }
-            if (state === undefined) continue;
+            if (state === undefined) {
+              rememberPhysicalRemoval(cid,bytes);
+              if(physicalRemovalOriginals.has(cid))unconfirmedObjects.set(cid,bytes);
+              continue;
+            }
             if (!state.isFile() || state.size !== bytes) {
               fail('InvalidPublicationStoreObject');
             }
             if (state.nlink > 1) continue;
+            rememberPhysicalRemoval(cid,bytes,state);
             await unlink(objectPath(cid));
             unconfirmedObjects.set(cid, bytes);
           }
           if (unconfirmedObjects.size !== 0) {
             await syncDirectory(objectsDirectory);
-            for (const bytes of unconfirmedObjects.values()) {
-              storedBytes -= bytes;
-              objectCount--;
-            }
+            releasePhysicalCapacity(unconfirmedObjects);
             unconfirmedObjects.clear();
           }
           await unlink(physicalHoldingDeletionPath(record.holding_cid));
@@ -6998,10 +7124,18 @@ async function openOriginalLocalPublicationStore(
       catch (error) {
         if (error?.code !== 'ENOENT') throw error;
       }
-      const accounted = state !== undefined && state.isFile() &&
+      let accounted = state !== undefined && state.isFile() &&
         state.size === record.byte_count &&
         String(state.dev) === record.device &&
         String(state.ino) === record.inode;
+      if(accounted) {
+        await syncDirectory(objectsDirectory);
+        confirmPhysicalCapacity([physicalOriginal(record.material_generation_cid,record.byte_count,state)]);
+      } else if(state===undefined) {
+        const retained=deliveryIndex.physicalObject(record.material_generation_cid);
+        accounted=retained!==undefined && retained.byte_count===record.byte_count &&
+          retained.device===record.device && retained.inode===record.inode;
+      }
       const custody = {
         token,
         path,
@@ -7128,10 +7262,7 @@ async function openOriginalLocalPublicationStore(
           }
           if (unconfirmedObjects.size !== 0) {
             await syncDirectory(objectsDirectory);
-            for (const bytes of unconfirmedObjects.values()) {
-              storedBytes -= bytes;
-              objectCount--;
-            }
+            releasePhysicalCapacity(unconfirmedObjects);
             unconfirmedObjects.clear();
           }
           try {
@@ -7295,19 +7426,23 @@ async function openOriginalLocalPublicationStore(
         catch (error) {
           if (error?.code !== 'ENOENT') throw error;
         }
-        if (state === undefined) return 'missing';
+        if (state === undefined) {
+          rememberPhysicalRemoval(materialCid,expectedBytes);
+          return physicalRemovalOriginals.has(materialCid)?'missing-unconfirmed':'missing';
+        }
         if (!state.isFile() || state.size !== expectedBytes) {
           fail('PublicationDurableBindingMismatch');
         }
         // Other Store-owned references can share this inode. Keep the base
         // name and capacity charge while any physical link remains.
-        return state.nlink > 1 ? 'shared' : 'exclusive';
+        if(state.nlink>1)return 'shared';
+        rememberPhysicalRemoval(materialCid,expectedBytes,state);
+        return 'exclusive';
       },
       unlink: () => unlink(objectPath(materialCid)),
       syncObjects: () => syncDirectory(objectsDirectory),
       releaseCapacity() {
-        storedBytes -= expectedBytes;
-        objectCount--;
+        releasePhysicalCapacity(new Map([[materialCid,expectedBytes]]));
       },
       settle(clearReclaiming) {
         pendingResultDeletions.delete(deletionKey);
@@ -7449,10 +7584,7 @@ async function openOriginalLocalPublicationStore(
       },
       syncObjects: () => syncDirectory(objectsDirectory),
       releaseUnconfirmed(objects) {
-        for (const bytes of objects.values()) {
-          storedBytes -= bytes;
-          objectCount--;
-        }
+        releasePhysicalCapacity(objects);
       },
       async retireResult(result) {
         const retired = await createResultDeletionCleanup(
@@ -7625,6 +7757,27 @@ async function openOriginalLocalPublicationStore(
   // Native publication bodies and their persisted capacity are available to
   // the same targeted recovery/retirement paths as legacy file originals.
   await initializeDeliveryIndex();
+  const physicalPreparations = deliveryIndex.pendingPhysicalObjects();
+  if (physicalPreparations.length !== 0) {
+    const installed=[];
+    for(const original of physicalPreparations) {
+      let state;
+      try {state=await lstat(objectPath(original.cid));}
+      catch(error){if(error?.code!=='ENOENT')throw error;}
+      if(state!==undefined && state.isFile() && state.size===original.byte_count &&
+          String(state.dev)===original.device && String(state.ino)===original.inode) {
+        installed.push(original);
+      }
+    }
+    // Only pending generations are observed. Existing committed payloads are
+    // never enumerated; neither a missing name nor a successor refunds them.
+    await syncDirectory(objectsDirectory);
+    if(installed.length!==0)confirmPhysicalCapacity(installed);
+    deliveryIndex.finishPhysicalPreparations(physicalPreparations);
+  }
+  if(storedBytes>configuration.capacityBytes||objectCount>configuration.maxObjects) {
+    fail('PublicationStoreCapacity');
+  }
   await recoverPreparedCustodies();
   await recoverPreparedSchemas();
   // A crash between semantic alias creation and physical-custody handoff
