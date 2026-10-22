@@ -3226,6 +3226,45 @@ test('joint publication setup rejects a non-attempt original before persistence'
 });
 
 for (const afterCommit of [false, true]) {
+test(`publication caller confirms its same ${afterCommit ? 'committed' : 'rolled-back'} setup and continues without reissuing it`, async t => {
+  const exec = DatabaseSync.prototype.exec;
+  let armed = false, lost = false, database, confirmations = 0, begins = 0;
+  t.mock.method(DatabaseSync.prototype, 'exec', function(sql) {
+    if (armed && sql === 'COMMIT') {
+      if (!lost) {
+        lost = true; database = this;
+        if (afterCommit) Reflect.apply(exec, this, [sql]);
+        throw Object.assign(new Error('setup reply unavailable'), {code: 'EIO'});
+      }
+      assert.equal(this, database); confirmations++;
+    }
+    return Reflect.apply(exec, this, [sql]);
+  });
+  const {store, configuration} = await fixture(t);
+  const request = publicationRequest(), attempt = publicationAttempt(request, `caller-setup-${afterCommit}`);
+  const original = contractControl.admit('publication_request', wire(request), limits);
+  const originalAttempt = contractControl.admit('publication_attempt', wire(attempt), limits);
+  const selected = {...store, async beginPublicationAttempt(...args) {
+    assert.equal(this, selected); begins++;
+    return Reflect.apply(store.beginPublicationAttempt, store, args);
+  }};
+  armed = true;
+  assert.equal(await persistOriginalPublicationSetup(selected, [original], originalAttempt), true);
+  assert.equal(begins, 1, 'Confirmation never invokes setup or issues an attempt again');
+  assert.equal(confirmations, 1);
+  assert.equal(store.status().reservedObjects, 0);
+  assert.equal(store.status().objectCount, 2);
+  assert.equal(await store.latestRecordContract(originalAttempt.identity), undefined);
+  armed = false;
+  const preparing = publicationRecord(attempt, 0, 'preparing');
+  await store.appendRecord(wire(preparing), {uncommittedConfirmed: false});
+  await store.close();
+  const reopened = await openLocalPublicationStore(configuration, contractControl);
+  assert.deepEqual(await reopened.latestRecord(originalAttempt.identity), preparing);
+});
+}
+
+for (const afterCommit of [false, true]) {
 test(`joint publication setup retains the same ${afterCommit ? 'committed' : 'rolled-back'} Unknown body group and attempt`, async t => {
   const exec = DatabaseSync.prototype.exec;
   let armed = false, lost = false, originalDatabase, confirmations = 0;
