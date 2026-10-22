@@ -6973,19 +6973,29 @@ async function openOriginalLocalPublicationStore(
     const inventoryCid = inventory.public_index_entry_cid;
     const existing = pendingUncommittedMetadataCleanups.get(inventoryCid);
     if (existing !== undefined) return existing;
-    let pending = true;
+    let pending = true, inventoryRetired = false;
+    const recoveryOriginal = publicationRecoveryOriginal(inventory);
     const errors = [];
     const unconfirmedObjects = new Map();
     const status = () => Object.freeze({
       pending,
       errors: Object.freeze([...errors]),
     });
+    const finishInventory = () => {
+      deliveryIndex.finishPublicationInventory(recoveryOriginal);
+      pending = false;
+      pendingUncommittedMetadataCleanups.delete(inventoryCid);
+      return status();
+    };
     const cleanup = Object.freeze({
       status,
       retry() {
         if (!pending) return Promise.resolve(status());
         const operation = metadataRetentionBusy.then(async () => {
           if (!pending) return status();
+          // No other indexed read may precede this same-original Unknown
+          // retry after all physical metadata retirement was acknowledged.
+          if (inventoryRetired) return finishInventory();
           const key = {
             namespaceId: inventory.namespace_id,
             authorityScopeCid: inventory.authority_scope_cid,
@@ -7027,10 +7037,8 @@ async function openOriginalLocalPublicationStore(
           } catch (error) {
             if (error?.code !== 'ENOENT') throw error;
           }
-          deliveryIndex.finishPublicationInventory(publicationRecoveryOriginal(inventory));
-          pending = false;
-          pendingUncommittedMetadataCleanups.delete(inventoryCid);
-          return status();
+          inventoryRetired = true;
+          return finishInventory();
         });
         metadataRetentionBusy = operation.catch(() => {});
         return operation.catch(error => {
@@ -7283,6 +7291,7 @@ async function openOriginalLocalPublicationStore(
     if (existing !== undefined) {
       return Object.freeze({marker, cleanup: existing, deleted: false});
     }
+    let recoveryOriginal;
     const cleanup = createMetadataDeletionOwner(marker, {
       serialize(run) {
         const operation = metadataRetentionBusy.then(run);
@@ -7364,8 +7373,8 @@ async function openOriginalLocalPublicationStore(
         } catch (error) {
           if (error?.code !== 'ENOENT') throw error;
         }
-        const original = deliveryIndex.pendingPublication(marker.public_index_entry_cid);
-        if (original !== undefined) deliveryIndex.finishPublicationInventory(original);
+        recoveryOriginal ??= deliveryIndex.pendingPublication(marker.public_index_entry_cid);
+        if (recoveryOriginal !== undefined) deliveryIndex.finishPublicationInventory(recoveryOriginal);
       },
       compactMarker: () => compactMetadataDeletion(
         keyHash, marker.run_definition_cid,

@@ -4900,6 +4900,123 @@ test(`publication recovery defers an unrelated damaged committed ${damaged} to s
 });
 }
 
+test('publication recovery migrates the legacy inventory once and preserves adopted-table loss refusal',async t=>{
+  const setup=await fixture(t);
+  const selected=await committedHoldingFixture(setup,'legacy recovery');
+  await setup.store.close();
+  // Reconstruct only this new disposable fixture's exact prior private format.
+  const path=join(setup.directory,'delivery-attempts.sqlite3');
+  const old=new DatabaseSync(path);
+  try{old.exec('DROP TABLE pending_publications; DROP TABLE publication_recovery; UPDATE coverage SET version=5 WHERE id=1');}
+  finally{old.close();}
+  const originalOpen=fsPromises.open,reads=[];
+  t.mock.method(fsPromises,'open',function(path,...args){reads.push(String(path));return Reflect.apply(originalOpen,this,[path,...args]);});
+  syncBuiltinESMExports();t.after(()=>{t.mock.restoreAll();syncBuiltinESMExports();});
+  const migrated=await openLocalPublicationStore(setup.configuration,contractControl);
+  assert.equal(reads.filter(path=>path===selected.inventoryPath).length,1);
+  await migrated.close();reads.length=0;
+  const reopened=await openLocalPublicationStore(setup.configuration,contractControl);
+  assert.equal(reads.includes(selected.inventoryPath),false);
+  await reopened.close();
+  const damaged=new DatabaseSync(path);
+  try{damaged.exec('DROP TABLE pending_publications');}finally{damaged.close();}
+  await assert.rejects(openLocalPublicationStore(setup.configuration,contractControl),
+    code('DeliveryAttemptIndexUnavailable'));
+  await assert.rejects(stat(join(setup.directory,'owner')),code('ENOENT'));
+});
+
+test('publication recovery completes only its retained inventory after a lost pre-file stage reply',async t=>{
+  let armed=false,lost=false,staged=false;
+  const prepare=DatabaseSync.prototype.prepare,exec=DatabaseSync.prototype.exec;
+  t.mock.method(DatabaseSync.prototype,'prepare',function(sql){
+    const statement=Reflect.apply(prepare,this,[sql]);
+    if(sql==='INSERT INTO pending_publications VALUES(?,?)'){
+      const run=statement.run;
+      t.mock.method(statement,'run',function(...args){const result=Reflect.apply(run,this,args);staged=true;return result;});
+    }
+    return statement;
+  });
+  t.mock.method(DatabaseSync.prototype,'exec',function(sql){
+    const result=Reflect.apply(exec,this,[sql]);
+    if(armed&&staged&&!lost&&sql==='COMMIT'){
+      lost=true;throw Object.assign(new Error('lost retained pre-file stage reply'),{code:'EIO'});
+    }
+    return result;
+  });
+  const setup=await fixture(t),invocationValue=invocation();
+  const request=publicationRequest(resultDefinition(),digest('retained stage Run'));
+  const attempt=publicationAttempt(request,'retained stage');
+  const prepared=await prepareCommit(setup.store,request,attempt,invocationValue);
+  const entry=indexEntry(request,attempt,invocationValue,{durable_result_binding_cids:[prepared.binding.identity]});
+  armed=true;
+  let originalFailure;
+  await assert.rejects(setup.store.commitIndex(wire(entry),prepared.required,prepared.evidence),error=>{
+    originalFailure=error;return error.outcome==='unknown';
+  });
+  assert.equal(lost,true);
+  assert.deepEqual(await readdir(join(setup.directory,'indexes')),[]);
+  assert.deepEqual(await readdir(join(setup.directory,'metadata-inventories')),[]);
+  await prepared.prepared.release();
+  await setup.store.close();
+  const reopened=await openLocalPublicationStore(setup.configuration,contractControl);
+  const inventoryPath=join(setup.directory,'metadata-inventories',entry.public_index_entry_cid.slice(7)+'.json');
+  assert.equal(JSON.parse(await readFile(inventoryPath,'utf8')).public_index_entry_cid,entry.public_index_entry_cid);
+  assert.deepEqual(await readdir(join(setup.directory,'indexes')),[],'recovery never publishes or resubmits the Run');
+  assert.equal((await reopened.latestRecord(attempt.publication_attempt_cid)).state,'committing');
+  const cancelled=publicationRecord(attempt,2,'cancelled',prepared.committing);
+  await reopened.appendRecord(wire(cancelled),{uncommittedConfirmed:true});
+  const retired=await reopened.retireUncommittedPublication(entry.public_index_entry_cid);
+  assert.equal(retired.deleted,true);
+  assert.equal(originalFailure.outcome,'unknown','metadata completion never rewrites the original outcome');
+  await reopened.close();
+});
+
+test('publication recovery retries only the native removal after physical uncommitted retirement',async t=>{
+  const directory=await mkdtemp(join(tmpdir(),'actql-publication-recovery-retirement-'));
+  t.after(()=>removeFixtureDirectory(directory));
+  const configuration={directory,storeAuthorityCid:cids.authority,capacityBytes:1024*1024,
+    maxObjectBytes:65536,maxObjects:100,maxContractNodes:4096,maxContractDepth:64};
+  let indexFailures=2,armed=false,removed=false,lost=false;
+  const prepare=DatabaseSync.prototype.prepare,exec=DatabaseSync.prototype.exec;
+  t.mock.method(DatabaseSync.prototype,'prepare',function(sql){
+    const statement=Reflect.apply(prepare,this,[sql]);
+    if(sql==='DELETE FROM pending_publications WHERE public_index_cid=?'){
+      const run=statement.run;
+      t.mock.method(statement,'run',function(...args){const result=Reflect.apply(run,this,args);removed=true;return result;});
+    }
+    return statement;
+  });
+  t.mock.method(DatabaseSync.prototype,'exec',function(sql){
+    const result=Reflect.apply(exec,this,[sql]);
+    if(armed&&removed&&!lost&&sql==='COMMIT'){
+      lost=true;throw Object.assign(new Error('lost same pending retirement reply'),{code:'EIO'});
+    }
+    return result;
+  });
+  const store=await openLocalPublicationStore(configuration,contractControl,{
+    async syncDirectory(path){
+      if(path===join(directory,'indexes')&&indexFailures>0){indexFailures--;throw Object.assign(new Error('index ACK failure'),{code:'EIO'});}
+      const fd=await open(path,'r');try{await fd.sync();}finally{await fd.close();}
+    },
+  });
+  const invocationValue=invocation(),request=publicationRequest(resultDefinition(),digest('retired pending Run'));
+  const attempt=publicationAttempt(request,'retired pending');
+  const prepared=await prepareCommit(store,request,attempt,invocationValue);
+  const entry=indexEntry(request,attempt,invocationValue,{durable_result_binding_cids:[prepared.binding.identity]});
+  let failure;
+  await assert.rejects(store.commitIndex(wire(entry),prepared.required,prepared.evidence),error=>{failure=error;return error.cleanupHandle?.status().pending===true;});
+  for(const name of await readdir(join(directory,'indexes')))await unlink(join(directory,'indexes',name));
+  assert.equal((await failure.cleanupHandle.retry()).outcome,'uncommitted');
+  await store.appendRecord(wire(publicationRecord(attempt,2,'cancelled',prepared.committing)),{uncommittedConfirmed:true});
+  await prepared.prepared.release();armed=true;
+  const retired=await store.retireUncommittedPublication(entry.public_index_entry_cid);
+  assert.equal(lost,true);assert.equal(retired.cleanup.status().pending,true);
+  assert.equal(retired.cleanup.status().errors.at(-1).outcome,'unknown');
+  assert.deepEqual(await readdir(join(directory,'metadata-inventories')),[]);
+  assert.equal((await retired.cleanup.retry()).pending,false);
+  assert.equal(await store.close(),true);
+});
+
 test('committed Result opening defers holding proof to the selected publication', async t => {
   const setup = await fixture(t);
   const selected = await committedHoldingFixture(setup, 'selected proof');
@@ -4914,10 +5031,10 @@ test('committed Result opening defers holding proof to the selected publication'
   t.after(() => { t.mock.restoreAll(); syncBuiltinESMExports(); });
   const reopened = await openLocalPublicationStore(setup.configuration, contractControl);
   assert.deepEqual(reads.filter(path => path.includes(`${sep}physical-holdings${sep}`)), []);
-  // The separate legacy uncommitted-recovery walk still reads inventories.
-  // This cut removes the extra committed-wide pass, not all cold history work.
+  // Complete native recovery coverage does not reread committed inventories.
+  // Separate payload capacity accounting still walks its own physical objects.
   for (const target of [selected, unrelated]) {
-    assert.equal(reads.filter(path => path === target.inventoryPath).length, 1);
+    assert.equal(reads.filter(path => path === target.inventoryPath).length, 0);
   }
   reads.length = 0;
   assert.equal((await reopened.lookupCommittedIndex(indexKeyFor(selected.request), () => true))
