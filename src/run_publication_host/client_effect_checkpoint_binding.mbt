@@ -37,6 +37,27 @@ pub fn admit_client_effect_review_checkpoint_binding(
 }
 
 ///|
+/// Read the immutable metadata of the already admitted original. This does
+/// not re-admit its wire or confirm persistence, current authority or approval.
+pub fn client_effect_review_checkpoint_binding_fields(
+  artifact : @checkpoint.SealedCheckpoint,
+) -> Result[Array[String], ClientEffectCheckpointBindingIssue] {
+  let fields = [artifact.checkpoint_cid, artifact.wire]
+  match artifact.checkpoint.subject {
+    @checkpoint.RunUnit(run_id~, unit_id~, run_definition_cid~) => {
+      fields.push(run_id)
+      fields.push(unit_id)
+      fields.push(run_definition_cid)
+    }
+    _ => return Err(ForeignSubject)
+  }
+  fields.push(artifact.checkpoint.required_artifact_cid)
+  fields.push(artifact.checkpoint.review_projection_cid)
+  fields.push(artifact.checkpoint.continuation_state_cid)
+  Ok(fields)
+}
+
+///|
 // Shared pure nominal-subject validation after the original compiled Run bind.
 // The wire reader keeps its original bind -> decode -> validation order.
 fn validate_client_effect_review_checkpoint_subject(

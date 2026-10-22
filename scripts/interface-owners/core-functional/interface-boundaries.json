@@ -16854,7 +16854,7 @@
     },
     {
       "module": "packages/run-host-core/index.mjs",
-      "sha256": "713fb27fe3f3853391c462951b531de497e592c6353dd6b0f1f3e2ac2c5cd9ed",
+      "sha256": "71ef116b11de51a9226b5c31d892236403835d41de98084eac1794de2b29a721",
       "role": "physical-io",
       "exports": [
         "admitCapturedResultSnapshot",
@@ -16891,6 +16891,7 @@
         "effectResultDefinitions",
         "effectResultSchema",
         "effectReviewCheckpointBinding",
+        "effectReviewCheckpointBindingFacts",
         "effectReviewCheckpointMembers",
         "effectRunStartCurrent",
         "effectSourceEvidenceFacts",
@@ -17589,6 +17590,15 @@
           "name": "effectReviewCheckpointBinding/effectReviewCheckpointBinding#2",
           "parameters": [
             "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "effectReviewCheckpointBindingFacts",
+          "parameters": [
+            "binding",
+            "allowed",
+            "definition"
           ],
           "async": false
         },
@@ -20458,7 +20468,8 @@
             "validateTaskPhysicalStartClaim",
             "validateTaskPhysicalStartClaim/validateTaskPhysicalStartClaim",
             "validateTaskPhysicalStartClaim/validateTaskPhysicalStartClaim#2",
-            "bindPreparedEffectRunMaterials"
+            "bindPreparedEffectRunMaterials",
+            "effectReviewCheckpointBindingFacts"
           ],
           "exports": [
             "admitCapturedResultSnapshot",
@@ -20482,6 +20493,7 @@
             "admitTaskRun",
             "admitTaskRunDefinition",
             "beginResultMaterialHolds",
+            "bindPreparedEffectRunMaterials",
             "captureOriginalRunPlan",
             "checkRunBinding",
             "compileEffect",
@@ -20493,6 +20505,7 @@
             "effectResultDefinitions",
             "effectResultSchema",
             "effectReviewCheckpointBinding",
+            "effectReviewCheckpointBindingFacts",
             "effectReviewCheckpointMembers",
             "effectRunStartCurrent",
             "effectSourceEvidenceFacts",
@@ -20611,8 +20624,7 @@
             "validatePublicationChain",
             "validatePublicationRecordTransition",
             "validateRetainedInputPlan",
-            "validateRetainedTaskInput",
-            "bindPreparedEffectRunMaterials"
+            "validateRetainedTaskInput"
           ],
           "attributes": {
             "responsibility": [
@@ -20631,6 +20643,10 @@
               {
                 "path": "docs/design/remote-site-execution.md",
                 "anchor": "## Pre-Checkpoint Effect Run observation"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Original sealed Checkpoint bindings"
               }
             ],
             "inputsOutputs": [
@@ -20645,6 +20661,10 @@
               {
                 "path": "docs/design/remote-site-execution.md",
                 "anchor": "## Pre-Checkpoint Effect Run observation"
+              },
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "export function effectReviewCheckpointBindingFacts(binding, allowed, definition) {"
               }
             ],
             "identity": [
@@ -20659,6 +20679,10 @@
               {
                 "path": "docs/design/remote-site-execution.md",
                 "anchor": "## Pre-Checkpoint Effect Run observation"
+              },
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "original.definition !== definition) throw new TypeError"
               }
             ],
             "ownership": [
@@ -20673,6 +20697,10 @@
               {
                 "path": "docs/design/remote-site-execution.md",
                 "anchor": "## Pre-Checkpoint Effect Run observation"
+              },
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "const effectCheckpointBindings = new WeakMap();"
               }
             ],
             "synchronization": [
@@ -20687,6 +20715,10 @@
               {
                 "path": "docs/design/remote-site-execution.md",
                 "anchor": "## Pre-Checkpoint Effect Run observation"
+              },
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "return binding;"
               }
             ],
             "failure": [
@@ -20701,6 +20733,10 @@
               {
                 "path": "docs/design/remote-site-execution.md",
                 "anchor": "## Pre-Checkpoint Effect Run observation"
+              },
+              {
+                "path": "packages/run-host-core/effect-checkpoint-retention.test.mjs",
+                "anchor": "test('copies foreign bindings and changed original roots cannot borrow retained facts'"
               }
             ],
             "cancellation": [
@@ -20715,6 +20751,10 @@
               {
                 "path": "docs/design/remote-site-execution.md",
                 "anchor": "## Pre-Checkpoint Effect Run observation"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "A pending cancellation request does not prove a waiting exit."
               }
             ],
             "resources": [
@@ -20729,6 +20769,10 @@
               {
                 "path": "docs/design/remote-site-execution.md",
                 "anchor": "## Pre-Checkpoint Effect Run observation"
+              },
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "effectCheckpointBindings.set(binding, {original, allowed, definition});"
               }
             ],
             "extension": [
@@ -20743,6 +20787,10 @@
               {
                 "path": "docs/design/remote-site-execution.md",
                 "anchor": "## Pre-Checkpoint Effect Run observation"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "A restored operation admits its own original once."
               }
             ],
             "verification": [
@@ -20757,6 +20805,10 @@
               {
                 "path": "docs/design/remote-site-execution.md",
                 "anchor": "## Pre-Checkpoint Effect Run observation"
+              },
+              {
+                "path": "packages/run-host-core/effect-checkpoint-retention.test.mjs",
+                "anchor": "test('same-original binding retains one nominal Checkpoint across pure reads and await'"
               }
             ]
           }

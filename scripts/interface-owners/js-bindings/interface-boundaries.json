@@ -97734,7 +97734,7 @@
     {
       "module": "packages/run-host-core/index.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "713fb27fe3f3853391c462951b531de497e592c6353dd6b0f1f3e2ac2c5cd9ed",
+      "sha256": "71ef116b11de51a9226b5c31d892236403835d41de98084eac1794de2b29a721",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -97772,6 +97772,7 @@
         "effectResultDefinitions",
         "effectResultSchema",
         "effectReviewCheckpointBinding",
+        "effectReviewCheckpointBindingFacts",
         "effectReviewCheckpointMembers",
         "effectRunStartCurrent",
         "effectSourceEvidenceFacts",
@@ -98470,6 +98471,15 @@
           "name": "effectReviewCheckpointBinding/effectReviewCheckpointBinding#2",
           "parameters": [
             "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "effectReviewCheckpointBindingFacts",
+          "parameters": [
+            "binding",
+            "allowed",
+            "definition"
           ],
           "async": false
         },
@@ -105773,10 +105783,12 @@
           "operations": [
             "effectReviewCheckpointBinding",
             "effectReviewCheckpointBinding/effectReviewCheckpointBinding",
-            "effectReviewCheckpointBinding/effectReviewCheckpointBinding#2"
+            "effectReviewCheckpointBinding/effectReviewCheckpointBinding#2",
+            "effectReviewCheckpointBindingFacts"
           ],
           "exports": [
-            "effectReviewCheckpointBinding"
+            "effectReviewCheckpointBinding",
+            "effectReviewCheckpointBindingFacts"
           ],
           "attributes": {
             "responsibility": [
@@ -105787,6 +105799,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Responsibility"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Original sealed Checkpoint bindings"
               }
             ],
             "inputsOutputs": [
@@ -105797,6 +105813,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Inputs and outputs"
+              },
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "export function effectReviewCheckpointBindingFacts(binding, allowed, definition) {"
               }
             ],
             "identity": [
@@ -105807,6 +105827,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Identity"
+              },
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "original.definition !== definition) throw new TypeError"
               }
             ],
             "ownership": [
@@ -105817,6 +105841,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Ownership"
+              },
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "const effectCheckpointBindings = new WeakMap();"
               }
             ],
             "synchronization": [
@@ -105827,6 +105855,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Synchronization"
+              },
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "return binding;"
               }
             ],
             "failure": [
@@ -105837,6 +105869,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Failure"
+              },
+              {
+                "path": "packages/run-host-core/effect-checkpoint-retention.test.mjs",
+                "anchor": "test('copies foreign bindings and changed original roots cannot borrow retained facts'"
               }
             ],
             "cancellation": [
@@ -105847,6 +105883,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Cancellation"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "A pending cancellation request does not prove a waiting exit."
               }
             ],
             "resources": [
@@ -105857,6 +105897,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Resources"
+              },
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "effectCheckpointBindings.set(binding, {original, allowed, definition});"
               }
             ],
             "extension": [
@@ -105867,6 +105911,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Extension"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "A restored operation admits its own original once."
               }
             ],
             "verification": [
@@ -105881,6 +105929,10 @@
               {
                 "path": "scripts/js-compiler-binding-runtime.test.mjs",
                 "anchor": "actual pinned MoonBit Result"
+              },
+              {
+                "path": "packages/run-host-core/effect-checkpoint-retention.test.mjs",
+                "anchor": "test('same-original binding retains one nominal Checkpoint across pure reads and await'"
               }
             ]
           }

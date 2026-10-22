@@ -2,6 +2,7 @@
 package "actql/actql/client_values_host_abi"
 
 import {
+  "actql/actql/checkpoint_runtime",
   "actql/actql/decode_core",
   "actql/actql/host_observation",
   "actql/actql/logical_request_scope",
@@ -17,6 +18,8 @@ import {
 pub fn client_values_host_admit_captured_result_snapshot(@run_publication.PublicationContract, @run_publication.PublicationContract, String, Array[String], Int, Int, Int) -> Result[@run_publication.CapturedResultSnapshot, @run_publication.CapturedRunIssuanceIssue]
 
 pub fn client_values_host_admit_completed_source_observation(String, String, String, String, String, String, Int, Int, Int) -> Result[String, @run_publication.SourceInputObservationIssue]
+
+pub fn client_values_host_admit_effect_checkpoint_binding(@run_publication_host.ClientEffectAllowedRun, @run_publication.PublicationContract, String) -> Result[@checkpoint_runtime.SealedCheckpoint, @run_publication_host.ClientEffectCheckpointBindingIssue]
 
 pub fn client_values_host_admit_effect_run_materials(String, String, Bool, Bool, Bool, Bool, Bool, Bool, Bool, @run_publication_host.ClientEffectIssuedNormalizationMaterials?, @run_publication_host.ClientRequestIdentity?, @run_publication_host.ClientSourcePreparation?) -> Result[@run_publication_host.ClientEffectRunMaterials, ClientValuesHostEffectRestorationIssue]
 
@@ -115,6 +118,8 @@ pub fn client_values_host_dispatch_cid(@remote_site_protocol.DispatchRequest) ->
 pub fn client_values_host_dispatch_wire(@remote_site_protocol.DispatchRequest) -> Result[String, @remote_site_protocol.DispatchIssue]
 
 pub fn client_values_host_effect_checkpoint_binding(@run_publication_host.ClientEffectAllowedRun, @run_publication.PublicationContract, String) -> Result[Array[String], @run_publication_host.ClientEffectCheckpointBindingIssue]
+
+pub fn client_values_host_effect_checkpoint_binding_fields(@checkpoint_runtime.SealedCheckpoint) -> Result[Array[String], @run_publication_host.ClientEffectCheckpointBindingIssue]
 
 pub fn client_values_host_effect_checkpoint_members(@run_publication_host.ClientEffectAllowedRun, @run_publication.PublicationContract, String) -> Result[Array[String], @run_publication_host.ClientEffectCheckpointMembersIssue]
 
