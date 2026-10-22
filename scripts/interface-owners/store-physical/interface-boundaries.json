@@ -5579,7 +5579,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "a17c1689e5950030127add8fc153485cedfe2ac4b368d071686ce453c2533441",
+      "sha256": "1699716e66f0366565b95b84ce3b69d28620434a6d7775c12c6ab6387a7b260f",
       "exports": [
         "PublicationStoreError",
         "assertOriginalLocalPublicationStoreFacilityCurrent",
@@ -7839,7 +7839,8 @@
         {
           "name": "openOriginalLocalPublicationStore/putSemanticBatch/putSemanticBatch",
           "parameters": [
-            "supplied"
+            "supplied",
+            "retainedOriginals"
           ],
           "async": true
         },
@@ -11560,12 +11561,16 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "### Owned physical quota lifetime"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "During one serialized Index commit, a newly written semantic body may also"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "const putSemanticBatch = async supplied => {"
+                "anchor": "const putSemanticBatch = async (supplied, retainedOriginals) => {"
               },
               {
                 "path": "adapters/store-local/publication-store.mjs",
@@ -11574,6 +11579,10 @@
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "const recoverPhysical=deliveryIndex.physicalObjectRecoveryRequired();"
+              },
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "const putSemanticBatch = async (supplied, retainedOriginals) => {"
               }
             ],
             "identity": [
@@ -11588,6 +11597,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "and totals are compared within that transaction. Lost COMMIT replies retain the"
+              },
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "if (item.objectCreated && item.created) retainedOriginals.set("
               }
             ],
             "ownership": [
@@ -11602,6 +11615,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "After that ACK, the same index retains bounded quota changes and preparation"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "bytes never escape; the next public read acquires its own original and detects"
               }
             ],
             "synchronization": [
@@ -11616,6 +11633,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "Safe Store close seals those exact deltas and usage totals atomically with a"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "both new physical and semantic links, their actual directory acknowledgements,"
               }
             ],
             "failure": [
@@ -11630,6 +11651,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "same immutable seal, forbid new work and retry only that original transition."
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "reader and its hard-link validation. Failed durability never publishes this"
               }
             ],
             "cancellation": [
@@ -11644,6 +11669,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "The seal does not replace the original native close ACK; once sealed, failed"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "observation or retires the pending writer. The map is operation-local and its"
               }
             ],
             "resources": [
@@ -11658,6 +11687,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "generations. The delta retains at most the old indexed generations"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "retain its private bytes and digest in that commit's existing observation map."
               }
             ],
             "extension": [
@@ -11672,6 +11705,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "Only an actually unsealed prior lifetime permits bounded physical extent"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "without reopening and hashing it immediately. Existing objects or aliases,"
               }
             ],
             "verification": [
@@ -11686,6 +11723,10 @@
               {
                 "path": "adapters/store-local/semantic-publication-commit.test.mjs",
                 "anchor": "only an actually unsealed physical quota lifetime audits its bounded objects on reopen"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "publication inventory retains failed Index alias durability before a fresh acquisition"
               }
             ]
           }
