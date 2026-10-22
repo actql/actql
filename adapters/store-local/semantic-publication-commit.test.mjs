@@ -7,6 +7,7 @@ import {join, sep} from 'node:path';
 import {tmpdir} from 'node:os';
 import {createHash} from 'node:crypto';
 import {spawnSync} from 'node:child_process';
+import {DatabaseSync} from 'node:sqlite';
 import {openLocalPublicationStore} from './publication-store.mjs';
 import {createPublicationContractControlFixture} from '../host-common/publication-contract-control.fixture.mjs';
 
@@ -24,6 +25,40 @@ async function actualSync(path) {
   const handle = await open(path, 'r');
   try { await handle.sync(); } finally { await handle.close(); }
 }
+
+test('semantic metadata retains physical quota in the owned lifetime instead of committing every preparation', async t => {
+  const directory=await mkdtemp(join(tmpdir(),'actql-semantic-quota-lifetime-'));
+  let store,armed=false,commits=0;
+  t.after(async()=>{armed=false;await store?.close();await rm(directory,{recursive:true});});
+  const exec=DatabaseSync.prototype.exec;
+  t.mock.method(DatabaseSync.prototype,'exec',function(sql,...args){
+    if(armed&&sql==='COMMIT')commits++;
+    return Reflect.apply(exec,this,[sql,...args]);
+  });
+  store=await openLocalPublicationStore(configuration(directory),control);
+  armed=true;
+  const originals=[];
+  for(let i=0;i<3;i++){
+    const value=control.seal('run_invocation',JSON.stringify({version:'actql-run-invocation/0.1',
+      invocation_template_cid:cid('template-'+i),observation_set_cid:cid('observations-'+i)}),limits);
+    originals.push(value);await store.putPublicationContract(value.name,value.wire);
+  }
+  assert.equal(commits,0,'derived physical quota needs no per-batch durable transaction inside the dirty owned lifetime');
+  assert.equal(store.status().objectCount,3);
+  assert.equal(store.status().reservedObjects,0);
+  await store.close();
+  assert.equal(commits,1,'one real atomic quota seal follows all original physical ACKs at close');
+  armed=false;
+  const database=new DatabaseSync(join(directory,'delivery-attempts.sqlite3'),{readOnly:true});
+  try{
+    assert.equal(database.prepare('PRAGMA user_version').get().user_version,0);
+    assert.equal(database.prepare('SELECT objects FROM physical_object_usage').get().objects,3);
+    assert.equal(database.prepare('SELECT count(*) AS n FROM physical_objects').get().n,3);
+  }finally{database.close();}
+  store=await openLocalPublicationStore(configuration(directory),control);
+  for(const value of originals)assert.equal((await store.readPublicationContract(value.identity,value.name)).wire,value.wire);
+  assert.equal(store.status().objectCount,3);
+});
 
 test('semantic metadata commits its payload and final names without intermediate custody persistence', async t => {
   const directory = await mkdtemp(join(tmpdir(), 'actql-semantic-commit-'));
