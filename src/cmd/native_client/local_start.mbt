@@ -158,6 +158,8 @@ fn local_publication_field(
 fn local_generation_cid(
   crypto : @local_crypto.Library,
 ) -> String raise ClientStop {
+  native_timing_begin(23)
+  defer native_timing_end(23)
   let nonce = crypto
     .random_bytes(32)
     .unwrap_or_else(() => stop("LocalGenerationUnavailable"))
@@ -465,8 +467,6 @@ fn local_submission_start(
     ).unwrap_or_else(() => stop("InvalidLocalResultRetentionPolicy"))
     let until = run_text(retention, "available_until")
     let compilation = {
-      native_timing_begin(22)
-      defer native_timing_end(22)
       let manifests = @run_host.admit_client_compilation_manifests(
         @compiler_environment.compiler_grammar_manifest_wire(),
         @compiler_environment.compiler_barrier_contract_manifest_wire(),
@@ -486,8 +486,6 @@ fn local_submission_start(
       ).unwrap_or_else(() => stop("LocalCompilationNotReady"))
     }
     let (compiled, definition) = {
-      native_timing_begin(23)
-      defer native_timing_end(23)
       let configuration_cid = local_host_result(
         match business {
           None => host.configuration()
