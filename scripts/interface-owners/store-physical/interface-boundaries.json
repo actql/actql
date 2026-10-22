@@ -4138,7 +4138,7 @@
     {
       "module": "adapters/store-local/delivery-attempt-index.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "425bbc6e2dc04dceabb4a92bd180643221cba80a1366ef79fd0131520f42c11d",
+      "sha256": "2608105cb0f9ccaaa14bf522792917479a005372d1919cc767197e3f3fa99c0c",
       "exports": [
         "openDeliveryAttemptIndex"
       ],
@@ -4242,6 +4242,11 @@
           "parameters": [
             "ready"
           ],
+          "async": false
+        },
+        {
+          "name": "openDeliveryAttemptIndex/flushPublicationFinishes/flushPublicationFinishes",
+          "parameters": [],
           "async": false
         },
         {
@@ -4615,6 +4620,13 @@
           "async": false
         },
         {
+          "name": "openDeliveryAttemptIndex/init:retainPublicationInventoryFinish/init:retainPublicationInventoryFinish",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
           "name": "openDeliveryAttemptIndex/init:retireNativePublicationInventory/init:retireNativePublicationInventory",
           "parameters": [
             "value",
@@ -4779,6 +4791,11 @@
           "async": false
         },
         {
+          "name": "openDeliveryAttemptIndex/openDeliveryAttemptIndex/openDeliveryAttemptIndex#2",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "openDeliveryAttemptIndex/openDeliveryAttemptIndex#10",
           "parameters": [],
           "async": false
@@ -4790,6 +4807,21 @@
         },
         {
           "name": "openDeliveryAttemptIndex/openDeliveryAttemptIndex#12",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openDeliveryAttemptIndex/openDeliveryAttemptIndex#13",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openDeliveryAttemptIndex/openDeliveryAttemptIndex#14",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openDeliveryAttemptIndex/openDeliveryAttemptIndex#15",
           "parameters": [],
           "async": false
         },
@@ -4974,6 +5006,11 @@
           "parameters": [
             "body"
           ],
+          "async": false
+        },
+        {
+          "name": "openDeliveryAttemptIndex/run/run/result/result",
+          "parameters": [],
           "async": false
         },
         {
@@ -5238,7 +5275,14 @@
             "openDeliveryAttemptIndex/transaction/transaction",
             "openDeliveryAttemptIndex/usage/usage",
             "openDeliveryAttemptIndex/validate/validate",
-            "openDeliveryAttemptIndex/validate/validate/validate"
+            "openDeliveryAttemptIndex/validate/validate/validate",
+            "openDeliveryAttemptIndex/flushPublicationFinishes/flushPublicationFinishes",
+            "openDeliveryAttemptIndex/init:retainPublicationInventoryFinish/init:retainPublicationInventoryFinish",
+            "openDeliveryAttemptIndex/openDeliveryAttemptIndex/openDeliveryAttemptIndex#2",
+            "openDeliveryAttemptIndex/openDeliveryAttemptIndex#13",
+            "openDeliveryAttemptIndex/openDeliveryAttemptIndex#14",
+            "openDeliveryAttemptIndex/openDeliveryAttemptIndex#15",
+            "openDeliveryAttemptIndex/run/run/result/result"
           ],
           "exports": [
             "openDeliveryAttemptIndex"
@@ -5272,6 +5316,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "### Owned physical quota lifetime"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "retain the exact bounded completion original and include its removal in the next"
               }
             ],
             "inputsOutputs": [
@@ -5310,6 +5358,10 @@
               {
                 "path": "adapters/store-local/delivery-attempt-index.mjs",
                 "anchor": "beginPhysicalObjectLifetime() {"
+              },
+              {
+                "path": "adapters/store-local/delivery-attempt-index.mjs",
+                "anchor": "retainPublicationInventoryFinish(value) {"
               }
             ],
             "identity": [
@@ -5340,6 +5392,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "and totals are compared within that transaction. Lost COMMIT replies retain the"
+              },
+              {
+                "path": "adapters/store-local/delivery-attempt-index.mjs",
+                "anchor": "if (!sameRecoveryOriginal(recoveryOriginal(row), original)) fail('PublicationMetadataInventoryConflict');"
               }
             ],
             "ownership": [
@@ -5370,6 +5426,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "After that ACK, the same index retains bounded quota changes and preparation"
+              },
+              {
+                "path": "adapters/store-local/delivery-attempt-index.mjs",
+                "anchor": "retirePublicationFinishReferences = () => retainedPublicationFinishes.clear();"
               }
             ],
             "synchronization": [
@@ -5400,6 +5460,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "Safe Store close seals those exact deltas and usage totals atomically with a"
+              },
+              {
+                "path": "adapters/store-local/delivery-attempt-index.mjs",
+                "anchor": "const result = transaction.run(() => {"
               }
             ],
             "failure": [
@@ -5434,6 +5498,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "same immutable seal, forbid new work and retry only that original transition."
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "Lost replies retain them for the same"
               }
             ],
             "cancellation": [
@@ -5464,6 +5532,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "The seal does not replace the original native close ACK; once sealed, failed"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "close performs the real completion write; an existing physical-quota seal can"
               }
             ],
             "resources": [
@@ -5494,6 +5566,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "generations. The delta retains at most the old indexed generations"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "The retained map is bounded by the existing pending-entry and wire limits; it"
               }
             ],
             "extension": [
@@ -5524,6 +5600,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "Only an actually unsealed prior lifetime permits bounded physical extent"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "barrier count. Strict recovery completion remains immediately durable."
               }
             ],
             "verification": [
@@ -5570,6 +5650,10 @@
               {
                 "path": "adapters/store-local/semantic-publication-commit.test.mjs",
                 "anchor": "only an actually unsealed physical quota lifetime audits its bounded objects on reopen"
+              },
+              {
+                "path": "adapters/store-local/delivery-attempt-index.test.mjs",
+                "anchor": "test('publication completion batch joins the next required native transaction', async t => {"
               }
             ]
           }
@@ -5579,7 +5663,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "3feb0f6f320cf0164f452eec581e2dcd5ffc6ef93e8af4b619ba682695782436",
+      "sha256": "987d7491bb11141047ac6ef4fa8610459955e567ae56a92b35e962fbb084a2fe",
       "exports": [
         "PublicationStoreError",
         "assertOriginalLocalPublicationStoreFacilityCurrent",
@@ -10442,7 +10526,7 @@
               },
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
-                "anchor": "directory acknowledgement and schema adoption. These two native transitions"
+                "anchor": "directory acknowledgement and schema adoption. At that point the same Store may"
               },
               {
                 "path": "adapters/store-local/publication-store.mjs",
