@@ -8242,7 +8242,7 @@
     {
       "module": "adapters/host-common/run-publication.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "c7de9127dbce06b7fe7319d016e180e4fe6387abfeb05327834ce1b4374b391d",
+      "sha256": "806fe3f28f1b1de69e01dd514098ba7b3de39749b916ae467c02288ad6d301dd",
       "role": "physical-io",
       "owner": "Existing Run Publication/Artifact Owners and physical Store sequencing",
       "exports": [
@@ -8715,6 +8715,10 @@
               {
                 "path": "adapters/host-common/runtime-core.mjs",
                 "anchor": "if (retained === undefined || !tokens.has(original)) return undefined;"
+              },
+              {
+                "path": "adapters/host-common/run-publication.mjs",
+                "anchor": "confirmed.identityField !== record.identityField || confirmed.wire !== record.wire) throw primary;"
               }
             ],
             "ownership": [
@@ -8737,6 +8741,10 @@
               {
                 "path": "adapters/host-common/runtime-core.mjs",
                 "anchor": "const contractBounds = new WeakMap();"
+              },
+              {
+                "path": "adapters/host-common/run-publication.mjs",
+                "anchor": "const cleanup = member(primary, 'cleanupHandle');"
               }
             ],
             "synchronization": [
@@ -8759,6 +8767,10 @@
               {
                 "path": "adapters/host-common/runtime-core.mjs",
                 "anchor": "const captureContractLimits = (limits, label) => issuanceLimits(Object.freeze({"
+              },
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "It continues only after the original cleanup retires and the same Store admits"
               }
             ],
             "failure": [
@@ -8781,6 +8793,10 @@
               {
                 "path": "adapters/host-common/publication-contract-control.test.mjs",
                 "anchor": "test('publication original persistence falls back for copies foreign owners and tighter limits', async t => {"
+              },
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "confirmation, a missing record, or any differing record retains the original"
               }
             ],
             "cancellation": [
@@ -8825,6 +8841,10 @@
               {
                 "path": "adapters/host-common/runtime-core.mjs",
                 "anchor": "maxNodes: Math.min(limits.maxNodes, value.wire.length),"
+              },
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "failure. Healthy appends perform no confirming reread."
               }
             ],
             "extension": [
@@ -8869,6 +8889,10 @@
               {
                 "path": "adapters/host-common/publication-contract-control.test.mjs",
                 "anchor": "test('publication persistence consumes its same-owner immutable contracts without another admission', async t => {"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "test('healthy publication progress needs no cleanup retry or confirming reread', async () => {"
               }
             ]
           }

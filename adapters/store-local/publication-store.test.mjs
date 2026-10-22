@@ -1,5 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import {compileFunction} from 'node:vm';
+import {parse} from 'acorn';
 import {
   chmod,
   link,
@@ -86,6 +89,19 @@ const cids = Object.freeze({
   fence: digest('fence'),
 });
 const code = expected => error => error?.code === expected;
+
+// Execute the existing publication caller's exact append step with real
+// Store/SQLite and explicit immutable-contract ports. This is not complete
+// Common-chain or ordinary installed SDK acceptance.
+const publicationSource = readFileSync(new URL('../host-common/run-publication.mjs', import.meta.url), 'utf8');
+const publicationAst = parse(publicationSource, {ecmaVersion: 'latest', sourceType: 'module'});
+const publicationAppend = publicationAst.body.find(node => node.type === 'FunctionDeclaration' && node.id.name === 'appendState');
+const publicationMember = publicationAst.body.find(node => node.type === 'VariableDeclaration' &&
+  node.declarations.some(item => item.id.name === 'member'));
+assert.ok(publicationAppend); assert.ok(publicationMember);
+const appendOriginalPublicationState = compileFunction(
+  publicationSource.slice(publicationMember.start, publicationMember.end) + '\n' +
+  publicationSource.slice(publicationAppend.start, publicationAppend.end) + '\nreturn appendState;', [])();
 
 async function runStoreChild(source) {
   const child = spawn(process.execPath, [
@@ -3355,6 +3371,101 @@ test('Store close confirms failed metadata without releasing an independent live
   await payload.cancel();
   await store.close();
   assert.equal(store.status().closed, true);
+});
+
+for (const afterCommit of [false, true]) {
+test(`publication caller continues its exact ${afterCommit ? 'committed' : 'rolled-back'} progress original after real confirmation`, async t => {
+  const exec = DatabaseSync.prototype.exec;
+  let armed = false, lost = false, originalDatabase, confirmations = 0;
+  t.mock.method(DatabaseSync.prototype, 'exec', function(sql) {
+    if (armed && sql === 'COMMIT') {
+      if (!lost) {
+        lost = true; originalDatabase = this;
+        if (afterCommit) Reflect.apply(exec, this, [sql]);
+        throw Object.assign(new Error('publication progress reply unavailable'), {code: 'EIO'});
+      }
+      assert.equal(this, originalDatabase);
+      confirmations++;
+    }
+    return Reflect.apply(exec, this, [sql]);
+  });
+  const {store, configuration} = await fixture(t);
+  const attempt = publicationAttempt(publicationRequest(), `same-caller-confirmation-${afterCommit}`);
+  const preparing = publicationRecord(attempt, 0, 'preparing');
+  const committing = publicationRecord(attempt, 1, 'committing', preparing);
+  const attemptContract = contractControl.admit('publication_attempt', wire(attempt), limits);
+  const previousContract = contractControl.admit('publication_record', wire(preparing), limits);
+  const expected = contractControl.admit('publication_record', wire(committing), limits);
+  await store.createAttempt(wire(attempt));
+  await store.appendRecord(wire(preparing), {uncommittedConfirmed: false});
+  let issued = 0, failure;
+  const callerStore = {...store, async appendRecord(...args) {
+    try { return await store.appendRecord(...args); }
+    catch (error) {failure = error; throw error;}
+  }};
+  armed = true;
+  try {
+    const actual = await appendOriginalPublicationState(callerStore, {
+      issuePublicationRecord(selectedAttempt, selectedPrevious) {
+        issued++; assert.equal(selectedAttempt, attemptContract);
+        assert.equal(selectedPrevious, previousContract); return expected;
+      }}, attemptContract, previousContract, 'committing', committing.observed_at, limits);
+    assert.equal(actual, expected, 'Continue with the original issued record, not a replacement Receipt');
+    assert.equal(issued, 1);
+    assert.equal(lost, true);
+    assert.equal(confirmations, 1, 'Exactly one original mutation confirmation, not publication replay');
+    assert.equal(failure.cleanupHandle.status().pending, false);
+    assert.equal(store.status().reservedObjects, 0);
+    assert.deepEqual(await store.latestRecord(attempt.publication_attempt_cid), committing);
+  } finally {
+    armed = false;
+    if (failure?.cleanupHandle.status().pending) await failure.cleanupHandle.retry();
+    await store.close();
+  }
+  const reopened = await openLocalPublicationStore(configuration, contractControl);
+  assert.deepEqual(await reopened.latestRecord(attempt.publication_attempt_cid), committing);
+});
+}
+
+for (const boundary of ['generic-error', 'missing-cleanup', 'retry-failure', 'still-pending', 'missing-record', 'foreign-record', 'changed-wire']) {
+test(`publication progress confirmation preserves the original failure for ${boundary}`, async () => {
+  const attempt = publicationAttempt(publicationRequest(), `confirmation-${boundary}`);
+  const record = publicationRecord(attempt, 0, 'preparing');
+  const original = contractControl.admit('publication_record', wire(record), limits);
+  let retries = 0, reads = 0;
+  const cleanup = {status: () => ({pending: boundary === 'still-pending'}), async retry() {
+    assert.equal(this, cleanup); retries++;
+    if (boundary === 'retry-failure') throw new Error('OriginalConfirmationUnavailable');
+  }};
+  const primary = Object.assign(new Error('OriginalProgressFailure'), {
+    code: boundary === 'generic-error' ? 'EIO' : 'PublicationMetadataCommitOutcomeUnknown',
+    outcome: 'unknown', cleanupPending: true,
+    ...(boundary === 'missing-cleanup' ? {} : {cleanupHandle: cleanup})});
+  const store = {async appendRecord() {throw primary;}, async latestRecordContract() {
+    assert.equal(this, store); reads++;
+    if (boundary === 'missing-record') return undefined;
+    return {...original, ...(boundary === 'foreign-record' ? {identity: digest('foreign')} : {}),
+      ...(boundary === 'changed-wire' ? {wire: original.wire + ' '} : {})};
+  }};
+  await assert.rejects(appendOriginalPublicationState(store,
+    {issuePublicationRecord: () => original}, {identity: attempt.publication_attempt_cid},
+    undefined, 'preparing', record.observed_at, limits), error => error === primary);
+  assert.equal(retries, ['generic-error', 'missing-cleanup'].includes(boundary) ? 0 : 1);
+  assert.equal(reads, ['missing-record', 'foreign-record', 'changed-wire'].includes(boundary) ? 1 : 0);
+});
+}
+
+test('healthy publication progress needs no cleanup retry or confirming reread', async () => {
+  const attempt = publicationAttempt(publicationRequest(), 'healthy-original-caller');
+  const record = publicationRecord(attempt, 0, 'preparing');
+  const original = contractControl.admit('publication_record', wire(record), limits);
+  let writes = 0, issued = 0;
+  const result = await appendOriginalPublicationState({
+    async appendRecord(body) {writes++; assert.equal(body, original.wire);},
+    latestRecordContract() {assert.fail('No extra selected read after a healthy append');}},
+  {issuePublicationRecord() {issued++; return original;}}, {identity: attempt.publication_attempt_cid},
+  undefined, 'preparing', record.observed_at, limits);
+  assert.equal(result, original); assert.equal(writes, 1); assert.equal(issued, 1);
 });
 
 test('publication progress persists its incoming admitted contract once per operation',async t=>{
