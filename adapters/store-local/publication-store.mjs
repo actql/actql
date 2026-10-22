@@ -4108,13 +4108,31 @@ async function openOriginalLocalPublicationStore(
     return createAdmittedAttempt(admitContract('publication_attempt', suppliedWire));
   };
 
-  const beginPublicationAttempt = async (supplied, attemptOriginal) => {
+  const beginPublicationAttempt = async (supplied, attemptOriginal, initialRecords) => {
     if (!Array.isArray(supplied)) fail('InvalidPublicationContractWire');
-    if (supplied.length >= configuration.maxObjects) fail('PublicationStoreObjectLimit');
-    const admitted = admitPublicationContracts([...supplied, attemptOriginal], true);
+    if (initialRecords !== undefined && (!Array.isArray(initialRecords) || initialRecords.length !== 2)) {
+      fail('InvalidPublicationRecord');
+    }
+    if (supplied.length + (initialRecords?.length ?? 0) >= configuration.maxObjects) fail('PublicationStoreObjectLimit');
+    const admitted = admitPublicationContracts([...supplied, attemptOriginal, ...(initialRecords ?? [])], true);
     const selected = admitted.find(({contract}) => contract.identity === attemptOriginal.identity &&
       contract.name === 'publication_attempt');
     if (selected === undefined) fail('InvalidPublicationContract');
+    let records;
+    if (initialRecords !== undefined) {
+      records = initialRecords.map(original => admitted.find(({contract}) =>
+        contract.identity === original.identity && contract.name === 'publication_record'));
+      if (records.some(value => value === undefined)) fail('InvalidPublicationRecord');
+      const [first, second] = records;
+      if (first.value.publication_attempt_cid !== selected.contract.identity ||
+          second.value.publication_attempt_cid !== selected.contract.identity) fail('PublicationAttemptMismatch');
+      if (first.value.sequence !== 0 || first.value.state !== 'preparing' ||
+          second.value.sequence !== 1 || !['committing','cancelled'].includes(second.value.state) ||
+          contractControl.recordTransition(undefined,first.contract,false) !== true ||
+          contractControl.recordTransition(first.contract,second.contract,false) !== true) {
+        fail('InvalidPublicationRecordTransition');
+      }
+    }
     if (await runMetadataDeletionStarted(selected.value.run_definition_cid)) fail('PublicationMetadataDeleted');
     let fileAttempt = false;
     try { await lstat(contractPath(selected.contract.identity)); fileAttempt = true; }
@@ -4124,13 +4142,23 @@ async function openOriginalLocalPublicationStore(
     // existing transaction; either path returns after its actual acknowledgements.
     if (fileAttempt || admitted.some(({contract}) => !nativePublicationContract(contract.name))) {
       await putAdmittedPublicationContracts(admitted, true);
-      return createAdmittedAttempt(selected.contract, selected.value);
+      const created = await createAdmittedAttempt(selected.contract, selected.value);
+      if (records !== undefined) await appendInitialPublicationRecords(initialRecords);
+      return created;
     }
     const stored = await putAdmittedPublicationContracts(admitted, true,
-      Object.freeze({kind: 'attempt', attemptCid: selected.contract.identity,
-        runCid: selected.value.run_definition_cid}));
+      Object.freeze({kind: records === undefined ? 'attempt' : 'initial-attempt',
+        attemptCid: selected.contract.identity, runCid: selected.value.run_definition_cid,
+        ...(records === undefined ? {} : {records:Object.freeze(records.map(({contract,value},sequence)=>
+          Object.freeze({previousCid:sequence === 0 ? null : records[0].contract.identity,
+            recordCid:contract.identity,sequence:value.sequence})))})}));
     return Object.freeze({attempt: selected.value,
       created: stored.find(value => value.semanticCid === selected.contract.identity).progressCreated});
+  };
+
+  const beginPublicationAttemptWithRecords = (supplied, attemptOriginal, records) => {
+    if (!Array.isArray(records) || records.length !== 2) fail('InvalidPublicationRecord');
+    return beginPublicationAttempt(supplied, attemptOriginal, records);
   };
 
   const latestRecordContract = async attemptCid => {
@@ -8317,6 +8345,7 @@ async function openOriginalLocalPublicationStore(
     },
     createAttempt,
     beginPublicationAttempt,
+    beginPublicationAttemptWithRecords,
     latestRecord,
     latestRecordContract,
     appendRecord,
