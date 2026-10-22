@@ -4113,6 +4113,41 @@ test('selected retention keeps malformed unrelated history deferred and refuses 
   await reopened.close();
 });
 
+for(const level of ['Run','Result']) {
+test(`selected retention refuses a symlink at its ${level} directory`,async t=>{
+  const setup=await fixture(t),selected=await selectedRetentionFixture(setup,`symlink retention ${level}`);
+  await setup.store.close();
+  const target=level==='Run'?resolve(selected.path,'..'):selected.path;
+  const original=target+'.fixture-original';
+  await fsPromises.rename(target,original);await fsPromises.symlink(original,target);
+  const reopened=await openLocalPublicationStore(setup.configuration,contractControl);
+  await assert.rejects(reopened.readCommittedResultRetentionExtension(selected.key,selected.resultCid),
+    code('InvalidPublicationRetentionExtensionStore'));
+  assert.equal((await fsPromises.lstat(target)).isSymbolicLink(),true);
+  await reopened.close();
+});
+}
+
+test('selected retention refuses a failed target ACK without changing or adopting the record',async t=>{
+  const setup=await fixture(t),selected=await selectedRetentionFixture(setup,'selected retention ACK failure');
+  await setup.store.close();
+  const bytes=await readFile(join(selected.path,'0.json'));
+  let failSelected=true,attempts=0;
+  const reopened=await openLocalPublicationStore(setup.configuration,contractControl,{
+    async syncDirectory(path){
+      if(path===selected.path){attempts++;if(failSelected)throw Object.assign(new Error('selected extension ACK failed'),{code:'EIO'});}
+      const handle=await open(path,'r');try{await handle.sync();}finally{await handle.close();}
+    },
+  });
+  await assert.rejects(reopened.readCommittedResultRetentionExtension(selected.key,selected.resultCid),code('EIO'));
+  assert.deepEqual(await readFile(join(selected.path,'0.json')),bytes);
+  failSelected=false;
+  assert.equal((await reopened.readCommittedResultRetentionExtension(selected.key,selected.resultCid))
+    .extension.identity,selected.extension.effective_retention_policy_cid);
+  assert.equal(attempts,2,'the failed ACK is not a successful durability observation');
+  await reopened.close();
+});
+
 test('Result retention extensions are append-only CAS records across restart',
   async t => {
     const {store, configuration} = await fixture(t);
