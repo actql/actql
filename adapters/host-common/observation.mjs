@@ -550,7 +550,7 @@ export function installHostObservation(connection, {journal, runId} = {}) {
         context.selectedRows = context.trace = context.ref = context.http = undefined;
         context.retainedPromises = undefined;
       }
-      activeContexts.clear(); activeSegments = 0;
+      activeContexts.clear(); if (observeRows) activeSegments = 0;
       for (const _ of queue) drop('shutdown');
       queue.length = 0; queuedBytes = 0;
       try { closeStorage(); } catch {
