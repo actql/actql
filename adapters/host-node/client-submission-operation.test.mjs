@@ -9,6 +9,7 @@ import {openClientRequestJournal} from './client-request-journal.mjs';
 import {installNodeClientSubmission} from './client-submission.mjs';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {canonicalJson} from './local-account-config.mjs';
+import {createHostObservationConnection, installHostObservation} from '../host-common/observation.mjs';
 
 const moon = await import(process.env.ACTQL_TEST_COMMON_RUNTIME ?? new URL(
   '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js', import.meta.url).href);
@@ -92,6 +93,43 @@ async function fixture(t, {prepare, submit} = {}) {
     intentAdmissions() {return [...intentAdmissions.values()];},
     counts() {return {parsing, authentication, clockWrites};}};
 }
+
+test('request-key selected rows bind only through the same accepted original Run', async t => {
+  const f = await fixture(t), records = [];
+  const publication = runtimeCore(moon).publicationControl;
+  let returnedRows = 0;
+  const originalGet = StatementSync.prototype.get;
+  t.mock.method(StatementSync.prototype, 'get', function(...parameters) {
+    const row = Reflect.apply(originalGet, this, parameters);
+    if (this.sourceSQL.includes('FROM client_requests')) returnedRows += row === undefined ? 0 : 1;
+    return row;
+  });
+  const observer = installHostObservation(createHostObservationConnection({
+    deliver: record => records.push(record), include: ['run'],
+    events: {level: 'diagnostic'}, measurements: {include: ['rows']},
+  }), {journal: f.journal, runId(ref) {
+    const found = f.journal.lookupRunDefinition(ref, f.runtime, publication);
+    return found === undefined ? undefined : publication.runDefinitionRunId(found.runDefinition);
+  }});
+  f.journal.installObservationProjection(observer);
+  let answer;
+  try {
+    answer = await observer.run('submit', {
+      traceId: '1'.repeat(32), spanId: '2'.repeat(16), traceFlags: 1,
+    }, () => f.service.submitAttempt(f.request));
+    assert.equal(answer.outcome.kind, 'ready');
+    await observer.close();
+  } finally {await observer.close();}
+  const rows = records.filter(record => record.event === 'selected_rows_observed');
+  assert.equal(rows.length, 1);
+  assert.equal(rows[0].attributes['actql.rows.selection'], 'mixed-selected');
+  assert.equal(rows[0].attributes['actql.run.definition_cid'], answer.outcome.ref.runDefinitionCid);
+  assert.equal(rows[0].attributes['actql.rows.unrelated'], 0);
+  assert.equal(rows[0].attributes['actql.rows.returned'], returnedRows,
+    'Only actual returned native rows, including the original Run resolver, are counted');
+  assert(returnedRows > 0);
+  assert.equal(f.submissions(), 1);
+});
 
 test('one submit admits each unchanged intent wire once through preparation and original Run acceptance', async t => {
   const f = await fixture(t);
