@@ -514,6 +514,24 @@ MOONBIT_FFI_EXPORT int32_t actql_bootstrap_leave_domain(actql_bootstrap_domain *
     return actql_native_owned_leave(record->lease);
 }
 
+/* One atomic census of this exact already-entered domain. The original
+ * provider retains controls and pending extents; no capacity or ACK is issued.
+ * Validate the entire result before copying any caller-visible scalar. */
+MOONBIT_FFI_EXPORT int32_t actql_bootstrap_domain_inventory(
+    actql_bootstrap_domain *record, int64_t *output, int32_t count) {
+    if (record == NULL || record->lease == NULL || record->status != ACTQL_OWNED_OK ||
+        output == NULL || count != 5) return ACTQL_OWNED_INVALID;
+    for (int32_t index = 0; index < count; index++)
+        if (output[index] != 0) return ACTQL_OWNED_INVALID;
+    uint64_t values[16] = {0};
+    int status = actql_native_owned_inventory(record->lease, values, 16);
+    if (status != ACTQL_OWNED_OK) return status;
+    for (int32_t index = 0; index < count; index++)
+        if (values[index] > INT64_MAX) return ACTQL_OWNED_INVALID;
+    for (int32_t index = 0; index < count; index++) output[index] = (int64_t)values[index];
+    return ACTQL_OWNED_OK;
+}
+
 MOONBIT_FFI_EXPORT int32_t actql_bootstrap_close_domain(
     actql_bootstrap_view *view, actql_bootstrap_domain *record) {
     if (record->view != view) return ACTQL_OWNED_INVALID;

@@ -1370,6 +1370,14 @@ Fixed census counters themselves live in the same charged control records.
 The original provider lock makes a census coherent with allocation/retirement;
 foreign, unbound and inherited-process scopes cannot inspect it as current.
 
+The installed Host projects capacity, page size, control, occupied and peak
+bytes through its same nominal domain and already-entered physical lease. The
+fixed output and returned scalar DATA use the caller's existing allowance; no
+scope is entered to collect them. This observation is distinct from cumulative
+allocation/zeroing work and from the retained Read cleanup census. Leaving a
+scope, collecting zero live bytes or observing a historical peak cannot retire
+the domain, its view, original Library or descriptor.
+
 A phase census and its peak establish only this physical domain's observation.
 They do not fund separate stacks, loader/VM domains, unrelated allocations,
 external operations or a normal numerical profile. Observations cannot clear

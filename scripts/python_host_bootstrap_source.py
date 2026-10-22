@@ -38,6 +38,7 @@ INPUTS = (
     'src/platform_native/host_bootstrap/component_domain_minimum.h',
     'src/platform_native/host_bootstrap/read_cleanup_observation_native.mbt',
     'src/platform_native/host_bootstrap/extent_work_native.mbt',
+    'src/platform_native/host_bootstrap/domain_inventory_native.mbt',
 )
 MANIFEST = 'packages/python-local-runtime/native/pre-root/host-bootstrap-source.json'
 
