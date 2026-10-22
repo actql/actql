@@ -10365,7 +10365,7 @@
               },
               {
                 "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "await putSemantic(admitted.wire, admitted.identity);"
+                "anchor": "await putSemanticBatch([{wire: admitted.wire, semanticCid: admitted.identity}],"
               },
               {
                 "path": "adapters/store-local/publication-store.mjs",
