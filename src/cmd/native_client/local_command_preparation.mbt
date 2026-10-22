@@ -1053,7 +1053,7 @@ fn LocalCommandPreparationOriginal::read_command(
         None => CommandAdoption(issue)
       }
       self.retain_primary(primary)
-      Err(primary)
+      Err(command_preparation_read_return_issue(self.reply_outcome, primary))
     }
     Ok(_) =>
       match self.reply_outcome {
@@ -1068,6 +1068,21 @@ fn LocalCommandPreparationOriginal::read_command(
         }
         None => Err(CommandUnavailable)
       }
+  }
+}
+
+///|
+// The callback outcome remains borrowed from this retained command until main
+// reports it, before child cleanup. A failed physical return cannot replace an
+// application failure with a generic supplier diagnostic, or publish a reply.
+// The original return issue remains on the capture and primary cleanup record.
+fn command_preparation_read_return_issue(
+  outcome : Result[String, String]?,
+  return_issue : LocalCommandPreparationIssue,
+) -> LocalCommandPreparationIssue {
+  match outcome {
+    Some(Err(message)) => CommandApplication(message)
+    None | Some(Ok(_)) => return_issue
   }
 }
 
