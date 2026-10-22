@@ -394,7 +394,7 @@
     {
       "module": "packages/client-wire/index.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "4c3959c0f8c23fd91df349a8d4d465ea254376cd70224b07a490dedcbfeb1389",
+      "sha256": "1b850b8b3863e73883da581340afe72fdaccc13cbab302cc7c7bc4cad063567f",
       "exports": [
         "*:./interactive-control.generated.js",
         "ClientHostOperation",
@@ -522,7 +522,8 @@
           "name": "prepareClientHostRequest",
           "parameters": [
             "operation: ClientHostOperation",
-            "value: unknown"
+            "value: unknown",
+            "retainSnapshot?: boolean"
           ],
           "result": "Readonly<{body: unknown; connection: WireConnection}> | undefined"
         },
