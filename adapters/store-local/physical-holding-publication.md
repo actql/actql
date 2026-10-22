@@ -136,8 +136,8 @@ integrity inspection.
 The existing Store database retains only unfinished publication inventory
 originals in its private recovery index. Before acquiring an inventory file,
 the Store stages its exact Index CID and bounded inventory wire in a real native
-transaction. The inventory file retains its own write, close and directory
-acknowledgements. The pending row is removed only after the original Index
+transaction. An existing file representation retains its own write, close and
+directory acknowledgements. The pending row is removed only after the original Index
 directory acknowledgement and schema adoption. These two native transitions
 do not replace those file acknowledgements or establish a minimum barrier count.
 
@@ -156,6 +156,24 @@ deletion marker owns the same complete inventory, recovery transfers the pending
 original to that marker before physical retirement and never reconstructs its
 already removed file. Failed transfer or physical cleanup retains the original
 retry duty; no quota refund, permission or cleanup success follows from a callback.
+
+New inventory bodies are durable originals in that same native staging
+transaction, not duplicate filesystem preparations. Completion removes only the
+pending lookup; the exact bounded inventory wire remains available to selected
+reads. The existing Index file and its actual directory acknowledgement still
+determine publication. Stage and completion remain distinct native transitions;
+storing the body with its pending lookup removes the redundant inventory-file
+write/sync/close and directory sync, not those logical transitions or payload ACKs.
+
+Private native-inventory count and wire bounds are enforced before insertion.
+Additive format adoption creates their tables and count atomically; adopted
+missing tables or invalid count refuse without resetting originals. Prior
+file inventories remain files and use the same selected-use checks. They are
+not copied into a second representation during ordinary open. Retirement binds
+the same complete durable deletion marker before removing the native original
+and its pending lookup together. Same-original Unknown confirmation is retained.
+Shared contract and holding cleanup checks both representations before reclaim;
+this does not eliminate the remaining shared-reference history work.
 
 ## Same-owner cleanup and inventory
 

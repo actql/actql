@@ -4091,7 +4091,7 @@
     {
       "module": "adapters/store-local/delivery-attempt-index.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "5c11199dd1f9ee061f81ad63449756c2da030973c6cfe25cb3877bc86d3ec995",
+      "sha256": "0aa586faeb34feb1458e7fe2ba111662183abd80b3e1d1296580ba26993aaedc",
       "exports": [
         "openDeliveryAttemptIndex"
       ],
@@ -4302,6 +4302,18 @@
           "async": false
         },
         {
+          "name": "openDeliveryAttemptIndex/init:nativePublicationInventories/init:nativePublicationInventories",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openDeliveryAttemptIndex/init:nativePublicationInventory/init:nativePublicationInventory",
+          "parameters": [
+            "publicIndexCid"
+          ],
+          "async": false
+        },
+        {
           "name": "openDeliveryAttemptIndex/init:needsMigration/init:needsMigration",
           "parameters": [],
           "async": false
@@ -4356,9 +4368,23 @@
           "async": false
         },
         {
+          "name": "openDeliveryAttemptIndex/init:retireNativePublicationInventory/init:retireNativePublicationInventory",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
           "name": "openDeliveryAttemptIndex/init:run/init:run",
           "parameters": [
             "runCid"
+          ],
+          "async": false
+        },
+        {
+          "name": "openDeliveryAttemptIndex/init:stageNativePublicationInventory/init:stageNativePublicationInventory",
+          "parameters": [
+            "value"
           ],
           "async": false
         },
@@ -4367,6 +4393,11 @@
           "parameters": [
             "value"
           ],
+          "async": false
+        },
+        {
+          "name": "openDeliveryAttemptIndex/inventoryUsage/inventoryUsage",
+          "parameters": [],
           "async": false
         },
         {
@@ -4423,6 +4454,11 @@
         },
         {
           "name": "openDeliveryAttemptIndex/openDeliveryAttemptIndex#8",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openDeliveryAttemptIndex/openDeliveryAttemptIndex#9",
           "parameters": [],
           "async": false
         },
@@ -4652,6 +4688,8 @@
             "openDeliveryAttemptIndex/init:migratePublicationRecovery/init:migratePublicationRecovery",
             "openDeliveryAttemptIndex/init:migratePublicationRecovery/init:migratePublicationRecovery/init:migratePublicationRecovery",
             "openDeliveryAttemptIndex/init:migratePublicationRecovery/init:migratePublicationRecovery/keys/keys",
+            "openDeliveryAttemptIndex/init:nativePublicationInventories/init:nativePublicationInventories",
+            "openDeliveryAttemptIndex/init:nativePublicationInventory/init:nativePublicationInventory",
             "openDeliveryAttemptIndex/init:needsMigration/init:needsMigration",
             "openDeliveryAttemptIndex/init:needsPublicationRecoveryMigration/init:needsPublicationRecoveryMigration",
             "openDeliveryAttemptIndex/init:pending/init:pending",
@@ -4661,8 +4699,11 @@
             "openDeliveryAttemptIndex/init:publicationUsage/init:publicationUsage",
             "openDeliveryAttemptIndex/init:putPublicationContracts/init:putPublicationContracts",
             "openDeliveryAttemptIndex/init:removePublicationContract/init:removePublicationContract",
+            "openDeliveryAttemptIndex/init:retireNativePublicationInventory/init:retireNativePublicationInventory",
             "openDeliveryAttemptIndex/init:run/init:run",
+            "openDeliveryAttemptIndex/init:stageNativePublicationInventory/init:stageNativePublicationInventory",
             "openDeliveryAttemptIndex/init:stagePublicationInventory/init:stagePublicationInventory",
+            "openDeliveryAttemptIndex/inventoryUsage/inventoryUsage",
             "openDeliveryAttemptIndex/mutatePublicationRecovery/mutatePublicationRecovery",
             "openDeliveryAttemptIndex/mutatePublicationRecovery/mutatePublicationRecovery/mutatePublicationRecovery",
             "openDeliveryAttemptIndex/openDeliveryAttemptIndex",
@@ -4673,6 +4714,7 @@
             "openDeliveryAttemptIndex/openDeliveryAttemptIndex#6",
             "openDeliveryAttemptIndex/openDeliveryAttemptIndex#7",
             "openDeliveryAttemptIndex/openDeliveryAttemptIndex#8",
+            "openDeliveryAttemptIndex/openDeliveryAttemptIndex#9",
             "openDeliveryAttemptIndex/prepare/prepare",
             "openDeliveryAttemptIndex/prepare/prepare/prepare",
             "openDeliveryAttemptIndex/prepare/prepare/prepare#2",
@@ -4718,6 +4760,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "### Indexed pending publication recovery"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "New inventory bodies are durable originals in that same native staging"
               }
             ],
             "inputsOutputs": [
@@ -4740,6 +4786,10 @@
               {
                 "path": "adapters/store-local/delivery-attempt-index.mjs",
                 "anchor": "migratePublicationRecovery(values) {"
+              },
+              {
+                "path": "adapters/store-local/delivery-attempt-index.mjs",
+                "anchor": "stageNativePublicationInventory(value) {"
               }
             ],
             "identity": [
@@ -4754,6 +4804,10 @@
               {
                 "path": "adapters/store-local/delivery-attempt-index.mjs",
                 "anchor": "const recoveryOriginal = row => {"
+              },
+              {
+                "path": "adapters/store-local/delivery-attempt-index.mjs",
+                "anchor": "const nativeInventory = prepare('SELECT * FROM native_publication_inventories WHERE public_index_cid=?');"
               }
             ],
             "ownership": [
@@ -4768,6 +4822,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "A lost native reply retains the same mutation kind, CID and inventory wire."
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "pending lookup; the exact bounded inventory wire remains available to selected"
               }
             ],
             "synchronization": [
@@ -4782,6 +4840,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "Only a real same-original confirmation write settles that Unknown; observing a"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "transaction, not duplicate filesystem preparations. Completion removes only the"
               }
             ],
             "failure": [
@@ -4800,6 +4862,10 @@
               {
                 "path": "adapters/store-local/delivery-attempt-index.test.mjs",
                 "anchor": "publication recovery refuses missing adopted"
+              },
+              {
+                "path": "adapters/store-local/delivery-attempt-index.test.mjs",
+                "anchor": "native publication inventory refuses missing adopted"
               }
             ],
             "cancellation": [
@@ -4814,6 +4880,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "retry duty; no quota refund, permission or cleanup success follows from a callback."
+              },
+              {
+                "path": "adapters/store-local/delivery-attempt-index.mjs",
+                "anchor": "retireNativePublicationInventory(value) {"
               }
             ],
             "resources": [
@@ -4828,6 +4898,10 @@
               {
                 "path": "adapters/store-local/delivery-attempt-index.mjs",
                 "anchor": "const rows=pendingPublications.all(maxEntries+1);"
+              },
+              {
+                "path": "adapters/store-local/delivery-attempt-index.mjs",
+                "anchor": "if(rows.length!==usage.entries)fail('DeliveryAttemptIndexUnavailable');"
               }
             ],
             "extension": [
@@ -4842,6 +4916,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "An older private database format permits one bounded inventory migration."
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "Additive format adoption creates their tables and count atomically; adopted"
               }
             ],
             "verification": [
@@ -4872,6 +4950,10 @@
               {
                 "path": "adapters/store-local/delivery-attempt-index.test.mjs",
                 "anchor": "publication recovery coverage retains only pending originals across reopen"
+              },
+              {
+                "path": "adapters/store-local/delivery-attempt-index.test.mjs",
+                "anchor": "native publication inventory and pending lookup share one commit without a shadow body"
               }
             ]
           }
@@ -4881,7 +4963,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "2a5311412d8b49f43c5595d65196b055bb4b39607bcc5d2831e1c871657e51e0",
+      "sha256": "1f41cdd50b7b7d25a944416a76ac95b2dfdf49eb6cc498e66411a4eef9c7c684",
       "exports": [
         "PublicationStoreError",
         "assertOriginalLocalPublicationStoreFacilityCurrent",
@@ -6543,6 +6625,13 @@
         },
         {
           "name": "openOriginalLocalPublicationStore/metadataContractHasLiveReference/metadataContractHasLiveReference/metadataContractHasLiveReference",
+          "parameters": [
+            "object"
+          ],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/metadataContractHasLiveReference/metadataContractHasLiveReference/metadataContractHasLiveReference#2",
           "parameters": [
             "object"
           ],
@@ -8869,6 +8958,7 @@
             "openOriginalLocalPublicationStore/materialHasLiveReference/materialHasLiveReference/materialHasLiveReference",
             "openOriginalLocalPublicationStore/metadataContractHasLiveReference/metadataContractHasLiveReference",
             "openOriginalLocalPublicationStore/metadataContractHasLiveReference/metadataContractHasLiveReference/metadataContractHasLiveReference",
+            "openOriginalLocalPublicationStore/metadataContractHasLiveReference/metadataContractHasLiveReference/metadataContractHasLiveReference#2",
             "openOriginalLocalPublicationStore/metadataDeletionPath/metadataDeletionPath",
             "openOriginalLocalPublicationStore/metadataHoldingHasOtherOwner/metadataHoldingHasOtherOwner",
             "openOriginalLocalPublicationStore/metadataInventoryPath/metadataInventoryPath",
@@ -9188,6 +9278,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "Prepared-schema restart recovery first selects its pending marker names."
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "New inventory bodies are durable originals in that same native staging"
               }
             ],
             "inputsOutputs": [
@@ -9242,6 +9336,10 @@
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "const names = await readdir(preparedSchemasDirectory);"
+              },
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "deliveryIndex.stageNativePublicationInventory(original);"
               }
             ],
             "identity": [
@@ -9304,6 +9402,10 @@
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "const record = parsePreparedSchema(await readBounded("
+              },
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "if (native.inventory_wire !== original.inventory_wire) fail('PublicationMetadataInventoryConflict');"
               }
             ],
             "ownership": [
@@ -9358,6 +9460,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "schema transition to confirm. A nonempty set retains the original directory"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "the same complete durable deletion marker before removing the native original"
               }
             ],
             "synchronization": [
@@ -9412,6 +9518,10 @@
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "if (names.length === 0) return Object.freeze([]);"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "The existing Index file and its actual directory acknowledgement still"
               }
             ],
             "failure": [
@@ -9466,6 +9576,10 @@
               {
                 "path": "adapters/store-local/publication-store.test.mjs",
                 "anchor": "prepared schema cleanup retains capacity across sync failure"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "publication recovery completes only its retained inventory after a lost pre-file stage reply"
               }
             ],
             "cancellation": [
@@ -9516,6 +9630,10 @@
               {
                 "path": "adapters/store-local/publication-store.test.mjs",
                 "anchor": "restart resumes schema cleanup after alias unlink before sync"
+              },
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "deliveryIndex.retireNativePublicationInventory(recoveryOriginal);"
               }
             ],
             "resources": [
@@ -9570,6 +9688,10 @@
               {
                 "path": "adapters/store-local/publication-store.test.mjs",
                 "anchor": "no pending schema or physical mutation needs these acknowledgements"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "Private native-inventory count and wire bounds are enforced before insertion."
               }
             ],
             "extension": [
@@ -9624,6 +9746,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "Selected reads and subsequent writes retain their own integrity and real ACKs."
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "file inventories remain files and use the same selected-use checks. They are"
               }
             ],
             "verification": [
@@ -9750,6 +9876,10 @@
               {
                 "path": "adapters/store-local/publication-store.test.mjs",
                 "anchor": "empty prepared schema recovery performs no payload or contract directory ACK"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "native publication inventory survives reopen and retires only its original ownership"
               }
             ]
           }
