@@ -89,6 +89,8 @@ test('Python priority lane reuses the formal wheel producer without changing rel
   const install = job.steps.findIndex(s => s.id === 'consumer');
   const collect = job.steps.findIndex(s => s.name === 'Collect actual varied Python priority operations');
   assert(inspect >= 0 && inspect < download && download < install && install < collect);
+  const originalInstaller = workflow.jobs['ordinary-python'].steps.find(s => s.id === 'consumer');
+  assert.equal(job.steps[install].run.replaceAll('ordinary-python-priority', 'ordinary-python'), originalInstaller.run);
   assert.equal(job.steps[inspect].env.PACKAGE_ADAPTER, 'python');
   assert.equal(job.steps[inspect].env.PACKAGE_RUN_ID, '${{ inputs.python-package-run-id }}');
   assert.equal(job.steps[inspect].env.PACKAGE_PRODUCER_JOB, '${{ inputs.python-package-producer-job }}');
