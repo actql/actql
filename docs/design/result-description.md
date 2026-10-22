@@ -130,6 +130,16 @@ Store-wide Allow or successful-disk-read cache. Selected storage reads still adm
 their actual bytes, and physical writes, durability, current authority and
 cleanup retain their independent checks and original acknowledgements.
 
+The Store's incoming publication-attempt and progress-record operations admit
+and interpret the supplied contract once, then pass those same private facts
+to physical persistence. They do not call raw-contract admission again merely
+because storage is an internal helper. Public raw writes still admit each
+supplied wire, and each new operation performs its own admission. Selected
+previous records, transition/sequence conflicts, semantic identity and actual
+file/native writes, synchronization, alias custody and cleanup keep their
+existing checks. No admitted-object argument or successful-read cache is
+exposed to callers, and this reuse supplies no permission or durability ACK.
+
 Preparing a Result schema that already has an immutable semantic owner acquires
 and validates that schema's selected file original, then retains a holder in the
 same Store. It does not create another allocation or rewrite durable preparation

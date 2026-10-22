@@ -3052,6 +3052,59 @@ test('publication records are append-only and sequence creation is CAS',
     assert.ok(['committing', 'cancelled'].includes(latest.state));
   });
 
+test('publication progress persists its incoming admitted contract once per operation',async t=>{
+  const admissions=new Map();
+  const control={...contractControl,admit(name,body,bounds){
+    admissions.set(body,(admissions.get(body)??0)+1);
+    return contractControl.admit(name,body,bounds);
+  }};
+  const{store,directory,configuration}=await fixture(t,{},control);
+  const request=publicationRequest(),attempt=publicationAttempt(request,'single-admission');
+  const attemptWire=wire(attempt);
+  assert.equal((await store.createAttempt(attemptWire)).created,true);
+  assert.equal(admissions.get(attemptWire),1,'The incoming original is not sent through raw admission again');
+  admissions.clear();
+  assert.equal((await store.createAttempt(attemptWire)).created,false);
+  assert.equal(admissions.get(attemptWire),1,'A new operation still admits its supplied wire');
+  const preparing=publicationRecord(attempt,0,'preparing');
+  const committing=publicationRecord(attempt,1,'committing',preparing);
+  for(const record of[preparing,committing]){
+    admissions.clear();const body=wire(record);
+    await store.appendRecord(body,{uncommittedConfirmed:false});
+    assert.equal(admissions.get(body),1,'Only the same incoming record is reused; selected prior rows remain independent');
+  }
+  const semantic=join(directory,'contracts',committing.publication_record_cid.slice(7)+'.json');
+  const selected=join(directory,'attempts',attempt.publication_attempt_cid.slice(7),'1.json');
+  const[left,right]=await Promise.all([stat(semantic),stat(selected)]);
+  assert.equal(left.dev,right.dev);assert.equal(left.ino,right.ino);
+  assert.equal(await readFile(selected,'utf8'),wire(committing));
+  await store.close();
+  const reopened=await openLocalPublicationStore(configuration,control);
+  assert.deepEqual(await reopened.latestRecord(attempt.publication_attempt_cid),committing);
+  await assert.rejects(reopened.appendRecord(wire(preparing),{uncommittedConfirmed:false}),
+    code('InvalidPublicationRecordTransition'));
+  await reopened.close();
+});
+
+test('publication progress still rejects incoming wire before acquiring storage',async t=>{
+  let reject=false;
+  const control={...contractControl,admit(name,body,bounds){
+    if(reject)throw new Error('Incoming contract unavailable');
+    return contractControl.admit(name,body,bounds);
+  }};
+  const{store,directory}=await fixture(t,{},control);
+  const attempt=publicationAttempt(publicationRequest(),'refused-incoming');
+  reject=true;const before=store.status();
+  await assert.rejects(store.createAttempt(wire(attempt)),code('InvalidPublicationContract'));
+  assert.deepEqual(store.status(),before);assert.deepEqual(await readdir(join(directory,'attempts')),[]);
+  reject=false;await store.createAttempt(wire(attempt));
+  reject=true;const admitted=store.status();
+  await assert.rejects(store.appendRecord(wire(publicationRecord(attempt,0,'preparing')),
+    {uncommittedConfirmed:false}),code('InvalidPublicationContract'));
+  assert.deepEqual(store.status(),admitted);
+  assert.equal(await store.latestRecord(attempt.publication_attempt_cid),undefined);
+});
+
 test('publication metadata shares actual directory ACKs across its bounded contract group', async t => {
   const directory = await mkdtemp(join(tmpdir(), 'actql-publication-contract-group-'));
   t.after(() => removeFixtureDirectory(directory));

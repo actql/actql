@@ -125,10 +125,9 @@ export async function describeAuthorizedResult(service, input, signal) {
   await authorize(Object.freeze({...request, stage: 'request'}));
   let entry, index, manifest, retention, evidence;
   try {
-    entry = await store.confirmCommittedIndex(request.indexKey);
-    if (entry === undefined) fail('ResultAccessDenied');
-    index = await store.readPublicationContract(
-      entry.public_index_entry_cid, 'public_index_entry');
+    const selected = await readSelectedPublication(installed, request.indexKey);
+    if (selected === undefined) fail('ResultAccessDenied');
+    ({entry, index} = selected);
     manifest = await store.readPublicationContract(
       entry.result_manifest_cid, 'result_manifest');
     const definitionCid = control.resultReadDefinitionCid(
@@ -266,9 +265,14 @@ function validateServiceConfiguration(configuration) {
 
 export function installResultAccessService(configuration) {
   validateServiceConfiguration(configuration);
+  const readCommittedPublication = configuration.store.readCommittedPublication;
+  if (readCommittedPublication !== undefined && typeof readCommittedPublication !== 'function') {
+    fail('InvalidResultAccessService');
+  }
   const service = Object.freeze({});
   services.set(service, Object.freeze({
     store: configuration.store,
+    readCommittedPublication,
     control: configuration.control,
     authority: authorities.get(configuration.authority),
     now: configuration.now,
@@ -277,6 +281,25 @@ export function installResultAccessService(configuration) {
     frameLimits: Object.freeze({...configuration.frameLimits}),
   }));
   return service;
+}
+
+async function readSelectedPublication(installed, indexKey) {
+  if (installed.readCommittedPublication === undefined) {
+    const entry = await installed.store.confirmCommittedIndex(indexKey);
+    if (entry === undefined) return undefined;
+    const index = await installed.store.readPublicationContract(
+      entry.public_index_entry_cid, 'public_index_entry');
+    return {entry, index};
+  }
+  // This same Store read owns the selected Index's nominal admission. It is
+  // not a permission or a successful-read cache across public operations.
+  const selected = await Reflect.apply(installed.readCommittedPublication, installed.store, [indexKey]);
+  if (selected === undefined) return undefined;
+  if (!exactKeys(selected, ['entry', 'index']) || selected.entry === null ||
+      typeof selected.entry !== 'object' || selected.index === null || typeof selected.index !== 'object') {
+    fail('InvalidCommittedPublicationState');
+  }
+  return selected;
 }
 
 export async function inspectAuthorizedDeliveryAttempt(service, input) {
@@ -432,14 +455,12 @@ export async function deliverAuthorizedResult(
   let retention;
   let retained;
   try {
-    entry = await installed.store.confirmCommittedIndex(indexKey);
-    if (entry === undefined) {
+    const selected = await readSelectedPublication(installed, indexKey);
+    if (selected === undefined) {
       installed.control.recordResultAccessResolution(progress, false);
       fail('ResultAccessDenied');
     }
-    index = await installed.store.readPublicationContract(
-      entry.public_index_entry_cid, 'public_index_entry',
-    );
+    ({entry, index} = selected);
     manifest = await installed.store.readPublicationContract(
       entry.result_manifest_cid, 'result_manifest',
     );
