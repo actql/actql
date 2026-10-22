@@ -38,6 +38,11 @@ export function nodeBenchmarkFailure(error) {
     seen.add(value);
     const entry = {edge, name: text(data(value, 'name')) ?? 'Error',
       code: text(data(value, 'code')) ?? null, message: text(data(value, 'message')) ?? ''};
+    const status = data(value, 'status'), requestId = text(data(value, 'requestId'));
+    if (Number.isSafeInteger(status)) entry.status = status;
+    if (requestId !== undefined) entry.requestId = requestId;
+    const cleanupPending = data(value, 'cleanupPending');
+    if (typeof cleanupPending === 'boolean') entry.cleanupPending = cleanupPending;
     const executionRef = reference(data(value, 'executionRef')) ?? reference(data(data(value, 'execution'), 'ref'));
     if (executionRef) entry.executionRef = executionRef;
     const observation = data(value, 'observation'), state = {};

@@ -188,12 +188,12 @@ export async function open({stateDir}) {
    const id=Number(/^SELECT (\\d+) AS id$/.exec(text)?.[1]);assert(Number.isInteger(id));await event('submit',id);
    ${fault === 'unknown' ? "if(id===2)throw Object.assign(new Error('Unknown; no resend'),{code:'SubmissionUnknown'});" : ''}
    ${fault === 'nested-unknown' ? `if(id===2){
-    const cause=Object.assign(new Error('underlying observation refused'),{code:'LocalObservationRefused'});
+    const cause=Object.assign(new Error('underlying observation refused'),{code:'LocalObservationRefused',status:500,requestId:'original-request'});
     Object.defineProperty(cause,'original_error',{value:Object.assign(new Error('selected resource issue'),{code:'SelectedResourceIssue'})});
     const execution={ref:{namespaceId:'local',authorityScopeCid:'scope-original',runDefinitionCid:'run-original'},
       status(){event('unexpected-status',id);throw new Error('must not query');},
       result(){event('unexpected-result',id);throw new Error('must not read');}};
-    const error=Object.assign(new Error('QueryObservationUnknown'),{code:'QueryObservationUnknown'});
+    const error=Object.assign(new Error('QueryObservationUnknown'),{code:'QueryObservationUnknown',requestId:'original-request',cleanupPending:true});
     Object.defineProperties(error,{cause:{value:cause},execution:{value:execution},
       observation:{value:{run_id:'original-run',status:'resuming',revision:2,result_available:false}}});
     throw error;
@@ -322,6 +322,10 @@ test('priority retains nonenumerable failure causes and original execution data 
   assert.equal(report.firstFailure.code, 'QueryObservationUnknown');
   assert.deepEqual(report.firstFailure.errorChain.map(row => [row.edge, row.code]),
     [['primary', 'QueryObservationUnknown'], ['cause', 'LocalObservationRefused'], ['original_error', 'SelectedResourceIssue']]);
+  assert.equal(report.firstFailure.requestId, 'original-request');
+  assert.equal(report.firstFailure.cleanupPending, true);
+  assert.equal(report.firstFailure.errorChain[1].status, 500);
+  assert.equal(report.firstFailure.errorChain[1].requestId, 'original-request');
   assert.deepEqual(report.firstFailure.executionRef,
     {namespaceId: 'local', authorityScopeCid: 'scope-original', runDefinitionCid: 'run-original'});
   assert.deepEqual(report.firstFailure.observation,
