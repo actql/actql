@@ -1568,6 +1568,65 @@ test('existing prepared schemas retain real readers and owners without new durab
   await reopened.close();
 });
 
+test('existing schema preparation reuses its actual read generation without repeated pathname observations', async t => {
+  const {store,directory}=await fixture(t);
+  await store.putSemantic(resultSchemaWire,cids.schema);
+  const semantic=join(directory,'contracts',cids.schema.slice(7)+'.json');
+  const physical=join(directory,'objects',cids.schema.slice(7));
+  const originalLstat=fsPromises.lstat,counts={semantic:0,physical:0};
+  fsPromises.lstat=async function(path,...args){
+    if(path===semantic)counts.semantic++;
+    if(path===physical)counts.physical++;
+    return Reflect.apply(originalLstat,this,[path,...args]);
+  };
+  syncBuiltinESMExports();
+  const prepared=[];
+  try{
+    prepared.push(await store.putPreparedResultSchema(resultSchemaWire,cids.schema,cids.run));
+    assert.deepEqual(counts,{semantic:1,physical:1},
+      'one existing-name selection and the actual reader link check, not post-read repeats');
+    prepared.push(await store.putPreparedResultSchema(resultSchemaWire,cids.schema,cids.result));
+    assert.deepEqual(counts,{semantic:1,physical:2},
+      'a second preparation reacquires its own original without repeating the retained group selection');
+    assert(prepared.every(value=>value.created===false&&value.prepared.status().pending));
+    await assert.rejects(store.close(),code('PublicationStoreCleanupPending'));
+  }finally{
+    fsPromises.lstat=originalLstat;syncBuiltinESMExports();
+    for(const value of prepared)await value.prepared.release();
+  }
+  assert.equal(store.status().objectCount,1);
+  assert.equal((await store.readSemanticBytes(cids.schema)).toString(),resultSchemaWire);
+});
+
+test('existing schema preparation refuses a replacement generation while its original holder is live', async t => {
+  const {store,directory}=await fixture(t);
+  await store.putSemantic(resultSchemaWire,cids.schema);
+  const semantic=join(directory,'contracts',cids.schema.slice(7)+'.json');
+  const physical=join(directory,'objects',cids.schema.slice(7));
+  const first=await store.putPreparedResultSchema(resultSchemaWire,cids.schema,cids.run);
+  let failure;
+  try{
+    const before=await stat(physical),replacement=join(directory,'schema-replacement');
+    await writeFile(replacement,resultSchemaWire);
+    const after=await stat(replacement);
+    assert.notEqual(String(before.dev)+':'+before.ino,String(after.dev)+':'+after.ino);
+    await unlink(semantic);await unlink(physical);
+    await fsPromises.link(replacement,physical);await fsPromises.link(replacement,semantic);
+    await unlink(replacement);
+    // Equal valid bytes are not the original prepared holder's generation.
+    await assert.rejects(store.putPreparedResultSchema(resultSchemaWire,cids.schema,cids.result),error=>{
+      failure=error;return error.code==='PublicationPreparedSchemaGenerationMismatch'&&error.cleanupPending===true;
+    });
+    assert.equal((await failure.cleanupHandle.retry()).pending,false);
+    assert.equal(first.prepared.status().pending,true);
+    await assert.rejects(store.close(),code('PublicationStoreCleanupPending'));
+    assert.equal(store.status().objectCount,1);
+  }finally{
+    if(failure?.cleanupHandle.status().pending)await failure.cleanupHandle.retry();
+    await first.prepared.release();
+  }
+});
+
 test('existing schema preparation retains the same failed reader close', async t => {
   const {store, directory} = await fixture(t);
   await store.putSemantic(resultSchemaWire, cids.schema);
@@ -2343,7 +2402,7 @@ test('physical object capacity survives reopen without inspecting unrelated payl
 });
 
 for (const afterCommit of [false, true]) {
-test(`physical writer retains ${afterCommit ? 'committed' : 'rolled-back'} quota Unknown until same-original cleanup`, async t => {
+test(`physical quota close retains ${afterCommit ? 'committed' : 'rolled-back'} seal Unknown until same-original cleanup`, async t => {
   const exec = DatabaseSync.prototype.exec;
   let armed = false, lost = false;
   t.mock.method(DatabaseSync.prototype, 'exec', function(sql) {
@@ -2359,24 +2418,27 @@ test(`physical writer retains ${afterCommit ? 'committed' : 'rolled-back'} quota
   const {store, directory, configuration} = await fixture(t);
   const writer = store.createObjectWriter(7);
   await writer.append('payload');
+  await writer.seal(digest('payload'));
+  const original=await stat(join(directory,'objects',digest('payload').slice(7)));
   armed = true;
   try {
-    await assert.rejects(writer.seal(digest('payload')), error => error.outcome === 'unknown');
-    assert.equal(writer.status().custodyPending, true);
+    await assert.rejects(store.close(), error => error.outcome === 'unknown');
+    assert.equal(lost,true,'the actual original close-seal transaction was reached');
+    assert.equal(store.status().closed,false);
     assert.equal(store.status().storedBytes, 7, 'uncertain Native accounting cannot reset the physical charge');
-    await assert.rejects(store.close(), code('PublicationStoreCleanupPending'));
-    assert.equal((await readdir(join(directory, 'prepared-custody'))).length, 1);
+    await assert.rejects(store.close(),error=>error.outcome==='unknown');
+    assert.deepEqual(await readdir(join(directory,'prepared-custody')),[]);
   } finally {
     armed = false;
-    await writer.cancel();
   }
   assert.equal(writer.status().custodyPending, false);
-  assert.equal(store.status().storedBytes, 0);
-  assert.deepEqual(await readdir(join(directory, 'objects')), []);
   await store.close();
   const reopened = await openLocalPublicationStore(configuration, contractControl);
-  assert.equal(reopened.status().storedBytes, 0);
-  assert.equal(reopened.status().objectCount, 0);
+  assert.equal(reopened.status().storedBytes, 7);
+  assert.equal(reopened.status().objectCount, 1);
+  const current=await stat(join(directory,'objects',digest('payload').slice(7)));
+  assert.equal(current.dev,original.dev);assert.equal(current.ino,original.ino);
+  assert.deepEqual(await readFile(join(directory,'objects',digest('payload').slice(7))),Buffer.from('payload'));
   await reopened.close();
 });
 }
@@ -2423,7 +2485,7 @@ test('concurrent equal payload writers charge only the winning physical generati
 });
 
 for(const afterLink of [false,true]) {
-test(`cold native physical preparation recovers ${afterLink?'installed':'unlinked'} generation without a payload census`,async t=>{
+test(`unclean physical quota recovery retains ${afterLink?'installed':'unlinked'} generation within the supported census`,async t=>{
   const directory=await mkdtemp(join(tmpdir(),'actql-native-physical-crash-'));
   t.after(()=>removeFixtureDirectory(directory));
   const configuration={directory,storeAuthorityCid:cids.authority,capacityBytes:1024*1024,
@@ -2460,14 +2522,14 @@ test(`cold native physical preparation recovers ${afterLink?'installed':'unlinke
 });
 }
 
-for(const phase of ['stage','installation'])for(const afterCommit of [false,true]) {
-test(`native physical batch ${phase} retains ${afterCommit?'committed':'rolled-back'} Unknown cleanup`,async t=>{
+for(const phase of ['dirty','seal'])for(const afterCommit of [false,true]) {
+test(`owned physical quota ${phase} retains ${afterCommit?'committed':'rolled-back'} Unknown cleanup`,async t=>{
   const exec=DatabaseSync.prototype.exec;
   let armed=false,commits=0,lost=false;
   t.mock.method(DatabaseSync.prototype,'exec',function(sql){
     if(armed&&sql==='COMMIT'){
       commits++;
-      if(lost||commits===(phase==='stage'?1:2)){
+      if(lost||commits===1){
         if(!lost){lost=true;if(afterCommit)Reflect.apply(exec,this,[sql]);}
         throw Object.assign(new Error('original native batch reply unavailable'),{code:'EIO'});
       }
@@ -2475,24 +2537,22 @@ test(`native physical batch ${phase} retains ${afterCommit?'committed':'rolled-b
     return Reflect.apply(exec,this,[sql]);
   });
   const {store,directory,configuration}=await fixture(t);
-  let failure;
+  if(phase==='seal')await store.putSemantic(resultSchemaWire,cids.schema);
   armed=true;
   try {
-    await assert.rejects(store.putSemantic(resultSchemaWire,cids.schema),error=>{
-      failure=error;
-      return error.code==='DeliveryAttemptIndexCommitOutcomeUnknown'&&error.cleanupHandle?.status().pending===true;
-    });
-    await assert.rejects(store.close(),code('PublicationStoreCleanupPending'));
-    assert.equal(store.status().storedBytes,phase==='stage'?0:Buffer.byteLength(resultSchemaWire));
+    await assert.rejects(phase==='dirty'?store.putSemantic(resultSchemaWire,cids.schema):store.close(),
+      error=>error.code==='DeliveryAttemptIndexCommitOutcomeUnknown'&&error.outcome==='unknown');
+    assert.equal(lost,true,'the selected first-mutation or final-seal COMMIT was reached');
+    assert.equal(store.status().storedBytes,phase==='dirty'?0:Buffer.byteLength(resultSchemaWire));
   }finally{
     armed=false;
-    if(failure?.cleanupHandle)assert.equal((await failure.cleanupHandle.retry()).pending,false);
   }
-  assert.equal((await readdir(join(directory,'objects'))).length,phase==='stage'?0:1);
+  assert.equal((await readdir(join(directory,'objects'))).length,phase==='dirty'?0:1);
   await store.close();
   const reopened=await openLocalPublicationStore(configuration,contractControl);
-  assert.equal(reopened.status().storedBytes,phase==='stage'?0:Buffer.byteLength(resultSchemaWire));
-  await assert.rejects(reopened.readSemanticBytes(cids.schema),code('PublicationContractMissing'));
+  assert.equal(reopened.status().storedBytes,phase==='dirty'?0:Buffer.byteLength(resultSchemaWire));
+  if(phase==='dirty')await assert.rejects(reopened.readSemanticBytes(cids.schema),code('PublicationContractMissing'));
+  else assert.equal((await reopened.readSemanticBytes(cids.schema)).toString(),resultSchemaWire);
   await reopened.close();
 });
 }
@@ -3534,6 +3594,27 @@ test('legacy delivery coverage migrates once and missing adopted database refuse
   await unlink(join(directory,'delivery-attempts.sqlite3'));
   await assert.rejects(openLocalPublicationStore(configuration,supplied),code('DeliveryAttemptIndexUnavailable'));
   assert.equal(attemptAdmissions,0, 'missing adopted coverage never silently rebuilds from history');
+  await assert.rejects(stat(join(directory,'owner')),code('ENOENT'));
+});
+
+test('legacy delivery building refuses a missing original grant without adopting empty coverage', async t => {
+  const {store,directory,configuration}=await fixture(t);
+  const root=deliveryFixture(2),attempt=deliveryAttempt(root,'missing-legacy-grant');
+  await store.createDeliveryAttempt(wire(attempt),wire(root.grant));await store.close();
+  // Dedicated old-layout fixture; no live or uncertain business state is reused.
+  await unlink(join(directory,'delivery-attempts.sqlite3'));
+  await unlink(join(directory,'delivery-attempts-index.json'));
+  await unlink(join(directory,'contracts',root.grant.result_read_grant_cid.slice(7)+'.json'));
+  await assert.rejects(openLocalPublicationStore(configuration,contractControl),code('PublicationContractMissing'));
+  assert.deepEqual(JSON.parse(await readFile(join(directory,'delivery-attempts-index.json'),'utf8')),
+    {version:1,phase:'building'});
+  const native=new DatabaseSync(join(directory,'delivery-attempts.sqlite3'),{readOnly:true});
+  try{
+    assert.deepEqual({...native.prepare('SELECT complete,entries FROM coverage WHERE id=1').get()},
+      {complete:0,entries:0});
+    assert.equal(native.prepare('SELECT count(*) AS n FROM grant_uses').get().n,0);
+  }finally{native.close();}
+  assert.equal(await readFile(join(directory,'deliveries',attempt.delivery_attempt_cid.slice(7),'attempt.json'),'utf8'),wire(attempt));
   await assert.rejects(stat(join(directory,'owner')),code('ENOENT'));
 });
 

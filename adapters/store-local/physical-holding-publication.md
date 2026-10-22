@@ -233,6 +233,17 @@ schema transition to confirm. A nonempty set retains the original directory
 acknowledgements before recovering its exact markers and physical allocations.
 Selected reads and subsequent writes retain their own integrity and real ACKs.
 
+An existing schema preparation retains the device/inode scalars already checked
+by its actual semantic reader against the digest object's hard link and extent.
+It joins those same-operation facts to the existing prepared-schema generation
+instead of immediately repeating both pathname observations. Only this reader
+requests the extra frozen generation pair; ordinary contract reads do not retain
+another generation object. The reader still hashes its actual bytes, compares
+the requested schema and closes its original FD before returning. A later
+preparation reacquires its own reader, and a changed retained generation refuses.
+New or pending writers keep their final alias observations and real durability
+and cleanup duties; the reuse supplies neither capacity nor an ACK.
+
 The original metadata envelope includes the admitted record/Buffer, temporary
 path/UUID Strings, file and hard-link/directory operations, writer-set entry,
 closure/status/cleanup record, pending Promise/flight, retained original FD and
@@ -425,6 +436,11 @@ index correspondence; unrelated history is neither read nor re-admitted.
 A durable building/ready marker distinguishes migration from ready coverage.
 The bounded legacy migration reads each original attempt and referenced grant,
 refuses ambiguous keys or excess uses, and commits complete coverage once.
+Its attempt and grant readers explicitly acquire their original legacy files;
+they do not query the incomplete native index or interpret it as absence. The
+same bounded admission, semantic digest/hard-link and original reader-close
+duties remain. Ordinary native readers still require complete coverage, and
+ready or missing adopted state cannot enter this building-only reader path.
 Ready opens read only legacy pending indexed claims, not historical delivery
 names or grant bodies. A missing adopted database refuses, rather than returning
 false absence. A legacy pending claim retains its exact attempt/grant wires and
@@ -549,21 +565,22 @@ The same exclusively owned Store database retains derived physical object
 usage: content CID, byte count and the actual device/inode generation, plus
 aggregate object/byte totals and completed migration coverage. This is private
 quota metadata, not another storage authority, Account grant or physical ACK.
-The physical-usage stage of ordinary opening reads the aggregate and only pending
-preparations; it does not enumerate every committed payload to reconstruct capacity. A bounded one-time
+The physical-usage stage of clean ordinary opening reads the aggregate and only
+legacy pending preparations; it does not enumerate every committed payload to
+reconstruct capacity. A bounded one-time
 legacy census completes atomically with its totals. Missing adopted tables or
 the aggregate row refuse rather than resetting or rebuilding coverage.
 
-Every possible new final object has a durable original before link. Tracked
+Every possible new final object has recovery coverage before link. Tracked
 and untracked byte writers retain the existing internal prepared-custody record
 until installation accounting or original cleanup settles; untracked callers
-do not receive another public capability. A semantic batch instead retains its
-bounded generation originals in the same native database before linking. Its
-real object-directory ACK precedes the transaction that records installed
+do not receive another public capability. In the legacy direct index mode, a
+semantic batch retains its bounded generation originals in the same native
+database before linking. Its real object-directory ACK precedes the transaction that records installed
 usage and removes those pending originals together. No per-item custody file
 or custody-directory ACK is introduced by that batch.
 
-Pending-only cold recovery observes the selected original generations. An
+Legacy pending-only cold recovery observes the selected original generations. An
 installed generation is charged after the real directory ACK; an absent or
 different generation only retires that pending preparation, never a successor's
 installed charge. Immutable objects left by an interrupted semantic publication
@@ -577,6 +594,42 @@ visible absence and process exit cannot provide that confirmation. A failed
 ACK keeps the charge and pending owner; retries do not relink, resend, substitute
 an inode or decrement twice. Schema recovery likewise settles its retained
 generation after an interruption between unlink and directory acknowledgement.
+
+### Owned physical quota lifetime
+
+The exclusively owned ordinary Store records a real durable dirty mark before
+its first final-object installation or unlink, not at read-only open. The
+previously unused `user_version` header of this private SQLite database is zero
+for a sealed quota snapshot and one for an unsealed owned lifetime. Other values
+refuse; missing adopted physical tables or usage still refuse. This header is
+derived quota recovery metadata, never Account, Run, authority or a file ACK.
+
+After that ACK, the same index retains bounded quota changes and preparation
+generations in memory. Payload sync/close, object/alias directory ACKs and all
+physical cleanup still occur before their existing success boundaries. A failed
+unlink ACK keeps its original generation charged; a same-CID successor can be
+charged separately without replacing that retiring original. Only its own real
+ACK decrements the old charge. The current physical count bounds live and
+retiring generations. The delta retains at most the old indexed generations
+plus the current bounded generations, not an operation history or Allow cache.
+
+Safe Store close seals those exact deltas and usage totals atomically with a
+clean header in one FULL/fullfsync transaction. Selected old/current generations
+and totals are compared within that transaction. Lost COMMIT replies retain the
+same immutable seal, forbid new work and retry only that original transition.
+The seal does not replace the original native close ACK; once sealed, failed
+native close retries only that close. An unrelated unknown mutation or unusable
+connection may physically close without claiming a clean seal, retaining the
+unclean recovery marker and original uncertain outcome.
+
+Only an actually unsealed prior lifetime permits bounded physical extent
+recovery under the same Store exclusion. Recovery checks names, file types,
+extents and actual configured capacity, then atomically replaces derived quota
+rows and clears the dirty header. It does not parse or authorize historical
+Runs, repair missing adopted metadata, replay execution or grant fresh quota
+from a missing record. An interrupted recovery remains unsealed or atomically
+sealed. Later clean opens use the indexed snapshot without repeating a census.
+Read-only opening, selected reads and close do not start or seal this lifetime.
 
 The existing Store limits bound installed totals, pending generation rows,
 selected metadata, active reservations and cleanup. Native metadata transactions

@@ -1298,6 +1298,7 @@ async function openOriginalLocalPublicationStore(
   };
   const rememberPhysicalRemoval = (cid, bytes, state) => {
     if (physicalRemovalOriginals.has(cid)) return;
+    deliveryIndex.beginPhysicalObjectLifetime();
     const original = unconfirmedPhysicalInstalls.get(cid) ?? deliveryIndex.physicalObject(cid);
     if (original === undefined) {
       if (state !== undefined) fail('PublicationObjectAccountingMissing');
@@ -1308,6 +1309,7 @@ async function openOriginalLocalPublicationStore(
       fail('PublicationObjectAccountingMismatch');
     }
     physicalRemovalOriginals.set(cid, original);
+    deliveryIndex.retainPhysicalRemoval(original);
   };
   const releasePhysicalCapacity = objects => {
     const originals = [];
@@ -1957,6 +1959,7 @@ async function openOriginalLocalPublicationStore(
   };
 
   const registerCustody = async (cid, bytes, state) => {
+    deliveryIndex.beginPhysicalObjectLifetime();
     const token = randomUUID();
     const record = Object.freeze({
       version: 'actql-local-prepared-custody/0.1',
@@ -2880,6 +2883,7 @@ async function openOriginalLocalPublicationStore(
       const originals=items.filter(item=>item.temporary!==undefined)
         .map(item=>physicalOriginal(item.cid,item.bytes.byteLength,item.state));
       if(originals.length!==0) {
+        deliveryIndex.beginPhysicalObjectLifetime();
         physicalPreparations=originals;
         deliveryIndex.stagePhysicalObjects(originals);
       }
@@ -3180,7 +3184,7 @@ async function openOriginalLocalPublicationStore(
       group.holders.add(holder);
       const prepared = preparedSchemaHandle(group, holder);
       try {
-        let stored;
+        let stored, generation;
         if (holder.path !== undefined) {
           // Newly created bytes need the existing crash-reclamation marker.
           await writeExclusive(holder.path,
@@ -3191,7 +3195,7 @@ async function openOriginalLocalPublicationStore(
           // An already owned immutable schema creates no new durable state.
           // Acquire this operation's real original; retain its live holder,
           // without rewriting crash markers for an allocation we cannot delete.
-          const original = await readSemanticOriginal(semanticCid, false);
+          const original = await readSemanticOriginal(semanticCid, false, true);
           if (original.physicalCid !== physicalCid ||
               !exactUtf8WireMatches(original.bytes, wire)) {
             fail('PublicationObjectIdentityMismatch');
@@ -3199,18 +3203,24 @@ async function openOriginalLocalPublicationStore(
           stored = Object.freeze({semanticCid, physical: Object.freeze({
             cid: physicalCid, bytes: original.bytes.byteLength, created: false,
           }), created: false});
+          generation = original.generation;
         }
-        const physical = await lstat(objectPath(physicalCid));
-        const semantic = await lstat(contractPath(semanticCid));
-        if (!physical.isFile() || !semantic.isFile() ||
-            physical.dev !== semantic.dev ||
-            physical.ino !== semantic.ino ||
-            physical.size !== bytes.byteLength) {
-          fail('PublicationPreparedSchemaGenerationMismatch');
+        if (generation === undefined) {
+          // A writer still needs its actual final aliases observed. An
+          // existing body's reader already checked these same inode/extent
+          // facts while acquiring its bytes in this preparation.
+          const physical = await lstat(objectPath(physicalCid));
+          const semantic = await lstat(contractPath(semanticCid));
+          if (!physical.isFile() || !semantic.isFile() ||
+              physical.dev !== semantic.dev ||
+              physical.ino !== semantic.ino ||
+              physical.size !== bytes.byteLength) {
+            fail('PublicationPreparedSchemaGenerationMismatch');
+          }
+          generation = Object.freeze({
+            device: String(physical.dev), inode: String(physical.ino),
+          });
         }
-        const generation = {
-          device: String(physical.dev), inode: String(physical.ino),
-        };
         if (group.generation !== undefined &&
             (group.generation.device !== generation.device ||
               group.generation.inode !== generation.inode)) {
@@ -3476,7 +3486,7 @@ async function openOriginalLocalPublicationStore(
   const nativeDeliveryContract = (cid, name, retained) =>
     admitNativeContract(deliveryIndex?.contract(cid), cid, name, retained);
 
-  const readSemanticOriginal = async function readSemanticBytes(cid, includeNative = true) {
+  const readSemanticOriginal = async function readSemanticBytes(cid, includeNative = true, retainGeneration = false) {
     const path = contractPath(cid);
     active();
     const nativeRecord = includeNative ? deliveryIndex?.contract(cid) : undefined;
@@ -3535,6 +3545,9 @@ async function openOriginalLocalPublicationStore(
       // that allocation to hash it again adds no independent fact. A later
       // read still acquires and validates its own original; no Store-wide
       // successful-digest cache substitutes for that observation.
+      if (retainGeneration) return Object.freeze({bytes, physicalCid, generation: Object.freeze({
+        device: String(after.dev), inode: String(after.ino),
+      })});
       return Object.freeze({bytes, physicalCid});
     } catch (error) {
       readFailure = error;
@@ -4072,9 +4085,7 @@ async function openOriginalLocalPublicationStore(
     return record;
   };
 
-  const readDeliveryAttemptContract = async (attemptCid, retained) => {
-    const native = nativeDeliveryContract(attemptCid,'delivery_attempt',retained);
-    if (native !== undefined) return native;
+  const readFileDeliveryAttemptContract = async (attemptCid, retained) => {
     const bytes = await readBounded(
       resolve(deliveryAttemptPath(attemptCid), 'attempt.json'),
       configuration.maxObjectBytes,
@@ -4088,6 +4099,10 @@ async function openOriginalLocalPublicationStore(
       fail('InvalidDeliveryAttempt', error);
     }
   };
+
+  const readDeliveryAttemptContract = async (attemptCid, retained) =>
+    nativeDeliveryContract(attemptCid,'delivery_attempt',retained) ??
+      readFileDeliveryAttemptContract(attemptCid,retained);
 
   const deliveryLogicalKey = query => JSON.stringify([
     query.indexKey.namespaceId, query.indexKey.authorityScopeCid,
@@ -4257,11 +4272,15 @@ async function openOriginalLocalPublicationStore(
       create: coverage.phase === 'building', maxEntries: configuration.maxObjects,
       maxWireBytes: configuration.maxObjectBytes,
     });
-    if (deliveryIndex.physicalObjectUsage().complete === 0) {
+    const migratePhysical=deliveryIndex.physicalObjectUsage().complete===0;
+    const recoverPhysical=deliveryIndex.physicalObjectRecoveryRequired();
+    if(migratePhysical&&recoverPhysical)fail('DeliveryAttemptIndexUnavailable');
+    if (migratePhysical || recoverPhysical) {
       const originals = [];
       let bytes = 0;
-      // Only an unadopted private format permits this bounded census. Ready
-      // coverage never becomes empty or rebuilds merely because it is lost.
+      // Only first adoption or an actually unsealed prior owned lifetime
+      // permits this bounded physical census. Clean opening uses its index;
+      // missing adopted metadata never requests reconstruction.
       for (const name of await readOpeningDirectory(objectsDirectory)) {
         if (!/^[0-9a-f]{64}$/u.test(name)) fail('InvalidPublicationStoreObject');
         const state = await lstat(resolve(objectsDirectory, name));
@@ -4271,12 +4290,20 @@ async function openOriginalLocalPublicationStore(
         bytes += state.size;
         originals.push(physicalOriginal(`sha256:${name}`, state.size, state));
       }
-      deliveryIndex.migratePhysicalObjects(originals);
+      if(migratePhysical)deliveryIndex.migratePhysicalObjects(originals);
+      else{
+        await syncDirectory(objectsDirectory);
+        deliveryIndex.recoverPhysicalObjects(originals);
+      }
     }
     accountPhysicalUsage(deliveryIndex.physicalObjectUsage());
     if (deliveryIndex.needsMigration()) {
       if (coverage.phase !== 'building') fail('DeliveryAttemptIndexUnavailable');
       const rows = [], grants = new Map(), uses = new Map();
+      // Building coverage is not an empty native lookup. This explicit
+      // migration reads the original legacy files before publishing rows;
+      // ordinary lookups still require complete native coverage.
+      const readLegacySemantic = cid => readSemanticOriginal(cid,false);
       for (const name of await readdir(deliveriesDirectory)) {
         if (name.startsWith('.staging-')) {
           await removeOpeningTree(resolve(deliveriesDirectory,name),bootstrap);
@@ -4285,11 +4312,11 @@ async function openOriginalLocalPublicationStore(
         if (!/^[0-9a-f]{64}$/u.test(name) ||
             !(await lstat(resolve(deliveriesDirectory,name))).isDirectory()) fail('InvalidDeliveryAttemptStore');
         if (rows.length >= configuration.maxObjects) fail('DeliveryAttemptIndexLimit');
-        const attemptContract = await readDeliveryAttemptContract(`sha256:${name}`);
+        const attemptContract = await readFileDeliveryAttemptContract(`sha256:${name}`);
         const attempt = parseContract(attemptContract);
         let original = grants.get(attempt.result_read_grant_cid);
         if (original === undefined) {
-          original = await readContract(attempt.result_read_grant_cid,'result_read_grant');
+          original = await readContract(attempt.result_read_grant_cid,'result_read_grant',readLegacySemantic);
           grants.set(attempt.result_read_grant_cid,original);
         }
         const grant = original.value;
