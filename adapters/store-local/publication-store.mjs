@@ -5720,6 +5720,14 @@ async function openOriginalLocalPublicationStore(
     activeResultReaders.set(
       materialCid, (activeResultReaders.get(materialCid) ?? 0) + 1,
     );
+    let scopeActive = true, physicalReadPending = false, readerRetired = false;
+    const retireReader = () => {
+      if (scopeActive || physicalReadPending || readerRetired) return;
+      readerRetired = true;
+      const remaining = (activeResultReaders.get(materialCid) ?? 1) - 1;
+      if (remaining === 0) activeResultReaders.delete(materialCid);
+      else activeResultReaders.set(materialCid, remaining);
+    };
     try {
       const verified = await verifyDurableResultBinding(selected.contract);
       await requireResultNotDeleted(
@@ -5741,14 +5749,20 @@ async function openOriginalLocalPublicationStore(
           fail('InvalidPublicationObjectConsumer');
         }
         consumed = true;
-        return consumeObject(materialCid, accept);
+        physicalReadPending = true;
+        return consumeObject(materialCid, accept, () => {
+          // Scope completion alone is not the consuming FD's close ACK.
+          // A failed close keeps this same reader until its original cleanup
+          // callback acknowledges retirement, without reopening or rereading.
+          physicalReadPending = false;
+          retireReader();
+        });
       };
       try { return await use(metadata, consume); }
       finally { scopeOpen = false; }
     } finally {
-      const remaining = (activeResultReaders.get(materialCid) ?? 1) - 1;
-      if (remaining === 0) activeResultReaders.delete(materialCid);
-      else activeResultReaders.set(materialCid, remaining);
+      scopeActive = false;
+      retireReader();
     }
   };
 
