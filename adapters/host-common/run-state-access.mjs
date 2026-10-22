@@ -69,10 +69,18 @@ export function installRunStateService(configuration) {
   if (readCommittedPublication !== undefined && typeof readCommittedPublication !== 'function') {
     fail('InvalidRunStateService');
   }
+  const sampleTrustedClock = configuration.store.sampleTrustedClock;
+  const trustedClockNotBefore = configuration.control.trustedClockNotBefore;
+  if (sampleTrustedClock !== undefined && (typeof sampleTrustedClock !== 'function' ||
+      typeof trustedClockNotBefore !== 'function')) {
+    fail('InvalidRunStateService');
+  }
   const service = Object.freeze({});
   services.set(service, Object.freeze({
     store: configuration.store,
     readCommittedPublication,
+    sampleTrustedClock,
+    trustedClockNotBefore,
     control: configuration.control,
     authority: authorities.get(configuration.authority),
     now: configuration.now,
@@ -133,7 +141,7 @@ function unavailableFrom(error, at) {
   }
 }
 
-async function observeResult(installed, context, resultName) {
+async function observeResult(installed, context, resultName, clocks) {
   const retentionCid = installed.control.resultReadRetentionPolicyCid(
     context.manifest, resultName,
   );
@@ -149,15 +157,38 @@ async function observeResult(installed, context, resultName) {
   const clockCid = installed.control.resultRetentionClockContractCid(
     retention,
   );
-  // The original retention read may finish after another authorized read.
-  // Sample only after it settles, then synchronously enqueue that same sample
-  // on the existing Store clock owner. A stale pre-read sample must not turn
-  // ordinary completion reordering into a reported clock regression.
-  const at = observedAt(installed.now);
+  let at;
   try {
-    await installed.store.observeTrustedClock(clockCid, at);
+    if (installed.sampleTrustedClock === undefined) {
+      // Compatibility with Stores that only accept an explicit observation.
+      // Do not sample before the original retention read finishes.
+      at = observedAt(installed.now);
+      await installed.store.observeTrustedClock(clockCid, at);
+    } else {
+      const original = clocks.get(clockCid);
+      if (original?.failed) throw original.error;
+      if (original === undefined) {
+        const acceptedAt = await Reflect.apply(installed.sampleTrustedClock, installed.store,
+          [clockCid, () => (at = observedAt(installed.now))]);
+        if (at === undefined || typeof acceptedAt !== 'string' ||
+            Reflect.apply(installed.trustedClockNotBefore, installed.control, [at, acceptedAt]) !== true) {
+          fail('PublicationClockUncertain');
+        }
+        at = acceptedAt;
+      } else {
+        // Internal retention reads do not start another public operation.
+        // Reuse its real accepted floor, but evaluate expiry and rollback at
+        // this Result's current sample without claiming it was persisted.
+        at = observedAt(installed.now);
+        if (Reflect.apply(installed.trustedClockNotBefore, installed.control, [original.at, at]) !== true) {
+          fail('PublicationClockUncertain');
+        }
+      }
+      clocks.set(clockCid, {at});
+    }
   } catch (error) {
-    return {name: resultName, ...unavailableFrom(error, at)};
+    if (installed.sampleTrustedClock !== undefined) clocks.set(clockCid, {failed: true, error});
+    return {name: resultName, ...unavailableFrom(error, at ?? observedAt(installed.now))};
   }
   const definitionCid = installed.control.resultReadDefinitionCid(
     context.manifest, resultName,
@@ -317,12 +348,13 @@ export async function observeAuthorizedRunState(service, request) {
     purpose: request.purpose,
   });
   const observations = [];
+  const clocks = new Map();
   for (const name of names) {
-    observations.push(await observeResult(installed, context, name));
+    observations.push(await observeResult(installed, context, name, clocks));
   }
-  // Each Result carries its own original observation sample. The aggregate
-  // uses the last observation, without resampling, clamping or hiding a real
-  // clock-regression refusal. An empty inventory still has a read timestamp.
+  // Each Result carries its own checked observation sample, not a claim of
+  // another durable floor. The aggregate uses the last observation without
+  // clamping or hiding rollback. An empty inventory still has a read timestamp.
   const at = observations.length === 0 ? observedAt(installed.now)
     : observations.at(-1).observedAt;
   const wire = installed.control.issueSucceededRunState({

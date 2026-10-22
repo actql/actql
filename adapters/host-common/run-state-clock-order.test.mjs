@@ -1,5 +1,11 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import fs from 'node:fs/promises';
+import {join} from 'node:path';
+import {tmpdir} from 'node:os';
+import {syncBuiltinESMExports} from 'node:module';
+import {openLocalPublicationStore} from '../store-local/publication-store.mjs';
+import {createPublicationContractControlFixture} from './publication-contract-control.fixture.mjs';
 import {inspectAuthorizedRunState,installRunStateAuthority,installRunStateService}
   from './run-state-access.mjs';
 
@@ -50,14 +56,14 @@ function fixture({names=['answer'],readRetention,now,authorize,resultPolicy,samp
     },
   };
   if(sampleClock!==undefined){
+    const clockControl=createPublicationContractControlFixture();
     store.sampleTrustedClock=sampleClock===null?null:async function(identity,sample){
       assert.strictEqual(this,store);calls.push(['durable_sample',identity]);
       if(typeof sampleClock==='function')return sampleClock(identity,sample);
       const at=sample();samples.push(at);return at;
     };
     control.trustedClockNotBefore=function(before,after){
-      assert.strictEqual(this,control);return typeof after==='string'&&
-        (before===undefined||after>=before);
+      assert.strictEqual(this,control);return clockControl.trustedClockNotBefore(before,after);
     };
   }
   const service=installRunStateService({store,control,authority,
@@ -117,6 +123,67 @@ test('same-observation clock reuse preserves rollback and invalid accepted-time 
   assert.equal((await inspectAuthorizedRunState(malformed.service,request))
     .result_availability.answer.reason,'clock_uncertain');
   assert.throws(()=>fixture({sampleClock:null}),{code:'InvalidRunStateService'});
+});
+
+test('Run clock observation retains a real Store floor and releases the original synced FD',async t=>{
+  const directory=await fs.mkdtemp(join(tmpdir(),'actql-run-clock-'));
+  const physicalControl=createPublicationContractControlFixture();
+  const configuration={directory,storeAuthorityCid:cid('a'),capacityBytes:1048576,
+    maxObjectBytes:65536,maxObjects:100,maxContractNodes:4096,maxContractDepth:64};
+  let store;
+  t.after(async()=>{t.mock.restoreAll();syncBuiltinESMExports();await store?.close();await fs.rm(directory,{recursive:true});});
+  store=await openLocalPublicationStore(configuration,physicalControl);
+  const before='2026-10-17T00:00:00.000Z';
+  await store.observeTrustedClock(cid('f'),before);
+  const path=join(directory,'clocks',cid('f').slice(7)+'.json');
+  let syncs=0,closes=0,serial=1;
+  const open=fs.open;
+  t.mock.method(fs,'open',async function(file,...args){
+    const handle=await Reflect.apply(open,this,[file,...args]);
+    if(String(file)===path){
+      const sync=handle.sync,close=handle.close;
+      handle.sync=function(...values){syncs++;return Reflect.apply(sync,this,values);};
+      handle.close=function(...values){closes++;return Reflect.apply(close,this,values);};
+    }
+    return handle;
+  });
+  syncBuiltinESMExports();
+  const f=fixture({names:['answer','second'],
+    sampleClock:(identity,sample)=>store.sampleTrustedClock(identity,sample),
+    now:()=>`2026-10-17T00:00:00.${String(serial++).padStart(3,'0')}Z`});
+  const state=await inspectAuthorizedRunState(f.service,request);
+  assert.equal(state.result_availability.answer.observed_at,'2026-10-17T00:00:00.001Z');
+  assert.equal(state.result_availability.second.observed_at,'2026-10-17T00:00:00.002Z');
+  assert.equal((await store.readClockObservation(cid('f'))).observedAt,'2026-10-17T00:00:00.001Z');
+  assert.equal(syncs,1);assert.equal(closes,1,'The one real clock writer closes its original FD');
+  await inspectAuthorizedRunState(f.service,request);
+  assert.equal((await store.readClockObservation(cid('f'))).observedAt,'2026-10-17T00:00:00.003Z');
+  assert.equal(syncs,2);assert.equal(closes,2);
+  await store.close();store=await openLocalPublicationStore(configuration,physicalControl);
+  await assert.rejects(store.sampleTrustedClock(cid('f'),()=>before),{code:'PublicationClockUncertain'});
+});
+
+test('sampled Run clock facts stay private and do not replace current authorization',async()=>{
+  let allowed=true,denyResponse=false;
+  const f=fixture({names:['answer','second'],sampleClock:true,
+    authorize:facts=>{assert(!Object.hasOwn(facts,'clocks'));
+      return allowed&&!(denyResponse&&facts.stage==='response');},
+    resultPolicy:facts=>{assert(!Object.hasOwn(facts,'clocks'));return true;}});
+  await inspectAuthorizedRunState(f.service,request);allowed=false;
+  await assert.rejects(inspectAuthorizedRunState(f.service,request),{code:'RunStateAccessDenied'});
+  assert.equal(f.calls.filter(value=>value[0]==='durable_sample').length,1);
+  allowed=true;denyResponse=true;
+  await assert.rejects(inspectAuthorizedRunState(f.service,request),{code:'RunStateAccessDenied'});
+  assert.equal(f.calls.filter(value=>value[0]==='durable_sample').length,2);
+});
+
+test('invalid sampled Run clock replies cannot become observation timestamps',async()=>{
+  for(const reply of [null,{},'', 'not-a-time']){
+    const f=fixture({sampleClock:(_identity,sample)=>{sample();return reply;}});
+    const state=await inspectAuthorizedRunState(f.service,request);
+    assert.equal(state.result_availability.answer.state,'unknown');
+    assert.equal(state.result_availability.answer.observed_at,'2026-10-17T00:00:00.000Z');
+  }
 });
 
 test('original retention completion reordering cannot enqueue a stale pre-read sample',async()=>{
