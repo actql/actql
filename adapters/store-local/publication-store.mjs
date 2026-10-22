@@ -5083,6 +5083,7 @@ async function openOriginalLocalPublicationStore(
     return entry;
   };
 
+  const selectedPublicationReads = new WeakMap();
   const readCommittedPublication = async key => {
     // The selected body's nominal admission already belongs to this read.
     // Return that original, not another public raw-wire read/admission.
@@ -5090,7 +5091,11 @@ async function openOriginalLocalPublicationStore(
     if (original === undefined) return undefined;
     await requireCommittedMetadataInventory(original.entry);
     Object.freeze(original.entry.durable_result_binding_cids);
-    return Object.freeze({entry: Object.freeze(original.entry), index: original.contract});
+    const selected = Object.freeze({entry: Object.freeze(original.entry), index: original.contract});
+    // One nested metadata lookup may consume this same Store acquisition.
+    // It is neither a reusable read cache nor an authorization/ACK issuer.
+    selectedPublicationReads.set(selected, selected.entry);
+    return selected;
   };
 
   const lookupCommittedIndex = async (key, authorize) => {
@@ -5199,9 +5204,22 @@ async function openOriginalLocalPublicationStore(
   const requireCommittedResultBinding = async (
     key,
     resultDefinitionCid,
+    publication,
   ) => {
     cidHex(resultDefinitionCid);
-    const entry = await confirmSelectedCommittedIndex(key);
+    let entry;
+    if (publication === undefined) entry = await confirmSelectedCommittedIndex(key);
+    else {
+      active();
+      entry = selectedPublicationReads.get(publication);
+      if (entry === undefined || entry.namespace_id !== key.namespaceId ||
+          entry.authority_scope_cid !== key.authorityScopeCid ||
+          entry.run_definition_cid !== key.runDefinitionCid) fail('PublicationLookupDenied');
+      selectedPublicationReads.delete(publication);
+      // Real same-Store retirement invalidates the observation. This indexed
+      // fence does not reacquire/admit/hash the unchanged immutable Index.
+      if (await runMetadataDeletionStarted(entry.run_definition_cid)) fail('PublicationLookupDenied');
+    }
     if (entry === undefined) fail('PublicationLookupDenied');
     const matches = [];
     for (const bindingCid of entry.durable_result_binding_cids) {
@@ -6139,10 +6157,11 @@ async function openOriginalLocalPublicationStore(
     key,
     resultDefinitionCid,
     metadataOnly = false,
+    publication,
   ) => {
     active();
     const selected = await requireCommittedResultBinding(
-      key, resultDefinitionCid,
+      key, resultDefinitionCid, publication,
     );
     const keyHash = indexKey(key);
     if (!metadataOnly) {
@@ -6173,15 +6192,15 @@ async function openOriginalLocalPublicationStore(
     return Object.freeze({record, extension: extension.contract});
   };
 
-  const readCommittedResultRetentionExtension = (key, resultDefinitionCid) =>
-    readRetainedResultExtension(key, resultDefinitionCid, false);
+  const readCommittedResultRetentionExtension = (key, resultDefinitionCid, publication) =>
+    readRetainedResultExtension(key, resultDefinitionCid, false, publication);
 
   // Inspect the retained immutable schema and binding inventory. Payload
   // deletion does not delete publication metadata; no generation is opened,
   // hashed or held as a payload reader by this operation.
-  const readCommittedResultDescriptionEvidence = async (key, definitionCid) => {
+  const readCommittedResultDescriptionEvidence = async (key, definitionCid, publication) => {
     active();
-    const selected = await requireCommittedResultBinding(key, definitionCid);
+    const selected = await requireCommittedResultBinding(key, definitionCid, publication);
     const bindings = await Promise.all(
       selected.entry.durable_result_binding_cids.map(async cid =>
         cid === selected.contract.identity ? selected.contract :
