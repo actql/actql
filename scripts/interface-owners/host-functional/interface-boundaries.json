@@ -1487,7 +1487,7 @@
     {
       "module": "adapters/host-common/completed-run-publication.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "fb1799d2f0575cf949e85e2e7879ae3fba5c12bb817cfc7bef309bd51542dd1d",
+      "sha256": "26602ed99f914391d056bf4e19bc220b1eadfd6d0be42b90210157cf2796a1d4",
       "role": "physical-io",
       "owner": "Existing Run Publication/Artifact Owners and physical Store sequencing",
       "exports": [
@@ -1890,13 +1890,6 @@
           "async": false
         },
         {
-          "name": "publishCompletedEffectFreeRun/capturedRun/capturedRun",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
           "name": "publishCompletedEffectFreeRun/definitions/definitions",
           "parameters": [
             "value"
@@ -1926,6 +1919,13 @@
         },
         {
           "name": "publishCompletedEffectFreeRun/evidence/evidence#4",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "publishCompletedEffectFreeRun/publishCompletedEffectFreeRun",
           "parameters": [
             "value"
           ],
@@ -2397,12 +2397,12 @@
             "prepareCompletedEffectfulPublication/prepareCompletedEffectfulPublication#2",
             "publishCompletedEffectFreeRun",
             "publishCompletedEffectFreeRun/artifacts/artifacts",
-            "publishCompletedEffectFreeRun/capturedRun/capturedRun",
             "publishCompletedEffectFreeRun/definitions/definitions",
             "publishCompletedEffectFreeRun/evidence/evidence",
             "publishCompletedEffectFreeRun/evidence/evidence#2",
             "publishCompletedEffectFreeRun/evidence/evidence#3",
             "publishCompletedEffectFreeRun/evidence/evidence#4",
+            "publishCompletedEffectFreeRun/publishCompletedEffectFreeRun",
             "publishCompletedEffectfulRun",
             "recoverCompletedEffectfulComputation",
             "recoverCompletedEffectfulComputation/admit/admit",
@@ -2557,6 +2557,10 @@
               {
                 "path": "adapters/host-common/completed-run-publication.mjs",
                 "anchor": "resultOwner.publicationFailure = Object.freeze({error});"
+              },
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "### Captured computation fact lifetime"
               }
             ],
             "synchronization": [
@@ -2689,6 +2693,10 @@
               {
                 "path": "adapters/host-node/effect-cleanup-composition.test.mjs",
                 "anchor": "test('completed Effect publication preserves its exact pending failure instead of entering interrupted completion', async () => {"
+              },
+              {
+                "path": "adapters/host-common/publication-yield.test.mjs",
+                "anchor": "publication computation lifetime retires capture cancelled before publication entry without replacing payload cleanup"
               }
             ]
           }
@@ -8242,7 +8250,7 @@
     {
       "module": "adapters/host-common/run-publication.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "735d7e708c3dccdeda2f024019ec9d29dee449c03c7bc9cb2cae7d25ddaf259d",
+      "sha256": "de569c64befcab760a810809d87e076d44d67520820a2166ee4b86760211df80",
       "role": "physical-io",
       "owner": "Existing Run Publication/Artifact Owners and physical Store sequencing",
       "exports": [
@@ -8287,6 +8295,19 @@
             "uncommittedConfirmed"
           ],
           "async": true
+        },
+        {
+          "name": "capturedComputationLifetime",
+          "parameters": [
+            "control",
+            "capturedRun"
+          ],
+          "async": false
+        },
+        {
+          "name": "capturedComputationLifetime/init:retire/init:retire",
+          "parameters": [],
+          "async": false
         },
         {
           "name": "cleanupState",
@@ -8438,7 +8459,8 @@
           "name": "publishRun",
           "parameters": [
             "options",
-            "effectful"
+            "effectful",
+            "computationLifetime"
           ],
           "async": true
         },
@@ -8504,14 +8526,25 @@
             "reconciliation",
             "recordFailure",
             "control",
-            "reconcile"
+            "reconcile",
+            "retireComputation"
           ],
           "async": false
         },
         {
           "name": "uncertainFailure/handle/init:retry/init:retry",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "uncertainFailure/handle/init:retry/init:retry/init:retry",
+          "parameters": [],
           "async": true
+        },
+        {
+          "name": "uncertainFailure/handle/init:retry/init:retry/init:retry#2",
+          "parameters": [],
+          "async": false
         },
         {
           "name": "uncertainFailure/status/status",
@@ -8638,6 +8671,8 @@
             "admittedCommittedIndex",
             "appendInitialStates",
             "appendState",
+            "capturedComputationLifetime",
+            "capturedComputationLifetime/init:retire/init:retire",
             "cleanupState",
             "commitEvidence",
             "contractShape/contractShape",
@@ -8664,6 +8699,8 @@
             "requiredInventory/requiredInventory",
             "uncertainFailure",
             "uncertainFailure/handle/init:retry/init:retry",
+            "uncertainFailure/handle/init:retry/init:retry/init:retry",
+            "uncertainFailure/handle/init:retry/init:retry/init:retry#2",
             "uncertainFailure/status/status",
             "validateAttempt",
             "validateClock",
@@ -8809,6 +8846,10 @@
               {
                 "path": "docs/design/result-description.md",
                 "anchor": "The original complete group and reservations remain owned on a lost reply."
+              },
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "### Captured computation fact lifetime"
               }
             ],
             "synchronization": [
@@ -9021,6 +9062,18 @@
               {
                 "path": "adapters/store-local/publication-store.test.mjs",
                 "anchor": "existing publication start confirms only its"
+              },
+              {
+                "path": "adapters/host-common/publication-yield.test.mjs",
+                "anchor": "publication computation lifetime transfers through the actual Unknown return and commit validation"
+              },
+              {
+                "path": "adapters/host-common/publication-yield.test.mjs",
+                "anchor": "publication computation lifetime retries only failed managed retirement after original Unknown resolution"
+              },
+              {
+                "path": "adapters/host-common/publication-yield.test.mjs",
+                "anchor": "publication computation lifetime latches retry before synchronous original reconciliation reentry"
               }
             ]
           }

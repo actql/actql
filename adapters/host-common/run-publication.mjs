@@ -498,8 +498,28 @@ function cleanupState(handle, required) {
   } catch (error) { return {pending: true, errors: [error]}; }
 }
 
+function capturedComputationLifetime(control, capturedRun) {
+  const original = member(control, 'retireCapturedComputation');
+  if (original !== undefined && typeof original !== 'function') {
+    fail('InvalidCapturedComputationRetirement');
+  }
+  let retired = false, retiring = false;
+  return {
+    transferred: false,
+    retire() {
+      if (retired) return;
+      if (retiring) fail('CapturedComputationRetirementBusy');
+      retiring = true;
+      try {
+        if (original !== undefined) Reflect.apply(original, control, [capturedRun]);
+        retired = true;
+      } finally {retiring = false;}
+    },
+  };
+}
+
 function uncertainFailure(
-  primary, reconciliation, recordFailure, control, reconcile,
+  primary, reconciliation, recordFailure, control, reconcile, retireComputation,
 ) {
   const failure = new RunPublicationError('RunPublicationUnknown', primary);
   failure.publicationState = 'publication_unknown';
@@ -510,50 +530,67 @@ function uncertainFailure(
     ? member(primary, 'cleanupHandle') : undefined;
   const errors = [];
   let resolved = false;
-  let result;
+  let result, flight, computationRetired = false;
   const status = () => {
     const cleanup = cleanupState(upstream, upstreamRequired);
     return Object.freeze({
-      pending: !resolved || cleanup.pending,
+      pending: !resolved || cleanup.pending ||
+        retireComputation !== undefined && !computationRetired,
       outcome: result?.outcome,
       errors: Object.freeze([...cleanup.errors, ...errors]),
     });
   };
   const handle = Object.freeze({
     status,
-    async retry() {
-      let upstreamRetryAttempted = false;
-      while (true) {
-        const cleanup = cleanupState(upstream, upstreamRequired);
-        const action = control.publicationUnknownRetryAction(
-          resolved,
-          cleanup.pending,
-          typeof member(upstream, 'retry') === 'function',
-          upstreamRetryAttempted,
-        );
-        if (action === 'reconcile') {
-          try {
-            result = await reconcile(upstream);
-            resolved = true;
-            failure.publicationResult = result.publication;
-          } catch (error) {
-            errors.push(error);
-            throw error;
+    retry() {
+      if (flight !== undefined) return flight;
+      // Install the same flight before any original callback can reenter.
+      flight = Promise.resolve().then(async () => {
+        let upstreamRetryAttempted = false;
+        while (true) {
+          const cleanup = cleanupState(upstream, upstreamRequired);
+          const action = control.publicationUnknownRetryAction(
+            resolved,
+            cleanup.pending,
+            typeof member(upstream, 'retry') === 'function',
+            upstreamRetryAttempted,
+          );
+          if (action === 'reconcile') {
+            try {
+              result = await reconcile(upstream);
+              resolved = true;
+              failure.publicationResult = result.publication;
+            } catch (error) {
+              errors.push(error);
+              throw error;
+            }
+            continue;
           }
-          continue;
+          if (action === 'retry_upstream_cleanup') {
+            upstreamRetryAttempted = true;
+            try { await upstream.retry(); }
+            catch (error) { errors.push(error); }
+            continue;
+          }
+          if (action === 'finished') {
+            // Common may finish this retry while its upstream remains pending.
+            // Neither that action nor a status observation retires the facts.
+            if (resolved && !cleanup.pending && !computationRetired) {
+              const retire = retireComputation;
+              retire?.();
+              computationRetired = true;
+              retireComputation = undefined;
+              reconcile = undefined;
+            }
+            break;
+          }
+          fail('InvalidRunPublicationUnknownRetry');
         }
-        if (action === 'retry_upstream_cleanup') {
-          upstreamRetryAttempted = true;
-          try { await upstream.retry(); }
-          catch (error) { errors.push(error); }
-          continue;
-        }
-        if (action === 'finished') break;
-        fail('InvalidRunPublicationUnknownRetry');
-      }
-      failure.cleanupPending = status().pending;
-      failure.cleanupErrors = status().errors;
-      return status();
+        failure.cleanupPending = status().pending;
+        failure.cleanupErrors = status().errors;
+        return status();
+      }).finally(() => {flight = undefined;});
+      return flight;
     },
   });
   failure.cleanupPending = true;
@@ -564,7 +601,7 @@ function uncertainFailure(
 
 // Both Run kinds share one publication progression. Only their exact chain
 // admission and Store commit differ; retry and unknown handling do not.
-async function publishRun(options, effectful) {
+async function publishRun(options, effectful, computationLifetime) {
   const keys = ['store', 'control', 'evidence', 'request', 'attempt', 'limits',
     'now', 'signal'];
   if (!exactKeys(options, keys)) fail('InvalidRunPublicationOptions');
@@ -822,13 +859,16 @@ async function publishRun(options, effectful) {
             }, resolution.cleanup),
           });
         };
-        throw uncertainFailure(
+        const failure = uncertainFailure(
           primary,
           reconciliationFailure,
           recordFailure,
           control,
           reconcile,
+          computationLifetime?.retire,
         );
+        if (computationLifetime !== undefined) computationLifetime.transferred = true;
+        throw failure;
       }
       if (action === 'confirm_uncommitted_failure') {
         const cleanup = member(primary, 'cleanupHandle');
@@ -876,7 +916,23 @@ async function publishRun(options, effectful) {
 /// A repeated immutable request reconciles the existing commit without
 /// changing the internal Compute outcome.
 export async function publishEffectFreeRun(options) {
-  return publishRun(options, undefined);
+  const lifetime = capturedComputationLifetime(options?.control, options?.evidence?.capturedRun);
+  let primary, failed = false;
+  try { return await publishRun(options, undefined, lifetime); }
+  catch (error) {failed = true; primary = error; throw error;}
+  finally {
+    // A same-original Unknown owns its reconciliation closure beyond return.
+    // Ordinary terminal paths no longer need the completed computation fact.
+    if (!lifetime.transferred) {
+      try {lifetime.retire();}
+      catch (cleanup) {
+        if (!failed) throw cleanup;
+        const failure = new RunPublicationError('RunPublicationRetirementFailed', primary);
+        failure.cleanupError = cleanup;
+        throw failure;
+      }
+    }
+  }
 }
 
 // The caller must first establish each physical row outcome from the saved
