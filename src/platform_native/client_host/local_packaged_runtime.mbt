@@ -558,10 +558,22 @@ pub fn NativeLocalPackagedRuntime::check_current(
   self : NativeLocalPackagedRuntime,
 ) -> Result[Unit, NativeLocalPackagedRuntimeIssue] {
   match local_runtime_read_begin(self) {
-    Err(issue) => return Err(issue)
+    Err(issue) => {
+      self.ready = false
+      return Err(issue)
+    }
     Ok(_) => ()
   }
-  local_runtime_read_finish(self, self.local_runtime_check_originals())
+  let result = local_runtime_read_finish(
+    self,
+    self.local_runtime_check_originals(),
+  )
+  if result is Err(_) {
+    // A failed actual observation spends this admitted snapshot. Restoring a
+    // cheap lifetime alone cannot revive its metadata; close keeps all duties.
+    self.ready = false
+  }
+  result
 }
 
 ///|
@@ -569,8 +581,8 @@ pub fn NativeLocalPackagedRuntime::check_current(
 /// No Root, manifest, child, claim or byte allowance is recreated. The original
 /// available Read may have observed the selected SQLite path before its one
 /// consuming claim; every Runtime alias remains in that original inventory.
-/// This exchange is one-shot and retains the pair even if the following whole
-/// current check fails. Missing/foreign originals never select legacy reads.
+/// This exchange is one-shot and retains the pair even if its lifetime check
+/// fails. Missing/foreign originals never select legacy reads.
 pub fn NativeLocalPackagedRuntime::bind_original_host_resources(
   self : NativeLocalPackagedRuntime,
   resources : @arena.InstalledArenaLocalHostResources,
@@ -592,7 +604,14 @@ pub fn NativeLocalPackagedRuntime::bind_original_host_resources(
     Ok(_) => ()
   }
   self.original_resources = Some(resources)
-  self.check_current()
+  // Joining the same acquired Read to its consuming pair changes no package
+  // file. The command keeps the observed immutable package and actual lifetime;
+  // the separate unscoped constructor retains its explicit current check.
+  if self.command_preparation {
+    self.local_runtime_require_live()
+  } else {
+    self.check_current()
+  }
 }
 
 ///|
@@ -603,6 +622,9 @@ fn NativeLocalPackagedRuntime::local_runtime_check_originals(
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
+  // Count actual full package-witness passes after the cheap lifetime gate,
+  // separately from metadata accesses and individual filesystem operations.
+  native_timing_count(59)
   if self.original_resources is Some(_) {
     for root in self.roots {
       match root.require_current_original_read() {
@@ -671,7 +693,10 @@ fn NativeLocalPackagedRuntime::local_runtime_require_live(
         .map_err(issue => OriginalRead(issue))
     }
     match current {
-      Err(issue) => return Err(issue)
+      Err(issue) => {
+        self.ready = false
+        return Err(issue)
+      }
       Ok(_) => ()
     }
   }
@@ -724,9 +749,12 @@ pub fn NativeLocalPackagedRuntime::library_paths(
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
-  let result = self
-    .local_runtime_check_originals()
-    .map(_ => (self.sqlite, self.crypto))
+  let current = if self.command_preparation {
+    self.local_runtime_require_live()
+  } else {
+    self.local_runtime_check_originals()
+  }
+  let result = current.map(_ => (self.sqlite, self.crypto))
   local_runtime_read_finish(self, result)
 }
 
@@ -826,7 +854,12 @@ pub fn NativeLocalPackagedRuntime::command_library_members(
   ),
   NativeLocalPackagedRuntimeIssue,
 ] {
-  match self.check_current() {
+  let current = if self.command_preparation {
+    self.local_runtime_require_live()
+  } else {
+    self.check_current()
+  }
+  match current {
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }

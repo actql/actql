@@ -556,14 +556,10 @@ fn LocalCommandPreparationOriginal::enter(
   guard self.host is Some(host) && self.pair is Some(pair) else {
     return Err(CommandUnavailable)
   }
-  guard self.runtime is Some(runtime) else { return Err(CommandUnavailable) }
-  match runtime.check_current() {
-    Err(issue) => {
-      self.retain_primary(CommandRuntime(issue))
-      return Err(CommandRuntime(issue))
-    }
-    Ok(_) => ()
-  }
+  guard self.runtime is Some(_) else { return Err(CommandUnavailable) }
+  // Both closed callers follow trusted internal acquisition/projection work.
+  // Exchanging this same Read phase changes no package fact; protected Runtime
+  // observation and actual pair/Library lifetime remain with their owners.
   match host.enter_local_host_phase(pair, @initial_arena.HostRead) {
     Err(issue) => Err(CommandPair(issue))
     Ok(_) => {
