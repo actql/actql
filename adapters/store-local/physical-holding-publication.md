@@ -609,13 +609,24 @@ attempt locator and its two initial progress records in that transaction. The
 existing Common issuer prepares those records before persistence; there is no
 protected action between setup and initial progress. The exact attempt/Run and
 both sequential records, all bodies and quota changes commit together. Foreign
-progress, insufficient capacity and conflicting existing progress refuse. An
+initial pairs, insufficient capacity and incompatible stored identities refuse. An
 independently adopted file attempt keeps its actual file append/ACK protocol.
 Stores without this optional port keep the original two-step caller.
 Cancellation after the grouped write still reaches the ordinary active check
 before Index publication. A lost reply retains the entire same start group,
 not a replacement attempt or record; only its real confirmation followed by
 exact body and final-locator observation permits the caller to continue.
+
+An already-started attempt retains its existing progress. The proposed initial
+pair is validated but neither stored nor charged again; the ordinary caller
+selects the original record and continues through the existing state machine.
+The selected setup-only mutation identifies that scope on its own lost-reply
+failure, so confirmation requires its real setup originals and locator rather
+than bodies that it deliberately did not install. This scope is not an ACK.
+The caller reuses an already-issued pair if legacy setup still needs the initial
+append. It throws the pair's captured cancellation only after that exact pair
+is durably selected; otherwise existing progress takes its normal cancellation
+transition. No old record is replaced or Run deadline renewed.
 
 The optional initial-publication operation retains the two original records,
 `preparing` and its immediate `committing` or `cancelled` successor, in one
