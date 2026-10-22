@@ -6015,7 +6015,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "3b96803d3387ebba743ff646f343c0eabc89f5cd1e1ea4bdd28be97ad0c2d0e9",
+      "sha256": "d304e8293b013538d683a63bf29e8638180499272b65ae12d1b3a3ffc0478b48",
       "exports": [
         "PublicationStoreError",
         "assertOriginalLocalPublicationStoreFacilityCurrent",
@@ -6740,7 +6740,8 @@
           "name": "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/readOriginal/readOriginal",
           "parameters": [
             "cid",
-            "includeNative"
+            "includeNative",
+            "retained"
           ],
           "async": false
         },
@@ -8991,7 +8992,8 @@
           "parameters": [
             "cid",
             "includeNative",
-            "retainGeneration"
+            "retainGeneration",
+            "retained"
           ],
           "async": true
         },
@@ -10923,6 +10925,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "## Original Index admission within publication"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "## Selected native evidence originals"
               }
             ],
             "inputsOutputs": [
@@ -10940,7 +10946,7 @@
               },
               {
                 "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "const readOriginal = (cid, includeNative = cid !== admitted.identity) => {"
+                "anchor": "const readOriginal = (cid, includeNative = cid !== admitted.identity, retained) => {"
               },
               {
                 "path": "adapters/store-local/publication-store.mjs",
@@ -11070,7 +11076,7 @@
               },
               {
                 "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "const readOriginal = (cid, includeNative = cid !== admitted.identity) => {"
+                "anchor": "const readOriginal = (cid, includeNative = cid !== admitted.identity, retained) => {"
               },
               {
                 "path": "adapters/store-local/publication-store.mjs",
@@ -12193,6 +12199,14 @@
               {
                 "path": "adapters/store-local/publication-store.test.mjs",
                 "anchor": "independent Effect inspection ignores caller supplied private Index observations"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "publication commit reuses the exact issued original for its selected native row"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "publication native original reuse retains copied and omitted-control admission"
               }
             ]
           }
