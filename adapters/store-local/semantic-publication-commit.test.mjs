@@ -43,11 +43,11 @@ test('semantic metadata retains physical quota in the owned lifetime instead of 
       invocation_template_cid:cid('template-'+i),observation_set_cid:cid('observations-'+i)}),limits);
     originals.push(value);await store.putPublicationContract(value.name,value.wire);
   }
-  assert.equal(commits,0,'derived physical quota needs no per-batch durable transaction inside the dirty owned lifetime');
+  assert.equal(commits,1,'one dirty mark precedes all three physical batches, not a transaction per batch');
   assert.equal(store.status().objectCount,3);
   assert.equal(store.status().reservedObjects,0);
   await store.close();
-  assert.equal(commits,1,'one real atomic quota seal follows all original physical ACKs at close');
+  assert.equal(commits,2,'one real atomic quota seal follows all original physical ACKs at close');
   armed=false;
   const database=new DatabaseSync(join(directory,'delivery-attempts.sqlite3'),{readOnly:true});
   try{
@@ -56,8 +56,53 @@ test('semantic metadata retains physical quota in the owned lifetime instead of 
     assert.equal(database.prepare('SELECT count(*) AS n FROM physical_objects').get().n,3);
   }finally{database.close();}
   store=await openLocalPublicationStore(configuration(directory),control);
+  armed=true;
   for(const value of originals)assert.equal((await store.readPublicationContract(value.identity,value.name)).wire,value.wire);
   assert.equal(store.status().objectCount,3);
+  await store.close();
+  assert.equal(commits,2,'read-only opening, selected reads and close do not dirty or seal physical quota');
+});
+
+test('only an actually unsealed physical quota lifetime audits its bounded objects on reopen', async t => {
+  const directory=await mkdtemp(join(tmpdir(),'actql-semantic-quota-unclean-'));
+  let store;
+  t.after(async()=>{await store?.close();await rm(directory,{recursive:true});});
+  const selected={...configuration(directory),maxObjects:3};
+  const source=`
+    import {openLocalPublicationStore} from ${JSON.stringify(new URL('./publication-store.mjs',import.meta.url).href)};
+    import {createPublicationContractControlFixture} from ${JSON.stringify(new URL('../host-common/publication-contract-control.fixture.mjs',import.meta.url).href)};
+    const control=createPublicationContractControlFixture();
+    const store=await openLocalPublicationStore(${JSON.stringify(selected)},control);
+    for(let i=0;i<3;i++){
+      const value=control.seal('run_invocation',JSON.stringify({version:'actql-run-invocation/0.1',
+        invocation_template_cid:'sha256:'+String(i+1).repeat(64),observation_set_cid:'sha256:'+'4'.repeat(64)}),${JSON.stringify(limits)});
+      await store.putPublicationContract(value.name,value.wire);
+    }
+    process.stdout.write(JSON.stringify(store.status()));
+    process.exit(0); // Dedicated interruption fixture; no product close/ACK.
+  `;
+  const child=spawnSync(process.execPath,['--input-type=module','-e',source],{encoding:'utf8',timeout:10000,maxBuffer:65536});
+  assert.equal(child.status,0,child.stderr);const original=JSON.parse(child.stdout);
+  const database=new DatabaseSync(join(directory,'delivery-attempts.sqlite3'),{readOnly:true});
+  try{
+    assert.equal(database.prepare('PRAGMA user_version').get().user_version,1);
+    assert.equal(database.prepare('SELECT objects FROM physical_object_usage').get().objects,0,
+      'the unsealed derived snapshot is not a fresh quota grant');
+  }finally{database.close();}
+  await assert.rejects(openLocalPublicationStore({...selected,maxObjects:2},control),{code:'PublicationStoreObjectLimit'});
+  const originalLstat=fsPromises.lstat;let observed=0;
+  fsPromises.lstat=async function(path,...args){
+    if(String(path).startsWith(join(directory,'objects')+sep))observed++;
+    return Reflect.apply(originalLstat,this,[path,...args]);
+  };syncBuiltinESMExports();
+  try{
+    store=await openLocalPublicationStore(selected,control);
+    assert.equal(observed,3,'only explicit unclean recovery audits physical extents');
+    assert.equal(store.status().storedBytes,original.storedBytes);assert.equal(store.status().objectCount,3);
+    await store.close();observed=0;
+    store=await openLocalPublicationStore(selected,control);
+    assert.equal(observed,0,'clean ordinary opening never repeats that history census');
+  }finally{fsPromises.lstat=originalLstat;syncBuiltinESMExports();}
 });
 
 test('semantic metadata commits its payload and final names without intermediate custody persistence', async t => {

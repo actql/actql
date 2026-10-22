@@ -1298,6 +1298,7 @@ async function openOriginalLocalPublicationStore(
   };
   const rememberPhysicalRemoval = (cid, bytes, state) => {
     if (physicalRemovalOriginals.has(cid)) return;
+    deliveryIndex.beginPhysicalObjectLifetime();
     const original = unconfirmedPhysicalInstalls.get(cid) ?? deliveryIndex.physicalObject(cid);
     if (original === undefined) {
       if (state !== undefined) fail('PublicationObjectAccountingMissing');
@@ -1308,6 +1309,7 @@ async function openOriginalLocalPublicationStore(
       fail('PublicationObjectAccountingMismatch');
     }
     physicalRemovalOriginals.set(cid, original);
+    deliveryIndex.retainPhysicalRemoval(original);
   };
   const releasePhysicalCapacity = objects => {
     const originals = [];
@@ -1957,6 +1959,7 @@ async function openOriginalLocalPublicationStore(
   };
 
   const registerCustody = async (cid, bytes, state) => {
+    deliveryIndex.beginPhysicalObjectLifetime();
     const token = randomUUID();
     const record = Object.freeze({
       version: 'actql-local-prepared-custody/0.1',
@@ -2880,6 +2883,7 @@ async function openOriginalLocalPublicationStore(
       const originals=items.filter(item=>item.temporary!==undefined)
         .map(item=>physicalOriginal(item.cid,item.bytes.byteLength,item.state));
       if(originals.length!==0) {
+        deliveryIndex.beginPhysicalObjectLifetime();
         physicalPreparations=originals;
         deliveryIndex.stagePhysicalObjects(originals);
       }
@@ -4266,11 +4270,15 @@ async function openOriginalLocalPublicationStore(
       create: coverage.phase === 'building', maxEntries: configuration.maxObjects,
       maxWireBytes: configuration.maxObjectBytes,
     });
-    if (deliveryIndex.physicalObjectUsage().complete === 0) {
+    const migratePhysical=deliveryIndex.physicalObjectUsage().complete===0;
+    const recoverPhysical=deliveryIndex.physicalObjectRecoveryRequired();
+    if(migratePhysical&&recoverPhysical)fail('DeliveryAttemptIndexUnavailable');
+    if (migratePhysical || recoverPhysical) {
       const originals = [];
       let bytes = 0;
-      // Only an unadopted private format permits this bounded census. Ready
-      // coverage never becomes empty or rebuilds merely because it is lost.
+      // Only first adoption or an actually unsealed prior owned lifetime
+      // permits this bounded physical census. Clean opening uses its index;
+      // missing adopted metadata never requests reconstruction.
       for (const name of await readOpeningDirectory(objectsDirectory)) {
         if (!/^[0-9a-f]{64}$/u.test(name)) fail('InvalidPublicationStoreObject');
         const state = await lstat(resolve(objectsDirectory, name));
@@ -4280,7 +4288,11 @@ async function openOriginalLocalPublicationStore(
         bytes += state.size;
         originals.push(physicalOriginal(`sha256:${name}`, state.size, state));
       }
-      deliveryIndex.migratePhysicalObjects(originals);
+      if(migratePhysical)deliveryIndex.migratePhysicalObjects(originals);
+      else{
+        await syncDirectory(objectsDirectory);
+        deliveryIndex.recoverPhysicalObjects(originals);
+      }
     }
     accountPhysicalUsage(deliveryIndex.physicalObjectUsage());
     if (deliveryIndex.needsMigration()) {
