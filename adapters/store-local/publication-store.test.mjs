@@ -856,6 +856,78 @@ test('Effectful commit inspection consumes only its original private Index obser
   assert.equal(admissions, 1, 'foreign private observation refuses rather than admitting it as an original');
 });
 
+test('publication commit reuses the exact issued original for its selected native row', async t => {
+  let original, selectedWire, rawAdmissions = 0, observations = 0;
+  const control = {...contractControl, admit(name, value, bounds) {
+    if (name === 'run_invocation' && value === selectedWire) rawAdmissions++;
+    return contractControl.admit(name, value, bounds);
+  }, admitOriginal(value, bounds) {
+    if (value !== original) return undefined;
+    assert.equal(bounds.maxWireBytes, limits.maxWireBytes);
+    assert.equal(bounds.maxNodes, limits.maxNodes);
+    observations++;
+    return original;
+  }};
+  const {store, directory} = await fixture(t, {}, control);
+  const invocationValue = invocation();
+  const request = publicationRequest(resultDefinition(), invocationValue.invocation_cid);
+  const attempt = publicationAttempt(request);
+  // Use the real existing native writer before any legacy file adoption.
+  // The explicit contract-control fixture is not actual Common issuance.
+  await store.putOriginalPublicationContracts([
+    contractControl.admit('run_invocation', wire(invocationValue), limits),
+  ]);
+  const prepared = await prepareCommit(store, request, attempt, invocationValue);
+  original = prepared.evidence.invocation;
+  selectedWire = original.wire;
+  const entry = indexEntry(request, attempt, invocationValue, {
+    durable_result_binding_cids: [prepared.binding.identity],
+  });
+  const committed = await store.commitIndex(wire(entry), prepared.required, prepared.evidence);
+  assert.equal(committed.committed, true);
+  assert.equal(rawAdmissions, 0, 'the actual selected native wire equals the same issued original');
+  assert.equal(observations, 1, 'the original is observed once inside this commit');
+  assert.equal((await store.readPublicationContract(original.identity, original.name)).wire, selectedWire);
+  assert.equal(rawAdmissions, 1, 'a separate public reader admits its own native row');
+  const database = new DatabaseSync(join(directory, 'delivery-attempts.sqlite3'));
+  try {
+    assert.equal(database.prepare('UPDATE publication_contracts SET wire=? WHERE semantic_cid=?')
+      .run('{}', original.identity).changes, 1);
+  } finally { database.close(); }
+  await assert.rejects(store.commitIndex(wire(entry), prepared.required, prepared.evidence),
+    error => ['InvalidPublicationContract','InvalidDeliveryAttemptIndex'].includes(error?.code));
+  assert.equal(observations, 1, 'changed native bytes cannot reuse the old original');
+});
+
+test('publication native original reuse retains copied and omitted-control admission', async t => {
+  for (const kind of ['copy', 'unrecognized', 'omitted-port']) {
+    let original, selectedWire, rawAdmissions = 0;
+    const control = {...contractControl, admit(name, value, bounds) {
+      if (name === 'run_invocation' && value === selectedWire) rawAdmissions++;
+      return contractControl.admit(name, value, bounds);
+    }, ...(kind === 'omitted-port' ? {} : {admitOriginal(value) {
+      return kind !== 'unrecognized' && value === original ? original : undefined;
+    }})};
+    const {store} = await fixture(t, {}, control);
+    const value = invocation(), request = publicationRequest(resultDefinition(), value.invocation_cid);
+    const attempt = publicationAttempt(request);
+    await store.putOriginalPublicationContracts([
+      contractControl.admit('run_invocation', wire(value), limits),
+    ]);
+    const prepared = await prepareCommit(store, request, attempt, value);
+    original = prepared.evidence.invocation;
+    selectedWire = original.wire;
+    const evidence = kind === 'copy'
+      ? {...prepared.evidence, runDefinition: Object.freeze({...original})}
+      : prepared.evidence;
+    const entry = indexEntry(request, attempt, value, {
+      durable_result_binding_cids: [prepared.binding.identity],
+    });
+    assert.equal((await store.commitIndex(wire(entry), prepared.required, evidence)).committed, true);
+    assert.equal(rawAdmissions, 1, `${kind} keeps the selected native row's full admission`);
+  }
+});
+
 test('publication inventory reuses only its newly acknowledged Index write within the commit', async t => {
   const {store, directory} = await fixture(t);
   const invocationValue = invocation();
