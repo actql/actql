@@ -750,16 +750,16 @@ ACK keeps the charge and pending owner; retries do not relink, resend, substitut
 an inode or decrement twice. Schema recovery likewise settles its retained
 generation after an interruption between unlink and directory acknowledgement.
 
-### Owned physical quota lifetime
-
 ### Settled Result deletion recovery
 
 The existing Store database records a separate Result-deletion cleanup lifetime.
 Before the first marker write or cleanup action, a FULL/fullfsync transaction
 sets its singleton dirty state. Later deletions in that same lifetime reuse the
 actual acknowledged state. Only Store close, after all original Result readers,
-deletion cleanup and independent pending children have settled, seals it with a
-real native transaction. Closing the database alone cannot seal this duty.
+deletion cleanup and independent pending children have settled, retains its seal
+for the existing physical-quota or publication-finish transaction at close.
+Otherwise close commits that seal alone. Only a real COMMIT acknowledges the
+seal; closing the database alone cannot supply it.
 This is private recovery metadata, not permission, capacity or a physical ACK.
 
 A clean ordinary open does not enumerate completed Result deletion directories,
@@ -778,8 +778,9 @@ A lost begin or seal COMMIT reply retains the same transition and blocks other
 native work until an exact same-database confirmation transaction succeeds.
 
 This removes clean-open history work, not every recovery scan or durability
-barrier. A deletion lifetime adds one intent commit and one final seal unless
-already active; these are current implementation costs, not minimum barriers.
+barrier. A deletion lifetime adds one intent commit unless already active; its
+final seal shares an existing close transaction when available. These are
+current implementation costs, not minimum barriers.
 
 ### Owned physical quota lifetime
 

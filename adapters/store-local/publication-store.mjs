@@ -8486,7 +8486,7 @@ async function openOriginalLocalPublicationStore(
           catch { fail('PublicationStoreCleanupPending'); }
         }
         if (activePhysicalRecordWriters.size !== 0) fail('PublicationStoreCleanupPending');
-        deliveryIndex.sealResultDeletionLifetime();
+        deliveryIndex.retainResultDeletionSeal();
         if (deliveryIndex?.close() !== true) fail('PublicationStoreCleanupPending');
         return ownership.release();
       }).then(released => {

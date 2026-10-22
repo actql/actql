@@ -412,14 +412,16 @@ export async function openDeliveryAttemptIndex(path, {create, maxEntries, maxWir
       uncertainPhysicalSeal = false, uncertainPublicationFinishSeal = false;
     const retainedPublicationFinishes = new Map();
     let flushPublicationFinishes = () => [];
+    let pendingResultSeal, flushResultSeal = () => undefined;
     const run = body => {
       if (mutating) fail('DeliveryAttemptIndexBusy');
       mutating = true;
       try {
-        let finished;
+        let finished, sealedResult;
         const result = transaction.run(() => {
           const value = body();
           finished = flushPublicationFinishes();
+          sealedResult = flushResultSeal();
           return value;
         });
         // Only this transaction's real COMMIT retires retained completion
@@ -428,6 +430,10 @@ export async function openDeliveryAttemptIndex(path, {create, maxEntries, maxWir
           if (retainedPublicationFinishes.get(original.public_index_cid) === original) {
             retainedPublicationFinishes.delete(original.public_index_cid);
           }
+        }
+        if (sealedResult !== undefined) {
+          resultRecovery = sealedResult;
+          pendingResultSeal = undefined;
         }
         return result;
       }
@@ -472,6 +478,18 @@ export async function openDeliveryAttemptIndex(path, {create, maxEntries, maxWir
         if (error?.outcome === 'unknown') uncertainResultRecovery = original;
         throw error;
       }
+    };
+    flushResultSeal = () => {
+      if (pendingResultSeal === undefined) return undefined;
+      const row = readResultRecovery(), before = pendingResultSeal;
+      if (!(row.dirty === before.dirty && row.ack_revision === before.ack_revision) &&
+          !(row.dirty === 0 && row.ack_revision === before.ack_revision + 1)) {
+        fail('DeliveryAttemptIndexUnavailable');
+      }
+      const next = Object.freeze({dirty: 0, ack_revision: row.ack_revision + 1});
+      if (prepare('UPDATE result_deletion_recovery SET dirty=0,ack_revision=? WHERE id=1 AND ack_revision=?')
+        .run(next.ack_revision,row.ack_revision).changes !== 1) fail('DeliveryAttemptIndexUnavailable');
+      return next;
     };
     const storedPhysicalState = () => {
       const row = physicalUsage.get();
@@ -751,7 +769,7 @@ export async function openDeliveryAttemptIndex(path, {create, maxEntries, maxWir
       return originals;
     };
     sealPublicationFinishes = () => {
-      if (retainedPublicationFinishes.size === 0) return;
+      if (retainedPublicationFinishes.size === 0 && pendingResultSeal === undefined) return;
       // Preserve the existing ability to close an unrelated uncertain native
       // mutation without pretending to settle it. Its durable pending rows
       // remain available to the existing targeted restart recovery.
@@ -765,7 +783,7 @@ export async function openDeliveryAttemptIndex(path, {create, maxEntries, maxWir
         throw error;
       }
     };
-    retirePublicationFinishReferences = () => retainedPublicationFinishes.clear();
+    retirePublicationFinishReferences = () => {retainedPublicationFinishes.clear(); pendingResultSeal = undefined;};
     const inventoryUsage = () => {
       const row=nativeInventoryUsage.get();
       if (!row || !Number.isSafeInteger(row.entries) || row.entries<0 || row.entries>maxEntries ||
@@ -982,6 +1000,12 @@ export async function openDeliveryAttemptIndex(path, {create, maxEntries, maxWir
       resultDeletionRecoveryRequired() {requireComplete(); return resultRecovery.dirty === 1;},
       beginResultDeletionLifetime() {setResultRecovery(1);},
       sealResultDeletionLifetime() {setResultRecovery(0);},
+      retainResultDeletionSeal() {
+        // Store calls this only after its real children settle. Retention is
+        // not a seal ACK; close groups it with an existing native transaction.
+        if (resultRecovery.dirty === 0 || pendingResultSeal !== undefined) return;
+        requireComplete(); pendingResultSeal = resultRecovery;
+      },
       physicalObjectUsage() {requireOpen();return physicalState();},
       physicalObjectRecoveryRequired() {requireOpen();return physicalRecoveryRequired;},
       recoverPhysicalObjects(values) {
