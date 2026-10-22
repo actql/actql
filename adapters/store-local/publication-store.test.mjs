@@ -4938,6 +4938,73 @@ test('native publication inventory survives reopen and retires only its original
   await reopened.close();
 });
 
+test('native publication inventories retain one shared physical holding until its final original ACK',async t=>{
+  const setup=await fixture(t),{store,directory,configuration}=setup;
+  const publish=async label=>{
+    const invocationValue=invocation(),request=publicationRequest(resultDefinition(),digest(label));
+    const attempt=publicationAttempt(request,label),prepared=await prepareCommit(store,request,attempt,invocationValue);
+    const entry=indexEntry(request,attempt,invocationValue,{durable_result_binding_cids:[prepared.binding.identity]});
+    await store.commitIndex(wire(entry),prepared.required,prepared.evidence);return {request,entry};
+  };
+  const first=await publish('first shared native holding owner');
+  const second=await publish('second shared native holding owner');
+  const expectedBytes=Buffer.from('same original physical source holding');
+  const payload=await preparePhysical(store,expectedBytes);
+  const holding=physicalHolding(digest('shared native holding'),digest('shared native manifest'),
+    [{cid:payload.cid,byte_count:payload.bytes}],'effect-source');
+  await store.commitPhysicalHolding(holding,[payload.prepared]);
+  // Explicit contract-control inventory fixture, not a fabricated Common
+  // Source/Model issuer. Both native originals refer to the SAME real holding;
+  // neither is converted to the legacy inventory-file representation.
+  const database=new DatabaseSync(join(directory,'delivery-attempts.sqlite3'));
+  try {
+    database.exec('PRAGMA synchronous=FULL; PRAGMA fullfsync=ON; BEGIN IMMEDIATE');
+    for(const owner of [first,second]) {
+      const row=database.prepare('SELECT inventory_wire FROM native_publication_inventories WHERE public_index_cid=?')
+        .get(owner.entry.public_index_entry_cid);
+      const inventory=JSON.parse(row.inventory_wire);inventory.physical_holding_cids=[holding.holding_cid];
+      assert.equal(database.prepare('UPDATE native_publication_inventories SET inventory_wire=? WHERE public_index_cid=?')
+        .run(JSON.stringify(inventory),owner.entry.public_index_entry_cid).changes,1);
+    }
+    database.exec('COMMIT');
+  } finally {database.close();}
+  assert.deepEqual(await readdir(join(directory,'metadata-inventories')),[]);
+  await store.close();
+  const physicalPath=join(directory,'objects',payload.cid.slice(7));
+  const originalIdentity=await stat(physicalPath);
+  let armed=false,failAck=true,lostAcks=0;
+  const reopened=await openLocalPublicationStore(configuration,contractControl,{
+    async syncDirectory(path){
+      if(armed&&failAck&&path===join(directory,'objects')) {
+        let missing=false;
+        try {await stat(physicalPath);}catch(error){if(error.code!=='ENOENT')throw error;missing=true;}
+        if(missing){failAck=false;lostAcks++;throw Object.assign(new Error('final shared holding directory ACK failed'),{code:'EIO'});}
+      }
+      const handle=await open(path,'r');try{await handle.sync();}finally{await handle.close();}
+    },
+  });
+  const retiredFirst=await reopened.retireCommittedPublicationMetadata(indexKeyFor(first.request),'2027-01-01T00:00:00.000Z');
+  assert.equal(retiredFirst.cleanup.status().pending,false);
+  assert.deepEqual(await reopened.inspectPhysicalHolding(holding.holding_cid),holding);
+  const retainedIdentity=await stat(physicalPath);
+  assert.equal(retainedIdentity.dev,originalIdentity.dev);assert.equal(retainedIdentity.ino,originalIdentity.ino);
+  const chunks=[];await reopened.consumePhysicalHolding(holding.holding_cid,0,chunk=>chunks.push(Buffer.from(chunk)));
+  assert.deepEqual(Buffer.concat(chunks),expectedBytes);
+  assert.equal((await reopened.lookupCommittedIndex(indexKeyFor(second.request),()=>true)).public_index_entry_cid,
+    second.entry.public_index_entry_cid);
+  armed=true;
+  const retiredLast=await reopened.retireCommittedPublicationMetadata(indexKeyFor(second.request),'2027-01-01T00:00:01.000Z');
+  assert.equal(lostAcks,1);assert.equal(retiredLast.cleanup.status().pending,true);
+  assert(reopened.status().storedBytes>=payload.bytes,'unacknowledged physical unlink does not refill its charge');
+  await assert.rejects(reopened.close(),code('PublicationStoreCleanupPending'));
+  assert.equal((await retiredLast.cleanup.retry()).pending,false);
+  assert.equal(await reopened.inspectPhysicalHolding(holding.holding_cid),undefined);
+  await assert.rejects(reopened.verifyObject(payload.cid),code('PublicationObjectMissing'));
+  assert.deepEqual(await readdir(join(directory,'physical-holding-deletions')),[]);
+  assert.deepEqual(await readdir(join(directory,'metadata-inventories')),[]);
+  await reopened.close();
+});
+
 test('native publication inventory validates only the selected body and exact Index tuple',async t=>{
   const setup=await fixture(t),{store,directory,configuration}=setup;
   const publish=async label=>{
