@@ -8,6 +8,7 @@ pub struct ClientSavedSubmissionSnapshot {
   submission : ClientJournalPhysicalRow
   run : ClientJournalPhysicalRow?
   inspection : ClientRunJournalInspection?
+  state_original : ClientRunStateOriginal?
 }
 
 ///|
@@ -38,6 +39,16 @@ pub fn client_saved_submission_run_row(
   value : ClientSavedSubmissionSnapshot,
 ) -> ClientJournalPhysicalRow? {
   value.run
+}
+
+///|
+/// The original observed metadata already restored by this same snapshot.
+/// Historical absence stays absent. This supplies no current availability,
+/// authority, physical acknowledgement or permission to dispatch again.
+pub fn client_saved_submission_state_original(
+  value : ClientSavedSubmissionSnapshot,
+) -> ClientRunStateOriginal? {
+  value.state_original
 }
 
 ///|
@@ -92,20 +103,30 @@ fn[E] read_client_saved_submission_row(
       }
     }
   }
-  if record.run_state_original is Some(wire) {
-    guard inspection is Some(original) else { return Err(custody_lost) }
-    let valid = match record.run_state_observation {
-      None =>
-        validate_client_historical_run_state_original(original.definition, wire)
-        is Ok(_)
-      Some(_) =>
-        restore_client_run_state_original(original.definition, wire) is Ok(_)
-    }
-    if !valid {
-      return Err(custody_lost)
+  let state_original = match record.run_state_original {
+    None => None
+    Some(wire) => {
+      guard inspection is Some(original) else { return Err(custody_lost) }
+      match record.run_state_observation {
+        None => {
+          if validate_client_historical_run_state_original(
+              original.definition,
+              wire,
+            )
+            is Err(_) {
+            return Err(custody_lost)
+          }
+          None
+        }
+        Some(_) =>
+          match restore_client_run_state_original(original.definition, wire) {
+            Ok(state) => Some(state)
+            Err(_) => return Err(custody_lost)
+          }
+      }
     }
   }
-  Ok({ record, submission: row, run, inspection, })
+  Ok({ record, submission: row, run, inspection, state_original, })
 }
 
 ///|
