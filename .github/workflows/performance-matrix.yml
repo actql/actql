@@ -318,6 +318,75 @@ jobs:
             ${{ runner.temp }}/ordinary-python/assessment.json
           if-no-files-found: warn
           retention-days: 30
+  ordinary-priority-assessment:
+    name: Ordinary Node and Python priority checkpoint
+    needs: [ordinary-operations, ordinary-python]
+    if: ${{ vars.ACTQL_MAIN_CI_ENABLED == 'true' && github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && always() }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: 22.22.0
+      - name: Download original Node operation reports
+        if: always()
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: ordinary-operation-performance-${{ github.sha }}
+          path: ${{ runner.temp }}/ordinary-priority/node
+      - name: Download original Python operation reports
+        if: always()
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          pattern: ordinary-python-*-${{ github.sha }}
+          path: ${{ runner.temp }}/ordinary-priority/python
+          merge-multiple: false
+      - name: Join unchanged raw platform reports
+        if: always()
+        run: |
+          node --input-type=module <<'NODE'
+          import assert from 'node:assert/strict';
+          import {readFile, mkdir, writeFile} from 'node:fs/promises';
+          import {join} from 'node:path';
+          const sourceSha = process.env.GITHUB_SHA;
+          assert.match(sourceSha, /^[0-9a-f]{40}$/);
+          const root = join(process.env.RUNNER_TEMP, 'ordinary-priority');
+          const input = {sourceSha, platforms: {node: [], python: []}};
+          const operations = ['first-init', 'cold-existing', 'warm-select', 'warm-result', 'warm-status'];
+          const paths = {
+            node: ['warm', 'cold-existing', 'first-init'].map(operation =>
+              join(root, 'node', 'measurement', operation, 'measurements.json')),
+            python: operations.map(operation => join(root, 'python',
+              `ordinary-python-${operation}-${sourceSha}`, 'measurement', 'measurements.json')),
+          };
+          for (const platform of ['node', 'python']) {
+            for (const path of paths[platform]) {
+              let text;
+              try { text = await readFile(path, 'utf8'); }
+              catch (error) { if (error.code === 'ENOENT') continue; throw error; }
+              input.platforms[platform].push(JSON.parse(text));
+            }
+          }
+          await mkdir(root, {recursive: true});
+          await writeFile(join(root, 'input.json'), JSON.stringify(input, null, 2) + '\n');
+          NODE
+      - name: Require the measured public priority checkpoint
+        if: always()
+        run: node scripts/operation-performance.mjs --priority-transition "$RUNNER_TEMP/ordinary-priority/input.json" --output "$RUNNER_TEMP/ordinary-priority/assessment.json"
+      - name: Retain original reports and checkpoint assessment
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: ordinary-priority-assessment-${{ github.sha }}
+          path: ${{ runner.temp }}/ordinary-priority/
+          if-no-files-found: warn
+          retention-days: 30
   ordinary-platform-assessment:
     needs: [ordinary-operations, ordinary-native, ordinary-python]
     if: ${{ vars.ACTQL_MAIN_CI_ENABLED == 'true' && github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && always() }}

@@ -1,11 +1,31 @@
 import assert from 'node:assert/strict';
-import {readFileSync} from 'node:fs';
+import {readFileSync, mkdtempSync, mkdirSync, writeFileSync, rmSync, chmodSync} from 'node:fs';
+import {tmpdir} from 'node:os';
+import {join, dirname} from 'node:path';
+import {spawnSync} from 'node:child_process';
 import test from 'node:test';
 import {runInNewContext} from 'node:vm';
 import {parse} from 'yaml';
 
+const workflow = parse(readFileSync(new URL('../.github/workflows/performance-matrix.yml', import.meta.url), 'utf8'));
+const source = 'a'.repeat(40);
+function temporary(t) {
+  const root = mkdtempSync(join(tmpdir(), 'actql-priority-ci-'));
+  t.after(() => rmSync(root, {recursive: true, force: true}));
+  return root;
+}
+function run(step, root, extra = {}) {
+  return spawnSync('bash', ['-eo', 'pipefail', '-c', step.run], {
+    env: {...process.env, GITHUB_SHA: source, RUNNER_TEMP: root, ...extra},
+    encoding: 'utf8', timeout: 5000, maxBuffer: 65536,
+  });
+}
+function put(path, value) {
+  mkdirSync(dirname(path), {recursive: true});
+  writeFileSync(path, JSON.stringify(value));
+}
+
 test('ordinary priority assessment reuses both platform reports without replacing release assessment', () => {
-  const workflow = parse(readFileSync(new URL('../.github/workflows/performance-matrix.yml', import.meta.url), 'utf8'));
   const job = workflow.jobs['ordinary-priority-assessment'];
   assert(job, 'The controlled lane must assess the ordinary Node/Python priority transition separately');
   assert.deepEqual(job.needs, ['ordinary-operations', 'ordinary-python']);
@@ -31,4 +51,67 @@ test('ordinary priority assessment reuses both platform reports without replacin
     assert.equal(assessments[0].if, 'always()');
     assert.equal(assessments[0]['continue-on-error'], undefined);
   }
+  const downloads = job.steps.filter(step => step.uses?.startsWith('actions/download-artifact@'));
+  assert.equal(downloads.length, 2);
+  assert.equal(downloads[0].with.name, 'ordinary-operation-performance-${{ github.sha }}');
+  assert.equal(downloads[1].with.pattern, 'ordinary-python-*-${{ github.sha }}');
+  assert.equal(downloads[1].with['merge-multiple'], false);
+  for (const step of downloads) {
+    assert.equal(step.if, 'always()');
+    assert.equal(step['continue-on-error'], undefined);
+    assert.equal(step.with['run-id'], undefined, 'Reports come from this controlled workflow run');
+  }
+  assert(!job.steps.some(step => /\b(?:moon build|npm pack|pip wheel)\b/u.test(step.run ?? '')));
+  assert.equal(job.steps.at(-1).if, 'always()');
+  assert(job.steps.at(-1).uses.startsWith('actions/upload-artifact@'));
+});
+
+test('priority report join preserves original collector failures and raw metadata', t => {
+  const root = temporary(t);
+  const node = {sourceSha: source, firstFailure: {step: 'close'}, cleanup: {closed: false},
+    packageFailure: {step: 'installed-package'}, samples: [{wallNs: 1}],
+    functional: [{passed: true}], controls: {unmatched: true}};
+  const python = {sourceSha: source, operation: 'warm-result', firstFailure: null,
+    cleanup: {closed: true}, rows: [{original: true}], unknown: null};
+  put(join(root, 'ordinary-priority/node/measurement/warm/measurements.json'), node);
+  put(join(root, `ordinary-priority/python/ordinary-python-warm-result-${source}/measurement/measurements.json`), python);
+  const step = workflow.jobs['ordinary-priority-assessment'].steps.find(step => step.name === 'Join unchanged raw platform reports');
+  assert.equal(step.if, 'always()');
+  assert.equal(step['continue-on-error'], undefined);
+  const child = run(step, root);
+  assert.equal(child.status, 0, child.stderr);
+  const input = JSON.parse(readFileSync(join(root, 'ordinary-priority/input.json')));
+  assert.deepEqual(input, {sourceSha: source, platforms: {node: [node], python: [python]}});
+});
+
+test('missing reports stay empty and malformed reports cannot become successful input', t => {
+  const root = temporary(t);
+  const step = workflow.jobs['ordinary-priority-assessment'].steps.find(step => step.name === 'Join unchanged raw platform reports');
+  assert.equal(run(step, root).status, 0);
+  const path = join(root, 'ordinary-priority/input.json');
+  assert.deepEqual(JSON.parse(readFileSync(path)), {sourceSha: source, platforms: {node: [], python: []}});
+  rmSync(path);
+  const raw = join(root, 'ordinary-priority/node/measurement/warm/measurements.json');
+  mkdirSync(dirname(raw), {recursive: true});
+  writeFileSync(raw, '{invalid raw report');
+  assert.notEqual(run(step, root).status, 0);
+  assert.throws(() => readFileSync(path), {code: 'ENOENT'});
+});
+
+test('checkpoint command propagates assessor failure without replacing full release checks', t => {
+  const root = temporary(t);
+  const job = workflow.jobs['ordinary-priority-assessment'];
+  const step = job.steps.find(step => step.name === 'Require the measured public priority checkpoint');
+  assert.equal(step.if, 'always()');
+  assert.equal(step['continue-on-error'], undefined);
+  const bin = join(root, 'bin'); mkdirSync(bin);
+  const argv = join(root, 'argv.json');
+  const node = join(bin, 'node');
+  writeFileSync(node, `#!${process.execPath}\nrequire('node:fs').writeFileSync(process.env.ARGV,JSON.stringify(process.argv.slice(2)));process.exit(1);\n`);
+  chmodSync(node, 0o755);
+  const child = run(step, root, {PATH: `${bin}:${process.env.PATH}`, ARGV: argv});
+  assert.equal(child.status, 1, child.stderr);
+  assert.deepEqual(JSON.parse(readFileSync(argv)), ['scripts/operation-performance.mjs',
+    '--priority-transition', join(root, 'ordinary-priority/input.json'),
+    '--output', join(root, 'ordinary-priority/assessment.json')]);
 });
