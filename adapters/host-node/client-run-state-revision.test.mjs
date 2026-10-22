@@ -4,7 +4,8 @@ import {mkdtemp, rm, readFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {DatabaseSync} from 'node:sqlite';
-import * as moon from '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
+const moon = await import(process.env.ACTQL_TEST_COMMON_RUNTIME ?? new URL(
+  '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js', import.meta.url).href);
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {issueInstalledUnpublishedRunState, issueInstalledRunControlObservation} from '../host-common/run-state-observation.mjs';
 import {openClientRequestJournal} from './client-request-journal.mjs';
@@ -51,6 +52,67 @@ const publish = (journal, ref, at) => {
   const original = frame(journal, ref);
   return JSON.parse(journal.publishRunState(original, state(original, at), moon, control));
 };
+
+test('same original Run observation seeds the complete-row probe without another admission', async t => {
+  const {path, journal, ref} = await fixture(t);
+  let admissions = 0;
+  const counted = {...control, admit(...args) {
+    admissions++;
+    return control.admit(...args);
+  }};
+  const original = journal.lookupRunDefinition(ref, moon, counted);
+  assert.equal(admissions, 1);
+  const observe = journal.observeRunCancellation(ref, moon, counted, original);
+  const first = observe();
+  assert.deepEqual(first, {revision: original.revision,
+    cancellationRequested: original.cancellationRequested});
+  assert.equal(Object.isFrozen(first), true);
+  for (let index = 0; index < 10; index++) assert.strictEqual(observe(), first);
+  assert.equal(admissions, 1, 'The complete original row has already been admitted');
+
+  journal.requestCancellation(ref, {currentAuthorization: true,
+    publicationCommitted: false}, moon, control);
+  const changed = observe();
+  assert.equal(changed.cancellationRequested, true);
+  assert.equal(changed.revision, original.revision + 1);
+  assert.equal(admissions, 2);
+  assert.strictEqual(observe(), changed);
+
+  const writer = new DatabaseSync(join(path, 'client-requests.sqlite3'));
+  t.after(() => writer.close());
+  const wire = writer.prepare('SELECT run_definition_wire FROM client_requests').get().run_definition_wire;
+  writer.prepare('UPDATE client_requests SET run_definition_wire = ?').run('{}');
+  assert.throws(observe, {code: 'ClientRequestJournalCorrupt'},
+    'A changed payload without a revision increment cannot reuse the frame');
+  assert.throws(observe, {code: 'ClientRequestJournalCorrupt'});
+  writer.prepare('UPDATE client_requests SET run_definition_wire = ?').run(wire);
+  assert.equal(observe().cancellationRequested, true);
+  writer.exec('DELETE FROM client_requests');
+  assert.equal(observe(), undefined);
+  journal.close();
+  assert.throws(observe, {code: 'ClientRequestJournalClosed'});
+});
+
+test('Run observation seed requires the same Journal controls and complete selected key', async t => {
+  const {path, journal, ref} = await fixture(t);
+  const original = frame(journal, ref);
+  const other = openClientRequestJournal(path);
+  t.after(() => other.close());
+  const seed = (owner = journal, selected = ref, requestControl = moon,
+    publicationControl = control, candidate = original) =>
+    owner.observeRunCancellation(selected, requestControl, publicationControl, candidate);
+  for (const candidate of [{...original}, frame(other, ref), Object.freeze({})]) {
+    assert.throws(() => seed(journal, ref, moon, control, candidate),
+      {code: 'ForeignRunStateObservation'});
+  }
+  assert.throws(() => seed(other), {code: 'ForeignRunStateObservation'});
+  assert.throws(() => seed(journal, ref, {...moon}), {code: 'ForeignRunStateObservation'});
+  assert.throws(() => seed(journal, ref, moon, {...control}), {code: 'ForeignRunStateObservation'});
+  for (const selected of [{...ref, namespaceId: 'other'},
+    {...ref, authorityScopeCid: cid('b')}, {...ref, runDefinitionCid: cid('c')}]) {
+    assert.throws(() => seed(journal, selected), {code: 'ForeignRunStateObservation'});
+  }
+});
 
 test('state revision persists independently of control and unchanged rereads across reopen', async t => {
   const {path, journal, ref} = await fixture(t);
