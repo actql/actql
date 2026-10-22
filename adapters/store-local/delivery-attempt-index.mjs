@@ -855,7 +855,11 @@ export async function openDeliveryAttemptIndex(path, {create, maxEntries, maxWir
       if (kind === 'put' && (!allowance || !Number.isSafeInteger(allowance.bytes) || allowance.bytes < bytes ||
           !Number.isSafeInteger(allowance.objects) || allowance.objects < objects)) fail('PublicationStoreCapacity');
       let progressCreated = false;
-      if (objects !== 0 || retry || progress !== undefined) {
+      const retainedAttempt = progress?.kind === 'attempt' ? publicationAttempt.get(progress.attemptCid) : undefined;
+      if (retainedAttempt !== undefined && retainedAttempt.run_cid !== progress.runCid) fail('PublicationAttemptConflict');
+      // An unchanged already committed attempt needs no new mutation. This
+      // does not acknowledge a lost COMMIT: that original always retries below.
+      if (objects !== 0 || retry || progress !== undefined && retainedAttempt === undefined) {
         try {
           run(() => {
             if (progress !== undefined) {

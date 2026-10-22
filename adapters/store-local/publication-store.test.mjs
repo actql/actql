@@ -3088,6 +3088,7 @@ test('publication progress uses one native commit and no shadow file ACKs per tr
     assert.equal(store.status().objectCount,3);
     assert.equal(store.status().storedBytes,[attempt,preparing,committing].reduce((n,v)=>n+Buffer.byteLength(wire(v)),0));
     assert.equal((await store.createAttempt(wire(attempt))).created,false);
+    assert.equal(commits,3,'an unchanged committed attempt is an observation, not another durable transition');
     await store.close();armed=false;
     const reopened=await openLocalPublicationStore(configuration,contractControl);
   assert.deepEqual(await reopened.latestRecord(attempt.publication_attempt_cid),committing);
