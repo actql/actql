@@ -126,10 +126,36 @@ Internal index durability reconciliation remains separate from public selected
 use. It still confirms the real directory acknowledgement and original custody
 outcome, including before metadata has been fully staged or during retirement.
 This is not a durable ACK or permission cache. Pending deletion, prepared custody,
-uncommitted-publication recovery and quota accounting retain their original
-paths. In particular, legacy inventory recovery and payload accounting still
-walk history; removing the extra committed-wide validation does not establish
-history-independent Store startup or replace an explicit integrity inspection.
+and quota accounting retain their original responsibilities. Payload accounting
+and shared-reference discovery still walk history; indexed publication recovery
+does not establish history-independent Store startup or replace an explicit
+integrity inspection.
+
+### Indexed pending publication recovery
+
+The existing Store database retains only unfinished publication inventory
+originals in its private recovery index. Before acquiring an inventory file,
+the Store stages its exact Index CID and bounded inventory wire in a real native
+transaction. The inventory file retains its own write, close and directory
+acknowledgements. The pending row is removed only after the original Index
+directory acknowledgement and schema adoption. These two native transitions
+do not replace those file acknowledgements or establish a minimum barrier count.
+
+An older private database format permits one bounded inventory migration. The
+Store confirms each selected Index's actual directory durability, retains only
+unfinished originals, and commits coverage with the pending rows atomically.
+Subsequent opens read pending rows rather than enumerating committed inventories
+or Indexes. Missing adopted tables, coverage or malformed selected originals
+refuse; they never rebuild coverage from absence or recreate authority.
+
+A lost native reply retains the same mutation kind, CID and inventory wire.
+Only a real same-original confirmation write settles that Unknown; observing a
+row is not its acknowledgement. An unfinished publication may restore only its
+retained inventory bytes, not dispatch or replay a Run. Once a durable metadata
+deletion marker owns the same complete inventory, recovery transfers the pending
+original to that marker before physical retirement and never reconstructs its
+already removed file. Failed transfer or physical cleanup retains the original
+retry duty; no quota refund, permission or cleanup success follows from a callback.
 
 ## Same-owner cleanup and inventory
 

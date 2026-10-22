@@ -4091,7 +4091,7 @@
     {
       "module": "adapters/store-local/delivery-attempt-index.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "6c66df8c9696f1910673fa40a2bb0712cb73c9656d780355a20d71646304ea01",
+      "sha256": "5c11199dd1f9ee061f81ad63449756c2da030973c6cfe25cb3877bc86d3ec995",
       "exports": [
         "openDeliveryAttemptIndex"
       ],
@@ -4245,6 +4245,13 @@
           "async": false
         },
         {
+          "name": "openDeliveryAttemptIndex/init:finishPublicationInventory/init:finishPublicationInventory",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
           "name": "openDeliveryAttemptIndex/init:forgetRun/init:forgetRun",
           "parameters": [
             "runCid"
@@ -4276,12 +4283,48 @@
           "async": false
         },
         {
+          "name": "openDeliveryAttemptIndex/init:migratePublicationRecovery/init:migratePublicationRecovery",
+          "parameters": [
+            "values"
+          ],
+          "async": false
+        },
+        {
+          "name": "openDeliveryAttemptIndex/init:migratePublicationRecovery/init:migratePublicationRecovery/init:migratePublicationRecovery",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openDeliveryAttemptIndex/init:migratePublicationRecovery/init:migratePublicationRecovery/keys/keys",
+          "parameters": [
+            "row"
+          ],
+          "async": false
+        },
+        {
           "name": "openDeliveryAttemptIndex/init:needsMigration/init:needsMigration",
           "parameters": [],
           "async": false
         },
         {
+          "name": "openDeliveryAttemptIndex/init:needsPublicationRecoveryMigration/init:needsPublicationRecoveryMigration",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "openDeliveryAttemptIndex/init:pending/init:pending",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openDeliveryAttemptIndex/init:pendingPublication/init:pendingPublication",
+          "parameters": [
+            "publicIndexCid"
+          ],
+          "async": false
+        },
+        {
+          "name": "openDeliveryAttemptIndex/init:pendingPublications/init:pendingPublications",
           "parameters": [],
           "async": false
         },
@@ -4320,6 +4363,26 @@
           "async": false
         },
         {
+          "name": "openDeliveryAttemptIndex/init:stagePublicationInventory/init:stagePublicationInventory",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "openDeliveryAttemptIndex/mutatePublicationRecovery/mutatePublicationRecovery",
+          "parameters": [
+            "kind",
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "openDeliveryAttemptIndex/mutatePublicationRecovery/mutatePublicationRecovery/mutatePublicationRecovery",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "openDeliveryAttemptIndex/openDeliveryAttemptIndex",
           "parameters": [],
           "async": false
@@ -4355,6 +4418,11 @@
         },
         {
           "name": "openDeliveryAttemptIndex/openDeliveryAttemptIndex#7",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openDeliveryAttemptIndex/openDeliveryAttemptIndex#8",
           "parameters": [],
           "async": false
         },
@@ -4420,6 +4488,18 @@
             "entry",
             "i"
           ],
+          "async": false
+        },
+        {
+          "name": "openDeliveryAttemptIndex/recoveryOriginal/recoveryOriginal",
+          "parameters": [
+            "row"
+          ],
+          "async": false
+        },
+        {
+          "name": "openDeliveryAttemptIndex/recoveryState/recoveryState",
+          "parameters": [],
           "async": false
         },
         {
@@ -4497,6 +4577,14 @@
           "async": false
         },
         {
+          "name": "openDeliveryAttemptIndex/sameRecoveryOriginal/sameRecoveryOriginal",
+          "parameters": [
+            "left",
+            "right"
+          ],
+          "async": false
+        },
+        {
           "name": "openDeliveryAttemptIndex/transaction/transaction",
           "parameters": [],
           "async": false
@@ -4555,24 +4643,47 @@
             "openDeliveryAttemptIndex/init:contract/init:contract",
             "openDeliveryAttemptIndex/init:finish/init:finish",
             "openDeliveryAttemptIndex/init:finish/init:finish/init:finish",
+            "openDeliveryAttemptIndex/init:finishPublicationInventory/init:finishPublicationInventory",
             "openDeliveryAttemptIndex/init:forgetRun/init:forgetRun",
             "openDeliveryAttemptIndex/init:forgetRun/init:forgetRun/init:forgetRun",
             "openDeliveryAttemptIndex/init:lookup/init:lookup",
             "openDeliveryAttemptIndex/init:migrate/init:migrate",
             "openDeliveryAttemptIndex/init:migrate/init:migrate/init:migrate",
+            "openDeliveryAttemptIndex/init:migratePublicationRecovery/init:migratePublicationRecovery",
+            "openDeliveryAttemptIndex/init:migratePublicationRecovery/init:migratePublicationRecovery/init:migratePublicationRecovery",
+            "openDeliveryAttemptIndex/init:migratePublicationRecovery/init:migratePublicationRecovery/keys/keys",
             "openDeliveryAttemptIndex/init:needsMigration/init:needsMigration",
+            "openDeliveryAttemptIndex/init:needsPublicationRecoveryMigration/init:needsPublicationRecoveryMigration",
             "openDeliveryAttemptIndex/init:pending/init:pending",
+            "openDeliveryAttemptIndex/init:pendingPublication/init:pendingPublication",
+            "openDeliveryAttemptIndex/init:pendingPublications/init:pendingPublications",
+            "openDeliveryAttemptIndex/init:publicationContract/init:publicationContract",
+            "openDeliveryAttemptIndex/init:publicationUsage/init:publicationUsage",
+            "openDeliveryAttemptIndex/init:putPublicationContracts/init:putPublicationContracts",
+            "openDeliveryAttemptIndex/init:removePublicationContract/init:removePublicationContract",
             "openDeliveryAttemptIndex/init:run/init:run",
+            "openDeliveryAttemptIndex/init:stagePublicationInventory/init:stagePublicationInventory",
+            "openDeliveryAttemptIndex/mutatePublicationRecovery/mutatePublicationRecovery",
+            "openDeliveryAttemptIndex/mutatePublicationRecovery/mutatePublicationRecovery/mutatePublicationRecovery",
             "openDeliveryAttemptIndex/openDeliveryAttemptIndex",
             "openDeliveryAttemptIndex/openDeliveryAttemptIndex#2",
             "openDeliveryAttemptIndex/openDeliveryAttemptIndex#3",
             "openDeliveryAttemptIndex/openDeliveryAttemptIndex#4",
             "openDeliveryAttemptIndex/openDeliveryAttemptIndex#5",
             "openDeliveryAttemptIndex/openDeliveryAttemptIndex#6",
+            "openDeliveryAttemptIndex/openDeliveryAttemptIndex#7",
+            "openDeliveryAttemptIndex/openDeliveryAttemptIndex#8",
             "openDeliveryAttemptIndex/prepare/prepare",
             "openDeliveryAttemptIndex/prepare/prepare/prepare",
             "openDeliveryAttemptIndex/prepare/prepare/prepare#2",
             "openDeliveryAttemptIndex/prepare/prepare/prepare#3",
+            "openDeliveryAttemptIndex/publicationCopy/publicationCopy",
+            "openDeliveryAttemptIndex/publicationMutation/publicationMutation",
+            "openDeliveryAttemptIndex/publicationMutation/publicationMutation/originals/originals",
+            "openDeliveryAttemptIndex/publicationMutation/publicationMutation/publicationMutation",
+            "openDeliveryAttemptIndex/publicationMutation/publicationMutation/retry/retry",
+            "openDeliveryAttemptIndex/recoveryOriginal/recoveryOriginal",
+            "openDeliveryAttemptIndex/recoveryState/recoveryState",
             "openDeliveryAttemptIndex/requireComplete/requireComplete",
             "openDeliveryAttemptIndex/requireOpen/requireOpen",
             "openDeliveryAttemptIndex/retainFailure/retainFailure",
@@ -4583,22 +4694,13 @@
             "openDeliveryAttemptIndex/run/run",
             "openDeliveryAttemptIndex/sameCompletion/sameCompletion",
             "openDeliveryAttemptIndex/sameCompletion/sameCompletion/sameCompletion",
-            "openDeliveryAttemptIndex/transaction/transaction",
-            "openDeliveryAttemptIndex/validate/validate",
-            "openDeliveryAttemptIndex/validate/validate/validate",
-            "openDeliveryAttemptIndex/init:publicationContract/init:publicationContract",
-            "openDeliveryAttemptIndex/init:publicationUsage/init:publicationUsage",
-            "openDeliveryAttemptIndex/init:putPublicationContracts/init:putPublicationContracts",
-            "openDeliveryAttemptIndex/init:removePublicationContract/init:removePublicationContract",
-            "openDeliveryAttemptIndex/openDeliveryAttemptIndex#7",
-            "openDeliveryAttemptIndex/publicationCopy/publicationCopy",
-            "openDeliveryAttemptIndex/publicationMutation/publicationMutation",
-            "openDeliveryAttemptIndex/publicationMutation/publicationMutation/originals/originals",
-            "openDeliveryAttemptIndex/publicationMutation/publicationMutation/publicationMutation",
-            "openDeliveryAttemptIndex/publicationMutation/publicationMutation/retry/retry",
             "openDeliveryAttemptIndex/samePublication/samePublication",
             "openDeliveryAttemptIndex/samePublication/samePublication/samePublication",
-            "openDeliveryAttemptIndex/usage/usage"
+            "openDeliveryAttemptIndex/sameRecoveryOriginal/sameRecoveryOriginal",
+            "openDeliveryAttemptIndex/transaction/transaction",
+            "openDeliveryAttemptIndex/usage/usage",
+            "openDeliveryAttemptIndex/validate/validate",
+            "openDeliveryAttemptIndex/validate/validate/validate"
           ],
           "exports": [
             "openDeliveryAttemptIndex"
@@ -4612,6 +4714,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "### Publication metadata in the same database"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "### Indexed pending publication recovery"
               }
             ],
             "inputsOutputs": [
@@ -4630,6 +4736,10 @@
               {
                 "path": "adapters/store-local/delivery-attempt-index.mjs",
                 "anchor": "putPublicationContracts(entries, allowance) { return publicationMutation('put',entries,allowance); },"
+              },
+              {
+                "path": "adapters/store-local/delivery-attempt-index.mjs",
+                "anchor": "migratePublicationRecovery(values) {"
               }
             ],
             "identity": [
@@ -4640,6 +4750,10 @@
               {
                 "path": "adapters/store-local/delivery-attempt-index.mjs",
                 "anchor": "['semantic_cid','name','wire','byte_count'].every(key => left[key] === right[key]);"
+              },
+              {
+                "path": "adapters/store-local/delivery-attempt-index.mjs",
+                "anchor": "const recoveryOriginal = row => {"
               }
             ],
             "ownership": [
@@ -4650,6 +4764,10 @@
               {
                 "path": "adapters/store-local/delivery-attempt-index.mjs",
                 "anchor": "if (error?.outcome === 'unknown') uncertainPublication = Object.freeze({kind,entries:originals});"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "A lost native reply retains the same mutation kind, CID and inventory wire."
               }
             ],
             "synchronization": [
@@ -4660,6 +4778,10 @@
               {
                 "path": "adapters/store-local/delivery-attempt-index.mjs",
                 "anchor": "if (updatePublicationUsage.run(objects,bytes).changes !== 1) fail('InvalidDeliveryAttemptIndex');"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "Only a real same-original confirmation write settles that Unknown; observing a"
               }
             ],
             "failure": [
@@ -4674,6 +4796,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "real same-database confirmation write settles it, never a visible row or another"
+              },
+              {
+                "path": "adapters/store-local/delivery-attempt-index.test.mjs",
+                "anchor": "publication recovery refuses missing adopted"
               }
             ],
             "cancellation": [
@@ -4684,6 +4810,10 @@
               {
                 "path": "adapters/store-local/delivery-attempt-index.mjs",
                 "anchor": "if (closed || closing || mutating || !complete) fail('DeliveryAttemptIndexCleanupPending');"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "retry duty; no quota refund, permission or cleanup success follows from a callback."
               }
             ],
             "resources": [
@@ -4694,6 +4824,10 @@
               {
                 "path": "adapters/store-local/delivery-attempt-index.mjs",
                 "anchor": "const row = publicationUsage.get();"
+              },
+              {
+                "path": "adapters/store-local/delivery-attempt-index.mjs",
+                "anchor": "const rows=pendingPublications.all(maxEntries+1);"
               }
             ],
             "extension": [
@@ -4704,6 +4838,10 @@
               {
                 "path": "adapters/store-local/delivery-attempt-index.mjs",
                 "anchor": "// Only the old version permits first adoption. Missing adopted metadata"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "An older private database format permits one bounded inventory migration."
               }
             ],
             "verification": [
@@ -4730,6 +4868,10 @@
               {
                 "path": "adapters/store-local/delivery-attempt-index.test.mjs",
                 "anchor": "adopted publication metadata refuses missing"
+              },
+              {
+                "path": "adapters/store-local/delivery-attempt-index.test.mjs",
+                "anchor": "publication recovery coverage retains only pending originals across reopen"
               }
             ]
           }
@@ -4739,7 +4881,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "a788f8d93ded4be91e40f8578c9edb88f7d68d814e7a741702ef15a5d2bc0a46",
+      "sha256": "022a82749556e22cfdc3e9ec64f5f320fa8936c0a51212c5655d4377e4ea4126",
       "exports": [
         "PublicationStoreError",
         "assertOriginalLocalPublicationStoreFacilityCurrent",
@@ -5224,7 +5366,7 @@
         {
           "name": "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/adoptSchemas/adoptSchemas",
           "parameters": [],
-          "async": false
+          "async": true
         },
         {
           "name": "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/boundPhysicalCids/boundPhysicalCids",
@@ -5675,6 +5817,25 @@
           "async": false
         },
         {
+          "name": "openOriginalLocalPublicationStore/createMetadataDeletionCleanup/createMetadataDeletionCleanup/cleanup/init:serialize/init:serialize/operation/operation",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/createMetadataDeletionCleanup/createMetadataDeletionCleanup/cleanup/init:serialize/init:serialize/operation/operation/operation",
+          "parameters": [
+            "object"
+          ],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/createMetadataDeletionCleanup/createMetadataDeletionCleanup/cleanup/init:serialize/init:serialize/operation/operation/operation/operation",
+          "parameters": [
+            "member"
+          ],
+          "async": false
+        },
+        {
           "name": "openOriginalLocalPublicationStore/createMetadataDeletionCleanup/createMetadataDeletionCleanup/cleanup/init:settle/init:settle",
           "parameters": [],
           "async": false
@@ -5906,6 +6067,11 @@
           "async": true
         },
         {
+          "name": "openOriginalLocalPublicationStore/createUncommittedMetadataCleanup/createUncommittedMetadataCleanup/finishInventory/finishInventory",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "openOriginalLocalPublicationStore/createUncommittedMetadataCleanup/createUncommittedMetadataCleanup/status/status",
           "parameters": [],
           "async": false
@@ -5971,6 +6137,13 @@
         },
         {
           "name": "openOriginalLocalPublicationStore/ensureMetadataInventory/ensureMetadataInventory",
+          "parameters": [
+            "value"
+          ],
+          "async": true
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/ensureMetadataInventoryFile/ensureMetadataInventoryFile",
           "parameters": [
             "value"
           ],
@@ -6691,6 +6864,20 @@
           "async": false
         },
         {
+          "name": "openOriginalLocalPublicationStore/publicationRecoveryOriginal/publicationRecoveryOriginal",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/publicationRecoveryValue/publicationRecoveryValue",
+          "parameters": [
+            "original"
+          ],
+          "async": false
+        },
+        {
           "name": "openOriginalLocalPublicationStore/putBytes/putBytes",
           "parameters": [
             "value",
@@ -7366,6 +7553,13 @@
           "async": true
         },
         {
+          "name": "openOriginalLocalPublicationStore/recoverMetadataInventory/recoverMetadataInventory",
+          "parameters": [
+            "original"
+          ],
+          "async": true
+        },
+        {
           "name": "openOriginalLocalPublicationStore/recoverPhysicalHoldingDeletions/recoverPhysicalHoldingDeletions",
           "parameters": [],
           "async": true
@@ -7496,6 +7690,14 @@
           "name": "openOriginalLocalPublicationStore/restoreDeliveryClaim/restoreDeliveryClaim",
           "parameters": [
             "row"
+          ],
+          "async": true
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/restoreMetadataInventory/restoreMetadataInventory",
+          "parameters": [
+            "original",
+            "value"
           ],
           "async": true
         },
@@ -8572,6 +8774,9 @@
             "openOriginalLocalPublicationStore/createMetadataDeletionCleanup/createMetadataDeletionCleanup/cleanup/init:retireResult/init:retireResult",
             "openOriginalLocalPublicationStore/createMetadataDeletionCleanup/createMetadataDeletionCleanup/cleanup/init:serialize/init:serialize",
             "openOriginalLocalPublicationStore/createMetadataDeletionCleanup/createMetadataDeletionCleanup/cleanup/init:serialize/init:serialize/init:serialize",
+            "openOriginalLocalPublicationStore/createMetadataDeletionCleanup/createMetadataDeletionCleanup/cleanup/init:serialize/init:serialize/operation/operation",
+            "openOriginalLocalPublicationStore/createMetadataDeletionCleanup/createMetadataDeletionCleanup/cleanup/init:serialize/init:serialize/operation/operation/operation",
+            "openOriginalLocalPublicationStore/createMetadataDeletionCleanup/createMetadataDeletionCleanup/cleanup/init:serialize/init:serialize/operation/operation/operation/operation",
             "openOriginalLocalPublicationStore/createMetadataDeletionCleanup/createMetadataDeletionCleanup/cleanup/init:settle/init:settle",
             "openOriginalLocalPublicationStore/createObjectWriter/createObjectWriter",
             "openOriginalLocalPublicationStore/createObjectWriter/createObjectWriter/createObjectWriter",
@@ -8612,11 +8817,13 @@
             "openOriginalLocalPublicationStore/createUncommittedMetadataCleanup/createUncommittedMetadataCleanup/cleanup/init:retry/init:retry/init:retry",
             "openOriginalLocalPublicationStore/createUncommittedMetadataCleanup/createUncommittedMetadataCleanup/cleanup/init:retry/init:retry/init:retry#2",
             "openOriginalLocalPublicationStore/createUncommittedMetadataCleanup/createUncommittedMetadataCleanup/cleanup/init:retry/init:retry/operation/operation",
+            "openOriginalLocalPublicationStore/createUncommittedMetadataCleanup/createUncommittedMetadataCleanup/finishInventory/finishInventory",
             "openOriginalLocalPublicationStore/createUncommittedMetadataCleanup/createUncommittedMetadataCleanup/status/status",
             "openOriginalLocalPublicationStore/custodyPath/custodyPath",
             "openOriginalLocalPublicationStore/deliveryAttemptPath/deliveryAttemptPath",
             "openOriginalLocalPublicationStore/ensureMetadataDeletion/ensureMetadataDeletion",
             "openOriginalLocalPublicationStore/ensureMetadataInventory/ensureMetadataInventory",
+            "openOriginalLocalPublicationStore/ensureMetadataInventoryFile/ensureMetadataInventoryFile",
             "openOriginalLocalPublicationStore/ensurePhysicalHoldingDeletion/ensurePhysicalHoldingDeletion",
             "openOriginalLocalPublicationStore/ensureResultDeletionMarker/ensureResultDeletionMarker",
             "openOriginalLocalPublicationStore/forgetEffectCaptureCustody/forgetEffectCaptureCustody",
@@ -8705,6 +8912,8 @@
             "openOriginalLocalPublicationStore/privateEvidenceHolding/privateEvidenceHolding",
             "openOriginalLocalPublicationStore/privateEvidenceKey/privateEvidenceKey",
             "openOriginalLocalPublicationStore/publicationAttemptPath/publicationAttemptPath",
+            "openOriginalLocalPublicationStore/publicationRecoveryOriginal/publicationRecoveryOriginal",
+            "openOriginalLocalPublicationStore/publicationRecoveryValue/publicationRecoveryValue",
             "openOriginalLocalPublicationStore/putBytes/putBytes",
             "openOriginalLocalPublicationStore/putBytesInternal/putBytesInternal",
             "openOriginalLocalPublicationStore/putBytesInternal/putBytesInternal/cleanupHandle/init:retry/init:retry",
@@ -8785,6 +8994,7 @@
             "openOriginalLocalPublicationStore/reclaimMetadataContract/reclaimMetadataContract",
             "openOriginalLocalPublicationStore/reclaimMetadataContract/reclaimMetadataContract/reclaimMetadataContract",
             "openOriginalLocalPublicationStore/reclaimMetadataContractInternal/reclaimMetadataContractInternal",
+            "openOriginalLocalPublicationStore/recoverMetadataInventory/recoverMetadataInventory",
             "openOriginalLocalPublicationStore/recoverPhysicalHoldingDeletions/recoverPhysicalHoldingDeletions",
             "openOriginalLocalPublicationStore/recoverPreparedCustodies/recoverPreparedCustodies",
             "openOriginalLocalPublicationStore/recoverPreparedSchemas/recoverPreparedSchemas",
@@ -8805,6 +9015,7 @@
             "openOriginalLocalPublicationStore/reserveObjectCapacity/reserveObjectCapacity",
             "openOriginalLocalPublicationStore/reserveObjectCapacity/reserveObjectCapacity/init:release/init:release",
             "openOriginalLocalPublicationStore/reserveObjectCapacity/reserveObjectCapacity/reserveObjectCapacity",
+            "openOriginalLocalPublicationStore/restoreMetadataInventory/restoreMetadataInventory",
             "openOriginalLocalPublicationStore/resultDeletionDirectory/resultDeletionDirectory",
             "openOriginalLocalPublicationStore/resultDeletionPath/resultDeletionPath",
             "openOriginalLocalPublicationStore/retainEffectCaptureCustody/retainEffectCaptureCustody",
@@ -8969,6 +9180,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "Committed publication owner links are also selected-use facts. Ordinary open"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "The existing Store database retains only unfinished publication inventory"
               }
             ],
             "inputsOutputs": [
@@ -9015,6 +9230,10 @@
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "const readCommittedMetadataInventory = async entry => {"
+              },
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "const publicationRecoveryOriginal = value => Object.freeze({"
               }
             ],
             "identity": [
@@ -9069,6 +9288,10 @@
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "if (inventory.public_index_entry_cid !== publicIndexEntryCid) {"
+              },
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "const publicationRecoveryValue = original => {"
               }
             ],
             "ownership": [
@@ -9115,6 +9338,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "inventory's holding links are read; missing, retiring, malformed or foreign"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "deletion marker owns the same complete inventory, recovery transfers the pending"
               }
             ],
             "synchronization": [
@@ -9161,6 +9388,10 @@
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "const confirmSelectedCommittedIndex = async key => {"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "directory acknowledgement and schema adoption. These two native transitions"
               }
             ],
             "failure": [
@@ -9207,6 +9438,10 @@
               {
                 "path": "adapters/store-local/publication-store.test.mjs",
                 "anchor": "test(`selected committed Result refuses its missing ${missing} before returning the Index`, async t => {"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "publication recovery retries only the native removal after physical uncommitted retirement"
               }
             ],
             "cancellation": [
@@ -9249,6 +9484,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "Pending deletion, prepared custody,"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "publication recovery transfers its pending original to the durable deletion marker before physical work"
               }
             ],
             "resources": [
@@ -9295,6 +9534,10 @@
               {
                 "path": "adapters/store-local/publication-store.test.mjs",
                 "anchor": "test('committed Result opening defers holding proof to the selected publication', async t => {"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "publication recovery opens completed history without enumerating or reading its inventories and indexes"
               }
             ],
             "extension": [
@@ -9340,7 +9583,11 @@
               },
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
-                "anchor": "walk history; removing the extra committed-wide validation does not establish"
+                "anchor": "and shared-reference discovery still walk history; indexed publication recovery"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "Subsequent opens read pending rows rather than enumerating committed inventories"
               }
             ],
             "verification": [
@@ -9459,6 +9706,10 @@
               {
                 "path": "adapters/store-local/publication-store.test.mjs",
                 "anchor": "test('selected committed Result entrypoints reuse only their own current owner links', async t => {"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "publication recovery resumes a retiring original without recreating its removed inventory"
               }
             ]
           }
