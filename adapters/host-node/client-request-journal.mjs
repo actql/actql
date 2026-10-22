@@ -274,7 +274,7 @@ function boundedJournalWalFrames(maxFrames, sourceBytes, maxDatabaseBytes) {
   });
 }
 
-// Bound compilation attempts and account every prepared wrapper as retained
+// Bound native compilation attempts and account each prepared original as retained
 // until this primary connection's real lifetime ends. Native failure and GC do
 // not refund an attempt. This is not a bound on bind values, result rows, native
 // heap/cache/WAL, or the separate observation connection, and issues no capacity.
@@ -289,6 +289,7 @@ function boundedPrimarySql(connection, limits, executionLimits, assertCurrent, w
   let calls = 0, prepared = 0, bytes = 0;
   let statementCalls = 0;
   const statements = [], cursors = [];
+  const statementsBySql = executionLimits === undefined ? undefined : new Map();
   let operationActive = false;
   const beginOperation = () => {
     if (executionLimits === undefined) return;
@@ -423,8 +424,19 @@ function boundedPrimarySql(connection, limits, executionLimits, assertCurrent, w
     prepare(sql) {
       beginOperation();
       try {
+        const retained = statementsBySql?.get(sql);
+        if (retained !== undefined) {
+          assertCurrent?.();
+          if (cursors.length !== 0) fail('ClientRequestJournalSqlCleanupPending');
+          // Exact immutable SQL selects this same connection's original
+          // bounded wrapper. No compilation/allocation or allowance refill
+          // occurs; every execution still checks its own operands and limits.
+          return retained;
+        }
         consume(sql, true); walFrames?.beforePrepare();
-        return wrap(applyOriginal(prepare, connection, [sql]));
+        const original = wrap(applyOriginal(prepare, connection, [sql]));
+        statementsBySql?.set(sql, original);
+        return original;
       } finally { endOperation(); }
     },
     exec(sql) {
@@ -435,7 +447,10 @@ function boundedPrimarySql(connection, limits, executionLimits, assertCurrent, w
       } finally { endOperation(); }
     },
     get isTransaction() { return applyOriginal(isTransaction, connection, []); },
-  }), retireClosedNativeAliases() { statements.length = cursors.length = 0; }});
+  }), retireClosedNativeAliases() {
+    statements.length = cursors.length = 0;
+    statementsBySql?.clear();
+  }});
 }
 
 function journalDatabaseGeometry(database, maxDatabaseBytes, walFrames) {

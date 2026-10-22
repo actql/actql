@@ -3,6 +3,9 @@ import {DatabaseSync} from 'node:sqlite';
 import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import test from 'node:test';
+import {readFileSync} from 'node:fs';
+import {compileFunction} from 'node:vm';
+import {parse} from 'acorn';
 import {createOwnedScratch} from '../../scripts/owned-scratch.mjs';
 import {openClientRequestJournal} from './client-request-journal.mjs';
 
@@ -12,6 +15,16 @@ const execution = {maxStatementCalls: 1000, maxParameters: 32,
   maxParameterBytes: 262144, maxResultRows: 128};
 const ref = {namespaceId: 'missing', authorityScopeCid: 'sha256:' + 'a'.repeat(64),
   runDefinitionCid: 'sha256:' + 'b'.repeat(64)};
+// Execute the exact private boundary with actual SQLite originals. Its
+// compilation/execution counters are not Host resource or permission issuers.
+const source = readFileSync(new URL('./client-request-journal.mjs', import.meta.url), 'utf8');
+const ast = parse(source, {ecmaVersion: 'latest', sourceType: 'module'});
+const declarations = ['fail', 'applyOriginal'].map(name => ast.body.find(node =>
+  node.type === 'VariableDeclaration' && node.declarations.some(item => item.id.name === name)));
+const bounded = ast.body.find(node => node.type === 'FunctionDeclaration' && node.id.name === 'boundedPrimarySql');
+assert.ok(bounded); assert.ok(declarations.every(Boolean));
+const boundedOriginalSql = compileFunction([...declarations, bounded].map(node =>
+  source.slice(node.start, node.end)).join('\n') + '\nreturn boundedPrimarySql;', [])();
 async function fixture() {
   const scratch = await createOwnedScratch({parent: fileURLToPath(new URL('../../_build/', import.meta.url)),
     prefix: 'journal-execution-bound-', label: 'actual primary SQLite statement/cursor custody'});
@@ -94,6 +107,52 @@ test('selected Journal reuses one original statement for repeated exact SQL with
   scratch.passed();
 });
 
+test('exact statement reuse rebinds parameters and retains native methods without refilling compilation or execution limits', () => {
+  const database = new DatabaseSync(':memory:');
+  const prepare = database.prepare;
+  let preparations = 0, originalStatement;
+  database.prepare = function(sql) {
+    assert.equal(this, database); preparations++;
+    const statement = Reflect.apply(prepare, this, [sql]);
+    originalStatement ??= statement;
+    return statement;
+  };
+  const port = boundedOriginalSql(database, {...primarySqlLimits, maxCalls: 2, maxPreparedStatements: 2},
+    {...execution, maxStatementCalls: 3});
+  try {
+    const first = port.database.prepare('SELECT ? AS n');
+    assert.equal(first.get(1).n, 1);
+    originalStatement.get = () => {throw new Error('ReplacementMustNotRun');};
+    const same = port.database.prepare('SELECT ? AS n');
+    assert.equal(same, first); assert.equal(same.get(2).n, 2);
+    const distinct = port.database.prepare('SELECT ? AS m');
+    assert.notEqual(distinct, first); assert.equal(distinct.get(3).m, 3);
+    assert.equal(preparations, 2);
+    assert.throws(() => port.database.prepare('SELECT ? AS other'), {code: 'ClientRequestJournalSqlUnavailable'});
+    assert.equal(preparations, 2);
+    assert.equal(port.database.prepare('SELECT ? AS n'), first);
+    assert.throws(() => first.get(4), {code: 'ClientRequestJournalSqlUnavailable'});
+  } finally {
+    database.close(); assert.equal(database.isOpen, false); port.retireClosedNativeAliases();
+  }
+});
+
+test('failed selected native preparation is never cached and never refunds its original attempts', () => {
+  const database = new DatabaseSync(':memory:');
+  const prepare = database.prepare;
+  let preparations = 0;
+  database.prepare = function(sql) {preparations++; return Reflect.apply(prepare, this, [sql]);};
+  const port = boundedOriginalSql(database, {...primarySqlLimits, maxCalls: 2, maxPreparedStatements: 2}, execution);
+  try {
+    for (let index = 0; index < 2; index++) assert.throws(() => port.database.prepare('INVALID SQL'), {code: 'ERR_SQLITE_ERROR'});
+    assert.equal(preparations, 2);
+    assert.throws(() => port.database.prepare('INVALID SQL'), {code: 'ClientRequestJournalSqlUnavailable'});
+    assert.equal(preparations, 2);
+  } finally {
+    database.close(); assert.equal(database.isOpen, false); port.retireClosedNativeAliases();
+  }
+});
+
 test('selected primary metadata uses original bounded cursors instead of native All vectors', async () => {
   const {scratch, directory} = await fixture();
   openClientRequestJournal(directory).close();
@@ -122,12 +181,14 @@ test('row overflow retains only its bounded result and one native lookahead befo
 test('unsupported original bind extent refuses before native statement invocation without changing old public field validation', async () => {
   const {scratch, directory} = await fixture();
   instrument(state => {
-    const limits = {...execution, maxParameterBytes: 256};
+    // Startup now admits the complete own usage-schema name vector. The
+    // selected namespace remains within its 256-code-unit public field bound.
+    const limits = {...execution, maxParameterBytes: 512};
     const journal = openClientRequestJournal(directory, options(limits));
     limits.maxParameterBytes = 100000;
     try {
       const before = state.nativeCalls;
-      assert.throws(() => journal.lookupReconciliationState({...ref, namespaceId: 'x'.repeat(256)}),
+      assert.throws(() => journal.lookupReconciliationState({...ref, namespaceId: '界'.repeat(256)}),
         {code: 'ClientRequestJournalSqlUnavailable'});
       assert.equal(state.nativeCalls, before);
       assert.equal(journal.lookupReconciliationState(ref), undefined);

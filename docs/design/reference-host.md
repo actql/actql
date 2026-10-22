@@ -1161,6 +1161,14 @@ native amounts. Recipe retention alone does not issue the operational service.
 The actual prefix must still bind the complete co-phase and original facility
 before native acquisition.
 
+Within the selected synchronous Journal connection, exact immutable SQL reuses
+the same captured bounded statement original. Each distinct native preparation
+attempt still consumes its compilation allowance, including failed attempts;
+reuse neither acquires another statement nor returns credit. Each execution
+rebinds its actual parameters and retains the current, cursor, WAL and execution
+limits. The same connection keeps its native originals until real close, then
+retires their managed aliases. The generic SQL-only path remains unchanged.
+
 The private service original is retained by the selected prefix before its
 builtin acquisition, then bound to the returned actual SQLite constructor and
 method chain, original filesystem/crypto modules and checked Host namespace.
