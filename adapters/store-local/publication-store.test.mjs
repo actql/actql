@@ -2238,6 +2238,41 @@ test('one live Store owns the complete directory capacity authority',
       code('PublicationStoreCapacity'));
   });
 
+test('physical object capacity survives reopen without inspecting unrelated payload history', async t => {
+  const {store, configuration, directory} = await fixture(t);
+  const originals = [];
+  for (let index = 0; index < 8; index++) {
+    const bytes = Buffer.from(`retained physical capacity ${index}`);
+    const object = await store.putBytes(bytes);
+    const path = join(directory, 'objects', object.cid.slice(7));
+    originals.push({path, bytes, state: await stat(path)});
+  }
+  const before = store.status();
+  await store.close();
+  const lstatOriginal = fsPromises.lstat, inspected = [];
+  t.mock.method(fsPromises, 'lstat', function(path, ...args) {
+    if (String(path).startsWith(join(directory, 'objects') + sep)) inspected.push(String(path));
+    return Reflect.apply(lstatOriginal, this, [path, ...args]);
+  });
+  syncBuiltinESMExports();
+  let reopened;
+  try {reopened = await openLocalPublicationStore(configuration, contractControl);}
+  finally {t.mock.restoreAll(); syncBuiltinESMExports();}
+  const after = reopened.status();
+  assert.equal(after.storedBytes, before.storedBytes, 'Reopen cannot reset retained physical charges');
+  assert.equal(after.objectCount, before.objectCount);
+  assert.equal(reopened.publicationCapacitySupports({requiredBytes: configuration.capacityBytes,
+    objectCount: 0, maxObjectBytes: configuration.maxObjectBytes}), false);
+  await reopened.close();
+  for (const original of originals) {
+    assert.deepEqual(await readFile(original.path), original.bytes);
+    const current = await stat(original.path);
+    assert.equal(current.dev, original.state.dev); assert.equal(current.ino, original.state.ino);
+  }
+  assert.equal(inspected.length, 0,
+    'A complete retained accounting index must not re-inspect every historical payload on ordinary open');
+});
+
 test('a dead local Store owner is reclaimed without weakening live exclusion',
   async t => {
     const {store, configuration, directory} = await fixture(t);
