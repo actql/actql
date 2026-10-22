@@ -20,7 +20,8 @@ async function fixture() {
 function instrument(action, {cursorFailure = false, firstClosePending = false} = {}) {
   const open = DatabaseSync.prototype.open, prepare = DatabaseSync.prototype.prepare;
   const close = DatabaseSync.prototype.close;
-  const state = {database: undefined, nativeCalls: 0, nativeAll: 0, maxCursorSteps: 0, closes: 0};
+  const state = {database: undefined, nativeCalls: 0, nativeAll: 0, maxCursorSteps: 0, closes: 0,
+    preparations: []};
   DatabaseSync.prototype.open = function() {
     state.database = this;
     return Reflect.apply(open, this, []);
@@ -34,6 +35,7 @@ function instrument(action, {cursorFailure = false, firstClosePending = false} =
   DatabaseSync.prototype.prepare = function(sql) {
     const statement = Reflect.apply(prepare, this, [sql]);
     if (this !== state.database) return statement;
+    state.preparations.push({sql, statement});
     for (const name of ['get', 'run']) {
       const original = statement[name];
       statement[name] = function(...args) {
@@ -70,6 +72,27 @@ function instrument(action, {cursorFailure = false, firstClosePending = false} =
 function options(primaryExecutionLimits = execution) {
   return {maxDatabaseBytes: 1024 * 1024, primarySqlLimits, primaryExecutionLimits};
 }
+
+test('selected Journal reuses one original statement for repeated exact SQL without spending another preparation allowance', async () => {
+  const {scratch, directory} = await fixture();
+  openClientRequestJournal(directory).close();
+  instrument(state => {
+    const sqlLimits = {...primarySqlLimits, maxPreparedStatements: 70};
+    const journal = openClientRequestJournal(directory, {...options(), primarySqlLimits: sqlLimits});
+    sqlLimits.maxPreparedStatements = 10000;
+    try {
+      const before = state.preparations.length;
+      for (let index = 0; index < 100; index++) {
+        assert.equal(journal.lookupReconciliationState({...ref, namespaceId: 'missing-' + index}), undefined);
+      }
+      assert.equal(state.preparations.length - before, 1);
+      assert.ok(state.preparations.length <= 70);
+      assert.equal(state.nativeAll, 0);
+    } finally { journal.close(); }
+    assert.equal(state.database.isOpen, false);
+  });
+  scratch.passed();
+});
 
 test('selected primary metadata uses original bounded cursors instead of native All vectors', async () => {
   const {scratch, directory} = await fixture();
