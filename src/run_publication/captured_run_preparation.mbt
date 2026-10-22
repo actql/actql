@@ -504,24 +504,27 @@ fn CapturedRunIssuancePreparation::step(
               Err(issue) => return Err(CaptureIssuanceContract(issue))
             }
             self.contract = Some(contract)
-            self.phase = Check(
-              start_computation_evidence_check(
-                {
-                  run_definition: inputs.run_definition,
-                  invocation: inputs.invocation,
-                  definitions: inputs.definitions,
-                  artifacts: inputs.artifacts,
-                  manifest: inputs.manifest,
-                  receipt: inputs.receipt,
-                  captured_run: contract,
-                  preview: inputs.preview,
-                  max_wire_bytes: inputs.max_wire_bytes,
-                  max_nodes: inputs.max_nodes,
-                  max_depth: inputs.max_depth,
-                },
-                self.max_workspace - self.live,
-              ),
+            let check = start_computation_evidence_check(
+              {
+                run_definition: inputs.run_definition,
+                invocation: inputs.invocation,
+                definitions: inputs.definitions,
+                artifacts: inputs.artifacts,
+                manifest: inputs.manifest,
+                receipt: inputs.receipt,
+                captured_run: contract,
+                preview: inputs.preview,
+                max_wire_bytes: inputs.max_wire_bytes,
+                max_nodes: inputs.max_nodes,
+                max_depth: inputs.max_depth,
+              },
+              self.max_workspace - self.live,
             )
+            // This same owner completed Root before constructing the capture.
+            // Its borrowed root contracts, inventories and bounds are unchanged;
+            // only the new capture still needs the remaining evidence checks.
+            check.phase = PreludeAfterRoot
+            self.phase = Check(check)
           }
         }
       }

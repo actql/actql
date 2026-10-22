@@ -24,6 +24,7 @@ priv struct ComputationEvidencePrelude {
 ///|
 priv enum ComputationEvidencePhase {
   Prelude
+  PreludeAfterRoot
   PreludeCheck(ComputationPreludePreparation)
   ContextHash(@json.CanonicalEmit, String)
   Content
@@ -103,7 +104,8 @@ fn ComputationEvidenceCheck::step(
 ) -> Result[Unit, RunEvidenceChainIssue] {
   let inputs = self.inputs.unwrap()
   match self.phase {
-    Prelude => {
+    Prelude | PreludeAfterRoot => {
+      let after_root = self.phase is PreludeAfterRoot
       if self.max_workspace < self.live {
         return Err(EvidenceEncoding)
       }
@@ -111,7 +113,11 @@ fn ComputationEvidenceCheck::step(
         return Err(EvidenceEncoding)
       }
       self.phase = PreludeCheck(
-        start_computation_prelude(inputs, self.max_workspace - self.live),
+        start_computation_prelude(
+          inputs,
+          self.max_workspace - self.live,
+          after_root~,
+        ),
       )
     }
     PreludeCheck(child) => {
