@@ -13,6 +13,16 @@ const all = ['js', 'wasm', 'native'];
 const workflow = parse(readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8'));
 const {jobs} = workflow;
 
+test('preflight checks Native counter assignments before the build toolchain', () => {
+  const steps = jobs.preflight.steps;
+  const index = steps.findIndex(row =>
+    row.name === 'Check Native diagnostic counter assignments before fan-out');
+  assert.ok(index >= 0);
+  assert.equal(steps[index].run, 'python3 scripts/test_native_timings.py CommandCounterMap');
+  assert.ok(index < steps.findIndex(row => row.name === 'Install pinned MoonBit'));
+  assert.ok(jobs.native.needs.includes('preflight'));
+});
+
 test('normal lint executes behavioral operation performance assessment tests', () => {
   const step = jobs.lint.steps.find(row =>
     row.name === 'Test ordinary operation performance assessment');
