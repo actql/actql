@@ -6,7 +6,16 @@ import {createSqliteTransaction} from '../host-common/sqlite-transaction.mjs';
 
 const fail = (code, cause) => { throw Object.assign(new Error(code, {cause}), {code}); };
 const cid = value => typeof value === 'string' && /^sha256:[0-9a-f]{64}$/u.test(value);
-const version = 9;
+const version = 10;
+const publicationAttemptsTable = `CREATE TABLE publication_attempts (
+  attempt_cid TEXT PRIMARY KEY, run_cid TEXT NOT NULL
+) WITHOUT ROWID`;
+const publicationRecordsTable = `CREATE TABLE publication_records (
+  attempt_cid TEXT NOT NULL REFERENCES publication_attempts(attempt_cid) ON DELETE CASCADE,
+  sequence INTEGER NOT NULL CHECK(sequence>=0), record_cid TEXT NOT NULL UNIQUE,
+  PRIMARY KEY(attempt_cid,sequence)
+) WITHOUT ROWID`;
+const publicationAttemptRunIndex = 'CREATE INDEX publication_attempt_runs ON publication_attempts(run_cid)';
 const physicalObjectsTable = `CREATE TABLE physical_objects (
   cid TEXT PRIMARY KEY, byte_count INTEGER NOT NULL CHECK(byte_count>=0),
   device TEXT NOT NULL, inode TEXT NOT NULL
@@ -164,7 +173,7 @@ export async function openDeliveryAttemptIndex(path, {create, maxEntries, maxWir
       exec(`CREATE TABLE coverage (
         id INTEGER PRIMARY KEY CHECK(id=1), version INTEGER NOT NULL,
         complete INTEGER NOT NULL CHECK(complete IN (0,1)), entries INTEGER NOT NULL);
-        INSERT INTO coverage VALUES(1,9,0,0);
+        INSERT INTO coverage VALUES(1,10,0,0);
         CREATE TABLE attempts (
           logical_key TEXT PRIMARY KEY, attempt_cid TEXT NOT NULL UNIQUE,
           grant_cid TEXT NOT NULL, run_cid TEXT NOT NULL,
@@ -180,6 +189,7 @@ export async function openDeliveryAttemptIndex(path, {create, maxEntries, maxWir
           ack_revision INTEGER NOT NULL DEFAULT 1 CHECK(ack_revision>=1 AND ack_revision<=9007199254740991)) WITHOUT ROWID;
         CREATE UNIQUE INDEX initial_record_identity ON initial_records(initial_cid);
         ${completionTable}; ${publicationTable}; ${publicationUsageTable};
+        ${publicationAttemptsTable}; ${publicationRecordsTable}; ${publicationAttemptRunIndex};
         ${publicationRecoveryTable}; ${pendingPublicationTable};
         ${nativeInventoryTable}; ${nativeInventoryUsageTable};
         ${metadataFenceTable}; ${metadataFenceCoverageTable};
@@ -193,7 +203,7 @@ export async function openDeliveryAttemptIndex(path, {create, maxEntries, maxWir
     });
     const state = prepare('SELECT version,complete,entries FROM coverage WHERE id=1');
     const selected = state.get();
-    if (![1,2,3,4,5,6,7,8,version].includes(selected?.version) || ![0,1].includes(selected.complete) ||
+    if (![1,2,3,4,5,6,7,8,9,version].includes(selected?.version) || ![0,1].includes(selected.complete) ||
         !Number.isSafeInteger(selected.entries) || selected.entries < 0 || selected.entries > maxEntries) {
       fail('DeliveryAttemptIndexUnavailable');
     }
@@ -292,6 +302,14 @@ export async function openDeliveryAttemptIndex(path, {create, maxEntries, maxWir
         fail('DeliveryAttemptIndexUnavailable');
       }
     }
+    if (selected.version < 10) transaction.run(() => exec(`${publicationAttemptsTable}; ${publicationRecordsTable};
+      ${publicationAttemptRunIndex}; UPDATE coverage SET version=10 WHERE id=1;`));
+    for (const [type,name,sql] of [['table','publication_attempts',publicationAttemptsTable],
+      ['table','publication_records',publicationRecordsTable],['index','publication_attempt_runs',publicationAttemptRunIndex]]) {
+      if (prepare('SELECT sql FROM sqlite_schema WHERE type=? AND name=?').get(type,name)?.sql !== sql) {
+        fail('DeliveryAttemptIndexUnavailable');
+      }
+    }
     // This database's previously unused SQLite header field records only
     // derived physical-quota cleanliness, not a Run/Account or file ACK.
     const physicalHeader = prepare('PRAGMA user_version').get().user_version;
@@ -339,6 +357,14 @@ export async function openDeliveryAttemptIndex(path, {create, maxEntries, maxWir
       UNION ALL SELECT 'delivery_record',record_wire FROM completions WHERE record_cid=?
       UNION ALL SELECT 'result_delivery_receipt',receipt_wire FROM completions WHERE receipt_cid=? LIMIT 1`);
     const publication = prepare('SELECT * FROM publication_contracts WHERE semantic_cid=?');
+    const publicationAttempt = prepare('SELECT * FROM publication_attempts WHERE attempt_cid=?');
+    const insertPublicationAttempt = prepare('INSERT INTO publication_attempts VALUES(?,?)');
+    const removePublicationAttempts = prepare('DELETE FROM publication_attempts WHERE run_cid=?');
+    const publicationProgress = prepare(`SELECT * FROM publication_records WHERE attempt_cid=? ORDER BY sequence DESC LIMIT 1`);
+    const publicationProgressCount = prepare('SELECT count(*) AS count FROM publication_records WHERE attempt_cid=?');
+    const insertPublicationRecord = prepare('INSERT INTO publication_records VALUES(?,?,?)');
+    const publicationRunAttempts = prepare('SELECT * FROM publication_attempts WHERE run_cid=? LIMIT ?');
+    const publicationAttemptRecords = prepare('SELECT * FROM publication_records WHERE attempt_cid=? ORDER BY sequence LIMIT ?');
     const publicationUsage = prepare('SELECT objects,bytes,ack_revision FROM publication_usage WHERE id=1');
     const insertPublication = prepare('INSERT INTO publication_contracts VALUES(?,?,?,?)');
     const removePublication = prepare('DELETE FROM publication_contracts WHERE semantic_cid=?');
@@ -779,9 +805,24 @@ export async function openDeliveryAttemptIndex(path, {create, maxEntries, maxWir
       }
       return original;
     };
-    const publicationMutation = (kind, entries, allowance) => {
+    const progressCopy = value => {
+      if (value === undefined) return undefined;
+      const keys = value?.kind === 'attempt' ? 'attemptCid,kind,runCid' : 'attemptCid,kind,previousCid,recordCid,sequence';
+      if (!value || Object.keys(value).sort().join(',') !== keys || !cid(value.attemptCid) ||
+          (value.kind === 'attempt' ? !cid(value.runCid) : value.kind !== 'record' || !cid(value.recordCid) ||
+            value.previousCid !== null && !cid(value.previousCid) ||
+            !Number.isSafeInteger(value.sequence) || value.sequence < 0 || value.sequence >= maxEntries)) {
+        fail('InvalidPublicationRecord');
+      }
+      return Object.freeze({...value});
+    };
+    const sameProgress = (a,b) => a === undefined ? b === undefined : b !== undefined &&
+      ['kind','attemptCid','runCid','previousCid','recordCid','sequence'].every(key=>a[key]===b[key]);
+    const publicationMutation = (kind, entries, allowance, suppliedProgress) => {
+      const progress = progressCopy(suppliedProgress);
       if (!Array.isArray(entries) || entries.length > maxEntries) fail('DeliveryAttemptIndexLimit');
       const retry = uncertain && uncertainPublication?.kind === kind &&
+        sameProgress(progress,uncertainPublication.progress) &&
         entries.length === uncertainPublication.entries.length &&
         entries.every((entry,i) => samePublication(entry,uncertainPublication.entries[i]));
       if (retry) {
@@ -789,6 +830,13 @@ export async function openDeliveryAttemptIndex(path, {create, maxEntries, maxWir
         transaction.assertUsable();
       } else requireComplete();
       const originals = Object.freeze(entries.map(entry => publicationCopy(entry)));
+      if (progress !== undefined && (kind !== 'put' || originals.length > 1 ||
+          progress.kind === 'attempt' && (originals[0]?.name !== 'publication_attempt' ||
+            originals[0]?.semantic_cid !== progress.attemptCid) ||
+          progress.kind === 'record' && originals.length === 1 && (originals[0].name !== 'publication_record' ||
+            originals[0].semantic_cid !== progress.recordCid))) {
+        fail('InvalidPublicationRecord');
+      }
       const before = usage();
       const additions = [], removals = [];
       const keys = new Set();
@@ -806,9 +854,37 @@ export async function openDeliveryAttemptIndex(path, {create, maxEntries, maxWir
           before.objects + objects > maxEntries) fail('DeliveryAttemptIndexLimit');
       if (kind === 'put' && (!allowance || !Number.isSafeInteger(allowance.bytes) || allowance.bytes < bytes ||
           !Number.isSafeInteger(allowance.objects) || allowance.objects < objects)) fail('PublicationStoreCapacity');
-      if (objects !== 0 || retry) {
+      let progressCreated = false;
+      const retainedAttempt = progress?.kind === 'attempt' ? publicationAttempt.get(progress.attemptCid) : undefined;
+      if (retainedAttempt !== undefined && retainedAttempt.run_cid !== progress.runCid) fail('PublicationAttemptConflict');
+      // An unchanged already committed attempt needs no new mutation. This
+      // does not acknowledge a lost COMMIT: that original always retries below.
+      if (objects !== 0 || retry || progress !== undefined && retainedAttempt === undefined) {
         try {
           run(() => {
+            if (progress !== undefined) {
+              const attempt = publicationAttempt.get(progress.attemptCid);
+              if (runMetadataFence.get(progress.kind === 'attempt' ? progress.runCid : attempt?.run_cid) !== undefined) {
+                fail('PublicationMetadataDeleted');
+              }
+              if (progress.kind === 'attempt') {
+                if (attempt !== undefined && attempt.run_cid !== progress.runCid) fail('PublicationAttemptConflict');
+                if (attempt === undefined) {
+                  insertPublicationAttempt.run(progress.attemptCid,progress.runCid); progressCreated = true;
+                }
+              } else {
+                if (attempt === undefined) fail('PublicationAttemptMismatch');
+                const prior = publicationProgress.get(progress.attemptCid);
+                // Only the retained lost-COMMIT original may confirm its own
+                // installed record. A prepared contract alone is not progress.
+                const installed = retry && prior?.record_cid === progress.recordCid;
+                if (!installed && (prior?.record_cid ?? null) !== progress.previousCid) fail('PublicationRecordConflict');
+                if (publicationProgressCount.get(progress.attemptCid).count !== progress.sequence+(installed?1:0)) {
+                  fail('PublicationRecordGap');
+                }
+                if (!installed) insertPublicationRecord.run(progress.attemptCid,progress.sequence,progress.recordCid);
+              }
+            }
             for (const entry of additions) insertPublication.run(entry.semantic_cid,entry.name,entry.wire,entry.byte_count);
             for (const entry of removals) removePublication.run(entry.semantic_cid);
             // A real same-database write confirms a lost COMMIT, even when
@@ -817,11 +893,11 @@ export async function openDeliveryAttemptIndex(path, {create, maxEntries, maxWir
           });
           if (retry) { uncertain = false; uncertainPublication = undefined; }
         } catch (error) {
-          if (error?.outcome === 'unknown') uncertainPublication = Object.freeze({kind,entries:originals});
+          if (error?.outcome === 'unknown') uncertainPublication = Object.freeze({kind,entries:originals,progress});
           throw error;
         }
       }
-      return usage();
+      return progress === undefined ? usage() : Object.freeze({...usage(),progressCreated});
     };
     usage();recoveryState();inventoryUsage();physicalState();
     return Object.freeze({
@@ -993,7 +1069,29 @@ export async function openDeliveryAttemptIndex(path, {create, maxEntries, maxWir
       },
       publicationUsage() { requireComplete(); return usage(); },
       publicationContract(semanticCid) { requireComplete(); return publicationCopy(publication.get(semanticCid)); },
-      putPublicationContracts(entries, allowance) { return publicationMutation('put',entries,allowance); },
+      putPublicationContracts(entries, allowance, progress) { return publicationMutation('put',entries,allowance,progress); },
+      publicationAttempt(attemptCid) {requireComplete();const row=publicationAttempt.get(attemptCid);
+        return row===undefined?undefined:Object.freeze({...row});},
+      latestPublicationRecord(attemptCid) {
+        requireComplete();
+        const row = publicationProgress.get(attemptCid);
+        const count = publicationProgressCount.get(attemptCid).count;
+        if (!Number.isSafeInteger(count) || count > maxEntries ||
+            (row === undefined ? count !== 0 : row.sequence !== count-1)) fail('PublicationRecordGap');
+        return row===undefined?undefined:Object.freeze({...row});
+      },
+      publicationAttemptsForRun(runCid) {
+        requireComplete();
+        const rows = publicationRunAttempts.all(runCid,maxEntries+1);
+        if (rows.length > maxEntries) fail('DeliveryAttemptIndexLimit');
+        return Object.freeze(rows.map(row=>Object.freeze({...row})));
+      },
+      publicationRecords(attemptCid) {
+        requireComplete();
+        const rows = publicationAttemptRecords.all(attemptCid,maxEntries+1);
+        if (rows.length > maxEntries) fail('DeliveryAttemptIndexLimit');
+        return Object.freeze(rows.map(row=>Object.freeze({...row})));
+      },
       removePublicationContract(entry) { return publicationMutation('remove',[entry]); },
       needsMigration() { requireOpen(); return !complete; },
       migrate(rows) {
@@ -1125,6 +1223,7 @@ export async function openDeliveryAttemptIndex(path, {create, maxEntries, maxWir
           run(() => {
             for (const row of runUses.all(runCid)) removeUses.run(row.uses,row.grant_cid);
             updateCount.run(-remove.run(runCid).changes);
+            removePublicationAttempts.run(runCid);
           });
           if (uncertainRemoval === runCid) {
             uncertainRemoval = undefined;

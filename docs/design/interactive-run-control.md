@@ -64,6 +64,21 @@ Stores without the optional combined read keep their original selected reads;
 an explicitly invalid combined port refuses. Final Journal row comparison,
 current authorization and transactional observation CAS remain unchanged.
 
+Within one authorized Run observation, each distinct Result clock contract
+accepts one durable floor through the existing Store clock sampler. Sampling
+occurs inside that owner after its original durable-bound read, not before
+queued I/O. Later Results sharing that contract reuse the accepted floor and
+check their own observation time for rollback and retention expiry without
+another durable clock update. Their observation timestamps do not claim a
+new persisted floor. Distinct clock contracts and new public operations retain
+independent sampling. A failed sampling outcome remains Unknown for that
+contract throughout this observation; another Result does not retry the
+mutating operation. The private clock facts never enter authority callbacks.
+Stores with only the explicit-observation API retain that protocol; an invalid
+sampler or missing comparison predicate refuses service installation. Current
+authorization, final state comparison/CAS and real payload/FD cleanup remain
+unchanged.
+
 Physical-stop observation uses the same journal-owned frame across publication
 inspection. An unchanged complete row reuses its original request identity and
 Run Definition admission; revision equality alone is insufficient. The final

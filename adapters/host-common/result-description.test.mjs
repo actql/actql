@@ -22,6 +22,7 @@ function fixture({authorize = async () => true, admit,
   retained = () => true, committed = () => true,
   grantValid = () => true, sampleClock, observeClock,
   now = () => '2026-09-30T00:00:00.000Z',
+  selectedPublication,
   api = {installResultAccessAuthority, installResultAccessService}} = {}) {
   const calls = [];
   const index = {public_index_entry_cid: cid('2'), result_manifest_cid: cid('3')};
@@ -39,6 +40,14 @@ function fixture({authorize = async () => true, admit,
     },
     async consumeManifestReadGrant() { calls.push(['consume']); },
   };
+  if (selectedPublication !== undefined) {
+    store.readCommittedPublication = selectedPublication === null ? null : async function () {
+      assert.strictEqual(this, store);
+      calls.push(['selected', index]);
+      return typeof selectedPublication === 'function' ? selectedPublication() :
+        Object.freeze({entry: Object.freeze({...index}), index: Object.freeze({})});
+    };
+  }
   if (sampleClock !== undefined) store.sampleTrustedClock = sampleClock;
   const methods = ['issueResultReadGrant', 'resultReadAvailability',
     'resultReadExtendedAvailability', 'resultReadGrantValidAt',
@@ -66,11 +75,43 @@ function fixture({authorize = async () => true, admit,
     authorizeResultDescription: authorize,
     admitResultDescription: admit ?? (async () => admission),
   });
-  return {calls, service: api.installResultAccessService({store, control, authority,
+  return {calls, store, service: api.installResultAccessService({store, control, authority,
     now, createDigest() {},
     limits: {maxWireBytes: 1048576, maxNodes: 10000, maxDepth: 64},
     frameLimits: {maxRowBytes: 1024, maxDepth: 64, maxFrameBytes: 4096}})};
 }
+
+test('description resolution consumes its selected publication without an Index reread', async () => {
+  const {service, calls, store} = fixture({selectedPublication: true});
+  store.readCommittedPublication = () => assert.fail('Use the captured original');
+  assert.deepEqual(await describeAuthorizedResult(service, request()), {ref: key, ...projected});
+  assert.equal(calls.filter(([kind]) => kind === 'selected').length, 1);
+  assert.equal(calls.filter(([kind]) => kind === 'contract').length, 2);
+  assert.equal(calls.filter(([kind]) => kind === 'index').length, 1,
+    'Final response head confirmation remains');
+  assert.deepEqual(await describeAuthorizedResult(service, request()), {ref: key, ...projected});
+  assert.equal(calls.filter(([kind]) => kind === 'selected').length, 2);
+});
+
+test('selected description preserves denial, invalid input, physical failure and final confirmation', async () => {
+  const denied = fixture({selectedPublication: true, authorize: () => false});
+  await assert.rejects(describeAuthorizedResult(denied.service, request()), {code: 'ResultAccessDenied'});
+  assert.deepEqual(denied.calls, []);
+  for (const [read, code] of [
+    [() => undefined, 'ResultAccessDenied'],
+    [() => null, 'InvalidCommittedPublicationState'],
+    [() => ({entry: null, index: {}}), 'InvalidCommittedPublicationState'],
+    [() => { throw Object.assign(new Error('read failed'), {code: 'EIO'}); }, 'EIO'],
+  ]) {
+    const input = fixture({selectedPublication: read});
+    await assert.rejects(describeAuthorizedResult(input.service, request()), {code});
+    assert.deepEqual(input.calls.map(([kind]) => kind), ['selected']);
+  }
+  const changed = fixture({selectedPublication: true, committed: () => false});
+  await assert.rejects(describeAuthorizedResult(changed.service, request()), {code: 'ResultDescriptionUnavailable'});
+  assert.equal(changed.calls.filter(([kind]) => kind === 'consume').length, 1);
+  assert.throws(() => fixture({selectedPublication: null}), {code: 'InvalidResultAccessService'});
+});
 
 test('description denial occurs before Store I/O and hides publication', async () => {
   for (const authorize of [async () => false,
