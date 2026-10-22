@@ -1,6 +1,6 @@
 // Optional observations are projections, never execution or cleanup authority.
 // Only small copied metadata enters this queue; user delivery runs on a later
-// event-loop turn, outside the operation which confirmed the fact.
+// event-loop turn and can overlap an active public operation.
 import {AsyncLocalStorage} from 'node:async_hooks';
 import {randomUUID, createHash} from 'node:crypto';
 
