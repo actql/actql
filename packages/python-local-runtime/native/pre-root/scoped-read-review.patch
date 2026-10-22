@@ -66,8 +66,9 @@
 
  /* Parent-local physical guards cover every page in this original allocation.
   * Interior page records retain their own external use counts. */
-@@ -401,6 +411,10 @@
+@@ -401,7 +411,11 @@
      if (pages == 0 || pages == SIZE_MAX || lease->extents[start].rust_class != 0 ||
+         lease->extents[start].domain_storage ||
          lease->extents[start].retired ||
          pages > lease->page_count - start) goto done;
 +    if (lease->extents[start].read_heap) {
