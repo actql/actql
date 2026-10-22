@@ -901,14 +901,18 @@ function assessPriorityPopulation(series) {
     if (!integer(population[key])) missing.push(key);
     else if (population[key] !== 0) failures.push(`${key} is not zero`);
   }
-  // Observe managed temporary holdings against the candidate's existing
-  // configured capacity, never a fitted allowance, durable history or RSS.
+  // Observe quiescent temporary holdings after initial/shared preparation.
+  // Genuine Host/shared holdings and durable history are outside this count;
+  // neither a configured cap nor RSS can excuse retained temporary growth.
   const temporary = population.temporaryRetained;
   if (!temporary || !['beforeBytes', 'afterBytes', 'peakBytes', 'capacityBytes'].every(key => integer(temporary[key]))) {
     missing.push('actual temporary holdings and existing configured capacity');
   }
   else if (temporary.peakBytes < Math.max(temporary.beforeBytes, temporary.afterBytes) ||
       temporary.peakBytes > temporary.capacityBytes) failures.push('temporary holdings exceed their observed fixed bound');
+  if (integer(temporary?.beforeBytes) && integer(temporary?.afterBytes) && temporary.afterBytes > temporary.beforeBytes) {
+    failures.push('temporary holdings grew after quiescent population completion');
+  }
   return outcome(failures, missing);
 }
 

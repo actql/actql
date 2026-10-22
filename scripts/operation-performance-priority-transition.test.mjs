@@ -38,7 +38,7 @@ function report(platform) {
         resultRefSha256: operation === 'warm-select' ? hash(['new-result', iteration]) : original.resultRefSha256};
     })};
     series.population = {publicOperationIds: series.samples.map(row => row.publicOperationId), complete: true, overflow: false,
-      unrelatedRunRows: 0, unrelatedEffectRows: 0, temporaryRetained: {beforeBytes: 16, afterBytes: 24, peakBytes: 48, capacityBytes: 64}};
+      unrelatedRunRows: 0, unrelatedEffectRows: 0, temporaryRetained: {beforeBytes: 16, afterBytes: 16, peakBytes: 48, capacityBytes: 64}};
     return series;
   });
   return {sourceSha, ...identity, executionPath: `${platform}-sdk`, installedPayloadsUnchanged: true,
@@ -197,6 +197,14 @@ test('actual Deny, approval, Unknown, recovery and original cleanup remain requi
     r => {r.installedPayloadsUnchanged = false; r.packageFailure = 'payload changed';},
     r => {r.priorityConditions.boundedTemporaryGrowth = false;}]) {
     const value = input(); mutate(value.platforms.node[0]); assert.equal(assessPriorityTransition(value).status, 'failed');
+  }
+});
+test('below-cap temporary growth fails while stable or released quiescent holdings pass', () => {
+  const leaking = input(); leaking.platforms.node[0].latency[0].population.temporaryRetained.afterBytes = 24;
+  assert.equal(assessPriorityTransition(leaking).status, 'failed');
+  for (const afterBytes of [16, 0]) {
+    const value = input(); value.platforms.node[0].latency[0].population.temporaryRetained.afterBytes = afterBytes;
+    assert.equal(assessPriorityTransition(value).status, 'passed');
   }
 });
 test('optional detailed regressions cannot hide a reported violation behind missing coverage', () => {
