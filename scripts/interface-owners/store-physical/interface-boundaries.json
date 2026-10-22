@@ -5663,7 +5663,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "987d7491bb11141047ac6ef4fa8610459955e567ae56a92b35e962fbb084a2fe",
+      "sha256": "1ffa7b21008965307c2086701f54f04e6d672ae6f930d62b9240fb60ea02d917",
       "exports": [
         "PublicationStoreError",
         "assertOriginalLocalPublicationStoreFacilityCurrent",
@@ -6341,6 +6341,13 @@
         },
         {
           "name": "openOriginalLocalPublicationStore/confirmCommittedIndex/confirmCommittedIndex",
+          "parameters": [
+            "key"
+          ],
+          "async": true
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/confirmCommittedIndexOriginal/confirmCommittedIndexOriginal",
           "parameters": [
             "key"
           ],
@@ -8036,6 +8043,13 @@
           "name": "openOriginalLocalPublicationStore/readCommittedMetadataInventory/readCommittedMetadataInventory",
           "parameters": [
             "entry"
+          ],
+          "async": true
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/readCommittedPublication/readCommittedPublication",
+          "parameters": [
+            "key"
           ],
           "async": true
         },
@@ -10080,7 +10094,9 @@
             "syncDirectoryPath/syncDirectoryPath",
             "validateConfiguration",
             "validateContractControl",
-            "writeExclusive"
+            "writeExclusive",
+            "openOriginalLocalPublicationStore/confirmCommittedIndexOriginal/confirmCommittedIndexOriginal",
+            "openOriginalLocalPublicationStore/readCommittedPublication/readCommittedPublication"
           ],
           "exports": [
             "PublicationStoreError",
@@ -10187,6 +10203,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "Inventory staging precedes the public Index commit's payload-custody owner."
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "The ordinary Local observer selects committed publication through the existing"
               }
             ],
             "inputsOutputs": [
@@ -10281,6 +10301,10 @@
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "const stageMetadataInventory = (original, native) => {"
+              },
+              {
+                "path": "adapters/host-common/run-state-access.mjs",
+                "anchor": "export async function observeAuthorizedRunState(service, request) {"
               }
             ],
             "identity": [
@@ -10383,6 +10407,10 @@
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "Reflect.apply(stage, index, [original]);"
+              },
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "return {entry, bytes, contract: admitted};"
               }
             ],
             "ownership": [
@@ -10477,6 +10505,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "staging original in its existing pending-writer collection and returns its"
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "These immutable metadata facts live within this observation; a new operation"
               }
             ],
             "synchronization": [
@@ -10571,6 +10603,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "as an ACK. Concurrent finalization shares one attempt. An unresolved original"
+              },
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "await requireCommittedMetadataInventory(original.entry);"
               }
             ],
             "failure": [
@@ -10665,6 +10701,10 @@
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "failure.outcome = 'unknown';"
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "selected originals and physical failures do not become absence or trigger a"
               }
             ],
             "cancellation": [
@@ -10755,6 +10795,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "writer but cannot erase its duty. A successful confirmation retires only that"
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "current authorization and transactional observation CAS remain unchanged."
               }
             ],
             "resources": [
@@ -10849,6 +10893,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "continues to block native reads and Store retirement; close may drain this same"
+              },
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "Object.freeze(original.entry.durable_result_binding_cids);"
               }
             ],
             "extension": [
@@ -10943,6 +10991,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "Legacy file-backed staging retains the same protocol and separate file ACKs."
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "Stores without the optional combined read keep their original selected reads;"
               }
             ],
             "verification": [
@@ -11109,6 +11161,10 @@
               {
                 "path": "adapters/store-local/publication-store.test.mjs",
                 "anchor": "publication inventory staging retains its ${afterCommit"
+              },
+              {
+                "path": "adapters/host-node/client-run-observation-reuse.test.mjs",
+                "anchor": "test('selected publication observation acquires its Index once in the actual Local observer', async () => {"
               }
             ]
           }

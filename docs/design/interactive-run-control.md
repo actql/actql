@@ -46,6 +46,24 @@ Control changes and publication conflicts retry with a fresh admitted frame.
 An internal post-Store probe therefore does not repeat admission of identical
 Run bytes, while a new public observation acquires its own current original.
 
+The ordinary Local observer selects committed publication through the existing
+authorized state service, not a preliminary Index probe followed by the same
+probe inside that service. The Store can return its selected entry together
+with the nominal Index admitted from that same physical read. State projection
+consumes that original rather than rereading and readmitting the identical body.
+These immutable metadata facts live within this observation; a new operation
+acquires its own bytes, digest/link checks and original close duties. They are
+not Account decisions, payload availability, a durable ACK or a cross-operation
+successful-read cache. Result retention and physical payload checks remain
+separate selected duties.
+
+Authorized absence selects the existing unpublished branch. Denial, malformed
+selected originals and physical failures do not become absence or trigger a
+fallback read. The strict committed-state entry still refuses a missing Index.
+Stores without the optional combined read keep their original selected reads;
+an explicitly invalid combined port refuses. Final Journal row comparison,
+current authorization and transactional observation CAS remain unchanged.
+
 Physical-stop observation uses the same journal-owned frame across publication
 inspection. An unchanged complete row reuses its original request identity and
 Run Definition admission; revision equality alone is insufficient. The final
