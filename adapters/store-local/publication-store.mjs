@@ -7405,6 +7405,7 @@ async function openOriginalLocalPublicationStore(
     const holdings = suppliedHoldings.map(value =>
       parsePhysicalHolding(Buffer.from(JSON.stringify(value))));
     return withSemanticCommit(async () => {
+      active();
       const previous = await readEffectCaptureCustodyOriginal(run);
       const records = new Map((previous?.holdings ?? []).map(value =>
         [value.holding_cid, value]));
@@ -7483,6 +7484,7 @@ async function openOriginalLocalPublicationStore(
     return Object.freeze(result);
   };
   const forgetEffectCaptureCustodyOriginal = async run => {
+    active();
     lastConfirmedEffectCaptureCustody = undefined;
     try { await unlink(captureCustodyPath(run)); }
     catch (error) { if (error?.code !== 'ENOENT') throw error; }
