@@ -6188,13 +6188,13 @@ test('clean Store reopening does not rescan settled Result deletion history', as
   } finally {t.mock.restoreAll(); syncBuiltinESMExports();}
 });
 
-for (const phase of ['begin', 'seal']) {
-test(`Result cleanup ${phase} lost COMMIT reply keeps the same Store duty`, async t => {
+for (const phase of ['begin', 'seal']) for (const afterCommit of [false, true]) {
+test(`Result cleanup ${phase} ${afterCommit ? 'committed' : 'rolled-back'} lost COMMIT reply keeps the same Store duty`, async t => {
   let armed = false, lost = false;
   const originalExec = DatabaseSync.prototype.exec;
   t.mock.method(DatabaseSync.prototype, 'exec', function(sql) {
     if (armed && !lost && sql === 'COMMIT') {
-      lost = true; Reflect.apply(originalExec, this, [sql]);
+      lost = true; if (afterCommit) Reflect.apply(originalExec, this, [sql]);
       throw Object.assign(new Error('lost same Result cleanup commit reply'), {code: 'EIO'});
     }
     return Reflect.apply(originalExec, this, [sql]);
@@ -6225,6 +6225,36 @@ test(`Result cleanup ${phase} lost COMMIT reply keeps the same Store duty`, asyn
   assert.equal(store.status().closed, true);
 });
 }
+
+test('Result cleanup seal shares physical quota COMMIT and keeps the original native close ACK separate', async t => {
+  let armed = false, refuse = false, commits = 0, closes = 0;
+  const exec = DatabaseSync.prototype.exec, close = DatabaseSync.prototype.close;
+  t.mock.method(DatabaseSync.prototype, 'exec', function(sql) {
+    if (armed && sql === 'COMMIT') commits++;
+    return Reflect.apply(exec, this, [sql]);
+  });
+  t.mock.method(DatabaseSync.prototype, 'close', function() {
+    if (armed) closes++;
+    return refuse ? false : Reflect.apply(close, this, []);
+  });
+  const {store, directory} = await fixture(t);
+  const invoked = invocation(), request = publicationRequest(resultDefinition(), invoked.invocation_cid);
+  const attempt = publicationAttempt(request), prepared = await prepareCommit(store, request, attempt, invoked);
+  const entry = indexEntry(request, attempt, invoked, {durable_result_binding_cids: [prepared.binding.identity]});
+  await store.commitIndex(wire(entry), prepared.required, prepared.evidence);
+  assert.equal((await store.retireCommittedResult(indexKeyFor(request), request.inventory[0].result_definition_cid)).deleted, true);
+  armed = refuse = true;
+  try {
+    await assert.rejects(store.close(), code('DeliveryAttemptIndexCleanupPending'));
+    assert.equal(commits, 1, 'Result seal and original physical-quota close share the real commit');
+    assert.equal(store.status().closed, false);
+    assert((await stat(join(directory, 'owner'))).isDirectory());
+    refuse = false;
+    await store.close();
+    assert.equal(commits, 1, 'same original native close retry does not repeat the committed seal');
+    assert.equal(closes, 2);
+  } finally {refuse = false; armed = false; await store.close();}
+});
 
 test('Result cleanup legacy coverage is audited once and a selected corrupt marker still refuses', async t => {
   const {store, configuration, directory} = await fixture(t);

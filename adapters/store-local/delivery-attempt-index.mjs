@@ -483,7 +483,8 @@ export async function openDeliveryAttemptIndex(path, {create, maxEntries, maxWir
       if (pendingResultSeal === undefined) return undefined;
       const row = readResultRecovery(), before = pendingResultSeal;
       if (!(row.dirty === before.dirty && row.ack_revision === before.ack_revision) &&
-          !(row.dirty === 0 && row.ack_revision === before.ack_revision + 1)) {
+          !(uncertain && (uncertainPhysicalSeal || uncertainPublicationFinishSeal) &&
+            row.dirty === 0 && row.ack_revision === before.ack_revision + 1)) {
         fail('DeliveryAttemptIndexUnavailable');
       }
       const next = Object.freeze({dirty: 0, ack_revision: row.ack_revision + 1});
