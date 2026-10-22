@@ -238,29 +238,46 @@ fn publication_row_limit_claim(
     }
     indices.push(index)
   }
+  typed_publication_limit_claim(
+    claims,
+    indices,
+    @derivation.Rows,
+    body.subject,
+    body.maximum,
+    body.candidates.length(),
+    budget,
+  )
+}
+
+///|
+// A row projection meters its original candidate traversals; the Host-only
+// byte projection has no such separate traversal debit. Both retain the same
+// bounded canonical preimage/full-wire and admission work accounting.
+fn typed_publication_limit_claim(
+  claims : @wire.ArithmeticClaims,
+  indices : Array[Int],
+  unit : @derivation.BoundUnit,
+  subject : String,
+  maximum : Int64,
+  traversal_work : Int,
+  budget : IdentityBudget,
+) -> @wire.LimitClaim raise UnitBuildFailure {
   // The old hash writer is bounded before the emitter's candidate charge.
   let hash_bytes = Int::min(budget.bytes, budget.work)
   let hash_nodes = Int::min(budget.nodes, budget.work)
-  identity_charge(budget, body.candidates.length())
+  identity_charge(budget, traversal_work)
   let claim = match
-    @wire.create_limit(
-      claims,
-      indices,
-      @derivation.Rows,
-      body.subject,
-      @wire.EngineAtomic,
-      {
-        max_bytes: hash_bytes,
-        max_nodes: hash_nodes,
-        max_depth: budget.depth,
-        max_candidates: @wire.claim_count(claims),
-      },
-    ) {
+    @wire.create_limit(claims, indices, unit, subject, @wire.EngineAtomic, {
+      max_bytes: hash_bytes,
+      max_nodes: hash_nodes,
+      max_depth: budget.depth,
+      max_candidates: @wire.claim_count(claims),
+    }) {
     Ok(value) => value
     Err(BudgetExceeded) => raise Encoding(@encode.OutputLimit)
     Err(issue) => raise PublicationWire(issue)
   }
-  if @derivation.minimum_value(@wire.limit_minimum(claim)) != body.maximum ||
+  if @derivation.minimum_value(@wire.limit_minimum(claim)) != maximum ||
     @derivation.minimum_guard_binding(@wire.limit_minimum(claim)) != Absent {
     raise PublicationWire(@wire.InvalidWitness)
   }
@@ -271,7 +288,7 @@ fn publication_row_limit_claim(
   budget.nodes -= preimage_nodes
   let max_bytes = Int::min(budget.bytes, budget.work / 2)
   let max_nodes = Int::min(budget.nodes, budget.work / 2)
-  identity_charge(budget, body.candidates.length())
+  identity_charge(budget, traversal_work)
   let (bytes, nodes, _) = @wire.measure_limit(
     claim,
     max_bytes,
@@ -285,7 +302,7 @@ fn publication_row_limit_claim(
   identity_charge(budget, bytes)
   identity_charge(budget, nodes)
   identity_charge(budget, bytes)
-  identity_charge(budget, body.candidates.length())
+  identity_charge(budget, traversal_work)
   budget.bytes -= bytes
   budget.nodes -= nodes
   identity_charge(budget, bytes)
