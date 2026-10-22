@@ -47091,7 +47091,7 @@
               },
               {
                 "path": "adapters/host-node/in-process-client.mjs",
-                "anchor": "try { yield* response.frames; consumed = true; }"
+                "anchor": "try { yield* (original === undefined ? response.frames : contextualFrames(response.frames)); consumed = true; }"
               }
             ],
             "failure": [
