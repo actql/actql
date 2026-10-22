@@ -6148,6 +6148,46 @@ test('durable Result retirement blocks new reads and waits for active readers',
     ), code('PublicationObjectMissing'));
   });
 
+test('clean Store reopening does not rescan settled Result deletion history', async t => {
+  const {store, configuration, directory} = await fixture(t);
+  const invoked = invocation();
+  const request = publicationRequest(resultDefinition(), invoked.invocation_cid);
+  const attempt = publicationAttempt(request);
+  const prepared = await prepareCommit(store, request, attempt, invoked);
+  const entry = indexEntry(request, attempt, invoked, {
+    durable_result_binding_cids: [prepared.binding.identity],
+  });
+  await store.commitIndex(wire(entry), prepared.required, prepared.evidence);
+  const retired = await store.retireCommittedResult(indexKeyFor(request),
+    request.inventory[0].result_definition_cid);
+  assert.equal(retired.deleted, true);
+  await store.close();
+  const deletionRoot = join(directory, 'deletions');
+  let historyReads = 0, historyLists = 0;
+  const originalOpen = fsPromises.open, originalReaddir = fsPromises.readdir;
+  t.mock.method(fsPromises, 'open', async function(path, ...args) {
+    if (String(path).startsWith(deletionRoot + sep) &&
+        String(path).endsWith('.json') && typeof args[0] === 'number') historyReads++;
+    return Reflect.apply(originalOpen, this, [path, ...args]);
+  });
+  t.mock.method(fsPromises, 'readdir', async function(path, ...args) {
+    if (String(path) === deletionRoot || String(path).startsWith(deletionRoot + sep)) historyLists++;
+    return Reflect.apply(originalReaddir, this, [path, ...args]);
+  });
+  syncBuiltinESMExports();
+  try {
+    const reopened = await openLocalPublicationStore(configuration, contractControl);
+    try {
+      assert.equal(historyReads, 0, 'settled deletion bodies are selected-use data, not ordinary open work');
+      assert.equal(historyLists, 0, 'clean opening does not enumerate completed Result retirements');
+      await assert.rejects(reopened.consumeCommittedResult(indexKeyFor(request),
+        request.inventory[0].result_definition_cid, () => true,
+        () => assert.fail('retired Result exposed bytes')), code('PublicationObjectMissing'));
+      assert(historyReads > 0, 'selected use still reads the actual deletion marker');
+    } finally {await reopened.close();}
+  } finally {t.mock.restoreAll(); syncBuiltinESMExports();}
+});
+
 test('description evidence admits each selected immutable contract once per read',
   async t => {
     const directory = await mkdtemp(join(tmpdir(), 'actql-description-once-'));
