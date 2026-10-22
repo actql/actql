@@ -344,6 +344,21 @@ test('publication computation lifetime stays with failed or pending Unknown and 
   await error.cleanupHandle.retry(); assert.equal(retired, 1);
 });
 
+test('publication computation lifetime latches retry before synchronous original reconciliation reentry', async () => {
+  const loops = publicationLifetimeLoops();
+  let error, nested, entered = false, reconciliations = 0, retired = 0;
+  const control = {publicationUnknownRetryAction: resolved => resolved ? 'finished' : 'reconcile'};
+  error = loops.uncertainFailure(new Error('original Unknown'), undefined, undefined, control, async () => {
+    reconciliations++;
+    if (!entered) {entered = true; nested = error.cleanupHandle.retry();}
+    return Object.freeze({outcome: 'uncommitted'});
+  }, () => {retired++;});
+  const original = error.cleanupHandle.retry();
+  assert.equal((await original).pending, false);
+  assert.strictEqual(nested, original);
+  assert.equal(reconciliations, 1); assert.equal(retired, 1);
+});
+
 test('publication computation lifetime retires capture cancelled before publication entry without replacing payload cleanup', async () => {
   const text = readFileSync(new URL('./completed-run-publication.mjs', import.meta.url), 'utf8');
   const declaration = parse(text, {ecmaVersion: 'latest', sourceType: 'module'}).body
