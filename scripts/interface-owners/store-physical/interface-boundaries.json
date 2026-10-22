@@ -3353,7 +3353,7 @@
     {
       "module": "adapters/store-local/object-writer-owner.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "dec0e490dd84a7b920004016dc948dca7a0773d12fe1393340d0208f0281e119",
+      "sha256": "eec1a7ae84922f7dab6f4826a302bb12fb45f82a4e73c37e3a3691cc3e1d1ee5",
       "exports": [
         "createObjectWriterOwner"
       ],
@@ -3485,11 +3485,6 @@
         {
           "operations": [
             "<module>",
-            "createObjectWriterOwner",
-            "createObjectWriterOwner/createObjectWriterOwner",
-            "createObjectWriterOwner/createObjectWriterOwner#2",
-            "createObjectWriterOwner/createObjectWriterOwner#3",
-            "createObjectWriterOwner/createObjectWriterOwner#4",
             "ObjectWriterOwner/constructor:constructor/constructor:constructor",
             "ObjectWriterOwner/method:append/method:append",
             "ObjectWriterOwner/method:append/method:append/method:append",
@@ -3504,7 +3499,12 @@
             "ObjectWriterOwner/method:seal/method:seal",
             "ObjectWriterOwner/method:seal/method:seal/method:seal",
             "ObjectWriterOwner/method:start/method:start",
-            "ObjectWriterOwner/method:status/method:status"
+            "ObjectWriterOwner/method:status/method:status",
+            "createObjectWriterOwner",
+            "createObjectWriterOwner/createObjectWriterOwner",
+            "createObjectWriterOwner/createObjectWriterOwner#2",
+            "createObjectWriterOwner/createObjectWriterOwner#3",
+            "createObjectWriterOwner/createObjectWriterOwner#4"
           ],
           "exports": [
             "createObjectWriterOwner"
@@ -3514,6 +3514,10 @@
               {
                 "path": "adapters/store-local/object-writer-owner.mjs",
                 "anchor": "A single writer owns its staging file"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "### Indexed physical object usage"
               }
             ],
             "inputsOutputs": [
@@ -3524,48 +3528,80 @@
               {
                 "path": "docs/design/retained-result-boundary.md",
                 "anchor": "bounded UTF-8 text or bounded byte frames"
+              },
+              {
+                "path": "adapters/store-local/object-writer-owner.mjs",
+                "anchor": "this.operations.accountInstalled(this.bytes, this.custody, cid, state);"
               }
             ],
             "identity": [
               {
                 "path": "adapters/store-local/object-writer-owner.mjs",
                 "anchor": "Measure the nominal view"
+              },
+              {
+                "path": "adapters/store-local/object-writer-owner.mjs",
+                "anchor": "this.operations.discardInstallation?.(cid, this.bytes, state, this.custody);"
               }
             ],
             "ownership": [
               {
                 "path": "adapters/store-local/object-writer-owner.mjs",
                 "anchor": "one-shot Store capability"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "usage and removes those pending originals together. No per-item custody file"
               }
             ],
             "synchronization": [
               {
                 "path": "adapters/store-local/object-writer-owner.mjs",
                 "anchor": "this.busy.then(operation)"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "Unlink and its containing-directory ACK precede decrementing the same physical"
               }
             ],
             "failure": [
               {
                 "path": "adapters/store-local/object-writer-false-close-custody.test.mjs",
                 "anchor": "test("
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "ACK keeps the charge and pending owner; retries do not relink, resend, substitute"
               }
             ],
             "cancellation": [
               {
                 "path": "adapters/store-local/private-evidence-writer-cleanup.test.mjs",
                 "anchor": "test("
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "until a real same-original idempotent transaction confirms the outcome. Reads,"
               }
             ],
             "resources": [
               {
                 "path": "adapters/store-local/object-writer-owner.mjs",
                 "anchor": "this.maxBytes"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "The existing Store limits bound installed totals, pending generation rows,"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/retained-result-boundary.md",
                 "anchor": "alternative representation requires verified conversion"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "legacy census completes atomically with its totals. Missing adopted tables or"
               }
             ],
             "verification": [
@@ -3576,11 +3612,22 @@
               {
                 "path": "adapters/store-local/object-writer-false-close-custody.test.mjs",
                 "anchor": "test("
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "concurrent equal payload writers charge only the winning physical generation"
               }
             ]
           }
         }
-      ]
+      ],
+      "imports": [
+        "node:crypto",
+        "node:fs",
+        "node:path"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/store-local/process-binding.mjs",
@@ -4091,7 +4138,7 @@
     {
       "module": "adapters/store-local/delivery-attempt-index.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "37282afd1731138fef5b512cfe76ae80e579bf4d8df163ed463c60e6f32ee2d2",
+      "sha256": "2e80a611ee9d7481e80bf80afa70ce8631ff339322f84c05a50bed30754e96a9",
       "exports": [
         "openDeliveryAttemptIndex"
       ],
@@ -4285,6 +4332,13 @@
           "async": false
         },
         {
+          "name": "openDeliveryAttemptIndex/init:finishPhysicalPreparations/init:finishPhysicalPreparations",
+          "parameters": [
+            "values"
+          ],
+          "async": false
+        },
+        {
           "name": "openDeliveryAttemptIndex/init:finishPublicationInventory/init:finishPublicationInventory",
           "parameters": [
             "value"
@@ -4364,6 +4418,33 @@
           "async": false
         },
         {
+          "name": "openDeliveryAttemptIndex/init:migratePhysicalObjects/init:migratePhysicalObjects",
+          "parameters": [
+            "values"
+          ],
+          "async": false
+        },
+        {
+          "name": "openDeliveryAttemptIndex/init:migratePhysicalObjects/init:migratePhysicalObjects/bytes/bytes",
+          "parameters": [
+            "sum",
+            "row"
+          ],
+          "async": false
+        },
+        {
+          "name": "openDeliveryAttemptIndex/init:migratePhysicalObjects/init:migratePhysicalObjects/init:migratePhysicalObjects",
+          "parameters": [
+            "row"
+          ],
+          "async": false
+        },
+        {
+          "name": "openDeliveryAttemptIndex/init:migratePhysicalObjects/init:migratePhysicalObjects/init:migratePhysicalObjects#2",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "openDeliveryAttemptIndex/init:migratePublicationRecovery/init:migratePublicationRecovery",
           "parameters": [
             "values"
@@ -4415,6 +4496,11 @@
           "async": false
         },
         {
+          "name": "openDeliveryAttemptIndex/init:pendingPhysicalObjects/init:pendingPhysicalObjects",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "openDeliveryAttemptIndex/init:pendingPublication/init:pendingPublication",
           "parameters": [
             "publicIndexCid"
@@ -4423,6 +4509,18 @@
         },
         {
           "name": "openDeliveryAttemptIndex/init:pendingPublications/init:pendingPublications",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openDeliveryAttemptIndex/init:physicalObject/init:physicalObject",
+          "parameters": [
+            "cidValue"
+          ],
+          "async": false
+        },
+        {
+          "name": "openDeliveryAttemptIndex/init:physicalObjectUsage/init:physicalObjectUsage",
           "parameters": [],
           "async": false
         },
@@ -4443,6 +4541,20 @@
           "parameters": [
             "entries",
             "allowance"
+          ],
+          "async": false
+        },
+        {
+          "name": "openDeliveryAttemptIndex/init:recordPhysicalObjects/init:recordPhysicalObjects",
+          "parameters": [
+            "values"
+          ],
+          "async": false
+        },
+        {
+          "name": "openDeliveryAttemptIndex/init:removePhysicalObjects/init:removePhysicalObjects",
+          "parameters": [
+            "values"
           ],
           "async": false
         },
@@ -4476,6 +4588,13 @@
           "async": false
         },
         {
+          "name": "openDeliveryAttemptIndex/init:stagePhysicalObjects/init:stagePhysicalObjects",
+          "parameters": [
+            "values"
+          ],
+          "async": false
+        },
+        {
           "name": "openDeliveryAttemptIndex/init:stagePublicationInventory/init:stagePublicationInventory",
           "parameters": [
             "value"
@@ -4485,6 +4604,90 @@
         {
           "name": "openDeliveryAttemptIndex/inventoryUsage/inventoryUsage",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openDeliveryAttemptIndex/mutatePhysical/mutatePhysical",
+          "parameters": [
+            "kind",
+            "values"
+          ],
+          "async": false
+        },
+        {
+          "name": "openDeliveryAttemptIndex/mutatePhysical/mutatePhysical/changes/changes",
+          "parameters": [
+            "row"
+          ],
+          "async": false
+        },
+        {
+          "name": "openDeliveryAttemptIndex/mutatePhysical/mutatePhysical/mutatePhysical",
+          "parameters": [
+            "row"
+          ],
+          "async": false
+        },
+        {
+          "name": "openDeliveryAttemptIndex/mutatePhysical/mutatePhysical/mutatePhysical#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openDeliveryAttemptIndex/mutatePhysical/mutatePhysical/prepared/prepared",
+          "parameters": [
+            "row"
+          ],
+          "async": false
+        },
+        {
+          "name": "openDeliveryAttemptIndex/mutatePhysical/mutatePhysical/sameOriginals/sameOriginals",
+          "parameters": [
+            "prior"
+          ],
+          "async": false
+        },
+        {
+          "name": "openDeliveryAttemptIndex/mutatePhysical/mutatePhysical/sameOriginals/sameOriginals/sameOriginals",
+          "parameters": [
+            "row",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "openDeliveryAttemptIndex/mutatePhysicalPreparation/mutatePhysicalPreparation",
+          "parameters": [
+            "kind",
+            "values"
+          ],
+          "async": false
+        },
+        {
+          "name": "openDeliveryAttemptIndex/mutatePhysicalPreparation/mutatePhysicalPreparation/changes/changes",
+          "parameters": [
+            "row"
+          ],
+          "async": false
+        },
+        {
+          "name": "openDeliveryAttemptIndex/mutatePhysicalPreparation/mutatePhysicalPreparation/mutatePhysicalPreparation",
+          "parameters": [
+            "row"
+          ],
+          "async": false
+        },
+        {
+          "name": "openDeliveryAttemptIndex/mutatePhysicalPreparation/mutatePhysicalPreparation/mutatePhysicalPreparation#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openDeliveryAttemptIndex/mutatePhysicalPreparation/mutatePhysicalPreparation/retry/retry",
+          "parameters": [
+            "row",
+            "index"
+          ],
           "async": false
         },
         {
@@ -4508,6 +4711,11 @@
         },
         {
           "name": "openDeliveryAttemptIndex/openDeliveryAttemptIndex#10",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openDeliveryAttemptIndex/openDeliveryAttemptIndex#11",
           "parameters": [],
           "async": false
         },
@@ -4552,6 +4760,18 @@
         },
         {
           "name": "openDeliveryAttemptIndex/openDeliveryAttemptIndex#9",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openDeliveryAttemptIndex/physicalOriginal/physicalOriginal",
+          "parameters": [
+            "row"
+          ],
+          "async": false
+        },
+        {
+          "name": "openDeliveryAttemptIndex/physicalState/physicalState",
           "parameters": [],
           "async": false
         },
@@ -4699,6 +4919,21 @@
           "async": false
         },
         {
+          "name": "openDeliveryAttemptIndex/samePhysical/samePhysical",
+          "parameters": [
+            "a",
+            "b"
+          ],
+          "async": false
+        },
+        {
+          "name": "openDeliveryAttemptIndex/samePhysical/samePhysical/samePhysical",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
           "name": "openDeliveryAttemptIndex/samePublication/samePublication",
           "parameters": [
             "left",
@@ -4786,6 +5021,7 @@
             "openDeliveryAttemptIndex/init:finish/init:finish/init:finish",
             "openDeliveryAttemptIndex/init:finishMetadataDeletionFence/init:finishMetadataDeletionFence",
             "openDeliveryAttemptIndex/init:finishMetadataDeletionFence/init:finishMetadataDeletionFence/init:finishMetadataDeletionFence",
+            "openDeliveryAttemptIndex/init:finishPhysicalPreparations/init:finishPhysicalPreparations",
             "openDeliveryAttemptIndex/init:finishPublicationInventory/init:finishPublicationInventory",
             "openDeliveryAttemptIndex/init:forgetRun/init:forgetRun",
             "openDeliveryAttemptIndex/init:forgetRun/init:forgetRun/init:forgetRun",
@@ -4798,6 +5034,10 @@
             "openDeliveryAttemptIndex/init:migrateMetadataDeletionFences/init:migrateMetadataDeletionFences/init:migrateMetadataDeletionFences",
             "openDeliveryAttemptIndex/init:migrateMetadataDeletionFences/init:migrateMetadataDeletionFences/init:migrateMetadataDeletionFences#2",
             "openDeliveryAttemptIndex/init:migrateMetadataDeletionFences/init:migrateMetadataDeletionFences/keys/keys",
+            "openDeliveryAttemptIndex/init:migratePhysicalObjects/init:migratePhysicalObjects",
+            "openDeliveryAttemptIndex/init:migratePhysicalObjects/init:migratePhysicalObjects/bytes/bytes",
+            "openDeliveryAttemptIndex/init:migratePhysicalObjects/init:migratePhysicalObjects/init:migratePhysicalObjects",
+            "openDeliveryAttemptIndex/init:migratePhysicalObjects/init:migratePhysicalObjects/init:migratePhysicalObjects#2",
             "openDeliveryAttemptIndex/init:migratePublicationRecovery/init:migratePublicationRecovery",
             "openDeliveryAttemptIndex/init:migratePublicationRecovery/init:migratePublicationRecovery/init:migratePublicationRecovery",
             "openDeliveryAttemptIndex/init:migratePublicationRecovery/init:migratePublicationRecovery/keys/keys",
@@ -4807,21 +5047,40 @@
             "openDeliveryAttemptIndex/init:needsMigration/init:needsMigration",
             "openDeliveryAttemptIndex/init:needsPublicationRecoveryMigration/init:needsPublicationRecoveryMigration",
             "openDeliveryAttemptIndex/init:pending/init:pending",
+            "openDeliveryAttemptIndex/init:pendingPhysicalObjects/init:pendingPhysicalObjects",
             "openDeliveryAttemptIndex/init:pendingPublication/init:pendingPublication",
             "openDeliveryAttemptIndex/init:pendingPublications/init:pendingPublications",
+            "openDeliveryAttemptIndex/init:physicalObject/init:physicalObject",
+            "openDeliveryAttemptIndex/init:physicalObjectUsage/init:physicalObjectUsage",
             "openDeliveryAttemptIndex/init:publicationContract/init:publicationContract",
             "openDeliveryAttemptIndex/init:publicationUsage/init:publicationUsage",
             "openDeliveryAttemptIndex/init:putPublicationContracts/init:putPublicationContracts",
+            "openDeliveryAttemptIndex/init:recordPhysicalObjects/init:recordPhysicalObjects",
+            "openDeliveryAttemptIndex/init:removePhysicalObjects/init:removePhysicalObjects",
             "openDeliveryAttemptIndex/init:removePublicationContract/init:removePublicationContract",
             "openDeliveryAttemptIndex/init:retireNativePublicationInventory/init:retireNativePublicationInventory",
             "openDeliveryAttemptIndex/init:run/init:run",
             "openDeliveryAttemptIndex/init:stageNativePublicationInventory/init:stageNativePublicationInventory",
+            "openDeliveryAttemptIndex/init:stagePhysicalObjects/init:stagePhysicalObjects",
             "openDeliveryAttemptIndex/init:stagePublicationInventory/init:stagePublicationInventory",
             "openDeliveryAttemptIndex/inventoryUsage/inventoryUsage",
+            "openDeliveryAttemptIndex/mutatePhysical/mutatePhysical",
+            "openDeliveryAttemptIndex/mutatePhysical/mutatePhysical/changes/changes",
+            "openDeliveryAttemptIndex/mutatePhysical/mutatePhysical/mutatePhysical",
+            "openDeliveryAttemptIndex/mutatePhysical/mutatePhysical/mutatePhysical#2",
+            "openDeliveryAttemptIndex/mutatePhysical/mutatePhysical/prepared/prepared",
+            "openDeliveryAttemptIndex/mutatePhysical/mutatePhysical/sameOriginals/sameOriginals",
+            "openDeliveryAttemptIndex/mutatePhysical/mutatePhysical/sameOriginals/sameOriginals/sameOriginals",
+            "openDeliveryAttemptIndex/mutatePhysicalPreparation/mutatePhysicalPreparation",
+            "openDeliveryAttemptIndex/mutatePhysicalPreparation/mutatePhysicalPreparation/changes/changes",
+            "openDeliveryAttemptIndex/mutatePhysicalPreparation/mutatePhysicalPreparation/mutatePhysicalPreparation",
+            "openDeliveryAttemptIndex/mutatePhysicalPreparation/mutatePhysicalPreparation/mutatePhysicalPreparation#2",
+            "openDeliveryAttemptIndex/mutatePhysicalPreparation/mutatePhysicalPreparation/retry/retry",
             "openDeliveryAttemptIndex/mutatePublicationRecovery/mutatePublicationRecovery",
             "openDeliveryAttemptIndex/mutatePublicationRecovery/mutatePublicationRecovery/mutatePublicationRecovery",
             "openDeliveryAttemptIndex/openDeliveryAttemptIndex",
             "openDeliveryAttemptIndex/openDeliveryAttemptIndex#10",
+            "openDeliveryAttemptIndex/openDeliveryAttemptIndex#11",
             "openDeliveryAttemptIndex/openDeliveryAttemptIndex#2",
             "openDeliveryAttemptIndex/openDeliveryAttemptIndex#3",
             "openDeliveryAttemptIndex/openDeliveryAttemptIndex#4",
@@ -4830,6 +5089,8 @@
             "openDeliveryAttemptIndex/openDeliveryAttemptIndex#7",
             "openDeliveryAttemptIndex/openDeliveryAttemptIndex#8",
             "openDeliveryAttemptIndex/openDeliveryAttemptIndex#9",
+            "openDeliveryAttemptIndex/physicalOriginal/physicalOriginal",
+            "openDeliveryAttemptIndex/physicalState/physicalState",
             "openDeliveryAttemptIndex/prepare/prepare",
             "openDeliveryAttemptIndex/prepare/prepare/prepare",
             "openDeliveryAttemptIndex/prepare/prepare/prepare#2",
@@ -4852,6 +5113,8 @@
             "openDeliveryAttemptIndex/sameCompletion/sameCompletion",
             "openDeliveryAttemptIndex/sameCompletion/sameCompletion/sameCompletion",
             "openDeliveryAttemptIndex/sameFence/sameFence",
+            "openDeliveryAttemptIndex/samePhysical/samePhysical",
+            "openDeliveryAttemptIndex/samePhysical/samePhysical/samePhysical",
             "openDeliveryAttemptIndex/samePublication/samePublication",
             "openDeliveryAttemptIndex/samePublication/samePublication/samePublication",
             "openDeliveryAttemptIndex/sameRecoveryOriginal/sameRecoveryOriginal",
@@ -4884,6 +5147,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "### Indexed Run metadata retirement"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "### Indexed physical object usage"
               }
             ],
             "inputsOutputs": [
@@ -4914,6 +5181,10 @@
               {
                 "path": "adapters/store-local/delivery-attempt-index.mjs",
                 "anchor": "hasRunMetadataDeletionFence(runCid) {"
+              },
+              {
+                "path": "adapters/store-local/delivery-attempt-index.mjs",
+                "anchor": "migratePhysicalObjects(values) {"
               }
             ],
             "identity": [
@@ -4936,6 +5207,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "metadata key, with an index over the original Run CID. Delivery and publication"
+              },
+              {
+                "path": "adapters/store-local/delivery-attempt-index.mjs",
+                "anchor": "['cid','byte_count','device','inode'].every(key=>a[key]===b[key]);"
               }
             ],
             "ownership": [
@@ -4958,6 +5233,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "A full deletion marker remains the original pending physical cleanup inventory."
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "usage and removes those pending originals together. No per-item custody file"
               }
             ],
             "synchronization": [
@@ -4980,6 +5259,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "The full marker is then unlinked and its directory really acknowledged. A failed"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "Unlink and its containing-directory ACK precede decrementing the same physical"
               }
             ],
             "failure": [
@@ -5006,6 +5289,10 @@
               {
                 "path": "adapters/store-local/delivery-attempt-index.test.mjs",
                 "anchor": "metadata deletion fences refuse missing adopted"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "ACK keeps the charge and pending owner; retries do not relink, resend, substitute"
               }
             ],
             "cancellation": [
@@ -5028,6 +5315,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "final ACK retains the same cleanup even if the marker is absent and the native"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "until a real same-original idempotent transaction confirms the outcome. Reads,"
               }
             ],
             "resources": [
@@ -5050,6 +5341,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "Completed fences retain only metadata key, Run and retirement state, not the"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "The existing Store limits bound installed totals, pending generation rows,"
               }
             ],
             "extension": [
@@ -5072,6 +5367,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "An additive format transition reads prior full and compact marker files once,"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "legacy census completes atomically with its totals. Missing adopted tables or"
               }
             ],
             "verification": [
@@ -5110,6 +5409,10 @@
               {
                 "path": "adapters/store-local/delivery-attempt-index.test.mjs",
                 "anchor": "metadata deletion fence ${finish?"
+              },
+              {
+                "path": "adapters/store-local/delivery-attempt-index.test.mjs",
+                "anchor": "physical object accounting retains exact generations and bounded totals across reopen"
               }
             ]
           }
@@ -5119,7 +5422,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "764c3e0b184a60cd91b20603e57dab06589985b962e93668e37b7beef42ae144",
+      "sha256": "875fc1e536c304faeee2666aa9927396524abd88e336e3182580b57bc4d24204",
       "exports": [
         "PublicationStoreError",
         "assertOriginalLocalPublicationStoreFacilityCurrent",
@@ -5322,6 +5625,20 @@
         },
         {
           "name": "openOriginalLocalPublicationStore/accountNativePublication/accountNativePublication",
+          "parameters": [
+            "usage"
+          ],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/accountPhysicalInstall/accountPhysicalInstall",
+          "parameters": [
+            "original"
+          ],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/accountPhysicalUsage/accountPhysicalUsage",
           "parameters": [
             "usage"
           ],
@@ -5819,6 +6136,13 @@
           "async": true
         },
         {
+          "name": "openOriginalLocalPublicationStore/confirmPhysicalCapacity/confirmPhysicalCapacity",
+          "parameters": [
+            "originals"
+          ],
+          "async": false
+        },
+        {
           "name": "openOriginalLocalPublicationStore/confirmPrivateEvidence/confirmPrivateEvidence",
           "parameters": [
             "binding"
@@ -6097,6 +6421,29 @@
           "name": "openOriginalLocalPublicationStore/createObjectWriter/createObjectWriter/init:accountInstalled/init:accountInstalled",
           "parameters": [
             "bytes",
+            "custody",
+            "cid",
+            "state"
+          ],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/createObjectWriter/createObjectWriter/init:confirmInstalled/init:confirmInstalled",
+          "parameters": [
+            "cid",
+            "bytes",
+            "state",
+            "custody",
+            "installed"
+          ],
+          "async": true
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/createObjectWriter/createObjectWriter/init:discardInstallation/init:discardInstallation",
+          "parameters": [
+            "cid",
+            "bytes",
+            "state",
             "custody"
           ],
           "async": false
@@ -7007,6 +7354,15 @@
           "async": false
         },
         {
+          "name": "openOriginalLocalPublicationStore/physicalOriginal/physicalOriginal",
+          "parameters": [
+            "cid",
+            "bytes",
+            "state"
+          ],
+          "async": false
+        },
+        {
           "name": "openOriginalLocalPublicationStore/preparedSchemaHandle/preparedSchemaHandle",
           "parameters": [
             "group",
@@ -7354,6 +7710,20 @@
           "async": false
         },
         {
+          "name": "openOriginalLocalPublicationStore/putSemanticBatch/putSemanticBatch/originals/originals",
+          "parameters": [
+            "item"
+          ],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/putSemanticBatch/putSemanticBatch/originals/originals#2",
+          "parameters": [
+            "item"
+          ],
+          "async": false
+        },
+        {
           "name": "openOriginalLocalPublicationStore/putSemanticBatch/putSemanticBatch/putSemanticBatch",
           "parameters": [
             "item"
@@ -7376,6 +7746,20 @@
           "name": "openOriginalLocalPublicationStore/putSemanticBatch/putSemanticBatch/syncNames/syncNames",
           "parameters": [],
           "async": true
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/putSemanticBatch/putSemanticBatch/syncNames/syncNames/syncNames",
+          "parameters": [
+            "item"
+          ],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/putSemanticBatch/putSemanticBatch/syncNames/syncNames/syncNames#2",
+          "parameters": [
+            "item"
+          ],
+          "async": false
         },
         {
           "name": "openOriginalLocalPublicationStore/readClockObservation/readClockObservation",
@@ -7851,6 +8235,13 @@
           "async": true
         },
         {
+          "name": "openOriginalLocalPublicationStore/releasePhysicalCapacity/releasePhysicalCapacity",
+          "parameters": [
+            "objects"
+          ],
+          "async": false
+        },
+        {
           "name": "openOriginalLocalPublicationStore/releasePreparedSchema/releasePreparedSchema",
           "parameters": [
             "group",
@@ -7873,6 +8264,15 @@
         {
           "name": "openOriginalLocalPublicationStore/releasePreparedSchema/releasePreparedSchema/releasePreparedSchema#2",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/rememberPhysicalRemoval/rememberPhysicalRemoval",
+          "parameters": [
+            "cid",
+            "bytes",
+            "state"
+          ],
           "async": false
         },
         {
@@ -8128,6 +8528,13 @@
           "name": "openOriginalLocalPublicationStore/selectDeliveryAttempt/selectDeliveryAttempt/selectDeliveryAttempt",
           "parameters": [
             "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/settlePhysicalInstalls/settlePhysicalInstalls",
+          "parameters": [
+            "originals"
           ],
           "async": false
         },
@@ -8934,6 +9341,8 @@
             "nativePublicationContract/nativePublicationContract",
             "openOriginalLocalPublicationStore",
             "openOriginalLocalPublicationStore/accountNativePublication/accountNativePublication",
+            "openOriginalLocalPublicationStore/accountPhysicalInstall/accountPhysicalInstall",
+            "openOriginalLocalPublicationStore/accountPhysicalUsage/accountPhysicalUsage",
             "openOriginalLocalPublicationStore/active/active",
             "openOriginalLocalPublicationStore/admitContract/admitContract",
             "openOriginalLocalPublicationStore/admitNativeContract/admitNativeContract",
@@ -8992,6 +9401,7 @@
             "openOriginalLocalPublicationStore/confirmModelRawCaptureOriginals/confirmModelRawCaptureOriginals",
             "openOriginalLocalPublicationStore/confirmModelRawCaptureOriginals/confirmModelRawCaptureOriginals/expected/expected",
             "openOriginalLocalPublicationStore/confirmModelRawEvidence/confirmModelRawEvidence",
+            "openOriginalLocalPublicationStore/confirmPhysicalCapacity/confirmPhysicalCapacity",
             "openOriginalLocalPublicationStore/confirmPrivateEvidence/confirmPrivateEvidence",
             "openOriginalLocalPublicationStore/confirmSelectedCommittedIndex/confirmSelectedCommittedIndex",
             "openOriginalLocalPublicationStore/consumeCommittedResult/consumeCommittedResult",
@@ -9030,6 +9440,8 @@
             "openOriginalLocalPublicationStore/createObjectWriter/createObjectWriter",
             "openOriginalLocalPublicationStore/createObjectWriter/createObjectWriter/createObjectWriter",
             "openOriginalLocalPublicationStore/createObjectWriter/createObjectWriter/init:accountInstalled/init:accountInstalled",
+            "openOriginalLocalPublicationStore/createObjectWriter/createObjectWriter/init:confirmInstalled/init:confirmInstalled",
+            "openOriginalLocalPublicationStore/createObjectWriter/createObjectWriter/init:discardInstallation/init:discardInstallation",
             "openOriginalLocalPublicationStore/createPhysicalHoldingDeletionCleanup/createPhysicalHoldingDeletionCleanup",
             "openOriginalLocalPublicationStore/createPhysicalHoldingDeletionCleanup/createPhysicalHoldingDeletionCleanup/cleanup/init:retry/init:retry",
             "openOriginalLocalPublicationStore/createPhysicalHoldingDeletionCleanup/createPhysicalHoldingDeletionCleanup/cleanup/init:retry/init:retry/init:retry",
@@ -9148,6 +9560,7 @@
             "openOriginalLocalPublicationStore/parsePreparedSchema/parsePreparedSchema/parsePreparedSchema",
             "openOriginalLocalPublicationStore/physicalHoldingDeletionPath/physicalHoldingDeletionPath",
             "openOriginalLocalPublicationStore/physicalHoldingPath/physicalHoldingPath",
+            "openOriginalLocalPublicationStore/physicalOriginal/physicalOriginal",
             "openOriginalLocalPublicationStore/prepareModelRawEvidence/prepareModelRawEvidence",
             "openOriginalLocalPublicationStore/preparePrivateEvidence/preparePrivateEvidence",
             "openOriginalLocalPublicationStore/preparePrivateEvidenceBytes/preparePrivateEvidenceBytes",
@@ -9253,10 +9666,12 @@
             "openOriginalLocalPublicationStore/recoverRetiredResults/recoverRetiredResults",
             "openOriginalLocalPublicationStore/recoverUncommittedPublications/recoverUncommittedPublications",
             "openOriginalLocalPublicationStore/registerCustody/registerCustody",
+            "openOriginalLocalPublicationStore/releasePhysicalCapacity/releasePhysicalCapacity",
             "openOriginalLocalPublicationStore/releasePreparedSchema/releasePreparedSchema",
             "openOriginalLocalPublicationStore/releasePreparedSchema/releasePreparedSchema/flight/flight",
             "openOriginalLocalPublicationStore/releasePreparedSchema/releasePreparedSchema/releasePreparedSchema",
             "openOriginalLocalPublicationStore/releasePreparedSchema/releasePreparedSchema/releasePreparedSchema#2",
+            "openOriginalLocalPublicationStore/rememberPhysicalRemoval/rememberPhysicalRemoval",
             "openOriginalLocalPublicationStore/removeCustodyRecord/removeCustodyRecord",
             "openOriginalLocalPublicationStore/removeRunMetadataDirectories/removeRunMetadataDirectories",
             "openOriginalLocalPublicationStore/requireCommittedMetadataInventory/requireCommittedMetadataInventory",
@@ -9289,6 +9704,7 @@
             "openOriginalLocalPublicationStore/runMetadataDeletionStarted/runMetadataDeletionStarted",
             "openOriginalLocalPublicationStore/sameClockFile/sameClockFile",
             "openOriginalLocalPublicationStore/sameClockFile/sameClockFile/sameClockFile",
+            "openOriginalLocalPublicationStore/settlePhysicalInstalls/settlePhysicalInstalls",
             "openOriginalLocalPublicationStore/sharePhysicalHolding/sharePhysicalHolding",
             "openOriginalLocalPublicationStore/sharePhysicalHolding/sharePhysicalHolding/operation/operation",
             "openOriginalLocalPublicationStore/sharePhysicalHolding/sharePhysicalHolding/sharePhysicalHolding",
@@ -9460,6 +9876,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "The payload reader also consumes the parsed Binding returned by its original"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "### Indexed physical object usage"
               }
             ],
             "inputsOutputs": [
@@ -9534,6 +9954,10 @@
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "const binding = retainedBinding === undefined ? parseContract(contract) : retainedBinding;"
+              },
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "const accountPhysicalUsage = usage => {"
               }
             ],
             "identity": [
@@ -9616,6 +10040,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "contract read. Selection and the physical verifier reuse that same private body"
+              },
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "fail('PublicationObjectAccountingMismatch');"
               }
             ],
             "ownership": [
@@ -9690,6 +10118,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "instead of interpreting the wire again. It never comes from an external caller"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "usage and removes those pending originals together. No per-item custody file"
               }
             ],
             "synchronization": [
@@ -9764,6 +10196,10 @@
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "const verified = await verifyDurableResultBinding(selected.contract, undefined, selected.value);"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "Unlink and its containing-directory ACK precede decrementing the same physical"
               }
             ],
             "failure": [
@@ -9838,6 +10274,10 @@
               {
                 "path": "adapters/store-local/publication-store.test.mjs",
                 "anchor": "changed physical bytes exposed"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "ACK keeps the charge and pending owner; retries do not relink, resend, substitute"
               }
             ],
             "cancellation": [
@@ -9908,6 +10348,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "actual payload digest/size and schema checks remain, including after a later"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "until a real same-original idempotent transaction confirms the outcome. Reads,"
               }
             ],
             "resources": [
@@ -9982,6 +10426,10 @@
               {
                 "path": "adapters/store-local/publication-store.test.mjs",
                 "anchor": "one selected original, not read + selection + verifier reparsing"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "The existing Store limits bound installed totals, pending generation rows,"
               }
             ],
             "extension": [
@@ -10056,6 +10504,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "or persists across operations. Other verifier callers retain their own parsing;"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "legacy census completes atomically with its totals. Missing adopted tables or"
               }
             ],
             "verification": [
@@ -10202,6 +10654,10 @@
               {
                 "path": "adapters/store-local/publication-store.test.mjs",
                 "anchor": "Result reader consumes its already parsed Binding once while retaining physical validation"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "physical object capacity survives reopen without inspecting unrelated payload history"
               }
             ]
           }
@@ -10788,10 +11244,14 @@
             "openOriginalLocalPublicationStore/putSemanticBatch/putSemanticBatch/cleanup/init:retry/init:retry/init:retry",
             "openOriginalLocalPublicationStore/putSemanticBatch/putSemanticBatch/cleanup/init:retry/init:retry/init:retry#2",
             "openOriginalLocalPublicationStore/putSemanticBatch/putSemanticBatch/items/items",
+            "openOriginalLocalPublicationStore/putSemanticBatch/putSemanticBatch/originals/originals",
+            "openOriginalLocalPublicationStore/putSemanticBatch/putSemanticBatch/originals/originals#2",
             "openOriginalLocalPublicationStore/putSemanticBatch/putSemanticBatch/putSemanticBatch",
             "openOriginalLocalPublicationStore/putSemanticBatch/putSemanticBatch/status/status",
             "openOriginalLocalPublicationStore/putSemanticBatch/putSemanticBatch/status/status/status",
-            "openOriginalLocalPublicationStore/putSemanticBatch/putSemanticBatch/syncNames/syncNames"
+            "openOriginalLocalPublicationStore/putSemanticBatch/putSemanticBatch/syncNames/syncNames",
+            "openOriginalLocalPublicationStore/putSemanticBatch/putSemanticBatch/syncNames/syncNames/syncNames",
+            "openOriginalLocalPublicationStore/putSemanticBatch/putSemanticBatch/syncNames/syncNames/syncNames#2"
           ],
           "exports": [],
           "attributes": {
@@ -10799,60 +11259,100 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "Direct semantic writes use the same protocol for a single immutable metadata"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "### Indexed physical object usage"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "const putSemanticBatch = async supplied => {"
+              },
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "const accountPhysicalUsage = usage => {"
               }
             ],
             "identity": [
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "cid: `sha256:${createHash('sha256').update(bytes).digest('hex')}`,"
+              },
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "fail('PublicationObjectAccountingMismatch');"
               }
             ],
             "ownership": [
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "activePhysicalRecordWriters.add(writer);"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "usage and removes those pending originals together. No per-item custody file"
               }
             ],
             "synchronization": [
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "for (const directory of [objectsDirectory, contractsDirectory]) {"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "Unlink and its containing-directory ACK precede decrementing the same physical"
               }
             ],
             "failure": [
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "failure = new PublicationStoreError(primary?.code ?? 'PublicationSemanticWriteFailed', primary);"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "ACK keeps the charge and pending owner; retries do not relink, resend, substitute"
               }
             ],
             "cancellation": [
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "if (item.close === undefined) item.close = item.handle.close;"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "until a real same-original idempotent transaction confirms the outcome. Reads,"
               }
             ],
             "resources": [
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "the existing Store inventory even if its semantic publication failed. Recovery"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "The existing Store limits bound installed totals, pending generation rows,"
               }
             ],
             "extension": [
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "Prepared-object/Content holders still use their separate original custody"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "legacy census completes atomically with its totals. Missing adopted tables or"
               }
             ],
             "verification": [
               {
                 "path": "adapters/store-local/semantic-publication-commit.test.mjs",
                 "anchor": "test('semantic metadata commits its payload and final names without intermediate custody persistence', async t => {"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "physical object capacity survives reopen without inspecting unrelated payload history"
               }
             ]
           }
@@ -10897,6 +11397,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "## Indexed delivery claims and coverage"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "### Indexed physical object usage"
               }
             ],
             "inputsOutputs": [
@@ -10911,12 +11415,20 @@
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "const appendDeliveryCompletion = async (attempt, receipt, contract) => {"
+              },
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "const accountPhysicalUsage = usage => {"
               }
             ],
             "identity": [
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "const expected = deliveryIndexRow(attempt,grant,attemptContract,grantContract);"
+              },
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "fail('PublicationObjectAccountingMismatch');"
               }
             ],
             "ownership": [
@@ -10927,6 +11439,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "## Joint delivery start"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "usage and removes those pending originals together. No per-item custody file"
               }
             ],
             "synchronization": [
@@ -10937,6 +11453,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "## Joint delivery start"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "Unlink and its containing-directory ACK precede decrementing the same physical"
               }
             ],
             "failure": [
@@ -10947,12 +11467,20 @@
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "progress.completion=Object.freeze({attempt:completion.attempt,receipt:suppliedReceipt,contract,entry});"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "ACK keeps the charge and pending owner; retries do not relink, resend, substitute"
               }
             ],
             "cancellation": [
               {
                 "path": "adapters/store-local/publication-store.test.mjs",
                 "anchor": "pending delivery directory FD keeps Store ownership until original close"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "until a real same-original idempotent transaction confirms the outcome. Reads,"
               }
             ],
             "resources": [
@@ -10963,12 +11491,20 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "## Joint delivery start"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "The existing Store limits bound installed totals, pending generation rows,"
               }
             ],
             "extension": [
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "This metadata index does not change grant/attempt/record wires, authorization,"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "legacy census completes atomically with its totals. Missing adopted tables or"
               }
             ],
             "verification": [
@@ -10995,6 +11531,10 @@
               {
                 "path": "adapters/store-local/delivery-completion.test.mjs",
                 "anchor": "native record confirmation retains initial-record compatibility and one real reopened ACK"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "physical object capacity survives reopen without inspecting unrelated payload history"
               }
             ]
           }
@@ -11243,7 +11783,7 @@
     {
       "module": "adapters/store-local/result-deletion-owner.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "1146347f0a548ae2e53a1afc6822adc2c9b3381a0cf1a6d724a4290153acf77c",
+      "sha256": "7d80975917c81b0a53ac520751fd7a31e3d3a9847402c016a2bc7a3cdd3ecb69",
       "exports": [
         "createResultDeletionOwner"
       ],
@@ -11298,6 +11838,10 @@
               {
                 "path": "adapters/store-local/result-deletion-owner.mjs",
                 "anchor": "export function"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "### Indexed physical object usage"
               }
             ],
             "inputsOutputs": [
@@ -11308,59 +11852,98 @@
               {
                 "path": "docs/design/retained-result-boundary.md",
                 "anchor": "bounded UTF-8 text or bounded byte frames"
+              },
+              {
+                "path": "adapters/store-local/result-deletion-owner.mjs",
+                "anchor": "if (allocation !== 'missing-unconfirmed') await operations.unlink();"
               }
             ],
             "identity": [
               {
                 "path": "adapters/store-local/result-deletion-owner.mjs",
                 "anchor": "operations.ensureMarker()"
+              },
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "rememberPhysicalRemoval(materialCid,expectedBytes,state);"
               }
             ],
             "ownership": [
               {
                 "path": "adapters/store-local/result-deletion-owner.mjs",
                 "anchor": "pending"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "usage and removes those pending originals together. No per-item custody file"
               }
             ],
             "synchronization": [
               {
                 "path": "adapters/store-local/result-deletion-owner.mjs",
                 "anchor": "operations.serialize"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "Unlink and its containing-directory ACK precede decrementing the same physical"
               }
             ],
             "failure": [
               {
                 "path": "adapters/store-local/result-deletion-owner.mjs",
                 "anchor": "catch (error)"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "ACK keeps the charge and pending owner; retries do not relink, resend, substitute"
               }
             ],
             "cancellation": [
               {
                 "path": "adapters/store-local/result-deletion-owner.mjs",
                 "anchor": "async retry()"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "until a real same-original idempotent transaction confirms the outcome. Reads,"
               }
             ],
             "resources": [
               {
                 "path": "adapters/store-local/result-deletion-owner.mjs",
                 "anchor": "operations.releaseCapacity()"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "The existing Store limits bound installed totals, pending generation rows,"
               }
             ],
             "extension": [
               {
                 "path": "docs/design/retained-result-boundary.md",
                 "anchor": "alternative representation requires verified conversion"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "legacy census completes atomically with its totals. Missing adopted tables or"
               }
             ],
             "verification": [
               {
                 "path": "adapters/store-local/result-deletion-owner.test.mjs",
                 "anchor": "test("
+              },
+              {
+                "path": "adapters/store-local/result-deletion-owner.test.mjs",
+                "anchor": "an absent original with retained quota waits for its same directory ACK"
               }
             ]
           }
         }
-      ]
+      ],
+      "imports": [],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     }
   ],
   "verificationQualification": "Existing actual test entry references only. F prior actual SQLite/Store/INFER source-qualified receipts remain independent; this index does not claim the listed tests all ran at a6cab. Core typed row/data invariants remain with their existing authority and C/E acceptance. No Native/service/Provider/public-product operation executed in this metadata pass."
