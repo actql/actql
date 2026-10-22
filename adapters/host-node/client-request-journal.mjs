@@ -3316,11 +3316,27 @@ export function openClientRequestJournal(directory, {
     // cache. Every call reads committed storage and checks connection health.
     // Reuse admission only for an exactly unchanged complete row, including
     // cancellation and payload bytes; revision alone is not sufficient.
-    observeRunCancellation(ref, requestControl, publicationControl) {
+    observeRunCancellation(ref, requestControl, publicationControl, originalFrame) {
       const selected = Object.freeze({namespaceId: ref?.namespaceId,
         authorityScopeCid: ref?.authorityScopeCid, runDefinitionCid: ref?.runDefinitionCid});
       let previousRow;
       let previousFacts;
+      if (originalFrame !== undefined) {
+        ensureOpen();
+        const retained = runStateFrames.get(originalFrame);
+        if (retained === undefined || retained.requestControl !== requestControl ||
+            retained.publicationControl !== publicationControl ||
+            retained.row.namespace_id !== selected.namespaceId ||
+            retained.row.authority_scope_cid !== selected.authorityScopeCid ||
+            retained.row.run_definition_cid !== selected.runDefinitionCid) {
+          fail('ForeignRunStateObservation');
+        }
+        // The same observation already admitted this complete original row.
+        // The first probe still reads and compares every current scalar field.
+        previousRow = retained.row;
+        previousFacts = Object.freeze({revision: originalFrame.revision,
+          cancellationRequested: originalFrame.cancellationRequested});
+      }
       return () => {
         try {
           const row = readRunDefinitionRow(selected, requestControl);

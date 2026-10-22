@@ -5119,7 +5119,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "328020347b5a4e3f6fa92f811eb17244ab28bb51e18caf327dba889d8d9017a8",
+      "sha256": "f94a0df7e8fbd7625bb70736fb194729948681a71d738ce4f01feb2fc95949d2",
       "exports": [
         "PublicationStoreError",
         "assertOriginalLocalPublicationStoreFacilityCurrent",
@@ -8231,7 +8231,8 @@
           "name": "openOriginalLocalPublicationStore/verifyDurableResultBinding/verifyDurableResultBinding",
           "parameters": [
             "contract",
-            "readOriginal"
+            "readOriginal",
+            "retainedBinding"
           ],
           "async": true
         },
@@ -9446,10 +9447,6 @@
               },
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
-                "anchor": "Committed Result retention-extension histories are selected-use facts. Ordinary"
-              },
-              {
-                "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "### Indexed Run metadata retirement"
               },
               {
@@ -9459,6 +9456,14 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "A scoped Result reader retires only after both its use callback ends and its"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "Committed Result retention-extension histories are selected-use facts. Ordinary"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "The payload reader also consumes the parsed Binding returned by its original"
               }
             ],
             "inputsOutputs": [
@@ -9520,10 +9525,6 @@
               },
               {
                 "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "const readResultRetentionExtension = async ("
-              },
-              {
-                "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "const runMetadataDeletionStarted = async runDefinitionCid => {"
               },
               {
@@ -9533,6 +9534,14 @@
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "let scopeActive = true, physicalReadPending = false, readerRetired = false;"
+              },
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "const readResultRetentionExtension = async ("
+              },
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "const binding = retainedBinding === undefined ? parseContract(contract) : retainedBinding;"
               }
             ],
             "identity": [
@@ -9602,10 +9611,6 @@
               },
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
-                "anchor": "chain and exact Result/Index/base-policy bindings. Missing history still means"
-              },
-              {
-                "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "metadata key, with an index over the original Run CID. Delivery and publication"
               },
               {
@@ -9615,6 +9620,14 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "notification cuts that same generation-reader reference. Failed close leaves"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "chain and exact Result/Index/base-policy bindings. Missing history still means"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "contract read. Selection and the physical verifier reuse that same private body"
               }
             ],
             "ownership": [
@@ -9676,10 +9689,6 @@
               },
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
-                "anchor": "both directory types without following a substituted symlink, retains its real"
-              },
-              {
-                "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "A full deletion marker remains the original pending physical cleanup inventory."
               },
               {
@@ -9689,6 +9698,14 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "the existing cleanup handle responsible, even after the caller receives an"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "both directory types without following a substituted symlink, retains its real"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "instead of interpreting the wire again. It never comes from an external caller"
               }
             ],
             "synchronization": [
@@ -9749,10 +9766,6 @@
                 "anchor": "The existing Index file and its actual directory acknowledgement still"
               },
               {
-                "path": "adapters/store-local/publication-store.test.mjs",
-                "anchor": "the selected original still receives its actual containing-directory ACK"
-              },
-              {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "The full marker is then unlinked and its directory really acknowledged. A failed"
               },
@@ -9763,6 +9776,14 @@
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "return consumeObject(materialCid, accept, () => {"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "the selected original still receives its actual containing-directory ACK"
+              },
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "const verified = await verifyDurableResultBinding(selected.contract, undefined, selected.value);"
               }
             ],
             "failure": [
@@ -9824,10 +9845,6 @@
               },
               {
                 "path": "adapters/store-local/publication-store.test.mjs",
-                "anchor": "selected retention refuses a failed target ACK without changing or adopting the record"
-              },
-              {
-                "path": "adapters/store-local/publication-store.test.mjs",
                 "anchor": "metadata deletion keeps the same cleanup after native retirement and lost marker directory ACK"
               },
               {
@@ -9837,6 +9854,14 @@
               {
                 "path": "adapters/store-local/publication-store.test.mjs",
                 "anchor": "Result consumption retains its reader until the same failed FD close acknowledges"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "selected retention refuses a failed target ACK without changing or adopting the record"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "changed physical bytes exposed"
               }
             ],
             "cancellation": [
@@ -9894,10 +9919,6 @@
               },
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
-                "anchor": "Append-only CAS, new-directory durability and deletion/restart cleanup retain"
-              },
-              {
-                "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "final ACK retains the same cleanup even if the marker is absent and the native"
               },
               {
@@ -9907,6 +9928,14 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "Retry closes the same FD without reopening, rereading or repeating a sink."
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "Append-only CAS, new-directory durability and deletion/restart cleanup retain"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "actual payload digest/size and schema checks remain, including after a later"
               }
             ],
             "resources": [
@@ -9967,10 +9996,6 @@
                 "anchor": "Private native-inventory count and wire bounds are enforced before insertion."
               },
               {
-                "path": "adapters/store-local/publication-store.test.mjs",
-                "anchor": "ordinary open does not enumerate even valid unrelated extension histories"
-              },
-              {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "Completed fences retain only metadata key, Run and retirement state, not the"
               },
@@ -9981,6 +10006,14 @@
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "if (scopeActive || physicalReadPending || readerRetired) return;"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "ordinary open does not enumerate even valid unrelated extension histories"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "one selected original, not read + selection + verifier reparsing"
               }
             ],
             "extension": [
@@ -10042,10 +10075,6 @@
               },
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
-                "anchor": "This localization does not remove payload quota or other recovery history work."
-              },
-              {
-                "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "An additive format transition reads prior full and compact marker files once,"
               },
               {
@@ -10055,6 +10084,14 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "scope reference; a successful sibling reader cannot retire this duty twice."
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "This localization does not remove payload quota or other recovery history work."
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "or persists across operations. Other verifier callers retain their own parsing;"
               }
             ],
             "verification": [
@@ -10188,10 +10225,6 @@
               },
               {
                 "path": "adapters/store-local/publication-store.test.mjs",
-                "anchor": "selected retention keeps malformed unrelated history deferred and refuses selected corruption"
-              },
-              {
-                "path": "adapters/store-local/publication-store.test.mjs",
                 "anchor": "metadata deletion history is indexed once and unrelated Run operations read no marker bodies"
               },
               {
@@ -10201,6 +10234,14 @@
               {
                 "path": "adapters/store-local/publication-store.test.mjs",
                 "anchor": "retry never reopens the generation"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "selected retention keeps malformed unrelated history deferred and refuses selected corruption"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "Result reader consumes its already parsed Binding once while retaining physical validation"
               }
             ]
           }

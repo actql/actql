@@ -11,7 +11,10 @@ function actual(name, ports) {
   const node = ast.body.find(node => node.type === 'ExportNamedDeclaration' &&
     node.declaration?.type === 'FunctionDeclaration' && node.declaration.id.name === name);
   assert(node, name);
+  const helpers = ast.body.filter(node => node.type === 'FunctionDeclaration' &&
+    node.id.name === 'installedManagedRunContracts');
   return new Function(...Object.keys(ports),
+    helpers.map(node => source.slice(node.start, node.end)).join('\n') + '\n' +
     source.slice(node.declaration.start, node.declaration.end) + `;return ${name};`)(...Object.values(ports));
 }
 function fixture() {
@@ -51,11 +54,91 @@ function fixture() {
     canonicalValueJson(value, options) {assert.deepEqual(options, {dataKeys: true}); return JSON.stringify(value);},
     clientOperationError: code => Object.assign(new Error(code), {code}),
   };
-  return {prepared, request, raw, originals, moon, calls, limits, ports,
+  return {prepared, request, raw, originals, moon, calls, limits, ports, assets,
     stop: () => {current = false;},
     requirements: () => actual('readManagedComputeRunRequirements', ports),
     intent: () => actual('managedComputeSubmittedIntentCid', ports)};
 }
+
+test('installed managed contract strings are projected once across distinct Host Run requests', () => {
+  const f = fixture(), second = {}, requests = new Set([f.prepared, second]);
+  let parses = 0, stringifies = 0;
+  f.ports.JSON = {
+    parse(wire) {parses++; return JSON.parse(wire);},
+    stringify(value) {stringifies++; return JSON.stringify(value);},
+  };
+  f.ports.originalSourceManagedHostRequest = (held, prepared) => {
+    assert.strictEqual(held, f.originals); assert(requests.has(prepared)); return f.request;
+  };
+  const read = f.requirements();
+  read(f.originals, f.prepared); read(f.originals, second); read(f.originals, second);
+  assert.equal(parses, 1, 'One immutable installed AoA projection, not one per requirement read');
+  assert.equal(stringifies, 3, 'Only the original three static contract strings are retained');
+  assert.deepEqual(f.calls.map(([, args]) => args[0]), [f.prepared, second, second]);
+  for (const [, args] of f.calls) assert.deepEqual(args.slice(-3),
+    ['{"kind":"values"}', '{"kind":"expression"}', '{"kind":"derive"}']);
+  f.stop();
+  assert.throws(() => read(f.originals, second), /CurrentRefused/);
+  assert.equal(f.calls.length, 3, 'Static strings cannot supply current Run admission');
+});
+
+test('installed contract projection is immutable and cannot cross Host control originals', () => {
+  const first = fixture(), second = fixture();
+  first.requirements()(first.originals, first.prepared);
+  second.requirements()(second.originals, second.prepared);
+  const held = first.originals.installation.managedRunContracts;
+  assert(Object.isFrozen(held));
+  assert.notStrictEqual(held, second.originals.installation.managedRunContracts);
+  assert.throws(() => {held.values = '{}';}, TypeError);
+  first.originals.installation.initialControl = {};
+  assert.throws(() => first.requirements()(first.originals, first.prepared),
+    {code: 'ForeignInstalledManagedRunContracts'});
+  assert.equal(first.calls.length, 1);
+
+  const broken = fixture(), path = 'spec/contracts/actql-aoa.json';
+  const wire = broken.assets.get(path);
+  broken.assets.set(path, '{');
+  assert.throws(() => broken.requirements()(broken.originals, broken.prepared), SyntaxError);
+  assert.equal(broken.originals.installation.managedRunContracts, undefined,
+    'Failed construction cannot publish partial contract strings');
+  assert.equal(broken.calls.length, 0);
+  broken.assets.set(path, wire);
+  broken.requirements()(broken.originals, broken.prepared);
+  assert.equal(broken.calls.length, 1);
+});
+
+test('Mock Model requirement purposes reuse only the same installed static strings', () => {
+  const f = fixture(), modelCalls = [], budgets = Array(15).fill(0n);
+  f.requirements()(f.originals, f.prepared);
+  const held = f.originals.installation.managedRunContracts;
+  f.moon.clientProgramAcquisitionCount = () => 0;
+  f.moon.clientProgramEffectAcquisitionCount = () => 0;
+  f.ports.runtimeCore = runtime => {
+    assert.strictEqual(runtime, f.moon);
+    return {publicationControl: {
+      checkedClientMockModelRunRequirements(...args) {modelCalls.push(['pure', args]); return budgets;},
+      checkedClientEffectMockModelRunRequirements(...args) {modelCalls.push(['effect', args]); return budgets;},
+    }};
+  };
+  f.ports.readInitialControlInstallationAsset = (control, original, path) => {
+    assert.strictEqual(control, f.originals.installation.initialControl);
+    assert.strictEqual(original, f.originals);
+    assert.notEqual(path, 'spec/contracts/actql-aoa.json', 'No second static projection');
+    return f.assets.get(path);
+  };
+  const read = actual('readLocalMockModelRunRequirements', f.ports);
+  for (const compilation of [undefined, {}]) {
+    const model = {compiled: {}, runDefinition: {}, occurrence: 0, graph: {}, compilation};
+    read(f.originals, f.prepared, model);
+    const [, args] = modelCalls.at(-1);
+    assert.strictEqual(args[0], f.prepared); assert.strictEqual(args[1], model.compiled);
+    assert.deepEqual(args.slice(-3), [held.values, held.expression, held.ordered]);
+    assert.deepEqual(model.budget, {bootstrapRetainedBytes: 0n, bootstrapExecutionBytes: 0n,
+      readRetainedBytes: 0n, readExecutionBytes: 0n, modelRetainedBytes: 0n,
+      modelExecutionBytes: 0n, maxReservations: 0, maxHoldings: 0, maxDelegations: 0});
+  }
+  assert.deepEqual(modelCalls.map(([kind]) => kind), ['pure', 'effect']);
+});
 
 test('source-free requirements forward the same checked preparation and empty Source inventories', () => {
   const f = fixture();

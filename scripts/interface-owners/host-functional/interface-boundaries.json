@@ -18964,7 +18964,7 @@
     {
       "module": "adapters/host-node/client-request-journal.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "b2a347641eef8fc30fd639e641d65c7fdb2f897cbae7efb9dac17e78884a59eb",
+      "sha256": "a24de0df670c030c1526eb5e85bd8c4fa2404bf89b66db7c615c238f2d6a9c03",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
@@ -20218,7 +20218,8 @@
           "parameters": [
             "ref",
             "requestControl",
-            "publicationControl"
+            "publicationControl",
+            "originalFrame"
           ],
           "async": false
         },
@@ -21277,6 +21278,10 @@
               {
                 "path": "docs/design/client-submission-identity.md",
                 "anchor": "Run resolution admits its supplied logical-request identity once. If all seven"
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "A Local status observation retains its journal's nominal admitted Run frame"
               }
             ],
             "inputsOutputs": [
@@ -21331,6 +21336,10 @@
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
                 "anchor": "const resolveOriginalDefinition = (identity, fields, namespaceId,"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "observeRunCancellation(ref, requestControl, publicationControl, originalFrame) {"
               }
             ],
             "identity": [
@@ -21385,6 +21394,10 @@
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
                 "anchor": "requestId: fields.requestId}, requestControl, {identity, fields});"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "retained.row.run_definition_cid !== selected.runDefinitionCid)"
               }
             ],
             "ownership": [
@@ -21443,6 +21456,10 @@
               {
                 "path": "docs/design/client-submission-identity.md",
                 "anchor": "uses it for the common relation rather than admitting identical bytes again."
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "observation; they retain no current Account decision or physical cleanup ACK."
               }
             ],
             "synchronization": [
@@ -21501,6 +21518,10 @@
               {
                 "path": "docs/design/client-submission-identity.md",
                 "anchor": "after an issuer callback retains its original validation and race handling."
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const after = observeControl();"
               }
             ],
             "failure": [
@@ -21555,6 +21576,10 @@
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
                 "anchor": "const relation = requestControl.clientRequestRelation(identity, retained.identity);"
+              },
+              {
+                "path": "adapters/host-node/client-run-state-revision.test.mjs",
+                "anchor": "A changed payload without a revision increment cannot reuse the frame"
               }
             ],
             "cancellation": [
@@ -21613,6 +21638,10 @@
               {
                 "path": "docs/design/client-submission-identity.md",
                 "anchor": "No identity or permission is cached across resolution calls."
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "facts, and closed journals refuse. These managed references end with the"
               }
             ],
             "resources": [
@@ -21683,6 +21712,10 @@
               {
                 "path": "docs/design/client-submission-identity.md",
                 "anchor": "A distinct saved identity is independently admitted before the existing"
+              },
+              {
+                "path": "adapters/host-node/client-run-state-revision.test.mjs",
+                "anchor": "The complete original row has already been admitted"
               }
             ],
             "extension": [
@@ -21733,6 +21766,10 @@
               {
                 "path": "docs/design/client-submission-identity.md",
                 "anchor": "step before issuance; a retained Run never calls its issuer. Atomic acceptance"
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "Run bytes, while a new public observation acquires its own current original."
               }
             ],
             "verification": [
@@ -21811,6 +21848,10 @@
               {
                 "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
                 "anchor": "assert.equal(admissions, 1, 'one exact request has one Common admission, not repeated stored copies');"
+              },
+              {
+                "path": "adapters/host-node/client-run-observation-reuse.test.mjs",
+                "anchor": "Local Run observation retries changed control and final publication conflicts"
               }
             ]
           }

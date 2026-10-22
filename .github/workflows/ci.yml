@@ -775,7 +775,7 @@ jobs:
       - name: Test durable Checkpoint journal and resumed dispatch admission
         run: npm run check:checkpoint-runtime
       - name: Test operation authorization and unchanged Run observations
-        run: node --test adapters/host-node/authorization-account-current.test.mjs adapters/host-node/local-account-current.test.mjs adapters/host-node/client-run-state-revision.test.mjs adapters/host-node/embedded-managed-compute-projection.test.mjs adapters/host-node/embedded-managed-compute-lifecycle.test.mjs adapters/host-node/embedded-source-environment-scope.test.mjs adapters/host-node/client-original-submitted-intent.test.mjs
+        run: node --test adapters/host-node/authorization-account-current.test.mjs adapters/host-node/local-account-current.test.mjs adapters/host-node/client-run-state-revision.test.mjs adapters/host-node/client-run-observation-reuse.test.mjs adapters/host-node/embedded-managed-compute-projection.test.mjs adapters/host-node/embedded-managed-compute-lifecycle.test.mjs adapters/host-node/embedded-source-environment-scope.test.mjs adapters/host-node/client-original-submitted-intent.test.mjs
       - name: Test native retained task file ownership
         run: npm run check:native-retained-task-file
       - name: Test portable Remote Transfer owner package

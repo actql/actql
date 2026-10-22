@@ -280,6 +280,14 @@ boundary. The Index's immutable semantic alias still receives its original
 bounded FD, inode and digest checks, but byte-identical canonical wire reuses
 the Index admission. A different spelling follows ordinary contract admission.
 
+The payload reader also consumes the parsed Binding returned by its original
+contract read. Selection and the physical verifier reuse that same private body
+instead of interpreting the wire again. It never comes from an external caller
+or persists across operations. Other verifier callers retain their own parsing;
+actual payload digest/size and schema checks remain, including after a later
+operation observes changed physical bytes. Contract-control admission is separate
+from this direct Store DATA interpretation count.
+
 Cold commit confirmation retains the bounded Index bytes across the real
 containing-directory ACK. It checks metadata retirement again and rereads the
 selected Index: identical bytes reuse that operation's admitted value, while

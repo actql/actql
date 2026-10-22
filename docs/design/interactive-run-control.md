@@ -30,6 +30,22 @@ reader admits and checks the map when returning it. This preserves semantic
 verification at use without repeating it at every unrelated metadata lookup,
 and adds no permission cache, replacement map or revision.
 
+A Local status observation retains its journal's nominal admitted Run frame
+through Store observation. Its existing control probe can start from that same
+frame, selected namespace/scope/Run key and original control instances. Each
+probe still reads the complete current row; exact scalar equality reuses only
+the admitted revision/cancellation facts. A changed row is admitted again,
+including payload changes without a revision increment. Copied or foreign
+frames cannot seed the probe. Missing rows and failed reads clear its retained
+facts, and closed journals refuse. These managed references end with the
+observation; they retain no current Account decision or physical cleanup ACK.
+
+The final state publisher still compares the complete original row after
+projection and performs the existing transactional CAS for a changed state.
+Control changes and publication conflicts retry with a fresh admitted frame.
+An internal post-Store probe therefore does not repeat admission of identical
+Run bytes, while a new public observation acquires its own current original.
+
 This limited profile refuses Inspect when an older record lacks original policy
 evidence, or when a resuming state lacks the required continuation/fence origin
 observation. The underlying original Run and legacy status API remain usable.

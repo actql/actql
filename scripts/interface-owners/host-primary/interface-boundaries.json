@@ -4448,7 +4448,7 @@
     },
     {
       "module": "adapters/host-node/embedded-local.mjs",
-      "sha256": "9ff82d01193c7135dfce1839e30827a1d8a60fd506b19d59e27fdbf01a879e6d",
+      "sha256": "293b2fba0e66bb985c5c99f6e599aefca5cab9e65114ec4681bfb5e4fb6148ca",
       "exports": [
         "admitOriginalHostRootFormat",
         "assertInitialControlHostPreparation",
@@ -4925,6 +4925,13 @@
           "parameters": [
             "key",
             "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedManagedRunContracts",
+          "parameters": [
+            "originals"
           ],
           "async": false
         },
@@ -7440,6 +7447,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "The lifetime getter closes over those installed originals in their initialization"
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "A Local status observation retains its journal's nominal admitted Run frame"
               }
             ],
             "inputsOutputs": [
@@ -7506,6 +7517,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "function getPreparedSourceEnvironment() {"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "observeRunCancellation(ref, requestControl, publicationControl, originalFrame) {"
               }
             ],
             "identity": [
@@ -7584,6 +7599,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "if (original === undefined || original.host !== host || original.moon !== moon ||"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "retained.row.run_definition_cid !== selected.runDefinitionCid)"
               }
             ],
             "ownership": [
@@ -7658,6 +7677,10 @@
               {
                 "path": "adapters/host-node/embedded-source-environment-scope.test.mjs",
                 "anchor": "// Keep the complete original enclosing function before/after its acquisition"
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "observation; they retain no current Account decision or physical cleanup ACK."
               }
             ],
             "synchronization": [
@@ -7732,6 +7755,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "if (modelRuntimeClosing) throw clientOperationError('ClientHostClosing');"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const after = observeControl();"
               }
             ],
             "failure": [
@@ -7794,6 +7821,10 @@
               {
                 "path": "adapters/host-node/embedded-source-environment-scope.test.mjs",
                 "anchor": "assert.throws(host.get,{code:'InstalledPublicSourceEnvironmentChanged'});"
+              },
+              {
+                "path": "adapters/host-node/client-run-state-revision.test.mjs",
+                "anchor": "A changed payload without a revision increment cannot reuse the frame"
               }
             ],
             "cancellation": [
@@ -7852,6 +7883,10 @@
               {
                 "path": "adapters/host-node/embedded-source-environment-scope.test.mjs",
                 "anchor": "host.stop();assert.throws(host.get,{code:'ClientHostClosing'});"
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "facts, and closed journals refuse. These managed references end with the"
               }
             ],
             "resources": [
@@ -7934,6 +7969,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "state; it does not repeat catalog admission or Account evaluation."
+              },
+              {
+                "path": "adapters/host-node/client-run-state-revision.test.mjs",
+                "anchor": "The complete original row has already been admitted"
               }
             ],
             "extension": [
@@ -8000,6 +8039,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "scope, rather than resolving runtime or publication names outside that scope."
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "Run bytes, while a new public observation acquires its own current original."
               }
             ],
             "verification": [
@@ -8118,6 +8161,10 @@
               {
                 "path": "adapters/host-node/embedded-source-environment-scope.test.mjs",
                 "anchor": "test('actual Host enclosing scopes bind its prepared Source Environment getter to installed originals',async()=>{"
+              },
+              {
+                "path": "adapters/host-node/client-run-observation-reuse.test.mjs",
+                "anchor": "Local Run observation retries changed control and final publication conflicts"
               }
             ]
           }
@@ -8991,7 +9038,8 @@
             "readManagedComputeRunRequirements",
             "readManagedComputeRunRequirements/asset/asset",
             "readManagedComputeRunRequirements/readManagedComputeRunRequirements",
-            "readManagedComputeRunRequirements/readManagedComputeRunRequirements#2"
+            "readManagedComputeRunRequirements/readManagedComputeRunRequirements#2",
+            "installedManagedRunContracts"
           ],
           "exports": [
             "managedComputeSubmittedIntentCid",
@@ -9006,6 +9054,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "For an ordinary source-free Compute Run, the existing Host Run record retains"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The installation's immutable AoA projection has a different lifetime from a"
               }
             ],
             "inputsOutputs": [
@@ -9024,6 +9076,10 @@
               {
                 "path": "src/client_local_host/installed_managed_run.mbt",
                 "anchor": "pub fn prepared_installed_managed_source_free_requirements("
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "function installedManagedRunContracts(originals) {"
               }
             ],
             "identity": [
@@ -9038,6 +9094,10 @@
               {
                 "path": "src/client_local_host/installed_managed_run.mbt",
                 "anchor": "fn installed_source_free_preparation_matches("
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "if (retained.initialControl !== installation.initialControl) {"
               }
             ],
             "ownership": [
@@ -9052,6 +9112,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "run.preparedSequences ??= checked(moon.clientProgramPrepareInstalledManagedSourceFree("
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "installation.managedRunContracts = contracts;"
               }
             ],
             "synchronization": [
@@ -9066,6 +9130,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "run.admission = checked(Reflect.apply(run.prepare, runtime, [run.original, prepared]));"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "control, remain while child cleanup is pending, and are cut by the existing"
               }
             ],
             "failure": [
@@ -9084,6 +9152,10 @@
               {
                 "path": "adapters/host-node/embedded-managed-compute-projection.test.mjs",
                 "anchor": "foreign or closed Run and missing typed APIs refuse without legacy regeneration"
+              },
+              {
+                "path": "adapters/host-node/embedded-managed-compute-projection.test.mjs",
+                "anchor": "Failed construction cannot publish partial contract strings"
               }
             ],
             "cancellation": [
@@ -9098,6 +9170,10 @@
               {
                 "path": "src/client_local_host/installed_managed_run.mbt",
                 "anchor": "value.source_free_preparation = None"
+              },
+              {
+                "path": "adapters/host-node/embedded-managed-compute-lifecycle.test.mjs",
+                "anchor": "installed static contract aliases survive pending child cleanup and cut at actual retirement"
               }
             ],
             "resources": [
@@ -9116,6 +9192,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "This preparation is immutable data, not Resource admission or"
+              },
+              {
+                "path": "adapters/host-node/embedded-managed-compute-projection.test.mjs",
+                "anchor": "Only the original three static contract strings are retained"
               }
             ],
             "extension": [
@@ -9126,6 +9206,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "permission. It remains bound to the original checked Program and exact contract"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "successful Host reference retirement. A new Host has its own installation bag."
               }
             ],
             "verification": [
@@ -9144,6 +9228,10 @@
               {
                 "path": "src/client_local_host/managed_source_free_preparation_wbtest.mbt",
                 "anchor": "managed source-free preparation executes the same generated originals on one diagnostic Ledger"
+              },
+              {
+                "path": "adapters/host-node/embedded-managed-compute-projection.test.mjs",
+                "anchor": "installed managed contract strings are projected once across distinct Host Run requests"
               }
             ]
           }

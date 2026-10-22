@@ -257,6 +257,33 @@ function lifecycle({factory, beforeChild, beforeChildClose, current = () => {}, 
   `)(...Object.values(ports));
 }
 
+test('installed static contract aliases survive pending child cleanup and cut at actual retirement', async () => {
+  const connect = declared('connectEmbeddedLocal');
+  const retirement = connect.body.body.find(node => node.type === 'FunctionDeclaration' &&
+    node.id.name === 'retirePreparationReferences');
+  assert(retirement);
+  const retire = new Function('originalInstallation', `
+    let referencesRetired=false,moon,project,projectProfile,mockPreparation,projectSourcePreparation;
+    let mockAnswers,mockModelProfile,mockModelProfileRetire,mockModelFlight,referenceRetirement,duty;
+    const host={},record={},profiles={retainedMockPreparation:()=>undefined};
+    ${text(retirement)};return retirePreparationReferences;
+  `);
+  let closes = 0, f;
+  const raw = {close() {closes++; return {pending: closes === 1};}};
+  f = lifecycle({factory: async () => raw,
+    retire: () => retire(f.originals.installation)()});
+  await f.preparation.prepareManagedCompute();
+  const strings = Object.freeze({values: '{}', expression: '{}', ordered: '{}'});
+  f.originals.installation.managedRunContracts = strings;
+  await assert.rejects(f.initialControl.close(), {code: 'InstalledComputePreparationCleanupPending'});
+  assert.strictEqual(f.originals.installation.managedRunContracts, strings);
+  await f.initialControl.close();
+  assert.equal(closes, 2);
+  assert.equal(f.originals.installation.managedRunContracts, undefined);
+  await f.initialControl.close();
+  assert.equal(closes, 2, 'Reference retirement does not repeat an acknowledged native close');
+});
+
 test('same Host Compute preparation is one sticky flight and retains its original before current refusal', async () => {
   let factoryCalls = 0, closes = 0, controls = 0;
   const marker = new Error('OriginalCurrentRefusal');
@@ -348,6 +375,7 @@ test('actual requirements and begin share the retained typed original before Res
   let f, sequencePreparations = 0;
   const read = new Function('assertSourceManagedHostPreparation', 'originalSourceManagedHostRequest',
     'readInitialControlInstallationAsset', 'checked', 'clientOperationError',
+    text(declared('installedManagedRunContracts')) + '\n' +
     text(declared('readManagedComputeRunRequirements')) + ';return readManagedComputeRunRequirements;')(
     held => assert.strictEqual(held, f.originals),
     (held, value) => {assert.strictEqual(held, f.originals); assert.strictEqual(value, prepared); return request;},

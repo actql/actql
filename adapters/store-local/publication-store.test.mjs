@@ -3659,6 +3659,34 @@ test('metadata retirement preserves a second Run prepared schema owner',
       code('PublicationContractMissing'));
   });
 
+test('Result reader consumes its already parsed Binding once while retaining physical validation',async t=>{
+  const {store,directory}=await fixture(t);
+  const invocationValue=invocation(),request=publicationRequest(resultDefinition(),invocationValue.invocation_cid);
+  const attempt=publicationAttempt(request),prepared=await prepareCommit(store,request,attempt,invocationValue);
+  const entry=indexEntry(request,attempt,invocationValue,{durable_result_binding_cids:[prepared.binding.identity]});
+  await store.commitIndex(wire(entry),prepared.required,prepared.evidence);
+  const parse=JSON.parse;let bindingParses=0;
+  t.mock.method(JSON,'parse',function(value,...rest){
+    // Count only direct Store DATA interpretation, separately from the
+    // actual contract-control admission and its own canonical validation.
+    if(value===prepared.binding.wire&&/at parseContract \(file:.*publication-store\.mjs:/u.test(new Error().stack))bindingParses++;
+    return Reflect.apply(parse,this,[value,...rest]);
+  });
+  for(let operation=0;operation<2;operation++) {
+    bindingParses=0;
+    const received=[];
+    await store.consumeCommittedResult(indexKeyFor(request),request.inventory[0].result_definition_cid,
+      ()=>true,chunk=>received.push(Buffer.from(chunk)));
+    assert.equal(Buffer.concat(received).toString(),'fixture durable Result payload');
+    assert.equal(bindingParses,1,'one selected original, not read + selection + verifier reparsing');
+  }
+  const binding=parse(prepared.binding.wire),path=join(directory,'objects',binding.material_generation_cid.slice(7));
+  const changed=await readFile(path);changed[0]^=1;await writeFile(path,changed);
+  await assert.rejects(store.consumeCommittedResult(indexKeyFor(request),binding.result_definition_cid,
+    ()=>true,()=>assert.fail('changed physical bytes exposed')),code('PublicationObjectCorrupt'));
+  assert.deepEqual(await readFile(path),changed,'no own-output reuse skips next-operation physical validation');
+});
+
 test('Result consumption retains its reader until the same failed FD close acknowledges',async t=>{
   const {store,directory}=await fixture(t);
   const invocationValue=invocation(),request=publicationRequest(resultDefinition(),invocationValue.invocation_cid);

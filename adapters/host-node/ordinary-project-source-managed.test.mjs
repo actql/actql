@@ -134,7 +134,11 @@ function quoteFixture(refs) {
   clientOperationError: code => Object.assign(new Error(code), {code}), checked: value => value, profiles: {
     mockPreparation() {assert.fail('Project Source is not Mock');},
   }};
-  const quote = new Function(...Object.keys(ports), `${hostSource.slice(node.start, node.end)};
+  const contracts = hostAst.body.find(node => node.type === 'FunctionDeclaration' &&
+    node.id.name === 'installedManagedRunContracts');
+  assert(contracts);
+  const quote = new Function(...Object.keys(ports), `${hostSource.slice(contracts.start, contracts.end)};
+    ${hostSource.slice(node.start, node.end)};
     return readSourceManagedRunRequirementsOwned;`)(...Object.values(ports));
   return {declarations, calls, original, quote: () => quote(originals, original, false),
     observed: () => ({reads, compute}), invalidate() {valid = false;}};
