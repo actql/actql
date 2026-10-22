@@ -5,17 +5,11 @@ import {spawnSync} from 'node:child_process';
 import {mkdtempSync, readFileSync, rmSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
-import {assessPriorityTransition, assessPerformanceEvidence, priorityTransitionTarget} from './operation-performance.mjs';
+import {assessPriorityTransition, assessPerformanceEvidence, assessHistory, assessStructure, priorityTransitionTarget} from './operation-performance.mjs';
 
 // Synthetic reports test the assessor, not ordinary product performance.
 const hash = value => createHash('sha256').update(JSON.stringify(value)).digest('hex');
 const sourceSha = 'a'.repeat(40), operations = ['warm-select', 'warm-result'];
-function work(operation) {
-  return {id: operation, operation, complete: true, overflow: false, unrelatedRunRows: 0, unrelatedEffectRows: 0,
-    fullChecks: [], fullTotals: Object.fromEntries(['physical-validation', 'current-validation', 'account-evaluation',
-      'row-admission', 'decode', 'parse', 'mac', 'hash', 'scope-digest', 'configuration-inventory'].map(kind => [kind, 0])),
-    activity: {materialGetterCalls: 0, materialCacheHits: 0, decodeCalls: 0, databaseReads: 0, sqlPrepares: 0}};
-}
 function report(platform) {
   const identity = {cohortSha256: hash([platform, 'ordinary']), environmentSha256: hash([platform, 'environment']),
     historyProtocolSha256: hash('fixed public experiment')};
@@ -26,7 +20,7 @@ function report(platform) {
     const publicWorkload = operation === 'warm-select' ? {kind: 'new-durable-run-result-rows', fixtures: variants}
       : {kind: 'saved-original-result-rows', originals};
     const fixtureSha256 = hash(publicWorkload);
-    return {...identity, operation, mode: 'final', fixtureSha256,
+    const series = {...identity, operation, mode: 'final', fixtureSha256,
     profiled: false, load: 'isolated', stoppedEarly: false,
     publicWorkload,
     firstQuery: {publicOperationId: 'first-query', pid: 42, hostId: 'opened-host', stateId: 'new-state',
@@ -43,20 +37,16 @@ function report(platform) {
         runRefSha256: operation === 'warm-select' ? hash(['new-run', iteration]) : original.runRefSha256,
         resultRefSha256: operation === 'warm-select' ? hash(['new-result', iteration]) : original.resultRefSha256};
     })};
+    series.population = {publicOperationIds: series.samples.map(row => row.publicOperationId), complete: true, overflow: false,
+      unrelatedRunRows: 0, unrelatedEffectRows: 0, temporaryRetained: {beforeBytes: 16, afterBytes: 16, peakBytes: 48, capacityBytes: 64}};
+    return series;
   });
-  const history = operations.flatMap(operation => [1, 10, 100, 1000].map(size => ({operation, size, supported: true,
-    fixtureSha256: hash(operation), targetRowsRead: 1, databaseReads: 1, sqlPrepares: 1,
-    materialGetterCalls: 1, materialCacheHits: 0, decodeCalls: 1, fullPhysicalValidations: 1,
-    fullCurrentValidations: 1, fullRowAdmissions: 1, fullParses: 0, fullMacValidations: 1,
-    fullHashValidations: 1, fullScopeDigests: 1, fullConfigurationInventories: 1,
-    fullAccountEvaluations: 1, unrelatedRunRows: 0, unrelatedEffectRows: 0})));
   return {sourceSha, ...identity, executionPath: `${platform}-sdk`, installedPayloadsUnchanged: true,
     cleanup: {closed: true}, priorityConditions: {startedHost: true, noCompetingLargeBuild: true,
-      guaranteesUnchanged: true, boundedTemporaryGrowth: true}, latency,
+      guaranteesUnchanged: true}, latency,
     functional: {...identity, rows: latency.map(series => ({operation: series.operation, completed: true,
       fixtureSha256: series.fixtureSha256, expectedSha256: hash(series.samples.map(row => row.expectedSha256)),
       actualSha256: hash(series.samples.map(row => row.actualSha256))}))},
-    structure: {...identity, operations: operations.map(work)}, history: {...identity, rows: history},
     boundaries: {...identity, rows: [
       {case: 'deny-before-operation', outcome: 'rejected', sends: 0},
       {case: 'target-before-dispatch', outcome: 'rejected', sends: 0},
@@ -101,6 +91,7 @@ test('median and p95 ceilings apply independently to each platform and public ro
 });
 test('first query is separate and cannot fill a missing warm sample or be blended into it', () => {
   const short = input(); short.platforms.node[0].latency[0].samples.pop();
+  short.platforms.node[0].latency[0].population.publicOperationIds.pop();
   short.platforms.node[0].functional.rows[0].expectedSha256 = hash(short.platforms.node[0].latency[0].samples.map(row => row.expectedSha256));
   short.platforms.node[0].functional.rows[0].actualSha256 = hash(short.platforms.node[0].latency[0].samples.map(row => row.actualSha256));
   const actual = assessPriorityTransition(short);
@@ -163,7 +154,7 @@ test('diagnostic, profiled, loaded and early-stop data cannot become a phase dis
 });
 test('mixed source/cohort/environment and wrong section binding are refused', () => {
   for (const mutate of [r => {r.sourceSha = 'b'.repeat(40);},
-    r => {r.latency[0].cohortSha256 = hash('other');}, r => {r.structure.environmentSha256 = hash('other');}]) {
+    r => {r.latency[0].cohortSha256 = hash('other');}, r => {r.functional.environmentSha256 = hash('other');}]) {
     const value = input(); mutate(value.platforms.python[0]); assert.throws(() => assessPriorityTransition(value));
   }
   const value = input(), original = value.platforms.python[0];
@@ -171,21 +162,65 @@ test('mixed source/cohort/environment and wrong section binding are refused', ()
     functional: undefined, structure: undefined, history: undefined, boundaries: undefined, prioritySafety: undefined});
   assert.equal(assessPriorityTransition(value).status, 'incomplete');
 });
-test('once-work, history, actual Deny, approval, Unknown and original cleanup remain required', () => {
-  for (const key of ['structure', 'history', 'boundaries', 'prioritySafety', 'cleanup']) {
+test('small transition coverage does not require the full history grid or attribution matrix', () => {
+  const value = input();
+  assert.equal(value.platforms.node[0].history, undefined);
+  assert.equal(value.platforms.node[0].structure, undefined);
+  assert.equal(assessPriorityTransition(value).status, 'passed');
+  assert.equal(assessHistory([]).status, 'incomplete');
+  assert.equal(assessStructure({operations: []}).status, 'incomplete');
+  assert.notEqual(assessPerformanceEvidence(value.platforms.node[0]).status, 'passed');
+});
+test('the actual measured population needs bounded temporary and unrelated-scan observations', () => {
+  for (const mutate of [r => {delete r.population;}, r => {delete r.population.temporaryRetained;},
+    r => {delete r.population.unrelatedRunRows;}, r => {r.population.complete = false;},
+    r => {r.population.overflow = true;}, r => {delete r.population.publicOperationIds;}]) {
+    const value = input(); mutate(value.platforms.node[0].latency[0]);
+    assert.equal(assessPriorityTransition(value).status, 'incomplete');
+  }
+  for (const mutate of [r => {r.population.unrelatedRunRows = 1;}, r => {r.population.unrelatedEffectRows = 1;},
+    r => {r.population.publicOperationIds[0] = 'another successful population';},
+    r => {r.population.temporaryRetained.peakBytes = 65;},
+    r => {r.population.temporaryRetained.peakBytes = 8;}]) {
+    const value = input(); mutate(value.platforms.node[0].latency[0]);
+    assert.equal(assessPriorityTransition(value).status, 'failed');
+  }
+});
+test('actual Deny, approval, Unknown, recovery and original cleanup remain required', () => {
+  for (const key of ['boundaries', 'prioritySafety', 'cleanup']) {
     const value = input(); delete value.platforms.node[0][key];
     assert.equal(assessPriorityTransition(value).status, 'incomplete');
   }
-  for (const mutate of [r => {r.history.rows[0].unrelatedRunRows = 1;},
-    r => {r.prioritySafety.rows[0].writesBeforeApproval = 1;},
+  for (const mutate of [r => {r.prioritySafety.rows[0].writesBeforeApproval = 1;},
     r => {r.boundaries.rows.find(row => row.case === 'commit-unknown').blindResends = 1;},
-    r => {const operation = r.structure.operations[0];
-      operation.fullChecks = [{kind: 'current-validation', fact: 'same-original', revision: 1, required: true, fullCalls: 2}];
-      operation.fullTotals['current-validation'] = 2;},
+    r => {r.boundaries.rows.find(row => row.case === 'reopen-cache-miss').newRuns = 1;},
     r => {r.installedPayloadsUnchanged = false; r.packageFailure = 'payload changed';},
     r => {r.priorityConditions.boundedTemporaryGrowth = false;}]) {
     const value = input(); mutate(value.platforms.node[0]); assert.equal(assessPriorityTransition(value).status, 'failed');
   }
+});
+test('below-cap temporary growth fails while stable or released quiescent holdings pass', () => {
+  const leaking = input(); leaking.platforms.node[0].latency[0].population.temporaryRetained.afterBytes = 24;
+  assert.equal(assessPriorityTransition(leaking).status, 'failed');
+  for (const afterBytes of [16, 0]) {
+    const value = input(); value.platforms.node[0].latency[0].population.temporaryRetained.afterBytes = afterBytes;
+    assert.equal(assessPriorityTransition(value).status, 'passed');
+  }
+});
+test('optional detailed regressions cannot hide a reported violation behind missing coverage', () => {
+  const structure = input(), r = structure.platforms.node[0];
+  r.structure = {cohortSha256: r.cohortSha256, environmentSha256: r.environmentSha256,
+    historyProtocolSha256: r.historyProtocolSha256, operations: [{id: 'one actual observed public call',
+      operation: 'warm-select', complete: true, overflow: false, unrelatedRunRows: 0, unrelatedEffectRows: 0,
+      fullChecks: [{kind: 'current-validation', fact: 'same-original', revision: 1, required: true, fullCalls: 2}]}]};
+  assert.equal(assessPriorityTransition(structure).status, 'failed');
+  const history = input(), h = history.platforms.node[0];
+  h.history = {cohortSha256: h.cohortSha256, environmentSha256: h.environmentSha256,
+    historyProtocolSha256: h.historyProtocolSha256, rows: [{operation: 'warm-select', size: 1, supported: true,
+      fixtureSha256: hash('original target'), unrelatedRunRows: 1, unrelatedEffectRows: 0}]};
+  assert.equal(assessPriorityTransition(history).status, 'failed');
+  h.history.rows[0].unrelatedRunRows = 0;
+  assert.equal(assessPriorityTransition(history).status, 'passed', 'missing optional grid/counters do not become a new prerequisite');
 });
 test('CLI has an explicit selection and missing raw artifacts remain nonzero', () => {
   const directory = mkdtempSync(join(tmpdir(), 'actql-priority-assessment-'));
