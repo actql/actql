@@ -36,11 +36,9 @@ test('macOS version uses one bounded kernel query when available', () => {
     compatibility: '0', environmentCloned: true, inheritedPathMatches: true}]);
 });
 
-test('macOS version retains sw_vers for unavailable or invalid kernel replies', () => {
+test('macOS version retains sw_vers for an unavailable kernel service', () => {
   for (const first of [{error: {code: 'ENOENT'}}, {status: 1, stdout: '26.2'},
-    {status: 0, signal: 'SIGTERM', stdout: '26.2'}, {status: 0, stdout: 'unavailable'},
-    {status: 0, stdout: Buffer.from('26.2')},
-    {status: 0, stdout: '26.2\n26.1'}, {status: 0, stdout: '1'.repeat(48) + '.0'}]) {
+    {status: 0, signal: 'SIGTERM', stdout: '26.2'}]) {
     const calls = [];
     const version = macOSProductVersion((command, args) => {
       calls.push({command, args});
@@ -53,11 +51,13 @@ test('macOS version retains sw_vers for unavailable or invalid kernel replies', 
 });
 
 test('macOS version never replaces a valid unsupported version or admits missing replies', () => {
-  let calls = 0;
-  const macOS = macOSProductVersion(() => {calls++; return {status: 0, stdout: '25.9'};});
-  assert.equal(calls, 1);
-  assert.throws(() => admitInstalledBinary({key: metadata.platform, expected, metadata, binary, macOS}),
-    error => error.exitCode === 64);
+  for (const stdout of ['25.9', 'unavailable', '26.2\n26.1', '1'.repeat(48) + '.0', Buffer.from('26.2')]) {
+    let calls = 0;
+    const macOS = macOSProductVersion(() => {calls++; return {status: 0, stdout};});
+    assert.equal(calls, 1);
+    assert.throws(() => admitInstalledBinary({key: metadata.platform, expected, metadata, binary, macOS}),
+      error => error.exitCode === 64);
+  }
   assert.equal(macOSProductVersion(() => ({status: 1, stdout: ''})), undefined);
   assert.throws(() => admitInstalledBinary({key: metadata.platform, expected, metadata, binary,
     macOS: macOSProductVersion(() => ({status: 1, stdout: ''}))}), error => error.exitCode === 64);

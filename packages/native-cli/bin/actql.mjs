@@ -29,7 +29,9 @@ export function macOSProductVersion(query = spawnSync) {
       env: {...process.env, SYSTEM_VERSION_COMPAT: '0'}});
     if (result.error || result.status !== 0 || result.signal) continue;
     const version = typeof result.stdout === 'string' ? result.stdout.trim() : undefined;
-    if (typeof version === 'string' && version.length <= 47 && /^\d+\.\d+(?:\.\d+)?$/u.test(version)) return version;
+    // The existing ABI admission parses this fact once. A successful malformed
+    // reply is refused there, rather than replaced with another service's value.
+    return typeof version === 'string' && version.length <= 47 ? version : undefined;
   }
   return undefined;
 }
