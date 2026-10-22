@@ -24,12 +24,16 @@ const expected = {sourceSha, binarySha256: metadata.binarySha256, binaryBytes: b
 test('macOS version uses one bounded kernel query when available', () => {
   const calls = [];
   assert.equal(macOSProductVersion((command, args, options) => {
-    calls.push({command, args, options});
+    calls.push({command, args, options: {encoding: options.encoding,
+      maxBuffer: options.maxBuffer, timeout: options.timeout},
+    compatibility: options.env.SYSTEM_VERSION_COMPAT,
+    environmentCloned: options.env !== process.env,
+    inheritedPathMatches: options.env.PATH === process.env.PATH});
     return {status: 0, signal: null, stdout: '26.2\n'};
   }), '26.2');
   assert.deepEqual(calls, [{command: '/usr/sbin/sysctl', args: ['-n', 'kern.osproductversion'],
-    options: {encoding: 'utf8', maxBuffer: 1024, timeout: 1000,
-      env: {...process.env, SYSTEM_VERSION_COMPAT: '0'}}}]);
+    options: {encoding: 'utf8', maxBuffer: 1024, timeout: 1000},
+    compatibility: '0', environmentCloned: true, inheritedPathMatches: true}]);
 });
 
 test('macOS version retains sw_vers for unavailable or invalid kernel replies', () => {
