@@ -1657,19 +1657,34 @@ test('trusted clock warm write retains its original failed close and floor',asyn
 test('sealed new objects need only their actual final directory ACK, not a staging alias ACK',async t=>{
   const directory=await mkdtemp(join(tmpdir(),'actql-sealed-staging-'));
   t.after(()=>removeFixtureDirectory(directory));
-  const events=[];
+  const events=[];let selectedTemporary,removedSelectedTemporary=false;
   const configuration={directory,storeAuthorityCid:cids.authority,capacityBytes:1024*1024,
     maxObjectBytes:65536,maxObjects:100,maxContractNodes:4096,maxContractDepth:64};
   const durability={async syncDirectory(path){
-    events.push(path);const fd=await open(path,'r');try{await fd.sync();}finally{await fd.close();}
+    events.push({path,afterSelectedRemoval:removedSelectedTemporary});
+    const fd=await open(path,'r');try{await fd.sync();}finally{await fd.close();}
   }};
   const store=await openLocalPublicationStore(configuration,contractControl,durability);
+  const actualOpen=fsPromises.open,actualUnlink=fsPromises.unlink;
+  t.mock.method(fsPromises,'open',function(file,...args){
+    if(selectedTemporary===undefined&&String(file).startsWith(join(directory,'staging')+sep))selectedTemporary=String(file);
+    return Reflect.apply(actualOpen,this,[file,...args]);
+  });
+  t.mock.method(fsPromises,'unlink',async function(file,...args){
+    const result=await Reflect.apply(actualUnlink,this,[file,...args]);
+    if(String(file)===selectedTemporary)removedSelectedTemporary=true;
+    return result;
+  });
+  syncBuiltinESMExports();t.after(()=>{t.mock.restoreAll();syncBuiltinESMExports();});
   const bytes=Buffer.from('one durable allocation with two temporary aliases');
   const cid=digest(bytes),path=join(directory,'objects',cid.slice(7));
   const writer=store.createObjectWriter(bytes.length);await writer.append(bytes);events.length=0;
   assert.equal((await writer.seal(cid)).created,true);
-  assert.equal(events.filter(path=>path===join(directory,'objects')).length,1);
-  assert.equal(events.filter(path=>path===join(directory,'staging')).length,0);
+  assert(selectedTemporary);assert.equal(removedSelectedTemporary,true);
+  assert.equal(events.filter(x=>x.path===join(directory,'objects')).length,1);
+  // Other custody writers keep their own ACKs. Count only this payload
+  // alias's cleanup, after its actual selected unlink completed.
+  assert.equal(events.filter(x=>x.path===join(directory,'staging')&&x.afterSelectedRemoval).length,0);
   assert.deepEqual(await readdir(join(directory,'staging')),[]);
   const before=await stat(path);
   assert.deepEqual(await readFile(path),bytes);
@@ -1677,14 +1692,16 @@ test('sealed new objects need only their actual final directory ACK, not a stagi
   assert.equal(writer.status().reservationHeld,false);
   // A duplicate has a DIFFERENT temporary allocation. It must retain its
   // original staging-unlink ACK before that temporary reservation retires.
+  selectedTemporary=undefined;removedSelectedTemporary=false;
   const duplicate=store.createObjectWriter(bytes.length);await duplicate.append(bytes);events.length=0;
   assert.equal((await duplicate.seal(cid)).created,false);
-  assert.equal(events.filter(path=>path===join(directory,'staging')).length,1);
+  assert.equal(events.filter(x=>x.path===join(directory,'staging')&&x.afterSelectedRemoval).length,1);
   const after=await stat(path);assert.equal(after.dev,before.dev);assert.equal(after.ino,before.ino);
   assert.equal(store.status().objectCount,1);assert.equal(store.status().storedBytes,bytes.length);
   await store.close();
   const reopened=await openLocalPublicationStore(configuration,contractControl,durability);
-  assert.deepEqual(await reopened.readBytes(cid),bytes);
+  assert.deepEqual(await reopened.verifyObject(cid),{cid,bytes:bytes.length});
+  assert.deepEqual(await readFile(path),bytes);
   assert.equal(reopened.status().objectCount,1);assert.equal(reopened.status().storedBytes,bytes.length);
 });
 
