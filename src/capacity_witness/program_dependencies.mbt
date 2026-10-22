@@ -144,8 +144,7 @@ pub fn collect_program_dependencies(
       @arithmetic.minimum_guard_binding(prior.minimum) {
       return Err(InvalidMinimum(prior.identity))
     }
-    let span = @decode.cursor_span(prior.cursor)
-    let size = span.end_byte - span.start_byte
+    let size = limit_body_bytes(prior)
     if size > 2147483647 - bytes || prior.nodes > 2147483647 - nodes {
       return Err(BudgetExceeded)
     }
