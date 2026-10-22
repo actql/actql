@@ -6015,7 +6015,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "75d116c25c11ce6ebf7e51c3a853c4f9b7dbc3d000d9eb0317b34b5695034833",
+      "sha256": "3b96803d3387ebba743ff646f343c0eabc89f5cd1e1ea4bdd28be97ad0c2d0e9",
       "exports": [
         "PublicationStoreError",
         "assertOriginalLocalPublicationStoreFacilityCurrent",
@@ -7621,6 +7621,14 @@
         {
           "name": "openOriginalLocalPublicationStore/init:close/init:close/init:close#3",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/init:inspectEffectfulStoredEvidence/init:inspectEffectfulStoredEvidence",
+          "parameters": [
+            "preparation",
+            "readOriginal"
+          ],
           "async": false
         },
         {
@@ -10449,6 +10457,7 @@
             "openOriginalLocalPublicationStore/init:close/init:close/init:close",
             "openOriginalLocalPublicationStore/init:close/init:close/init:close#2",
             "openOriginalLocalPublicationStore/init:close/init:close/init:close#3",
+            "openOriginalLocalPublicationStore/init:inspectEffectfulStoredEvidence/init:inspectEffectfulStoredEvidence",
             "openOriginalLocalPublicationStore/init:originalInstallationPublicationStorageBindingEvidence/init:originalInstallationPublicationStorageBindingEvidence",
             "openOriginalLocalPublicationStore/init:originalModelStorageBindingEvidence/init:originalModelStorageBindingEvidence",
             "openOriginalLocalPublicationStore/init:originalModelStorageDimensions/init:originalModelStorageDimensions",
@@ -12180,6 +12189,10 @@
               {
                 "path": "adapters/store-local/publication-store.test.mjs",
                 "anchor": "Effectful commit inspection consumes only its original private Index observation"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "independent Effect inspection ignores caller supplied private Index observations"
               }
             ]
           }
