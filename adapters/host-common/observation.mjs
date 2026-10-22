@@ -266,6 +266,15 @@ export function installHostObservation(connection, {journal, runId} = {}) {
   const observeRows = config.eventLevel === 'diagnostic' && config.allowed.has('run') &&
     config.measurements.has('rows');
   let queuedBytes = 0, closed = false, pumping = false, sequence = 0, activeSegments = 0;
+  let activeCallbacks = 0, callbackState = Object.freeze({active: false});
+  const enterApplicationCallback = () => {
+    activeCallbacks++;
+    callbackState = Object.freeze({active: true});
+    return () => {
+      activeCallbacks--;
+      callbackState = Object.freeze({active: activeCallbacks !== 0});
+    };
+  };
   const counts = {dropped: 0, deliveryFailed: 0, budgetUnavailable: 0,
     queueOverflow: 0, limited: 0, repeated: 0};
   const diagnostics = Object.create(null);
@@ -285,12 +294,13 @@ export function installHostObservation(connection, {journal, runId} = {}) {
       queuedBytes -= item.bytes;
       // There is at most one delivery in flight. A nonterminating embedded
       // callback keeps this slot; a timeout cannot prove physical settlement.
+      const leaveCallback = enterApplicationCallback();
       let promise;
       try { promise = Promise.resolve(config.deliver(item.record)); }
       catch { promise = Promise.reject(new Error('ObservationDeliveryFailed')); }
       pending.add(promise);
       promise.catch(() => { drop('deliveryFailed'); }).finally(() => {
-        pending.delete(promise); pump();
+        leaveCallback(); pending.delete(promise); pump();
       });
     });
   };
@@ -489,7 +499,11 @@ export function installHostObservation(connection, {journal, runId} = {}) {
     if (closed || config.allowed.size === 0) return work();
     let parent = trace;
     if (config.correlation && parent === undefined) {
-      try { parent = config.currentContext?.(); } catch { /* Optional context. */ }
+      if (config.currentContext !== undefined) {
+        const leaveCallback = enterApplicationCallback();
+        try { parent = config.currentContext(); } catch { /* Optional context. */ }
+        finally {leaveCallback();}
+      }
     }
     if (activeSegments >= config.selected.activeSegments) {
       drop('limited'); return work();
@@ -524,6 +538,9 @@ export function installHostObservation(connection, {journal, runId} = {}) {
     }); } finally {context.ingressSettled = true; finishContext(context);}
   };
   const projection = Object.freeze({run, accepted, emit, retainOperation, captureCurrentOperation,
+    // Identity changes only at actual application callback boundaries. This
+    // copied state is not authorization or an observation-delivery ACK.
+    applicationCallbackState: () => callbackState,
     canMeasureResources: () => !closed && config.allowed.has('compute') && config.measurements.has('resources'),
     captureManagedRun(ref, readUsage) {
       if (closed || !config.allowed.has('compute') || !config.measurements.has('resources')) return undefined;

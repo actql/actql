@@ -575,6 +575,50 @@ test('context getters are copied once and cannot inject a later value', () => {
   assert.equal(snapshotObservationContext({get traceId() { throw new Error('secret'); }}), undefined);
 });
 
+test('application callback state changes at actual delivery entry and thrown settlement only', async () => {
+  let observer, active;
+  observer = installHostObservation(createHostObservationConnection({deliver() {
+    active = observer.applicationCallbackState();
+    assert.equal(active.active, true);
+    throw new Error('original callback rejection');
+  }}));
+  try {
+    const idle = observer.applicationCallbackState();
+    assert(Object.isFrozen(idle));
+    observer.emit('compute', 'task_started');
+    assert.equal(observer.applicationCallbackState(), idle, 'enqueueing is not application reentry');
+    await turn();
+    const settled = observer.applicationCallbackState();
+    assert.equal(settled.active, false);
+    assert(Object.isFrozen(active));
+    assert.notEqual(settled, active);
+    assert.notEqual(settled, idle);
+    assert.equal(observer.status().deliveryFailed, 1);
+    await Promise.resolve();
+    assert.equal(observer.applicationCallbackState(), settled, 'internal reads and awaits keep this identity');
+  } finally {await observer.close();}
+});
+
+test('observation shutdown cannot mark an unsettled application callback idle', async () => {
+  let release;
+  const callback = new Promise(resolve => {release = resolve;});
+  const observer = installHostObservation(createHostObservationConnection({
+    limits: {shutdownMs: 10}, deliver: () => callback,
+  }));
+  try {
+    observer.emit('compute', 'task_started');
+    await turn();
+    const active = observer.applicationCallbackState();
+    assert.equal(active.active, true);
+    await observer.close();
+    assert.equal(observer.applicationCallbackState(), active, 'timeout is not callback settlement');
+    release();
+    await turn();
+    assert.equal(observer.applicationCallbackState().active, false);
+    assert.notEqual(observer.applicationCallbackState(), active);
+  } finally {release(); await observer.close();}
+});
+
 test('timed-out delivery keeps its connection owned until physical settlement', async () => {
   let release;
   const connection = createHostObservationConnection({limits: {shutdownMs: 10},

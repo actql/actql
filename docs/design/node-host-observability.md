@@ -100,6 +100,16 @@ publication. Elapsed time does not fill unknown billable duration or usage.
 The common projection copies fixed fields into a bounded queue and delivers
 after `setImmediate`. The Host does not import an OTel SDK. SDK/HTTP propagation
 is a syntax-checked transport header outside canonical requests and authority.
+Delivery remains an application callback even on that later turn: it can overlap
+another active public operation. The existing installed projection retains an
+immutable callback-state identity, changed at callback entry and settlement,
+with an active flag until the actual delivery Promise settles. Synchronous
+application context callbacks also advance that identity. The same Host's Result
+authorization consumes this captured projection to observe current Account
+bytes after application reentry, or before a protected boundary while delivery
+remains active. Unchanged Account bytes retain their original typed evaluation;
+pure internal helpers, trusted reads and awaits do not advance callback state.
+This state grants no permission and supplies no delivery or resource-close ACK.
 The optional package uses private SDK providers and official protobuf serializers
 with an explicitly bounded HTTP sender. Application-owned providers remain
 application-owned and have the weaker contribution-only guarantee.

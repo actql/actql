@@ -139,9 +139,146 @@ test('an observation delivery callback invalidates the same Result operation Acc
   } finally {await observation.close();}
 });
 
+test('an asynchronous observation callback cannot retain Allow across its later Account mutation', async t => {
+  let account, enter, mutate, changed, finish;
+  const entered = new Promise(resolve => {enter = resolve;});
+  const mutation = new Promise(resolve => {mutate = resolve;});
+  const mutated = new Promise(resolve => {changed = resolve;});
+  const finished = new Promise(resolve => {finish = resolve;});
+  const observation = installHostObservation(createHostObservationConnection({
+    include: ['run'], correlation: false, measurements: {include: ['duration']},
+    async deliver(record) {
+      if (record.event !== 'segment_started') return;
+      enter();
+      await mutation;
+      await account.change('deny');
+      changed();
+      await finished;
+    },
+  }));
+  try {
+    account = await fixture(t, {}, facts, observation);
+    const operation = Object.freeze({...facts, indexKey: Object.freeze({...facts.indexKey})});
+    await observation.run('result', undefined, async () => {
+      assert.equal(await account.authorize(facts, operation), true);
+      await entered;
+      assert.equal(observation.applicationCallbackState().active, true);
+      assert.equal(await account.authorize(facts, operation), true);
+      assert.equal(account.evaluations(), 1, 'unchanged Account is not evaluated again');
+      mutate();
+      await mutated;
+      assert.equal(await account.authorize(facts, operation), false,
+        'the still-running callback can change policy after an earlier current observation');
+      assert.equal(account.evaluations(), 2);
+      finish();
+    });
+  } finally {mutate(); finish(); await observation.close();}
+});
+
+test('completed observation callbacks retain one Account evaluation and pure stages perform no extra read', async t => {
+  let delivered;
+  const delivery = new Promise(resolve => {delivered = resolve;});
+  const observation = installHostObservation(createHostObservationConnection({
+    include: ['run'], correlation: false, measurements: {include: ['duration']},
+    deliver: () => {delivered();},
+  }));
+  const account = await fixture(t, {}, facts, observation);
+  const original = fs.openSync;
+  let reads = 0;
+  fs.openSync = function(path, ...args) {
+    if (path === account.accountConfig) reads++;
+    return Reflect.apply(original, this, [path, ...args]);
+  };
+  syncBuiltinESMExports();
+  try {
+    const operation = Object.freeze({...facts, indexKey: Object.freeze({...facts.indexKey})});
+    await observation.run('result', undefined, async () => {
+      const originalState = observation.applicationCallbackState();
+      assert.equal(await account.authorize(facts, operation), true);
+      for (let n = 0; n < 3; n++) {
+        await Promise.resolve();
+        assert.equal(observation.applicationCallbackState(), originalState);
+        assert.equal(await account.authorize(facts, operation), true);
+      }
+      assert.equal(reads, 1, 'pure helpers and awaits are not callback boundaries');
+      await delivery;
+      await new Promise(resolve => setImmediate(resolve));
+      const settled = observation.applicationCallbackState();
+      assert.equal(settled.active, false);
+      assert.notEqual(settled, originalState);
+      assert(Object.isFrozen(settled));
+      for (let n = 0; n < 6; n++) assert.equal(await account.authorize(facts, operation), true);
+      assert.equal(reads, 2, 'one current observation after the actual completed callback');
+      assert.equal(account.admissions(), 1);
+      assert.equal(account.evaluations(), 1);
+    });
+  } finally {
+    fs.openSync = original; syncBuiltinESMExports();
+    await observation.close();
+  }
+});
+
+test('a synchronous observation context callback invalidates another active Result observation', async t => {
+  let account, mutate = false;
+  const observation = installHostObservation(createHostObservationConnection({
+    include: ['run'], deliver() {},
+    currentContext() {
+      if (mutate) fs.writeFileSync(account.accountConfig,
+        sourceReadAccountConfiguration({connection: 'local-mock', resource: 'result/main', outcome: 'deny'}));
+    },
+  }));
+  try {
+    account = await fixture(t, {}, facts, observation);
+    const operation = Object.freeze({...facts, indexKey: Object.freeze({...facts.indexKey})});
+    assert.equal(await account.authorize(facts, operation), true);
+    mutate = true;
+    await observation.run('result', undefined, async () => {
+      assert.equal(await account.authorize(facts, operation), false);
+    });
+    assert.equal(account.evaluations(), 2);
+  } finally {await observation.close();}
+});
+
+test('a copied observation projection cannot supply Result currentness', async t => {
+  const observation = installHostObservation(createHostObservationConnection({deliver() {}}));
+  try {
+    await assert.rejects(fixture(t, {}, facts, Object.freeze({...observation})),
+      {message: 'ForeignHostObservationProjection'});
+  } finally {await observation.close();}
+});
+
 const deliverySubject = {principalId: 'principal', resultName: 'answer', purpose: 'download',
   indexKey: {namespaceId: 'namespace', authorityScopeCid: `sha256:${'a'.repeat(64)}`,
     runDefinitionCid: `sha256:${'9'.repeat(64)}`}};
+
+test('actual observation delivery Deny stops Result output without refunding the original claim', async t => {
+  let account, delivered;
+  const delivery = new Promise(resolve => {delivered = resolve;});
+  const observation = installHostObservation(createHostObservationConnection({
+    include: ['run'], correlation: false, measurements: {include: ['duration']},
+    async deliver(record) {
+      if (record.event !== 'segment_started') return;
+      await account.change('deny');
+      delivered();
+    },
+  }));
+  try {
+    account = await fixture(t, {}, deliverySubject, observation);
+    const result = createResultDeliveryFixture(resultAccess, openResultDeliveryControl(), {
+      rows: ['{"value":7}', '{"value":8}'], authorize: account.authorize,
+      async beforeAppend(record) {
+        if (JSON.parse(record.wire).state === 'streaming') await delivery;
+      },
+    });
+    await assert.rejects(observation.run('result', undefined, () => result.deliver()),
+      {code: 'ResultDeliveryDenied'});
+    assert.equal(result.state.grantUses, 1, 'Deny cannot refund the actual prior claim');
+    assert.deepEqual(result.state.chunks, [], 'no Result bytes dispatched after observation callback Deny');
+    assert.equal(result.state.finishes, 0);
+    assert.equal(result.state.records.some(wire => JSON.parse(wire).state === 'succeeded'), false);
+    assert.equal(account.evaluations(), 2, 'only original Allow and changed Deny');
+  } finally {await observation.close();}
+});
 
 for (const boundary of ['write', 'finish']) {
   test(`actual Result ${boundary} callback Deny stops the next dispatch or success`, async t => {
