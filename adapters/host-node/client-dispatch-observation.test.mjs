@@ -49,7 +49,7 @@ test('dispatch observation retains the original operation beyond its start barri
     assert.equal(owner.live(ref), true);
     assert.deepEqual(stopped, []);
   } finally {finish(); await owner.drain();}
-  assert.deepEqual(stopped, [[ref, null]]);
+  assert.deepEqual(stopped, [[ref, null, row]]);
 });
 
 test('tracked observation settlement cannot retire unresolved physical cleanup', async () => {
