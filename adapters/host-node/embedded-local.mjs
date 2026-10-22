@@ -738,6 +738,7 @@ async function openInstalledHost(originalInstallation, preparation) {
   const host = preparation?.host ?? {};
   let modelRuntimeClosing = false;
   let preparedSourceEnvironment;
+  let clientProgramPreparationReferences;
   let modelRuntimeView;
   let modelRuntimeStartupView;
   let modelSdkStaticOriginals;
@@ -781,15 +782,6 @@ async function openInstalledHost(originalInstallation, preparation) {
     if (modelRuntimeClosing) throw clientOperationError('ClientHostClosing');
     assertModelRuntime();
   }
-  function getPreparedSourceEnvironment() {
-    if (modelRuntimeClosing) throw clientOperationError('ClientHostClosing');
-    const original = preparedSourceEnvironment;
-    if (original === undefined || original.host !== host || original.moon !== moon ||
-        original.environment !== environment || original.publication !== sourcePublication) {
-      throw clientOperationError('InstalledPublicSourceEnvironmentChanged');
-    }
-    return original.preparedEnvironment;
-  }
   function bindModelSdkStaticOriginals(originals) {
     // Existing borrow/current rechecks remain legal while cleanup is pending;
     // this check is not new-allocation or send admission during Host closing.
@@ -813,6 +805,11 @@ async function openInstalledHost(originalInstallation, preparation) {
       modelSdkStaticOriginals);
   }
   function retireModelPreparationReferences() {
+    const consumer = clientProgramPreparationReferences;
+    if (consumer !== undefined) {
+      Reflect.apply(consumer.retire, consumer.owner, []);
+      clientProgramPreparationReferences = undefined;
+    }
     const original = preparedSourceEnvironment;
     if (original !== undefined) {
       // Cut this Host's association only after its existing shutdown duties.
@@ -1351,6 +1348,15 @@ async function openInstalledHost(originalInstallation, preparation) {
   let environment;
   let evidenceCid;
   let sourcePublication;
+  function getPreparedSourceEnvironment() {
+    if (modelRuntimeClosing) throw clientOperationError('ClientHostClosing');
+    const original = preparedSourceEnvironment;
+    if (original === undefined || original.host !== host || original.moon !== moon ||
+        original.environment !== environment || original.publication !== sourcePublication) {
+      throw clientOperationError('InstalledPublicSourceEnvironmentChanged');
+    }
+    return original.preparedEnvironment;
+  }
   try {
     evidenceCid = JSON.parse(environmentWire).evidence_bundle_cid;
     const numericProfile = JSON.parse(preparation === undefined
@@ -1773,6 +1779,8 @@ async function openInstalledHost(originalInstallation, preparation) {
       control.admitStoredClientInferRunOriginal(original, definition, request, evidence,
         [false, true, true, true, true, calendarArtifact !== undefined, false], localContractLimits),
     allowEffects: effectInstallation !== undefined});
+  clientProgramPreparationReferences = Object.freeze({owner: prepareSubmit,
+    retire: prepareSubmit.retireReferences});
   const prepareCapturedSubmission = async (submission, ref) => {
     const retained = ref === undefined ? undefined : journal.lookupRunDefinition(ref, moon, control);
     if (retained !== undefined &&

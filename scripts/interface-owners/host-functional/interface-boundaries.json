@@ -18161,7 +18161,7 @@
     {
       "module": "adapters/host-node/client-program-preparation.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "8b3786621490ed64360ab53e49979103a850a1e8caca0862dd59fa682b634fcf",
+      "sha256": "d3314fb7d60f2a9c3f4e993dd70f8881476800b79d96ddfa539d2299b0eb834a",
       "role": "physical-io",
       "owner": "Existing static checker/Frontend/compiled preparation Owners; no Run permission",
       "exports": [
@@ -18210,7 +18210,12 @@
           "async": false
         },
         {
-          "name": "installNodeClientEffectProgramPreparation/installNodeClientEffectProgramPreparation",
+          "name": "installNodeClientEffectProgramPreparation/init:retireSourceEnvironment/init:retireSourceEnvironment",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installNodeClientEffectProgramPreparation/prepare/prepare",
           "parameters": [
             "request"
           ],
@@ -18313,6 +18318,11 @@
           "async": false
         },
         {
+          "name": "installNodeClientProgramPreparation/init:retireReferences/init:retireReferences",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "installNodeClientProgramPreparation/init:sourceCheckFailure/init:sourceCheckFailure",
           "parameters": [
             "error"
@@ -18390,7 +18400,8 @@
             "fail",
             "immutablePolicySubject",
             "installNodeClientEffectProgramPreparation",
-            "installNodeClientEffectProgramPreparation/installNodeClientEffectProgramPreparation",
+            "installNodeClientEffectProgramPreparation/init:retireSourceEnvironment/init:retireSourceEnvironment",
+            "installNodeClientEffectProgramPreparation/prepare/prepare",
             "installNodeClientProgramPreparation",
             "installNodeClientProgramPreparation/disclosed/disclosed",
             "installNodeClientProgramPreparation/disclosed/disclosed/disclosed",
@@ -18399,6 +18410,7 @@
             "installNodeClientProgramPreparation/init:assertSubmittedIntent/init:assertSubmittedIntent",
             "installNodeClientProgramPreparation/init:kindOf/init:kindOf",
             "installNodeClientProgramPreparation/init:restoreOriginal/init:restoreOriginal",
+            "installNodeClientProgramPreparation/init:retireReferences/init:retireReferences",
             "installNodeClientProgramPreparation/init:sourceCheckFailure/init:sourceCheckFailure",
             "installNodeClientProgramPreparation/prepare/prepare",
             "installNodeClientProgramPreparation/prepareEffect/prepareEffect",
@@ -18576,6 +18588,10 @@
               {
                 "path": "docs/design/checked-program.md",
                 "anchor": "## Installed public Environment lifetime"
+              },
+              {
+                "path": "adapters/host-node/client-program-preparation.mjs",
+                "anchor": "retireReferences() {"
               }
             ],
             "synchronization": [
@@ -18690,6 +18706,10 @@
               {
                 "path": "docs/design/checked-program.md",
                 "anchor": "## Installed public Environment lifetime"
+              },
+              {
+                "path": "adapters/host-node/client-program-preparation.mjs",
+                "anchor": "retireReferences() {"
               }
             ],
             "resources": [
@@ -18728,6 +18748,10 @@
               {
                 "path": "docs/design/checked-program.md",
                 "anchor": "## Installed public Environment lifetime"
+              },
+              {
+                "path": "adapters/host-node/client-program-preparation.mjs",
+                "anchor": "retireReferences() {"
               }
             ],
             "extension": [
@@ -18765,7 +18789,7 @@
               },
               {
                 "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "const prepareEffect = !allowEffects ? undefined : sourcePublication === undefined"
+                "anchor": "let prepareEffect = !allowEffects ? undefined : sourcePublication === undefined"
               },
               {
                 "path": "docs/design/checked-program.md",
@@ -18812,6 +18836,10 @@
               {
                 "path": "docs/design/checked-program.md",
                 "anchor": "## Installed public Environment lifetime"
+              },
+              {
+                "path": "adapters/host-node/public-store-source-preparation.test.mjs",
+                "anchor": "test('retiring one public Environment consumer cuts its aliases without invalidating another holder'"
               }
             ]
           }
@@ -32084,7 +32112,7 @@
     {
       "module": "adapters/host-node/in-process-client.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "5d3297c5f8a1020d70e8c3cb71e526bdd20ac9cec53ea5b628ad2c00013be043",
+      "sha256": "85f7104c26ea95afa668943a845eca81bfe7ef191c4ed04007613a4fc93784de",
       "role": "physical-io",
       "owner": "Existing Client Host admission/read services and physical Node ingress",
       "exports": [
@@ -32191,13 +32219,6 @@
           "async": false
         },
         {
-          "name": "freezeDeferredSnapshot/freezeDeferredSnapshot",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
           "name": "publicError/publicError",
           "parameters": [
             "code",
@@ -32243,7 +32264,6 @@
             "createNodeInProcessClientHost/init:perform/init:perform/invoke/invoke/invoke",
             "createNodeInProcessClientHost/init:perform/init:perform/own/own",
             "fail/fail",
-            "freezeDeferredSnapshot/freezeDeferredSnapshot",
             "publicError/publicError",
             "publicFailure/publicFailure",
             "publicResultRows",
@@ -32266,6 +32286,10 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "## Deferred Local request capture"
               }
             ],
             "inputsOutputs": [
@@ -32280,12 +32304,16 @@
               {
                 "path": "docs/spec/protocols/run.md",
                 "anchor": "### Logical request and dispatch evidence"
+              },
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "## Deferred Local request capture"
               }
             ],
             "identity": [
               {
                 "path": "adapters/host-node/in-process-client.mjs",
-                "anchor": "prepareClientHostRequest, snapshotClientRequest, validClientBody, validClientProfile, validDeliveryAttemptLookup, validCancellationAttempt, validCancellationLookup,"
+                "anchor": "prepareClientHostRequest, validClientProfile, validDeliveryAttemptLookup, validCancellationAttempt, validCancellationLookup,"
               },
               {
                 "path": "docs/spec/protocols/run.md",
@@ -32298,6 +32326,10 @@
               {
                 "path": "adapters/host-node/in-process-client.mjs",
                 "anchor": "return await performInstalledRequest(operation,body,signal);"
+              },
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "## Deferred Local request capture"
               }
             ],
             "ownership": [
@@ -32312,6 +32344,10 @@
               {
                 "path": "docs/design/oss-host-authorization.md",
                 "anchor": "# OSS Host authorization behavior"
+              },
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "## Deferred Local request capture"
               }
             ],
             "synchronization": [
@@ -32326,6 +32362,10 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "## Deferred Local request capture"
               }
             ],
             "failure": [
@@ -32340,12 +32380,16 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "## Deferred Local request capture"
               }
             ],
             "cancellation": [
               {
                 "path": "adapters/host-node/in-process-client.mjs",
-                "anchor": "prepareClientHostRequest, snapshotClientRequest, validClientBody, validClientProfile, validDeliveryAttemptLookup, validCancellationAttempt, validCancellationLookup,"
+                "anchor": "prepareClientHostRequest, validClientProfile, validDeliveryAttemptLookup, validCancellationAttempt, validCancellationLookup,"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -32354,6 +32398,10 @@
               {
                 "path": "docs/spec/protocols/run.md",
                 "anchor": "### Logical request and dispatch evidence"
+              },
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "## Deferred Local request capture"
               }
             ],
             "resources": [
@@ -32371,7 +32419,11 @@
               },
               {
                 "path": "adapters/host-node/in-process-client.mjs",
-                "anchor": "// This additional copy/overlap belongs to the selected facility."
+                "anchor": "const deferredRequests = new WeakMap();"
+              },
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "## Deferred Local request capture"
               }
             ],
             "extension": [
@@ -32386,6 +32438,10 @@
               {
                 "path": "docs/spec/protocols/run.md",
                 "anchor": "### Logical request and dispatch evidence"
+              },
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "## Deferred Local request capture"
               }
             ],
             "verification": [
@@ -32404,6 +32460,14 @@
               {
                 "path": "adapters/host-node/source-request-lineage.test.mjs",
                 "anchor": "test('deferred same-Host ingress retains the actual SDK Source receipt through both admitted snapshots', async t => {"
+              },
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "## Deferred Local request capture"
+              },
+              {
+                "path": "adapters/host-node/deferred-ingress-original-snapshot.test.mjs",
+                "anchor": "test('deferred ingress serializes the same submission once without reusing connection authorization'"
               }
             ]
           }
@@ -58817,7 +58881,7 @@
     {
       "module": "adapters/host-node/public-source-preparation.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "f8e0fd905dfdfec03f2085204aedbb146d73103d329133357b1dfdcf49070f48",
+      "sha256": "6110f5a6567ce336bbd401bfbd9347fcb72a6d9df499b15a71d74f6151a2bc86",
       "role": "physical-io",
       "owner": "Existing static checker/Frontend/compiled preparation Owners; no Run permission",
       "exports": [
@@ -58883,6 +58947,11 @@
             "supplied"
           ],
           "async": false
+        },
+        {
+          "name": "installNodePublicSourcePreparation/init:retireSourceEnvironment/init:retireSourceEnvironment",
+          "parameters": [],
+          "async": false
         }
       ],
       "contracts": [
@@ -58895,7 +58964,8 @@
             "installNodePublicSourcePreparation",
             "installNodePublicSourcePreparation/currentEnvironment/currentEnvironment",
             "installNodePublicSourcePreparation/init:prepare/init:prepare",
-            "installNodePublicSourcePreparation/init:prepareEffect/init:prepareEffect"
+            "installNodePublicSourcePreparation/init:prepareEffect/init:prepareEffect",
+            "installNodePublicSourcePreparation/init:retireSourceEnvironment/init:retireSourceEnvironment"
           ],
           "exports": [
             "installNodePublicSourcePreparation"
@@ -58928,7 +58998,7 @@
               },
               {
                 "path": "adapters/host-node/public-source-preparation.mjs",
-                "anchor": "const original = sourceAliasPublicationOriginal(moon, environment, publication);"
+                "anchor": "let original = sourceAliasPublicationOriginal(moon, environment, publication);"
               },
               {
                 "path": "docs/design/checked-program.md",
@@ -59035,6 +59105,10 @@
               {
                 "path": "docs/design/checked-program.md",
                 "anchor": "## Installed public Environment lifetime"
+              },
+              {
+                "path": "adapters/host-node/public-source-preparation.mjs",
+                "anchor": "retireSourceEnvironment() {"
               }
             ],
             "synchronization": [
@@ -59121,6 +59195,10 @@
               {
                 "path": "docs/design/checked-program.md",
                 "anchor": "## Installed public Environment lifetime"
+              },
+              {
+                "path": "adapters/host-node/public-source-preparation.mjs",
+                "anchor": "retireSourceEnvironment() {"
               }
             ],
             "resources": [
@@ -59147,6 +59225,10 @@
               {
                 "path": "docs/design/checked-program.md",
                 "anchor": "## Installed public Environment lifetime"
+              },
+              {
+                "path": "adapters/host-node/public-source-preparation.mjs",
+                "anchor": "retireSourceEnvironment() {"
               }
             ],
             "extension": [
@@ -59211,6 +59293,10 @@
               {
                 "path": "docs/design/checked-program.md",
                 "anchor": "## Installed public Environment lifetime"
+              },
+              {
+                "path": "adapters/host-node/public-store-source-preparation.test.mjs",
+                "anchor": "test('retiring one public Environment consumer cuts its aliases without invalidating another holder'"
               }
             ]
           }

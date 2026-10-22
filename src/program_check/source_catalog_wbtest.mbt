@@ -1,4 +1,56 @@
 ///|
+test "Source publication contents bounds preserve separate carrier bounds" {
+  let budget : IdentityBudget = {
+    work: 10000000,
+    bytes: 1048576,
+    nodes: 65536,
+    depth: 64,
+  }
+  let contents : @environment.Limits = {
+    max_bytes: 1048576,
+    max_nodes: 16384,
+    max_depth: 32,
+    max_members: 32768,
+  }
+  let caps = environment_contents_caps(budget, Some(contents))
+  assert_eq(caps.max_depth, 32)
+  assert_eq(caps.max_nodes, 16384)
+  assert_eq(environment_body_caps(budget).max_depth, 64)
+  assert_eq(environment_body_caps(budget).max_nodes, 65536)
+  let environment = checking_environment(
+    keyed_sourceview_environment(),
+    { text_time: false, veca: false, },
+    { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
+  )
+  let limits : SourceCatalogLimits = {
+    max_work: budget.work,
+    max_bytes: budget.bytes,
+    max_nodes: budget.nodes,
+    max_depth: budget.depth,
+  }
+  let original = prepare_source_catalog(environment, limits).unwrap()
+  let shared = prepare_source_catalog_with_contents_limits(
+    environment, limits, contents,
+  ).unwrap()
+  assert_eq(shared.usage, original.usage)
+  assert_eq(shared.depth_limit, 64)
+  assert_true(physical_equal(source_catalog_owner(shared), environment))
+  for
+    short in [
+      { ..contents, max_bytes: 0, },
+      { ..contents, max_nodes: 0, },
+      { ..contents, max_depth: 0, },
+      { ..contents, max_members: 0, },
+      { ..contents, max_depth: -1, },
+    ] {
+    assert_true(
+      prepare_source_catalog_with_contents_limits(environment, limits, short)
+      is Err(_),
+    )
+  }
+}
+
+///|
 test "source Catalog preparation retains the exact configured and wire owners" {
   let wire = keyed_sourceview_environment()
   let environment = checking_environment(

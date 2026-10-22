@@ -1832,8 +1832,10 @@ observe the relevant current authorization rather than reuse an earlier Allow.
 The existing per-Host slot binds the retained value to the actual runtime and
 publication. Cheap closing and reference checks fence subsequent preparation;
 an internal getter, trusted read or await does not reconstruct unchanged facts.
-Final Host retirement cuts its own publication association and references. It
-does not invalidate a pure value still legitimately retained elsewhere or stand
+Final Host retirement also cuts the Source and Effect consumer holders' cached
+Environment and installation callbacks; retaining a closed client does not keep
+those catalog aliases. Pending cleanup retains the same holders for retry.
+Retirement does not invalidate a pure value legitimately retained elsewhere or stand
 in for native, FD, task or durable cleanup. Reopening validates durable inputs
 into the new installation's originals; saved Runs keep their saved preparation
 and result names rather than being recompiled or renamed by this reuse.

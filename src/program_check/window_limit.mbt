@@ -49,20 +49,7 @@ fn assemble_window_limit(
     raise ForeignOwner
   }
   let host = publication_host(selected.host, budget)
-  let host_bytes = publication_metadata(
-    w => @host.emit(host, w) catch { e => raise Encoding(e) },
-    budget,
-  )
-  identity_charge(budget, host_bytes.length())
-  let host_witness = match
-    @wire.admit(host_bytes, @host.cid(host), {
-      max_bytes: host_bytes.length(),
-      max_nodes: host_bytes.length(),
-      max_depth: budget.depth,
-    }) {
-    Ok(v) => v
-    Err(e) => raise PublicationWire(e)
-  }
+  let host_witness = publication_host_wire(host, budget)
   let candidates : Array[(String, @wire.WireWitness)] = [
     (@wire.cid(host_witness), host_witness),
   ]

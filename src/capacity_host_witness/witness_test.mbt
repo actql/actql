@@ -486,3 +486,80 @@ test "construction bounds the preimage and emission independently bounds the com
   assert_false(emits(w, 497, 14, 2))
   assert_false(emits(w, 497, 15, 1))
 }
+
+///|
+test "typed Host projection retains canonical bytes and the original claim" {
+  let p = policy(fixture())
+  let ceiling = @policy.ceiling(p, "max_artifact_rows").unwrap()
+  let host = @capacity_host_witness.create(ceiling, limits()).unwrap()
+  let first = @capacity_host_witness.wire_witness(host)
+  let second = @capacity_host_witness.wire_witness(host)
+  assert_true(physical_equal(first, second))
+  assert_true(physical_equal(@capacity_host_witness.ceiling(host), ceiling))
+  let a = @encode.writer(4096, 100, 4)
+  @capacity_host_witness.emit(host, a)
+  let expected = @encode.finish(a)
+  let b = @encode.writer(4096, 100, 4)
+  @wire.emit(first, b)
+  assert_eq(@encode.finish(b), expected)
+  let from_bytes = @wire.admit(@utf8.encode(expected), @wire.cid(first), {
+    max_bytes: 4096,
+    max_nodes: 100,
+    max_depth: 4,
+  }).unwrap()
+  assert_false(physical_equal(first, from_bytes))
+  assert_eq(@wire.cid(from_bytes), @wire.cid(first))
+  let restored = @capacity_host_witness.admit_wire(from_bytes, p, limits()).unwrap()
+  assert_eq(
+    @capacity_host_witness.cid(restored),
+    @capacity_host_witness.cid(host),
+  )
+}
+
+///|
+test "typed Host extent reuse still refuses tighter and invalid bounds" {
+  let p = policy(fixture())
+  let host = @capacity_host_witness.create(
+    @policy.ceiling(p, "max_artifact_rows").unwrap(),
+    limits(),
+  ).unwrap()
+  try @capacity_host_witness.measure(host, 0, 100, 4) catch {
+    @encode.OutputLimit => ()
+    e => raise e
+  } noraise {
+    _ => fail("zero output bound accepted")
+  }
+  let first = @capacity_host_witness.measure(host, 4096, 100, 4)
+  let same = @capacity_host_witness.measure(host, first.0, first.1, first.2)
+  assert_true(physical_equal(first, same))
+  for
+    (bytes, nodes, depth) in [
+      (first.0 - 1, first.1, first.2),
+      (first.0, first.1 - 1, first.2),
+      (first.0, first.1, first.2 - 1),
+      (-1, first.1, first.2),
+    ] {
+    try @capacity_host_witness.measure(host, bytes, nodes, depth) catch {
+      @encode.OutputLimit => ()
+      e => raise e
+    } noraise {
+      _ => fail("tighter output bound borrowed a retained extent")
+    }
+  }
+}
+
+///|
+test "canonical typed claims do not select a different Host law or unit" {
+  let p = policy(fixture())
+  let ceiling = @policy.ceiling(p, "max_artifact_rows").unwrap()
+  let wrong = @wire.create_host_source(
+    ceiling,
+    @derivation.Bytes,
+    @law.admit("actql.host.artifact-bytes").unwrap(),
+    { max_bytes: 4096, max_nodes: 100, max_depth: 4, },
+  ).unwrap()
+  assert_true(
+    @capacity_host_witness.admit_wire(wrong, p, limits())
+    is Err(IdentityMismatch),
+  )
+}

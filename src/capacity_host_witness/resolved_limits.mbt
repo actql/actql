@@ -162,42 +162,15 @@ fn host_wire(
   witness : Witness,
   limits : ResolvedLimitLimits,
 ) -> (@wire.WireWitness, Int, Int) raise ResolvedLimitStop {
-  let measured = @encode.hashing_writer(
+  let (bytes, nodes, _) = measure(
+    witness,
     limits.max_bytes,
     limits.max_nodes,
     limits.max_depth,
   ) catch {
     issue => raise ResolvedLimitStop(Encoding(issue))
   }
-  emit(witness, measured) catch {
-    issue => raise ResolvedLimitStop(Encoding(issue))
-  }
-  let (_, bytes, nodes) = @encode.finish_hash_usage(measured) catch {
-    issue => raise ResolvedLimitStop(Encoding(issue))
-  }
-  let output = @encode.writer(
-    limits.max_bytes,
-    limits.max_nodes,
-    limits.max_depth,
-  ) catch {
-    issue => raise ResolvedLimitStop(Encoding(issue))
-  }
-  emit(witness, output) catch {
-    issue => raise ResolvedLimitStop(Encoding(issue))
-  }
-  let encoded = @encode.finish(output) catch {
-    issue => raise ResolvedLimitStop(Encoding(issue))
-  }
-  let wire = match
-    @wire.admit(@utf8.encode(encoded), cid(witness), {
-      max_bytes: limits.max_bytes,
-      max_nodes: limits.max_nodes,
-      max_depth: limits.max_depth,
-    }) {
-    Ok(value) => value
-    Err(issue) => raise ResolvedLimitStop(Wire(issue))
-  }
-  (wire, bytes, nodes)
+  (wire_witness(witness), bytes, nodes)
 }
 
 ///|

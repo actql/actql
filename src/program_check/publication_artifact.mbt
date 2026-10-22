@@ -17,13 +17,7 @@ fn publication_host(
     Ok(v) => v
     Err(e) => raise PublicationHost(e)
   }
-  let writer = @encode.measuring_writer(bytes, nodes, budget.depth) catch {
-    e => raise Encoding(e)
-  }
-  @host.emit(host, writer) catch {
-    e => raise Encoding(e)
-  }
-  let (size, length, _) = @encode.finish_measurement_usage(writer) catch {
+  let (size, length, _) = @host.measure(host, bytes, nodes, budget.depth) catch {
     e => raise Encoding(e)
   }
   identity_charge(budget, size)
@@ -124,20 +118,7 @@ fn prepare_publication_row_artifact(
     ) {
     raise ForeignOwner
   }
-  let host_bytes = publication_metadata(
-    w => @host.emit(host, w) catch { e => raise Encoding(e) },
-    remaining,
-  )
-  identity_charge(remaining, host_bytes.length())
-  let host_wire = match
-    @wire.admit(host_bytes, @host.cid(host), {
-      max_bytes: host_bytes.length(),
-      max_nodes: host_bytes.length(),
-      max_depth: remaining.depth,
-    }) {
-    Ok(v) => v
-    Err(e) => raise PublicationWire(e)
-  }
+  let host_wire = publication_host_wire(host, remaining)
   let proofs = match proofs {
     Some(v) => v
     None => publication_proofs([unit], selected, remaining)
@@ -224,4 +205,31 @@ fn prepare_publication_row_artifact(
   budget.bytes = remaining.bytes
   budget.nodes = remaining.nodes
   result
+}
+
+///|
+// Preserve the original metadata and admission work debits. The complete
+// immutable wire extent is checked against this enclosing budget, while its
+// original typed claim is reused without text, UTF8 or JSON reconstruction.
+fn publication_host_wire(
+  host : @host.Witness,
+  budget : IdentityBudget,
+) -> @wire.WireWitness raise UnitBuildFailure {
+  let (bytes, nodes, _) = @host.measure(
+    host,
+    Int::min(budget.bytes, budget.work / 2),
+    budget.nodes,
+    budget.depth,
+  ) catch {
+    e => raise Encoding(e)
+  }
+  identity_charge(budget, bytes)
+  identity_charge(budget, nodes)
+  identity_charge(budget, bytes)
+  identity_charge(budget, nodes)
+  identity_charge(budget, bytes)
+  budget.bytes -= bytes
+  budget.nodes -= nodes
+  identity_charge(budget, bytes)
+  @host.wire_witness(host)
 }

@@ -20,6 +20,8 @@ struct Witness {
   unit : @derivation.BoundUnit
   law : @law.RegisteredLaw
   cid : String
+  wire : @wire.WireWitness
+  extent : Ref[(Int, Int, Int)?]
 }
 
 ///|
@@ -50,21 +52,6 @@ fn mapping(field : String) -> (@derivation.BoundUnit, String)? {
 }
 
 ///|
-fn unit_text(unit : @derivation.BoundUnit) -> String {
-  match unit {
-    Rows => "rows"
-    DistinctKeys => "distinct_keys"
-    EffectItems => "effect_items"
-    Bytes => "bytes"
-    ArrayItems => "array_items"
-    Nodes => "nodes"
-    Edges => "edges"
-    Paths => "paths"
-    MatchesPerKey => "matches_per_key"
-  }
-}
-
-///|
 /// A host_ceiling source witness, not a proven data bound or enforcement fact.
 /// Unit, law, role and source cannot be supplied independently by the caller.
 pub fn create(
@@ -79,62 +66,17 @@ pub fn create(
     return Err(UnsupportedPolicyField(field))
   }
   guard @law.admit(law) is Some(law) else { return Err(InvalidWitness) }
-  let pending : Witness = { ceiling, unit, law, cid: "", }
-  try {
-    let writer = @encode.hashing_writer(
-      limits.max_bytes,
-      limits.max_nodes,
-      limits.max_depth,
-    )
-    emit_body(pending, writer, false)
-    let cid = "sha256:" + @encode.finish_hash(writer)
-    Ok({ ..pending, cid, })
-  } catch {
-    _ => Err(BudgetExceeded)
+  match
+    @wire.create_host_source(ceiling, unit, law, {
+      max_bytes: limits.max_bytes,
+      max_nodes: limits.max_nodes,
+      max_depth: limits.max_depth,
+    }) {
+    Ok(wire) =>
+      Ok({ ceiling, unit, law, cid: @wire.cid(wire), wire, extent: Ref(None), })
+    Err(InvalidLimits) => Err(InvalidLimits)
+    Err(_) => Err(BudgetExceeded)
   }
-}
-
-///|
-fn emit_body(
-  w : Witness,
-  writer : @encode.Writer,
-  include_identity : Bool,
-) -> Unit raise @encode.EncodeFailure {
-  let policy_cid = @policy.cid(@policy.ceiling_policy(w.ceiling))
-  @encode.begin_object(writer)
-  @encode.key(writer, "dependencies")
-  @encode.begin_array(writer)
-  @encode.string_value(writer, policy_cid)
-  @encode.end_array(writer)
-  @encode.key(writer, "derivation")
-  @encode.begin_object(writer)
-  @encode.key(writer, "op")
-  @encode.string_value(writer, "source")
-  @encode.end_object(writer)
-  @encode.key(writer, "law_id")
-  @encode.string_value(writer, @law.name(w.law))
-  @encode.key(writer, "role")
-  @encode.string_value(writer, "host_ceiling")
-  @encode.key(writer, "source")
-  @encode.begin_object(writer)
-  @encode.key(writer, "field")
-  @encode.string_value(writer, @policy.ceiling_field(w.ceiling))
-  @encode.key(writer, "kind")
-  @encode.string_value(writer, "host_policy")
-  @encode.key(writer, "policy_cid")
-  @encode.string_value(writer, policy_cid)
-  @encode.end_object(writer)
-  @encode.key(writer, "unit")
-  @encode.string_value(writer, unit_text(w.unit))
-  @encode.key(writer, "value")
-  @encode.number_value(writer, @policy.ceiling_value(w.ceiling).to_double())
-  @encode.key(writer, "version")
-  @encode.string_value(writer, "actql-bound-witness/0.1")
-  if include_identity {
-    @encode.key(writer, "witness_cid")
-    @encode.string_value(writer, w.cid)
-  }
-  @encode.end_object(writer)
 }
 
 ///|
@@ -144,7 +86,7 @@ pub fn emit(
   w : Witness,
   writer : @encode.Writer,
 ) -> Unit raise @encode.EncodeFailure {
-  emit_body(w, writer, true)
+  @wire.emit(w.wire, writer)
 }
 
 ///|
@@ -165,4 +107,38 @@ pub fn unit(w : Witness) -> @derivation.BoundUnit {
 ///|
 pub fn law_id(w : Witness) -> String {
   @law.name(w.law)
+}
+
+///|
+/// The canonical claim already belongs to this original typed Host witness.
+/// This projection does not grant or authenticate its policy application.
+pub fn wire_witness(w : Witness) -> @wire.WireWitness {
+  w.wire
+}
+
+///|
+/// Measure immutable wire once, then check tighter output bounds locally.
+/// Creation bounds cover the preimage; these bounds cover the complete wire.
+pub fn measure(
+  w : Witness,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> (Int, Int, Int) raise @encode.EncodeFailure {
+  if max_bytes < 0 || max_nodes < 1 || max_depth < 0 {
+    raise @encode.OutputLimit
+  }
+  if w.extent.val is Some(original) {
+    if original.0 > max_bytes ||
+      original.1 > max_nodes ||
+      original.2 > max_depth {
+      raise @encode.OutputLimit
+    }
+    return original
+  }
+  let writer = @encode.measuring_writer(max_bytes, max_nodes, max_depth)
+  emit(w, writer)
+  let original = @encode.finish_measurement_usage(writer)
+  w.extent.val = Some(original)
+  original
 }

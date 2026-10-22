@@ -244,6 +244,19 @@ layout/bootstrap costs remain unknown, and existing limits do not increase.
 
 ## Selected Result metadata read reuse
 
+Committed Result retention-extension histories are selected-use facts. Ordinary
+open does not enumerate their Run/Result directories, inspect every record name
+or acknowledge every historical Result directory. The selected reader checks
+both directory types without following a substituted symlink, retains its real
+Result-directory acknowledgement, and validates the complete ordered extension
+chain and exact Result/Index/base-policy bindings. Missing history still means
+no extension; malformed selected history refuses, rather than renewing a policy.
+Unrelated committed corruption is not a new opening admission boundary.
+
+Append-only CAS, new-directory durability and deletion/restart cleanup retain
+their existing transitions. The retention root's existing opening ACK remains
+separate; it is not a per-history acknowledgement or a minimum barrier allowance.
+This localization does not remove payload quota or other recovery history work.
 ### Trusted clock write observation
 
 A warm fixed-length clock update consumes its already typed observation after

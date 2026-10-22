@@ -5,6 +5,10 @@ for (const snapshot of [snapshotClientRequest, snapshotCheckRequest]) {
   void received;
 }
 const prepared = prepareClientHostRequest('check', {untrusted: true});
+const retained = prepareClientHostRequest('attach', {untrusted: true}, true);
+void retained;
+// @ts-expect-error The capture selection is typed, not a caller packet field.
+prepareClientHostRequest('attach', {untrusted: true}, 'immutable');
 if (prepared !== undefined) {
   const body: unknown = prepared.body;
   const target: WireConnection = prepared.connection;
