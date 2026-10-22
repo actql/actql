@@ -3950,8 +3950,7 @@ async function openOriginalLocalPublicationStore(
       if (confirm) {
         // This exact metadata and both payloads belong to the same operation.
         // Confirmation still requires its original directory ACK and adoption.
-        await syncDirectory(physicalHoldingsDirectory);
-        await adoptPreparedObjects(record.objects.map(object => object.cid));
+        await confirmPrivateHoldingRead(record);
       }
       return Object.freeze({record, bytes});
     } finally {release();}
@@ -7001,8 +7000,7 @@ async function openOriginalLocalPublicationStore(
         if (!exactUtf8WireMatches(stored, original.wire)) fail('PublicationPrivateEvidenceConflict');
         // The same serialized operation retains its actual read facts through
         // the real directory ACK, excluding retirement until adoption finishes.
-        await syncDirectory(physicalHoldingsDirectory);
-        await adoptPreparedObjects(record.objects.map(object => object.cid));
+        await confirmPrivateHoldingRead(record);
         return record;
       } finally {release();}
     });
@@ -7103,6 +7101,51 @@ async function openOriginalLocalPublicationStore(
       if (remaining === 0) activePhysicalHoldingReaders.delete(holdingCid);
       else activePhysicalHoldingReaders.set(holdingCid, remaining);
     };
+  };
+
+  const confirmPrivateHoldingRead = async record => {
+    try {
+      await syncDirectory(physicalHoldingsDirectory);
+      await adoptPreparedObjects(record.objects.map(object => object.cid));
+    } catch (primary) {
+      const child = primary?.cleanupHandle;
+      if (child === undefined) throw primary;
+      // The existing confirmation scope ends on rejection, but this SAME
+      // acquired directory FD still prevents Store and holding retirement.
+      // Reuse the Store's failed-writer custody; cleanup confirms no evidence.
+      const release = retainPhysicalHoldingReader(record.holding_cid);
+      let original = child, retry = child.retry, observe = child.status;
+      let pending = true, flight;
+      const writer = {failed: true, cleanup: undefined};
+      const failure = new PublicationStoreError('PublicationPrivateConfirmationCleanupPending', primary);
+      failure.primaryFailure = primary;
+      failure.cleanupPending = true;
+      if (primary.outcome === 'unknown') failure.outcome = 'unknown';
+      const status = () => Object.freeze({pending});
+      writer.cleanup = Object.freeze({status, retry() {
+        if (flight !== undefined) return flight;
+        if (!pending) return Promise.resolve(status());
+        flight = Promise.resolve().then(async () => {
+          if (typeof retry !== 'function' || typeof observe !== 'function') {
+            fail('PublicationPrivateConfirmationCleanupPending');
+          }
+          await Reflect.apply(retry, original, []);
+          const observed = await Reflect.apply(observe, original, []);
+          const descriptor = observed !== null && typeof observed === 'object'
+            ? Object.getOwnPropertyDescriptor(observed, 'pending') : undefined;
+          if (descriptor?.value !== false) fail('PublicationPrivateConfirmationCleanupPending');
+          pending = false;
+          release();
+          activePhysicalRecordWriters.delete(writer);
+          original = retry = observe = undefined;
+          return status();
+        }).finally(() => {failure.cleanupPending = pending; flight = undefined;});
+        return flight;
+      }});
+      failure.cleanupHandle = writer.cleanup;
+      activePhysicalRecordWriters.add(writer);
+      throw failure;
+    }
   };
 
   // Private selected metadata only. Public consumers still perform their

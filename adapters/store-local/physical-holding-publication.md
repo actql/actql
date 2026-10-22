@@ -123,6 +123,17 @@ content acquisition, verify both AEAD envelopes and the original plaintext
 content CID/byte count, and never expose bytes after a partial read or failed
 original close. Neither reuse path persists an Allow or supplies a new grant.
 
+If confirmation's directory sync exports a still-pending acquired FD, the same
+Store retains that child in its existing failed-writer collection and retains
+the holding reader through the child's actual close acknowledgement. Captured
+cleanup methods and receiver are retried single-flight; only the original
+own-data `pending: false` observation retires that duty. Store close drains this
+same child, and holding retirement waits meanwhile. Cleanup neither reopens or
+syncs the directory again nor repeats payload reads/adoption or returns a saved
+confirmation. The original sync/close failures remain causes of the outward
+pending-cleanup failure. A later confirmation still performs its own actual
+read and required acknowledgement.
+
 The existing bounded metadata reader does not publish bytes or invoke its FD
 retirement callback after an explicit false close. Its existing cleanup facade
 keeps the same native handle and callback through rejected or false close-only
