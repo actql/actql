@@ -7,6 +7,97 @@ import {join} from 'node:path';
 import {DatabaseSync} from 'node:sqlite';
 import {prepareHostJournalInstallation} from './node-host-journal-installation.mjs';
 import {openClientRequestJournal, observeOriginalClientRequestJournalCustody} from './client-request-journal.mjs';
+import {createHostObservationConnection, installHostObservation} from '../host-common/observation.mjs';
+
+async function selectedRowsFixture(t) {
+  const directory = await mkdtemp(join(tmpdir(), 'actql-journal-selected-rows-'));
+  const journal = openClientRequestJournal(directory);
+  t.after(() => journal.close());
+  // Explicit request-control fixture, not Common issuance or authorization.
+  // Native SQLite and the Journal's actual row-selection paths are unchanged.
+  const keys = ['authorityScopeCid', 'requestId', 'programDefinitionCid',
+    'parameterValuesCid', 'callerInputIntentCid', 'logicalRequestScopeCid', 'intentFingerprintCid'];
+  const cid = digit => 'sha256:' + digit.repeat(64);
+  const control = {clientRequestAdmitRecord(...fields) {
+    return Object.freeze(Object.fromEntries(keys.map((key, index) => [key, fields[index]])));
+  }};
+  for (const [method, key] of Object.entries({clientRequestAuthorityScopeCid: 'authorityScopeCid',
+    clientRequestCallerId: 'requestId', clientRequestScopeCid: 'logicalRequestScopeCid',
+    clientRequestIntentCid: 'intentFingerprintCid', clientRequestProgramCid: 'programDefinitionCid',
+    clientRequestParametersCid: 'parameterValuesCid', clientRequestInputCid: 'callerInputIntentCid'})) {
+    control[method] = value => value[key];
+  }
+  let selected;
+  for (let index = 0; index < 16; index++) {
+    const identity = Object.freeze(Object.fromEntries(keys.map((key, position) =>
+      [key, position === 1 ? 'selected-request-' + index : cid(String(position))])));
+    const accepted = journal.accept(identity, {namespaceId: 'selected-rows',
+      runDefinitionCid: 'sha256:' + index.toString(16).padStart(64, '0'),
+      lookupExpiresAt: '2099-01-01T00:00:00.000Z'}, control);
+    selected ??= {ref: accepted.ref, key: {namespaceId: accepted.ref.namespaceId,
+      authorityScopeCid: identity.authorityScopeCid, requestId: identity.requestId}};
+  }
+  const records = [];
+  const observer = installHostObservation(createHostObservationConnection({
+    deliver: record => records.push(record), events: {level: 'diagnostic'},
+    measurements: {include: ['rows']}, include: ['run'],
+  }));
+  journal.installObservationProjection(observer);
+  t.after(() => observer.close());
+  return {journal, control, observer, records, ...selected};
+}
+
+const selectedRowTrace = {traceId: '1'.repeat(32), spanId: '2'.repeat(16), traceFlags: 1};
+
+test('Journal selected-row observations count actual target rows without traversing other Runs', async t => {
+  const f = await selectedRowsFixture(t);
+  await f.observer.run('read', selectedRowTrace, () => {
+    for (let index = 0; index < 2; index++) {
+      assert.throws(() => f.journal.markPhysicalClose(f.ref), {code: 'ClientRunStopObservationDenied'});
+    }
+    assert.equal(f.journal.lookupRunDefinition({...f.ref,
+      runDefinitionCid: 'sha256:' + 'f'.repeat(64)}, f.control, {}), undefined);
+  });
+  await f.observer.close();
+  const rows = f.records.filter(record => record.event === 'selected_rows_observed');
+  assert.equal(rows.length, 1);
+  assert.equal(rows[0].attributes['actql.rows.returned'], 2);
+  assert.equal(rows[0].attributes['actql.rows.unrelated'], 0);
+  assert.equal(rows[0].attributes['actql.rows.owner'], 'request-journal');
+  assert.equal(rows[0].attributes['actql.rows.coverage'], 'selected-returned');
+  assert.equal(rows[0].attributes['actql.run.definition_cid'], undefined,
+    'Distinct selected refs must not borrow an eventual or earlier Run identity');
+  assert.deepEqual(rows[0].parent, selectedRowTrace);
+});
+
+test('Journal selected-row observations retain unknown classification before a Run is selected', async t => {
+  const f = await selectedRowsFixture(t);
+  await f.observer.run('read', selectedRowTrace, () => {
+    assert.deepEqual(f.journal.lookup(f.key, f.control).ref, f.ref);
+    assert.equal(f.journal.lookupReconciliationState(f.ref), undefined);
+    assert.equal(f.journal.lookupReconciliationState({...f.ref,
+      runDefinitionCid: 'sha256:' + 'f'.repeat(64)}), undefined);
+  });
+  await f.observer.close();
+  const rows = f.records.filter(record => record.event === 'selected_rows_observed');
+  assert.equal(rows.length, 1);
+  assert.equal(rows[0].attributes['actql.rows.returned'], 2,
+    'A present row with a null reconciliation field is still one materialized row');
+  assert.equal(rows[0].attributes['actql.rows.selection'], 'mixed-selected');
+  assert.equal(Object.hasOwn(rows[0].attributes, 'actql.rows.unrelated'), false);
+  assert.equal(Object.hasOwn(rows[0].attributes, 'actql.run.definition_cid'), false);
+});
+
+test('Journal selected-row observations do not turn refused or failed reads into empty results', async t => {
+  const f = await selectedRowsFixture(t);
+  await f.observer.run('read', selectedRowTrace, () => {
+    assert.throws(() => f.journal.lookupReconciliationState({}), {code: 'InvalidClientRunLookup'});
+    f.journal.close();
+    assert.throws(() => f.journal.lookupReconciliationState(f.ref), {code: 'ClientRequestJournalClosed'});
+  });
+  await f.observer.close();
+  assert.equal(f.records.filter(record => record.event === 'selected_rows_observed').length, 0);
+});
 
 test('owned native admission requires the same live Store original and preserves default limits', async () => {
   const a = await fixture(), b = await fixture();
