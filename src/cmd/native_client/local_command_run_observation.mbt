@@ -329,12 +329,9 @@ fn LocalCommandPreparationOriginal::refresh_run_observation_state(
     json_text(fields, "namespaceId") is Some(namespace_id) else {
     stop("LocalOriginalRunUnavailable")
   }
-  let run = local_run_installation(
-    local_check_original_text(
-      local_host_result(
-        capture.selected_configuration_in_original_read(run_file),
-      ),
-    ),
+  let run = configuration.run_installation(
+    run_file,
+    local_host_result(capture.selected_configuration_in_original_read(run_file)),
   )
   if run.namespace_id != namespace_id {
     stop("LocalOriginalRunReferenceMismatch")

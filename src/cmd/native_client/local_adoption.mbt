@@ -261,15 +261,17 @@ fn execute_native_local_adoption(
       Some((file, @utf8.encode(body)))
     }
   }
-  let selected_run = match settings.run_file {
-    None => None
+  let (selected_run, run_original) = match settings.run_file {
+    None => (None, None)
     Some(file) => {
       if !settings.installation_files.contains(file) {
         stop("LocalRunOriginalNotSelected")
       }
-      let body = text_file(root, file, 65536L)
-      ignore(local_run_installation(body))
-      Some((file, @utf8.encode(body)))
+      let original = local_command_run_installation_original(
+        file,
+        text_file(root, file, 65536L),
+      )
+      (Some((file, original.body)), Some(original))
     }
   }
   let selected_read = match settings.read_file {
@@ -313,6 +315,7 @@ fn execute_native_local_adoption(
         environment_name: environment_file,
         environment_body: @utf8.encode(environment),
         environment: check_environment,
+        run_original,
       },
       selected_files,
       additional,

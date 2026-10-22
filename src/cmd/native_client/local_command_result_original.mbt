@@ -172,14 +172,16 @@ fn LocalCommandPreparationOriginal::prepare_original_result(
     json_text(fields, "namespaceId") is Some(namespace_id) else {
     stop("LocalOriginalRunUnavailable")
   }
-  let run = local_run_installation(
-    local_check_original_text(
-      local_result_host_value(
-        capture.selected_configuration_in_original_read(run_file),
-        "Run installation",
-      ),
-    ),
+  let run_body = local_result_host_value(
+    capture.selected_configuration_in_original_read(run_file),
+    "Run installation",
   )
+  let run = match configuration {
+    Some(original) => original.run_installation(run_file, run_body)
+    None if publication is Some(original) =>
+      original.configuration.run_installation(run_file, run_body)
+    None => local_run_installation(local_check_original_text(run_body))
+  }
   if run.namespace_id != namespace_id || run.source_free is None {
     stop("LocalOriginalRunReferenceMismatch")
   }

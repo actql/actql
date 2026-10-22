@@ -6,6 +6,7 @@ priv struct LocalCommandBusinessPreparation {
   original : LocalCommandPreparationOriginal
   host : @local_host.NativeLocalHostConnection
   capture : @local_host.NativeLocalJournalCapture
+  configuration : LocalCommandConfiguration
   configuration_name : String
   configuration_body : Bytes
   environment_name : String
@@ -124,6 +125,7 @@ fn LocalCommandPreparationOriginal::prepare_business_submission(
     original: self,
     host,
     capture,
+    configuration,
     configuration_name,
     configuration_body,
     environment_name,

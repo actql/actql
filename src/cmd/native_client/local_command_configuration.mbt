@@ -9,6 +9,56 @@ priv struct LocalCommandConfiguration {
   environment_name : String
   environment_body : Bytes
   environment : @checked.CheckEnvironment?
+  run_original : LocalCommandRunInstallationOriginal?
+}
+
+///|
+// Parsed configuration DATA for this command's selected bytes. This holds no
+// Store, Root, permission or current decision independently of its capture.
+priv struct LocalCommandRunInstallationOriginal {
+  name : String
+  body : Bytes
+  installation : LocalRunInstallation
+}
+
+///|
+fn local_command_run_installation_original(
+  name : String,
+  text : String,
+) -> LocalCommandRunInstallationOriginal raise ClientStop {
+  let installation = local_run_installation(text)
+  { name, body: @utf8.encode(text), installation, }
+}
+
+///|
+fn LocalCommandRunInstallationOriginal::select(
+  self : LocalCommandRunInstallationOriginal,
+  name : String,
+  body : Bytes,
+) -> LocalRunInstallation? {
+  if self.name == name && self.body == body {
+    Some(self.installation)
+  } else {
+    None
+  }
+}
+
+///|
+fn LocalCommandConfiguration::run_installation(
+  self : LocalCommandConfiguration,
+  name : String,
+  body : Bytes,
+) -> LocalRunInstallation raise ClientStop {
+  guard self.settings.run_file == Some(name) &&
+    self.run_original is Some(original) &&
+    original.name == name else {
+    stop("LocalRunOriginalNotSelected")
+  }
+  // Each closed caller obtains these bytes through its actual current Read.
+  // This DATA projection cannot supply a Read, permission or replacement.
+  original
+  .select(name, body)
+  .unwrap_or_else(() => stop("LocalConfigurationChanged"))
 }
 
 ///|

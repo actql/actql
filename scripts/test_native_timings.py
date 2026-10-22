@@ -45,7 +45,7 @@ class CommandCounterMap(unittest.TestCase):
     def mapping(self):
         return {'domainInventorySlots': {'Read': [4,5,6,7,8], 'SQLite': [9,10,11,12,13],
                 'Compute': [14,15,60,61,62]},
-                'allocationCounterSlots': {str(tag): 'allocation/command' for tag in [*range(46,60),63]},
+                'allocationCounterSlots': {str(tag): 'allocation/command' for tag in [31,*range(46,60),63]},
                 'productOriginalCounterSlots': {'28': 'Product original check', '29': 'Product body read'}}
     def test_product_and_domain_amounts_have_distinct_slots(self):
         self.assertEqual(check_command_counter_map(self.mapping())['productSlots'], [28,29])
@@ -53,8 +53,12 @@ class CommandCounterMap(unittest.TestCase):
         mapping = self.mapping(); mapping['productOriginalCounterSlots'] = {'60': 'check', '61': 'read'}
         with self.assertRaisesRegex(ValueError, 'counter 60 overlaps'):
             check_command_counter_map(mapping)
+    def test_run_installation_admission_has_a_distinct_slot(self):
+        mapping = self.mapping(); mapping['productOriginalCounterSlots'] = {'31': 'check', '29': 'read'}
+        with self.assertRaisesRegex(ValueError, 'counter 31 overlaps'):
+            check_command_counter_map(mapping)
     def test_declaration_cannot_relabel_the_actual_product_calls(self):
-        mapping = self.mapping(); mapping['productOriginalCounterSlots'] = {'30': 'check', '31': 'read'}
+        mapping = self.mapping(); mapping['productOriginalCounterSlots'] = {'30': 'check', '32': 'read'}
         with self.assertRaisesRegex(ValueError, 'Product counter calls differ'):
             check_command_counter_map(mapping)
 

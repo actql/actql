@@ -307,19 +307,21 @@ fn local_submission_start(
     let run_file = settings.run_file.unwrap_or_else(() => {
       stop("LocalRunInstallationRequired")
     })
-    let run = local_run_installation(
-      @utf8.decode(
-        local_host_result(
-          match business {
-            None => host.selected_configuration(run_file)
-            Some(original) =>
-              original.capture.selected_configuration_in_original_read(run_file)
+    let run = match business {
+      Some(original) =>
+        original.configuration.run_installation(
+          run_file,
+          local_host_result(
+            original.capture.selected_configuration_in_original_read(run_file),
+          ),
+        )
+      None =>
+        local_run_installation(
+          @utf8.decode(local_host_result(host.selected_configuration(run_file))) catch {
+            _ => stop("InvalidLocalRunInstallation")
           },
-        ),
-      ) catch {
-        _ => stop("InvalidLocalRunInstallation")
-      },
-    )
+        )
+    }
     let preparation = match business {
       None => local_prepare_submitted_run_program(intent, environment)
       Some(original) => original.preparation
