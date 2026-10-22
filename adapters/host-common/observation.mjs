@@ -260,7 +260,10 @@ export function installHostObservation(connection, {journal, runId} = {}) {
     else if (config.allowed.size !== 0) journal?.closeObservationStorage?.();
     storageClosed = true;
   };
-  const queue = [], pending = new Set();
+  const queue = [], pending = new Set(), activeContexts = new Set();
+  const contextOwner = {};
+  const observeRows = config.eventLevel === 'diagnostic' && config.allowed.has('run') &&
+    config.measurements.has('rows');
   let queuedBytes = 0, closed = false, pumping = false, sequence = 0, activeSegments = 0;
   const counts = {dropped: 0, deliveryFailed: 0, budgetUnavailable: 0,
     queueOverflow: 0, limited: 0, repeated: 0};
@@ -394,6 +397,45 @@ export function installHostObservation(connection, {journal, runId} = {}) {
       emit('run', 'selected_rows_observed', {ref: rows.ref}, {selectedRows: attributes});
     } catch {drop('rowsUnavailable');}
   };
+  const finishContext = context => {
+    if (context.finished || !context.ingressSettled || context.children !== 0) return;
+    context.finished = true;
+    contexts.run(context, () => flushSelectedRows(context));
+    if (observeRows) activeContexts.delete(context);
+    activeSegments--;
+  };
+  const captureCurrentOperation = () => {
+    if (closed || !observeRows) return undefined;
+    const context = contexts.getStore();
+    if (context?.owner !== contextOwner || context.finished) return undefined;
+    if (context.children >= config.selected.requestRecords) {drop('limited'); return undefined;}
+    context.children++;
+    let original = context;
+    return Object.freeze({
+      run(work) {return original === undefined ? work() : contexts.run(original, work);},
+      release() {
+        if (original === undefined) return;
+        const held = original; original = undefined;
+        held.children--;
+        finishContext(held);
+      },
+    });
+  };
+  const retainOperation = promise => {
+    if (closed || !observeRows) return;
+    const context = contexts.getStore();
+    if (context?.owner !== contextOwner || context.finished ||
+        promise === null || !['object', 'function'].includes(typeof promise)) return;
+    if (context.retainedPromises?.has(promise)) return;
+    const captured = captureCurrentOperation();
+    if (captured === undefined) return;
+    try {
+      // Use the original Promise's settlement, not a thenable/application
+      // callback or another Run/observation frame. Never await or replace it.
+      Promise.prototype.then.call(promise, captured.release, captured.release);
+      (context.retainedPromises ??= new WeakSet()).add(promise);
+    } catch {captured.release(); drop('rowsUnavailable');}
+  };
   const accepted = (result, requestId) => {
     try {
       if (config.allowed.size === 0 || result?.ref === undefined) return;
@@ -417,27 +459,31 @@ export function installHostObservation(connection, {journal, runId} = {}) {
       drop('limited'); return work();
     }
     activeSegments++;
-    try { return await contexts.run({trace: config.correlation ? snapshotObservationContext(parent) : undefined,
-      records: 0, http}, async () => {
+    const context = {owner: contextOwner, trace: config.correlation ? snapshotObservationContext(parent) : undefined,
+      records: 0, http, children: 0, ingressSettled: false, finished: false};
+    if (observeRows) activeContexts.add(context);
+    try { return await contexts.run(context, async () => {
       const category = operation === 'check' || operation === 'prepareSubmit' ? 'check' : 'run';
       const segment = randomUUID(), started = performance.now();
       emit(category, 'segment_started', {}, {segment, ingress: true});
       try {
         const result = await work();
-        flushSelectedRows(contexts.getStore());
+        context.ingressSettled = true;
+        finishContext(context);
         emit(category, 'segment_ended', {outcome: http?.response?.statusCode >= 400
           ? 'failed' : 'succeeded'},
           {segment, ingress: true, durationMs: performance.now() - started});
         return result;
       } catch (cause) {
-        flushSelectedRows(contexts.getStore());
+        context.ingressSettled = true;
+        finishContext(context);
         emit(category, 'segment_ended', {outcome: 'failed'},
           {segment, ingress: true, durationMs: performance.now() - started});
         throw cause;
       }
-    }); } finally { activeSegments--; }
+    }); } finally {context.ingressSettled = true; finishContext(context);}
   };
-  const projection = Object.freeze({run, accepted, emit,
+  const projection = Object.freeze({run, accepted, emit, retainOperation, captureCurrentOperation,
     canMeasureResources: () => !closed && config.allowed.has('compute') && config.measurements.has('resources'),
     captureManagedRun(ref, readUsage) {
       if (closed || !config.allowed.has('compute') || !config.measurements.has('resources')) return undefined;
@@ -496,6 +542,15 @@ export function installHostObservation(connection, {journal, runId} = {}) {
         await new Promise(resolve => setTimeout(resolve, 5));
       }
       closed = true;
+      for (const context of activeContexts) {
+        // Detach optional copied metadata, not the original work or its real
+        // cleanup duty. An unfinished observation is unavailable, not zero.
+        drop('rowsUnavailable');
+        context.finished = true; context.selectedRowsClosed = true;
+        context.selectedRows = context.trace = context.ref = context.http = undefined;
+        context.retainedPromises = undefined;
+      }
+      activeContexts.clear(); if (observeRows) activeSegments = 0;
       for (const _ of queue) drop('shutdown');
       queue.length = 0; queuedBytes = 0;
       try { closeStorage(); } catch {
