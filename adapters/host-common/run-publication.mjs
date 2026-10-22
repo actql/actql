@@ -539,48 +539,49 @@ function uncertainFailure(
     status,
     retry() {
       if (flight !== undefined) return flight;
-      flight = (async () => {
-      let upstreamRetryAttempted = false;
-      while (true) {
-        const cleanup = cleanupState(upstream, upstreamRequired);
-        const action = control.publicationUnknownRetryAction(
-          resolved,
-          cleanup.pending,
-          typeof member(upstream, 'retry') === 'function',
-          upstreamRetryAttempted,
-        );
-        if (action === 'reconcile') {
-          try {
-            result = await reconcile(upstream);
-            resolved = true;
-            failure.publicationResult = result.publication;
-          } catch (error) {
-            errors.push(error);
-            throw error;
+      // Install the same flight before any original callback can reenter.
+      flight = Promise.resolve().then(async () => {
+        let upstreamRetryAttempted = false;
+        while (true) {
+          const cleanup = cleanupState(upstream, upstreamRequired);
+          const action = control.publicationUnknownRetryAction(
+            resolved,
+            cleanup.pending,
+            typeof member(upstream, 'retry') === 'function',
+            upstreamRetryAttempted,
+          );
+          if (action === 'reconcile') {
+            try {
+              result = await reconcile(upstream);
+              resolved = true;
+              failure.publicationResult = result.publication;
+            } catch (error) {
+              errors.push(error);
+              throw error;
+            }
+            continue;
           }
-          continue;
-        }
-        if (action === 'retry_upstream_cleanup') {
-          upstreamRetryAttempted = true;
-          try { await upstream.retry(); }
-          catch (error) { errors.push(error); }
-          continue;
-        }
-        if (action === 'finished') {
-          // Common may finish this retry while its upstream remains pending.
-          // Neither that action nor a status observation retires the facts.
-          if (resolved && !cleanup.pending && !computationRetired) {
-            computationRetired = true;
-            retireComputation?.();
+          if (action === 'retry_upstream_cleanup') {
+            upstreamRetryAttempted = true;
+            try { await upstream.retry(); }
+            catch (error) { errors.push(error); }
+            continue;
           }
-          break;
+          if (action === 'finished') {
+            // Common may finish this retry while its upstream remains pending.
+            // Neither that action nor a status observation retires the facts.
+            if (resolved && !cleanup.pending && !computationRetired) {
+              computationRetired = true;
+              retireComputation?.();
+            }
+            break;
+          }
+          fail('InvalidRunPublicationUnknownRetry');
         }
-        fail('InvalidRunPublicationUnknownRetry');
-      }
-      failure.cleanupPending = status().pending;
-      failure.cleanupErrors = status().errors;
-      return status();
-      })().finally(() => {flight = undefined;});
+        failure.cleanupPending = status().pending;
+        failure.cleanupErrors = status().errors;
+        return status();
+      }).finally(() => {flight = undefined;});
       return flight;
     },
   });
