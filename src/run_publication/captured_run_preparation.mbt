@@ -386,7 +386,7 @@ fn CapturedRunIssuancePreparation::step(
             self.live -= self.inventory_slots
             self.inventory_slots = 0
             try {
-              let writer = @encode.writer(
+              let writer = @encode.measuring_writer(
                 inputs.max_wire_bytes,
                 inputs.max_nodes,
                 inputs.max_depth,
@@ -405,13 +405,24 @@ fn CapturedRunIssuancePreparation::step(
       try {
         if index == 6 {
           @encode.end_object(writer)
-          let wire = @encode.finish(writer)
+          let usage = @encode.finish_measurement_usage(writer)
           self.writer = None
+          guard @json.object_with_replaced_fields(
+              captured_run_envelope_template,
+              [
+                ("effect_context", self.context.unwrap()),
+                ("receipt", inputs.receipt.value),
+              ],
+            )
+            is Some(value) else {
+            return Err(CaptureIssuanceEncoding)
+          }
           self.context = None
           let child = match
-            start_publication_seal_preparation(
+            start_issued_publication_seal_preparation(
               "captured_run",
-              wire,
+              value,
+              usage,
               inputs.max_wire_bytes,
               inputs.max_nodes,
               inputs.max_depth,
@@ -530,6 +541,19 @@ fn CapturedRunIssuancePreparation::step(
     Done => ()
   }
   Ok(())
+}
+
+///|
+/// Fixed envelope members are admitted once. Each issuance replaces only the
+/// two original immutable children, not authority, Run or permission facts.
+let captured_run_envelope_template : @json.CanonicalValue = {
+  let parsed = @source.parse_json(
+    "{\"effect_context\":null,\"encryption_required\":true,\"receipt\":null,\"retention_class\":\"run-evidence\",\"sensitivity\":\"private\",\"version\":\"actql-captured-run/0.1\"}",
+    { max_input_bytes: 256, max_nodes: 7, max_depth: 1, },
+  ).unwrap()
+  @json.from_source(parsed, 7, 1, 256) catch {
+    _ => abort("Invalid captured Run envelope template")
+  }
 }
 
 ///|

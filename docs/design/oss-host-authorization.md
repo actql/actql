@@ -17,6 +17,17 @@ approval. Standard Local bootstrap adoption remains the distinct initialization
 responsibility required by `policy-routing.standard-local-bootstrap`; absence
 of an adopted configuration is not an Allow.
 
+Result description and payload resolution consume the existing Store's selected
+publication original, including its admitted immutable Index, when that port is
+installed. They do not reread and re-admit the same Index body through the raw
+contract API. The original method and Store receiver are captured at service
+installation; a new public operation acquires a new selected original. Stores
+without that optional port keep their existing selected reads. An explicitly
+invalid port, malformed selected result, refusal or physical error never selects
+that compatibility path or becomes an absent publication. Final head confirmation,
+current authorization, retention/clock checks, payload integrity and actual
+reader/cleanup acknowledgments remain separate responsibilities.
+
 ## Local Run observation authorization
 
 The public Local Host entry checks the current `run` / `read` permission on its
