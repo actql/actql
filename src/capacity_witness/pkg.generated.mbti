@@ -42,6 +42,8 @@ pub fn create_host_source(@capacity_policy.Ceiling, @capacity_derivation.BoundUn
 
 pub fn create_limit(ArithmeticClaims, Array[Int], @capacity_derivation.BoundUnit, String, Enforcement, LimitLimits) -> Result[LimitClaim, Issue]
 
+pub fn create_program_source(String, Int64, @capacity_derivation.BoundUnit, @capacity_law.RegisteredLaw, Limits) -> Result[ProgramProofClaim, Issue]
+
 pub fn dependencies(WireWitness) -> Array[String]
 
 pub fn dependency_count(WireWitness) -> Int
