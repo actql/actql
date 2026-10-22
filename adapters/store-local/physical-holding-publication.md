@@ -206,6 +206,15 @@ history work remains separate; this is not fully history-independent startup.
 
 ## Same-owner cleanup and inventory
 
+A scoped Result reader retires only after both its use callback ends and its
+actual consuming FD closes. The existing consume operation's original close
+notification cuts that same generation-reader reference. Failed close leaves
+the existing cleanup handle responsible, even after the caller receives an
+error; Store close and Result deletion remain blocked by the retained reader.
+Retry closes the same FD without reopening, rereading or repeating a sink.
+No-consume completion and failure before FD acquisition release only their
+scope reference; a successful sibling reader cannot retire this duty twice.
+
 The existing Store retains each active metadata writer's record in its private
 writer set before opening its staging FD. Holding publication keeps its existing
 exclusive writer-admission fence. A false or rejected close keeps that exact FD and forbids final
