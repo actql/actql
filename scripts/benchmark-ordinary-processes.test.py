@@ -70,6 +70,39 @@ def open(*,state_dir):
  return Client()
 '''
 
+PRIORITY_PYTHON = '''import hashlib,json,os,re,time
+from pathlib import Path
+def open(*,state_dir):
+ state=Path(state_dir);state.mkdir(exist_ok=True)
+ def event(name,value=None):
+  with (state/'events').open('a') as f:f.write(json.dumps({'event':name,'value':value,'pid':os.getpid()})+'\\n')
+ event('open')
+ class Result:
+  def __init__(self,value):self.value=value
+  def all(self):event('result',self.value);return [{'id':self.value}]
+ class Execution:
+  def __init__(self,value):
+   self.value=value
+   self.ref={'namespaceId':'synthetic','authorityScopeCid':'sha256:'+'b'*64,'runDefinitionCid':'sha256:'+hashlib.sha256(str(value).encode()).hexdigest()}
+  def result(self,name):assert name=='main';return Result(self.value)
+ class Query:
+  def __init__(self,value):self.value=value;self.execution=Execution(value)
+  def all(self):event('submit',self.value);return [{'id':self.value}]
+ class Client:
+  def sql(self,text):
+   match=re.fullmatch(r'SELECT ([0-9]+) AS id',text);assert match,text
+   value=int(match[1])
+   if value==FAIL_QUERY:event('failed-submit',value);raise RuntimeError('Synthetic Unknown; no resend')
+   if value==SLOW_QUERY:time.sleep(5.01)
+   return Query(value)
+  def close(self):
+   event('close')
+   if (state.parent/'fail-close').exists():raise RuntimeError('Synthetic cleanup pending')
+ return Client()
+FAIL_QUERY=None
+SLOW_QUERY=None
+'''
+
 
 class CollectorTests(unittest.TestCase):
     def setUp(self):
@@ -104,7 +137,8 @@ class CollectorTests(unittest.TestCase):
         path=packages/'release.json';path.write_text(json.dumps(manifest))
         return path, consumer, None
 
-    def python(self, fail_close=False, alter_on_close=False):
+    def python(self, fail_close=False, alter_on_close=False, priority=False, fail_query=None,
+               repeat_reference=False, slow_query=None):
         root=self.root
         environment=root/'venv'
         venv.EnvBuilder(with_pip=False, symlinks=True).create(environment)
@@ -114,7 +148,15 @@ class CollectorTests(unittest.TestCase):
         packages=root/'packages';(packages/'wheels').mkdir(parents=True)
         key='darwin-arm64' if sys.platform=='darwin' else 'linux-x64-gnu'
         cohort=dict(source_sha=SOURCE,platform=key,wheels=[])
-        code = PYTHON.replace("if (state.parent/'fail-close').exists():", 'if True:') if fail_close else PYTHON
+        code = PRIORITY_PYTHON if priority else PYTHON
+        if fail_query is not None:
+            code = code.replace('FAIL_QUERY=None', f'FAIL_QUERY={fail_query}')
+        if slow_query is not None:
+            code = code.replace('SLOW_QUERY=None', f'SLOW_QUERY={slow_query}')
+        if repeat_reference:
+            code = code.replace('hashlib.sha256(str(value).encode())', "hashlib.sha256(b'0')")
+        if fail_close:
+            code = code.replace("if (state.parent/'fail-close').exists():", 'if True:')
         if alter_on_close:
             code = code.replace("event('close')", "event('close');Path(__file__).write_text(Path(__file__).read_text()+'\\n# altered on close\\n')")
         for distribution,members in [('actql',{'actql/__init__.py':code.encode()}),
@@ -265,6 +307,126 @@ class CollectorTests(unittest.TestCase):
         self.assertEqual(body['status'],'incomplete')
         for section in ['structure','history','chunks','boundaries']:
             self.assertIn(section,body['missing'])
+
+    def test_python_priority_varies_new_runs_and_reads_their_same_originals(self):
+        result,report,output=self.collect('python',self.python(priority=True),'warm-select',
+            extra=['--selection','priority-transition'])
+        self.assertEqual(result.returncode,0,result.stderr)
+        new,saved=report['latency'];first=report['firstQuery']
+        self.assertEqual([row['operation'] for row in report['latency']],['warm-select','warm-result'])
+        self.assertEqual([len(row['samples']) for row in report['latency']],[3,3])
+        samples=[first,*new['samples'],*saved['samples']]
+        self.assertEqual(len({row['pid'] for row in samples}),1)
+        self.assertEqual(first['pid'],report['command']['pid'])
+        self.assertEqual(len({row['hostId'] for row in samples}),1)
+        self.assertEqual(len({row['stateId'] for row in samples}),1)
+        self.assertEqual(len({row['publicOperationId'] for row in samples}),7)
+        self.assertEqual(len({row['runRefSha256'] for row in [first,*new['samples']]}),4)
+        self.assertEqual([row['resultRefSha256'] for row in saved['samples']],
+                         [row['resultRefSha256'] for row in new['samples']])
+        self.assertNotIn(first['resultRefSha256'],{row['resultRefSha256'] for row in saved['samples']})
+        events=[json.loads(x) for x in (output/'new-state/events').read_text().splitlines()]
+        self.assertEqual([row['value'] for row in events if row['event']=='submit'],[0,1,2,3])
+        self.assertEqual([row['value'] for row in events if row['event']=='result'],[1,2,3])
+        self.assertEqual(report['publicCallAttempts'],dict(open=1,sql=4,savedResultAll=3,close=1))
+        self.assertTrue(all(row['completed'] for row in report['functional']['rows']))
+        self.assertIsNone(report['population']);self.assertIsNone(report['structuralCounters'])
+        self.assertNotIn('noCompetingLargeBuild',report['priorityConditions'])
+        assessment_input=output/'priority-input.json'
+        assessment_input.write_text(json.dumps(dict(sourceSha=SOURCE,platforms=dict(python=[report]))))
+        assessed=subprocess.run(['node',str(SCRIPT.with_name('operation-performance.mjs')),
+            '--priority-transition',str(assessment_input)],capture_output=True,text=True)
+        self.assertEqual(assessed.returncode,1,assessed.stderr)
+        body=json.loads(assessed.stdout);self.assertEqual(body['status'],'incomplete')
+        for operation in ['warm-select','warm-result']:
+            self.assertEqual(body['gates']['python']['checks'][operation+' workload']['status'],'passed')
+        self.assertIn('python: actual guaranteesUnchanged observation',body['missing'])
+
+    def test_python_priority_final_has_real_100_samples_per_route(self):
+        # Fast explicit synthetic processes establish collector coverage only.
+        result,report,output=self.collect('python',self.python(priority=True),'warm-select',
+            extra=['--selection','priority-transition','--mode','final'])
+        self.assertEqual(result.returncode,0,result.stderr)
+        self.assertEqual([len(row['samples']) for row in report['latency']],[100,100])
+        new,saved=report['latency']
+        self.assertEqual(len({row['querySha256'] for row in new['samples']}),100)
+        self.assertEqual(len({row['runRefSha256'] for row in new['samples']}),100)
+        self.assertEqual(len({row['resultRefSha256'] for row in saved['samples']}),3)
+        self.assertEqual(report['publicCallAttempts'],dict(open=1,sql=101,savedResultAll=100,close=1))
+        events=[json.loads(x) for x in (output/'new-state/events').read_text().splitlines()]
+        self.assertEqual(sum(row['event']=='submit' for row in events),101)
+        self.assertEqual(sum(row['event']=='result' for row in events),100)
+        self.assertFalse(report['fullAcceptance'])
+
+    def test_python_priority_unknown_stops_without_inheriting_prior_identity(self):
+        result,report,output=self.collect('python',self.python(priority=True,fail_query=2),'warm-select',
+            extra=['--selection','priority-transition'])
+        self.assertEqual(result.returncode,1,result.stderr)
+        self.assertEqual(len(report['latency']),1)
+        rows=report['latency'][0]['samples'];self.assertEqual(len(rows),2)
+        self.assertTrue(rows[0]['verified']);self.assertFalse(rows[1]['verified'])
+        for key in ['runRefSha256','resultRefSha256','actualSha256']:
+            self.assertNotIn(key,rows[1])
+        self.assertIn('Unknown',report['firstFailure']['message'])
+        self.assertEqual(report['publicCallAttempts'],dict(open=1,sql=3,savedResultAll=0,close=1))
+        self.assertTrue(report['cleanup']['closed'])
+        self.assertFalse(report['functional']['rows'][0]['completed'])
+        events=[json.loads(x) for x in (output/'new-state/events').read_text().splitlines()]
+        self.assertEqual([row['value'] for row in events if row['event']=='failed-submit'],[2])
+        self.assertEqual([row['value'] for row in events if row['event']=='submit'],[0,1])
+
+    def test_python_priority_reused_run_refuses_instead_of_counting_a_new_run(self):
+        result,report,_=self.collect('python',self.python(priority=True,repeat_reference=True),'warm-select',
+            extra=['--selection','priority-transition'])
+        self.assertEqual(result.returncode,1,result.stderr)
+        self.assertIn('reused',report['firstFailure']['message'])
+        self.assertEqual(len(report['latency'][0]['samples']),1)
+        self.assertFalse(report['latency'][0]['samples'][0]['verified'])
+        self.assertEqual(report['publicCallAttempts']['savedResultAll'],0)
+
+    def test_python_priority_package_and_cleanup_failures_invalidate_both_routes(self):
+        for name,options in [('package',dict(alter_on_close=True)),('cleanup',dict(fail_close=True))]:
+            with self.subTest(name=name), tempfile.TemporaryDirectory() as directory:
+                original_root=self.root;self.root=Path(directory)
+                try:
+                    result,report,_=self.collect('python',self.python(priority=True,**options),'warm-select',
+                        extra=['--selection','priority-transition'])
+                finally:self.root=original_root
+                self.assertEqual(result.returncode,1,result.stderr)
+                self.assertEqual(len(report['functional']['rows']),2)
+                self.assertTrue(all(not row['completed'] and 'actualSha256' not in row
+                                    for row in report['functional']['rows']))
+                if name=='package':
+                    self.assertTrue(report['cleanup']['closed']);self.assertTrue(report['packageFailure'])
+                else:self.assertFalse(report['cleanup']['closed'])
+
+    def test_python_priority_obvious_slow_sample_stops_before_more_work(self):
+        result,report,_=self.collect('python',self.python(priority=True,slow_query=1),'warm-select',
+            extra=['--selection','priority-transition'])
+        self.assertEqual(result.returncode,0,result.stderr)
+        self.assertEqual(len(report['latency']),1)
+        series=report['latency'][0];self.assertEqual(len(series['samples']),1)
+        self.assertGreaterEqual(series['samples'][0]['wallNs'],5_000_000_000)
+        self.assertTrue(series['stoppedEarly']);self.assertTrue(report['cleanup']['closed'])
+        self.assertEqual(report['publicCallAttempts']['savedResultAll'],0)
+
+    def test_priority_cli_omits_operation_and_refuses_native(self):
+        fixture=self.python(priority=True)
+        manifest,consumer,environment=fixture;output=self.root/'without-operation'
+        result=subprocess.run([sys.executable,'-I','-B',str(SCRIPT),'--adapter','python',
+            '--manifest',str(manifest),'--consumer',str(consumer),'--venv',str(environment),
+            '--source',SOURCE,'--output',str(output),'--selection','priority-transition'],
+            capture_output=True,text=True)
+        self.assertEqual(result.returncode,0,result.stderr)
+        self.assertEqual(len(json.loads((output/'measurements.json').read_text())['latency']),2)
+        # Reject a CLI process as a retained Python Host before any product call.
+        with tempfile.TemporaryDirectory() as directory:
+            original_root=self.root;self.root=Path(directory)
+            try:
+                result,report,_=self.collect('native',self.native(),'warm-select',
+                    extra=['--selection','priority-transition'])
+            finally:self.root=original_root
+        self.assertNotEqual(result.returncode,0);self.assertIsNone(report)
 
 
 if __name__=='__main__':
