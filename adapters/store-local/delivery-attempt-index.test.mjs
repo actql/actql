@@ -9,7 +9,94 @@ import {openDeliveryAttemptIndex} from './delivery-attempt-index.mjs';
 // These fixtures reconstruct an earlier private schema, rather than merely
 // relabel a current database while retaining its newer adopted tables.
 function removePublicationProgressSchema(database) {
-  database.exec('DROP TABLE publication_records; DROP TABLE publication_attempts');
+  database.exec('DROP TABLE result_deletion_recovery; DROP TABLE publication_records; DROP TABLE publication_attempts');
+}
+
+test('Result cleanup lifecycle is durable and native close alone never seals it', async t => {
+  const directory = await mkdtemp(join(tmpdir(), 'actql-result-recovery-'));
+  let index, armed = false, commits = 0;
+  t.after(async () => {armed = false; index?.close(); await rm(directory, {recursive: true});});
+  const exec = DatabaseSync.prototype.exec;
+  t.mock.method(DatabaseSync.prototype, 'exec', function(sql) {
+    if (armed && sql === 'COMMIT') commits++;
+    return Reflect.apply(exec, this, [sql]);
+  });
+  const path = join(directory, 'index.sqlite3'), options = {create: false, maxEntries: 4, maxWireBytes: 4096};
+  index = await openDeliveryAttemptIndex(path, {...options, create: true}); index.migrate([]);
+  assert.equal(index.resultDeletionRecoveryRequired(), false);
+  armed = true;
+  index.beginResultDeletionLifetime(); index.beginResultDeletionLifetime();
+  assert.equal(commits, 1, 'one real intent commit for this cleanup lifetime');
+  assert.equal(index.resultDeletionRecoveryRequired(), true);
+  index.close(); assert.equal(commits, 1, 'database close is not a Result cleanup acknowledgement');
+  armed = false; index = await openDeliveryAttemptIndex(path, options);
+  assert.equal(index.resultDeletionRecoveryRequired(), true);
+  armed = true;
+  index.sealResultDeletionLifetime(); index.sealResultDeletionLifetime();
+  assert.equal(commits, 2, 'one real seal after the Store reports its original children settled');
+  index.close(); armed = false;
+  index = await openDeliveryAttemptIndex(path, options);
+  assert.equal(index.resultDeletionRecoveryRequired(), false);
+});
+
+test('Result cleanup lifecycle upgrades version ten into required legacy recovery once', async t => {
+  const directory = await mkdtemp(join(tmpdir(), 'actql-result-recovery-v10-'));
+  let index;
+  t.after(async () => {index?.close(); await rm(directory, {recursive: true});});
+  const path = join(directory, 'index.sqlite3'), options = {create: false, maxEntries: 4, maxWireBytes: 4096};
+  index = await openDeliveryAttemptIndex(path, {...options, create: true}); index.migrate([]); index.close();
+  const database = new DatabaseSync(path);
+  try {database.exec('DROP TABLE result_deletion_recovery; UPDATE coverage SET version=10 WHERE id=1');}
+  finally {database.close();}
+  index = await openDeliveryAttemptIndex(path, options);
+  assert.equal(index.resultDeletionRecoveryRequired(), true, 'old producers did not record this cleanup lifetime');
+  index.sealResultDeletionLifetime(); index.close();
+  index = await openDeliveryAttemptIndex(path, options);
+  assert.equal(index.resultDeletionRecoveryRequired(), false);
+});
+
+for (const missing of ['table', 'row']) {
+test(`Result cleanup lifecycle refuses adopted ${missing} loss`, async t => {
+  const directory = await mkdtemp(join(tmpdir(), 'actql-result-recovery-loss-'));
+  t.after(() => rm(directory, {recursive: true}));
+  const path = join(directory, 'index.sqlite3'), options = {create: false, maxEntries: 4, maxWireBytes: 4096};
+  const index = await openDeliveryAttemptIndex(path, {...options, create: true}); index.migrate([]); index.close();
+  const database = new DatabaseSync(path);
+  try {database.exec(missing === 'table' ? 'DROP TABLE result_deletion_recovery' : 'DELETE FROM result_deletion_recovery');}
+  finally {database.close();}
+  await assert.rejects(openDeliveryAttemptIndex(path, options), {code: 'DeliveryAttemptIndexUnavailable'});
+});
+}
+
+for (const phase of ['begin', 'seal']) for (const afterCommit of [false, true]) {
+test(`Result cleanup lifecycle ${phase} retains its ${afterCommit ? 'committed' : 'rolled-back'} Unknown original`, async t => {
+  const directory = await mkdtemp(join(tmpdir(), 'actql-result-recovery-unknown-'));
+  let index, armed = false, lost = false;
+  t.after(async () => {armed = false; index?.close(); await rm(directory, {recursive: true});});
+  const exec = DatabaseSync.prototype.exec;
+  t.mock.method(DatabaseSync.prototype, 'exec', function(sql) {
+    if (armed && !lost && sql === 'COMMIT') {
+      lost = true;
+      if (afterCommit) Reflect.apply(exec, this, [sql]);
+      throw Object.assign(new Error('lost Result cleanup lifecycle reply'), {code: 'EIO'});
+    }
+    return Reflect.apply(exec, this, [sql]);
+  });
+  const path = join(directory, 'index.sqlite3'), options = {create: false, maxEntries: 4, maxWireBytes: 4096};
+  index = await openDeliveryAttemptIndex(path, {...options, create: true}); index.migrate([]);
+  if (phase === 'seal') index.beginResultDeletionLifetime();
+  const change = () => index[phase === 'begin' ? 'beginResultDeletionLifetime' : 'sealResultDeletionLifetime']();
+  armed = true;
+  assert.throws(change, error => error.outcome === 'unknown');
+  assert.throws(() => index.publicationUsage(), {code: 'DeliveryAttemptIndexCommitOutcomeUnknown'});
+  assert.throws(() => index[phase === 'begin' ? 'sealResultDeletionLifetime' : 'beginResultDeletionLifetime'](),
+    {code: 'DeliveryAttemptIndexCommitOutcomeUnknown'});
+  change();
+  assert.equal(index.resultDeletionRecoveryRequired(), phase === 'begin');
+  index.close(); armed = false;
+  index = await openDeliveryAttemptIndex(path, options);
+  assert.equal(index.resultDeletionRecoveryRequired(), phase === 'begin');
+});
 }
 
 test('native publication progress upgrades version nine without re-admitting historical bodies',async t=>{
