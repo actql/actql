@@ -432,6 +432,7 @@ test('publication computation lifetime retires capture cancelled before publicat
   const declaration = parse(text, {ecmaVersion: 'latest', sourceType: 'module'}).body
     .find(node => node.type === 'ExportNamedDeclaration' &&
       node.declaration?.id?.name === 'publishCompletedEffectFreeRun').declaration;
+  for (const retirementFailure of [undefined, new Error('original capture cancellation refused')]) {
   const controller = new AbortController(), reason = new Error('original stop after capture');
   const captured = Object.freeze({original: 'captured'}), original = Object.freeze({original: 'contract'});
   let retired = 0, released = 0;
@@ -439,6 +440,7 @@ test('publication computation lifetime retires capture cancelled before publicat
     async issueEffectFreeCapturedRun() {controller.abort(reason); return captured;},
     retireCapturedComputation(value) {
       assert.strictEqual(this, control); assert.strictEqual(value, captured); retired++;
+      if (retirementFailure !== undefined) throw retirementFailure;
     }};
   const entry = new Function('validateOptions', 'exportCompletedRunResultSet', 'uniqueContracts',
     'publishEffectFreeRun', 'releasePreparedResults', 'member', text.slice(declaration.start, declaration.end) +
@@ -449,6 +451,10 @@ test('publication computation lifetime retires capture cancelled before publicat
     async (_exported, primary) => {released++; throw primary;}, publicationLifetimeLoops().member);
   await assert.rejects(entry({control, signal: controller.signal,
     execution: {publicationInventory: {occurrences: [{definitionContract: original}]}},
-    results: [{retention: original}], captureEvidence: {}, receiptEvidence: {}}), error => error === reason);
+    results: [{retention: original}], captureEvidence: {}, receiptEvidence: {}}), error =>
+    retirementFailure === undefined ? error === reason :
+      error.code === 'CompletedRunCaptureRetirementFailed' &&
+      error.primaryFailure === reason && error.cleanupError === retirementFailure);
   assert.equal(retired, 1); assert.equal(released, 1);
+  }
 });

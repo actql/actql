@@ -356,3 +356,7 @@ with the same upstream non-pending observation retires the fact and clears the
 reconciliation/retirement closures. Status reads, timeouts, process exit and a
 pending upstream do not. Physical payload/Source/native/FD duties retain their
 existing independent cleanup and ACKs; this alias retirement supplies none.
+If the original managed cancel fails, the Unknown keeps its retirement pending
+and retries only that same cancel after resolution, without another semantic
+reconciliation. A terminal failure and a retirement failure remain distinct
+causes; neither is converted into a physical cleanup acknowledgement.
