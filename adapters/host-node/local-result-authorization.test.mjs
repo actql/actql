@@ -11,13 +11,14 @@ import {syncBuiltinESMExports} from 'node:module';
 import * as resultAccess from '../host-common/result-access.mjs';
 import {createResultDeliveryFixture} from '../../scripts/fixtures/result-delivery-acceptance.mjs';
 import {openResultDeliveryControl} from '../../packages/run-host-core/index.mjs';
+import {createHostObservationConnection, installHostObservation} from '../host-common/observation.mjs';
 
 const scope = `sha256:${'1'.repeat(64)}`;
 const facts = {principalId: 'person', resultName: 'main',
   indexKey: {namespaceId: 'local', authorityScopeCid: scope,
     runDefinitionCid: `sha256:${'2'.repeat(64)}`}};
 
-async function fixture(t, options = {}, subject = facts) {
+async function fixture(t, options = {}, subject = facts, observation) {
   const directory = await mkdtemp(join(tmpdir(), 'actql-result-account-'));
   t.after(() => rm(directory, {recursive: true, force: true}));
   const accountConfig = join(directory, 'account.json');
@@ -34,7 +35,7 @@ async function fixture(t, options = {}, subject = facts) {
     return runtime.executionAuthorizationEvaluate(...args);
   }};
   const authorization = {accountConfig, siteKey: 'local-mock', ...options};
-  const authorize = createLocalResultAuthorization({moon, authorization,
+  const authorize = createLocalResultAuthorization({moon, authorization, observation,
     principalId: subject.principalId, namespaceId: subject.indexKey.namespaceId,
     authorityScopeCid: subject.indexKey.authorityScopeCid});
   return {authorize, accountConfig, admissions: () => admissions, evaluations: () => evaluations,
@@ -111,6 +112,31 @@ test('a Result sink callback observes changed Deny without repeating an unchange
   assert.equal(f.evaluations(), 2);
   assert.equal(await f.authorize(atCallback(4), operation), false);
   assert.equal(f.evaluations(), 2);
+});
+
+test('an observation delivery callback invalidates the same Result operation Account observation', async t => {
+  let account, delivered;
+  const delivery = new Promise(resolve => {delivered = resolve;});
+  const observation = installHostObservation(createHostObservationConnection({
+    include: ['run'], correlation: false, measurements: {include: ['duration']},
+    async deliver(record) {
+      if (record.event !== 'segment_started') return;
+      await account.change('deny');
+      delivered();
+    },
+  }));
+  try {
+    account = await fixture(t, {}, facts, observation);
+    const operation = Object.freeze({...facts, indexKey: Object.freeze({...facts.indexKey})});
+    await observation.run('result', undefined, async () => {
+      assert.equal(await account.authorize(facts, operation), true);
+      await delivery;
+      assert.equal(await account.authorize(facts, operation), false,
+        'application observation delivery can change Account before the next protected dispatch');
+    });
+    assert.equal(account.admissions(), 2);
+    assert.equal(account.evaluations(), 2);
+  } finally {await observation.close();}
 });
 
 const deliverySubject = {principalId: 'principal', resultName: 'answer', purpose: 'download',
