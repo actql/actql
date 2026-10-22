@@ -778,7 +778,7 @@
     {
       "module": "packages/native-cli/lib/local-runtime.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "a087cc001925cb412fa95a39cc007884e11008bc7c05c19787a0768b0b86e673",
+      "sha256": "0f9b52ee72e883a635bd7dddf41300649aac6682a911c927ac8f87f553947553",
       "exports": [
         "LOCAL_RUNTIME_MAX_BYTES",
         "admitInstalledLocalRuntime",
@@ -883,6 +883,15 @@
           "name": "localRuntimeHash/localRuntimeHash",
           "parameters": [
             "bytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "readInstalledLocalRuntimeManifest",
+          "parameters": [
+            "root",
+            "expected",
+            "metadata"
           ],
           "async": false
         },
@@ -1944,7 +1953,8 @@
         },
         {
           "operations": [
-            "installedLocalRuntimeEnvironment"
+            "installedLocalRuntimeEnvironment",
+            "readInstalledLocalRuntimeManifest"
           ],
           "exports": [
             "installedLocalRuntimeEnvironment"

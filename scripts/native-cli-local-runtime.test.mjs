@@ -123,7 +123,7 @@ test('unreferenced absent and blank license originals do not form an admitted ru
   assert.throws(() => admitInstalledLocalRuntime({root: f.output, metadata: f.metadata, expected: f.expected}), e => e.exitCode === 65);
 });
 
-test('exact dependency bytes are checked after copy and before Native launch', async t => {
+test('full runtime admission checks exact dependency bytes after copy', async t => {
   const f = await fixture(t);
   const path = join(f.output, f.manifest.libraries[0].path), bytes = await readFile(path); bytes[40] ^= 1;
   await writeFile(path, bytes);
@@ -261,7 +261,7 @@ test('existing artifact admission consumes the optional fixed Local profile and 
 });
 
 
-test('Native launch context binds only the verified runtime and preserves explicit mode selection', async t => {
+test('Native launch context binds verified manifest metadata and preserves explicit mode selection', async t => {
   const f = await fixture(t);
   const environment = {PATH: '/finite', ACTQL_NATIVE_LOCAL_RUNTIME: 'foreign', SENTINEL: 'preserved'};
   const result = installedLocalRuntimeEnvironment({root: f.output, expected: f.expected, metadata: f.metadata,
@@ -280,4 +280,38 @@ test('Native launch context does not accept foreign runtime or unsupported actua
     assert.throws(() => installedLocalRuntimeEnvironment({root: f.output, expected: f.expected,
       metadata: f.metadata, platformFacts: {macOS: '14.0'}, environment: {}, ...overrides}));
   }
+});
+
+
+test('Native launch selects the manifest without duplicating physical member admission', async t => {
+  const f = await fixture(t);
+  const options = {root: f.output, expected: f.expected, metadata: f.metadata,
+    platformFacts: {macOS: '14.0'}, environment: {}};
+  // The Native loader owns member admission. Selection must not read or hash
+  // library, asset or notice bodies, even when all three groups are absent.
+  for (const directory of ['lib', 'data', 'licenses']) {
+    await rm(join(f.output, directory), {recursive: true});
+  }
+  const selected = installedLocalRuntimeEnvironment(options);
+  assert.deepEqual(JSON.parse(selected.ACTQL_NATIVE_LOCAL_RUNTIME), {
+    root: f.output, sourceSha, platform, manifestSha256: f.metadata.sha256,
+  });
+  // Full package admission still refuses these same missing originals.
+  assert.throws(() => admitInstalledLocalRuntime(options), e => e.exitCode === 65);
+});
+
+test('Native launch metadata retains exact manifest integrity and root identity checks', async t => {
+  const f = await fixture(t);
+  const options = {root: f.output, expected: f.expected, metadata: f.metadata,
+    platformFacts: {macOS: '14.0'}, environment: {}};
+  const linked = join(f.root, 'linked-runtime'); await symlink(f.output, linked);
+  assert.throws(() => installedLocalRuntimeEnvironment({...options, root: linked}), e => e.exitCode === 65);
+  const path = join(f.output, f.metadata.path), bytes = await readFile(path);
+  const changed = Buffer.from(bytes); changed[changed.length - 1] ^= 1;
+  await writeFile(path, changed);
+  assert.throws(() => installedLocalRuntimeEnvironment(options), e => e.exitCode === 65);
+  await writeFile(path, bytes);
+  const saved = join(f.root, 'manifest'); await writeFile(saved, bytes);
+  await rm(path); await symlink(saved, path);
+  assert.throws(() => installedLocalRuntimeEnvironment(options), e => e.exitCode === 65);
 });
