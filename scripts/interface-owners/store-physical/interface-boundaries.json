@@ -5119,7 +5119,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "95aeb8311b2715eca926735b1b32d064f1312961917feb5f9bdf8db6974d6550",
+      "sha256": "764c3e0b184a60cd91b20603e57dab06589985b962e93668e37b7beef42ae144",
       "exports": [
         "PublicationStoreError",
         "assertOriginalLocalPublicationStoreFacilityCurrent",
@@ -8231,7 +8231,8 @@
           "name": "openOriginalLocalPublicationStore/verifyDurableResultBinding/verifyDurableResultBinding",
           "parameters": [
             "contract",
-            "readOriginal"
+            "readOriginal",
+            "retainedBinding"
           ],
           "async": true
         },
@@ -9455,6 +9456,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "A scoped Result reader retires only after both its use callback ends and its"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "The payload reader also consumes the parsed Binding returned by its original"
               }
             ],
             "inputsOutputs": [
@@ -9525,6 +9530,10 @@
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "let scopeActive = true, physicalReadPending = false, readerRetired = false;"
+              },
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "const binding = retainedBinding === undefined ? parseContract(contract) : retainedBinding;"
               }
             ],
             "identity": [
@@ -9603,6 +9612,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "notification cuts that same generation-reader reference. Failed close leaves"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "contract read. Selection and the physical verifier reuse that same private body"
               }
             ],
             "ownership": [
@@ -9673,6 +9686,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "the existing cleanup handle responsible, even after the caller receives an"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "instead of interpreting the wire again. It never comes from an external caller"
               }
             ],
             "synchronization": [
@@ -9743,6 +9760,10 @@
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "return consumeObject(materialCid, accept, () => {"
+              },
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "const verified = await verifyDurableResultBinding(selected.contract, undefined, selected.value);"
               }
             ],
             "failure": [
@@ -9813,6 +9834,10 @@
               {
                 "path": "adapters/store-local/publication-store.test.mjs",
                 "anchor": "Result consumption retains its reader until the same failed FD close acknowledges"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "changed physical bytes exposed"
               }
             ],
             "cancellation": [
@@ -9879,6 +9904,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "Retry closes the same FD without reopening, rereading or repeating a sink."
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "actual payload digest/size and schema checks remain, including after a later"
               }
             ],
             "resources": [
@@ -9949,6 +9978,10 @@
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "if (scopeActive || physicalReadPending || readerRetired) return;"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "one selected original, not read + selection + verifier reparsing"
               }
             ],
             "extension": [
@@ -10019,6 +10052,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "scope reference; a successful sibling reader cannot retire this duty twice."
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "or persists across operations. Other verifier callers retain their own parsing;"
               }
             ],
             "verification": [
@@ -10161,6 +10198,10 @@
               {
                 "path": "adapters/store-local/publication-store.test.mjs",
                 "anchor": "retry never reopens the generation"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "Result reader consumes its already parsed Binding once while retaining physical validation"
               }
             ]
           }
