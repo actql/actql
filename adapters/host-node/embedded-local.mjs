@@ -1836,6 +1836,8 @@ async function openInstalledHost(originalInstallation, preparation) {
       if (retained === undefined) {
         throw clientOperationError('RunStateAccessDenied');
       }
+      const observeControl = journal.observeRunCancellation(ref, moon, control,
+        retained);
       const runId = control.runDefinitionRunId(retained.runDefinition);
       let state;
       let continuation;
@@ -1888,7 +1890,7 @@ async function openInstalledHost(originalInstallation, preparation) {
           });
         }
       }
-      const after = journal.lookupRunDefinition(ref, moon, control);
+      const after = observeControl();
       if (after?.revision !== retained.revision) continue;
       if (continuation !== undefined) {
         const afterContinuation = checkpoints.effectRunState(runId,
