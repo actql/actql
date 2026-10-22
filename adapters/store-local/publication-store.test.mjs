@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   chmod,
+  link,
   mkdir,
   mkdtemp,
   open,
@@ -1701,6 +1702,26 @@ test('sealed new objects need only their actual final directory ACK, not a stagi
   await store.close();
   const reopened=await openLocalPublicationStore(configuration,contractControl,durability);
   assert.deepEqual(await reopened.verifyObject(cid),{cid,bytes:bytes.length});
+  assert.deepEqual(await readFile(path),bytes);
+  assert.equal(reopened.status().objectCount,1);assert.equal(reopened.status().storedBytes,bytes.length);
+});
+
+test('opening removes a reappeared sealed staging alias without losing or recharging the final object',async t=>{
+  const {store,directory,configuration}=await fixture(t);
+  const bytes=Buffer.from('same physical object after alias recovery'),cid=digest(bytes);
+  const writer=store.createObjectWriter(bytes.length);await writer.append(bytes);await writer.seal(cid);
+  const path=join(directory,'objects',cid.slice(7)),before=await stat(path);
+  // Simulate only the possible reappeared directory entry, not a crash or
+  // an allocation ACK: this is another link to the SAME actual inode.
+  const alias=join(directory,'staging','object-00000000-0000-0000-0000-000000000001');
+  await link(path,alias);const aliasState=await stat(alias);
+  assert.equal(aliasState.dev,before.dev);assert.equal(aliasState.ino,before.ino);
+  assert.equal((await stat(path)).nlink,2);
+  await store.close();
+  const reopened=await openLocalPublicationStore(configuration,contractControl);
+  assert.deepEqual(await readdir(join(directory,'staging')),[]);
+  assert.deepEqual(await reopened.verifyObject(cid),{cid,bytes:bytes.length});
+  const after=await stat(path);assert.equal(after.dev,before.dev);assert.equal(after.ino,before.ino);assert.equal(after.nlink,1);
   assert.deepEqual(await readFile(path),bytes);
   assert.equal(reopened.status().objectCount,1);assert.equal(reopened.status().storedBytes,bytes.length);
 });
