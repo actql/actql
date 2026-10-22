@@ -32,6 +32,8 @@ fn LocalCommandPreparationOriginal::prepare_business_submission(
   operation : String,
   child : @argparse.Matches,
 ) -> LocalCommandBusinessPreparation raise ClientStop {
+  native_timing_begin(30)
+  defer native_timing_end(30)
   guard self.journal is Some(journal) &&
     physical_equal(journal, capture) &&
     self.runtime is Some(physical) &&

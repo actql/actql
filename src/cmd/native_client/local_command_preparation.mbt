@@ -833,8 +833,6 @@ fn LocalCommandPreparationOriginal::close_checked(
           self.read_failure = None
         }
         if self.adoption is Some(adoption) {
-          native_timing_begin(20)
-          defer native_timing_end(20)
           self.cleanup_stage = "adoption"
           let reply = adoption.close()
           if reply.issue() is Some(issue) {
@@ -861,8 +859,6 @@ fn LocalCommandPreparationOriginal::close_checked(
           self.product_parent = None
         }
         if self.product is Some(product) {
-          native_timing_begin(21)
-          defer native_timing_end(21)
           self.cleanup_stage = "product"
           command_preparation_value(
             product.close().map_err(issue => CommandAdoption(issue)),
