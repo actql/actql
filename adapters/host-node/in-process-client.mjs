@@ -6,7 +6,7 @@ import {projectClientCheckUnavailable} from './client-check.mjs';
 import {observeClientAuthorizationFailure} from
   './client-authentication-observation.mjs';
 import {clientWorkspaceMatches, validCheckpointPage, validCheckpointReview, validClientAdmission,
-  prepareClientHostRequest, snapshotClientRequest, validClientBody, validClientProfile, validDeliveryAttemptLookup, validCancellationAttempt, validCancellationLookup,
+  prepareClientHostRequest, validClientProfile, validDeliveryAttemptLookup, validCancellationAttempt, validCancellationLookup,
   validRequestCancellation, validRequestLookup, validResolveResults,
   validResourceInspection, validResourceListing, validResourcePeek,
   validRunState, validResultDescription, validCheckOutcome, validOwnerObservations,
@@ -19,6 +19,10 @@ import {authorizedLocalResultFrames} from './in-process-result.mjs';
 import {publicClientErrorCode, publicClientErrorStatus} from './client-http.mjs';
 
 const localErrors = new WeakSet();
+// Only packets captured here before deferred service construction carry this
+// original operation's immutable shape facts into the activated ingress.
+// Authentication and authorization are never retained in this association.
+const deferredRequests = new WeakMap();
 const publicError = (code, status) => {
   const error = new ClientError(code, {status});
   delete error.stack;
@@ -28,13 +32,6 @@ const fail = code => {
   const error = publicError(code, publicClientErrorStatus({code}));
   localErrors.add(error);
   throw error;
-};
-const freezeDeferredSnapshot = value => {
-  if (value !== null && typeof value === 'object') {
-    for (const child of Object.values(value)) freezeDeferredSnapshot(child);
-    Object.freeze(value);
-  }
-  return value;
 };
 const publicFailure = error => localErrors.has(error) ? error
   : publicError(publicClientErrorCode(error), publicClientErrorStatus(error));
@@ -91,22 +88,19 @@ export function createNodeInProcessClientHost({
         return derived;
       };
       // Local rows use the existing JSONL request shape for wire admission.
-      const prepared = prepareClientHostRequest(operation,
-        operation === 'read' ? {...body, format: 'jsonl'} : body);
+      const captured = deferredRequests.get(body);
+      const retainSnapshot = performInstalledRequest !== undefined && operation !== 'connect';
+      const prepared = captured?.operation === operation ? captured.prepared
+        : prepareClientHostRequest(operation,
+          operation === 'read' ? {...body, format: 'jsonl'} : body, retainSnapshot);
       if (prepared === undefined) fail('InvalidClientRequest');
-      let admittedBody = prepared.body;
-      if (performInstalledRequest !== undefined && operation !== 'connect') {
-        // Some ordinary read/control packets need only a shallow wire copy.
-        // The deferred constructor adds a wait, so retain an admitted deep
-        // snapshot first, using the same wire Owner rather than a new codec.
-        // This additional copy/overlap belongs to the selected facility.
-        let snapshot;
-        try { snapshot = snapshotClientRequest(admittedBody); }
-        catch { fail('InvalidClientRequest'); }
-        if (!validClientBody(operation,snapshot)) fail('InvalidClientRequest');
-        admittedBody = freezeDeferredSnapshot(snapshot);
+      if (retainSnapshot) {
+        deferredRequests.set(prepared.body, Object.freeze({operation, prepared}));
       }
-      body = own(body, admittedBody);
+      // A deferred constructor retains the wire Owner's one immutable capture.
+      // The activated ingress consumes those same shape facts, but still
+      // performs its own current authentication and connection authorization.
+      body = own(body, prepared.body);
       const {connection} = prepared;
       let principalId;
       try { principalId = await authenticate(); }

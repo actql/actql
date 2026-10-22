@@ -329,19 +329,28 @@ export const snapshotCheckRequest = value =>
 // Synchronous Host ingress preparation. Capture the original Workspace target
 // before serialization or an awaited authentication/authorization boundary.
 // Authentication, authorization and transport-specific reading stay outside.
-export function prepareClientHostRequest(operation, original) {
+function freezeCapturedRequest(value) {
+  if (value !== null && typeof value === 'object') {
+    for (const child of Object.values(value)) freezeCapturedRequest(child);
+    Object.freeze(value);
+  }
+  return value;
+}
+
+export function prepareClientHostRequest(operation, original, retainSnapshot = false) {
   if (!validClientBody(operation, original)) return undefined;
   const suppliedConnection = original.connection;
   const connection = Object.freeze({...suppliedConnection,
     consentRefs: Object.freeze([...suppliedConnection.consentRefs]),
     runners: Object.freeze([...suppliedConnection.runners])});
   if (!validClientConnection(connection)) return undefined;
-  let body = original;
+  let body = original, snapshotted = false;
   if (operation === 'check') {
     // Observe the original serializer once, before spreading can erase it.
     try { body = snapshotCheckRequest(body); }
     catch { return undefined; }
     if (!validClientBody(operation, body)) return undefined;
+    snapshotted = true;
   }
   // A serializer cannot remove or replace the captured Workspace assertion.
   body = {...body, connection};
@@ -349,6 +358,18 @@ export function prepareClientHostRequest(operation, original) {
     try { body = snapshotClientRequest(body); }
     catch { return undefined; }
     if (!validClientBody(operation, body)) return undefined;
+    snapshotted = true;
+  }
+  if (retainSnapshot === true) {
+    if (!snapshotted) {
+      try { body = snapshotClientRequest(body); }
+      catch { return undefined; }
+      if (!validClientBody(operation, body)) return undefined;
+    }
+    // Both are Owner-captured values. Retain the original Workspace target,
+    // not a second representation of its identical immutable connection.
+    body.connection = connection;
+    freezeCapturedRequest(body);
   }
   return Object.freeze({body, connection});
 }

@@ -57,3 +57,33 @@ test('selected deferred copies retain the same original Source lineage through b
   assert.ok(seen.length>=3);assert.equal(seen[0].input.text,'SELECT 1 AS n');
   for(const alias of seen)assert.strictEqual(originals.get(alias),packet);
 });
+
+test('deferred ingress serializes the same submission once without reusing connection authorization',async()=>{
+  const packet={connection:{...connection},kind:'aql',input:{text:'SELECT 1 AS captured_once',format:'sql'},parameters:null,
+    submissionRef:originalSubmission('deferred-single-snapshot'),intentCid:'sha256:'+'f'.repeat(64),
+    attemptRef:{operation:'submit',attemptId:'single-snapshot-attempt'}};
+  const stopped=readySubmissionAttempt(packet,{ref,durability:'durable',revision:0});
+  let snapshots=0,submits=0,deny=false;
+  const final=createNodeInProcessClientHost({authenticate:()=> 'actor',
+    authorizeConnection:()=>!deny,
+    negotiate:()=>{throw Error('No negotiation');},maxRowBytes:65536,
+    submitIntent(body){submits++;assert.equal(body.input.text,'SELECT 1 AS captured_once');return stopped;}});
+  const first=createNodeInProcessClientHost({authenticate:()=> 'actor',
+    authorizeConnection:()=>true,
+    negotiate:()=>{throw Error('No negotiation');},maxRowBytes:65536,
+    performInstalledRequest:(operation,body,signal)=>final.perform(operation,body,signal)});
+  const stringify=JSON.stringify;
+  JSON.stringify=function(value,replacer,...rest){
+    if(typeof replacer==='function'&&value?.intentCid===packet.intentCid)snapshots++;
+    return Reflect.apply(stringify,JSON,[value,replacer,...rest]);
+  };
+  try {
+    assert.strictEqual(await first.perform('submit-intent',packet),stopped);
+    assert.equal(snapshots,1,'one real request serialization across both ingress layers');
+    assert.equal(submits,1);
+    deny=true;
+    await assert.rejects(first.perform('submit-intent',packet),{code:'ClientConnectionDenied'});
+    assert.equal(submits,1);
+    assert.equal(snapshots,2,'a new public packet is captured again, not globally cached');
+  } finally {JSON.stringify=stringify;}
+});
