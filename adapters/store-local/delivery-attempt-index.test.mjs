@@ -6,6 +6,76 @@ import {join} from 'node:path';
 import {DatabaseSync} from 'node:sqlite';
 import {openDeliveryAttemptIndex} from './delivery-attempt-index.mjs';
 
+test('publication recovery coverage retains only pending originals across reopen', async t => {
+  const directory=await mkdtemp(join(tmpdir(),'actql-publication-recovery-'));
+  let index;
+  t.after(async()=>{index?.close();await rm(directory,{recursive:true});});
+  const path=join(directory,'index.sqlite3'), options={create:false,maxEntries:1,maxWireBytes:4096};
+  index=await openDeliveryAttemptIndex(path,{...options,create:true});
+  index.migrate([]);
+  const entry={public_index_cid:'sha256:'+'1'.repeat(64),inventory_wire:'{"inventory":1}'};
+  assert.equal(index.needsPublicationRecoveryMigration(),true);
+  assert.throws(()=>index.pendingPublications(),{code:'DeliveryAttemptIndexUnavailable'});
+  index.migratePublicationRecovery([entry]);
+  assert.equal(index.needsPublicationRecoveryMigration(),false);
+  assert.deepEqual(index.pendingPublications(),[entry]);
+  assert.throws(()=>index.stagePublicationInventory({...entry,inventory_wire:'{"foreign":1}'}),
+    {code:'PublicationMetadataInventoryConflict'});
+  assert.throws(()=>index.stagePublicationInventory({...entry,public_index_cid:'sha256:'+'2'.repeat(64)}),
+    {code:'DeliveryAttemptIndexLimit'});
+  index.close();index=await openDeliveryAttemptIndex(path,options);
+  assert.equal(index.needsPublicationRecoveryMigration(),false);
+  assert.deepEqual(index.pendingPublications(),[entry]);
+  index.finishPublicationInventory(entry);
+  assert.deepEqual(index.pendingPublications(),[]);
+  index.finishPublicationInventory(entry);
+  index.close();index=await openDeliveryAttemptIndex(path,options);
+  assert.deepEqual(index.pendingPublications(),[]);
+});
+
+for(const missing of ['publication_recovery','pending_publications']) {
+test(`publication recovery refuses missing adopted ${missing} instead of rebuilding history`,async t=>{
+  const directory=await mkdtemp(join(tmpdir(),'actql-publication-recovery-missing-'));
+  t.after(()=>rm(directory,{recursive:true}));
+  const path=join(directory,'index.sqlite3'),options={create:false,maxEntries:2,maxWireBytes:4096};
+  const index=await openDeliveryAttemptIndex(path,{...options,create:true});
+  index.migrate([]);index.migratePublicationRecovery([]);index.close();
+  const database=new DatabaseSync(path);
+  try{database.exec(`DROP TABLE ${missing}`);}finally{database.close();}
+  await assert.rejects(openDeliveryAttemptIndex(path,options),{code:'DeliveryAttemptIndexUnavailable'});
+});
+}
+
+for(const phase of ['stage','finish'])for(const afterCommit of [false,true]) {
+test(`publication recovery ${phase} retains same original after ${afterCommit?'committed':'rolled-back'} lost reply`,async t=>{
+  const directory=await mkdtemp(join(tmpdir(),'actql-publication-recovery-unknown-'));
+  let index,armed=false,lost=false;
+  t.after(async()=>{index?.close();await rm(directory,{recursive:true});});
+  const exec=DatabaseSync.prototype.exec;
+  t.mock.method(DatabaseSync.prototype,'exec',function(sql){
+    if(armed&&!lost&&sql==='COMMIT'){
+      lost=true;if(afterCommit)Reflect.apply(exec,this,[sql]);
+      throw Object.assign(new Error('lost same publication recovery reply'),{code:'EIO'});
+    }
+    return Reflect.apply(exec,this,[sql]);
+  });
+  index=await openDeliveryAttemptIndex(join(directory,'index.sqlite3'),
+    {create:true,maxEntries:2,maxWireBytes:4096});
+  index.migrate([]);index.migratePublicationRecovery([]);
+  const entry={public_index_cid:'sha256:'+'1'.repeat(64),inventory_wire:'{"inventory":1}'};
+  if(phase==='finish')index.stagePublicationInventory(entry);
+  const change=()=>index[phase==='stage'?'stagePublicationInventory':'finishPublicationInventory'](entry);
+  armed=true;
+  assert.throws(change,error=>error.outcome==='unknown');
+  assert.throws(()=>index.stagePublicationInventory({...entry,public_index_cid:'sha256:'+'2'.repeat(64)}),
+    {code:'DeliveryAttemptIndexCommitOutcomeUnknown'});
+  change();
+  assert.deepEqual(index.pendingPublications(),phase==='stage'?[entry]:[]);
+  index.finishPublicationInventory(entry);
+  assert.deepEqual(index.pendingPublications(),[]);
+});
+}
+
 for (const missing of ['publication_contracts','publication_usage']) {
   test(`adopted publication metadata refuses missing ${missing} without resetting coverage`,async t => {
     const directory = await mkdtemp(join(tmpdir(),'actql-native-publication-missing-'));

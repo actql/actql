@@ -4856,6 +4856,46 @@ async function committedHoldingFixture(setup, label) {
       `${holding.holding_cid.slice(7)}.json`)};
 }
 
+test('publication recovery opens completed history without enumerating or reading its inventories and indexes',async t=>{
+  const setup=await fixture(t);
+  const selected=await committedHoldingFixture(setup,'pending indexed selected');
+  await committedHoldingFixture(setup,'pending indexed unrelated');
+  await setup.store.close();
+  const originalOpen=fsPromises.open,originalReaddir=fsPromises.readdir;
+  const reads=[],enumerations=[];
+  const inventories=join(setup.directory,'metadata-inventories'),indexes=join(setup.directory,'indexes');
+  t.mock.method(fsPromises,'open',function(path,...args){reads.push(String(path));return Reflect.apply(originalOpen,this,[path,...args]);});
+  t.mock.method(fsPromises,'readdir',function(path,...args){enumerations.push(String(path));return Reflect.apply(originalReaddir,this,[path,...args]);});
+  syncBuiltinESMExports();t.after(()=>{t.mock.restoreAll();syncBuiltinESMExports();});
+  const reopened=await openLocalPublicationStore(setup.configuration,contractControl);
+  assert.deepEqual(enumerations.filter(path=>path===inventories||path===indexes),[]);
+  assert.deepEqual(reads.filter(path=>path.startsWith(inventories+sep)||path.startsWith(indexes+sep)),[]);
+  assert.equal((await reopened.lookupCommittedIndex(indexKeyFor(selected.request),()=>true))
+    .public_index_entry_cid,selected.entry.public_index_entry_cid);
+  assert.equal(reads.filter(path=>path===selected.inventoryPath).length,1);
+  await reopened.close();
+});
+
+for(const damaged of ['inventory','Index']) {
+test(`publication recovery defers an unrelated damaged committed ${damaged} to selected use`,async t=>{
+  const setup=await fixture(t);
+  const selected=await committedHoldingFixture(setup,'healthy recovery selection');
+  const other=await committedHoldingFixture(setup,'damaged recovery selection');
+  const indexName=createHash('sha256').update(JSON.stringify([
+    other.request.namespace_id,other.request.authority_scope_cid,other.request.run_definition_cid])).digest('hex');
+  const path=damaged==='inventory'?other.inventoryPath:join(setup.directory,'indexes',indexName+'.json');
+  await setup.store.close();
+  const bytes=Buffer.from('{}');await writeFile(path,bytes);
+  const reopened=await openLocalPublicationStore(setup.configuration,contractControl);
+  assert.equal((await reopened.lookupCommittedIndex(indexKeyFor(selected.request),()=>true))
+    .public_index_entry_cid,selected.entry.public_index_entry_cid);
+  await assert.rejects(reopened.lookupCommittedIndex(indexKeyFor(other.request),()=>true),
+    code(damaged==='inventory'?'InvalidPublicationMetadataInventoryStore':'InvalidPublicationContract'));
+  assert.deepEqual(await readFile(path),bytes);
+  await reopened.close();
+});
+}
+
 test('committed Result opening defers holding proof to the selected publication', async t => {
   const setup = await fixture(t);
   const selected = await committedHoldingFixture(setup, 'selected proof');
