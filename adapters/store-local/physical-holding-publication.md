@@ -19,6 +19,23 @@ durability acknowledgement. Selected physical evidence, current permission,
 claim/CAS, original Unknown confirmation and real cleanup remain independent.
 No cross-operation Index cache or additional publication authority is created.
 
+## Selected native evidence originals
+
+The existing publication operation reader receives the same issued evidence
+wrapper already held by its caller. A native read still selects the actual row
+by CID and compares its name, identity and complete wire before the existing
+contract control may recognize that original under the current limits. A
+changed row, unrecognized original or omitted control takes full admission;
+refusal or a malformed nominal response cannot become successful fallback.
+This only removes re-admission of equal immutable input, not the selected read.
+
+The existing commit-local original map owns that observation. A later public
+reader or commit reacquires and admits its own selected row; no Store-wide
+permission or disk-health cache is installed. Full admission cannot make a
+copied evidence wrapper nominal for the final chain Owner. Actual payload
+verification, physical FD cleanup, current checks, claim/CAS, durable mutation
+and same-original Unknown confirmation are unchanged.
+
 ## Original ownership retirement
 
 The existing Store ownership handle remembers successful owner-record unlink
