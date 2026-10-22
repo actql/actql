@@ -649,6 +649,18 @@ bodies; foreign or changed originals refuse without regenerating a replacement.
 The scalar quote returns a bounded copy, and the sequence aliases retire with
 the same Run after its actual children finish.
 
+The installation's immutable AoA projection has a different lifetime from a
+Run. The existing private Host installation bag retains only the Values,
+expression-fragment and ordered-derive contract strings after the first
+successful projection of its original asset. Source, managed Compute and Mock
+Model requirements pass those same strings to their existing checked readers;
+each still supplies its own Program, parameters, graph, limits and original
+Run. This avoids decoding the full unchanged asset and serializing its three
+static bodies for each Run or internal quote. The strings issue no permission,
+capacity, Ledger identity or cleanup ACK. They are tied to the same initial
+control, remain while child cleanup is pending, and are cut by the existing
+successful Host reference retirement. A new Host has its own installation bag.
+
 The Host retains the original admission before beginning the Run. A failed
 begin keeps that same admission's unpublished or started cleanup, never a
 replacement attempt. The source-free dispatcher opens its configured Compute

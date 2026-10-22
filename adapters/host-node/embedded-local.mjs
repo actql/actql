@@ -309,6 +309,27 @@ export function readInstalledProjectSourcePreparation(originals) {
   return bundle;
 }
 
+// Static contract strings belong to the same installed Host, not each Run.
+// The private installation bag is cut only after successful final retirement.
+function installedManagedRunContracts(originals) {
+  const installation = originals.installation;
+  const retained = installation.managedRunContracts;
+  if (retained !== undefined) {
+    if (retained.initialControl !== installation.initialControl) {
+      throw clientOperationError('ForeignInstalledManagedRunContracts');
+    }
+    return retained;
+  }
+  const aoa = JSON.parse(readInitialControlInstallationAsset(
+    installation.initialControl, originals, 'spec/contracts/actql-aoa.json'));
+  const contracts = Object.freeze({initialControl: installation.initialControl,
+    values: JSON.stringify(aoa.execution_contracts['REL.values']),
+    expression: JSON.stringify(aoa.execution_contracts['ACTQL.expression_fragment/0.1']),
+    ordered: JSON.stringify(aoa.execution_contracts['REL.derive.ordered'])});
+  installation.managedRunContracts = contracts;
+  return contracts;
+}
+
 // The real Root already retained the separate managed-Compute premise before
 // the packet snapshot. This exact checked original supplies only the existing
 // Core inventory for its bounds check, never a replacement issuer or Ledger.
@@ -342,7 +363,7 @@ function readSourceManagedRunRequirementsOwned(originals, checkedPrepared, effec
   }
   const bundle = projectSources ?? retained.view.originalsForRuntime(moon);
   const asset = path => readInitialControlInstallationAsset(initialControl, originals, path);
-  const aoa = JSON.parse(asset('spec/contracts/actql-aoa.json'));
+  const contracts = installedManagedRunContracts(originals);
   // Each selected physical child reads its original complete bounded file
   // once. Its original raw bytes remain charged alongside decoded/captured
   // rows; this is not a byte total sampled from the successful template.
@@ -361,9 +382,9 @@ function readSourceManagedRunRequirementsOwned(originals, checkedPrepared, effec
     const prepareRequirement = effectful ? moon.clientProgramEffectPrepareLocalQueryRequirement
       : moon.clientProgramPrepareLocalQueryRequirement;
     const registry = asset('spec/dependencies/aoa-pipeline-registry.json');
-    const values = JSON.stringify(aoa.execution_contracts['REL.values']);
-    const fragment = JSON.stringify(aoa.execution_contracts['ACTQL.expression_fragment/0.1']);
-    const ordered = JSON.stringify(aoa.execution_contracts['REL.derive.ordered']);
+    const values = contracts.values;
+    const fragment = contracts.expression;
+    const ordered = contracts.ordered;
     for (let stage = 0; stage < count; stage++) {
       // Common selects the actual occurrence's original requirement. A
       // connection ordinal, duplicate declaration or matching CID alone is
@@ -386,9 +407,7 @@ function readSourceManagedRunRequirementsOwned(originals, checkedPrepared, effec
     asset('spec/contracts/actql-query-process-evidence.json'),
     transferBytes, executionBytes,
     asset('spec/dependencies/aoa-pipeline-registry.json'),
-    JSON.stringify(aoa.execution_contracts['REL.values']),
-    JSON.stringify(aoa.execution_contracts['ACTQL.expression_fragment/0.1']),
-    JSON.stringify(aoa.execution_contracts['REL.derive.ordered'])]));
+    contracts.values, contracts.expression, contracts.ordered]));
   if (!Array.isArray(limits) || limits.length !== 6 ||
       limits.some(value => typeof value !== 'bigint' || value < 0n) ||
       limits.slice(0, 3).some(value => value > 2147483647n)) {
@@ -417,7 +436,7 @@ export function readManagedComputeRunRequirements(originals, checkedPrepared) {
     throw clientOperationError('NodeManagedRunAdmissionUnavailable');
   }
   const asset = path => readInitialControlInstallationAsset(initialControl, originals, path);
-  const aoa = JSON.parse(asset('spec/contracts/actql-aoa.json'));
+  const contracts = installedManagedRunContracts(originals);
   const run = originals.installation.computeRuns?.get(checkedPrepared);
   let limits;
   if (run !== undefined) {
@@ -430,9 +449,7 @@ export function readManagedComputeRunRequirements(originals, checkedPrepared) {
     // before limits projection or actual Resource admission can fail.
     run.preparedSequences ??= checked(moon.clientProgramPrepareInstalledManagedSourceFree(
       checkedPrepared, asset('spec/dependencies/aoa-pipeline-registry.json'),
-      JSON.stringify(aoa.execution_contracts['REL.values']),
-      JSON.stringify(aoa.execution_contracts['ACTQL.expression_fragment/0.1']),
-      JSON.stringify(aoa.execution_contracts['REL.derive.ordered'])));
+      contracts.values, contracts.expression, contracts.ordered));
     limits = moon.clientProgramPreparedInstalledManagedSourceFreeRequirements(run.preparedSequences);
   } else {
   limits = checked(moon.clientProgramInstalledManagedRunRequirements(
@@ -440,9 +457,7 @@ export function readManagedComputeRunRequirements(originals, checkedPrepared) {
     asset('spec/contracts/actql-query-acquisition.json'),
     asset('spec/contracts/actql-query-process-evidence.json'), [], [],
     asset('spec/dependencies/aoa-pipeline-registry.json'),
-    JSON.stringify(aoa.execution_contracts['REL.values']),
-    JSON.stringify(aoa.execution_contracts['ACTQL.expression_fragment/0.1']),
-    JSON.stringify(aoa.execution_contracts['REL.derive.ordered'])));
+    contracts.values, contracts.expression, contracts.ordered));
   }
   if (!Array.isArray(limits) || limits.length !== 6 ||
       limits.some(value => typeof value !== 'bigint' || value < 0n) ||
@@ -486,7 +501,7 @@ export function readLocalMockModelRunRequirements(originals, prepared, model) {
   originalSourceManagedHostRequest(originals, prepared);
   const {initialControl, projectRuntime: moon} = originals.installation;
   const asset = path => readInitialControlInstallationAsset(initialControl, originals, path);
-  const aoa = JSON.parse(asset('spec/contracts/actql-aoa.json'));
+  const contracts = installedManagedRunContracts(originals);
   const declarations = (model.compilation === undefined ? moon.clientProgramAcquisitionCount(prepared)
     : moon.clientProgramEffectAcquisitionCount(prepared)) === 0 ? []
     : readInstalledMockPreparation(originals).sources.map(source => source.declaration);
@@ -500,9 +515,7 @@ export function readLocalMockModelRunRequirements(originals, prepared, model) {
     declarations, asset('spec/contracts/actql-query-acquisition.json'),
     asset('spec/contracts/actql-query-process-evidence.json'), documentBytes, documentBytes,
     asset('spec/dependencies/aoa-pipeline-registry.json'),
-    JSON.stringify(aoa.execution_contracts['REL.values']),
-    JSON.stringify(aoa.execution_contracts['ACTQL.expression_fragment/0.1']),
-    JSON.stringify(aoa.execution_contracts['REL.derive.ordered']));
+    contracts.values, contracts.expression, contracts.ordered);
   if (!Array.isArray(limits) || limits.length !== 15 ||
       limits.some(value => typeof value !== 'bigint' || value < 0n) ||
       [...limits.slice(0, 3), ...limits.slice(12)].some(value => value > 2147483647n)) {

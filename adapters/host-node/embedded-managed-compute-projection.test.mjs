@@ -82,6 +82,64 @@ test('installed managed contract strings are projected once across distinct Host
   assert.equal(f.calls.length, 3, 'Static strings cannot supply current Run admission');
 });
 
+test('installed contract projection is immutable and cannot cross Host control originals', () => {
+  const first = fixture(), second = fixture();
+  first.requirements()(first.originals, first.prepared);
+  second.requirements()(second.originals, second.prepared);
+  const held = first.originals.installation.managedRunContracts;
+  assert(Object.isFrozen(held));
+  assert.notStrictEqual(held, second.originals.installation.managedRunContracts);
+  assert.throws(() => {held.values = '{}';}, TypeError);
+  first.originals.installation.initialControl = {};
+  assert.throws(() => first.requirements()(first.originals, first.prepared),
+    {code: 'ForeignInstalledManagedRunContracts'});
+  assert.equal(first.calls.length, 1);
+
+  const broken = fixture(), path = 'spec/contracts/actql-aoa.json';
+  const wire = broken.assets.get(path);
+  broken.assets.set(path, '{');
+  assert.throws(() => broken.requirements()(broken.originals, broken.prepared), SyntaxError);
+  assert.equal(broken.originals.installation.managedRunContracts, undefined,
+    'Failed construction cannot publish partial contract strings');
+  assert.equal(broken.calls.length, 0);
+  broken.assets.set(path, wire);
+  broken.requirements()(broken.originals, broken.prepared);
+  assert.equal(broken.calls.length, 1);
+});
+
+test('Mock Model requirement purposes reuse only the same installed static strings', () => {
+  const f = fixture(), modelCalls = [], budgets = Array(15).fill(0n);
+  f.requirements()(f.originals, f.prepared);
+  const held = f.originals.installation.managedRunContracts;
+  f.moon.clientProgramAcquisitionCount = () => 0;
+  f.moon.clientProgramEffectAcquisitionCount = () => 0;
+  f.ports.runtimeCore = runtime => {
+    assert.strictEqual(runtime, f.moon);
+    return {publicationControl: {
+      checkedClientMockModelRunRequirements(...args) {modelCalls.push(['pure', args]); return budgets;},
+      checkedClientEffectMockModelRunRequirements(...args) {modelCalls.push(['effect', args]); return budgets;},
+    }};
+  };
+  f.ports.readInitialControlInstallationAsset = (control, original, path) => {
+    assert.strictEqual(control, f.originals.installation.initialControl);
+    assert.strictEqual(original, f.originals);
+    assert.notEqual(path, 'spec/contracts/actql-aoa.json', 'No second static projection');
+    return f.assets.get(path);
+  };
+  const read = actual('readLocalMockModelRunRequirements', f.ports);
+  for (const compilation of [undefined, {}]) {
+    const model = {compiled: {}, runDefinition: {}, occurrence: 0, graph: {}, compilation};
+    read(f.originals, f.prepared, model);
+    const [, args] = modelCalls.at(-1);
+    assert.strictEqual(args[0], f.prepared); assert.strictEqual(args[1], model.compiled);
+    assert.deepEqual(args.slice(-3), [held.values, held.expression, held.ordered]);
+    assert.deepEqual(model.budget, {bootstrapRetainedBytes: 0n, bootstrapExecutionBytes: 0n,
+      readRetainedBytes: 0n, readExecutionBytes: 0n, modelRetainedBytes: 0n,
+      modelExecutionBytes: 0n, maxReservations: 0, maxHoldings: 0, maxDelegations: 0});
+  }
+  assert.deepEqual(modelCalls.map(([kind]) => kind), ['pure', 'effect']);
+});
+
 test('source-free requirements forward the same checked preparation and empty Source inventories', () => {
   const f = fixture();
   const result = f.requirements()(f.originals, f.prepared);
