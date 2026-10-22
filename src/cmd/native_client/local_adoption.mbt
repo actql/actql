@@ -789,13 +789,11 @@ fn local_original_run_reference(
   definition : @publication.PublicationContract,
   scope : String,
 ) -> Json raise ClientStop {
-  let original = @decode.open_object(
-    local_input_cursor(@publication.publication_contract_json(definition)),
+  // The definition already owns its admitted immutable fields. Projection
+  // does not parse its wire again or obtain another current authorization.
+  let run_namespace = @publication.publication_contract_run_definition_scope(
+    definition,
   ).unwrap_or_else(() => stop("LocalOriginalRunUnavailable"))
-  guard @decode.lookup(original, "scope_id") is Some(namespace_value) &&
-    @decode.text(namespace_value) is Ok(run_namespace) else {
-    stop("LocalOriginalRunUnavailable")
-  }
   let reference = Json::object(
     Map([
       ("namespaceId", Json::string(run_namespace)),
