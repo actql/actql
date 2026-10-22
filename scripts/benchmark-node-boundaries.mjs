@@ -46,9 +46,43 @@ async function mutateSelectedMaterial(stateDir, ref, output) {
   assert.equal(index.run_definition_cid, ref.runDefinitionCid);
   assert.equal(index.durable_result_binding_cids?.length, 1, 'Selected seed must have one Result binding');
   const bindingCid = index.durable_result_binding_cids[0];
-  const binding = await readObject(join(publication, 'contracts', cidHex(bindingCid) + '.json'));
+  const readSelectedContract = async (cid, name) => {
+    cidHex(cid);
+    const databasePath = join(publication, 'delivery-attempts.sqlite3');
+    let before;
+    try { before = await lstat(databasePath); }
+    catch (error) { if (error.code !== 'ENOENT') throw error; }
+    if (before !== undefined) {
+      assert(before.isFile() && !before.isSymbolicLink() && before.nlink === 1,
+        'Selected fixture database must be original and unshared');
+      const {DatabaseSync} = await import('node:sqlite');
+      const database = new DatabaseSync(databasePath, {readOnly: true, allowExtension: false});
+      let row;
+      try {
+        // Fault selection reads only this original contract's indexed row.
+        // Never create a legacy shadow or scan unrelated publication history.
+        row = database.prepare(`SELECT name, byte_count,
+          length(CAST(wire AS BLOB)) AS actual_bytes,
+          CASE WHEN length(CAST(wire AS BLOB))<=? THEN wire ELSE NULL END AS wire
+          FROM publication_contracts WHERE semantic_cid=?`).get(1024 ** 2, cid);
+      } finally { database.close(); }
+      const after = await lstat(databasePath);
+      assert.equal(after.dev, before.dev); assert.equal(after.ino, before.ino);
+      if (row !== undefined) {
+        assert.equal(row.name, name);
+        assert.equal(typeof row.wire, 'string');
+        assert.equal(Buffer.byteLength(row.wire), row.byte_count);
+        assert.equal(row.actual_bytes, row.byte_count);
+        return {value: JSON.parse(row.wire), storage: 'sqlite'};
+      }
+    }
+    return {value: await readObject(join(publication, 'contracts', cidHex(cid) + '.json')), storage: 'file'};
+  };
+  const bindingOriginal = await readSelectedContract(bindingCid, 'durable_result_binding');
+  const binding = bindingOriginal.value;
   assert.equal(binding.run_definition_cid, ref.runDefinitionCid);
-  const definition = await readObject(join(publication, 'contracts', cidHex(binding.result_definition_cid) + '.json'));
+  const definitionOriginal = await readSelectedContract(binding.result_definition_cid, 'result_definition');
+  const definition = definitionOriginal.value;
   assert.equal(definition.result_name, 'main');
   const materialCid = binding.material_generation_cid;
   const path = join(publication, 'objects', cidHex(materialCid));
@@ -66,6 +100,7 @@ async function mutateSelectedMaterial(stateDir, ref, output) {
     const after = await file.stat();
     assert.equal(after.dev, before.dev); assert.equal(after.ino, before.ino); assert.equal(after.size, before.size);
     return {bindingCid, resultDefinitionCid: binding.result_definition_cid, materialCid,
+      metadataStorage: {binding: bindingOriginal.storage, definition: definitionOriginal.storage},
       bytes: bytes.length, offset, originalSha256: hash(bytes), device: before.dev, inode: before.ino};
   } finally {await file.close();}
 }
