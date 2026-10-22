@@ -3277,6 +3277,52 @@ test(`native publication progress retains its ${phase} ${afterCommit?'committed'
 });
 }
 
+for (const afterCommit of [false, true]) {
+test(`Store close confirms its original ${afterCommit ? 'committed' : 'rolled-back'} publication writer before retiring capacity`, async t => {
+  const exec = DatabaseSync.prototype.exec;
+  let armed = false, failed = false, commits = 0, originalDatabase;
+  t.mock.method(DatabaseSync.prototype, 'exec', function(sql) {
+    if (armed && sql === 'COMMIT') {
+      commits++;
+      if (!failed) {
+        failed = true;
+        originalDatabase = this;
+        if (afterCommit) Reflect.apply(exec, this, [sql]);
+        throw Object.assign(new Error('publication COMMIT reply unavailable'), {code: 'EIO'});
+      }
+      assert.equal(this, originalDatabase);
+    }
+    return Reflect.apply(exec, this, [sql]);
+  });
+  const {store, configuration} = await fixture(t);
+  const attempt = publicationAttempt(publicationRequest(), `close-unknown-${afterCommit}`);
+  await store.createAttempt(wire(attempt));
+  const record = publicationRecord(attempt, 0, 'preparing');
+  let failure;
+  armed = true;
+  await assert.rejects(store.appendRecord(wire(record), {uncommittedConfirmed: false}), error => {
+    failure = error;
+    return error.outcome === 'unknown' && error.cleanupHandle.status().pending;
+  });
+  assert.equal(store.status().reservedObjects, 1);
+  try {
+    await store.close();
+    assert.equal(store.status().closed, true);
+    assert.equal(store.status().reservedObjects, 0);
+    assert.equal(failure.cleanupHandle.status().pending, false);
+    assert.ok(commits >= 2, 'Closing confirms the same original with an actual later COMMIT');
+  } finally {
+    // Failed baseline evidence still owns this fixture. Test teardown uses its
+    // actual original cleanup, never an ACK inferred from process exit.
+    armed = false;
+    if (!store.status().closed) await failure.cleanupHandle.retry();
+    await store.close();
+  }
+  const reopened = await openLocalPublicationStore(configuration, contractControl);
+  assert.deepEqual(await reopened.latestRecord(attempt.publication_attempt_cid), record);
+});
+}
+
 test('publication progress persists its incoming admitted contract once per operation',async t=>{
   const admissions=new Map();
   const control={...contractControl,admit(name,body,bounds){
