@@ -3349,11 +3349,11 @@ async function openOriginalLocalPublicationStore(
     return value;
   };
 
-  const putPublicationContract = async (name, suppliedWire) => {
-    const contract = admitContract(name, suppliedWire);
-    const value = parseContract(contract);
+  // Only this Store's private incoming-contract admission supplies these
+  // facts. Physical persistence remains the same original operation.
+  const putAdmittedPublicationContract = async (contract, value) => {
     const semanticCid = contract.identity;
-    if (nativePublicationContract(name) && deliveryIndex?.publicationContract(semanticCid) !== undefined) {
+    if (nativePublicationContract(contract.name) && deliveryIndex?.publicationContract(semanticCid) !== undefined) {
       return (await putNativePublicationContracts([Object.freeze({contract,value})]))[0];
     }
     return Object.freeze({
@@ -3361,6 +3361,11 @@ async function openOriginalLocalPublicationStore(
       contract,
       ...await putSemantic(contract.wire, semanticCid),
     });
+  };
+
+  const putPublicationContract = async (name, suppliedWire) => {
+    const contract = admitContract(name, suppliedWire);
+    return putAdmittedPublicationContract(contract, parseContract(contract));
   };
 
   const putNativePublicationContracts = async admitted => {
@@ -4041,9 +4046,7 @@ async function openOriginalLocalPublicationStore(
     if (await runMetadataDeletionStarted(attempt.run_definition_cid)) {
       fail('PublicationMetadataDeleted');
     }
-    const stored = await putPublicationContract(
-      'publication_attempt', admitted.wire,
-    );
+    const stored = await putAdmittedPublicationContract(admitted, attempt);
     const directory = publicationAttemptPath(
       attempt.publication_attempt_cid,
     );
@@ -4127,7 +4130,7 @@ async function openOriginalLocalPublicationStore(
     if (attempt.publication_attempt_cid !== record.publication_attempt_cid) {
       fail('PublicationAttemptMismatch');
     }
-    await putPublicationContract('publication_record', contract.wire);
+    await putAdmittedPublicationContract(contract, record);
     const target = resolve(directory, `${record.sequence}.json`);
     try { await link(contractPath(record.publication_record_cid), target); }
     catch (error) {
