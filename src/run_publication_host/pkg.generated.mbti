@@ -1083,6 +1083,8 @@ pub fn client_saved_submission_row(ClientSavedSubmissionSnapshot) -> ClientJourn
 
 pub fn client_saved_submission_run_row(ClientSavedSubmissionSnapshot) -> ClientJournalPhysicalRow?
 
+pub fn client_saved_submission_state_original(ClientSavedSubmissionSnapshot) -> ClientRunStateOriginal?
+
 pub fn client_serialization_byte_holding_cid(ClientCompiledRun, @run_publication.PublicationContract, String) -> String?
 
 pub fn client_serialization_generation_capture(ClientSerializationGeneration) -> @run_publication.BoundContentGeneration?
@@ -3962,6 +3964,7 @@ pub struct ClientSavedSubmissionSnapshot {
   submission : ClientJournalPhysicalRow
   run : ClientJournalPhysicalRow?
   inspection : ClientRunJournalInspection?
+  state_original : ClientRunStateOriginal?
 }
 
 pub(all) enum ClientSavedSubmissionViewIssue {
