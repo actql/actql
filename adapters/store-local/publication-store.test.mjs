@@ -3153,6 +3153,44 @@ test('publication records are append-only and sequence creation is CAS',
     assert.ok(['committing', 'cancelled'].includes(latest.state));
   });
 
+test('publication setup commits its immutable bodies and initial attempt in one native transaction', async t => {
+  const exec = DatabaseSync.prototype.exec;
+  let armed = false, commits = 0;
+  t.mock.method(DatabaseSync.prototype, 'exec', function(sql) {
+    if (armed && sql === 'COMMIT') commits++;
+    return Reflect.apply(exec, this, [sql]);
+  });
+  const {store, configuration} = await fixture(t);
+  const request = publicationRequest(), attempt = publicationAttempt(request, 'joint-publication-setup');
+  const originals = [contractControl.admit('publication_request', wire(request), limits)];
+  const originalAttempt = contractControl.admit('publication_attempt', wire(attempt), limits);
+  armed = true;
+  await store.beginPublicationAttempt(originals, originalAttempt);
+  assert.equal(commits, 1);
+  assert.equal(store.status().objectCount, 2);
+  assert.equal((await store.createAttempt(wire(attempt))).created, false);
+  assert.equal(commits, 1, 'An already committed attempt does not create another barrier');
+  assert.equal((await store.readPublicationContract(request.publication_request_cid, 'publication_request')).wire, wire(request));
+  const preparing = publicationRecord(attempt, 0, 'preparing');
+  await store.appendRecord(wire(preparing), {uncommittedConfirmed: false});
+  assert.equal(commits, 2, 'A later progress transition remains a distinct actual mutation');
+  armed = false;
+  await store.close();
+  const reopened = await openLocalPublicationStore(configuration, contractControl);
+  assert.deepEqual(await reopened.latestRecord(attempt.publication_attempt_cid), preparing);
+});
+
+test('joint publication setup refuses its full capacity before installing any body or attempt', async t => {
+  const {store} = await fixture(t, {maxObjects: 1});
+  const request = publicationRequest(), attempt = publicationAttempt(request, 'joint-publication-capacity');
+  await assert.rejects(store.beginPublicationAttempt([
+    contractControl.admit('publication_request', wire(request), limits)],
+  contractControl.admit('publication_attempt', wire(attempt), limits)), code('PublicationStoreObjectLimit'));
+  assert.equal(store.status().objectCount, 0);
+  assert.equal(store.status().reservedObjects, 0);
+  await assert.rejects(store.readPublicationContract(request.publication_request_cid, 'publication_request'), code('ENOENT'));
+});
+
 test('publication progress uses one native commit and no shadow file ACKs per transition',async t=>{
   const request=publicationRequest(),attempt=publicationAttempt(request,'native-progress');
   const preparing=publicationRecord(attempt,0,'preparing');
