@@ -283,7 +283,8 @@ fn NativeLocalProductConfigurationSession::check_original(
   if self.closed {
     return Err(Closed)
   }
-  native_timing_count(60)
+  // Product work counters stay separate from domain census slots 4..15/60..62.
+  native_timing_count(28)
   guard self.parent.bootstrap_parent_ownership() is Ok(parent) &&
     parent == self.parent_ownership &&
     self.root.private_ownership() is Ok(root) &&
@@ -388,7 +389,7 @@ fn NativeLocalProductConfigurationSession::stage_configuration_after_original_ch
         Ok(_) => ()
         Err(issue) => return Err(issue)
       }
-      native_timing_count(61)
+      native_timing_count(29)
       let (body, observed) = match
         local_adoption_read(self.root, original.0, 65536L) {
         Ok(value) => value
@@ -413,7 +414,7 @@ fn NativeLocalProductConfigurationSession::stage_configuration_after_original_ch
         Err(CustodyLost) => return Err(AmbiguousInitialization)
         Err(issue) => return Err(issue)
       }
-      native_timing_count(61)
+      native_timing_count(29)
       let (body, generation) = match
         local_adoption_read(self.root, original.0, 65536L) {
         Ok(value) => value

@@ -1,7 +1,63 @@
 """Opt-in diagnostic protocol; system SQLite is a fixture, not the selected component."""
 from pathlib import Path
-import json,os,subprocess,tempfile,unittest
+import json,os,re,subprocess,sys,tempfile,unittest
 ROOT=Path(__file__).resolve().parent.parent
+
+def check_command_counter_map(mapping):
+    owners = {}
+    def assign(tag, owner):
+        if type(tag) is not int or not 0 <= tag < 64:
+            raise ValueError(f'invalid counter {tag!r}: {owner}')
+        if tag in owners:
+            raise ValueError(f'counter {tag} overlaps {owners[tag]} and {owner}')
+        owners[tag] = owner
+    domains = mapping['domainInventorySlots']
+    for owner in ('Read', 'SQLite', 'Compute'):
+        for tag in domains[owner]: assign(tag, owner)
+    for tag in mapping['allocationCounterSlots']: assign(int(tag), 'allocation/command')
+    product = {int(tag) for tag in mapping['productOriginalCounterSlots']}
+    for tag in product: assign(tag, 'Product')
+    product_path = ROOT / 'src/platform_native/client_host/local_product_configuration.mbt'
+    actual_product = {int(tag) for tag in re.findall(r'native_timing_count\((\d+)\)', product_path.read_text())}
+    if actual_product != product | {58}:
+        raise ValueError('Product counter calls differ from the declared map')
+    # These two closed packages contain the other literal MoonBit callsites.
+    for package in ('cmd/native_client', 'platform_native/client_host'):
+        for path in (ROOT / 'src' / package).glob('*.mbt'):
+            if path == product_path or path.name.endswith(('_wbtest.mbt', '_test.mbt')): continue
+            used = {int(tag) for tag in re.findall(r'native_timing_(?:count|amount)\((\d+)', path.read_text())}
+            if product & used: raise ValueError(f'Product counter overlaps {path.name}')
+    header = (ROOT / 'src/platform_native/filesystem/native_timings.h').read_text()
+    reserved = {int(tag) for tag in re.findall(r'ACTQL_NATIVE_COUNT_\w+\s*=\s*(\d+)', header)}
+    if product & reserved: raise ValueError('Product counter overlaps a named Native counter')
+    emitter = (ROOT / 'src/cmd/native_client/native_timings.mbt').read_text()
+    split = re.search(r'control_tag\s*=\s*if\s+first_tag\s*==\s*(\d+)\s*\{\s*(\d+)\s*\}\s*else\s*\{\s*first_tag\s*\+\s*2\s*\}', emitter)
+    if split is None: raise ValueError('domain census emitter correspondence is missing')
+    special, control = map(int, split.groups())
+    for owner in ('Read', 'SQLite', 'Compute'):
+        first = domains[owner][0]
+        offset = control if first == special else first + 2
+        if domains[owner] != [first, first + 1, offset, offset + 1, offset + 2]:
+            raise ValueError(f'{owner} census emitter differs from the declared map')
+    return {'counterAssignments': len(owners), 'productSlots': sorted(product), 'domainGroups': 3}
+
+class CommandCounterMap(unittest.TestCase):
+    def mapping(self):
+        return {'domainInventorySlots': {'Read': [4,5,6,7,8], 'SQLite': [9,10,11,12,13],
+                'Compute': [14,15,60,61,62]},
+                'allocationCounterSlots': {str(tag): 'allocation/command' for tag in [*range(46,60),63]},
+                'productOriginalCounterSlots': {'28': 'Product original check', '29': 'Product body read'}}
+    def test_product_and_domain_amounts_have_distinct_slots(self):
+        self.assertEqual(check_command_counter_map(self.mapping())['productSlots'], [28,29])
+    def test_previous_product_slots_collide_before_compilation(self):
+        mapping = self.mapping(); mapping['productOriginalCounterSlots'] = {'60': 'check', '61': 'read'}
+        with self.assertRaisesRegex(ValueError, 'counter 60 overlaps'):
+            check_command_counter_map(mapping)
+    def test_declaration_cannot_relabel_the_actual_product_calls(self):
+        mapping = self.mapping(); mapping['productOriginalCounterSlots'] = {'30': 'check', '31': 'read'}
+        with self.assertRaisesRegex(ValueError, 'Product counter calls differ'):
+            check_command_counter_map(mapping)
+
 class NativeTimingProtocol(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -87,4 +143,10 @@ class NativeTimingProtocol(unittest.TestCase):
         rows=self.run_protocol('partial','1');meta=next(x for k,x in rows if k=='ACTQL_NATIVE_TIMINGS');self.assertEqual(meta['stack_overflows'],3);self.assertEqual(meta['invalid_tags'],1)
         phases={x['tag']:x for k,x in rows if k=='ACTQL_NATIVE_PHASE'};self.assertEqual(phases[6]['active'],1);self.assertEqual(phases[0]['active'],1);self.assertEqual(phases[5]['unmatched_end'],1)
         self.assertEqual(phases[4]['begins'],34);self.assertEqual(phases[4]['ends'],31)
-if __name__=='__main__':unittest.main()
+if __name__=='__main__':
+    if len(sys.argv) == 3 and sys.argv[1] == '--check-counter-map':
+        mapping = json.loads(Path(sys.argv[2]).read_text())
+        source = subprocess.check_output(['git','rev-parse','HEAD'], cwd=ROOT, text=True).strip()
+        if mapping['source'] != source: raise ValueError('counter map source differs from HEAD')
+        print(json.dumps(check_command_counter_map(mapping)))
+    else: unittest.main()
