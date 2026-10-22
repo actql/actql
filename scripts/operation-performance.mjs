@@ -408,11 +408,14 @@ export function calibratedLatencyTarget(series, comparison) {
 export function assessLatency(series, comparison) {
   requireValue(Object.hasOwn(operationTargets, series.operation), 'Unknown public operation');
   const calibration = calibratedLatencyTarget(series, comparison);
-  const target = calibration.target;
+  return assessLatencyTarget(series, calibration.target, calibration.missing);
+}
+
+function assessLatencyTarget(series, target, initialMissing = []) {
   requireValue(digest(series.cohortSha256) && digest(series.fixtureSha256) && digest(series.environmentSha256),
     'Exact cohort, fixture and environment identities are required');
   requireValue(['diagnostic', 'final'].includes(series.mode) && Array.isArray(series.samples), 'Invalid measurement mode');
-  const failures = [], missing = [...calibration.missing];
+  const failures = [], missing = [...initialMissing];
   const successful = [];
   const keys = new Set();
   for (const row of series.samples) {
@@ -599,6 +602,10 @@ export function assessStructure(report) {
 }
 
 export function assessHistory(rows) {
+  return assessHistoryOperations(rows, Object.keys(operationTargets).filter(name => name.startsWith('warm-')));
+}
+
+function assessHistoryOperations(rows, requiredOperations) {
   const failures = [], missing = [], operations = new Map();
   for (const row of rows) {
     requireValue(historySizes.includes(row.size), 'Unsupported history selection');
@@ -630,7 +637,7 @@ export function assessHistory(rows) {
   }
   // Derive coverage from the existing warm public operations. A saved-read
   // series cannot stand in for new query binding or another execution path.
-  for (const operation of Object.keys(operationTargets).filter(name => name.startsWith('warm-'))) {
+  for (const operation of requiredOperations) {
     for (const size of historySizes) if (!operations.get(operation)?.sizes.has(size)) {
       missing.push(`history ${operation} ${size}`);
     }
@@ -685,16 +692,20 @@ export const boundaryExpectations = Object.freeze({
 });
 for (const expectation of Object.values(boundaryExpectations)) Object.freeze(expectation);
 export function assessBoundaries(rows) {
+  return assessBoundarySet(rows, boundaryExpectations);
+}
+
+function assessBoundarySet(rows, expectations) {
   const failures = [], missing = [], seen = new Set();
   for (const row of rows) {
-    requireValue(Object.hasOwn(boundaryExpectations, row.case) && !seen.has(row.case), 'Duplicate or unknown boundary case');
+    requireValue(Object.hasOwn(expectations, row.case) && !seen.has(row.case), 'Duplicate or unknown boundary case');
     seen.add(row.case);
-    for (const [key, expected] of Object.entries(boundaryExpectations[row.case])) {
+    for (const [key, expected] of Object.entries(expectations[row.case])) {
       if (!Object.hasOwn(row, key)) missing.push(`${row.case}: ${key}`);
       else if (row[key] !== expected) failures.push(`${row.case}: ${key}`);
     }
   }
-  for (const name of Object.keys(boundaryExpectations)) if (!seen.has(name)) missing.push(name);
+  for (const name of Object.keys(expectations)) if (!seen.has(name)) missing.push(name);
   return outcome(failures, missing);
 }
 
@@ -779,6 +790,10 @@ export function assessPerformanceEvidence(report) {
 }
 
 export function assessFunctions(rows) {
+  return assessFunctionOperations(rows, Object.keys(operationTargets));
+}
+
+function assessFunctionOperations(rows, requiredOperations) {
   const failures = [], missing = [], seen = new Set();
   for (const row of rows) {
     requireValue(Object.hasOwn(operationTargets, row.operation) && !seen.has(row.operation), 'Duplicate or unknown functional case');
@@ -787,20 +802,214 @@ export function assessFunctions(rows) {
     if (!digest(row.expectedSha256) || !digest(row.actualSha256)) missing.push(`${row.operation}: independent result oracle`);
     else if (row.expectedSha256 !== row.actualSha256) failures.push(`${row.operation}: result oracle mismatch`);
   }
-  for (const operation of Object.keys(operationTargets)) if (!seen.has(operation)) missing.push(operation);
+  for (const operation of requiredOperations) if (!seen.has(operation)) missing.push(operation);
   return outcome(failures, missing);
+}
+
+export const priorityTransitionTarget = Object.freeze({samples: 100, medianMs: 250, p95Ms: 500});
+const priorityOperations = Object.freeze(['warm-select', 'warm-result']);
+const priorityBoundaries = Object.freeze({
+  ...Object.fromEntries(['deny-before-operation', 'target-before-dispatch', 'commit-unknown',
+    'send-reply-lost', 'reopen-cache-miss', 'cancel-or-budget'].map(name => [name, boundaryExpectations[name]])),
+  'no-preapproval-write': Object.freeze({writesBeforeApproval: 0, explicitSignedApproval: true,
+    previewTargetMatched: true}),
+});
+
+function assessPriorityWorkload(series) {
+  const failures = [], missing = [], workload = series.publicWorkload;
+  if (!workload) return outcome([], ['actual varied public workload and original Run/Result metadata']);
+  if (series.fixtureSha256 !== evidenceHash(workload)) failures.push('public workload differs from fixed fixture identity');
+  const fresh = series.operation === 'warm-select';
+  if (workload.kind !== (fresh ? 'new-durable-run-result-rows' : 'saved-original-result-rows')) {
+    failures.push('public completion is not the selected durable operation');
+  }
+  const fixtures = new Map(), originals = new Map();
+  for (const fixture of workload.fixtures ?? []) {
+    requireValue(digest(fixture.querySha256) && digest(fixture.expectedSha256) &&
+      !fixtures.has(fixture.querySha256), 'Unique independent query fixture identities required');
+    fixtures.set(fixture.querySha256, fixture.expectedSha256);
+  }
+  for (const original of workload.originals ?? []) {
+    requireValue(digest(original.runRefSha256) && digest(original.resultRefSha256) &&
+      digest(original.expectedSha256) && !originals.has(original.resultRefSha256), 'Unique original Result identities required');
+    originals.set(original.resultRefSha256, original);
+  }
+  const operations = new Set(), runs = new Set(), results = new Set(), queries = new Set(), outputs = new Set();
+  for (const row of series.samples) {
+    if (!['pid', 'hostId', 'stateId'].every(key => row[key] === series.samples[0][key])) {
+      failures.push('warm public samples changed Host/process/state');
+    }
+    if (typeof row.publicOperationId !== 'string' || !row.publicOperationId) missing.push('actual public operation identity');
+    else {
+      if (operations.has(row.publicOperationId)) failures.push('public operation sample repeated');
+      operations.add(row.publicOperationId);
+    }
+    if (![row.runRefSha256, row.resultRefSha256, row.expectedSha256, row.actualSha256].every(digest)) {
+      missing.push('actual original Run/Result and materialized-row oracle identities'); continue;
+    }
+    if (row.actualSha256 !== row.expectedSha256) failures.push('materialized rows differ from independent oracle');
+    if (fresh) {
+      if (!digest(row.querySha256)) missing.push('actual new-query fixture identity');
+      else {
+        if (fixtures.get(row.querySha256) !== row.expectedSha256) failures.push('new query differs from fixed independent fixtures');
+        queries.add(row.querySha256);
+      }
+      if (runs.has(row.runRefSha256) || results.has(row.resultRefSha256)) failures.push('new query reused a prior Run or Result');
+    } else {
+      const original = originals.get(row.resultRefSha256);
+      if (!original || original.runRefSha256 !== row.runRefSha256 || original.expectedSha256 !== row.expectedSha256) {
+        failures.push('saved read differs from original Run/Result');
+      }
+    }
+    runs.add(row.runRefSha256); results.add(row.resultRefSha256); outputs.add(row.expectedSha256);
+  }
+  if ((fresh ? queries : results).size < 2 || outputs.size < 2) missing.push('varied small query/results, not one repeated fixed value');
+  const first = series.firstQuery;
+  if (!first) missing.push('separate actual first-query observation');
+  else {
+    requireValue(integer(first.wallNs) && integer(first.cpuUserUs) && integer(first.cpuSystemUs), 'Invalid first-query timing');
+    if (typeof first.cpuScope !== 'string' || !first.cpuScope) missing.push('actual first-query CPU scope');
+    if (first.completed !== true || first.verified !== true) failures.push('first public query failed');
+    if (typeof first.publicOperationId !== 'string' || !first.publicOperationId ||
+        ![first.runRefSha256, first.resultRefSha256, first.expectedSha256, first.actualSha256].every(digest)) {
+      missing.push('first-query operation, original Run/Result and oracle identity');
+    } else {
+      if (operations.has(first.publicOperationId)) failures.push('first query blended into warm distribution');
+      if (first.expectedSha256 !== first.actualSha256) failures.push('first-query materialized rows differ');
+      if (fresh && (runs.has(first.runRefSha256) || results.has(first.resultRefSha256))) {
+        failures.push('new warm query reused first-query Run or Result');
+      }
+    }
+    const sample = series.samples[0];
+    if (!sample || !['pid', 'hostId', 'stateId'].every(key => first[key] === sample[key])) {
+      failures.push('first query belongs to another Host/process/state');
+    }
+  }
+  return outcome(failures, missing, {firstQueryMs: first ? first.wallNs / 1e6 : null,
+    distinctQueries: queries.size, distinctResults: results.size, publicOperations: operations.size});
+}
+
+function assessPriorityPopulation(series) {
+  const failures = [], missing = [], population = series.population;
+  if (!population) return outcome([], ['actual measured population scan and temporary-usage observations']);
+  if (population.complete !== true || population.overflow !== false) missing.push('complete non-overflow population observations');
+  if (!Array.isArray(population.publicOperationIds)) missing.push('observed public operation population');
+  else if (evidenceHash(population.publicOperationIds) !== evidenceHash(series.samples.map(row => row.publicOperationId))) {
+    failures.push('work observations differ from the timed public population');
+  }
+  for (const key of ['unrelatedRunRows', 'unrelatedEffectRows']) {
+    if (!integer(population[key])) missing.push(key);
+    else if (population[key] !== 0) failures.push(`${key} is not zero`);
+  }
+  // Observe quiescent temporary holdings after initial/shared preparation.
+  // Genuine Host/shared holdings and durable history are outside this count;
+  // neither a configured cap nor RSS can excuse retained temporary growth.
+  const temporary = population.temporaryRetained;
+  if (!temporary || !['beforeBytes', 'afterBytes', 'peakBytes', 'capacityBytes'].every(key => integer(temporary[key]))) {
+    missing.push('actual temporary holdings and existing configured capacity');
+  }
+  else if (temporary.peakBytes < Math.max(temporary.beforeBytes, temporary.afterBytes) ||
+      temporary.peakBytes > temporary.capacityBytes) failures.push('temporary holdings exceed their observed fixed bound');
+  if (integer(temporary?.beforeBytes) && integer(temporary?.afterBytes) && temporary.afterBytes > temporary.beforeBytes) {
+    failures.push('temporary holdings grew after quiescent population completion');
+  }
+  return outcome(failures, missing);
+}
+
+// The explicit input combines untouched raw reports from both ordinary SDK
+// artifacts. Missing collector fields remain incomplete: CI must not synthesize
+// variation, safety or environmental observations to satisfy this selection.
+// This decision only changes work prioritization, never release acceptance.
+export function assessPriorityTransition(input) {
+  requireValue(/^[a-f0-9]{40}$/u.test(input.sourceSha ?? ''), 'Fixed priority-transition source required');
+  const gates = {}, failures = [], missing = [];
+  for (const platform of ['node', 'python']) {
+    const reports = input.platforms?.[platform];
+    if (!Array.isArray(reports) || !reports.length) {missing.push(`${platform}: ordinary raw reports`); continue;}
+    const series = new Map(), functions = [], operations = [], histories = [], boundaries = [];
+    let binding;
+    const localFailures = [], localMissing = [];
+    for (const report of reports) {
+      requireValue(report.sourceSha === input.sourceSha && digest(report.cohortSha256) &&
+        digest(report.environmentSha256) && digest(report.historyProtocolSha256), 'Fixed ordinary platform report identity required');
+      binding ??= report;
+      requireValue(report.cohortSha256 === binding.cohortSha256 && report.environmentSha256 === binding.environmentSha256,
+        'Mixed platform artifact cohort or environment');
+      if (report.historyProtocolSha256 !== binding.historyProtocolSha256) localMissing.push('one shared controlled history protocol');
+      if (report.executionPath !== `${platform}-sdk`) localMissing.push('actual ordinary public SDK execution path');
+      if (report.installedPayloadsUnchanged !== true) localMissing.push('successful installed-package correspondence');
+      if (report.packageFailure || report.firstFailure || report.cleanup?.failure) localFailures.push('reported public/package/cleanup failure');
+      if (report.cleanup?.closed !== true) localMissing.push('explicit successful original Host close');
+      for (const key of ['startedHost', 'noCompetingLargeBuild', 'guaranteesUnchanged']) {
+        if (report.priorityConditions?.[key] === false && key !== 'noCompetingLargeBuild') localFailures.push(`${key} requirement violated`);
+        else if (report.priorityConditions?.[key] !== true) localMissing.push(`actual ${key} observation`);
+      }
+      if (report.priorityConditions?.boundedTemporaryGrowth === false) localFailures.push('reported unbounded temporary growth');
+      for (const value of report.latency ?? []) {
+        if (!priorityOperations.includes(value.operation)) continue;
+        requireValue(!series.has(value.operation), 'Duplicate priority operation series');
+        for (const key of ['cohortSha256', 'environmentSha256', 'historyProtocolSha256']) {
+          requireValue(value[key] === report[key], 'Priority latency differs from original report binding');
+        }
+        series.set(value.operation, value);
+      }
+      for (const [key, target] of [['functional', functions], ['structure', operations], ['history', histories],
+        ['boundaries', boundaries], ['prioritySafety', boundaries]]) {
+        const section = report[key]; if (!section) continue;
+        for (const identity of ['cohortSha256', 'environmentSha256', 'historyProtocolSha256']) {
+          requireValue(section[identity] === report[identity], 'Priority safety/work section differs from original report binding');
+        }
+        target.push(...(key === 'structure' ? section.operations ?? [] : section.rows ?? []));
+      }
+    }
+    const selected = Object.fromEntries([...series].map(([name, value]) => [name, {
+      latency: assessLatencyTarget(value, priorityTransitionTarget), workload: assessPriorityWorkload(value),
+      population: assessPriorityPopulation(value),
+    }]));
+    for (const [name, value] of series) {
+      const row = functions.find(item => item.operation === name);
+      if (!row || !digest(row.fixtureSha256)) localMissing.push(`${name}: functional population binding`);
+      else if (row.fixtureSha256 !== value.fixtureSha256 ||
+          row.expectedSha256 !== evidenceHash(value.samples.map(sample => sample.expectedSha256)) ||
+          row.actualSha256 !== evidenceHash(value.samples.map(sample => sample.actualSha256))) {
+        localFailures.push(`${name}: functional oracle differs from timed public population`);
+      }
+    }
+    for (const name of priorityOperations) if (!series.has(name)) localMissing.push(`${name}: actual raw distribution`);
+    // Detailed regressions remain useful if supplied, but missing full-release
+    // attribution or history-grid coverage is not a transition prerequisite.
+    if (operations.length) localFailures.push(...assessStructure({operations}).failures.map(reason => `reported structure: ${reason}`));
+    if (histories.length) localFailures.push(...assessHistory(histories).failures.map(reason => `reported history: ${reason}`));
+    const checks = {functional: assessFunctionOperations(functions.filter(row => priorityOperations.includes(row.operation)), priorityOperations),
+      boundaries: assessBoundarySet(boundaries.filter(row => Object.hasOwn(priorityBoundaries, row.case)), priorityBoundaries)};
+    for (const [name, value] of Object.entries(selected)) {
+      checks[`${name} latency`] = value.latency; checks[`${name} workload`] = value.workload;
+      checks[`${name} population`] = value.population;
+    }
+    for (const [name, check] of Object.entries(checks)) {
+      localFailures.push(...check.failures.map(reason => `${name}: ${reason}`));
+      localMissing.push(...check.missing.map(reason => `${name}: ${reason}`));
+    }
+    gates[platform] = outcome(localFailures, localMissing, {cohortSha256: binding.cohortSha256, checks});
+    failures.push(...localFailures.map(reason => `${platform}: ${reason}`));
+    missing.push(...localMissing.map(reason => `${platform}: ${reason}`));
+  }
+  return outcome(failures, missing, {purpose: 'priority-transition-only', sourceSha: input.sourceSha,
+    target: priorityTransitionTarget, gates, releaseAccepted: false, fullPerformanceAccepted: false,
+    qualification: 'Assesses supplied ordinary evidence only. Passing does not establish SQLite equivalence, release readiness or full product completion.'});
 }
 
 async function main(args) {
   const {readFile, writeFile, stat} = await import('node:fs/promises');
   const calibration = args[0] === '--calibrate-sqlite';
+  const priority = args[0] === '--priority-transition';
   requireValue(args.length >= 2 && args.length % 2 === 0 &&
-    ['--input', '--calibrate-sqlite'].includes(args[0]),
-    'Usage: --input REPORT [--native-sqlite-control CONTROL --native-sqlite-protocol PROTOCOL] | --calibrate-sqlite BASELINE [--result-control CONTROL] [--output JSON]');
+    ['--input', '--calibrate-sqlite', '--priority-transition'].includes(args[0]),
+    'Usage: --input REPORT [--native-sqlite-control CONTROL --native-sqlite-protocol PROTOCOL] | --priority-transition COMBINED_REPORT | --calibrate-sqlite BASELINE [--result-control CONTROL] [--output JSON]');
   const options = {};
   for (let index = 2; index < args.length; index += 2) {
     const key = args[index];
-    requireValue((key === '--output' || calibration && key === '--result-control' || !calibration &&
+    requireValue((key === '--output' || calibration && key === '--result-control' || !calibration && !priority &&
       ['--native-sqlite-control', '--native-sqlite-protocol'].includes(key)) &&
       !Object.hasOwn(options, key), 'Unknown or duplicate assessment option');
     options[key] = args[index + 1];
@@ -821,7 +1030,7 @@ async function main(args) {
   const resultControl = options['--result-control'] ? await boundedInput(options['--result-control']) : undefined;
   const result = calibration ? {baseline: input, ...(resultControl ? {resultControl} : {}),
     profile: calibrateSqliteComparisonProfile(input, resultControl)}
-    : assessPerformanceEvidence(input);
+    : priority ? assessPriorityTransition(input) : assessPerformanceEvidence(input);
   const body = JSON.stringify(result, null, 2) + '\n';
   if (options['--output']) await writeFile(options['--output'], body, {flag: 'wx'});
   process.stdout.write(body);
