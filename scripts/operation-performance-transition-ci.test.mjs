@@ -98,6 +98,23 @@ test('missing reports stay empty and malformed reports cannot become successful 
   assert.throws(() => readFileSync(path), {code: 'ENOENT'});
 });
 
+test('unrelated release routes cannot add conditions or substitute priority evidence', t => {
+  const root = temporary(t);
+  const node = {original: 'warm Node report'};
+  const python = {original: 'warm Python select report'};
+  put(join(root, 'ordinary-priority/node/measurement/warm/measurements.json'), node);
+  put(join(root, 'ordinary-priority/node/measurement/cold-existing/measurements.json'), {unrelated: 'cold'});
+  put(join(root, `ordinary-priority/python/ordinary-python-warm-select-${source}/measurement/measurements.json`), python);
+  for (const operation of ['first-init', 'cold-existing', 'warm-status']) {
+    put(join(root, `ordinary-priority/python/ordinary-python-${operation}-${source}/measurement/measurements.json`), {unrelated: operation});
+  }
+  const step = workflow.jobs['ordinary-priority-assessment'].steps.find(step => step.name === 'Join unchanged raw platform reports');
+  const child = run(step, root);
+  assert.equal(child.status, 0, child.stderr);
+  assert.deepEqual(JSON.parse(readFileSync(join(root, 'ordinary-priority/input.json'))),
+    {sourceSha: source, platforms: {node: [node], python: [python]}});
+});
+
 test('checkpoint command propagates assessor failure without replacing full release checks', t => {
   const root = temporary(t);
   const job = workflow.jobs['ordinary-priority-assessment'];
@@ -114,4 +131,40 @@ test('checkpoint command propagates assessor failure without replacing full rele
   assert.deepEqual(JSON.parse(readFileSync(argv)), ['scripts/operation-performance.mjs',
     '--priority-transition', join(root, 'ordinary-priority/input.json'),
     '--output', join(root, 'ordinary-priority/assessment.json')]);
+});
+
+test('controlled job executes the composed assessor on missing and failed original reports', t => {
+  const root = temporary(t);
+  const job = workflow.jobs['ordinary-priority-assessment'];
+  const collect = job.steps.find(step => step.name === 'Join unchanged raw platform reports');
+  const assess = job.steps.find(step => step.name === 'Require the measured public priority checkpoint');
+  const output = join(root, 'ordinary-priority/assessment.json');
+  assert.equal(run(collect, root).status, 0);
+  const missing = run(assess, root);
+  assert.equal(missing.status, 1, missing.stderr);
+  const incomplete = JSON.parse(readFileSync(output));
+  assert.equal(incomplete.status, 'incomplete');
+  assert.equal(incomplete.releaseAccepted, false);
+  assert.equal(incomplete.fullPerformanceAccepted, false);
+  rmSync(output);
+  const hash = 'sha256:' + 'b'.repeat(64);
+  put(join(root, 'ordinary-priority/node/measurement/warm/measurements.json'), {
+    sourceSha: source, cohortSha256: hash, environmentSha256: hash,
+    historyProtocolSha256: hash, executionPath: 'node-sdk',
+    installedPayloadsUnchanged: false, packageFailure: 'changed after samples',
+    firstFailure: {step: 'await original close'}, cleanup: {closed: false},
+  });
+  assert.equal(run(collect, root).status, 0);
+  const failed = run(assess, root);
+  assert.equal(failed.status, 1, failed.stderr);
+  const result = JSON.parse(readFileSync(output));
+  assert.equal(result.status, 'failed');
+  assert(result.failures.some(reason => reason.includes('reported public/package/cleanup failure')));
+  assert.equal(result.releaseAccepted, false);
+  const closedAlternative = spawnSync(process.execPath,
+    ['scripts/operation-performance.mjs', '--priority-transition',
+      join(root, 'ordinary-priority/input.json'), '--native-sqlite-control', 'unused',
+      '--native-sqlite-protocol', 'unused'], {encoding: 'utf8', timeout: 5000});
+  assert.equal(closedAlternative.status, 2);
+  assert.match(closedAlternative.stderr, /Unknown or duplicate assessment option/u);
 });

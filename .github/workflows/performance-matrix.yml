@@ -358,10 +358,9 @@ jobs:
           assert.match(sourceSha, /^[0-9a-f]{40}$/);
           const root = join(process.env.RUNNER_TEMP, 'ordinary-priority');
           const input = {sourceSha, platforms: {node: [], python: []}};
-          const operations = ['first-init', 'cold-existing', 'warm-select', 'warm-result', 'warm-status'];
+          const operations = ['warm-select', 'warm-result'];
           const paths = {
-            node: ['warm', 'cold-existing', 'first-init'].map(operation =>
-              join(root, 'node', 'measurement', operation, 'measurements.json')),
+            node: [join(root, 'node', 'measurement', 'warm', 'measurements.json')],
             python: operations.map(operation => join(root, 'python',
               `ordinary-python-${operation}-${sourceSha}`, 'measurement', 'measurements.json')),
           };
