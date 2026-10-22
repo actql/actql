@@ -5119,7 +5119,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "1463c18134b2e2e71a07e7be7df50b31c9af879dc7cad5eed7ce8892629fd457",
+      "sha256": "7d3a5060ac3f368392f9e27cb0d82ddb6361d0796e4d2d67a0fcf438a7b70215",
       "exports": [
         "PublicationStoreError",
         "assertOriginalLocalPublicationStoreFacilityCurrent",
@@ -8171,13 +8171,6 @@
           "async": false
         },
         {
-          "name": "openOriginalLocalPublicationStore/updateTrustedClock/updateTrustedClock/operation/operation/operation#2",
-          "parameters": [
-            "field"
-          ],
-          "async": false
-        },
-        {
           "name": "openOriginalLocalPublicationStore/updateTrustedClock/updateTrustedClock/operation/operation/sameConfirmedInode/sameConfirmedInode",
           "parameters": [
             "field"
@@ -9442,6 +9435,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "### Indexed Run metadata retirement"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "### Trusted clock write observation"
               }
             ],
             "inputsOutputs": [
@@ -9504,6 +9501,10 @@
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "const runMetadataDeletionStarted = async runDefinitionCid => {"
+              },
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "lastClockObservation = {clockContractCid,state,value,checksummed:true};"
               }
             ],
             "identity": [
@@ -9574,6 +9575,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "metadata key, with an index over the original Run CID. Delivery and publication"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "post-close path state must agree in device, inode, size, modification and change"
               }
             ],
             "ownership": [
@@ -9636,6 +9641,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "A full deletion marker remains the original pending physical cleanup inventory."
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "and retry. The successful write is not reopened, parsed or hashed as a second"
               }
             ],
             "synchronization": [
@@ -9698,6 +9707,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "The full marker is then unlinked and its directory really acknowledged. A failed"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "assert.equal(opens,1);assert.equal(syncs,1);assert.equal(closes,1);"
               }
             ],
             "failure": [
@@ -9760,6 +9773,10 @@
               {
                 "path": "adapters/store-local/publication-store.test.mjs",
                 "anchor": "metadata deletion keeps the same cleanup after native retirement and lost marker directory ACK"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "trusted clock warm write refuses a changed original before accepting close"
               }
             ],
             "cancellation": [
@@ -9818,6 +9835,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "final ACK retains the same cleanup even if the marker is absent and the native"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "trusted clock warm write retains its original failed close and floor"
               }
             ],
             "resources": [
@@ -9880,6 +9901,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "Completed fences retain only metadata key, Run and retirement state, not the"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "the same successful write is not a second wire admission"
               }
             ],
             "extension": [
@@ -9942,6 +9967,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "An additive format transition reads prior full and compact marker files once,"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "and cold/legacy replacement protocol retain their existing post-ACK read; this"
               }
             ],
             "verification": [
@@ -10076,6 +10105,10 @@
               {
                 "path": "adapters/store-local/publication-store.test.mjs",
                 "anchor": "metadata deletion history is indexed once and unrelated Run operations read no marker bodies"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "trusted clock warm write consumes its typed value without reopening its own body"
               }
             ]
           }
@@ -10439,7 +10472,6 @@
             "openOriginalLocalPublicationStore/updateTrustedClock/updateTrustedClock",
             "openOriginalLocalPublicationStore/updateTrustedClock/updateTrustedClock/operation/operation",
             "openOriginalLocalPublicationStore/updateTrustedClock/updateTrustedClock/operation/operation/operation",
-            "openOriginalLocalPublicationStore/updateTrustedClock/updateTrustedClock/operation/operation/operation#2",
             "openOriginalLocalPublicationStore/updateTrustedClock/updateTrustedClock/operation/operation/sameConfirmedInode/sameConfirmedInode",
             "openOriginalLocalPublicationStore/updateTrustedClock/updateTrustedClock/updateTrustedClock",
             "openOriginalLocalPublicationStore/updateTrustedClock/updateTrustedClock/updateTrustedClock#2"
