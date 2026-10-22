@@ -7370,6 +7370,8 @@ async function openOriginalLocalPublicationStore(
   };
   const captureCustodyPath = run => resolve(captureCustodyDirectory,
     `${cidHex(run.identity)}.json`);
+  // One same-Store durability observation, not capture completion or authority.
+  let lastConfirmedEffectCaptureCustody;
   const readEffectCaptureCustody = async suppliedRun => {
     active();
     const run = captureCustodyRun(suppliedRun);
@@ -7414,19 +7416,37 @@ async function openOriginalLocalPublicationStore(
         }
         records.set(holding.holding_cid, holding);
       }
-      const bytes = Buffer.from(JSON.stringify({
+      const wire = JSON.stringify({
         version: 'actql-effect-capture-custody/0.1',
         store_authority_cid: configuration.storeAuthorityCid,
         run_definition: run.wire, holdings: [...records.values()],
-      }));
-      if (records.size > 4096 || bytes.length >
+      });
+      const byteLength = Buffer.byteLength(wire, 'utf8');
+      if (records.size > 4096 || byteLength >
           Math.min(configuration.maxObjectBytes, 16 * 1024 * 1024)) {
         fail('EffectCaptureCustodyLimitExceeded');
       }
+      const path = captureCustodyPath(run);
+      const confirmed = lastConfirmedEffectCaptureCustody;
+      if (previous !== undefined && confirmed?.wire === wire) {
+        const current = await lstat(path, {bigint: true});
+        if (current.isFile() &&
+            ['dev', 'ino', 'size', 'mtimeNs', 'ctimeNs']
+              .every(field => current[field] === confirmed.state[field])) return;
+      }
+      // A failed write/sync/close never publishes or preserves this observation.
+      // A changed body, replacement allocation or new Store uses real I/O.
+      lastConfirmedEffectCaptureCustody = undefined;
+      const bytes = Buffer.from(wire, 'utf8');
       const staging = resolve(stagingDirectory, `object-${randomUUID()}`);
       await writeExclusive(staging, bytes);
-      await rename(staging, captureCustodyPath(run));
+      await rename(staging, path);
       await syncDirectory(captureCustodyDirectory);
+      const state = await lstat(path, {bigint: true});
+      if (!state.isFile() || state.size !== BigInt(byteLength)) {
+        fail('InvalidEffectCaptureCustody');
+      }
+      lastConfirmedEffectCaptureCustody = {wire, state};
     });
   };
   const listEffectCaptureCustodies = async ({after = '', limit = 100} = {}) => {
@@ -7464,6 +7484,7 @@ async function openOriginalLocalPublicationStore(
     active();
     const run = captureCustodyRun(suppliedRun);
     await readEffectCaptureCustody(run);
+    lastConfirmedEffectCaptureCustody = undefined;
     try { await unlink(captureCustodyPath(run)); }
     catch (error) { if (error?.code !== 'ENOENT') throw error; }
     await syncDirectory(captureCustodyDirectory);
@@ -8502,6 +8523,7 @@ async function openOriginalLocalPublicationStore(
         closed = true;
         configuration.privateEvidenceKey?.fill(0);
         originalInstallationPublicationStorageBinding = undefined;
+        lastConfirmedEffectCaptureCustody = undefined;
         return true;
       }).finally(() => { closeFlight = undefined; });
       return closeFlight;
