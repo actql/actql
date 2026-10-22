@@ -1423,6 +1423,27 @@ test('trusted clock warm write retains its original failed close and floor',asyn
   assert.equal((await store.readClockObservation(cids.scope)).observedAt,next);
 });
 
+test('prepared payload cleanup reuses installed directory acknowledgement before its real unlink ACK',async t=>{
+  const directory=await mkdtemp(join(tmpdir(),'actql-prepared-capacity-ack-'));
+  t.after(()=>removeFixtureDirectory(directory));
+  let objectAcks=0;
+  const store=await openLocalPublicationStore({directory,storeAuthorityCid:cids.authority,
+    capacityBytes:1024,maxObjectBytes:1024,maxObjects:10,
+    maxContractNodes:limits.maxNodes,maxContractDepth:limits.maxDepth},contractControl,{
+    async syncDirectory(path){
+      if(path===join(directory,'objects'))objectAcks++;
+      const handle=await open(path,'r');try{await handle.sync();}finally{await handle.close();}
+    },
+  });
+  objectAcks=0;
+  const writer=store.createPreparedObjectWriter(7);await writer.append('payload');
+  const prepared=await writer.seal(digest('payload'));assert.equal(objectAcks,1);
+  await prepared.prepared.release();
+  assert.equal(store.status().storedBytes,0);
+  assert.equal(objectAcks,2,'the known installation ACK is not repeated before the separate unlink ACK');
+  await store.close();
+});
+
 test('prepared payload holdings reclaim only the final uncommitted owner',
   async t => {
     const {store} = await fixture(t);
