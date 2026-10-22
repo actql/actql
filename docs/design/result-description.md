@@ -165,6 +165,13 @@ receiver. Captured and recovered Site callers propagate that failure instead
 of issuing another interrupted-apply completion. This does not mark the Run
 committed or acknowledge storage; the original cleanup confirms only its own
 physical mutation, with current authority and Run reconciliation still separate.
+If an append loses its native progress COMMIT reply, the same publication call
+may confirm that exact mutation once through its retained cleanup receiver.
+It continues only after the original cleanup retires and the same Store admits
+the complete expected latest record. The issued record, Receipt and attempt
+are reused; no Effect dispatch or publication reissue occurs. Failed or pending
+confirmation, a missing record, or any differing record retains the original
+failure. Healthy appends perform no confirming reread.
 Run metadata retirement selects its indexed attempts and records, removes
 their actual bodies, and retires their locators with the existing Run fence.
 

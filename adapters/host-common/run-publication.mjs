@@ -252,7 +252,27 @@ async function appendState(
     cleanupOwnerCids: [],
     uncommittedConfirmed,
   }, limits);
-  await store.appendRecord(record.wire, {uncommittedConfirmed});
+  try {
+    await store.appendRecord(record.wire, {uncommittedConfirmed});
+  } catch (primary) {
+    // Confirm only this native progress mutation, never repeat apply or issue
+    // another Receipt. Cleanup retirement alone does not prove record storage:
+    // the same Store must also admit the exact selected original afterward.
+    if (member(primary, 'code') !== 'PublicationMetadataCommitOutcomeUnknown' ||
+        member(primary, 'outcome') !== 'unknown') throw primary;
+    const cleanup = member(primary, 'cleanupHandle');
+    const retry = member(cleanup, 'retry'), status = member(cleanup, 'status');
+    const observe = member(store, 'latestRecordContract');
+    if (typeof retry !== 'function' || typeof status !== 'function' ||
+        typeof observe !== 'function') throw primary;
+    try {
+      await Reflect.apply(retry, cleanup, []);
+      if (member(Reflect.apply(status, cleanup, []), 'pending') !== false) throw primary;
+      const confirmed = await Reflect.apply(observe, store, [attempt.identity]);
+      if (confirmed?.name !== record.name || confirmed.identity !== record.identity ||
+          confirmed.identityField !== record.identityField || confirmed.wire !== record.wire) throw primary;
+    } catch { throw primary; }
+  }
   return record;
 }
 

@@ -3427,6 +3427,47 @@ test(`publication caller continues its exact ${afterCommit ? 'committed' : 'roll
 });
 }
 
+for (const boundary of ['generic-error', 'missing-cleanup', 'retry-failure', 'still-pending', 'missing-record', 'foreign-record', 'changed-wire']) {
+test(`publication progress confirmation preserves the original failure for ${boundary}`, async () => {
+  const attempt = publicationAttempt(publicationRequest(), `confirmation-${boundary}`);
+  const record = publicationRecord(attempt, 0, 'preparing');
+  const original = contractControl.admit('publication_record', wire(record), limits);
+  let retries = 0, reads = 0;
+  const cleanup = {status: () => ({pending: boundary === 'still-pending'}), async retry() {
+    assert.equal(this, cleanup); retries++;
+    if (boundary === 'retry-failure') throw new Error('OriginalConfirmationUnavailable');
+  }};
+  const primary = Object.assign(new Error('OriginalProgressFailure'), {
+    code: boundary === 'generic-error' ? 'EIO' : 'PublicationMetadataCommitOutcomeUnknown',
+    outcome: 'unknown', cleanupPending: true,
+    ...(boundary === 'missing-cleanup' ? {} : {cleanupHandle: cleanup})});
+  const store = {async appendRecord() {throw primary;}, async latestRecordContract() {
+    assert.equal(this, store); reads++;
+    if (boundary === 'missing-record') return undefined;
+    return {...original, ...(boundary === 'foreign-record' ? {identity: digest('foreign')} : {}),
+      ...(boundary === 'changed-wire' ? {wire: original.wire + ' '} : {})};
+  }};
+  await assert.rejects(appendOriginalPublicationState(store,
+    {issuePublicationRecord: () => original}, {identity: attempt.publication_attempt_cid},
+    undefined, 'preparing', record.observed_at, limits), error => error === primary);
+  assert.equal(retries, ['generic-error', 'missing-cleanup'].includes(boundary) ? 0 : 1);
+  assert.equal(reads, ['missing-record', 'foreign-record', 'changed-wire'].includes(boundary) ? 1 : 0);
+});
+}
+
+test('healthy publication progress needs no cleanup retry or confirming reread', async () => {
+  const attempt = publicationAttempt(publicationRequest(), 'healthy-original-caller');
+  const record = publicationRecord(attempt, 0, 'preparing');
+  const original = contractControl.admit('publication_record', wire(record), limits);
+  let writes = 0, issued = 0;
+  const result = await appendOriginalPublicationState({
+    async appendRecord(body) {writes++; assert.equal(body, original.wire);},
+    latestRecordContract() {assert.fail('No extra selected read after a healthy append');}},
+  {issuePublicationRecord() {issued++; return original;}}, {identity: attempt.publication_attempt_cid},
+  undefined, 'preparing', record.observed_at, limits);
+  assert.equal(result, original); assert.equal(writes, 1); assert.equal(issued, 1);
+});
+
 test('publication progress persists its incoming admitted contract once per operation',async t=>{
   const admissions=new Map();
   const control={...contractControl,admit(name,body,bounds){
