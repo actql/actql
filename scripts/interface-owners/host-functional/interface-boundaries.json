@@ -8242,7 +8242,7 @@
     {
       "module": "adapters/host-common/run-publication.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "706af3e96bbc17f2fab9f65e7ea9bfc90aba9f8ab5af1540bf599179a68969af",
+      "sha256": "735d7e708c3dccdeda2f024019ec9d29dee449c03c7bc9cb2cae7d25ddaf259d",
       "role": "physical-io",
       "owner": "Existing Run Publication/Artifact Owners and physical Store sequencing",
       "exports": [
@@ -8268,7 +8268,8 @@
             "attempt",
             "signal",
             "now",
-            "limits"
+            "limits",
+            "prepared"
           ],
           "async": true
         },
@@ -8718,6 +8719,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "The optional complete publication start also joins the immutable setup bodies,"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "An already-started attempt retains its existing progress."
               }
             ],
             "inputsOutputs": [
@@ -9008,6 +9013,14 @@
               {
                 "path": "adapters/store-local/publication-store.test.mjs",
                 "anchor": "publication start caller confirms its original"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "publication start preserves existing"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "existing publication start confirms only its"
               }
             ]
           }

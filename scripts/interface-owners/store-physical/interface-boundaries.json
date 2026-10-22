@@ -5959,7 +5959,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "62191c4f08690936e3c6ed6157335a287bfbf0e4f7b0f46ee83c7084b4715fd7",
+      "sha256": "acd437cafe823f42e45387bd2d3618655ea6b4de67a48e31b7d68c6c1e8be0df",
       "exports": [
         "PublicationStoreError",
         "assertOriginalLocalPublicationStoreFacilityCurrent",
@@ -6421,13 +6421,6 @@
         {
           "name": "openOriginalLocalPublicationStore/beginPublicationAttempt/beginPublicationAttempt/beginPublicationAttempt",
           "parameters": [
-            "original"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/beginPublicationAttempt/beginPublicationAttempt/beginPublicationAttempt/beginPublicationAttempt",
-          "parameters": [
             "contract"
           ],
           "async": false
@@ -6435,21 +6428,23 @@
         {
           "name": "openOriginalLocalPublicationStore/beginPublicationAttempt/beginPublicationAttempt/beginPublicationAttempt#2",
           "parameters": [
-            "value"
+            "contract"
           ],
           "async": false
         },
         {
           "name": "openOriginalLocalPublicationStore/beginPublicationAttempt/beginPublicationAttempt/beginPublicationAttempt#3",
           "parameters": [
-            "contract"
+            "name"
           ],
           "async": false
         },
         {
           "name": "openOriginalLocalPublicationStore/beginPublicationAttempt/beginPublicationAttempt/beginPublicationAttempt#4",
           "parameters": [
-            "value"
+            "contract",
+            "value",
+            "sequence"
           ],
           "async": false
         },
@@ -6461,18 +6456,30 @@
           "async": false
         },
         {
-          "name": "openOriginalLocalPublicationStore/beginPublicationAttempt/beginPublicationAttempt/selected/selected",
+          "name": "openOriginalLocalPublicationStore/beginPublicationAttempt/beginPublicationAttempt/combined/combined",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/beginPublicationAttempt/beginPublicationAttempt/combined/combined/combined",
           "parameters": [
             "contract"
           ],
           "async": false
         },
         {
-          "name": "openOriginalLocalPublicationStore/beginPublicationAttempt/beginPublicationAttempt/stored/stored",
+          "name": "openOriginalLocalPublicationStore/beginPublicationAttempt/beginPublicationAttempt/prior/prior",
           "parameters": [
-            "contract",
-            "value",
-            "sequence"
+            "contract"
+          ],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/beginPublicationAttempt/beginPublicationAttempt/selected/selected",
+          "parameters": [
+            "contract"
           ],
           "async": false
         },
@@ -10198,9 +10205,10 @@
             "openOriginalLocalPublicationStore/beginPublicationAttempt/beginPublicationAttempt/beginPublicationAttempt#3",
             "openOriginalLocalPublicationStore/beginPublicationAttempt/beginPublicationAttempt/beginPublicationAttempt#4",
             "openOriginalLocalPublicationStore/beginPublicationAttempt/beginPublicationAttempt/beginPublicationAttempt#5",
-            "openOriginalLocalPublicationStore/beginPublicationAttempt/beginPublicationAttempt/beginPublicationAttempt/beginPublicationAttempt",
+            "openOriginalLocalPublicationStore/beginPublicationAttempt/beginPublicationAttempt/combined/combined",
+            "openOriginalLocalPublicationStore/beginPublicationAttempt/beginPublicationAttempt/combined/combined/combined",
+            "openOriginalLocalPublicationStore/beginPublicationAttempt/beginPublicationAttempt/prior/prior",
             "openOriginalLocalPublicationStore/beginPublicationAttempt/beginPublicationAttempt/selected/selected",
-            "openOriginalLocalPublicationStore/beginPublicationAttempt/beginPublicationAttempt/stored/stored",
             "openOriginalLocalPublicationStore/beginPublicationAttemptWithRecords/beginPublicationAttemptWithRecords",
             "openOriginalLocalPublicationStore/bindMetadataContractObjects/bindMetadataContractObjects",
             "openOriginalLocalPublicationStore/bootstrap/bootstrap",
@@ -10787,6 +10795,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "The optional complete publication start also joins the immutable setup bodies,"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "An already-started attempt retains its existing progress."
               }
             ],
             "inputsOutputs": [
@@ -11993,6 +12005,14 @@
               {
                 "path": "adapters/store-local/publication-store.test.mjs",
                 "anchor": "publication start caller confirms its original"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "publication start preserves existing"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "existing publication start confirms only its"
               }
             ]
           }
