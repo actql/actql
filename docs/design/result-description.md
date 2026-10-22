@@ -140,6 +140,30 @@ file/native writes, synchronization, alias custody and cleanup keep their
 existing checks. No admitted-object argument or successful-read cache is
 exposed to callers, and this reuse supplies no permission or durability ACK.
 
+New publication attempts and progress records use the existing exclusively
+owned Store SQLite database. The admitted immutable body, object/byte quota
+change and indexed attempt or sequence locator commit in one FULL/fullfsync
+transaction. Preparing a body alone does not advance progress. The sequence
+mutation compares the exact selected predecessor inside that transaction;
+the locator is private persistence metadata, not authorization or a second
+publication authority. Selected reads admit the referenced body and check its
+attempt and sequence. Ordinary reads do not scan unrelated attempts.
+
+No duplicate object file, semantic alias or attempt-directory ACK is required
+for those native originals. Independently adopted file originals keep their
+file protocol and actual ACKs; a native attempt may reference an existing
+file record without replacing or refunding that physical holding. Payload and
+public Index writes retain their separate real durability and cleanup duties.
+Lost COMMIT replies retain the same bodies, capacity reservation and sequence
+mutation for an idempotent same-database confirmation, never a Run replay.
+Run metadata retirement selects its indexed attempts and records, removes
+their actual bodies, and retires their locators with the existing Run fence.
+
+The private database format adds the attempt/sequence tables in one bounded
+schema transition. Existing file progress is not imported or re-admitted on
+every open. Missing adopted tables or index refuse rather than recreating
+progress or treating missing coverage as an absent publication.
+
 Preparing a Result schema that already has an immutable semantic owner acquires
 and validates that schema's selected file original, then retains a holder in the
 same Store. It does not create another allocation or rewrite durable preparation

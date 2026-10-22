@@ -4138,7 +4138,7 @@
     {
       "module": "adapters/store-local/delivery-attempt-index.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "2608105cb0f9ccaaa14bf522792917479a005372d1919cc767197e3f3fa99c0c",
+      "sha256": "e82e34fe5e11412c4e15a5aa78d1671646b6ffbe3125bc44d62f897498753045",
       "exports": [
         "openDeliveryAttemptIndex"
       ],
@@ -4380,6 +4380,13 @@
           "async": false
         },
         {
+          "name": "openDeliveryAttemptIndex/init:latestPublicationRecord/init:latestPublicationRecord",
+          "parameters": [
+            "attemptCid"
+          ],
+          "async": false
+        },
+        {
           "name": "openDeliveryAttemptIndex/init:lookup/init:lookup",
           "parameters": [
             "key"
@@ -4545,9 +4552,44 @@
           "async": false
         },
         {
+          "name": "openDeliveryAttemptIndex/init:publicationAttempt/init:publicationAttempt",
+          "parameters": [
+            "attemptCid"
+          ],
+          "async": false
+        },
+        {
+          "name": "openDeliveryAttemptIndex/init:publicationAttemptsForRun/init:publicationAttemptsForRun",
+          "parameters": [
+            "runCid"
+          ],
+          "async": false
+        },
+        {
+          "name": "openDeliveryAttemptIndex/init:publicationAttemptsForRun/init:publicationAttemptsForRun/init:publicationAttemptsForRun",
+          "parameters": [
+            "row"
+          ],
+          "async": false
+        },
+        {
           "name": "openDeliveryAttemptIndex/init:publicationContract/init:publicationContract",
           "parameters": [
             "semanticCid"
+          ],
+          "async": false
+        },
+        {
+          "name": "openDeliveryAttemptIndex/init:publicationRecords/init:publicationRecords",
+          "parameters": [
+            "attemptCid"
+          ],
+          "async": false
+        },
+        {
+          "name": "openDeliveryAttemptIndex/init:publicationRecords/init:publicationRecords/init:publicationRecords",
+          "parameters": [
+            "row"
           ],
           "async": false
         },
@@ -4560,7 +4602,8 @@
           "name": "openDeliveryAttemptIndex/init:putPublicationContracts/init:putPublicationContracts",
           "parameters": [
             "entries",
-            "allowance"
+            "allowance",
+            "progress"
           ],
           "async": false
         },
@@ -4826,6 +4869,11 @@
           "async": false
         },
         {
+          "name": "openDeliveryAttemptIndex/openDeliveryAttemptIndex#16",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "openDeliveryAttemptIndex/openDeliveryAttemptIndex#2",
           "parameters": [],
           "async": false
@@ -4917,6 +4965,13 @@
           "async": false
         },
         {
+          "name": "openDeliveryAttemptIndex/progressCopy/progressCopy",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
           "name": "openDeliveryAttemptIndex/publicationCopy/publicationCopy",
           "parameters": [
             "row"
@@ -4928,7 +4983,8 @@
           "parameters": [
             "kind",
             "entries",
-            "allowance"
+            "allowance",
+            "suppliedProgress"
           ],
           "async": false
         },
@@ -5054,6 +5110,21 @@
         },
         {
           "name": "openDeliveryAttemptIndex/samePhysical/samePhysical/samePhysical",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "openDeliveryAttemptIndex/sameProgress/sameProgress",
+          "parameters": [
+            "a",
+            "b"
+          ],
+          "async": false
+        },
+        {
+          "name": "openDeliveryAttemptIndex/sameProgress/sameProgress/sameProgress",
           "parameters": [
             "key"
           ],
@@ -5282,7 +5353,17 @@
             "openDeliveryAttemptIndex/openDeliveryAttemptIndex#13",
             "openDeliveryAttemptIndex/openDeliveryAttemptIndex#14",
             "openDeliveryAttemptIndex/openDeliveryAttemptIndex#15",
-            "openDeliveryAttemptIndex/run/run/result/result"
+            "openDeliveryAttemptIndex/run/run/result/result",
+            "openDeliveryAttemptIndex/init:latestPublicationRecord/init:latestPublicationRecord",
+            "openDeliveryAttemptIndex/init:publicationAttempt/init:publicationAttempt",
+            "openDeliveryAttemptIndex/init:publicationAttemptsForRun/init:publicationAttemptsForRun",
+            "openDeliveryAttemptIndex/init:publicationAttemptsForRun/init:publicationAttemptsForRun/init:publicationAttemptsForRun",
+            "openDeliveryAttemptIndex/init:publicationRecords/init:publicationRecords",
+            "openDeliveryAttemptIndex/init:publicationRecords/init:publicationRecords/init:publicationRecords",
+            "openDeliveryAttemptIndex/openDeliveryAttemptIndex#16",
+            "openDeliveryAttemptIndex/progressCopy/progressCopy",
+            "openDeliveryAttemptIndex/sameProgress/sameProgress",
+            "openDeliveryAttemptIndex/sameProgress/sameProgress/sameProgress"
           ],
           "exports": [
             "openDeliveryAttemptIndex"
@@ -5320,6 +5401,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "retain the exact bounded completion original and include its removal in the next"
+              },
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "New publication attempts and progress records use the existing exclusively"
               }
             ],
             "inputsOutputs": [
@@ -5337,7 +5422,7 @@
               },
               {
                 "path": "adapters/store-local/delivery-attempt-index.mjs",
-                "anchor": "putPublicationContracts(entries, allowance) { return publicationMutation('put',entries,allowance); },"
+                "anchor": "putPublicationContracts(entries, allowance, progress) { return publicationMutation('put',entries,allowance,progress); },"
               },
               {
                 "path": "adapters/store-local/delivery-attempt-index.mjs",
@@ -5362,6 +5447,10 @@
               {
                 "path": "adapters/store-local/delivery-attempt-index.mjs",
                 "anchor": "retainPublicationInventoryFinish(value) {"
+              },
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "the locator is private persistence metadata, not authorization or a second"
               }
             ],
             "identity": [
@@ -5396,6 +5485,10 @@
               {
                 "path": "adapters/store-local/delivery-attempt-index.mjs",
                 "anchor": "if (!sameRecoveryOriginal(recoveryOriginal(row), original)) fail('PublicationMetadataInventoryConflict');"
+              },
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "attempt and sequence. Ordinary reads do not scan unrelated attempts."
               }
             ],
             "ownership": [
@@ -5405,7 +5498,7 @@
               },
               {
                 "path": "adapters/store-local/delivery-attempt-index.mjs",
-                "anchor": "if (error?.outcome === 'unknown') uncertainPublication = Object.freeze({kind,entries:originals});"
+                "anchor": "if (error?.outcome === 'unknown') uncertainPublication = Object.freeze({kind,entries:originals,progress});"
               },
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
@@ -5430,6 +5523,10 @@
               {
                 "path": "adapters/store-local/delivery-attempt-index.mjs",
                 "anchor": "retirePublicationFinishReferences = () => retainedPublicationFinishes.clear();"
+              },
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "file record without replacing or refunding that physical holding. Payload and"
               }
             ],
             "synchronization": [
@@ -5464,6 +5561,10 @@
               {
                 "path": "adapters/store-local/delivery-attempt-index.mjs",
                 "anchor": "const result = transaction.run(() => {"
+              },
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "transaction. Preparing a body alone does not advance progress. The sequence"
               }
             ],
             "failure": [
@@ -5502,6 +5603,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "Lost replies retain them for the same"
+              },
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "Lost COMMIT replies retain the same bodies, capacity reservation and sequence"
               }
             ],
             "cancellation": [
@@ -5536,6 +5641,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "close performs the real completion write; an existing physical-quota seal can"
+              },
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "mutation for an idempotent same-database confirmation, never a Run replay."
               }
             ],
             "resources": [
@@ -5570,6 +5679,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "The retained map is bounded by the existing pending-entry and wire limits; it"
+              },
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "owned Store SQLite database. The admitted immutable body, object/byte quota"
               }
             ],
             "extension": [
@@ -5604,6 +5717,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "barrier count. Strict recovery completion remains immediately durable."
+              },
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "progress or treating missing coverage as an absent publication."
               }
             ],
             "verification": [
@@ -5654,6 +5771,10 @@
               {
                 "path": "adapters/store-local/delivery-attempt-index.test.mjs",
                 "anchor": "test('publication completion batch joins the next required native transaction', async t => {"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "test('native publication progress commits a real Index and retires only the selected Run metadata',async t=>{"
               }
             ]
           }
@@ -5663,7 +5784,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "5f9b6b6e00304b4c8e3e8a51fcd8e539f7a653b8576e43223cb7e0ca96929661",
+      "sha256": "21d6389d6ede1b415e2a67214e804f66a48fe5ff39bc58f97188302973f92ad0",
       "exports": [
         "PublicationStoreError",
         "assertOriginalLocalPublicationStoreFacilityCurrent",
@@ -7808,7 +7929,8 @@
         {
           "name": "openOriginalLocalPublicationStore/putNativePublicationContracts/putNativePublicationContracts",
           "parameters": [
-            "admitted"
+            "admitted",
+            "progress"
           ],
           "async": true
         },
@@ -7830,6 +7952,13 @@
         {
           "name": "openOriginalLocalPublicationStore/putNativePublicationContracts/putNativePublicationContracts/init:retry/init:retry/init:retry#2",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/putNativePublicationContracts/putNativePublicationContracts/putNativePublicationContracts",
+          "parameters": [
+            "result"
+          ],
           "async": false
         },
         {
@@ -10105,7 +10234,8 @@
             "writeExclusive",
             "openOriginalLocalPublicationStore/confirmCommittedIndexOriginal/confirmCommittedIndexOriginal",
             "openOriginalLocalPublicationStore/readCommittedPublication/readCommittedPublication",
-            "openOriginalLocalPublicationStore/putAdmittedPublicationContract/putAdmittedPublicationContract"
+            "openOriginalLocalPublicationStore/putAdmittedPublicationContract/putAdmittedPublicationContract",
+            "openOriginalLocalPublicationStore/putNativePublicationContracts/putNativePublicationContracts/putNativePublicationContracts"
           ],
           "exports": [
             "PublicationStoreError",
@@ -10220,6 +10350,10 @@
               {
                 "path": "docs/design/result-description.md",
                 "anchor": "The Store's incoming publication-attempt and progress-record operations admit"
+              },
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "New publication attempts and progress records use the existing exclusively"
               }
             ],
             "inputsOutputs": [
@@ -10257,7 +10391,7 @@
               },
               {
                 "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "const putNativePublicationContracts = async admitted => {"
+                "anchor": "const putNativePublicationContracts = async (admitted, progress) => {"
               },
               {
                 "path": "adapters/store-local/publication-store.mjs",
@@ -10322,6 +10456,10 @@
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "const putAdmittedPublicationContract = async (contract, value) => {"
+              },
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "the locator is private persistence metadata, not authorization or a second"
               }
             ],
             "identity": [
@@ -10432,6 +10570,10 @@
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "const semanticCid = contract.identity;"
+              },
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "attempt and sequence. Ordinary reads do not scan unrelated attempts."
               }
             ],
             "ownership": [
@@ -10534,6 +10676,10 @@
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "// Only this Store's private incoming-contract admission supplies these"
+              },
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "file record without replacing or refunding that physical holding. Payload and"
               }
             ],
             "synchronization": [
@@ -10571,7 +10717,7 @@
               },
               {
                 "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "const usage = deliveryIndex.putPublicationContracts(originalEntries,allowance);"
+                "anchor": "const usage = deliveryIndex.putPublicationContracts(originalEntries,allowance,progress);"
               },
               {
                 "path": "adapters/store-local/publication-store.mjs",
@@ -10636,6 +10782,10 @@
               {
                 "path": "docs/design/result-description.md",
                 "anchor": "file/native writes, synchronization, alias custody and cleanup keep their"
+              },
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "transaction. Preparing a body alone does not advance progress. The sequence"
               }
             ],
             "failure": [
@@ -10738,6 +10888,10 @@
               {
                 "path": "docs/design/result-description.md",
                 "anchor": "previous records, transition/sequence conflicts, semantic identity and actual"
+              },
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "Lost COMMIT replies retain the same bodies, capacity reservation and sequence"
               }
             ],
             "cancellation": [
@@ -10836,6 +10990,10 @@
               {
                 "path": "docs/design/result-description.md",
                 "anchor": "exposed to callers, and this reuse supplies no permission or durability ACK."
+              },
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "mutation for an idempotent same-database confirmation, never a Run replay."
               }
             ],
             "resources": [
@@ -10938,6 +11096,10 @@
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "...await putSemantic(contract.wire, semanticCid),"
+              },
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "owned Store SQLite database. The admitted immutable body, object/byte quota"
               }
             ],
             "extension": [
@@ -11040,6 +11202,10 @@
               {
                 "path": "docs/design/result-description.md",
                 "anchor": "supplied wire, and each new operation performs its own admission. Selected"
+              },
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "progress or treating missing coverage as an absent publication."
               }
             ],
             "verification": [
@@ -11214,6 +11380,10 @@
               {
                 "path": "adapters/store-local/publication-store.test.mjs",
                 "anchor": "test('publication progress persists its incoming admitted contract once per operation',async t=>{"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "test('native publication progress commits a real Index and retires only the selected Run metadata',async t=>{"
               }
             ]
           }
