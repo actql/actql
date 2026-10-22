@@ -388,7 +388,7 @@ fn issue_client_effect_compilation_internal(
       value,
       task_graph.wire,
       task_graph.transformations,
-      material.wire,
+      material,
       max_facts,
       max_witnesses,
       max_wire_bytes,

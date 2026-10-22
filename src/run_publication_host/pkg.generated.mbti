@@ -2,6 +2,7 @@
 package "actql/actql/run_publication_host"
 
 import {
+  "actql/actql/canonical_json",
   "actql/actql/check_environment",
   "actql/actql/checkpoint_runtime",
   "actql/actql/client_source_publication",
@@ -2684,6 +2685,11 @@ pub(all) enum ClientEmptyInvocationBindingsIssue {
 } derive(Eq, @debug.Debug)
 
 pub struct ClientExecutionMaterial {
+  owner : PreparedClientProgram
+  body : @canonical_json.CanonicalValue
+  wire_bytes : Int
+  wire_nodes : Int
+  wire_depth : Int
   wire : String
   invocation_template_cid : String
   invocation_template_wire : String

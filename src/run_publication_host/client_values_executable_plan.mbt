@@ -185,7 +185,7 @@ fn issue_prepared_client_values_executable_plan_parts(
     value,
     graph.wire,
     graph.transformations,
-    material.wire,
+    material,
     max_facts,
     max_witnesses,
     max_wire_bytes,
@@ -268,7 +268,7 @@ fn issue_prepared_client_task_plan_parts(
     value,
     graph.wire,
     graph.transformations,
-    material.wire,
+    material,
     max_facts,
     max_witnesses,
     max_wire_bytes,
@@ -363,7 +363,7 @@ fn issue_prepared_client_executable_plan_with_parts(
   value : PreparedClientProgram,
   graph_wire : String,
   transformations : Array[ClientResultTransformation],
-  material_wire : String,
+  material : ClientExecutionMaterial,
   max_facts : Int,
   max_witnesses : Int,
   max_wire_bytes : Int,
@@ -417,8 +417,8 @@ fn issue_prepared_client_executable_plan_with_parts(
     @canonical.object_field(graph_value, "nodes") is Some(nodes) &&
     @canonical.object_field(graph_value, "data_edges") is Some(edges) &&
     @canonical.object_field(graph_value, "root_refs") is Some(roots) &&
-    parse_plan_identity_value(
-      material_wire, max_wire_bytes, max_nodes, max_depth,
+    client_execution_material_body(
+      material, value, max_wire_bytes, max_nodes, max_depth,
     )
     is Some(material_value) else {
     return Err(Encoding)
