@@ -8242,7 +8242,7 @@
     {
       "module": "adapters/host-common/run-publication.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "e7972a65506b760b3577b00ef9fb5e5f518208601777e4d6367dc18bb552e208",
+      "sha256": "735d7e708c3dccdeda2f024019ec9d29dee449c03c7bc9cb2cae7d25ddaf259d",
       "role": "physical-io",
       "owner": "Existing Run Publication/Artifact Owners and physical Store sequencing",
       "exports": [
@@ -8268,7 +8268,8 @@
             "attempt",
             "signal",
             "now",
-            "limits"
+            "limits",
+            "prepared"
           ],
           "async": true
         },
@@ -8370,6 +8371,17 @@
           "async": false
         },
         {
+          "name": "initialPublicationStates",
+          "parameters": [
+            "control",
+            "attempt",
+            "signal",
+            "now",
+            "limits"
+          ],
+          "async": false
+        },
+        {
           "name": "member/member",
           "parameters": [
             "value",
@@ -8382,7 +8394,8 @@
           "parameters": [
             "store",
             "contracts",
-            "attempt"
+            "attempt",
+            "initialRecords"
           ],
           "async": true
         },
@@ -8634,6 +8647,7 @@
             "finishResolvedCommit",
             "finishSupersededAttempt",
             "indexKey",
+            "initialPublicationStates",
             "member/member",
             "persistContracts",
             "persistContracts/persistContracts",
@@ -8701,6 +8715,14 @@
               {
                 "path": "docs/design/result-description.md",
                 "anchor": "For an unknown native setup outcome, the caller may confirm that same cleanup"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "The optional complete publication start also joins the immutable setup bodies,"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "An already-started attempt retains its existing progress."
               }
             ],
             "inputsOutputs": [
@@ -8718,7 +8740,7 @@
               },
               {
                 "path": "adapters/host-common/run-publication.mjs",
-                "anchor": "async function persistContracts(store, contracts, attempt) {"
+                "anchor": "async function persistContracts(store, contracts, attempt, initialRecords) {"
               },
               {
                 "path": "adapters/host-common/runtime-core.mjs",
@@ -8983,6 +9005,22 @@
               {
                 "path": "adapters/host-common/publication-contract-control.test.mjs",
                 "anchor": "test('initial publication group consumes actual Common originals and keeps the post-group cancellation boundary'"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "publication start retains setup and initial progress in one transaction:"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "publication start caller confirms its original"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "publication start preserves existing"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "existing publication start confirms only its"
               }
             ]
           }

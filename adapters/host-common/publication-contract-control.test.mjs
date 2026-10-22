@@ -438,8 +438,9 @@ test('initial publication group consumes actual Common originals and keeps the p
   const source = await readFile(new URL('./run-publication.mjs', import.meta.url), 'utf8');
   const ast = parse(source, {sourceType:'module', ecmaVersion:'latest'});
   const helper = ast.body.find(node=>node.type==='FunctionDeclaration' && node.id.name==='appendInitialStates');
+  const initial = ast.body.find(node=>node.type==='FunctionDeclaration' && node.id.name==='initialPublicationStates');
   const member = ast.body.find(node=>node.type==='VariableDeclaration' && node.declarations.some(item=>item.id.name==='member'));
-  const append = Function('fail', source.slice(member.start,member.end)+'\n'+source.slice(helper.start,helper.end)+'\nreturn appendInitialStates;')(
+  const append = Function('fail', source.slice(member.start,member.end)+'\n'+source.slice(initial.start,initial.end)+'\n'+source.slice(helper.start,helper.end)+'\nreturn appendInitialStates;')(
     code=>{throw Object.assign(new Error(code),{code});});
   let issued = 0;
   const observed = {...control, issuePublicationRecord(...args) {
@@ -454,6 +455,48 @@ test('initial publication group consumes actual Common originals and keeps the p
     state:'cancelled',observedAt:'2026-09-18T00:00:03.000Z',cleanupOwnerCids:[],uncommittedConfirmed:true,
   },limits);
   await store.appendRecord(cancelled.wire,{uncommittedConfirmed:true});
+  assert.equal((await store.latestRecord(attempt.identity)).state,'cancelled');
+});
+
+test('complete publication start consumes actual Common originals and preserves later cancellation', async t => {
+  const control = runtimeCore(moon).publicationControl;
+  const exec = DatabaseSync.prototype.exec;
+  let commits = 0, armed = false;
+  t.mock.method(DatabaseSync.prototype,'exec',function(sql) {
+    if(armed && sql==='COMMIT')commits++;
+    return Reflect.apply(exec,this,[sql]);
+  });
+  const attempt = control.seal('publication_attempt', JSON.stringify({
+    version:'actql-publication-attempt/0.1', publication_request_cid:cid('1'),
+    run_definition_cid:cid('2'), attempt_id:'actual-complete-start', fence_cid:cid('3'),
+    started_at:'2026-09-18T00:00:01.000Z',
+  }), limits);
+  const directory = await mkdtemp(join(tmpdir(),'actql-common-publication-start-'));
+  let store;
+  t.after(async () => {if (store !== undefined) await store.close(); await rm(directory,{recursive:true});});
+  store = await openLocalPublicationStore({directory,storeAuthorityCid:cid('5'),
+    capacityBytes:1024*1024,maxObjectBytes:65536,maxObjects:100,
+    maxContractNodes:4096,maxContractDepth:64},control);
+  const source = await readFile(new URL('./run-publication.mjs',import.meta.url),'utf8');
+  const ast = parse(source,{sourceType:'module',ecmaVersion:'latest'});
+  const declarations = ['initialPublicationStates','persistContracts','requireActiveAttempt','appendState']
+    .map(name => ast.body.find(node=>node.type==='FunctionDeclaration'&&node.id.name===name));
+  const member = ast.body.find(node=>node.type==='VariableDeclaration'&&node.declarations.some(item=>item.id.name==='member'));
+  const helpers = Function('fail',source.slice(member.start,member.end)+'\n'+
+    declarations.map(node=>source.slice(node.start,node.end)).join('\n')+
+    '\nreturn {initialPublicationStates,persistContracts,requireActiveAttempt};')(
+    code=>{throw Object.assign(new Error(code),{code});});
+  const cancellation = new AbortController();
+  const now = ()=>'2026-09-18T00:00:02.000Z';
+  const initial = helpers.initialPublicationStates(control,attempt,cancellation.signal,now,limits);
+  armed = true;
+  assert.equal(await helpers.persistContracts(store,[],attempt,initial.records),true);
+  assert.equal(commits,1);
+  assert.equal((await store.latestRecordContract(attempt.identity)).wire,initial.next.wire);
+  assert.equal(control.publicationAttemptAction(initial.next,false,false),'check_active');
+  cancellation.abort();
+  await assert.rejects(helpers.requireActiveAttempt(cancellation.signal,store,control,attempt,now,limits),{name:'AbortError'});
+  assert.equal(commits,2,'later cancellation remains a separate real durable mutation');
   assert.equal((await store.latestRecord(attempt.identity)).state,'cancelled');
 });
 
@@ -2327,6 +2370,10 @@ test('portable control validates Receipt and Captured Run references',
   let metadataBatches = 0, individualMetadataWrites = 0;
   const lostEffectfulStore = Object.freeze({
     ...effectfulStore,
+    async beginPublicationAttemptWithRecords(...args) {
+      metadataBatches++;
+      return Reflect.apply(effectfulStore.beginPublicationAttemptWithRecords, effectfulStore, args);
+    },
     async beginPublicationAttempt(...args) {
       metadataBatches++;
       return Reflect.apply(effectfulStore.beginPublicationAttempt, effectfulStore, args);
@@ -4359,6 +4406,11 @@ test('portable control validates Receipt and Captured Run references',
   const cancellation = new AbortController();
   const cancelledStore = Object.freeze({
     ...cancelledBase,
+    async beginPublicationAttemptWithRecords(...args) {
+      const value = await cancelledBase.beginPublicationAttemptWithRecords(...args);
+      cancellation.abort();
+      return value;
+    },
     async appendInitialPublicationRecords(records) {
       const value = await cancelledBase.appendInitialPublicationRecords(records);
       cancellation.abort();
