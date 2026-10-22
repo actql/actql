@@ -6015,7 +6015,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "f6d9573fdce23395042b252566188beb30a71c663baecc9700f141cbd3c33308",
+      "sha256": "b52246a1c99dae8577878d985916acffce312989574d0494dcf189b50f0b00c0",
       "exports": [
         "PublicationStoreError",
         "assertOriginalLocalPublicationStoreFacilityCurrent",
@@ -7582,6 +7582,13 @@
           "async": true
         },
         {
+          "name": "openOriginalLocalPublicationStore/forgetEffectCaptureCustodyOriginal/forgetEffectCaptureCustodyOriginal",
+          "parameters": [
+            "run"
+          ],
+          "async": true
+        },
+        {
           "name": "openOriginalLocalPublicationStore/init:close/init:close",
           "parameters": [],
           "async": false
@@ -8667,21 +8674,28 @@
           "async": true
         },
         {
-          "name": "openOriginalLocalPublicationStore/readEffectCaptureCustody/readEffectCaptureCustody/holdings/holdings",
+          "name": "openOriginalLocalPublicationStore/readEffectCaptureCustodyOriginal/readEffectCaptureCustodyOriginal",
+          "parameters": [
+            "run"
+          ],
+          "async": true
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/readEffectCaptureCustodyOriginal/readEffectCaptureCustodyOriginal/holdings/holdings",
           "parameters": [
             "value"
           ],
           "async": false
         },
         {
-          "name": "openOriginalLocalPublicationStore/readEffectCaptureCustody/readEffectCaptureCustody/readEffectCaptureCustody",
+          "name": "openOriginalLocalPublicationStore/readEffectCaptureCustodyOriginal/readEffectCaptureCustodyOriginal/readEffectCaptureCustodyOriginal",
           "parameters": [
             "value"
           ],
           "async": false
         },
         {
-          "name": "openOriginalLocalPublicationStore/readEffectCaptureCustody/readEffectCaptureCustody/readEffectCaptureCustody#2",
+          "name": "openOriginalLocalPublicationStore/readEffectCaptureCustodyOriginal/readEffectCaptureCustodyOriginal/readEffectCaptureCustodyOriginal#2",
           "parameters": [
             "value"
           ],
@@ -9234,6 +9248,13 @@
           "name": "openOriginalLocalPublicationStore/retainEffectCaptureCustody/retainEffectCaptureCustody/retainEffectCaptureCustody/records/records",
           "parameters": [
             "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/retainEffectCaptureCustody/retainEffectCaptureCustody/retainEffectCaptureCustody/retainEffectCaptureCustody",
+          "parameters": [
+            "field"
           ],
           "async": false
         },
@@ -10408,6 +10429,7 @@
             "openOriginalLocalPublicationStore/ensurePhysicalHoldingDeletion/ensurePhysicalHoldingDeletion",
             "openOriginalLocalPublicationStore/ensureResultDeletionMarker/ensureResultDeletionMarker",
             "openOriginalLocalPublicationStore/forgetEffectCaptureCustody/forgetEffectCaptureCustody",
+            "openOriginalLocalPublicationStore/forgetEffectCaptureCustodyOriginal/forgetEffectCaptureCustodyOriginal",
             "openOriginalLocalPublicationStore/init:close/init:close",
             "openOriginalLocalPublicationStore/init:close/init:close/init:close",
             "openOriginalLocalPublicationStore/init:close/init:close/init:close#2",
@@ -10534,9 +10556,10 @@
             "openOriginalLocalPublicationStore/readCommittedResultRetentionExtension/readCommittedResultRetentionExtension",
             "openOriginalLocalPublicationStore/readContract/readContract",
             "openOriginalLocalPublicationStore/readEffectCaptureCustody/readEffectCaptureCustody",
-            "openOriginalLocalPublicationStore/readEffectCaptureCustody/readEffectCaptureCustody/holdings/holdings",
-            "openOriginalLocalPublicationStore/readEffectCaptureCustody/readEffectCaptureCustody/readEffectCaptureCustody",
-            "openOriginalLocalPublicationStore/readEffectCaptureCustody/readEffectCaptureCustody/readEffectCaptureCustody#2",
+            "openOriginalLocalPublicationStore/readEffectCaptureCustodyOriginal/readEffectCaptureCustodyOriginal",
+            "openOriginalLocalPublicationStore/readEffectCaptureCustodyOriginal/readEffectCaptureCustodyOriginal/holdings/holdings",
+            "openOriginalLocalPublicationStore/readEffectCaptureCustodyOriginal/readEffectCaptureCustodyOriginal/readEffectCaptureCustodyOriginal",
+            "openOriginalLocalPublicationStore/readEffectCaptureCustodyOriginal/readEffectCaptureCustodyOriginal/readEffectCaptureCustodyOriginal#2",
             "openOriginalLocalPublicationStore/readJsonObject/readJsonObject",
             "openOriginalLocalPublicationStore/readLatestDeliveryRecordContract/readLatestDeliveryRecordContract/names/names",
             "openOriginalLocalPublicationStore/readLatestDeliveryRecordContract/readLatestDeliveryRecordContract/names/names#2",
@@ -10611,6 +10634,7 @@
             "openOriginalLocalPublicationStore/retainEffectCaptureCustody/retainEffectCaptureCustody/holdings/holdings",
             "openOriginalLocalPublicationStore/retainEffectCaptureCustody/retainEffectCaptureCustody/retainEffectCaptureCustody",
             "openOriginalLocalPublicationStore/retainEffectCaptureCustody/retainEffectCaptureCustody/retainEffectCaptureCustody/records/records",
+            "openOriginalLocalPublicationStore/retainEffectCaptureCustody/retainEffectCaptureCustody/retainEffectCaptureCustody/retainEffectCaptureCustody",
             "openOriginalLocalPublicationStore/retainPhysicalHoldingReader/retainPhysicalHoldingReader",
             "openOriginalLocalPublicationStore/retainPhysicalHoldingReader/retainPhysicalHoldingReader/retainPhysicalHoldingReader",
             "openOriginalLocalPublicationStore/retentionExtensionDirectory/retentionExtensionDirectory",
@@ -10863,6 +10887,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "The existing staging, prepared-schema staging, metadata-deletion staging and"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "Effect capture cleanup custody retains one bounded same-Store observation of"
               }
             ],
             "inputsOutputs": [
@@ -12093,6 +12121,18 @@
               {
                 "path": "adapters/store-local/publication-store.test.mjs",
                 "anchor": "opening staging cleanup does not return a Store after its directory acknowledgement fails"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "unchanged acknowledged Effect capture custody performs no repeated physical write"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "Effect capture custody never reuses failed acknowledgement or a replacement file"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "Effect capture custody changes and a fresh Store retain real durability"
               }
             ]
           }

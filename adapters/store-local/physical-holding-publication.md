@@ -171,6 +171,22 @@ grant, reservation, Owner or normal numerical profile is supplied here.
 
 ## Existing atomic metadata publication
 
+Effect capture cleanup custody retains one bounded same-Store observation of
+its last acknowledged record. A repeated update still admits its incoming Run
+and holdings, reads the selected current record and rejects conflicting
+holdings. It does not rewrite unchanged bytes when their device, inode, extent
+and modification/change timestamps still match the record installed after the
+actual file-sync, close and directory acknowledgement. Changed records,
+replacement files, failed acknowledgements and fresh Store instances retain
+the original physical write protocol. Forgetting the custody or successfully
+closing the Store clears this observation. It is not capture completion,
+permission, publication or a physical holding release acknowledgement.
+
+The admitted Run is an internal fact of each custody operation. Record reads
+and final custody unlink use that same original rather than admitting it again
+at a pure helper boundary. Retirement still validates the selected holdings and
+keeps their actual cleanup acknowledgement before removing the custody record.
+
 Physical holding creation, sharing and deletion intent use the existing Store's
 staging directory and exclusive hard-link publication. The complete original
 record is written, file-synced and closed before it receives a final name.
