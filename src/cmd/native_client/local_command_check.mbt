@@ -255,10 +255,10 @@ fn LocalCommandPreparationOriginal::execute_product_command(
     !settings.installation_files.contains("runtime.json") {
     stop("PackagedLocalRuntimeChanged")
   }
-  command_preparation_result(
-    self.stage_product(location.parent_path, location.directory_name, None),
-    stage=Some("product-current"),
-  )
+  // The same Product capture has already staged or restored these originals
+  // under its retained Lock. Internal runtime/settings reads do not start a
+  // second Product operation; the adoption Owner still binds their exact
+  // selection and observes current Account state before protected work.
   if optional(matches, "input-root") is None {
     matches.values["input-root"] = [
       @env.current_dir().unwrap_or_else(() => {

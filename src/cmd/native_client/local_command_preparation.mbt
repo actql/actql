@@ -1123,9 +1123,14 @@ fn LocalCommandPreparationOriginal::stage_product(
       product.open().map_err(issue => CommandAdoption(issue)),
     )
     |> ignore
-    command_preparation_value(
-      product.stage_configuration().map_err(issue => CommandAdoption(issue)),
-    )
+    // Restore already validates and stages the selected originals while
+    // holding this same Product Lock. Only an explicit initial selection
+    // reaches the constructor before its first staging attempt.
+    if originals is Some(_) {
+      command_preparation_value(
+        product.stage_configuration().map_err(issue => CommandAdoption(issue)),
+      )
+    }
     Ok(())
   } catch {
     LocalCommandPreparationStop(issue) => {

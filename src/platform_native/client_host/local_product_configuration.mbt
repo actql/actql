@@ -316,6 +316,9 @@ fn NativeLocalProductConfigurationSession::check_original(
 pub fn NativeLocalProductConfigurationSession::stage_configuration(
   self : NativeLocalProductConfigurationSession,
 ) -> Result[Unit, NativeLocalAdoptionIssue] {
+  // Diagnostic invocation count only; the public method still checks fresh
+  // originals on each explicit call and never caches an authorization result.
+  native_timing_count(58)
   match self.check_original() {
     Ok(_) => ()
     Err(issue) => return Err(issue)
