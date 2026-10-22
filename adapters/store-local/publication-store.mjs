@@ -3950,7 +3950,7 @@ async function openOriginalLocalPublicationStore(
       if (confirm) {
         // This exact metadata and both payloads belong to the same operation.
         // Confirmation still requires its original directory ACK and adoption.
-        await confirmPrivateHoldingRead(record);
+        await confirmPhysicalHoldingDirectory(record);
       }
       return Object.freeze({record, bytes});
     } finally {release();}
@@ -4108,13 +4108,36 @@ async function openOriginalLocalPublicationStore(
     return createAdmittedAttempt(admitContract('publication_attempt', suppliedWire));
   };
 
-  const beginPublicationAttempt = async (supplied, attemptOriginal) => {
+  const beginPublicationAttempt = async (supplied, attemptOriginal, initialRecords) => {
     if (!Array.isArray(supplied)) fail('InvalidPublicationContractWire');
+    if (initialRecords !== undefined && (!Array.isArray(initialRecords) || initialRecords.length !== 2)) {
+      fail('InvalidPublicationRecord');
+    }
     if (supplied.length >= configuration.maxObjects) fail('PublicationStoreObjectLimit');
     const admitted = admitPublicationContracts([...supplied, attemptOriginal], true);
     const selected = admitted.find(({contract}) => contract.identity === attemptOriginal.identity &&
       contract.name === 'publication_attempt');
     if (selected === undefined) fail('InvalidPublicationContract');
+    let records;
+    if (initialRecords !== undefined) {
+      records = admitPublicationContracts(initialRecords,true);
+      if (records.length !== 2 || records.some(({contract}) => contract.name !== 'publication_record')) fail('InvalidPublicationRecord');
+      const [first, second] = records;
+      if (first.value.publication_attempt_cid !== selected.contract.identity ||
+          second.value.publication_attempt_cid !== selected.contract.identity) fail('PublicationAttemptMismatch');
+      if (first.value.sequence !== 0 || first.value.state !== 'preparing' ||
+          second.value.sequence !== 1 || !['committing','cancelled'].includes(second.value.state) ||
+          contractControl.recordTransition(undefined,first.contract,false) !== true ||
+          contractControl.recordTransition(first.contract,second.contract,false) !== true) {
+        fail('InvalidPublicationRecordTransition');
+      }
+      for (const record of records) {
+        const prior=admitted.find(({contract})=>contract.identity===record.contract.identity);
+        if (prior!==undefined && (prior.contract.name!==record.contract.name || prior.contract.wire!==record.contract.wire)) {
+          fail('PublicationSemanticIdentityConflict');
+        }
+      }
+    }
     if (await runMetadataDeletionStarted(selected.value.run_definition_cid)) fail('PublicationMetadataDeleted');
     let fileAttempt = false;
     try { await lstat(contractPath(selected.contract.identity)); fileAttempt = true; }
@@ -4123,14 +4146,54 @@ async function openOriginalLocalPublicationStore(
     // Only an all-native setup joins the bodies and attempt locator in one
     // existing transaction; either path returns after its actual acknowledgements.
     if (fileAttempt || admitted.some(({contract}) => !nativePublicationContract(contract.name))) {
-      await putAdmittedPublicationContracts(admitted, true);
-      return createAdmittedAttempt(selected.contract, selected.value);
+      // Do not preinstall progress bodies as native metadata for a file-backed
+      // attempt: its original append path must still create and ACK the files
+      // that its sequence links select.
+      try {
+        await putAdmittedPublicationContracts(admitted, true);
+      } catch (error) {
+        // This original mutation contains setup only, not the proposed pair.
+        // Its caller must confirm exactly that group after a lost reply.
+        if (records !== undefined && error instanceof PublicationStoreError &&
+            error.code === 'PublicationMetadataCommitOutcomeUnknown' && error.outcome === 'unknown') {
+          Object.defineProperty(error,'publicationStartKind',{value:'setup'});
+        }
+        throw error;
+      }
+      const created = await createAdmittedAttempt(selected.contract, selected.value);
+      if (records !== undefined && !(await readdir(publicationAttemptPath(selected.contract.identity)))
+        .some(name => recordNamePattern.test(name))) await appendInitialPublicationRecords(initialRecords);
+      return created;
     }
-    const stored = await putAdmittedPublicationContracts(admitted, true,
-      Object.freeze({kind: 'attempt', attemptCid: selected.contract.identity,
-        runCid: selected.value.run_definition_cid}));
+    const existingProgress = records !== undefined &&
+      deliveryIndex.publicationAttempt(selected.contract.identity) !== undefined &&
+      deliveryIndex.latestPublicationRecord(selected.contract.identity) !== undefined;
+    const initial = existingProgress ? undefined : records;
+    const combined = initial === undefined ? admitted : [...admitted,
+      ...initial.filter(value => !admitted.some(({contract})=>contract.identity===value.contract.identity))];
+    if (combined.length > configuration.maxObjects) fail('PublicationStoreObjectLimit');
+    let stored;
+    try {
+      stored = await putAdmittedPublicationContracts(combined, true,
+      Object.freeze({kind: initial === undefined ? 'attempt' : 'initial-attempt',
+        attemptCid: selected.contract.identity, runCid: selected.value.run_definition_cid,
+        ...(initial === undefined ? {} : {records:Object.freeze(initial.map(({contract,value},sequence)=>
+          Object.freeze({previousCid:sequence === 0 ? null : records[0].contract.identity,
+            recordCid:contract.identity,sequence:value.sequence})))})}));
+    } catch (error) {
+      if (existingProgress && error instanceof PublicationStoreError &&
+          error.code === 'PublicationMetadataCommitOutcomeUnknown' && error.outcome === 'unknown') {
+        Object.defineProperty(error,'publicationStartKind',{value:'setup'});
+      }
+      throw error;
+    }
     return Object.freeze({attempt: selected.value,
       created: stored.find(value => value.semanticCid === selected.contract.identity).progressCreated});
+  };
+
+  const beginPublicationAttemptWithRecords = (supplied, attemptOriginal, records) => {
+    if (!Array.isArray(records) || records.length !== 2) fail('InvalidPublicationRecord');
+    return beginPublicationAttempt(supplied, attemptOriginal, records);
   };
 
   const latestRecordContract = async attemptCid => {
@@ -6881,10 +6944,7 @@ async function openOriginalLocalPublicationStore(
         fail('PublicationPhysicalHoldingConflict');
       }
       await verifyPhysicalHoldingObjects(current);
-      await syncDirectory(physicalHoldingsDirectory);
-      await adoptPreparedObjects([...new Set(
-        current.objects.map(object => object.cid),
-      )]);
+      await confirmPhysicalHoldingDirectory(current);
       return Object.freeze({record: current, created: false});
     }
     if (!Array.isArray(prepared)) {
@@ -6925,7 +6985,7 @@ async function openOriginalLocalPublicationStore(
       }
     }
     if (borrowedHoldingCids.length !== 0) {
-      await syncDirectory(physicalHoldingsDirectory);
+      await confirmPhysicalHoldingDirectory(record, false);
     }
     for (const [cid, bytes] of expected) {
       if (supplied.get(cid) !== bytes && borrowed.get(cid) !== bytes) {
@@ -6951,8 +7011,7 @@ async function openOriginalLocalPublicationStore(
         fail('PublicationPhysicalHoldingConflict');
       }
     }
-    await syncDirectory(physicalHoldingsDirectory);
-    await adoptPreparedObjects([...expected.keys()]);
+    await confirmPhysicalHoldingDirectory(record);
     return Object.freeze({record, created: true});
   };
 
@@ -7000,7 +7059,7 @@ async function openOriginalLocalPublicationStore(
         if (!exactUtf8WireMatches(stored, original.wire)) fail('PublicationPrivateEvidenceConflict');
         // The same serialized operation retains its actual read facts through
         // the real directory ACK, excluding retirement until adoption finishes.
-        await confirmPrivateHoldingRead(record);
+        await confirmPhysicalHoldingDirectory(record);
         return record;
       } finally {release();}
     });
@@ -7039,7 +7098,7 @@ async function openOriginalLocalPublicationStore(
           fail('PublicationPhysicalHoldingConflict');
         }
         await verifyPhysicalHoldingObjects(current);
-        await syncDirectory(physicalHoldingsDirectory);
+        await confirmPhysicalHoldingDirectory(current, false);
         return Object.freeze({record: current, created: false});
       }
       await verifyPhysicalHoldingObjects(source);
@@ -7058,7 +7117,7 @@ async function openOriginalLocalPublicationStore(
           fail('PublicationPhysicalHoldingConflict');
         }
       }
-      await syncDirectory(physicalHoldingsDirectory);
+      await confirmPhysicalHoldingDirectory(record, false);
       return Object.freeze({record, created: true});
     });
     materialRetentionBusy = operation.catch(() => {});
@@ -7103,14 +7162,14 @@ async function openOriginalLocalPublicationStore(
     };
   };
 
-  const confirmPrivateHoldingRead = async record => {
+  const confirmPhysicalHoldingDirectory = async (record, adopt = true) => {
     try {
       await syncDirectory(physicalHoldingsDirectory);
-      await adoptPreparedObjects(record.objects.map(object => object.cid));
+      if (adopt) await adoptPreparedObjects(record.objects.map(object => object.cid));
     } catch (primary) {
       const child = primary?.cleanupHandle;
       if (child === undefined) throw primary;
-      // The existing confirmation scope ends on rejection, but this SAME
+      // The existing publication scope ends on rejection, but this SAME
       // acquired directory FD still prevents Store and holding retirement.
       // Reuse the Store's failed-writer custody; cleanup confirms no evidence.
       const release = retainPhysicalHoldingReader(record.holding_cid);
@@ -8321,6 +8380,7 @@ async function openOriginalLocalPublicationStore(
     },
     createAttempt,
     beginPublicationAttempt,
+    beginPublicationAttemptWithRecords,
     latestRecord,
     latestRecordContract,
     appendRecord,
