@@ -278,6 +278,87 @@ fn issue_prepared_client_task_plan_parts(
 }
 
 ///|
+// Only the already admitted children of this invocation are retained here.
+// This is emission material, not a checked Plan or execution authority.
+priv struct ClientExecutablePlanBody {
+  fact_values : Array[@canonical.CanonicalValue]
+  limit_values : Array[@canonical.CanonicalValue]
+  binding_values : Array[@canonical.CanonicalValue]
+  witness_values : Array[@canonical.CanonicalValue]
+  nodes : @canonical.CanonicalValue
+  edges : @canonical.CanonicalValue
+  roots : @canonical.CanonicalValue
+  material_value : @canonical.CanonicalValue
+  manifest_cid : String
+  required_profiles : Array[(String, String)]
+}
+
+///|
+// The same ordered encoding feeds the existing bounded hash and text writers.
+// The full wire includes its identity; its budget is not the preimage budget.
+fn emit_client_executable_plan_body(
+  writer : @encode.Writer,
+  parts : ClientExecutablePlanBody,
+  cid : String?,
+) -> Unit raise @encode.EncodeFailure {
+  @encode.begin_object(writer)
+  @encode.key(writer, "bound_witnesses")
+  client_plan_emit_array(writer, parts.witness_values)
+  @encode.key(writer, "data_edges")
+  @canonical.emit_value(parts.edges, writer)
+  if cid is Some(identity) {
+    @encode.key(writer, "executable_plan_cid")
+    @encode.string_value(writer, identity)
+  }
+  @encode.key(writer, "execution_material")
+  @canonical.emit_value(parts.material_value, writer)
+  @encode.key(writer, "limit_bindings")
+  client_plan_emit_array(writer, parts.binding_values)
+  @encode.key(writer, "nodes")
+  @canonical.emit_value(parts.nodes, writer)
+  @encode.key(writer, "plan_fact_manifest_cid")
+  @encode.string_value(writer, parts.manifest_cid)
+  @encode.key(writer, "plan_facts")
+  client_plan_emit_array(writer, parts.fact_values)
+  @encode.key(writer, "required_profiles")
+  @encode.begin_array(writer)
+  for (profile_id, contract_cid) in parts.required_profiles {
+    @encode.begin_object(writer)
+    @encode.key(writer, "contract_cid")
+    @encode.string_value(writer, contract_cid)
+    @encode.key(writer, "profile_id")
+    @encode.string_value(writer, profile_id)
+    @encode.end_object(writer)
+  }
+  @encode.end_array(writer)
+  @encode.key(writer, "resolved_limits")
+  client_plan_emit_array(writer, parts.limit_values)
+  @encode.key(writer, "root_refs")
+  @canonical.emit_value(parts.roots, writer)
+  @encode.key(writer, "source_state_requirements")
+  @encode.begin_array(writer)
+  @encode.end_array(writer)
+  @encode.key(writer, "version")
+  @encode.string_value(writer, "actql-executable-plan/0.1")
+  @encode.end_object(writer)
+}
+
+///|
+fn finish_client_executable_plan_body(
+  parts : ClientExecutablePlanBody,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> (String, String) raise @encode.EncodeFailure {
+  let hash = @encode.hashing_writer(max_wire_bytes, max_nodes, max_depth)
+  emit_client_executable_plan_body(hash, parts, None)
+  let cid = "sha256:" + @encode.finish_hash(hash)
+  let writer = @encode.writer(max_wire_bytes, max_nodes, max_depth)
+  emit_client_executable_plan_body(writer, parts, Some(cid))
+  (@encode.finish(writer), cid)
+}
+
+///|
 fn issue_prepared_client_executable_plan_with_parts(
   value : PreparedClientProgram,
   graph_wire : String,
@@ -358,58 +439,23 @@ fn issue_prepared_client_executable_plan_with_parts(
     Ok(manifest) => manifest
     Err(issue) => return Err(FactManifest(issue))
   }
-  let writer = @encode.writer(max_wire_bytes, max_nodes, max_depth) catch {
-    _ => return Err(Encoding)
-  }
   try {
-    @encode.begin_object(writer)
-    @encode.key(writer, "bound_witnesses")
-    client_plan_emit_array(writer, witness_values)
-    @encode.key(writer, "data_edges")
-    @canonical.emit_value(edges, writer)
-    @encode.key(writer, "execution_material")
-    @canonical.emit_value(material_value, writer)
-    @encode.key(writer, "limit_bindings")
-    client_plan_emit_array(writer, binding_values)
-    @encode.key(writer, "nodes")
-    @canonical.emit_value(nodes, writer)
-    @encode.key(writer, "plan_fact_manifest_cid")
-    @encode.string_value(writer, manifest.cid)
-    @encode.key(writer, "plan_facts")
-    client_plan_emit_array(writer, fact_values)
-    @encode.key(writer, "required_profiles")
-    @encode.begin_array(writer)
-    for (profile_id, contract_cid) in required_profiles {
-      @encode.begin_object(writer)
-      @encode.key(writer, "contract_cid")
-      @encode.string_value(writer, contract_cid)
-      @encode.key(writer, "profile_id")
-      @encode.string_value(writer, profile_id)
-      @encode.end_object(writer)
-    }
-    @encode.end_array(writer)
-    @encode.key(writer, "resolved_limits")
-    client_plan_emit_array(writer, limit_values)
-    @encode.key(writer, "root_refs")
-    @canonical.emit_value(roots, writer)
-    @encode.key(writer, "source_state_requirements")
-    @encode.begin_array(writer)
-    @encode.end_array(writer)
-    @encode.key(writer, "version")
-    @encode.string_value(writer, "actql-executable-plan/0.1")
-    @encode.end_object(writer)
-    let raw = @encode.finish(writer)
-    guard parse_plan_identity_value(raw, max_wire_bytes, max_nodes, max_depth)
-      is Some(body) else {
-      return Err(Encoding)
-    }
-    let cid = @canonical.cid_value(body, max_wire_bytes, max_nodes, max_depth)
-    guard @canonical.object_with_string_field(body, "executable_plan_cid", cid)
-      is Some(complete) else {
-      return Err(Encoding)
-    }
-    let wire = @canonical.stringify_value(
-      complete, max_wire_bytes, max_nodes, max_depth,
+    let (wire, cid) = finish_client_executable_plan_body(
+      {
+        fact_values,
+        limit_values,
+        binding_values,
+        witness_values,
+        nodes,
+        edges,
+        roots,
+        material_value,
+        manifest_cid: manifest.cid,
+        required_profiles,
+      },
+      max_wire_bytes,
+      max_nodes,
+      max_depth,
     )
     Ok({
       wire,
