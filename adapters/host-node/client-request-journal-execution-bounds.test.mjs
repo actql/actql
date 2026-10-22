@@ -153,6 +153,46 @@ test('failed selected native preparation is never cached and never refunds its o
   }
 });
 
+test('cached selected statements preserve current refusal and reentry fences before native use', () => {
+  const database = new DatabaseSync(':memory:');
+  const prepare = database.prepare;
+  let preparations = 0, executions = 0, allowed = true, reenter = false, nested;
+  database.prepare = function(sql) {
+    preparations++;
+    const statement = Reflect.apply(prepare, this, [sql]);
+    const get = statement.get;
+    statement.get = function(...values) {executions++; return Reflect.apply(get, this, values);};
+    return statement;
+  };
+  const denied = Object.assign(new Error('ExplicitCurrentRefusal'), {code: 'ExplicitCurrentRefusal'});
+  const port = boundedOriginalSql(database, primarySqlLimits, execution, () => {
+    if (!allowed) throw denied;
+    if (reenter) {
+      reenter = false;
+      try { port.database.prepare('SELECT ? AS n').get(99); }
+      catch (error) { nested = error; }
+    }
+  });
+  try {
+    const first = port.database.prepare('SELECT ? AS n');
+    assert.equal(first.get(0).n, 0);
+    allowed = false;
+    assert.throws(() => port.database.prepare('SELECT ? AS n'), error => error === denied);
+    assert.equal(preparations, 1); assert.equal(executions, 1);
+    allowed = true; reenter = true;
+    const cached = port.database.prepare('SELECT ? AS n');
+    assert.equal(cached, first);
+    assert.equal(nested?.code, 'ClientRequestJournalSqlCleanupPending');
+    assert.equal(preparations, 1); assert.equal(executions, 1);
+    assert.equal(cached.get(1).n, 1);
+    allowed = false;
+    assert.throws(() => cached.get(2), error => error === denied);
+    assert.equal(executions, 2);
+  } finally {
+    database.close(); assert.equal(database.isOpen, false); port.retireClosedNativeAliases();
+  }
+});
+
 test('selected primary metadata uses original bounded cursors instead of native All vectors', async () => {
   const {scratch, directory} = await fixture();
   openClientRequestJournal(directory).close();
