@@ -30,6 +30,25 @@ test('metadata deletion fences select the exact Run and migrate retired history 
   assert.deepEqual(index.metadataDeletionFence(second.metadata_key),{...second,retired:1});
 });
 
+test('metadata deletion transfer and native inventory retirement share the original transaction',async t=>{
+  const directory=await mkdtemp(join(tmpdir(),'actql-metadata-fence-transfer-'));
+  let index,armed=false,commits=0;t.after(async()=>{index?.close();await rm(directory,{recursive:true});});
+  const exec=DatabaseSync.prototype.exec;
+  t.mock.method(DatabaseSync.prototype,'exec',function(sql){
+    if(armed&&sql==='COMMIT')commits++;return Reflect.apply(exec,this,[sql]);
+  });
+  index=await openDeliveryAttemptIndex(join(directory,'index.sqlite3'),{create:true,maxEntries:1,maxWireBytes:4096});
+  index.migrate([]);index.migratePublicationRecovery([]);index.migrateMetadataDeletionFences([],true);
+  const original={public_index_cid:'sha256:'+'1'.repeat(64),inventory_wire:'{"same":1}'};
+  const fence={metadata_key:'2'.repeat(64),run_cid:'sha256:'+'3'.repeat(64)};
+  index.stageNativePublicationInventory(original);armed=true;
+  index.retireNativePublicationInventory(original,fence);
+  assert.equal(commits,1);assert.deepEqual(index.pendingPublications(),[]);
+  assert.equal(index.nativePublicationInventory(original.public_index_cid),undefined);
+  assert.deepEqual(index.metadataDeletionFence(fence.metadata_key),{...fence,retired:0});
+  index.retireNativePublicationInventory(original,fence);assert.equal(commits,1);
+});
+
 for(const finish of [false,true])for(const afterCommit of [false,true]) {
 test(`metadata deletion fence ${finish?'completion':'transfer'} retains ${afterCommit?'committed':'rolled-back'} Unknown`,async t=>{
   const directory=await mkdtemp(join(tmpdir(),'actql-metadata-fence-unknown-'));

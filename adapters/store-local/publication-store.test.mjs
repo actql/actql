@@ -4986,6 +4986,37 @@ test('metadata deletion keeps the same cleanup after native retirement and lost 
   await reopened.close();
 });
 
+for(const phase of ['transfer','completion']) {
+test(`metadata deletion ${phase} Unknown retains the actual Store cleanup original`,async t=>{
+  const {store,directory}=await fixture(t);
+  const invocationValue=invocation(),request=publicationRequest(resultDefinition(),invocationValue.invocation_cid);
+  const attempt=publicationAttempt(request),prepared=await prepareCommit(store,request,attempt,invocationValue);
+  const entry=indexEntry(request,attempt,invocationValue,{durable_result_binding_cids:[prepared.binding.identity]});
+  await store.commitIndex(wire(entry),prepared.required,prepared.evidence);
+  let armed=true,lost=false;
+  const exec=DatabaseSync.prototype.exec;
+  t.mock.method(DatabaseSync.prototype,'exec',function(sql){
+    if(armed&&!lost&&sql==='COMMIT') {
+      const fence=this.prepare('SELECT retired FROM metadata_deletion_fences WHERE run_cid=?').get(request.run_definition_cid);
+      if(fence?.retired===(phase==='transfer'?0:1)) {
+        lost=true;Reflect.apply(exec,this,[sql]);
+        throw Object.assign(new Error('lost original Store metadata '+phase+' reply'),{code:'EIO'});
+      }
+    }
+    return Reflect.apply(exec,this,[sql]);
+  });
+  const retired=await store.retireCommittedPublicationMetadata(indexKeyFor(request),'2027-01-01T00:00:00.000Z');
+  assert.equal(lost,true);assert.equal(retired.cleanup.status().pending,true);
+  const again=await store.retireCommittedPublicationMetadata(indexKeyFor(request),'2027-01-01T00:00:01.000Z');
+  assert.equal(again.cleanup,retired.cleanup);
+  await assert.rejects(store.close(),code('PublicationStoreCleanupPending'));
+  assert.equal((await retired.cleanup.retry()).pending,false);armed=false;
+  assert.deepEqual(await readdir(join(directory,'metadata-deletions')),[]);
+  assert.equal(await store.inspectCommittedIndex(indexKeyFor(request)),undefined);
+  await store.close();
+});
+}
+
 test('native publication inventories retain one shared physical holding until its final original ACK',async t=>{
   const setup=await fixture(t),{store,directory,configuration}=setup;
   const publish=async label=>{

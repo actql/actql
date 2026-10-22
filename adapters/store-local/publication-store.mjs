@@ -1354,6 +1354,7 @@ async function openOriginalLocalPublicationStore(
     }
   }
   await syncDirectory(manifestReadsDirectory);
+  const openingMetadataDeletionNames = [];
   for (const name of await readOpeningDirectory(metadataDeletionsDirectory)) {
     const path = resolve(metadataDeletionsDirectory, name);
     if (name.startsWith('.staging-')) {
@@ -1364,6 +1365,7 @@ async function openOriginalLocalPublicationStore(
         !(await lstat(resolve(metadataDeletionsDirectory, name))).isFile()) {
       fail('InvalidPublicationMetadataDeletionStore');
     }
+    openingMetadataDeletionNames.push(name);
   }
   await syncDirectory(metadataDeletionsDirectory);
   for (const directory of [
@@ -4221,7 +4223,7 @@ async function openOriginalLocalPublicationStore(
     // Only a newly adopted private format reads historical retirement markers.
     // Batch progress is idempotent after a lost migration COMMIT; the actual
     // files remain until complete native coverage acknowledges their fences.
-    const names = await readdir(metadataDeletionsDirectory);
+    const names = openingMetadataDeletionNames;
     if (deliveryIndex.needsMetadataDeletionFenceMigration()) {
       let rows=[];
       for (const name of names) {
@@ -4254,6 +4256,7 @@ async function openOriginalLocalPublicationStore(
       }
     }
     if(removed)await syncDirectory(metadataDeletionsDirectory);
+    names.length=0;
     // Later opens see only pending physical cleanup files, never retired
     // history. Delivery restoration consumes the exact indexed Run fence.
     const pending = deliveryIndex.pending();
