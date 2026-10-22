@@ -44,8 +44,8 @@
     },
     {
       "path": "src/platform_native/host_bootstrap/bootstrap_stub.c",
-      "bytes": 36156,
-      "sha256": "35e156e073a3841996c98c083bcee6ad4e08b73a68525c4812b130b5fd6cffd9"
+      "bytes": 37174,
+      "sha256": "b4ccd5a552ff2992baee7dfbd1be396d82fba5d7f2d177be91f111b4c15820e3"
     },
     {
       "path": "src/platform_native/host_bootstrap/process_region.h",
@@ -116,6 +116,11 @@
       "path": "src/platform_native/host_bootstrap/extent_work_native.mbt",
       "bytes": 1364,
       "sha256": "5c2478146758b1821d3f90b4304bda5ecda712d042a5bce8710b9432e491d3b1"
+    },
+    {
+      "path": "src/platform_native/host_bootstrap/domain_inventory_native.mbt",
+      "bytes": 1605,
+      "sha256": "a9b8ef9ff1cc4457a7e40ab4eed988d064ef25d6d8b1ad82d0191de32a24f483"
     }
   ]
 }

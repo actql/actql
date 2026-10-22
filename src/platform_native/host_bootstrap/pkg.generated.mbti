@@ -119,6 +119,14 @@ pub(all) enum NativeBootstrapIssue {
   Resource(@physical_resources.LedgerIssue)
 } derive(Eq, @debug.Debug)
 
+pub(all) struct NativeDomainInventory {
+  capacity_bytes : Int64
+  page_bytes : Int64
+  control_bytes : Int64
+  occupied_bytes : Int64
+  peak_occupied_bytes : Int64
+} derive(Eq, @debug.Debug)
+
 pub(all) struct NativeExtentWork {
   allocations : Int64
   allocated_bytes : Int64
@@ -168,6 +176,7 @@ pub fn[T] NativeHostBootstrap::leave_borrow_scope(Self[T], T, NativeBootstrapBor
 pub fn[T, C] NativeHostBootstrap::lend_backed_region(Self[T], T, NativeBackedExecutionRegion[T, C], NativeBootstrapBorrow[T], C, @physical_resources.BackedExecutionExtent, @physical_resources.BackedExecutionAccess, @physical_resources.LedgerLimits, Int64, Int64) -> Result[NativeBackedExecutionAcquisition[T, C], NativeBackedExecutionIssue]
 pub fn[T, C] NativeHostBootstrap::lend_backed_region_in_process(Self[T], T, NativeBackedExecutionRegion[T, C], NativeBootstrapBorrow[T], C, @physical_resources.BackedExecutionExtent, @physical_resources.BackedExecutionAccess, @physical_resources.LedgerLimits, Int64, Int64) -> Result[NativeBackedExecutionAcquisition[T, C], NativeBackedExecutionIssue]
 pub fn[T, C] NativeHostBootstrap::map_backed_view(Self[T], T, NativeBackedExecutionLoan[T, C], C, Int) -> Result[NativeBackedViewAcquisition[T, C], NativeBackedExecutionIssue]
+pub fn[T, C] NativeHostBootstrap::observe_backed_domain_inventory(Self[T], T, NativeBackedExecutionDomain[T, C], C) -> Result[NativeDomainInventory, NativeBackedExecutionIssue]
 pub fn[T, C] NativeHostBootstrap::observe_backed_read_cleanup(Self[T], T, NativeBackedExecutionDomain[T, C], C) -> Result[NativeReadCleanupObservation, NativeBackedExecutionIssue]
 pub fn[T, C] NativeHostBootstrap::observe_backed_read_cleanup_scope(Self[T], T, NativeBackedExecutionDomain[T, C], C) -> Result[NativeBackedReadScope, NativeBackedExecutionIssue]
 pub fn[T, C] NativeHostBootstrap::observe_backed_read_context_scope(Self[T], T, NativeBackedExecutionDomain[T, C], C) -> Result[NativeBackedReadScope, NativeBackedExecutionIssue]
