@@ -3442,6 +3442,8 @@ pub(all) enum ClientPublicationBindingAdmissionIssue {
   Encoding
 } derive(Eq, @debug.Debug)
 
+type ClientPublicationBindingFields derive(Eq, @debug.Debug)
+
 pub(all) enum ClientPublicationBindingIssue {
   MissingPublication
   MismatchedCheckedLimit
@@ -4562,8 +4564,6 @@ pub(all) enum ClientValuesUnitSourceIssue {
   UnsupportedSource
   Encoding
 }
-
-type ParsedClientPublicationBinding derive(Eq, @debug.Debug)
 
 pub struct PlanFactManifestIdentity {
   wire : String
