@@ -4448,7 +4448,7 @@
     },
     {
       "module": "adapters/host-node/embedded-local.mjs",
-      "sha256": "4a948c78988855c520127d5359991c4a86053ae92666dd5bd354119fb3b7b988",
+      "sha256": "b49f97a9cadc75842eedbada905a786754ddf5ee010314d7746e2f8e1f5c4413",
       "exports": [
         "admitOriginalHostRootFormat",
         "assertInitialControlHostPreparation",
@@ -4925,6 +4925,13 @@
           "parameters": [
             "key",
             "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedManagedRunContracts",
+          "parameters": [
+            "originals"
           ],
           "async": false
         },
@@ -8951,7 +8958,8 @@
             "readManagedComputeRunRequirements",
             "readManagedComputeRunRequirements/asset/asset",
             "readManagedComputeRunRequirements/readManagedComputeRunRequirements",
-            "readManagedComputeRunRequirements/readManagedComputeRunRequirements#2"
+            "readManagedComputeRunRequirements/readManagedComputeRunRequirements#2",
+            "installedManagedRunContracts"
           ],
           "exports": [
             "managedComputeSubmittedIntentCid",
@@ -8966,6 +8974,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "For an ordinary source-free Compute Run, the existing Host Run record retains"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The installation's immutable AoA projection has a different lifetime from a"
               }
             ],
             "inputsOutputs": [
@@ -8984,6 +8996,10 @@
               {
                 "path": "src/client_local_host/installed_managed_run.mbt",
                 "anchor": "pub fn prepared_installed_managed_source_free_requirements("
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "function installedManagedRunContracts(originals) {"
               }
             ],
             "identity": [
@@ -8998,6 +9014,10 @@
               {
                 "path": "src/client_local_host/installed_managed_run.mbt",
                 "anchor": "fn installed_source_free_preparation_matches("
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "if (retained.initialControl !== installation.initialControl) {"
               }
             ],
             "ownership": [
@@ -9012,6 +9032,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "run.preparedSequences ??= checked(moon.clientProgramPrepareInstalledManagedSourceFree("
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "installation.managedRunContracts = contracts;"
               }
             ],
             "synchronization": [
@@ -9026,6 +9050,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "run.admission = checked(Reflect.apply(run.prepare, runtime, [run.original, prepared]));"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "control, remain while child cleanup is pending, and are cut by the existing"
               }
             ],
             "failure": [
@@ -9044,6 +9072,10 @@
               {
                 "path": "adapters/host-node/embedded-managed-compute-projection.test.mjs",
                 "anchor": "foreign or closed Run and missing typed APIs refuse without legacy regeneration"
+              },
+              {
+                "path": "adapters/host-node/embedded-managed-compute-projection.test.mjs",
+                "anchor": "Failed construction cannot publish partial contract strings"
               }
             ],
             "cancellation": [
@@ -9058,6 +9090,10 @@
               {
                 "path": "src/client_local_host/installed_managed_run.mbt",
                 "anchor": "value.source_free_preparation = None"
+              },
+              {
+                "path": "adapters/host-node/embedded-managed-compute-lifecycle.test.mjs",
+                "anchor": "installed static contract aliases survive pending child cleanup and cut at actual retirement"
               }
             ],
             "resources": [
@@ -9076,6 +9112,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "This preparation is immutable data, not Resource admission or"
+              },
+              {
+                "path": "adapters/host-node/embedded-managed-compute-projection.test.mjs",
+                "anchor": "Only the original three static contract strings are retained"
               }
             ],
             "extension": [
@@ -9086,6 +9126,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "permission. It remains bound to the original checked Program and exact contract"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "successful Host reference retirement. A new Host has its own installation bag."
               }
             ],
             "verification": [
@@ -9104,6 +9148,10 @@
               {
                 "path": "src/client_local_host/managed_source_free_preparation_wbtest.mbt",
                 "anchor": "managed source-free preparation executes the same generated originals on one diagnostic Ledger"
+              },
+              {
+                "path": "adapters/host-node/embedded-managed-compute-projection.test.mjs",
+                "anchor": "installed managed contract strings are projected once across distinct Host Run requests"
               }
             ]
           }
