@@ -16,6 +16,26 @@ export function platformKey({platform, arch, glibc}) {
   throw Object.assign(Error(`Unsupported platform: ${platform}/${arch}; Linux requires identifiable glibc. No alternative binary is used.`), {exitCode: 64});
 }
 
+export function macOSProductVersion(query = spawnSync) {
+  // Ask the kernel for the actual ProductVersion, not a Darwin-version
+  // approximation. Retain sw_vers for systems where that query is unavailable.
+  for (const [command, args] of [
+    ['/usr/sbin/sysctl', ['-n', 'kern.osproductversion']],
+    ['/usr/bin/sw_vers', ['-productVersion']],
+  ]) {
+    // Compatibility spelling must not make a supported OS look too old.
+    // This affects only the metadata query, not the Native child's environment.
+    const result = query(command, args, {encoding: 'utf8', maxBuffer: 1024, timeout: 1000,
+      env: {...process.env, SYSTEM_VERSION_COMPAT: '0'}});
+    if (result.error || result.status !== 0 || result.signal) continue;
+    const version = typeof result.stdout === 'string' ? result.stdout.trim() : undefined;
+    // The existing ABI admission parses this fact once. A successful malformed
+    // reply is refused there, rather than replaced with another service's value.
+    return typeof version === 'string' && version.length <= 47 ? version : undefined;
+  }
+  return undefined;
+}
+
 export function admitInstalledBinary({key, expected, metadata, binary, glibc, macOS}) {
   if (!expected || metadata.version !== 'actql-native-cli-artifact/0.1' ||
       metadata.platform !== key || metadata.sourceSha !== expected.sourceSha ||
@@ -64,7 +84,7 @@ export function launch(args) {
     throw Object.assign(Error('Native executable is missing, non-regular or not executable.'), {exitCode: 65});
   }
   const metadata = JSON.parse(readFileSync(join(installed, 'artifact.json'), 'utf8'));
-  const macOS = process.platform === 'darwin' ? spawnSync('/usr/bin/sw_vers', ['-productVersion'], {encoding: 'utf8'}).stdout?.trim() : undefined;
+  const macOS = process.platform === 'darwin' ? macOSProductVersion() : undefined;
   admitInstalledBinary({key, expected, metadata,
     binary: readFileSync(executable), glibc, macOS});
   const environment = {...process.env};
