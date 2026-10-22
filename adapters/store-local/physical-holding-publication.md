@@ -186,6 +186,10 @@ The admitted Run is an internal fact of each custody operation. Record reads
 and final custody unlink use that same original rather than admitting it again
 at a pure helper boundary. Retirement still validates the selected holdings and
 keeps their actual cleanup acknowledgement before removing the custody record.
+Cheap current/closed checks remain at the queued update's actual entry and
+immediately before final custody unlink after asynchronous holding retirement.
+They do not admit the Run again, and a closed Store cannot use a retained Run
+or durability observation to mutate its former custody namespace.
 
 Physical holding creation, sharing and deletion intent use the existing Store's
 staging directory and exclusive hard-link publication. The complete original

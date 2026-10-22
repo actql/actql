@@ -6015,7 +6015,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "b52246a1c99dae8577878d985916acffce312989574d0494dcf189b50f0b00c0",
+      "sha256": "44fe56643cdd64d88148935dd50b6b2baff24bdc86750e01078d80b6e0c31326",
       "exports": [
         "PublicationStoreError",
         "assertOriginalLocalPublicationStoreFacilityCurrent",
@@ -10891,6 +10891,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "Effect capture cleanup custody retains one bounded same-Store observation of"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "Cheap current/closed checks remain at the queued update's actual entry and"
               }
             ],
             "inputsOutputs": [
@@ -12133,6 +12137,14 @@
               {
                 "path": "adapters/store-local/publication-store.test.mjs",
                 "anchor": "Effect capture custody changes and a fresh Store retain real durability"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "queued Effect capture custody refuses after the same Store closes"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "Effect capture retirement refuses final unlink after the same Store closes"
               }
             ]
           }
