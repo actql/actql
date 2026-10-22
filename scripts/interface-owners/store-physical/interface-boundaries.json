@@ -5119,7 +5119,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "7d3a5060ac3f368392f9e27cb0d82ddb6361d0796e4d2d67a0fcf438a7b70215",
+      "sha256": "95aeb8311b2715eca926735b1b32d064f1312961917feb5f9bdf8db6974d6550",
       "exports": [
         "PublicationStoreError",
         "assertOriginalLocalPublicationStoreFacilityCurrent",
@@ -8309,6 +8309,16 @@
           "async": true
         },
         {
+          "name": "openOriginalLocalPublicationStore/withCommittedResult/withCommittedResult/consume/consume/consume",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/withCommittedResult/withCommittedResult/retireReader/retireReader",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "openOriginalLocalPublicationStore/withCommittedResultRows/withCommittedResultRows",
           "parameters": [
             "key",
@@ -9298,6 +9308,8 @@
             "openOriginalLocalPublicationStore/verifyPhysicalHoldingObjects/verifyPhysicalHoldingObjects",
             "openOriginalLocalPublicationStore/withCommittedResult/withCommittedResult",
             "openOriginalLocalPublicationStore/withCommittedResult/withCommittedResult/consume/consume",
+            "openOriginalLocalPublicationStore/withCommittedResult/withCommittedResult/consume/consume/consume",
+            "openOriginalLocalPublicationStore/withCommittedResult/withCommittedResult/retireReader/retireReader",
             "openOriginalLocalPublicationStore/withCommittedResultRows/withCommittedResultRows",
             "openOriginalLocalPublicationStore/withCommittedResultRows/withCommittedResultRows/withCommittedResultRows",
             "openOriginalLocalPublicationStore/withCommittedResultRows/withCommittedResultRows/withCommittedResultRows/readRows/readRows",
@@ -9439,6 +9451,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "### Trusted clock write observation"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "A scoped Result reader retires only after both its use callback ends and its"
               }
             ],
             "inputsOutputs": [
@@ -9505,6 +9521,10 @@
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "lastClockObservation = {clockContractCid,state,value,checksummed:true};"
+              },
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "let scopeActive = true, physicalReadPending = false, readerRetired = false;"
               }
             ],
             "identity": [
@@ -9579,6 +9599,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "post-close path state must agree in device, inode, size, modification and change"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "notification cuts that same generation-reader reference. Failed close leaves"
               }
             ],
             "ownership": [
@@ -9645,6 +9669,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "and retry. The successful write is not reopened, parsed or hashed as a second"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "the existing cleanup handle responsible, even after the caller receives an"
               }
             ],
             "synchronization": [
@@ -9711,6 +9739,10 @@
               {
                 "path": "adapters/store-local/publication-store.test.mjs",
                 "anchor": "assert.equal(opens,1);assert.equal(syncs,1);assert.equal(closes,1);"
+              },
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "return consumeObject(materialCid, accept, () => {"
               }
             ],
             "failure": [
@@ -9777,6 +9809,10 @@
               {
                 "path": "adapters/store-local/publication-store.test.mjs",
                 "anchor": "trusted clock warm write refuses a changed original before accepting close"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "Result consumption retains its reader until the same failed FD close acknowledges"
               }
             ],
             "cancellation": [
@@ -9839,6 +9875,10 @@
               {
                 "path": "adapters/store-local/publication-store.test.mjs",
                 "anchor": "trusted clock warm write retains its original failed close and floor"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "Retry closes the same FD without reopening, rereading or repeating a sink."
               }
             ],
             "resources": [
@@ -9905,6 +9945,10 @@
               {
                 "path": "adapters/store-local/publication-store.test.mjs",
                 "anchor": "the same successful write is not a second wire admission"
+              },
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "if (scopeActive || physicalReadPending || readerRetired) return;"
               }
             ],
             "extension": [
@@ -9971,6 +10015,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "and cold/legacy replacement protocol retain their existing post-ACK read; this"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "scope reference; a successful sibling reader cannot retire this duty twice."
               }
             ],
             "verification": [
@@ -10109,6 +10157,10 @@
               {
                 "path": "adapters/store-local/publication-store.test.mjs",
                 "anchor": "trusted clock warm write consumes its typed value without reopening its own body"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "retry never reopens the generation"
               }
             ]
           }
