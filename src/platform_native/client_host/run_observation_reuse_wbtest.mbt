@@ -13,9 +13,19 @@ fn run_observation_reuse_fixture(
 ) raise {
   let (database, journal, authority, reference) = submitted_test_setup(name)
   let scope = "sha256:" + "a".repeat(64)
-  let (intent, preparation, request, compiled, definition) = submitted_run_test_input(
+  let (intent, preparation, request, initial_compiled, definition) = submitted_run_test_input(
     reference, name,
   )
+  // The later Policy CAS uses the actual captured source-free Result policy,
+  // not a missing-dependency placeholder or an inferred permission.
+  let compiled = @host.with_client_source_free_result_policy(
+    initial_compiled,
+    selected_policy_fixture_cid,
+    @host.client_local_product_assets().result_policy,
+    65536,
+    8192,
+    64,
+  ).unwrap()
   guard preparation.preparation is Computation(prepared) else {
     fail("expected actual checked computation")
   }
