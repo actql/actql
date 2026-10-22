@@ -103,9 +103,77 @@ unchanged. Incomplete bytes occupy only an unpublished `object-<UUID>` staging
 alias, which the same Store's existing restart recovery removes. A crash after
 the exclusive link leaves complete final bytes, not a new commit receipt.
 
-This does not repair or ignore an old corrupt final record. Startup still
-refuses it and retains the original recovery evidence; no missing/empty record
-is interpreted as an unapplied operation, permission or cleanup success.
+This does not repair a corrupt final record. Each selected holding read admits
+its bounded body against the exact requested holding CID before using it;
+unrelated immutable records are not all read at ordinary startup. Required
+pending-deletion recovery still reads its own original records and refuses
+invalid identity or bytes. No missing/empty record is interpreted as an
+unapplied operation, permission or cleanup success. Physical capacity accounting,
+other Store recovery and their actual acknowledgement duties are unchanged;
+this does not make all remaining opening inventories history-independent.
+
+Committed publication owner links are also selected-use facts. Ordinary open
+does not enumerate and admit every committed Index merely to check all of its
+inventories and holdings. Index inspect, public durable confirmation, lookup,
+and Result Binding selection read the selected inventory and require its exact
+Index CID, namespace, authority scope, Run and publication attempt. Only that
+inventory's holding links are read; missing, retiring, malformed or foreign
+owners refuse the selected operation. A later operation acquires new originals.
+Already inspected Pure/Effect evidence reuses its own holding facts when joining
+the same inventory rather than reading the same bodies again in a pure helper.
+
+Internal index durability reconciliation remains separate from public selected
+use. It still confirms the real directory acknowledgement and original custody
+outcome, including before metadata has been fully staged or during retirement.
+This is not a durable ACK or permission cache. Pending deletion, prepared custody,
+and quota accounting retain their original responsibilities. Payload accounting
+and shared-reference discovery still walk history; indexed publication recovery
+does not establish history-independent Store startup or replace an explicit
+integrity inspection.
+
+### Indexed pending publication recovery
+
+The existing Store database retains only unfinished publication inventory
+originals in its private recovery index. Before acquiring an inventory file,
+the Store stages its exact Index CID and bounded inventory wire in a real native
+transaction. An existing file representation retains its own write, close and
+directory acknowledgements. The pending row is removed only after the original Index
+directory acknowledgement and schema adoption. These two native transitions
+do not replace those file acknowledgements or establish a minimum barrier count.
+
+An older private database format permits one bounded inventory migration. The
+Store confirms each selected Index's actual directory durability, retains only
+unfinished originals, and commits coverage with the pending rows atomically.
+Subsequent opens read pending rows rather than enumerating committed inventories
+or Indexes. Missing adopted tables, coverage or malformed selected originals
+refuse; they never rebuild coverage from absence or recreate authority.
+
+A lost native reply retains the same mutation kind, CID and inventory wire.
+Only a real same-original confirmation write settles that Unknown; observing a
+row is not its acknowledgement. An unfinished publication may restore only its
+retained inventory bytes, not dispatch or replay a Run. Once a durable metadata
+deletion marker owns the same complete inventory, recovery transfers the pending
+original to that marker before physical retirement and never reconstructs its
+already removed file. Failed transfer or physical cleanup retains the original
+retry duty; no quota refund, permission or cleanup success follows from a callback.
+
+New inventory bodies are durable originals in that same native staging
+transaction, not duplicate filesystem preparations. Completion removes only the
+pending lookup; the exact bounded inventory wire remains available to selected
+reads. The existing Index file and its actual directory acknowledgement still
+determine publication. Stage and completion remain distinct native transitions;
+storing the body with its pending lookup removes the redundant inventory-file
+write/sync/close and directory sync, not those logical transitions or payload ACKs.
+
+Private native-inventory count and wire bounds are enforced before insertion.
+Additive format adoption creates their tables and count atomically; adopted
+missing tables or invalid count refuse without resetting originals. Prior
+file inventories remain files and use the same selected-use checks. They are
+not copied into a second representation during ordinary open. Retirement binds
+the same complete durable deletion marker before removing the native original
+and its pending lookup together. Same-original Unknown confirmation is retained.
+Shared contract and holding cleanup checks both representations before reclaim;
+this does not eliminate the remaining shared-reference history work.
 
 ## Same-owner cleanup and inventory
 
@@ -120,6 +188,12 @@ the holding-directory ACK remain independent. No key, ownership or capacity
 is released merely because a callback returned or cancellation was requested.
 After confirmed cleanup, an escaped cleanup handle drops its explicit original
 Store/writer association; its retired status does not retain that live set.
+
+Prepared-schema restart recovery first selects its pending marker names. An
+empty set performs no contracts/objects directory acknowledgement: it has no
+schema transition to confirm. A nonempty set retains the original directory
+acknowledgements before recovering its exact markers and physical allocations.
+Selected reads and subsequent writes retain their own integrity and real ACKs.
 
 The original metadata envelope includes the admitted record/Buffer, temporary
 path/UUID Strings, file and hard-link/directory operations, writer-set entry,
