@@ -1,5 +1,21 @@
 # Physical holding metadata publication
 
+## Original Index admission within publication
+
+The publication caller passes its original immutable Index wrapper alongside
+the existing wire, inventory and evidence. The existing contract control may
+recognize that exact wrapper under the current limits. Unrecognized wrappers,
+copies and legacy controls retain full wire admission; a refused or malformed
+nominal response cannot become fallback success. The supplied wire, identity
+and identity field must agree with the selected original.
+
+The same commit's private Effect inspector consumes that already-admitted Index
+and its parsed body. Independent stored-evidence inspection still admits its
+own input. Neither path retains authorization, present-disk integrity or a
+durability acknowledgement. Selected physical evidence, current permission,
+claim/CAS, original Unknown confirmation and real cleanup remain independent.
+No cross-operation Index cache or additional publication authority is created.
+
 ## Original ownership retirement
 
 The existing Store ownership handle remembers successful owner-record unlink
