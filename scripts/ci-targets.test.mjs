@@ -39,6 +39,16 @@ test('normal lint executes behavioral operation performance assessment tests', (
     row.run === 'npm run check:retained-boundary'));
 });
 
+test('normal lint executes ordinary process collector protocol tests', () => {
+  const step = jobs.lint.steps.find(row =>
+    row.name === 'Test ordinary process collector protocols');
+  assert.ok(step);
+  assert.equal(step.run, 'python3 -I -B scripts/benchmark-ordinary-processes.test.py');
+  assert.equal(step.if, "${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}");
+  assert.equal(step['continue-on-error'], undefined);
+  // Process fixtures exercise the collector and package fence, not product speed.
+});
+
 test('normal Host CI executes bounded Journal preparation and cursor regressions', () => {
   const step = jobs.host.steps.find(row =>
     row.name === 'Test bounded Journal preparation and execution');
