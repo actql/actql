@@ -48,9 +48,36 @@ pub(all) enum ClientExecutionMaterialAdmissionIssue {
 /// Private compilation material for a checked Program. This is only one
 /// required member of an Executable Plan, never execution authority itself.
 pub struct ClientExecutionMaterial {
+  owner : PreparedClientProgram
+  body : @canonical.CanonicalValue
+  wire_bytes : Int
+  wire_nodes : Int
+  wire_depth : Int
   wire : String
   invocation_template_cid : String
   invocation_template_wire : String
+}
+
+///|
+// The tree and extent come from this exact material's completed canonical
+// writer. Reuse never grants authority or accepts caller-provided JSON.
+fn client_execution_material_body(
+  value : ClientExecutionMaterial,
+  owner : PreparedClientProgram,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @canonical.CanonicalValue? {
+  if !physical_equal(value.owner, owner) ||
+    max_wire_bytes <= 0 ||
+    max_nodes <= 0 ||
+    max_depth <= 0 ||
+    value.wire_bytes > max_wire_bytes ||
+    value.wire_nodes > max_nodes ||
+    value.wire_depth > max_depth {
+    return None
+  }
+  Some(value.body)
 }
 
 ///|
@@ -245,10 +272,17 @@ fn issue_prepared_client_execution_material_with_template(
       is Some(body) else {
       return Err(Encoding)
     }
-    let wire = @canonical.stringify_value(
-      body, max_wire_bytes, max_nodes, max_depth,
+    let canonical = @encode.writer(max_wire_bytes, max_nodes, max_depth)
+    @canonical.emit_value(body, canonical)
+    let (wire, wire_bytes, wire_nodes, wire_depth) = @encode.finish_text_usage(
+      canonical,
     )
     Ok({
+      owner: value,
+      body,
+      wire_bytes,
+      wire_nodes,
+      wire_depth,
       wire,
       invocation_template_cid: @publication.run_evidence_value_identity(
         template,
