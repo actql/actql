@@ -188,6 +188,27 @@ test('managed Run priority controls bind only the selected resource-observation 
   }
 });
 
+test('selected-row priority controls bind only the requested collection protocol', async t => {
+  for (const mode of ['diagnostic', 'final']) {
+    for (const resourceObservations of [undefined, 'managed-run-ledger']) {
+      const p = await packages(t);
+      const result = await prepareOrdinaryPerformanceConsumer({...p, install: syntheticInstall,
+        selection: 'priority-transition', mode, resourceObservations, rowObservations: 'selected-returned'});
+      const controls = JSON.parse(await readFile(result.controlsPath));
+      assert.equal(controls.historyProtocolSha256,
+        hash(JSON.stringify(nodePriorityProtocol(mode, resourceObservations, 'selected-returned'))));
+      assert.notEqual(controls.historyProtocolSha256,
+        hash(JSON.stringify(nodePriorityProtocol(mode, resourceObservations))));
+      assert.equal(controls.cohortSha256, hash(await readFile(result.manifestPath)));
+      assert.equal(controls.sourceSha, sha);
+      for (const key of ['comparison', 'priorityConditions', 'population', 'boundaries',
+        'managedRunObservations', 'selectedRowObservations']) {
+        assert.equal(Object.hasOwn(controls, key), false, `${key} must come from actual observation`);
+      }
+    }
+  }
+});
+
 test('unknown or mixed priority preparation options refuse before installation', async t => {
   for (const options of [
     {selection: 'unknown'}, {mode: 'diagnostic'},
@@ -196,6 +217,9 @@ test('unknown or mixed priority preparation options refuse before installation',
     {resourceObservations: 'managed-run-ledger'},
     {selection: 'priority-transition', resourceObservations: 'unknown'},
     {selection: 'priority-transition', resourceObservations: ''},
+    {rowObservations: 'selected-returned'},
+    {selection: 'priority-transition', rowObservations: 'unknown'},
+    {selection: 'priority-transition', rowObservations: ''},
   ]) {
     const p = await packages(t); let installs = 0;
     await assert.rejects(prepareOrdinaryPerformanceConsumer({...p, ...options,
@@ -299,6 +323,40 @@ test('managed Run priority CLI binds the same option and rejects duplicate selec
   assert.equal(Object.hasOwn(controls, 'managedRunObservations'), false);
   assert.equal(Object.hasOwn(controls, 'population'), false);
   assert.equal(execFileSync('git', ['status', '--porcelain'], {cwd: repository, encoding: 'utf8'}), '');
+});
+
+test('selected-row priority CLI forwards the exact option with and without managed Run capture', async t => {
+  for (const resourceObservations of [undefined, 'managed-run-ledger']) {
+    const p = await packages(t), repository = join(p.root, 'checkout');
+    await mkdir(repository);
+    execFileSync('git', ['init', '-q'], {cwd: repository});
+    execFileSync('git', ['-c', 'user.name=Test', '-c', 'user.email=test@example.invalid',
+      '-c', 'commit.gpgsign=false', 'commit', '--allow-empty', '-qm', 'test: synthetic source'], {cwd: repository});
+    const source = execFileSync('git', ['rev-parse', 'HEAD'], {cwd: repository, encoding: 'utf8'}).trim();
+    const file = join(p.packages, 'packed-client-packages.json');
+    const manifest = JSON.parse(await readFile(file)); manifest.revision = source;
+    await writeFile(file, JSON.stringify(manifest));
+    const script = fileURLToPath(new URL('./ordinary-operation-packages.mjs', import.meta.url));
+    const argv = [script, 'prepare', p.packages, source, p.output,
+      '--selection', 'priority-transition', '--mode', 'diagnostic',
+      '--row-observations', 'selected-returned',
+      ...(resourceObservations ? ['--resource-observations', resourceObservations] : [])];
+    const options = {cwd: repository, env: {...process.env, npm_config_cache: join(p.root, 'npm-cache')},
+      encoding: 'utf8', timeout: 30_000};
+    const duplicate = spawnSync(process.execPath, [...argv, '--row-observations', 'selected-returned'], options);
+    assert.notEqual(duplicate.status, 0);
+    assert.match(duplicate.stderr, /Unknown or duplicate preparation option/u);
+    const result = spawnSync(process.execPath, argv, options);
+    assert.equal(result.status, 0, result.stderr);
+    const controls = JSON.parse(await readFile(join(p.output, 'controls.json')));
+    assert.equal(controls.historyProtocolSha256,
+      hash(JSON.stringify(nodePriorityProtocol('diagnostic', resourceObservations, 'selected-returned'))));
+    assert.equal(controls.sourceSha, source);
+    for (const key of ['managedRunObservations', 'selectedRowObservations', 'population']) {
+      assert.equal(Object.hasOwn(controls, key), false);
+    }
+    assert.equal(execFileSync('git', ['status', '--porcelain'], {cwd: repository, encoding: 'utf8'}), '');
+  }
 });
 
 test('controlled performance check consumes existing artifacts and cannot omit failed or missing raw assessment', () => {
