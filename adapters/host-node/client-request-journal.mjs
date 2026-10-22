@@ -254,11 +254,14 @@ function boundedJournalWalFrames(maxFrames, sourceBytes, maxDatabaseBytes) {
       transactionFrames = 2n * integer(floor(maxDatabaseBytes / page)) +
         integer(ceil(65536 / (page + 24)));
     },
-    beforePrepare() { check(1); },
+    beforePrepare() { check(2); },
     beforeStatement() {
       // Only the fixed page-size probe precedes configuration. Later extent
       // and temporary-storage operations keep their conservative charges.
-      reserved += check(1);
+      // Keep one conservative terminal COMMIT allowance available before
+      // admitting another write. Checking it neither spends nor refunds it.
+      check(2);
+      reserved += amount(1);
     },
     beforeExec(sql) {
       if (transactionFrames === undefined) fail('ClientRequestJournalWalUnavailable');
@@ -269,12 +272,13 @@ function boundedJournalWalFrames(maxFrames, sourceBytes, maxDatabaseBytes) {
       for (let index = 0; index < sql.length; index++) {
         if (applyOriginal(character, sql, [index]) === 59) statements++;
       }
-      reserved += check(statements);
+      check(statements + (sql === 'COMMIT' ? 0 : 1));
+      reserved += amount(statements);
     },
   });
 }
 
-// Bound compilation attempts and account every prepared wrapper as retained
+// Bound native compilation attempts and account each prepared original as retained
 // until this primary connection's real lifetime ends. Native failure and GC do
 // not refund an attempt. This is not a bound on bind values, result rows, native
 // heap/cache/WAL, or the separate observation connection, and issues no capacity.
@@ -289,6 +293,7 @@ function boundedPrimarySql(connection, limits, executionLimits, assertCurrent, w
   let calls = 0, prepared = 0, bytes = 0;
   let statementCalls = 0;
   const statements = [], cursors = [];
+  const statementsBySql = executionLimits === undefined ? undefined : new Map();
   let operationActive = false;
   const beginOperation = () => {
     if (executionLimits === undefined) return;
@@ -349,7 +354,7 @@ function boundedPrimarySql(connection, limits, executionLimits, assertCurrent, w
       total += size;
     }
   };
-  const wrap = statement => {
+  const wrap = (statement, statementWal) => {
     if (executionLimits === undefined) return statement;
     // Keep native statements in this original connection's custody until its
     // real close. Losing a local wrapper or GC supplies no earlier ACK.
@@ -362,14 +367,14 @@ function boundedPrimarySql(connection, limits, executionLimits, assertCurrent, w
       get(...values) {
         beginOperation();
         try {
-          operands(values); walFrames?.beforeStatement();
+          operands(values); statementWal?.beforeStatement();
           return applyOriginal(get, statement, values);
         } finally { endOperation(); }
       },
       run(...values) {
         beginOperation();
         try {
-          operands(values); walFrames?.beforeStatement();
+          operands(values); statementWal?.beforeStatement();
           return applyOriginal(run, statement, values);
         } finally { endOperation(); }
       },
@@ -377,7 +382,7 @@ function boundedPrimarySql(connection, limits, executionLimits, assertCurrent, w
         beginOperation();
         try {
           operands(values);
-          walFrames?.beforeStatement();
+          statementWal?.beforeStatement();
           const iterator = applyOriginal(iterate, statement, values);
           const cursor = {iterator, next: undefined, end: undefined};
           cursors.push(cursor);
@@ -423,19 +428,47 @@ function boundedPrimarySql(connection, limits, executionLimits, assertCurrent, w
     prepare(sql) {
       beginOperation();
       try {
-        consume(sql, true); walFrames?.beforePrepare();
-        return wrap(applyOriginal(prepare, connection, [sql]));
+        const retained = statementsBySql?.get(sql);
+        if (retained !== undefined) {
+          assertCurrent?.();
+          if (cursors.length !== 0) fail('ClientRequestJournalSqlCleanupPending');
+          // Exact immutable SQL selects this same connection's original
+          // bounded wrapper. No compilation/allocation or allowance refill
+          // occurs; every execution still checks its own operands and limits.
+          return retained;
+        }
+        consume(sql, true);
+        // Only authored metadata SQL reaches this private connection. It
+        // installs no application SQL functions/extensions or writable virtual
+        // tables. A leading SELECT reads metadata, not WAL-write history;
+        // arbitrary SQL/PRAGMA and every write keep the conservative debit.
+        const statementWal = /^\s*SELECT\b/iu.test(sql) ? undefined : walFrames;
+        statementWal?.beforePrepare();
+        const original = wrap(applyOriginal(prepare, connection, [sql]), statementWal);
+        statementsBySql?.set(sql, original);
+        return original;
       } finally { endOperation(); }
     },
     exec(sql) {
       beginOperation();
       try {
+        if (executionLimits !== undefined && sql === 'ROLLBACK' &&
+            applyOriginal(isTransaction, connection, []) === true) {
+          // This exact same-connection cleanup must remain reachable after
+          // work/current refusal. It admits no new SQL work or statement,
+          // refills no counter and still owns the native rollback outcome.
+          if (cursors.length !== 0) fail('ClientRequestJournalSqlCleanupPending');
+          return applyOriginal(exec, connection, [sql]);
+        }
         consume(sql, false); walFrames?.beforeExec(sql);
         return applyOriginal(exec, connection, [sql]);
       } finally { endOperation(); }
     },
     get isTransaction() { return applyOriginal(isTransaction, connection, []); },
-  }), retireClosedNativeAliases() { statements.length = cursors.length = 0; }});
+  }), retireClosedNativeAliases() {
+    statements.length = cursors.length = 0;
+    statementsBySql?.clear();
+  }});
 }
 
 function journalDatabaseGeometry(database, maxDatabaseBytes, walFrames) {
