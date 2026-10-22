@@ -5012,6 +5012,7 @@ async function openOriginalLocalPublicationStore(
     const original = await confirmCommittedIndexOriginal(Object.freeze({...key}));
     if (original === undefined) return undefined;
     await requireCommittedMetadataInventory(original.entry);
+    Object.freeze(original.entry.durable_result_binding_cids);
     return Object.freeze({entry: Object.freeze(original.entry), index: original.contract});
   };
 

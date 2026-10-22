@@ -781,6 +781,8 @@ test('selected publication observation returns its one admitted Index original a
   assert.strictEqual(selected.index, original); assert.equal(admissions, 1);
   assert.equal(selected.entry.public_index_entry_cid, entry.public_index_entry_cid);
   assert(Object.isFrozen(selected)); assert(Object.isFrozen(selected.entry));
+  assert(Object.isFrozen(selected.entry.durable_result_binding_cids));
+  assert.throws(() => selected.entry.durable_result_binding_cids.push(cids.schema), TypeError);
   assert.deepEqual(Object.keys(selected).sort(), ['entry', 'index']);
   const next = await store.readCommittedPublication(indexKeyFor(request));
   assert.equal(admissions, 2); assert.notStrictEqual(next.index, selected.index);
