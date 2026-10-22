@@ -169,6 +169,19 @@ original to that marker before physical retirement and never reconstructs its
 already removed file. Failed transfer or physical cleanup retains the original
 retry duty; no quota refund, permission or cleanup success follows from a callback.
 
+Inventory staging precedes the public Index commit's payload-custody owner.
+If its native COMMIT reply is lost, the Store therefore retains that exact
+staging original in its existing pending-writer collection and returns its
+storage-only, single-flight finalizer with the original Unknown failure. The
+finalizer calls the captured same native method and receiver with the same
+inventory; it neither selects a replacement mutation nor treats a visible row
+as an ACK. Concurrent finalization shares one attempt. An unresolved original
+continues to block native reads and Store retirement; close may drain this same
+writer but cannot erase its duty. A successful confirmation retires only that
+staging acknowledgement, not the Index or Run publication. The next commit
+still performs its normal current, evidence, ownership and Index transition.
+Legacy file-backed staging retains the same protocol and separate file ACKs.
+
 New inventory bodies are durable originals in that same native staging
 transaction, not duplicate filesystem preparations. Completion removes only the
 pending lookup; the exact bounded inventory wire remains available to selected
