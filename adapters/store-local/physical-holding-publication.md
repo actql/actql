@@ -36,6 +36,11 @@ copied evidence wrapper nominal for the final chain Owner. Actual payload
 verification, physical FD cleanup, current checks, claim/CAS, durable mutation
 and same-original Unknown confirmation are unchanged.
 
+Independent verification adapts its default reader to the two supported CID
+and representation arguments. A private commit's optional contract hint never
+becomes the low-level reader's distinct generation-retention flag. Supplied
+operation readers retain their explicit original-forwarding contract.
+
 ## Original ownership retirement
 
 The existing Store ownership handle remembers successful owner-record unlink
