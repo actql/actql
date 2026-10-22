@@ -106,6 +106,22 @@ pub fn seal_run_evidence_value(
   max_nodes : Int,
   max_depth : Int,
 ) -> Result[RunEvidenceValue, RunEvidenceValueIssue] {
+  seal_run_evidence_value_with_identity(
+    name, body_wire, max_wire_bytes, max_nodes, max_depth, @json.cid_value,
+  )
+}
+
+///|
+// Keep the identity calculation local to issuance. External complete values
+// still use run_evidence_value to verify their supplied identity.
+fn seal_run_evidence_value_with_identity(
+  name : String,
+  body_wire : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  identify : (@json.CanonicalValue, Int, Int, Int) -> String raise @encode.EncodeFailure,
+) -> Result[RunEvidenceValue, RunEvidenceValueIssue] {
   guard run_evidence_identity_field(name) is Some(identity_field) else {
     return Err(UnknownRunEvidence)
   }
@@ -139,7 +155,7 @@ pub fn seal_run_evidence_value(
     ) {
     return Err(RunEvidenceInvalidShape)
   }
-  let identity = @json.cid_value(body, max_wire_bytes, max_nodes - 1, max_depth) catch {
+  let identity = identify(body, max_wire_bytes, max_nodes - 1, max_depth) catch {
     _ => return Err(RunEvidenceEncoding)
   }
   guard @json.object_with_string_field(body, identity_field, identity)
@@ -151,9 +167,19 @@ pub fn seal_run_evidence_value(
     ) {
     return Err(RunEvidenceInvalidShape)
   }
-  run_evidence_value(
-    name, identity_field, complete, max_wire_bytes, max_nodes, max_depth,
-  )
+  if name == "source_evidence" &&
+    !completed_file_listing_reports_consistent(complete, max_wire_bytes) {
+    return Err(RunEvidenceReferenceMismatch("file_listing_reports"))
+  }
+  // This exact body just supplied the identity above. Appending that field
+  // cannot change its preimage; do not remove it and hash the body again.
+  // The full completed wire still has its own original output bounds.
+  let wire = @json.stringify_value(
+    complete, max_wire_bytes, max_nodes, max_depth,
+  ) catch {
+    _ => return Err(RunEvidenceEncoding)
+  }
+  Ok({ name, identity, wire, value: complete, })
 }
 
 ///|
