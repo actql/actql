@@ -6,6 +6,7 @@ priv struct LocalCommandBusinessPreparation {
   original : LocalCommandPreparationOriginal
   host : @local_host.NativeLocalHostConnection
   capture : @local_host.NativeLocalJournalCapture
+  configuration : LocalCommandConfiguration
   configuration_name : String
   configuration_body : Bytes
   environment_name : String
@@ -17,6 +18,7 @@ priv struct LocalCommandBusinessPreparation {
   intent : @run_host.ClientSubmittedIntent
   preparation : @local_host.NativeClientSubmittedPreparation
   prepared : @run_host.PreparedClientProgram
+  requirements : @local_values.ClientLocalSourceFreeRequirements
 }
 
 ///|
@@ -24,7 +26,7 @@ fn LocalCommandPreparationOriginal::prepare_business_submission(
   self : LocalCommandPreparationOriginal,
   host : @local_host.NativeLocalHostConnection,
   capture : @local_host.NativeLocalJournalCapture,
-  configuration_name : String,
+  configuration : LocalCommandConfiguration,
   runtime : LocalPackagedRuntime,
   input_root : String,
   operation : String,
@@ -53,21 +55,12 @@ fn LocalCommandPreparationOriginal::prepare_business_submission(
     optional(child, "operation-attempt-id") is Some(_) {
     stop("LocalBusinessOriginalReferenceRequired")
   }
-  let configuration_body = local_host_result(
-    capture.selected_configuration_in_original_read(configuration_name),
-  )
-  let configuration = local_check_original_text(configuration_body)
-  let settings = local_host_settings(configuration)
-  let (environment_name, evidence) = local_configuration(configuration)
-  let environment_body = local_host_result(
-    capture.selected_configuration_in_original_read(environment_name),
-  )
-  let environment = @run_host.admit_client_check_environment(
-    local_check_original_text(environment_body),
-    evidence,
-    { text_time: false, veca: false, },
-    { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
-  ).unwrap_or_else(() => stop("LocalBusinessEnvironmentUnavailable"))
+  let configuration_name = configuration.configuration_name
+  let configuration_body = configuration.configuration_body
+  let settings = configuration.settings
+  let environment_name = configuration.environment_name
+  let environment_body = configuration.environment_body
+  let environment = configuration.checked_environment()
   let account = local_host_result(capture.configuration_in_original_read())
   if account.account_id() != settings.account_id {
     stop("LocalConfigurationChanged")
@@ -112,12 +105,27 @@ fn LocalCommandPreparationOriginal::prepare_business_submission(
   })
   |> ignore
   let assets = runtime.assets
-  command_preparation_result(self.require_business_program(prepared, assets))
+  let requirements = @local_values.prepare_source_free_local_requirements(
+    prepared,
+    assets.registry,
+    assets.values,
+    Some(assets.fragment),
+    assets.ordered,
+  ).unwrap_or_else(() => stop("LocalBusinessProgramUnavailable"))
+  command_preparation_result(
+    self.prepare_business_capacity(capture, requirements),
+    stage=Some("business-capacity"),
+  )
+  command_preparation_result(
+    self.require_business_program(prepared, assets, requirements),
+    stage=Some("business-program"),
+  )
   |> ignore
   let selection : LocalCommandBusinessPreparation = {
     original: self,
     host,
     capture,
+    configuration,
     configuration_name,
     configuration_body,
     environment_name,
@@ -129,6 +137,7 @@ fn LocalCommandPreparationOriginal::prepare_business_submission(
     intent,
     preparation,
     prepared,
+    requirements,
   }
   if !selection.current(host, settings, environment) {
     stop("LocalSubmissionAuthorizationDenied")
@@ -141,6 +150,7 @@ fn LocalCommandPreparationOriginal::prepare_business_submission(
   // exact admitted Runtime/Program/current selection may activate its route.
   command_preparation_result(
     original_operation.activate().map_err(issue => CommandStoreOperation(issue)),
+    stage=Some("business-activation"),
   )
   selection
 }

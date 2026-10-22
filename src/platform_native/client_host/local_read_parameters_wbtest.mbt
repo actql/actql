@@ -29,11 +29,14 @@ test "Native disclosure parameters preserve exact adopted purpose and ceiling wi
   let parameters = parameters.unwrap()
   assert_eq(parameters.purpose, "export\u0301\n")
   assert_eq(parameters.max_output_bytes, 65536)
-  assert_true(binding.disclosure_parameters() is Err(Adoption(_)))
+  let retained = binding.disclosure_parameters().unwrap()
+  assert_eq(retained.purpose, parameters.purpose)
+  assert_eq(retained.max_output_bytes, parameters.max_output_bytes)
+  assert_true(binding.require_current() is Err(Adoption(_)))
 }
 
 ///|
-test "Native disclosure parameters refuse disabled selection and identical replacement generation" {
+test "Native disclosure parameters retain metadata while current rejects identical replacement generation" {
   let (disabled, binding) = read_parameters_fixture(
     "read-parameters-disabled",
     local_read_original_wire.replace_all(
@@ -57,10 +60,14 @@ test "Native disclosure parameters refuse disabled selection and identical repla
     .unwrap()
   writer.append(@utf8.encode(local_read_original_wire)).unwrap()
   writer.seal(file).unwrap() |> ignore
-  let replaced = binding.disclosure_parameters()
+  let replaced = binding.disclosure_parameters().unwrap()
+  let current = binding.require_current()
   host.close().unwrap()
-  assert_eq(before.unwrap().purpose, "inspection")
-  assert_true(replaced is Err(Adoption(_)))
+  let before = before.unwrap()
+  assert_eq(before.purpose, "inspection")
+  assert_eq(replaced.purpose, before.purpose)
+  assert_eq(replaced.max_output_bytes, before.max_output_bytes)
+  assert_true(current is Err(Adoption(_)))
 }
 
 ///|

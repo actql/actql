@@ -1,7 +1,8 @@
 ///|
 // Only the current captured Read may invoke this observation. The same
 // physical Journal queries leave/reenter that Read around every SQLite call;
-// no candidate row, cached currentness or caller Allow replaces the original.
+// snapshot facts may be reused only while the same original remains live.
+// No candidate row, cached Allow or physical ACK replaces that original.
 fn[T] NativeLocalJournalCapture::with_current_adoption_material_in_original_read(
   self : NativeLocalJournalCapture,
   operation : (
@@ -24,23 +25,73 @@ fn[T] NativeLocalJournalCapture::with_current_adoption_material_in_original_read
     original.active_phase is Some(@arena.HostRead) else {
     return Err(OriginalResourceScopePending)
   }
-  // Binding immediately invokes the current port below, before its first SQL
-  // read. Only private query records are constructed before that invocation;
-  // repeating the whole physical fence here observes no intervening operation.
+  if self.read_callback_active && !self.read_facts_valid {
+    return Err(OriginalResourceScopePending)
+  }
+  // The public command entry admitted current originals. Retain that material
+  // throughout this operation; a trusted query or phase exchange is not an
+  // additional Account/configuration admission boundary.
   let queries : NativeLocalJournalReadQueries = {
     original,
     database: host.database,
     failure: None,
+    invalidate_snapshot: table => {
+      if table is Some("client_submission_epoch") {
+        host.epoch.invalidate_custody()
+      }
+      if table is None ||
+        table
+        is Some(
+          "client_local_adoption"
+          | "client_local_settings"
+          | "client_local_installation_originals"
+          | "client_local_installation_custody"
+        ) {
+        self.read_facts_valid = false
+        self.clear_read_operation_facts()
+        host.journal.admitted_adoption = None
+      }
+      if table
+        is Some("client_submitted_intents" | "client_submitted_intent_custody") {
+        host.journal.invalidate_operation_submission()
+      }
+      if table is None || table is Some("client_runs" | "client_effect_custody") {
+        host.journal.invalidate_operation_run()
+      }
+    },
   }
-  let result = match
+  let admitted = if self.read_callback_active &&
+    self.read_facts_valid &&
+    self.read_material is Some(material) {
+    self.check_original_read_lifetime().map(_ => material)
+  } else {
+    native_timing_count(33)
     @host.bind_client_local_adopted_host_material(host.database, () => {
       host.current_adoption_material_with_reads(
         () => self.check_current_in_original_read(),
         reads=Some(queries.access()),
+        snapshot_current=Some(() => {
+          if self.read_callback_active && !self.read_facts_valid {
+            Err(OriginalResourceScopePending)
+          } else {
+            self.check_original_read_lifetime()
+          }
+        }),
       )
-    }) {
-    Err(issue) => Err(local_current_material_issue(issue))
-    Ok(material) => operation(host, material, queries.operation_access())
+    }).map_err(local_current_material_issue)
+  }
+  let result = match admitted {
+    Err(issue) => Err(issue)
+    Ok(material) => {
+      if self.read_callback_active && self.read_facts_valid {
+        self.read_material = Some(material)
+      }
+      operation(host, material, queries.operation_access())
+    }
+  }
+  if queries.failure is Some(_) || self.read_operation_issue is Some(_) {
+    self.read_facts_valid = false
+    self.clear_read_operation_facts()
   }
   match (queries.failure, self.read_operation_issue, result) {
     (
@@ -76,19 +127,7 @@ pub fn NativeLocalJournalCapture::authority_scope_cid_in_original_read(
     host,
     material,
     _operations,
-  ) => {
-    let body = match
-      @host.client_local_adopted_authority_scope_body(
-        material,
-        host.database,
-        principal,
-        connection,
-      ) {
-      Ok(body) => body
-      Err(issue) => return Err(local_current_material_issue(issue))
-    }
-    local_adoption_digest(self.crypto, body)
-  })
+  ) => self.operation_scope(host, material, principal, connection))
 }
 
 ///|
@@ -98,15 +137,12 @@ pub fn NativeLocalJournalCapture::authorize_in_original_read(
   self : NativeLocalJournalCapture,
   request : @authorization.AccessTuple,
 ) -> Result[@authorization.AccountOutcome, NativeLocalAdoptionIssue] {
+  native_timing_count(23)
   self.with_current_adoption_material_in_original_read((
     host,
     material,
     _operations,
-  ) => {
-    @host.client_local_adopted_account_outcome(material, host.database, request).map_err(
-      local_current_material_issue,
-    )
-  })
+  ) => self.operation_account(host, material, request))
 }
 
 ///|
@@ -160,18 +196,8 @@ fn NativeLocalJournalCapture::original_submit_allowed(
   // was joined to this Host immediately before this closed operation. Account
   // evaluation below still observes that same material before and after its
   // actual decision, including after the digest and before protected SQL.
-  let body = match
-    @host.client_local_authority_scope_body(
-      host.session.configuration,
-      "sha256:" + @sha.hex(host.adoption_body),
-      principal,
-      connection,
-    ) {
-    Ok(body) => body
-    Err(@host.InvalidInput) => return Err(InvalidInput)
-    Err(@host.Encoding) => return Err(Encoding)
-  }
-  let current_scope = match local_adoption_digest(self.crypto, body) {
+  let current_scope = match
+    self.operation_scope(host, material, principal, connection) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
@@ -179,7 +205,7 @@ fn NativeLocalJournalCapture::original_submit_allowed(
     return Err(Epoch(ScopeMismatch))
   }
   match
-    @host.client_local_adopted_account_outcome(material, host.database, {
+    self.operation_account(host, material, {
       principal,
       connection,
       resource: "run",
@@ -187,7 +213,7 @@ fn NativeLocalJournalCapture::original_submit_allowed(
     }) {
     Ok(Allow(_)) => Ok(true)
     Ok(_) => Ok(false)
-    Err(issue) => Err(local_current_material_issue(issue))
+    Err(issue) => Err(issue)
   }
 }
 

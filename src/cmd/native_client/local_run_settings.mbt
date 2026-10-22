@@ -56,6 +56,8 @@ fn run_quantity(
 fn local_run_installation(
   text : String,
 ) -> LocalRunInstallation raise ClientStop {
+  // Actual decode/policy-admission attempts, never uses of retained DATA.
+  native_timing_count(31)
   let cursor = local_input_cursor(text)
   let root = @decode.closed_object(cursor, ["version", "native"]).unwrap_or_else(() => {
       stop("InvalidLocalRunInstallation")

@@ -78,22 +78,27 @@ int actql_native_owned_lend_extent(actql_owned_capacity *owner, void *allocation
     return actql_native_owned_lend_extent_range(owner, allocation, 0, length, writable, loan);
 }
 
-int actql_native_owned_lend_extent_range(actql_owned_capacity *owner, void *allocation,
+static int lend_extent_range(actql_owned_capacity *owner, void *allocation,
                                         size_t offset, size_t length, bool writable,
-                                        actql_owned_extent_loan *loan) {
+                                        actql_owned_extent_loan *loan, bool in_process,
+                                        bool domain_storage) {
     if (owner == NULL || loan == NULL || loan->original != NULL ||
         actql_native_owned_current() != owner || length == 0 ||
+        (in_process && !writable) ||
         offset % owner->page_size != 0 || length % owner->page_size != 0)
         return ACTQL_OWNED_INVALID;
     if (foreign_domain_process(owner)) return ACTQL_OWNED_BUSY;
     lock_capacity(owner);
     size_t start;
     int status = ACTQL_OWNED_INVALID;
-    if (foreign_domain_process(owner) || !owner->fd_backed || !owner->transferred || owner->closing ||
+    if (foreign_domain_process(owner) || (in_process ? owner->fd_backed : !owner->fd_backed) || !owner->transferred || owner->closing ||
         !allocation_start(owner, allocation, &start) || owner->extents[start].retired)
         goto done;
     struct extent *extent = &owner->extents[start];
     size_t allocation_bytes = extent->pages * owner->page_size;
+    if (extent->domain_storage != domain_storage ||
+        (domain_storage && (!in_process || !writable || offset != 0 ||
+                            length != allocation_bytes))) goto done;
     if (offset > allocation_bytes || length > allocation_bytes - offset) goto done;
     if (writable && extent->sealed) {
         status = ACTQL_OWNED_BUSY;
@@ -121,6 +126,8 @@ int actql_native_owned_lend_extent_range(actql_owned_capacity *owner, void *allo
     };
     memcpy(loan->extent.recipe, owner->recipe, sizeof(owner->recipe));
     loan->returned = false;
+    loan->local_process = in_process ? (int64_t)getpid() : 0;
+    loan->domain_storage = domain_storage;
     for (size_t i = 0; i < pages; i++) {
         struct extent *page = &owner->extents[start + i];
         if (writable) page->external_writer = true;
@@ -132,9 +139,94 @@ done:
     return status;
 }
 
+int actql_native_owned_lend_extent_range(actql_owned_capacity *owner, void *allocation,
+    size_t offset, size_t length, bool writable, actql_owned_extent_loan *loan) {
+    return lend_extent_range(owner, allocation, offset, length, writable, loan, false, false);
+}
+
+int actql_native_owned_lend_in_process_extent_range(actql_owned_capacity *owner,
+    void *allocation, size_t offset, size_t length, bool writable,
+    actql_owned_extent_loan *loan) {
+    return lend_extent_range(owner, allocation, offset, length, writable, loan, true, false);
+}
+
+int actql_native_owned_allocate_in_process_domain(actql_owned_capacity *owner,
+    size_t bytes, void **out) {
+    if (owner == NULL || out == NULL || *out != NULL || current_capacity != owner ||
+        current_process != getpid()) return ACTQL_OWNED_INVALID;
+    if (foreign_domain_process(owner)) return ACTQL_OWNED_BUSY;
+    lock_capacity(owner);
+    int status = ACTQL_OWNED_INVALID;
+    if (!foreign_domain_process(owner) && !owner->fd_backed && owner->transferred &&
+        !owner->closing)
+        status = allocate_storage_locked(owner, bytes, owner->page_size, out, true);
+    unlock_capacity(owner);
+    return status;
+}
+
+int actql_native_owned_lend_in_process_domain(actql_owned_capacity *owner,
+    void *allocation, size_t bytes, actql_owned_extent_loan *loan) {
+    return lend_extent_range(owner, allocation, 0, bytes, true, loan, true, true);
+}
+
+static bool local_view_original(const actql_owned_extent_view *view) {
+    const actql_owned_extent_loan *loan = view->local_loan;
+    return loan != NULL && loan->original == loan && !loan->returned &&
+        loan->local_process == (int64_t)getpid() && loan->local_view_live &&
+        view->original == view && view->mapping ==
+            (unsigned char *)loan->owner + loan->extent.offset &&
+        view->length == loan->extent.length && view->domain_storage == loan->domain_storage &&
+        memcmp(&view->extent, &loan->extent, sizeof(view->extent)) == 0;
+}
+
+static int view_in_process_extent(actql_owned_extent_loan *loan,
+    size_t payload_offset, size_t payload_length, actql_owned_extent_view *view,
+    bool domain_storage) {
+    if (loan == NULL || loan->original != loan || loan->returned ||
+        loan->local_process != (int64_t)getpid() || !loan->extent.writable || view == NULL ||
+        view->original != NULL || payload_length == 0 ||
+        payload_offset > loan->extent.length ||
+        payload_length > loan->extent.length - payload_offset ||
+        loan->domain_storage != domain_storage ||
+        (domain_storage && (payload_offset != 0 || payload_length != loan->extent.length)))
+        return ACTQL_OWNED_INVALID;
+    actql_owned_capacity *owner = loan->owner;
+    if (foreign_domain_process(owner)) return ACTQL_OWNED_BUSY;
+    lock_capacity(owner);
+    int status = ACTQL_OWNED_BUSY;
+    if (!owner->closing && !owner->fd_backed && !loan->local_view_attempted) {
+        loan->local_view_attempted = true;
+        loan->local_view_live = true;
+        view->original = view;
+        view->local_loan = loan;
+        view->mapping = (unsigned char *)owner + loan->extent.offset;
+        view->length = loan->extent.length;
+        view->extent = loan->extent;
+        view->payload_offset = payload_offset;
+        view->payload_length = payload_length;
+        view->payload_bound = true;
+        view->map_confirmed = true;
+        view->domain_storage = domain_storage;
+        status = ACTQL_OWNED_OK;
+    }
+    unlock_capacity(owner);
+    return status;
+}
+
+int actql_native_owned_view_in_process_extent(actql_owned_extent_loan *loan,
+    size_t payload_offset, size_t payload_length, actql_owned_extent_view *view) {
+    return view_in_process_extent(loan, payload_offset, payload_length, view, false);
+}
+
+int actql_native_owned_view_in_process_domain(actql_owned_extent_loan *loan,
+    actql_owned_extent_view *view) {
+    if (loan == NULL) return ACTQL_OWNED_INVALID;
+    return view_in_process_extent(loan, 0, loan->extent.length, view, true);
+}
+
 int actql_native_owned_project_extent(actql_owned_extent_loan *loan,
                                      actql_owned_extent_reference *out) {
-    if (loan == NULL || loan->original != loan || loan->returned || out == NULL)
+    if (loan == NULL || loan->original != loan || loan->returned || loan->local_process != 0 || out == NULL)
         return ACTQL_OWNED_INVALID;
     actql_owned_capacity *owner = loan->owner;
     if (foreign_domain_process(owner)) return ACTQL_OWNED_BUSY;
@@ -194,6 +286,12 @@ int actql_native_owned_close_extent_view(actql_owned_extent_view *view) {
     if (view == NULL || view->original != view) return ACTQL_OWNED_INVALID;
     if (view->mapping == NULL) return ACTQL_OWNED_OK;
     if (view->domain_live) return ACTQL_OWNED_BUSY;
+    if (view->local_loan != NULL) {
+        if (!local_view_original(view)) return ACTQL_OWNED_INVALID;
+        view->local_loan->local_view_live = false;
+        view->mapping = NULL;
+        return ACTQL_OWNED_OK;
+    }
     if (munmap(view->mapping, view->length) != 0) return ACTQL_OWNED_PHYSICAL_FAILURE;
     view->mapping = NULL;
     return ACTQL_OWNED_OK;
@@ -202,9 +300,15 @@ int actql_native_owned_close_extent_view(actql_owned_extent_view *view) {
 int actql_native_owned_return_extent(actql_owned_extent_loan *loan) {
     if (loan == NULL || loan->original != loan || loan->returned)
         return ACTQL_OWNED_INVALID;
+    if (loan->local_process != 0 && loan->local_process != (int64_t)getpid())
+        return ACTQL_OWNED_INVALID;
     actql_owned_capacity *owner = loan->owner;
     if (foreign_domain_process(owner)) return ACTQL_OWNED_BUSY;
     lock_capacity(owner);
+    if (loan->local_view_live) {
+        unlock_capacity(owner);
+        return ACTQL_OWNED_BUSY;
+    }
     size_t pages = loan->extent.length / owner->page_size;
     int status = ACTQL_OWNED_INVALID;
     for (size_t i = 0; i < pages; i++) {
@@ -248,6 +352,8 @@ int actql_native_owned_acquire_extent_domain(actql_owned_extent_view *view,
         view->mapping == NULL || !view->map_confirmed || !view->payload_bound ||
         !view->extent.writable || view->domain_attempted || view->domain_live)
         return ACTQL_OWNED_INVALID;
+    if (view->local_loan != NULL && !local_view_original(view))
+        return ACTQL_OWNED_INVALID;
     long selected_page = sysconf(_SC_PAGESIZE);
     if (selected_page <= 0) return ACTQL_OWNED_PHYSICAL_FAILURE;
     size_t page = (size_t)selected_page;
@@ -272,7 +378,10 @@ int actql_native_owned_acquire_extent_domain(actql_owned_extent_view *view,
     view->domain_attempted = true;
     view->domain_live = true;
     *out = lease;
-    memset(lease, 0, control_pages * page);
+    /* Private local registration already cleared this exact control prefix.
+     * The untouched payload has never been a generic span or view. Child
+     * allocate_locked still clears every byte before publishing an allocation. */
+    if (!view->domain_storage) memset(lease, 0, control_pages * page);
     lease->length = bytes;
     lease->page_size = page;
     lease->page_count = count;
@@ -282,7 +391,7 @@ int actql_native_owned_acquire_extent_domain(actql_owned_extent_view *view,
     lease->allocation_ceiling_pages = count;
     lease->backing_device = view->extent.device;
     lease->backing_inode = view->extent.inode;
-    lease->fd_backed = true;
+    lease->fd_backed = view->local_loan == NULL;
     lease->extent_domain = true;
     lease->domain_origin_pid = getpid();
     atomic_init(&lease->domain_borrower_pid, 0);
@@ -304,7 +413,10 @@ int actql_native_owned_close_extent_domain(actql_owned_extent_view *view,
         view->domain_borrowed ||
         *slot != (void *)((unsigned char *)view->mapping + view->payload_offset))
         return ACTQL_OWNED_INVALID;
+    if (view->local_loan != NULL && !local_view_original(view))
+        return ACTQL_OWNED_INVALID;
     actql_owned_capacity *lease = *slot;
+    if (foreign_domain_process(lease)) return ACTQL_OWNED_BUSY;
     if (!lease->extent_domain || lease->length != view->payload_length ||
         lease->generation != view->extent.generation ||
         memcmp(lease->recipe, view->extent.recipe, sizeof(lease->recipe)) != 0)
@@ -331,7 +443,7 @@ int actql_native_owned_close_extent_domain(actql_owned_extent_view *view,
 
 int actql_native_owned_borrow_extent_domain(actql_owned_extent_view *view,
                                            actql_owned_capacity **out) {
-    if (view == NULL || view->original != view || out == NULL || *out != NULL ||
+    if (view == NULL || view->local_loan != NULL || view->original != view || out == NULL || *out != NULL ||
         view->mapping == NULL || !view->map_confirmed || !view->payload_bound ||
         !view->extent.writable || view->domain_attempted || view->domain_live)
         return ACTQL_OWNED_INVALID;
@@ -375,7 +487,7 @@ int actql_native_owned_borrow_extent_domain(actql_owned_extent_view *view,
 
 int actql_native_owned_return_extent_domain_borrow(actql_owned_extent_view *view,
                                                   actql_owned_capacity **slot) {
-    if (view == NULL || view->original != view || slot == NULL || !view->domain_borrowed)
+    if (view == NULL || view->local_loan != NULL || view->original != view || slot == NULL || !view->domain_borrowed)
         return ACTQL_OWNED_INVALID;
     if (*slot == NULL) return !view->domain_live ? ACTQL_OWNED_OK : ACTQL_OWNED_INVALID;
     if (view->mapping == NULL || !view->domain_live ||
@@ -406,7 +518,7 @@ int actql_native_owned_unmap_stopped_child_domain(actql_owned_extent_view *view,
      * stop proof before this physical call. Neither this port nor the recorded
      * borrower PID issues such a proof. Ordinary close/borrow return above
      * deliberately keep their allocation-level requirements unchanged. */
-    if (view == NULL || view->original != view || slot == NULL || *slot == NULL ||
+    if (view == NULL || view->local_loan != NULL || view->original != view || slot == NULL || *slot == NULL ||
         !view->domain_attempted || view->domain_borrowed || !view->payload_bound ||
         !view->extent.writable || current_capacity != NULL ||
         actql_native_owned_domain_matches_view(*slot, view, (int64_t)getpid()) != ACTQL_OWNED_OK)

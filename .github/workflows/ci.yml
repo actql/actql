@@ -130,6 +130,8 @@ jobs:
         run: node proofs/relation-pipeline/history.mjs --write
       - name: Reject inconsistent operation support and acceptance evidence before fan-out
         run: node --test scripts/pure-operation-inventory.test.mjs
+      - name: Check Native diagnostic counter assignments before fan-out
+        run: python3 scripts/test_native_timings.py CommandCounterMap
       - run: npm ci
       - name: Test pipeline artifact and aggregate contracts
         run: node --test proofs/relation-pipeline/ci-artifacts.test.mjs

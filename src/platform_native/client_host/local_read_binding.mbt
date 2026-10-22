@@ -268,11 +268,17 @@ fn NativeLocalReadPolicyBinding::require_current(
   match self.capture {
     None => self.require_current_with_reads()
     Some(capture) =>
-      read_binding_in_original_read(capture, (host, operations) => {
+      read_binding_with_material_in_original_read(capture, (
+        host,
+        material,
+        operations,
+      ) => {
         if !physical_equal(host, self.host) {
           return Err(SelectionMismatch)
         }
-        self.require_current_with_reads(reads=Some(operations.reads))
+        read_binding_in_journal_snapshot(host.journal, operations.reads, () => {
+          self.require_current_in_snapshot(material, operations.reads)
+        })
       })
   }
 }
@@ -302,12 +308,23 @@ fn NativeLocalReadPolicyBinding::require_current_with_reads(
   if scope != self.scope {
     return Err(AuthorizationDenied)
   }
-  // check_binding above validates exact retained membership and original
-  // physical generation. A current replacement cannot repair this binding.
   let selected = match self.capture {
     None => self.host.selected_configuration(self.file.name)
     Some(capture) =>
       capture.selected_configuration_in_original_read(self.file.name)
+  }
+  self.require_current_with_facts(scope, selected, reads~)
+}
+
+///|
+fn NativeLocalReadPolicyBinding::require_current_with_facts(
+  self : NativeLocalReadPolicyBinding,
+  scope : String,
+  selected : Result[Bytes, NativeLocalAdoptionIssue],
+  reads? : NativeClientJournalReadAccess? = None,
+) -> Result[Unit, NativeLocalReadBindingIssue] {
+  if scope != self.scope {
+    return Err(AuthorizationDenied)
   }
   let current = match selected {
     Ok(value) => value
@@ -357,6 +374,18 @@ fn NativeLocalReadPolicyBinding::require_request(
   original : @host.ClientRequestIdentity,
   facts : @result_access.NativeResultReadFacts,
 ) -> Result[Unit, NativeLocalReadBindingIssue] {
+  match self.require_receiver(facts) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  self.require_request_selection(original, facts)
+}
+
+///|
+fn NativeLocalReadPolicyBinding::require_receiver(
+  self : NativeLocalReadPolicyBinding,
+  facts : @result_access.NativeResultReadFacts,
+) -> Result[Unit, NativeLocalReadBindingIssue] {
   if self.selection.sink == File {
     guard self.file_destination is Some(destination) &&
       self.file_original is Some(original) else {
@@ -379,7 +408,7 @@ fn NativeLocalReadPolicyBinding::require_request(
       return Err(MaterialUnavailable)
     }
   }
-  self.require_request_selection(original, facts)
+  Ok(())
 }
 
 ///|
@@ -390,10 +419,56 @@ fn NativeLocalReadPolicyBinding::require_request_selection(
   original : @host.ClientRequestIdentity,
   facts : @result_access.NativeResultReadFacts,
 ) -> Result[Unit, NativeLocalReadBindingIssue] {
+  if self.capture is Some(capture) {
+    return read_binding_with_material_in_original_read(capture, (
+      host,
+      material,
+      operations,
+    ) => {
+      if !physical_equal(host, self.host) {
+        return Err(SelectionMismatch)
+      }
+      read_binding_in_journal_snapshot(host.journal, operations.reads, () => {
+        self.require_request_in_snapshot(
+          original,
+          facts,
+          material,
+          operations.reads,
+        )
+      })
+    })
+  }
   match self.require_current() {
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
+  match self.require_request_constraints(original, facts) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
+  match
+    native_local_policy_authority_for(
+      self.host,
+      self.crypto,
+      self.principal,
+      self.connection,
+      original,
+      ReadResultPolicy(facts.request.result_name),
+      capture=self.capture,
+    ) {
+    Ok(_) => Ok(())
+    Err(issue) => Err(Journal(issue))
+  }
+}
+
+///|
+// Exact selection and time constraints are pure in a selected captured frame.
+// The legacy expiry route still invokes its original policy custody check.
+fn NativeLocalReadPolicyBinding::require_request_constraints(
+  self : NativeLocalReadPolicyBinding,
+  original : @host.ClientRequestIdentity,
+  facts : @result_access.NativeResultReadFacts,
+) -> Result[Unit, NativeLocalReadBindingIssue] {
   if self.run_policy_original is Some((_, bound, _)) &&
     @host.client_request_identity_relation(bound, original) != @host.SameRequest {
     return Err(SelectionMismatch)
@@ -428,19 +503,7 @@ fn NativeLocalReadPolicyBinding::require_request_selection(
   if observed >= expiry {
     return Err(PolicyExpired)
   }
-  match
-    native_local_policy_authority_for(
-      self.host,
-      self.crypto,
-      self.principal,
-      self.connection,
-      original,
-      ReadResultPolicy(facts.request.result_name),
-      capture=self.capture,
-    ) {
-    Ok(_) => Ok(())
-    Err(issue) => Err(Journal(issue))
-  }
+  Ok(())
 }
 
 ///|
@@ -457,6 +520,32 @@ pub fn NativeLocalReadPolicyBinding::resolve_policy_original(
   @publication.CapturedEffectDependencyBody,
   NativeLocalReadBindingIssue,
 ] {
+  self.resolve_policy_with_committed_result(original, store, facts, None)
+}
+
+///|
+// A closed delivery caller already selected this typed observation from the
+// same Store. It is reused only for this synchronous policy correspondence;
+// Store custody, current permissions and every original reference still join.
+fn NativeLocalReadPolicyBinding::resolve_policy_with_committed_result(
+  self : NativeLocalReadPolicyBinding,
+  original : @host.ClientRequestIdentity,
+  store : @publication_store.Store,
+  facts : @result_access.NativeResultReadFacts,
+  committed_result : @publication_store.NativeCommittedResult?,
+) -> Result[
+  @publication.CapturedEffectDependencyBody,
+  NativeLocalReadBindingIssue,
+] {
+  if self.capture is Some(capture) {
+    return self.resolve_policy_from_snapshot(
+      capture,
+      original,
+      store,
+      facts,
+      committed_result~,
+    )
+  }
   match self.require_request(original, facts) {
     Ok(_) => ()
     Err(issue) => return Err(issue)
@@ -464,13 +553,14 @@ pub fn NativeLocalReadPolicyBinding::resolve_policy_original(
   let body = match self.capture {
     None =>
       match
-        self.host.resolve_result_policy_original(
+        self.host.resolve_result_policy_original_with_operations(
           self.crypto,
           self.principal,
           self.connection,
           original,
           store,
           facts,
+          committed_result~,
         ) {
         Ok(value) => value
         Err(issue) => return Err(Journal(issue))

@@ -24,11 +24,7 @@ pub fn NativeLocalRunPolicyBinding::accept_submitted_effect_values_run_policy(
     ) {
     Ok(Accepted(saved)) => saved
     Ok(Pending(retention, issued_at)) => {
-      let ref_record = match
-        @host.admit_client_submission_reference_record(reference.wire) {
-        Ok(value) => value
-        Err(_) => return Err(Journal(InvalidSubmission))
-      }
+      let ref_record = reference.original
       match
         @host.bind_client_local_run_policy_original(
           self.profile,

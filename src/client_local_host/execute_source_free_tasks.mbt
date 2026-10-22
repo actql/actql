@@ -44,6 +44,7 @@ pub fn execute_source_free_local_tasks_guarded(
   finalization_quantum : Int,
   max_finalization_rounds : Int,
   require_current : () -> Bool,
+  require_live? : (() -> Bool)? = None,
 ) -> Result[LocalValuesExecution, LocalValuesExecutionFailure] {
   if finalization_quantum <= 0 || max_finalization_rounds <= 0 {
     return Err(failed_local_values_execution(InvalidLimits))
@@ -62,6 +63,18 @@ pub fn execute_source_free_local_tasks_guarded(
   let tasks : Array[LocalValuesTaskExecution?] = Array::make(count, None)
   let available = Ref(true)
   let current = () => available.val && require_current()
+  // Legacy callers retain their original callback at each poll. A trusted
+  // caller may separate cheap original-lifetime polling from authorization;
+  // the latter still runs at dispatch and callback-return boundaries below.
+  let live = () => {
+    if !available.val {
+      return false
+    }
+    match require_live {
+      Some(check) => check()
+      None => require_current()
+    }
+  }
   let reject = fn(
     issue : LocalValuesExecutionIssue,
   ) -> Result[LocalValuesExecution, LocalValuesExecutionFailure] {
@@ -70,6 +83,9 @@ pub fn execute_source_free_local_tasks_guarded(
     Err(LocalValuesExecutionFailure::{ issue, cleanup, cleaned: cleanup(), })
   }
   if !current() {
+    return reject(Fenced)
+  }
+  if require_live is Some(poll) && !poll() {
     return reject(Fenced)
   }
   if @strategy.graph_captured_prefix(graph) != 0 ||
@@ -144,6 +160,9 @@ pub fn execute_source_free_local_tasks_guarded(
       return reject(UnsupportedGraph)
     }
     for transfer in operations.inputs {
+      if !current() {
+        return reject(Fenced)
+      }
       let input = @execution.managed_producer_read_input_index(transfer.input)
       guard input >= 0 &&
         input < producers.length() &&
@@ -156,7 +175,7 @@ pub fn execute_source_free_local_tasks_guarded(
         return reject(MissingOutput)
       }
       for row in 0..<@execution.managed_completed_output_row_count(output) {
-        if !current() {
+        if !live() {
           return reject(Fenced)
         }
         let wire = match (producer.operations.output_row)(row) {
@@ -175,6 +194,9 @@ pub fn execute_source_free_local_tasks_guarded(
         Ok(_) => ()
         Err(issue) => return reject(Driver(issue))
       }
+      if !current() {
+        return reject(Fenced)
+      }
     }
     if !current() {
       return reject(Fenced)
@@ -187,17 +209,16 @@ pub fn execute_source_free_local_tasks_guarded(
       return reject(Fenced)
     }
     match
-      (operations.prepare_finalization)(
-        index,
-        operations.storage_bytes,
-        current,
-      ) {
+      (operations.prepare_finalization)(index, operations.storage_bytes, live) {
       Ok(_) => ()
       Err(issue) => return reject(Driver(issue))
     }
+    if !current() {
+      return reject(Fenced)
+    }
     let mut complete = false
     for _ in 0..<max_finalization_rounds {
-      if !current() {
+      if !live() {
         return reject(Fenced)
       }
       let progress = match
@@ -227,7 +248,7 @@ pub fn execute_source_free_local_tasks_guarded(
       return reject(Fenced)
     }
     task.completed = match
-      (operations.complete)(index, operations.storage_bytes, current) {
+      (operations.complete)(index, operations.storage_bytes, live) {
       Ok(value) => Some(value)
       Err(issue) => return reject(Driver(issue))
     }

@@ -109,10 +109,9 @@ fn NativeLocalAdoptionSession::prepare_journal_file(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  match self.check_original() {
-    Ok(_) => Ok((ownership, body))
-    Err(issue) => Err(issue)
-  }
+  // stage_configuration admitted this source at entry. These trusted custody
+  // reads and writes do not introduce another source-admission boundary.
+  Ok((ownership, body))
 }
 
 ///|
@@ -162,19 +161,13 @@ fn NativeLocalAdoptionSession::open_journal_selected(
   let first = match self.prepare_journal_marker(ownership, adoption_body) {
     Err(issue) => return Err(issue)
     Ok(true) => true
-    Ok(false) =>
-      match
-        self.inspect_retained_journal(library, max_snapshot_bytes, max_records) {
-        Ok(value) => value
-        Err(issue) => return Err(issue)
-      }
+    // The existing-only SQLite entrance cannot initialize missing schema or
+    // keys. Its fixed adoption/epoch anchors are checked before any command.
+    // Copying and auditing all historical rows is an explicit recovery task.
+    Ok(false) => false
   }
   if !first && (initial_signing is Some(_) || initial_policy is Some(_)) {
     return Err(AmbiguousInitialization)
-  }
-  match self.check_original() {
-    Ok(_) => ()
-    Err(issue) => return Err(issue)
   }
   let opening = if first {
     library.initialize_owned_database(
@@ -214,10 +207,6 @@ fn NativeLocalAdoptionSession::bind_journal(
   initial_signing : NativeLocalInitialSigningMaterial?,
   initial_policy : @host.ClientLocalSigningBootstrapPolicy?,
 ) -> Result[NativeLocalHostConnection, NativeLocalAdoptionIssue] {
-  match self.check_original() {
-    Ok(_) => ()
-    Err(issue) => return Err(issue)
-  }
   let initial = match (initial_signing, initial_policy) {
     (None, None) => None
     (Some(material), Some(policy)) if first =>
@@ -235,10 +224,6 @@ fn NativeLocalAdoptionSession::bind_journal(
       database, crypto, adoption_body, first, initial, ttl_ms, max_records,
     ) {
     Ok(value) => value
-    Err(issue) => return Err(issue)
-  }
-  match self.check_original() {
-    Ok(_) => ()
     Err(issue) => return Err(issue)
   }
   let adoption_cid = match local_adoption_digest(crypto, adoption_body) {
@@ -259,7 +244,18 @@ fn NativeLocalAdoptionSession::bind_journal(
     packaged_runtime: None,
     worker_provisioning_attempt: None,
   }
-  match connected.check_binding() {
+  match connected.check_binding_sqlite_fence() {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
+  match connected.check_database_file_original() {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
+  // The adoption row and epoch anchors were admitted above in this closed
+  // opening sequence. Retain the selected settings once on this open; there
+  // was no application callback or new source operation in between.
+  match self.settings.check_retained(database) {
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
@@ -275,6 +271,17 @@ fn local_adoption_row(
   body : Bytes,
   reads? : NativeClientJournalReadAccess? = None,
 ) -> Result[Unit, NativeLocalAdoptionIssue] {
+  local_adoption_original_row(database, body, reads~).map(_ => ())
+}
+
+///|
+// Retain the actual admitted row for a closed opening/read operation instead
+// of selecting and comparing that unchanged original again in material binding.
+fn local_adoption_original_row(
+  database : @sqlite.Database,
+  body : Bytes,
+  reads? : NativeClientJournalReadAccess? = None,
+) -> Result[@sqlite.NativeJournalEntry, NativeLocalAdoptionIssue] {
   guard scan_client_journal_value(database, "client_local_adoption", "", reads)
     is Ok(first) &&
     first.key == "adoption" &&
@@ -286,7 +293,7 @@ fn local_adoption_row(
     is Err(@sqlite.NotFound) else {
     return Err(CustodyLost)
   }
-  Ok(())
+  Ok(first)
 }
 
 ///|
@@ -356,6 +363,8 @@ pub fn NativeLocalHostConnection::close(
 fn NativeLocalHostConnection::close_journal_database(
   self : NativeLocalHostConnection,
 ) -> Result[Unit, NativeLocalAdoptionIssue] {
+  self.journal.admitted_record = None
+  self.journal.admitted_adoption = None
   if !self.database_closed {
     match self.database.close_checked() {
       Ok(_) => self.database_closed = true

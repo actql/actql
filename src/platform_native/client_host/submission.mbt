@@ -1,6 +1,9 @@
 ///|
 /// An original public SubmissionReference, not read authority or acceptance.
 struct NativeClientSubmissionReference {
+  // Retain the existing Common Owner's admitted immutable DATA. An internal
+  // Journal helper consumes this same original without parsing its wire again.
+  original : @host.ClientSubmissionReferenceRecord
   epoch : NativeClientSubmissionEpoch
   request_id : String
   wire : String
@@ -26,8 +29,12 @@ fn native_submission_reference_record(
 ) -> NativeClientSubmissionReference {
   let epoch = @host.client_submission_reference_record_epoch(value)
   {
+    original: value,
     epoch: {
       body: @host.client_submission_epoch_token_body(epoch),
+      authority_scope_cid: @host.client_submission_epoch_token_authority_scope_cid(
+        epoch,
+      ),
       tag: @host.client_submission_epoch_token_tag(epoch),
       wire: @host.client_submission_epoch_token_wire(epoch),
     },
@@ -53,10 +60,9 @@ pub fn prepare_native_client_submission_reference(
   epoch : NativeClientSubmissionEpoch,
   nonce : String,
 ) -> Result[NativeClientSubmissionReference, NativeClientRunJournalIssue] {
-  // Preserve the original typed nonce rejection before token serialization.
-  if @scope.submission_request_id(epoch.body, nonce) is Err(_) {
-    return Err(InvalidSubmission)
-  }
+  // The opaque epoch already came from the existing admitted token path.
+  // The Common reference Owner validates the nonce and derives its request ID
+  // once; do not compute and discard that same identity before calling it.
   let token = match @host.admit_client_submission_epoch_token(epoch.wire) {
     Ok(value) => value
     Err(@host.Unverifiable) => return Err(Epoch(Unverifiable))
@@ -167,6 +173,23 @@ fn initialize_native_client_submitted_intents(
     Err(@sqlite.NotFound) => ()
     _ => return Err(CustodyLost)
   }
+  match
+    scan_client_journal_value(
+      database,
+      "client_submitted_intent_usage",
+      "",
+      bootstrap_journal_reads(bootstrap),
+    ) {
+    Err(@sqlite.NotFound) => ()
+    _ => return Err(CustodyLost)
+  }
+  match
+    insert_bootstrap_journal_value(
+      database, "client_submitted_intent_usage", "retained", b"0:0", bootstrap,
+    ) {
+    Ok(_) => ()
+    Err(issue) => return Err(Physical(issue))
+  }
   insert_bootstrap_journal_value(
     database, "client_submitted_intent_custody", "issued", b"0", bootstrap,
   )
@@ -178,6 +201,11 @@ fn initialize_native_client_submitted_intents(
 fn NativeClientRunJournal::submitted_intent_custody(
   self : NativeClientRunJournal,
   reads? : NativeClientJournalReadAccess? = None,
+  runs? : Map[String, NativeClientRunRecord]? = None,
+  observe? : ((@host.ClientSubmittedJournalEncoding) -> Result[
+    Unit,
+    NativeClientRunJournalIssue,
+  ])? = None,
 ) -> Result[(Int, Int64, Int64), NativeClientRunJournalIssue] {
   @host.inspect_client_submitted_journal_inventory(
     self.max_records,
@@ -187,7 +215,20 @@ fn NativeClientRunJournal::submitted_intent_custody(
     (table_name, key) => {
       client_journal_read(self.database, table_name, key, reads~)
     },
-    row => self.inspect_submitted_intent_row(row, reads~),
+    row => {
+      let original = match
+        self.inspect_submitted_intent_row(row, reads~, runs~) {
+        Ok(value) => value
+        Err(issue) => return Err(issue)
+      }
+      if observe is Some(visit) {
+        match visit(original) {
+          Ok(_) => ()
+          Err(issue) => return Err(issue)
+        }
+      }
+      Ok(original)
+    },
     CustodyLost,
   )
 }
@@ -197,6 +238,7 @@ fn NativeClientRunJournal::inspect_submitted_intent_row(
   self : NativeClientRunJournal,
   row : @host.ClientJournalPhysicalRow,
   reads? : NativeClientJournalReadAccess? = None,
+  runs? : Map[String, NativeClientRunRecord]? = None,
 ) -> Result[@host.ClientSubmittedJournalEncoding, NativeClientRunJournalIssue] {
   let original = match @host.decode_client_submitted_journal_row(row.body) {
     Ok(value) => value
@@ -217,7 +259,7 @@ fn NativeClientRunJournal::inspect_submitted_intent_row(
   if record.reference.request_id != row.key {
     return Err(CustodyLost)
   }
-  match self.validate_submitted_run_admission(record, reads~) {
+  match self.validate_submitted_run_admission(record, reads~, runs~) {
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
@@ -252,22 +294,91 @@ fn NativeClientRunJournal::retained_submission(
   reference : NativeClientSubmissionReference,
   reads? : NativeClientJournalReadAccess? = None,
 ) -> Result[NativeClientSubmittedIntentRecord?, NativeClientRunJournalIssue] {
-  let original_reference = match
-    @host.admit_client_submission_reference_record(reference.wire) {
-    Ok(value) => value
-    Err(_) => return Err(CustodyLost)
+  self
+  .retained_submission_with_run(reference, reads~)
+  .map(value => value.map(pair => pair.0))
+}
+
+///|
+fn NativeClientRunJournal::retained_submission_with_run(
+  self : NativeClientRunJournal,
+  reference : NativeClientSubmissionReference,
+  reads? : NativeClientJournalReadAccess? = None,
+) -> Result[
+  (NativeClientSubmittedIntentRecord, NativeClientRunRecord?)?,
+  NativeClientRunJournalIssue,
+] {
+  if reads is Some(access) && !physical_equal(access.database, self.database) {
+    self.invalidate_operation_submission()
+    return Err(Physical(@sqlite.Collision))
   }
-  @host.read_client_saved_submission(
+  if self.fenced || client_journal_transaction_fenced(self.database, reads) {
+    self.invalidate_operation_submission()
+    return Err(Fenced)
+  }
+  if self.operation_active &&
+    self.operation_submission is Some((original, run)) &&
+    original.reference.wire == reference.wire {
+    let current = match (original.run_admission, run) {
+      (Some(admission), None) => {
+        let retained = match self.retained(admission.request, reads~) {
+          Ok(Some(value)) => value
+          Ok(None) => {
+            self.invalidate_operation_record()
+            return Err(CustodyLost)
+          }
+          Err(issue) => {
+            self.invalidate_operation_record()
+            return Err(issue)
+          }
+        }
+        if @host.validate_client_submitted_retained_run(
+            original.reference.original,
+            (
+              admission.request,
+              admission.run_definition_cid,
+              admission.revision,
+            ),
+            retained.request,
+            retained.definition,
+            retained.revision,
+          )
+          is Err(_) {
+          self.invalidate_operation_record()
+          return Err(CustodyLost)
+        }
+        Some(retained)
+      }
+      _ => run
+    }
+    self.operation_submission = Some((original, current))
+    return Ok(Some((original, current)))
+  }
+  let original_reference = reference.original
+  let selected_run : Ref[NativeClientRunRecord?] = Ref(None)
+  // Count actual selected-row admission attempts, never entries or cache hits.
+  if self.operation_active {
+    native_timing_count(39)
+  }
+  let result = @host.read_client_saved_submission(
     original_reference,
     (table_name, key) => {
       client_journal_read(self.database, table_name, key, reads~)
     },
     row => {
       let record = match
-        read_run_record({ body: row.body, revision: row.revision, }) {
+        self.admit_retained_record(row.key, {
+          body: row.body,
+          revision: row.revision,
+        }) {
         Ok(value) => value
         Err(_) => return Err(CustodyLost)
       }
+      match confirm_effect_ledger_custody(self.database, record, reads~) {
+        Ok(_) => ()
+        Err(issue) => return Err(issue)
+      }
+      selected_run.val = Some(record)
       Ok({
         request: record.request,
         definition: record.definition,
@@ -278,7 +389,7 @@ fn NativeClientRunJournal::retained_submission(
   ).map(value => {
     value.map(snapshot => {
       let decoded = @host.client_saved_submission_record(snapshot)
-      {
+      let original : NativeClientSubmittedIntentRecord = {
         reference: native_submission_reference_record(decoded.reference),
         intent: decoded.intent,
         run_admission: decoded.run_admission.map(value => {
@@ -290,8 +401,22 @@ fn NativeClientRunJournal::retained_submission(
         run_state_original: decoded.run_state_original,
         run_state_observation: decoded.run_state_observation,
       }
+      (original, selected_run.val)
     })
   })
+  match result {
+    Ok(Some(original)) => {
+      if self.operation_active {
+        self.operation_submission = Some(original)
+      }
+      Ok(Some(original))
+    }
+    Ok(None) => Ok(None)
+    Err(issue) => {
+      self.invalidate_operation_submission()
+      Err(issue)
+    }
+  }
 }
 
 ///|
@@ -379,11 +504,7 @@ fn NativeClientRunJournal::record_submitted_intent_locked(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  let original_reference = match
-    @host.admit_client_submission_reference_record(reference.wire) {
-    Ok(value) => value
-    Err(_) => return Err(CustodyLost)
-  }
+  let original_reference = reference.original
   let plan = match
     @host.prepare_client_submitted_journal_append(
       original_reference,
@@ -408,6 +529,17 @@ fn NativeClientRunJournal::record_submitted_intent_locked(
         })
       },
       CustodyLost,
+      usage=Some(() => {
+        if self.append_schema != 1 {
+          return Err(CustodyLost)
+        }
+        client_journal_read(
+          self.database,
+          "client_submitted_intent_usage",
+          "retained",
+          reads~,
+        )
+      }),
     ) {
     Ok(@host.Retained(snapshot)) => {
       let original = @host.client_saved_submission_record(snapshot)
@@ -436,6 +568,11 @@ fn NativeClientRunJournal::record_submitted_intent_locked(
   let (key, body, revision, issued_body) = @host.client_submitted_journal_append_rows(
     plan,
   )
+  let (usage_revision, usage_body) = match
+    @host.client_submitted_journal_append_usage(plan) {
+    Some(value) => value
+    None => return Err(CustodyLost)
+  }
   match
     compare_exchange_client_journal_value(
       self.database,
@@ -448,6 +585,19 @@ fn NativeClientRunJournal::record_submitted_intent_locked(
     Ok(_) => ()
     Err(issue) => return Err(Physical(issue))
   }
+  match
+    compare_exchange_client_journal_value(
+      self.database,
+      "client_submitted_intent_usage",
+      "retained",
+      usage_revision,
+      usage_body,
+      operations,
+    ) {
+    Ok(_) => ()
+    Err(issue) => return Err(Physical(issue))
+  }
+  self.invalidate_operation_submission()
   insert_client_journal_value(
     self.database,
     "client_submitted_intents",
@@ -524,7 +674,13 @@ fn NativeClientRunJournal::lookup_submitted_intent_with_operations(
         Ok(_) => ()
         Err(issue) => return Err(issue)
       }
-      match self.submitted_intent_custody(reads~) {
+      match
+        client_journal_issuance_anchor(
+          self.database,
+          "client_submitted_intent_custody",
+          self.max_records,
+          reads~,
+        ) {
         Ok(_) => ()
         Err(issue) => return Err(issue)
       }

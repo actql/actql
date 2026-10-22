@@ -28,6 +28,8 @@ struct extent {
     size_t pages;
     bool retired;
     bool sealed;
+    /* Private domain registration storage is not a generic readable span. */
+    bool domain_storage;
     size_t external_readers;
     bool external_writer;
     /* Private Rust storage is never a generic exportable span. */
@@ -47,6 +49,10 @@ struct actql_owned_capacity {
      * Neither value issues capacity or acknowledges physical cleanup. */
     size_t occupied_pages;
     size_t peak_occupied_pages;
+    /* Cumulative backing-extent work only. This is neither occupancy nor
+     * capacity; child retirement and reuse never reset these observations. */
+    uint64_t extent_work[5];
+    bool extent_work_overflow;
     /* Optional one-shot physical ceiling, including original control pages.
      * It never changes mapping size, ownership, reservations or retirement. */
     size_t allocation_ceiling_pages;
@@ -101,7 +107,8 @@ static struct owned_scope_state *owned_scope(void) {
  * validates the original Core loan before publishing the process borrow. */
 static bool foreign_domain_process(actql_owned_capacity *lease) {
     int borrower = atomic_load_explicit(&lease->domain_borrower_pid, memory_order_acquire);
-    return lease->extent_domain && borrower != 0 && borrower != (int)getpid();
+    return (!lease->fd_backed && lease->domain_origin_pid != getpid()) ||
+        (lease->extent_domain && borrower != 0 && borrower != (int)getpid());
 }
 
 static void lock_capacity(actql_owned_capacity *lease) {
@@ -150,6 +157,7 @@ int actql_native_owned_acquire(size_t capacity, uint64_t generation,
     lease->backing_inode = 0;
     lease->fd_backed = false;
     lease->extent_domain = false;
+    lease->domain_origin_pid = getpid();
     atomic_init(&lease->domain_borrower_pid, 0);
     atomic_init(&lease->rust_process, 0);
     lease->generation = generation;
@@ -286,7 +294,14 @@ int actql_native_owned_domain_matches_view(actql_owned_capacity *lease,
     if (lease == NULL || view == NULL || original_process != (int64_t)getpid() ||
         !view->domain_live || !view->map_confirmed || view->mapping == NULL ||
         lease != (void *)((unsigned char *)view->mapping + view->payload_offset) ||
-        !lease->extent_domain || !lease->fd_backed ||
+        !lease->extent_domain ||
+        (view->local_loan == NULL ? !lease->fd_backed :
+            (lease->fd_backed || view->original != view ||
+             view->local_loan->original != view->local_loan ||
+             view->local_loan->returned || !view->local_loan->local_view_live ||
+             view->local_loan->local_process != (int64_t)getpid() ||
+             view->mapping != (unsigned char *)view->local_loan->owner +
+                                  view->local_loan->extent.offset)) ||
         lease->domain_origin_pid != original_process ||
         lease->generation != view->extent.generation ||
         lease->backing_device != view->extent.device ||
@@ -321,10 +336,16 @@ int actql_native_owned_domain_returned(actql_owned_capacity *lease,
 }
 
 /* Existing generic placement, called under the original capacity lock. */
-static int allocate_locked(actql_owned_capacity *lease, size_t bytes,
-                           size_t alignment, void **out) {
+static int allocate_storage_locked(actql_owned_capacity *lease, size_t bytes,
+                           size_t alignment, void **out, bool domain_storage) {
     size_t pages;
     if (!round_pages(bytes, lease->page_size, &pages)) return ACTQL_OWNED_INVALID;
+    size_t clear_pages = pages;
+    if (domain_storage &&
+        (pages > (SIZE_MAX - sizeof(*lease)) / sizeof(struct extent) ||
+         !round_pages(sizeof(*lease) + pages * sizeof(struct extent),
+                      lease->page_size, &clear_pages) || clear_pages >= pages))
+        return ACTQL_OWNED_INVALID;
     if (lease->first_free_page < lease->control_pages ||
         lease->first_free_page > lease->page_count) {
         return ACTQL_OWNED_INVALID;
@@ -355,9 +376,19 @@ static int allocate_locked(actql_owned_capacity *lease, size_t bytes,
             status = ACTQL_OWNED_PHYSICAL_FAILURE;
             break;
         }
-        memset(base, 0, length);
+        /* Only the private domain path withholds its payload from all generic
+         * consumers. Every generic allocation still clears its full extent. */
+        size_t cleared = clear_pages * lease->page_size;
+        memset(base, 0, cleared);
+        const uint64_t work[3] = {1, length, cleared};
+        for (size_t i = 0; i < 3; i++) {
+            if (lease->extent_work[i] > UINT64_MAX - work[i])
+                lease->extent_work_overflow = true;
+            else lease->extent_work[i] += work[i];
+        }
         lease->extents[start].pages = pages;
         lease->extents[start].retired = false;
+        lease->extents[start].domain_storage = domain_storage;
         lease->occupied_pages += pages;
         if (lease->occupied_pages > lease->peak_occupied_pages)
             lease->peak_occupied_pages = lease->occupied_pages;
@@ -375,6 +406,11 @@ static int allocate_locked(actql_owned_capacity *lease, size_t bytes,
         break;
     }
     return status;
+}
+
+static int allocate_locked(actql_owned_capacity *lease, size_t bytes,
+                           size_t alignment, void **out) {
+    return allocate_storage_locked(lease, bytes, alignment, out, false);
 }
 
 int actql_native_owned_allocate(actql_owned_capacity *lease, size_t bytes,
@@ -454,6 +490,7 @@ int actql_native_owned_contains_live_span(actql_owned_capacity *lease,
         start--;
     size_t pages = lease->extents[start].pages;
     if (pages == 0 || pages == SIZE_MAX || lease->extents[start].rust_class != 0 ||
+        lease->extents[start].domain_storage ||
         lease->extents[start].retired ||
         pages > lease->page_count - start) goto done;
     size_t begin = start * lease->page_size;
@@ -476,7 +513,8 @@ int actql_native_owned_protect(actql_owned_capacity *lease, void *allocation,
     lock_capacity(lease);
     size_t start;
     int status = ACTQL_OWNED_INVALID;
-    if (!foreign_domain_process(lease) && allocation_start(lease, allocation, &start) && !lease->extents[start].retired) {
+    if (!foreign_domain_process(lease) && allocation_start(lease, allocation, &start) &&
+        !lease->extents[start].domain_storage && !lease->extents[start].retired) {
         if (allocation_has_external_use(lease, start, false) ||
             (lease->fd_backed && lease->extents[start].sealed && protection != PROT_READ)) {
             unlock_capacity(lease);
@@ -499,6 +537,12 @@ static int clean_retired(actql_owned_capacity *lease, size_t start) {
         return ACTQL_OWNED_INVALID;
     if (mprotect(base, pages * lease->page_size, PROT_NONE) != 0)
         return ACTQL_OWNED_PHYSICAL_FAILURE;
+    const uint64_t work[2] = {1, pages * lease->page_size};
+    for (size_t i = 0; i < 2; i++) {
+        if (lease->extent_work[i + 3] > UINT64_MAX - work[i])
+            lease->extent_work_overflow = true;
+        else lease->extent_work[i + 3] += work[i];
+    }
     lease->occupied_pages -= pages;
     memset(&lease->extents[start], 0, pages * sizeof(struct extent));
     /* Failed retirement never publishes free storage. Only the same confirmed
@@ -507,13 +551,33 @@ static int clean_retired(actql_owned_capacity *lease, size_t start) {
     return ACTQL_OWNED_OK;
 }
 
+int actql_native_owned_extent_work(actql_owned_capacity *lease, uint64_t *out,
+                                   size_t count) {
+    if (lease == NULL || out == NULL || count != 5 ||
+        current_capacity != lease || current_process != getpid())
+        return ACTQL_OWNED_INVALID;
+    for (size_t i = 0; i < count; i++)
+        if (out[i] != 0) return ACTQL_OWNED_INVALID;
+    if (foreign_domain_process(lease)) return ACTQL_OWNED_BUSY;
+    lock_capacity(lease);
+    int status = ACTQL_OWNED_INVALID;
+    if (!foreign_domain_process(lease) && lease->transferred &&
+        !lease->extent_work_overflow) {
+        memcpy(out, lease->extent_work, sizeof(lease->extent_work));
+        status = ACTQL_OWNED_OK;
+    }
+    unlock_capacity(lease);
+    return status;
+}
+
 int actql_native_owned_seal_readonly(actql_owned_capacity *lease, void *allocation) {
     if (lease == NULL) return ACTQL_OWNED_INVALID;
     if (foreign_domain_process(lease)) return ACTQL_OWNED_BUSY;
     lock_capacity(lease);
     size_t start;
     int status = ACTQL_OWNED_INVALID;
-    if (!foreign_domain_process(lease) && allocation_start(lease, allocation, &start) && !lease->extents[start].retired) {
+    if (!foreign_domain_process(lease) && allocation_start(lease, allocation, &start) &&
+        !lease->extents[start].domain_storage && !lease->extents[start].retired) {
         if (allocation_has_external_use(lease, start, true)) {
             unlock_capacity(lease);
             return ACTQL_OWNED_BUSY;
@@ -571,6 +635,7 @@ int actql_native_owned_try_close(actql_owned_capacity **slot) {
     if (slot == NULL) return ACTQL_OWNED_INVALID;
     actql_owned_capacity *lease = *slot;
     if (lease == NULL) return ACTQL_OWNED_OK;
+    if (foreign_domain_process(lease)) return ACTQL_OWNED_BUSY;
     /* An interior domain is retired through its original view, never munmap. */
     if (lease->extent_domain) return ACTQL_OWNED_INVALID;
     /* The original owner must exclude concurrent callers before final close. */

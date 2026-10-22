@@ -165,3 +165,246 @@ test "original journal issuance count retains exact canonical decimal and caps" 
   }
   assert_eq(client_journal_issuance_count(b"9", 8), Err(CustodyLost))
 }
+
+///|
+// Existing Run Definition preimage with run_id changed independently using
+// Python hashlib. This is a valid foreign original, not a substituted self CID.
+let journal_decoding_other_definition = "{\"authorization_context_cid\":\"sha256:2222222222222222222222222222222222222222222222222222222222222222\",\"compiled_plan_cid\":\"sha256:1111111111111111111111111111111111111111111111111111111111111111\",\"created_at\":\"2026-09-18T00:00:00.000Z\",\"input_artifact_set_cid\":\"sha256:3333333333333333333333333333333333333333333333333333333333333333\",\"invocation_template_cid\":\"sha256:6666666666666666666666666666666666666666666666666666666666666666\",\"run_definition_cid\":\"sha256:39d086f5335d45f573ddf2a9a20d7607111cf31d5bde3e7b1258e20f295038f6\",\"run_id\":\"other-run\",\"scope_id\":\"scope\",\"valid_until\":\"2099-01-01T00:00:00.000Z\",\"version\":\"actql-run-definition/0.1\"}"
+
+///|
+fn journal_decoding_foreign_request() -> ClientRequestIdentity {
+  let original = journal_encoding_original().request
+  derive_client_request_identity(
+    {
+      program_definition_cid: client_request_program_cid(original),
+      parameter_values_cid: client_request_parameters_cid(original),
+    },
+    client_request_authority_scope_cid(original),
+    "foreign-request",
+    client_request_input_cid(original),
+  ).unwrap()
+}
+
+///|
+test "Run row identity reuse preserves exact original instances across metadata revisions" {
+  let original = journal_encoding_original()
+  let changed = {
+    ..original,
+    dispatch_reserved: true,
+    publication_policy_originals: Some("new private metadata, not a grant"),
+  }
+  let body = client_run_journal_row_body(changed).unwrap()
+  let (decoded, local, observation) = decode_client_run_journal_row_with_retained_identity(
+    body,
+    original.request,
+    original.definition,
+  ).unwrap()
+  assert_true(physical_equal(decoded.request, original.request))
+  assert_true(physical_equal(decoded.definition, original.definition))
+  assert_true(decoded.dispatch_reserved)
+  assert_eq(
+    decoded.publication_policy_originals,
+    changed.publication_policy_originals,
+  )
+  assert_eq(local, None)
+  assert_eq(observation, None)
+  assert_eq(client_run_journal_row_body(decoded).unwrap(), body)
+}
+
+///|
+test "Run row identity reuse independently admits changed or foreign fields" {
+  let original = journal_encoding_original()
+  let body = @utf8.encode(journal_decoding_wire)
+  let foreign = journal_decoding_foreign_request()
+  let definition = @publication.admit_publication_contract(
+    "run_definition", journal_decoding_other_definition, 65536, 4096, 64,
+  ).unwrap()
+  let (decoded, _, _) = decode_client_run_journal_row_with_retained_identity(
+    body,
+    foreign,
+    original.definition,
+  ).unwrap()
+  assert_false(physical_equal(decoded.request, foreign))
+  assert_eq(client_request_caller_id(decoded.request), "caller-é")
+  assert_true(physical_equal(decoded.definition, original.definition))
+  let (decoded, _, _) = decode_client_run_journal_row_with_retained_identity(
+    body,
+    original.request,
+    definition,
+  ).unwrap()
+  assert_true(physical_equal(decoded.request, original.request))
+  assert_false(physical_equal(decoded.definition, definition))
+  assert_eq(
+    @publication.publication_contract_identity(decoded.definition),
+    @publication.publication_contract_identity(original.definition),
+  )
+  // A legitimate changed row is admitted, never forced into its prior IDs.
+  let changed = { ..original, request: foreign, definition, }
+  let body = client_run_journal_row_body(changed).unwrap()
+  let (decoded, _, _) = decode_client_run_journal_row_with_retained_identity(
+    body,
+    original.request,
+    original.definition,
+  ).unwrap()
+  assert_eq(client_request_caller_id(decoded.request), "foreign-request")
+  assert_eq(
+    @publication.publication_contract_identity(decoded.definition),
+    @publication.publication_contract_identity(definition),
+  )
+}
+
+///|
+test "Run row identity reuse retains malformed canonical and control refusals" {
+  let original = journal_encoding_original()
+  for
+    wire in [
+      journal_decoding_wire.replace(old="585c858537f5", new="000000000000"),
+      journal_decoding_wire.replace(old="7a12ebea352e", new="000000000000"),
+      journal_decoding_wire.replace(
+        old="\"physical_start_claimed\":false",
+        new="\"physical_start_claimed\":true",
+      ),
+      journal_decoding_wire.replace(
+        old="\"request\":\"{",
+        new="\"request\":\" {",
+      ),
+      journal_decoding_wire.replace(
+        old="\"run_definition\":\"{",
+        new="\"run_definition\":\" {",
+      ),
+      journal_decoding_wire.replace(old="{", new="{ "),
+      journal_decoding_wire.replace(old="{", new="{\"unknown\":true,"),
+      journal_decoding_wire.replace(
+        old="\"checkpoint\":null",
+        new="\"checkpoint\":null,\"checkpoint\":null",
+      ),
+      "x".repeat(131073),
+    ] {
+    assert_true(
+      decode_client_run_journal_row_with_retained_identity(
+        @utf8.encode(wire),
+        original.request,
+        original.definition,
+      )
+      is Err(CustodyLost),
+    )
+  }
+}
+
+///|
+test "Run row identity reuse keeps raw private originals and old reader semantics" {
+  let original = journal_encoding_original()
+  let body = @utf8.encode(journal_decoding_private_wire)
+  let (reused, _, _) = decode_client_run_journal_row_with_retained_identity(
+    body,
+    original.request,
+    original.definition,
+  ).unwrap()
+  let legacy = decode_client_run_journal_row(body).unwrap()
+  assert_eq(legacy.checkpoint, reused.checkpoint)
+  assert_eq(legacy.effect_material_originals, reused.effect_material_originals)
+  assert_eq(
+    legacy.publication_policy_originals,
+    reused.publication_policy_originals,
+  )
+  assert_false(physical_equal(legacy.request, original.request))
+  assert_false(physical_equal(legacy.definition, original.definition))
+  assert_true(physical_equal(reused.request, original.request))
+  assert_true(physical_equal(reused.definition, original.definition))
+}
+
+///|
+test "Run row retained Definition preserves the original child byte limit" {
+  let original = journal_encoding_original()
+  let cid = (digit : String) => "sha256:" + digit.repeat(64)
+  // The public issuer accepts a larger caller budget. Its valid original is
+  // not automatically admissible under the Journal child's narrower limit.
+  let definition = @publication.seal_publication_contract(
+    "run_definition",
+    "{\"version\":\"actql-run-definition/0.1\",\"scope_id\":\"scope\",\"run_id\":\"" +
+    "r".repeat(70 * 1024) +
+    "\",\"compiled_plan_cid\":\"" +
+    cid("1") +
+    "\",\"invocation_template_cid\":\"" +
+    cid("2") +
+    "\",\"authorization_context_cid\":\"" +
+    cid("3") +
+    "\",\"input_artifact_set_cid\":\"" +
+    cid("4") +
+    "\",\"created_at\":\"2026-09-18T00:00:00.000Z\",\"valid_until\":\"2099-01-01T00:00:00.000Z\"}",
+    131072,
+    4096,
+    64,
+  ).unwrap()
+  let wire = @publication.publication_contract_json(definition)
+  assert_true(@utf8.encode(wire).length() > 65536)
+  let body = client_run_journal_row_body({ ..original, definition, }).unwrap()
+  assert_true(body.length() < 131072)
+  assert_true(decode_client_run_journal_row(body) is Err(CustodyLost))
+  assert_true(
+    decode_client_run_journal_row_with_retained_identity(
+      body,
+      original.request,
+      definition,
+    )
+    is Err(CustodyLost),
+  )
+}
+
+///|
+fn journal_decoding_limit_definition(
+  run_id : String,
+) -> @publication.PublicationContract {
+  let cid = (digit : String) => "sha256:" + digit.repeat(64)
+  @publication.seal_publication_contract(
+    "run_definition",
+    "{\"version\":\"actql-run-definition/0.1\",\"scope_id\":\"scope\",\"run_id\":\"" +
+    run_id +
+    "\",\"compiled_plan_cid\":\"" +
+    cid("1") +
+    "\",\"invocation_template_cid\":\"" +
+    cid("2") +
+    "\",\"authorization_context_cid\":\"" +
+    cid("3") +
+    "\",\"input_artifact_set_cid\":\"" +
+    cid("4") +
+    "\",\"created_at\":\"2026-09-18T00:00:00.000Z\",\"valid_until\":\"2099-01-01T00:00:00.000Z\"}",
+    131072,
+    4096,
+    64,
+  ).unwrap()
+}
+
+///|
+test "Run row retained Definition preserves exact ASCII and Unicode byte boundaries" {
+  let original = journal_encoding_original()
+  // Independent JSON field lengths, including a 71-byte self CID, give
+  // 640 UTF-8 bytes outside run_id. No expected limit uses issuer output.
+  for
+    (run_id, bytes, accepted) in [
+      ("r".repeat(64896), 65536, true),
+      ("r".repeat(64897), 65537, false),
+      ("é".repeat(32448), 65536, true),
+      ("é".repeat(32449), 65538, false),
+    ] {
+    let definition = journal_decoding_limit_definition(run_id)
+    let wire = @publication.publication_contract_json(definition)
+    assert_eq(@utf8.encode(wire).length(), bytes)
+    let body = client_run_journal_row_body({ ..original, definition, }).unwrap()
+    assert_true(body.length() < 131072)
+    let legacy = decode_client_run_journal_row(body)
+    let retained = decode_client_run_journal_row_with_retained_identity(
+      body,
+      original.request,
+      definition,
+    )
+    if accepted {
+      assert_true(legacy is Ok(_))
+      let (decoded, _, _) = retained.unwrap()
+      assert_true(physical_equal(decoded.definition, definition))
+    } else {
+      assert_true(legacy is Err(CustodyLost))
+      assert_true(retained is Err(CustodyLost))
+    }
+  }
+}

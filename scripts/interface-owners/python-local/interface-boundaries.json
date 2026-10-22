@@ -29,7 +29,7 @@
     },
     {
       "module": "packages/python-sdk/src/actql_sdk/_local_native_memory_abi.py",
-      "sha256": "5f8f934754a761a74b8c38865c01f6ec2e62baee85fa3113e0e44bfff41dc20a",
+      "sha256": "61d86b6af8e93ac7f24c3b7957ee8968b1682019843796dedc99d4d89737e7f0",
       "generator": {
         "path": "scripts/generate-local-native-memory-binding.py",
         "anchor": "def outputs("
@@ -143,7 +143,7 @@
     {
       "module": "packages/native-cli/bin/actql.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "be0175dbabdea73fa30ac5ce38f8cf552da0d97ee8f0e48b850b563ed9d36dd6",
+      "sha256": "bb39f2a477d5c4d101ff844ebbd96935dfb57199b5da12e83e7afd98550ede53",
       "exports": [
         "admitInstalledBinary",
         "launch",
@@ -778,7 +778,7 @@
     {
       "module": "packages/native-cli/lib/local-runtime.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "a087cc001925cb412fa95a39cc007884e11008bc7c05c19787a0768b0b86e673",
+      "sha256": "0f9b52ee72e883a635bd7dddf41300649aac6682a911c927ac8f87f553947553",
       "exports": [
         "LOCAL_RUNTIME_MAX_BYTES",
         "admitInstalledLocalRuntime",
@@ -883,6 +883,15 @@
           "name": "localRuntimeHash/localRuntimeHash",
           "parameters": [
             "bytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "readInstalledLocalRuntimeManifest",
+          "parameters": [
+            "root",
+            "expected",
+            "metadata"
           ],
           "async": false
         },
@@ -1944,7 +1953,8 @@
         },
         {
           "operations": [
-            "installedLocalRuntimeEnvironment"
+            "installedLocalRuntimeEnvironment",
+            "readInstalledLocalRuntimeManifest"
           ],
           "exports": [
             "installedLocalRuntimeEnvironment"
@@ -35556,7 +35566,7 @@
           ]
         }
       ],
-      "sha256": "5f8f934754a761a74b8c38865c01f6ec2e62baee85fa3113e0e44bfff41dc20a",
+      "sha256": "61d86b6af8e93ac7f24c3b7957ee8968b1682019843796dedc99d4d89737e7f0",
       "role": "generated-binding",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [

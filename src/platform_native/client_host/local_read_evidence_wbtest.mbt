@@ -34,6 +34,7 @@ test "Native read preimages preserve independent Unicode line ending and key ord
 ///|
 fn read_evidence_fixture(
   name : String,
+  legacy_evidence? : Bool = false,
 ) -> (
   NativeLocalHostConnection,
   NativeLocalReadPolicyBinding,
@@ -58,7 +59,7 @@ fn read_evidence_fixture(
   )
   .unwrap()
   writer.seal(file).unwrap() |> ignore
-  let host = policy_host_fixture(name, files=[file])
+  let host = policy_host_fixture(name, files=[file], legacy_evidence~)
   let crypto = epoch_test_crypto()
   let scope = host.authority_scope_cid("operator", "cli", crypto).unwrap()
   let (request, prepared, unselected_compiled, definition) = journal_test_run(
@@ -215,7 +216,26 @@ test "Native read originals refuse missing rewritten custody or lost reservation
       first.egress_admission_cid
     }
     if failure == "rewritten-body" {
-      host.database.compare_exchange(table, key, 0L, b"{}").unwrap() |> ignore
+      host.database.begin_immediate().unwrap()
+      assert_true(
+        host.database.compare_exchange(table, key, 0L, b"{}")
+        is Err(@sqlite.Physical(_)),
+      )
+      let saved = host.database.read(table, key).unwrap()
+      host.database
+      .remove_exact(table, key, saved.revision, saved.body)
+      .unwrap()
+      host.database
+      .insert(
+        table,
+        key,
+        read_evidence_wrong_packet(
+          @host.client_request_identity_record_wire(original).unwrap(),
+        ),
+      )
+      .unwrap()
+      |> ignore
+      host.database.commit().unwrap()
     } else if failure == "lost-reservation" {
       assert_true(
         host.database
@@ -417,8 +437,12 @@ test "Routed read evidence preserves reservation CAS rollback and complete custo
     )
     .unwrap()
   assert_eq(admitted.egress_admission_cid, repeated.egress_admission_cid)
-  assert_true(calls.contains("capacity:client_local_read_evidence"))
-  assert_true(calls.contains("scan:client_local_read_evidence:"))
+  assert_eq(calls.filter(value => value == "read-evidence-schema").length(), 2)
+  assert_eq(calls.filter(value => value == "read-evidence-usage").length(), 2)
+  assert_false(
+    calls.any(value => value.has_prefix("scan:client_local_read_evidence:")),
+  )
+  assert_false(calls.contains("capacity:client_local_read_evidence"))
   assert_true(
     calls.contains(
       "read:client_runs:" + @host.client_request_scope_cid(original),
@@ -436,24 +460,49 @@ test "Routed read evidence preserves reservation CAS rollback and complete custo
     host.journal.retained(original).unwrap().unwrap().revision,
     revision,
   )
-  host.database.insert("client_local_read_evidence", "foreign", b"{}").unwrap()
-  |> ignore
   assert_true(
-    binding.retained_read_admission_with_operations(
+    host.database.insert("client_local_read_evidence", "foreign", b"{}")
+    is Err(@sqlite.Physical(_)),
+  )
+  let foreign = read_evidence_wrong_packet("foreign")
+  host.database
+  .insert("client_local_read_evidence", "foreign", foreign)
+  .unwrap()
+  |> ignore
+  let delivered = binding
+    .retained_read_admission_with_operations(
       original,
       facts,
       policy,
       operations=Some(access),
     )
-    is Err(Journal(CustodyLost)),
+    .unwrap()
+  assert_eq(delivered.egress_admission_cid, admitted.egress_admission_cid)
+  // Whole-history corruption is still diagnosed explicitly. An unrelated
+  // row is not part of this target's read authority or retained reservation.
+  assert_true(
+    host.read_evidence_custody(binding.crypto, operations=Some(access))
+    is Err(CustodyLost),
   )
   assert_eq(
     host.database.read("client_local_read_evidence", "foreign").unwrap().body,
-    b"{}",
+    foreign,
   )
   assert_eq(
     host.database.read("client_local_read_custody", "issued").unwrap().body,
     b"1",
   )
   host.close().unwrap()
+}
+
+///|
+// Closed physical packet shape, deliberately invalid semantic originals. The
+// SQLite index does not issue request, policy, authorization or CID authority.
+fn read_evidence_wrong_packet(request : String) -> Bytes {
+  local_adoption_record([
+    ("authorization_context", "changed"),
+    ("data_ceiling", "changed"),
+    ("egress_admission", "changed"),
+    ("request", request),
+  ]).unwrap()
 }

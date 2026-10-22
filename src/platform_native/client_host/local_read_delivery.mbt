@@ -68,7 +68,9 @@ fn NativeLocalReadPolicyBinding::authorize_read_request_with_reads(
     request.run_definition_cid {
     return Err(Journal(ForeignRun))
   }
-  self.require_request(original, facts)
+  // The selected Run lookup is trusted synchronous Journal work. It does
+  // not create another authorization observation; retain the actual receiver.
+  self.require_receiver(facts)
 }
 
 ///|
@@ -126,17 +128,10 @@ fn NativeLocalReadPolicyBinding::retained_read_admission_with_operations(
           return Err(AuthorizationDenied)
         }
       }
-      let (_, _, runs) = match
-        self.host.read_evidence_custody(
-          self.crypto,
-          operations~,
-          capture=self.capture,
-        ) {
-        Ok(value) => value
+      match
+        self.host.require_retained_read_evidence_target(original, operations~) {
+        Ok(_) => ()
         Err(issue) => return Err(issue)
-      }
-      if runs.get(@host.client_request_scope_cid(original)) is None {
-        return Err(CustodyLost)
       }
       let packet = match local_read_evidence_packet(original, bodies) {
         Ok(value) => value
@@ -153,7 +148,7 @@ fn NativeLocalReadPolicyBinding::retained_read_admission_with_operations(
         row.body == packet else {
         return Err(CustodyLost)
       }
-      match self.require_request(original, facts) {
+      match self.require_receiver(facts) {
         Err(issue) => {
           refusal = Some(issue)
           Err(AuthorizationDenied)
@@ -213,18 +208,17 @@ pub fn NativeLocalReadPolicyBinding::authorize_read_delivery(
     Err(issue) => return Err(issue)
   }
   let resolved = match
-    store.resolve_committed_result(
+    local_committed_result_observation(
+      store,
       delivery.request.namespace_id,
       delivery.request.authority_scope_cid,
       delivery.request.run_definition_cid,
       delivery.request.result_name,
-      65536,
-      8192,
-      64,
+      capture=self.capture,
     ) {
     Ok(Some(value)) => value
     Ok(None) => return Err(Journal(CustodyLost))
-    Err(issue) => return Err(Journal(PublicationObservation(issue)))
+    Err(issue) => return Err(Journal(issue))
   }
   if delivery.public_index_entry_cid !=
     @publication.publication_contract_identity(resolved.public_index_entry) ||
@@ -241,7 +235,13 @@ pub fn NativeLocalReadPolicyBinding::authorize_read_delivery(
     material_generation_cid: resolved.read.material_generation_cid,
     observed_at: delivery.observed_at,
   }
-  let policy = match self.resolve_policy_original(original, store, facts) {
+  let policy = match
+    self.resolve_policy_with_committed_result(
+      original,
+      store,
+      facts,
+      Some(resolved),
+    ) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
@@ -291,5 +291,7 @@ pub fn NativeLocalReadPolicyBinding::authorize_read_delivery(
     @publication.publication_contract_json(expected) {
     return Err(Journal(CustodyLost))
   }
-  self.require_request(original, facts)
+  // Disclosure was authorized at this operation's entry. Trusted Store and
+  // grant correspondence work preserves it; native receiver lifetime is real.
+  self.require_receiver(facts)
 }

@@ -40,14 +40,16 @@ fn NativeClientRunJournal::validate_submitted_run_admission(
   self : NativeClientRunJournal,
   record : NativeClientSubmittedIntentRecord,
   reads? : NativeClientJournalReadAccess? = None,
+  runs? : Map[String, NativeClientRunRecord]? = None,
 ) -> Result[Unit, NativeClientRunJournalIssue] {
   guard record.run_admission is Some(admission) else { return Ok(()) }
-  let reference = match
-    @host.admit_client_submission_reference_record(record.reference.wire) {
-    Ok(value) => value
-    Err(_) => return Err(CustodyLost)
+  let reference = record.reference.original
+  let retained = match runs {
+    None => self.retained(admission.request, reads~)
+    Some(originals) =>
+      Ok(originals.get(@host.client_request_scope_cid(admission.request)))
   }
-  match self.retained(admission.request, reads~) {
+  match retained {
     Ok(Some(run)) => {
       if record.run_state_observation is Some(_) &&
         run.run_observation_originals is None {
@@ -364,7 +366,13 @@ fn NativeClientRunJournal::accept_original_submitted_run(
         Ok(_) => ()
         Err(issue) => return Err(issue)
       }
-      match self.submitted_intent_custody(reads~) {
+      match
+        client_journal_issuance_anchor(
+          self.database,
+          "client_submitted_intent_custody",
+          self.max_records,
+          reads~,
+        ) {
         Ok(_) => ()
         Err(issue) => return Err(issue)
       }
@@ -547,6 +555,21 @@ fn NativeClientRunJournal::accept_original_submitted_run(
       if current_fence is Some(current) && !current() {
         return Err(AuthorizationDenied)
       }
+      match self.index_run_id_locked(authority, reference, run, operations~) {
+        Ok(_) => ()
+        Err(issue) => return Err(issue)
+      }
+      match
+        self.index_saved_run_reference_locked(
+          authority,
+          reference,
+          run,
+          operations~,
+        ) {
+        Ok(_) => ()
+        Err(issue) => return Err(issue)
+      }
+      self.invalidate_operation_submission()
       compare_exchange_client_journal_value(
         self.database,
         "client_submitted_intents",

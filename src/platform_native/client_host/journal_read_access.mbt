@@ -4,6 +4,9 @@
 // capacity, new transaction or original row. Legacy callers keep direct reads.
 priv struct NativeClientJournalReadAccess {
   database : @sqlite.Database
+  run_definition_schema : () -> Result[Int, @sqlite.NativeSqliteIssue]
+  run_definition_key : (String) -> Result[String?, @sqlite.NativeSqliteIssue]
+  read_evidence_schema : () -> Result[Int, @sqlite.NativeSqliteIssue]
   fenced : () -> Bool
   fence : () -> Unit
   schema : () -> Int
@@ -20,6 +23,35 @@ priv struct NativeClientJournalReadAccess {
     @sqlite.NativeJournalEntry,
     @sqlite.NativeSqliteIssue,
   ]
+}
+
+///|
+fn client_journal_run_definition_schema(
+  database : @sqlite.Database,
+  reads : NativeClientJournalReadAccess?,
+) -> Result[Int, @sqlite.NativeSqliteIssue] {
+  match reads {
+    None => database.client_run_definition_schema()
+    Some(original) if physical_equal(database, original.database) =>
+      (original.run_definition_schema)()
+    _ => Err(@sqlite.Collision)
+  }
+}
+
+///|
+// Error-path classification through the already admitted physical uniqueness
+// index. A key is only a locator; the Journal authenticates the selected row.
+fn client_journal_run_definition_key(
+  database : @sqlite.Database,
+  definition_cid : String,
+  reads : NativeClientJournalReadAccess?,
+) -> Result[String?, @sqlite.NativeSqliteIssue] {
+  match reads {
+    None => database.client_run_definition_key(definition_cid)
+    Some(original) if physical_equal(database, original.database) =>
+      (original.run_definition_key)(definition_cid)
+    _ => Err(@sqlite.Collision)
+  }
 }
 
 ///|
@@ -146,5 +178,18 @@ fn fence_client_journal_transactions(
       if physical_equal(database, original.database) {
         (original.fence)()
       }
+  }
+}
+
+///|
+fn client_journal_read_evidence_schema(
+  database : @sqlite.Database,
+  reads : NativeClientJournalReadAccess?,
+) -> Result[Int, @sqlite.NativeSqliteIssue] {
+  match reads {
+    None => database.client_read_evidence_schema()
+    Some(original) if physical_equal(database, original.database) =>
+      (original.read_evidence_schema)()
+    _ => Err(@sqlite.Collision)
   }
 }

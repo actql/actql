@@ -163,3 +163,119 @@ test "Native epoch custody loss is refused and never creates replacement keys" {
   )
   database.close_checked().unwrap()
 }
+
+///|
+test "epoch verification consumes one custody read and preserves a no-op durable watermark" {
+  let database = epoch_test_database("epoch-once-watermark")
+  let crypto = epoch_test_crypto()
+  initialize_native_client_epoch_authority(database, crypto).unwrap()
+  let authority = open_native_client_epoch_authority(database, crypto, 100.0).unwrap()
+  let scope = "sha256:" + "a".repeat(64)
+  let epoch = authority.issue_epoch(scope, true, 1000.0).unwrap()
+  let original = database.read("client_submission_epoch", "authority").unwrap()
+  let calls : Array[String] = []
+  let operations = journal_test_operation_access(database, calls)
+  assert_eq(
+    authority
+    .verify_epoch_with_operations(
+      epoch,
+      scope,
+      true,
+      1000.0,
+      operations=Some(operations),
+    )
+    .unwrap(),
+    @scope.Admissible,
+  )
+  assert_eq(
+    calls
+    .filter(value => value == "read:client_submission_epoch:authority")
+    .length(),
+    1,
+  )
+  assert_false(calls.any(value => value.has_prefix("compare_exchange:")))
+  let retained = database.read("client_submission_epoch", "authority").unwrap()
+  assert_eq(retained.revision, original.revision)
+  assert_eq(retained.body, original.body)
+  calls.clear()
+  assert_eq(
+    authority
+    .verify_epoch_with_operations(
+      epoch,
+      scope,
+      true,
+      1100.0,
+      operations=Some(operations),
+    )
+    .unwrap(),
+    @scope.Expired,
+  )
+  assert_eq(
+    calls
+    .filter(value => value == "read:client_submission_epoch:authority")
+    .length(),
+    1,
+  )
+  assert_eq(
+    calls
+    .filter(value => {
+      value == "compare_exchange:client_submission_epoch:authority"
+    })
+    .length(),
+    1,
+  )
+  let advanced = database.read("client_submission_epoch", "authority").unwrap()
+  assert_eq(advanced.revision, original.revision + 1L)
+  calls.clear()
+  // An earlier caller clock cannot renew this already expired original.
+  assert_eq(
+    authority
+    .verify_epoch_with_operations(
+      epoch,
+      scope,
+      true,
+      1001.0,
+      operations=Some(operations),
+    )
+    .unwrap(),
+    @scope.Expired,
+  )
+  assert_false(calls.any(value => value.has_prefix("compare_exchange:")))
+  assert_eq(
+    database.read("client_submission_epoch", "authority").unwrap().revision,
+    advanced.revision,
+  )
+  calls.clear()
+  assert_true(
+    authority.verify_epoch_with_operations(
+      epoch,
+      scope,
+      false,
+      1001.0,
+      operations=Some(operations),
+    )
+    is Err(AuthorizationDenied),
+  )
+  assert_eq(calls.length(), 0)
+  database.close_checked().unwrap()
+  crypto.close_checked().unwrap()
+}
+
+///|
+test "no-op watermark commit loss remains Unknown and fences its original handle" {
+  let database = epoch_test_database("epoch-noop-commit-unknown")
+  let crypto = epoch_test_crypto()
+  initialize_native_client_epoch_authority(database, crypto).unwrap()
+  let authority = open_native_client_epoch_authority(database, crypto, 100.0).unwrap()
+  let scope = "sha256:" + "a".repeat(64)
+  let epoch = authority.issue_epoch(scope, true, 1000.0).unwrap()
+  submitted_test_fail_commit_after(database, 0, true)
+  assert_true(
+    authority.verify_epoch(epoch, scope, true, 1000.0)
+    is Err(TransactionUnknown),
+  )
+  assert_true(database.transaction_fenced())
+  assert_true(authority.verify_epoch(epoch, scope, true, 1000.0) is Err(Fenced))
+  database.close_checked().unwrap()
+  crypto.close_checked().unwrap()
+}

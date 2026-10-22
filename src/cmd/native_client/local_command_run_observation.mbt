@@ -268,11 +268,11 @@ fn LocalCommandPreparationOriginal::refresh_run_observation_state(
   self : LocalCommandPreparationOriginal,
   host : @local_host.NativeLocalHostConnection,
   capture : @local_host.NativeLocalJournalCapture,
-  settings : LocalHostSettings,
-  configuration_name : String,
+  configuration : LocalCommandConfiguration,
   runtime : LocalPackagedRuntime,
   id : String,
 ) -> @local_host.NativeClientSavedRunStateSelection raise ClientStop {
+  let settings = configuration.settings
   guard self.journal is Some(actual_capture) &&
     physical_equal(actual_capture, capture) &&
     capture.original_host() is Some(actual_host) &&
@@ -287,12 +287,10 @@ fn LocalCommandPreparationOriginal::refresh_run_observation_state(
     self.primary is None else {
     stop("LocalRunObservationOriginalUnavailable")
   }
-  let configuration = local_check_original_text(
-    local_host_result(
-      capture.selected_configuration_in_original_read(configuration_name),
-    ),
-  )
-  let (environment_name, _) = local_configuration(configuration)
+  // execute_adopted_command joined these same immutable configuration bytes
+  // to this capture before dispatch. Observing the saved Run does not need
+  // another JSON decode or Program Environment admission.
+  let environment_name = configuration.environment_name
   let run_file = settings.run_file.unwrap_or_else(() => {
     stop("LocalRunOriginalNotSelected")
   })
@@ -331,12 +329,9 @@ fn LocalCommandPreparationOriginal::refresh_run_observation_state(
     json_text(fields, "namespaceId") is Some(namespace_id) else {
     stop("LocalOriginalRunUnavailable")
   }
-  let run = local_run_installation(
-    local_check_original_text(
-      local_host_result(
-        capture.selected_configuration_in_original_read(run_file),
-      ),
-    ),
+  let run = configuration.run_installation(
+    run_file,
+    local_host_result(capture.selected_configuration_in_original_read(run_file)),
   )
   if run.namespace_id != namespace_id {
     stop("LocalOriginalRunReferenceMismatch")

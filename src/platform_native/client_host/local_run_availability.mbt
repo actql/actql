@@ -222,6 +222,20 @@ fn NativeClientRunJournal::retain_run_availability_observation(
         Ok(value) => value
         Err(_) => return Err(CustodyLost)
       }
+      // Timestamps are not new logical availability facts. Keep the exact
+      // admitted original and its revision when the observation key is equal;
+      // do not reserialize or durably write an unchanged status read.
+      if observation.key() == key {
+        if !authority.current_for(self, original.request) {
+          return Err(AuthorizationDenied)
+        }
+        match run_observation_store_binding(store, namespace_id) {
+          Ok(current) if current == binding => ()
+          Ok(_) => return Err(CustodyLost)
+          Err(issue) => return Err(issue)
+        }
+        return Ok({ original: prior.original, control_revision: run.revision, })
+      }
       let next = match observation.next_revision(Some(key), revision) {
         Ok(value) => value
         Err(_) => return Err(CustodyLost)
@@ -259,6 +273,7 @@ fn NativeClientRunJournal::retain_run_availability_observation(
         Err(issue) => return Err(issue)
       }
       if submission.run_state_original != Some(state.wire()) {
+        self.invalidate_operation_submission()
         match
           compare_exchange_client_journal_value(
             self.database,
@@ -317,14 +332,7 @@ pub fn NativeLocalJournalCapture::refresh_original_run_availability_in_original_
       Err(Journal(TransactionUnknown)) => Err(Journal(TransactionUnknown))
       Err(Journal(Epoch(TransactionUnknown))) =>
         Err(Journal(Epoch(TransactionUnknown)))
-      _ =>
-        Ok(
-          result.map(state => {
-            reference: original.reference,
-            definition: original.definition,
-            state,
-          }),
-        )
+      _ => Ok(result.map(state => { original, state, }))
     }
   })
 }

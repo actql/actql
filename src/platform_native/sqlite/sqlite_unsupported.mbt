@@ -15,6 +15,21 @@ struct Database {
 }
 
 ///|
+pub fn Database::client_run_definition_schema(
+  _self : Database,
+) -> Result[Int, NativeSqliteIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
+pub fn Database::install_client_run_definition_schema(
+  _self : Database,
+  _max_inspect_rows : Int64,
+) -> Result[Unit, NativeSqliteIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
 pub fn Library::open_inspection_database(
   _self : Library,
   _path : String,
@@ -412,6 +427,31 @@ pub fn Database::read_capacity(
 }
 
 ///|
+pub fn Database::client_read_evidence_schema(
+  _self : Database,
+) -> Result[Int, NativeSqliteIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
+pub fn Database::install_client_read_evidence_schema(
+  _self : Database,
+  _max_inspect_rows : Int64,
+) -> Result[Unit, NativeSqliteIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
+pub fn Database::client_read_evidence_usage(
+  _self : Database,
+  _request_wire : String,
+  _max_entries : Int64,
+  _max_body_bytes : Int64,
+) -> Result[(Int64, Int64), NativeSqliteIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
 pub fn Database::database_usage(
   _self : Database,
 ) -> Result[NativeDatabaseUsage, NativeSqliteIssue] {
@@ -450,4 +490,19 @@ pub fn Library::open_existing_local_store_database_with_custody(
   _max_body_bytes : Int64,
 ) -> Result[Database, NativeSqliteOpenFailure] {
   Err({ original_issue: UnsupportedTarget, database: None, })
+}
+
+///|
+pub fn Database::retained_data_current(
+  _self : Database,
+) -> Result[Unit, NativeSqliteIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
+pub fn Database::client_run_definition_key(
+  _self : Database,
+  _definition_cid : String,
+) -> Result[String?, NativeSqliteIssue] {
+  Err(UnsupportedTarget)
 }

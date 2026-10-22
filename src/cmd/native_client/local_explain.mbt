@@ -78,6 +78,8 @@ fn local_explain_for_environment(
   input_root : String,
   child : @argparse.Matches,
 ) -> String raise ClientStop {
+  native_timing_begin(2)
+  defer native_timing_end(2)
   let format = match @frontend.select_format(required(child, "format")) {
     Ok(value) => value
     Err(_) => stop("UnsupportedLocalSourceFormat")

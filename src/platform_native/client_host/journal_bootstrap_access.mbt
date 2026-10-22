@@ -10,6 +10,28 @@ priv struct NativeClientJournalBootstrapAccess {
     @sqlite.NativeSqliteIssue,
   ]
   install_names : () -> Bool
+  install_run_definition_schema : (Int64) -> Result[
+    Unit,
+    @sqlite.NativeSqliteIssue,
+  ]
+  install_read_evidence_schema : (Int64) -> Result[
+    Unit,
+    @sqlite.NativeSqliteIssue,
+  ]
+}
+
+///|
+fn install_bootstrap_run_definition_schema(
+  database : @sqlite.Database,
+  max_inspect_rows : Int64,
+  access : NativeClientJournalBootstrapAccess?,
+) -> Result[Unit, @sqlite.NativeSqliteIssue] {
+  match access {
+    None => database.install_client_run_definition_schema(max_inspect_rows)
+    Some(original) if physical_equal(database, original.reads.database) =>
+      (original.install_run_definition_schema)(max_inspect_rows)
+    _ => Err(@sqlite.Collision)
+  }
 }
 
 ///|
@@ -65,5 +87,19 @@ fn install_bootstrap_submission_name_schema(
     Some(original) =>
       physical_equal(database, original.reads.database) &&
       (original.install_names)()
+  }
+}
+
+///|
+fn install_bootstrap_read_evidence_schema(
+  database : @sqlite.Database,
+  max_inspect_rows : Int64,
+  access : NativeClientJournalBootstrapAccess?,
+) -> Result[Unit, @sqlite.NativeSqliteIssue] {
+  match access {
+    None => database.install_client_read_evidence_schema(max_inspect_rows)
+    Some(original) if physical_equal(database, original.reads.database) =>
+      (original.install_read_evidence_schema)(max_inspect_rows)
+    _ => Err(@sqlite.Collision)
   }
 }

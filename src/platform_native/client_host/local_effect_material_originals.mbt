@@ -290,11 +290,7 @@ fn NativeLocalHostConnection::accept_submitted_effect_material_with_policy(
         binding.scope != authority.scope {
         return Err(Journal(AuthorizationDenied))
       }
-      let ref_record = match
-        @host.admit_client_submission_reference_record(reference.wire) {
-        Ok(value) => value
-        Err(_) => return Err(Journal(InvalidSubmission))
-      }
+      let ref_record = reference.original
       if @host.admit_client_local_run_policy_original(
           @host.client_local_run_policy_original_body(original),
           binding.profile,

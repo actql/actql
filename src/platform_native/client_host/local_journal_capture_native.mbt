@@ -37,6 +37,18 @@ struct NativeLocalJournalCapture {
     @host.ClientLocalSigningBootstrapPolicy,
   )?
   mut read_callback_active : Bool
+  mut read_facts_valid : Bool
+  mut read_material : @host.ClientLocalAdoptedHostMaterial[
+    @sqlite.Database,
+    NativeLocalAdoptionIssue,
+  ]?
+  read_scopes : Array[(String, String, String)]
+  read_decisions : Array[
+    (@authorization.AccessTuple, @authorization.AccountOutcome),
+  ]
+  read_bindings : Array[(NativeLocalReadPolicyBinding, Int64)]
+  read_committed_results : Array[NativeLocalCommittedResultObservation]
+  read_preimages : Array[NativeLocalReadPreimageObservation]
   mut read_operation_issue : NativeLocalAdoptionIssue?
   mut opening_database : @sqlite.Database?
   mut opening_physical_failure : @sqlite.NativeSqliteOpenFailure?
@@ -76,6 +88,13 @@ pub fn prepare_native_local_journal_capture(
     command_preparation_journal: false,
     initial_signing: None,
     read_callback_active: false,
+    read_facts_valid: false,
+    read_material: None,
+    read_scopes: [],
+    read_decisions: [],
+    read_bindings: [],
+    read_committed_results: [],
+    read_preimages: [],
     read_operation_issue: None,
     opening_database: None,
     opening_physical_failure: None,
@@ -106,6 +125,8 @@ fn NativeLocalJournalCapture::reply(
 pub fn NativeLocalJournalCapture::open(
   self : NativeLocalJournalCapture,
 ) -> NativeLocalJournalCaptureReply {
+  native_timing_begin(15)
+  defer native_timing_end(15)
   if self.closing {
     return self.reply(OpenCapturedJournal, Some(JournalCaptureClosed))
   }
@@ -164,7 +185,14 @@ pub fn NativeLocalJournalCapture::check_current(
       JournalAcquired(host) => {
         let current = match self.original_resources {
           None => host.check_binding()
-          Some(original) => original.check_journal_current(host)
+          Some(_) =>
+            if self.read_callback_active &&
+              self.original_resources is Some(original) &&
+              original.active_phase is Some(@arena.HostRead) {
+              self.check_current_in_original_read()
+            } else {
+              self.check_current_between_original_phases()
+            }
         }
         match current {
           Ok(_) => None

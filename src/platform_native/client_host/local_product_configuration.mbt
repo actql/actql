@@ -283,6 +283,8 @@ fn NativeLocalProductConfigurationSession::check_original(
   if self.closed {
     return Err(Closed)
   }
+  // Product work counters stay separate from domain census slots 4..15/60..62.
+  native_timing_count(28)
   guard self.parent.bootstrap_parent_ownership() is Ok(parent) &&
     parent == self.parent_ownership &&
     self.root.private_ownership() is Ok(root) &&
@@ -316,10 +318,26 @@ fn NativeLocalProductConfigurationSession::check_original(
 pub fn NativeLocalProductConfigurationSession::stage_configuration(
   self : NativeLocalProductConfigurationSession,
 ) -> Result[Unit, NativeLocalAdoptionIssue] {
+  // A new explicit staging call observes the Product again. The private
+  // restore path consumes its immediately preceding constructor observation.
   match self.check_original() {
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
+  self.stage_configuration_after_original_check()
+}
+
+///|
+// Only the explicit checked entrance above and the immediately returned
+// constructor below reach this synchronous interval under the same Lock.
+// No application callback or authorization decision is retained across calls.
+fn NativeLocalProductConfigurationSession::stage_configuration_after_original_check(
+  self : NativeLocalProductConfigurationSession,
+) -> Result[Unit, NativeLocalAdoptionIssue] {
+  if self.closed {
+    return Err(Closed)
+  }
+  native_timing_count(58)
   let allow_creation = !self.existing_only
   // Fence further creation before any I/O. A failed or interrupted staging
   // attempt is not converted into permission to retry an absent original.
@@ -339,7 +357,7 @@ pub fn NativeLocalProductConfigurationSession::stage_configuration(
       Ok(value) => value is Some(_)
       Err(issue) => return Err(Filesystem(issue))
     }
-    let generation = if !has_claim {
+    let body = if !has_claim {
       if !allow_creation {
         return Err(CustodyLost)
       }
@@ -368,9 +386,19 @@ pub fn NativeLocalProductConfigurationSession::stage_configuration(
         Err(issue) => return Err(issue)
       }
       match local_adoption_write(self.parent, witness_name, witness) {
-        Ok(_) => generation
+        Ok(_) => ()
         Err(issue) => return Err(issue)
       }
+      native_timing_count(29)
+      let (body, observed) = match
+        local_adoption_read(self.root, original.0, 65536L) {
+        Ok(value) => value
+        Err(issue) => return Err(issue)
+      }
+      if observed != generation {
+        return Err(SourceChanged)
+      }
+      body
     } else {
       let (observed_claim, _) = match
         local_adoption_read(self.parent, claim_name, 8192L) {
@@ -386,7 +414,8 @@ pub fn NativeLocalProductConfigurationSession::stage_configuration(
         Err(CustodyLost) => return Err(AmbiguousInitialization)
         Err(issue) => return Err(issue)
       }
-      let (_, generation) = match
+      native_timing_count(29)
+      let (body, generation) = match
         local_adoption_read(self.root, original.0, 65536L) {
         Ok(value) => value
         Err(issue) => return Err(issue)
@@ -396,19 +425,12 @@ pub fn NativeLocalProductConfigurationSession::stage_configuration(
         expected == witness else {
         return Err(CustodyLost)
       }
-      generation
+      // This same read proves both the witnessed generation and exact bytes.
+      // Trusted local reads do not create another validation boundary.
+      body
     }
-    let (body, observed) = match
-      local_adoption_read(self.root, original.0, 65536L) {
-      Ok(value) => value
-      Err(issue) => return Err(issue)
-    }
-    if body != original.1 || observed != generation {
+    if body != original.1 {
       return Err(SourceChanged)
-    }
-    match self.check_original() {
-      Ok(_) => ()
-      Err(issue) => return Err(issue)
     }
   }
   Ok(())
@@ -587,6 +609,7 @@ fn restore_native_local_product_configuration_original(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  // This final locked check is read-only and also verifies every file witness.
-  session.stage_configuration().map(_ => session)
+  // The successful constructor just checked this same locked Product. Consume
+  // that observation while checking each original file, without another entry.
+  session.stage_configuration_after_original_check().map(_ => session)
 }

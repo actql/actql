@@ -32,6 +32,25 @@ pub fn client_run_journal_row_body(
     Ok(value) => value
     Err(_) => return Err(Encoding)
   }
+  client_run_journal_row_body_from_wires(
+    record,
+    request,
+    @publication.publication_contract_json(record.definition),
+    local_run_policy_originals~,
+    run_observation_originals~,
+  )
+}
+
+///|
+// Closed internal codec route. Both callers already have the canonical wires
+// of their typed request and Definition; this adds no public wire factory.
+fn client_run_journal_row_body_from_wires(
+  record : ClientRunJournalEncoding,
+  request : String,
+  definition : String,
+  local_run_policy_originals? : String? = None,
+  run_observation_originals? : String? = None,
+) -> Result[Bytes, ClientJournalEncodingIssue] {
   if local_run_policy_originals is Some(wire) &&
     @utf8.encode(wire).length() > 8192 {
     return Err(CapacityExceeded)
@@ -72,10 +91,7 @@ pub fn client_run_journal_row_body(
     @encode.key(writer, "request")
     @encode.string_value(writer, request)
     @encode.key(writer, "run_definition")
-    @encode.string_value(
-      writer,
-      @publication.publication_contract_json(record.definition),
-    )
+    @encode.string_value(writer, definition)
     if run_observation_originals is Some(originals) {
       @encode.key(writer, "run_observation_originals")
       @encode.string_value(writer, originals)

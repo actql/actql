@@ -54,6 +54,15 @@ class SQLiteSourceTests(unittest.TestCase):
         self.assertEqual(record['loaded'], 0)
         self.assertIs(record['normal_profile'], None)
         self.assertIs(record['installed_supplier'], False)
+        self.assertEqual(record['optimization'], '-O2')
+
+    def test_release_optimization_is_required_before_stage_publication(self):
+        for value in ('-O0', '-O3', '-Ofast', None):
+            with self.subTest(value=value):
+                self.recipe['optimization'] = value
+                with self.assertRaisesRegex(ValueError, 'pinned release optimization'):
+                    self.stage()
+                self.assertFalse(self.destination.exists())
 
     def test_archive_tamper_is_rejected_before_publication(self):
         self.archive.write_bytes(self.archive.read_bytes() + b'x')
@@ -131,7 +140,7 @@ class LinuxProcessSQLiteSourceTests(unittest.TestCase):
         self.assertIsNone(selected['deployment_target'])
         self.assertFalse(selected['automatic_initializers'])
         self.assertFalse(selected['component_tls'])
-        for name in ('upstream', 'local', 'provider_inputs', 'defines', 'memory'):
+        for name in ('upstream', 'local', 'provider_inputs', 'defines', 'memory', 'optimization'):
             self.assertEqual(selected[name], self.recipe[name])
         expected = (json.dumps(selected, sort_keys=True, separators=(',', ':')) + '\n').encode()
         self.assertEqual(record['recipe_sha256'], hashlib.sha256(expected).hexdigest())

@@ -80,6 +80,7 @@ fn LocalCommandBusinessPreparation::open_values_work(
       installed.ordered_body,
       16,
       1000,
+      requirements=Some(self.requirements),
     ) {
     Ok(work) => {
       business.values_work = Some(work)
@@ -165,6 +166,8 @@ fn LocalCommandPreparationOriginal::open_business_store(
 fn LocalCommandPreparationOriginal::close_business_children(
   self : LocalCommandPreparationOriginal,
 ) -> Result[Unit, LocalCommandPreparationIssue] {
+  native_timing_begin(17)
+  defer native_timing_end(17)
   guard self.business is Some(business) else { return Ok(()) }
   if self.journal_read_open || self.phase_open {
     return Err(CommandBusinessChildren)
@@ -200,6 +203,11 @@ fn LocalCommandPreparationOriginal::close_business_children(
         return Err(CommandBusinessChildren)
       }
       business.values_failure = None
+    }
+    if !self.business_inventory_recorded && business.domain is Some(domain) {
+      self.business_inventory_recorded = self.record_domain_inventory(
+        host, domain, 14,
+      )
     }
     match host.leave_domain_retained_execution(execution) {
       Err(issue) => return Err(CommandRetainedExecution(issue))
