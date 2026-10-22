@@ -2067,6 +2067,18 @@ export function openClientRequestJournal(directory, {
   // These observation frames belong to this exact journal instance. They are
   // not authority and cannot be reconstituted from a copied DATA response.
   const runStateFrames = new WeakMap();
+  const retainRunStateFrame = (frame, selected) => {
+    const original=runStateFrames.get(frame);
+    if(original===undefined || original.row.namespace_id!==selected?.namespaceId ||
+        original.row.authority_scope_cid!==selected?.authorityScopeCid ||
+        original.row.run_definition_cid!==selected?.runDefinitionCid) {
+      fail('ForeignRunStateObservation');
+    }
+    return original;
+  };
+  const sameRunStateRow = (row, original) => row!==undefined &&
+    Object.keys(row).length===Object.keys(original).length &&
+    Object.keys(row).every(key=>row[key]===original[key]);
   const admitRunDefinitionRow = (row, requestControl, publicationControl) => {
     const retained = retainedIdentity(row, requestControl);
     if (requestControl.clientRequestScopeCid(retained) !== row.logical_request_scope_cid) {
@@ -3166,9 +3178,18 @@ export function openClientRequestJournal(directory, {
     },
     // Attach reads the original accepted Run Definition by its exact ref.
     // It does not infer authority from a CID alone or create another Run.
-    lookupRunDefinition(ref, requestControl, publicationControl) {
+    lookupRunDefinition(ref, requestControl, publicationControl, originalFrame) {
+      let original;
+      if(originalFrame!==undefined) {
+        ensureOpen();
+        original=retainRunStateFrame(originalFrame,ref);
+        if(original.requestControl!==requestControl || original.publicationControl!==publicationControl) {
+          fail('ForeignRunStateObservation');
+        }
+      }
       const row = readRunDefinitionRow(ref, requestControl);
       if (row === undefined) return undefined;
+      if(original!==undefined && sameRunStateRow(row,original.row)) return originalFrame;
       return admitRunDefinitionRow(row, requestControl, publicationControl);
     },
     // Private original-content projection for this journal's admitted Run.
@@ -3323,12 +3344,9 @@ export function openClientRequestJournal(directory, {
       let previousFacts;
       if (originalFrame !== undefined) {
         ensureOpen();
-        const retained = runStateFrames.get(originalFrame);
-        if (retained === undefined || retained.requestControl !== requestControl ||
-            retained.publicationControl !== publicationControl ||
-            retained.row.namespace_id !== selected.namespaceId ||
-            retained.row.authority_scope_cid !== selected.authorityScopeCid ||
-            retained.row.run_definition_cid !== selected.runDefinitionCid) {
+        const retained = retainRunStateFrame(originalFrame,selected);
+        if (retained.requestControl !== requestControl ||
+            retained.publicationControl !== publicationControl) {
           fail('ForeignRunStateObservation');
         }
         // The same observation already admitted this complete original row.
@@ -3344,9 +3362,7 @@ export function openClientRequestJournal(directory, {
             previousRow = previousFacts = undefined;
             return undefined;
           }
-          if (previousRow !== undefined &&
-              Object.keys(row).length === Object.keys(previousRow).length &&
-              Object.keys(row).every(key => row[key] === previousRow[key])) {
+          if (previousRow !== undefined && sameRunStateRow(row,previousRow)) {
             return previousFacts;
           }
           const facts = admitRunDefinitionRow(row, requestControl, publicationControl);
@@ -3737,7 +3753,7 @@ export function openClientRequestJournal(directory, {
     },
     // Only the live execution owner may report a completed physical close.
     // A restarted process cannot infer this from its empty worker map.
-    markPhysicalClose(ref, terminalOutcome = null) {
+    markPhysicalClose(ref, terminalOutcome = null, originalFrame) {
       ensureOpen();
       if (!text(ref?.namespaceId) || !cid(ref?.authorityScopeCid) ||
           !cid(ref?.runDefinitionCid) ||
@@ -3745,23 +3761,28 @@ export function openClientRequestJournal(directory, {
             !['failed', 'cancelled'].includes(terminalOutcome)) {
         fail('InvalidClientRunStopObservation');
       }
+      const original=originalFrame===undefined?undefined:retainRunStateFrame(originalFrame,ref);
       return transact('stop_observation', 'ClientRunStopObservationUnknown',
-        error => error?.code === 'ClientRunStopObservationDenied', () => {
+        error => ['ClientRunStopObservationDenied','ClientRunStopObservationChanged'].includes(error?.code), () => {
         const row = selectRef.get(ref.namespaceId, ref.authorityScopeCid,
           ref.runDefinitionCid);
+        if(original!==undefined && !sameRunStateRow(row,original.row)) {
+          fail('ClientRunStopObservationChanged');
+        }
         if (row === undefined || row.physical_start_reserved !== 1 ||
             row.physical_close_confirmed === 1 &&
               row.observed_terminal_outcome !== terminalOutcome) {
           fail('ClientRunStopObservationDenied');
         }
         if (row.physical_close_confirmed === 0) {
-          database.prepare(`UPDATE client_requests SET
+          const changed=database.prepare(`UPDATE client_requests SET
             physical_close_confirmed = 1, observed_terminal_outcome = ?,
             revision = revision + 1
             WHERE namespace_id = ? AND authority_scope_cid = ? AND
               run_definition_cid = ? AND physical_start_reserved = 1 AND
               physical_close_confirmed = 0`).run(terminalOutcome,
             ref.namespaceId, ref.authorityScopeCid, ref.runDefinitionCid);
+          if(Number(changed.changes)!==1)fail('ClientRunStopObservationChanged');
         }
       });
     },

@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import * as moon from '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
+const moon=await import(process.env.ACTQL_TEST_COMMON_RUNTIME??new URL(
+  '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js',import.meta.url).href);
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {installNodeClientDispatchOwner,
   observeNodeRestoredModelStop, confirmNodeRunCancellation,
@@ -46,13 +47,21 @@ function fixture(changes = {}) {
   const ready = new Promise(resolve => { entered = resolve; });
   let confirmStop;
   const stop = new Promise(resolve => { confirmStop = resolve; });
+  const definition={wire:'definition'};
+  let retained;
+  const lookupRunDefinition=()=>{
+    const row={cancellationRequested:facts.accepted,revision:facts.revision??1,
+      physicalCloseConfirmed:facts.physicalCloseConfirmed??false,
+      observedTerminalOutcome:facts.observedTerminalOutcome??null};
+    if(retained===undefined||Object.keys(row).some(key=>retained[key]!==row[key])) {
+      retained=Object.freeze({...row,runDefinition:definition});
+    }
+    return retained;
+  };
   const owner = installNodeClientDispatchOwner({moon: {},
     control: {runDefinitionRunId: () => 'run', runCancellationConfirmed: commonDecision},
     journal: {reservePhysicalStart: () => true,
-      lookupRunDefinition: () => ({cancellationRequested: facts.accepted,
-        revision: facts.revision ?? 1, runDefinition: {wire: 'definition'},
-        physicalCloseConfirmed: facts.physicalCloseConfirmed ?? false,
-        observedTerminalOutcome: facts.observedTerminalOutcome ?? null}),
+      lookupRunDefinition,
       lookupReconciliationState: () => facts.effectUnknown ? 'unknown Effect' : undefined,
       markPhysicalClose: (_ref, outcome) => {
         assert.equal(facts.physicalCloseConfirmed ?? false, false,

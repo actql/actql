@@ -46,6 +46,17 @@ Control changes and publication conflicts retry with a fresh admitted frame.
 An internal post-Store probe therefore does not repeat admission of identical
 Run bytes, while a new public observation acquires its own current original.
 
+Physical-stop observation uses the same journal-owned frame across publication
+inspection. An unchanged complete row reuses its original request identity and
+Run Definition admission; revision equality alone is insufficient. The final
+physical-close transaction compares that complete original row before its
+guarded update. A changed row refuses the stale stop observation, while a real
+COMMIT failure retains the existing Unknown outcome. Copied, foreign-journal,
+foreign-control and wrong-key frames refuse. Cleanup and physical-stop receipts
+remain separate prerequisites, and an already recorded stop needs no repeated
+publication inspection. These facts live only within the existing operation;
+they do not cache Account decisions, issue a cleanup ACK or replay execution.
+
 This limited profile refuses Inspect when an older record lacks original policy
 evidence, or when a resuming state lacks the required continuation/fence origin
 observation. The underlying original Run and legacy status API remain usable.
