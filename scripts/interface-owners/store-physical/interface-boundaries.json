@@ -5119,7 +5119,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "c869be033629fb90e485e3a6fe7e2db86e054664d38383e971b5f6f30282dcfa",
+      "sha256": "328020347b5a4e3f6fa92f811eb17244ab28bb51e18caf327dba889d8d9017a8",
       "exports": [
         "PublicationStoreError",
         "assertOriginalLocalPublicationStoreFacilityCurrent",
@@ -8916,1887 +8916,6 @@
         },
         {
           "operations": [
-            "assertOriginalLocalPublicationStoreFacilityCurrent"
-          ],
-          "exports": [
-            "assertOriginalLocalPublicationStoreFacilityCurrent"
-          ],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "The ordinary selected Node Host has a separate finite Local Result/publication"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "operationalCurrent,"
-              }
-            ],
-            "identity": [
-              {
-                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
-                "anchor": "control !== field(entry.subject, 'control')"
-              },
-              {
-                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
-                "anchor": "selected.storeAuthorityCid !== field(entry.subject, 'storeAuthorityCid')"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
-                "anchor": "entry.store = store;"
-              },
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "same duty before its returned view observes it, that view receives the retained"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "The Host binds the Result control original after its actual Journal opens and"
-              },
-              {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "resultPublicationFlight = Promise.resolve().then(async () => {"
-              }
-            ],
-            "failure": [
-              {
-                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
-                "anchor": "entry.unknownCleanup = true;"
-              },
-              {
-                "path": "adapters/host-node/host-journal-ordinary-prefix.test.mjs",
-                "anchor": "Result failed actual Store construction keeps original cleanup until the same Journal closes"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "Cleanup does not require current admission."
-              },
-              {
-                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
-                "anchor": "entry.closedObservation = resultStatus(entry);"
-              }
-            ],
-            "resources": [
-              {
-                "path": "adapters/host-node/host-result-service-recipe.cjs",
-                "anchor": "conditionalWireHistory: record("
-              },
-              {
-                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
-                "anchor": "entry.storeOperations++;"
-              }
-            ],
-            "extension": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "first-initialization, Account, Result and business-I/O authorization remain"
-              },
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "legacy private Evidence key; a later key-dependent operation keeps its original"
-              }
-            ],
-            "verification": [
-              {
-                "path": "adapters/host-node/host-journal-ordinary-prefix.test.mjs",
-                "anchor": "Result Store rejects a foreign control or authority before creating its format"
-              },
-              {
-                "path": "adapters/host-node/host-result-service.test.mjs",
-                "anchor": "candidate refusal, Promise or Boolean cannot cross the actual durable record boundary"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [
-            "acquireStoreOwnership/acquireStoreOwnership",
-            "acquireStoreOwnership/ownership/init:assertCurrent/init:assertCurrent",
-            "acquireStoreOwnership/ownership/init:assertCurrent/init:assertCurrent/sameFile/sameFile",
-            "acquireStoreOwnership/ownership/init:assertCurrent/init:assertCurrent/sameFile/sameFile/sameFile",
-            "assertOriginalPreparedLocalPublicationStoreOwnership",
-            "closePreparedLocalPublicationStoreOwnership",
-            "closePreparedLocalPublicationStoreOwnership/closePreparedLocalPublicationStoreOwnership",
-            "closePreparedLocalPublicationStoreOwnership/closePreparedLocalPublicationStoreOwnership#2",
-            "openLocalPublicationStore",
-            "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore",
-            "originalPreparedStoreOwnership",
-            "preparedOwnershipStatus",
-            "prepareLocalPublicationStoreOwnership",
-            "prepareLocalPublicationStoreOwnership/bootstrap/bootstrap",
-            "prepareLocalPublicationStoreOwnership/prepareLocalPublicationStoreOwnership",
-            "releasePreparedOwnership",
-            "releasePreparedOwnership/releasePreparedOwnership",
-            "releasePreparedOwnership/releasePreparedOwnership#2"
-          ],
-          "exports": [
-            "assertOriginalPreparedLocalPublicationStoreOwnership",
-            "closePreparedLocalPublicationStoreOwnership",
-            "openLocalPublicationStore",
-            "prepareLocalPublicationStoreOwnership"
-          ],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "// A prepared original is only the existing physical exclusion duty. It is"
-              },
-              {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "export async function prepareLocalPublicationStoreOwnership(directory, bounds, dependency, directoryInspection) {"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "export async function openLocalPublicationStore("
-              },
-              {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "const original = Object.freeze(Object.create(null));"
-              },
-              {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "function preparedOwnershipStatus(entry) {"
-              }
-            ],
-            "identity": [
-              {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "const entry = preparedStoreOwnerships.get(original);"
-              },
-              {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "const sameFile = state => state.isFile() && !state.isSymbolicLink() &&"
-              },
-              {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "const preparedFreshPrefix = prepared !== undefined && prepared.fresh &&"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "entry.ownership = await acquireStoreOwnership(root, bootstrap, undefined);"
-              },
-              {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "prepared.phase = 'adopting';"
-              },
-              {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "ownership = Object.freeze({release: () => releasePreparedOwnership(prepared)});"
-              },
-              {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "assertHostJournalDirectoryInspector(directoryInspection, maxDirectoryEntries);"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "if (entry.releaseFlight !== undefined) return entry.releaseFlight;"
-              },
-              {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "Object.getOwnPropertyDescriptor(dependency, 'status')"
-              },
-              {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "const observation = await Reflect.apply(entry.dependencyStatus, entry.dependency, []);"
-              }
-            ],
-            "failure": [
-              {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "} catch { prepared.unknownChild = true; }"
-              },
-              {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "if (!fresh) {"
-              },
-              {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "if (!names.includes('store.json')) fail('UnknownPublicationStoreFormat');"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "export function closePreparedLocalPublicationStoreOwnership(original) {"
-              },
-              {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "if (entry.phase !== 'adopted' && entry.phase !== 'adopting') {"
-              },
-              {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "if (pending === undefined || !Object.hasOwn(pending, 'value') || pending.value !== false) {"
-              }
-            ],
-            "resources": [
-              {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "child: undefined, childStatus: undefined, childRetry: undefined, unknownChild: false};"
-              },
-              {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "// Payload cleanup must still run independently, but cannot release the"
-              },
-              {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "entry.dependency = entry.dependencyStatus = undefined;"
-              }
-            ],
-            "extension": [
-              {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "// neither a Store/capacity authority nor permission to initialize a format,"
-              },
-              {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "// Selected operational callers still supply their explicit finite bounds."
-              }
-            ],
-            "verification": [
-              {
-                "path": "adapters/store-local/prepared-ownership.test.mjs",
-                "anchor": "shared prepared exclusion survives Store cleanup until the same native Journal closes"
-              },
-              {
-                "path": "adapters/store-local/prepared-ownership.test.mjs",
-                "anchor": "prepared dependency keeps its captured receiver and refuses ambiguous or failed close observations"
-              },
-              {
-                "path": "adapters/store-local/prepared-ownership.test.mjs",
-                "anchor": "foreign owner-only prefix and copied original never gain the fresh-prefix exception"
-              },
-              {
-                "path": "adapters/store-local/prepared-ownership.test.mjs",
-                "anchor": "old pending durability retry never reads or removes a successor owner"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [
-            "assertOriginalPreparedLocalPublicationStoreFirstInitialization"
-          ],
-          "exports": [
-            "assertOriginalPreparedLocalPublicationStoreFirstInitialization"
-          ],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "###### Ordinary generated Content Run"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "export async function assertOriginalPreparedLocalPublicationStoreFirstInitialization(original, directory) {"
-              }
-            ],
-            "identity": [
-              {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "const entry = originalPreparedStoreOwnership(original);"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "await entry.ownership.assertCurrent();"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "assertOriginalPreparedLocalPublicationStoreOwnership(original, directory);"
-              }
-            ],
-            "failure": [
-              {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "if (!entry.fresh || entry.phase !== 'prepared') {"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "if (entry.root !== resolve(directory) || entry.closing ||"
-              }
-            ],
-            "resources": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "###### Ordinary generated Content Run"
-              }
-            ],
-            "extension": [
-              {
-                "path": "docs/design/reference-host.md",
-                "anchor": "###### Ordinary generated Content Run"
-              }
-            ],
-            "verification": [
-              {
-                "path": "adapters/host-node/ordinary-private-evidence-initialization.test.mjs",
-                "anchor": "test('ordinary key first setup refuses another Owner or directory before key creation'"
-              },
-              {
-                "path": "adapters/host-node/ordinary-private-evidence-initialization.test.mjs",
-                "anchor": "test('ordinary existing no-key Store cannot infer first adoption from missing key metadata'"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [
-            "openOriginalLocalPublicationStore/putDeliveryContracts/putDeliveryContracts"
-          ],
-          "exports": [],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "adapters/store-local/physical-holding-publication.md",
-                "anchor": "## Delivery admission durability batches"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "const putDeliveryContracts = async (grant, attempt, streaming) => {"
-              }
-            ],
-            "identity": [
-              {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "const selected = deliveryIndex.claim(row,grant.max_uses,initial?.streaming.wire,initial?.streaming.identity);"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "await putSemanticBatch([grant, attempt, ...(streaming === undefined ? [] : [streaming])].map(contract => ({"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "if (flight !== undefined) return flight;"
-              }
-            ],
-            "failure": [
-              {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "primary?.code ?? 'PublicationSemanticWriteFailed', primary);"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "await cleanup.retry();"
-              }
-            ],
-            "resources": [
-              {
-                "path": "adapters/store-local/physical-holding-publication.md",
-                "anchor": "directory names and original reservations are bounded by the one or two input"
-              }
-            ],
-            "extension": [
-              {
-                "path": "adapters/store-local/physical-holding-publication.md",
-                "anchor": "grant use; only after this bounded batch succeeds is that claim ready for the"
-              }
-            ],
-            "verification": [
-              {
-                "path": "adapters/store-local/publication-store.test.mjs",
-                "anchor": "test('delivery admission batches its immutable contracts and validates each once', async t => {"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [
-            "openOriginalLocalPublicationStore/confirmAdmittedDeliveryRecord/confirmAdmittedDeliveryRecord",
-            "openOriginalLocalPublicationStore/confirmAdmittedDeliveryRecord/confirmAdmittedDeliveryRecord/matches/matches",
-            "openOriginalLocalPublicationStore/readLatestDeliveryRecordContract/readLatestDeliveryRecordContract"
-          ],
-          "exports": [],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "adapters/store-local/physical-holding-publication.md",
-                "anchor": "## Delivery record operation reuse"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "const confirmAdmittedDeliveryRecord = async (contract, record, observed) => {"
-              }
-            ],
-            "identity": [
-              {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "if (retained !== undefined && exactUtf8WireMatches(bytes, retained.wire)) {"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "const original = {contract, bytes: undefined};"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "await syncDirectory(directory);"
-              }
-            ],
-            "failure": [
-              {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "fail('DeliveryRecordDurabilityMismatch');"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "adapters/store-local/physical-holding-publication.md",
-                "anchor": "directory durability responsibilities are unchanged. This removes repeated"
-              }
-            ],
-            "resources": [
-              {
-                "path": "adapters/store-local/physical-holding-publication.md",
-                "anchor": "The operation retains one bounded record buffer and the admitted input/attempt"
-              },
-              {
-                "path": "adapters/store-local/physical-holding-publication.md",
-                "anchor": "The Store keeps at most one last-confirmed record CID as a durability"
-              }
-            ],
-            "extension": [
-              {
-                "path": "adapters/store-local/physical-holding-publication.md",
-                "anchor": "own input; no admitted-record or authorization cache persists across calls."
-              }
-            ],
-            "verification": [
-              {
-                "path": "adapters/store-local/publication-store.test.mjs",
-                "anchor": "test('delivery record append and confirmation admit each unchanged original once', async t => {"
-              },
-              {
-                "path": "adapters/store-local/publication-store.test.mjs",
-                "anchor": "test('delivery confirmation reuses its real immutable record ACK but reacquires each input', async t => {"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [
-            "openOriginalLocalPublicationStore/putDeliveryContracts/putDeliveryContracts/putDeliveryContracts",
-            "openOriginalLocalPublicationStore/putSemanticBatch/putSemanticBatch",
-            "openOriginalLocalPublicationStore/putSemanticBatch/putSemanticBatch/account/account",
-            "openOriginalLocalPublicationStore/putSemanticBatch/putSemanticBatch/cleanup/init:retry/init:retry",
-            "openOriginalLocalPublicationStore/putSemanticBatch/putSemanticBatch/cleanup/init:retry/init:retry/init:retry",
-            "openOriginalLocalPublicationStore/putSemanticBatch/putSemanticBatch/cleanup/init:retry/init:retry/init:retry#2",
-            "openOriginalLocalPublicationStore/putSemanticBatch/putSemanticBatch/items/items",
-            "openOriginalLocalPublicationStore/putSemanticBatch/putSemanticBatch/putSemanticBatch",
-            "openOriginalLocalPublicationStore/putSemanticBatch/putSemanticBatch/status/status",
-            "openOriginalLocalPublicationStore/putSemanticBatch/putSemanticBatch/status/status/status",
-            "openOriginalLocalPublicationStore/putSemanticBatch/putSemanticBatch/syncNames/syncNames"
-          ],
-          "exports": [],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "adapters/store-local/physical-holding-publication.md",
-                "anchor": "Direct semantic writes use the same protocol for a single immutable metadata"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "const putSemanticBatch = async supplied => {"
-              }
-            ],
-            "identity": [
-              {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "cid: `sha256:${createHash('sha256').update(bytes).digest('hex')}`,"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "activePhysicalRecordWriters.add(writer);"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "for (const directory of [objectsDirectory, contractsDirectory]) {"
-              }
-            ],
-            "failure": [
-              {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "failure = new PublicationStoreError(primary?.code ?? 'PublicationSemanticWriteFailed', primary);"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "if (item.close === undefined) item.close = item.handle.close;"
-              }
-            ],
-            "resources": [
-              {
-                "path": "adapters/store-local/physical-holding-publication.md",
-                "anchor": "the existing Store inventory even if its semantic publication failed. Recovery"
-              }
-            ],
-            "extension": [
-              {
-                "path": "adapters/store-local/physical-holding-publication.md",
-                "anchor": "Prepared-object/Content holders still use their separate original custody"
-              }
-            ],
-            "verification": [
-              {
-                "path": "adapters/store-local/semantic-publication-commit.test.mjs",
-                "anchor": "test('semantic metadata commits its payload and final names without intermediate custody persistence', async t => {"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [
-            "openOriginalLocalPublicationStore/admitDeliveryClaim/admitDeliveryClaim",
-            "openOriginalLocalPublicationStore/admitDeliveryClaim/admitDeliveryClaim/admitDeliveryClaim",
-            "openOriginalLocalPublicationStore/admitDeliveryClaim/admitDeliveryClaim/admitDeliveryClaim#2",
-            "openOriginalLocalPublicationStore/appendDeliveryCompletion/appendDeliveryCompletion/appendDeliveryCompletion",
-            "openOriginalLocalPublicationStore/appendDeliveryRecord/appendDeliveryRecord/appendDeliveryRecord",
-            "openOriginalLocalPublicationStore/beginDeliveryAttempt/beginDeliveryAttempt",
-            "openOriginalLocalPublicationStore/beginDeliveryAttempt/beginDeliveryAttempt/beginDeliveryAttempt",
-            "openOriginalLocalPublicationStore/createAdmittedDeliveryAttempt/createAdmittedDeliveryAttempt",
-            "openOriginalLocalPublicationStore/createAdmittedDeliveryAttempt/createAdmittedDeliveryAttempt/createAdmittedDeliveryAttempt",
-            "openOriginalLocalPublicationStore/createAdmittedDeliveryAttempt/createAdmittedDeliveryAttempt/createAdmittedDeliveryAttempt#2",
-            "openOriginalLocalPublicationStore/createDeliveryAttempt/createDeliveryAttempt",
-            "openOriginalLocalPublicationStore/createDeliveryAttempt/createDeliveryAttempt/createDeliveryAttempt",
-            "openOriginalLocalPublicationStore/deliveryIndexRow/deliveryIndexRow",
-            "openOriginalLocalPublicationStore/deliveryLogicalKey/deliveryLogicalKey",
-            "openOriginalLocalPublicationStore/deliveryQuery/deliveryQuery",
-            "openOriginalLocalPublicationStore/enqueueDeliveryAdmission/enqueueDeliveryAdmission",
-            "openOriginalLocalPublicationStore/enqueueDeliveryAdmission/enqueueDeliveryAdmission/enqueueDeliveryAdmission",
-            "openOriginalLocalPublicationStore/initializeDeliveryIndex/initializeDeliveryIndex",
-            "openOriginalLocalPublicationStore/initializeDeliveryIndex/initializeDeliveryIndex/initializeDeliveryIndex",
-            "openOriginalLocalPublicationStore/initializeDeliveryIndex/initializeDeliveryIndex/publishCoverage/publishCoverage",
-            "openOriginalLocalPublicationStore/installDeliveryAttempt/installDeliveryAttempt",
-            "openOriginalLocalPublicationStore/installDeliveryAttempt/installDeliveryAttempt/init:retry/init:retry",
-            "openOriginalLocalPublicationStore/installDeliveryAttempt/installDeliveryAttempt/init:retry/init:retry/init:retry",
-            "openOriginalLocalPublicationStore/installDeliveryAttempt/installDeliveryAttempt/init:retry/init:retry/init:retry#2",
-            "openOriginalLocalPublicationStore/installDeliveryAttempt/installDeliveryAttempt/linkInitialRecord/linkInitialRecord",
-            "openOriginalLocalPublicationStore/installDeliveryAttempt/installDeliveryAttempt/status/status",
-            "openOriginalLocalPublicationStore/nativeDeliveryContract/nativeDeliveryContract",
-            "openOriginalLocalPublicationStore/readDeliveryAttemptContract/readDeliveryAttemptContract",
-            "openOriginalLocalPublicationStore/restoreDeliveryClaim/restoreDeliveryClaim",
-            "openOriginalLocalPublicationStore/selectDeliveryAttempt/selectDeliveryAttempt",
-            "openOriginalLocalPublicationStore/selectDeliveryAttempt/selectDeliveryAttempt/selectDeliveryAttempt"
-          ],
-          "exports": [],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "adapters/store-local/physical-holding-publication.md",
-                "anchor": "## Indexed delivery claims and coverage"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "const deliveryLogicalKey = query => JSON.stringify(["
-              },
-              {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "const nativeDeliveryContract = (cid, name, retained) =>"
-              },
-              {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "const appendDeliveryCompletion = async (attempt, receipt, contract) => {"
-              }
-            ],
-            "identity": [
-              {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "const expected = deliveryIndexRow(attempt,grant,attemptContract,grantContract);"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "adapters/store-local/physical-holding-publication.md",
-                "anchor": "The original native wrapper and captured close/isOpen remain owned until real"
-              },
-              {
-                "path": "adapters/store-local/physical-holding-publication.md",
-                "anchor": "## Joint delivery start"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "adapters/store-local/physical-holding-publication.md",
-                "anchor": "indexed grant-use counter together."
-              },
-              {
-                "path": "adapters/store-local/physical-holding-publication.md",
-                "anchor": "## Joint delivery start"
-              }
-            ],
-            "failure": [
-              {
-                "path": "adapters/store-local/publication-store.test.mjs",
-                "anchor": "delivery index preserves an actual committed claim after its reply is lost"
-              },
-              {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "progress.completion=Object.freeze({attempt:completion.attempt,receipt:suppliedReceipt,contract,entry});"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "adapters/store-local/publication-store.test.mjs",
-                "anchor": "pending delivery directory FD keeps Store ownership until original close"
-              }
-            ],
-            "resources": [
-              {
-                "path": "adapters/store-local/physical-holding-publication.md",
-                "anchor": "Bounded input/row counts are not capacity or permission."
-              },
-              {
-                "path": "adapters/store-local/physical-holding-publication.md",
-                "anchor": "## Joint delivery start"
-              }
-            ],
-            "extension": [
-              {
-                "path": "adapters/store-local/physical-holding-publication.md",
-                "anchor": "This metadata index does not change grant/attempt/record wires, authorization,"
-              }
-            ],
-            "verification": [
-              {
-                "path": "adapters/store-local/publication-store.test.mjs",
-                "anchor": "ready delivery coverage opens and looks up without unrelated history reads"
-              },
-              {
-                "path": "adapters/store-local/delivery-completion.test.mjs",
-                "anchor": "delivery START uses native metadata durability before any row exposure"
-              },
-              {
-                "path": "adapters/store-local/delivery-completion.test.mjs",
-                "anchor": "lost joint claim COMMIT reply preserves quota and initial streaming without sending"
-              },
-              {
-                "path": "adapters/store-local/delivery-completion.test.mjs",
-                "anchor": "native START metadata commits without duplicate contract files or directory ACKs"
-              },
-              {
-                "path": "adapters/store-local/delivery-completion.test.mjs",
-                "anchor": "native END metadata shares one real completion transaction without shadow contract files"
-              },
-              {
-                "path": "adapters/store-local/delivery-completion.test.mjs",
-                "anchor": "native record confirmation retains initial-record compatibility and one real reopened ACK"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [
-            "<module>",
-            "PublicationStoreError/constructor:constructor/constructor:constructor",
-            "acquireStoreOwnership",
-            "acquireStoreOwnership/ownership/init:release/init:release",
-            "acquireStoreOwnership/ownership/init:release/init:release/acknowledged/acknowledged",
-            "cidHex/cidHex",
-            "encodePrivateEvidenceEnvelope",
-            "encodePrivateEvidenceEnvelope/envelopeBytes/envelopeBytes",
-            "exactKeys/exactKeys",
-            "exactUtf8WireMatches/exactUtf8WireMatches",
-            "fail/fail",
-            "indexKey",
-            "metadataContractObject/metadataContractObject",
-            "nativeContractRead/nativeContractRead",
-            "nativePublicationContract/nativePublicationContract",
-            "openOriginalLocalPublicationStore",
-            "openOriginalLocalPublicationStore/accountNativePublication/accountNativePublication",
-            "openOriginalLocalPublicationStore/active/active",
-            "openOriginalLocalPublicationStore/admitContract/admitContract",
-            "openOriginalLocalPublicationStore/admitNativeContract/admitNativeContract",
-            "openOriginalLocalPublicationStore/admitPhysicalHolding/admitPhysicalHolding",
-            "openOriginalLocalPublicationStore/admitPhysicalHolding/admitPhysicalHolding/admitPhysicalHolding",
-            "openOriginalLocalPublicationStore/admitPhysicalHolding/admitPhysicalHolding/record/record",
-            "openOriginalLocalPublicationStore/adoptPreparedObjects/adoptPreparedObjects",
-            "openOriginalLocalPublicationStore/adoptPreparedSchemas/adoptPreparedSchemas",
-            "openOriginalLocalPublicationStore/adoptPreparedSchemas/adoptPreparedSchemas/adopted/adopted",
-            "openOriginalLocalPublicationStore/adoptPreparedSchemas/adoptPreparedSchemas/durable/durable",
-            "openOriginalLocalPublicationStore/appendDeliveryRecord/appendDeliveryRecord",
-            "openOriginalLocalPublicationStore/appendRecord/appendRecord",
-            "openOriginalLocalPublicationStore/beginPreparedCommit/beginPreparedCommit",
-            "openOriginalLocalPublicationStore/beginPreparedCommit/beginPreparedCommit/init:retry/init:retry",
-            "openOriginalLocalPublicationStore/beginPreparedCommit/beginPreparedCommit/resolveConfirmed/resolveConfirmed",
-            "openOriginalLocalPublicationStore/beginPreparedCommit/beginPreparedCommit/settleUncommitted/settleUncommitted",
-            "openOriginalLocalPublicationStore/beginPreparedCommit/beginPreparedCommit/status/status",
-            "openOriginalLocalPublicationStore/bindMetadataContractObjects/bindMetadataContractObjects",
-            "openOriginalLocalPublicationStore/bootstrap/bootstrap",
-            "openOriginalLocalPublicationStore/captureCustodyPath/captureCustodyPath",
-            "openOriginalLocalPublicationStore/captureCustodyRun/captureCustodyRun",
-            "openOriginalLocalPublicationStore/clockObservationPath/clockObservationPath",
-            "openOriginalLocalPublicationStore/collectRunMetadataContracts/collectRunMetadataContracts",
-            "openOriginalLocalPublicationStore/commitEffectfulIndex/commitEffectfulIndex",
-            "openOriginalLocalPublicationStore/commitEffectfulIndex/commitEffectfulIndex/commitEffectfulIndex",
-            "openOriginalLocalPublicationStore/commitIndex/commitIndex",
-            "openOriginalLocalPublicationStore/commitIndex/commitIndex/commitIndex",
-            "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal",
-            "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/adoptObjects/adoptObjects",
-            "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/adoptSchemas/adoptSchemas",
-            "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/boundPhysicalCids/boundPhysicalCids",
-            "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/commitIndexInternal",
-            "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/commitIndexInternal#2",
-            "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/init:adopt/init:adopt",
-            "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/init:beginCustody/init:beginCustody",
-            "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/init:conflict/init:conflict",
-            "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/init:install/init:install",
-            "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/init:sameContent/init:sameContent",
-            "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/init:stage/init:stage",
-            "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/init:verifyExistingInventory/init:verifyExistingInventory",
-            "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/init:verifyExistingInventory/init:verifyExistingInventory/init:verifyExistingInventory",
-            "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/init:verifyExistingInventory/init:verifyExistingInventory/init:verifyExistingInventory/init:verifyExistingInventory",
-            "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/inventorySemanticCids/inventorySemanticCids",
-            "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/readOriginal/readOriginal",
-            "openOriginalLocalPublicationStore/commitPhysicalHolding/commitPhysicalHolding",
-            "openOriginalLocalPublicationStore/commitPhysicalHolding/commitPhysicalHolding/commitPhysicalHolding",
-            "openOriginalLocalPublicationStore/commitPhysicalHolding/commitPhysicalHolding/operation/operation",
-            "openOriginalLocalPublicationStore/commitPhysicalHoldingInternal/commitPhysicalHoldingInternal",
-            "openOriginalLocalPublicationStore/commitPhysicalHoldingInternal/commitPhysicalHoldingInternal/commitPhysicalHoldingInternal",
-            "openOriginalLocalPublicationStore/commitPhysicalHoldingInternal/commitPhysicalHoldingInternal/commitPhysicalHoldingInternal#2",
-            "openOriginalLocalPublicationStore/commitPhysicalHoldingInternal/commitPhysicalHoldingInternal/commitPhysicalHoldingInternal#3",
-            "openOriginalLocalPublicationStore/compactMetadataDeletion/compactMetadataDeletion",
-            "openOriginalLocalPublicationStore/confirmCapturedContentHoldings/confirmCapturedContentHoldings",
-            "openOriginalLocalPublicationStore/confirmCommittedIndex/confirmCommittedIndex",
-            "openOriginalLocalPublicationStore/confirmDeliveryRecord/confirmDeliveryRecord",
-            "openOriginalLocalPublicationStore/confirmModelRawCaptureOriginals/confirmModelRawCaptureOriginals",
-            "openOriginalLocalPublicationStore/confirmModelRawCaptureOriginals/confirmModelRawCaptureOriginals/expected/expected",
-            "openOriginalLocalPublicationStore/confirmModelRawEvidence/confirmModelRawEvidence",
-            "openOriginalLocalPublicationStore/confirmPrivateEvidence/confirmPrivateEvidence",
-            "openOriginalLocalPublicationStore/confirmSelectedCommittedIndex/confirmSelectedCommittedIndex",
-            "openOriginalLocalPublicationStore/consumeCommittedResult/consumeCommittedResult",
-            "openOriginalLocalPublicationStore/consumeCommittedResult/consumeCommittedResult/consumeCommittedResult",
-            "openOriginalLocalPublicationStore/consumeManifestReadGrant/consumeManifestReadGrant",
-            "openOriginalLocalPublicationStore/consumeManifestReadGrant/consumeManifestReadGrant/consumeManifestReadGrant",
-            "openOriginalLocalPublicationStore/consumeManifestReadGrant/consumeManifestReadGrant/operation/operation",
-            "openOriginalLocalPublicationStore/consumeManifestReadGrant/consumeManifestReadGrant/operation/operation/uses/uses",
-            "openOriginalLocalPublicationStore/consumeObject/consumeObject",
-            "openOriginalLocalPublicationStore/consumeObject/consumeObject/cleanup/init:retry/init:retry",
-            "openOriginalLocalPublicationStore/consumeObject/consumeObject/cleanup/init:retry/init:retry/init:retry",
-            "openOriginalLocalPublicationStore/consumeObject/consumeObject/cleanup/init:retry/init:retry/init:retry#2",
-            "openOriginalLocalPublicationStore/consumeObject/consumeObject/consumeObject",
-            "openOriginalLocalPublicationStore/consumeObject/consumeObject/status/status",
-            "openOriginalLocalPublicationStore/consumePhysicalHolding/consumePhysicalHolding",
-            "openOriginalLocalPublicationStore/consumePhysicalHolding/consumePhysicalHolding/closed/closed",
-            "openOriginalLocalPublicationStore/contractPath/contractPath",
-            "openOriginalLocalPublicationStore/createAttempt/createAttempt",
-            "openOriginalLocalPublicationStore/createMetadataDeletionCleanup/createMetadataDeletionCleanup",
-            "openOriginalLocalPublicationStore/createMetadataDeletionCleanup/createMetadataDeletionCleanup/cleanup/cleanup",
-            "openOriginalLocalPublicationStore/createMetadataDeletionCleanup/createMetadataDeletionCleanup/cleanup/cleanup#2",
-            "openOriginalLocalPublicationStore/createMetadataDeletionCleanup/createMetadataDeletionCleanup/cleanup/cleanup#3",
-            "openOriginalLocalPublicationStore/createMetadataDeletionCleanup/createMetadataDeletionCleanup/cleanup/cleanup#4",
-            "openOriginalLocalPublicationStore/createMetadataDeletionCleanup/createMetadataDeletionCleanup/cleanup/init:releaseUnconfirmed/init:releaseUnconfirmed",
-            "openOriginalLocalPublicationStore/createMetadataDeletionCleanup/createMetadataDeletionCleanup/cleanup/init:removeIndex/init:removeIndex",
-            "openOriginalLocalPublicationStore/createMetadataDeletionCleanup/createMetadataDeletionCleanup/cleanup/init:removeInventory/init:removeInventory",
-            "openOriginalLocalPublicationStore/createMetadataDeletionCleanup/createMetadataDeletionCleanup/cleanup/init:removeResultDeletionDirectory/init:removeResultDeletionDirectory",
-            "openOriginalLocalPublicationStore/createMetadataDeletionCleanup/createMetadataDeletionCleanup/cleanup/init:retireHolding/init:retireHolding",
-            "openOriginalLocalPublicationStore/createMetadataDeletionCleanup/createMetadataDeletionCleanup/cleanup/init:retireResult/init:retireResult",
-            "openOriginalLocalPublicationStore/createMetadataDeletionCleanup/createMetadataDeletionCleanup/cleanup/init:serialize/init:serialize",
-            "openOriginalLocalPublicationStore/createMetadataDeletionCleanup/createMetadataDeletionCleanup/cleanup/init:serialize/init:serialize/init:serialize",
-            "openOriginalLocalPublicationStore/createMetadataDeletionCleanup/createMetadataDeletionCleanup/cleanup/init:serialize/init:serialize/operation/operation",
-            "openOriginalLocalPublicationStore/createMetadataDeletionCleanup/createMetadataDeletionCleanup/cleanup/init:serialize/init:serialize/operation/operation/operation",
-            "openOriginalLocalPublicationStore/createMetadataDeletionCleanup/createMetadataDeletionCleanup/cleanup/init:serialize/init:serialize/operation/operation/operation/operation",
-            "openOriginalLocalPublicationStore/createMetadataDeletionCleanup/createMetadataDeletionCleanup/cleanup/init:settle/init:settle",
-            "openOriginalLocalPublicationStore/createObjectWriter/createObjectWriter",
-            "openOriginalLocalPublicationStore/createObjectWriter/createObjectWriter/createObjectWriter",
-            "openOriginalLocalPublicationStore/createObjectWriter/createObjectWriter/init:accountInstalled/init:accountInstalled",
-            "openOriginalLocalPublicationStore/createPhysicalHoldingDeletionCleanup/createPhysicalHoldingDeletionCleanup",
-            "openOriginalLocalPublicationStore/createPhysicalHoldingDeletionCleanup/createPhysicalHoldingDeletionCleanup/cleanup/init:retry/init:retry",
-            "openOriginalLocalPublicationStore/createPhysicalHoldingDeletionCleanup/createPhysicalHoldingDeletionCleanup/cleanup/init:retry/init:retry/init:retry",
-            "openOriginalLocalPublicationStore/createPhysicalHoldingDeletionCleanup/createPhysicalHoldingDeletionCleanup/cleanup/init:retry/init:retry/operation/operation",
-            "openOriginalLocalPublicationStore/createPhysicalHoldingDeletionCleanup/createPhysicalHoldingDeletionCleanup/status/status",
-            "openOriginalLocalPublicationStore/createPreparedObjectWriter/createPreparedObjectWriter",
-            "openOriginalLocalPublicationStore/createPreparedObjectWriter/createPreparedObjectWriter/createPreparedObjectWriter",
-            "openOriginalLocalPublicationStore/createPreparedObjectWriter/createPreparedObjectWriter/createPreparedObjectWriter#2",
-            "openOriginalLocalPublicationStore/createPreparedObjectWriter/createPreparedObjectWriter/createPreparedObjectWriter#3",
-            "openOriginalLocalPublicationStore/createPreparedObjectWriter/createPreparedObjectWriter/init:seal/init:seal",
-            "openOriginalLocalPublicationStore/createPreparedObjectWriter/createPreparedObjectWriter/init:seal/init:seal/clearCustodies/clearCustodies",
-            "openOriginalLocalPublicationStore/createPreparedObjectWriter/createPreparedObjectWriter/init:seal/init:seal/finishPendingUnlink/finishPendingUnlink",
-            "openOriginalLocalPublicationStore/createPreparedObjectWriter/createPreparedObjectWriter/init:seal/init:seal/prepared/init:retry/init:retry",
-            "openOriginalLocalPublicationStore/createPreparedObjectWriter/createPreparedObjectWriter/init:seal/init:seal/release/release",
-            "openOriginalLocalPublicationStore/createPreparedObjectWriter/createPreparedObjectWriter/init:seal/init:seal/release/release/operation/operation",
-            "openOriginalLocalPublicationStore/createPreparedObjectWriter/createPreparedObjectWriter/init:seal/init:seal/release/release/operation/operation#2",
-            "openOriginalLocalPublicationStore/createPreparedObjectWriter/createPreparedObjectWriter/init:seal/init:seal/release/release/release",
-            "openOriginalLocalPublicationStore/createPreparedObjectWriter/createPreparedObjectWriter/init:seal/init:seal/release/release/release#2",
-            "openOriginalLocalPublicationStore/createPreparedObjectWriter/createPreparedObjectWriter/init:seal/init:seal/release/release/release#3",
-            "openOriginalLocalPublicationStore/createPreparedObjectWriter/createPreparedObjectWriter/init:seal/init:seal/state/state",
-            "openOriginalLocalPublicationStore/createResultDeletionCleanup/createResultDeletionCleanup",
-            "openOriginalLocalPublicationStore/createResultDeletionCleanup/createResultDeletionCleanup/cleanup/cleanup",
-            "openOriginalLocalPublicationStore/createResultDeletionCleanup/createResultDeletionCleanup/cleanup/cleanup#2",
-            "openOriginalLocalPublicationStore/createResultDeletionCleanup/createResultDeletionCleanup/cleanup/cleanup#3",
-            "openOriginalLocalPublicationStore/createResultDeletionCleanup/createResultDeletionCleanup/cleanup/init:inspectAllocation/init:inspectAllocation",
-            "openOriginalLocalPublicationStore/createResultDeletionCleanup/createResultDeletionCleanup/cleanup/init:markReclaiming/init:markReclaiming",
-            "openOriginalLocalPublicationStore/createResultDeletionCleanup/createResultDeletionCleanup/cleanup/init:releaseCapacity/init:releaseCapacity",
-            "openOriginalLocalPublicationStore/createResultDeletionCleanup/createResultDeletionCleanup/cleanup/init:retention/init:retention",
-            "openOriginalLocalPublicationStore/createResultDeletionCleanup/createResultDeletionCleanup/cleanup/init:serialize/init:serialize",
-            "openOriginalLocalPublicationStore/createResultDeletionCleanup/createResultDeletionCleanup/cleanup/init:serialize/init:serialize/init:serialize",
-            "openOriginalLocalPublicationStore/createResultDeletionCleanup/createResultDeletionCleanup/cleanup/init:settle/init:settle",
-            "openOriginalLocalPublicationStore/createUncommittedMetadataCleanup/createUncommittedMetadataCleanup",
-            "openOriginalLocalPublicationStore/createUncommittedMetadataCleanup/createUncommittedMetadataCleanup/cleanup/init:retry/init:retry",
-            "openOriginalLocalPublicationStore/createUncommittedMetadataCleanup/createUncommittedMetadataCleanup/cleanup/init:retry/init:retry/init:retry",
-            "openOriginalLocalPublicationStore/createUncommittedMetadataCleanup/createUncommittedMetadataCleanup/cleanup/init:retry/init:retry/init:retry#2",
-            "openOriginalLocalPublicationStore/createUncommittedMetadataCleanup/createUncommittedMetadataCleanup/cleanup/init:retry/init:retry/operation/operation",
-            "openOriginalLocalPublicationStore/createUncommittedMetadataCleanup/createUncommittedMetadataCleanup/finishInventory/finishInventory",
-            "openOriginalLocalPublicationStore/createUncommittedMetadataCleanup/createUncommittedMetadataCleanup/status/status",
-            "openOriginalLocalPublicationStore/custodyPath/custodyPath",
-            "openOriginalLocalPublicationStore/deliveryAttemptPath/deliveryAttemptPath",
-            "openOriginalLocalPublicationStore/ensureMetadataDeletion/ensureMetadataDeletion",
-            "openOriginalLocalPublicationStore/ensureMetadataInventory/ensureMetadataInventory",
-            "openOriginalLocalPublicationStore/ensureMetadataInventoryFile/ensureMetadataInventoryFile",
-            "openOriginalLocalPublicationStore/ensurePhysicalHoldingDeletion/ensurePhysicalHoldingDeletion",
-            "openOriginalLocalPublicationStore/ensureResultDeletionMarker/ensureResultDeletionMarker",
-            "openOriginalLocalPublicationStore/forgetEffectCaptureCustody/forgetEffectCaptureCustody",
-            "openOriginalLocalPublicationStore/init:close/init:close",
-            "openOriginalLocalPublicationStore/init:close/init:close/init:close",
-            "openOriginalLocalPublicationStore/init:close/init:close/init:close#2",
-            "openOriginalLocalPublicationStore/init:close/init:close/init:close#3",
-            "openOriginalLocalPublicationStore/init:originalInstallationPublicationStorageBindingEvidence/init:originalInstallationPublicationStorageBindingEvidence",
-            "openOriginalLocalPublicationStore/init:originalModelStorageBindingEvidence/init:originalModelStorageBindingEvidence",
-            "openOriginalLocalPublicationStore/init:originalModelStorageDimensions/init:originalModelStorageDimensions",
-            "openOriginalLocalPublicationStore/init:privateEvidenceWireLimit/init:privateEvidenceWireLimit",
-            "openOriginalLocalPublicationStore/init:publicationCapacitySupports/init:publicationCapacitySupports",
-            "openOriginalLocalPublicationStore/init:readPublicationContract/init:readPublicationContract",
-            "openOriginalLocalPublicationStore/init:status/init:status",
-            "openOriginalLocalPublicationStore/inspectCommittedIndex/inspectCommittedIndex",
-            "openOriginalLocalPublicationStore/inspectCommittedIndexRaw/inspectCommittedIndexRaw",
-            "openOriginalLocalPublicationStore/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence",
-            "openOriginalLocalPublicationStore/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence",
-            "openOriginalLocalPublicationStore/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence#2",
-            "openOriginalLocalPublicationStore/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence#3",
-            "openOriginalLocalPublicationStore/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence#4",
-            "openOriginalLocalPublicationStore/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence#5",
-            "openOriginalLocalPublicationStore/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence/memberReceipts/memberReceipts",
-            "openOriginalLocalPublicationStore/inspectPhysicalHolding/inspectPhysicalHolding",
-            "openOriginalLocalPublicationStore/inspectPhysicalHoldingForRetirement/inspectPhysicalHoldingForRetirement",
-            "openOriginalLocalPublicationStore/latestDeliveryRecord/latestDeliveryRecord",
-            "openOriginalLocalPublicationStore/latestDeliveryRecordContract/latestDeliveryRecordContract",
-            "openOriginalLocalPublicationStore/latestRecord/latestRecord",
-            "openOriginalLocalPublicationStore/latestRecordContract/latestRecordContract",
-            "openOriginalLocalPublicationStore/latestRecordContract/latestRecordContract/latestRecordContract",
-            "openOriginalLocalPublicationStore/latestRecordContract/latestRecordContract/names/names",
-            "openOriginalLocalPublicationStore/latestRecordContract/latestRecordContract/names/names#2",
-            "openOriginalLocalPublicationStore/latestRecordContract/latestRecordContract/names/names#3",
-            "openOriginalLocalPublicationStore/latestRecordContract/latestRecordContract/names/names#4",
-            "openOriginalLocalPublicationStore/legacy/legacy",
-            "openOriginalLocalPublicationStore/listEffectCaptureCustodies/listEffectCaptureCustodies",
-            "openOriginalLocalPublicationStore/listEffectCaptureCustodies/listEffectCaptureCustodies/listEffectCaptureCustodies",
-            "openOriginalLocalPublicationStore/listEffectCaptureCustodies/listEffectCaptureCustodies/selected/selected",
-            "openOriginalLocalPublicationStore/lookupCommittedIndex/lookupCommittedIndex",
-            "openOriginalLocalPublicationStore/lookupDeliveryAttempt/lookupDeliveryAttempt",
-            "openOriginalLocalPublicationStore/manifestReadGrantPath/manifestReadGrantPath",
-            "openOriginalLocalPublicationStore/materialHasLiveReference/materialHasLiveReference",
-            "openOriginalLocalPublicationStore/materialHasLiveReference/materialHasLiveReference/materialHasLiveReference",
-            "openOriginalLocalPublicationStore/metadataContractHasLiveReference/metadataContractHasLiveReference",
-            "openOriginalLocalPublicationStore/metadataContractHasLiveReference/metadataContractHasLiveReference/metadataContractHasLiveReference",
-            "openOriginalLocalPublicationStore/metadataContractHasLiveReference/metadataContractHasLiveReference/metadataContractHasLiveReference#2",
-            "openOriginalLocalPublicationStore/metadataDeletionPath/metadataDeletionPath",
-            "openOriginalLocalPublicationStore/metadataHoldingHasOtherOwner/metadataHoldingHasOtherOwner",
-            "openOriginalLocalPublicationStore/metadataInventoryPath/metadataInventoryPath",
-            "openOriginalLocalPublicationStore/metadataResultBindings/metadataResultBindings",
-            "openOriginalLocalPublicationStore/metadataResultBindings/metadataResultBindings/metadataResultBindings",
-            "openOriginalLocalPublicationStore/objectPath/objectPath",
-            "openOriginalLocalPublicationStore/observeOriginalInstallationPublicationStorageBinding/observeOriginalInstallationPublicationStorageBinding",
-            "openOriginalLocalPublicationStore/observeOriginalInstallationPublicationStorageBinding/observeOriginalInstallationPublicationStorageBinding/bytes/bytes",
-            "openOriginalLocalPublicationStore/observeOriginalModelStorageBinding/observeOriginalModelStorageBinding",
-            "openOriginalLocalPublicationStore/observeOriginalModelStorageBinding/observeOriginalModelStorageBinding/bytes/bytes",
-            "openOriginalLocalPublicationStore/observeTrustedClock/observeTrustedClock",
-            "openOriginalLocalPublicationStore/parseContract/parseContract",
-            "openOriginalLocalPublicationStore/parseCustodyRecord/parseCustodyRecord",
-            "openOriginalLocalPublicationStore/parseMetadataInventory/parseMetadataInventory",
-            "openOriginalLocalPublicationStore/parseMetadataInventory/parseMetadataInventory/parseMetadataInventory",
-            "openOriginalLocalPublicationStore/parseMetadataInventory/parseMetadataInventory/parseMetadataInventory#2",
-            "openOriginalLocalPublicationStore/parseMetadataInventory/parseMetadataInventory/parseMetadataInventory#3",
-            "openOriginalLocalPublicationStore/parseMetadataInventory/parseMetadataInventory/parseMetadataInventory#4",
-            "openOriginalLocalPublicationStore/parseMetadataInventory/parseMetadataInventory/parseMetadataInventory#5",
-            "openOriginalLocalPublicationStore/parseMetadataInventory/parseMetadataInventory/parseMetadataInventory#6",
-            "openOriginalLocalPublicationStore/parseMetadataInventory/parseMetadataInventory/parseMetadataInventory#7",
-            "openOriginalLocalPublicationStore/parseMetadataInventory/parseMetadataInventory/parseMetadataInventory#8",
-            "openOriginalLocalPublicationStore/parsePhysicalHolding/parsePhysicalHolding",
-            "openOriginalLocalPublicationStore/parsePhysicalHolding/parsePhysicalHolding/parsePhysicalHolding",
-            "openOriginalLocalPublicationStore/parsePhysicalHolding/parsePhysicalHolding/parsePhysicalHolding#2",
-            "openOriginalLocalPublicationStore/parsePreparedSchema/parsePreparedSchema",
-            "openOriginalLocalPublicationStore/parsePreparedSchema/parsePreparedSchema/parsePreparedSchema",
-            "openOriginalLocalPublicationStore/physicalHoldingDeletionPath/physicalHoldingDeletionPath",
-            "openOriginalLocalPublicationStore/physicalHoldingPath/physicalHoldingPath",
-            "openOriginalLocalPublicationStore/prepareModelRawEvidence/prepareModelRawEvidence",
-            "openOriginalLocalPublicationStore/preparePrivateEvidence/preparePrivateEvidence",
-            "openOriginalLocalPublicationStore/preparePrivateEvidenceBytes/preparePrivateEvidenceBytes",
-            "openOriginalLocalPublicationStore/preparePrivateEvidenceInput/preparePrivateEvidenceInput",
-            "openOriginalLocalPublicationStore/preparedSchemaHandle/preparedSchemaHandle",
-            "openOriginalLocalPublicationStore/preparedSchemaHandle/preparedSchemaHandle/init:retry/init:retry",
-            "openOriginalLocalPublicationStore/preparedSchemaHandle/preparedSchemaHandle/preparedSchemaHandle",
-            "openOriginalLocalPublicationStore/preparedSchemaHandle/preparedSchemaHandle/preparedSchemaHandle#2",
-            "openOriginalLocalPublicationStore/preparedSchemaPath/preparedSchemaPath",
-            "openOriginalLocalPublicationStore/privateEvidenceAad/privateEvidenceAad",
-            "openOriginalLocalPublicationStore/privateEvidenceField/privateEvidenceField",
-            "openOriginalLocalPublicationStore/privateEvidenceHolding/privateEvidenceHolding",
-            "openOriginalLocalPublicationStore/privateEvidenceKey/privateEvidenceKey",
-            "openOriginalLocalPublicationStore/publicationAttemptPath/publicationAttemptPath",
-            "openOriginalLocalPublicationStore/publicationRecoveryOriginal/publicationRecoveryOriginal",
-            "openOriginalLocalPublicationStore/publicationRecoveryValue/publicationRecoveryValue",
-            "openOriginalLocalPublicationStore/putBytes/putBytes",
-            "openOriginalLocalPublicationStore/putBytesInternal/putBytesInternal",
-            "openOriginalLocalPublicationStore/putBytesInternal/putBytesInternal/cleanupHandle/init:retry/init:retry",
-            "openOriginalLocalPublicationStore/putBytesInternal/putBytesInternal/status/status",
-            "openOriginalLocalPublicationStore/putCommittedResultRetentionExtension/putCommittedResultRetentionExtension",
-            "openOriginalLocalPublicationStore/putCommittedResultRetentionExtension/putCommittedResultRetentionExtension/operation/operation",
-            "openOriginalLocalPublicationStore/putCommittedResultRetentionExtension/putCommittedResultRetentionExtension/putCommittedResultRetentionExtension",
-            "openOriginalLocalPublicationStore/putNativePublicationContracts/putNativePublicationContracts",
-            "openOriginalLocalPublicationStore/putNativePublicationContracts/putNativePublicationContracts/finish/finish",
-            "openOriginalLocalPublicationStore/putNativePublicationContracts/putNativePublicationContracts/init:retry/init:retry",
-            "openOriginalLocalPublicationStore/putNativePublicationContracts/putNativePublicationContracts/init:retry/init:retry/init:retry",
-            "openOriginalLocalPublicationStore/putNativePublicationContracts/putNativePublicationContracts/init:retry/init:retry/init:retry#2",
-            "openOriginalLocalPublicationStore/putNativePublicationContracts/putNativePublicationContracts/status/status",
-            "openOriginalLocalPublicationStore/putOriginalPublicationContracts/putOriginalPublicationContracts",
-            "openOriginalLocalPublicationStore/putPreparedResultSchema/putPreparedResultSchema",
-            "openOriginalLocalPublicationStore/putPreparedResultSchema/putPreparedResultSchema/putPreparedResultSchema",
-            "openOriginalLocalPublicationStore/putPreparedResultSchema/putPreparedResultSchema/putPreparedResultSchema/init:retry/init:retry",
-            "openOriginalLocalPublicationStore/putPreparedResultSchema/putPreparedResultSchema/putPreparedResultSchema/putPreparedResultSchema",
-            "openOriginalLocalPublicationStore/putPublicationContract/putPublicationContract",
-            "openOriginalLocalPublicationStore/putPublicationContractBatch/putPublicationContractBatch",
-            "openOriginalLocalPublicationStore/putPublicationContractBatch/putPublicationContractBatch/inputs/inputs",
-            "openOriginalLocalPublicationStore/putPublicationContractBatch/putPublicationContractBatch/nativeOnly/nativeOnly",
-            "openOriginalLocalPublicationStore/putPublicationContractBatch/putPublicationContractBatch/putPublicationContractBatch",
-            "openOriginalLocalPublicationStore/putPublicationContractBatch/putPublicationContractBatch/stored/stored",
-            "openOriginalLocalPublicationStore/putPublicationContractBatch/putPublicationContractBatch/stored/stored#2",
-            "openOriginalLocalPublicationStore/putPublicationContracts/putPublicationContracts",
-            "openOriginalLocalPublicationStore/putSemantic/putSemantic",
-            "openOriginalLocalPublicationStore/readClockObservation/readClockObservation",
-            "openOriginalLocalPublicationStore/readCommittedMetadataInventory/readCommittedMetadataInventory",
-            "openOriginalLocalPublicationStore/readCommittedResultDescriptionEvidence/readCommittedResultDescriptionEvidence",
-            "openOriginalLocalPublicationStore/readCommittedResultDescriptionEvidence/readCommittedResultDescriptionEvidence/bindings/bindings",
-            "openOriginalLocalPublicationStore/readCommittedResultRetentionExtension/readCommittedResultRetentionExtension",
-            "openOriginalLocalPublicationStore/readContract/readContract",
-            "openOriginalLocalPublicationStore/readEffectCaptureCustody/readEffectCaptureCustody",
-            "openOriginalLocalPublicationStore/readEffectCaptureCustody/readEffectCaptureCustody/holdings/holdings",
-            "openOriginalLocalPublicationStore/readEffectCaptureCustody/readEffectCaptureCustody/readEffectCaptureCustody",
-            "openOriginalLocalPublicationStore/readEffectCaptureCustody/readEffectCaptureCustody/readEffectCaptureCustody#2",
-            "openOriginalLocalPublicationStore/readJsonObject/readJsonObject",
-            "openOriginalLocalPublicationStore/readLatestDeliveryRecordContract/readLatestDeliveryRecordContract/names/names",
-            "openOriginalLocalPublicationStore/readLatestDeliveryRecordContract/readLatestDeliveryRecordContract/names/names#2",
-            "openOriginalLocalPublicationStore/readLatestDeliveryRecordContract/readLatestDeliveryRecordContract/names/names#3",
-            "openOriginalLocalPublicationStore/readLatestDeliveryRecordContract/readLatestDeliveryRecordContract/names/names#4",
-            "openOriginalLocalPublicationStore/readLatestDeliveryRecordContract/readLatestDeliveryRecordContract/readLatestDeliveryRecordContract",
-            "openOriginalLocalPublicationStore/readMetadataDeletion/readMetadataDeletion",
-            "openOriginalLocalPublicationStore/readMetadataDeletion/readMetadataDeletion/readMetadataDeletion",
-            "openOriginalLocalPublicationStore/readMetadataDeletion/readMetadataDeletion/readMetadataDeletion#2",
-            "openOriginalLocalPublicationStore/readMetadataDeletion/readMetadataDeletion/readMetadataDeletion#3",
-            "openOriginalLocalPublicationStore/readMetadataDeletion/readMetadataDeletion/readMetadataDeletion#4",
-            "openOriginalLocalPublicationStore/readMetadataDeletion/readMetadataDeletion/readMetadataDeletion#5",
-            "openOriginalLocalPublicationStore/readMetadataDeletion/readMetadataDeletion/readMetadataDeletion#6",
-            "openOriginalLocalPublicationStore/readMetadataDeletion/readMetadataDeletion/readMetadataDeletion#7",
-            "openOriginalLocalPublicationStore/readMetadataDeletion/readMetadataDeletion/readMetadataDeletion#8",
-            "openOriginalLocalPublicationStore/readMetadataInventory/readMetadataInventory",
-            "openOriginalLocalPublicationStore/readModelRawEvidence/readModelRawEvidence",
-            "openOriginalLocalPublicationStore/readOpeningMetadata/readOpeningMetadata",
-            "openOriginalLocalPublicationStore/readPhysicalHolding/readPhysicalHolding",
-            "openOriginalLocalPublicationStore/readPhysicalHoldingAt/readPhysicalHoldingAt",
-            "openOriginalLocalPublicationStore/readPhysicalHoldingDeletion/readPhysicalHoldingDeletion",
-            "openOriginalLocalPublicationStore/readPrivateEvidence/readPrivateEvidence",
-            "openOriginalLocalPublicationStore/readPrivateEvidenceObject/readPrivateEvidenceObject",
-            "openOriginalLocalPublicationStore/readPrivateEvidenceObject/readPrivateEvidenceObject/readPrivateEvidenceObject",
-            "openOriginalLocalPublicationStore/readResultDeletion/readResultDeletion",
-            "openOriginalLocalPublicationStore/readResultRetentionExtension/readResultRetentionExtension",
-            "openOriginalLocalPublicationStore/readResultRetentionExtension/readResultRetentionExtension/records/records",
-            "openOriginalLocalPublicationStore/readResultRetentionExtension/readResultRetentionExtension/records/records#2",
-            "openOriginalLocalPublicationStore/readRetainedResultExtension/readRetainedResultExtension",
-            "openOriginalLocalPublicationStore/readSemanticBytes/readSemanticBytes",
-            "openOriginalLocalPublicationStore/readSemanticOriginal/readSemanticBytes",
-            "openOriginalLocalPublicationStore/readSemanticOriginal/readSemanticBytes/cleanup/init:retry/init:retry",
-            "openOriginalLocalPublicationStore/readSemanticOriginal/readSemanticBytes/cleanup/init:retry/init:retry/init:retry",
-            "openOriginalLocalPublicationStore/readSemanticOriginal/readSemanticBytes/cleanup/init:retry/init:retry/init:retry#2",
-            "openOriginalLocalPublicationStore/readSemanticOriginal/readSemanticBytes/readSemanticBytes",
-            "openOriginalLocalPublicationStore/readSemanticOriginal/readSemanticBytes/status/status",
-            "openOriginalLocalPublicationStore/reclaimCustody/reclaimCustody",
-            "openOriginalLocalPublicationStore/reclaimCustody/reclaimCustody/operation/operation",
-            "openOriginalLocalPublicationStore/reclaimCustody/reclaimCustody/operation/operation/confirmUnlink/confirmUnlink",
-            "openOriginalLocalPublicationStore/reclaimCustody/reclaimCustody/reclaimCustody",
-            "openOriginalLocalPublicationStore/reclaimMetadataContract/reclaimMetadataContract",
-            "openOriginalLocalPublicationStore/reclaimMetadataContract/reclaimMetadataContract/reclaimMetadataContract",
-            "openOriginalLocalPublicationStore/reclaimMetadataContractInternal/reclaimMetadataContractInternal",
-            "openOriginalLocalPublicationStore/recoverMetadataInventory/recoverMetadataInventory",
-            "openOriginalLocalPublicationStore/recoverPhysicalHoldingDeletions/recoverPhysicalHoldingDeletions",
-            "openOriginalLocalPublicationStore/recoverPreparedCustodies/recoverPreparedCustodies",
-            "openOriginalLocalPublicationStore/recoverPreparedSchemas/recoverPreparedSchemas",
-            "openOriginalLocalPublicationStore/recoverPreparedSchemas/recoverPreparedSchemas/recoverPreparedSchemas",
-            "openOriginalLocalPublicationStore/recoverRetiredMetadata/recoverRetiredMetadata",
-            "openOriginalLocalPublicationStore/recoverRetiredResults/recoverRetiredResults",
-            "openOriginalLocalPublicationStore/recoverUncommittedPublications/recoverUncommittedPublications",
-            "openOriginalLocalPublicationStore/registerCustody/registerCustody",
-            "openOriginalLocalPublicationStore/releasePreparedSchema/releasePreparedSchema",
-            "openOriginalLocalPublicationStore/releasePreparedSchema/releasePreparedSchema/flight/flight",
-            "openOriginalLocalPublicationStore/releasePreparedSchema/releasePreparedSchema/releasePreparedSchema",
-            "openOriginalLocalPublicationStore/releasePreparedSchema/releasePreparedSchema/releasePreparedSchema#2",
-            "openOriginalLocalPublicationStore/removeCustodyRecord/removeCustodyRecord",
-            "openOriginalLocalPublicationStore/removeRunMetadataDirectories/removeRunMetadataDirectories",
-            "openOriginalLocalPublicationStore/requireCommittedMetadataInventory/requireCommittedMetadataInventory",
-            "openOriginalLocalPublicationStore/requireCommittedResultBinding/requireCommittedResultBinding",
-            "openOriginalLocalPublicationStore/requireResultNotDeleted/requireResultNotDeleted",
-            "openOriginalLocalPublicationStore/reserveObjectCapacity/reserveObjectCapacity",
-            "openOriginalLocalPublicationStore/reserveObjectCapacity/reserveObjectCapacity/init:release/init:release",
-            "openOriginalLocalPublicationStore/reserveObjectCapacity/reserveObjectCapacity/reserveObjectCapacity",
-            "openOriginalLocalPublicationStore/restoreMetadataInventory/restoreMetadataInventory",
-            "openOriginalLocalPublicationStore/resultDeletionDirectory/resultDeletionDirectory",
-            "openOriginalLocalPublicationStore/resultDeletionPath/resultDeletionPath",
-            "openOriginalLocalPublicationStore/retainEffectCaptureCustody/retainEffectCaptureCustody",
-            "openOriginalLocalPublicationStore/retainEffectCaptureCustody/retainEffectCaptureCustody/holdings/holdings",
-            "openOriginalLocalPublicationStore/retainEffectCaptureCustody/retainEffectCaptureCustody/retainEffectCaptureCustody",
-            "openOriginalLocalPublicationStore/retainEffectCaptureCustody/retainEffectCaptureCustody/retainEffectCaptureCustody/records/records",
-            "openOriginalLocalPublicationStore/retentionExtensionDirectory/retentionExtensionDirectory",
-            "openOriginalLocalPublicationStore/retentionExtensionResultDirectory/retentionExtensionResultDirectory",
-            "openOriginalLocalPublicationStore/retireCommittedPublicationMetadata/retireCommittedPublicationMetadata",
-            "openOriginalLocalPublicationStore/retireCommittedPublicationMetadata/retireCommittedPublicationMetadata/cleanup/cleanup",
-            "openOriginalLocalPublicationStore/retireCommittedPublicationMetadata/retireCommittedPublicationMetadata/cleanup/cleanup#2",
-            "openOriginalLocalPublicationStore/retireCommittedPublicationMetadata/retireCommittedPublicationMetadata/contractCids/contractCids",
-            "openOriginalLocalPublicationStore/retireCommittedResult/retireCommittedResult",
-            "openOriginalLocalPublicationStore/retireEffectCaptureCustody/retireEffectCaptureCustody",
-            "openOriginalLocalPublicationStore/retirePhysicalHolding/retirePhysicalHolding",
-            "openOriginalLocalPublicationStore/retirePhysicalHolding/retirePhysicalHolding/cleanup/cleanup",
-            "openOriginalLocalPublicationStore/retirePhysicalHolding/retirePhysicalHolding/cleanup/cleanup#2",
-            "openOriginalLocalPublicationStore/retireUncommittedPublication/retireUncommittedPublication",
-            "openOriginalLocalPublicationStore/retireUncommittedPublication/retireUncommittedPublication/cleanup/cleanup",
-            "openOriginalLocalPublicationStore/retireUncommittedPublication/retireUncommittedPublication/cleanup/cleanup#2",
-            "openOriginalLocalPublicationStore/runMetadataDeletionStarted/runMetadataDeletionStarted",
-            "openOriginalLocalPublicationStore/sameClockFile/sameClockFile",
-            "openOriginalLocalPublicationStore/sameClockFile/sameClockFile/sameClockFile",
-            "openOriginalLocalPublicationStore/sharePhysicalHolding/sharePhysicalHolding",
-            "openOriginalLocalPublicationStore/sharePhysicalHolding/sharePhysicalHolding/operation/operation",
-            "openOriginalLocalPublicationStore/sharePhysicalHolding/sharePhysicalHolding/sharePhysicalHolding",
-            "openOriginalLocalPublicationStore/validateCommittedEffectfulEvidence/validateCommittedEffectfulEvidence",
-            "openOriginalLocalPublicationStore/validateCommittedEvidence/validateCommittedEvidence",
-            "openOriginalLocalPublicationStore/validateCommittedEvidence/validateCommittedEvidence/validateCommittedEvidence",
-            "openOriginalLocalPublicationStore/validateModelRawBinding/validateModelRawBinding",
-            "openOriginalLocalPublicationStore/verifyCommitEvidence/verifyCommitEvidence",
-            "openOriginalLocalPublicationStore/verifyDurableResultBinding/verifyDurableResultBinding",
-            "openOriginalLocalPublicationStore/verifyDurableResultBinding/verifyDurableResultBinding/verifyDurableResultBinding",
-            "openOriginalLocalPublicationStore/verifyModelRawBytes/verifyModelRawBytes",
-            "openOriginalLocalPublicationStore/verifyObject/verifyObject",
-            "openOriginalLocalPublicationStore/verifyObject/verifyObject/cleanup/init:retry/init:retry",
-            "openOriginalLocalPublicationStore/verifyObject/verifyObject/cleanup/init:retry/init:retry/init:retry",
-            "openOriginalLocalPublicationStore/verifyObject/verifyObject/cleanup/init:retry/init:retry/init:retry#2",
-            "openOriginalLocalPublicationStore/verifyObject/verifyObject/status/status",
-            "openOriginalLocalPublicationStore/verifyObject/verifyObject/verifyObject",
-            "openOriginalLocalPublicationStore/verifyPhysicalHoldingObjects/verifyPhysicalHoldingObjects",
-            "openOriginalLocalPublicationStore/withCommittedResult/withCommittedResult",
-            "openOriginalLocalPublicationStore/withCommittedResult/withCommittedResult/consume/consume",
-            "openOriginalLocalPublicationStore/withCommittedResultRows/withCommittedResultRows",
-            "openOriginalLocalPublicationStore/withCommittedResultRows/withCommittedResultRows/withCommittedResultRows",
-            "openOriginalLocalPublicationStore/withCommittedResultRows/withCommittedResultRows/withCommittedResultRows/readRows/readRows",
-            "openOriginalLocalPublicationStore/withCommittedResultRows/withCommittedResultRows/withCommittedResultRows/readRows/readRows/physical/physical",
-            "openOriginalLocalPublicationStore/withSemanticCommit/withSemanticCommit",
-            "openOriginalLocalPublicationStore/withSemanticCommit/withSemanticCommit/withSemanticCommit",
-            "openOriginalLocalPublicationStore/writePhysicalHoldingRecord/writePhysicalHoldingRecord",
-            "openOriginalLocalPublicationStore/writePhysicalHoldingRecord/writePhysicalHoldingRecord/cleanup/init:retry/init:retry",
-            "openOriginalLocalPublicationStore/writePhysicalHoldingRecord/writePhysicalHoldingRecord/cleanup/init:retry/init:retry/init:retry",
-            "openOriginalLocalPublicationStore/writePhysicalHoldingRecord/writePhysicalHoldingRecord/cleanup/init:retry/init:retry/init:retry#2",
-            "openOriginalLocalPublicationStore/writePhysicalHoldingRecord/writePhysicalHoldingRecord/status/status",
-            "privateEvidenceWireLimitForObject",
-            "processIsAlive",
-            "quantity/quantity",
-            "readBounded",
-            "readBounded/captureClose/captureClose",
-            "readBounded/cleanup/init:retry/init:retry",
-            "readBounded/cleanup/init:retry/init:retry/init:retry",
-            "readBounded/cleanup/init:retry/init:retry/init:retry#2",
-            "readBounded/cleanup/init:retry/init:retry/init:retry#3",
-            "readBounded/readBounded",
-            "readBounded/sameFile/sameFile",
-            "readBounded/status/status",
-            "removeOpeningTree",
-            "retainPrivateRawCleanup",
-            "retainPrivateRawCleanup/cleanup/cleanup",
-            "retainPrivateRawCleanup/cleanup/init:retry/init:retry",
-            "retainPrivateRawCleanup/pending/pending",
-            "retainPrivateRawCleanup/pending/pending/pending",
-            "retainPrivateRawCleanup/release/release",
-            "retainPrivateRawCleanup/release/release/release",
-            "retainPrivateRawCleanup/release/release/release#2",
-            "retainPrivateWriterCleanup",
-            "retainPrivateWriterCleanup/cleanup/cleanup",
-            "retainPrivateWriterCleanup/cleanup/init:retry/init:retry",
-            "retainPrivateWriterCleanup/pending/pending",
-            "retainPrivateWriterCleanup/release/release",
-            "retainPrivateWriterCleanup/release/release/release",
-            "retainPrivateWriterCleanup/release/release/release#2",
-            "retainPrivateWriterCleanup/release/release/release#3",
-            "retainStoreOpeningFailure",
-            "retainStoreOpeningFailure/retry/retry",
-            "retainStoreOpeningFailure/retry/retry/retry",
-            "retainStoreOpeningFailure/retry/retry/retry#2",
-            "retainStoreOpeningFailure/status/status",
-            "storeBootstrapAcquisition",
-            "storeBootstrapAcquisition/readDirectory/readDirectory",
-            "storeBootstrapAcquisition/readDirectory/readDirectory/cleanup/init:retry/init:retry",
-            "storeBootstrapAcquisition/readDirectory/readDirectory/cleanup/init:retry/init:retry/init:retry",
-            "storeBootstrapAcquisition/readDirectory/readDirectory/cleanup/init:retry/init:retry/init:retry#2",
-            "storeBootstrapAcquisition/readDirectory/readDirectory/cleanup/init:retry/init:retry/init:retry#3",
-            "storeBootstrapAcquisition/readDirectory/readDirectory/status/status",
-            "storeBootstrapAcquisition/readMetadata/readMetadata",
-            "syncDirectoryPath",
-            "syncDirectoryPath/cleanup/init:retry/init:retry",
-            "syncDirectoryPath/cleanup/init:retry/init:retry/init:retry",
-            "syncDirectoryPath/cleanup/init:retry/init:retry/init:retry#2",
-            "syncDirectoryPath/cleanup/init:retry/init:retry/init:retry#3",
-            "syncDirectoryPath/status/status",
-            "syncDirectoryPath/syncDirectoryPath",
-            "validateConfiguration",
-            "validateContractControl",
-            "writeExclusive"
-          ],
-          "exports": [
-            "PublicationStoreError",
-            "readBoundedLocalMetadata"
-          ],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "docs/design/retained-result-boundary.md",
-                "anchor": "## Ownership and scope"
-              },
-              {
-                "path": "adapters/store-local/physical-holding-publication.md",
-                "anchor": "# Physical holding metadata publication"
-              },
-              {
-                "path": "docs/design/result-description.md",
-                "anchor": "One serialized Store publication commit retains the selected semantic metadata"
-              },
-              {
-                "path": "docs/design/result-description.md",
-                "anchor": "Within that commit, the admitted Index body is persisted directly rather than"
-              },
-              {
-                "path": "docs/design/result-description.md",
-                "anchor": "Known file-backed Index and Result-schema reads select their file representation"
-              },
-              {
-                "path": "docs/design/result-description.md",
-                "anchor": "The Effect evidence inspection returns its verified Binding facts to the same"
-              },
-              {
-                "path": "docs/design/result-description.md",
-                "anchor": "Typed publication evidence selects its storage representation before the commit's"
-              },
-              {
-                "path": "docs/design/result-description.md",
-                "anchor": "Publication setup can persist its finite immutable contract inventory through"
-              },
-              {
-                "path": "docs/design/result-description.md",
-                "anchor": "Preparing a Result schema that already has an immutable semantic owner acquires"
-              },
-              {
-                "path": "docs/design/result-description.md",
-                "anchor": "That setup can pass the original immutable contracts from the same publication"
-              },
-              {
-                "path": "docs/design/result-description.md",
-                "anchor": "The same-original publication operation stores new immutable metadata bodies in"
-              },
-              {
-                "path": "adapters/store-local/physical-holding-publication.md",
-                "anchor": "This does not repair a corrupt final record. Each selected holding read admits"
-              },
-              {
-                "path": "adapters/store-local/physical-holding-publication.md",
-                "anchor": "Committed publication owner links are also selected-use facts. Ordinary open"
-              },
-              {
-                "path": "adapters/store-local/physical-holding-publication.md",
-                "anchor": "The existing Store database retains only unfinished publication inventory"
-              },
-              {
-                "path": "adapters/store-local/physical-holding-publication.md",
-                "anchor": "Prepared-schema restart recovery first selects its pending marker names."
-              },
-              {
-                "path": "adapters/store-local/physical-holding-publication.md",
-                "anchor": "New inventory bodies are durable originals in that same native staging"
-              },
-              {
-                "path": "adapters/store-local/physical-holding-publication.md",
-                "anchor": "Committed Result retention-extension histories are selected-use facts. Ordinary"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "PublicationStoreError"
-              },
-              {
-                "path": "docs/design/retained-result-boundary.md",
-                "anchor": "bounded UTF-8 text or bounded byte frames"
-              },
-              {
-                "path": "adapters/store-local/physical-holding-publication.md",
-                "anchor": "# Physical holding metadata publication"
-              },
-              {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "const readOriginal = (cid, includeNative = cid !== admitted.identity) => {"
-              },
-              {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "return Object.freeze(verifiedBindings);"
-              },
-              {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "const putPublicationContractBatch = async (supplied, originals) => {"
-              },
-              {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "const original = await readSemanticOriginal(semanticCid, false);"
-              },
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "admitOriginal(original, limits) {"
-              },
-              {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "const putNativePublicationContracts = async admitted => {"
-              },
-              {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "const readPhysicalHoldingAt = async (path, holdingCid) => {"
-              },
-              {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "const readCommittedMetadataInventory = async entry => {"
-              },
-              {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "const publicationRecoveryOriginal = value => Object.freeze({"
-              },
-              {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "const names = await readdir(preparedSchemasDirectory);"
-              },
-              {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "deliveryIndex.stageNativePublicationInventory(original);"
-              },
-              {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "const readResultRetentionExtension = async ("
-              }
-            ],
-            "identity": [
-              {
-                "path": "docs/design/retained-result-boundary.md",
-                "anchor": "Equal CIDs do not establish ownership or availability"
-              },
-              {
-                "path": "adapters/store-local/physical-holding-publication.md",
-                "anchor": "# Physical holding metadata publication"
-              },
-              {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "return Object.freeze({bytes, physicalCid});"
-              },
-              {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "bindingSchemas.set(value.binding.durable_result_binding_cid, value.schema.cid);"
-              },
-              {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "const original = await readOriginal(binding.result_schema_cid, false);"
-              },
-              {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "verifiedBindings = inspected.verifiedBindings;"
-              },
-              {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "const readOriginal = (cid, includeNative = cid !== admitted.identity) => {"
-              },
-              {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "contract ??= admitContract(input.name, input.wire);"
-              },
-              {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "if (original.physicalCid !== physicalCid ||"
-              },
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "if (retained === undefined || !tokens.has(original)) return undefined;"
-              },
-              {
-                "path": "docs/design/result-description.md",
-                "anchor": "Native entries retain their semantic identity, complete-body digest and byte"
-              },
-              {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "if (record.holding_cid !== holdingCid) {"
-              },
-              {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "if (inventory.public_index_entry_cid !== publicIndexEntryCid) {"
-              },
-              {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "const publicationRecoveryValue = original => {"
-              },
-              {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "const record = parsePreparedSchema(await readBounded("
-              },
-              {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "if (native.inventory_wire !== original.inventory_wire) fail('PublicationMetadataInventoryConflict');"
-              },
-              {
-                "path": "adapters/store-local/physical-holding-publication.md",
-                "anchor": "chain and exact Result/Index/base-policy bindings. Missing history still means"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "docs/design/retained-result-boundary.md",
-                "anchor": "until native stop and exact-generation removal are confirmed"
-              },
-              {
-                "path": "adapters/store-local/physical-holding-publication.md",
-                "anchor": "# Physical holding metadata publication"
-              },
-              {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "if (retirementReadCleanup !== undefined) {"
-              },
-              {
-                "path": "docs/design/result-description.md",
-                "anchor": "returned by the public mutable-byte API or retained as a Store-wide success or"
-              },
-              {
-                "path": "docs/design/result-description.md",
-                "anchor": "provide their original physical and schema identities to inventory construction"
-              },
-              {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "original: originals ? input : undefined});"
-              },
-              {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "path: group.removable || activePhysicalRecordWriters.size !== 0"
-              },
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "const contractBounds = new WeakMap();"
-              },
-              {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "activePhysicalRecordWriters.add(writer);"
-              },
-              {
-                "path": "adapters/store-local/physical-holding-publication.md",
-                "anchor": "pending-deletion recovery still reads its own original records and refuses"
-              },
-              {
-                "path": "adapters/store-local/physical-holding-publication.md",
-                "anchor": "inventory's holding links are read; missing, retiring, malformed or foreign"
-              },
-              {
-                "path": "adapters/store-local/physical-holding-publication.md",
-                "anchor": "deletion marker owns the same complete inventory, recovery transfers the pending"
-              },
-              {
-                "path": "adapters/store-local/physical-holding-publication.md",
-                "anchor": "schema transition to confirm. A nonempty set retains the original directory"
-              },
-              {
-                "path": "adapters/store-local/physical-holding-publication.md",
-                "anchor": "the same complete durable deletion marker before removing the native original"
-              },
-              {
-                "path": "adapters/store-local/physical-holding-publication.md",
-                "anchor": "both directory types without following a substituted symlink, retains its real"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "docs/design/retained-result-boundary.md",
-                "anchor": "copied before awaited I/O"
-              },
-              {
-                "path": "adapters/store-local/physical-holding-publication.md",
-                "anchor": "# Physical holding metadata publication"
-              },
-              {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "if (!acknowledged(state)) state = await originalApply(child.retry, child.handle, []);"
-              },
-              {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "for (const cid of required) await readOriginal(cid);"
-              },
-              {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "await putSemantic(admitted.wire, admitted.identity);"
-              },
-              {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "const stored = await putSemanticBatch(admitted.filter(({contract}) =>"
-              },
-              {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "if (durable.length !== 0) await syncDirectory(preparedSchemasDirectory);"
-              },
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "const captureContractLimits = (limits, label) => issuanceLimits(Object.freeze({"
-              },
-              {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "const usage = deliveryIndex.putPublicationContracts(originalEntries,allowance);"
-              },
-              {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "const recoverPhysicalHoldingDeletions = async () => {"
-              },
-              {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "const confirmSelectedCommittedIndex = async key => {"
-              },
-              {
-                "path": "adapters/store-local/physical-holding-publication.md",
-                "anchor": "directory acknowledgement and schema adoption. These two native transitions"
-              },
-              {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "if (names.length === 0) return Object.freeze([]);"
-              },
-              {
-                "path": "adapters/store-local/physical-holding-publication.md",
-                "anchor": "The existing Index file and its actual directory acknowledgement still"
-              },
-              {
-                "path": "adapters/store-local/publication-store.test.mjs",
-                "anchor": "the selected original still receives its actual containing-directory ACK"
-              }
-            ],
-            "failure": [
-              {
-                "path": "adapters/store-local/opening-custody.test.mjs",
-                "anchor": "test("
-              },
-              {
-                "path": "adapters/store-local/original-reader-close-custody.test.mjs",
-                "anchor": "test("
-              },
-              {
-                "path": "adapters/store-local/physical-holding-publication.md",
-                "anchor": "# Physical holding metadata publication"
-              },
-              {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "const primary = readFailed ? readFailure : closeFailure;"
-              },
-              {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "if (chainValid !== true) fail('InvalidPublicationCommitChain');"
-              },
-              {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "if (bytes > BigInt(configuration.capacityBytes)) fail('PublicationStoreCapacity');"
-              },
-              {
-                "path": "adapters/store-local/publication-store.test.mjs",
-                "anchor": "test('existing schema preparation retains the same failed reader close', async t => {"
-              },
-              {
-                "path": "adapters/host-common/publication-contract-control.test.mjs",
-                "anchor": "test('publication original persistence falls back for copies foreign owners and tighter limits', async t => {"
-              },
-              {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "failure = new PublicationStoreError('PublicationMetadataCommitOutcomeUnknown',error);"
-              },
-              {
-                "path": "adapters/store-local/publication-store.test.mjs",
-                "anchor": "test('ordinary Store selected holding refuses a different valid record under its name', async t => {"
-              },
-              {
-                "path": "adapters/store-local/publication-store.test.mjs",
-                "anchor": "test(`selected committed Result refuses its missing ${missing} before returning the Index`, async t => {"
-              },
-              {
-                "path": "adapters/store-local/publication-store.test.mjs",
-                "anchor": "publication recovery retries only the native removal after physical uncommitted retirement"
-              },
-              {
-                "path": "adapters/store-local/publication-store.test.mjs",
-                "anchor": "prepared schema cleanup retains capacity across sync failure"
-              },
-              {
-                "path": "adapters/store-local/publication-store.test.mjs",
-                "anchor": "publication recovery completes only its retained inventory after a lost pre-file stage reply"
-              },
-              {
-                "path": "adapters/store-local/publication-store.test.mjs",
-                "anchor": "selected retention refuses a failed target ACK without changing or adopting the record"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "adapters/store-local/bounded-close-custody.test.mjs",
-                "anchor": "test("
-              },
-              {
-                "path": "adapters/store-local/physical-holding-publication.md",
-                "anchor": "# Physical holding metadata publication"
-              },
-              {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "activeSemanticReaders.delete(reader);"
-              },
-              {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "await adoptPreparedObjects(verifiedBindings.map(value => value.physical.cid));"
-              },
-              {
-                "path": "docs/design/result-description.md",
-                "anchor": "A failed write or directory acknowledgement retains the same cleanup duty,"
-              },
-              {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "if (holder.path !== undefined) {"
-              },
-              {
-                "path": "docs/design/result-description.md",
-                "anchor": "cleanup retain their independent checks and original acknowledgements."
-              },
-              {
-                "path": "docs/design/result-description.md",
-                "anchor": "publication inventories. Payload files and native database close retain their"
-              },
-              {
-                "path": "adapters/store-local/publication-store.test.mjs",
-                "anchor": "test('ordinary Store pending holding recovery still refuses a foreign deletion record', async t => {"
-              },
-              {
-                "path": "adapters/store-local/physical-holding-publication.md",
-                "anchor": "Pending deletion, prepared custody,"
-              },
-              {
-                "path": "adapters/store-local/publication-store.test.mjs",
-                "anchor": "publication recovery transfers its pending original to the durable deletion marker before physical work"
-              },
-              {
-                "path": "adapters/store-local/publication-store.test.mjs",
-                "anchor": "restart resumes schema cleanup after alias unlink before sync"
-              },
-              {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "deliveryIndex.retireNativePublicationInventory(recoveryOriginal);"
-              },
-              {
-                "path": "adapters/store-local/physical-holding-publication.md",
-                "anchor": "Append-only CAS, new-directory durability and deletion/restart cleanup retain"
-              }
-            ],
-            "resources": [
-              {
-                "path": "docs/design/retained-result-boundary.md",
-                "anchor": "Frame and remaining-reservation limits"
-              },
-              {
-                "path": "adapters/store-local/physical-holding-publication.md",
-                "anchor": "# Physical holding metadata publication"
-              },
-              {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "const existing = JSON.parse(await readBounded(ownerPath, 4096));"
-              },
-              {
-                "path": "docs/design/result-description.md",
-                "anchor": "The selected buffers overlap for that operation and remain subject to the"
-              },
-              {
-                "path": "docs/design/result-description.md",
-                "anchor": "The selected buffers overlap for that operation and remain subject to the"
-              },
-              {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "const count = supplied.length;"
-              },
-              {
-                "path": "docs/design/result-description.md",
-                "anchor": "Store close and same-Store metadata reclamation until release or adoption. Each"
-              },
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "maxNodes: Math.min(limits.maxNodes, value.wire.length),"
-              },
-              {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "accountNativePublication(deliveryIndex.publicationUsage());"
-              },
-              {
-                "path": "adapters/store-local/physical-holding-publication.md",
-                "anchor": "unapplied operation, permission or cleanup success. Physical capacity accounting,"
-              },
-              {
-                "path": "adapters/store-local/publication-store.test.mjs",
-                "anchor": "test('committed Result opening defers holding proof to the selected publication', async t => {"
-              },
-              {
-                "path": "adapters/store-local/publication-store.test.mjs",
-                "anchor": "publication recovery opens completed history without enumerating or reading its inventories and indexes"
-              },
-              {
-                "path": "adapters/store-local/publication-store.test.mjs",
-                "anchor": "no pending schema or physical mutation needs these acknowledgements"
-              },
-              {
-                "path": "adapters/store-local/physical-holding-publication.md",
-                "anchor": "Private native-inventory count and wire bounds are enforced before insertion."
-              },
-              {
-                "path": "adapters/store-local/publication-store.test.mjs",
-                "anchor": "ordinary open does not enumerate even valid unrelated extension histories"
-              }
-            ],
-            "extension": [
-              {
-                "path": "docs/design/retained-result-boundary.md",
-                "anchor": "alternative representation requires verified conversion"
-              },
-              {
-                "path": "adapters/store-local/physical-holding-publication.md",
-                "anchor": "# Physical holding metadata publication"
-              },
-              {
-                "path": "docs/design/result-description.md",
-                "anchor": "authorization cache. A distinct operation acquires its own originals. Native"
-              },
-              {
-                "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "const putPublicationContract = async (name, suppliedWire) => {"
-              },
-              {
-                "path": "docs/design/result-description.md",
-                "anchor": "close duty. Generic semantic reads and supported native publication/delivery"
-              },
-              {
-                "path": "docs/design/result-description.md",
-                "anchor": "optional group operation retain the existing per-contract protocol; a failed"
-              },
-              {
-                "path": "docs/design/result-description.md",
-                "anchor": "An unsettled physical writer is not an established durable schema owner merely"
-              },
-              {
-                "path": "docs/design/result-description.md",
-                "anchor": "Foreign controls, copies, raw wires, unavailable original bounds or stricter"
-              },
-              {
-                "path": "docs/design/result-description.md",
-                "anchor": "links. Existing file originals remain files, and Index/schema and the existing"
-              },
-              {
-                "path": "adapters/store-local/physical-holding-publication.md",
-                "anchor": "this does not make all remaining opening inventories history-independent."
-              },
-              {
-                "path": "adapters/store-local/physical-holding-publication.md",
-                "anchor": "and shared-reference discovery still walk history; indexed publication recovery"
-              },
-              {
-                "path": "adapters/store-local/physical-holding-publication.md",
-                "anchor": "Subsequent opens read pending rows rather than enumerating committed inventories"
-              },
-              {
-                "path": "adapters/store-local/physical-holding-publication.md",
-                "anchor": "Selected reads and subsequent writes retain their own integrity and real ACKs."
-              },
-              {
-                "path": "adapters/store-local/physical-holding-publication.md",
-                "anchor": "file inventories remain files and use the same selected-use checks. They are"
-              },
-              {
-                "path": "adapters/store-local/physical-holding-publication.md",
-                "anchor": "This localization does not remove payload quota or other recovery history work."
-              }
-            ],
-            "verification": [
-              {
-                "path": "adapters/store-local/publication-store.test.mjs",
-                "anchor": "test("
-              },
-              {
-                "path": "adapters/store-local/close-retirement.test.mjs",
-                "anchor": "test("
-              },
-              {
-                "path": "adapters/store-local/physical-holding-publication.md",
-                "anchor": "# Physical holding metadata publication"
-              },
-              {
-                "path": "adapters/store-local/physical-holding-atomic-record.test.mjs",
-                "anchor": "an already corrupt final holding remains refused"
-              },
-              {
-                "path": "adapters/store-local/physical-reader-close-ack.test.mjs",
-                "anchor": "setter cannot discard the original Content FD responsibility"
-              },
-              {
-                "path": "adapters/store-local/installation-publication-custody.test.mjs",
-                "anchor": "installation publication survives fresh-process cold read without metadata acquisition"
-              },
-              {
-                "path": "docs/design/execution-completion-storage.md",
-                "anchor": "## Saved installation-publication physical custody"
-              },
-              {
-                "path": "adapters/store-local/installation-publication-storage-original.test.mjs",
-                "anchor": "original installation observation projects exact Store DATA without Model evidence"
-              },
-              {
-                "path": "adapters/store-local/object-read-extent.test.mjs",
-                "anchor": "short reads fill the same dedicated piece with no read-ahead or alias reuse"
-              },
-              {
-                "path": "docs/design/execution-completion-storage.md",
-                "anchor": "one dedicated backing"
-              },
-              {
-                "path": "adapters/store-local/streaming-object-read-bound.test.mjs",
-                "anchor": "actual multi-piece short reads reuse one verifier backing"
-              },
-              {
-                "path": "docs/design/execution-completion-storage.md",
-                "anchor": "mandatory object verifier"
-              },
-              {
-                "path": "adapters/store-local/ownership-retirement-read.test.mjs",
-                "anchor": "test('retirement retains the same failed metadata close before another read or owner removal'"
-              },
-              {
-                "path": "adapters/store-local/publication-store.test.mjs",
-                "anchor": "test('one publication commit acquires each unchanged semantic original once', async t => {"
-              },
-              {
-                "path": "adapters/store-local/publication-store.test.mjs",
-                "anchor": "test('publication commit never reuses a prior operation semantic original after mutation', async t => {"
-              },
-              {
-                "path": "adapters/store-local/publication-store.test.mjs",
-                "anchor": "test('publication commit admits its exact Index once before durable staging', async t => {"
-              },
-              {
-                "path": "adapters/store-local/publication-store.test.mjs",
-                "anchor": "test('publication commit parses its Binding once across evidence and metadata inventory', async t => {"
-              },
-              {
-                "path": "adapters/store-local/publication-store.test.mjs",
-                "anchor": "test('committed evidence validation retains its actual payload and next-operation mutation check', async t => {"
-              },
-              {
-                "path": "adapters/store-local/publication-store.test.mjs",
-                "anchor": "test('known file-backed Result metadata performs no unrelated native delivery probe', async t => {"
-              },
-              {
-                "path": "adapters/host-common/publication-contract-control.test.mjs",
-                "anchor": "assert.deepEqual(effectfulBindingPayloadReads,"
-              },
-              {
-                "path": "adapters/store-local/publication-store.test.mjs",
-                "anchor": "assert.deepEqual(probes, [], 'typed commit evidence selects its representation before generic inventory');"
-              },
-              {
-                "path": "adapters/store-local/publication-store.test.mjs",
-                "anchor": "test('publication metadata shares actual directory ACKs across its bounded contract group', async t => {"
-              },
-              {
-                "path": "adapters/store-local/publication-store.test.mjs",
-                "anchor": "test('existing prepared schemas retain real readers and owners without new durable metadata', async t => {"
-              },
-              {
-                "path": "adapters/store-local/publication-store.test.mjs",
-                "anchor": "test('existing schema preparation never substitutes a visible link for a pending original ACK', async t => {"
-              },
-              {
-                "path": "adapters/host-common/publication-contract-control.test.mjs",
-                "anchor": "test('publication persistence consumes its same-owner immutable contracts without another admission', async t => {"
-              },
-              {
-                "path": "adapters/host-common/publication-contract-control.test.mjs",
-                "anchor": "test('native publication capacity and legacy files share the original Store limits', async t => {"
-              },
-              {
-                "path": "adapters/host-common/publication-contract-control.test.mjs",
-                "anchor": "test('native publication metadata is not duplicated by a mixed legacy group', async t => {"
-              },
-              {
-                "path": "adapters/store-local/publication-store.test.mjs",
-                "anchor": "test('ordinary Store reopen reads no unrelated immutable physical holding bodies', async t => {"
-              },
-              {
-                "path": "adapters/store-local/publication-store.test.mjs",
-                "anchor": "test('selected committed Result entrypoints reuse only their own current owner links', async t => {"
-              },
-              {
-                "path": "adapters/store-local/publication-store.test.mjs",
-                "anchor": "publication recovery resumes a retiring original without recreating its removed inventory"
-              },
-              {
-                "path": "adapters/store-local/publication-store.test.mjs",
-                "anchor": "empty prepared schema recovery performs no payload or contract directory ACK"
-              },
-              {
-                "path": "adapters/store-local/publication-store.test.mjs",
-                "anchor": "native publication inventory survives reopen and retires only its original ownership"
-              },
-              {
-                "path": "adapters/store-local/publication-store.test.mjs",
-                "anchor": "selected retention keeps malformed unrelated history deferred and refuses selected corruption"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [
             "<module>",
             "PublicationStoreError/constructor:constructor/constructor:constructor",
             "acquireStoreOwnership",
@@ -11327,6 +9446,10 @@
               },
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "Committed Result retention-extension histories are selected-use facts. Ordinary"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "### Indexed Run metadata retirement"
               },
               {
@@ -11394,6 +9517,10 @@
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "deliveryIndex.stageNativePublicationInventory(original);"
+              },
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "const readResultRetentionExtension = async ("
               },
               {
                 "path": "adapters/store-local/publication-store.mjs",
@@ -11475,6 +9602,10 @@
               },
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "chain and exact Result/Index/base-policy bindings. Missing history still means"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "metadata key, with an index over the original Run CID. Delivery and publication"
               },
               {
@@ -11545,6 +9676,10 @@
               },
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "both directory types without following a substituted symlink, retains its real"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "A full deletion marker remains the original pending physical cleanup inventory."
               },
               {
@@ -11612,6 +9747,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "The existing Index file and its actual directory acknowledgement still"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "the selected original still receives its actual containing-directory ACK"
               },
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
@@ -11685,6 +9824,10 @@
               },
               {
                 "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "selected retention refuses a failed target ACK without changing or adopting the record"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
                 "anchor": "metadata deletion keeps the same cleanup after native retirement and lost marker directory ACK"
               },
               {
@@ -11748,6 +9891,10 @@
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "deliveryIndex.retireNativePublicationInventory(recoveryOriginal);"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "Append-only CAS, new-directory durability and deletion/restart cleanup retain"
               },
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
@@ -11820,6 +9967,10 @@
                 "anchor": "Private native-inventory count and wire bounds are enforced before insertion."
               },
               {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "ordinary open does not enumerate even valid unrelated extension histories"
+              },
+              {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "Completed fences retain only metadata key, Run and retirement state, not the"
               },
@@ -11888,6 +10039,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "file inventories remain files and use the same selected-use checks. They are"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "This localization does not remove payload quota or other recovery history work."
               },
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
@@ -12033,6 +10188,10 @@
               },
               {
                 "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "selected retention keeps malformed unrelated history deferred and refuses selected corruption"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
                 "anchor": "metadata deletion history is indexed once and unrelated Run operations read no marker bodies"
               },
               {
@@ -12042,6 +10201,352 @@
               {
                 "path": "adapters/store-local/publication-store.test.mjs",
                 "anchor": "retry never reopens the generation"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "assertOriginalLocalPublicationStoreFacilityCurrent"
+          ],
+          "exports": [
+            "assertOriginalLocalPublicationStoreFacilityCurrent"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The ordinary selected Node Host has a separate finite Local Result/publication"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "operationalCurrent,"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "control !== field(entry.subject, 'control')"
+              },
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "selected.storeAuthorityCid !== field(entry.subject, 'storeAuthorityCid')"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "entry.store = store;"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "same duty before its returned view observes it, that view receives the retained"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The Host binds the Result control original after its actual Journal opens and"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "resultPublicationFlight = Promise.resolve().then(async () => {"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "entry.unknownCleanup = true;"
+              },
+              {
+                "path": "adapters/host-node/host-journal-ordinary-prefix.test.mjs",
+                "anchor": "Result failed actual Store construction keeps original cleanup until the same Journal closes"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Cleanup does not require current admission."
+              },
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "entry.closedObservation = resultStatus(entry);"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/host-result-service-recipe.cjs",
+                "anchor": "conditionalWireHistory: record("
+              },
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "anchor": "entry.storeOperations++;"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "first-initialization, Account, Result and business-I/O authorization remain"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "legacy private Evidence key; a later key-dependent operation keeps its original"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/host-journal-ordinary-prefix.test.mjs",
+                "anchor": "Result Store rejects a foreign control or authority before creating its format"
+              },
+              {
+                "path": "adapters/host-node/host-result-service.test.mjs",
+                "anchor": "candidate refusal, Promise or Boolean cannot cross the actual durable record boundary"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "acquireStoreOwnership/acquireStoreOwnership",
+            "acquireStoreOwnership/ownership/init:assertCurrent/init:assertCurrent",
+            "acquireStoreOwnership/ownership/init:assertCurrent/init:assertCurrent/sameFile/sameFile",
+            "acquireStoreOwnership/ownership/init:assertCurrent/init:assertCurrent/sameFile/sameFile/sameFile",
+            "assertOriginalPreparedLocalPublicationStoreOwnership",
+            "closePreparedLocalPublicationStoreOwnership",
+            "closePreparedLocalPublicationStoreOwnership/closePreparedLocalPublicationStoreOwnership",
+            "closePreparedLocalPublicationStoreOwnership/closePreparedLocalPublicationStoreOwnership#2",
+            "openLocalPublicationStore",
+            "openOriginalLocalPublicationStore/openOriginalLocalPublicationStore",
+            "originalPreparedStoreOwnership",
+            "preparedOwnershipStatus",
+            "prepareLocalPublicationStoreOwnership",
+            "prepareLocalPublicationStoreOwnership/bootstrap/bootstrap",
+            "prepareLocalPublicationStoreOwnership/prepareLocalPublicationStoreOwnership",
+            "releasePreparedOwnership",
+            "releasePreparedOwnership/releasePreparedOwnership",
+            "releasePreparedOwnership/releasePreparedOwnership#2"
+          ],
+          "exports": [
+            "assertOriginalPreparedLocalPublicationStoreOwnership",
+            "closePreparedLocalPublicationStoreOwnership",
+            "openLocalPublicationStore",
+            "prepareLocalPublicationStoreOwnership"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "// A prepared original is only the existing physical exclusion duty. It is"
+              },
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "export async function prepareLocalPublicationStoreOwnership(directory, bounds, dependency, directoryInspection) {"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "export async function openLocalPublicationStore("
+              },
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "const original = Object.freeze(Object.create(null));"
+              },
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "function preparedOwnershipStatus(entry) {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "const entry = preparedStoreOwnerships.get(original);"
+              },
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "const sameFile = state => state.isFile() && !state.isSymbolicLink() &&"
+              },
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "const preparedFreshPrefix = prepared !== undefined && prepared.fresh &&"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "entry.ownership = await acquireStoreOwnership(root, bootstrap, undefined);"
+              },
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "prepared.phase = 'adopting';"
+              },
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "ownership = Object.freeze({release: () => releasePreparedOwnership(prepared)});"
+              },
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "assertHostJournalDirectoryInspector(directoryInspection, maxDirectoryEntries);"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "if (entry.releaseFlight !== undefined) return entry.releaseFlight;"
+              },
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "Object.getOwnPropertyDescriptor(dependency, 'status')"
+              },
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "const observation = await Reflect.apply(entry.dependencyStatus, entry.dependency, []);"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "} catch { prepared.unknownChild = true; }"
+              },
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "if (!fresh) {"
+              },
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "if (!names.includes('store.json')) fail('UnknownPublicationStoreFormat');"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "export function closePreparedLocalPublicationStoreOwnership(original) {"
+              },
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "if (entry.phase !== 'adopted' && entry.phase !== 'adopting') {"
+              },
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "if (pending === undefined || !Object.hasOwn(pending, 'value') || pending.value !== false) {"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "child: undefined, childStatus: undefined, childRetry: undefined, unknownChild: false};"
+              },
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "// Payload cleanup must still run independently, but cannot release the"
+              },
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "entry.dependency = entry.dependencyStatus = undefined;"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "// neither a Store/capacity authority nor permission to initialize a format,"
+              },
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "// Selected operational callers still supply their explicit finite bounds."
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/store-local/prepared-ownership.test.mjs",
+                "anchor": "shared prepared exclusion survives Store cleanup until the same native Journal closes"
+              },
+              {
+                "path": "adapters/store-local/prepared-ownership.test.mjs",
+                "anchor": "prepared dependency keeps its captured receiver and refuses ambiguous or failed close observations"
+              },
+              {
+                "path": "adapters/store-local/prepared-ownership.test.mjs",
+                "anchor": "foreign owner-only prefix and copied original never gain the fresh-prefix exception"
+              },
+              {
+                "path": "adapters/store-local/prepared-ownership.test.mjs",
+                "anchor": "old pending durability retry never reads or removes a successor owner"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "assertOriginalPreparedLocalPublicationStoreFirstInitialization"
+          ],
+          "exports": [
+            "assertOriginalPreparedLocalPublicationStoreFirstInitialization"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "###### Ordinary generated Content Run"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "export async function assertOriginalPreparedLocalPublicationStoreFirstInitialization(original, directory) {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "const entry = originalPreparedStoreOwnership(original);"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "await entry.ownership.assertCurrent();"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "assertOriginalPreparedLocalPublicationStoreOwnership(original, directory);"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "if (!entry.fresh || entry.phase !== 'prepared') {"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "if (entry.root !== resolve(directory) || entry.closing ||"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "###### Ordinary generated Content Run"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "###### Ordinary generated Content Run"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/ordinary-private-evidence-initialization.test.mjs",
+                "anchor": "test('ordinary key first setup refuses another Owner or directory before key creation'"
+              },
+              {
+                "path": "adapters/host-node/ordinary-private-evidence-initialization.test.mjs",
+                "anchor": "test('ordinary existing no-key Store cannot infer first adoption from missing key metadata'"
               }
             ]
           }
@@ -12123,6 +10628,372 @@
               {
                 "path": "adapters/store-local/publication-clock-commit.test.mjs",
                 "anchor": "test('clock commits reject a torn in-place record live and after reopen'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "openOriginalLocalPublicationStore/putDeliveryContracts/putDeliveryContracts"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "## Delivery admission durability batches"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "const putDeliveryContracts = async (grant, attempt, streaming) => {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "const selected = deliveryIndex.claim(row,grant.max_uses,initial?.streaming.wire,initial?.streaming.identity);"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "await putSemanticBatch([grant, attempt, ...(streaming === undefined ? [] : [streaming])].map(contract => ({"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "if (flight !== undefined) return flight;"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "primary?.code ?? 'PublicationSemanticWriteFailed', primary);"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "await cleanup.retry();"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "directory names and original reservations are bounded by the one or two input"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "grant use; only after this bounded batch succeeds is that claim ready for the"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "test('delivery admission batches its immutable contracts and validates each once', async t => {"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "openOriginalLocalPublicationStore/confirmAdmittedDeliveryRecord/confirmAdmittedDeliveryRecord",
+            "openOriginalLocalPublicationStore/confirmAdmittedDeliveryRecord/confirmAdmittedDeliveryRecord/matches/matches",
+            "openOriginalLocalPublicationStore/readLatestDeliveryRecordContract/readLatestDeliveryRecordContract"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "## Delivery record operation reuse"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "const confirmAdmittedDeliveryRecord = async (contract, record, observed) => {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "if (retained !== undefined && exactUtf8WireMatches(bytes, retained.wire)) {"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "const original = {contract, bytes: undefined};"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "await syncDirectory(directory);"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "fail('DeliveryRecordDurabilityMismatch');"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "directory durability responsibilities are unchanged. This removes repeated"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "The operation retains one bounded record buffer and the admitted input/attempt"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "The Store keeps at most one last-confirmed record CID as a durability"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "own input; no admitted-record or authorization cache persists across calls."
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "test('delivery record append and confirmation admit each unchanged original once', async t => {"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "test('delivery confirmation reuses its real immutable record ACK but reacquires each input', async t => {"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "openOriginalLocalPublicationStore/putDeliveryContracts/putDeliveryContracts/putDeliveryContracts",
+            "openOriginalLocalPublicationStore/putSemanticBatch/putSemanticBatch",
+            "openOriginalLocalPublicationStore/putSemanticBatch/putSemanticBatch/account/account",
+            "openOriginalLocalPublicationStore/putSemanticBatch/putSemanticBatch/cleanup/init:retry/init:retry",
+            "openOriginalLocalPublicationStore/putSemanticBatch/putSemanticBatch/cleanup/init:retry/init:retry/init:retry",
+            "openOriginalLocalPublicationStore/putSemanticBatch/putSemanticBatch/cleanup/init:retry/init:retry/init:retry#2",
+            "openOriginalLocalPublicationStore/putSemanticBatch/putSemanticBatch/items/items",
+            "openOriginalLocalPublicationStore/putSemanticBatch/putSemanticBatch/putSemanticBatch",
+            "openOriginalLocalPublicationStore/putSemanticBatch/putSemanticBatch/status/status",
+            "openOriginalLocalPublicationStore/putSemanticBatch/putSemanticBatch/status/status/status",
+            "openOriginalLocalPublicationStore/putSemanticBatch/putSemanticBatch/syncNames/syncNames"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "Direct semantic writes use the same protocol for a single immutable metadata"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "const putSemanticBatch = async supplied => {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "cid: `sha256:${createHash('sha256').update(bytes).digest('hex')}`,"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "activePhysicalRecordWriters.add(writer);"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "for (const directory of [objectsDirectory, contractsDirectory]) {"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "failure = new PublicationStoreError(primary?.code ?? 'PublicationSemanticWriteFailed', primary);"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "if (item.close === undefined) item.close = item.handle.close;"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "the existing Store inventory even if its semantic publication failed. Recovery"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "Prepared-object/Content holders still use their separate original custody"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/store-local/semantic-publication-commit.test.mjs",
+                "anchor": "test('semantic metadata commits its payload and final names without intermediate custody persistence', async t => {"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "openOriginalLocalPublicationStore/admitDeliveryClaim/admitDeliveryClaim",
+            "openOriginalLocalPublicationStore/admitDeliveryClaim/admitDeliveryClaim/admitDeliveryClaim",
+            "openOriginalLocalPublicationStore/admitDeliveryClaim/admitDeliveryClaim/admitDeliveryClaim#2",
+            "openOriginalLocalPublicationStore/appendDeliveryCompletion/appendDeliveryCompletion/appendDeliveryCompletion",
+            "openOriginalLocalPublicationStore/appendDeliveryRecord/appendDeliveryRecord/appendDeliveryRecord",
+            "openOriginalLocalPublicationStore/beginDeliveryAttempt/beginDeliveryAttempt",
+            "openOriginalLocalPublicationStore/beginDeliveryAttempt/beginDeliveryAttempt/beginDeliveryAttempt",
+            "openOriginalLocalPublicationStore/createAdmittedDeliveryAttempt/createAdmittedDeliveryAttempt",
+            "openOriginalLocalPublicationStore/createAdmittedDeliveryAttempt/createAdmittedDeliveryAttempt/createAdmittedDeliveryAttempt",
+            "openOriginalLocalPublicationStore/createAdmittedDeliveryAttempt/createAdmittedDeliveryAttempt/createAdmittedDeliveryAttempt#2",
+            "openOriginalLocalPublicationStore/createDeliveryAttempt/createDeliveryAttempt",
+            "openOriginalLocalPublicationStore/createDeliveryAttempt/createDeliveryAttempt/createDeliveryAttempt",
+            "openOriginalLocalPublicationStore/deliveryIndexRow/deliveryIndexRow",
+            "openOriginalLocalPublicationStore/deliveryLogicalKey/deliveryLogicalKey",
+            "openOriginalLocalPublicationStore/deliveryQuery/deliveryQuery",
+            "openOriginalLocalPublicationStore/enqueueDeliveryAdmission/enqueueDeliveryAdmission",
+            "openOriginalLocalPublicationStore/enqueueDeliveryAdmission/enqueueDeliveryAdmission/enqueueDeliveryAdmission",
+            "openOriginalLocalPublicationStore/initializeDeliveryIndex/initializeDeliveryIndex",
+            "openOriginalLocalPublicationStore/initializeDeliveryIndex/initializeDeliveryIndex/initializeDeliveryIndex",
+            "openOriginalLocalPublicationStore/initializeDeliveryIndex/initializeDeliveryIndex/publishCoverage/publishCoverage",
+            "openOriginalLocalPublicationStore/installDeliveryAttempt/installDeliveryAttempt",
+            "openOriginalLocalPublicationStore/installDeliveryAttempt/installDeliveryAttempt/init:retry/init:retry",
+            "openOriginalLocalPublicationStore/installDeliveryAttempt/installDeliveryAttempt/init:retry/init:retry/init:retry",
+            "openOriginalLocalPublicationStore/installDeliveryAttempt/installDeliveryAttempt/init:retry/init:retry/init:retry#2",
+            "openOriginalLocalPublicationStore/installDeliveryAttempt/installDeliveryAttempt/linkInitialRecord/linkInitialRecord",
+            "openOriginalLocalPublicationStore/installDeliveryAttempt/installDeliveryAttempt/status/status",
+            "openOriginalLocalPublicationStore/nativeDeliveryContract/nativeDeliveryContract",
+            "openOriginalLocalPublicationStore/readDeliveryAttemptContract/readDeliveryAttemptContract",
+            "openOriginalLocalPublicationStore/restoreDeliveryClaim/restoreDeliveryClaim",
+            "openOriginalLocalPublicationStore/selectDeliveryAttempt/selectDeliveryAttempt",
+            "openOriginalLocalPublicationStore/selectDeliveryAttempt/selectDeliveryAttempt/selectDeliveryAttempt"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "## Indexed delivery claims and coverage"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "const deliveryLogicalKey = query => JSON.stringify(["
+              },
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "const nativeDeliveryContract = (cid, name, retained) =>"
+              },
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "const appendDeliveryCompletion = async (attempt, receipt, contract) => {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "const expected = deliveryIndexRow(attempt,grant,attemptContract,grantContract);"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "The original native wrapper and captured close/isOpen remain owned until real"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "## Joint delivery start"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "indexed grant-use counter together."
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "## Joint delivery start"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "delivery index preserves an actual committed claim after its reply is lost"
+              },
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "progress.completion=Object.freeze({attempt:completion.attempt,receipt:suppliedReceipt,contract,entry});"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "pending delivery directory FD keeps Store ownership until original close"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "Bounded input/row counts are not capacity or permission."
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "## Joint delivery start"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "This metadata index does not change grant/attempt/record wires, authorization,"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "ready delivery coverage opens and looks up without unrelated history reads"
+              },
+              {
+                "path": "adapters/store-local/delivery-completion.test.mjs",
+                "anchor": "delivery START uses native metadata durability before any row exposure"
+              },
+              {
+                "path": "adapters/store-local/delivery-completion.test.mjs",
+                "anchor": "lost joint claim COMMIT reply preserves quota and initial streaming without sending"
+              },
+              {
+                "path": "adapters/store-local/delivery-completion.test.mjs",
+                "anchor": "native START metadata commits without duplicate contract files or directory ACKs"
+              },
+              {
+                "path": "adapters/store-local/delivery-completion.test.mjs",
+                "anchor": "native END metadata shares one real completion transaction without shadow contract files"
+              },
+              {
+                "path": "adapters/store-local/delivery-completion.test.mjs",
+                "anchor": "native record confirmation retains initial-record compatibility and one real reopened ACK"
               }
             ]
           }
