@@ -79,7 +79,7 @@ const nativeDeliveryContractNames = Object.freeze([
 // These objects retain their existing file/alias representation. Other
 // publication contracts may live in the same Store's native metadata table.
 const filePublicationContractNames = Object.freeze(['public_index_entry','schema',
-  'publication_attempt','publication_record',...nativeDeliveryContractNames]);
+  ...nativeDeliveryContractNames]);
 const nativePublicationContract = name => !filePublicationContractNames.includes(name);
 const nativeContractRead = name => nativePublicationContract(name) || nativeDeliveryContractNames.includes(name);
 const metadataContractObject = object => object !== null && typeof object === 'object' &&
@@ -3368,7 +3368,7 @@ async function openOriginalLocalPublicationStore(
     return putAdmittedPublicationContract(contract, parseContract(contract));
   };
 
-  const putNativePublicationContracts = async admitted => {
+  const putNativePublicationContracts = async (admitted, progress) => {
     active();
     for (const pending of activePhysicalRecordWriters) {
       if (pending.failed) fail('PublicationStoreCleanupPending');
@@ -3404,13 +3404,14 @@ async function openOriginalLocalPublicationStore(
       for (const reservation of reservations) reservation.release();
       throw error;
     }
-    if (entries.length === 0) return Object.freeze(results);
+    if (entries.length === 0 && progress === undefined) return Object.freeze(results);
     const originalEntries = Object.freeze(entries);
     const allowance = Object.freeze({objects:reservations.length,bytes:reservationBytes});
     const writer = {failed:false,cleanup:undefined};
-    let pending = true, flight, failure;
+    let pending = true, flight, failure, progressCreated;
     const finish = () => {
-      const usage = deliveryIndex.putPublicationContracts(originalEntries,allowance);
+      const usage = deliveryIndex.putPublicationContracts(originalEntries,allowance,progress);
+      progressCreated = usage.progressCreated;
       accountNativePublication(usage);
       for (const reservation of reservations) reservation.release();
       pending = false;
@@ -3446,7 +3447,8 @@ async function openOriginalLocalPublicationStore(
       failure.cleanupHandle = writer.cleanup;
       throw failure;
     }
-    return Object.freeze(results);
+    return Object.freeze(results.map(result => progress === undefined ? result :
+      Object.freeze({...result,progressCreated})));
   };
 
   const putPublicationContractBatch = async (supplied, originals) => {
@@ -4046,6 +4048,17 @@ async function openOriginalLocalPublicationStore(
     if (await runMetadataDeletionStarted(attempt.run_definition_cid)) {
       fail('PublicationMetadataDeleted');
     }
+    // An independently adopted file original keeps its legacy link protocol.
+    // New attempts need no second physical copy or directory locator: their
+    // exact CID is the existing native metadata primary key.
+    let fileOriginal = false;
+    try { await lstat(contractPath(admitted.identity)); fileOriginal = true; }
+    catch (error) { if (error?.code !== 'ENOENT') throw error; }
+    if (!fileOriginal) {
+      const stored = (await putNativePublicationContracts([Object.freeze({contract:admitted,value:attempt})],
+        Object.freeze({kind:'attempt',attemptCid:admitted.identity,runCid:attempt.run_definition_cid})))[0];
+      return Object.freeze({attempt,created:stored.progressCreated});
+    }
     const stored = await putAdmittedPublicationContract(admitted, attempt);
     const directory = publicationAttemptPath(
       attempt.publication_attempt_cid,
@@ -4070,6 +4083,15 @@ async function openOriginalLocalPublicationStore(
 
   const latestRecordContract = async attemptCid => {
     active();
+    if (deliveryIndex.publicationAttempt(attemptCid) !== undefined) {
+      const row = deliveryIndex.latestPublicationRecord(attemptCid);
+      if (row === undefined) return undefined;
+      const selected = await readContract(row.record_cid,'publication_record');
+      if (selected.value.publication_attempt_cid !== attemptCid || selected.value.sequence !== row.sequence) {
+        fail('InvalidPublicationRecord');
+      }
+      return selected.contract;
+    }
     const directory = publicationAttemptPath(attemptCid);
     const entries = await readdir(directory);
     if (entries.some(name => name !== 'attempt.json' &&
@@ -4129,6 +4151,13 @@ async function openOriginalLocalPublicationStore(
     }
     if (attempt.publication_attempt_cid !== record.publication_attempt_cid) {
       fail('PublicationAttemptMismatch');
+    }
+    if (deliveryIndex.publicationAttempt(record.publication_attempt_cid) !== undefined) {
+      await putNativePublicationContracts([Object.freeze({contract,value:record})],Object.freeze({
+        kind:'record',attemptCid:record.publication_attempt_cid,previousCid:previous?.identity ?? null,
+        recordCid:contract.identity,sequence:record.sequence,
+      }));
+      return record;
     }
     await putAdmittedPublicationContract(contract, record);
     const target = resolve(directory, `${record.sequence}.json`);
@@ -6230,6 +6259,17 @@ async function openOriginalLocalPublicationStore(
     initial,
   ) => {
     const collected = new Set(initial);
+    for (const row of deliveryIndex.publicationAttemptsForRun(runDefinitionCid)) {
+      const attempt = (await readContract(row.attempt_cid,'publication_attempt')).value;
+      if (attempt.run_definition_cid !== runDefinitionCid) fail('PublicationAttemptMismatch');
+      collected.add(row.attempt_cid);
+      collected.add(attempt.publication_request_cid);
+      for (const record of deliveryIndex.publicationRecords(row.attempt_cid)) {
+        const admitted = (await readContract(record.record_cid,'publication_record')).contract;
+        if (parseContract(admitted).publication_attempt_cid !== row.attempt_cid) fail('PublicationAttemptMismatch');
+        collected.add(admitted.identity);
+      }
+    }
     // Native originals retire in the SAME indexed Run deletion transaction.
     // Identify their exact bodies without allocating temporary shadow files
     // or requiring spare object-file quota merely to delete native metadata.

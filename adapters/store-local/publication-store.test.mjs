@@ -3052,6 +3052,99 @@ test('publication records are append-only and sequence creation is CAS',
     assert.ok(['committing', 'cancelled'].includes(latest.state));
   });
 
+test('publication progress uses one native commit and no shadow file ACKs per transition',async t=>{
+  const {store,directory,configuration}=await fixture(t);
+  const request=publicationRequest(),attempt=publicationAttempt(request,'native-progress');
+  const preparing=publicationRecord(attempt,0,'preparing');
+  const committing=publicationRecord(attempt,1,'committing',preparing);
+  let commits=0,syncs=0;
+  const exec=DatabaseSync.prototype.exec, originalOpen=fsPromises.open;
+  t.mock.method(DatabaseSync.prototype,'exec',function(sql){
+    if(sql==='COMMIT')commits++;
+    return Reflect.apply(exec,this,[sql]);
+  });
+  fsPromises.open=async function(...args){
+    const handle=await Reflect.apply(originalOpen,this,args),sync=handle.sync;
+    handle.sync=function(...values){syncs++;return Reflect.apply(sync,this,values);};
+    return handle;
+  };
+  syncBuiltinESMExports();
+  try{
+    assert.equal((await store.createAttempt(wire(attempt))).created,true);
+    assert.equal(commits,1);assert.equal(syncs,0);
+    for(const record of[preparing,committing]){
+      await store.appendRecord(wire(record),{uncommittedConfirmed:false});
+      assert.deepEqual(await store.latestRecord(attempt.publication_attempt_cid),record);
+    }
+    assert.equal(commits,3);assert.equal(syncs,0);
+    assert.deepEqual(await readdir(join(directory,'attempts')),[]);
+    assert.deepEqual(await readdir(join(directory,'contracts')),[]);
+    assert.deepEqual(await readdir(join(directory,'objects')),[]);
+    assert.equal(store.status().objectCount,3);
+    assert.equal(store.status().storedBytes,[attempt,preparing,committing].reduce((n,v)=>n+Buffer.byteLength(wire(v)),0));
+    assert.equal((await store.createAttempt(wire(attempt))).created,false);
+    await store.close();
+  }finally{fsPromises.open=originalOpen;syncBuiltinESMExports();}
+  const reopened=await openLocalPublicationStore(configuration,contractControl);
+  assert.deepEqual(await reopened.latestRecord(attempt.publication_attempt_cid),committing);
+  for(const value of[attempt,preparing,committing]){
+    const name=value===attempt?'publication_attempt':'publication_record';
+    const identity=value===attempt?value.publication_attempt_cid:value.publication_record_cid;
+    assert.equal((await reopened.readPublicationContract(identity,name)).wire,wire(value));
+  }
+  await assert.rejects(reopened.appendRecord(wire(preparing),{uncommittedConfirmed:false}),
+    code('InvalidPublicationRecordTransition'));
+});
+
+test('prepared publication bodies do not advance native progress and existing file bodies remain owned',async t=>{
+  const {store,directory}=await fixture(t);
+  const attempt=publicationAttempt(publicationRequest(),'prepared-native-progress');
+  const preparing=publicationRecord(attempt,0,'preparing');
+  await store.putOriginalPublicationContracts([contractControl.admit('publication_attempt',wire(attempt),limits)]);
+  assert.equal((await store.createAttempt(wire(attempt))).created,true);
+  await store.putPublicationContract('publication_record',wire(preparing));
+  const path=join(directory,'contracts',preparing.publication_record_cid.slice(7)+'.json');
+  const before=await stat(path);
+  assert.equal(await store.latestRecord(attempt.publication_attempt_cid),undefined);
+  await store.appendRecord(wire(preparing),{uncommittedConfirmed:false});
+  assert.deepEqual(await store.latestRecord(attempt.publication_attempt_cid),preparing);
+  assert.equal((await stat(path)).ino,before.ino);
+  assert.equal(store.status().objectCount,2);
+});
+
+for(const afterCommit of[false,true])for(const phase of['attempt','record']){
+test(`native publication progress retains its ${phase} ${afterCommit?'committed':'rolled-back'} Unknown original`,async t=>{
+  const {store,configuration}=await fixture(t);
+  const attempt=publicationAttempt(publicationRequest(),`unknown-${phase}-${afterCommit}`);
+  const record=publicationRecord(attempt,0,'preparing');
+  if(phase==='record')await store.createAttempt(wire(attempt));
+  const exec=DatabaseSync.prototype.exec;
+  let armed=true,lost=false,failure;
+  t.mock.method(DatabaseSync.prototype,'exec',function(sql){
+    if(armed&&!lost&&sql==='COMMIT'){
+      lost=true;if(afterCommit)Reflect.apply(exec,this,[sql]);
+      throw Object.assign(new Error('lost original publication progress COMMIT reply'),{code:'EIO'});
+    }
+    return Reflect.apply(exec,this,[sql]);
+  });
+  const operation=()=>phase==='attempt'?store.createAttempt(wire(attempt)):
+    store.appendRecord(wire(record),{uncommittedConfirmed:false});
+  await assert.rejects(operation(),error=>{failure=error;return error.outcome==='unknown'&&error.cleanupHandle?.status().pending===true;});
+  assert.equal(lost,true);
+  await assert.rejects(store.close(),code('PublicationStoreCleanupPending'));
+  await assert.rejects(operation());
+  armed=false;
+  assert.equal((await failure.cleanupHandle.retry()).pending,false);
+  assert.equal((await failure.cleanupHandle.retry()).pending,false);
+  assert.equal((await store.createAttempt(wire(attempt))).created,false);
+  assert.equal(store.status().objectCount,phase==='attempt'?1:2);
+  assert.deepEqual(await store.latestRecord(attempt.publication_attempt_cid),phase==='attempt'?undefined:record);
+  await store.close();
+  const reopened=await openLocalPublicationStore(configuration,contractControl);
+  assert.deepEqual(await reopened.latestRecord(attempt.publication_attempt_cid),phase==='attempt'?undefined:record);
+});
+}
+
 test('publication progress persists its incoming admitted contract once per operation',async t=>{
   const admissions=new Map();
   const control={...contractControl,admit(name,body,bounds){
@@ -3061,6 +3154,8 @@ test('publication progress persists its incoming admitted contract once per oper
   const{store,directory,configuration}=await fixture(t,{},control);
   const request=publicationRequest(),attempt=publicationAttempt(request,'single-admission');
   const attemptWire=wire(attempt);
+  // An independently prepared file original keeps its legacy physical path.
+  await store.putPublicationContract('publication_attempt',attemptWire);admissions.clear();
   assert.equal((await store.createAttempt(attemptWire)).created,true);
   assert.equal(admissions.get(attemptWire),1,'The incoming original is not sent through raw admission again');
   admissions.clear();
