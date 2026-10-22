@@ -159,6 +159,11 @@ close performs the real completion write; an existing physical-quota seal can
 include it without a second transaction. Native close remains a separate duty.
 These transitions do not replace file acknowledgements or establish a minimum
 barrier count. Strict recovery completion remains immediately durable.
+The retained map is bounded by the existing pending-entry and wire limits; it
+keeps immutable originals, not permission or a new byte allowance. Successful
+COMMIT retires exactly those originals. Lost replies retain them for the same
+mutation or close retry, and actual native close releases their managed aliases
+without claiming an unrelated uncertain mutation succeeded.
 
 An older private database format permits one bounded inventory migration. The
 Store confirms each selected Index's actual directory durability, retains only

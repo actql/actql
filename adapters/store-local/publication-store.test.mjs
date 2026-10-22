@@ -6136,15 +6136,10 @@ function pendingPublicationFixture(directory, inventory) {
   const database=new DatabaseSync(join(directory,'delivery-attempts.sqlite3'));
   try {
     database.exec('PRAGMA synchronous=FULL; PRAGMA fullfsync=ON; BEGIN IMMEDIATE');
-    const original = JSON.stringify(inventory);
-    const existing = database.prepare('SELECT inventory_wire FROM pending_publications WHERE public_index_cid=?')
-      .get(inventory.public_index_entry_cid);
-    if (existing === undefined) {
-      database.prepare('INSERT INTO pending_publications VALUES(?,?)')
-        .run(inventory.public_index_entry_cid, original);
-      assert.equal(database.prepare('UPDATE publication_recovery SET entries=entries+1,ack_revision=ack_revision+1 WHERE id=1')
-        .run().changes,1);
-    } else assert.equal(existing.inventory_wire, original, 'retain the exact already-pending original');
+    database.prepare('INSERT INTO pending_publications VALUES(?,?)')
+      .run(inventory.public_index_entry_cid,JSON.stringify(inventory));
+    assert.equal(database.prepare('UPDATE publication_recovery SET entries=entries+1,ack_revision=ack_revision+1 WHERE id=1')
+      .run().changes,1);
     database.exec('COMMIT');
   } finally { database.close(); }
 }
@@ -6168,6 +6163,11 @@ test('publication recovery transfers its pending original to the durable deletio
     return result;
   });
   const setup=await fixture(t),selected=await committedHoldingFixture(setup,'pending deletion transfer');
+  // Close the real current completion before modelling an older file-backed
+  // interrupted stage. Its edited legacy holding inventory is not a replacement
+  // for the current lifetime's retained native completion original.
+  await setup.store.close();
+  setup.store = await openLocalPublicationStore(setup.configuration, contractControl);
   // Exact retained metadata from the same already-published stage, modelling
   // its still-pending native completion at the deletion transition.
   pendingPublicationFixture(setup.directory,selected.inventory);
