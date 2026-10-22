@@ -5931,7 +5931,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "1ebce783ed524232c1749c0a2af51fed2e770c200cb039f5e5f4959a93261c78",
+      "sha256": "6ece57e2b43993566d220d6778b66c6d019f1a5ec9a817f1b1ff8a3dd4338307",
       "exports": [
         "PublicationStoreError",
         "assertOriginalLocalPublicationStoreFacilityCurrent",
@@ -6842,7 +6842,16 @@
           "async": true
         },
         {
-          "name": "openOriginalLocalPublicationStore/consumePhysicalHolding/consumePhysicalHolding/closed/closed",
+          "name": "openOriginalLocalPublicationStore/consumeSelectedPhysicalHolding/consumeSelectedPhysicalHolding",
+          "parameters": [
+            "record",
+            "objectIndex",
+            "accept"
+          ],
+          "async": true
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/consumeSelectedPhysicalHolding/consumeSelectedPhysicalHolding/closed/closed",
           "parameters": [],
           "async": false
         },
@@ -10109,7 +10118,8 @@
             "openOriginalLocalPublicationStore/consumeObject/consumeObject/consumeObject",
             "openOriginalLocalPublicationStore/consumeObject/consumeObject/status/status",
             "openOriginalLocalPublicationStore/consumePhysicalHolding/consumePhysicalHolding",
-            "openOriginalLocalPublicationStore/consumePhysicalHolding/consumePhysicalHolding/closed/closed",
+            "openOriginalLocalPublicationStore/consumeSelectedPhysicalHolding/consumeSelectedPhysicalHolding",
+            "openOriginalLocalPublicationStore/consumeSelectedPhysicalHolding/consumeSelectedPhysicalHolding/closed/closed",
             "openOriginalLocalPublicationStore/contractPath/contractPath",
             "openOriginalLocalPublicationStore/createAdmittedAttempt/createAdmittedAttempt",
             "openOriginalLocalPublicationStore/createAttempt/createAttempt",
@@ -11763,6 +11773,22 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "Manifest read grants follow the same selected-operation boundary. Ordinary"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "Private evidence reads admit the selected holding metadata once and acquire its"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "test('private evidence selected read acquires one holding and ciphertext and rechecks the next operation'"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "test('private evidence selected read retains its consuming FD through failed close and retirement'"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "test('private evidence selected extent and missing payload keep their original refusals'"
               }
             ]
           }
