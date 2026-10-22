@@ -22670,7 +22670,7 @@
               },
               {
                 "path": "adapters/host-node/client-request-journal-wal-bounds.test.mjs",
-                "anchor": "both writable connections share one non-refilling WAL lifetime before native calls"
+                "anchor": "both writable connections share one non-refilling WAL lifetime without charging metadata reads"
               },
               {
                 "path": "adapters/host-node/client-request-journal-iterator-current.test.mjs",
