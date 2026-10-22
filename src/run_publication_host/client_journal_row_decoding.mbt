@@ -121,6 +121,8 @@ fn decode_client_journal_definition(
 ] {
   if original is Some(value) &&
     @publication.publication_contract_name(value) == "run_definition" &&
+    @publication.publication_contract_check_limits(value, 65536, 4096, 64)
+    is Ok(_) &&
     @publication.publication_contract_json(value) == wire {
     return Ok((value, wire))
   }

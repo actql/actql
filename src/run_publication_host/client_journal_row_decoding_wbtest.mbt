@@ -350,3 +350,61 @@ test "Run row retained Definition preserves the original child byte limit" {
     is Err(CustodyLost),
   )
 }
+
+///|
+fn journal_decoding_limit_definition(
+  run_id : String,
+) -> @publication.PublicationContract {
+  let cid = (digit : String) => "sha256:" + digit.repeat(64)
+  @publication.seal_publication_contract(
+    "run_definition",
+    "{\"version\":\"actql-run-definition/0.1\",\"scope_id\":\"scope\",\"run_id\":\"" +
+    run_id +
+    "\",\"compiled_plan_cid\":\"" +
+    cid("1") +
+    "\",\"invocation_template_cid\":\"" +
+    cid("2") +
+    "\",\"authorization_context_cid\":\"" +
+    cid("3") +
+    "\",\"input_artifact_set_cid\":\"" +
+    cid("4") +
+    "\",\"created_at\":\"2026-09-18T00:00:00.000Z\",\"valid_until\":\"2099-01-01T00:00:00.000Z\"}",
+    131072,
+    4096,
+    64,
+  ).unwrap()
+}
+
+///|
+test "Run row retained Definition preserves exact ASCII and Unicode byte boundaries" {
+  let original = journal_encoding_original()
+  // Independent JSON field lengths, including a 71-byte self CID, give
+  // 640 UTF-8 bytes outside run_id. No expected limit uses issuer output.
+  for
+    (run_id, bytes, accepted) in [
+      ("r".repeat(64896), 65536, true),
+      ("r".repeat(64897), 65537, false),
+      ("é".repeat(32448), 65536, true),
+      ("é".repeat(32449), 65538, false),
+    ] {
+    let definition = journal_decoding_limit_definition(run_id)
+    let wire = @publication.publication_contract_json(definition)
+    assert_eq(@utf8.encode(wire).length(), bytes)
+    let body = client_run_journal_row_body({ ..original, definition, }).unwrap()
+    assert_true(body.length() < 131072)
+    let legacy = decode_client_run_journal_row(body)
+    let retained = decode_client_run_journal_row_with_retained_identity(
+      body,
+      original.request,
+      definition,
+    )
+    if accepted {
+      assert_true(legacy is Ok(_))
+      let (decoded, _, _) = retained.unwrap()
+      assert_true(physical_equal(decoded.definition, definition))
+    } else {
+      assert_true(legacy is Err(CustodyLost))
+      assert_true(retained is Err(CustodyLost))
+    }
+  }
+}
