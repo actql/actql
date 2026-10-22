@@ -312,3 +312,41 @@ test "Run row identity reuse keeps raw private originals and old reader semantic
   assert_true(physical_equal(reused.request, original.request))
   assert_true(physical_equal(reused.definition, original.definition))
 }
+
+///|
+test "Run row retained Definition preserves the original child byte limit" {
+  let original = journal_encoding_original()
+  let cid = (digit : String) => "sha256:" + digit.repeat(64)
+  // The public issuer accepts a larger caller budget. Its valid original is
+  // not automatically admissible under the Journal child's narrower limit.
+  let definition = @publication.seal_publication_contract(
+    "run_definition",
+    "{\"version\":\"actql-run-definition/0.1\",\"scope_id\":\"scope\",\"run_id\":\"" +
+    "r".repeat(70 * 1024) +
+    "\",\"compiled_plan_cid\":\"" +
+    cid("1") +
+    "\",\"invocation_template_cid\":\"" +
+    cid("2") +
+    "\",\"authorization_context_cid\":\"" +
+    cid("3") +
+    "\",\"input_artifact_set_cid\":\"" +
+    cid("4") +
+    "\",\"created_at\":\"2026-09-18T00:00:00.000Z\",\"valid_until\":\"2099-01-01T00:00:00.000Z\"}",
+    131072,
+    4096,
+    64,
+  ).unwrap()
+  let wire = @publication.publication_contract_json(definition)
+  assert_true(@utf8.encode(wire).length() > 65536)
+  let body = client_run_journal_row_body({ ..original, definition, }).unwrap()
+  assert_true(body.length() < 131072)
+  assert_true(decode_client_run_journal_row(body) is Err(CustodyLost))
+  assert_true(
+    decode_client_run_journal_row_with_retained_identity(
+      body,
+      original.request,
+      definition,
+    )
+    is Err(CustodyLost),
+  )
+}
