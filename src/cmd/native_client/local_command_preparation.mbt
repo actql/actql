@@ -905,8 +905,6 @@ fn LocalCommandPreparationOriginal::close_checked(
         self.crypto_path = ""
         self.crypto_member = None
         if self.component is Some(component) {
-          native_timing_begin(26)
-          defer native_timing_end(26)
           self.cleanup_stage = "crypto-component"
           guard self.pair is Some(pair) else { return Err(CommandUnavailable) }
           // This caller already owns the exact original cleanup frame. Do not
@@ -930,8 +928,6 @@ fn LocalCommandPreparationOriginal::close_checked(
         }
       }
       if self.pair is Some(pair) {
-        native_timing_begin(22)
-        defer native_timing_end(22)
         if self.journal is Some(_) || self.adoption is Some(_) {
           self.cleanup_stage = "closed-journal-aliases"
           command_preparation_value(
@@ -976,8 +972,6 @@ fn LocalCommandPreparationOriginal::close_checked(
         }
       }
       if self.read_domain is Some(domain) {
-        native_timing_begin(23)
-        defer native_timing_end(23)
         self.cleanup_stage = "read-domain"
         command_preparation_value(
           host
@@ -987,8 +981,6 @@ fn LocalCommandPreparationOriginal::close_checked(
         self.read_domain = None
       }
       if self.sqlite_domain is Some(domain) {
-        native_timing_begin(24)
-        defer native_timing_end(24)
         self.cleanup_stage = "sqlite-domain"
         command_preparation_value(
           host
@@ -998,13 +990,9 @@ fn LocalCommandPreparationOriginal::close_checked(
         self.sqlite_domain = None
       }
       self.cleanup_stage = "host"
-      {
-        native_timing_begin(25)
-        defer native_timing_end(25)
-        command_preparation_value(
-          host.try_close().map_err(issue => CommandHost(issue)),
-        )
-      }
+      command_preparation_value(
+        host.try_close().map_err(issue => CommandHost(issue)),
+      )
       self.host = None
     }
     self.closed = true
