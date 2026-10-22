@@ -39,8 +39,15 @@ fn client_generated_compilation_manifests(
   @publication_host.ClientCompilationManifests,
   @publication_host.ClientCompilationManifestIssue,
 ] {
-  let _ = cached
-  read()
+  // Lazy pure compiler metadata, not an authorization or preparation cache.
+  // Retain a typed failure too: another query cannot hide invalid compiler
+  // inputs. A different loaded compiler owns a separate admission cell.
+  if cached.val is Some(original) {
+    return original
+  }
+  let original = read()
+  cached.val = Some(original)
+  original
 }
 
 ///|
