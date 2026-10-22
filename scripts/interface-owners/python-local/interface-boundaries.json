@@ -802,7 +802,7 @@
               },
               {
                 "path": "packages/native-cli/bin/actql.mjs",
-                "anchor": "return version"
+                "anchor": "return typeof version === 'string'"
               }
             ],
             "identity": [
