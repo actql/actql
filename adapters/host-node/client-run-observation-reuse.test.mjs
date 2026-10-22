@@ -100,7 +100,7 @@ test('Local Run observation preserves missing-row exhaustion and entry denial', 
 });
 
 function selectedPublicationFixture({legacy = false, missing = false, failRead = false,
-  denyAt, malformed = false} = {}) {
+  denyAt, malformed = false, invalidPort = false} = {}) {
   const cid = digit => 'sha256:' + digit.repeat(64);
   const ref = Object.freeze({namespaceId: 'namespace', authorityScopeCid: cid('a'), runDefinitionCid: cid('b')});
   const entry = Object.freeze({public_index_entry_cid: cid('c'), publication_attempt_cid: cid('d'),
@@ -117,9 +117,11 @@ function selectedPublicationFixture({legacy = false, missing = false, failRead =
     ...legacy ? {} : {async readCommittedPublication(key) {
       assert.strictEqual(this, store); assert.deepEqual(key, ref); counts.selected++;
       if (failRead) throw Object.assign(new Error('selected original failed'), {code: 'EIO'});
-      return missing ? undefined : malformed ? {entry} : Object.freeze({entry, index});
+      return missing ? undefined : malformed === 'null' ? {entry, index: null}
+        : malformed ? {entry} : Object.freeze({entry, index});
     }},
   };
+  if (invalidPort) store.readCommittedPublication = null;
   const control = {manifestResultNames: () => [], resultReadDefinitionCid() {},
     resultReadRetentionPolicyCid() {}, resultReadAvailability() {}, resultReadExtendedAvailability() {},
     resultRetentionClockContractCid() {}, runDefinitionRunId: () => 'original-run',
@@ -165,10 +167,12 @@ test('selected publication observation preserves legacy Store reads and authoriz
 });
 
 test('selected publication observation never treats denial failure or malformed original as absence', async () => {
-  for (const options of [{denyAt: 'request'}, {denyAt: 'response'}, {failRead: true}, {malformed: true}]) {
+  for (const options of [{denyAt: 'request'}, {denyAt: 'response'}, {failRead: true}, {malformed: true}, {malformed: 'null'}]) {
     const f = selectedPublicationFixture(options);
     await assert.rejects(f.run);
     assert.equal(f.counts.probe, 0, 'No fallback physical read after a selected failure');
+    assert.equal(f.counts.indexRead, 0, 'An invalid supplied original is not the omitted-port case');
     if (options.denyAt === 'request') assert.equal(f.counts.selected, 0);
   }
+  assert.throws(() => selectedPublicationFixture({invalidPort: true}), {code: 'InvalidRunStateService'});
 });

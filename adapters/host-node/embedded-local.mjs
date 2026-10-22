@@ -131,7 +131,7 @@ import {composeInstalledCheckEnvironment,
 import {installNodeResultAccessService,
   installResultAccessAuthority} from './result-access.mjs';
 import {installRunStateAuthority, installRunStateService,
-  inspectAuthorizedRunState} from '../host-common/run-state-access.mjs';
+  inspectAuthorizedRunState, observeAuthorizedRunState} from '../host-common/run-state-access.mjs';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {openLocalPublicationStore, prepareLocalPublicationStoreOwnership,
   assertOriginalPreparedLocalPublicationStoreOwnership,
@@ -1862,10 +1862,11 @@ async function openInstalledHost(originalInstallation, preparation) {
       const runId = control.runDefinitionRunId(retained.runDefinition);
       let state;
       let continuation;
-      if (await store.confirmCommittedIndex(ref) !== undefined) {
-        state = await inspectAuthorizedRunState(stateService, {
-          indexKey: ref, principalId: actual, purpose: 'inspect',
-        });
+      const committedState = await observeAuthorizedRunState(stateService, {
+        indexKey: ref, principalId: actual, purpose: 'inspect',
+      });
+      if (committedState !== undefined) {
+        state = committedState;
       } else {
         if (!Array.isArray(retained.resultNames)) {
           throw new Error('RunStateInventoryUnknown');

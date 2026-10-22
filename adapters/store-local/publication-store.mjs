@@ -4955,7 +4955,7 @@ async function openOriginalLocalPublicationStore(
     if (!exactUtf8WireMatches(semantic, admitted.wire)) {
       parseContract(admitContract('public_index_entry', semantic.toString('utf8')));
     }
-    return {entry, bytes};
+    return {entry, bytes, contract: admitted};
   };
 
   const inspectCommittedIndexRaw = async key =>
@@ -4969,7 +4969,7 @@ async function openOriginalLocalPublicationStore(
     return entry;
   };
 
-  const confirmCommittedIndex = async key => {
+  const confirmCommittedIndexOriginal = async key => {
     active();
     const keyHash = indexKey(key);
     if (await readMetadataDeletion(keyHash) !== undefined) return undefined;
@@ -4994,13 +4994,25 @@ async function openOriginalLocalPublicationStore(
       }
       durablyConfirmedIndexes.set(keyHash, entry.public_index_entry_cid);
     }
-    return entry;
+    return original;
   };
+
+  const confirmCommittedIndex = async key =>
+    (await confirmCommittedIndexOriginal(key))?.entry;
 
   const confirmSelectedCommittedIndex = async key => {
     const entry = await confirmCommittedIndex(key);
     if (entry !== undefined) await requireCommittedMetadataInventory(entry);
     return entry;
+  };
+
+  const readCommittedPublication = async key => {
+    // The selected body's nominal admission already belongs to this read.
+    // Return that original, not another public raw-wire read/admission.
+    const original = await confirmCommittedIndexOriginal(Object.freeze({...key}));
+    if (original === undefined) return undefined;
+    await requireCommittedMetadataInventory(original.entry);
+    return Object.freeze({entry: Object.freeze(original.entry), index: original.contract});
   };
 
   const lookupCommittedIndex = async (key, authorize) => {
@@ -8063,6 +8075,7 @@ async function openOriginalLocalPublicationStore(
     inspectEffectfulStoredEvidence,
     inspectCommittedIndex,
     confirmCommittedIndex: confirmSelectedCommittedIndex,
+    readCommittedPublication,
     lookupCommittedIndex,
     publicationCapacitySupports(requirement) {
       active();
