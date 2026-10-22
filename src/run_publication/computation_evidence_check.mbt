@@ -53,6 +53,7 @@ priv enum ComputationEvidencePhase {
 /// validity to a row inventory. Borrowed contracts remain with the caller.
 struct ComputationEvidenceCheck {
   mut inputs : ComputationEvidenceInputs?
+  mut retained_capture : CapturedRunIssuancePreparation?
   max_workspace : Int
   mut prelude : ComputationEvidencePrelude?
   mut values : @json.CanonicalValue?
@@ -72,6 +73,7 @@ fn start_computation_evidence_check(
 ) -> ComputationEvidenceCheck {
   {
     inputs: Some(inputs),
+    retained_capture: None,
     max_workspace,
     prelude: None,
     values: None,
@@ -383,6 +385,10 @@ pub fn ComputationEvidenceCheck::advance(
   if self.closed || quantum < 1 {
     return Err(EvidenceEncoding)
   }
+  if self.retained_capture is Some(original) && original.closed {
+    self.cancel()
+    return Err(EvidenceEncoding)
+  }
   let mut used = 0
   while used < quantum && !(self.phase is Done) {
     match self.step() {
@@ -400,7 +406,9 @@ pub fn ComputationEvidenceCheck::advance(
 pub fn ComputationEvidenceCheck::finish(
   self : ComputationEvidenceCheck,
 ) -> Result[Unit, RunEvidenceChainIssue] {
-  if self.closed || !(self.phase is Done) {
+  if self.closed ||
+    !(self.phase is Done) ||
+    (self.retained_capture is Some(original) && original.closed) {
     return Err(EvidenceEncoding)
   }
   self.cancel()
@@ -428,6 +436,7 @@ pub fn ComputationEvidenceCheck::cancel(
     @encode.cancel_writer(writer)
   }
   self.inputs = None
+  self.retained_capture = None
   self.prelude = None
   self.values = None
   self.field_inventory = None

@@ -1150,6 +1150,17 @@ pub fn strategy_captured_run_finish(
 }
 
 ///|
+#export_name("strategyCapturedRunFinishRetained")
+pub fn strategy_captured_run_finish_retained(
+  preparation : @publication.CapturedRunIssuancePreparation,
+) -> @publication.PublicationContract raise NodeHostFailure {
+  match preparation.finish_retained() {
+    Ok(contract) => contract
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
 #export_name("strategyCapturedRunCancel")
 pub fn strategy_captured_run_cancel(
   preparation : @publication.CapturedRunIssuancePreparation,
@@ -1831,6 +1842,28 @@ pub fn strategy_begin_effect_free_chain_check(
 }
 
 ///|
+#export_name("strategyBeginEffectFreeChainCheckRetained")
+pub fn strategy_begin_effect_free_chain_check_retained(
+  original : @publication.CapturedRunIssuancePreparation,
+  run_definition : @publication.PublicationContract,
+  invocation : @publication.PublicationContract,
+  definitions : Array[@publication.PublicationContract],
+  artifacts : Array[@publication.PublicationContract],
+  manifest : @publication.PublicationContract,
+  receipt : @publication.PublicationContract,
+  captured_run : @publication.PublicationContract,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  max_workspace : Int,
+) -> @publication.ComputationEvidenceCheck {
+  @publication.start_effect_free_run_evidence_check_retained(
+    original, run_definition, invocation, definitions, artifacts, manifest, receipt, captured_run,
+    max_wire_bytes, max_nodes, max_depth, max_workspace,
+  )
+}
+
+///|
 #export_name("strategyEffectFreeChainCheckAdvance")
 pub fn strategy_effect_free_chain_check_advance(
   preparation : @publication.ComputationEvidenceCheck,
@@ -2019,6 +2052,36 @@ pub fn strategy_begin_effect_free_commit_check(
 ) -> @publication.PublicationCommitPreparation {
   @publication.start_effect_free_publication_commit_check(
     run_definition, invocation, definitions, artifacts, derivations, orderings, retentions,
+    durable_bindings, manifest, receipt, captured_run, request, attempt, index_entry,
+    max_wire_bytes, max_nodes, max_depth, max_workspace,
+  )
+}
+
+///|
+#export_name("strategyBeginEffectFreeCommitCheckRetained")
+pub fn strategy_begin_effect_free_commit_check_retained(
+  original : @publication.CapturedRunIssuancePreparation,
+  run_definition : @publication.PublicationContract,
+  invocation : @publication.PublicationContract,
+  definitions : Array[@publication.PublicationContract],
+  artifacts : Array[@publication.PublicationContract],
+  derivations : Array[@publication.PublicationContract],
+  orderings : Array[@publication.PublicationContract],
+  retentions : Array[@publication.PublicationContract],
+  durable_bindings : Array[@publication.PublicationContract],
+  manifest : @publication.PublicationContract,
+  receipt : @publication.PublicationContract,
+  captured_run : @publication.PublicationContract,
+  request : @publication.PublicationContract,
+  attempt : @publication.PublicationContract,
+  index_entry : @publication.PublicationContract,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  max_workspace : Int,
+) -> @publication.PublicationCommitPreparation {
+  @publication.start_effect_free_publication_commit_check_retained(
+    original, run_definition, invocation, definitions, artifacts, derivations, orderings, retentions,
     durable_bindings, manifest, receipt, captured_run, request, attempt, index_entry,
     max_wire_bytes, max_nodes, max_depth, max_workspace,
   )
