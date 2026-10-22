@@ -834,6 +834,8 @@ pub fn client_program_installed_duckdb_capture_capacity(@actql/actql/connectors/
 
 pub fn client_program_installed_listing_row_capture_capacity(@client_row_source_host.RowAcquisition, @execution_relation.ExecutionCapacity?) -> @client_local_host.ClientInstalledCaptureCapacity?
 
+pub fn client_program_installed_managed_run_usage(@client_local_host.ClientInstalledManagedRun) -> Result[Array[Int64], @client_local_host.ClientInstalledManagedRunIssue]
+
 pub fn client_program_installed_model_defaults_binding(@run_publication_host.ClientModelProviderDefaults) -> @run_publication.RunEvidenceValue
 
 pub fn client_program_installed_model_defaults_generation(@run_publication_host.ClientModelProviderDefaults, @check_environment.ResolvedModelProviderDefaults) -> @check_environment.ModelGeneration?
