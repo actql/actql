@@ -100,6 +100,17 @@ Store initialization success, durability replay, Provider permission or send.
 
 ## Bounded metadata reader close acknowledgement
 
+Private evidence reads admit the selected holding metadata once and acquire its
+selected ciphertext once. The existing physical reader hashes that same FD's
+bytes and observes its close before AEAD authentication can return plaintext.
+The intermediate bounded buffer is private, not an application callback; no
+plaintext escapes on a digest, extent, authentication or close failure. The
+same physical-holding reader count prevents retirement while that FD's close
+remains pending, and close-only retries never repeat the read or decryption.
+A new operation reacquires its holding and payload; no successful admission is
+cached across operations. Generic public holding consumption retains its full
+pre-callback payload inspection and its original refusal behavior.
+
 The existing bounded metadata reader does not publish bytes or invoke its FD
 retirement callback after an explicit false close. Its existing cleanup facade
 keeps the same native handle and callback through rejected or false close-only

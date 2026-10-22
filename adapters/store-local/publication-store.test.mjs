@@ -1158,7 +1158,7 @@ test('private evidence selected read retains its consuming FD through failed clo
     assert.equal(retiring.cleanup.status().pending, true);
     assert.equal((await stat(f.payloadPath)).size, f.prepared.bytes);
     await assert.rejects(f.store.close(), code('PublicationStoreCleanupPending'));
-    await failure.cleanupHandle.retry();
+    await assert.rejects(failure.cleanupHandle.retry(), code('PublicationStoreCleanupPending'));
     assert.equal(failure.cleanupHandle.status().pending, true, 'false close is not ACK');
     allowClose = true;
     assert.equal((await failure.cleanupHandle.retry()).pending, false);

@@ -3721,7 +3721,13 @@ async function openOriginalLocalPublicationStore(
     const key = Buffer.allocUnsafeSlow(privateEvidenceKey().byteLength);
     key.set(privateEvidenceKey());
     try {
-      const holding = await inspectPhysicalHolding(holdingCid);
+      // No plaintext or application callback escapes this private acquisition.
+      // Admit the selected holding once; consume/hash its ciphertext once on
+      // the original FD below, then authenticate AEAD before returning bytes.
+      if (await readPhysicalHoldingDeletion(holdingCid) !== undefined) {
+        fail('PublicationPrivateEvidenceUnavailable');
+      }
+      const holding = await readPhysicalHolding(holdingCid);
       if (!privateEvidenceHolding(holding, name) ||
           holding.manifest_cid !== semanticCid ||
           holding.objects.length !== objectCount) {
@@ -3734,16 +3740,23 @@ async function openOriginalLocalPublicationStore(
       }
       // The existing holding owns an exact bounded file. Receive directly
       // into one buffer instead of retaining copied chunks plus their concat.
-      // No bytes escape before consumePhysicalHolding and AEAD both succeed.
+      // No bytes escape before the same physical read/close and AEAD succeed.
       const bytes = Buffer.alloc(expectedBytes);
       let receivedBytes = 0;
-      await consumePhysicalHolding(holdingCid, index, chunk => {
-        if (chunk.byteLength > expectedBytes - receivedBytes) {
-          fail('PublicationPrivateEvidenceCorrupt');
+      try {
+        await consumeSelectedPhysicalHolding(holding, index, chunk => {
+          if (chunk.byteLength > expectedBytes - receivedBytes) {
+            fail('InvalidPublicationPhysicalHoldingStore');
+          }
+          bytes.set(chunk, receivedBytes);
+          receivedBytes += chunk.byteLength;
+        });
+      } catch (error) {
+        if (error?.code === 'ENOENT' && error.cleanupHandle === undefined) {
+          fail('PublicationObjectMissing', error);
         }
-        bytes.set(chunk, receivedBytes);
-        receivedBytes += chunk.byteLength;
-      });
+        throw error;
+      }
       if (receivedBytes !== expectedBytes) {
         fail('PublicationPrivateEvidenceCorrupt');
       }
@@ -7048,19 +7061,10 @@ async function openOriginalLocalPublicationStore(
       await readPhysicalHoldingDeletion(holdingCid);
   };
 
-  const consumePhysicalHolding = async (
-    holdingCid,
-    objectIndex,
-    accept,
-  ) => {
-    active();
-    if (!quantity(objectIndex) || typeof accept !== 'function') {
-      fail('InvalidPublicationPhysicalHoldingRead');
-    }
-    const record = await inspectPhysicalHolding(holdingCid);
-    if (record === undefined || objectIndex >= record.objects.length) {
-      fail('PublicationPhysicalHoldingUnavailable');
-    }
+  // Private selected metadata only. Public consumers still perform their
+  // original full inspection before application callbacks can receive bytes.
+  const consumeSelectedPhysicalHolding = async (record, objectIndex, accept) => {
+    const holdingCid = record.holding_cid;
     activePhysicalHoldingReaders.set(
       holdingCid,
       (activePhysicalHoldingReaders.get(holdingCid) ?? 0) + 1,
@@ -7075,6 +7079,22 @@ async function openOriginalLocalPublicationStore(
       else activePhysicalHoldingReaders.set(holdingCid, remaining);
     };
     return await consumeObject(record.objects[objectIndex].cid, accept, closed);
+  };
+
+  const consumePhysicalHolding = async (
+    holdingCid,
+    objectIndex,
+    accept,
+  ) => {
+    active();
+    if (!quantity(objectIndex) || typeof accept !== 'function') {
+      fail('InvalidPublicationPhysicalHoldingRead');
+    }
+    const record = await inspectPhysicalHolding(holdingCid);
+    if (record === undefined || objectIndex >= record.objects.length) {
+      fail('PublicationPhysicalHoldingUnavailable');
+    }
+    return consumeSelectedPhysicalHolding(record, objectIndex, accept);
   };
 
   const ensurePhysicalHoldingDeletion = async record => {
