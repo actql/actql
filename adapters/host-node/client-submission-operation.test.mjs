@@ -22,6 +22,9 @@ async function fixture(t, {prepare, submit} = {}) {
   const root = await mkdtemp(join(tmpdir(), 'actql-submission-operation-'));
   let now = start, allowed = true, parsing = 0, authentication = 0, clockWrites = 0;
   const intentAdmissions = new Map();
+  const authenticatedEpochs = [];
+  const childOperations = [];
+  let submissions = 0;
   const journal = openClientRequestJournal(root, {submissionEpochTtlMs: 1000, submissionEpochNow: () => now});
   t.after(async () => {journal.close(); await rm(root, {recursive: true, force: true});});
   const epoch = journal.issueSubmissionEpoch(fields, moon);
@@ -31,7 +34,12 @@ async function fixture(t, {prepare, submit} = {}) {
       return moon.clientSubmittedIntent(wire, ...limits);
     },
     clientSubmissionEpoch(...args) {parsing++; return moon.clientSubmissionEpoch(...args);},
-    clientSubmissionEpochWire(...args) {authentication++; return moon.clientSubmissionEpochWire(...args);},
+    clientSubmissionEpochWire(...args) {
+      authentication++;
+      const wire = moon.clientSubmissionEpochWire(...args);
+      authenticatedEpochs.push(JSON.parse(wire).epoch_nonce);
+      return wire;
+    },
   };
   const run = StatementSync.prototype.run;
   t.mock.method(StatementSync.prototype, 'run', function(...args) {
@@ -44,10 +52,16 @@ async function fixture(t, {prepare, submit} = {}) {
     durability: 'durable', consentRefs: [], runners: []}, submissionRef: {epoch, nonce: 'original'},
   intentCid: moon.clientSubmittedIntentCid(intent),
   attemptRef: {operation: 'submit', attemptId: 'one-operation'}, ...body};
-  const service = installNodeClientSubmission({journal, moon: runtime,
+  const serviceJournal = {...journal, retainSubmissionOperation(epoch, control, parentEpoch) {
+    if (parentEpoch !== undefined) childOperations.push({epoch, parentEpoch,
+      authenticationOffset: authenticatedEpochs.length});
+    return Reflect.apply(journal.retainSubmissionOperation, journal, [epoch, control, parentEpoch]);
+  }};
+  const service = installNodeClientSubmission({journal: serviceJournal, moon: runtime,
     authorizedScope: () => allowed ? fields : undefined,
     prepareSubmit: async value => {await prepare?.(value); now++; return {};},
     submit: async value => {
+      submissions++;
       if (submit !== undefined) return submit(value);
       const program = cid('1'), parameters = cid('2'), input = cid('3');
       const identity = moon.clientRequestAdmitRecord(scope, value.requestId, program, parameters, input,
@@ -72,6 +86,9 @@ async function fixture(t, {prepare, submit} = {}) {
   });
   return {journal, runtime, service, request, root,
     now(value) {now = value;}, deny() {allowed = false;},
+    authenticatedEpochs() {return authenticatedEpochs.slice();},
+    childOperations() {return childOperations.slice();},
+    submissions() {return submissions;},
     intentAdmissions() {return [...intentAdmissions.values()];},
     counts() {return {parsing, authentication, clockWrites};}};
 }
@@ -156,6 +173,50 @@ test('named submission shares its admitted intent with new and original saved-re
   f.deny();
   assert.equal((await f.service.submitNamedAttempt(request)).reason, 'authorization');
   assert.deepEqual(f.intentAdmissions(), [2]);
+});
+
+test('a distinct valid epoch observes the named saved original with independent authentication and one intent admission', async t => {
+  const f = await fixture(t), request = {...f.request, requestName: 'distinct-epoch-original'};
+  const first = await f.service.submitNamedAttempt(request);
+  assert.equal(first.outcome.kind, 'ready');
+  const originalRef = first.outcome.submissionRef;
+  const originalRun = first.outcome.admission.ref;
+  assert.equal(f.submissions(), 1);
+  assert.deepEqual(f.childOperations(), []);
+  f.now(start + 900);
+  const freshEpoch = f.journal.issueSubmissionEpoch(fields, f.runtime);
+  assert.notEqual(freshEpoch.epochNonce, originalRef.epoch.epochNonce);
+  assert.notDeepEqual(freshEpoch, originalRef.epoch);
+  f.now(start + 1050);
+  assert(originalRef.epoch.expiresAt <= start + 1050);
+  assert(freshEpoch.notBefore <= start + 1050 && freshEpoch.expiresAt > start + 1050);
+  const observed = await f.service.submitNamedAttempt({...request,
+    submissionRef: {epoch: freshEpoch, nonce: 'fresh-epoch-reference'}});
+  assert.equal(observed.outcome.kind, 'ready');
+  assert.deepEqual(observed.outcome.submissionRef, originalRef);
+  assert.deepEqual(observed.outcome.admission.ref, originalRun);
+  assert.equal(f.submissions(), 1, 'name lookup does not submit, renew or replace its original Run');
+  assert.deepEqual(f.intentAdmissions(), [2], 'each public operation admits the same immutable wire only once');
+  const [child] = f.childOperations();
+  assert.equal(f.childOperations().length, 1, 'the distinct saved-epoch child branch actually runs');
+  assert.notStrictEqual(child.epoch, child.parentEpoch);
+  assert.deepEqual(child.epoch, originalRef.epoch);
+  assert.deepEqual(child.parentEpoch, freshEpoch);
+  assert(f.authenticatedEpochs().slice(child.authenticationOffset).includes(originalRef.epoch.epochNonce),
+    'the child independently authenticates its saved epoch after borrowing only the immutable input');
+  const database = new DatabaseSync(join(f.root, 'client-requests.sqlite3'), {readOnly: true});
+  try {
+    assert.equal(database.prepare('SELECT observed_at FROM client_submission_epoch_authority').get().observed_at, start + 1050);
+    assert.equal(database.prepare('SELECT issued_count FROM client_submission_custody').get().issued_count, 1);
+    assert.equal(database.prepare('SELECT issued_count FROM client_submitted_intent_custody').get().issued_count, 1);
+  } finally {database.close();}
+  const beforeDeny = {auth: f.authenticatedEpochs(), admissions: f.intentAdmissions()};
+  f.deny();
+  assert.equal((await f.service.submitNamedAttempt({...request,
+    submissionRef: {epoch: freshEpoch, nonce: 'denied-fresh-reference'}})).reason, 'authorization');
+  assert.deepEqual(f.authenticatedEpochs(), beforeDeny.auth);
+  assert.deepEqual(f.intentAdmissions(), beforeDeny.admissions);
+  assert.equal(f.submissions(), 1);
 });
 
 test('one actual submit retains epoch authentication and one durable floor through the same Run acceptance', async t => {
