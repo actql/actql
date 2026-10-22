@@ -304,3 +304,37 @@ test "issued Plan fact manifest preserves original input and limit error precede
     ),
   )
 }
+
+///|
+test "same-owner Plan facts retain their encoded array without a detached input alias" {
+  let facts =
+    #|[{"a":1},{"text":"é"}]
+  let value = parse_plan_identity_value(facts, 4096, 100, 10).unwrap()
+  let values = match value {
+    @canonical.Array(values) => @canonical.array_values(values)
+    _ => abort("expected fact array")
+  }
+  let encoded = prepare_plan_fact_manifest_facts(values, 4096, 100, 10)
+  values.clear()
+  assert_eq(
+    manifest_identity_projection(
+      finish_plan_fact_manifest_identity(encoded, 4096, 100, 10),
+    ),
+    manifest_identity_projection(
+      preceding_plan_fact_manifest_identity(facts, 4096, 100, 10),
+    ),
+  )
+  // The same retained facts must still obey this caller's tighter full limits.
+  assert_true(
+    finish_plan_fact_manifest_identity(encoded, 10, 100, 10)
+    is Err(InvalidManifest),
+  )
+  assert_true(
+    finish_plan_fact_manifest_identity(encoded, 4096, 1, 10)
+    is Err(InvalidManifest),
+  )
+  assert_true(
+    finish_plan_fact_manifest_identity(encoded, 4096, 100, 1)
+    is Err(InvalidManifest),
+  )
+}

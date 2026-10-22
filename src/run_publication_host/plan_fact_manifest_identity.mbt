@@ -80,12 +80,53 @@ pub fn encode_plan_fact_manifest_identity(
     is Some(plan_facts) else {
     return Err(InvalidPlanFacts)
   }
-  guard plan_facts is @canonical.Array(_) else { return Err(InvalidPlanFacts) }
-  let facts = @canonical.stringify_value(
-    plan_facts, max_wire_bytes, max_nodes, max_depth,
+  let values = match plan_facts {
+    @canonical.Array(values) => @canonical.array_values(values)
+    _ => return Err(InvalidPlanFacts)
+  }
+  let encoded = prepare_plan_fact_manifest_facts(
+    values, max_wire_bytes, max_nodes, max_depth,
   ) catch {
     _ => return Err(InvalidPlanFacts)
   }
+  finish_plan_fact_manifest_identity(
+    encoded, max_wire_bytes, max_nodes, max_depth,
+  )
+}
+
+///|
+// One locally encoded array and its exact immutable children. Neither field
+// escapes the synchronous issuer or establishes checked fact applicability.
+priv struct EncodedPlanManifestFacts {
+  wire : String
+  values : Array[@canonical.CanonicalValue]
+}
+
+///|
+fn prepare_plan_fact_manifest_facts(
+  values : Array[@canonical.CanonicalValue],
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> EncodedPlanManifestFacts raise @encode.EncodeFailure {
+  let values = values.copy()
+  let writer = @encode.writer(max_wire_bytes, max_nodes, max_depth)
+  @encode.begin_array(writer)
+  for value in values {
+    @canonical.emit_value(value, writer)
+  }
+  @encode.end_array(writer)
+  { wire: @encode.finish(writer), values, }
+}
+
+///|
+fn finish_plan_fact_manifest_identity(
+  encoded : EncodedPlanManifestFacts,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[PlanFactManifestIdentity, PlanFactManifestIdentityIssue] {
+  let facts = encoded.wire
   let preimage = "{\"plan_facts\":" +
     facts +
     ",\"version\":\"actql-plan-fact-manifest/0.1\"}"
@@ -104,7 +145,11 @@ pub fn encode_plan_fact_manifest_identity(
     @encode.key(measure, "plan_fact_manifest_cid")
     @encode.string_value(measure, cid)
     @encode.key(measure, "plan_facts")
-    @canonical.emit_value(plan_facts, measure)
+    @encode.begin_array(measure)
+    for value in encoded.values {
+      @canonical.emit_value(value, measure)
+    }
+    @encode.end_array(measure)
     @encode.key(measure, "version")
     @encode.string_value(measure, "actql-plan-fact-manifest/0.1")
     @encode.end_object(measure)

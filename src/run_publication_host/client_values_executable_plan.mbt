@@ -309,18 +309,14 @@ fn issue_prepared_client_executable_plan_with_parts(
     is Some(material_value) else {
     return Err(Encoding)
   }
-  let facts_writer = @encode.writer(max_wire_bytes, max_nodes, max_depth) catch {
-    _ => return Err(Encoding)
-  }
-  client_plan_emit_array(facts_writer, fact_values) catch {
-    _ => return Err(Encoding)
-  }
-  let facts_wire = @encode.finish(facts_writer) catch {
+  let encoded_facts = prepare_plan_fact_manifest_facts(
+    fact_values, max_wire_bytes, max_nodes, max_depth,
+  ) catch {
     _ => return Err(Encoding)
   }
   let manifest = match
-    encode_plan_fact_manifest_identity(
-      facts_wire, max_wire_bytes, max_nodes, max_depth,
+    finish_plan_fact_manifest_identity(
+      encoded_facts, max_wire_bytes, max_nodes, max_depth,
     ) {
     Ok(manifest) => manifest
     Err(issue) => return Err(FactManifest(issue))
