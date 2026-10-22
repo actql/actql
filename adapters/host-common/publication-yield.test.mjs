@@ -344,6 +344,30 @@ test('publication computation lifetime stays with failed or pending Unknown and 
   await error.cleanupHandle.retry(); assert.equal(retired, 1);
 });
 
+test('publication computation lifetime preserves a terminal failure when managed retirement also fails', async () => {
+  const primary = new Error('original publication refusal'), cleanup = new Error('original cancel refused');
+  let attempts = 0;
+  const control = {retireCapturedComputation() {attempts++; throw cleanup;}};
+  const loops = publicationLifetimeLoops(async () => {throw primary;});
+  await assert.rejects(loops.publishEffectFreeRun({control, evidence: {capturedRun: {}}}), error =>
+    error.code === 'RunPublicationRetirementFailed' && error.primaryFailure === primary && error.cleanupError === cleanup);
+  assert.equal(attempts, 1, 'no blind cancellation retry on the terminal path');
+});
+
+test('publication computation lifetime retries only failed managed retirement after original Unknown resolution', async () => {
+  const loops = publicationLifetimeLoops(), refused = new Error('original cancel refused');
+  let attempts = 0, reconciliations = 0;
+  const control = {publicationUnknownRetryAction: resolved => resolved ? 'finished' : 'reconcile'};
+  const error = loops.uncertainFailure(new Error('original Unknown'), undefined, undefined, control,
+    async () => {reconciliations++; return {outcome: 'uncommitted'};},
+    () => {if (++attempts === 1) throw refused;});
+  await assert.rejects(error.cleanupHandle.retry(), reason => reason === refused);
+  assert.equal(error.cleanupHandle.status().pending, true);
+  assert.equal((await error.cleanupHandle.retry()).pending, false);
+  assert.equal(reconciliations, 1); assert.equal(attempts, 2);
+  await error.cleanupHandle.retry(); assert.equal(attempts, 2);
+});
+
 test('publication computation lifetime transfers through the actual Unknown return and commit validation', async () => {
   const text = readFileSync(new URL('./run-publication.mjs', import.meta.url), 'utf8');
   let block;

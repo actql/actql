@@ -503,13 +503,17 @@ function capturedComputationLifetime(control, capturedRun) {
   if (original !== undefined && typeof original !== 'function') {
     fail('InvalidCapturedComputationRetirement');
   }
-  let retired = false;
+  let retired = false, retiring = false;
   return {
     transferred: false,
     retire() {
       if (retired) return;
-      retired = true;
-      if (original !== undefined) Reflect.apply(original, control, [capturedRun]);
+      if (retiring) fail('CapturedComputationRetirementBusy');
+      retiring = true;
+      try {
+        if (original !== undefined) Reflect.apply(original, control, [capturedRun]);
+        retired = true;
+      } finally {retiring = false;}
     },
   };
 }
@@ -530,7 +534,8 @@ function uncertainFailure(
   const status = () => {
     const cleanup = cleanupState(upstream, upstreamRequired);
     return Object.freeze({
-      pending: !resolved || cleanup.pending,
+      pending: !resolved || cleanup.pending ||
+        retireComputation !== undefined && !computationRetired,
       outcome: result?.outcome,
       errors: Object.freeze([...cleanup.errors, ...errors]),
     });
@@ -571,11 +576,11 @@ function uncertainFailure(
             // Common may finish this retry while its upstream remains pending.
             // Neither that action nor a status observation retires the facts.
             if (resolved && !cleanup.pending && !computationRetired) {
-              computationRetired = true;
               const retire = retireComputation;
+              retire?.();
+              computationRetired = true;
               retireComputation = undefined;
               reconcile = undefined;
-              retire?.();
             }
             break;
           }
@@ -912,11 +917,21 @@ async function publishRun(options, effectful, computationLifetime) {
 /// changing the internal Compute outcome.
 export async function publishEffectFreeRun(options) {
   const lifetime = capturedComputationLifetime(options?.control, options?.evidence?.capturedRun);
+  let primary, failed = false;
   try { return await publishRun(options, undefined, lifetime); }
+  catch (error) {failed = true; primary = error; throw error;}
   finally {
     // A same-original Unknown owns its reconciliation closure beyond return.
     // Ordinary terminal paths no longer need the completed computation fact.
-    if (!lifetime.transferred) lifetime.retire();
+    if (!lifetime.transferred) {
+      try {lifetime.retire();}
+      catch (cleanup) {
+        if (!failed) throw cleanup;
+        const failure = new RunPublicationError('RunPublicationRetirementFailed', primary);
+        failure.cleanupError = cleanup;
+        throw failure;
+      }
+    }
   }
 }
 

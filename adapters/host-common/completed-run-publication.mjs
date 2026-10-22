@@ -1500,7 +1500,13 @@ export async function publishCompletedEffectFreeRun(options) {
     });
   } catch (error) {
     if (!publicationEntered && capturedRun !== undefined && typeof retireCaptured === 'function') {
-      Reflect.apply(retireCaptured, control, [capturedRun]);
+      try {Reflect.apply(retireCaptured, control, [capturedRun]);}
+      catch (cleanup) {
+        const failure = new CompletedRunPublicationError('CompletedRunCaptureRetirementFailed', error);
+        failure.primaryFailure = error;
+        failure.cleanupError = cleanup;
+        error = failure;
+      }
     }
     await releasePreparedResults(exported, error, control);
   }
