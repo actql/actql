@@ -147,7 +147,7 @@ test('controlled job executes the composed assessor on missing and failed origin
   assert.equal(incomplete.releaseAccepted, false);
   assert.equal(incomplete.fullPerformanceAccepted, false);
   rmSync(output);
-  const hash = 'sha256:' + 'b'.repeat(64);
+  const hash = 'b'.repeat(64);
   put(join(root, 'ordinary-priority/node/measurement/warm/measurements.json'), {
     sourceSha: source, cohortSha256: hash, environmentSha256: hash,
     historyProtocolSha256: hash, executionPath: 'node-sdk',
