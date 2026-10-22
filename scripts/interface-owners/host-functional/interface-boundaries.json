@@ -77878,7 +77878,7 @@
     {
       "module": "adapters/host-node/local-result-authorization.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "2a06edec4bf39998c84ca3c37a64684a92e9dbc93ebe313615bb9655acc9ab7c",
+      "sha256": "a920c67eddd20c4fcbf7d22b298dbfa6b0a446835430aec64780c95fe0ed0fbd",
       "role": "physical-io",
       "owner": "Existing installed Local Host Result access and Common execution-authorization Owners",
       "exports": [
@@ -77893,7 +77893,8 @@
             "authorization",
             "principalId",
             "namespaceId",
-            "authorityScopeCid"
+            "authorityScopeCid",
+            "observation"
           ],
           "async": false
         },
@@ -77928,12 +77929,14 @@
             "authorization",
             "principalId",
             "namespaceId",
-            "authorityScopeCid"
+            "authorityScopeCid",
+            "observation"
           ],
           "async": false
         }
       ],
       "imports": [
+        "../host-common/observation.mjs",
         "./local-account-config.mjs"
       ],
       "compilerFields": [],
@@ -78029,6 +78032,10 @@
               {
                 "path": "docs/design/result-description.md",
                 "anchor": "### Output callback Account observations"
+              },
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "pure internal helpers, trusted reads and awaits do not advance callback state."
               }
             ],
             "inputsOutputs": [
@@ -78095,6 +78102,10 @@
               {
                 "path": "adapters/host-node/local-result-authorization.test.mjs",
                 "anchor": "test('actual Result callbacks retain one heavy evaluation for unchanged Account and separate the next operation'"
+              },
+              {
+                "path": "adapters/host-node/local-result-authorization.test.mjs",
+                "anchor": "actual observation delivery Deny stops Result output without refunding the original claim"
               }
             ]
           }

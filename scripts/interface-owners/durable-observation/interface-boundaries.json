@@ -246,7 +246,7 @@
     {
       "module": "adapters/host-common/observation.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "1ba8d284bdb1597f3c0b567d4ee53f412f91e51664d03e0f8a75493dd565ad69",
+      "sha256": "107de7d6a7bccde0cd268f921213170db974c697643acdecfd7a00085eb4c7d3",
       "exports": [
         "captureManagedRunObservation",
         "createHostObservationConnection",
@@ -435,6 +435,16 @@
           "async": false
         },
         {
+          "name": "installHostObservation/enterApplicationCallback/enterApplicationCallback",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installHostObservation/enterApplicationCallback/enterApplicationCallback/enterApplicationCallback",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "installHostObservation/finishContext/finishContext",
           "parameters": [
             "context"
@@ -498,18 +508,23 @@
         },
         {
           "name": "installHostObservation/projection/projection#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installHostObservation/projection/projection#3",
           "parameters": [
             "operation"
           ],
           "async": false
         },
         {
-          "name": "installHostObservation/projection/projection#3",
+          "name": "installHostObservation/projection/projection#4",
           "parameters": [],
           "async": false
         },
         {
-          "name": "installHostObservation/projection/projection#4",
+          "name": "installHostObservation/projection/projection#5",
           "parameters": [],
           "async": false
         },
@@ -707,12 +722,15 @@
             "installHostObservation/drop/drop",
             "installHostObservation/emit/emit",
             "installHostObservation/emit/emit/emit",
+            "installHostObservation/enterApplicationCallback/enterApplicationCallback",
+            "installHostObservation/enterApplicationCallback/enterApplicationCallback/enterApplicationCallback",
             "installHostObservation/projection/init:close/init:close",
             "installHostObservation/projection/init:close/init:close/init:close",
             "installHostObservation/projection/init:diagnostic/init:diagnostic",
             "installHostObservation/projection/projection",
             "installHostObservation/projection/projection#2",
             "installHostObservation/projection/projection#3",
+            "installHostObservation/projection/projection#5",
             "installHostObservation/pump/pump",
             "installHostObservation/pump/pump/pump",
             "installHostObservation/pump/pump/pump/pump",
@@ -746,6 +764,10 @@
               {
                 "path": "docs/development/durable-owner-interface.md",
                 "anchor": "| Responsibility |"
+              },
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "Delivery remains an application callback even on that later turn:"
               }
             ],
             "inputsOutputs": [
@@ -800,6 +822,10 @@
               {
                 "path": "docs/development/durable-owner-interface.md",
                 "anchor": "| Verification |"
+              },
+              {
+                "path": "adapters/host-common/observation.test.mjs",
+                "anchor": "application callback state changes at actual delivery entry and thrown settlement only"
               }
             ]
           }

@@ -12,11 +12,41 @@ import * as resultAccess from '../host-common/result-access.mjs';
 import {createResultDeliveryFixture} from '../../scripts/fixtures/result-delivery-acceptance.mjs';
 import {openResultDeliveryControl} from '../../packages/run-host-core/index.mjs';
 import {createHostObservationConnection, installHostObservation} from '../host-common/observation.mjs';
+import {parse} from 'acorn';
 
 const scope = `sha256:${'1'.repeat(64)}`;
 const facts = {principalId: 'person', resultName: 'main',
   indexKey: {namespaceId: 'local', authorityScopeCid: scope,
     runDefinitionCid: `sha256:${'2'.repeat(64)}`}};
+
+test('installed Host forwards the same observation projection into its read authorization factory', async () => {
+  const source = fs.readFileSync(new URL('./embedded-local.mjs', import.meta.url), 'utf8');
+  const calls = [];
+  function visit(node) {
+    if (node === null || typeof node !== 'object') return;
+    if (node.type === 'CallExpression' && node.callee.name === 'createLocalReadAuthorizations') calls.push(node);
+    for (const value of Object.values(node)) {
+      if (Array.isArray(value)) value.forEach(visit);
+      else if (value !== null && typeof value === 'object') visit(value);
+    }
+  }
+  visit(parse(source, {sourceType: 'module', ecmaVersion: 'latest'}));
+  assert.equal(calls.length, 1);
+  const call = new Function('createLocalReadAuthorizations', 'moon', 'authorization',
+    'principalId', 'namespaceId', 'authorityScopeCid', 'observation',
+    `return ${source.slice(calls[0].start, calls[0].end)};`);
+  const observation = installHostObservation(createHostObservationConnection({deliver() {}}));
+  try {
+    const moon = {}, authorization = {};
+    let captured;
+    const result = Object.freeze({});
+    assert.equal(call(options => {captured = options; return result;}, moon, authorization,
+      facts.principalId, facts.indexKey.namespaceId, scope, observation), result);
+    assert.deepEqual(captured, {moon, authorization, principalId: facts.principalId,
+      namespaceId: facts.indexKey.namespaceId, authorityScopeCid: scope, observation});
+    assert.equal(captured.observation, observation);
+  } finally {await observation.close();}
+});
 
 async function fixture(t, options = {}, subject = facts, observation) {
   const directory = await mkdtemp(join(tmpdir(), 'actql-result-account-'));
