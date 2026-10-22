@@ -6015,7 +6015,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "55cace9f57f641641485ee52f80ae59d18740998530970208d1c8d1cfbc89015",
+      "sha256": "f6d9573fdce23395042b252566188beb30a71c663baecc9700f141cbd3c33308",
       "exports": [
         "PublicationStoreError",
         "assertOriginalLocalPublicationStoreFacilityCurrent",
@@ -10859,6 +10859,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "### Settled Result deletion recovery"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "The existing staging, prepared-schema staging, metadata-deletion staging and"
               }
             ],
             "inputsOutputs": [
@@ -12077,6 +12081,18 @@
               {
                 "path": "adapters/store-local/publication-store.test.mjs",
                 "anchor": "clean Store reopening does not rescan settled Result deletion history"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "unchanged opening staging and clock directories require no new durability acknowledgement"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "opening staging cleanup still acknowledges each actual directory mutation"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "opening staging cleanup does not return a Store after its directory acknowledgement fails"
               }
             ]
           }
