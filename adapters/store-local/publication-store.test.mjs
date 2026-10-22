@@ -856,6 +856,43 @@ test('Effectful commit inspection consumes only its original private Index obser
   assert.equal(admissions, 1, 'foreign private observation refuses rather than admitting it as an original');
 });
 
+test('independent publication reader defaults never interpret a contract as generation retention', async () => {
+  // Execute the actual default-parameter entrances, not full evidence/FS.
+  const text = readFileSync(new URL('./publication-store.mjs', import.meta.url), 'utf8');
+  const selected = new Set(['verifyCommitEvidence', 'inspectEffectfulStoredEvidence']);
+  const functions = new Map();
+  function visit(node) {
+    if (!node || typeof node !== 'object') return;
+    if (node.type === 'VariableDeclarator' && selected.has(node.id.name)) {
+      assert(!functions.has(node.id.name)); functions.set(node.id.name, node.init);
+    }
+    for (const value of Object.values(node)) {
+      if (Array.isArray(value)) value.forEach(visit);
+      else if (value && typeof value === 'object') visit(value);
+    }
+  }
+  visit(parse(text, {ecmaVersion: 'latest', sourceType: 'module'}));
+  assert.equal(functions.size, 2);
+  for (const [name, node] of functions) {
+    const calls = [];
+    const readSemanticOriginal = async (...args) => {calls.push(args);return {bytes: Buffer.from('legacy')};};
+    const enter = compileFunction('return (' + text.slice(node.start, node.body.start) +
+      '{return readOriginal;});', ['readSemanticOriginal'])(readSemanticOriginal);
+    const args = name === 'verifyCommitEvidence' ? [undefined, undefined, undefined, undefined] : [{}];
+    const original = Object.freeze({name: 'run_invocation', wire: 'same original'});
+    const reader = await enter(...args);
+    const value = await reader(cids.run, false, original);
+    assert.equal(value.bytes.toString('utf8'), 'legacy');
+    assert.deepEqual(calls, [[cids.run, false]], `${name} independent default ignores the private contract argument`);
+    const privateCalls = [];
+    const privateReader = async (...args) => {privateCalls.push(args);return value;};
+    const retainedReader = await enter(...args, privateReader);
+    assert.strictEqual(retainedReader, privateReader);
+    await retainedReader(cids.run, true, original);
+    assert.deepEqual(privateCalls, [[cids.run, true, original]], `${name} preserves the actual private reader's original forwarding`);
+  }
+});
+
 test('independent Effect inspection ignores caller supplied private Index observations', async t => {
   let admissions = 0;
   const control = {...contractControl,
