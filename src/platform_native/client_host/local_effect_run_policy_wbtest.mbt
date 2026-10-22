@@ -310,3 +310,100 @@ test "Native Effect finite Policy requires independent current publish without a
     before.revision,
   )
 }
+
+///|
+test "saved Run policy joins the command context without a read transaction" {
+  let host = effect_finite_policy_host("effect-policy-command-read")
+  defer host.close() |> ignore
+  let policy = effect_finite_policy_binding(host)
+  let (reference, preparation, request, allowed, definition, issued) = effect_values_policy_test_prepared(
+    host,
+    "command-read",
+    principal="local-cli",
+    connection="local",
+  )
+  policy
+  .accept_submitted_effect_values_run_policy(
+    reference, preparation, request, allowed, definition, issued, "2026-10-10T00:00:00.000Z",
+    1002.0,
+  )
+  .unwrap()
+  |> ignore
+  let calls : Array[String] = []
+  let operations = journal_test_operation_access(host.database, calls)
+  host.epoch.begin_operation(false)
+  host.journal.operation_active = true
+  let first = policy
+    .lookup_submitted_run_policy_with_operations(
+      reference,
+      request,
+      1003.0,
+      () => true,
+      operations=Some(operations),
+    )
+    .unwrap()
+  // Only the acknowledged epoch clock can write. The restored immutable
+  // original must not add another transaction to the selected command.
+  assert_eq(calls.filter(value => value == "begin").length(), 1)
+  assert_eq(calls.filter(value => value == "commit").length(), 1)
+  calls.clear()
+  let again = policy
+    .lookup_submitted_run_policy_with_operations(
+      reference,
+      request,
+      1003.0,
+      () => true,
+      operations=Some(operations),
+    )
+    .unwrap()
+  assert_eq(
+    @host.client_local_run_policy_original_body(first),
+    @host.client_local_run_policy_original_body(again),
+  )
+  assert_false(calls.contains("begin"))
+  assert_false(calls.contains("commit"))
+  // An outstanding flight cannot be joined or silently acknowledged.
+  host.journal.transaction_active = true
+  assert_true(
+    policy.lookup_submitted_run_policy_with_operations(
+      reference,
+      request,
+      1003.0,
+      () => true,
+      operations=Some(operations),
+    )
+    is Err(Physical(@sqlite.Busy)),
+  )
+  host.journal.transaction_active = false
+  assert_true(host.journal.operation_record is None)
+  assert_true(host.journal.operation_submission is None)
+  calls.clear()
+  assert_true(
+    policy.lookup_submitted_run_policy_with_operations(
+      reference,
+      request,
+      1003.0,
+      () => false,
+      operations=Some(operations),
+    )
+    is Err(AuthorizationDenied),
+  )
+  assert_false(calls.contains("begin"))
+  host.journal.operation_active = false
+  host.journal.invalidate_operation_record()
+  host.epoch.end_operation()
+  calls.clear()
+  policy
+  .lookup_submitted_run_policy_with_operations(
+    reference,
+    request,
+    1003.0,
+    () => true,
+    operations=Some(operations),
+  )
+  .unwrap()
+  |> ignore
+  // The unscoped Submission and original policy reads remain transactional.
+  assert_eq(calls.filter(value => value == "begin").length(), 2)
+  assert_eq(calls.filter(value => value == "commit").length(), 2)
+}
