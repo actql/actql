@@ -5579,7 +5579,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "b681d5fb3575cf2ea917142427e3d286ae166086a1078bd6b7747da15748a9d0",
+      "sha256": "a17c1689e5950030127add8fc153485cedfe2ac4b368d071686ce453c2533441",
       "exports": [
         "PublicationStoreError",
         "assertOriginalLocalPublicationStoreFacilityCurrent",
@@ -7029,6 +7029,13 @@
           "async": true
         },
         {
+          "name": "openOriginalLocalPublicationStore/initializeDeliveryIndex/initializeDeliveryIndex/readLegacySemantic/readLegacySemantic",
+          "parameters": [
+            "cid"
+          ],
+          "async": false
+        },
+        {
           "name": "openOriginalLocalPublicationStore/inspectCommittedIndex/inspectCommittedIndex",
           "parameters": [
             "key"
@@ -8014,6 +8021,14 @@
             "value"
           ],
           "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/readFileDeliveryAttemptContract/readFileDeliveryAttemptContract",
+          "parameters": [
+            "attemptCid",
+            "retained"
+          ],
+          "async": true
         },
         {
           "name": "openOriginalLocalPublicationStore/readJsonObject/readJsonObject",
@@ -11697,6 +11712,7 @@
             "openOriginalLocalPublicationStore/initializeDeliveryIndex/initializeDeliveryIndex",
             "openOriginalLocalPublicationStore/initializeDeliveryIndex/initializeDeliveryIndex/initializeDeliveryIndex",
             "openOriginalLocalPublicationStore/initializeDeliveryIndex/initializeDeliveryIndex/publishCoverage/publishCoverage",
+            "openOriginalLocalPublicationStore/initializeDeliveryIndex/initializeDeliveryIndex/readLegacySemantic/readLegacySemantic",
             "openOriginalLocalPublicationStore/installDeliveryAttempt/installDeliveryAttempt",
             "openOriginalLocalPublicationStore/installDeliveryAttempt/installDeliveryAttempt/init:retry/init:retry",
             "openOriginalLocalPublicationStore/installDeliveryAttempt/installDeliveryAttempt/init:retry/init:retry/init:retry",
@@ -11705,6 +11721,7 @@
             "openOriginalLocalPublicationStore/installDeliveryAttempt/installDeliveryAttempt/status/status",
             "openOriginalLocalPublicationStore/nativeDeliveryContract/nativeDeliveryContract",
             "openOriginalLocalPublicationStore/readDeliveryAttemptContract/readDeliveryAttemptContract",
+            "openOriginalLocalPublicationStore/readFileDeliveryAttemptContract/readFileDeliveryAttemptContract",
             "openOriginalLocalPublicationStore/restoreDeliveryClaim/restoreDeliveryClaim",
             "openOriginalLocalPublicationStore/selectDeliveryAttempt/selectDeliveryAttempt",
             "openOriginalLocalPublicationStore/selectDeliveryAttempt/selectDeliveryAttempt/selectDeliveryAttempt"
@@ -11719,6 +11736,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "### Indexed physical object usage"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "Its attempt and grant readers explicitly acquire their original legacy files;"
               }
             ],
             "inputsOutputs": [
@@ -11737,6 +11758,10 @@
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "const accountPhysicalUsage = usage => {"
+              },
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "const readFileDeliveryAttemptContract = async (attemptCid, retained) => {"
               }
             ],
             "identity": [
@@ -11747,6 +11772,10 @@
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "fail('PublicationObjectAccountingMismatch');"
+              },
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "if (contract.identity !== attemptCid) fail('InvalidDeliveryAttempt');"
               }
             ],
             "ownership": [
@@ -11761,6 +11790,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "usage and removes those pending originals together. No per-item custody file"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "same bounded admission, semantic digest/hard-link and original reader-close"
               }
             ],
             "synchronization": [
@@ -11775,6 +11808,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "Unlink and its containing-directory ACK precede decrementing the same physical"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "refuses ambiguous keys or excess uses, and commits complete coverage once."
               }
             ],
             "failure": [
@@ -11789,6 +11826,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "ACK keeps the charge and pending owner; retries do not relink, resend, substitute"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "they do not query the incomplete native index or interpret it as absence. The"
               }
             ],
             "cancellation": [
@@ -11799,6 +11840,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "until a real same-original idempotent transaction confirms the outcome. Reads,"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "Recovery never dispatches payload,"
               }
             ],
             "resources": [
@@ -11813,6 +11858,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "The existing Store limits bound installed totals, pending generation rows,"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "The bounded legacy migration reads each original attempt and referenced grant,"
               }
             ],
             "extension": [
@@ -11823,6 +11872,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "legacy census completes atomically with its totals. Missing adopted tables or"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "ready or missing adopted state cannot enter this building-only reader path."
               }
             ],
             "verification": [
@@ -11853,6 +11906,10 @@
               {
                 "path": "adapters/store-local/publication-store.test.mjs",
                 "anchor": "physical object capacity survives reopen without inspecting unrelated payload history"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "legacy delivery building refuses a missing original grant without adopting empty coverage"
               }
             ]
           }
