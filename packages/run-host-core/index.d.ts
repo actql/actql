@@ -7,6 +7,7 @@ declare const taskCompilationBrand: unique symbol;
 declare const effectPreparationBrand: unique symbol;
 declare const effectCompilationBrand: unique symbol;
 declare const effectAllowedBrand: unique symbol;
+declare const effectCheckpointBindingBrand: unique symbol;
 declare const issuedEffectMaterialsBrand: unique symbol;
 declare const requestBrand: unique symbol;
 declare const admissionBrand: unique symbol;
@@ -139,11 +140,18 @@ export function effectResultSchema(prepared: PreparedEffectProgram,
     cid: string; wire: string; fields: readonly string[]}>;
 /** Metadata binding to the original checked Effect Run/unit/window only.
  * Does not confirm Native custody, current authority, waiting or approval. */
+export interface EffectReviewCheckpointBinding {
+    readonly [effectCheckpointBindingBrand]: true;
+    readonly checkpointCid: string; readonly checkpointWire: string;
+    readonly runId: string; readonly unitId: string;
+    readonly runDefinitionCid: string; readonly previewCid: string;
+    readonly reviewProjectionCid: string; readonly continuationCid: string;
+}
 export function effectReviewCheckpointBinding(allowed: AllowedEffectRun,
-  definition: RunDefinition, checkpointWire: string): Readonly<{
-    checkpointCid: string; checkpointWire: string; runId: string; unitId: string;
-    runDefinitionCid: string; previewCid: string; reviewProjectionCid: string;
-    continuationCid: string}>;
+  definition: RunDefinition, checkpointWire: string): EffectReviewCheckpointBinding;
+/** Same admitted original only; no wire admission, persistence or current grant. */
+export function effectReviewCheckpointBindingFacts(binding: EffectReviewCheckpointBinding,
+  allowed: AllowedEffectRun, definition: RunDefinition): EffectReviewCheckpointBinding;
 /** Project only the members of the original checked unit/Checkpoint. */
 export function effectReviewCheckpointMembers(allowed: AllowedEffectRun,
   definition: RunDefinition, checkpointWire: string): readonly string[];

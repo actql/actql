@@ -68043,7 +68043,7 @@
     {
       "module": "packages/run-host-core/index.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "b170ee98d86f5058ca0a279b8deff0556187a0b0a99ed30a127414e379cd2f3d",
+      "sha256": "53799a889204c45cc5a4edc5c6f873b859af09162502d3f8c4f3d824a9589642",
       "role": "common-semantics",
       "owner": "Existing client_values_host_abi/Run Publication Owners; public same-process type projection",
       "exports": [
@@ -68053,6 +68053,7 @@
         "DeliveryContractView",
         "DurableResultRowFrames",
         "EffectCompilation",
+        "EffectReviewCheckpointBinding",
         "IssuedDeliveryAttemptFacts",
         "IssuedDeliveryAttemptOriginal",
         "IssuedEffectRunMaterials",
@@ -68136,6 +68137,7 @@
         "effectResultDefinitions",
         "effectResultSchema",
         "effectReviewCheckpointBinding",
+        "effectReviewCheckpointBindingFacts",
         "effectReviewCheckpointMembers",
         "effectRunStartCurrent",
         "effectSourceEvidenceFacts",
@@ -68566,7 +68568,16 @@
             "definition: RunDefinition",
             "checkpointWire: string"
           ],
-          "result": "Readonly<{\n    checkpointCid: string; checkpointWire: string; runId: string; unitId: string;\n    runDefinitionCid: string; previewCid: string; reviewProjectionCid: string;\n    continuationCid: string}>"
+          "result": "EffectReviewCheckpointBinding"
+        },
+        {
+          "name": "effectReviewCheckpointBindingFacts",
+          "parameters": [
+            "binding: EffectReviewCheckpointBinding",
+            "allowed: AllowedEffectRun",
+            "definition: RunDefinition"
+          ],
+          "result": "EffectReviewCheckpointBinding"
         },
         {
           "name": "effectReviewCheckpointMembers",
@@ -70380,7 +70391,8 @@
             "validatePublicationRecordTransition",
             "validateRetainedInputPlan",
             "validateRetainedTaskInput",
-            "bindPreparedEffectRunMaterials"
+            "bindPreparedEffectRunMaterials",
+            "effectReviewCheckpointBindingFacts"
           ],
           "exports": [
             "AllowedEffectRun",
@@ -70389,6 +70401,7 @@
             "DeliveryContractView",
             "DurableResultRowFrames",
             "EffectCompilation",
+            "EffectReviewCheckpointBinding",
             "IssuedDeliveryAttemptFacts",
             "IssuedDeliveryAttemptOriginal",
             "IssuedEffectRunMaterials",
@@ -70457,6 +70470,7 @@
             "admitTaskRun",
             "admitTaskRunDefinition",
             "beginResultMaterialHolds",
+            "bindPreparedEffectRunMaterials",
             "captureOriginalRunPlan",
             "checkRunBinding",
             "compileEffect",
@@ -70468,6 +70482,7 @@
             "effectResultDefinitions",
             "effectResultSchema",
             "effectReviewCheckpointBinding",
+            "effectReviewCheckpointBindingFacts",
             "effectReviewCheckpointMembers",
             "effectRunStartCurrent",
             "effectSourceEvidenceFacts",
@@ -70586,8 +70601,7 @@
             "validatePublicationChain",
             "validatePublicationRecordTransition",
             "validateRetainedInputPlan",
-            "validateRetainedTaskInput",
-            "bindPreparedEffectRunMaterials"
+            "validateRetainedTaskInput"
           ],
           "attributes": {
             "responsibility": [
@@ -70606,6 +70620,10 @@
               {
                 "path": "docs/design/remote-site-execution.md",
                 "anchor": "## Pre-Checkpoint Effect Run observation"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Original sealed Checkpoint bindings"
               }
             ],
             "inputsOutputs": [
@@ -70624,6 +70642,10 @@
               {
                 "path": "docs/design/remote-site-execution.md",
                 "anchor": "## Pre-Checkpoint Effect Run observation"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Original sealed Checkpoint bindings"
               }
             ],
             "identity": [
@@ -70642,6 +70664,10 @@
               {
                 "path": "docs/design/remote-site-execution.md",
                 "anchor": "## Pre-Checkpoint Effect Run observation"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Original sealed Checkpoint bindings"
               }
             ],
             "ownership": [
@@ -70660,6 +70686,10 @@
               {
                 "path": "docs/design/remote-site-execution.md",
                 "anchor": "## Pre-Checkpoint Effect Run observation"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Original sealed Checkpoint bindings"
               }
             ],
             "synchronization": [
@@ -70678,6 +70708,10 @@
               {
                 "path": "docs/design/remote-site-execution.md",
                 "anchor": "## Pre-Checkpoint Effect Run observation"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Original sealed Checkpoint bindings"
               }
             ],
             "failure": [
@@ -70696,6 +70730,10 @@
               {
                 "path": "docs/design/remote-site-execution.md",
                 "anchor": "## Pre-Checkpoint Effect Run observation"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Original sealed Checkpoint bindings"
               }
             ],
             "cancellation": [
@@ -70714,6 +70752,10 @@
               {
                 "path": "docs/design/remote-site-execution.md",
                 "anchor": "## Pre-Checkpoint Effect Run observation"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Original sealed Checkpoint bindings"
               }
             ],
             "resources": [
@@ -70732,6 +70774,10 @@
               {
                 "path": "docs/design/remote-site-execution.md",
                 "anchor": "## Pre-Checkpoint Effect Run observation"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Original sealed Checkpoint bindings"
               }
             ],
             "extension": [
@@ -70750,6 +70796,10 @@
               {
                 "path": "docs/design/remote-site-execution.md",
                 "anchor": "## Pre-Checkpoint Effect Run observation"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Original sealed Checkpoint bindings"
               }
             ],
             "verification": [
@@ -70768,6 +70818,10 @@
               {
                 "path": "docs/design/remote-site-execution.md",
                 "anchor": "## Pre-Checkpoint Effect Run observation"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "## Original sealed Checkpoint bindings"
               }
             ]
           }
