@@ -8242,7 +8242,7 @@
     {
       "module": "adapters/host-common/run-publication.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "5b8df4083fc53d54b3cc9c7d2cb9a5650e808ac8984b5a05dd81925e136ddbd5",
+      "sha256": "e7972a65506b760b3577b00ef9fb5e5f518208601777e4d6367dc18bb552e208",
       "role": "physical-io",
       "owner": "Existing Run Publication/Artifact Owners and physical Store sequencing",
       "exports": [
@@ -8257,6 +8257,18 @@
             "store",
             "control",
             "key"
+          ],
+          "async": true
+        },
+        {
+          "name": "appendInitialStates",
+          "parameters": [
+            "store",
+            "control",
+            "attempt",
+            "signal",
+            "now",
+            "limits"
           ],
           "async": true
         },
@@ -8611,6 +8623,7 @@
             "<module>",
             "RunPublicationError/constructor:constructor/constructor:constructor",
             "admittedCommittedIndex",
+            "appendInitialStates",
             "appendState",
             "cleanupState",
             "commitEvidence",
@@ -8962,6 +8975,14 @@
               {
                 "path": "adapters/store-local/publication-store.test.mjs",
                 "anchor": "test('publication setup confirmation retains the original failure without complete same-Store acknowledgement', async t => {"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "test(`initial progress caller preserves its original Unknown at"
+              },
+              {
+                "path": "adapters/host-common/publication-contract-control.test.mjs",
+                "anchor": "test('initial publication group consumes actual Common originals and keeps the post-group cancellation boundary'"
               }
             ]
           }

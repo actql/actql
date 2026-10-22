@@ -4182,7 +4182,7 @@
     {
       "module": "adapters/store-local/delivery-attempt-index.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "cbb58874e858e7a86c406a3d7d924f9c32e07fb0461744eddd55da1dcf941348",
+      "sha256": "a95b1e2f45e9297f36735adf6daa2e227c3201fcb9ad1abbd8e9962d4e10d6d3",
       "exports": [
         "openDeliveryAttemptIndex"
       ],
@@ -5016,6 +5016,14 @@
           "async": false
         },
         {
+          "name": "openDeliveryAttemptIndex/progressCopy/progressCopy/records/records",
+          "parameters": [
+            "record",
+            "sequence"
+          ],
+          "async": false
+        },
+        {
           "name": "openDeliveryAttemptIndex/publicationCopy/publicationCopy",
           "parameters": [
             "row"
@@ -5047,7 +5055,29 @@
           "async": false
         },
         {
+          "name": "openDeliveryAttemptIndex/publicationMutation/publicationMutation/publicationMutation/installed/installed",
+          "parameters": [
+            "record",
+            "i"
+          ],
+          "async": false
+        },
+        {
+          "name": "openDeliveryAttemptIndex/publicationMutation/publicationMutation/publicationMutation/publicationMutation",
+          "parameters": [
+            "record"
+          ],
+          "async": false
+        },
+        {
           "name": "openDeliveryAttemptIndex/publicationMutation/publicationMutation/publicationMutation#2",
+          "parameters": [
+            "entry"
+          ],
+          "async": false
+        },
+        {
+          "name": "openDeliveryAttemptIndex/publicationMutation/publicationMutation/publicationMutation#3",
           "parameters": [],
           "async": false
         },
@@ -5178,6 +5208,21 @@
           "name": "openDeliveryAttemptIndex/sameProgress/sameProgress/sameProgress",
           "parameters": [
             "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "openDeliveryAttemptIndex/sameProgress/sameProgress/sameProgress/sameProgress",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "openDeliveryAttemptIndex/sameProgress/sameProgress/sameProgress#2",
+          "parameters": [
+            "record",
+            "i"
           ],
           "async": false
         },
@@ -5382,11 +5427,15 @@
             "openDeliveryAttemptIndex/prepare/prepare/prepare#2",
             "openDeliveryAttemptIndex/prepare/prepare/prepare#3",
             "openDeliveryAttemptIndex/progressCopy/progressCopy",
+            "openDeliveryAttemptIndex/progressCopy/progressCopy/records/records",
             "openDeliveryAttemptIndex/publicationCopy/publicationCopy",
             "openDeliveryAttemptIndex/publicationMutation/publicationMutation",
             "openDeliveryAttemptIndex/publicationMutation/publicationMutation/originals/originals",
             "openDeliveryAttemptIndex/publicationMutation/publicationMutation/publicationMutation",
             "openDeliveryAttemptIndex/publicationMutation/publicationMutation/publicationMutation#2",
+            "openDeliveryAttemptIndex/publicationMutation/publicationMutation/publicationMutation#3",
+            "openDeliveryAttemptIndex/publicationMutation/publicationMutation/publicationMutation/installed/installed",
+            "openDeliveryAttemptIndex/publicationMutation/publicationMutation/publicationMutation/publicationMutation",
             "openDeliveryAttemptIndex/publicationMutation/publicationMutation/retry/retry",
             "openDeliveryAttemptIndex/recoveryOriginal/recoveryOriginal",
             "openDeliveryAttemptIndex/recoveryState/recoveryState",
@@ -5407,6 +5456,8 @@
             "openDeliveryAttemptIndex/samePhysical/samePhysical/samePhysical",
             "openDeliveryAttemptIndex/sameProgress/sameProgress",
             "openDeliveryAttemptIndex/sameProgress/sameProgress/sameProgress",
+            "openDeliveryAttemptIndex/sameProgress/sameProgress/sameProgress#2",
+            "openDeliveryAttemptIndex/sameProgress/sameProgress/sameProgress/sameProgress",
             "openDeliveryAttemptIndex/samePublication/samePublication",
             "openDeliveryAttemptIndex/samePublication/samePublication/samePublication",
             "openDeliveryAttemptIndex/sameRecoveryOriginal/sameRecoveryOriginal",
@@ -5867,6 +5918,10 @@
               {
                 "path": "adapters/store-local/publication-store.test.mjs",
                 "anchor": "test('publication setup commits its immutable bodies and initial attempt in one native transaction', async t => {"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "test(`initial publication group confirms only its original"
               }
             ]
           }
@@ -5876,7 +5931,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "f2557dc0e8b71a1f60e91fc69209fdaacac73b774cd28f5a39befb2cadc42aab",
+      "sha256": "605c874335539b9d3ec1c51bde76428de2b158b8c68e0504f2d25c7ecb11b010",
       "exports": [
         "PublicationStoreError",
         "assertOriginalLocalPublicationStoreFacilityCurrent",
@@ -6249,6 +6304,29 @@
         {
           "name": "openOriginalLocalPublicationStore/appendDeliveryRecord/appendDeliveryRecord/appendDeliveryRecord",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/appendInitialPublicationRecords/appendInitialPublicationRecords",
+          "parameters": [
+            "supplied"
+          ],
+          "async": true
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/appendInitialPublicationRecords/appendInitialPublicationRecords/appendInitialPublicationRecords",
+          "parameters": [
+            "contract"
+          ],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/appendInitialPublicationRecords/appendInitialPublicationRecords/appendInitialPublicationRecords#2",
+          "parameters": [
+            "contract",
+            "value",
+            "sequence"
+          ],
           "async": false
         },
         {
@@ -9944,6 +10022,9 @@
             "openOriginalLocalPublicationStore/adoptPreparedSchemas/adoptPreparedSchemas/adopted/adopted",
             "openOriginalLocalPublicationStore/adoptPreparedSchemas/adoptPreparedSchemas/durable/durable",
             "openOriginalLocalPublicationStore/appendDeliveryRecord/appendDeliveryRecord",
+            "openOriginalLocalPublicationStore/appendInitialPublicationRecords/appendInitialPublicationRecords",
+            "openOriginalLocalPublicationStore/appendInitialPublicationRecords/appendInitialPublicationRecords/appendInitialPublicationRecords",
+            "openOriginalLocalPublicationStore/appendInitialPublicationRecords/appendInitialPublicationRecords/appendInitialPublicationRecords#2",
             "openOriginalLocalPublicationStore/appendRecord/appendRecord",
             "openOriginalLocalPublicationStore/beginPreparedCommit/beginPreparedCommit",
             "openOriginalLocalPublicationStore/beginPreparedCommit/beginPreparedCommit/init:retry/init:retry",
@@ -11618,6 +11699,14 @@
               {
                 "path": "adapters/store-local/publication-store.test.mjs",
                 "anchor": "test('same-Store metadata retirement invalidates an unused selected publication observation'"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "test(`initial publication group durably retains both originals with one commit:"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "The optional initial-publication operation retains the two original records,"
               }
             ]
           }

@@ -107,6 +107,13 @@ assert.ok(publicationPersist);
 const persistOriginalPublicationSetup = compileFunction(
   publicationSource.slice(publicationMember.start, publicationMember.end) + '\n' +
   publicationSource.slice(publicationPersist.start, publicationPersist.end) + '\nreturn persistContracts;', [])();
+const publicationInitial = publicationAst.body.find(node => node.type === 'FunctionDeclaration' && node.id.name === 'appendInitialStates');
+assert.ok(publicationInitial);
+const appendOriginalInitialStates = compileFunction(
+  publicationSource.slice(publicationMember.start, publicationMember.end) + '\n' +
+  publicationSource.slice(publicationInitial.start, publicationInitial.end) + '\nreturn appendInitialStates;', ['fail'])(code => {
+    throw Object.assign(new Error(code), {code});
+  });
 
 async function runStoreChild(source) {
   const child = spawn(process.execPath, [
@@ -3441,6 +3448,229 @@ test('publication progress uses one native commit and no shadow file ACKs per tr
   await assert.rejects(reopened.appendRecord(wire(preparing),{uncommittedConfirmed:false}),
     code('InvalidPublicationRecordTransition'));
   }finally{armed=false;fsPromises.open=originalOpen;syncBuiltinESMExports();}
+});
+
+for (const terminal of ['committing', 'cancelled']) {
+test(`initial publication group durably retains both originals with one commit: ${terminal}`, async t => {
+  const attempt = publicationAttempt(publicationRequest(), `initial-group-${terminal}`);
+  const preparing = publicationRecord(attempt, 0, 'preparing');
+  const next = publicationRecord(attempt, 1, terminal, preparing);
+  const originals = [preparing, next].map(value => contractControl.admit('publication_record', wire(value), limits));
+  const exec = DatabaseSync.prototype.exec;
+  let armed = false, commits = 0;
+  t.mock.method(DatabaseSync.prototype, 'exec', function(sql) {
+    if (armed && sql === 'COMMIT') commits++;
+    return Reflect.apply(exec, this, [sql]);
+  });
+  const {store, directory, configuration} = await fixture(t);
+  await store.createAttempt(wire(attempt));
+  armed = true;
+  await store.appendInitialPublicationRecords(originals);
+  armed = false;
+  assert.equal(commits, 1);
+  assert.deepEqual(await store.latestRecord(attempt.publication_attempt_cid), next);
+  assert.equal(store.status().objectCount, 3);
+  assert.deepEqual(await readdir(join(directory, 'contracts')), []);
+  assert.deepEqual(await readdir(join(directory, 'attempts')), []);
+  for (const original of originals) {
+    assert.equal((await store.readPublicationContract(original.identity, original.name)).wire, original.wire);
+  }
+  await assert.rejects(store.appendInitialPublicationRecords(originals), code('InvalidPublicationRecordTransition'));
+  await store.close();
+  const reopened = await openLocalPublicationStore(configuration, contractControl);
+  assert.deepEqual(await reopened.latestRecord(attempt.publication_attempt_cid), next);
+});
+}
+
+for (const afterCommit of [false, true]) {
+test(`initial publication group confirms only its original ${afterCommit ? 'committed' : 'rolled-back'} Unknown`, async t => {
+  const attempt = publicationAttempt(publicationRequest(), `group-unknown-${afterCommit}`);
+  const preparing = publicationRecord(attempt, 0, 'preparing');
+  const committing = publicationRecord(attempt, 1, 'committing', preparing);
+  const originals = [preparing, committing].map(value => contractControl.admit('publication_record', wire(value), limits));
+  const exec = DatabaseSync.prototype.exec;
+  let armed = false, lost = false, commits = 0, database, failure;
+  t.mock.method(DatabaseSync.prototype, 'exec', function(sql) {
+    if (armed && sql === 'COMMIT') {
+      commits++;
+      if (!lost) {
+        database = this; lost = true;
+        if (afterCommit) Reflect.apply(exec, this, [sql]);
+        throw Object.assign(new Error('lost initial progress group COMMIT reply'), {code: 'EIO'});
+      }
+      assert.equal(this, database);
+    }
+    return Reflect.apply(exec, this, [sql]);
+  });
+  const {store, configuration} = await fixture(t);
+  await store.createAttempt(wire(attempt));
+  armed = true;
+  await assert.rejects(store.appendInitialPublicationRecords(originals), error => {
+    failure = error;
+    return error.code === 'PublicationMetadataCommitOutcomeUnknown' && error.outcome === 'unknown' && error.cleanupHandle.status().pending;
+  });
+  assert.equal(lost, true);
+  assert.equal(store.status().reservedObjects, 2);
+  assert.equal((await failure.cleanupHandle.retry()).pending, false);
+  assert.equal((await failure.cleanupHandle.retry()).pending, false);
+  assert.equal(commits, 2, 'one original transaction plus one real same-original confirmation');
+  assert.equal(store.status().reservedObjects, 0);
+  assert.equal(store.status().objectCount, 3);
+  assert.deepEqual(await store.latestRecord(attempt.publication_attempt_cid), committing);
+  for (const original of originals) assert.equal((await store.readPublicationContract(original.identity, original.name)).wire, original.wire);
+  armed = false;
+  await store.close();
+  const reopened = await openLocalPublicationStore(configuration, contractControl);
+  assert.deepEqual(await reopened.latestRecord(attempt.publication_attempt_cid), committing);
+});
+}
+
+test('initial publication group refuses incomplete foreign and over-quota originals before any progress', async t => {
+  const {store} = await fixture(t, {maxObjects: 2});
+  const attempt = publicationAttempt(publicationRequest(), 'group-quota');
+  const preparing = publicationRecord(attempt, 0, 'preparing');
+  const next = publicationRecord(attempt, 1, 'committing', preparing);
+  const originals = [preparing, next].map(value => contractControl.admit('publication_record', wire(value), limits));
+  await store.createAttempt(wire(attempt));
+  await assert.rejects(store.appendInitialPublicationRecords([originals[0]]), code('InvalidPublicationRecord'));
+  const other = publicationAttempt(publicationRequest(), 'group-foreign');
+  const foreign = contractControl.admit('publication_record', wire(publicationRecord(other, 1, 'committing', preparing)), limits);
+  await assert.rejects(store.appendInitialPublicationRecords([originals[0], foreign]), code('PublicationAttemptMismatch'));
+  await assert.rejects(store.appendInitialPublicationRecords(originals), code('PublicationStoreObjectLimit'));
+  assert.equal(await store.latestRecord(attempt.publication_attempt_cid), undefined);
+  assert.equal(store.status().objectCount, 1);
+  assert.equal(store.status().reservedObjects, 0);
+});
+
+for (const afterCommit of [false, true]) {
+test(`initial progress caller keeps its two originals through ${afterCommit ? 'committed' : 'rolled-back'} confirmation`, async t => {
+  const attempt = publicationAttempt(publicationRequest(), `caller-group-${afterCommit}`);
+  const preparing = publicationRecord(attempt, 0, 'preparing');
+  const committing = publicationRecord(attempt, 1, 'committing', preparing);
+  const originalAttempt = contractControl.admit('publication_attempt', wire(attempt), limits);
+  const originals = [preparing, committing].map(record => contractControl.admit('publication_record', wire(record), limits));
+  const exec = DatabaseSync.prototype.exec;
+  let armed = false, lost = false, issued = 0, writes = 0, failure;
+  t.mock.method(DatabaseSync.prototype, 'exec', function(sql) {
+    if (armed && sql === 'COMMIT' && !lost) {
+      lost = true;
+      if (afterCommit) Reflect.apply(exec, this, [sql]);
+      throw Object.assign(new Error('caller initial group reply lost'), {code:'EIO'});
+    }
+    return Reflect.apply(exec, this, [sql]);
+  });
+  const {store} = await fixture(t);
+  await store.createAttempt(wire(attempt));
+  const selected = {...store, async appendInitialPublicationRecords(records) {
+    assert.equal(this, selected); writes++;
+    assert.equal(records[0], originals[0]); assert.equal(records[1], originals[1]);
+    try { return await store.appendInitialPublicationRecords(records); }
+    catch (error) {failure = error; throw error;}
+  }};
+  const control = {
+    issuePublicationRecord(selectedAttempt, previous, options) {
+      assert.equal(selectedAttempt, originalAttempt);
+      assert.equal(previous, issued === 0 ? undefined : originals[0]);
+      assert.equal(options.state, issued === 0 ? 'preparing' : 'committing');
+      return originals[issued++];
+    },
+    publicationAttemptAction(record, active, indexed) {
+      assert.equal(record, originals[0]); assert.equal(indexed, false);
+      return active ? 'append_committing' : 'check_active';
+    },
+  };
+  armed = true;
+  const actual = await appendOriginalInitialStates(selected, control, originalAttempt, undefined, () => committing.observed_at, limits);
+  armed = false;
+  assert.equal(actual, originals[1]); assert.equal(issued, 2); assert.equal(writes, 1);
+  assert.equal(lost, true); assert.equal(failure.cleanupHandle.status().pending, false);
+  assert.deepEqual(await store.latestRecord(attempt.publication_attempt_cid), committing);
+});
+}
+
+test('initial progress caller persists cancellation without a committing original or healthy confirmation reads', async t => {
+  const {store} = await fixture(t);
+  const attempt = publicationAttempt(publicationRequest(), 'caller-group-cancel');
+  const originalAttempt = contractControl.admit('publication_attempt', wire(attempt), limits);
+  const preparing = publicationRecord(attempt, 0, 'preparing');
+  const cancelled = publicationRecord(attempt, 1, 'cancelled', preparing);
+  const originals = [preparing, cancelled].map(record => contractControl.admit('publication_record', wire(record), limits));
+  await store.createAttempt(wire(attempt));
+  let issued = 0, writes = 0;
+  const reason = new Error('OriginalCancellation');
+  const selected = {async appendInitialPublicationRecords(records) {
+    assert.equal(this, selected); writes++; return store.appendInitialPublicationRecords(records);
+  }, latestRecordContract() {assert.fail('Healthy grouped append requires no confirmation reads');},
+  readPublicationContract() {assert.fail('Healthy grouped append requires no confirmation reads');}};
+  const control = {issuePublicationRecord(selectedAttempt, previous, options) {
+    assert.equal(selectedAttempt, originalAttempt); assert.equal(previous, issued === 0 ? undefined : originals[0]);
+    assert.equal(options.state, issued === 0 ? 'preparing' : 'cancelled'); return originals[issued++];
+  }, publicationAttemptAction: () => 'check_active', publicationCancellationAction(record) {
+    assert.equal(record, originals[0]); return 'cancel_preparing';
+  }};
+  await assert.rejects(appendOriginalInitialStates(selected, control, originalAttempt,
+    {throwIfAborted() {throw reason;}}, () => cancelled.observed_at, limits), error => error === reason);
+  assert.equal(writes, 1); assert.equal(issued, 2);
+  assert.deepEqual(await store.latestRecord(attempt.publication_attempt_cid), cancelled);
+});
+
+test('initial publication group keeps legacy file-backed attempt acknowledgements', async t => {
+  const {store, directory, configuration} = await fixture(t);
+  const attempt = publicationAttempt(publicationRequest(), 'file-group');
+  const preparing = publicationRecord(attempt, 0, 'preparing');
+  const committing = publicationRecord(attempt, 1, 'committing', preparing);
+  await store.putSemantic(wire(attempt), attempt.publication_attempt_cid);
+  await store.createAttempt(wire(attempt));
+  await store.appendInitialPublicationRecords([preparing, committing].map(value => contractControl.admit('publication_record', wire(value), limits)));
+  for (const record of [preparing, committing]) {
+    assert.equal(await readFile(join(directory, 'attempts', attempt.publication_attempt_cid.slice(7), `${record.sequence}.json`), 'utf8'), wire(record));
+  }
+  await store.close();
+  const reopened = await openLocalPublicationStore(configuration, contractControl);
+  assert.deepEqual(await reopened.latestRecord(attempt.publication_attempt_cid), committing);
+});
+
+for (const boundary of ['pending', 'retry-failure', 'first-body-changed', 'latest-kind-changed']) {
+test(`initial progress caller preserves its original Unknown at ${boundary}`, async () => {
+  const attempt = publicationAttempt(publicationRequest(), `group-refusal-${boundary}`);
+  const preparing = publicationRecord(attempt, 0, 'preparing');
+  const committing = publicationRecord(attempt, 1, 'committing', preparing);
+  const originals = [preparing, committing].map(record => contractControl.admit('publication_record', wire(record), limits));
+  const cleanup = {status:()=>({pending:boundary === 'pending'}), async retry() {
+    assert.equal(this, cleanup);
+    if (boundary === 'retry-failure') throw new Error('OriginalConfirmationFailure');
+  }};
+  const primary = Object.assign(new Error('OriginalInitialProgressUnknown'), {
+    code:'PublicationMetadataCommitOutcomeUnknown',outcome:'unknown',cleanupHandle:cleanup,
+  });
+  let issued = 0, writes = 0;
+  const store = {async appendInitialPublicationRecords() {assert.equal(this,store);writes++;throw primary;},
+    async readPublicationContract(identity) {
+      assert.equal(this,store);
+      const original = originals.find(record=>record.identity===identity);
+      return boundary === 'first-body-changed' ? {...original,wire:original.wire+' '} : original;
+    }, async latestRecordContract() {
+      assert.equal(this,store);
+      return boundary === 'latest-kind-changed' ? {...originals[1],name:'other'} : originals[1];
+    }};
+  const control = {issuePublicationRecord:()=>originals[issued++],
+    publicationAttemptAction:(_record,active)=>active?'append_committing':'check_active'};
+  await assert.rejects(appendOriginalInitialStates(store,control,{identity:attempt.publication_attempt_cid},
+    undefined,()=>committing.observed_at,limits),error=>error===primary);
+  assert.equal(writes,1);assert.equal(issued,2);
+});
+}
+
+test('initial publication port keeps omitted compatibility and rejects explicit invalid capabilities', () => {
+  const declaration = publicationAst.body.find(node=>node.type==='FunctionDeclaration' && node.id.name==='validateStore');
+  const validate = compileFunction(publicationSource.slice(declaration.start,declaration.end)+'\nreturn validateStore;', ['fail'])(
+    code=>{throw Object.assign(new Error(code),{code});});
+  const legacy = Object.fromEntries(['putPublicationContract','createAttempt','latestRecordContract','appendRecord','commitIndex',
+    'inspectCommittedIndex','confirmCommittedIndex','readPublicationContract','validateCommittedEvidence','retireUncommittedPublication']
+    .map(name=>[name,()=>{}]));
+  assert.equal(validate(legacy),undefined);
+  for (const invalid of [null,false,{},'missing']) assert.throws(
+    ()=>validate({...legacy,appendInitialPublicationRecords:invalid}),code('InvalidRunPublicationStore'));
 });
 
 test('prepared publication bodies do not advance native progress and existing file bodies remain owned',async t=>{

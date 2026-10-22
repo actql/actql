@@ -4215,6 +4215,37 @@ async function openOriginalLocalPublicationStore(
     return record;
   };
 
+  const appendInitialPublicationRecords = async supplied => {
+    if (!Array.isArray(supplied) || supplied.length !== 2) fail('InvalidPublicationRecord');
+    const admitted = admitPublicationContracts(supplied, true);
+    if (admitted.length !== 2 || admitted.some(({contract})=>contract.name !== 'publication_record')) {
+      fail('InvalidPublicationRecord');
+    }
+    const [first, second] = admitted;
+    const attemptCid = first.value.publication_attempt_cid;
+    if (second.value.publication_attempt_cid !== attemptCid) fail('PublicationAttemptMismatch');
+    if (first.value.sequence !== 0 || first.value.state !== 'preparing' || second.value.sequence !== 1 ||
+        !['committing','cancelled'].includes(second.value.state)) fail('InvalidPublicationRecord');
+    const attempt = (await readContract(attemptCid, 'publication_attempt')).value;
+    if (await runMetadataDeletionStarted(attempt.run_definition_cid)) fail('PublicationMetadataDeleted');
+    const previous = await latestRecordContract(attemptCid);
+    if (previous !== undefined || contractControl.recordTransition(undefined, first.contract, false) !== true ||
+        contractControl.recordTransition(first.contract, second.contract, false) !== true) {
+      fail('InvalidPublicationRecordTransition');
+    }
+    if (deliveryIndex.publicationAttempt(attemptCid) === undefined) {
+      // File-backed attempts keep their existing independently durable protocol.
+      for (const {contract} of admitted) await appendRecord(contract.wire, {uncommittedConfirmed:false});
+    } else {
+      await putNativePublicationContracts(admitted, Object.freeze({kind:'initial-records',attemptCid,
+        records:Object.freeze(admitted.map(({contract,value},sequence)=>Object.freeze({
+          previousCid:sequence === 0 ? null : first.contract.identity,
+          recordCid:contract.identity,sequence:value.sequence,
+        })))}));
+    }
+    return second.value;
+  };
+
   const readFileDeliveryAttemptContract = async (attemptCid, retained) => {
     const bytes = await readBounded(
       resolve(deliveryAttemptPath(attemptCid), 'attempt.json'),
@@ -8168,6 +8199,7 @@ async function openOriginalLocalPublicationStore(
     latestRecord,
     latestRecordContract,
     appendRecord,
+    appendInitialPublicationRecords,
     consumeManifestReadGrant,
     createDeliveryAttempt,
     beginDeliveryAttempt,

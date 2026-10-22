@@ -59,7 +59,9 @@ function validateStore(store) {
       store.putOriginalPublicationContracts !== undefined &&
         typeof store.putOriginalPublicationContracts !== 'function' ||
       store.beginPublicationAttempt !== undefined &&
-        typeof store.beginPublicationAttempt !== 'function') {
+        typeof store.beginPublicationAttempt !== 'function' ||
+      store.appendInitialPublicationRecords !== undefined &&
+        typeof store.appendInitialPublicationRecords !== 'function') {
     fail('InvalidRunPublicationStore');
   }
 }
@@ -306,6 +308,53 @@ async function appendState(
     } catch { throw primary; }
   }
   return record;
+}
+
+async function appendInitialStates(store, control, attempt, signal, now, limits) {
+  const append = member(store, 'appendInitialPublicationRecords');
+  const preparing = control.issuePublicationRecord(attempt, undefined, {
+    state:'preparing', observedAt:now(), publicIndexEntry:undefined,
+    failureCid:undefined, cleanupOwnerCids:[], uncommittedConfirmed:false,
+  }, limits);
+  if (control.publicationAttemptAction(preparing, false, false) !== 'check_active') {
+    fail('InvalidRunPublicationSetupProgress');
+  }
+  let cancellation, cancelled = false;
+  try { signal?.throwIfAborted(); }
+  catch (reason) { cancellation = reason; cancelled = true; }
+  if (cancelled ? control.publicationCancellationAction(preparing) !== 'cancel_preparing' :
+      control.publicationAttemptAction(preparing, true, false) !== 'append_committing') {
+    fail('InvalidRunPublicationSetupProgress');
+  }
+  const next = control.issuePublicationRecord(attempt, preparing, {
+    state:cancelled ? 'cancelled' : 'committing', observedAt:now(), publicIndexEntry:undefined,
+    failureCid:undefined, cleanupOwnerCids:[], uncommittedConfirmed:false,
+  }, limits);
+  const records = Object.freeze([preparing, next]);
+  try { await Reflect.apply(append, store, [records]); }
+  catch (primary) {
+    if (member(primary, 'code') !== 'PublicationMetadataCommitOutcomeUnknown' ||
+        member(primary, 'outcome') !== 'unknown') throw primary;
+    const cleanup = member(primary, 'cleanupHandle');
+    const retry = member(cleanup, 'retry'), status = member(cleanup, 'status');
+    const read = member(store, 'readPublicationContract'), latest = member(store, 'latestRecordContract');
+    if (typeof retry !== 'function' || typeof status !== 'function' ||
+        typeof read !== 'function' || typeof latest !== 'function') throw primary;
+    try {
+      await Reflect.apply(retry, cleanup, []);
+      if (member(Reflect.apply(status, cleanup, []), 'pending') !== false) throw primary;
+      for (const original of records) {
+        const confirmed = await Reflect.apply(read, store, [original.identity, original.name]);
+        if (confirmed?.name !== original.name || confirmed.identity !== original.identity ||
+            confirmed.identityField !== original.identityField || confirmed.wire !== original.wire) throw primary;
+      }
+      const confirmed = await Reflect.apply(latest, store, [attempt.identity]);
+      if (confirmed?.name !== next.name || confirmed.identity !== next.identity ||
+          confirmed.identityField !== next.identityField || confirmed.wire !== next.wire) throw primary;
+    } catch { throw primary; }
+  }
+  if (cancelled) throw cancellation;
+  return next;
 }
 
 async function finishCommittedAttempt(
@@ -617,7 +666,9 @@ async function publishRun(options, effectful) {
       record, activeChecked, index !== undefined,
     );
     if (action === 'append_preparing') {
-      record = await appendState(
+      record = typeof store.appendInitialPublicationRecords === 'function'
+        ? await appendInitialStates(store, control, publicationAttempt, signal, now, limits)
+        : await appendState(
         store, control, publicationAttempt, undefined, 'preparing', now(),
         limits,
       );
