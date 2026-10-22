@@ -7808,7 +7808,7 @@ test('metadata deletion history is indexed once and unrelated Run operations rea
   const {store,directory,configuration}=await fixture(t);await store.close();
   // Model the actual prior private version and its compact retired files.
   const db=new DatabaseSync(join(directory,'delivery-attempts.sqlite3'));
-  try{db.exec('DROP TABLE publication_records; DROP TABLE publication_attempts; DROP TABLE physical_objects; DROP TABLE physical_object_usage; DROP TABLE physical_object_preparations; DROP TABLE metadata_deletion_fences; DROP TABLE metadata_deletion_fence_coverage; UPDATE coverage SET version=7 WHERE id=1');}
+  try{db.exec('DROP TABLE result_deletion_recovery; DROP TABLE publication_records; DROP TABLE publication_attempts; DROP TABLE physical_objects; DROP TABLE physical_object_usage; DROP TABLE physical_object_preparations; DROP TABLE metadata_deletion_fences; DROP TABLE metadata_deletion_fence_coverage; UPDATE coverage SET version=7 WHERE id=1');}
   finally{db.close();}
   const history=Array.from({length:12},(_,i)=>({key:digest(`retired key ${i}`).slice(7),run:digest(`retired Run ${i}`)}));
   for(const row of history)await writeFile(join(directory,'metadata-deletions',row.key+'.json'),wire({
@@ -8061,7 +8061,7 @@ test('publication recovery migrates the legacy inventory once and preserves adop
   // Reconstruct only this new disposable fixture's exact prior private format.
   const path=join(setup.directory,'delivery-attempts.sqlite3');
   const old=new DatabaseSync(path);
-  try{old.exec('DROP TABLE publication_records; DROP TABLE publication_attempts; DROP TABLE physical_objects; DROP TABLE physical_object_usage; DROP TABLE physical_object_preparations; DROP TABLE metadata_deletion_fences; DROP TABLE metadata_deletion_fence_coverage; DROP TABLE native_publication_inventories; DROP TABLE native_publication_inventory_usage; DROP TABLE pending_publications; DROP TABLE publication_recovery; UPDATE coverage SET version=5 WHERE id=1');}
+  try{old.exec('DROP TABLE result_deletion_recovery; DROP TABLE publication_records; DROP TABLE publication_attempts; DROP TABLE physical_objects; DROP TABLE physical_object_usage; DROP TABLE physical_object_preparations; DROP TABLE metadata_deletion_fences; DROP TABLE metadata_deletion_fence_coverage; DROP TABLE native_publication_inventories; DROP TABLE native_publication_inventory_usage; DROP TABLE pending_publications; DROP TABLE publication_recovery; UPDATE coverage SET version=5 WHERE id=1');}
   finally{old.close();}
   const originalOpen=fsPromises.open,reads=[];
   t.mock.method(fsPromises,'open',function(path,...args){reads.push(String(path));return Reflect.apply(originalOpen,this,[path,...args]);});

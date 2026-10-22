@@ -752,6 +752,37 @@ generation after an interruption between unlink and directory acknowledgement.
 
 ### Owned physical quota lifetime
 
+### Settled Result deletion recovery
+
+The existing Store database records a separate Result-deletion cleanup lifetime.
+Before the first marker write or cleanup action, a FULL/fullfsync transaction
+sets its singleton dirty state. Later deletions in that same lifetime reuse the
+actual acknowledged state. Only Store close, after all original Result readers,
+deletion cleanup and independent pending children have settled, seals it with a
+real native transaction. Closing the database alone cannot seal this duty.
+This is private recovery metadata, not permission, capacity or a physical ACK.
+
+A clean ordinary open does not enumerate completed Result deletion directories,
+read their markers, re-admit unrelated Index/Binding history or repeat their
+directory ACKs. Selected Result use still reads its actual marker, validates
+the selected directory and complete original identities, and keeps retirement
+effective. Unrelated committed corruption can be detected at selected use.
+
+An interrupted dirty lifetime still performs the existing bounded recovery
+audit and real physical cleanup; process exit never acknowledges that work.
+Private format ten and earlier atomically adopt format eleven with dirty
+recovery required, so the first open audits their legacy markers before the
+Store may seal. Missing adopted tables or singleton state refuse rather than
+requesting reconstruction. The physical-quota dirty header remains separate.
+A lost begin or seal COMMIT reply retains the same transition and blocks other
+native work until an exact same-database confirmation transaction succeeds.
+
+This removes clean-open history work, not every recovery scan or durability
+barrier. A deletion lifetime adds one intent commit and one final seal unless
+already active; these are current implementation costs, not minimum barriers.
+
+### Owned physical quota lifetime
+
 The exclusively owned ordinary Store records a real durable dirty mark before
 its first final-object installation or unlink, not at read-only open. The
 previously unused `user_version` header of this private SQLite database is zero
