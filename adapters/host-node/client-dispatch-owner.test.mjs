@@ -27,7 +27,7 @@ const stopFacts = (cancellationRequested = false) => ({
   lookupReconciliationState: () => undefined,
 });
 
-function inferDispatchFixture(runInfer, kind = 'infer') {
+function inferDispatchFixture(runInfer, kind = 'infer', observation) {
   const ref = {runDefinitionCid: 'infer-dispatch-owner'};
   const preparedProgram = {};
   const plan = {kind, runDefinition: {wire: 'definition'}};
@@ -49,7 +49,7 @@ function inferDispatchFixture(runInfer, kind = 'infer') {
     hostConnection: () => true, planFor: () => plan,
     runPublished() { assert.fail('INFER must not use Relation dispatch'); },
     ...(kind === 'serialization' ? {runContent: runInfer} : {runInfer}),
-    namespaceId: 'namespace-a',
+    namespaceId: 'namespace-a', observation,
   });
   const submission = {preparedProgram, principalId: 'owner', connection: {},
     requestId: 'infer-request'};
@@ -63,6 +63,50 @@ function inferDispatchFixture(runInfer, kind = 'infer') {
     claims: () => claims, commit: () => { committed = true; },
     start: () => owner.start(submission, {}, accepted, {})};
 }
+
+// Explicit observation port checks: retained Promises are not resource ACKs.
+test('dispatch observation retains the original operation beyond its start barrier', async () => {
+  let finish;
+  const pending = new Promise(resolve => {finish = resolve;});
+  const retained = [];
+  const fixture = inferDispatchFixture(async ({retainExecution}) => {
+    retainExecution({async close() {}, cleanup: () => true, cleanupPending: () => false});
+    await pending;
+    fixture.commit();
+  }, 'infer', {retainOperation(promise) {retained.push(promise);}});
+  const started = fixture.start();
+  const original = fixture.owner.operation(fixture.ref);
+  try {
+    assert.equal(await started, 'started');
+    assert.deepEqual(retained, [original]);
+    assert.equal(fixture.owner.live(fixture.ref), true);
+    assert.deepEqual(fixture.stopped, []);
+  } finally {finish(); await fixture.owner.drain();}
+  assert.deepEqual(fixture.stopped, [[fixture.ref, null]]);
+});
+
+test('tracked observation settlement cannot retire unresolved physical cleanup', async () => {
+  const retained = [], ref = {runDefinitionCid: 'observed-pending-cleanup'};
+  let ready = false, runs = 0;
+  const owner = installNodeClientDispatchOwner({observation: {
+    retainOperation(promise) {retained.push(promise);},
+  }});
+  const run = ({beginPhysicalWork, retainExecution}) => {
+    runs++; beginPhysicalWork();
+    retainExecution({async close() {}, cleanup: () => ready, cleanupPending: () => !ready});
+  };
+  const original = owner.track(ref, {run, observeStopped() {}});
+  await assert.rejects(original, {message: 'ClientDispatchCleanupPending'});
+  try {
+    assert.deepEqual(retained, [original]);
+    assert.equal(owner.operation(ref), original);
+    assert.equal(owner.track(ref, {run, observeStopped() {}}), original);
+    assert.deepEqual(retained, [original]);
+    await assert.rejects(owner.drain(), {code: 'ClientDispatchCleanupPending'});
+  } finally {ready = true; await owner.drain();}
+  assert.equal(owner.operation(ref), undefined);
+  assert.equal(runs, 1);
+});
 
 test('Content dispatch consumes the original checked plan and closes through the existing Run owner',
   async () => {
