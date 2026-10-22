@@ -32458,7 +32458,7 @@
     {
       "module": "adapters/host-node/in-process-client.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "85f7104c26ea95afa668943a845eca81bfe7ef191c4ed04007613a4fc93784de",
+      "sha256": "69486e6b6e8f0245898159fd7485084bef73c2c651d20d76f4f6fc4eefc00bbb",
       "role": "physical-io",
       "owner": "Existing Client Host admission/read services and physical Node ingress",
       "exports": [
@@ -32502,7 +32502,8 @@
             "runPlan",
             "maxRowBytes",
             "observe",
-            "performInstalledRequest"
+            "performInstalledRequest",
+            "captureResultObservation"
           ],
           "async": false
         },
@@ -32582,7 +32583,8 @@
         {
           "name": "publicResultRows",
           "parameters": [
-            "response"
+            "response",
+            "observeConsumed"
           ],
           "async": false
         },
@@ -32636,6 +32638,14 @@
               {
                 "path": "docs/design/public-wire-codecs.md",
                 "anchor": "## Deferred Local request capture"
+              },
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The selected `resources` measurement copies only the fixed six limits and ten"
+              },
+              {
+                "path": "adapters/host-common/observation.mjs",
+                "anchor": "export function captureManagedRunObservation(projection, ref, readUsage) {"
               }
             ],
             "inputsOutputs": [
@@ -32654,6 +32664,14 @@
               {
                 "path": "docs/design/public-wire-codecs.md",
                 "anchor": "## Deferred Local request capture"
+              },
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The selected `resources` measurement copies only the fixed six limits and ten"
+              },
+              {
+                "path": "src/client_local_host/installed_managed_run.mbt",
+                "anchor": "pub fn installed_managed_run_usage("
               }
             ],
             "identity": [
@@ -32676,6 +32694,14 @@
               {
                 "path": "docs/design/public-wire-codecs.md",
                 "anchor": "## Deferred Local request capture"
+              },
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The selected `resources` measurement copies only the fixed six limits and ten"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "bindManagedComputeRunObservation(prepared, ref) {"
               }
             ],
             "ownership": [
@@ -32694,6 +32720,14 @@
               {
                 "path": "docs/design/public-wire-codecs.md",
                 "anchor": "## Deferred Local request capture"
+              },
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The selected `resources` measurement copies only the fixed six limits and ten"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "for (const key of Object.keys(record)) record[key] = undefined;"
               }
             ],
             "synchronization": [
@@ -32712,6 +32746,14 @@
               {
                 "path": "docs/design/public-wire-codecs.md",
                 "anchor": "## Deferred Local request capture"
+              },
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The selected `resources` measurement copies only the fixed six limits and ten"
+              },
+              {
+                "path": "adapters/host-node/in-process-client.mjs",
+                "anchor": "try { yield* response.frames; consumed = true; }"
               }
             ],
             "failure": [
@@ -32730,6 +32772,14 @@
               {
                 "path": "docs/design/public-wire-codecs.md",
                 "anchor": "## Deferred Local request capture"
+              },
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The selected `resources` measurement copies only the fixed six limits and ten"
+              },
+              {
+                "path": "adapters/host-common/observation.mjs",
+                "anchor": "catch {drop('resourceUnavailable'); return;}"
               }
             ],
             "cancellation": [
@@ -32748,6 +32798,14 @@
               {
                 "path": "docs/design/public-wire-codecs.md",
                 "anchor": "## Deferred Local request capture"
+              },
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The selected `resources` measurement copies only the fixed six limits and ten"
+              },
+              {
+                "path": "adapters/host-node/in-process-result-observation.test.mjs",
+                "anchor": "test('partial or failed rows never fabricate quiescent usage and observation errors preserve rows'"
               }
             ],
             "resources": [
@@ -32770,6 +32828,14 @@
               {
                 "path": "docs/design/public-wire-codecs.md",
                 "anchor": "## Deferred Local request capture"
+              },
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The selected `resources` measurement copies only the fixed six limits and ten"
+              },
+              {
+                "path": "adapters/host-common/observation.mjs",
+                "anchor": "const snapshot = Object.freeze({'actql.resource.scope': 'managed-run-ledger',"
               }
             ],
             "extension": [
@@ -32788,6 +32854,14 @@
               {
                 "path": "docs/design/public-wire-codecs.md",
                 "anchor": "## Deferred Local request capture"
+              },
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The selected `resources` measurement copies only the fixed six limits and ten"
+              },
+              {
+                "path": "src/client_local_host/installed_managed_run.mbt",
+                "anchor": "/// values, not a measurement of process memory or physical cleanup."
               }
             ],
             "verification": [
@@ -32814,6 +32888,14 @@
               {
                 "path": "adapters/host-node/deferred-ingress-original-snapshot.test.mjs",
                 "anchor": "test('deferred ingress serializes the same submission once without reusing connection authorization'"
+              },
+              {
+                "path": "adapters/host-common/observation.test.mjs",
+                "anchor": "test('managed usage retains one original reader and operation correlation across row consumption'"
+              },
+              {
+                "path": "adapters/host-node/embedded-managed-compute-lifecycle.test.mjs",
+                "anchor": "test('managed usage reader selects only the same admitted Run and releases its installation alias'"
               }
             ]
           }

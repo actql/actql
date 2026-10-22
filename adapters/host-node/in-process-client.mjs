@@ -36,16 +36,21 @@ const fail = code => {
 const publicFailure = error => localErrors.has(error) ? error
   : publicError(publicClientErrorCode(error), publicClientErrorStatus(error));
 
-function publicResultRows(response) {
+function publicResultRows(response, observeConsumed) {
   // Keep a failed delivery record's exact retry owner off public errors. The
   // SDK may release this response only after that owner confirms settlement.
   let cleanupFailure;
   return Object.freeze({kind: 'rows', frames: Object.freeze({
     async *[Symbol.asyncIterator]() {
-      try { yield* response.frames; }
+      let consumed = false;
+      try { yield* response.frames; consumed = true; }
       catch (error) {
         if (error?.cleanupPending === true) cleanupFailure = error;
         throw publicFailure(error);
+      }
+      finally {
+        if (consumed) try {observeConsumed?.();}
+        catch { /* Optional observation cannot replace rows or their real cleanup. */ }
       }
     },
   }), async close() {
@@ -68,12 +73,14 @@ export function createNodeInProcessClientHost({
   cancel, lookupCancellation, cancelRequest, reconcile, checkpoints, checkpointReview, resolve,
   resources, inspectResource, peekResource, check, plan, inspectRun, runPlan, maxRowBytes, observe,
   performInstalledRequest,
+  captureResultObservation,
 }) {
   if (typeof authenticate !== 'function' ||
       typeof authorizeConnection !== 'function' ||
       typeof negotiate !== 'function' ||
       performInstalledRequest !== undefined && typeof performInstalledRequest !== 'function' ||
       bindOwnedRequest !== undefined && typeof bindOwnedRequest !== 'function' ||
+      captureResultObservation !== undefined && typeof captureResultObservation !== 'function' ||
       !Number.isSafeInteger(maxRowBytes) || maxRowBytes < 1) {
     throw new TypeError('InvalidInProcessClientHostInstallation');
   }
@@ -321,10 +328,13 @@ export function createNodeInProcessClientHost({
         return found;
       }
       if (operation === 'read') {
+        let consumed;
+        try {consumed = captureResultObservation?.(ref);}
+        catch { /* An unavailable observation is not a Result permission or failure. */ }
         return publicResultRows(authorizedLocalResultFrames(resultService, {
           indexKey: ref, principalId, purpose: 'download',
           resultName: body.resultName, attemptId: body.attemptId,
-        }, signal, {maxRowBytes}));
+        }, signal, {maxRowBytes}), consumed);
       }
       fail('UnknownClientOperation');
     } catch (error) {

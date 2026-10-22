@@ -226,7 +226,8 @@ function lifecycle({factory, beforeChild, beforeChildClose, current = () => {}, 
   assert(initial && preparation);
   const properties = preparation.init.arguments[0].properties;
   const names = ['prepareManagedCompute', 'requestPreparation', 'sourcePreparation',
-    'bindSourceRequest', 'prepareManagedComputeRun'];
+    'bindSourceRequest', 'prepareManagedComputeRun', 'bindManagedComputeRunObservation',
+    'managedComputeUsageReader'];
   const methods = names.map(name => {
     const property = properties.find(node => node.key.name === name); assert(property, name); return text(property);
   });
@@ -256,6 +257,30 @@ function lifecycle({factory, beforeChild, beforeChildClose, current = () => {}, 
     return {preparation,initialControl,record,originals};
   `)(...Object.values(ports));
 }
+
+test('managed usage reader selects only the same admitted Run and releases its installation alias', () => {
+  const runtime = {}, f = lifecycle({factory() {}, runtime});
+  const prepared = {}, value = {}, foreign = {}, first = {namespaceId:'n',authorityScopeCid:'a',runDefinitionCid:'r'};
+  let reads = 0;
+  const usage = [1n,2n,3n,4n,5n,6n,7n,8n,9n,10n,11n,12n,13n,14n,15n,16n];
+  runtime.clientProgramInstalledManagedRunUsage = function(actual) {
+    assert.strictEqual(this,runtime); assert.strictEqual(actual,value); reads++; return usage;
+  };
+  f.record.computeRuns = new Map([[prepared,{runtime,prepared,value,closed:false}]]);
+  assert.equal(f.preparation.managedComputeUsageReader(first),undefined);
+  f.preparation.bindManagedComputeRunObservation(foreign,first);
+  assert.equal(f.preparation.managedComputeUsageReader(first),undefined);
+  f.preparation.bindManagedComputeRunObservation(prepared,first);
+  const read = f.preparation.managedComputeUsageReader({...first});
+  assert.equal(reads,0,'Capturing correlation does not sample or admit');
+  assert.equal(f.preparation.managedComputeUsageReader({...first,authorityScopeCid:'foreign'}),undefined);
+  assert.strictEqual(read(),usage); assert.equal(reads,1);
+  runtime.clientProgramInstalledManagedRunUsage=()=>{throw new Error('Replacement must not run');};
+  assert.strictEqual(read(),usage); assert.equal(reads,2,'Same original callback and receiver');
+  f.record.computeRunObservations=undefined;
+  assert.equal(read(),undefined,'A retired installation bag retains no Core original');
+  assert.equal(reads,2);
+});
 
 test('installed static contract aliases survive pending child cleanup and cut at actual retirement', async () => {
   const connect = declared('connectEmbeddedLocal');

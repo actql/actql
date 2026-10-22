@@ -30,6 +30,30 @@ const attributeNames = ['actql.operation', 'actql.event', 'actql.observation.ver
   'http.response.status_code', 'error.type', 'service.name', 'service.version',
   'deployment.environment.name'];
 const mandatoryAttributes = ['actql.operation', 'actql.event', 'actql.observation.version'];
+const resourceLimitNames = Object.freeze(['planningWork', 'attempts', 'holdings',
+  'transferBytes', 'retainedBytes', 'executionBytes']);
+const resourceUsageNames = Object.freeze(['planning', 'attempts', 'holdings',
+  'transferred', 'uncertain', 'reservedTransfer', 'heldBytes', 'reservedRetention',
+  'reservedExecution', 'peakRetention']);
+const managedResourceSnapshots = new WeakSet();
+const resourceAttribute = name => name.replace(/[A-Z]/gu, letter => `_${letter.toLowerCase()}`);
+attributeNames.push('actql.resource.scope',
+  ...resourceLimitNames.map(name => `actql.resource.limit.${resourceAttribute(name)}`),
+  ...resourceUsageNames.map(name => `actql.resource.usage.${resourceAttribute(name)}`));
+function managedRunResources(values) {
+  if (!Array.isArray(values) || values.length !== 16) return undefined;
+  const captured = values.slice();
+  if (!captured.every(value => typeof value === 'bigint' && value >= 0n &&
+      value <= 9223372036854775807n)) return undefined;
+  const fields = (names, offset, kind) => Object.fromEntries(names.map((name, index) =>
+    [`actql.resource.${kind}.${resourceAttribute(name)}`, captured[offset + index].toString()]));
+  // Exact decimal scalars from the same Core Ledger. These are neither
+  // whole-runtime allocation measurements nor physical cleanup receipts.
+  const snapshot = Object.freeze({'actql.resource.scope': 'managed-run-ledger',
+    ...fields(resourceLimitNames, 0, 'limit'), ...fields(resourceUsageNames, 6, 'usage')});
+  managedResourceSnapshots.add(snapshot);
+  return snapshot;
+}
 function selection(value, names, defaults) {
   if (value === undefined) return defaults;
   if (!value || typeof value !== 'object' || Array.isArray(value) ||
@@ -70,7 +94,7 @@ const events = Object.freeze({
 });
 const recordEvents = new Set(['segment_started', 'segment_ended', 'check_completed',
   'owner_observed', 'cancellation_requested', 'task_started', 'task_completed',
-  'transport_completed', 'acquisition_interval',
+  'transport_completed', 'acquisition_interval', 'resources_observed',
   ...Object.values(events).map(value => value[1])]);
 
 export function validObservationContext(value) {
@@ -161,7 +185,7 @@ export function createHostObservationConnection(options = {}) {
       correlation: selectedCorrelation.length !== 0,
       correlations: Object.freeze([...selectedCorrelation]),
       measurements: Object.freeze({selected: Object.freeze([...selectedMeasurements]),
-        available: Object.freeze(['duration'])}),
+        available: Object.freeze(['duration', 'resources'])}),
       attributes: Object.freeze({exclude: Object.freeze([...attributeExclusions])}),
       events: Object.freeze({level: eventLevel})})});
   connections.set(token, config);
@@ -179,6 +203,13 @@ export function projectEffectApplication(projection, ref, result) {
       needs_reconciliation: 'needs_reconciliation', failed: 'failed'}[result.status];
     if (outcome !== undefined) projection.diagnostic('effect_application_observed', {ref, outcome});
   } catch { /* Optional metadata cannot change receipt or cleanup custody. */ }
+}
+
+// The installed Host supplies a captured original Core reader. Public callers
+// cannot acquire a Ledger or execution authority through this projection.
+export function captureManagedRunObservation(projection, ref, readUsage) {
+  if (!projections.has(projection)) return undefined;
+  return projection.captureManagedRun(ref, readUsage);
 }
 
 export function installHostObservation(connection, {journal, runId} = {}) {
@@ -252,6 +283,7 @@ export function installHostObservation(connection, {journal, runId} = {}) {
       if (Number.isSafeInteger(facts.revision) && facts.revision >= 0) attributes['actql.owner.revision'] = facts.revision;
       if (typeof facts.cleanupPending === 'boolean') attributes['actql.cleanup.pending'] = facts.cleanupPending;
       if (outcomes.has(facts.physicalStop)) attributes['actql.physical_stop'] = facts.physicalStop;
+      if (managedResourceSnapshots.has(options.resources)) Object.assign(attributes, options.resources);
       const record = {version: observationVersion, operation, event,
         sequence: sequence++, observedAt: Date.now(),
         monotonicAt: performance.now(), attributes,
@@ -352,6 +384,29 @@ export function installHostObservation(connection, {journal, runId} = {}) {
     }); } finally { activeSegments--; }
   };
   const projection = Object.freeze({run, accepted, emit,
+    canMeasureResources: () => !closed && config.allowed.has('compute') && config.measurements.has('resources'),
+    captureManagedRun(ref, readUsage) {
+      if (closed || !config.allowed.has('compute') || !config.measurements.has('resources')) return undefined;
+      if (!cid(ref?.runDefinitionCid) || typeof readUsage !== 'function') {
+        drop('resourceUnavailable'); return undefined;
+      }
+      // A row response is consumed after ingress returns. Retain this same
+      // operation's bounded correlation, not a new frame or authorization.
+      const context = contexts.getStore();
+      const originalRef = Object.freeze({namespaceId: ref.namespaceId,
+        authorityScopeCid: ref.authorityScopeCid, runDefinitionCid: ref.runDefinitionCid});
+      let observed = false;
+      return () => {
+        if (observed || closed) return;
+        observed = true;
+        let resources;
+        try {resources = managedRunResources(readUsage());}
+        catch {drop('resourceUnavailable'); return;}
+        if (resources === undefined) {drop('resourceUnavailable'); return;}
+        contexts.run(context, () => emit('compute', 'resources_observed',
+          {ref: originalRef}, {resources}));
+      };
+    },
     canMeasure: operation => !closed && config.allowed.has(operation) &&
       config.measurements.has('duration'),
     noteLoss: () => drop('budgetUnavailable'),
