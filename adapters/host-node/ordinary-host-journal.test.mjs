@@ -9,9 +9,9 @@ import {prepareHostJournalInstallation} from './node-host-journal-installation.m
 import {openClientRequestJournal, observeOriginalClientRequestJournalCustody} from './client-request-journal.mjs';
 import {createHostObservationConnection, installHostObservation} from '../host-common/observation.mjs';
 
-async function selectedRowsFixture(t) {
+async function selectedRowsFixture(t, openJournal = openClientRequestJournal) {
   const directory = await mkdtemp(join(tmpdir(), 'actql-journal-selected-rows-'));
-  const journal = openClientRequestJournal(directory);
+  const journal = openJournal(directory);
   t.after(() => journal.close());
   // Explicit request-control fixture, not Common issuance or authorization.
   // Native SQLite and the Journal's actual row-selection paths are unchanged.
@@ -98,6 +98,45 @@ test('Journal selected-row observations do not turn refused or failed reads into
     f.journal.close();
     assert.throws(() => f.journal.lookupReconciliationState(f.ref), {code: 'ClientRequestJournalClosed'});
   });
+  await f.observer.close();
+  assert.equal(f.records.filter(record => record.event === 'selected_rows_observed').length, 0);
+});
+
+test('Journal selected-row observations retain the native get receiver and do not report a failed get as zero', async t => {
+  const prepare = DatabaseSync.prototype.prepare;
+  const failure = new Error('SelectedNativeGetFailed');
+  let selected, failNext = false, gets = 0, replacements = 0;
+  const f = await selectedRowsFixture(t, directory => {
+    DatabaseSync.prototype.prepare = function(sql) {
+      const statement = Reflect.apply(prepare, this, [sql]);
+      if (sql.includes('FROM client_requests') &&
+          sql.includes('WHERE namespace_id = ? AND authority_scope_cid = ? AND')) {
+        const get = statement.get;
+        selected = statement;
+        statement.get = function(...parameters) {
+          assert.strictEqual(this, statement);
+          gets++;
+          if (failNext) throw failure;
+          return Reflect.apply(get, this, parameters);
+        };
+      }
+      return statement;
+    };
+    try {return openClientRequestJournal(directory);}
+    finally {DatabaseSync.prototype.prepare = prepare;}
+  });
+  assert(selected);
+  selected.get = () => {replacements++; throw new Error('ReplacementMustNotRun');};
+  failNext = true;
+  await f.observer.run('read', selectedRowTrace, () => {
+    assert.throws(() => f.journal.lookupRunDefinition(f.ref, f.control, {}), error => {
+      assert.equal(error.code, 'ClientRequestLookupUnknown');
+      assert.strictEqual(error.cause, failure);
+      return true;
+    });
+  });
+  assert.equal(gets, 1);
+  assert.equal(replacements, 0);
   await f.observer.close();
   assert.equal(f.records.filter(record => record.event === 'selected_rows_observed').length, 0);
 });

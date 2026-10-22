@@ -50,6 +50,13 @@ Their `selected-returned` coverage does not count database rows visited, hidden
 aggregate work, other readers, parses or cache hits. A missing hook or lost record
 is unavailable coverage, never an observed zero or a completeness certificate.
 No row body, query, key or authentication material enters this projection.
+The request Journal hooks its actual prepared `client_requests` gets, including
+the two targeted reconciliation projections. Full-ref/full-row reads compare
+the selected namespace, authority scope and Run identity. Request-key, CID-only
+and partial-row reads retain their actual returned count but do not invent a
+complete unrelated-Run classification. A failed native get emits no empty-row
+fact. Startup aggregates, other Journal tables and Store/Checkpoint readers are
+outside this selected-reader coverage.
 Measured Source/Model attempts use standard CLIENT span kind. Finite interval
 boundaries do not duplicate lifecycle logs or spend the discrete-log allowance
 merely because a caller polls status.

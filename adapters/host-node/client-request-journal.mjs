@@ -2077,11 +2077,40 @@ export function openClientRequestJournal(directory, {
       });
     }
   };
-  const select = database.prepare(`SELECT ${selectColumns} FROM client_requests
-    WHERE authority_scope_cid = ? AND caller_request_id = ?`);
-  const selectRef = database.prepare(`SELECT ${selectColumns} FROM client_requests
+  let observationProjection;
+  // Count only rows actually returned by these selected native reads. This
+  // neither visits other Runs nor measures SQLite's internal page traversal.
+  // The existing observation context aggregates scalars without per-get I/O.
+  const selectedRequestStatement = (statement, selection, completeRef = false,
+    completeRow = false) => {
+    const get = statement.get;
+    return Object.freeze({get(...parameters) {
+      const row = applyOriginal(get, statement, parameters);
+      if (observationProjection !== undefined) {
+        try {
+          const ref = completeRef ? {namespaceId: parameters[0],
+            authorityScopeCid: parameters[1], runDefinitionCid: parameters[2]} : undefined;
+          observationProjection.diagnostic('selected_rows_observed', {
+            ref, rowOwner: 'request-journal', selection, rowKind: 'run',
+            returnedRows: row === undefined ? 0 : 1,
+            // Partial projections and pre-Run request keys cannot classify a
+            // complete returned Run identity. Absence here means unknown.
+            unrelatedRows: !completeRow ? undefined : row === undefined ? 0 :
+              Number(row.namespace_id !== ref.namespaceId ||
+                row.authority_scope_cid !== ref.authorityScopeCid ||
+                row.run_definition_cid !== ref.runDefinitionCid),
+            coverage: 'selected-returned',
+          });
+        } catch { /* Optional diagnostics never replace a native result. */ }
+      }
+      return row;
+    }});
+  };
+  const select = selectedRequestStatement(database.prepare(`SELECT ${selectColumns} FROM client_requests
+    WHERE authority_scope_cid = ? AND caller_request_id = ?`), 'request');
+  const selectRef = selectedRequestStatement(database.prepare(`SELECT ${selectColumns} FROM client_requests
     WHERE namespace_id = ? AND authority_scope_cid = ? AND
-      run_definition_cid = ?`);
+      run_definition_cid = ?`), 'run-definition', true, true);
   const sourceOperations = clientSourceOperationStorage(database, {ensureOpen,
     transact, limits: sourceOperationLimits,
     readRun: ref => selectRef.get(ref.namespaceId, ref.authorityScopeCid, ref.runDefinitionCid)});
@@ -2127,8 +2156,8 @@ export function openClientRequestJournal(directory, {
       requestControl, publicationControl}));
     return facts;
   };
-  const selectRun = database.prepare(`SELECT run_definition_cid
-    FROM client_requests WHERE run_definition_cid = ?`);
+  const selectRun = selectedRequestStatement(database.prepare(`SELECT run_definition_cid
+    FROM client_requests WHERE run_definition_cid = ?`), 'run-definition');
   const requestUsage = database.prepare('SELECT * FROM client_request_row_usage WHERE singleton=1');
   const submissionIssued = database.prepare('SELECT issued_count FROM client_submission_custody WHERE singleton = 1');
   const advanceSubmissionCustody = database.prepare('UPDATE client_submission_custody SET issued_count = issued_count + 1 WHERE singleton = 1 AND issued_count = ?');
@@ -2799,7 +2828,6 @@ export function openClientRequestJournal(directory, {
   let observationStorageAttempted = false;
   let observationDatabaseClosed = true;
   let originalObservationClose, originalObservationIsOpen;
-  let observationProjection;
   const captureObservationCleanup = () => {
     originalObservationClose ??= observationDatabase.close;
     originalObservationIsOpen ??= Object.getOwnPropertyDescriptor(
@@ -3866,10 +3894,10 @@ export function openClientRequestJournal(directory, {
       return transact('reconciliation', 'ClientRunReconciliationUnknown',
         error => typeof error?.code === 'string' &&
           error.code.startsWith('ClientRun'), () => {
-        const row = database.prepare(`SELECT physical_start_reserved,
+        const row = selectedRequestStatement(database.prepare(`SELECT physical_start_reserved,
           reconciliation_state_wire FROM client_requests
           WHERE namespace_id = ? AND authority_scope_cid = ? AND
-            run_definition_cid = ?`).get(ref.namespaceId, ref.authorityScopeCid,
+            run_definition_cid = ?`), 'run-definition', true).get(ref.namespaceId, ref.authorityScopeCid,
           ref.runDefinitionCid);
         if (row === undefined || row.physical_start_reserved !== 1) {
           fail('ClientRunReconciliationDenied');
@@ -3893,9 +3921,9 @@ export function openClientRequestJournal(directory, {
           !cid(ref?.runDefinitionCid)) {
         fail('InvalidClientRunLookup');
       }
-      const row = database.prepare(`SELECT reconciliation_state_wire
+      const row = selectedRequestStatement(database.prepare(`SELECT reconciliation_state_wire
         FROM client_requests WHERE namespace_id = ? AND
-          authority_scope_cid = ? AND run_definition_cid = ?`).get(
+          authority_scope_cid = ? AND run_definition_cid = ?`), 'run-definition', true).get(
         ref.namespaceId, ref.authorityScopeCid, ref.runDefinitionCid);
       return row?.reconciliation_state_wire ?? undefined;
     },
