@@ -5426,16 +5426,16 @@
             "openDeliveryAttemptIndex/prepare/prepare/prepare",
             "openDeliveryAttemptIndex/prepare/prepare/prepare#2",
             "openDeliveryAttemptIndex/prepare/prepare/prepare#3",
-          "openDeliveryAttemptIndex/progressCopy/progressCopy",
-          "openDeliveryAttemptIndex/progressCopy/progressCopy/records/records",
+            "openDeliveryAttemptIndex/progressCopy/progressCopy",
+            "openDeliveryAttemptIndex/progressCopy/progressCopy/records/records",
             "openDeliveryAttemptIndex/publicationCopy/publicationCopy",
             "openDeliveryAttemptIndex/publicationMutation/publicationMutation",
             "openDeliveryAttemptIndex/publicationMutation/publicationMutation/originals/originals",
             "openDeliveryAttemptIndex/publicationMutation/publicationMutation/publicationMutation",
-          "openDeliveryAttemptIndex/publicationMutation/publicationMutation/publicationMutation#2",
-          "openDeliveryAttemptIndex/publicationMutation/publicationMutation/publicationMutation#3",
-          "openDeliveryAttemptIndex/publicationMutation/publicationMutation/publicationMutation/installed/installed",
-          "openDeliveryAttemptIndex/publicationMutation/publicationMutation/publicationMutation/publicationMutation",
+            "openDeliveryAttemptIndex/publicationMutation/publicationMutation/publicationMutation#2",
+            "openDeliveryAttemptIndex/publicationMutation/publicationMutation/publicationMutation#3",
+            "openDeliveryAttemptIndex/publicationMutation/publicationMutation/publicationMutation/installed/installed",
+            "openDeliveryAttemptIndex/publicationMutation/publicationMutation/publicationMutation/publicationMutation",
             "openDeliveryAttemptIndex/publicationMutation/publicationMutation/retry/retry",
             "openDeliveryAttemptIndex/recoveryOriginal/recoveryOriginal",
             "openDeliveryAttemptIndex/recoveryState/recoveryState",
@@ -5455,9 +5455,9 @@
             "openDeliveryAttemptIndex/samePhysical/samePhysical",
             "openDeliveryAttemptIndex/samePhysical/samePhysical/samePhysical",
             "openDeliveryAttemptIndex/sameProgress/sameProgress",
-          "openDeliveryAttemptIndex/sameProgress/sameProgress/sameProgress",
-          "openDeliveryAttemptIndex/sameProgress/sameProgress/sameProgress#2",
-          "openDeliveryAttemptIndex/sameProgress/sameProgress/sameProgress/sameProgress",
+            "openDeliveryAttemptIndex/sameProgress/sameProgress/sameProgress",
+            "openDeliveryAttemptIndex/sameProgress/sameProgress/sameProgress#2",
+            "openDeliveryAttemptIndex/sameProgress/sameProgress/sameProgress/sameProgress",
             "openDeliveryAttemptIndex/samePublication/samePublication",
             "openDeliveryAttemptIndex/samePublication/samePublication/samePublication",
             "openDeliveryAttemptIndex/sameRecoveryOriginal/sameRecoveryOriginal",
@@ -5918,6 +5918,10 @@
               {
                 "path": "adapters/store-local/publication-store.test.mjs",
                 "anchor": "test('publication setup commits its immutable bodies and initial attempt in one native transaction', async t => {"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "test(`initial publication group confirms only its original"
               }
             ]
           }
@@ -10018,10 +10022,10 @@
             "openOriginalLocalPublicationStore/adoptPreparedSchemas/adoptPreparedSchemas/adopted/adopted",
             "openOriginalLocalPublicationStore/adoptPreparedSchemas/adoptPreparedSchemas/durable/durable",
             "openOriginalLocalPublicationStore/appendDeliveryRecord/appendDeliveryRecord",
-          "openOriginalLocalPublicationStore/appendInitialPublicationRecords/appendInitialPublicationRecords",
-          "openOriginalLocalPublicationStore/appendInitialPublicationRecords/appendInitialPublicationRecords/appendInitialPublicationRecords",
-          "openOriginalLocalPublicationStore/appendInitialPublicationRecords/appendInitialPublicationRecords/appendInitialPublicationRecords#2",
-          "openOriginalLocalPublicationStore/appendRecord/appendRecord",
+            "openOriginalLocalPublicationStore/appendInitialPublicationRecords/appendInitialPublicationRecords",
+            "openOriginalLocalPublicationStore/appendInitialPublicationRecords/appendInitialPublicationRecords/appendInitialPublicationRecords",
+            "openOriginalLocalPublicationStore/appendInitialPublicationRecords/appendInitialPublicationRecords/appendInitialPublicationRecords#2",
+            "openOriginalLocalPublicationStore/appendRecord/appendRecord",
             "openOriginalLocalPublicationStore/beginPreparedCommit/beginPreparedCommit",
             "openOriginalLocalPublicationStore/beginPreparedCommit/beginPreparedCommit/init:retry/init:retry",
             "openOriginalLocalPublicationStore/beginPreparedCommit/beginPreparedCommit/resolveConfirmed/resolveConfirmed",
@@ -11671,10 +11675,6 @@
               {
                 "path": "adapters/store-local/publication-store.test.mjs",
                 "anchor": "test('publication setup commits its immutable bodies and initial attempt in one native transaction', async t => {"
-              },
-              {
-                "path": "adapters/store-local/publication-store.test.mjs",
-                "anchor": "test(`initial publication group confirms only its original"
               },
               {
                 "path": "adapters/store-local/prepared-custody-atomic-record.test.mjs",
