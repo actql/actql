@@ -5931,7 +5931,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "ae9c1a837221e2cc73a16d993623820fe5fa272877e584f321a4611d3930d9b0",
+      "sha256": "1ebce783ed524232c1749c0a2af51fed2e770c200cb039f5e5f4959a93261c78",
       "exports": [
         "PublicationStoreError",
         "assertOriginalLocalPublicationStoreFacilityCurrent",
@@ -6777,10 +6777,23 @@
           "async": true
         },
         {
-          "name": "openOriginalLocalPublicationStore/consumeManifestReadGrant/consumeManifestReadGrant/operation/operation/uses/uses",
-          "parameters": [
-            "name"
-          ],
+          "name": "openOriginalLocalPublicationStore/consumeManifestReadGrant/consumeManifestReadGrant/operation/operation/init:retry/init:retry",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/consumeManifestReadGrant/consumeManifestReadGrant/operation/operation/init:retry/init:retry/init:retry",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/consumeManifestReadGrant/consumeManifestReadGrant/operation/operation/init:retry/init:retry/init:retry#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/consumeManifestReadGrant/consumeManifestReadGrant/operation/operation/status/status",
+          "parameters": [],
           "async": false
         },
         {
@@ -10085,7 +10098,10 @@
             "openOriginalLocalPublicationStore/consumeManifestReadGrant/consumeManifestReadGrant",
             "openOriginalLocalPublicationStore/consumeManifestReadGrant/consumeManifestReadGrant/consumeManifestReadGrant",
             "openOriginalLocalPublicationStore/consumeManifestReadGrant/consumeManifestReadGrant/operation/operation",
-            "openOriginalLocalPublicationStore/consumeManifestReadGrant/consumeManifestReadGrant/operation/operation/uses/uses",
+            "openOriginalLocalPublicationStore/consumeManifestReadGrant/consumeManifestReadGrant/operation/operation/init:retry/init:retry",
+            "openOriginalLocalPublicationStore/consumeManifestReadGrant/consumeManifestReadGrant/operation/operation/init:retry/init:retry/init:retry",
+            "openOriginalLocalPublicationStore/consumeManifestReadGrant/consumeManifestReadGrant/operation/operation/init:retry/init:retry/init:retry#2",
+            "openOriginalLocalPublicationStore/consumeManifestReadGrant/consumeManifestReadGrant/operation/operation/status/status",
             "openOriginalLocalPublicationStore/consumeObject/consumeObject",
             "openOriginalLocalPublicationStore/consumeObject/consumeObject/cleanup/init:retry/init:retry",
             "openOriginalLocalPublicationStore/consumeObject/consumeObject/cleanup/init:retry/init:retry/init:retry",
@@ -11727,6 +11743,26 @@
               {
                 "path": "adapters/store-local/publication-store.test.mjs",
                 "anchor": "test(`ordinary Store opening defers an unrelated holding"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "test('Manifest selection leaves unrelated committed history out of ordinary Store opening'"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "test('Manifest selection requires its actual directory ACK after a lost use acknowledgement'"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "test('Manifest selection retains the original failed directory FD close before Store retirement'"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "test('Manifest selected use reuses admission but still refuses changed target bytes'"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "Manifest read grants follow the same selected-operation boundary. Ordinary"
               }
             ]
           }
