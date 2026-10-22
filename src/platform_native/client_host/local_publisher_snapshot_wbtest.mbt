@@ -95,18 +95,21 @@ test "publisher pure command predicates reuse the operation without replacing CA
   journal.publication_read_locked = true
   assert_false(journal.publisher_current_snapshot(current, reads=Some(reads)))
   journal.publication_read_locked = false
-  journal
-  .transaction_with_reads(
-    () => {
-      assert_true(publisher.current_in_owned_transaction())
-      assert_false(
-        journal.publisher_current_snapshot(current, reads=Some(reads)),
-      )
-      Ok(())
-    },
-    reads=Some(reads),
-  )
-  .unwrap()
+  let (owned, unrelated) = journal
+    .transaction_with_reads(
+      () => {
+        Ok(
+          (
+            publisher.current_in_owned_transaction(),
+            journal.publisher_current_snapshot(current, reads=Some(reads)),
+          ),
+        )
+      },
+      reads=Some(reads),
+    )
+    .unwrap()
+  assert_true(owned)
+  assert_false(unrelated)
   assert_eq(calls.filter(value => value == "begin").length(), 1)
   assert_eq(calls.filter(value => value == "commit").length(), 1)
   journal.operation_active = false
