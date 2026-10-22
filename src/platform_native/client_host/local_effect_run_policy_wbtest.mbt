@@ -403,7 +403,8 @@ test "saved Run policy joins the command context without a read transaction" {
   )
   .unwrap()
   |> ignore
-  // The unscoped Submission and original policy reads remain transactional.
-  assert_eq(calls.filter(value => value == "begin").length(), 2)
-  assert_eq(calls.filter(value => value == "commit").length(), 2)
+  // Ending the operation also retires the epoch clock observation. Its
+  // standalone re-observation, Submission and Policy keep three transactions.
+  assert_eq(calls.filter(value => value == "begin").length(), 3)
+  assert_eq(calls.filter(value => value == "commit").length(), 3)
 }
