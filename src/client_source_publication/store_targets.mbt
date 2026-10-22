@@ -16,6 +16,7 @@ pub fn published_store_targets(
 fn published_store_targets_from_root(
   environment : @program_check.CheckEnvironment,
   root : @decode.Cursor,
+  admission? : PublicationEnvironmentAdmission? = None,
 ) -> Result[@query_program.StoreTargetPublication?, PublicationIssue] {
   try {
     let object = @decode.closed_object(root, [
@@ -40,17 +41,27 @@ fn published_store_targets_from_root(
       max_depth: 32,
       max_members: 32768,
     }
-    let mappings = @check_environment.check_mapping_contract_shapes(
-      wire, limits, 1000000,
-    ).unwrap_or_else(() => raise PublicationStop(Publication))
-    let registry = @check_environment.check_contract_registry(wire, limits).unwrap_or_else(() => {
-        raise PublicationStop(Publication)
-      },
-    )
-    let catalogs = @check_environment.check_catalog_contents(registry, limits).unwrap_or_else(() => {
-        raise PublicationStop(Publication)
-      },
-    )
+    let mappings = match admission {
+      Some(admission) => publication_admission_mappings(admission)
+      None =>
+        @check_environment.check_mapping_contract_shapes(wire, limits, 1000000).unwrap_or_else(() => {
+            raise PublicationStop(Publication)
+          },
+        )
+    }
+    let catalogs = match admission {
+      Some(admission) => publication_admission_contents(admission)
+      None => {
+        let registry = @check_environment.check_contract_registry(wire, limits).unwrap_or_else(() => {
+            raise PublicationStop(Publication)
+          },
+        )
+        @check_environment.check_catalog_contents(registry, limits).unwrap_or_else(() => {
+            raise PublicationStop(Publication)
+          },
+        )
+      }
+    }
     match
       @query_program.bind_store_target_publication(
         mappings, catalogs, aliases, 1000000,

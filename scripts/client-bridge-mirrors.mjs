@@ -44,6 +44,7 @@ export function checkRelaClientBridges(root, write = false) {
     'client_public_model_task_bridge.mbt',
     'client_row_listing_capacity.mbt',
     'client_request_value_policy.mbt',
+    'client_prepared_public_environment.mbt',
     'client_multi_source_host_bridge.mbt',
     'client_single_source_host_bridge.mbt',
     'client_source_capture_bridge.mbt',
