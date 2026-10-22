@@ -5876,7 +5876,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "8fb2f45b6a7116673089887ee24c06602f500c17f9543dc5f2a204d2f4110701",
+      "sha256": "2ed2dab9120dce12f24e853ac79b33c208949830573c5dd58ddbb11a7189efe6",
       "exports": [
         "PublicationStoreError",
         "assertOriginalLocalPublicationStoreFacilityCurrent",
@@ -6765,7 +6765,8 @@
         {
           "name": "openOriginalLocalPublicationStore/createAdmittedAttempt/createAdmittedAttempt",
           "parameters": [
-            "admitted"
+            "admitted",
+            "retainedAttempt"
           ],
           "async": true
         },
