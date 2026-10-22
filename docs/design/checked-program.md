@@ -1802,6 +1802,44 @@ placeholder CIDs. They are constructed later from admitted concrete observations
 and this result's exact semantic dependencies. Static readiness is neither an
 Invocation nor authorization to run it.
 
+## Installed public Environment lifetime
+
+An installed Host may retain the Common prepared public Environment alongside
+its original immutable name publication. Common admits every supplied section,
+including unused aliases and Effect targets, and constructs the Catalog indices
+once for that original Check Environment, publication generation, compiler and
+selected bounds. The retained value is pure typed preparation, not a Run,
+permission, acquisition or capacity grant. Equal CIDs or copied declarations do
+not recover its nominal association. A different Environment or changed bounds
+must satisfy its own applicable admission.
+
+The Node publication factory retains this value privately without adding a
+member to the public publication body. The installed source-text and JSON Effect
+preparation paths share that same original. They do not serialize the retained
+publication again or rebuild its Environment-wide Catalog for each query.
+Manually supplied declarations are captured and admitted once at their own
+preparation boundary. JSON/YAML preparation without a publication keeps its
+existing path; no empty publication is silently substituted for an absent one.
+
+Each query still admits its own document, declarations and Parameter Values and
+produces its own prepared Program. SQL text and parameter types are not a cache
+key for a parameter-bound Program. Run and attempt identity, current Account
+decisions, target/Preview correspondence, explicit approval, durable claims and
+CAS, and Unknown/non-resend obligations remain with their existing Owners.
+Run-read and named-Result-read are separate permissions. A new operation must
+observe the relevant current authorization rather than reuse an earlier Allow.
+
+The existing per-Host slot binds the retained value to the actual runtime and
+publication. Cheap closing and reference checks fence subsequent preparation;
+an internal getter, trusted read or await does not reconstruct unchanged facts.
+Final Host retirement also cuts the Source and Effect consumer holders' cached
+Environment and installation callbacks; retaining a closed client does not keep
+those catalog aliases. Pending cleanup retains the same holders for retry.
+Retirement does not invalidate a pure value legitimately retained elsewhere or stand
+in for native, FD, task or durable cleanup. Reopening validates durable inputs
+into the new installation's originals; saved Runs keep their saved preparation
+and result names rather than being recompiled or renamed by this reuse.
+
 ## Lowering reads
 
 Read-only count/index access exposes the source-owned stages, role-tagged input

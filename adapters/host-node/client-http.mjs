@@ -1,6 +1,6 @@
 // Client-Host HTTP ingress. Authentication and connection consent are installed
 // by the Host; Run meaning and read admission stay with the existing services.
-import {inspectAuthorizedRunState} from '../host-common/run-state-access.mjs';
+import {observeClientRunState} from './client-run-state.mjs';
 import {performClientSubmit} from './client-submit.mjs';
 import {projectClientCheckUnavailable} from './client-check.mjs';
 import {isLoopbackHttpRequest} from './loopback-http.mjs';
@@ -161,7 +161,7 @@ function observationAttempt(response) {
 }
 
 export function createClientHttpHandler({
-  authenticate, authorizeConnection, workspaceForPrincipal, stateService, resultService,
+  authenticate, authorizeConnection, workspaceForPrincipal, stateService, runStateObservation, resultService,
   negotiate, submit, submitIntent, submitNamedIntent, lookupSubmission, attach, lookupRequest, observeRun, observeOwners, wait, cancel, lookupCancellation,
   reconcile, deliveryAttempt, prepareSubmit, checkpoints, checkpointReview,
   resolve, cancelRequest, resources, inspectResource, peekResource,
@@ -308,7 +308,7 @@ export function createClientHttpHandler({
         sendJson(lookup);
       } else if (operation === 'status') {
         const state = observeRun === undefined
-          ? await inspectAuthorizedRunState(stateService, {
+          ? await observeClientRunState(runStateObservation, stateService, {
           indexKey: body.ref,
           principalId: principal,
           purpose: 'inspect',

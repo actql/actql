@@ -786,6 +786,8 @@ pub fn read_model_original_resource_document(String, Int, Int, Int) -> Result[Mo
 
 pub fn[E] read_stored_effect_free_publication(String, String, String, (String, String) -> Result[Bytes?, E], () -> Result[Unit, E], Int, Int, Int, Int, Int, Int) -> Result[PublicationCommitPreparation?, StoredPublicationReadIssue[E]]
 
+pub fn readmit_captured_generated_content_observation(PublicationContract, PublicationContract, RunEvidenceValue, String, String, String, Int, StoredGeneratedContentReference, @value_admission.CheckedValue) -> Result[BoundContentGeneration, RunEvidenceValueIssue]
+
 pub fn readmit_generated_content_observation(RunEvidenceValue, String, String, String, String, RunEvidenceValue, RunEvidenceValue, RunEvidenceValue, StoredGeneratedContentReference, @value_admission.CheckedValue) -> Result[BoundContentGeneration, RunEvidenceValueIssue]
 
 pub fn record_result_access_grant(ResultAccessProgress, Bool) -> Result[Unit, ResultAccessProgressIssue]

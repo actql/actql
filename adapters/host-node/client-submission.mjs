@@ -19,26 +19,64 @@ const immutable = value => {
   }
   return value;
 };
+const scopeFields = selected => {
+  const authorityScopeCid = selected?.authorityScopeCid;
+  const namespaceId = selected?.namespaceId;
+  if (typeof authorityScopeCid !== 'string' || !/^sha256:[0-9a-f]{64}$/u.test(authorityScopeCid) ||
+      typeof namespaceId !== 'string' || !namespaceId) fail('ClientRequestLookupDenied');
+  return {authorityScopeCid, namespaceId, currentAuthorization: true};
+};
+const snapshot = value => immutable(JSON.parse(canonicalJson(value, {dataKeys: true})));
+
+// The same Journal-owned epoch operation is available before optional Result
+// and Model services are constructed. This issues no Run, Account or Store
+// permission and keeps the original authenticated scope and packet snapshot.
+export async function issueNodeClientSubmissionEpoch({journal, moon, authorizedScope}, request) {
+  return journal.issueSubmissionEpoch(scopeFields(await authorizedScope(snapshot(request))), moon);
+}
 
 export function installNodeClientSubmission({journal, moon, authorizedScope,
-  prepareSubmit, submit, lookupRequest, checkSubmissionInput}) {
+  prepareSubmit, submit, lookupRequest, checkSubmissionInput, bindOwnedRequest, admitPreparedSubmission}) {
   if (typeof journal?.recordSubmittedIntent !== 'function' ||
       typeof journal?.checkSubmittedIntent !== 'function' ||
       typeof moon?.clientSubmittedIntent !== 'function' ||
       [authorizedScope, prepareSubmit, submit, lookupRequest].some(value => typeof value !== 'function') ||
+      bindOwnedRequest !== undefined && typeof bindOwnedRequest !== 'function' ||
+      admitPreparedSubmission !== undefined && typeof admitPreparedSubmission !== 'function' ||
       checkSubmissionInput !== undefined && typeof checkSubmissionInput !== 'function') {
     throw new TypeError('InvalidClientSubmissionInstallation');
   }
   const flights = new Map();
-  const scopeFields = selected => {
-    const authorityScopeCid = selected?.authorityScopeCid;
-    const namespaceId = selected?.namespaceId;
-    if (typeof authorityScopeCid !== 'string' || !/^sha256:[0-9a-f]{64}$/u.test(authorityScopeCid) ||
-        typeof namespaceId !== 'string' || !namespaceId) fail('ClientRequestLookupDenied');
-    return {authorityScopeCid, namespaceId, currentAuthorization: true};
-  };
+  const ownedSnapshots = new WeakSet();
   const authorize = async value => scopeFields(await authorizedScope(value));
-  const snapshot = value => immutable(JSON.parse(canonicalJson(value, {dataKeys: true})));
+  const own = (parent, derived) => {
+    if (bindOwnedRequest !== undefined && bindOwnedRequest(parent, derived) !== undefined) {
+      fail('SourceManagedPreparationUnavailable');
+    }
+    return derived;
+  };
+  const captureSnapshot = (value, bind = true) => {
+    const captured = bind ? own(value, snapshot(value)) : snapshot(value);
+    ownedSnapshots.add(captured);
+    return captured;
+  };
+  const ownedSnapshot = value => ownedSnapshots.has(value) ? value : captureSnapshot(value);
+  const operation = (action, bind = true) => async request => {
+    const value = captureSnapshot(request, bind);
+    const release = validSubmissionRef(value.submissionRef) ?
+      journal.retainSubmissionOperation?.(value.submissionRef.epoch, moon) : undefined;
+    try {return await action(value);}
+    finally {release?.();}
+  };
+  const prepareOwned = (value, requestId) => {
+    const request = own(value, {...value, requestId});
+    const prepared = prepareSubmit(request);
+    // Preserve the unselected caller's original single await. Only the
+    // selected Source retains an additional continuation for its nominal
+    // returned handle; that continuation issues no capacity or permission.
+    return bindOwnedRequest === undefined ? prepared :
+      Promise.resolve(prepared).then(original => own(request, original));
+  };
   const unresolved = (submissionRef, code = 'submission_history_unresolvable') =>
     immutable({kind: 'unresolvable', submissionRef, problem: {code}});
   const withRestart = (outcome, retained) => retained.unresolvedHistory === undefined ? outcome
@@ -122,7 +160,7 @@ export function installNodeClientSubmission({journal, moon, authorizedScope,
     return storedOutcome(updated);
   };
   const lookupSubmission = async request => {
-    const value = snapshot(request);
+    const value = ownedSnapshot(request);
     if (!validSubmissionRef(value.submissionRef)) fail('InvalidClientRequest');
     const fields = await authorize(value);
     let retained;
@@ -157,7 +195,7 @@ export function installNodeClientSubmission({journal, moon, authorizedScope,
     const flight = (async () => {
       let preparedProgram;
       try {
-        preparedProgram = await prepareSubmit({...value, requestId});
+        preparedProgram = await prepareOwned(value, requestId);
         assertOriginalPreparation(preparedProgram, input, value);
       }
       catch (error) {
@@ -177,9 +215,9 @@ export function installNodeClientSubmission({journal, moon, authorizedScope,
       const current = await authorize(value);
       if (current.authorityScopeCid !== fields.authorityScopeCid ||
           current.namespaceId !== fields.namespaceId) fail('ClientRequestLookupDenied');
-      const reply = await submit({...value, requestId, preparedProgram,
+      const reply = await submit(own(value, {...value, requestId, preparedProgram,
         submission: {epoch: value.submissionRef.epoch, nonce: value.submissionRef.nonce,
-          intentCid: value.intentCid, currentAuthorization: true}});
+          intentCid: value.intentCid, currentAuthorization: true}}));
       const observed = await authorize(value);
       if (observed.authorityScopeCid !== fields.authorityScopeCid ||
           observed.namespaceId !== fields.namespaceId) fail('ClientRequestLookupDenied');
@@ -206,7 +244,7 @@ export function installNodeClientSubmission({journal, moon, authorizedScope,
     return input;
   };
   const submitIntent = async (request, attempt) => {
-    const value = snapshot(request);
+    const value = ownedSnapshot(request);
     if (!validSubmissionRef(value.submissionRef)) fail('InvalidClientRequest');
     const fields = attempt?.fields ?? await authorize(value);
     const input = submittedInput(value);
@@ -241,7 +279,7 @@ export function installNodeClientSubmission({journal, moon, authorizedScope,
     }
     let preparedProgram;
     try {
-      preparedProgram = await prepareSubmit({...value, requestId});
+      preparedProgram = await prepareOwned(value, requestId);
       assertOriginalPreparation(preparedProgram, input, value);
     }
     catch (error) {
@@ -268,6 +306,12 @@ export function installNodeClientSubmission({journal, moon, authorizedScope,
       return await discloseOutcome(value, storedOutcome(result), current, result);
     }
     const current = await authorize(value);
+    // The actual selected Host validates its same finite business candidate
+    // before this first durable business admission. This callback cannot
+    // issue the service or replace authorization; unselected callers retain
+    // their original path, and Promise/Bool is not synchronous acceptance.
+    if (admitPreparedSubmission !== undefined && admitPreparedSubmission(
+      own(value, {...value, requestId, preparedProgram})) !== undefined) fail('ClientPreparedSubmissionUnavailable');
     retained = attempt === undefined
       ? journal.recordSubmittedIntent(value.submissionRef, input, restartFields(current), moon)
       : attempt.record(value.submissionRef, input, restartFields(current));
@@ -279,9 +323,9 @@ export function installNodeClientSubmission({journal, moon, authorizedScope,
     if (flights.has(requestId)) return storedOutcome(retained);
     const flight = (async () => {
       try {
-        const reply = await submit({...value, requestId, preparedProgram,
+        const reply = await submit(own(value, {...value, requestId, preparedProgram,
           submission: {epoch: value.submissionRef.epoch, nonce: value.submissionRef.nonce,
-            intentCid: value.intentCid, currentAuthorization: true}});
+            intentCid: value.intentCid, currentAuthorization: true}}));
         const outcome = reply.kind === 'held'
           ? {kind: 'held', submissionRef: value.submissionRef, intentCid: value.intentCid,
             held: {...reply, requestId: value.submissionRef.nonce}}
@@ -310,7 +354,7 @@ export function installNodeClientSubmission({journal, moon, authorizedScope,
     return await discloseOutcome(value, result, current, retained);
   };
   const submitAttempt = async request => {
-    const value = snapshot(request);
+    const value = ownedSnapshot(request);
     if (!validSubmissionRef(value.submissionRef) || !validOperationAttemptRef(value.attemptRef) ||
         value.attemptRef.operation !== 'submit') fail('InvalidClientSubmissionAttempt');
     const selected = await authorizedScope(value);
@@ -353,7 +397,7 @@ export function installNodeClientSubmission({journal, moon, authorizedScope,
     }
   };
   const submitNamedAttempt = async request => {
-    const value = snapshot(request);
+    const value = ownedSnapshot(request);
     if (!validSubmissionName(value.requestName) || !validSubmissionRef(value.submissionRef) ||
         !validOperationAttemptRef(value.attemptRef) || value.attemptRef.operation !== 'submit') {
       fail('InvalidClientSubmissionAttempt');
@@ -375,7 +419,7 @@ export function installNodeClientSubmission({journal, moon, authorizedScope,
         ...(resolution.kind === 'refused' ? {guarantee: resolution.guarantee} : {})};
     } else {
       const retained = resolution.submission;
-      const bound = snapshot({...value, submissionRef: retained.submissionRef});
+      const bound = ownedSnapshot(own(value, {...value, submissionRef: retained.submissionRef}));
       // The original name and intent are already committed before preparation.
       // Another connection may only observe this original, never replay it or
       // replace its epoch because its first outcome is still preparing/unknown.
@@ -390,6 +434,7 @@ export function installNodeClientSubmission({journal, moon, authorizedScope,
       value.submissionRef, value.intentCid, value.attemptRef)) fail('InvalidClientHostSubmissionOutcome');
     return immutable(answer);
   };
-  return Object.freeze({submitIntent, submitAttempt, submitNamedAttempt, lookupSubmission,
-    async issueEpoch(request) {return journal.issueSubmissionEpoch(await authorize(snapshot(request)), moon);}});
+  return Object.freeze({submitIntent: operation(submitIntent), submitAttempt: operation(submitAttempt),
+    submitNamedAttempt: operation(submitNamedAttempt), lookupSubmission: operation(lookupSubmission, false),
+    issueEpoch(request) {return issueNodeClientSubmissionEpoch({journal,moon,authorizedScope},request);}});
 }

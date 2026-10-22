@@ -13,8 +13,33 @@ original Source Ledger reserves the supplementary envelope. The same Row
 acquisition, capture and cleanup owner retains that backing and execution
 allowance through evidence encoding. The explicit report-evidence issuer
 refuses an ordinary resolved listing, including a genuinely empty one. Selecting
-this path does not change the public seven-column input, Source permissions,
+this path does not change the Source-declared listing input, Source permissions,
 wire identities or the evidence writer's existing bounds.
+
+## Declared listing metadata
+
+The existing listing Owner admits a required canonical role base: `resource`,
+`version`, `name`, `path`, `media_type`, `size_bytes` and `modified_at`. This is
+not an exclusive seven-column schema. The complete published Source schema
+also governs additional typed metadata, including Local `size:Int64` and
+`modified_time:Timestamp`, which remain directly visible through `LIST_FILES`.
+Canonical nullable metadata may be refined to nonnullable by that schema;
+missing or NULL values then fail its ordinary row admission. Required role
+presence, Resource kind, nonnullable resource/name and version capability do
+not change. Extra fields do not repair a missing or mistyped canonical role.
+
+The profile's `listing_schema_contract_cid` identifies the complete actual
+output schema. Schema checking, acquisition, duplicate comparison, capture,
+Result and restoration retain that same full typed row, including empty
+listings' schema. Additional contracts, fields, values and bytes consume the
+existing bounded work and retention budgets under the same Source lifetime.
+No Int64-to-Number or Timestamp-to-Host-Date coercion is introduced. Related
+native and canonical metadata originate from the same physical observation.
+Unchanged seven-role bodies keep their original bytes and identities.
+
+The corrected report remains its separate fixed correlation record. Extra
+Source metadata is not a report member, issuer, grant, funding proof or cleanup
+acknowledgment; its original scan/capture/funded-lifetime obligations remain.
 
 The ordinary installed Host wiring does not yet provide the justified physical
 report supplier or the Source-to-prefix dependency/debt handoff. Ordinary LIST

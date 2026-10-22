@@ -39,3 +39,107 @@ test "handed off consumer observes original origin without restoring initial usa
   settle_funded_read_consumer(consumer, true).unwrap()
   assert_true(funded_read_consumer_handed_off_origin(consumer) is None)
 }
+
+///|
+fn handed_off_output_fixture() -> (
+  Ledger,
+  FundedReadConsumer[OriginalReadTestOrigin],
+  Reservation,
+) {
+  let ledger = create_ledger({
+    planning_work: 100,
+    attempts: 3,
+    holdings: 4,
+    transfer_bytes: 20L,
+    retained_bytes: 100L,
+    execution_bytes: 100L,
+  }).unwrap()
+  let origin = original_read_test_origin()
+  let bootstrap = reserve_capacity(ledger, 3L, 2L).unwrap()
+  let identity = begin_original_ledger_inventory(ledger, bootstrap, 4, 4, 0).unwrap()
+  let producer = reserve_attempt(ledger, 9L, 10L, 12L).unwrap()
+  let descriptor = issue_recorded_original_ledger_descriptor(identity, origin).unwrap()
+  let claim = fund_original_read(ledger, origin, descriptor, 7L, 5L).unwrap()
+  let consumer = claim_funded_read_preparation(claim, origin, 7L, 5L).unwrap()
+  enter_funded_read_consumer(consumer, origin, 7L, 5L).unwrap()
+  handoff_funded_read_consumer_capacity(consumer, origin, 10L, 5L).unwrap()
+  |> ignore
+  (ledger, consumer, producer)
+}
+
+///|
+test "handed off origin retains same completed output through independent scratch cleanup" {
+  let (ledger, consumer, producer) = handed_off_output_fixture()
+  let output = retain_allocation(ledger, producer, 4L).unwrap()
+  settle_completed_output_reservation(ledger, producer, Some(output), 4L, 7L).unwrap()
+  let pending = ledger_usage(ledger)
+  assert_true(reservation_pending(producer))
+  assert_true(funded_read_consumer_handed_off_origin(consumer) is Some(_))
+  assert_eq(ledger_usage(ledger), pending)
+  assert_true(reservation_pending(producer))
+  settle_execution_reservation(ledger, producer, remaining_execution=7L).unwrap()
+  assert_true(funded_read_consumer_handed_off_origin(consumer) is Some(_))
+  settle_reservation(ledger, producer).unwrap()
+  assert_true(output.live)
+  assert_true(funded_read_consumer_handed_off_origin(consumer) is Some(_))
+  release_allocation(ledger, output).unwrap()
+  assert_true(funded_read_consumer_handed_off_origin(consumer) is None)
+}
+
+///|
+test "handed off origin refuses uncompleted changed producer and foreign output stamp" {
+  let (ledger, consumer, producer) = handed_off_output_fixture()
+  charge_transfer(ledger, producer, 1L).unwrap()
+  assert_true(funded_read_consumer_handed_off_origin(consumer) is None)
+  let output = retain_allocation(ledger, producer, 4L).unwrap()
+  settle_completed_output_reservation(ledger, producer, Some(output), 4L, 7L).unwrap()
+  assert_true(funded_read_consumer_handed_off_origin(consumer) is Some(_))
+  let completed = producer.completed_output
+  producer.completed_output = Some((Some(output.serial + 1), 4L, 7L))
+  assert_true(funded_read_consumer_handed_off_origin(consumer) is None)
+  producer.completed_output = completed
+  let forged : FundedReadConsumer[OriginalReadTestOrigin] = {
+    claim: consumer.claim,
+  }
+  assert_true(funded_read_consumer_handed_off_origin(forged) is None)
+  stop_funded_read_consumer(consumer).unwrap()
+  assert_true(funded_read_consumer_handed_off_origin(consumer) is None)
+}
+
+///|
+test "handed off origin accepts completed empty output but not a changed bootstrap" {
+  let (ledger, consumer, producer) = handed_off_output_fixture()
+  settle_completed_output_reservation(ledger, producer, None, 0L, 0L).unwrap()
+  assert_false(producer.open)
+  assert_true(funded_read_consumer_handed_off_origin(consumer) is Some(_))
+  let bootstrap = consumer.claim.unwrap().descriptor.bootstrap
+  mark_cleanup_pending(ledger, bootstrap.reservation).unwrap()
+  assert_true(funded_read_consumer_handed_off_origin(consumer) is None)
+}
+
+///|
+test "handed off output recognition does not admit changed initial snapshot or bypass park" {
+  let ledger = resource_park_test_ledger()
+  let origin = original_read_test_origin()
+  let bootstrap = reserve_capacity(ledger, 3L, 2L).unwrap()
+  let identity = begin_original_ledger_inventory(ledger, bootstrap, 4, 4, 0).unwrap()
+  let producer = reserve_attempt(ledger, 9L, 10L, 12L).unwrap()
+  let descriptor = issue_recorded_original_ledger_descriptor(identity, origin).unwrap()
+  let output = retain_allocation(ledger, producer, 4L).unwrap()
+  settle_completed_output_reservation(ledger, producer, Some(output), 4L, 7L).unwrap()
+  assert_true(
+    fund_original_read(ledger, origin, descriptor, 7L, 5L)
+    is Err(ChangedOriginalState),
+  )
+  let (same, consumer, producer) = handed_off_output_fixture()
+  let output = retain_allocation(same, producer, 4L).unwrap()
+  settle_completed_output_reservation(same, producer, Some(output), 4L, 7L).unwrap()
+  assert_true(funded_read_consumer_handed_off_origin(consumer) is Some(_))
+  let origin = consumer.claim.unwrap().descriptor.origin
+  let park = park_original_resource_consumer(consumer, origin).unwrap()
+  let before = ledger_usage(same)
+  assert_true(funded_read_consumer_handed_off_origin(consumer) is None)
+  assert_true(original_resource_park_current(park, origin) is Some(_))
+  assert_eq(ledger_usage(same), before)
+  assert_true(reservation_pending(producer))
+}

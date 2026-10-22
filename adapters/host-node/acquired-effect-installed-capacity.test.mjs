@@ -106,3 +106,44 @@ test('original installed capacity owner failure is preserved before any provider
   assert.equal(f.events.admission.length, 0);
   assert.equal(f.events.io, 0);
 });
+
+test('managed Effect borrows both Source capacities from the same original Run and request', () => {
+  const f = fixture(), original = {}, request = {};
+  f.options.requestIdentity = request;
+  for (const budget of f.budgets) budget.managedRun = original;
+  const calls = [];
+  f.options.moon.clientProgramInstalledEffectManagedRunPrepareLedger = (...args) => {
+    calls.push(args); return {$tag: 1, _0: f.ledger};
+  };
+  assert.strictEqual(prepareInstalledAcquiredEffectLedger(f.options), f.ledger);
+  assert.deepEqual(calls, [[original, f.options.preparedEffect, request,
+    f.budgets.map(value => value.capacity), [11n, 17n], [13n, 19n],
+    'registry', 'values', 'fragment', undefined]]);
+  assert.equal(f.events.admission.length, 0, 'no replacement scalar Ledger');
+  assert.equal(f.events.io, 0);
+});
+
+for (const fault of ['missing-first-original', 'missing-sibling-original', 'foreign-sibling-original',
+  'missing-request', 'missing-managed-port', 'refused-original']) {
+  test(`managed Effect ${fault} never substitutes the legacy Ledger`, () => {
+    const f = fixture(), original = {}, failure = new Error('OriginalEffectRunRefused');
+    f.options.requestIdentity = {};
+    for (const budget of f.budgets) budget.managedRun = original;
+    let calls = 0;
+    f.options.moon.clientProgramInstalledEffectManagedRunPrepareLedger = () => {
+      calls++;
+      if (fault === 'refused-original') throw failure;
+      assert.fail('An incomplete original cannot reach Common');
+    };
+    if (fault === 'missing-first-original') delete f.budgets[0].managedRun;
+    if (fault === 'missing-sibling-original') delete f.budgets[1].managedRun;
+    if (fault === 'foreign-sibling-original') f.budgets[1].managedRun = {};
+    if (fault === 'missing-request') delete f.options.requestIdentity;
+    if (fault === 'missing-managed-port') delete f.options.moon.clientProgramInstalledEffectManagedRunPrepareLedger;
+    assert.throws(() => prepareInstalledAcquiredEffectLedger(f.options), error =>
+      fault === 'refused-original' ? error === failure : error.message === 'InstalledEffectOriginalRunUnavailable');
+    assert.equal(calls, fault === 'refused-original' ? 1 : 0);
+    assert.equal(f.events.admission.length, 0);
+    assert.equal(f.events.io, 0);
+  });
+}

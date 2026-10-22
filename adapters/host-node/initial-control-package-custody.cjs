@@ -9,7 +9,7 @@ const {createRequire} = NodeModule;
 const {dirname, join, isAbsolute} = require('node:path');
 const {existsSync, realpathSync} = require('node:fs');
 const {captureInitialControlImageSource} = require('./initial-control-image-source.cjs');
-const {installInitialControlImageLoader} = require('./initial-control-image-loader.cjs');
+const {installInitialControlImageLoader, installOrdinaryInitialControlImageLoader} = require('./initial-control-image-loader.cjs');
 const freeze = Object.freeze, descriptor = Object.getOwnPropertyDescriptor, hasOwn = Object.hasOwn;
 const apply = Reflect.apply, array = Array.isArray, integer = Number.isSafeInteger;
 const preloading = descriptor(NodeModule.prototype, 'isPreloading')?.get;
@@ -39,6 +39,20 @@ function captureInitialControlPackageCustody(inventory, localRoot, consumerEntry
   if (typeof preloading !== 'function' || apply(preloading, module, []) !== true) {
     fail('InitialControlPackageCustodyUnavailable');
   }
+  return capturePackageCustody(inventory, localRoot, consumerEntry, publicPreloadEntry, false);
+}
+
+// Separate ordinary byte/namespace custody, never a late operational issuer.
+// It can only be adopted by the real installed public-prefix instance, whose
+// runtime and finite phase must precede this first path/image acquisition.
+function captureOrdinaryInitialControlPackageCustody(inventory, localRoot, consumerEntry, publicDeliveryEntry) {
+  if (typeof preloading !== 'function' || apply(preloading, module, []) !== false) {
+    fail('InitialControlPackageCustodyUnavailable');
+  }
+  return capturePackageCustody(inventory, localRoot, consumerEntry, publicDeliveryEntry, true);
+}
+
+function capturePackageCustody(inventory, localRoot, consumerEntry, publicPreloadEntry, ordinary) {
   const root = realpathSync(localRoot), images = own(inventory, 'images');
   const packages = own(inventory, 'packages'), dependencies = own(inventory, 'dependencies');
   const hostModule = own(inventory, 'hostModule'), hostValidator = own(inventory, 'hostValidator');
@@ -152,7 +166,7 @@ function captureInitialControlPackageCustody(inventory, localRoot, consumerEntry
       }
       const entry = realpathSync(publicPreloadEntry);
       nodeRoot = dirname(entry);
-      if (entry !== join(nodeRoot, 'selected-infer-startup.cjs') || nodeRoot === root) {
+      if (entry !== join(nodeRoot, ordinary ? 'initial-control-public-dispatch.cjs' : 'selected-infer-startup.cjs') || nodeRoot === root) {
         fail('InitialControlPackageImageChanged');
       }
       captureGroup(nodeRoot, own(publicNode, 'images'), '@actql/node', own(publicNode, 'version'),
@@ -205,11 +219,11 @@ function captureInitialControlPackageCustody(inventory, localRoot, consumerEntry
   if (!apply(mapHas, mainSources, [hostModule]) || !apply(mapHas, mainSources, [localPublicModule])) {
     fail('InvalidInitialControlPackageImage');
   }
-  const loader = installInitialControlImageLoader(groups);
+  const loader = ordinary ? installOrdinaryInitialControlImageLoader(groups) : installInitialControlImageLoader(groups);
   const originalRequire = createRequire(join(root, 'package.json'));
   let namespace, publicNamespaces, initialized = false;
   function initializeHostNamespace() {
-    if (apply(preloading, module, []) !== true) fail('InitialControlPackageCustodyUnavailable');
+    if (apply(preloading, module, []) !== !ordinary) fail('InitialControlPackageCustodyUnavailable');
     loader.assertCurrent();
     if (initialized) return namespace;
     // Actual Source delivery precedes this compilation. Do not capture a
@@ -221,8 +235,12 @@ function captureInitialControlPackageCustody(inventory, localRoot, consumerEntry
     // Compile both actual public ESM namespaces before the Module handoff.
     // Later entry imports must reuse these same originals, not pathname bytes
     // that can change after the Host namespace was initialized.
-    const localNamespace = originalRequire(join(root, localPublicModule));
-    const nodeNamespace = nodeRoot === undefined ? undefined : originalRequire(join(nodeRoot, 'index.mjs'));
+    // Ordinary public facades are already being linked by Node when their
+    // private prefix runs. Do not synchronously re-require that same in-flight
+    // ESM graph. Their fixed prefix belongs to its separate ordinary bootstrap
+    // responsibility; covered Host/dependencies are delivered by this loader.
+    const localNamespace = ordinary ? undefined : originalRequire(join(root, localPublicModule));
+    const nodeNamespace = ordinary || nodeRoot === undefined ? undefined : originalRequire(join(nodeRoot, 'index.mjs'));
     publicNamespaces = freeze({local: localNamespace, node: nodeNamespace});
     loader.captureLoadedModules();
     namespace = loaded;
@@ -244,5 +262,5 @@ function captureInitialControlPackageCustody(inventory, localRoot, consumerEntry
   return freeze({initializeHostNamespace, assertCurrent, readAsset});
 }
 
-module.exports = {captureInitialControlPackageCustody};
+module.exports = {captureInitialControlPackageCustody, captureOrdinaryInitialControlPackageCustody};
 freeze(module.exports);

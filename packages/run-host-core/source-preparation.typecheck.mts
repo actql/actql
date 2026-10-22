@@ -11,6 +11,11 @@ source.parameterDeclarationsWire satisfies string | undefined;
 const material = sourceProgramMaterialInput(selected.prepared, '{}');
 material.format satisfies 'json';
 const restored = restoreSourceProgram(sourceProgramOriginals(selected.prepared), environment);
+sourceProgramOriginals(selected.prepared).primaryResultRecipe satisfies 'public-main' | undefined;
+restoreSourceProgram({intentWire: '{}', intentCid: 'original', environmentCid: 'environment',
+  publicationWire: '{}'}, environment);
+// @ts-expect-error arbitrary Result aliases are not a source preparation recipe
+restoreSourceProgram({...sourceProgramOriginals(selected.prepared), primaryResultRecipe: 'alias'}, environment);
 const request = prepareSourceRequest(restored.prepared, restored.originalIntent, 'scope', 'request');
 admitSourceRequestFields(restored.prepared, restored.originalIntent, requestFields(request));
 if (selected.kind === 'effect') {

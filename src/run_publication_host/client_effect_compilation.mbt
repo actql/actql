@@ -115,6 +115,7 @@ pub fn issue_prepared_client_effect_compilation(
   max_depth : Int,
   infer? : ClientInferPlanGraph? = None,
   normalization? : ClientEffectNormalization? = None,
+  source_free_policy? : @publication.CapturedEffectDependencyBody? = None,
 ) -> Result[ClientEffectCompilation, ClientEffectCompilationIssue] {
   match normalization {
     Some(original) =>
@@ -135,6 +136,7 @@ pub fn issue_prepared_client_effect_compilation(
     max_depth,
     normalization.map(fn(original) { original.inventory }),
     infer~,
+    source_free_policy~,
   )
 }
 
@@ -153,7 +155,11 @@ fn issue_client_effect_compilation_internal(
   max_depth : Int,
   normalization_profile : ClientEffectNormalizationInventory?,
   infer? : ClientInferPlanGraph? = None,
+  source_free_policy? : @publication.CapturedEffectDependencyBody? = None,
 ) -> Result[ClientEffectCompilation, ClientEffectCompilationIssue] {
+  if source_free_policy is Some(_) && infer is Some(_) {
+    return Err(Serialization(UnsupportedGraph))
+  }
   if normalization_profile is Some(inventory) &&
     !client_effect_normalization_inventory_matches(inventory, owner) {
     return Err(Normalization(ForeignPreparation))
@@ -220,7 +226,12 @@ fn issue_client_effect_compilation_internal(
   } else {
     match
       issue_client_serialization_effect_component(
-        value, sequence_limits, max_wire_bytes, max_nodes, max_depth,
+        value,
+        sequence_limits,
+        max_wire_bytes,
+        max_nodes,
+        max_depth,
+        source_free_policy~,
       ) {
       Ok(component) => component
       Err(issue) => return Err(Serialization(issue))
@@ -432,6 +443,7 @@ pub fn admit_prepared_client_effect_compilation(
   max_nodes : Int,
   max_depth : Int,
   infer? : ClientInferPlanGraph? = None,
+  source_free_policy? : @publication.CapturedEffectDependencyBody? = None,
 ) -> Result[ClientEffectCompilation, ClientEffectCompilationAdmissionIssue] {
   let issued = match
     issue_prepared_client_effect_compilation(
@@ -444,6 +456,7 @@ pub fn admit_prepared_client_effect_compilation(
       max_nodes,
       max_depth,
       infer~,
+      source_free_policy~,
     ) {
     Ok(value) => value
     Err(issue) => return Err(Issue(issue))
@@ -592,9 +605,9 @@ pub fn client_effect_allowed_infer_run_with_policy_body(
 ///|
 /// Borrow the checked Content component from this exact allowed Effect Run.
 /// This is neither approval of the Command nor an Effect-free admission. The
-/// initial serialization Effect compiler requires a checked acquired Source
-/// closure; a source-free caller must supply its policy through a future
-/// explicitly checked binding, not inherit a lower classification here.
+/// compiler retains either the actual acquired Source closure or the explicit
+/// source-free Host policy selected before compilation. The same Plan/Run
+/// carries it; this projection neither samples policy nor authorizes the write.
 pub fn client_effect_allowed_serialization_run(
   value : ClientEffectAllowedRun,
 ) -> Result[ClientCompiledRun, ClientCompiledRunIssue] {
@@ -603,10 +616,14 @@ pub fn client_effect_allowed_serialization_run(
     physical_equal(component.owner, compilation.compiled.owner) else {
     return Err(ForeignOwner)
   }
-  if @strategy.graph_source_free_inputs_complete(component.owner.graph) {
-    return Err(MissingResultPolicy)
+  let source_free_policy = if @strategy.graph_source_free_inputs_complete(
+      component.owner.graph,
+    ) {
+    Some(component.policy)
+  } else {
+    None
   }
-  Ok(client_effect_allowed_component_run(value, None))
+  Ok(client_effect_allowed_component_run(value, source_free_policy))
 }
 
 ///|

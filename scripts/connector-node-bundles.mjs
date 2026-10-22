@@ -40,6 +40,7 @@ if (buildInputs !== undefined) {
   for (const name of ['local_carrier_bridge.mbt', 'client_program_bridge.mbt',
     'client_infer_bridge.mbt', 'authorization_bridge.mbt', 'client_check.mbt',
     'client_update_target_bridge.mbt', 'client_effect_content_bridge.mbt',
+    'client_recovered_content_bridge.mbt',
     'client-program-dependencies.json', 'client-execution-dependencies.json']) {
     const path = join(sourceRoot, bridgePackage, name);
     try { lstatSync(path); }

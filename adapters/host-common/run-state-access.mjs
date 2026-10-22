@@ -65,15 +65,31 @@ export function installRunStateService(configuration) {
       ]) || !Object.values(configuration.limits).every(positive)) {
     fail('InvalidRunStateService');
   }
+  const readCommittedPublication = configuration.store.readCommittedPublication;
+  if (readCommittedPublication !== undefined && typeof readCommittedPublication !== 'function') {
+    fail('InvalidRunStateService');
+  }
   const service = Object.freeze({});
   services.set(service, Object.freeze({
     store: configuration.store,
+    readCommittedPublication,
     control: configuration.control,
     authority: authorities.get(configuration.authority),
     now: configuration.now,
     limits: Object.freeze({...configuration.limits}),
   }));
   return service;
+}
+
+// The public Journal-backed observer authorizes before reading its original
+// request row. This is the same gate as internal publication inspection.
+export async function authorizeRunStateRequest(service, request) {
+  const installed = services.get(service) ?? fail('ForeignRunStateService');
+  validateRequest(request);
+  if (await installed.authority.authorizeRunState(Object.freeze({
+    stage: 'request', indexKey: Object.freeze({...request.indexKey}),
+    principalId: request.principalId, purpose: request.purpose,
+  })) !== true) fail('RunStateAccessDenied');
 }
 
 function validateRequest(request) {
@@ -240,7 +256,9 @@ async function observeResult(installed, context, resultName) {
   }
 }
 
-export async function inspectAuthorizedRunState(service, request) {
+// Optional publication observation is only for the existing Local observer's
+// committed/unpublished branch. Denial and physical failure are never absence.
+export async function observeAuthorizedRunState(service, request) {
   const installed = services.get(service) ?? fail('ForeignRunStateService');
   validateRequest(request);
   const indexKey = Object.freeze({...request.indexKey});
@@ -253,10 +271,22 @@ export async function inspectAuthorizedRunState(service, request) {
   if (await installed.authority.authorizeRunState(requestFacts) !== true) {
     fail('RunStateAccessDenied');
   }
-  const entry = await installed.store.confirmCommittedIndex(indexKey);
-  if (entry === undefined) fail('RunStateAccessDenied');
+  let entry, selectedIndex;
+  if (installed.readCommittedPublication !== undefined) {
+    const selected = await Reflect.apply(installed.readCommittedPublication, installed.store, [indexKey]);
+    if (selected === undefined) return undefined;
+    if (!exactKeys(selected, ['entry', 'index']) || selected.entry === null ||
+        typeof selected.entry !== 'object' || selected.index === null || typeof selected.index !== 'object') {
+      fail('InvalidCommittedPublicationState');
+    }
+    entry = selected.entry;
+    selectedIndex = selected.index;
+  } else {
+    entry = await installed.store.confirmCommittedIndex(indexKey);
+    if (entry === undefined) return undefined;
+  }
   const [index, record] = await Promise.all([
-    installed.store.readPublicationContract(
+    selectedIndex ?? installed.store.readPublicationContract(
       entry.public_index_entry_cid, 'public_index_entry'),
     installed.store.latestRecordContract(entry.publication_attempt_cid),
   ]);
@@ -312,4 +342,10 @@ export async function inspectAuthorizedRunState(service, request) {
     fail('RunStateAccessDenied');
   }
   return Object.freeze(state);
+}
+
+export async function inspectAuthorizedRunState(service, request) {
+  const state = await observeAuthorizedRunState(service, request);
+  if (state === undefined) fail('RunStateAccessDenied');
+  return state;
 }

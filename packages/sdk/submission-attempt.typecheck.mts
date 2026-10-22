@@ -5,8 +5,17 @@ declare const client: Client;
 declare const received: unknown;
 client.start({}, {attemptId: 'fresh-invocation'});
 client.startSource('SELECT 1 AS n', {format: 'aql-text', attemptId: 'fresh-text-invocation'});
+client.startSource('SELECT 1 AS n', {format: 'sql', requestId: 'same-scoped-original'});
+client.sql('SELECT 1 AS n', undefined, {requestId: 'same-query-original'});
 client.aql('SELECT 1 AS n', undefined, {attemptId: 'fresh-query-invocation'});
 const attempt: SubmissionAttempt | undefined = getSubmissionAttempt(received);
+if (attempt?.kind === 'observed') {
+  const name: string = attempt.requestName;
+  const original: string = attempt.outcome.submissionRef.nonce;
+  void [name, original];
+  // @ts-expect-error A named observation is not a nonacceptance certificate.
+  attempt.guarantee;
+}
 if (attempt?.kind === 'refused') {
   const guarantee: 'attempt_uncommitted_unconsumed' = attempt.guarantee;
   void guarantee;

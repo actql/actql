@@ -301,6 +301,7 @@ fn open_checked_local_host(
   acquisition_ledger? : @resources.Ledger? = None,
   opened_run? : @strategy.CapturedDAG? = None,
   source_free_requirements? : ClientLocalSourceFreeRequirements? = None,
+  source_free_preparation? : ClientInstalledManagedSourceFreePreparation? = None,
 ) -> @builtin.ConfiguredComputeHost[@strategy.RunIssue]? {
   if registry_body.length() > 100000 ||
     values_body.length() > 100000 ||
@@ -331,8 +332,10 @@ fn open_checked_local_host(
     ) {
     return None
   }
-  let generated = match source_free_requirements {
-    Some(original) => {
+  // Both closed callers retain their own checked preparation. An ambiguous
+  // internal selection cannot replace either original or issue another quote.
+  let generated = match (source_free_requirements, source_free_preparation) {
+    (Some(original), None) => {
       if !original.matches(
           prepared, registry_body, values_body, fragment_body, ordered_body,
         ) ||
@@ -345,7 +348,23 @@ fn open_checked_local_host(
       }
       original.sequences
     }
-    None =>
+    (None, Some(value)) => {
+      if source is Some(_) ||
+        !captured_sources.is_empty() ||
+        opened_run is Some(_) ||
+        !installed_source_free_preparation_matches(
+          value,
+          Pure(prepared),
+          registry_body,
+          values_body,
+          fragment_body,
+          ordered_body,
+        ) {
+        return None
+      }
+      value.sequences
+    }
+    (None, None) =>
       match
         prepare_client_local_sequences(
           prepared, registry_body, values_body, fragment_body, ordered_body,
@@ -353,6 +372,10 @@ fn open_checked_local_host(
         Some(value) => value
         None => return None
       }
+    (Some(_), Some(_)) => return None
+  }
+  if generated.length() != task_count {
+    return None
   }
   let first_compute = if opened_run is Some(run) {
     @strategy.graph_captured_prefix(@strategy.captured_dag_graph(run))
@@ -390,8 +413,8 @@ fn open_checked_local_host(
   } else {
     None
   }
-  let capacity = match source_free_requirements {
-    Some(original) =>
+  let capacity = match (source_free_requirements, source_free_preparation) {
+    (Some(original), None) =>
       Some(
         (
           original.capacity.limits,
@@ -399,13 +422,22 @@ fn open_checked_local_host(
           original.capacity.provider_execution,
         ),
       )
-    None =>
+    (None, Some(value)) =>
+      Some(
+        (
+          value.limits,
+          value.provider_retained_bytes,
+          value.provider_execution_bytes,
+        ),
+      )
+    (None, None) =>
       client_local_sequence_capacity(
         compute_sequences,
         task_count,
         retained_inputs~,
         max_rows~,
       )
+    (Some(_), Some(_)) => None
   }
   guard capacity is Some((limits, retained_bytes, execution_bytes)) else {
     return None

@@ -1,11 +1,9 @@
 ///|
 // Real original Scope/Run/Model with an actual fixture provider and synthetic
 // allowances. These are not installed Node profiles, Store ACKs or public E2E.
-fn original_observation_test_start() -> (
-  Execution,
-  @resources.Ledger,
-  @publication_host.ClientModelReadConsumer,
-) {
+fn original_observation_test_start(
+  producer? : Ref[@resources.Reservation?]? = None,
+) -> (Execution, @resources.Ledger, @publication_host.ClientModelReadConsumer) {
   let prepared = fixture_prepared()
   let plan = call_identity_plan(prepared)
   let limits = standard_limits()
@@ -31,8 +29,26 @@ fn original_observation_test_start() -> (
   }).unwrap()
   let bootstrap = @resources.reserve_capacity(ledger, 3L, 2L).unwrap()
   let original_scope = @publication_host.begin_client_model_read_scope(
-    compiled, definition, plan, ledger, bootstrap, 4, 2, 0,
+    compiled,
+    definition,
+    plan,
+    ledger,
+    bootstrap,
+    if producer is Some(_) {
+      5
+    } else {
+      4
+    },
+    if producer is Some(_) {
+      3
+    } else {
+      2
+    },
+    0,
   ).unwrap()
+  if producer is Some(record) {
+    record.val = Some(@resources.reserve_attempt(ledger, 1L, 7L, 5L).unwrap())
+  }
   let read = @publication_host.prepare_client_model_read(original_scope, 7L, 5L).unwrap()
   let consumer = @publication_host.claim_client_model_read_preparation(
     read, compiled, definition, plan, 7L, 5L,
@@ -64,6 +80,41 @@ fn original_observation_test_start() -> (
   ).unwrap()
   bind_dispatch_admission(active, permit).unwrap()
   (active, ledger, consumer)
+}
+
+///|
+test "original observation issuance retains same completed producer output and pending scratch" {
+  let producer : Ref[@resources.Reservation?] = Ref(None)
+  let (active, ledger, _) = original_observation_test_start(
+    producer=Some(producer),
+  )
+  assert_true(fixture_finish(active) is Complete(_, ..))
+  let capacity = reserve_original_infer_publication_capacity(active, 65664L, 7L).unwrap()
+  let producer = producer.val.unwrap()
+  let output = @resources.retain_allocation(ledger, producer, 4L).unwrap()
+  @resources.settle_completed_output_reservation(
+    ledger,
+    producer,
+    Some(output),
+    4L,
+    3L,
+  ).unwrap()
+  let before = @resources.ledger_usage(ledger)
+  let issued = start_original_observation_issuance(
+    active,
+    capacity,
+    issuance_limits(),
+  ).unwrap()
+  assert_eq(@resources.ledger_usage(ledger), before)
+  assert_true(@resources.reservation_pending(producer))
+  issuance_finish(issued)
+  assert_true(cleanup_observation_issuance(issued).unwrap())
+  assert_true(release_original_infer_publication_capacity(capacity).unwrap())
+  // Publication retirement is not the independent producer scratch/output ACK.
+  assert_true(@resources.reservation_pending(producer))
+  @resources.settle_reservation(ledger, producer).unwrap()
+  @resources.release_allocation(ledger, output).unwrap()
+  assert_true(cleanup(active).unwrap())
 }
 
 ///|

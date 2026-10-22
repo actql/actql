@@ -6,25 +6,47 @@ import {connectionFailure} from './connection-options.mjs';
 import {ClientError, fail, ownedClientFailure, readRefusalCodes} from './errors.mjs';
 import {retainCancellationExplanation} from './run-observation.mjs';
 import {submissionNotSent, submissionUnknown} from './submission-observation.mjs';
+import {captureSourcePreparation} from './private-source-preparation.mjs';
 
 // Return the import promise itself so only the existing loopback branch yields.
 export const loadLoopbackTransport = () => import('#loopback-http');
 
+const isSubmission = operation => operation === 'submit-intent' ||
+  operation === 'submit-named-intent' || operation === 'restart-intent';
+
 export function createTransport(selected, port, isClosed, directLoopback) {
+  const capturedSourcePreparation = captureSourcePreparation(port);
+  // Query capture and Result consumption must retain this same callback pair.
+  // Check the connection lifetime before entering either original Host method.
+  const sourcePreparation = capturedSourcePreparation === undefined ? undefined
+    : Object.freeze({...capturedSourcePreparation,
+      beforeResultRead(...args) {
+        if (isClosed()) fail('ClientClosed');
+        return capturedSourcePreparation.beforeResultRead(...args);
+      },
+      assertResultReadCurrent() {
+        if (isClosed()) fail('ClientClosed');
+        return capturedSourcePreparation.assertResultReadCurrent();
+      },
+    });
   const dispatchedCancellations = new WeakSet();
   const dispatchedSubmissions = new WeakSet();
-  const exchange = async (operation, body = {}, signal, submitContext, cancellationContext) => {
+  const exchange = async (operation, body = {}, signal, submitContext, cancellationContext, sourceProducer) => {
     if (isClosed()) fail('ClientClosed');
     if (port !== undefined) {
       let request;
       try { request = structuredClone({connection: selected.wire, ...body}); }
       catch { fail('InvalidClientPayload'); }
       try {
+        if (sourceProducer !== undefined) {
+          sourcePreparation.bindSourceRequest(sourceProducer.receipt,
+            sourceProducer.body, request);
+        }
         if (cancellationContext !== undefined) {
           signal?.throwIfAborted();
           dispatchedCancellations.add(cancellationContext);
         }
-        if ((operation === 'submit-intent' || operation === 'restart-intent')) {
+        if (isSubmission(operation)) {
           signal?.throwIfAborted();
           dispatchedSubmissions.add(submitContext);
         }
@@ -36,7 +58,7 @@ export function createTransport(selected, port, isClosed, directLoopback) {
         return value;
       }
       catch (cause) {
-        if ((operation === 'submit-intent' || operation === 'restart-intent')) {
+        if (isSubmission(operation)) {
           if (!dispatchedSubmissions.has(submitContext)) {
             throw submissionNotSent(submitContext, cause);
           }
@@ -72,7 +94,7 @@ export function createTransport(selected, port, isClosed, directLoopback) {
       signal?.throwIfAborted();
       dispatchedCancellations.add(cancellationContext);
     }
-    if ((operation === 'submit-intent' || operation === 'restart-intent')) {
+    if (isSubmission(operation)) {
       signal?.throwIfAborted();
       dispatchedSubmissions.add(submitContext);
     }
@@ -103,7 +125,7 @@ export function createTransport(selected, port, isClosed, directLoopback) {
         redirect: 'error',
       });
     } catch (cause) {
-      if ((operation === 'submit-intent' || operation === 'restart-intent')) {
+      if (isSubmission(operation)) {
         throw submissionUnknown(submitContext,
           selected.redactCredentialErrors ? undefined : cause);
       }
@@ -117,7 +139,7 @@ export function createTransport(selected, port, isClosed, directLoopback) {
       const code = typeof error?.code === 'string' &&
         /^[A-Za-z][A-Za-z0-9_]{0,79}$/u.test(error.code)
         ? error.code : `HostHTTP${response.status}`;
-      if ((operation === 'submit-intent' || operation === 'restart-intent')) {
+      if (isSubmission(operation)) {
         throw submissionUnknown(submitContext, new ClientError(code));
       }
       if (operation === 'read' && readRefusalCodes.has(code)) {
@@ -134,7 +156,7 @@ export function createTransport(selected, port, isClosed, directLoopback) {
       throw cause;
     }
   };
-  return {exchange, responseValue, typedRows: port !== undefined,
+  return {exchange, responseValue, sourcePreparation, typedRows: port !== undefined,
     wasSubmissionDispatched: context => dispatchedSubmissions.has(context),
     wasCancellationDispatched: context => dispatchedCancellations.has(context)};
 }

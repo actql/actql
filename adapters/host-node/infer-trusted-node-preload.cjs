@@ -8,11 +8,13 @@ const {Readable} = require('node:stream');
 const {createRequire} = require('node:module');
 const {dirname, join} = require('node:path');
 const {getHeapStatistics} = require('node:v8');
+const {isProxy} = require('node:util').types;
 const originalProcess = require('node:process');
 const applyOriginal = Reflect.apply;
 const {createInitialControlInstallationOwner} = require('./initial-control-installation-owner.cjs');
 const {declareInitialControlPhaseEnvelope, inspectInitialControlPhaseEnvelope}
   = require('./initial-control-phase-envelope.cjs');
+const {declareSourceManagedPhaseEnvelope} = require('./source-managed-phase-envelope.cjs');
 // Selected runtime implementation duty: ONLY the V8 internal backing of these
 // two identity indices stays with this actual startup/module and escaped-handle
 // lifetime. It is not fixed SDK storage or a numerical lease. Entry records,
@@ -92,6 +94,13 @@ const selected = module.isPreloading === true &&
 const initialControlDeclaration = selected && eagerSdkStartup && publicPreload !== undefined
   ? declareInitialControlPhaseEnvelope(applyOriginal(getHeapStatistics, undefined, []).heap_size_limit)
   : undefined;
+// Declare the additional Source scope against the SAME original VM before
+// inventory capture, namespace initialization or SDK input acquisition. This
+// is not Source admission: missing external suppliers/nominal child bindings
+// still refuse. No second heap/native allowance or initial-control credit is
+// created, and Source retirement cannot replenish process-lived holdings.
+const sourceManagedEnvelope = initialControlDeclaration === undefined ? undefined :
+  declareSourceManagedPhaseEnvelope(initialControlDeclaration);
 // Native runtime/library identities stay with this SAME actual process/module
 // lifetime. Their finite selected disposition is not retired by Host cleanup.
 const initialControlRuntimeOriginal = initialControlDeclaration === undefined ? undefined :
@@ -110,7 +119,9 @@ let startup, startupFailure;
 const initialControlEnvelope = initialControlPackageOriginal === undefined ? undefined :
   inspectInitialControlPhaseEnvelope(initialControlPackageOriginal, initialControlDeclaration,
     initialControlRuntimeOriginal);
-let preparationOriginals, preparationInput, preparationClosed = false;
+let preparationOriginals, preparationInput, preparationIntake, preparationClosed = false;
+const initialControlInputLimits = Object.freeze({maxProperties:40,maxNodes:40,maxDepth:4,
+  maxStringCodeUnits:4096,maxTotalStringCodeUnits:8192,maxArrayItems:0,maxOpaqueAliases:0,maxWork:65536});
 const samePreparation = held => preparationOriginals !== undefined &&
   held.host === preparationOriginals.host && held.installation === preparationOriginals.installation &&
   held.generation === preparationOriginals.generation && held.supplier === preparationOriginals.supplier &&
@@ -121,16 +132,23 @@ const inputUnavailable = () => {
 };
 const operational = initialControlEnvelope === undefined ? undefined : Object.freeze({
   prepare(held, rawInput) {
-    // Primitive undefined has no caller object/closure/ownKeys acquisition.
-    // Do not inspect an unsupported object, even to establish its shape.
-    if (rawInput !== undefined) inputUnavailable();
     currentStartup();
     if (preparationOriginals !== undefined) inputUnavailable();
     applyOriginal(startup.initialControlHostValidator, startup.initialControlHostNamespace, [held]);
+    if (rawInput !== undefined && (preparationIntake === undefined ||
+        preparationIntake.raw !== rawInput || preparationIntake.consumed)) inputUnavailable();
     // One generation for this process recipe, including refused/closing work.
     // Never replenish it on close, WeakMap deletion, settlement or GC.
     preparationOriginals = held;
-    preparationInput = Object.freeze(Object.create(null));
+    if (rawInput === undefined) preparationInput = Object.freeze(Object.create(null));
+    else {
+      preparationIntake.consumed = true;
+      preparationInput = preparationIntake.snapshot.packet;
+      // The original identity was checked synchronously. Retain the immutable
+      // admitted snapshot, not an unnecessary mutable caller graph through
+      // namespace awaits or cleanup. This alias cut is not a physical ACK.
+      preparationIntake.raw = undefined;
+    }
   },
   assertCurrent(held) {
     if (!samePreparation(held) || preparationClosed) inputUnavailable();
@@ -151,6 +169,7 @@ const operational = initialControlEnvelope === undefined ? undefined : Object.fr
     // acknowledge and preparation aliases have been cut. This closes the
     // managed preparation, not the process/module/native or escaped lifetime.
     preparationInput = undefined;
+    preparationIntake = undefined;
     preparationClosed = true;
     return Object.freeze({pending: false});
   },
@@ -166,10 +185,39 @@ module.exports = {
     // absence before raw reads, current callbacks or candidate construction.
     initialControl.requireOperational();
     currentStartup();
-    // The supported producer-controlled packet is primitive undefined. Refuse
-    // unsupported inputs and exhausted process generations before even the
-    // actual Host consumer constructs another candidate/preparation record.
-    if (kind !== 'open' || rawInput !== undefined || preparationOriginals !== undefined) inputUnavailable();
+    if (kind === 'open') {
+      if (preparationOriginals !== undefined || preparationIntake !== undefined) inputUnavailable();
+      if (rawInput !== undefined) inputUnavailable();
+    } else if (kind === 'connect') {
+      // Only classify an own DATA local-mode selector here. Other existing
+      // routes retain their original public validation/coverage. Never probe a
+      // Proxy or evaluate a mode getter merely to choose this private route.
+      if (rawInput === null || typeof rawInput !== 'object' || isProxy(rawInput)) return undefined;
+      const mode = Object.getOwnPropertyDescriptor(rawInput,'mode');
+      if (mode === undefined || !Object.hasOwn(mode,'value') || mode.value !== 'local') return undefined;
+      const endpoint=Object.getOwnPropertyDescriptor(rawInput,'endpoint');
+      if (endpoint !== undefined && Object.hasOwn(endpoint,'value') && endpoint.value !== undefined) return undefined;
+      if (preparationOriginals !== undefined || preparationIntake !== undefined) inputUnavailable();
+      const reader = startup.initialControlHostInputReader;
+      if (reader === undefined) inputUnavailable();
+      // This SAME selected finite control envelope precedes first ownKeys,
+      // descriptor traversal and snapshot. Its captured reader is DATA only;
+      // no callback/opaque backing is accepted by the zero-alias recipe.
+      const snapshot = applyOriginal(reader, startup.initialControlHostNamespace,
+        [rawInput, initialControlInputLimits]);
+      if (snapshot.originalReferences.length !== 0) inputUnavailable();
+      const packet = snapshot.packet, keys = Reflect.ownKeys(packet);
+      // First supported public packet is the literal README Mock entrance.
+      // Do not silently drop an unknown field or substitute configured live
+      // providers when a valid but unsupported packet is supplied.
+      if (keys.length !== 3 || !keys.includes('mode') || !keys.includes('installation') ||
+          !keys.includes('profile') || packet.mode !== 'local' || packet.profile !== 'mock' ||
+          packet.installation === null || typeof packet.installation !== 'object') inputUnavailable();
+      const installationKeys = Reflect.ownKeys(packet.installation);
+      if (installationKeys.length !== 1 || installationKeys[0] !== 'directory' ||
+          typeof packet.installation.directory !== 'string' || packet.installation.directory.length === 0) inputUnavailable();
+      preparationIntake = {raw:rawInput,snapshot,consumed:false};
+    } else inputUnavailable();
     const consumer = startup.initialControlHostConsumer;
     if (consumer === undefined || kind !== 'open' && kind !== 'connect') {
       throw Object.assign(new TypeError('NodeInitialControlAdmissionUnavailable'),
@@ -394,6 +442,11 @@ if (selected) try {
   const initialControlHostValidator = validatorProperty !== undefined &&
     Object.hasOwn(validatorProperty, 'value') && typeof validatorProperty.value === 'function'
     ? validatorProperty.value : undefined;
+  const inputReaderProperty = initialControlHostNamespace === undefined ? undefined :
+    Object.getOwnPropertyDescriptor(initialControlHostNamespace, 'readInitialControlHostInput');
+  const initialControlHostInputReader = inputReaderProperty !== undefined &&
+    Object.hasOwn(inputReaderProperty,'value') && typeof inputReaderProperty.value === 'function'
+    ? inputReaderProperty.value : undefined;
   if (operational !== undefined && initialControlHostValidator === undefined) unavailable();
   // The actual process/module/native responsibility stays with this startup.
   // These originals and the existing Host overlap still need funded coverage.
@@ -406,8 +459,8 @@ if (selected) try {
   // rejection, Promise settlement or retirement of this association.
   startup = {process: originalProcess, module, entry: originalProcess.argv[1], originals, publicPreload,
     promiseSpecies, sdkStaticModules, eagerSdkStartup, initialControlImages,
-    initialControlHostNamespace, initialControlHostConsumer, initialControlHostValidator,
-    initialControlEnvelope, invalidated: false};
+    initialControlHostNamespace, initialControlHostConsumer, initialControlHostValidator, initialControlHostInputReader,
+    initialControlEnvelope, sourceManagedEnvelope, invalidated: false};
 } catch (cause) {
   // Retain the exact original startup/physical cleanup cause. A failed image
   // never becomes a namespace and is not reread after a close-only retry.

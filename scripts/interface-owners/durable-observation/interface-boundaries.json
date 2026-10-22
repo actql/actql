@@ -1,5 +1,5 @@
 {
-  "source": "66e1fd343e9ac9e945f57be3064a4a8212cd1c6f",
+  "source": "1b87ca139a399e91773ebdb99dc658fcabe6b07a",
   "qualification": "Existing functional Owner reference index; representation is independently checked. The original source/syntax-input metadata records the initial reference supply, not a new runtime qualification. Explicit bounded HTTP byte-body extensions retain the same existing owners; their source-qualified tests and simultaneous holding inventory are separate from reference coverage and normal funding.",
   "inputs": [
     {
@@ -87,7 +87,10 @@
             ]
           }
         }
-      ]
+      ],
+      "imports": [],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/host-common/diagnostic-observer.mjs",
@@ -235,7 +238,10 @@
             ]
           }
         }
-      ]
+      ],
+      "imports": [],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/host-common/observation.mjs",
@@ -639,7 +645,13 @@
             ]
           }
         }
-      ]
+      ],
+      "imports": [
+        "node:async_hooks",
+        "node:crypto"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/host-common/owned-invocation-context.mjs",
@@ -943,7 +955,7 @@
     {
       "module": "adapters/host-common/sqlite-transaction.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "5c672cb06df0724c92dceb2958fc48b2a2cc06f11749bc987636f8d74800d7d0",
+      "sha256": "5a0adaff85c7bfb7685e62978a1fd6537f6bfd917c1b60799d81f20a489a1ddb",
       "exports": [
         "createSqliteTransaction",
         "throwSqliteInitializationFailure"
@@ -998,6 +1010,11 @@
           "async": false
         },
         {
+          "name": "throwSqliteInitializationFailure/close/close",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "throwSqliteInitializationFailure/retry/retry",
           "parameters": [],
           "async": false
@@ -1021,6 +1038,7 @@
             "createSqliteTransaction/inspect/inspect",
             "createSqliteTransaction/run/run",
             "throwSqliteInitializationFailure",
+            "throwSqliteInitializationFailure/close/close",
             "throwSqliteInitializationFailure/retry/retry",
             "throwSqliteInitializationFailure/status/status"
           ],
@@ -1045,36 +1063,60 @@
               {
                 "path": "docs/development/durable-owner-interface.md",
                 "anchor": "| Identity |"
+              },
+              {
+                "path": "adapters/host-common/sqlite-transaction.mjs",
+                "anchor": "originalClose = selected;"
               }
             ],
             "ownership": [
               {
                 "path": "docs/development/durable-owner-interface.md",
                 "anchor": "| Ownership |"
+              },
+              {
+                "path": "adapters/host-common/sqlite-transaction.mjs",
+                "anchor": "const observation = Reflect.apply(originalClose, database, []);"
               }
             ],
             "synchronization": [
               {
                 "path": "docs/development/durable-owner-interface.md",
                 "anchor": "| Synchronization |"
+              },
+              {
+                "path": "adapters/host-common/sqlite-transaction.mjs",
+                "anchor": "if (closing) return status();"
               }
             ],
             "failure": [
               {
                 "path": "docs/development/durable-owner-interface.md",
                 "anchor": "| Failure |"
+              },
+              {
+                "path": "adapters/host-common/sqlite-transaction.mjs",
+                "anchor": "errors: Object.freeze(first === latest ? [first] : [first, latest])"
               }
             ],
             "cancellation": [
               {
                 "path": "docs/development/durable-owner-interface.md",
                 "anchor": "| Cancellation |"
+              },
+              {
+                "path": "adapters/host-common/sqlite-transaction.mjs",
+                "anchor": "if (observation !== undefined) {"
               }
             ],
             "resources": [
               {
                 "path": "docs/development/durable-owner-interface.md",
                 "anchor": "| Resources |"
+              },
+              {
+                "path": "adapters/host-common/sqlite-transaction.mjs",
+                "anchor": "const first = Object.freeze({owner, error: closeFailure});"
               }
             ],
             "extension": [
@@ -1087,11 +1129,22 @@
               {
                 "path": "docs/development/durable-owner-interface.md",
                 "anchor": "| Verification |"
+              },
+              {
+                "path": "adapters/host-common/sqlite-initialization-custody.test.mjs",
+                "anchor": "initialization cleanup retries only the captured original close receiver"
+              },
+              {
+                "path": "adapters/host-common/sqlite-initialization-custody.test.mjs",
+                "anchor": "synchronous cleanup reentry only observes the existing close flight"
               }
             ]
           }
         }
-      ]
+      ],
+      "imports": [],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/host-common/task-observation.mjs",
@@ -1193,12 +1246,15 @@
             ]
           }
         }
-      ]
+      ],
+      "imports": [],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/host-node/infer-capture-custody.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "b55747fa9a33570a52fade73235ff07ae4e056b98be0560ab476acf425bf3308",
+      "sha256": "e9cb2e7f3bd058bee417585a8e89a05da96dea3d24a6143030768e34680ffa14",
       "role": "physical-io",
       "owner": "Existing Model execution authority and Node Store/publication custody; F functional contract with A generated representation projection",
       "exports": [
@@ -1312,6 +1368,11 @@
             "phase"
           ],
           "async": true
+        },
+        {
+          "name": "openNodeInferCaptureCustody/init:completedCallCount/init:completedCallCount",
+          "parameters": [],
+          "async": false
         },
         {
           "name": "openNodeInferCaptureCustody/init:configureModelJournal/init:configureModelJournal",
@@ -1916,8 +1977,88 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "openNodeInferCaptureCustody/init:completedCallCount/init:completedCallCount"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Ordinary Host composition"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "anchor": "completedCallCount() {return capture !== undefined && !publicationCleaned && !reclaimed ? count : undefined;},"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "anchor": "capture = operation.acquireCapture();"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "anchor": "captureOutput ??= operation.acquireOutput();"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "anchor": "if (capture !== undefined) return true;"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "anchor": "throw new Error('InstalledInferCaptureInventoryUnavailable');"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "anchor": "const cleanupPublicationOwned = async () => {"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Ordinary Host composition"
+              },
+              {
+                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "anchor": "operation.reserveOriginalPublicationCapacity?.();"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "anchor": "// This immutable original is available only after the existing Store"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/infer-capture-custody-retirement.test.mjs",
+                "anchor": "test('completed capture count does not imply persistence and retires with its own custody'"
+              }
+            ]
+          }
         }
-      ]
+      ],
+      "imports": [
+        "../host-common/compiler-binding.generated.mjs",
+        "../host-common/private-publication-holding.mjs",
+        "../host-common/runtime-result.mjs",
+        "node:timers/promises"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/host-node/infer-entry-persistence.mjs",
@@ -2104,7 +2245,10 @@
             ]
           }
         }
-      ]
+      ],
+      "imports": [],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/host-node/infer-physical-observation.mjs",
@@ -2206,7 +2350,10 @@
             ]
           }
         }
-      ]
+      ],
+      "imports": [],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/host-node/infer-raw-capture.mjs",
@@ -3978,7 +4125,13 @@
             ]
           }
         }
-      ]
+      ],
+      "imports": [
+        "../host-common/authorization-gate.mjs",
+        "./remote-site-client.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/host-node/sqlite-coordinator-journal.mjs",
@@ -4474,6 +4627,7 @@
             "inspectCoordinatorFormat",
             "inspectCoordinatorFormat/inspectCoordinatorFormat",
             "inspectCoordinatorFormat/inspectCoordinatorFormat#2",
+            "inspectCoordinatorFormat/inspectEntries/inspectEntries",
             "openSqliteCoordinatorDispatchJournal",
             "openSqliteCoordinatorDispatchJournal/advanceOutput/advanceOutput",
             "openSqliteCoordinatorDispatchJournal/advanceOutput/advanceOutput/advanceOutput",
@@ -4528,8 +4682,7 @@
             "openSqliteCoordinatorDispatchJournal/sameState/sameState/sameState",
             "syncDirectory",
             "tableDefinitions/tableDefinitions",
-            "text/text",
-            "inspectCoordinatorFormat/inspectEntries/inspectEntries"
+            "text/text"
           ],
           "exports": [
             "openSqliteCoordinatorDispatchJournal"
@@ -5178,6 +5331,8 @@
             "checkAuthenticationSelection/checkAuthenticationSelection",
             "closeHttpsCredentialBinding",
             "count/count",
+            "credentialBindingCurrent",
+            "credentialBindingCurrent/credentialBindingCurrent",
             "exactRequestTarget",
             "exchangeHttpsCredentialAuthentication",
             "exchangeHttpsCredentialAuthentication/exchangeHttpsCredentialAuthentication",
@@ -5185,8 +5340,6 @@
             "exchangeHttpsCredentialAuthentication/exchangeHttpsCredentialAuthentication#3",
             "exchangeHttpsCredentialAuthentication/expires/expires",
             "fail/fail",
-            "credentialBindingCurrent",
-            "credentialBindingCurrent/credentialBindingCurrent",
             "openHttpsCredentialBinding",
             "openHttpsCredentialBinding/openHttpsCredentialBinding",
             "openHttpsCredentialBinding/original/original",
@@ -5203,9 +5356,9 @@
             "receive/receive/finish/finish",
             "receive/receive/finish/finish/finish",
             "receive/receive/receive",
-            "receive/receive/receive/receive",
             "receive/receive/receive#2",
             "receive/receive/receive#3",
+            "receive/receive/receive/receive",
             "receive/receive/release/release",
             "receive/receive/request/request",
             "receive/receive/request/request/request",
@@ -6443,8 +6596,8 @@
             "openSqliteDispatchJournal/install/install/install#2",
             "openSqliteDispatchJournal/integer/integer",
             "openSqliteDispatchJournal/openSqliteDispatchJournal",
-            "openSqliteDispatchJournal/openSqliteDispatchJournal/metadata/metadata",
             "openSqliteDispatchJournal/openSqliteDispatchJournal#2",
+            "openSqliteDispatchJournal/openSqliteDispatchJournal/metadata/metadata",
             "openSqliteDispatchJournal/parseProjection/parseProjection",
             "openSqliteDispatchJournal/parseProjection/parseProjection/parseBit/parseBit",
             "openSqliteDispatchJournal/parseProjection/parseProjection/parseInteger/parseInteger",
@@ -6529,7 +6682,15 @@
             ]
           }
         }
-      ]
+      ],
+      "imports": [
+        "../host-common/remote-dispatch-wire.mjs",
+        "node:fs",
+        "node:path",
+        "node:sqlite"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/site-node/sqlite-transfer-journal.mjs",
@@ -6851,7 +7012,15 @@
             ]
           }
         }
-      ]
+      ],
+      "imports": [
+        "../host-common/sqlite-transaction.mjs",
+        "node:fs",
+        "node:path",
+        "node:sqlite"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     }
   ]
 }

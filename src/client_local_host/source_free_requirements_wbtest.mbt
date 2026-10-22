@@ -33,6 +33,51 @@ fn source_free_requirements_prepared(
 }
 
 ///|
+test "source-free preparation refuses two competing retained originals" {
+  let prepared = source_free_requirements_prepared()
+  let assets = @publication_host.client_local_product_assets()
+  let requirements = prepare_source_free_local_requirements(
+    prepared,
+    assets.registry,
+    assets.values,
+    Some(assets.fragment),
+    assets.ordered,
+  ).unwrap()
+  let preparation = prepare_installed_managed_source_free(
+    prepared,
+    assets.registry,
+    assets.values,
+    Some(assets.fragment),
+    assets.ordered,
+  ).unwrap()
+  let ledger = @resources.create_ledger(requirements.maximum_limits()).unwrap()
+  assert_true(
+    open_checked_local_host(
+      prepared,
+      None,
+      assets.registry,
+      assets.values,
+      1L,
+      0L,
+      0L,
+      0L,
+      fragment_body=Some(assets.fragment),
+      ordered_body=assets.ordered,
+      retained_output=true,
+      acquisition_ledger=Some(ledger),
+      source_free_requirements=Some(requirements),
+      source_free_preparation=Some(preparation),
+    )
+    is None,
+  )
+  let usage = @resources.ledger_usage(ledger)
+  assert_eq(usage.attempts, 0)
+  assert_eq(usage.held_bytes, 0L)
+  assert_eq(usage.reserved_retention_bytes, 0L)
+  assert_eq(usage.reserved_execution_bytes, 0L)
+}
+
+///|
 // Real checked Program and Local provider, with a nominal Resource Ledger.
 // This is not Native physical backing, Account or durable Run admission.
 test "source-free requirements keep maximum allowances separate and execute the same prepared rows" {

@@ -1,4 +1,100 @@
 ///|
+/// Use the existing family capacity selection on the same source-free Run.
+/// No captured Source, Model provider, or synthetic zero-capacity carrier is
+/// introduced; physical child ownership remains with the installed Host.
+#export_name("clientProgramOpenSourceFreeFamilyEffectHost")
+pub fn client_program_open_source_free_family_effect_host(
+  prepared : @publication_host.PreparedClientEffectRun,
+  registry : String,
+  values : String,
+  fragment : String?,
+  ordered : String?,
+  providers : Array[@local.ManagedProvider],
+) -> ClientLocalEffectHost? {
+  open_client_source_free_family_effect_host(
+    prepared,
+    registry,
+    values,
+    fragment,
+    ordered,
+    providers,
+    None,
+  )
+}
+
+///|
+#export_name("clientProgramOpenSourceFreeFamilyEffectHostAtQueryTime")
+pub fn client_program_open_source_free_family_effect_host_at_query_time(
+  prepared : @publication_host.PreparedClientEffectRun,
+  original : @publication_host.ClientQueryTimePreparation,
+  request : @publication_host.ClientRequestIdentity,
+  registry : String,
+  values : String,
+  fragment : String?,
+  ordered : String?,
+  providers : Array[@local.ManagedProvider],
+) -> ClientLocalEffectHost? {
+  open_client_source_free_family_effect_host(
+    prepared,
+    registry,
+    values,
+    fragment,
+    ordered,
+    providers,
+    Some((original, request)),
+  )
+}
+
+///|
+fn open_client_source_free_family_effect_host(
+  prepared : @publication_host.PreparedClientEffectRun,
+  registry : String,
+  values : String,
+  fragment : String?,
+  ordered : String?,
+  providers : Array[@local.ManagedProvider],
+  query_time : (
+    @publication_host.ClientQueryTimePreparation,
+    @publication_host.ClientRequestIdentity,
+  )?,
+) -> ClientLocalEffectHost? {
+  if providers.is_empty() || providers.length() > 32 {
+    return None
+  }
+  let computation = @publication_host.prepared_client_effect_run_computation(
+    prepared,
+  )
+  let graph = @strategy.checked_effect_computation_graph(
+    @publication_host.prepared_client_effect_computation_graph(computation),
+  )
+  if @strategy.graph_captured_prefix(graph) != 0 {
+    return None
+  }
+  let (execution, measurement) = client_program_local_execution_limits()
+  guard @client_local_host.client_effect_family_ledger_limits(
+      computation, registry, values, fragment, ordered, execution, measurement, providers,
+    )
+    is Some(limits) else {
+    return None
+  }
+  open_client_local_effect_host(
+    prepared,
+    None,
+    registry,
+    values,
+    1L,
+    0L,
+    0L,
+    0L,
+    fragment_body=fragment,
+    ordered_body=ordered,
+    component_providers=providers,
+    source_free_limits=Some(limits),
+    query_time~,
+  )
+}
+
+///|
 /// Trusted installed ports adapt the existing bounded Content child. Program
 /// data cannot supply a provider, issuer, workspace or physical cleanup fact.
 #export_name("clientProgramContentStepWorkspace")

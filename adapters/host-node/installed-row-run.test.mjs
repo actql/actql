@@ -5,6 +5,53 @@ import {startInstalledRowRun} from './installed-row-run.mjs';
 const ok = value => ({$tag: 1, _0: value});
 const token = name => Object.freeze({name});
 
+test('keyed original enters only its same Run Ledger and retires after the original capture cleanup', () => {
+  const acquisition = {}, originalKeyedRead = {}, ledger = {}, run = {}, calls = [];
+  let captureReady = false;
+  const moon = {
+    clientProgramInstalledKeyedSourceReadCheckLedger(read, actualLedger) {
+      assert.strictEqual(read, originalKeyedRead); assert.strictEqual(actualLedger, ledger);
+      calls.push('ledger'); return ok(undefined);
+    },
+    clientProgramInstalledKeyedSourceReadStartRows(read, actualAcquisition, nonce, stopped, transfer, execution, cleanup) {
+      assert.strictEqual(read, originalKeyedRead); assert.strictEqual(actualAcquisition, acquisition);
+      assert.equal(nonce, 'keyed'); assert.equal(transfer, 1024n); assert.equal(execution, 512n);
+      assert.equal(typeof stopped, 'function'); assert.equal(typeof cleanup, 'function');
+      calls.push('start'); return ok(run);
+    },
+    clientProgramRowSourceCloseAccounted(value) {assert.strictEqual(value, run); calls.push('close'); return ok(undefined);},
+    clientProgramRowSourceCaptureCleanup(value) {assert.strictEqual(value, run); calls.push('capture'); return ok(captureReady);},
+    clientProgramInstalledKeyedSourceReadRetire(value) {assert.strictEqual(value, originalKeyedRead); calls.push('retire'); return ok(undefined);},
+  };
+  const options = {moon, acquisition, originalKeyedRead, ledger, keyed: true, nonce: 'keyed',
+    capacity: {transferBytes: 1024n, executionBytes: 512n}};
+  const session = startInstalledRowRun(options);
+  assert.deepEqual(calls, ['ledger', 'start']);
+  assert.throws(() => session.close(), {code: 'InstalledSourceCleanupPending'});
+  assert.equal(calls.includes('retire'), false);
+  captureReady = true;
+  session.close(); session.close();
+  assert.equal(calls.filter(name => name === 'start').length, 1);
+  assert.equal(calls.filter(name => name === 'retire').length, 1);
+});
+
+test('keyed original foreign Ledger refusal precedes RowRun creation', () => {
+  const read = {}, ledger = {}, refusal = new Error('original-Ledger');
+  let started = false;
+  const moon = {
+    clientProgramInstalledKeyedSourceReadCheckLedger(actual, original) {
+      assert.strictEqual(actual, read); assert.strictEqual(original, ledger);
+      return {$tag: 0, _0: refusal};
+    },
+    clientProgramInstalledKeyedSourceReadStartRows() {started = true;},
+    clientProgramInstalledKeyedSourceReadRetire() {},
+  };
+  assert.throws(() => startInstalledRowRun({moon, acquisition: {}, originalKeyedRead: read,
+    keyed: true, ledger, capacity: {transferBytes: 1024n, executionBytes: 512n}}),
+  error => error.code === 'MoonBitHostFailure' && error.cause === refusal);
+  assert.equal(started, false);
+});
+
 function rowRunFixture({accounted = false, effectful = false, task = 0,
   retainedRelationOutput = false, listingReport = false} = {}) {
   const calls = [];

@@ -20,6 +20,7 @@ for (const format of ['sql', 'aql-text']) test(`same-ABI ${format} keeps source 
   assert.equal(selected.kind, 'effect_free');
   assert.strictEqual(selected.originalIntent, original);
   const compiled = host.compileTasks(selected.prepared);
+  assert.deepEqual(host.taskResultDefinitions(selected.prepared, compiled).map(result => result.name), ['main']);
   const request = host.prepareSourceRequest(selected.prepared, original, scope, format);
   assert.equal(host.requestFields(request).callerInputIntentCid, host.submittedIntentFacts(original).cid);
   assert.equal(host.requestRelation(request, host.prepareTaskRequest(selected.prepared, compiled, scope, format)), 'same_request');
@@ -33,6 +34,7 @@ test('original source survives saved metadata and fresh local preparation withou
   const selected = host.prepareSourceProgram(original, env, publication);
   const saved = host.sourceProgramOriginals(selected.prepared);
   assert(Object.isFrozen(saved));
+  assert.equal(saved.primaryResultRecipe, 'public-main');
   assert.equal(saved.intentWire, host.submittedIntentFacts(original).wire);
   const request = host.prepareSourceRequest(selected.prepared, original, scope, 'saved');
   const restored = host.restoreSourceProgram(JSON.parse(JSON.stringify(saved)), environment());
@@ -48,6 +50,37 @@ test('original source survives saved metadata and fresh local preparation withou
   assert.equal(material.format, 'json');
   assert.notEqual(material.document, '/*😀*/\r\nSELECT @n AS n');
   assert.equal(material.parametersWire, '{"n":3}');
+});
+
+test('historical source originals retain answer and cannot stand in for the new main request', () => {
+  const env = environment();
+  const fresh = host.prepareSourceProgram(intent(), env, publication);
+  const {primaryResultRecipe, ...legacyOriginals} = host.sourceProgramOriginals(fresh.prepared);
+  assert.equal(primaryResultRecipe, 'public-main');
+  const legacy = host.restoreSourceProgram(legacyOriginals, env);
+  assert.deepEqual(host.sourceProgramOriginals(legacy.prepared), legacyOriginals);
+  assert.deepEqual(host.taskResultDefinitions(legacy.prepared,
+    host.compileTasks(legacy.prepared)).map(result => result.name), ['answer']);
+  const current = host.prepareSourceRequest(fresh.prepared, fresh.originalIntent, scope, 'same-original');
+  assert.throws(() => host.admitSourceRequestFields(legacy.prepared, legacy.originalIntent,
+    host.requestFields(current)), {code: 'RunHostRequestRecordRejected'});
+  const saved = host.sourceProgramOriginals(fresh.prepared);
+  for (const primaryResultRecipe of [null, 'answer', 'other', true]) {
+    assert.throws(() => host.restoreSourceProgram({...saved, primaryResultRecipe}, env),
+      /InvalidRunHostSourceOriginals/u);
+  }
+  assert.throws(() => host.restoreSourceProgram({...saved,
+    get primaryResultRecipe() {assert.fail('saved recipe accessor must not run');}}, env),
+  /InvalidRunHostSourceOriginals/u);
+});
+
+test('explicit source exports retain their authored names under the public recipe', () => {
+  for (const name of ['answer', 'main', 'MiXeD']) {
+    const selected = host.prepareSourceProgram(intent(`SELECT 1 AS n |> RESULT ${name}`, 'aql-text'),
+      environment(), publication);
+    assert.deepEqual(host.taskResultDefinitions(selected.prepared,
+      host.compileTasks(selected.prepared)).map(result => result.name), [name]);
+  }
 });
 
 test('copied, foreign and mismatched source originals cannot replace nominal preparation or intent', () => {

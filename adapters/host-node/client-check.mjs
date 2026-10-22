@@ -38,6 +38,7 @@ const validBoundOutcome = (outcome, context, scope, documents) => {
 
 export function installNodeClientCheck({moon, environment, publication,
   sourceAccesses = [], tableWriteAccesses = [], namespaceAuthorizationFor,
+  updateTargetDisclosure,
   contextKey = randomBytes(32)}) {
   if (moon === null || typeof moon !== 'object' ||
       typeof moon.clientProgramCheckSource !== 'function' ||
@@ -65,6 +66,16 @@ export function installNodeClientCheck({moon, environment, publication,
   const checkingContext = JSON.parse(moon.clientProgramCheckContextIdentity(environment));
   const aliases = publication?.aliases ?? [];
   const tableWrites = publication?.tableWrites ?? [];
+  const updateTargets = Object.freeze([...(publication?.updateTargets ?? [])]);
+  const updateDisclosureMethod = updateTargetDisclosure === undefined ? undefined :
+    Object.getOwnPropertyDescriptor(updateTargetDisclosure, 'visibleFor')?.value;
+  if ((updateTargetDisclosure !== undefined && typeof updateDisclosureMethod !== 'function') ||
+      updateTargets.length > 1024 || updateTargets.some(entry =>
+        entry === null || typeof entry !== 'object' || !Object.isFrozen(entry) ||
+        Object.keys(entry).sort().join('\0') !==
+          'installationBindingCid\0installationOwnerCid\0name\0targetRef')) {
+    throw new TypeError('InvalidClientCheckInstallation');
+  }
   if (publication !== undefined &&
       publication.environmentCid !== environmentCid) {
     throw new TypeError('InvalidClientCheckInstallation');
@@ -130,13 +141,33 @@ export function installNodeClientCheck({moon, environment, publication,
     return tableWrites.filter(binding => visibleCapabilities.has(binding.capabilityCid));
   };
 
+  // The installed Effect owner retains currentness and metadata disclosure.
+  // Its selected members must be these exact original publication entries;
+  // returned JSON, equal CIDs or a Source read decision cannot replace them.
+  const visibleUpdateTargets = async (principalId, signal) => {
+    if (updateDisclosureMethod === undefined) return [];
+    let selected;
+    try {
+      selected = await Reflect.apply(updateDisclosureMethod, updateTargetDisclosure,
+        [Object.freeze({principalId, signal})]);
+    } catch (cause) {
+      if (signal?.aborted) throw cause;
+      return [];
+    }
+    signal?.throwIfAborted();
+    if (!Array.isArray(selected) || selected.length > updateTargets.length ||
+        new Set(selected).size !== selected.length ||
+        selected.some(entry => !updateTargets.includes(entry))) return [];
+    return updateTargets.filter(entry => selected.includes(entry));
+  };
+
   // Keyed by this Host over everything the verdict is about: the audience
   // and its disclosure policy, the exact source and format, the scope, the
   // compiler, both reporting schema identities and public checking selections,
   // the visible names and supplied
   // bindings. Equal requests give an equal reference here; the reference is
   // not a public hash of supplied values.
-  const contextRef = (principalId, input, parameters, visible, visibleWrites, kind, scope, namespace) => {
+  const contextRef = (principalId, input, parameters, visible, visibleWrites, visibleUpdates, kind, scope, namespace) => {
     const bound = {version: contextVersion, audience: principalId,
       disclosure_policy: disclosurePolicy, projection: version, scope,
       compiler, reason_schema_cid: checkReasonSchemaCid,
@@ -144,7 +175,8 @@ export function installNodeClientCheck({moon, environment, publication,
       checking_context: checkingContext, visible_aliases: visible,
       ...(namespace === undefined ? {} : {[kind === 'program' ? 'source_selector_namespace' : 'source_namespace']: {
         name: namespace.namespace, revision: namespace.revision, authority: namespace.authority}}),
-      ...(visibleWrites.length === 0 ? {} : {visible_table_writes: visibleWrites})};
+      ...(visibleWrites.length === 0 ? {} : {visible_table_writes: visibleWrites}),
+      ...(visibleUpdates.length === 0 ? {} : {visible_update_targets: visibleUpdates})};
     let preimage;
     try {
       preimage = canonicalJson({...bound,
@@ -182,8 +214,9 @@ export function installNodeClientCheck({moon, environment, publication,
     signal?.throwIfAborted();
     const visible = await visibleAliases(signal);
     const visibleWrites = await visibleTableWrites(signal);
+    const visibleUpdates = await visibleUpdateTargets(principalId, signal);
     signal?.throwIfAborted();
-    let context = contextRef(principalId, input, parameters, visible, visibleWrites, kind, scope);
+    let context = contextRef(principalId, input, parameters, visible, visibleWrites, visibleUpdates, kind, scope);
     if (kind === 'program') {
       const document = JSON.stringify(input);
       const supplied = parameters == null ? undefined : JSON.stringify(parameters);
@@ -200,7 +233,7 @@ export function installNodeClientCheck({moon, environment, publication,
           const observation = await observeSourceSelectorNamespace(publication, gate, binding, {signal});
           const facts = sourceSelectorNamespaceObservationFacts(publication, observation, binding);
           if (facts !== undefined) {
-            context = contextRef(principalId, input, parameters, visible, visibleWrites, kind, scope, facts);
+            context = contextRef(principalId, input, parameters, visible, visibleWrites, visibleUpdates, kind, scope, facts);
             namespace = moon.clientProgramCheckSourceSelectorNamespace(facts.range,
               facts.namespace, facts.revision, context, original.revision);
           }
@@ -213,6 +246,7 @@ export function installNodeClientCheck({moon, environment, publication,
       }
       const outcome = JSON.parse(moon.clientProgramCheckProgram(document, environment,
         JSON.stringify({environmentCid, aliases: visible,
+          ...(visibleUpdates.length === 0 ? {} : {updateTargets: visibleUpdates}),
           ...(visibleWrites.length === 0 ? {} : {tableWrites: visibleWrites})}), supplied,
         context, original.revision, bindings?.revision, correlationRef, scope, namespace));
       return validBoundOutcome(outcome, context, scope, [original, ...(bindings ? [bindings] : [])])
@@ -239,7 +273,7 @@ export function installNodeClientCheck({moon, environment, publication,
         const observation = await observeSourceAliasNamespace(publication, gate, binding, {signal});
         const facts = sourceAliasNamespaceObservationFacts(publication, observation, binding);
         if (facts !== undefined) {
-          context = contextRef(principalId, input, parameters, visible, visibleWrites, kind, scope, facts);
+          context = contextRef(principalId, input, parameters, visible, visibleWrites, visibleUpdates, kind, scope, facts);
           namespace = moon.clientProgramCheckSourceNamespace(environment,
             JSON.stringify({environmentCid, aliases: facts.aliases}),
             facts.namespace, facts.revision, context, original.revision);
@@ -254,6 +288,7 @@ export function installNodeClientCheck({moon, environment, publication,
     const outcome = JSON.parse(moon.clientProgramCheckSource(input.text,
       input.format, environment,
       JSON.stringify({environmentCid, aliases: visible,
+        ...(visibleUpdates.length === 0 ? {} : {updateTargets: visibleUpdates}),
         ...(visibleWrites.length === 0 ? {} : {tableWrites: visibleWrites})}),
       declarations, supplied,
       context, original.revision, declared?.revision, bindings?.revision, correlationRef, scope, namespace));

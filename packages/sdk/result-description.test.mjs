@@ -41,6 +41,94 @@ const description = () => ({ref: {...ref}, resultName: 'answer',
     version: 'actql-jsonl/0.1'})}});
 const expected = {ref, resultName: 'answer', format: 'jsonl'};
 
+test('describe hashes each dynamic identity once and never rehashes fixed serialization identities', async t => {
+  let answer = description();
+  const calls = [], hashes = [], digest = crypto.subtle.digest;
+  mock.method(crypto.subtle, 'digest', function(algorithm, bytes) {
+    hashes.push(new TextDecoder().decode(bytes));
+    return Reflect.apply(digest, this, [algorithm, bytes]);
+  });
+  t.after(() => mock.restoreAll());
+  const client = await connectInProcess({mode: 'local', owner: 'local'}, {
+    perform(operation) {
+      calls.push(operation);
+      if (operation === 'connect') return profile('local');
+      if (operation === 'attach') return admission;
+      if (operation === 'result-describe') return answer;
+      assert.fail(`Unexpected:${operation}`);
+    },
+  });
+  t.after(() => client.close());
+  const result = (await client.attach(ref)).result('answer');
+  for (const format of ['json', 'jsonl', 'csv']) {
+    answer = description();
+    answer.serialization = {format, version: `actql-${format}/0.1`,
+      contractCid: cid({json_value_wire_contract_cid:
+        'sha256:8ce92036074141bdc4b39436fe2460c7d1460810af1c345b45c6fc102b36791b',
+      version: `actql-${format}/0.1`})};
+    for (let operation = 0; operation < 2; operation++) {
+      hashes.length = 0;
+      assert.deepEqual(await result.describe({format}), answer);
+      assert.deepEqual(hashes, [canonical(schema), canonical({version: 'actql-result-definition/0.1',
+        program_definition_cid: answer.programDefinitionCid, result_name: 'answer'})],
+      'Only the actual schema and actual Result definition require runtime hashing');
+    }
+    answer.serialization.contractCid = cid('foreign');
+    await assert.rejects(result.describe({format}), {code: 'InvalidHostResultDescription'});
+  }
+  assert.equal(calls.filter(value => value === 'attach').length, 1);
+  assert.equal(calls.filter(value => value === 'result-describe').length, 9,
+    'Every public operation still reaches its current Host boundary');
+});
+
+test('Result description retains its captured Run across identity hashing awaits', async t => {
+  const answer = description(), columns = answer.columns;
+  let reads = 0;
+  Object.defineProperty(answer, 'columns', {enumerable: true, get() {
+    reads++;
+    queueMicrotask(() => {answer.ref.runDefinitionCid = cid('foreign');});
+    return columns;
+  }});
+  const calls = [];
+  const client = await connectInProcess({mode: 'local', owner: 'local'}, {
+    perform(operation) {
+      calls.push(operation);
+      if (operation === 'connect') return profile('local');
+      if (operation === 'attach') return admission;
+      if (operation === 'result-describe') return answer;
+      assert.fail(`Unexpected:${operation}`);
+    },
+  });
+  t.after(() => client.close());
+  const captured = await (await client.attach(ref)).result('answer').describe();
+  assert.deepEqual(captured.ref, ref);
+  assert.equal(reads, 1);
+  assert.equal(answer.ref.runDefinitionCid, cid('foreign'));
+  assert.equal(Object.isFrozen(answer), false);
+  assert.equal(Object.isFrozen(captured), true);
+  assert.equal(Object.isFrozen(captured.ref), true);
+  assert.equal(Object.isFrozen(captured.columns[0].contract.fields), true);
+  assert.deepEqual(calls, ['connect', 'attach', 'result-describe']);
+});
+
+test('Result description capture refuses unreadable data without retaining private errors', async t => {
+  const privateFailure = new Error('private description getter');
+  const client = await connectInProcess({mode: 'local', owner: 'local'}, {
+    perform(operation) {
+      if (operation === 'connect') return profile('local');
+      if (operation === 'attach') return admission;
+      if (operation === 'result-describe') return {get ref() {throw privateFailure;}};
+      assert.fail(`Unexpected:${operation}`);
+    },
+  });
+  t.after(() => client.close());
+  await assert.rejects((await client.attach(ref)).result('answer').describe(), error => {
+    assert.equal(error.code, 'InvalidHostResultDescription');
+    assert.equal(error.cause, undefined);
+    return true;
+  });
+});
+
 test('generated contracts validate full recursive types and exact bindings', () => {
   assert.equal(validResultDescription(description(), expected), true);
   const changes = [

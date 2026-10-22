@@ -437,7 +437,7 @@
     },
     {
       "module": "adapters/host-node/installed-update-originals.mjs",
-      "sha256": "33dc5ef39a5e962ec9c387b36b772ffb082e67b6a981ccb3289c43031c2f705f",
+      "sha256": "44f3d66f4c2afeb396debb5e84d8016f1504a0b86a2bb9ceb5d87fd549d3240e",
       "exports": [
         "installUpdateTargetOriginals"
       ],
@@ -502,16 +502,9 @@
           "async": false
         },
         {
-          "name": "installUpdateTargetOriginals/descriptors/descriptors",
+          "name": "installUpdateTargetOriginals/current/current/matches/matches",
           "parameters": [
-            "selections"
-          ],
-          "async": false
-        },
-        {
-          "name": "installUpdateTargetOriginals/descriptors/descriptors/descriptors",
-          "parameters": [
-            "value"
+            "owner"
           ],
           "async": false
         },
@@ -538,6 +531,38 @@
           "name": "installUpdateTargetOriginals/init:validatePrepared/init:validatePrepared",
           "parameters": [
             "prepared"
+          ],
+          "async": false
+        },
+        {
+          "name": "installUpdateTargetOriginals/init:validateRecoveredSelectionMembers/init:validateRecoveredSelectionMembers",
+          "parameters": [
+            "prepared",
+            "compilation",
+            "selections",
+            "preview",
+            "stageIndex"
+          ],
+          "async": false
+        },
+        {
+          "name": "installUpdateTargetOriginals/init:validateRecoveredSelectionMembers/init:validateRecoveredSelectionMembers/members/members",
+          "parameters": [
+            "member"
+          ],
+          "async": false
+        },
+        {
+          "name": "installUpdateTargetOriginals/init:validateRecoveredSelectionMembers/init:validateRecoveredSelectionMembers/members/members/actual/actual",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "installUpdateTargetOriginals/init:validateRecoveredSelectionMembers/init:validateRecoveredSelectionMembers/members/members/selected/selected",
+          "parameters": [
+            "value"
           ],
           "async": false
         },
@@ -615,8 +640,6 @@
             "installUpdateTargetOriginals/capturePrepared/capturePrepared",
             "installUpdateTargetOriginals/current/current",
             "installUpdateTargetOriginals/current/current/current",
-            "installUpdateTargetOriginals/descriptors/descriptors",
-            "installUpdateTargetOriginals/descriptors/descriptors/descriptors",
             "installUpdateTargetOriginals/init:captureRun/init:captureRun",
             "installUpdateTargetOriginals/init:validatePrepared/init:validatePrepared",
             "installUpdateTargetOriginals/init:validateRun/init:validateRun",
@@ -626,7 +649,12 @@
             "installUpdateTargetOriginals/same/same",
             "installUpdateTargetOriginals/selectionsOf/selectionsOf",
             "installUpdateTargetOriginals/init:captureEffectMaterials/init:captureEffectMaterials",
-            "installUpdateTargetOriginals/restoreEffectMaterials/restoreEffectMaterials"
+            "installUpdateTargetOriginals/restoreEffectMaterials/restoreEffectMaterials",
+            "installUpdateTargetOriginals/current/current/matches/matches",
+            "installUpdateTargetOriginals/init:validateRecoveredSelectionMembers/init:validateRecoveredSelectionMembers",
+            "installUpdateTargetOriginals/init:validateRecoveredSelectionMembers/init:validateRecoveredSelectionMembers/members/members",
+            "installUpdateTargetOriginals/init:validateRecoveredSelectionMembers/init:validateRecoveredSelectionMembers/members/members/actual/actual",
+            "installUpdateTargetOriginals/init:validateRecoveredSelectionMembers/init:validateRecoveredSelectionMembers/members/members/selected/selected"
           ],
           "exports": [
             "installUpdateTargetOriginals"
@@ -776,6 +804,14 @@
                 "anchor": "test('actual validated Run selection stays with the original caller preparation through installation checks'"
               },
               {
+                "path": "adapters/connectors/local/host/local-file-store-declaration.actual.test.mjs",
+                "anchor": "test('actual Local STORE selection reaches its same command Owner without UPDATE substitution'"
+              },
+              {
+                "path": "adapters/connectors/local/host/local-file-store-declaration.actual.test.mjs",
+                "anchor": "test('actual Local STORE current selection refuses missing purpose foreign owner and foreign preparation'"
+              },
+              {
                 "path": "src/query_integration/client_requested_effect_stop_wbtest.mbt",
                 "anchor": "fn check_requested_effect_stop_projection("
               },
@@ -786,7 +822,15 @@
             ]
           }
         }
-      ]
+      ],
+      "imports": [
+        "../host-common/effect-preparation-result.mjs",
+        "../host-common/runtime-result.mjs",
+        "./installed-row-effect.mjs",
+        "./update-target-original-shape.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     }
   ]
 }

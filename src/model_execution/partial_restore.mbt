@@ -77,6 +77,10 @@ pub fn restore_prepared_model_call(
     is Err(_) {
     return Err(OutputIdentity)
   }
+  match check_original_mock_saved_attempt(state, slot) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
   let retained = match bundle {
     None => None
     Some(value) =>
@@ -124,6 +128,10 @@ pub fn restore_prepared_model_unknown(
       scope, slot, attempt, authority, 1L,
     ) {
     Err(issue) => return Err(InvocationEvidence(issue))
+    Ok(_) => ()
+  }
+  match check_original_mock_saved_attempt(state, slot) {
+    Err(issue) => return Err(issue)
     Ok(_) => ()
   }
   state.unknown_calls[slot] = { attempt, authority, }
@@ -179,6 +187,16 @@ pub fn prepare_model_response_reconciliation(
       scope, slot, attempt, authority, 1L,
     ) {
     Err(issue) => return Err(InvocationEvidence(issue))
+    Ok(_) => ()
+  }
+  match
+    check_original_mock_attempt_capacity(
+      state,
+      state.limits.max_request_bytes + state.limits.max_response_bytes,
+      state.limits.max_request_bytes + state.limits.max_response_bytes + 81920L,
+      0L,
+    ) {
+    Err(issue) => return Err(issue)
     Ok(_) => ()
   }
   let reservation = match

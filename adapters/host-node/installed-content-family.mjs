@@ -1,7 +1,8 @@
 // Physical I/O for the original Effect task's common Content child. The child
 // owns ordering, encoding and work; this port only appends its exact pieces to
 // the existing Store and retains the resulting generation evidence.
-import {issueStoredGeneratedContent, retainGeneratedContentEvidence} from './generated-content-holding.mjs';
+import {issueStoredGeneratedContent, retainGeneratedContentEvidence,
+  consumeStoredContentOriginal, closeStoredContentReaders} from './generated-content-holding.mjs';
 
 export function installEffectContentFamily({moon, control, publications, bodies,
   prepared, plan, store, principalId, ownerPrincipal, now, authorize, signal,
@@ -11,13 +12,17 @@ export function installEffectContentFamily({moon, control, publications, bodies,
     throw new TypeError('InvalidInstalledContentFamily');
   }
   const definition = JSON.parse(plan.runDefinition.wire);
+  const sourceFree = moon.clientProgramEffectAcquisitionCount?.(prepared) === 0;
+  const compiledLimits = publications.checkedClientSerializationGenerationLimits(
+    plan.compiled, plan.serializationGraph);
   // These are the existing installed Local execution ceilings, not sampled
   // Source sizes. Authored generation bounds further constrain the encoder.
-  const output = Object.freeze({...outputLimits, maxRows: 100,
+  const output = Object.freeze({...outputLimits, maxRows: Math.min(100, compiledLimits.maxRows),
     maxValueNodes: 10000, maxValueTextBytes: 10000,
     maxWireBytes: 1000000, maxWireNodes: 10000,
     maxLogicalWireBytes: 1000000, maxLogicalWireNodes: 10003});
-  const generationLimits = Object.freeze({maxRows: 100, maxBytes: 10000,
+  const generationLimits = Object.freeze({maxRows: output.maxRows,
+    maxBytes: Math.min(10000, compiledLimits.maxBytes),
     maxValueNodes: 10000, maxValueDepth: 64, maxFrames: 100});
   const contractLimits = Object.freeze({maxWireBytes: 100000, maxNodes: 10000, maxDepth: 64});
   let active, capturedProof, writer, physical, byteHolding, retained, generation, recovery, storedOriginal;
@@ -30,6 +35,7 @@ export function installEffectContentFamily({moon, control, publications, bodies,
     durable = true;
   }
   let failureCleanup;
+  const contentReaders = new Set();
   const retirement = new Map();
   const live = () => !cancelled && store.status().closed === false &&
     Date.parse(now()) < Date.parse(definition.valid_until) && authorize(principalId) === true;
@@ -75,6 +81,7 @@ export function installEffectContentFamily({moon, control, publications, bodies,
     // Successful encoder cleanup may precede this explicit parent close. It
     // must not let the completed temporary-duty flag preserve a new borrower.
     cancelled = true;
+    if (!await closeStoredContentReaders(contentReaders)) return false;
     if (cleaned) {
       storedOriginal = undefined;
       return true;
@@ -122,6 +129,7 @@ export function installEffectContentFamily({moon, control, publications, bodies,
       return ledger;
     },
     bindCapture(captured, observation) {
+      if (sourceFree) throw new TypeError('ForeignSourceFreeContentCapture');
       if (capturedProof !== undefined) throw new TypeError('Content capture already bound');
       capturedProof = publications.bindCheckedClientEffectSerializationCapture(
         plan.compiled, prepared, captured, observation);
@@ -129,7 +137,7 @@ export function installEffectContentFamily({moon, control, publications, bodies,
     async handlePause(boundary) {
       if (restored !== undefined) throw new TypeError('RestoredContentCannotGenerate');
       if (flight !== undefined || cancelled || !live() || active === undefined ||
-          capturedProof === undefined || boundary.status !== 'settling') {
+          (!sourceFree && capturedProof === undefined) || boundary.status !== 'settling') {
         throw new TypeError('InvalidContentPause');
       }
       const operation = (async () => {
@@ -202,6 +210,14 @@ export function installEffectContentFamily({moon, control, publications, bodies,
     storageForContent: binding => selectedForContent(binding),
     storageCurrentForContent: (original, binding) => original !== undefined &&
       selectedForContent(binding) === original,
+    consumeContent(binding, accept) {
+      const original = selectedForContent(binding);
+      if (original === undefined) throw new Error('OriginalEffectContentUnavailable');
+      return consumeStoredContentOriginal({store, original, readers: contentReaders, accept,
+        assertCurrent() {
+          if (selectedForContent(binding) !== original) throw new Error('OriginalEffectContentUnavailable');
+        }});
+    },
     close: cleanup, cleanup,
     cleanupPending: () => !cleaned,
   });

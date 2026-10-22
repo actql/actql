@@ -432,6 +432,17 @@ test('publication and parent cleanup observers share the original persistence fl
   assert.equal(f.counters.ack,1);
 });
 
+test('completed capture count does not imply persistence and retires with its own custody',async()=>{
+  const f=fixture();assert.equal(f.owner.completedCallCount(),undefined);
+  await f.settling();f.owner.retainCompleted();
+  assert.equal(f.owner.completedCallCount(),1);
+  assert.equal(f.owner.modelEvidence(),undefined,'a known count is not a stored evidence claim');
+  await f.owner.persist();assert.equal(f.owner.completedCallCount(),1);
+  assert.equal(await f.owner.custody.retirePublication(),true);
+  assert.equal(f.owner.completedCallCount(),undefined);
+  assert.equal(await f.owner.custody.cleanup(),true);
+});
+
 test('terminal publication reservation precedes capture allocation and refusal creates no capture',async()=>{
   const f=fixture();
   // Use the original settlement from the fixture; no new response/send occurs.

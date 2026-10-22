@@ -48,7 +48,7 @@ test "prepared public Source bridge keeps each new Program and supplied value or
         0,
       ).unwrap(),
     )
-    let original = client_program_prepare_source_computation_with_parameters(
+    let original = client_program_prepare_public_source_computation_with_parameters(
       query,
       "sql",
       environment,
@@ -59,7 +59,7 @@ test "prepared public Source bridge keeps each new Program and supplied value or
       [],
     )
     guard original is SourcePure(Prepared(original)) else {
-      fail("the original wire-based caller must remain supported")
+      fail("the original public wire-based caller must remain supported")
     }
     assert_eq(
       @publication_host.prepared_client_program_semantics_cid(value),

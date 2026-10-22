@@ -141,28 +141,31 @@ pub fn issue_prepared_source_free_client_bound_template(
   max_nodes : Int,
   max_depth : Int,
 ) -> Result[@publication.RunEvidenceValue, ClientBoundTemplateIssue] {
-  match
-    issue_prepared_client_values_plan_graph(
+  let (_, _, aoa) = match
+    issue_prepared_client_values_plan_graph_parts(
       value, sequence_limits, max_wire_bytes, max_nodes, max_depth,
     ) {
-    Ok(_) => ()
+    Ok(parts) => parts
     Err(issue) => return Err(ValuesGraph(issue))
   }
-  let aoa = match
-    issue_prepared_client_values_aoa_identity(
-      value, 0, sequence_limits, max_wire_bytes, max_nodes, max_depth,
-    ) {
-    Ok(aoa) => aoa
-    Err(_) => return Err(UnsupportedPipeline)
-  }
-  guard parse_plan_identity_value(
-      client_values_aoa_identity_wire(aoa),
-      max_wire_bytes,
-      max_nodes,
-      max_depth,
-    )
-    is Some(pipeline) &&
-    @canonical.object_field(pipeline, "steps") is Some(@canonical.Array(steps)) else {
+  issue_source_free_client_bound_template_from_aoa(
+    value, manifests, aoa, max_wire_bytes, max_nodes, max_depth,
+  )
+}
+
+///|
+// Only the same construction's checked Values graph supplies this AoA part.
+// This emits compilation material, never Account or execution authorization.
+fn issue_source_free_client_bound_template_from_aoa(
+  value : PreparedClientProgram,
+  manifests : ClientCompilationManifests,
+  aoa : ClientValuesAoAParts,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[@publication.RunEvidenceValue, ClientBoundTemplateIssue] {
+  guard @canonical.object_field(aoa.body, "steps")
+    is Some(@canonical.Array(steps)) else {
     return Err(UnsupportedPipeline)
   }
   let steps = @canonical.array_values(steps)

@@ -373,8 +373,31 @@ Journal transaction with the same prepared/authorization evidence and Run.
 
 After the original Model input custody is authenticated, the Host reads the
 request identity, Definition and material evidence from that same Journal.
-The existing Common inverse reconstructs and checks the entire saved Run. Its
-original preparation, compiled admission and graph stay together in the same
+The existing Common inverse reconstructs and checks the entire saved Run. The
+single-component codec retains both historical whole-INFER and composed
+compilation forms, including a source-free one-task Program. First issuance
+uses the actual compiler original, not a syntax-based preference.
+The ordinary Host selects the composed compiler for a retained occurrence even
+when it has one component, while retaining that same single graph as its
+Run/Scope and material original. Legacy components without that occurrence
+retain their existing compiler selection. Recovery checks at most these two
+installed candidates against the complete original
+admission and Run CID, refusing ambiguity; it does not select the first Model,
+refresh policy, or change predecessor materials bytes. The bounded candidate
+preparations and their temporary overlap belong to the same Host phase.
+
+The composed Local provider retains the actual generated input prefix and its
+input execution/measurement limits beside that same occurrence. Local's Values
+and Relation obligation checks require the same physical preparation, exact
+contiguous pre-INFER coordinates, and the existing bounded Local child and
+capacity for that segment. Acceptance of an arbitrary whole-Unit family is not
+this witness. A missing, foreign or incomplete prefix remains unsupported;
+selecting a prefix does not widen an already selected execution view. The
+Model component executes that retained prefix through the same bounded input
+owner, then retains its original Model and output cleanup duties. This private
+composition supplies neither permission nor another Run or resource admission.
+
+The original preparation, compiled admission and graph stay together in the same
 Host preparation membership. A private restored-membership index rejects a
 copied bundle; it does not create a second execution Owner or a resume permit.
 Planning uses the original admission and Definition without issuing another
@@ -460,6 +483,143 @@ startup holdings; finite metadata is not funding. Native/Python/Node consumers
 use this same Owner rather than implement another answer selector. Operational
 installation, the configured Account and complete physical funding remain
 separate from this portable connection.
+
+##### Shared Run resources for the original local Mock
+
+The selected composed-input consumer may use the same original Run Ledger for
+Source, managed preparation and local Mock execution. This does not turn a
+Source or initial-control admission into Model credit. The actual Host must
+already supply the separately scoped local-Mock operational purpose and its
+complete simultaneous envelope before constructing the consumer or input.
+
+The Model Owner retains the exact original Mock provider and immutable Model
+limits when the same checked Run, graph, call scope and prepared rows hand off
+their original read capacity. The selected limits must remain within that
+graph's original execution contract. A larger shared physical Ledger is not a
+replacement for these Model ceilings. Existing dedicated startup, synchronous
+fixtures and asynchronous physical Providers keep their exact Ledger-limit
+correspondence and are not enabled by this connection.
+
+Before every attempt reservation, the existing Model reservation map enforces
+its own attempt and wire ceilings. Actual live reservation bytes, the original
+startup capacity and outstanding publication borrows independently enforce the
+Model retained/workspace ceilings before the same physical Ledger is charged.
+The original local implementation creates no Model I/O holdings. Closed-token
+byte observations do not release Source holdings, escaped aliases, unknown
+wire/quantity history or any physical backing. All slots remain reserved before
+the first dispatch; current Account, Entry and settlement rules are unchanged.
+Authenticated saved and Unknown attempts remain spent within this purpose.
+Their original Journal mask must exclude a fresh send reservation before saved
+call admission; reconciliation can add read custody, never erase that history.
+
+Fresh nominal `OriginalMock` invocation retains its request/response wire ceiling
+but does not mark that envelope as uncertain physical transfer: its selected
+implementation only reads admitted typed answers and has no transport entry.
+This distinction never follows from a Provider name or a caller callback. It
+does not change quantity accounting, durable Entry/Unknown state or the physical
+and arbitrary-fixture paths, and it cannot clear existing or restored uncertain
+transfer history. Cleanup still settles the same original reservation after its
+actual child duties have completed.
+
+Publication retains its own exact borrowed byte amounts and spent planning
+steps. A refused reservation or settlement retains its original custody; a
+successful release cannot acknowledge another borrow or sibling. The existing
+Model in-progress fence protects each shared-purpose publication mutation.
+The sealed references/full limits, resident optional fields and selection flag,
+publication amounts/counters and bounded reservation-map scan overlap with
+Source, DAG, Model and Result holdings in the Host recipe. They are not free
+metadata, a numerical profile, a physical issuer or a cleanup acknowledgement.
+
+###### Ordinary Host composition
+
+The ordinary trusted Host selects the local Mock purpose through its fixed
+Resource entry, not through a Source/Compute admission, profile label or caller
+Boolean. It retains the original checked request and compiles its Run once.
+That same compiled Run, definition and INFER graph establish the original read
+Scope before either Source creates a child. Both captures, the Local DAG and
+the no-I/O Mock component borrow this one Run Ledger. Local remains the task
+scheduler; the component does not invent an asynchronous Provider or egress
+notification merely to enter a physical-provider path.
+
+For a checked source-free Program, the same connection has no Source children
+or Source evidence arrays. The original Model Scope still precedes its input
+preparation. Its retained Run opens the Local driver with the actual Model
+provider on that same Ledger; it does not manufacture a captured relation or
+fall back to a scalar Compute parent. Driver construction is attempted once,
+and partial construction remains under the original Run/Scope cleanup. Source
+and Effect Programs cannot enter this source-free driver operation.
+
+Terminal publication uses the same ordinary Host's Result admission. The
+original Model preparation retains its synchronous capacity-selection callback
+and receiver before execution; the callback checks its current Host, Run and
+installation and returns the selected publication bounds. These amounts are
+not an issuer. Before retaining output or capture, Common reserves the actual
+publication borrow on that terminal Model, call scope and original Run Ledger.
+The ordinary path does not require a legacy Node installation or manufacture
+one from matching bounds. Missing or refused selection has no fallback. The
+borrow remains until the existing publication children retire; pending release
+keeps parent cleanup pending. Dedicated legacy callers retain their original
+installation selection and the same Common reservation checks.
+
+The composed caller selects original observation issuance from the same
+registered operation, never from the Source Ledger or copied operation fields.
+Its publication aliases retire before the exact borrow is released and before
+Model cleanup. A pending sibling retains its own custody without preventing
+independent siblings from retiring theirs.
+
+The original Model observation is sealed at its real completion callback,
+before Local transfers the enclosing task's retained output ownership. The
+existing capture supplies only its validated call count; this is not a Store
+persistence proof. Issuance uses its existing finite slot/work bounds while
+the original input-token checks still hold. Later publication reuses that
+sealed original and its live Model capacity rather than reissuing against an
+obsolete upstream snapshot. Store persistence and the public Result still wait
+for successful DAG completion. A failed or partial issuer remains reachable
+under the same cleanup; the legacy explicit-Ledger route is unchanged.
+
+The continuation recognizes this no-I/O preparation through the same live
+Core Mock installation and its retained Provider, not a Host flag or Provider
+name alone. External Providers retain their existing egress requirement;
+current Account, Entry and Run authorization is required on both paths.
+
+The read descriptor is issued later, synchronously when Local passes the
+actual prefix inputs to the Model component. Its snapshot must include the
+Source/Compute changes already made on that Ledger. Issuing a read before
+those changes would make its original-state claim stale. Descriptor issuance
+and the subsequent claim are one-shot; failure retains the original admission,
+Scope and cleanup rather than reissuing or falling back to an unowned start.
+
+The ordinary Run combines the existing Source/Compute and Model managed
+ceilings, with separate bootstrap and input-read reservations. These counters
+are not physical allocation coefficients, pre-reserved RAM or an allocation
+success guarantee. The trusted platform supplies ordinary allocation; actual
+FileHandles, native objects, pending operations and partial failures retain
+their existing cleanup duties. A larger parent does not enlarge the Model's
+per-purpose attempts, wire or byte ceilings.
+
+Durable Model binding uses the same Mock profile's canonical installation,
+configuration-contract and configuration originals. Equal replacement bytes
+cannot adopt its Task, answer inventory or currentness. Existing Account,
+Entry, settlement, saved-original and no-resend checks remain independent.
+The consuming Model execution and its parent's original read reservation have
+separate cleanup. Core execution cleanup stops the consumer but leaves the
+read reservation with its original parent. After Model cleanup and the actual
+Source custody have closed, that parent settles the same read once, then drops
+its alias. A refused settlement retains that exact read for its owning retry.
+The Run's final census/bootstrap retirement also waits for the other children;
+closing one Source or dropping a JavaScript reference cannot acknowledge its
+sibling or the whole Run. A never-consumed read still follows its original
+preparation cleanup path.
+
+The Node operation snapshots the exact read it claims. Its private weak
+membership observation becomes true only after that operation receives the
+existing Core execution's successful cleanup result. This does not observe or
+settle the separate original read reservation. The parent still owns that
+settlement and drops its descriptor alias only after it succeeds.
+There is no setter or synthetic acknowledgement: stop, pending cleanup, a
+thrown cleanup result, a copied read or another child's completion cannot mark
+this original. Until the actual acknowledgement, the existing parent keeps
+its read/Scope duty and original failure.
 
 The existing Model Owner admits the selected `task`/`answers` document against
 the same original public Task declaration's output Contract. `default` and

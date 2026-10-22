@@ -7,12 +7,13 @@ import {projectRequestCancellationExplanation, projectRequestLookupExplanation,
 import {bytesCid, canonicalJson} from '../checkpoints.mjs';
 import {sourceQuery} from '../source-query.mjs';
 import {bindCheckObservation} from './check-observation.mjs';
-import {captureResponse, detachResponse, freezeInput, structuralKey} from './data.mjs';
-import {ClientError, fail, requestCancellationCause} from './errors.mjs';
+import {captureResponse, freezeInput} from './data.mjs';
+import {ClientError, RequestHeld, fail, requestCancellationCause} from './errors.mjs';
 import {copyRunObservationFailure} from './run-observation.mjs';
 import {controlValue} from './transport-response.mjs';
 import {clientSourceFormats, snapshotClientRequest, validClientAdmission, validOperationAttemptRef,
   validRequestCancellation, validRequestLookup, validRunRef, validSubmissionAttempt,
+  validNamedSubmissionAttempt, validSubmissionName,
   validSubmissionLookup, validSubmissionRef, validSubmissionRestart} from '@actql/client-wire';
 
 // Original request data is available only through explicit SDK access, never
@@ -171,16 +172,52 @@ export const submissionNotSent = (context, cause) => {
 // a Run. This is a control result, not a failure and not an unknown
 // submission: submitting again is never needed. Follow it with
 // `lookupRequest(requestId)`; once the Run exists the lookup is `found`.
-export class RequestHeld extends ClientError {
-  constructor(held, lookupContext) {
-    super('RequestHeld', {requestId: held.requestId, held, lookupContext});
-  }
-}
+export {RequestHeld};
 
 export function createSubmissionOperations(selected, confirmed, transport, execution, lifecycle) {
-  const {exchange, responseValue, wasSubmissionDispatched} = transport;
+  const {exchange, responseValue, wasSubmissionDispatched, sourcePreparation} = transport;
   const {isClosed} = lifecycle;
-  const submitIntent = (kind, input, options) => {
+  const withSourceProducer = (kind, originalInput, originalOptions, run, acquire) => {
+    // A closed SDK connection owns its local refusal. Do not reacquire a
+    // producer from the already retired Host merely to reject this call.
+    // The ordinary submit path retains its original identity/NotSent handling.
+    if (sourcePreparation === undefined || isClosed()) return run(undefined);
+    let producer;
+    try {
+      // Synchronous admission precedes the first SDK capture, option getter,
+      // serialization, hash or Promise workspace of this submitted original.
+      const receipt = acquire === undefined
+        ? sourcePreparation.beforeSourceSnapshot(kind, originalInput, originalOptions)
+        : acquire();
+      producer = {receipt, body: undefined};
+    } catch (cause) {return Promise.reject(cause);}
+    const finish = (terminal, primary, originalResult) => {
+      try {sourcePreparation.finishSourceProducer(producer.receipt, terminal);}
+      catch (cause) {
+        // Reuse this connection's existing cleanup owner. A retry cuts only
+        // the same producer aliases, never snapshots, sends or issues again.
+        const retry = () => sourcePreparation.finishSourceProducer(producer.receipt, terminal);
+        lifecycle.readerCleanups.add(retry);
+        if (primary !== undefined) return primary;
+        const error = new ClientError('ClientCleanupPending', {cause, cleanupPending: true});
+        Object.defineProperty(error, 'execution', {value: originalResult});
+        retainQueryResult(originalResult, error);
+        return error;
+      }
+      return primary;
+    };
+    let original;
+    try {original = run(producer);}
+    catch (cause) {return Promise.reject(finish('failed', cause));}
+    const pending = original.then(result => {
+      const failure = finish('returned', undefined, result);
+      if (failure !== undefined) throw failure;
+      return result;
+    }, cause => {throw finish('failed', cause);});
+    retainQueryResult(original, pending);
+    return pending;
+  };
+  const submitIntent = (kind, input, options, sourceProducer, requestName) => {
     let body;
     try {
       const stopBefore = options.stopBefore;
@@ -189,68 +226,87 @@ export function createSubmissionOperations(selected, confirmed, transport, execu
       if (Object.hasOwn(options, 'readOnly') && readOnly !== true) fail('InvalidClientPayload');
       body = freezeInput(snapshotClientRequest({submissionRef: options.submissionRef,
         attemptRef: {operation: 'submit', attemptId: options.attemptId ?? crypto.randomUUID()},
+        ...(requestName === undefined ? {} : {requestName}),
         kind, input, parameters: options.parameters ?? null,
         ...(stopBefore === undefined ? {} : {stopBefore}),
         ...(readOnly === undefined ? {} : {readOnly}),
         ...(options.unresolvedHistory === undefined ? {} : {unresolvedHistory: options.unresolvedHistory})}));
     } catch {fail('InvalidClientPayload');}
-    if (!validSubmissionRef(body.submissionRef) || options.requestId !== undefined &&
+    if (sourceProducer !== undefined) {
+      sourcePreparation.bindSourceSnapshot(sourceProducer.receipt, body);
+      sourceProducer.body = body;
+    }
+    if (!validSubmissionRef(body.submissionRef) || requestName === undefined && options.requestId !== undefined &&
         options.requestId !== body.submissionRef.nonce) fail('InvalidSubmissionRef');
     if (!validOperationAttemptRef(body.attemptRef)) fail('InvalidOperationAttemptRef');
     if (body.unresolvedHistory !== undefined &&
         !validSubmissionRestart(body.unresolvedHistory, body.submissionRef)) fail('InvalidSubmissionRestart');
-    const requestId = body.submissionRef.nonce;
+    const requestId = requestName ?? body.submissionRef.nonce;
     const context = {requestId, submissionRef: body.submissionRef, attemptRef: body.attemptRef,
+      ...(requestName === undefined ? {} : {requestName}),
       lookupContext: Object.freeze({endpoint: selected.endpoint, scopeRef: confirmed.scopeRef})};
     const snapshot = freezeInput({...body, requestId, connection: selected.wire,
       lookupContext: context.lookupContext});
     submissionContexts.set(context, snapshot);
     const pending = (async () => {
       let intentCid;
-      try {intentCid = await bytesCid(new TextEncoder().encode(canonicalJson({
+      try {intentCid = sourceProducer === undefined ? await bytesCid(new TextEncoder().encode(canonicalJson({
         intent: {kind, input: body.input, parameters: body.parameters,
           ...(Object.hasOwn(body, 'stopBefore') ? {stopBefore: body.stopBefore} : {}),
           ...(Object.hasOwn(body, 'readOnly') ? {readOnly: body.readOnly} : {})},
-        version: 'actql-submitted-intent/0.1'}, {dataKeys: true})));}
+        version: 'actql-submitted-intent/0.1'}, {dataKeys: true}))) :
+        await sourcePreparation.intentCid(sourceProducer.receipt, body);}
       catch (cause) {throw submissionNotSent(context, cause);}
       let outcome;
       let attempt;
       let typedRejection;
       let checkObservation;
       try {
-        const response = await exchange(body.unresolvedHistory === undefined ? 'submit-intent' : 'restart-intent',
-          {...body, intentCid}, options.signal, context);
-        attempt = detachResponse(captureResponse(await controlValue(response)));
-        if (!validSubmissionAttempt(attempt, selected.wire, body.submissionRef, intentCid,
-          body.attemptRef, body.unresolvedHistory)) {
+        const operation = requestName !== undefined ? 'submit-named-intent'
+          : body.unresolvedHistory === undefined ? 'submit-intent' : 'restart-intent';
+        const response = await exchange(operation,
+          {...body, intentCid}, options.signal, context, undefined, sourceProducer);
+        attempt = captureResponse(await controlValue(response));
+        if (!(requestName === undefined
+          ? validSubmissionAttempt(attempt, selected.wire, body.submissionRef, intentCid,
+            body.attemptRef, body.unresolvedHistory)
+          : validNamedSubmissionAttempt(attempt, selected.wire, requestName,
+            body.submissionRef, intentCid, body.attemptRef))) {
           fail('InvalidHostSubmissionOutcome');
         }
         attempt = freezeInput(attempt);
-        outcome = attempt.outcome === undefined ? undefined : detachResponse(captureResponse(attempt.outcome));
+        outcome = attempt.outcome;
         if (outcome === undefined) {
           // A typed initial refusal or conflict is not the durable original's
           // receipt and supplies no automatic retry or new-submission grant.
-          typedRejection = new ClientError(attempt.kind === 'refused' ? 'SubmissionRefused' : 'SubmissionConflict',
+          typedRejection = new ClientError(attempt.kind === 'refused' ? 'SubmissionRefused'
+            : requestName === undefined ? 'SubmissionConflict' : 'RequestConflict',
             {...context, outcome: attempt});
           submissionInputs.set(typedRejection, snapshot);
           submissionAttempts.set(typedRejection, attempt);
           retainSubmissionAttemptExplanation(typedRejection, attempt, snapshot);
           throw typedRejection;
         }
+        // The submitted candidate remains the exact captured input. Only this
+        // correlated original reply supplies a durable reference for lookup;
+        // a scoped name may legitimately resolve an earlier epoch.
+        context.submissionRef = outcome.submissionRef;
         if (outcome.checkObservation !== undefined) {
           checkObservation = outcome.checkObservation;
           if (!(body.kind === 'program' || body.kind === 'aql' && ['sql', 'aql', 'aql-text'].includes(body.input.format)) ||
               !bindCheckObservation(checkObservation, {kind: body.kind, input: body.input, parameters: body.parameters})) {
             fail('InvalidHostSubmissionCheckObservation');
           }
-          delete outcome.checkObservation;
+          // The validated attempt retains its complete original observation;
+          // the public outcome omits only this separately held presentation.
+          const {checkObservation: _checkObservation, ...publicOutcome} = outcome;
+          outcome = Object.freeze(publicOutcome);
         }
       } catch (cause) {
         if (typedRejection !== undefined && cause === typedRejection) throw cause;
         if (cause?.code === 'SubmissionUnknown' || cause?.code === 'SubmissionNotSent') throw cause;
         throw wasSubmissionDispatched(context) ? submissionUnknown(context, cause) : submissionNotSent(context, cause);
       }
-      outcome = freezeInput(outcome);
       if (outcome.kind === 'ready') {
         let run;
         try {run = execution(outcome.admission);}
@@ -264,8 +320,10 @@ export function createSubmissionOperations(selected, confirmed, transport, execu
       const error = outcome.kind === 'held'
         ? new RequestHeld(outcome.held, context.lookupContext)
         : new ClientError(outcome.kind === 'not_accepted' ? 'SubmissionNotAccepted'
-          : outcome.kind === 'preparation_failed' ? 'SubmissionPreparationFailed' : 'SubmissionPreparing',
-        {requestId, submissionRef: body.submissionRef, outcome});
+          : outcome.kind === 'preparation_failed' ? 'SubmissionPreparationFailed'
+          : outcome.kind === 'unresolvable' ? 'SubmissionUnresolvable' : 'SubmissionPreparing',
+        {requestId, submissionRef: context.submissionRef, outcome});
+      if (requestName !== undefined) error.requestName = requestName;
       submissionInputs.set(error, snapshot);
       submissionOutcomes.set(error, outcome);
       submissionAttempts.set(error, attempt);
@@ -282,19 +340,23 @@ export function createSubmissionOperations(selected, confirmed, transport, execu
     if (!validSubmissionRef(ref)) fail('InvalidSubmissionRef');
     return ref;
   };
-  const submit = (kind, input, options = {}) => {
+  const submit = (kind, input, options = {}, sourceProducer) => {
     try {
-      // A bare legacy ID cannot recover its original epoch on reconnect.
-      // Never reinterpret it as new work under the latest connection ticket.
-      if (options.submissionRef === undefined &&
-          (options.requestId !== undefined || options.unresolvedHistory !== undefined)) {
+      // Risk restart remains reference-bound. A public name is a separate
+      // existing Owner domain, never a relabelled historical epoch nonce.
+      if (options.submissionRef === undefined && options.unresolvedHistory !== undefined) {
         fail('SubmissionReferenceRequired');
       }
+      const requestName = options.submissionRef === undefined ? options.requestId : undefined;
+      if (requestName !== undefined && !validSubmissionName(requestName)) fail('InvalidRequestId');
       return submitIntent(kind, input, {...options,
-        submissionRef: options.submissionRef ?? newSubmission()});
+        submissionRef: options.submissionRef ?? newSubmission()}, sourceProducer, requestName);
     } catch (cause) {return Promise.reject(cause);}
   };
-  const startSource = (text, options = {}) => {
+  const submitSource = (text, options, sourceProducer) => {
+    // Preserve omission at the actual before-copy boundary. This SDK-owned
+    // default belongs after the selected original admission, not before it.
+    if (options === undefined) options = {};
     if (typeof text !== 'string' || !text ||
         !clientSourceFormats.includes(options.format)) {
       return Promise.reject(new ClientError('InvalidAqlDocument'));
@@ -305,8 +367,14 @@ export function createSubmissionOperations(selected, confirmed, transport, execu
     }
     return submit('aql', {text, format: options.format,
       ...(options.parameterDeclarations === undefined ? {} :
-        {parameterDeclarations: options.parameterDeclarations})}, options);
+        {parameterDeclarations: options.parameterDeclarations})}, options, sourceProducer);
   };
+  const startSource = (text, options) => withSourceProducer('aql', text, options,
+    producer => submitSource(text, options, producer));
+  const captureQueryAdmission = sourcePreparation === undefined ? undefined
+    : (format, text, parameters, options, capture) => withSourceProducer('aql', text, options,
+      producer => capture((originalText, sourceOptions) => submitSource(originalText, sourceOptions, producer)),
+      () => sourcePreparation.beforeSourceQuery(format, text, parameters, options));
   const retainQueryResult = (execution, result) => {
     const input = submissionInputs.get(execution);
     if (input && result !== undefined) submissionInputs.set(result, input);
@@ -326,9 +394,13 @@ export function createSubmissionOperations(selected, confirmed, transport, execu
   client = Object.freeze({
     startSource, newSubmission,
     sql: (text, parameters, options) => sourceQuery(startSource, ClientError,
-      retainQueryResult, retainQueryFailure, 'sql', text, parameters, options),
+      retainQueryResult, retainQueryFailure, 'sql', text, parameters, options,
+      sourcePreparation?.beforeResultRead, sourcePreparation?.assertResultReadCurrent,
+      captureQueryAdmission),
     aql: (text, parameters, options) => sourceQuery(startSource, ClientError,
-      retainQueryResult, retainQueryFailure, 'aql-text', text, parameters, options),
+      retainQueryResult, retainQueryFailure, 'aql-text', text, parameters, options,
+      sourcePreparation?.beforeResultRead, sourcePreparation?.assertResultReadCurrent,
+      captureQueryAdmission),
     lookupSubmission: async (submissionRef, {signal} = {}) => {
       let owned;
       try {owned = freezeInput(snapshotClientRequest(submissionRef));}
@@ -341,7 +413,7 @@ export function createSubmissionOperations(selected, confirmed, transport, execu
       catch (cause) {throw retainSubmissionLookupFailure(cause, context, 'lookup_unavailable');}
       let answer;
       try {
-        answer = detachResponse(captureResponse(await controlValue(response)));
+        answer = captureResponse(await controlValue(response));
         if (!validSubmissionLookup(answer, selected.wire, owned)) fail('InvalidHostSubmissionLookup');
       } catch {
         throw retainSubmissionLookupFailure(new ClientError('InvalidHostSubmissionLookup'),
@@ -349,13 +421,14 @@ export function createSubmissionOperations(selected, confirmed, transport, execu
       }
       return retainSubmissionExplanation(freezeInput(answer), answer, context);
     },
-    start: (program, options = {}) => {
+    start: (program, options) => withSourceProducer('program', program, options, sourceProducer => {
+      if (options === undefined) options = {};
       if (program === null || typeof program !== 'object' ||
           Array.isArray(program)) {
         return Promise.reject(new ClientError('InvalidProgramDocument'));
       }
-      return submit('program', program, options);
-    },
+      return submit('program', program, options, sourceProducer);
+    }),
     attach: async (ref, {signal} = {}) => {
       const requested = Object.freeze({...ref});
       if (!validRunRef(requested)) fail('InvalidRunReference');
@@ -366,19 +439,12 @@ export function createSubmissionOperations(selected, confirmed, transport, execu
       try { admitted = captureResponse(admitted); }
       catch { fail('InvalidHostAdmission'); }
       if (!validClientAdmission(admitted, selected.wire)) fail('InvalidHostAdmission');
-      const observedKey = structuralKey(admitted);
-      try {
-        const verification = structuredClone(admitted);
-        if (!validClientAdmission(verification, selected.wire) ||
-            structuralKey(verification) !== observedKey ||
-            structuralKey(admitted) !== observedKey) fail('InvalidHostAdmission');
-      } catch { fail('InvalidHostAdmission'); }
       if (admitted.ref.namespaceId !== requested.namespaceId ||
           admitted.ref.authorityScopeCid !== requested.authorityScopeCid ||
           admitted.ref.runDefinitionCid !== requested.runDefinitionCid) {
         fail('ForeignHostAdmission');
       }
-      return execution(admitted);
+      return execution(freezeInput(admitted));
     },
     lookupRequest: async (requestId, {signal} = {}) => {
       if (typeof requestId !== 'string' || !requestId) fail('InvalidRequestId');
@@ -397,16 +463,7 @@ export function createSubmissionOperations(selected, confirmed, transport, execu
       if (!validRequestLookup(answer, requestId)) {
         throw retainRequestLookupFailure(new ClientError('InvalidHostRequestLookup'), context, 'lookup_uninterpretable');
       }
-      const observation = answer;
-      const observedKey = structuralKey(answer);
-      try {
-        answer = structuredClone(answer);
-        if (!validRequestLookup(answer, requestId) || structuralKey(answer) !== observedKey) fail('InvalidHostRequestLookup');
-        if (structuralKey(observation) !== observedKey) fail('InvalidHostRequestLookup');
-        return retainRequestLookupExplanation(freezeInput(observation), context);
-      } catch {
-        throw retainRequestLookupFailure(new ClientError('InvalidHostRequestLookup'), context, 'lookup_uninterpretable');
-      }
+      return retainRequestLookupExplanation(freezeInput(answer), context);
     },
     // One explicit lookup target across pre-Run and Run observations. Creating
     // or restoring this handle performs no I/O and grants no retry authority.
@@ -477,21 +534,7 @@ export function createSubmissionOperations(selected, confirmed, transport, execu
       if (!validRequestCancellation(answer, requestId)) {
         throw uninterpretableRequestCancellation(context);
       }
-      const observation = answer;
-      const observedKey = structuralKey(answer);
-      const original = {kind: answer.kind, revision: answer.revision,
-        ref: answer.ref === undefined ? undefined : {...answer.ref}};
-      try {
-        answer = structuredClone(answer);
-        if (!validRequestCancellation(answer, requestId) ||
-            answer.kind !== original.kind || answer.revision !== original.revision ||
-            ['namespaceId', 'authorityScopeCid', 'runDefinitionCid'].some(field =>
-              answer.ref?.[field] !== original.ref?.[field])) {
-          throw new ClientError('InvalidHostRequestCancellation');
-        }
-        if (structuralKey(observation) !== observedKey) throw new ClientError('InvalidHostRequestCancellation');
-      } catch { throw uninterpretableRequestCancellation(context); }
-      return retainRequestCancellationExplanation(freezeInput(observation), context, observation.kind);
+      return retainRequestCancellationExplanation(freezeInput(answer), context, answer.kind);
     },
       });
   return client;

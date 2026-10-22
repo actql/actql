@@ -1,6 +1,6 @@
 // Read-only static compiler projection through the existing wire validator.
 import {contentCid} from '../checkpoints.mjs';
-import {captureResponse, detachResponse, freezeInput} from './data.mjs';
+import {captureResponse, freezeInput} from './data.mjs';
 import {fail} from './errors.mjs';
 import {snapshotClientRequest, validClientBody, validWireEffectfulStaticPlanViewShape,
   validWirePlanViewShape} from '@actql/client-wire';
@@ -21,7 +21,7 @@ export function createPlan(connection, exchange, responseValue) {
         fail('InvalidClientPlanRequest');
       }
       const response = await exchange('plan', body, options.signal);
-      const view = detachResponse(captureResponse(await responseValue(response)));
+      const view = captureResponse(await responseValue(response));
       const effectful = validWireEffectfulStaticPlanViewShape(view);
       if (!effectful && !validWirePlanViewShape(view)) fail('InvalidClientHostPlanView');
       const component = effectful ? view.computation.plan_view : view;

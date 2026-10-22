@@ -21,6 +21,23 @@ import {selectedInferOriginalCurrentStateCodec,
 
 const limits = Object.freeze({maxWireBytes: 1048576, maxNodes: 100000, maxDepth: 100});
 const fail = code => { throw Object.assign(new Error(code), {code}); };
+function requireModelDispatchPreparation(moon, selected) {
+  if (selected.localMock === true) {
+    // Only the same live Core Mock installation/provider has no external I/O.
+    // A Host flag, a matching provider name or absence of egress is not that
+    // original. Account, Entry, Run and current-provider gates remain below.
+    if (selected.originalMockInstallation === undefined ||
+        typeof moon.clientProgramOriginalMockProvider !== 'function' ||
+        checked(moon.clientProgramOriginalMockProvider(selected.originalMockInstallation)) !== selected.provider) {
+      fail('InstalledMockModelOriginalUnavailable');
+    }
+    return;
+  }
+  if (selected.originalMockInstallation !== undefined) fail('InstalledMockModelOriginalUnavailable');
+  if (selected.egressAdmission === undefined) {
+    throw selected.egressFailure ?? new Error('InstalledModelEgressUnavailable');
+  }
+}
 const parseCore = wire => {
   const value = JSON.parse(wire);
   if (value.ok !== true) fail(value.code ?? 'InstalledModelAdmissionRejected');
@@ -1077,7 +1094,7 @@ export async function installNodeModelContinuation({moon, control, store, storeA
         checkpoints();
         signal?.throwIfAborted();
         if (!owner.currentProvider()) fail('ModelProviderBindingChanged');
-        if (selected.egressAdmission === undefined) throw selected.egressFailure ?? new Error('InstalledModelEgressUnavailable');
+        requireModelDispatchPreparation(moon, selected);
         // Never reissue a nominal registration or rebind physical custody
         // after success or failure. Current send permission still belongs to
         // the original Entry's final Common gate, not this cached observation.

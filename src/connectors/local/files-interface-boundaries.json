@@ -1,0 +1,2908 @@
+{
+  "qualification": "existing Local Source and physical Root responsibilities; references only, not permission, capacity or runtime acceptance",
+  "declarations": [
+    {
+      "module": "adapters/connectors/local/site/root-filesystem.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "33de750d358e5ffdf8cb04a4987cb9a621dba3a19450bae4a35beb2fd0761353",
+      "exports": [
+        "openLocalFileRoot"
+      ],
+      "operations": [
+        {
+          "name": "currentResult/currentResult",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "currentResult/currentResult/currentResult",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "equalMetadata/equalMetadata",
+          "parameters": [
+            "left",
+            "right"
+          ],
+          "async": false
+        },
+        {
+          "name": "equalMetadata/equalMetadata/equalMetadata",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "fail/fail",
+          "parameters": [
+            "code",
+            "cause"
+          ],
+          "async": false
+        },
+        {
+          "name": "openLocalFileRoot",
+          "parameters": [
+            "native",
+            "path",
+            "assertCurrent"
+          ],
+          "async": false
+        },
+        {
+          "name": "openLocalFileRoot/call/call",
+          "parameters": [
+            "name",
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "openLocalFileRoot/callbacks/callbacks",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "openLocalFileRoot/cleanup/cleanup",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openLocalFileRoot/closeNative/closeNative",
+          "parameters": [
+            "slot"
+          ],
+          "async": false
+        },
+        {
+          "name": "openLocalFileRoot/closeRoot",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openLocalFileRoot/current/current",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openLocalFileRoot/init:openReader/init:openReader",
+          "parameters": [
+            "limits",
+            "checkRead",
+            "signal"
+          ],
+          "async": false
+        },
+        {
+          "name": "openLocalFileRoot/init:openReader/init:openReader/acquire",
+          "parameters": [
+            "name",
+            "parent",
+            "component",
+            "maximum"
+          ],
+          "async": false
+        },
+        {
+          "name": "openLocalFileRoot/init:openReader/init:openReader/bounds/bounds",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "openLocalFileRoot/init:openReader/init:openReader/check/check",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openLocalFileRoot/init:openReader/init:openReader/close",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openLocalFileRoot/init:openReader/init:openReader/close/close",
+          "parameters": [
+            "slot"
+          ],
+          "async": false
+        },
+        {
+          "name": "openLocalFileRoot/init:openReader/init:openReader/content",
+          "parameters": [
+            "slot",
+            "metadata",
+            "collect"
+          ],
+          "async": true
+        },
+        {
+          "name": "openLocalFileRoot/init:openReader/init:openReader/execute",
+          "parameters": [
+            "operation"
+          ],
+          "async": false
+        },
+        {
+          "name": "openLocalFileRoot/init:openReader/init:openReader/execute/execute",
+          "parameters": [
+            "cause"
+          ],
+          "async": false
+        },
+        {
+          "name": "openLocalFileRoot/init:openReader/init:openReader/execute/execute#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openLocalFileRoot/init:openReader/init:openReader/finishSlot",
+          "parameters": [
+            "slot"
+          ],
+          "async": false
+        },
+        {
+          "name": "openLocalFileRoot/init:openReader/init:openReader/init:openReader",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "openLocalFileRoot/init:openReader/init:openReader/reader/init:list/init:list",
+          "parameters": [
+            "contentVersion",
+            "onFile"
+          ],
+          "async": false
+        },
+        {
+          "name": "openLocalFileRoot/init:openReader/init:openReader/reader/init:list/init:list/init:list",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "openLocalFileRoot/init:openReader/init:openReader/reader/init:list/init:list/init:list/visit",
+          "parameters": [
+            "parent",
+            "component",
+            "prefix",
+            "depth"
+          ],
+          "async": true
+        },
+        {
+          "name": "openLocalFileRoot/init:openReader/init:openReader/reader/init:read/init:read",
+          "parameters": [
+            "path",
+            "expectedVersion",
+            "contentVersion"
+          ],
+          "async": false
+        },
+        {
+          "name": "openLocalFileRoot/init:openReader/init:openReader/reader/init:read/init:read/init:read",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "openLocalFileRoot/init:openReader/init:openReader/reader/init:read/init:read/init:read#2",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "openLocalFileRoot/init:openReader/init:openReader/reader/reader",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "positive/positive",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "readMetadata",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "readMetadata/readMetadata",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "readMetadata/readMetadata#2",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "version/version",
+          "parameters": [
+            "metadata"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "node:crypto",
+        "node:path",
+        "node:timers/promises"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "role": "physical-io",
+      "owner": "Existing Local file Root and read lifetime; original descriptor-relative children, not Source permission or a new cleanup owner",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "currentResult/currentResult",
+            "currentResult/currentResult/currentResult",
+            "equalMetadata/equalMetadata",
+            "equalMetadata/equalMetadata/equalMetadata",
+            "fail/fail",
+            "openLocalFileRoot",
+            "openLocalFileRoot/call/call",
+            "openLocalFileRoot/callbacks/callbacks",
+            "openLocalFileRoot/cleanup/cleanup",
+            "openLocalFileRoot/closeNative/closeNative",
+            "openLocalFileRoot/closeRoot",
+            "openLocalFileRoot/current/current",
+            "openLocalFileRoot/init:openReader/init:openReader",
+            "openLocalFileRoot/init:openReader/init:openReader/acquire",
+            "openLocalFileRoot/init:openReader/init:openReader/bounds/bounds",
+            "openLocalFileRoot/init:openReader/init:openReader/check/check",
+            "openLocalFileRoot/init:openReader/init:openReader/close",
+            "openLocalFileRoot/init:openReader/init:openReader/close/close",
+            "openLocalFileRoot/init:openReader/init:openReader/content",
+            "openLocalFileRoot/init:openReader/init:openReader/execute",
+            "openLocalFileRoot/init:openReader/init:openReader/execute/execute",
+            "openLocalFileRoot/init:openReader/init:openReader/execute/execute#2",
+            "openLocalFileRoot/init:openReader/init:openReader/finishSlot",
+            "openLocalFileRoot/init:openReader/init:openReader/init:openReader",
+            "openLocalFileRoot/init:openReader/init:openReader/reader/init:list/init:list",
+            "openLocalFileRoot/init:openReader/init:openReader/reader/init:list/init:list/init:list",
+            "openLocalFileRoot/init:openReader/init:openReader/reader/init:list/init:list/init:list/visit",
+            "openLocalFileRoot/init:openReader/init:openReader/reader/init:read/init:read",
+            "openLocalFileRoot/init:openReader/init:openReader/reader/init:read/init:read/init:read",
+            "openLocalFileRoot/init:openReader/init:openReader/reader/init:read/init:read/init:read#2",
+            "openLocalFileRoot/init:openReader/init:openReader/reader/reader",
+            "positive/positive",
+            "readMetadata",
+            "readMetadata/readMetadata",
+            "readMetadata/readMetadata#2",
+            "version/version"
+          ],
+          "exports": [
+            "openLocalFileRoot"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/connectors/local-files.md",
+                "anchor": "Paths are resolved under"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/connectors/local/site/root-filesystem.mjs",
+                "anchor": "export function openLocalFileRoot"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/connectors/local/site/root-filesystem.mjs",
+                "anchor": "readMetadata"
+              },
+              {
+                "path": "adapters/connectors/local/site/root-filesystem.inc",
+                "anchor": "fileRootCurrent"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/connectors/local/site/root-filesystem.mjs",
+                "anchor": "slot.outcome"
+              },
+              {
+                "path": "adapters/connectors/local/site/root-filesystem.inc",
+                "anchor": "fileRootClose"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/connectors/local/site/root-filesystem.mjs",
+                "anchor": "flight"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/connectors/local/site/root-filesystem.mjs",
+                "anchor": "LocalFileCloseUnconfirmed"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/connectors/local/site/root-filesystem.mjs",
+                "anchor": "signal?.throwIfAborted()"
+              },
+              {
+                "path": "adapters/connectors/local/site/root-filesystem.mjs",
+                "anchor": "stopping = true"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/connectors/local/site/root-filesystem.mjs",
+                "anchor": "maxReadBytes"
+              },
+              {
+                "path": "adapters/connectors/local/site/root-filesystem.inc",
+                "anchor": "fileRootRead"
+              },
+              {
+                "path": "adapters/connectors/local/site/root-filesystem.mjs",
+                "anchor": "Buffer.allocUnsafeSlow(Number(metadata.size))"
+              }
+            ],
+            "extension": [
+              {
+                "path": "scripts/build-node-directory-native.mjs",
+                "anchor": "localFilesPath"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/connectors/local/site/root-filesystem-native.test.mjs",
+                "anchor": "test("
+              },
+              {
+                "path": "adapters/connectors/local/host/installed-project-files-content.test.mjs",
+                "anchor": "test('Local Content"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "adapters/connectors/local/host/installed-project-files.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "2f0393e3e4c6b68104059d04db6a48f4dd1aab5c3588b1a57b2ab4c5fb1e0b5e",
+      "exports": [
+        "LOCAL_FILES_DEFAULT_LIMITS",
+        "installPreparedProjectLocalFiles",
+        "prepareInstalledProjectLocalFiles"
+      ],
+      "operations": [
+        {
+          "name": "acknowledged/acknowledged",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "canonical/canonical",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "cid/cid",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "fail/fail",
+          "parameters": [
+            "code"
+          ],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectLocalFiles",
+          "parameters": [
+            "moon",
+            "preparation",
+            "sourceManaged",
+            "baseEnvironmentWire",
+            "authorizationFor",
+            "nativeFilesystem"
+          ],
+          "async": true
+        },
+        {
+          "name": "installPreparedProjectLocalFiles/adapter/adapter",
+          "parameters": [
+            "resource",
+            "fields"
+          ],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectLocalFiles/adapter/init:close/init:close",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "installPreparedProjectLocalFiles/adapter/init:closeKeyedSourceRead/init:closeKeyedSourceRead",
+          "parameters": [
+            "original"
+          ],
+          "async": true
+        },
+        {
+          "name": "installPreparedProjectLocalFiles/adapter/init:issueReadGrant/init:issueReadGrant",
+          "parameters": [
+            "operation",
+            "decision",
+            "resource",
+            "runInvocationCid",
+            "dispatchRequestCid",
+            "maxUses"
+          ],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectLocalFiles/adapter/init:prepareKeyedSourceRead/init:prepareKeyedSourceRead",
+          "parameters": [
+            "checkedOwner",
+            "keyedAcquisition",
+            "request",
+            "declaration"
+          ],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectLocalFiles/adapter/init:prepareSourceRead/init:prepareSourceRead",
+          "parameters": [
+            "checkedOwner",
+            "effectful",
+            "declaration",
+            "occurrence"
+          ],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectLocalFiles/adapter/init:readPages/init:readPages",
+          "parameters": [
+            "options"
+          ],
+          "async": true
+        },
+        {
+          "name": "installPreparedProjectLocalFiles/adapter/init:readPages/init:readPages/checkRead/checkRead",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectLocalFiles/adapter/init:readPages/init:readPages/checkRead/checkRead#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectLocalFiles/adapter/init:readPages/init:readPages/cleanup/cleanup",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "installPreparedProjectLocalFiles/adapter/init:readPages/init:readPages/fileLimits/fileLimits",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectLocalFiles/adapter/init:readPages/init:readPages/flush/flush",
+          "parameters": [
+            "final"
+          ],
+          "async": true
+        },
+        {
+          "name": "installPreparedProjectLocalFiles/adapter/init:readPages/init:readPages/init:onFile/init:onFile",
+          "parameters": [
+            "file"
+          ],
+          "async": true
+        },
+        {
+          "name": "installPreparedProjectLocalFiles/adapter/init:readPages/init:readPages/init:readPages",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectLocalFiles/adapter/init:readPages/init:readPages/limits/limits",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectLocalFiles/captureClose",
+          "parameters": [
+            "read"
+          ],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectLocalFiles/close",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "installPreparedProjectLocalFiles/close/close",
+          "parameters": [
+            "read"
+          ],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectLocalFiles/closeRead",
+          "parameters": [
+            "read"
+          ],
+          "async": true
+        },
+        {
+          "name": "installPreparedProjectLocalFiles/contentLedger",
+          "parameters": [
+            "prepared",
+            "request",
+            "recipe",
+            "direct",
+            "keyed",
+            "capacity"
+          ],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectLocalFiles/current/current",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectLocalFiles/init:ledgerCapacity/init:ledgerCapacity",
+          "parameters": [
+            "prepared"
+          ],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectLocalFiles/init:prepare/init:prepare",
+          "parameters": [
+            "facts"
+          ],
+          "async": true
+        },
+        {
+          "name": "installPreparedProjectLocalFiles/installPreparedProjectLocalFiles",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectLocalFiles/installPreparedProjectLocalFiles/installPreparedProjectLocalFiles",
+          "parameters": [
+            "source"
+          ],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectLocalFiles/installPreparedProjectLocalFiles#2",
+          "parameters": [
+            "source"
+          ],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectLocalFiles/installPreparedProjectLocalFiles#3",
+          "parameters": [
+            "source"
+          ],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectLocalFiles/installPreparedProjectLocalFiles#4",
+          "parameters": [
+            "ref"
+          ],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectLocalFiles/installPreparedProjectLocalFiles#5",
+          "parameters": [
+            "prepared",
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectLocalFiles/installPreparedProjectLocalFiles#6",
+          "parameters": [
+            "prepared",
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectLocalFiles/issuer/issuer",
+          "parameters": [
+            "kind",
+            "wire"
+          ],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectLocalFiles/issuer/issuer#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectLocalFiles/keyedTransports/keyedTransports",
+          "parameters": [
+            "entry"
+          ],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectLocalFiles/prepareContentRun",
+          "parameters": [
+            "prepared",
+            "request",
+            "recipe"
+          ],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectLocalFiles/prepareContentRun/content/content",
+          "parameters": [
+            "entry"
+          ],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectLocalFiles/prepareContentRun/content/content/content",
+          "parameters": [
+            "view"
+          ],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectLocalFiles/prepareContentRun/direct/direct",
+          "parameters": [
+            "entry"
+          ],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectLocalFiles/prepareContentRun/direct/direct/direct",
+          "parameters": [
+            "view"
+          ],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectLocalFiles/prepareRun",
+          "parameters": [
+            "prepared",
+            "request",
+            "effectful"
+          ],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectLocalFiles/queryAliases/queryAliases",
+          "parameters": [
+            "alias"
+          ],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectLocalFiles/queryAliases/queryAliases/view/view",
+          "parameters": [
+            "view"
+          ],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectLocalFiles/resourceFor/resourceFor",
+          "parameters": [
+            "path"
+          ],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectLocalFiles/sameRun/sameRun",
+          "parameters": [
+            "prepared"
+          ],
+          "async": false
+        },
+        {
+          "name": "mime/mime",
+          "parameters": [
+            "path"
+          ],
+          "async": false
+        },
+        {
+          "name": "ownLimits",
+          "parameters": [
+            "input"
+          ],
+          "async": false
+        },
+        {
+          "name": "ownLimits/ownLimits",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "ownLimits/ownLimits#2",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "ownLimits/ownLimits#3",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "ownLimits/value/value",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "physicalReadChild",
+          "parameters": [
+            "namespace",
+            "path",
+            "assertCurrent"
+          ],
+          "async": false
+        },
+        {
+          "name": "physicalReadChild/child/init:close/init:close",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "physicalReadChild/child/init:start/init:start",
+          "parameters": [
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "physicalReadChild/child/init:start/init:start/init:assertCurrent/init:assertCurrent",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "physicalReadChild/child/init:status/init:status",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "positive/positive",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledProjectLocalFiles",
+          "parameters": [
+            "moon",
+            "project",
+            "assertCurrent",
+            "limits",
+            "openFile"
+          ],
+          "async": true
+        },
+        {
+          "name": "prepareInstalledProjectLocalFiles/call/call",
+          "parameters": [
+            "name",
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledProjectLocalFiles/current/current",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledProjectLocalFiles/init:originalsForRuntime/init:originalsForRuntime",
+          "parameters": [
+            "runtime"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledProjectLocalFiles/init:retire/init:retire",
+          "parameters": [
+            "runtime"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledProjectLocalFiles/ports/ports",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledProjectLocalFiles/prepareInstalledProjectLocalFiles",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareInstalledProjectLocalFiles/same/same",
+          "parameters": [
+            "runtime",
+            "receiver"
+          ],
+          "async": false
+        },
+        {
+          "name": "restoreDeclaration",
+          "parameters": [
+            "call",
+            "connection",
+            "rootPath",
+            "versionMode",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "restoreDeclaration/request/request",
+          "parameters": [
+            "fields"
+          ],
+          "async": false
+        },
+        {
+          "name": "restoreDeclaration/restore/restore",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "restoreDeclaration/restoreDeclaration",
+          "parameters": [
+            "view"
+          ],
+          "async": false
+        },
+        {
+          "name": "restoreDeclaration/restoreDeclaration#2",
+          "parameters": [
+            "view"
+          ],
+          "async": false
+        },
+        {
+          "name": "restoreDeclaration/string/string",
+          "parameters": [
+            "nullable"
+          ],
+          "async": false
+        },
+        {
+          "name": "restoreDeclaration/timestamp/timestamp",
+          "parameters": [
+            "nullable"
+          ],
+          "async": false
+        },
+        {
+          "name": "restoreDeclaration/view/view",
+          "parameters": [
+            "name",
+            "schema",
+            "fields",
+            "acquisition"
+          ],
+          "async": false
+        },
+        {
+          "name": "text/text",
+          "parameters": [
+            "value",
+            "maximum"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "../../../../packages/sdk/host-port.mjs",
+        "../../../host-common/acquisition-outcome.mjs",
+        "../../../host-common/compiler-binding.generated.mjs",
+        "../../../host-common/runtime-result.mjs",
+        "../../../host-node/installed-check-environment.mjs",
+        "../../../host-node/installed-host-cleanup.mjs",
+        "../../../host-node/installed-project-configuration.mjs",
+        "../../../host-node/installed-project-connections.mjs",
+        "../../../host-node/installed-row-source.mjs",
+        "../site/root-filesystem.mjs",
+        "./local-file-store-declaration.mjs",
+        "node:crypto",
+        "node:fs/promises",
+        "node:path"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "role": "connector-semantics",
+      "owner": "Existing Local Project declaration and generic RowSource installation; same managed Run, original Source read and physical Root child",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "acknowledged/acknowledged",
+            "canonical/canonical",
+            "cid/cid",
+            "fail/fail",
+            "installPreparedProjectLocalFiles",
+            "installPreparedProjectLocalFiles/adapter/adapter",
+            "installPreparedProjectLocalFiles/adapter/init:close/init:close",
+            "installPreparedProjectLocalFiles/adapter/init:closeKeyedSourceRead/init:closeKeyedSourceRead",
+            "installPreparedProjectLocalFiles/adapter/init:issueReadGrant/init:issueReadGrant",
+            "installPreparedProjectLocalFiles/adapter/init:prepareKeyedSourceRead/init:prepareKeyedSourceRead",
+            "installPreparedProjectLocalFiles/adapter/init:prepareSourceRead/init:prepareSourceRead",
+            "installPreparedProjectLocalFiles/adapter/init:readPages/init:readPages",
+            "installPreparedProjectLocalFiles/adapter/init:readPages/init:readPages/checkRead/checkRead",
+            "installPreparedProjectLocalFiles/adapter/init:readPages/init:readPages/checkRead/checkRead#2",
+            "installPreparedProjectLocalFiles/adapter/init:readPages/init:readPages/cleanup/cleanup",
+            "installPreparedProjectLocalFiles/adapter/init:readPages/init:readPages/fileLimits/fileLimits",
+            "installPreparedProjectLocalFiles/adapter/init:readPages/init:readPages/flush/flush",
+            "installPreparedProjectLocalFiles/adapter/init:readPages/init:readPages/init:onFile/init:onFile",
+            "installPreparedProjectLocalFiles/adapter/init:readPages/init:readPages/init:readPages",
+            "installPreparedProjectLocalFiles/adapter/init:readPages/init:readPages/limits/limits",
+            "installPreparedProjectLocalFiles/captureClose",
+            "installPreparedProjectLocalFiles/close",
+            "installPreparedProjectLocalFiles/close/close",
+            "installPreparedProjectLocalFiles/closeRead",
+            "installPreparedProjectLocalFiles/contentLedger",
+            "installPreparedProjectLocalFiles/current/current",
+            "installPreparedProjectLocalFiles/init:ledgerCapacity/init:ledgerCapacity",
+            "installPreparedProjectLocalFiles/init:prepare/init:prepare",
+            "installPreparedProjectLocalFiles/installPreparedProjectLocalFiles",
+            "installPreparedProjectLocalFiles/installPreparedProjectLocalFiles#2",
+            "installPreparedProjectLocalFiles/installPreparedProjectLocalFiles#3",
+            "installPreparedProjectLocalFiles/installPreparedProjectLocalFiles#4",
+            "installPreparedProjectLocalFiles/installPreparedProjectLocalFiles#5",
+            "installPreparedProjectLocalFiles/installPreparedProjectLocalFiles#6",
+            "installPreparedProjectLocalFiles/installPreparedProjectLocalFiles/installPreparedProjectLocalFiles",
+            "installPreparedProjectLocalFiles/issuer/issuer",
+            "installPreparedProjectLocalFiles/issuer/issuer#2",
+            "installPreparedProjectLocalFiles/keyedTransports/keyedTransports",
+            "installPreparedProjectLocalFiles/prepareContentRun",
+            "installPreparedProjectLocalFiles/prepareContentRun/content/content",
+            "installPreparedProjectLocalFiles/prepareContentRun/content/content/content",
+            "installPreparedProjectLocalFiles/prepareContentRun/direct/direct",
+            "installPreparedProjectLocalFiles/prepareContentRun/direct/direct/direct",
+            "installPreparedProjectLocalFiles/prepareRun",
+            "installPreparedProjectLocalFiles/queryAliases/queryAliases",
+            "installPreparedProjectLocalFiles/queryAliases/queryAliases/view/view",
+            "installPreparedProjectLocalFiles/resourceFor/resourceFor",
+            "installPreparedProjectLocalFiles/sameRun/sameRun",
+            "mime/mime",
+            "ownLimits",
+            "ownLimits/ownLimits",
+            "ownLimits/ownLimits#2",
+            "ownLimits/ownLimits#3",
+            "ownLimits/value/value",
+            "physicalReadChild",
+            "physicalReadChild/child/init:close/init:close",
+            "physicalReadChild/child/init:start/init:start",
+            "physicalReadChild/child/init:start/init:start/init:assertCurrent/init:assertCurrent",
+            "physicalReadChild/child/init:status/init:status",
+            "positive/positive",
+            "prepareInstalledProjectLocalFiles",
+            "prepareInstalledProjectLocalFiles/call/call",
+            "prepareInstalledProjectLocalFiles/current/current",
+            "prepareInstalledProjectLocalFiles/init:originalsForRuntime/init:originalsForRuntime",
+            "prepareInstalledProjectLocalFiles/init:retire/init:retire",
+            "prepareInstalledProjectLocalFiles/ports/ports",
+            "prepareInstalledProjectLocalFiles/prepareInstalledProjectLocalFiles",
+            "prepareInstalledProjectLocalFiles/same/same",
+            "restoreDeclaration",
+            "restoreDeclaration/request/request",
+            "restoreDeclaration/restore/restore",
+            "restoreDeclaration/restoreDeclaration",
+            "restoreDeclaration/restoreDeclaration#2",
+            "restoreDeclaration/string/string",
+            "restoreDeclaration/timestamp/timestamp",
+            "restoreDeclaration/view/view",
+            "text/text"
+          ],
+          "exports": [
+            "LOCAL_FILES_DEFAULT_LIMITS",
+            "installPreparedProjectLocalFiles",
+            "prepareInstalledProjectLocalFiles"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/connectors/local-files.md",
+                "anchor": "## Sources"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "anchor": "prepareInstalledProjectLocalFiles"
+              },
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "anchor": "installPreparedProjectLocalFiles"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "anchor": "originalEntryWire"
+              },
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "anchor": "ForeignLocalFilesPreparation"
+              },
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "anchor": "LocalFilesContentResourceMismatch"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "anchor": "physicalReadChild"
+              },
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "anchor": "retainChild"
+              },
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "anchor": "prepareManagedContentRun:prepareContentRun"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "anchor": "sameRun"
+              },
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "anchor": "consumePage"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "anchor": "LocalFilesContentReadUnavailable"
+              },
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "anchor": "retainInstalledHostInitializationFailure"
+              },
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "anchor": "new AcquisitionOpenError(cause"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "anchor": "stopping=true"
+              },
+              {
+                "path": "adapters/connectors/local/site/root-filesystem.mjs",
+                "anchor": "signal?.throwIfAborted()"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "anchor": "LOCAL_FILES_DEFAULT_LIMITS"
+              },
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "anchor": "ledgerCapacity"
+              },
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "anchor": "const keyedTransports="
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mjs",
+                "anchor": "restoreDeclaration"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source.mjs",
+                "anchor": "createInstalledRowSource"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.actual.test.mjs",
+                "anchor": "test("
+              },
+              {
+                "path": "src/connectors_builtin_node/client_local_file_timestamp_wbtest.mbt",
+                "anchor": "test "
+              },
+              {
+                "path": "adapters/connectors/local/host/installed-project-files-content.test.mjs",
+                "anchor": "test('Local Content"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "adapters/connectors/local/host/installed-project-file-effects.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "4ce39843bbdc5153b7a809d420baac1b0c4125bd6ff87a5965a77d678d8ade6b",
+      "role": "connector-semantics",
+      "owner": "Existing installed Local collection/Row Effect, original Account/Run and physical Root children",
+      "exports": [
+        "LOCAL_STORE_LIMITS",
+        "createLocalFileStoreDriver",
+        "installPreparedProjectLocalFileEffects"
+      ],
+      "operations": [
+        {
+          "name": "cid/cid",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "closed/closed",
+          "parameters": [
+            "value",
+            "keys"
+          ],
+          "async": false
+        },
+        {
+          "name": "createLocalFileStoreDriver",
+          "parameters": [
+            "entry",
+            "target",
+            "command",
+            "bindingCid",
+            "principalId",
+            "authorization",
+            "assertCurrent",
+            "resources",
+            "limits",
+            "nativeFilesystem"
+          ],
+          "async": false
+        },
+        {
+          "name": "createLocalFileStoreDriver/close/close",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createLocalFileStoreDriver/close/close/close",
+          "parameters": [
+            "child"
+          ],
+          "async": false
+        },
+        {
+          "name": "createLocalFileStoreDriver/current/current",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createLocalFileStoreDriver/decisionCurrent/decisionCurrent",
+          "parameters": [
+            "decision"
+          ],
+          "async": false
+        },
+        {
+          "name": "createLocalFileStoreDriver/description/description",
+          "parameters": [
+            "value",
+            "runOriginal"
+          ],
+          "async": false
+        },
+        {
+          "name": "createLocalFileStoreDriver/driver/driver",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createLocalFileStoreDriver/driver/driver#2",
+          "parameters": [
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "createLocalFileStoreDriver/driver/driver#3",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createLocalFileStoreDriver/driver/init:describe/init:describe",
+          "parameters": [
+            "member",
+            "runInvocationCid",
+            "dispatchRequestCid",
+            "runOriginal"
+          ],
+          "async": false
+        },
+        {
+          "name": "createLocalFileStoreDriver/driver/init:prepareRecoveredContentChild/init:prepareRecoveredContentChild",
+          "parameters": [
+            "recovered",
+            "members",
+            "entries",
+            "memberIndexes",
+            "control",
+            "store",
+            "contentRun",
+            "actor",
+            "checkCurrent",
+            "signal",
+            "inputLimits",
+            "runOriginal"
+          ],
+          "async": false
+        },
+        {
+          "name": "createLocalFileStoreDriver/driver/init:prepareRecoveredContentChild/init:prepareRecoveredContentChild/child/child",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createLocalFileStoreDriver/driver/init:prepareRecoveredContentChild/init:prepareRecoveredContentChild/child/init:prepare/init:prepare",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createLocalFileStoreDriver/driver/init:prepareRecoveredContentChild/init:prepareRecoveredContentChild/child/init:prepare/init:prepare/init:prepare",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createLocalFileStoreDriver/driver/init:prepareRecoveredContentChild/init:prepareRecoveredContentChild/child/init:prepare/init:prepare/work/work",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createLocalFileStoreDriver/driver/init:prepareRecoveredContentChild/init:prepareRecoveredContentChild/child/init:prepare/init:prepare/work/work/contentChild/contentChild",
+          "parameters": [
+            "entry"
+          ],
+          "async": false
+        },
+        {
+          "name": "createLocalFileStoreDriver/driver/init:prepareRecoveredContentChild/init:prepareRecoveredContentChild/child/init:prepare/init:prepare/work/work/contentChild/init:assertCurrent/init:assertCurrent",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createLocalFileStoreDriver/driver/init:prepareRecoveredContentChild/init:prepareRecoveredContentChild/child/init:prepare/init:prepare/work/work/sources/sources",
+          "parameters": [
+            "source"
+          ],
+          "async": false
+        },
+        {
+          "name": "createLocalFileStoreDriver/driver/init:prepareRecoveredContentChild/init:prepareRecoveredContentChild/child/init:release/init:release",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createLocalFileStoreDriver/driver/init:prepareRecoveredContentChild/init:prepareRecoveredContentChild/child/init:release/init:release/init:release",
+          "parameters": [
+            "contentChild"
+          ],
+          "async": false
+        },
+        {
+          "name": "createLocalFileStoreDriver/driver/init:prepareRequest/init:prepareRequest",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createLocalFileStoreDriver/driver/init:prepareRequestChild/init:prepareRequestChild",
+          "parameters": [
+            "member",
+            "value",
+            "selector",
+            "selected",
+            "content",
+            "contentOwner",
+            "runOriginal"
+          ],
+          "async": false
+        },
+        {
+          "name": "createLocalFileStoreDriver/driver/init:prepareRequestChild/init:prepareRequestChild/child/init:prepare/init:prepare",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createLocalFileStoreDriver/driver/init:prepareRequestChild/init:prepareRequestChild/child/init:release/init:release",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createLocalFileStoreDriver/driver/init:prepareRequestChild/init:prepareRequestChild/child/init:retry/init:retry",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createLocalFileStoreDriver/driver/init:prepareRequestChild/init:prepareRequestChild/child/init:status/init:status",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createLocalFileStoreDriver/driver/init:project/init:project",
+          "parameters": [
+            "request",
+            "observation"
+          ],
+          "async": false
+        },
+        {
+          "name": "createLocalFileStoreDriver/driver/init:recheckRequests/init:recheckRequests",
+          "parameters": [
+            "member",
+            "entries",
+            "runOriginal"
+          ],
+          "async": false
+        },
+        {
+          "name": "createLocalFileStoreDriver/driver/init:recoveryEntry/init:recoveryEntry",
+          "parameters": [
+            "entries"
+          ],
+          "async": false
+        },
+        {
+          "name": "createLocalFileStoreDriver/driver/init:recoveryEntry/init:recoveryEntry/saved/saved",
+          "parameters": [
+            "entry"
+          ],
+          "async": false
+        },
+        {
+          "name": "createLocalFileStoreDriver/driver/init:requestFacts/init:requestFacts",
+          "parameters": [
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "createLocalFileStoreDriver/driver/init:send/init:send",
+          "parameters": [
+            "member",
+            "request",
+            "selected",
+            "supplied",
+            "signal",
+            "runOriginal"
+          ],
+          "async": true
+        },
+        {
+          "name": "createLocalFileStoreDriver/driver/init:send/init:send/write/init:assertCurrent/init:assertCurrent",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createLocalFileStoreDriver/memberCurrent/memberCurrent",
+          "parameters": [
+            "member"
+          ],
+          "async": false
+        },
+        {
+          "name": "createLocalFileStoreDriver/own/own",
+          "parameters": [
+            "request",
+            "runOriginal"
+          ],
+          "async": false
+        },
+        {
+          "name": "createLocalFileStoreDriver/recover/recover",
+          "parameters": [
+            "durable",
+            "body",
+            "memberIndexes",
+            "runOriginal",
+            "members",
+            "runInvocationCid",
+            "dispatches"
+          ],
+          "async": false
+        },
+        {
+          "name": "createLocalFileStoreDriver/recover/recover/indexes/indexes",
+          "parameters": [
+            "_",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "createLocalFileStoreDriver/recover/recover/matches/matches",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createLocalFileStoreDriver/recover/recover/recover",
+          "parameters": [
+            "record"
+          ],
+          "async": false
+        },
+        {
+          "name": "createLocalFileStoreDriver/requestFrom/requestFrom",
+          "parameters": [
+            "record",
+            "runOriginal",
+            "borrow",
+            "contentOwner"
+          ],
+          "async": false
+        },
+        {
+          "name": "createLocalFileStoreDriver/runCurrent/runCurrent",
+          "parameters": [
+            "runOriginal"
+          ],
+          "async": false
+        },
+        {
+          "name": "createLocalFileStoreDriver/runCurrent/runCurrent/runCurrent",
+          "parameters": [
+            "name",
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createLocalFileStoreDriver/site/init:issueEffectGrant/init:issueEffectGrant",
+          "parameters": [
+            "operation",
+            "decision",
+            "resource",
+            "runInvocationCid",
+            "dispatchRequestCid",
+            "subjectCid"
+          ],
+          "async": false
+        },
+        {
+          "name": "createLocalFileStoreDriver/site/init:issueReadGrant/init:issueReadGrant",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createLocalFileStoreDriver/site/site",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createLocalFileStoreDriver/validPath/validPath",
+          "parameters": [
+            "path"
+          ],
+          "async": false
+        },
+        {
+          "name": "createLocalFileStoreDriver/validPath/validPath/validPath",
+          "parameters": [
+            "part"
+          ],
+          "async": false
+        },
+        {
+          "name": "fail/fail",
+          "parameters": [
+            "code",
+            "cause"
+          ],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectLocalFileEffects",
+          "parameters": [
+            "moon",
+            "preparation",
+            "sourceManaged",
+            "baseEnvironmentWire",
+            "authorizationFor",
+            "principalId",
+            "runtimeBundleCid",
+            "ledgerRoot",
+            "nativeFilesystem",
+            "effectResources",
+            "sourceBindings"
+          ],
+          "async": true
+        },
+        {
+          "name": "installPreparedProjectLocalFileEffects/current/current",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectLocalFileEffects/effects/effects",
+          "parameters": [
+            "entry"
+          ],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectLocalFileEffects/effects/effects/binding/binding",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectLocalFileEffects/effects/effects/entries/entries",
+          "parameters": [
+            "entry"
+          ],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectLocalFileEffects/effects/effects#2",
+          "parameters": [
+            "connection",
+            "_options",
+            "retain"
+          ],
+          "async": true
+        },
+        {
+          "name": "installPreparedProjectLocalFileEffects/installPreparedProjectLocalFileEffects",
+          "parameters": [
+            "effect"
+          ],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectLocalFileEffects/resources/resources",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectLocalFileEffects/resources/resources/resources",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "isCid/isCid",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "synchronous/synchronous",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "synchronous/synchronous/synchronous",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "wire/wire",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "cid/cid",
+            "closed/closed",
+            "createLocalFileStoreDriver",
+            "createLocalFileStoreDriver/close/close",
+            "createLocalFileStoreDriver/close/close/close",
+            "createLocalFileStoreDriver/current/current",
+            "createLocalFileStoreDriver/decisionCurrent/decisionCurrent",
+            "createLocalFileStoreDriver/description/description",
+            "createLocalFileStoreDriver/driver/driver",
+            "createLocalFileStoreDriver/driver/driver#2",
+            "createLocalFileStoreDriver/driver/driver#3",
+            "createLocalFileStoreDriver/driver/init:describe/init:describe",
+            "createLocalFileStoreDriver/driver/init:prepareRecoveredContentChild/init:prepareRecoveredContentChild",
+            "createLocalFileStoreDriver/driver/init:prepareRecoveredContentChild/init:prepareRecoveredContentChild/child/child",
+            "createLocalFileStoreDriver/driver/init:prepareRecoveredContentChild/init:prepareRecoveredContentChild/child/init:prepare/init:prepare",
+            "createLocalFileStoreDriver/driver/init:prepareRecoveredContentChild/init:prepareRecoveredContentChild/child/init:prepare/init:prepare/init:prepare",
+            "createLocalFileStoreDriver/driver/init:prepareRecoveredContentChild/init:prepareRecoveredContentChild/child/init:prepare/init:prepare/work/work",
+            "createLocalFileStoreDriver/driver/init:prepareRecoveredContentChild/init:prepareRecoveredContentChild/child/init:prepare/init:prepare/work/work/contentChild/contentChild",
+            "createLocalFileStoreDriver/driver/init:prepareRecoveredContentChild/init:prepareRecoveredContentChild/child/init:prepare/init:prepare/work/work/contentChild/init:assertCurrent/init:assertCurrent",
+            "createLocalFileStoreDriver/driver/init:prepareRecoveredContentChild/init:prepareRecoveredContentChild/child/init:prepare/init:prepare/work/work/sources/sources",
+            "createLocalFileStoreDriver/driver/init:prepareRecoveredContentChild/init:prepareRecoveredContentChild/child/init:release/init:release",
+            "createLocalFileStoreDriver/driver/init:prepareRecoveredContentChild/init:prepareRecoveredContentChild/child/init:release/init:release/init:release",
+            "createLocalFileStoreDriver/driver/init:prepareRequest/init:prepareRequest",
+            "createLocalFileStoreDriver/driver/init:prepareRequestChild/init:prepareRequestChild",
+            "createLocalFileStoreDriver/driver/init:prepareRequestChild/init:prepareRequestChild/child/init:prepare/init:prepare",
+            "createLocalFileStoreDriver/driver/init:prepareRequestChild/init:prepareRequestChild/child/init:release/init:release",
+            "createLocalFileStoreDriver/driver/init:prepareRequestChild/init:prepareRequestChild/child/init:retry/init:retry",
+            "createLocalFileStoreDriver/driver/init:prepareRequestChild/init:prepareRequestChild/child/init:status/init:status",
+            "createLocalFileStoreDriver/driver/init:project/init:project",
+            "createLocalFileStoreDriver/driver/init:recheckRequests/init:recheckRequests",
+            "createLocalFileStoreDriver/driver/init:recoveryEntry/init:recoveryEntry",
+            "createLocalFileStoreDriver/driver/init:recoveryEntry/init:recoveryEntry/saved/saved",
+            "createLocalFileStoreDriver/driver/init:requestFacts/init:requestFacts",
+            "createLocalFileStoreDriver/driver/init:send/init:send",
+            "createLocalFileStoreDriver/driver/init:send/init:send/write/init:assertCurrent/init:assertCurrent",
+            "createLocalFileStoreDriver/memberCurrent/memberCurrent",
+            "createLocalFileStoreDriver/own/own",
+            "createLocalFileStoreDriver/recover/recover",
+            "createLocalFileStoreDriver/recover/recover/indexes/indexes",
+            "createLocalFileStoreDriver/recover/recover/matches/matches",
+            "createLocalFileStoreDriver/recover/recover/recover",
+            "createLocalFileStoreDriver/requestFrom/requestFrom",
+            "createLocalFileStoreDriver/runCurrent/runCurrent",
+            "createLocalFileStoreDriver/runCurrent/runCurrent/runCurrent",
+            "createLocalFileStoreDriver/site/init:issueEffectGrant/init:issueEffectGrant",
+            "createLocalFileStoreDriver/site/init:issueReadGrant/init:issueReadGrant",
+            "createLocalFileStoreDriver/site/site",
+            "createLocalFileStoreDriver/validPath/validPath",
+            "createLocalFileStoreDriver/validPath/validPath/validPath",
+            "fail/fail",
+            "installPreparedProjectLocalFileEffects",
+            "installPreparedProjectLocalFileEffects/current/current",
+            "installPreparedProjectLocalFileEffects/effects/effects",
+            "installPreparedProjectLocalFileEffects/effects/effects/binding/binding",
+            "installPreparedProjectLocalFileEffects/effects/effects/entries/entries",
+            "installPreparedProjectLocalFileEffects/effects/effects#2",
+            "installPreparedProjectLocalFileEffects/installPreparedProjectLocalFileEffects",
+            "installPreparedProjectLocalFileEffects/resources/resources",
+            "installPreparedProjectLocalFileEffects/resources/resources/resources",
+            "isCid/isCid",
+            "synchronous/synchronous",
+            "synchronous/synchronous/synchronous",
+            "wire/wire"
+          ],
+          "exports": [
+            "LOCAL_STORE_LIMITS",
+            "createLocalFileStoreDriver",
+            "installPreparedProjectLocalFileEffects"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/connectors/local/host/installed-project-file-effects.mjs",
+                "anchor": "export async function installPreparedProjectLocalFileEffects("
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/connectors/local/host/installed-project-file-effects.mjs",
+                "anchor": "export function createLocalFileStoreDriver("
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/connectors/local/host/installed-project-file-effects.mjs",
+                "anchor": "const bindingCid=cid({scope:entry.scopeCid,declaration:entry.wire,"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/connectors/local/host/installed-project-file-effects.mjs",
+                "anchor": "original.writeChild=write;"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/connectors/local/host/installed-project-file-effects.mjs",
+                "anchor": "retained.push(contentChild);"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/connectors/local/host/installed-project-file-effects.mjs",
+                "anchor": "LocalFileWriteAlreadyAttempted"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/connectors/local/host/installed-project-file-effects.mjs",
+                "anchor": "stopping=true;"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/connectors/local/host/installed-project-file-effects.mjs",
+                "anchor": "maxFileBytes:entry.limits.maxFileBytes"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/connectors/local/host/installed-project-file-effects.mjs",
+                "anchor": "commands:[{resource:'files'"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/connectors/local/host/local-file-store-driver.test.mjs",
+                "anchor": "test('Local STORE recovered request connects"
+              },
+              {
+                "path": "adapters/connectors/local/host/local-file-store-declaration.actual.test.mjs",
+                "anchor": "test('actual Local STORE selection reaches its same command Owner without UPDATE substitution'"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Existing functional responsibility and source references only; actual runtime, physical I/O and installed acceptance remain separately source-qualified.",
+      "imports": [
+        "../../../../packages/sdk/host-port.mjs",
+        "../../../host-common/authorization-gate.mjs",
+        "../../../host-node/installed-effect-inventory.mjs",
+        "../../../host-node/installed-host-cleanup.mjs",
+        "../../../host-node/installed-row-effect.mjs",
+        "../../../host-node/installed-row-source.mjs",
+        "../site/root-stored-content-writer.mjs",
+        "./local-file-store-target.mjs",
+        "node:crypto",
+        "node:path"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
+    },
+    {
+      "module": "adapters/connectors/local/host/local-file-store-declaration.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "c5c4b1ba7722830051e40c33f65ecd94e3a696dd30c8f7fd1fe05c564888faea",
+      "role": "connector-semantics",
+      "owner": "Existing Local Connector Catalog/Command/Mapping declaration; DATA only, not Reference or I/O authority",
+      "exports": [
+        "localFileStoreDeclaration"
+      ],
+      "operations": [
+        {
+          "name": "canonical/canonical",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "cid/cid",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "fail/fail",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "keys/keys",
+          "parameters": [
+            "value",
+            "names"
+          ],
+          "async": false
+        },
+        {
+          "name": "localFileStoreDeclaration",
+          "parameters": [
+            "declaredWire",
+            "connectorId",
+            "rootPath",
+            "maxBytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "localFileStoreDeclaration/commands/commands",
+          "parameters": [
+            "body"
+          ],
+          "async": false
+        },
+        {
+          "name": "localFileStoreDeclaration/contracts/contracts",
+          "parameters": [
+            "body"
+          ],
+          "async": false
+        },
+        {
+          "name": "localFileStoreDeclaration/localFileStoreDeclaration",
+          "parameters": [
+            "wire"
+          ],
+          "async": false
+        },
+        {
+          "name": "localFileStoreDeclaration/mapping/mapping",
+          "parameters": [
+            "write_fields"
+          ],
+          "async": false
+        },
+        {
+          "name": "localFileStoreDeclaration/mapping/mapping#2",
+          "parameters": [
+            "field"
+          ],
+          "async": false
+        },
+        {
+          "name": "localFileStoreDeclaration/merge/merge",
+          "parameters": [
+            "original",
+            "additional",
+            "key",
+            "selector"
+          ],
+          "async": false
+        },
+        {
+          "name": "localFileStoreDeclaration/merge/merge/merge",
+          "parameters": [
+            "member"
+          ],
+          "async": false
+        },
+        {
+          "name": "localFileStoreDeclaration/merge/merge/old/old",
+          "parameters": [
+            "candidate"
+          ],
+          "async": false
+        },
+        {
+          "name": "localFileStoreDeclaration/read/read",
+          "parameters": [
+            "wire"
+          ],
+          "async": false
+        },
+        {
+          "name": "localFileStoreDeclaration/record/record",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "localFileStoreDeclaration/reference/reference",
+          "parameters": [
+            "id",
+            "version",
+            "cid"
+          ],
+          "async": false
+        },
+        {
+          "name": "localFileStoreDeclaration/role/role",
+          "parameters": [
+            "kind",
+            "body"
+          ],
+          "async": false
+        },
+        {
+          "name": "sealed/sealed",
+          "parameters": [
+            "body",
+            "field"
+          ],
+          "async": false
+        },
+        {
+          "name": "sorted/sorted",
+          "parameters": [
+            "members",
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "sorted/sorted/sorted",
+          "parameters": [
+            "a",
+            "b"
+          ],
+          "async": false
+        },
+        {
+          "name": "text/text",
+          "parameters": [
+            "value",
+            "max"
+          ],
+          "async": false
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "canonical/canonical",
+            "cid/cid",
+            "fail/fail",
+            "keys/keys",
+            "localFileStoreDeclaration",
+            "localFileStoreDeclaration/commands/commands",
+            "localFileStoreDeclaration/contracts/contracts",
+            "localFileStoreDeclaration/localFileStoreDeclaration",
+            "localFileStoreDeclaration/mapping/mapping",
+            "localFileStoreDeclaration/mapping/mapping#2",
+            "localFileStoreDeclaration/merge/merge",
+            "localFileStoreDeclaration/merge/merge/merge",
+            "localFileStoreDeclaration/merge/merge/old/old",
+            "localFileStoreDeclaration/read/read",
+            "localFileStoreDeclaration/record/record",
+            "localFileStoreDeclaration/reference/reference",
+            "localFileStoreDeclaration/role/role",
+            "sealed/sealed",
+            "sorted/sorted",
+            "sorted/sorted/sorted",
+            "text/text"
+          ],
+          "exports": [
+            "localFileStoreDeclaration"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/connectors/local/host/local-file-store-declaration.mjs",
+                "anchor": "export function localFileStoreDeclaration("
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Preparation, compilation and saved selection"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/connectors/local/host/local-file-store-declaration.mjs",
+                "anchor": "const outputWires="
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Preparation, compilation and saved selection"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/connectors/local/host/local-file-store-declaration.mjs",
+                "anchor": "const sealed ="
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Preparation, compilation and saved selection"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/connectors/local/host/local-file-store-declaration.mjs",
+                "anchor": "return Object.freeze(outputWires);"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Preparation, compilation and saved selection"
+              }
+            ],
+            "synchronization": {
+              "notApplicable": "Synchronous bounded immutable declaration construction; no acquisition, suspension or concurrent owner transition."
+            },
+            "failure": [
+              {
+                "path": "adapters/connectors/local/host/local-file-store-declaration.mjs",
+                "anchor": "InvalidLocalFileStoreDeclaration"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Preparation, compilation and saved selection"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "No physical or asynchronous work is started; enclosing Project preparation owns cancellation."
+            },
+            "resources": [
+              {
+                "path": "adapters/connectors/local/host/local-file-store-declaration.mjs",
+                "anchor": "maxBytes>1048576"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Preparation, compilation and saved selection"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/connectors/local/host/local-file-store-declaration.mjs",
+                "anchor": "catalog.commands,[command]"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Preparation, compilation and saved selection"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/connectors/local/host/local-file-store-declaration.actual.test.mjs",
+                "anchor": "test('actual Local STORE declaration retains"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Existing functional responsibility and source references only; actual runtime, physical I/O and installed acceptance remain separately source-qualified.",
+      "imports": [
+        "../../../../packages/sdk/host-port.mjs",
+        "node:crypto",
+        "node:path"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
+    },
+    {
+      "module": "adapters/connectors/local/host/local-file-store-target.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "314b939ede82f2b472ffdc820de80d992b2321b4168df91ca293c49a10b8abd6",
+      "role": "connector-semantics",
+      "owner": "Existing installed Local collection issuer and nominal checked StoreCommand/Mapping pair",
+      "exports": [
+        "prepareLocalFileStoreTarget"
+      ],
+      "operations": [
+        {
+          "name": "canonical/canonical",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "cid/cid",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "fail/fail",
+          "parameters": [
+            "code"
+          ],
+          "async": false
+        },
+        {
+          "name": "isCid/isCid",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "positive/positive",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareLocalFileStoreTarget",
+          "parameters": [
+            "moon",
+            "declaredWire",
+            "connectorId",
+            "rootPath",
+            "scopeCid",
+            "authorityScopeCid",
+            "assertCurrent",
+            "maxBytes",
+            "maxNodes",
+            "maxDepth"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareLocalFileStoreTarget/call/call",
+          "parameters": [
+            "name",
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareLocalFileStoreTarget/current/current",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareLocalFileStoreTarget/current/current/current",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareLocalFileStoreTarget/init:issueOriginalCollectionReference/init:issueOriginalCollectionReference",
+          "parameters": [
+            "pair",
+            "maxWork"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareLocalFileStoreTarget/init:issueOriginalCollectionReference/init:issueOriginalCollectionReference/init:issueOriginalCollectionReference",
+          "parameters": [
+            "value",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareLocalFileStoreTarget/issuer/issuer",
+          "parameters": [
+            "kind",
+            "wire"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareLocalFileStoreTarget/issuer/issuer#2",
+          "parameters": [
+            "wire"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareLocalFileStoreTarget/ports/ports",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "canonical/canonical",
+            "cid/cid",
+            "fail/fail",
+            "isCid/isCid",
+            "positive/positive",
+            "prepareLocalFileStoreTarget",
+            "prepareLocalFileStoreTarget/call/call",
+            "prepareLocalFileStoreTarget/current/current",
+            "prepareLocalFileStoreTarget/current/current/current",
+            "prepareLocalFileStoreTarget/init:issueOriginalCollectionReference/init:issueOriginalCollectionReference",
+            "prepareLocalFileStoreTarget/init:issueOriginalCollectionReference/init:issueOriginalCollectionReference/init:issueOriginalCollectionReference",
+            "prepareLocalFileStoreTarget/issuer/issuer",
+            "prepareLocalFileStoreTarget/issuer/issuer#2",
+            "prepareLocalFileStoreTarget/ports/ports"
+          ],
+          "exports": [
+            "prepareLocalFileStoreTarget"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/connectors/local/host/local-file-store-target.mjs",
+                "anchor": "export function prepareLocalFileStoreTarget("
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Preparation, compilation and saved selection"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/connectors/local/host/local-file-store-target.mjs",
+                "anchor": "issueOriginalCollectionReference(pair,maxWork)"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Preparation, compilation and saved selection"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/connectors/local/host/local-file-store-target.mjs",
+                "anchor": "'clientProgramEffectStoreCommandSelection'"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Preparation, compilation and saved selection"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/connectors/local/host/local-file-store-target.mjs",
+                "anchor": "Reflect.apply(ports[name],moon,args)"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Preparation, compilation and saved selection"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/connectors/local/host/local-file-store-target.mjs",
+                "anchor": "current();return reference;"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Preparation, compilation and saved selection"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/connectors/local/host/local-file-store-target.mjs",
+                "anchor": "ForeignLocalStoreSelection"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Preparation, compilation and saved selection"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/connectors/local/host/local-file-store-target.mjs",
+                "anchor": "InvalidLocalStoreCurrentFence"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Preparation, compilation and saved selection"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/connectors/local/host/local-file-store-target.mjs",
+                "anchor": "maxBytes,maxNodes,maxDepth"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Preparation, compilation and saved selection"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/connectors/local/host/local-file-store-target.mjs",
+                "anchor": "kind==='file_collection'&&wire===resourceWire"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Preparation, compilation and saved selection"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors_builtin_node/client_store_collection_reference_wbtest.mbt",
+                "anchor": "test "
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Existing functional responsibility and source references only; actual runtime, physical I/O and installed acceptance remain separately source-qualified.",
+      "imports": [
+        "../../../../packages/sdk/host-port.mjs",
+        "../../../host-common/runtime-result.mjs",
+        "./local-file-store-declaration.mjs",
+        "node:crypto"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
+    },
+    {
+      "module": "adapters/connectors/local/site/root-file-writer.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "f685564ef298166a595b6dd5a1cfaa70873ef2c23b0de4399558adcd34f34c00",
+      "role": "physical-io",
+      "owner": "Existing descriptor-relative Local Root write child, original staging/write/publication and close duties",
+      "exports": [
+        "prepareLocalFileWrite"
+      ],
+      "operations": [
+        {
+          "name": "fail/fail",
+          "parameters": [
+            "code"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareLocalFileWrite",
+          "parameters": [
+            "native",
+            "rootPath",
+            "path",
+            "temporaryName",
+            "maxBytes",
+            "overwrite",
+            "assertCurrent",
+            "signal"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareLocalFileWrite/acquire/acquire",
+          "parameters": [
+            "name",
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareLocalFileWrite/call/call",
+          "parameters": [
+            "name",
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareLocalFileWrite/close/close",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareLocalFileWrite/close/close/close",
+          "parameters": [
+            "slot"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareLocalFileWrite/current/current",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareLocalFileWrite/current/current/current",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareLocalFileWrite/init:publish/init:publish",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareLocalFileWrite/init:publish/init:publish/init:publish",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareLocalFileWrite/init:start/init:start",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareLocalFileWrite/init:start/init:start/init:start",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareLocalFileWrite/init:write/init:write",
+          "parameters": [
+            "bytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareLocalFileWrite/init:write/init:write/init:write",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareLocalFileWrite/methods/methods",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareLocalFileWrite/perform/perform",
+          "parameters": [
+            "operation"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareLocalFileWrite/prepareLocalFileWrite",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareLocalFileWrite/prepareLocalFileWrite#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "text/text",
+          "parameters": [
+            "value",
+            "max"
+          ],
+          "async": false
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "fail/fail",
+            "prepareLocalFileWrite",
+            "prepareLocalFileWrite/acquire/acquire",
+            "prepareLocalFileWrite/call/call",
+            "prepareLocalFileWrite/close/close",
+            "prepareLocalFileWrite/close/close/close",
+            "prepareLocalFileWrite/current/current",
+            "prepareLocalFileWrite/current/current/current",
+            "prepareLocalFileWrite/init:publish/init:publish",
+            "prepareLocalFileWrite/init:publish/init:publish/init:publish",
+            "prepareLocalFileWrite/init:start/init:start",
+            "prepareLocalFileWrite/init:start/init:start/init:start",
+            "prepareLocalFileWrite/init:write/init:write",
+            "prepareLocalFileWrite/init:write/init:write/init:write",
+            "prepareLocalFileWrite/methods/methods",
+            "prepareLocalFileWrite/perform/perform",
+            "prepareLocalFileWrite/prepareLocalFileWrite",
+            "prepareLocalFileWrite/prepareLocalFileWrite#2",
+            "text/text"
+          ],
+          "exports": [
+            "prepareLocalFileWrite"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/connectors/local/site/root-file-writer.mjs",
+                "anchor": "export function prepareLocalFileWrite("
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/connectors/local/site/root-file-writer.mjs",
+                "anchor": "write(bytes)"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/connectors/local/site/root-file-writer.mjs",
+                "anchor": "Reflect.apply(methods[name],native,args)"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/connectors/local/site/root-file-writer.mjs",
+                "anchor": "slots.push(slot);"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/connectors/local/site/root-file-writer.mjs",
+                "anchor": "for (const slot of slots.slice().reverse())"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/connectors/local/site/root-file-writer.mjs",
+                "anchor": "LocalFileCloseUnconfirmed"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/connectors/local/site/root-file-writer.mjs",
+                "anchor": "stopping = true;"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/connectors/local/site/root-file-writer.mjs",
+                "anchor": "bytes.length > maxBytes-written"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/connectors/local/site/root-file-writer.mjs",
+                "anchor": "publishAttempted = true;"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/connectors/local/site/root-filesystem-native.test.mjs",
+                "anchor": "test('actual Local write child defers acquisition"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Existing functional responsibility and source references only; actual runtime, physical I/O and installed acceptance remain separately source-qualified.",
+      "imports": [
+        "node:path"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
+    },
+    {
+      "module": "adapters/connectors/local/site/root-stored-content-writer.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "d2f2de2f04440ff179f4d6f4a8dbbaa93238dc1f605fe2ea46c21cf07910a3ad",
+      "role": "physical-io",
+      "owner": "Existing same-Run Content/Store reader and Local Root physical writer child",
+      "exports": [
+        "prepareLocalStoredContentWrite"
+      ],
+      "operations": [
+        {
+          "name": "fail/fail",
+          "parameters": [
+            "code"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareLocalStoredContentWrite",
+          "parameters": [
+            "contentOwner",
+            "content",
+            "assertCurrent",
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareLocalStoredContentWrite/close/close",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareLocalStoredContentWrite/close/close/close",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "prepareLocalStoredContentWrite/close/close/close#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareLocalStoredContentWrite/current/current",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareLocalStoredContentWrite/current/current/current",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareLocalStoredContentWrite/init:execute/init:execute",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareLocalStoredContentWrite/init:execute/init:execute/init:execute",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "prepareLocalStoredContentWrite/init:execute/init:execute/init:execute/init:execute",
+          "parameters": [
+            "bytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareLocalStoredContentWrite/init:execute/init:execute/init:execute#2",
+          "parameters": [
+            "cause"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareLocalStoredContentWrite/init:execute/init:execute/init:execute#3",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareLocalStoredContentWrite/status/status",
+          "parameters": [],
+          "async": false
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "fail/fail",
+            "prepareLocalStoredContentWrite",
+            "prepareLocalStoredContentWrite/close/close",
+            "prepareLocalStoredContentWrite/close/close/close",
+            "prepareLocalStoredContentWrite/close/close/close#2",
+            "prepareLocalStoredContentWrite/current/current",
+            "prepareLocalStoredContentWrite/current/current/current",
+            "prepareLocalStoredContentWrite/init:execute/init:execute",
+            "prepareLocalStoredContentWrite/init:execute/init:execute/init:execute",
+            "prepareLocalStoredContentWrite/init:execute/init:execute/init:execute/init:execute",
+            "prepareLocalStoredContentWrite/init:execute/init:execute/init:execute#2",
+            "prepareLocalStoredContentWrite/init:execute/init:execute/init:execute#3",
+            "prepareLocalStoredContentWrite/status/status"
+          ],
+          "exports": [
+            "prepareLocalStoredContentWrite"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/connectors/local/site/root-stored-content-writer.mjs",
+                "anchor": "export function prepareLocalStoredContentWrite("
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/connectors/local/site/root-stored-content-writer.mjs",
+                "anchor": "Reflect.apply(consume, contentOwner,"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/connectors/local/site/root-stored-content-writer.mjs",
+                "anchor": "const original = Reflect.apply(select, contentOwner, [binding]);"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/connectors/local/site/root-stored-content-writer.mjs",
+                "anchor": "reader = cause.cleanupHandle;"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/connectors/local/site/root-stored-content-writer.mjs",
+                "anchor": "return writer.publish();"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/connectors/local/site/root-stored-content-writer.mjs",
+                "anchor": "OriginalEffectContentUnavailable"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/connectors/local/site/root-stored-content-writer.mjs",
+                "anchor": "stopping = true;"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/connectors/local/site/root-stored-content-writer.mjs",
+                "anchor": "limits are the"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/connectors/local/site/root-stored-content-writer.mjs",
+                "anchor": "attempted = true;"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/connectors/local/site/root-filesystem-native.test.mjs",
+                "anchor": "test('actual Local stored Content writes original Store pieces"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Existing functional responsibility and source references only; actual runtime, physical I/O and installed acceptance remain separately source-qualified.",
+      "imports": [
+        "./root-file-writer.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
+    }
+  ]
+}

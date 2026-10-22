@@ -1192,7 +1192,10 @@ export async function recoverCompletedEffectfulComputation(options) {
     effectSourceHoldings: Object.freeze(sourceHoldings),
   }));
   return Object.freeze({execution: null, storedResults, computation,
-    preview, invocation, connectorRecovery: Object.freeze(connectorRecovery)});
+    preview, invocation, connectorRecovery: Object.freeze(connectorRecovery),
+    // These are the exact already admitted and Store-confirmed member handles,
+    // not identities from which a caller can recreate Compute or byte custody.
+    effectSources: Object.freeze(sourceHoldings)});
 }
 
 // Recognize only the existing owner's exact post-publication cleanup error.

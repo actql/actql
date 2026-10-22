@@ -8,6 +8,9 @@ const hasOwn = Object.hasOwn, integer = Number.isSafeInteger, array = Array.isAr
 const ownKeys = Reflect.ownKeys;
 const NativeError = Error;
 const MiB = 1024 * 1024;
+const mockAnswerReadLimits = freeze({contractDepth:64,contractNodes:4096,contractTextBytes:65536,
+  maxBytes:65536,maxDepth:64,maxEntries:128,maxMembers:256,maxNodes:4096,
+  maxTasks:128,maxWork:2097152,valueDepth:64,valueNodes:4096,valueTextBytes:65536});
 
 // This is a bounded selected-control implementation, not a public API limit,
 // normal resource profile, general RSS guarantee or business-Run allowance.
@@ -17,6 +20,10 @@ const limits = freeze({imageFiles: 2048, packages: 64, dependencyEdges: 512,
   generations: 1, preparations: 1, projectTasks: 128,
   configurationBytes: 65536, taskBytes: 65536, sourceNodes: 4096,
   sourceDepth: 64, taskWork: 2097152, opaqueCallerAliases: 0,
+  // Installation-time definition DATA only. Each answer selection rereads its
+  // original Task and retains a separate answer document. Neither document,
+  // checked value nor a typed mock Provider supplies Model invocation funds.
+  mockAnswerDocuments: 128, mockAnswerTaskRereads: 128, mockAnswerReadLimits,
   // External child backing is separate from the managed/native assumption.
   // The existing journal inspectors enforce combined DB+WAL extent BEFORE
   // creating their isolated copy. The source and copy coexist; their original
@@ -30,9 +37,11 @@ const limits = freeze({imageFiles: 2048, packages: 64, dependencyEdges: 512,
   fixedNativeBytes: 256 * MiB, compilerBytesPerSourceByte: 16,
   moduleNativeBytes: 65536,
   // Forty-eight simultaneous/cumulatively retained external encodings per
-  // bounded Task, plus the configuration/registry pair. Managed decoded trees,
-  // writer Strings, records and closure backing remain in the heap term.
-  preparationExternalBytes: (128 + 2) * 65536 * 48});
+  // bounded Task/configuration/registry and per additional Task reread/answer
+  // document. No old Task allowance is reassigned to these extra originals.
+  // Managed decoded/checked trees, writer Strings, original records, Provider
+  // definitions, clocks/callbacks and escaped closures share the one heap.
+  preparationExternalBytes: (128 + 2 + 128 + 128) * 65536 * 48});
 
 const unavailable = () => {
   const cause = new NativeError('NodeInitialControlEnvelopeUnavailable');
@@ -62,6 +71,11 @@ function declareInitialControlPhaseEnvelope(heapCeilingBytes) {
   if (!integer(bytes)) unavailable();
   return freeze({limits, heapCeilingBytes, compilerBytes, moduleNativeBytes, sourceBackingBytes,
     nativeBytes, preparationExternalBytes: limits.preparationExternalBytes,
+    mockAnswerPreparation:freeze({documents:limits.mockAnswerDocuments,
+      taskRereads:limits.mockAnswerTaskRereads,readLimits:mockAnswerReadLimits,
+      additionalExternalBytes:256*65536*48,
+      lifetime:'same-original-preparation-and-all-escaped-definition-aliases',
+      coversInvocation:false}),
     journalExternalBytes, bytes,
     journalInspection: freeze({pinnedSourceBytes: limits.journalInspectionBytes,
       isolatedCopyBytes: limits.journalInspectionBytes,
@@ -71,13 +85,37 @@ function declareInitialControlPhaseEnvelope(heapCeilingBytes) {
     lifetime: 'original-process-and-escaped-module-lifetime'});
 }
 
+function declareOrdinaryInitialControlPhaseEnvelope(heapCeilingBytes) {
+  const base = declareInitialControlPhaseEnvelope(heapCeilingBytes);
+  // Ordinary import has no eager-bytecode original. Retain a separate finite
+  // lazy compilation/tiering/cache disposition for the selected package code
+  // and all escaped functions through process end. This is the selected
+  // runtime premise, not a measured free-credit or universal V8/RSS claim.
+  const lazyCompilerBytes = limits.sourceBytes * 64;
+  const bytes = base.bytes - base.compilerBytes + lazyCompilerBytes;
+  if (!integer(bytes)) unavailable();
+  return freeze({...base, compilerBytes:lazyCompilerBytes,
+    nativeBytes:base.nativeBytes-base.compilerBytes+lazyCompilerBytes,bytes,
+    recipe:'ordinary-installed-public-prefix',compilation:'ordinary-lazy',eager:false});
+}
+
 function inspectInitialControlPhaseEnvelope(inventory, declaration, runtimeOriginal) {
+  return inspectPhaseEnvelope(inventory, declaration, runtimeOriginal, false);
+}
+
+function inspectOrdinaryInitialControlPhaseEnvelope(inventory, declaration, runtimeOriginal) {
+  if (declaration?.recipe !== 'ordinary-installed-public-prefix' || declaration.eager !== false ||
+      declaration.compilation !== 'ordinary-lazy') unavailable();
+  return inspectPhaseEnvelope(inventory, declaration, runtimeOriginal, true);
+}
+
+function inspectPhaseEnvelope(inventory, declaration, runtimeOriginal, ordinary) {
   if (declaration?.limits !== limits) unavailable();
   // The generated recipe must describe this actual selected backend, not just
   // a similarly sized image graph. This comparison is DATA correspondence;
   // only the real early preload retains the runtime/module original and can
   // operationally adopt the declaration. It authenticates no caller factory.
-  const engine = own(inventory, 'engine');
+  const engine = own(inventory, ordinary ? 'ordinaryEngine' : 'engine');
   for (const name of ['node', 'v8', 'openssl', 'platform', 'arch', 'eager']) {
     if (own(engine, name) !== own(runtimeOriginal, name)) unavailable();
   }
@@ -133,5 +171,6 @@ function inspectInitialControlPhaseEnvelope(inventory, declaration, runtimeOrigi
     sourceBytes, declaration, runtimeOriginal});
 }
 
-module.exports = {declareInitialControlPhaseEnvelope, inspectInitialControlPhaseEnvelope};
+module.exports = {declareInitialControlPhaseEnvelope, inspectInitialControlPhaseEnvelope,
+  declareOrdinaryInitialControlPhaseEnvelope, inspectOrdinaryInitialControlPhaseEnvelope};
 freeze(module.exports);

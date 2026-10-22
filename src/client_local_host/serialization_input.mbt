@@ -195,6 +195,24 @@ fn start_client_acquired_serialization_prefix_owned(
   keyed : @publication_host.ClientKeyedLookupInput?,
   original_capture : @row_source_host.RowSourceCapture?,
 ) -> Result[ClientSerializationPrefix, ClientSerializationPrefixIssue] {
+  let direct = match keyed {
+    Some(lookup) => {
+      let acquisition = @publication_host.client_keyed_lookup_acquisition(
+        lookup,
+      )
+      guard @publication_host.client_keyed_acquisition_reaches_serialization(
+          prepared, acquisition, task, step,
+        ) &&
+        @publication_host.client_keyed_direct_acquisition_coordinates(
+          acquisition,
+        )
+        is Some((_, input, direct_task)) else {
+        return Err(Unavailable)
+      }
+      (direct_task, input)
+    }
+    None => (0, 0)
+  }
   guard serialization_prefix_provider(
       prepared,
       task,
@@ -208,7 +226,11 @@ fn start_client_acquired_serialization_prefix_owned(
       acquired=true,
     )
     is Some((sequence, provider, capacity)) &&
-    @publication_host.prepare_client_query_acquisition(prepared, 0, 0)
+    @publication_host.prepare_client_query_acquisition(
+      prepared,
+      direct.0,
+      direct.1,
+    )
     is Ok(query) &&
     @sourceviews.query_acquisition_capture(query) is @pipeline.Step(capture) else {
     return Err(Unavailable)
@@ -228,8 +250,7 @@ fn start_client_acquired_serialization_prefix_owned(
       guard @publication_host.client_keyed_acquisition_coordinates(
           @publication_host.client_keyed_lookup_acquisition(lookup),
         )
-        is Some((_, original_task, join)) &&
-        original_task == task else {
+        is Some((_, _, join)) else {
         return Err(Unavailable)
       }
       inputs.push(@local.managed_provider_relation_input(left))
@@ -250,7 +271,9 @@ fn start_client_acquired_serialization_prefix_owned(
       guard @lower.node_input_target(node, port) is Some(target) else {
         return Err(Unavailable)
       }
-      if task == 0 && target is @pipeline.Step(target) && target > capture {
+      if (task == 0 || keyed is Some(_)) &&
+        target is @pipeline.Step(target) &&
+        target > capture {
         continue
       }
       if task == 1 && target is @pipeline.Step(_) {

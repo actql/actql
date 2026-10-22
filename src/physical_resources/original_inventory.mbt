@@ -76,6 +76,19 @@ fn original_ledger_has_only_bootstrap(
   ledger : Ledger,
   bootstrap : CapacityReservation,
 ) -> Bool {
+  original_ledger_has_no_child_usage(
+    ledger,
+    bootstrap.reservation.retention,
+    bootstrap.reservation.execution,
+  )
+}
+
+///|
+fn original_ledger_has_no_child_usage(
+  ledger : Ledger,
+  retained_bytes : Int64,
+  execution_bytes : Int64,
+) -> Bool {
   let usage = ledger.usage
   !(usage.planning_work != 0 ||
   usage.attempts != 0 ||
@@ -84,9 +97,9 @@ fn original_ledger_has_only_bootstrap(
   usage.uncertain_transfer_bytes != 0L ||
   usage.reserved_transfer_bytes != 0L ||
   usage.held_bytes != 0L ||
-  usage.reserved_retention_bytes != bootstrap.reservation.retention ||
-  usage.reserved_execution_bytes != bootstrap.reservation.execution ||
-  usage.peak_retention_bytes != bootstrap.reservation.retention ||
+  usage.reserved_retention_bytes != retained_bytes ||
+  usage.reserved_execution_bytes != execution_bytes ||
+  usage.peak_retention_bytes != retained_bytes ||
   ledger.delegated_planning != 0 ||
   ledger.delegated_attempts != 0 ||
   ledger.delegated_holdings != 0 ||

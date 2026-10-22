@@ -5,9 +5,12 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import test from 'node:test';
 import {DatabaseSync} from 'node:sqlite';
-import * as moon from '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import {openClientRequestJournal} from './client-request-journal.mjs';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
+
+const moon = await import(process.env.ACTQL_TEST_COMMON_RUNTIME ?? new URL(
+  '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js',
+  import.meta.url).href);
 
 const authorityScopeCid = `sha256:${'a'.repeat(64)}`;
 const start = 1_800_000_000_000;

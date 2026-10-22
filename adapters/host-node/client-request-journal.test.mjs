@@ -5,8 +5,6 @@ import {mkdir, mkdtemp, readFile, readdir, rm} from 'node:fs/promises';
 import {join} from 'node:path';
 import test from 'node:test';
 import {DatabaseSync} from 'node:sqlite';
-import * as moon from
-  '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import {openClientRequestJournal} from './client-request-journal.mjs';
 import {canonicalJson} from './local-account-config.mjs';
 import {canonicalJson as canonicalValueJson} from '../../packages/sdk/host-port.mjs';
@@ -17,6 +15,10 @@ import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
 import {issueInstalledRunControlObservation} from
   '../host-common/run-state-observation.mjs';
+
+const moon = await import(process.env.ACTQL_TEST_COMMON_RUNTIME ?? new URL(
+  '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js',
+  import.meta.url).href);
 
 const root = new URL('../../_build/client-request-journal-tests/', import.meta.url);
 const cid = digit => `sha256:${digit.repeat(64)}`;

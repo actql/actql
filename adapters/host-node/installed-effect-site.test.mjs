@@ -385,6 +385,20 @@ test('outer Effect commit continuation preserves target and provider data', asyn
   assert.deepEqual(saved.provider, f.provider);
 });
 
+for (const retained of [false, true]) {
+  test(`Effect authorization forwards its same original Run lifetime subject: retained=${retained}`, async () => {
+    const f = continuationFixture();
+    const original = Object.freeze({original: 'admitted Run'});
+    const current = Object.freeze({original: 'not the retained Run'});
+    let selected;
+    const facts = {...f.facts, runDefinition: retained ? current : original,
+      ...(retained ? {retained: {runDefinition: original}} : {}),
+      effectAuthorization(options) { selected = options.runDefinition; throw f.stop; }};
+    await assert.rejects(f.site.execute(facts), error => error === f.stop);
+    assert.strictEqual(selected, original);
+  });
+}
+
 for (const changed of ['target binding', 'provider']) {
   test(`outer Effect resume refuses normalization-distinct ${changed} before authorization`, async () => {
     const f = continuationFixture();

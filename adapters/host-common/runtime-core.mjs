@@ -1844,6 +1844,10 @@ function publicationControl(moon) {
   let control = publicationControls.get(moon);
   if (control !== undefined) return control;
   const tokens = new WeakMap();
+  const contractBounds = new WeakMap();
+  const issuedDeliveryGrants = new WeakMap();
+  const issuedDeliveryAttempts = new WeakMap();
+  const originalDeliveryAttempts = new WeakMap();
   const evidenceTokens = new WeakMap();
   const modelOriginalDocumentTokens = new WeakMap();
   const admissionTokens = new WeakMap();
@@ -1953,7 +1957,7 @@ function publicationControl(moon) {
   const sourceAdvanceTokens = new WeakMap();
   const computationPreviewTokens = new WeakMap();
   const computationPreviewWires = new WeakMap();
-  const inspect = contract => {
+  const inspect = (contract, limits) => {
     const value = Object.freeze({
       name: moon.strategyPublicationContractName(contract),
       identityField: moon.strategyPublicationContractIdentityField(contract),
@@ -1961,6 +1965,17 @@ function publicationControl(moon) {
       wire: moon.strategyPublicationContractJson(contract),
     });
     tokens.set(value, contract);
+    if (limits !== undefined) {
+      // The actual issuer checked this complete immutable wire under these
+      // bounds. Each JSON node needs at least one UTF-16 code unit; at most
+      // three UTF-8 bytes encode one code unit. These conservative bounds
+      // can prove a later looser limit without parsing or hashing again.
+      contractBounds.set(value, Object.freeze({
+        maxWireBytes: Math.min(limits.maxWireBytes, value.wire.length * 3),
+        maxNodes: Math.min(limits.maxNodes, value.wire.length),
+        maxDepth: limits.maxDepth,
+      }));
+    }
     return value;
   };
   const token = value => {
@@ -2050,17 +2065,23 @@ function publicationControl(moon) {
     }
     return limits;
   };
-  const finishCapturedPreparation = async (preparation, signal) => {
+  const captureContractLimits = (limits, label) => issuanceLimits(Object.freeze({
+    maxWireBytes: limits?.maxWireBytes,
+    maxNodes: limits?.maxNodes,
+    maxDepth: limits?.maxDepth,
+  }), label);
+  const finishCapturedPreparation = async (preparation, signal, limits) => {
     let finished = false;
     try {
       while (true) {
         signal?.throwIfAborted();
         if (checked(moon.strategyCapturedRunAdvance(preparation, 256))) break;
-        await new Promise(resolve => setTimeout(resolve, 0));
+        await new Promise(resolve => typeof setImmediate === 'function'
+          ? setImmediate(resolve) : setTimeout(resolve, 0));
       }
       signal?.throwIfAborted();
       const captured = inspect(checked(
-        moon.strategyCapturedRunFinish(preparation)));
+        moon.strategyCapturedRunFinish(preparation)), limits);
       finished = true;
       return captured;
     } finally {
@@ -2082,7 +2103,8 @@ function publicationControl(moon) {
         if (progress !== 0) {
           throw new TypeError('Invalid publication validation progress');
         }
-        await new Promise(resolve => setTimeout(resolve, 0));
+        await new Promise(resolve => typeof setImmediate === 'function'
+          ? setImmediate(resolve) : setTimeout(resolve, 0));
       }
     } finally {
       cancel(preparation);
@@ -2090,24 +2112,34 @@ function publicationControl(moon) {
   };
   control = Object.freeze({
     seal(name, bodyWire, limits) {
+      limits = captureContractLimits(limits, 'publication contract');
       return inspect(checked(moon.strategyPublicationSeal(
         name,
         bodyWire,
         limits.maxWireBytes,
         limits.maxNodes,
         limits.maxDepth,
-      )));
+      )), limits);
     },
     // Data-only private retention parser; no resource/custody/current grant.
     privateContinuationRetentionShape: moon.clientProgramPrivateContinuationRetentionShape,
     admit(name, completeWire, limits) {
+      limits = captureContractLimits(limits, 'publication contract');
       return inspect(checked(moon.strategyPublicationAdmit(
         name,
         completeWire,
         limits.maxWireBytes,
         limits.maxNodes,
         limits.maxDepth,
-      )));
+      )), limits);
+    },
+    admitOriginal(original, limits) {
+      const retained = contractBounds.get(original);
+      if (retained === undefined || !tokens.has(original)) return undefined;
+      const required = captureContractLimits(limits, 'publication contract');
+      return retained.maxWireBytes <= required.maxWireBytes &&
+        retained.maxNodes <= required.maxNodes &&
+        retained.maxDepth <= required.maxDepth ? original : undefined;
     },
     sealRunEvidence(name, bodyWire, limits) {
       issuanceLimits(limits, 'Run evidence');
@@ -2130,14 +2162,14 @@ function publicationControl(moon) {
       )));
     },
     issueRunInvocation(template, observation, limits) {
-      issuanceLimits(limits, 'Run Invocation');
+      limits = captureContractLimits(limits, 'Run Invocation');
       return inspect(checked(moon.strategyIssueRunInvocation(
         evidenceToken(template),
         evidenceToken(observation),
         limits.maxWireBytes,
         limits.maxNodes,
         limits.maxDepth,
-      )));
+      )), limits);
     },
     admitRunPublication(template, prepared, authorization, compiledPlan) {
       return inspectAdmission(checked(moon.strategyRunPublicationAdmit(
@@ -2308,10 +2340,17 @@ function publicationControl(moon) {
       const wire = compiledRunResult(moon.clientProgramCompiledRunStaticPlanView(
         value, original, limits.maxWireBytes, limits.maxNodes, limits.maxDepth),
       'RunHostOriginalPlanRejected');
+      if (typeof compiled.compiledPlan.wire !== 'string' || typeof wire !== 'string' ||
+          Buffer.byteLength(compiled.compiledPlan.wire) > limits.maxWireBytes ||
+          Buffer.byteLength(wire) > limits.maxWireBytes) {
+        throw new TypeError('Invalid Client original plan evidence');
+      }
       const originalBytes = Object.freeze({compiledPlanWire: compiled.compiledPlan.wire,
         planViewWire: wire});
       const programCid = moon.clientProgramDefinitionCid(original);
-      control.readStoredRunPlanOriginal(originalBytes, definition, programCid, limits);
+      // The nominal compiler projection already bound its map to this Plan
+      // and Program. Capture those immutable outputs, not a second stored-input
+      // admission. Independent durable reads still use the full reader below.
       const selected = Object.freeze({});
       originalRunPlanTokens.set(selected, Object.freeze({original: originalBytes,
         runDefinitionCid: definition.identity, programCid,
@@ -2366,7 +2405,7 @@ function publicationControl(moon) {
           !moon.clientProgramCheckCompiledRunDefinition(value, token(definition))) {
         throw new TypeError('Foreign Client original Infer Run');
       }
-      const resultPolicyOriginal = compiledSourceFreeResultPolicy(compiled);
+      const resultPolicyOriginal = control.compiledInferEvaluationPolicy(compiled);
       if (resultPolicyOriginal === undefined) throw new TypeError('Missing Client original Infer Result policy');
       const materialsWire = compiledRunResult(moon.clientProgramIssueInferRunMaterials(
         value, token(definition), environment, parameters), 'RunHostInferMaterialsRejected');
@@ -2403,7 +2442,19 @@ function publicationControl(moon) {
           !Array.isArray(profiles) || profiles.length !== 7 || profiles.some(value => typeof value !== 'boolean')) {
         throw new TypeError('Invalid Client original Infer materials');
       }
-      const policy = control.admitSourceFreeResultPolicy(original.resultPolicyOriginal, limits);
+      // A Source-backed Run retains its checked publication policy, not the
+      // source-free unknown policy. This copy is evidence only: after restoring
+      // the original compiler Owner, compare its complete policy below.
+      const savedPolicy = original.resultPolicyOriginal;
+      if (savedPolicy === null || typeof savedPolicy !== 'object' || Array.isArray(savedPolicy) ||
+          Object.keys(savedPolicy).sort().join(',') !== 'cid,kind,wire' ||
+          savedPolicy.kind !== 'data_policy' || typeof savedPolicy.cid !== 'string' ||
+          typeof savedPolicy.wire !== 'string' || savedPolicy.wire.length === 0 ||
+          Buffer.byteLength(savedPolicy.cid) > limits.maxWireBytes ||
+          Buffer.byteLength(savedPolicy.wire) > limits.maxWireBytes) {
+        throw new TypeError('Invalid Client original Infer Result policy');
+      }
+      const policy = Object.freeze({kind: savedPolicy.kind, cid: savedPolicy.cid, wire: savedPolicy.wire});
       const materials = compiledRunResult(moon.clientProgramAdmitInferRunMaterials(
         original.materialsWire, definition.identity, ...profiles), 'RunHostInferMaterialsRejected');
       let value = compiledRunResult(moon.clientProgramInferRunMaterialsCompiled(materials),
@@ -2419,6 +2470,11 @@ function publicationControl(moon) {
       value = compiledRunResult(moon.clientProgramBindCompiledInferResultPolicy(value,
         policy.cid, policy.wire, limits.maxWireBytes, limits.maxNodes, limits.maxDepth),
       'RunHostResultPolicyRejected');
+      const actualPolicy = moon.clientProgramCompiledRunEvaluationPolicy(value);
+      if (actualPolicy === undefined || runtimeField(actualPolicy, 0) !== policy.kind ||
+          runtimeField(actualPolicy, 1) !== policy.cid || runtimeField(actualPolicy, 2) !== policy.wire) {
+        throw new TypeError('Foreign Client original Infer Result policy');
+      }
       const compiled = Object.freeze({kind: 'infer',
         template: inspectEvidence(moon.clientProgramCompiledRunTemplate(value)),
         compiledPlan: inspect(moon.clientProgramCompiledRunPlan(value)),
@@ -2570,6 +2626,26 @@ function publicationControl(moon) {
         wire: moon.clientProgramSerializationPlanGraphWire(graph)});
       serializationPlanTokens.set(selected, graph);
       return selected;
+    },
+    checkedClientSerializationGenerationLimits(compiled, selection) {
+      const value = compiledContent(compiled);
+      const graph = serializationPlanTokens.get(selection);
+      if (graph === undefined || moon.clientProgramCompiledRunSerializationGraph(value) !== graph) {
+        throw new TypeError('Foreign Content compilation graph');
+      }
+      // Read only the same nominal compiler output, not the caller-visible
+      // wire/coordinates. These quantities constrain generation; they supply
+      // neither current permission nor physical capacity or cleanup evidence.
+      const coordinates = moon.clientProgramSerializationPlanGraphCoordinates(graph);
+      const id = `task_${runtimeField(coordinates, 0)}_serialize_${runtimeField(coordinates, 1)}`;
+      const body = JSON.parse(moon.clientProgramSerializationPlanGraphWire(graph));
+      const nodes = body.nodes?.filter(node => node.kind === 'content_barrier' && node.node_id === id);
+      const bounds = nodes?.length === 1 ? nodes[0].barrier?.serialization?.bounds : undefined;
+      if (bounds === undefined || !['max_rows', 'max_bytes'].every(name =>
+        Number.isInteger(bounds[name]) && bounds[name] >= 0 && bounds[name] <= 2147483647)) {
+        throw new TypeError('Content compilation generation bounds unavailable');
+      }
+      return Object.freeze({maxRows: bounds.max_rows, maxBytes: bounds.max_bytes});
     },
     inferSerializationGraph(inferGraph) {
       const graph = moon.clientProgramInferPlanSerializationGraph(inferGraph);
@@ -2758,12 +2834,12 @@ function publicationControl(moon) {
       if (value === undefined || completion === undefined) {
         throw new TypeError('Foreign Client Content generation');
       }
-      issuanceLimits(limits, 'Content Invocation');
+      limits = captureContractLimits(limits, 'Content Invocation');
       const issued = compiledRunResult(moon.clientProgramIssueSerializationInvocation(
         value, token(definition), completion,
         limits.maxWireBytes, limits.maxNodes, limits.maxDepth), 'RunHostContentInvocationRejected');
       return Object.freeze({observation: inspectEvidence(runtimeField(issued, 0)),
-        invocation: inspect(runtimeField(issued, 1)), owner: runtimeField(issued, 1)});
+        invocation: inspect(runtimeField(issued, 1), limits), owner: runtimeField(issued, 1)});
     },
     compiledInferSourceFreeResultPolicy: compiledSourceFreeResultPolicy,
     compiledInferEvaluationPolicy(compiled) {
@@ -2861,7 +2937,7 @@ function publicationControl(moon) {
       if (value === undefined) {
         throw new TypeError('Foreign Client compiled Run');
       }
-      issuanceLimits(limits, 'Client Run Invocation');
+      limits = captureContractLimits(limits, 'Client Run Invocation');
       const issued = compiledRunResult(source === undefined
         ? (compiled.kind !== 'values'
           ? moon.clientProgramIssueCompiledSourceFreeTaskInvocation(value,
@@ -2879,7 +2955,7 @@ function publicationControl(moon) {
       source === undefined ? 'RunHostInvocationRejected'
         : 'RunHostTaskInvocationRejected');
       return Object.freeze({observation: inspectEvidence(runtimeField(issued, 0)),
-        invocation: inspect(runtimeField(issued, 1)), owner: runtimeField(issued, 1)});
+        invocation: inspect(runtimeField(issued, 1), limits), owner: runtimeField(issued, 1)});
     },
     issueCheckedClientCompiledMultiInvocation(compiled, definition,
       {sources, authorityScopeCid, dataPolicyCid, captureStartedAt, captureCompletedAt}, limits) {
@@ -2888,7 +2964,7 @@ function publicationControl(moon) {
           !Array.isArray(sources) || sources.length !== 2) {
         throw new TypeError('Foreign Client compiled multi-source Run');
       }
-      issuanceLimits(limits, 'Client Run Invocation');
+      limits = captureContractLimits(limits, 'Client Run Invocation');
       const issued = compiledRunResult(moon.clientProgramIssueCompiledMultiTaskInvocation(
         value, token(definition), sources.map(source => source.captured.capture.source()),
         sources.map(source => source.captured.identity),
@@ -2898,7 +2974,7 @@ function publicationControl(moon) {
         authorityScopeCid, dataPolicyCid, captureStartedAt, captureCompletedAt,
         limits.maxWireBytes, limits.maxNodes, limits.maxDepth), 'RunHostTaskInvocationRejected');
       return Object.freeze({observation: inspectEvidence(runtimeField(issued, 0)),
-        invocation: inspect(runtimeField(issued, 1)), owner: runtimeField(issued, 1)});
+        invocation: inspect(runtimeField(issued, 1), limits), owner: runtimeField(issued, 1)});
     },
     issueCheckedClientCompiledKeyedInvocation(compiled, definition,
       {captured, sourceEvidenceWire, inputLogicalWire, keyedObservation,
@@ -2909,7 +2985,7 @@ function publicationControl(moon) {
           captured?.requirement === undefined || keyedObservation === undefined) {
         throw new TypeError('Foreign Client compiled keyed-source Run');
       }
-      issuanceLimits(limits, 'Client Run Invocation');
+      limits = captureContractLimits(limits, 'Client Run Invocation');
       // The portable issuer verifies original capture/compilation ownership,
       // whole-Source coverage and live keyed custody. Wire evidence alone is
       // not enough to manufacture a completed keyed acquisition.
@@ -2919,7 +2995,7 @@ function publicationControl(moon) {
         authorityScopeCid, dataPolicyCid, captureStartedAt, captureCompletedAt,
         limits.maxWireBytes, limits.maxNodes, limits.maxDepth), 'RunHostTaskInvocationRejected');
       return Object.freeze({observation: inspectEvidence(runtimeField(issued, 0)),
-        invocation: inspect(runtimeField(issued, 1)), owner: runtimeField(issued, 1)});
+        invocation: inspect(runtimeField(issued, 1), limits), owner: runtimeField(issued, 1)});
     },
     // Reuse the compiled owner retained at Run admission. The physical
     // adapter supplies its opaque execution and bounded verification owner;
@@ -3041,6 +3117,55 @@ function publicationControl(moon) {
       checked(moon.clientProgramBindInferModelEntryPersistence(execution,
         preparedCallSet, admitted, beginEntry));
       return admitted;
+    },
+    checkedClientMockModelRunRequirements(prepared, compiled, definition, occurrence, graph,
+      declarations, query, evidence, transport, scratch, registry, values, fragment, ordered) {
+      const value = compiledRunTokens.get(compiled);
+      if (value === undefined || compiled.kind !== 'infer') {
+        throw new TypeError('Foreign Client compiled Infer preparation');
+      }
+      return checked(moon.clientProgramInstalledMockModelManagedRunRequirements(
+        prepared, value, token(definition), occurrence, graph, declarations,
+        query, evidence, transport, scratch, registry, values, fragment, ordered));
+    },
+    beginCheckedClientMockModelManagedRun(admission, prepared, request, compiled, definition, graph, budget) {
+      const value = compiledRunTokens.get(compiled);
+      if (value === undefined || compiled.kind !== 'infer') {
+        throw new TypeError('Foreign Client compiled Infer preparation');
+      }
+      return checked(moon.clientProgramInstalledMockModelManagedRunBegin(admission,
+        prepared, request, value, token(definition), graph,
+        budget.bootstrapRetainedBytes, budget.bootstrapExecutionBytes,
+        budget.maxReservations, budget.maxHoldings, budget.maxDelegations));
+    },
+    checkedClientEffectMockModelRunRequirements(prepared, compiled, compilation, definition, occurrence, graph,
+      declarations, query, evidence, transport, scratch, registry, values, fragment, ordered) {
+      const value = compiledRunTokens.get(compiled);
+      if (value === undefined || compiled.kind !== 'infer') {
+        throw new TypeError('Foreign Client compiled Effect Infer preparation');
+      }
+      return checked(moon.clientProgramInstalledEffectMockModelManagedRunRequirements(
+        prepared, value, compilation, token(definition), occurrence, graph, declarations,
+        query, evidence, transport, scratch, registry, values, fragment, ordered));
+    },
+    beginCheckedClientEffectMockModelManagedRun(admission, prepared, request, compiled, compilation,
+      definition, graph, budget) {
+      const value = compiledRunTokens.get(compiled);
+      if (value === undefined || compiled.kind !== 'infer') {
+        throw new TypeError('Foreign Client compiled Effect Infer preparation');
+      }
+      return checked(moon.clientProgramInstalledEffectMockModelManagedRunBegin(admission,
+        prepared, request, value, compilation, token(definition), graph,
+        budget.bootstrapRetainedBytes, budget.bootstrapExecutionBytes,
+        budget.maxReservations, budget.maxHoldings, budget.maxDelegations));
+    },
+    prepareCheckedClientInferOriginalRead(compiled, definition, graph, scope, budget) {
+      const value = compiledRunTokens.get(compiled);
+      if (value === undefined || compiled.kind !== 'infer') {
+        throw new TypeError('Foreign Client compiled Infer preparation');
+      }
+      return checked(moon.clientProgramPrepareInferOriginalRead(scope, value, token(definition),
+        graph, budget.readRetainedBytes, budget.readExecutionBytes));
     },
     // Installation-only original bootstrap: caller custody must keep this
     // same scope on failure/recovery, never issue a replacement Ledger.
@@ -3212,6 +3337,27 @@ function publicationControl(moon) {
       }
       return checked(moon.clientProgramStopInferOriginalReadPreparation(scope,
         read, value, token(definition), graph));
+    },
+    claimCheckedClientInferOriginalComposedPreparation(compiled, definition, graph,
+      read, readRetainedBytes, readExecutionBytes) {
+      const value = compiledRunTokens.get(compiled);
+      if (value === undefined || compiled.kind !== 'infer') {
+        throw new TypeError('Foreign Client compiled Infer preparation');
+      }
+      return checked(moon.clientProgramClaimInferOriginalPreparation(read,
+        value, token(definition), graph, readRetainedBytes, readExecutionBytes));
+    },
+    startCheckedClientOriginalComposedInferExecution(compiled, definition,
+      occurrence, graph, prefix, inputs, provider, consumer, readRetainedBytes,
+      readExecutionBytes, modelRetainedBytes, modelExecutionBytes, sources) {
+      const value = compiledRunTokens.get(compiled);
+      if (value === undefined || compiled.kind !== 'infer') {
+        throw new TypeError('Foreign Client compiled Infer preparation');
+      }
+      return checked(moon.clientProgramStartOriginalComposedInferExecution(
+        occurrence, graph, prefix, inputs, provider, value, token(definition),
+        consumer, readRetainedBytes, readExecutionBytes, modelRetainedBytes,
+        modelExecutionBytes, sources));
     },
     // Reuse the original compiled/definition token domains. A public wrapper
     // object cannot be passed as a nominal MoonBit compiled Run or contract.
@@ -3543,7 +3689,7 @@ function publicationControl(moon) {
       return bound;
     },
     issueRunDefinition(admission, definition, limits) {
-      issuanceLimits(limits, 'Run Definition');
+      limits = captureContractLimits(limits, 'Run Definition');
       if (definition === null || typeof definition !== 'object') {
         throw new TypeError('Invalid Run Definition request');
       }
@@ -3557,10 +3703,10 @@ function publicationControl(moon) {
         limits.maxWireBytes,
         limits.maxNodes,
         limits.maxDepth,
-      )));
+      )), limits);
     },
     issueEffectFreeRunReceipt(chain, provenance, limits) {
-      issuanceLimits(limits, 'Run Receipt');
+      limits = captureContractLimits(limits, 'Run Receipt');
       if (chain === null || typeof chain !== 'object' ||
           provenance === null || typeof provenance !== 'object' ||
           !Array.isArray(chain.definitions) ||
@@ -3589,7 +3735,7 @@ function publicationControl(moon) {
         limits.maxNodes,
         limits.maxDepth,
         contentCaptures(provenance.contentGenerations),
-      )));
+      )), limits);
     },
     admitCapturedResultSnapshot(definition, artifact, rowsWire, fields,
       limits) {
@@ -3895,6 +4041,44 @@ function publicationControl(moon) {
           original = undefined;
         }});
     },
+    recoverEffectCommandContent({compiled, prepared, definition, captured, preview,
+      invocation, source, storeAuthorityCid, generationIndex, memberIndex, row,
+      inputName, candidate, issued, limits}) {
+      issuanceLimits(limits, 'Recovered Effect Content');
+      const run = compiledContent(compiled);
+      const admittedPreview = computationPreviewTokens.get(preview);
+      if (admittedPreview === undefined || typeof inputName !== 'string' ||
+          ![generationIndex, memberIndex, row, limits.maxFields, limits.maxWork]
+            .every(value => Number.isSafeInteger(value) && value >= 0)) {
+        throw new TypeError('Invalid recovered Effect Content input');
+      }
+      const original = {run, prepared, definition: token(definition), captured: token(captured),
+        preview: admittedPreview, memberIndex, row, inputName};
+      const view = checked(moon.clientProgramRecoverEffectCommandContent(run, prepared,
+        original.definition, original.captured, admittedPreview, token(invocation), source,
+        storeAuthorityCid, generationIndex, memberIndex, row, inputName, candidate, issued,
+        limits.maxFields, limits.maxWork, limits.maxWireBytes, limits.maxNodes, limits.maxDepth));
+      let retained = original;
+      const current = () => retained !== undefined &&
+        moon.clientProgramRecoveredEffectCommandContentMatches(view, original.run,
+          original.prepared, original.definition, original.captured, original.preview,
+          original.memberIndex, original.row, original.inputName) && retained === original;
+      return Object.freeze({binding: view, current,
+        matchesIssued(value) {
+          return retained !== undefined &&
+            moon.clientProgramRecoveredEffectCommandContentMatchesIssued(view, value) &&
+            retained === original;
+        },
+        wire() {
+          if (!current()) throw new TypeError('Recovered Effect Content unavailable');
+          return checked(moon.clientProgramRecoveredEffectCommandContentWire(view));
+        },
+        release() {
+          if (retained === undefined) return;
+          moon.clientProgramRecoveredEffectCommandContentRelease(view);
+          retained = undefined;
+        }});
+    },
     localEffectTableStorageMapping(artifact, limits) {
       issuanceLimits(limits, 'Table storage mapping');
       const owned = localEffectArtifactTokens.get(artifact);
@@ -4146,7 +4330,7 @@ function publicationControl(moon) {
       ));
     },
     async issueEffectFreeCapturedRun(chain, evidence, limits, signal) {
-      issuanceLimits(limits, 'Captured Run');
+      limits = captureContractLimits(limits, 'Captured Run');
       if (chain === null || typeof chain !== 'object' ||
           evidence === null || typeof evidence !== 'object' ||
           !Array.isArray(chain.definitions) ||
@@ -4174,7 +4358,7 @@ function publicationControl(moon) {
         moon.strategyPublicationEvidenceWorkspace(limits.maxNodes),
         contentCaptures(evidence.contentGenerations),
       );
-      return finishCapturedPreparation(preparation, signal);
+      return finishCapturedPreparation(preparation, signal, limits);
     },
     admitEffectComputationPreview(wire, runDefinition, authoring, limits) {
       issuanceLimits(limits, 'Effect computation Preview');
@@ -4420,7 +4604,7 @@ function publicationControl(moon) {
       return Object.freeze(owned);
     },
     async issueEffectfulCapturedRun(chain, evidence, preview, plans, limits, signal) {
-      issuanceLimits(limits, 'Effectful Captured Run');
+      limits = captureContractLimits(limits, 'Effectful Captured Run');
       if (chain === null || typeof chain !== 'object' ||
           evidence === null || typeof evidence !== 'object' ||
           !Array.isArray(chain.definitions) ||
@@ -4458,7 +4642,7 @@ function publicationControl(moon) {
         moon.strategyPublicationEvidenceWorkspace(limits.maxNodes),
         contentCaptures(evidence.contentGenerations),
       ));
-      return finishCapturedPreparation(preparation, signal);
+      return finishCapturedPreparation(preparation, signal, limits);
     },
     prepareLocalEffectDependencyInventory(artifacts, bodies, limits) {
       issuanceLimits(limits, 'Effect dependency inventory');
@@ -4508,7 +4692,7 @@ function publicationControl(moon) {
         limits.maxWireBytes, limits.maxNodes, limits.maxDepth));
     },
     issueEffectfulFinalRunReceipt(chain, preview, receipts, limits) {
-      issuanceLimits(limits, 'final Effectful Run Receipt');
+      limits = captureContractLimits(limits, 'final Effectful Run Receipt');
       if (chain === null || typeof chain !== 'object' ||
           !Array.isArray(chain.definitions) ||
           !Array.isArray(chain.artifacts) ||
@@ -4529,10 +4713,10 @@ function publicationControl(moon) {
         token(chain.capturedRun), ownedPreview, receipts.setWire,
         receipts.memberWires, limits.maxWireBytes, limits.maxNodes,
         limits.maxDepth,
-      )));
+      )), limits);
     },
     issueEffectSetApplyReceiptFromMembers(preview, members, replayed, limits) {
-      issuanceLimits(limits, 'Effect Set Apply Receipt');
+      limits = captureContractLimits(limits, 'Effect Set Apply Receipt');
       if (!Array.isArray(members) ||
           members.some(member => typeof member?.wire !== 'string') ||
           !Array.isArray(replayed) ||
@@ -4548,7 +4732,7 @@ function publicationControl(moon) {
           ownedPreview, members.map(member => member.wire), replayed,
           limits.maxWireBytes, limits.maxNodes, limits.maxDepth,
         ),
-      ));
+      ), limits);
     },
     effectSetReceiptRunDisposition(preview, receipts, limits) {
       issuanceLimits(limits, 'Effect Set Run disposition');
@@ -4761,7 +4945,7 @@ function publicationControl(moon) {
     },
     issueResultManifest(runDefinition, invocation, definitions, artifacts,
       limits) {
-      issuanceLimits(limits, 'Result Manifest');
+      limits = captureContractLimits(limits, 'Result Manifest');
       return inspect(checked(moon.strategyIssueResultManifest(
         token(runDefinition),
         token(invocation),
@@ -4770,10 +4954,10 @@ function publicationControl(moon) {
         limits.maxWireBytes,
         limits.maxNodes,
         limits.maxDepth,
-      )));
+      )), limits);
     },
     issueDurableResultBinding(chain, physical, limits) {
-      issuanceLimits(limits, 'durable Result binding');
+      limits = captureContractLimits(limits, 'durable Result binding');
       if (chain === null || typeof chain !== 'object' ||
           physical === null || typeof physical !== 'object') {
         throw new TypeError('Invalid durable Result binding request');
@@ -4796,10 +4980,10 @@ function publicationControl(moon) {
         limits.maxWireBytes,
         limits.maxNodes,
         limits.maxDepth,
-      )));
+      )), limits);
     },
     issuePublicationRequest(runDefinition, definitions, intent, limits) {
-      issuanceLimits(limits, 'Publication Request');
+      limits = captureContractLimits(limits, 'Publication Request');
       if (intent === null || typeof intent !== 'object') {
         throw new TypeError('Invalid Publication Request intent');
       }
@@ -4814,10 +4998,10 @@ function publicationControl(moon) {
         limits.maxWireBytes,
         limits.maxNodes,
         limits.maxDepth,
-      )));
+      )), limits);
     },
     issuePublicationAttempt(request, runDefinition, attempt, limits) {
-      issuanceLimits(limits, 'Publication Attempt');
+      limits = captureContractLimits(limits, 'Publication Attempt');
       if (attempt === null || typeof attempt !== 'object') {
         throw new TypeError('Invalid Publication Attempt');
       }
@@ -4831,7 +5015,7 @@ function publicationControl(moon) {
         limits.maxWireBytes,
         limits.maxNodes,
         limits.maxDepth,
-      )));
+      )), limits);
     },
     publicationPreflightValid(
       admission,
@@ -4861,7 +5045,7 @@ function publicationControl(moon) {
       );
     },
     issuePublicIndexEntry(chain, committedAt, limits) {
-      issuanceLimits(limits, 'Public Index Entry');
+      limits = captureContractLimits(limits, 'Public Index Entry');
       if (chain === null || typeof chain !== 'object' ||
           !Array.isArray(chain.durableBindings)) {
         throw new TypeError('Invalid publication chain');
@@ -4879,14 +5063,14 @@ function publicationControl(moon) {
         limits.maxWireBytes,
         limits.maxNodes,
         limits.maxDepth,
-      )));
+      )), limits);
     },
     publicIndexSameCommittedContent(committed, candidate) {
       return moon.strategyPublicIndexSameCommittedContent(
         token(committed), token(candidate));
     },
     issuePublicationRecord(attempt, previous, update, limits) {
-      issuanceLimits(limits, 'Publication Record');
+      limits = captureContractLimits(limits, 'Publication Record');
       if (update === null || typeof update !== 'object') {
         throw new TypeError('Invalid Publication Record update');
       }
@@ -4903,7 +5087,7 @@ function publicationControl(moon) {
         limits.maxWireBytes,
         limits.maxNodes,
         limits.maxDepth,
-      )));
+      )), limits);
     },
     async effectFreeChainValid(runDefinition, invocation, definitions, artifacts,
       manifest, receipt, capturedRun, limits, signal) {
@@ -4988,7 +5172,7 @@ function publicationControl(moon) {
       );
     },
     issueResultArtifact(exportHandle, invocation, retention, limits) {
-      issuanceLimits(limits, 'Result Artifact');
+      limits = captureContractLimits(limits, 'Result Artifact');
       return inspect(checked(
         moon.strategyHostOutputExportIssueResultArtifact(
           exportHandle,
@@ -4998,7 +5182,7 @@ function publicationControl(moon) {
           limits.maxNodes,
           limits.maxDepth,
         ),
-      ));
+      ), limits);
     },
     deliveryTransition(previous, next) {
       return moon.strategyDeliveryRecordTransition(
@@ -5029,7 +5213,7 @@ function publicationControl(moon) {
         limits.maxNodes, limits.maxDepth)));
     },
     issueManifestReadGrant(index, manifest, grant, limits) {
-      issuanceLimits(limits, 'Manifest read grant');
+      limits = captureContractLimits(limits, 'Manifest read grant');
       if (grant === null || typeof grant !== 'object') {
         throw new TypeError('Invalid Manifest read grant');
       }
@@ -5046,16 +5230,18 @@ function publicationControl(moon) {
         limits.maxWireBytes,
         limits.maxNodes,
         limits.maxDepth,
-      )));
+      )), limits);
     },
     issueResultReadGrant(index, manifest, grant, limits) {
-      issuanceLimits(limits, 'Result read grant');
+      limits = captureContractLimits(limits, 'Result read grant');
+      const bounds = Object.freeze({maxWireBytes: limits.maxWireBytes,
+        maxNodes: limits.maxNodes, maxDepth: limits.maxDepth});
       if (grant === null || typeof grant !== 'object' ||
           !Array.isArray(grant.resultNames) ||
           !Array.isArray(grant.formats)) {
         throw new TypeError('Invalid Result read grant');
       }
-      return inspect(checked(moon.strategyIssueResultReadGrant(
+      const result = inspect(checked(moon.strategyIssueResultReadGrant(
         token(index),
         token(manifest),
         grant.resultNames,
@@ -5068,17 +5254,21 @@ function publicationControl(moon) {
         grant.expiresAt,
         grant.authorizationContextCid,
         grant.egressAdmissionCid,
-        limits.maxWireBytes,
-        limits.maxNodes,
-        limits.maxDepth,
-      )));
+        bounds.maxWireBytes,
+        bounds.maxNodes,
+        bounds.maxDepth,
+      )), limits);
+      issuedDeliveryGrants.set(result, bounds);
+      return result;
     },
     issueDeliveryAttempt(index, manifest, grant, attempt, limits) {
-      issuanceLimits(limits, 'Delivery Attempt');
+      limits = captureContractLimits(limits, 'Delivery Attempt');
+      const bounds = Object.freeze({maxWireBytes: limits.maxWireBytes,
+        maxNodes: limits.maxNodes, maxDepth: limits.maxDepth});
       if (attempt === null || typeof attempt !== 'object') {
         throw new TypeError('Invalid Delivery Attempt');
       }
-      return inspect(checked(moon.strategyIssueDeliveryAttempt(
+      const result = inspect(checked(moon.strategyIssueDeliveryAttempt(
         token(index),
         token(manifest),
         token(grant),
@@ -5086,10 +5276,39 @@ function publicationControl(moon) {
         attempt.format,
         attempt.attemptId,
         attempt.requestedAt,
-        limits.maxWireBytes,
-        limits.maxNodes,
-        limits.maxDepth,
-      )));
+        bounds.maxWireBytes,
+        bounds.maxNodes,
+        bounds.maxDepth,
+      )), limits);
+      const original = Object.freeze({kind: 'issued-delivery-attempt'});
+      const facts = Object.freeze({index, manifest, grant, attempt: result,
+        request: Object.freeze({resultName: attempt.resultName, format: attempt.format,
+          attemptId: attempt.attemptId, requestedAt: attempt.requestedAt}),
+        limits: bounds});
+      issuedDeliveryAttempts.set(result, {original,
+        index: token(index), manifest: token(manifest), grant: token(grant)});
+      originalDeliveryAttempts.set(original, facts);
+      return result;
+    },
+    captureIssuedDeliveryAttempt(attempt, index, manifest, grant, limits) {
+      token(attempt);
+      const actualIndex = token(index), actualManifest = token(manifest), actualGrant = token(grant);
+      const issued = issuedDeliveryAttempts.get(attempt);
+      if (issued === undefined) return undefined;
+      if (issued.index !== actualIndex || issued.manifest !== actualManifest || issued.grant !== actualGrant) {
+        throw new TypeError('PublicationDeliveryOriginalMismatch');
+      }
+      issuanceLimits(limits, 'Delivery Attempt');
+      const grantLimits = issuedDeliveryGrants.get(grant);
+      const facts = originalDeliveryAttempts.get(issued.original);
+      if (grantLimits === undefined || ['maxWireBytes', 'maxNodes', 'maxDepth'].some(
+        key => limits[key] !== grantLimits[key] || limits[key] !== facts.limits[key])) return undefined;
+      return issued.original;
+    },
+    readIssuedDeliveryAttempt(original) {
+      const facts = originalDeliveryAttempts.get(original);
+      if (facts === undefined) throw new TypeError('ForeignPublicationDeliveryOriginal');
+      return facts;
     },
     deliveryResultDefinitionCid(manifest, attempt) {
       return checked(moon.strategyDeliveryResultDefinitionCid(
@@ -5133,6 +5352,12 @@ function publicationControl(moon) {
     },
     runDefinitionRunId(runDefinition) {
       return checked(moon.strategyRunDefinitionRunId(token(runDefinition)));
+    },
+    runDefinitionLifetime(runDefinition, expectedCid) {
+      const lifetime = checked(moon.clientLocalCheckpointRunLifetime(
+        token(runDefinition), expectedCid));
+      return Object.freeze({createdAt: runtimeField(lifetime, 0),
+        validUntil: runtimeField(lifetime, 1)});
     },
     // The Common reader checks the exact canonical document and embedded
     // resource CID. This private handle carries data, never restored custody.
@@ -5190,7 +5415,7 @@ function publicationControl(moon) {
     issueResultRetentionExtension(
       base, availableUntil, admittedAt, limits,
     ) {
-      issuanceLimits(limits, 'Result retention extension');
+      limits = captureContractLimits(limits, 'Result retention extension');
       if (typeof availableUntil !== 'string' ||
           typeof admittedAt !== 'string') {
         throw new TypeError('Invalid Result retention extension');
@@ -5202,7 +5427,7 @@ function publicationControl(moon) {
         limits.maxWireBytes,
         limits.maxNodes,
         limits.maxDepth,
-      )));
+      )), limits);
     },
     resultReadExtendedAvailability(
       manifest, resultName, base, extension, observedAt,
@@ -5301,7 +5526,7 @@ function publicationControl(moon) {
     },
     issueResultDeliveryReceipt(index, manifest, grant, attempt, delivered,
       limits) {
-      issuanceLimits(limits, 'Result delivery receipt');
+      limits = captureContractLimits(limits, 'Result delivery receipt');
       if (delivered === null || typeof delivered !== 'object') {
         throw new TypeError('Invalid Result delivery receipt');
       }
@@ -5315,10 +5540,10 @@ function publicationControl(moon) {
         limits.maxWireBytes,
         limits.maxNodes,
         limits.maxDepth,
-      )));
+      )), limits);
     },
     issueDeliveryRecord(attempt, previous, update, limits) {
-      issuanceLimits(limits, 'Delivery Record');
+      limits = captureContractLimits(limits, 'Delivery Record');
       if (update === null || typeof update !== 'object' ||
           !Array.isArray(update.cleanupOwnerCids)) {
         throw new TypeError('Invalid Delivery Record');
@@ -5338,7 +5563,7 @@ function publicationControl(moon) {
         limits.maxWireBytes,
         limits.maxNodes,
         limits.maxDepth,
-      )));
+      )), limits);
     },
     prepareResultDeliverySerializer(format, schemaWire, fields, limits) {
       issuanceLimits(limits, 'Result delivery serializer');

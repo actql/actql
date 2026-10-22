@@ -309,14 +309,21 @@ fn[T] issue_original_ledger_descriptor(
 }
 
 ///|
-fn[T] original_tokens_match(value : OriginalLedgerDescriptor[T]) -> Bool {
+fn[T] original_tokens_match(
+  value : OriginalLedgerDescriptor[T],
+  completed_outputs? : Bool = false,
+) -> Bool {
   value.ledger.original_inventory is Some(inventory) &&
   !inventory.closing &&
   original_reservation_snapshot(value.bootstrap.reservation) ==
   value.bootstrap_state &&
   value.reservations.all(pair => {
     let (token, snapshot) = pair
-    original_reservation_snapshot(token) == snapshot
+    original_reservation_snapshot(token) == snapshot ||
+    (
+      completed_outputs &&
+      original_completed_output_matches(value.ledger, token, snapshot)
+    )
   }) &&
   value.holdings.all(pair => {
     let (token, live) = pair
@@ -326,6 +333,50 @@ fn[T] original_tokens_match(value : OriginalLedgerDescriptor[T]) -> Bool {
     let (token, snapshot) = pair
     original_delegation_snapshot(token) == snapshot
   })
+}
+
+///|
+// Only a handed-off consumer may observe the original producer's completed
+// output instead of its earlier unused reservation. Initial read admission,
+// restoration and bootstrap validation continue to require exact snapshots.
+// The completion is recorded by Resource on the SAME token; its separately
+// retained output must still belong to the original inventory and be live.
+// Pending scratch is not acknowledged or released by this observation.
+fn original_completed_output_matches(
+  ledger : Ledger,
+  token : Reservation,
+  before : OriginalReservationSnapshot,
+) -> Bool {
+  guard physical_equal(token.owner, ledger) &&
+    token.serial == before.serial &&
+    before.open &&
+    before.completed_output is None &&
+    before.quantities is None &&
+    before.uncertain_quantities is None &&
+    token.completed_output is Some((holding, bytes, scratch)) &&
+    scratch >= 0L &&
+    scratch <= before.execution &&
+    token.execution >= 0L &&
+    token.execution <= scratch &&
+    token.transfer == 0L &&
+    token.retention == 0L &&
+    token.quantities is None &&
+    token.uncertain_quantities is None &&
+    token.observed_quantities == before.observed_quantities &&
+    ledger.original_inventory is Some(inventory) else {
+    return false
+  }
+  match holding {
+    None => bytes == 0L
+    Some(serial) =>
+      inventory.holdings.any(output => {
+        physical_equal(output.owner, ledger) &&
+        output.serial == serial &&
+        output.reservation_serial == token.serial &&
+        output.bytes == bytes &&
+        output.live
+      })
+  }
 }
 
 ///|

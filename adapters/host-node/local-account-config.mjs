@@ -8,7 +8,7 @@
 // unreadable or rejected file fails installation with the same runtime code.
 import {createHash} from 'node:crypto';
 import {readFile, stat} from 'node:fs/promises';
-import {openSync, readSync, closeSync} from 'node:fs';
+import {openSync, readSync, closeSync, fstatSync} from 'node:fs';
 import {isAbsolute, resolve} from 'node:path';
 import {createNodeAuthorizationGate} from './authorization.mjs';
 
@@ -24,14 +24,21 @@ function observeAccountConfigurationWire(authorization) {
       if (wire !== undefined) return undefined;
       const fd = openSync(authorization.accountConfig, 'r');
       try {
-        const buffer = Buffer.alloc(MAX_CONFIGURATION_BYTES + 1);
+        // Size selects only a bounded workspace, never configuration identity
+        // or authority. Read the original FD's contents below; one extra byte
+        // refuses growth rather than admitting a truncated configuration.
+        const size = fstatSync(fd).size;
+        if (!Number.isSafeInteger(size) || size < 0 || size > MAX_CONFIGURATION_BYTES) {
+          return undefined;
+        }
+        const buffer = Buffer.alloc(size + 1);
         let used = 0;
         while (used < buffer.length) {
           const read = readSync(fd, buffer, used, buffer.length - used, used);
           if (read === 0) break;
           used += read;
         }
-        if (used > MAX_CONFIGURATION_BYTES) return undefined;
+        if (used > size) return undefined;
         wire = new TextDecoder('utf-8', {fatal: true}).decode(buffer.subarray(0, used));
       } finally { closeSync(fd); }
     }
@@ -42,11 +49,27 @@ function observeAccountConfigurationWire(authorization) {
 
 // Shared by the installed Model owner and Local account gate. This reads no
 // new identity or permit and preserves the existing Model Missing fallback.
+const installedAccountObservations = new WeakMap();
 export function observeInstalledAccount(moon, authorization) {
   try {
     const wire = observeAccountConfigurationWire(authorization);
-    return wire === undefined ? moon.executionAuthorizationMissing()
-      : moon.executionAuthorizationAdmit(wire);
+    if (wire === undefined) return moon.executionAuthorizationMissing();
+    // Keep only one admitted immutable value per actual runtime/installation.
+    // The original file is still read at EVERY protected boundary. Changed,
+    // missing and rejected bytes cannot reuse the retained Account judgment.
+    if (authorization === null || typeof authorization !== 'object') {
+      return moon.executionAuthorizationAdmit(wire);
+    }
+    let observations = installedAccountObservations.get(moon);
+    if (observations === undefined) {
+      observations = new WeakMap();
+      installedAccountObservations.set(moon, observations);
+    }
+    const retained = observations.get(authorization);
+    if (retained?.wire === wire) return retained.account;
+    const account = moon.executionAuthorizationAdmit(wire);
+    observations.set(authorization, {wire, account});
+    return account;
   } catch { return moon.executionAuthorizationMissing(); }
 }
 
@@ -164,6 +187,8 @@ export async function createLocalAuthorizationGate({
   const configuration = none(accountConfig)
     ? configurationOf(accountConfiguration)
     : await readAccountConfiguration(accountConfig);
+  const installedContext = context ?? localAuthorizationContext(principal,
+    configuration.accountId);
   try {
     const gate = await createNodeAuthorizationGate({
       ...options,
@@ -173,10 +198,14 @@ export async function createLocalAuthorizationGate({
       // property. A wire-backed gate owns its immutable admitted configuration.
       readConfiguration: configuration.path === undefined ? undefined
         : () => observeAccountConfigurationWire({accountConfig: configuration.path}),
-      context: context ?? localAuthorizationContext(principal,
-        configuration.accountId),
+      context: installedContext,
     });
-    return gate;
+    // The installed row Source and its Checkpoint projection need the same
+    // admitted configuration and context, not a second Missing Account. The
+    // original gate still owns its file-current reader and decision methods;
+    // this retained DATA neither grants a tuple nor acknowledges cleanup.
+    return Object.freeze({...gate, accountConfiguration: configuration.text,
+      context: installedContext});
   } catch (error) {
     if (error?.code === 'ExecutionAuthorizationConfigurationRejected') {
       error.runtimeCode = ACCOUNT_CONFIG_INVALID;
