@@ -16,6 +16,7 @@ import {selectedInferOriginalCurrentStateCodec,
 export function installNodeInferRun({moon, core, registry, values, fragment, ordered, selections,
   namespaceId, authorityScopeCid, storeAuthorityCid, now, faultInjection, modelController, inferEvidence,
   checkpoints, prepareAcquisition, sourceAccessFor, runContent, prepareKeyedRecovery,
+  prepareOriginalMockRun,
   computeConfigurations = {}}) {
   const control = core.publicationControl;
   const run = async ({preparedProgram, plan, store, principalId, signal,
@@ -24,6 +25,25 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
     const selected = selections.get(preparedProgram);
     if (selected === undefined || selected.graph !== plan.inferGraph) {
       throw new Error('InstalledInferSelectionMissing');
+    }
+    if (selected.localMock) {
+      const sourceFree = moon.clientProgramAcquisitionCount(preparedProgram) === 0;
+      if (sourceFree && originalPreparation === undefined &&
+          typeof prepareOriginalMockRun === 'function') {
+        originalPreparation = prepareOriginalMockRun(preparedProgram, plan);
+      }
+      if (originalPreparation?.control !== control || originalPreparation.compiled !== plan.compiled ||
+          originalPreparation.runDefinition !== plan.runDefinition ||
+          (sourceFree ? acquiredInfer !== undefined || typeof originalPreparation.openSourceFreeHost !== 'function'
+            : acquiredInfer?.sources?.length !== 2)) {
+        throw new TypeError('InvalidInstalledMockModelPreparation');
+      }
+      return runInstalledComposedInfers({moon, control, preparedProgram, plan,
+        selected: {components: [selected]}, store, principalId, signal, retainExecution,
+        acquiredInfer, replay, beginPhysicalWork, submission, existingModel, modelClaim, assertCurrent,
+        modelController, inferEvidence, checkpoints, prepareAcquisition, sourceAccessFor,
+        namespaceId, authorityScopeCid, storeAuthorityCid, now, faultInjection,
+        registry, values, fragment, ordered, computeConfigurations, originalPreparation});
     }
     const originalInstallation = selected.originalReadInstallation;
     let runtimeBorrow;

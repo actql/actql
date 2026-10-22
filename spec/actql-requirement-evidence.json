@@ -12862,6 +12862,39 @@
       }
     },
     {
+      "requirement_id": "actql.execution/policy-routing.mock-result-original-binding",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "policy-routing",
+        "kind": "prose"
+      },
+      "statement_sha256": "de559ee86b6ba914c772223102873684f28b3fd0a442a067d041f3ec4e18fc6c"
+    },
+    {
+      "requirement_id": "actql.execution/policy-routing.mock-request-protection-target",
+      "statement_sha256": "2df31f172fbc08961f4120f04fdc82bfcbe1b20bea32722e198dc573c743fd5f",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "policy-routing",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.execution/policy-routing.mock-profile-original-recovery",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "policy-routing",
+        "kind": "prose"
+      },
+      "statement_sha256": "3be8b95ed2b936730a71210deb768a53308b99b486dc5d427fda70cc2f73bb16"
+    },
+    {
       "requirement_id": "actql.execution/policy-routing.a-technical-decision-failure-must-not-dispatch-or-record-a-rejection",
       "statement_sha256": "8ebac4232d21469a265be0b70b4ded80cbb95e5ba85aea9832e7221ce2a83617",
       "status": "pending",
@@ -15481,7 +15514,29 @@
     },
     {
       "requirement_id": "actql.protocol.contracts/file-sources.listing-resolution-and-metadata",
-      "statement_sha256": "0b1b1f28c5b5195c53982a3108b0840863b74111cbd956466adcd4cf48c20c57",
+      "statement_sha256": "524330fbadfb863977810870749867d652579ba7e751f205453fd711a34012e2",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "file-sources",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/file-sources.declared-metadata-schema",
+      "statement_sha256": "580e6c2c684519fa6a8c8a95683a80a9dab4ff7a8922385706ba2099e7c96b86",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "file-sources",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/file-sources.full-schema-correspondence",
+      "statement_sha256": "d52331e9572f25e4a4fe2567feb5609024c5a74d92dc19375b703b365bd95b64",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
@@ -16615,6 +16670,61 @@
     {
       "requirement_id": "actql.protocol.contracts/compilation-identities.effect-target-selection-recovery",
       "statement_sha256": "81b7191fc69d283dac86fecb2c0c4661fdd5b33fd4d272b41c1c30f153463d66",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "compilation-identities",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/compilation-identities.source-free-content-policy-original",
+      "statement_sha256": "6ceacee243fd527cb6ed7540f7238992386b5b58b1ccf582bacb66cda21bcdf6",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "compilation-identities",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/compilation-identities.source-free-content-policy-purpose",
+      "statement_sha256": "229c6c2b4f4a4b14c334e9ad1d617022033002a003ade70af2fde6d72b3172cf",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "compilation-identities",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/compilation-identities.source-free-content-policy-correspondence",
+      "statement_sha256": "c9975e1ff6ec8b52cbc46f53897eb8e4d236e5f2f0ad28fd2cd7819076c7e1c6",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "compilation-identities",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/compilation-identities.source-free-content-policy-refusal",
+      "statement_sha256": "109d38076f8b3a5c2a98e653795d1941024ad2ae2c9a5d97823d14bee0ee13a5",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "compilation-identities",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/compilation-identities.source-free-content-policy-absence",
+      "statement_sha256": "0af2678722c82a21548dd44975c2995d982543f62b513720b35b36005e5463f6",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",

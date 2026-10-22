@@ -4,14 +4,15 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import test from 'node:test';
 import {runInNewContext} from 'node:vm';
+import {parse} from 'acorn';
 import {openLocalPublicationStore} from './publication-store.mjs';
 import {createPublicationContractControlFixture} from '../host-common/publication-contract-control.fixture.mjs';
 
 const source = await readFile(new URL('./publication-store.mjs', import.meta.url), 'utf8');
-const begin = source.indexOf('async function retainStoreOpeningFailure(');
-const end = source.indexOf('\nfunction validateConfiguration(', begin);
-assert(begin >= 0 && end > begin);
-const retain = runInNewContext(`(${source.slice(begin, end)})`, {
+const declaration = parse(source, {ecmaVersion: 'latest', sourceType: 'module'}).body
+  .find(node => node.type === 'FunctionDeclaration' && node.id.name === 'retainStoreOpeningFailure');
+assert(declaration !== undefined);
+const retain = runInNewContext(`(${source.slice(declaration.start, declaration.end)})`, {
   fail: code => { throw Object.assign(new Error(code), {code}); },
 });
 async function fixture(t) {

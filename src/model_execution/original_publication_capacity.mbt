@@ -1,11 +1,13 @@
 ///|
 /// An additional byte-only borrow of the existing original Model owner. This
 /// is not another Ledger, a send reservation, a physical cleanup ACK or a
-/// normal installed profile. Its two optional fields and their representation
+/// normal installed profile. Its original references, two byte amounts and representation
 /// must be included in the supplier's simultaneous envelope before issuance.
 struct OriginalModelPublicationCapacity {
   mut owner : ModelExecution?
   mut capacity : @resources.CapacityReservation?
+  retained_bytes : Int64
+  execution_bytes : Int64
 }
 
 ///|
@@ -61,19 +63,51 @@ pub fn reserve_original_model_publication_capacity(
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
+  match
+    check_original_mock_capacity(
+      execution.state,
+      retained_bytes,
+      execution_bytes,
+    ) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  let shared = execution.state.original_startup is Some(startup) &&
+    startup.shared_mock is Some(_)
+  if shared {
+    execution.advancing = true
+  }
   let capacity = match
     @resources.reserve_capacity(
       execution.state.ledger,
       retained_bytes,
       execution_bytes,
     ) {
-    Err(issue) => return Err(Ledger(issue))
+    Err(issue) => {
+      if shared {
+        execution.advancing = false
+      }
+      return Err(Ledger(issue))
+    }
     Ok(value) => value
   }
   // No callback/await separates the reservation from this original borrow.
   // Refusal above changes neither the use count nor the capacity serial.
   execution.state.output_uses += 1
-  Ok({ owner: Some(execution), capacity: Some(capacity), })
+  if execution.state.original_startup is Some(startup) &&
+    startup.shared_mock is Some(purpose) {
+    purpose.publication_retained += retained_bytes
+    purpose.publication_execution += execution_bytes
+  }
+  if shared {
+    execution.advancing = false
+  }
+  Ok({
+    owner: Some(execution),
+    capacity: Some(capacity),
+    retained_bytes,
+    execution_bytes,
+  })
 }
 
 ///|
@@ -125,15 +159,41 @@ pub fn release_original_model_publication_capacity(
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
+  if execution.state.original_startup is Some(startup) &&
+    startup.shared_mock is Some(purpose) &&
+    (
+      purpose.publication_retained < value.retained_bytes ||
+      purpose.publication_execution < value.execution_bytes
+    ) {
+    return Err(OutputIdentity)
+  }
+  let shared = execution.state.original_startup is Some(startup) &&
+    startup.shared_mock is Some(_)
+  if shared {
+    execution.advancing = true
+  }
   match @resources.settle_capacity(execution.state.ledger, capacity) {
-    Err(issue) => return Err(Ledger(issue))
+    Err(issue) => {
+      if shared {
+        execution.advancing = false
+      }
+      return Err(Ledger(issue))
+    }
     Ok(_) => ()
   }
   execution.state.output_uses -= 1
+  if execution.state.original_startup is Some(startup) &&
+    startup.shared_mock is Some(purpose) {
+    purpose.publication_retained -= value.retained_bytes
+    purpose.publication_execution -= value.execution_bytes
+  }
   // Retired handles cannot keep the original Model graph alive without funds.
   value.owner = None
   // The closed Resource token also points back to its Ledger/inventory. Do not
   // leave that back-reference in an escaped retired publication handle.
   value.capacity = None
+  if shared {
+    execution.advancing = false
+  }
   Ok(true)
 }

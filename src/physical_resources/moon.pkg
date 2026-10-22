@@ -11,6 +11,10 @@ import {
 
 options(
   targets: {
+    "node_original_source_child_js.mbt": [ "js" ],
+    "node_managed_run_admission_js.mbt": [ "js" ],
+    "node_managed_run_admission_js_wbtest.mbt": [ "js" ],
+    "node_original_source_child_js_wbtest.mbt": [ "js" ],
     "imported_child_ledger_wasm.mbt": [ "wasm" ],
     "imported_child_ledger_unsupported.mbt": [ "not", "wasm" ],
     "imported_child_ledger_unsupported_wbtest.mbt": [ "not", "wasm" ],

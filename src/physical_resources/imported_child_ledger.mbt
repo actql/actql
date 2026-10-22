@@ -361,6 +361,30 @@ pub fn take_imported_original_child_ledger(
 }
 
 ///|
+/// Same taken original child and its exact accounting view, without issuing,
+/// taking, reporting or reserving anything. A scalar/fresh/sibling Ledger is
+/// not a replacement for this import's live physical-owner correspondence.
+pub fn check_imported_original_child_ledger(
+  value : ImportedChildLedger,
+  ledger : Ledger,
+) -> Result[Unit, ImportedChildLedgerIssue] {
+  match imported_child_original(value) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  if value.origin.fixed_capacities || !value.taken || value.origin.stopping {
+    return Err(Unavailable)
+  }
+  guard value.ledger is Some(original) &&
+    physical_equal(original, ledger) &&
+    ledger.imported_child is Some(origin) &&
+    physical_equal(origin, value.origin) else {
+    return Err(ForeignOriginal)
+  }
+  check_imported_child_admission(ledger).map_err(issue => Resource(issue))
+}
+
+///|
 /// Validate the already taken original VM capacity without returning another
 /// Ledger, reserving bytes, or issuing physical/read/launch authority.
 pub fn require_imported_child_vm_capacity(
@@ -460,7 +484,9 @@ pub fn relocate_imported_child_cleanup_usage(
   if value.pending_report is Some(_) {
     return Err(value.pending_report_issue.unwrap_or(Unknown))
   }
-  if !value.attempted || !value.taken || !value.stop_attempted ||
+  if !value.attempted ||
+    !value.taken ||
+    !value.stop_attempted ||
     !value.origin.stopping {
     return Err(Unavailable)
   }
@@ -470,7 +496,8 @@ pub fn relocate_imported_child_cleanup_usage(
   guard value.ledger is Some(ledger) &&
     ledger.imported_child is Some(origin) &&
     physical_equal(origin, value.origin) &&
-    origin.ledger is Some(original) && physical_equal(original, ledger) else {
+    origin.ledger is Some(original) &&
+    physical_equal(original, ledger) else {
     return Err(ForeignOriginal)
   }
   match check_imported_child_ledger(ledger) {
@@ -506,5 +533,9 @@ pub fn relocate_imported_child_cleanup_usage(
 
 ///|
 fn cleanup_quantity_copy(value : QuantityAmounts) -> QuantityAmounts {
-  { tokens: value.tokens, cost_units: value.cost_units, duration_ms: value.duration_ms, }
+  {
+    tokens: value.tokens,
+    cost_units: value.cost_units,
+    duration_ms: value.duration_ms,
+  }
 }

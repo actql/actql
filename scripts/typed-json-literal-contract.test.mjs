@@ -1,10 +1,24 @@
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {test} from 'node:test';
-import {sourceTypedLiteral, nodeTypedLiteral, updateTypedJsonContracts} from './typed-json-literal-contract.mjs';
+import {sourceTypedLiteral, nodeTypedLiteral, updateTypedJsonContracts,
+  typedJsonClientPin} from './typed-json-literal-contract.mjs';
+import {jsonValueWireContractCid, resultSerializationContractCids} from '../packages/sdk/json-value-wire.generated.mjs';
 import {parameterPrograms} from './parameter-schema.mjs';
 import {checkValuesSchemas} from './values-schema.mjs';
 import {checkPivotSchemas} from './pivot-schema.mjs';
+
+test('generated SDK serialization identities match all three independent existing wire vectors', () => {
+  const vectors = JSON.parse(readFileSync('portability/corpus/typed-json-literals.json')).serialization_contracts;
+  assert.deepEqual(Object.keys(vectors), ['json', 'jsonl', 'csv']);
+  assert.deepEqual(resultSerializationContractCids, Object.fromEntries(Object.values(vectors)
+    .map(vector => [vector.preimage.version, vector.cid])));
+  assert(Object.isFrozen(resultSerializationContractCids));
+  for (const vector of Object.values(vectors)) {
+    assert.equal(vector.preimage.json_value_wire_contract_cid, jsonValueWireContractCid);
+  }
+  assert.equal(typedJsonClientPin(), readFileSync('packages/sdk/json-value-wire.generated.mjs', 'utf8'));
+});
 
 test('typed literal has explicit JSON domain and opaque source data', () => {
   assert.equal(sourceTypedLiteral.additionalProperties, false);

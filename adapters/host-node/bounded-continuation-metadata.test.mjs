@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
-import {mkdtemp, mkdir, open, writeFile, symlink, rm} from 'node:fs/promises';
+import {mkdtemp, mkdir, writeFile, symlink, rm} from 'node:fs/promises';
+import fs from 'node:fs/promises';
+import {syncBuiltinESMExports} from 'node:module';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import test from 'node:test';
@@ -185,34 +187,35 @@ test('bounded continuation metadata pre-abort preserves original reason without 
 
 test('bounded continuation metadata retains the same failed original FD until cleanup retry', async t => {
   const {path} = await fixture(t);
-  const probe = await open(path, 'r');
-  const prototype = Object.getPrototypeOf(probe);
-  const stat = prototype.stat;
-  await probe.close();
+  const openOriginal = fs.open;
   let original, close, attempts = 0;
   let rejectClose = true;
   const primary = Object.assign(new Error('OriginalContinuationMetadataClosePending'), {code: 'EIO'});
   t.after(async () => {
-    prototype.stat = stat;
+    fs.open = openOriginal; syncBuiltinESMExports();
     rejectClose = false;
     if (primary.cleanupHandle?.status().pending) await primary.cleanupHandle.retry();
     else if (original?.fd >= 0) await Reflect.apply(close, original, []);
   });
-  prototype.stat = function(...args) {
-    if (new Error().stack.includes('at readBounded ') && original === undefined) {
-      original = this;
-      close = this.close;
-      this.close = async function() {
+  // Install the fault before the reader captures its original close, not
+  // later from stat after that acquisition/capture boundary has passed.
+  fs.open = async function(originalPath, ...args) {
+    const handle = await Reflect.apply(openOriginal, this, [originalPath, ...args]);
+    if (originalPath === path && original === undefined) {
+      original = handle;
+      close = handle.close;
+      handle.close = async function() {
         attempts++;
         if (rejectClose) throw primary;
         await Reflect.apply(close, this, []);
       };
     }
-    return Reflect.apply(stat, this, args);
+    return handle;
   };
+  syncBuiltinESMExports();
   await assert.rejects(readContinuationLedgerBounded(path, 'original-run',
     {maxWireBytes: 273, maxLedgerEntries: 0}), error => error === primary);
-  prototype.stat = stat;
+  fs.open = openOriginal; syncBuiltinESMExports();
   assert(original.fd >= 0);
   assert.equal(attempts, 1);
   const cleanup = primary.cleanupHandle;
@@ -237,10 +240,7 @@ test('bounded continuation metadata retains the same failed original FD until cl
 // read, Store issuer, Ledger, publication or permission is supplied here.
 async function interruptedReader(t, {failedClose = false, readFailure = false, closeAbort = false} = {}) {
   const {path} = await fixture(t);
-  const probe = await open(path, 'r');
-  const prototype = Object.getPrototypeOf(probe);
-  const stat = prototype.stat;
-  await probe.close();
+  const openOriginal = fs.open;
   const abort = new AbortController();
   const primary = new Error(readFailure ? 'OriginalMetadataReadFailed' : 'OriginalScopeCancelled');
   if (failedClose && !readFailure) Object.freeze(primary);
@@ -248,17 +248,18 @@ async function interruptedReader(t, {failedClose = false, readFailure = false, c
   let original, close, failure, reads = 0, closes = 0, released = 0;
   let rejectClose = failedClose;
   t.after(async () => {
-    prototype.stat = stat;
+    fs.open = openOriginal; syncBuiltinESMExports();
     rejectClose = false;
     if (failure?.cleanupHandle?.status().pending) await failure.cleanupHandle.retry();
     else if (original?.fd >= 0) await Reflect.apply(close, original, []);
   });
-  prototype.stat = function(...args) {
-    if (new Error().stack.includes('at readBounded ') && original === undefined) {
-      original = this;
-      const read = this.read;
-      close = this.close;
-      this.read = async function(bytes, offset, length, position) {
+  fs.open = async function(originalPath, ...args) {
+    const handle = await Reflect.apply(openOriginal, this, [originalPath, ...args]);
+    if (originalPath === path && original === undefined) {
+      original = handle;
+      const read = handle.read;
+      close = handle.close;
+      handle.read = async function(bytes, offset, length, position) {
         reads++;
         if (readFailure && reads === 2) throw primary;
         const result = await Reflect.apply(read, this,
@@ -266,7 +267,7 @@ async function interruptedReader(t, {failedClose = false, readFailure = false, c
         if (!readFailure && !closeAbort && result.bytesRead > 0) abort.abort(primary);
         return result;
       };
-      this.close = async function() {
+      handle.close = async function() {
         closes++;
         if (closeAbort) abort.abort(primary);
         if (rejectClose) throw closeFailure;
@@ -274,14 +275,15 @@ async function interruptedReader(t, {failedClose = false, readFailure = false, c
         released++;
       };
     }
-    return Reflect.apply(stat, this, args);
+    return handle;
   };
+  syncBuiltinESMExports();
   try {
     await readContinuationLedgerBounded(path, 'original-run',
       {maxWireBytes: 273, maxLedgerEntries: 0}, abort.signal);
     assert.fail('An interrupted read must not return parsed metadata');
   } catch (error) { failure = error; }
-  prototype.stat = stat;
+  fs.open = openOriginal; syncBuiltinESMExports();
   return {path, original, failure, primary, closeFailure,
     counts: () => ({reads, closes, released}),
     allowClose: () => { rejectClose = false; }};

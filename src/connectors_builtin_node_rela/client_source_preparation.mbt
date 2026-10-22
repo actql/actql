@@ -223,6 +223,7 @@ fn client_program_lower_source(
   environment : @program_check.CheckEnvironment,
   publication : String,
   declarations : String?,
+  public_primary? : Bool = false,
   source_catalog_out? : Array[@program_check.PreparedSourceCatalog]? = None,
 ) -> Result[@source_frontend.Lowered, ClientProgramBridgeIssue] {
   let selected = match @source_frontend.select_format(format) {
@@ -276,6 +277,7 @@ fn client_program_lower_source(
       update_targets~,
       store_targets~,
       command_targets~,
+      public_primary~,
     ) {
     Ok(value) => Ok(value)
     Err(issue) => Err(SourcePreparation(Frontend(issue)))
@@ -315,6 +317,52 @@ pub fn client_program_prepare_source_computation_with_parameters(
   allow_effects : Bool,
   evidence : Array[@context.StageCapacityInput],
 ) -> ClientSourceComputationBridgeOutcome {
+  client_prepare_source_computation(
+    document, format, environment, publication, declarations, parameters, allow_effects,
+    evidence,
+  )
+}
+
+///|
+/// A new public Source selects its primary in the same Common frontend.
+/// The original entry above retains the explicit historical answer recipe;
+/// neither entry renames an admitted or saved Program.
+#export_name("clientProgramPreparePublicSourceComputationWithParameters")
+pub fn client_program_prepare_public_source_computation_with_parameters(
+  document : String,
+  format : String,
+  environment : @program_check.CheckEnvironment,
+  publication : String,
+  declarations : String?,
+  parameters : String?,
+  allow_effects : Bool,
+  evidence : Array[@context.StageCapacityInput],
+) -> ClientSourceComputationBridgeOutcome {
+  client_prepare_source_computation(
+    document,
+    format,
+    environment,
+    publication,
+    declarations,
+    parameters,
+    allow_effects,
+    evidence,
+    public_primary=true,
+  )
+}
+
+///|
+fn client_prepare_source_computation(
+  document : String,
+  format : String,
+  environment : @program_check.CheckEnvironment,
+  publication : String,
+  declarations : String?,
+  parameters : String?,
+  allow_effects : Bool,
+  evidence : Array[@context.StageCapacityInput],
+  public_primary? : Bool = false,
+) -> ClientSourceComputationBridgeOutcome {
   let catalogs : Array[@program_check.PreparedSourceCatalog] = []
   let lowered = match
     client_program_lower_source(
@@ -323,6 +371,7 @@ pub fn client_program_prepare_source_computation_with_parameters(
       environment,
       publication,
       declarations,
+      public_primary~,
       source_catalog_out=Some(catalogs),
     ) {
     Ok(value) => value

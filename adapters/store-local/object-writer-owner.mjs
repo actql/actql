@@ -158,16 +158,22 @@ class ObjectWriterOwner {
         if (this.operations.isReclaiming(cid)) {
           this.operations.fail('PublicationObjectReclamationPending');
         }
-        if (this.trackCustody) {
+        if (this.trackCustody || this.operations.protectInstallation === true) {
           this.custody = await this.operations.registerCustody(
             cid, this.bytes, state,
           );
         }
         const finalPath = this.operations.objectPath(cid);
+        if (this.operations.protectInstallation === true) {
+          // Retain the possible allocation charge before an uncertain link
+          // reply. Cleanup owns it until absence or the same generation's
+          // unlink is physically acknowledged.
+          this.operations.accountInstalled(this.bytes, this.custody, cid, state);
+        }
         try {
           await this.operations.link(this.temporary, finalPath);
           installed = true;
-          this.operations.accountInstalled(this.bytes, this.custody);
+          this.operations.accountInstalled(this.bytes, this.custody, cid, state);
           await this.operations.syncDirectory(this.operations.objectsDirectory);
         } catch (error) {
           if (error?.code !== 'EEXIST') throw error;
@@ -175,6 +181,12 @@ class ObjectWriterOwner {
           if (existing.bytes !== this.bytes) {
             this.operations.fail('PublicationObjectIdentityMismatch');
           }
+          this.operations.discardInstallation?.(cid, this.bytes, state, this.custody);
+        }
+        await this.operations.confirmInstalled?.(cid, this.bytes, state, this.custody, installed);
+        if (!this.trackCustody && this.custody !== undefined) {
+          await this.operations.finishUntrackedCustody(this.custody);
+          this.custody = undefined;
         }
         result = this.custody === undefined
           ? Object.freeze({cid, bytes: this.bytes, created: installed})

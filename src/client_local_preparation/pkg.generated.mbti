@@ -67,7 +67,7 @@ pub fn prepare_local_input(LocalInput, @program_check.CheckEnvironment, @decode_
 
 pub fn prepare_local_input_material(LocalInput, @program_check.CheckEnvironment, @decode_core.Cursor?, LocalInputContext?, @run_publication_host.ClientProgramPreparationLimits) -> Result[LocalPreparedInput, LocalPreparationIssue]
 
-pub fn prepare_local_source_computation(@run_publication_host.ClientSubmittedIntent, @program_check.CheckEnvironment, String) -> Result[@run_publication_host.ClientSourcePreparation, @run_publication_host.ClientSourcePreparationIssue]
+pub fn prepare_local_source_computation(@run_publication_host.ClientSubmittedIntent, @program_check.CheckEnvironment, String, public_primary? : Bool, publication_environment? : @client_source_publication.PreparedPublishedQueryEnvironment?) -> Result[@run_publication_host.ClientSourcePreparation, @run_publication_host.ClientSourcePreparationIssue]
 
 pub fn prepare_local_submitted_input(String, @program_check.CheckEnvironment, LocalInputContext?, @run_publication_host.ClientProgramPreparationLimits) -> Result[LocalSubmittedPreparation, LocalPreparationIssue]
 

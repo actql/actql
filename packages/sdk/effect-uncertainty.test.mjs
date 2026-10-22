@@ -126,20 +126,19 @@ test('typed Effect explanations separate physical stop, owner revision and recon
 
 for (const operation of ['status', 'wait', 'reconcile']) {
   for (const kind of ['proxy', 'date', 'control-date', 'action-date']) {
-    test(`Local ${operation}: Effect custody refuses ${kind} clone failure or shape loss`, async t => {
+    test(`Local ${operation}: Effect custody captures ${kind} data without a verification clone`, async t => {
       const value = state(20, {revision: 4, cancellation_requested: false,
         physical_stop: 'confirmed'});
-      const reply = value;
+      const reply = kind === 'proxy' ? new Proxy(value, {})
+        : kind === 'date' ? Object.assign(new Date(0), value)
+          : {...value, [kind === 'control-date' ? 'control' : 'next_action']:
+            Object.assign(new Date(0), value[kind === 'control-date' ? 'control' : 'next_action'])};
       assert.equal(validRunState(reply), true);
       const nativeClone = globalThis.structuredClone;
+      let conversions = 0;
       t.mock.method(globalThis, 'structuredClone', received => {
-        if (received?.run_id !== value.run_id) return nativeClone(received);
-        if (kind === 'proxy') return nativeClone(new Proxy(received, {}));
-        if (kind === 'date') return nativeClone(Object.assign(new Date(0), received));
-        const copy = nativeClone(received);
-        const field = kind === 'control-date' ? 'control' : 'next_action';
-        copy[field] = Object.assign(new Date(0), copy[field]);
-        return nativeClone(copy);
+        if (received?.run_id === value.run_id) conversions++;
+        return nativeClone(received);
       });
       const operations = [];
       const client = await connectInProcess({mode: 'local', owner: 'local'}, {
@@ -153,10 +152,10 @@ for (const operation of ['status', 'wait', 'reconcile']) {
       });
       t.after(() => client.close());
       const execution = await client.attach(ref);
-      let refused = false;
-      try { await execution[operation](); }
-      catch (error) { refused = error?.code === 'InvalidHostRunState'; }
-      assert.equal(refused, true, '[check-mutation:effect-copied-shape]');
+      const answer = await execution[operation]();
+      assert.deepEqual(answer, value);
+      assert.deepEqual(explainEffectUncertainty(answer), expected('confirmed', 4));
+      assert.equal(conversions, 0);
       assert.equal(explainEffectUncertainty(reply), undefined);
       assert.deepEqual(operations, ['connect', 'attach', operation]);
     });

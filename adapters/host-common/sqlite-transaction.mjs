@@ -66,10 +66,25 @@ export function createSqliteTransaction(database, prefix) {
 // Keep the transaction failure and expose a retryable cleanup owner instead.
 export function throwSqliteInitializationFailure(database, primaryFailure,
   owner) {
-  try { database.close(); }
+  let originalClose;
+  const close = () => {
+    if (originalClose === undefined) {
+      const selected = database.close;
+      if (typeof selected !== 'function') {
+        throw new TypeError('SqliteInitializationCloseUnavailable');
+      }
+      originalClose = selected;
+    }
+    const observation = Reflect.apply(originalClose, database, []);
+    if (observation !== undefined) {
+      throw new TypeError('SqliteInitializationClosePending', {cause: observation});
+    }
+  };
+  try { close(); }
   catch (closeFailure) {
-    const errors = [Object.freeze({owner, error: closeFailure})];
-    let pending = true;
+    const first = Object.freeze({owner, error: closeFailure});
+    let latest = first;
+    let pending = true, closing = false;
     const failure = Object.assign(new Error(
       'SqliteJournalInitializationCleanupPending',
       {cause: primaryFailure}), {
@@ -78,15 +93,18 @@ export function throwSqliteInitializationFailure(database, primaryFailure,
     });
     const status = () => Object.freeze({pending,
       owners: Object.freeze(pending ? [owner] : []),
-      errors: Object.freeze([...errors])});
+      errors: Object.freeze(first === latest ? [first] : [first, latest])});
     const retry = () => {
+      // Reentry can observe this original close flight, not start another.
+      if (closing) return status();
       if (pending) {
+        closing = true;
         try {
-          database.close();
+          close();
           pending = false;
         } catch (error) {
-          errors.push(Object.freeze({owner, error}));
-        }
+          latest = Object.freeze({owner, error});
+        } finally { closing = false; }
       }
       failure.cleanupPending = pending;
       failure.cleanupErrors = status().errors;

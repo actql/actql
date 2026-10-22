@@ -127,26 +127,16 @@ for (const [field, later] of [
   });
 }
 
-for (const fault of ['replacement', 'mutation', 'throw']) {
-  test(`cancellation lookup rejects input clone ${fault} before dispatch`, async t => {
-    const f = await fixture(t, body => ({kind: 'unknown', cancelRef: {...body.ref,
-      cancelId: body.cancelId, expectedRevision: body.expectedRevision}}));
-    const clone = globalThis.structuredClone;
-    t.after(() => {globalThis.structuredClone = clone;});
-    globalThis.structuredClone = value => {
-      if (value.cancelId === 'original-cancel' && value.expectedRevision === 19) {
-        if (fault === 'throw') throw new Error('private clone cause');
-        if (fault === 'mutation') value.cancelId = 'mutated-cancel';
-        const copy = clone(value);
-        if (fault === 'replacement') copy.cancelId = 'replacement-cancel';
-        return copy;
-      }
-      return clone(value);
-    };
-    let failure;
-    try {await f.run.lookupCancellation({...cancelRef});} catch (error) {failure = error;}
-    assert.equal(failure?.code, 'InvalidCancellationReference', '[check-mutation:cancel-lookup-input-copy]');
-    assert.deepEqual(f.calls.map(c => c.operation), ['connect', 'attach']);
-    assert.equal(explainCancellation(failure), undefined);
+test('cancellation lookup captures caller identity once without a verification clone', async t => {
+  const f = await fixture(t, body => ({kind: 'unknown', cancelRef: {...body.ref,
+    cancelId: body.cancelId, expectedRevision: body.expectedRevision}}));
+  const nativeClone = globalThis.structuredClone;
+  const clone = t.mock.method(globalThis, 'structuredClone', value => {
+    if (Object.hasOwn(value, 'connection')) return nativeClone(value);
+    assert.fail('Unexpected response verification clone');
   });
-}
+  const answer = await f.run.lookupCancellation({...cancelRef});
+  assert.deepEqual(explainCancellation(answer), unknownExplanation);
+  assert.equal(clone.mock.calls.filter(({arguments: [value]}) => !Object.hasOwn(value, 'connection')).length, 0);
+  assert.deepEqual(f.calls.map(c => c.operation), ['connect', 'attach', 'lookup-cancellation']);
+});

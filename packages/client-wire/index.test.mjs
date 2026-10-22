@@ -111,6 +111,28 @@ test('Host request preparation owns each submission request with its existing sn
   }
 });
 
+test('retained Host request facts reuse only the same immutable packet and operation', () => {
+  const original = {connection, ref:{...ref}};
+  const prepared = prepareClientHostRequest('attach', original, true);
+  assert.ok(prepared);
+  assert.notStrictEqual(prepared.body.ref, original.ref);
+  assert.ok(Object.isFrozen(prepared.body));
+  assert.ok(Object.isFrozen(prepared.body.ref));
+  original.ref.namespaceId = 'changed-after-capture';
+  assert.equal(prepared.body.ref.namespaceId, ref.namespaceId);
+  // A new explicit wire admission is not a persistent/global validation cache.
+  // Only the existing deferred ingress retains the original operation facts.
+  assert.notStrictEqual(prepareClientHostRequest('attach', prepared.body), prepared);
+  const copied = prepareClientHostRequest('attach', {...prepared.body}, true);
+  assert.ok(copied);
+  assert.notStrictEqual(copied, prepared);
+  assert.notStrictEqual(copied.body, prepared.body);
+  const otherOperation = prepareClientHostRequest('status', prepared.body, true);
+  assert.ok(otherOperation);
+  assert.notStrictEqual(otherOperation, prepared);
+  assert.equal(prepareClientHostRequest('submit-intent', prepared.body, true), undefined);
+});
+
 test('public wire accepts the exact connected request shapes', () => {
   // Run, request, submission-intent, read-only Plan, check and discovery.
   assert.deepEqual([...clientHostOperations].sort(), [

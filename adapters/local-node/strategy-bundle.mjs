@@ -14,7 +14,8 @@ import {beginManagedFailureProgress, recordManagedFailureExecutionSettled,
   settleFailedManagedOperations} from
   '../host-common/managed-failure.mjs';
 
-const yieldToHost = () => new Promise(resolve => setTimeout(resolve, 0));
+const yieldToHost = () => new Promise(resolve =>
+  typeof setImmediate === 'function' ? setImmediate(resolve) : setTimeout(resolve, 0));
 const managedWorkQuantum = 256;
 const managedFinalizationQuantum = 32;
 

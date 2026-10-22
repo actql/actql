@@ -1,6 +1,7 @@
 // Carry one installed, generation-bound query name publication into the
 // in-process Frontend. MoonBit checks its members against the admitted
 // Check Environment before lowering or preparing a Program.
+import {sourceAliasPublicationOriginal} from './source-alias-publication.mjs';
 const cidPattern = /^sha256:[0-9a-f]{64}$/u;
 const aliasKeys = ['name', 'schemaContractCid', 'sourceRef',
   'sourceViewContractCid'];
@@ -38,45 +39,76 @@ function checkedPublication(moon, environment, publication) {
   if (Buffer.byteLength(wire) > maxPublicationBytes ||
       hasWrites && (!Array.isArray(selected.tableWrites) || selected.tableWrites.length > maxAliases) ||
       hasUpdates && (!Array.isArray(selected.updateTargets) || selected.updateTargets.length > maxAliases) ||
-      hasStores && (!Array.isArray(selected.storeTargets) || selected.storeTargets.length > maxAliases) ||
-      (hasWrites || hasUpdates || hasStores) &&
-        (typeof moon.clientProgramSourcePublicationValid !== 'function' ||
-         !moon.clientProgramSourcePublicationValid(environment, wire))) {
+      hasStores && (!Array.isArray(selected.storeTargets) || selected.storeTargets.length > maxAliases)) {
     throw new TypeError('InvalidPublicSourcePublication');
   }
   return wire;
 }
 
 export function installNodePublicSourcePreparation({moon, environment,
-  publication, allowEffects = false, effectEvidence = []}) {
+  publication, allowEffects = false, effectEvidence = [], getPreparedSourceEnvironment}) {
   if (moon === null || typeof moon !== 'object' ||
       typeof moon.clientProgramCheckingEnvironmentCid !== 'function' ||
       environment === undefined || typeof allowEffects !== 'boolean' ||
-      !Array.isArray(effectEvidence) || effectEvidence.length > 1024) {
+      !Array.isArray(effectEvidence) || effectEvidence.length > 1024 ||
+      (getPreparedSourceEnvironment !== undefined && typeof getPreparedSourceEnvironment !== 'function')) {
     throw new TypeError('InvalidPublicSourcePreparationInstallation');
   }
-  const aliasesWire = checkedPublication(moon, environment, publication);
-  const evidence = Object.freeze([...effectEvidence]);
+  let original = sourceAliasPublicationOriginal(moon, environment, publication);
+  if (getPreparedSourceEnvironment !== undefined && original === undefined) {
+    throw new TypeError('InvalidPublicSourcePublication');
+  }
+  let preparedEnvironment = original === undefined
+    ? (typeof moon.clientProgramPreparePublicSourceEnvironment !== 'function' ? undefined
+      : moon.clientProgramPreparePublicSourceEnvironment(environment,
+        checkedPublication(moon, environment, publication)))
+    : original.preparedEnvironment;
+  if (preparedEnvironment === undefined ||
+      typeof moon.clientProgramPublicSourceEnvironmentMatches !== 'function' ||
+      !moon.clientProgramPublicSourceEnvironmentMatches(preparedEnvironment, environment) ||
+      (getPreparedSourceEnvironment !== undefined &&
+        getPreparedSourceEnvironment() !== preparedEnvironment)) {
+    throw new TypeError('InvalidPublicSourcePublication');
+  }
+  const currentEnvironment = () => {
+    if (preparedEnvironment === undefined) {
+      throw new TypeError('InvalidPublicSourcePreparationEnvironment');
+    }
+    if (getPreparedSourceEnvironment !== undefined &&
+        getPreparedSourceEnvironment() !== preparedEnvironment) {
+      throw new TypeError('InvalidPublicSourcePreparationEnvironment');
+    }
+    return preparedEnvironment;
+  };
+  let evidence = Object.isFrozen(effectEvidence) ? effectEvidence : Object.freeze([...effectEvidence]);
+  // The active holder needs only the admitted value, not a second path through
+  // the association or the constructor's publication and evidence arguments.
+  original = publication = effectEvidence = undefined;
   return Object.freeze({
+    // Called only by the owning Host's final successful retirement. This cuts
+    // managed aliases; it neither retires another holder nor acknowledges I/O.
+    retireSourceEnvironment() {
+      preparedEnvironment = environment = evidence = getPreparedSourceEnvironment = undefined;
+    },
     // JSON has already selected its Program syntax; it must not be lowered as
     // text. Carry the same snapshotted installation into the existing Effect
     // preparation Owner instead of dropping its original target selections.
     prepareEffect({document, format, supplied}) {
-      if (!allowEffects || typeof moon.clientProgramPreparePublishedEffectComputationWithParameters !== 'function') {
+      if (!allowEffects || typeof moon.clientProgramPrepareEffectComputationInPublicEnvironment !== 'function') {
         throw Object.assign(new Error('ClientProgramUnsupported'), {code: 'ClientProgramUnsupported'});
       }
-      return moon.clientProgramPreparePublishedEffectComputationWithParameters(
-        document, format, environment, aliasesWire, supplied, evidence);
+      return moon.clientProgramPrepareEffectComputationInPublicEnvironment(
+        document, format, environment, currentEnvironment(), supplied, evidence);
     },
     prepare({document, format, declarations, supplied}) {
-      if (typeof moon.clientProgramPrepareSourceComputationWithParameters !== 'function' ||
+      if (typeof moon.clientProgramPrepareSourceComputationInPublicEnvironment !== 'function' ||
           typeof moon.clientProgramSourceComputationPure !== 'function' ||
           typeof moon.clientProgramSourceComputationEffect !== 'function') {
         throw Object.assign(new Error('ClientProgramUnsupported'),
           {code: 'ClientProgramUnsupported'});
       }
-      const outcome = moon.clientProgramPrepareSourceComputationWithParameters(
-        document, format, environment, aliasesWire, declarations, supplied,
+      const outcome = moon.clientProgramPrepareSourceComputationInPublicEnvironment(
+        document, format, environment, currentEnvironment(), declarations, supplied,
         allowEffects, evidence);
       const pure = moon.clientProgramSourceComputationPure(outcome);
       const effect = moon.clientProgramSourceComputationEffect(outcome);

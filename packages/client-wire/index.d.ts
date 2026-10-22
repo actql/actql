@@ -313,6 +313,7 @@ export declare function validResourcePeek(value: unknown,
 export declare function snapshotClientRequest(value: unknown): unknown;
 /** Existing check entry point into the same request snapshot owner. */
 export declare function snapshotCheckRequest(value: unknown): unknown;
-/** Synchronous Host admission and snapshot; no authentication or authorization. */
+/** Synchronous Host admission; optional immutable capture for deferred ingress.
+ * The result contains shape facts, never authentication or authorization. */
 export declare function prepareClientHostRequest(operation: ClientHostOperation,
-  value: unknown): Readonly<{body: unknown; connection: WireConnection}> | undefined;
+  value: unknown, retainSnapshot?: boolean): Readonly<{body: unknown; connection: WireConnection}> | undefined;

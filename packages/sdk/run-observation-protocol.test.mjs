@@ -120,17 +120,20 @@ const copyFaults = [
   }],
 ];
 for (const operation of ['status', 'wait', 'reconcile']) {
-  test(`${operation}: equivalent Run copies preserve original strings and explanation custody`, async t => {
+  test(`${operation}: one captured Run preserves original strings without verification clones`, async t => {
     const original = unresolved();
     const {run} = await fixture(t, () => original);
     const clone = globalThis.structuredClone;
     t.after(() => { globalThis.structuredClone = clone; });
+    let conversions = 0;
     globalThis.structuredClone = value => {
+      if (value?.version === 'actql-run-state/0.1') conversions++;
       const copy = clone(value);
       return value?.version === 'actql-run-state/0.1'
         ? Object.fromEntries(Object.entries(copy).reverse()) : copy;
     };
     const answer = await run[operation]();
+    assert.equal(conversions, 0);
     original.next_action.effects[0] = 'later-host-value';
     original.control.physical_stop = 'confirmed';
     assert.deepEqual(answer, unresolved());
@@ -145,25 +148,22 @@ for (const operation of ['status', 'wait', 'reconcile']) {
     assert.equal(explainEffectUncertainty(clone(answer)), undefined);
   });
   for (const [name, alter] of copyFaults) {
-    test(`${operation}: copied Run observation cannot replace ${name}`, async t => {
+    test(`${operation}: later Host getter values cannot replace captured ${name}`, async t => {
       const original = unresolved();
-      const {run, operations} = await fixture(t, () => original);
-      const clone = globalThis.structuredClone;
-      t.after(() => { globalThis.structuredClone = clone; });
-      globalThis.structuredClone = value => {
-        const copy = clone(value);
-        if (value?.version === 'actql-run-state/0.1') {
-          alter(copy);
-          assert.equal(validRunState(copy), true, 'Fault must retain the known wire shape');
-        }
-        return copy;
-      };
-      let rejected;
-      try { await run[operation](); } catch (error) { rejected = error; }
-      assert.equal(rejected?.code, 'InvalidHostRunState', '[check-mutation:run-copy-preservation]');
-      assert.deepEqual(explainRunObservationFailure(rejected)?.next, {operation: 'status', ref});
-      assert.equal(explainEffectUncertainty(rejected), undefined);
-      assert.equal(Object.hasOwn(rejected, 'cause'), false);
+      const changed = structuredClone(original); alter(changed);
+      assert.equal(validRunState(changed), true, 'Replacement retains the known wire shape');
+      const reads = {}, reply = {};
+      for (const key of Object.keys(original)) Object.defineProperty(reply, key, {
+        enumerable: true, get() {
+          reads[key] = (reads[key] ?? 0) + 1;
+          return reads[key] === 1 ? original[key] : changed[key];
+        },
+      });
+      const {run, operations} = await fixture(t, () => reply);
+      const answer = await run[operation]();
+      assert.deepEqual(answer, original);
+      assert.deepEqual(explainEffectUncertainty(answer).effects, original.next_action.effects);
+      assert.ok(Object.values(reads).every(count => count === 1));
       assert.deepEqual(operations, ['connect', 'attach', operation]);
       assert.deepEqual(original, unresolved());
     });
@@ -331,67 +331,19 @@ for (const path of paths) {
   });
 }
 
-for (const path of paths.filter(value => ['lookupRequest', 'held submit', 'cancel', 'deliveryAttempt', 'check'].includes(value.name))) {
-  test(`${path.name}: a well-shaped clone cannot replace captured facts`, async t => {
-    const reply = path.reply(), f = await responseFixture(t, reply);
-    if (path.name === 'deliveryAttempt') { reply.record = {...path.first}; reply.hostReleaseReceipt = null; }
-    const nativeClone = globalThis.structuredClone;
-    t.after(() => { globalThis.structuredClone = nativeClone; });
-    globalThis.structuredClone = value => {
-      const copy = nativeClone(value);
-      const payload = value?.held ?? value;
-      const copied = copy?.held ?? copy;
-      if (payload?.[path.key] === undefined) return copy;
-      copied[path.key] = nativeClone(path.later);
-      if (path.name === 'cancel') copy.cancellation.revision = 99;
-      if (path.name === 'deliveryAttempt') copy.hostReleaseReceipt = nativeClone(delivery.hostReleaseReceipt);
-      return copy;
-    };
-    let error; try { await path.call(f); } catch (cause) { error = cause; }
-    assert.equal(error?.code, path.code, '[check-mutation:response-capture-copy]');
-    assert.equal(f.operations.length, 3);
-  });
-}
-
 for (const path of paths) {
-  test(`${path.name}: validation-copy getters cannot rebind admitted facts`, async t => {
+  test(`${path.name}: original captured facts need zero verification clones`, async t => {
     const reply = path.reply(); reply[path.key] = path.first;
     if (path.name === 'deliveryAttempt') reply.hostReleaseReceipt = null;
     const f = await responseFixture(t, reply);
     const nativeClone = globalThis.structuredClone;
-    t.after(() => { globalThis.structuredClone = nativeClone; });
-    globalThis.structuredClone = value => {
-      const copy = nativeClone(value);
-      const payload = value?.held ?? value;
-      const copied = copy?.held ?? copy;
-      if (payload?.[path.key] === undefined) return copy;
-      let settled = false;
-      queueMicrotask(() => { settled = true; });
-      Object.defineProperty(copied, path.key, {enumerable: true, configurable: true,
-        get() { return settled ? path.later : path.first; }});
-      return copy;
-    };
+  const clone = t.mock.method(globalThis, 'structuredClone', value => {
+    if (Object.hasOwn(value, 'connection')) return nativeClone(value);
+    assert.fail('Unexpected response verification clone');
+  });
     const answer = await path.call(f);
     path.assert(answer);
-    assert.equal(f.operations.length, 3);
-  });
-}
-
-for (const path of paths) {
-  test(`${path.name}: verification conversion cannot mutate the admitted snapshot`, async t => {
-    const reply = path.reply(); reply[path.key] = path.first;
-    if (path.name === 'deliveryAttempt') reply.hostReleaseReceipt = null;
-    const f = await responseFixture(t, reply);
-    const nativeClone = globalThis.structuredClone;
-    t.mock.method(globalThis, 'structuredClone', value => {
-      const copy = nativeClone(value);
-      const payload = value?.held ?? value;
-      if (payload?.[path.key] !== undefined) payload[path.key] = nativeClone(
-        path.name === 'deliveryAttempt' ? {...path.first, sequence: path.first.sequence + 1} : path.later);
-      return copy;
-    });
-    let error; try { await path.call(f); } catch (cause) { error = cause; }
-    assert.equal(error?.code, path.code, '[check-mutation:response-capture-original]');
+    assert.equal(clone.mock.calls.filter(({arguments: [value]}) => !Object.hasOwn(value, 'connection')).length, 0);
     assert.equal(f.operations.length, 3);
   });
 }

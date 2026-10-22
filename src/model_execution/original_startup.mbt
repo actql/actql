@@ -1,6 +1,6 @@
 ///|
 // Fixed consumer-interface proposal; publication does not adopt a byte policy.
-// Before issuance, the original owner must fund this seven-field record, the
+// Before issuance, the original owner must fund this record, the
 // additional ModelState reference, validation and all simultaneous backend
 // allocations. Byte arguments below are reviewed grants, not census estimates.
 struct OriginalModelStartup {
@@ -10,6 +10,7 @@ struct OriginalModelStartup {
   capacity : @resources.CapacityReservation
   retained_bytes : Int64
   execution_bytes : Int64
+  shared_mock : OriginalMockPurpose?
   mut used : Bool
 }
 
@@ -47,6 +48,7 @@ pub fn prepare_original_model_startup(
     capacity,
     retained_bytes,
     execution_bytes,
+    shared_mock: None,
     used: false,
   })
 }
@@ -63,7 +65,10 @@ pub fn prepare_original_model_consumer_startup(
   rows : @relation.PreparedInferRows,
   retained_bytes : Int64,
   execution_bytes : Int64,
-) -> Result[OriginalModelStartup, @publication_host.ClientModelInputCapacityIssue] {
+) -> Result[
+  OriginalModelStartup,
+  @publication_host.ClientModelInputCapacityIssue,
+] {
   if retained_bytes <= 0L || execution_bytes < 0L {
     return Err(Read(Resource(@resources.Resource(@resources.InvalidCharge))))
   }
@@ -74,7 +79,16 @@ pub fn prepare_original_model_consumer_startup(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  Ok({ rows, scope: Some(scope), ledger, capacity, retained_bytes, execution_bytes, used: false, })
+  Ok({
+    rows,
+    scope: Some(scope),
+    ledger,
+    capacity,
+    retained_bytes,
+    execution_bytes,
+    shared_mock: None,
+    used: false,
+  })
 }
 
 ///|
@@ -142,6 +156,7 @@ fn original_model_startup_matches(
   scope : @publication_host.ClientInferCallScope?,
   limits : ModelExecutionLimits,
   quantities : ModelQuantityCapacity?,
+  provider : ModelProvider?,
 ) -> Bool {
   !value.used &&
   physical_equal(value.rows, rows) &&
@@ -150,7 +165,7 @@ fn original_model_startup_matches(
     (None, None) => true // Only whitebox fixtures construct an unscoped token.
     _ => false
   }) &&
-  @resources.ledger_limits(value.ledger) == limits.ledger &&
+  original_model_startup_limits_match(value, limits, provider) &&
   @resources.quantity_configuration_matches(
     value.ledger,
     quantities.map(value => value.limits),

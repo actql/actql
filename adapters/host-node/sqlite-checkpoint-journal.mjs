@@ -389,6 +389,12 @@ export function openSqliteCheckpointJournal(root, {
 
   try {
   const statements = {
+    localSigning: database.prepare(
+      'SELECT value FROM journal_metadata WHERE key = ?'),
+    insertLocalSigning: database.prepare(
+      'INSERT INTO journal_metadata (key, value) VALUES (?, ?)'),
+    updateLocalSigning: database.prepare(
+      'UPDATE journal_metadata SET value = ? WHERE key = ? AND value = ?'),
     run: database.prepare('SELECT * FROM runs WHERE run_id = ?'),
     insertRun: database.prepare(`
       INSERT INTO runs (run_id, status, version, updated_at,
@@ -926,6 +932,34 @@ export function openSqliteCheckpointJournal(root, {
   return Object.freeze({
     path,
 
+    // Private Local Reviewer custody in THIS original Journal, not another
+    // signing store or a public grant API. The caller retains the authenticated
+    // operation, policy, key and current authority. A successful transition is
+    // observed only after the original FULL transaction confirms its COMMIT.
+    localSigningRecord(operationCid) {
+      if (closed) fail('CheckpointJournalClosed');
+      if (!cid(operationCid)) fail('InvalidLocalSigningOperation');
+      return statements.localSigning.get('local-signing/' + operationCid)?.value;
+    },
+    transitionLocalSigningRecord(operationCid, previous, next) {
+      if (closed) fail('CheckpointJournalClosed');
+      if (!cid(operationCid) || typeof next !== 'string' ||
+          Buffer.byteLength(next, 'utf8') > 32768 ||
+          previous !== undefined && typeof previous !== 'string') {
+        fail('InvalidLocalSigningOperation');
+      }
+      const key = 'local-signing/' + operationCid;
+      return transaction.run(() => {
+        const observed = statements.localSigning.get(key)?.value;
+        if (observed !== previous) fail('LocalSigningOriginalConflict');
+        if (previous === undefined) statements.insertLocalSigning.run(key, next);
+        else changed(statements.updateLocalSigning.run(next, key, previous),
+          'LocalSigningOriginalConflict');
+        fault('localSigningRecord');
+        return next;
+      });
+    },
+
     // The Core lifecycle owns outcome classification. Unknown host values
     // cannot authorize retirement; cleanup and Result custody are separate.
     isTerminalRunOutcome(status) {
@@ -1334,6 +1368,18 @@ export function openSqliteCheckpointJournal(root, {
       core(runtime.checkpointAdmit(row.checkpoint_wire),
         'CheckpointJournalCorrupt');
       return checkpointView(row.checkpoint_wire, row);
+    },
+
+    // Original bytes for this journal's private signing connection, not an
+    // incoming summary or a newly reconstructed Checkpoint. Its caller must
+    // retain the same read/current/closure checks before and after callbacks.
+    originalCheckpointForSigning(reference) {
+      alive();
+      const row = rowFor(reference);
+      if (row === undefined) fail('CheckpointUnavailable');
+      core(runtime.checkpointAdmit(row.checkpoint_wire), 'CheckpointJournalCorrupt');
+      return Object.freeze({wire: row.checkpoint_wire,
+        view: checkpointView(row.checkpoint_wire, row)});
     },
 
     getRunState(runId) {

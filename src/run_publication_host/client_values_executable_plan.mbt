@@ -34,6 +34,15 @@ pub struct ClientTaskExecutablePlan {
 }
 
 ///|
+// Same-construction immutable parts, not a cache, capability or new Owner.
+priv struct ClientValuesExecutablePlanParts {
+  owner : PreparedClientProgram
+  plan : ClientValuesExecutablePlan
+  template : @publication.RunEvidenceValue
+  fragment : ClientValuesFragmentNode
+}
+
+///|
 pub fn client_task_executable_plan_wire(
   value : ClientTaskExecutablePlan,
 ) -> String {
@@ -127,6 +136,23 @@ pub fn issue_prepared_client_values_executable_plan(
   max_nodes : Int,
   max_depth : Int,
 ) -> Result[ClientValuesExecutablePlan, ClientValuesExecutablePlanIssue] {
+  issue_prepared_client_values_executable_plan_parts(
+    value, manifests, sequence_limits, max_facts, max_witnesses, max_wire_bytes,
+    max_nodes, max_depth,
+  ).map(parts => parts.plan)
+}
+
+///|
+fn issue_prepared_client_values_executable_plan_parts(
+  value : PreparedClientProgram,
+  manifests : ClientCompilationManifests,
+  sequence_limits : @lower.SequenceLimits,
+  max_facts : Int,
+  max_witnesses : Int,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[ClientValuesExecutablePlanParts, ClientValuesExecutablePlanIssue] {
   if max_facts <= 0 ||
     max_witnesses <= 0 ||
     max_wire_bytes <= 0 ||
@@ -134,16 +160,23 @@ pub fn issue_prepared_client_values_executable_plan(
     max_depth <= 0 {
     return Err(InvalidLimits)
   }
-  let graph = match
-    issue_prepared_client_values_plan_graph(
+  let (graph, fragment, aoa) = match
+    issue_prepared_client_values_plan_graph_parts(
       value, sequence_limits, max_wire_bytes, max_nodes, max_depth,
     ) {
-    Ok(graph) => graph
+    Ok(parts) => parts
     Err(issue) => return Err(Graph(issue))
   }
+  let template = match
+    issue_source_free_client_bound_template_from_aoa(
+      value, manifests, aoa, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(template) => template
+    Err(issue) => return Err(Material(Template(issue)))
+  }
   let material = match
-    issue_prepared_client_values_execution_material(
-      value, manifests, sequence_limits, max_wire_bytes, max_nodes, max_depth,
+    issue_prepared_client_execution_material_with_template(
+      value, manifests, template, max_wire_bytes, max_nodes, max_depth,
     ) {
     Ok(material) => material
     Err(issue) => return Err(Material(issue))
@@ -158,7 +191,7 @@ pub fn issue_prepared_client_values_executable_plan(
     max_wire_bytes,
     max_nodes,
     max_depth,
-  )
+  ).map(plan => { owner: value, plan, template, fragment, })
 }
 
 ///|

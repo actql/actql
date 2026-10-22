@@ -442,18 +442,8 @@ export function createCheckOperation(connection, exchange, responseValue) {
       catch { throw rejectedCheck(body, 'malformed_response'); }
       const header = rejectedCheckHeader(outcome);
       const reject = () => { throw rejectedCheck(body, rejectedCheckProblem(header)); };
-      const observation = outcome;
       try {
         if (!validCheckOutcome(outcome)) reject();
-        const observedKey = structuralKey(outcome);
-        // Own this call's value before binding or freezing it. A Local Host may
-        // reuse its response object without replacing a previous SDK observation.
-        try { outcome = structuredClone(outcome); }
-        catch { reject(); }
-        if (!validCheckOutcome(outcome)) reject();
-        if (structuralKey(outcome) !== observedKey) reject();
-        if (structuralKey(observation) !== observedKey) reject();
-        outcome = observation;
         if (!bindCheckObservation(outcome, body)) reject();
       } catch (cause) {
         checkInputs.delete(outcome);

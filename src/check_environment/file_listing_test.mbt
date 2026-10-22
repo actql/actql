@@ -325,7 +325,6 @@ test "File listing declaration enforces fixed required roles independently from 
     (path, replacement) in [
       (["fields", "version", "nullable"], Json::boolean(true)),
       (["fields", "resource", "resource_kind"], Json::string("foreign")),
-      (["fields", "path", "nullable"], Json::boolean(false)),
       (["fields", "size_bytes", "type"], Json::string("string")),
       (["fields", "name", "nullable"], Json::boolean(true)),
     ] {
@@ -360,5 +359,152 @@ test "File listing declaration enforces fixed required roles independently from 
       request_limits(),
     )
     is Ok(_),
+  )
+}
+
+///|
+fn native_file_listing_fixture_schema() -> Json raise {
+  let schema = file_listing_fixture_schema()
+  for
+    (name, contract) in [
+      ("size", ({ "type": "int64", "nullable": false } : Json)),
+      ("modified_time", ({ "type": "timestamp", "nullable": false } : Json)),
+    ] {
+    mutate_reference_fixture(schema, ["fields", name], 0, Some(contract))
+  }
+  mutate_reference_fixture(
+    schema,
+    ["fields", "path", "nullable"],
+    0,
+    Some(Json::boolean(false)),
+  )
+  schema
+}
+
+///|
+test "File listing admits the complete native metadata schema and stronger nonnull roles" {
+  let schema = native_file_listing_fixture_schema()
+  let carriers = file_listing_fixture_carriers(
+    Some(file_listing_fixture_profile()),
+    schema~,
+  )
+  let checked = check_source_request_contracts(carriers, request_limits()).unwrap()
+  let profile = source_request_file_listing(
+    source_request_at(checked, 0).unwrap(),
+  ).unwrap()
+  assert_true(file_listing_accepts(profile, "paths"))
+  assert_true(file_listing_accepts(profile, "glob"))
+  // Each full output contract was admitted by the existing Carrier Owner;
+  // this profile retains its complete output-schema CID, not a seven-field CID.
+  let seven = check_source_request_contracts(
+    file_listing_fixture_carriers(Some(file_listing_fixture_profile())),
+    request_limits(),
+  ).unwrap()
+  let old_profile = source_request_file_listing(
+    source_request_at(seven, 0).unwrap(),
+  ).unwrap()
+  assert_true(
+    file_listing_facts_cid(profile) != file_listing_facts_cid(old_profile),
+  )
+  let (work, roles, _) = source_request_usage(checked)
+  let (old_work, _, _) = source_request_usage(seven)
+  assert_true(work > old_work)
+  assert_true(
+    check_source_request_contracts(carriers, {
+      max_work: work,
+      max_roles: roles,
+    })
+    is Ok(_),
+  )
+  assert_true(
+    check_source_request_contracts(carriers, {
+      max_work: work - 1,
+      max_roles: roles,
+    })
+    is Err(issue) &&
+    issue.kind == WorkLimit,
+  )
+  for name in ["path", "media_type", "size_bytes", "modified_at"] {
+    let refined = file_listing_fixture_schema()
+    mutate_reference_fixture(
+      refined,
+      ["fields", name, "nullable"],
+      0,
+      Some(Json::boolean(false)),
+    )
+    assert_true(
+      check_source_request_contracts(
+        file_listing_fixture_carriers(
+          Some(file_listing_fixture_profile()),
+          schema=refined,
+        ),
+        request_limits(),
+      )
+      is Ok(_),
+    )
+  }
+}
+
+///|
+test "Native listing metadata cannot replace canonical roles or their exact schema identity" {
+  for
+    name in [
+      "resource", "version", "name", "path", "media_type", "size_bytes", "modified_at",
+    ] {
+    let schema = native_file_listing_fixture_schema()
+    mutate_reference_fixture(schema, ["fields", name], 0, None)
+    assert_true(
+      check_source_request_contracts(
+        file_listing_fixture_carriers(
+          Some(file_listing_fixture_profile()),
+          schema~,
+        ),
+        request_limits(),
+      )
+      is Err(issue) &&
+      issue.kind == InvalidFileListProfile,
+    )
+  }
+  for
+    (name, wrong) in [
+      ("size_bytes", "int64"),
+      ("modified_at", "string"),
+      ("path", "number"),
+      ("media_type", "number"),
+    ] {
+    let schema = native_file_listing_fixture_schema()
+    mutate_reference_fixture(
+      schema,
+      ["fields", name, "type"],
+      0,
+      Some(Json::string(wrong)),
+    )
+    assert_true(
+      check_source_request_contracts(
+        file_listing_fixture_carriers(
+          Some(file_listing_fixture_profile()),
+          schema~,
+        ),
+        request_limits(),
+      )
+      is Err(issue) &&
+      issue.kind == InvalidFileListProfile,
+    )
+  }
+  let schema = native_file_listing_fixture_schema()
+  let wrong_profile = file_listing_fixture_profile()
+  mutate_reference_fixture(
+    wrong_profile,
+    ["listing_schema_contract_cid"],
+    0,
+    Some(Json::string("sha256:" + "c".repeat(64))),
+  )
+  assert_true(
+    check_source_request_contracts(
+      file_listing_fixture_carriers(Some(wrong_profile), schema~),
+      request_limits(),
+    )
+    is Err(issue) &&
+    issue.kind == InvalidFileListProfile,
   )
 }

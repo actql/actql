@@ -53,7 +53,11 @@ function validateStore(store) {
         'inspectCommittedIndex', 'confirmCommittedIndex',
         'readPublicationContract',
         'validateCommittedEvidence', 'retireUncommittedPublication']
-        .every(name => typeof store[name] === 'function')) {
+        .every(name => typeof store[name] === 'function') ||
+      store.putPublicationContracts !== undefined &&
+        typeof store.putPublicationContracts !== 'function' ||
+      store.putOriginalPublicationContracts !== undefined &&
+        typeof store.putOriginalPublicationContracts !== 'function') {
     fail('InvalidRunPublicationStore');
   }
 }
@@ -141,10 +145,28 @@ function commitEvidence(evidence) {
 
 async function persistContracts(store, contracts) {
   const persisted = new Set();
+  const selected = [];
   for (const contract of contracts) {
     if (persisted.has(contract.identity)) continue;
-    await store.putPublicationContract(contract.name, contract.wire);
+    selected.push(contract);
     persisted.add(contract.identity);
+  }
+  if (selected.length === 0) return;
+  const originals = store.putOriginalPublicationContracts;
+  if (originals !== undefined) {
+    await Reflect.apply(originals, store, [Object.freeze(selected)]);
+    return;
+  }
+  const batch = store.putPublicationContracts;
+  if (batch !== undefined) {
+    // One setup step has no protected action between these immutable bodies.
+    // Its existing Store returns only after the group's real durable ACKs.
+    await Reflect.apply(batch, store, [Object.freeze(selected.map(contract =>
+      Object.freeze({name: contract.name, wire: contract.wire})))]);
+    return;
+  }
+  for (const contract of selected) {
+    await store.putPublicationContract(contract.name, contract.wire);
   }
 }
 

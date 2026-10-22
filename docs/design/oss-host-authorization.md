@@ -1,5 +1,66 @@
 # OSS Host authorization behavior
 
+## Local Result read authorization
+
+Result identity and the authenticated principal do not replace the current
+Account tuple. Local payload, description and delivery-attempt reads evaluate
+the actual installed connection, `result/<name>` and `read` through the existing
+Common Account owner. One public operation observes and evaluates each actual
+permission tuple once, retaining its immutable facts on that operation's owned
+request. Internal getters, trusted Store reads and awaits consume those facts;
+they do not create a new authorization boundary. A new public operation observes
+the selected configuration again, including current Deny. Changed, missing or
+invalid bytes never reuse an earlier operation's Allow. Delegate still
+requires the existing configured answer and post-application-callback current
+check, and cannot manufacture a Checkpoint or
+approval. Standard Local bootstrap adoption remains the distinct initialization
+responsibility required by `policy-routing.standard-local-bootstrap`; absence
+of an adopted configuration is not an Allow.
+
+## Local Run observation authorization
+
+The public Local Host entry checks the current `run` / `read` permission on its
+actual control connection before Run status, wait, attach, plan/inspection,
+owner observations or request/submission lookup reads their Journal. Each
+public operation evaluates that tuple once. Internal revision loops and trusted
+Store observations consume the admitted decision, not another Account check.
+Pure checking/static planning and named Result delivery do not borrow this
+permission: `result/<actual name>` / `read` remains its distinct original tuple.
+
+Both read entrances retain the same installed Account identity and observe its
+current configuration for each new public operation. If this same owner already
+observes a changed Account during another operation, a pending operation cannot
+reuse a decision for the old Account value. That cheap revision comparison does
+not read or evaluate an unchanged policy again. Delegate still uses the original
+application answer and post-callback current check; it creates no approval or
+cleanup acknowledgment. Internal cleanup remains independent of public read
+permission.
+
+## Standard Local Account initialization
+
+The ordinary exclusive Host initializer materializes Common's complete
+standard Local profile using the actual principal, control connection,
+configured connections and registered Task/provider pairs. These subjects
+have stable code-unit ordering, independent of process locale. An explicit
+Account configuration replaces this routing; its invalid or unreadable state
+never selects bootstrap instead. No Reviewer signer is created by adoption.
+
+The actual fresh root-format creation result may start the existing durable
+initialization intent before later Host setup. A valid same intent may resume
+that initialization. A legacy two-field format marker alone does not establish
+either condition. The same prepared Store exclusion protects the intent,
+materialized configuration and durable Host adoption reference. Adoption is
+confirmed before any protected dispatch uses the profile. File and directory
+sync failures retain their original uncertainty and cleanup duties.
+
+The retained profile material and initialization reference are not current
+permission. Every protected operation still observes the selected Account;
+operator restrictions, including Deny, are neither merged nor overwritten.
+After materialization a missing configuration is refused, and an adopted Host
+with a missing intent, material, configuration or Store is not initialized
+again. Reopening retains the same Account identity and durable originals,
+without depending on cross-process pointer identity or restoring old grants.
+
 ## Original Checkpoint ID answers and SDK reference views
 
 An original-answer callback remains responsible for key custody and current
@@ -91,6 +152,14 @@ recovery read that discovers a missing key. Host-attestation keys cannot stand
 in for reviewer authority. Signing still requires the original Checkpoint,
 Run/request, approval scope, exact preimage, original use claim and independently
 current role/key checks; Unknown never allocates a replacement use.
+
+An Effect Checkpoint, whether issued by genuine Account delegation or an
+explicit requested stop, ends strictly before the same admitted Run's original
+exclusive deadline. The Host projects that immutable lifetime from the retained
+Run Definition, caps its existing Checkpoint TTL at the last preceding
+millisecond, and refuses an empty window after asynchronous preparation. This
+does not renew the Run, replace a saved Checkpoint or relax Common's lifetime
+reader; approval and signing still require the current original authority.
 
 Read limits bound UTF-8 input, parser nodes/depth and selected signer count.
 They do not fund the original String, byte conversion, parser workspace,
@@ -642,6 +711,19 @@ existing JSON Run material codec consumes only the Owner's retained Program
 projection; it does not replace the original submitted source. Legacy
 structured preparation and material bytes remain unchanged.
 
+For a new public read-only SQL/AQL Source without an authored RESULT, the
+existing frontend configures the actual primary export as `main` before
+constructing Program identity. It does not add an SDK alias or another Result.
+Internal preparations selecting the historical answer recipe remain explicit.
+New saved source-preparation metadata identifies the public-primary recipe;
+the original four-field metadata retains its historical recipe when re-admitted.
+Neither representation authorizes a Run: the independently retained request and
+material/definition correspondence must still match. Existing durable request
+names and cold Run observations return their saved Result names without compiling
+or dispatching a replacement. The finite Mock Account scope names only supported
+`result/main` and `result/answer` subjects; recognizing an older profile never
+adds either permission to its saved Account.
+
 A durable Host stores the original source metadata alongside the same Run's
 authenticated material record. Recovery re-admits that saved publication and
 Environment rather than rediscovering current aliases. It must retain the
@@ -650,6 +732,19 @@ Source Effect material admission additionally requires the typed original
 source preparation and the independently retained expected request, then
 checks the complete canonical material projection. Shape or CID equality
 alone does not supply this original binding, current authority or a cleanup ACK.
+
+An Effect's source-free SERIALIZE component also retains the explicit Host
+data-policy body selected before compilation. Prepared-original capture and
+saved Run materials project its paired `source_free_result_policy_cid` and
+`source_free_result_policy_json` from that same component, not from current Host
+configuration. Restoration admits the exact source-free policy on the restored
+checked Program before recomputing the Plan, then verifies the independently
+retained Plan or Run identity, original request and canonical materials. Missing,
+partial, malformed or wrong-purpose pairs refuse; recovery never supplies a
+default policy. Acquired Source and Model dependency policy retain their own
+closure. Other historical materials omit these fields and keep their bytes.
+This policy DATA neither authorizes an Effect nor acknowledges Content or
+physical cleanup.
 
 Initial and retained-input task dispatch use that same original Source
 preparation when the request contains authored-source identity. Common checks

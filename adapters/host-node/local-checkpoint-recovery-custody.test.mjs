@@ -1,0 +1,82 @@
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import test from 'node:test';
+import {parse} from 'acorn';
+
+// Exact Host functions with explicit original recovery/release ports. These
+// counters do not supply a Common, captured Run, Store, permission or native ACK.
+const source = readFileSync(new URL('./embedded-local.mjs', import.meta.url), 'utf8');
+const tree = parse(source, {ecmaVersion: 'latest', sourceType: 'module'}), nodes = [];
+function walk(value) {
+  if (value === null || typeof value !== 'object') return;
+  if (typeof value.type === 'string') nodes.push(value);
+  for (const child of Object.values(value)) {
+    if (Array.isArray(child)) child.forEach(walk);
+    else if (child !== null && typeof child === 'object') walk(child);
+  }
+}
+walk(tree);
+const release = nodes.filter(n => n.type === 'FunctionDeclaration' && n.id.name === 'releaseLocalSigningRecovery');
+const load = nodes.filter(n => n.type === 'Property' && n.key.name === 'loadRunOriginal');
+assert.equal(release.length, 1); assert.equal(load.length, 1);
+const code = source.slice(release[0].start, release[0].end) +
+  '\nreturn {releaseLocalSigningRecovery, load: ({' + source.slice(load[0].start, load[0].end) + '}).loadRunOriginal};';
+
+function fixture({wrongPreview = false, releaseFailure} = {}) {
+  const store = {}, moon = {}, localSigningRecoveries = new Set(), calls = [];
+  let current = true, recoveredCount = 0, fail = releaseFailure;
+  const fence = () => {if (!current) throw new Error('Original current refusal');};
+  const snapshot = {revision: 3, runDefinition: {wire: 'original-definition'}, cancellationRequested: false};
+  const view = {runDefinitionCid: 'original-definition-cid', requiredArtifact: {cid: 'original-preview'}};
+  const computation = {execution: null, storedResults: {}, computation: {}, preview: {}, invocation: {}};
+  const recovered = {materials: {}, computation, requestIdentity: {},
+    originalSubmittedIntent: {referenceWire: 'original-reference', assertCurrent: fence}};
+  const control = {effectComputationPreviewSemanticCid(value) {
+    assert.strictEqual(value, computation.preview); return wrongPreview ? 'foreign-preview' : 'original-preview';
+  }};
+  const suspend = async options => {
+    assert(localSigningRecoveries.has(recovered), 'custody must precede the release callback');
+    assert.strictEqual(options.store, store); assert.strictEqual(options.control, control);
+    for (const name of Object.keys(computation)) assert.strictEqual(options[name], computation[name]);
+    calls.push(options);
+    if (fail !== undefined) throw fail;
+  };
+  const api = new Function('store', 'control', 'localSigningRecoveries',
+    'suspendCompletedEffectfulComputation', 'namespaceId', 'authorityScopeCid', 'journal', 'moon',
+    'clientOperationError', 'recoverEffectCapture', 'assertProjectRuntime', 'preparation', code)(
+      store, control, localSigningRecoveries, suspend, 'namespace', 'authority',
+      {lookupRunDefinition() {return snapshot;}}, moon,
+      code => Object.assign(new Error(code), {code}), async () => {recoveredCount++; return recovered;},
+      fence, {assertResultPublicationCurrent: fence});
+  return {...api, recovered, view, localSigningRecoveries, calls,
+    recoveredCount: () => recoveredCount, failRelease(value) {fail = value;}, revoke() {current = false;}};
+}
+
+test('signing recovery relinquishes only its original temporary schema custody before returning metadata', async () => {
+  const f = fixture(), result = await f.load(f.view);
+  assert.strictEqual(result.materials, f.recovered.materials);
+  assert.strictEqual(result.invocation, f.recovered.computation.invocation);
+  assert.equal(f.localSigningRecoveries.size, 0); assert.equal(f.calls.length, 1);
+  assert.equal(f.recoveredCount(), 1); result.assertCurrent();
+});
+
+test('foreign Preview refusal still releases its already acquired original recovery', async () => {
+  const f = fixture({wrongPreview: true});
+  await assert.rejects(f.load(f.view), {code: 'LocalSigningOriginalConflict'});
+  assert.equal(f.localSigningRecoveries.size, 0); assert.equal(f.calls.length, 1);
+});
+
+test('failed recovery release stays with the same Host and retries without reacquisition or current authority', async () => {
+  const failure = new Error('Original temporary schema close failed');
+  const f = fixture({wrongPreview: true, releaseFailure: failure});
+  await assert.rejects(f.load(f.view), error => {
+    assert.equal(error.code, 'LocalSigningCaptureCleanupPending');
+    assert.equal(error.cause.code, 'LocalSigningOriginalConflict');
+    assert.strictEqual(error.errors[1], failure); return true;
+  });
+  assert(f.localSigningRecoveries.has(f.recovered));
+  f.revoke(); f.failRelease(undefined);
+  await f.releaseLocalSigningRecovery(f.recovered);
+  assert.equal(f.localSigningRecoveries.size, 0); assert.equal(f.calls.length, 2);
+  assert.equal(f.recoveredCount(), 1);
+});

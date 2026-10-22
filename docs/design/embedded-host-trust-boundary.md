@@ -126,6 +126,21 @@ Providers or fall back to them after a Mock error. One approval can discharge
 coincident review restrictions on the same Preview; a changed target or Preview
 needs its applicable new approval.
 
+The ordinary Local Mock Host retains its packaged finite signing policy and
+canonical Reviewer public-key original in the initial durable intent. Adoption
+binds those originals to the same Store and private-key generation. A missing
+saved policy or key is not filled from a later runtime getter. The SDK's default
+answer port selects an original Checkpoint from that Host; it neither exports
+the key nor accepts an arbitrary signing preimage. Run-read, resolve and key-sign
+authority are checked before key observation and around asynchronous work.
+The same Checkpoint Journal retains the original decision, clock sample, expiry
+and purpose-bound operation, then commits each exact preimage's one-use claim
+before native signing. A claimed or uncertain outcome cannot be replaced by a
+new decision, attempt, grant or use. Returning saved bytes validates the same
+original binding and signature without signing again. This signature is not
+an Effect send permit: the existing signed Resolution admission and current
+Preview/target/authorization checks still precede application.
+
 Freshness is an ordinary exclusive creation/adoption operation. Persist the
 existing initialization intent before separate file creation, create without
 overwriting operator content, and confirm the concrete generated configuration
@@ -163,3 +178,86 @@ Node, Native, Python and Cloud retain their separate product completion gates.
 Cloud #138 remains Source/Compute/Effect/Approval/Recovery without silently
 adding INFER to that issue. This boundary change neither shrinks v0.1 nor claims
 that unconnected normal resource or Mock suppliers already exist.
+
+## Original Mock Effect Run connection
+
+Responsibility stays with the existing normal Host, Resource, Source, Model,
+Result and installed Row Effect owners. Explicit Mock selection installs the
+real purpose-confined file target in that same Host. Its normal filesystem
+factory and retained children supply actual file operations; a Source/Compute
+Ledger, Model Scope, profile label or limits object cannot supply file IO or
+grant permission. The unselected provider routes keep their own installations.
+
+Inputs are the checked Effect preparation and compilation, allowed Run,
+definition, request identity and actual installed target. The winning definition
+callback prepares the typed Effect Source parent and, when applicable, the
+original no-IO Mock Model Scope before Source capture and durable business Run
+acceptance. The existing Common owner checks the same prepared, allowed and
+definition originals. The private Node bridge preserves the Effect preparation
+type rather than coercing it to an Effect-free Program or issuing another
+Ledger. Result publication is admitted for the same Effect Run separately from
+both Pure publication and target IO.
+
+Identity is retained with the same Host, installation and Run. The private
+resource observer accepts only the actual installed file-target factory result.
+Its finite limits describe that original service, not backed byte capacity,
+allocation success or authority. Capture, target reads, apply refresh, dispatch
+and retained-request recovery receive the same opaque Run original through the
+existing Row Effect member. Neither a copied adapter nor matching CIDs replace
+the original membership checks.
+
+Starting the accepted Run may reconstruct new allowed/definition handles from
+the winning Journal, even without a process restart. The Host checks the same
+original request and compilation, resolves that request through the existing
+Journal, compares its saved definition and admission evidence, and validates
+the reconstructed pair through Common's typed Effect binding. Only then may
+those handles reuse the same retained physical Run original. Matching CIDs or
+copied definition DATA alone cannot do so. A bounded latest-pair cache retains
+those ordinary control references; it issues no new Scope, capacity, Run or
+cleanup acknowledgement and does not replace the original Model preparation.
+
+Ownership of Source capture, Model work and file requests is separate. The
+early Mock Scope and both Sources compose on one original Run Ledger; their
+retirement does not retire the later business Run's conditional file requests.
+The Host retains those request/definition links until its actual file children
+have completed their own cleanup. Ordinary copied values then release owned
+references without a GC/RSS acknowledgement requirement.
+
+Synchronization captures each private operation and its receiver before later
+callbacks or awaits. Currentness is checked before acquisition and after
+asynchronous work. The original resource check is combined with, never used
+instead of, the checked target selection and current Account/Preview/claim
+rules. No write occurs before the existing explicit approval and durable claim.
+
+Failure preserves the original constructor, Source, Model, FileHandle, write,
+sync and close duties. A failed preparation is sticky for that original; it
+does not mint another admission or refill an attempted allowance. Missing or
+foreign originals refuse before target work. Actual allocation failure may
+refuse. Ambiguous mutation/commit remains Unknown and is not resent.
+
+Cancellation prevents new work but does not make cleanup require current
+authority. Same-Run file cleanup cannot close a sibling Run's child. Model
+publication aliases retire before releasing their original capacity borrow;
+captured Sources and the original read/Scope settle before parent retirement.
+The existing Host releases its remaining reference links only after its child
+cleanup, not on Promise completion or an unrelated Store/Journal ACK.
+
+Resources include the retained preparation, compilation, definition, request,
+private method/receiver and limit references beside their actual Source,
+Model, Result and file children and bounded workspaces. Limits retain their
+own subjects and no service-data field is a new numerical profile, physical
+reservation or send authority. Normal platform allocation remains the supplier
+under this trust boundary; no startup-history or universal VM proof is added.
+
+Extension remains private to the installed Host and the existing typed
+per-purpose entries. Cold recovery validates saved original Run materials and
+membership in the same persistent Journal before constructing new local
+installation handles. It does not require an old process pointer, reacquire a
+Source, recompute the Model or replace an uncertain business Run.
+
+Verification distinguishes the real Row Effect factory's original-binding and
+refusal cases, explicit Core-port Host-ordering cases, actual Journal/Store
+publication cases and physical file-owner cases from a normal installed
+end-to-end operation. The latter still requires the matching generated Common
+and actual public capture, explicit approval, conditional update and restart
+checks; a codec, syntax or type check alone does not establish it.

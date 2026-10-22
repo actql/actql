@@ -4,11 +4,11 @@ import {projectCancellationAttemptExplanation, projectCancellationExplanation,
   projectEffectUncertainty, projectOwnerObservations, projectRejectedRunObservation,
   projectUnavailableRunObservation, localizeOperation} from '../operation-presentation.mjs';
 import {bytesCid, canonicalJson, contentCid} from '../checkpoints.mjs';
-import {captureResponse, detachResponse, freezeInput, structuralKey} from './data.mjs';
+import {captureResponse, freezeInput, structuralKey} from './data.mjs';
 import {ClientError, fail, requestCancellationCause} from './errors.mjs';
 import {createResultFactory} from './result-read.mjs';
 import {ownerObservationLimits, runStateProtocol, snapshotClientRequest, validCancellationAttempt,
-  validCancellationLookup, validCancellationRef, validClientAdmission, validClientBody,
+  validCancellationLookup, validCancellationRef, validClientBody,
   validOperationAttemptRef, validOwnerObservations, validRunState, validRunWaitContract, validWireRunPlanViewShape,
   validWireRunViewShape} from '@actql/client-wire';
 
@@ -89,9 +89,8 @@ export const retainCancellationExplanation = (result, context, observation, revi
 export function createExecutionFactory(selected, confirmed, transport, lifecycle) {
   const {exchange, responseValue, wasCancellationDispatched} = transport;
   return admission => {
-    if (!validClientAdmission(admission, selected.wire)) {
-      fail('InvalidHostAdmission');
-    }
+    // Both callers supply their captured, validated admission: the submit
+    // envelope or the attach boundary. Handle construction adds no boundary.
     const ref = Object.freeze({...admission.ref});
     const runProfile = Object.freeze({...confirmed,
       durability: admission.durability});
@@ -123,25 +122,17 @@ export function createExecutionFactory(selected, confirmed, transport, lifecycle
       catch { throw rejectedRunObservation(ref, operation, 'malformed_response'); }
       const problem = rejectedRunProblem(state);
       try {
-        if (!validRunState(state)) throw rejectedRunObservation(ref, operation, problem);
+        // The wait contract includes the Run shape. Admit the captured reply
+        // once; every later operation still obtains its own Host observation.
+        if (!(operation === 'wait' ? validRunWaitContract(state, body.since)
+          : validRunState(state))) throw rejectedRunObservation(ref, operation, problem);
         if (latestState !== undefined && (state.run_id !== latestState.runId ||
             state.revision < latestState.revision)) {
           throw rejectedRunObservation(ref, operation, 'stale_observation');
         }
-        if (operation === 'wait' && !validRunWaitContract(state, body.since)) {
-          throw rejectedRunObservation(ref, operation, 'malformed_response');
-        }
-        // Each observation owns its value even if a Local port reuses a reply.
+        // Each observation already owns its data even if a Local port reuses
+        // a reply. No application callback runs between capture and admission.
         const observation = state;
-        const observedKey = structuralKey(state);
-        state = structuredClone(state);
-        if (!validRunState(state)) throw rejectedRunObservation(ref, operation, problem);
-        if (structuralKey(state) !== observedKey) {
-          throw rejectedRunObservation(ref, operation, 'malformed_response');
-        }
-        if (structuralKey(observation) !== observedKey) {
-          throw rejectedRunObservation(ref, operation, 'malformed_response');
-        }
         if (observation.control !== undefined) {
           const control = observation.control;
           if (latestControl !== undefined && (control.revision < latestControl.revision ||
@@ -170,7 +161,9 @@ export function createExecutionFactory(selected, confirmed, transport, lifecycle
 
     const result = createResultFactory({ref, limits: confirmed.limits,
       lookupContext: {endpoint: selected.endpoint, scopeRef: confirmed.scopeRef},
-      redactErrors: selected.redactCredentialErrors === true, typedRows: transport.typedRows},
+      redactErrors: selected.redactCredentialErrors === true, typedRows: transport.typedRows,
+      beforeResultRead: transport.sourcePreparation?.beforeResultRead,
+      assertResultReadCurrent: transport.sourcePreparation?.assertResultReadCurrent},
     {runRequest, responseValue}, lifecycle, () => handle);
     const handle = Object.freeze({
       ref, profile: runProfile, result,
@@ -207,7 +200,7 @@ export function createExecutionFactory(selected, confirmed, transport, lifecycle
           fail('InvalidRunPlanRequest');
         }
         const response = await runRequest('run-plan', input, signal);
-        const view = detachResponse(captureResponse(await responseValue(response, maxWireBytes)));
+        const view = captureResponse(await responseValue(response, maxWireBytes));
         if (new TextEncoder().encode(JSON.stringify(view)).byteLength > maxWireBytes ||
             !validWireRunPlanViewShape(view) || structuralKey(view.run_ref) !== structuralKey(ref)) {
           fail('InvalidClientHostRunPlanView');
@@ -290,8 +283,6 @@ export function createExecutionFactory(selected, confirmed, transport, lifecycle
         try {
           received = captureResponse(response);
           if (!validCancellationAttempt(received, cancelRef, attemptRef)) fail('InvalidHostCancellation');
-          received = detachResponse(received);
-          if (!validCancellationAttempt(received, cancelRef, attemptRef)) fail('InvalidHostCancellation');
         } catch {
           throw retainCancellationExplanation(new ClientError('CancellationUnknown', {
             cancelRef, attemptRef, cause: new ClientError('InvalidHostCancellation'),
@@ -305,9 +296,8 @@ export function createExecutionFactory(selected, confirmed, transport, lifecycle
         try {
           const capturedReference = captureResponse(reference);
           if (!validCancellationRef(capturedReference)) fail('InvalidCancellationReference');
-          cancelRef = freezeInput(detachResponse(capturedReference));
-          if (!validCancellationRef(cancelRef) ||
-              ['namespaceId', 'authorityScopeCid', 'runDefinitionCid'].some(key => cancelRef[key] !== ref[key])) {
+          cancelRef = freezeInput(capturedReference);
+          if (['namespaceId', 'authorityScopeCid', 'runDefinitionCid'].some(key => cancelRef[key] !== ref[key])) {
             fail('InvalidCancellationReference');
           }
         } catch { fail('InvalidCancellationReference'); }
@@ -325,11 +315,9 @@ export function createExecutionFactory(selected, confirmed, transport, lifecycle
         try {
           const captured = captureResponse(response);
           if (!validCancellationLookup(captured, cancelRef)) fail('InvalidHostCancellationLookup');
-          const owned = detachResponse(captured);
-          if (!validCancellationLookup(owned, cancelRef)) fail('InvalidHostCancellationLookup');
-          return retainCancellationExplanation(freezeInput(owned), context,
-            owned.kind === 'found' ? owned.cancellation.kind : 'outcome_unknown',
-            owned.kind === 'found' ? owned.cancellation.revision : undefined);
+          return retainCancellationExplanation(freezeInput(captured), context,
+            captured.kind === 'found' ? captured.cancellation.kind : 'outcome_unknown',
+            captured.kind === 'found' ? captured.cancellation.revision : undefined);
         } catch {
           throw retainCancellationExplanation(new ClientError('InvalidHostCancellationLookup', {cancelRef}),
             context, 'outcome_unknown');

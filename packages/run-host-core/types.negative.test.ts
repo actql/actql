@@ -63,6 +63,21 @@ const wrongOriginalView: DeliveryContractView<'result_manifest'> =
   control.fromPublication(publicIndex);
 void wrongOriginalView;
 declare const publicationLimits: Parameters<typeof issuePublicationAttempt>[3];
+declare const issuedAttemptView: DeliveryContractView<'delivery_attempt'>;
+declare const issuedGrantView: DeliveryContractView<'result_read_grant'>;
+const issuedAttemptOriginal = control.captureIssuedDeliveryAttempt(issuedAttemptView,
+  originalIndexView, manifest, issuedGrantView, publicationLimits);
+if (issuedAttemptOriginal !== undefined) {
+  const sameAttempt: DeliveryContractView<'delivery_attempt'> =
+    control.readIssuedDeliveryAttempt(issuedAttemptOriginal).attempt;
+  void sameAttempt;
+}
+// @ts-expect-error Serialized fields cannot construct an issuer original.
+control.readIssuedDeliveryAttempt({kind: 'issued-delivery-attempt'});
+// @ts-expect-error A grant view cannot substitute for an issued attempt.
+control.captureIssuedDeliveryAttempt(issuedGrantView, originalIndexView,
+  manifest, issuedGrantView, publicationLimits);
+
 declare const runPublicationDefinition: PublicationContract;
 declare const prepared: PreparedProgram;
 declare const compilation: ValuesCompilation;

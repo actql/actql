@@ -57,11 +57,8 @@ pub fn[E] prepare_client_submitted_journal_append(
   ClientSubmittedJournalAppendPlan,
   ClientSubmittedJournalAppendIssue[E],
 ] {
-  let (count, retained_bytes, revision) = match
-    inspect_client_submitted_journal_inventory(
-      max_records, scan, read, validate_submission, custody_lost,
-    ) {
-    Ok(value) => value
+  match journal_issuance_anchor("client_submitted_intent_custody", max_records, read, custody_lost) {
+    Ok(_) => ()
     Err(issue) => return Err(Observation(issue))
   }
   match
@@ -74,6 +71,13 @@ pub fn[E] prepare_client_submitted_journal_append(
       return Ok(Retained(snapshot))
     }
     Ok(None) => ()
+    Err(issue) => return Err(Observation(issue))
+  }
+  let (count, retained_bytes, revision) = match
+    inspect_client_submitted_journal_inventory(
+      max_records, scan, read, validate_submission, custody_lost,
+    ) {
+    Ok(value) => value
     Err(issue) => return Err(Observation(issue))
   }
   // The original Native order preserves retained identity after expiry; only

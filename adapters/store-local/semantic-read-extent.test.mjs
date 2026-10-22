@@ -7,8 +7,8 @@ import {join} from 'node:path';
 import test from 'node:test';
 import {runInNewContext} from 'node:vm';
 
-// Actual private semantic reader and real FileHandle/ReadStream. The physical
-// verifier is a counting boundary here; separate Store cases use its real body.
+// Actual private semantic reader and real FileHandle/ReadStream. The original
+// content hash plus hard-link identity replaces a duplicate physical hash.
 const source = await readFile(new URL('./publication-store.mjs', import.meta.url), 'utf8');
 const start = source.indexOf('  const readSemanticBytes = async cid => {');
 const end = source.indexOf('\n  // Private evidence uses', start);
@@ -106,7 +106,7 @@ test('small semantic read bounds stream backing before allocation and returns ex
     assert.ok(f.allocations.every(size => size <= 4), 'original extent precedes allocator');
     assert.equal(f.result.byteOffset, 0);
     assert.equal(f.result.buffer.byteLength, 4);
-    assert.deepEqual(f.counts(), {stats: 2, streams: 1, verified: 1, closes: 1, hashed: 4});
+    assert.deepEqual(f.counts(), {stats: 2, streams: 1, verified: 0, closes: 1, hashed: 4});
     assert.equal(f.fd(), -1);
     f.pass();
   });
@@ -124,12 +124,12 @@ test('semantic reader refuses actual FD growth and truncation without returning 
   }
 });
 
-test('empty semantic bytes preserve stat identity and physical verification without stream allocation', async t => {
+test('empty semantic bytes preserve stat identity and one content hash without stream allocation', async t => {
   const f = await exercise(t, {original: ''});
   assert.equal(f.failure, undefined);
   assert.equal(f.result.byteLength, 0);
   assert.deepEqual(f.allocations, []);
-  assert.deepEqual(f.counts(), {stats: 2, streams: 0, verified: 1, closes: 1, hashed: 0});
+  assert.deepEqual(f.counts(), {stats: 2, streams: 0, verified: 0, closes: 1, hashed: 0});
   assert.equal(f.fd(), -1);
   f.pass();
 });

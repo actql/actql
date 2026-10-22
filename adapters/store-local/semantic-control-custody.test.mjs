@@ -76,6 +76,10 @@ async function fixture(t, {failures = 1, primary, holdClose = false} = {}) {
     'resultReadDefinitionCid', 'resultReadRetentionPolicyCid', 'resultRetentionClockContractCid',
     'describeCommittedResult', 'resultMetadataRetentionState', 'issueManifestReadGrant',
     'manifestReadGrantAllowsBytes', 'manifestReadGrantValidAt'].map(name => [name, () => {}]));
+  // This fixture fails at its first physical metadata read, before any
+  // Result clock/grant observation. Keep the real service shape without
+  // replacing the Store's durable clock or manufacturing an observation.
+  control.trustedClockNotBefore = () => assert.fail('Clock reached before failed metadata read');
   const serviceStore = {...store,
     async confirmCommittedIndex() { return {public_index_entry_cid: cid('2'), result_manifest_cid: cid('3')}; },
     async readPublicationContract() {

@@ -284,7 +284,7 @@ jobs:
       - name: Check common core
         run: moon check --target "${{ matrix.target }}" --deny-warn
       - name: Check independent fixed Run materials identity
-        run: node --test scripts/client-values-run-materials-vector.test.mjs
+        run: node --test scripts/client-values-run-materials-vector.test.mjs scripts/client-values-compilation-work.test.mjs scripts/client-source-publication-work.test.mjs
       # Measured on these 2-vCPU runners: the default left native test
       # execution on about one CPU; one job per CPU shortened execution on
       # every target with no change in memory. Building is unaffected.
@@ -761,7 +761,7 @@ jobs:
       - name: Test retired metadata cleanup owner
         run: node --test adapters/store-local/metadata-deletion-owner.test.mjs
       - name: Test publication commit custody owner
-        run: node --test adapters/store-local/publication-commit-owner.test.mjs
+        run: node --test adapters/store-local/publication-commit-owner.test.mjs adapters/store-local/delivery-attempt-index.test.mjs adapters/store-local/semantic-publication-commit.test.mjs
       - name: Test portable publication control with the durable Store
         run: npm run check:publication-runtime
       - name: Test retained experiment fixtures and timing assessment
@@ -771,17 +771,17 @@ jobs:
       - name: Test durable Remote Site dispatch admission
         run: npm run check:remote-site-runtime
       - name: Test non-destructive SQLite format inspection
-        run: node --test adapters/host-common/sqlite-format-inspection.test.mjs
+        run: node --test adapters/host-common/sqlite-format-inspection.test.mjs adapters/host-node/ordinary-host-journal.test.mjs
       - name: Test durable Checkpoint journal and resumed dispatch admission
         run: npm run check:checkpoint-runtime
       - name: Test operation authorization and unchanged Run observations
-        run: node --test adapters/host-node/authorization-account-current.test.mjs adapters/host-node/local-account-current.test.mjs adapters/host-node/client-run-state-revision.test.mjs
+        run: node --test adapters/host-node/authorization-account-current.test.mjs adapters/host-node/local-account-current.test.mjs adapters/host-node/client-run-state-revision.test.mjs adapters/host-node/client-run-observation-reuse.test.mjs adapters/host-node/client-run-stop-observation.test.mjs adapters/host-node/embedded-managed-compute-projection.test.mjs adapters/host-node/embedded-managed-compute-lifecycle.test.mjs adapters/host-node/embedded-source-environment-scope.test.mjs adapters/host-node/client-original-submitted-intent.test.mjs
       - name: Test native retained task file ownership
         run: npm run check:native-retained-task-file
       - name: Test portable Remote Transfer owner package
         run: npm run check:transfer-core
       - name: Test portable Run Host compilation package
-        run: npm run check:run-host-core
+        run: npm run check:run-host-core && node --test adapters/host-node/local-result-authorization.test.mjs
       - name: Build runtime packages without prebuilt bundles
         run: node scripts/test-runtime-package-build.mjs
       - name: Test packed Local runtime assets

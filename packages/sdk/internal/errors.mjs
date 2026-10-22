@@ -7,6 +7,14 @@ export class ClientError extends Error {
   }
 }
 
+// A durably held request is not an unknown submission or a retry instruction.
+// Keep the public class original available without loading execution modules.
+export class RequestHeld extends ClientError {
+  constructor(held, lookupContext) {
+    super('RequestHeld', {requestId: held.requestId, held, lookupContext});
+  }
+}
+
 const ownedClientFailures = new WeakMap();
 
 export const readRefusalCodes = new Set(['ResultAccessDenied', 'ClientAuthenticationDenied']);

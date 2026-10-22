@@ -37,8 +37,9 @@ export function snapshotHostCapacityPolicy(value) {
 
 const lookupSnapshots = new WeakSet();
 
-// Select finite lookup ceilings at the Host boundary, never from a Source
-// adapter or caller Program. Absence remains unresolved, not implicit defaults.
+// Validate finite lookup ceilings at the Host boundary, never from caller
+// Program text. Generic absence remains unresolved; a selected ordinary Local
+// factory supplies its installed service limits separately.
 export function snapshotHostLookupExecutionPolicy(value) {
   if (value === undefined) return undefined;
   if (value !== null && typeof value === 'object' && lookupSnapshots.has(value)) return value;
@@ -62,6 +63,47 @@ export function snapshotHostLookupExecutionPolicy(value) {
     lookupSnapshots.add(snapshot);
     return snapshot;
   } catch { invalid(); }
+}
+
+// The selected ordinary Local factory owns these installed service limits.
+// Quote the existing lookup contract conservatively; this DATA is neither
+// physical backing, Account/egress permission nor a cleanup acknowledgement.
+// Generic and unselected Hosts still keep an omitted policy unresolved.
+export function localFilesLookupExecutionPolicy(sourceLimits) {
+  if (!Array.isArray(sourceLimits) || sourceLimits.length < 1 || sourceLimits.length > 128) {
+    throw new TypeError('InvalidLocalFilesLookupExecutionPolicy');
+  }
+  let perRequest = 0n, total = 0n, duration = 0;
+  for (const limits of sourceLimits) {
+    const selected = ['maxFiles', 'maxPages', 'maxPageBytes', 'maxDurationMs'].map(name => {
+      const field = limits !== null && typeof limits === 'object'
+        ? Object.getOwnPropertyDescriptor(limits, name) : undefined;
+      if (field === undefined || !Object.hasOwn(field, 'value') ||
+          !Number.isSafeInteger(field.value) || field.value <= 0 ||
+          field.value > 2147483647) throw new TypeError('InvalidLocalFilesLookupExecutionPolicy');
+      return field.value;
+    });
+    const [files, pages, bytes, milliseconds] = selected;
+    const request = BigInt(bytes);
+    const response = BigInt(files) * BigInt(pages) * request;
+    if (response > BigInt(Number.MAX_SAFE_INTEGER)) {
+      throw new TypeError('InvalidLocalFilesLookupExecutionPolicy');
+    }
+    if (request > perRequest) perRequest = request;
+    if (response > total) total = response;
+    if (milliseconds > duration) duration = milliseconds;
+  }
+  return snapshotHostLookupExecutionPolicy({
+    version: 'actql-lookup-execution-policy/0.1',
+    // A Local request is attempted once. Historical field names do not
+    // create a network plan, retry opportunity or external send authority.
+    max_network_attempts_per_request: 1,
+    max_request_bytes_per_attempt: Number(perRequest),
+    max_total_request_bytes: Number(total),
+    max_total_response_bytes: Number(total),
+    max_total_decoded_response_bytes: Number(total),
+    max_total_duration_ms: duration,
+  });
 }
 
 export function selectInstalledHostEnvironment(moon, baseWire, selection, lookupSelection) {

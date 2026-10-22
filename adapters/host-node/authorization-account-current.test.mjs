@@ -16,12 +16,15 @@ const accountWire = (fields = {}) => JSON.stringify({state: 'admitted',
 
 function fixture({wire = accountWire(), readConfiguration, budget, decide} = {}) {
   let decisions = 0;
+  const calls = {admit: 0, accountState: 0, evaluate: 0};
   const runtime = {
-    executionAuthorizationAdmit: JSON.parse,
+    executionAuthorizationAdmit(text) { calls.admit++; return JSON.parse(text); },
     executionAuthorizationMissing: () => ({state: 'missing'}),
-    executionAuthorizationAccountJson: JSON.stringify,
-    executionAuthorizationEvaluate: (account, principal, connection, resource, operation) =>
-      ({...account, principal, connection, resource, operation}),
+    executionAuthorizationAccountJson(account) { calls.accountState++; return JSON.stringify(account); },
+    executionAuthorizationEvaluate(account, principal, connection, resource, operation) {
+      calls.evaluate++;
+      return {...account, principal, connection, resource, operation};
+    },
     executionAuthorizationEvaluationJson: JSON.stringify,
     executionAuthorizationEvaluationAction: evaluation => evaluation.outcome === 'allow'
       ? {action: 'dispatch', basis: 'account_allow'}
@@ -45,9 +48,39 @@ function fixture({wire = accountWire(), readConfiguration, budget, decide} = {})
     context, readConfiguration, decisionBudget: budget,
     ...(decide === undefined ? {} : {answeringAuthorities: ['host'],
       decide(view) { decisions++; return decide(view); }})});
-  return {gate, decisions: () => decisions,
+  return {gate, calls, decisions: () => decisions,
     authorize: (owner = gate) => owner.authorize('acquisition', scope, {subjectCid})};
 }
+
+test('unchanged issued Account facts reuse admission and evaluation within the original gate', async () => {
+  let reads = 0;
+  const wire = accountWire();
+  const x = fixture({wire, readConfiguration() { reads++; return wire; }});
+  try {
+    const original = await x.authorize();
+    for (let index = 0; index < 4; index++) {
+      x.gate.assertAccountCurrent(original);
+    }
+    assert.equal(await x.authorize(), original);
+    assert.deepEqual(x.calls, {admit: 1, accountState: 1, evaluate: 1});
+    // Each actual boundary still observes the file-backed source; no TTL or
+    // process-global Allow cache is introduced by retaining pure typed facts.
+    assert.equal(reads, 6);
+  } finally { x.gate.close(); }
+});
+
+test('unchanged delegate facts do not repeat Account evaluation or its Host answer', async () => {
+  const x = fixture({wire: accountWire({outcome: 'delegate'}),
+    decide: view => ({decision: 'permit', subject: view.subject, authority: 'host', claims: []})});
+  try {
+    const original = await x.authorize();
+    x.gate.assertAccountCurrent(original);
+    assert.equal(await x.authorize(), original);
+    assert.equal(x.calls.evaluate, 1);
+    assert.equal(x.calls.accountState, 1);
+    assert.equal(x.decisions(), 1);
+  } finally { x.gate.close(); }
+});
 
 test('live immutable account validates the same issued decision without a new decision', async () => {
   const x = fixture();

@@ -111,6 +111,27 @@ from the raw source or discarded merely to simplify the adapter. Result ordering
 and projection belong to the declared Result semantics, not extra authored steps
 or a new Program identity.
 
+The Common task compiler retains the correspondence between each checked
+post-INFER step and the Plan producer it already emitted. A Named Result before
+a later Effect-only projection selects that original intermediate producer,
+not the final task output. Its existing projection/order transformation remains
+bound to the same checked occurrence, preparation, task, step and output port.
+The component does not rerun its prefix or reconstruct this binding from Host
+JSON. This compilation connection supplies no execution, publication or Effect
+authority and does not change the authored Program or Result definition.
+
+When that Result precedes a later Effect-only projection, physical execution
+retains one fused task through the original INFER and the first required Result.
+Only the supported unary Relation suffix is split into the existing selected
+Local tasks. Each Result/Effect port resolves to its own completed target;
+an operation contained inside another task is not a completion of that Result.
+The Model provider, its input preparation, and its bounded suffix all retain
+the same checked prefix end. Later projections do not call the Model again.
+This connection neither changes Source custody nor grants publication or apply.
+Raw task-sequence preparation leaves that prefix unselected. The existing Local
+driver seals the checked prefix once when installing the same task owner;
+preparation must not preselect it and then ask the driver to select it again.
+
 The [named Result port preparer](result-ports.md) now binds each definition to
 its existing publication-order resolution and explicit producer projection.
 The current source-bound stage Result pass does not implement the consumer adapter.

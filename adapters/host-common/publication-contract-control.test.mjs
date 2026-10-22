@@ -3,11 +3,13 @@ import {createHash} from 'node:crypto';
 import {spawnSync} from 'node:child_process';
 import {createServer} from 'node:http';
 import test from 'node:test';
+import fs from 'node:fs/promises';
+import {syncBuiltinESMExports} from 'node:module';
 import {link, mkdir, mkdtemp, open, readdir, readFile, rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
-import * as moon from
-  '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
+import {parse} from 'acorn';
+import {DatabaseSync} from 'node:sqlite';
 import {runtimeCore} from './runtime-core.mjs';
 import {checked} from './runtime-result.mjs';
 import {publishEffectFreeRun, publishEffectfulRun} from
@@ -50,11 +52,373 @@ import {openLocalPublicationStore} from
 import {createClientHttpHandler} from '../host-node/client-http.mjs';
 import {connect as connectClient} from '../../packages/sdk/index.mjs';
 
+const moon = await import(process.env.ACTQL_TEST_COMMON_RUNTIME ?? new URL(
+  '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js',
+  import.meta.url).href);
+
 const cid = digit => `sha256:${digit.repeat(64)}`;
 const limits = Object.freeze({
   maxWireBytes: 64 * 1024,
   maxNodes: 4096,
   maxDepth: 64,
+});
+
+test('publication persistence consumes its same-owner immutable contracts without another admission', async t => {
+  let admissions = 0;
+  const observed = Object.freeze({...moon, strategyPublicationAdmit(...args) {
+    admissions++;
+    return Reflect.apply(moon.strategyPublicationAdmit, moon, args);
+  }});
+  const control = runtimeCore(observed).publicationControl;
+  const first = control.seal('run_invocation', JSON.stringify({
+    version: 'actql-run-invocation/0.1', invocation_template_cid: cid('1'),
+    observation_set_cid: cid('2'),
+  }), limits);
+  const second = control.seal('run_invocation', JSON.stringify({
+    version: 'actql-run-invocation/0.1', invocation_template_cid: cid('3'),
+    observation_set_cid: cid('4'),
+  }), limits);
+  const directory = await mkdtemp(join(tmpdir(), 'actql-original-publication-'));
+  let store;
+  t.after(async () => {
+    if (store !== undefined) await store.close();
+    await rm(directory, {recursive: true});
+  });
+  store = await openLocalPublicationStore({directory, storeAuthorityCid: cid('5'),
+    capacityBytes: 1024 * 1024, maxObjectBytes: 64 * 1024, maxObjects: 100,
+    maxContractNodes: limits.maxNodes, maxContractDepth: limits.maxDepth}, control);
+  const source = await readFile(new URL('./run-publication.mjs', import.meta.url), 'utf8');
+  const declaration = parse(source, {sourceType: 'module', ecmaVersion: 'latest'}).body
+    .find(node => node.type === 'FunctionDeclaration' && node.id.name === 'persistContracts');
+  const persist = Function('return ('+source.slice(declaration.start, declaration.end)+')')();
+  await persist(store, [first, second, first]);
+  assert.equal(admissions, 0, 'the original Common issuance already admitted these unchanged bodies');
+  assert.equal(store.status().objectCount, 2);
+  assert.equal((await store.readPublicationContract(first.identity, first.name)).wire, first.wire);
+  assert.equal((await store.readPublicationContract(second.identity, second.name)).wire, second.wire);
+});
+
+test('original publication metadata has one native durable commit without duplicate body files', async t => {
+  const control = runtimeCore(moon).publicationControl;
+  const contracts = [1, 3].map(digit => control.seal('run_invocation', JSON.stringify({
+    version: 'actql-run-invocation/0.1', invocation_template_cid: cid(String(digit)),
+    observation_set_cid: cid(String(digit + 1)),
+  }), limits));
+  const directory = await mkdtemp(join(tmpdir(), 'actql-native-publication-'));
+  const configuration = {directory, storeAuthorityCid: cid('5'),
+    capacityBytes: 1024 * 1024, maxObjectBytes: 65536, maxObjects: 100,
+    maxContractNodes: 4096, maxContractDepth: 64};
+  let store;
+  t.after(async () => {
+    if (store !== undefined) await store.close();
+    await rm(directory, {recursive: true});
+  });
+  const originalExec = DatabaseSync.prototype.exec, originalOpen = fs.open;
+  let commits = 0, armed = false;
+  const fileSyncs = [];
+  DatabaseSync.prototype.exec = function(sql, ...args) {
+    const result = Reflect.apply(originalExec, this, [sql, ...args]);
+    if (armed && sql.trim() === 'COMMIT') commits++;
+    return result;
+  };
+  fs.open = async function(path, ...args) {
+    const handle = await Reflect.apply(originalOpen, this, [path, ...args]);
+    if (armed && typeof path === 'string' && path.startsWith(directory + '/')) {
+      const originalSync = handle.sync;
+      handle.sync = async function(...parameters) {
+        const result = await Reflect.apply(originalSync, this, parameters);
+        fileSyncs.push(path);
+        return result;
+      };
+    }
+    return handle;
+  };
+  syncBuiltinESMExports();
+  try {
+    // The native Owner captures exec at open. Install observation before that
+    // capture, then count only this publication, not initialization COMMITs.
+    store = await openLocalPublicationStore(configuration, control);
+    armed = true;
+    await store.putOriginalPublicationContracts(contracts);
+  } finally {
+    DatabaseSync.prototype.exec = originalExec;
+    fs.open = originalOpen;
+    syncBuiltinESMExports();
+  }
+  assert.equal(commits, 1, 'the same Store database owns the complete durable metadata group');
+  assert.deepEqual(fileSyncs, [], 'metadata bodies have no duplicate per-body file representation');
+  assert.equal(store.status().objectCount, 2);
+  assert.equal(store.status().storedBytes, contracts.reduce((sum, contract) =>
+    sum + Buffer.byteLength(contract.wire, 'utf8'), 0));
+  assert.deepEqual(await readdir(join(directory, 'contracts')), []);
+  assert.deepEqual(await readdir(join(directory, 'objects')), []);
+  await store.close();
+  store = await openLocalPublicationStore(configuration, control);
+  for (const contract of contracts) {
+    assert.equal((await store.readPublicationContract(contract.identity, contract.name)).wire, contract.wire);
+  }
+  assert.equal(store.status().objectCount, 2);
+});
+
+for (const afterCommit of [false, true]) {
+  test(`native publication metadata retains capacity across ${afterCommit ? 'after' : 'before'} COMMIT reply loss`, async t => {
+    const control = runtimeCore(moon).publicationControl;
+    const contract = control.seal('run_invocation', JSON.stringify({
+      version:'actql-run-invocation/0.1',invocation_template_cid:cid('1'),observation_set_cid:cid('2'),
+    }), limits);
+    const directory = await mkdtemp(join(tmpdir(),'actql-publication-native-unknown-'));
+    let store, armed = false, lost = false, commits = 0;
+    const exec = DatabaseSync.prototype.exec;
+    t.mock.method(DatabaseSync.prototype,'exec',function(sql) {
+      if (armed && sql === 'COMMIT') {
+        commits++;
+        if (!lost) {
+          lost = true;
+          if (afterCommit) Reflect.apply(exec,this,[sql]);
+          throw Object.assign(new Error('lost original publication COMMIT reply'),{code:'EIO'});
+        }
+      }
+      return Reflect.apply(exec,this,[sql]);
+    });
+    t.after(async () => { if (store !== undefined) await store.close(); await rm(directory,{recursive:true}); });
+    store = await openLocalPublicationStore({directory,storeAuthorityCid:cid('5'),
+      capacityBytes:1048576,maxObjectBytes:65536,maxObjects:2,maxContractNodes:4096,maxContractDepth:64},control);
+    armed = true;
+    let originalFailure;
+    await assert.rejects(store.putOriginalPublicationContracts([contract]), error => {
+      originalFailure = error;
+      return error.code === 'PublicationMetadataCommitOutcomeUnknown' && error.outcome === 'unknown';
+    });
+    assert.equal(store.status().objectCount,0,'an unobserved COMMIT is not reported as durable success');
+    assert.equal(store.status().reservedObjects,1);
+    assert.equal(store.status().reservedBytes,Buffer.byteLength(contract.wire,'utf8'));
+    await assert.rejects(store.close(),{code:'PublicationStoreCleanupPending'});
+    await assert.rejects(store.putOriginalPublicationContracts([contract]),{code:'PublicationStoreCleanupPending'});
+    await assert.rejects(store.readPublicationContract(contract.identity,contract.name),
+      {code:'DeliveryAttemptIndexCommitOutcomeUnknown'});
+    assert.equal(originalFailure.cleanupHandle.status().pending,true);
+    assert.equal((await originalFailure.cleanupHandle.retry()).pending,false);
+    assert.equal(commits,2,'only the same metadata duty makes a real confirmation write');
+    assert.equal(store.status().reservedObjects,0);
+    assert.equal(store.status().objectCount,1);
+    assert.equal(store.status().storedBytes,Buffer.byteLength(contract.wire,'utf8'));
+    assert.equal((await store.readPublicationContract(contract.identity,contract.name)).wire,contract.wire);
+    await store.putOriginalPublicationContracts([contract]);
+    await store.putPublicationContract(contract.name,contract.wire);
+    assert.equal(commits,2,'known immutable metadata is not committed or duplicated again');
+    assert.deepEqual(await readdir(join(directory,'contracts')),[]);
+    assert.deepEqual(await readdir(join(directory,'objects')),[]);
+    assert.equal(store.status().objectCount,1);
+  });
+}
+
+test('native publication capacity and legacy files share the original Store limits', async t => {
+  const control = runtimeCore(moon).publicationControl;
+  const contracts = [1,3,5].map(digit => control.seal('run_invocation',JSON.stringify({
+    version:'actql-run-invocation/0.1',invocation_template_cid:cid(String(digit)),
+    observation_set_cid:cid(String(digit+1)),
+  }),limits));
+  const directory = await mkdtemp(join(tmpdir(),'actql-publication-native-capacity-'));
+  let store;
+  t.after(async () => { if (store !== undefined) await store.close(); await rm(directory,{recursive:true}); });
+  const configuration = {directory,storeAuthorityCid:cid('7'),capacityBytes:1048576,
+    maxObjectBytes:65536,maxObjects:2,maxContractNodes:4096,maxContractDepth:64};
+  store = await openLocalPublicationStore(configuration,control);
+  await store.putPublicationContract(contracts[0].name,contracts[0].wire);
+  const fileBytes = store.status().storedBytes;
+  await assert.rejects(store.putOriginalPublicationContracts(contracts.slice(1)),{code:'PublicationStoreObjectLimit'});
+  assert.equal(store.status().objectCount,1);
+  assert.equal(store.status().reservedObjects,0,'a refused whole group releases only unpublished reservations');
+  assert.equal(store.status().storedBytes,fileBytes);
+  await store.putOriginalPublicationContracts(contracts.slice(0,2));
+  assert.equal(store.status().objectCount,2,'the old file is not duplicated or charged a second time');
+  assert.equal((await readdir(join(directory,'contracts'))).length,1);
+  assert.equal((await readdir(join(directory,'objects'))).length,1);
+  await assert.rejects(store.putBytes(Buffer.from('payload')),{code:'PublicationStoreObjectLimit'});
+  await store.close();
+  store = await openLocalPublicationStore(configuration,control);
+  assert.equal(store.status().objectCount,2);
+  assert.equal(store.status().storedBytes,fileBytes+Buffer.byteLength(contracts[1].wire,'utf8'));
+  for (const contract of contracts.slice(0,2)) {
+    assert.equal((await store.readPublicationContract(contract.identity,contract.name)).wire,contract.wire);
+  }
+});
+
+test('native publication bodies retain byte capacity and cold actual-wire admission', async t => {
+  let admissions = 0;
+  const control = runtimeCore(Object.freeze({...moon,strategyPublicationAdmit(...args) {
+    admissions++;
+    return Reflect.apply(moon.strategyPublicationAdmit,moon,args);
+  }})).publicationControl;
+  const contracts = [1,3].map(digit => control.seal('run_invocation',JSON.stringify({
+    version:'actql-run-invocation/0.1',invocation_template_cid:cid(String(digit)),
+    observation_set_cid:cid(String(digit+1)),
+  }),limits));
+  const byteCount = Buffer.byteLength(contracts[0].wire,'utf8');
+  assert.equal(Buffer.byteLength(contracts[1].wire,'utf8'),byteCount);
+  const directory = await mkdtemp(join(tmpdir(),'actql-publication-native-bytes-'));
+  let store;
+  t.after(async () => { if (store !== undefined) await store.close(); await rm(directory,{recursive:true}); });
+  const configuration = {directory,storeAuthorityCid:cid('5'),capacityBytes:2*byteCount-1,
+    maxObjectBytes:byteCount,maxObjects:100,maxContractNodes:4096,maxContractDepth:64};
+  store = await openLocalPublicationStore(configuration,control);
+  await assert.rejects(store.putOriginalPublicationContracts(contracts),{code:'PublicationStoreCapacity'});
+  assert.equal(store.status().objectCount,0);
+  assert.equal(store.status().reservedObjects,0);
+  await store.putOriginalPublicationContracts([contracts[0]]);
+  assert.equal(admissions,3,'these tighter consumer wire bounds keep the normal admission fallback');
+  await assert.rejects(store.putBytes(Buffer.alloc(byteCount)),{code:'PublicationStoreCapacity'});
+  await store.close();
+  store = await openLocalPublicationStore(configuration,control);
+  assert.equal((await store.readPublicationContract(contracts[0].identity,contracts[0].name)).wire,contracts[0].wire);
+  assert.equal(admissions,4,'a cold selected row admits the actual acquired wire once');
+  await store.close();
+  // Dedicated new fixture corruption, not mutation/replay of any original Run.
+  const database = new DatabaseSync(join(directory,'delivery-attempts.sqlite3'));
+  try { database.prepare('UPDATE publication_contracts SET wire=? WHERE semantic_cid=?')
+    .run(contracts[1].wire,contracts[0].identity); }
+  finally { database.close(); }
+  store = await openLocalPublicationStore(configuration,control);
+  await assert.rejects(store.readPublicationContract(contracts[0].identity,contracts[0].name),
+    {code:'InvalidDeliveryAttemptIndex'});
+  assert.equal(admissions,5,'a mismatched selected original does not inherit another body\'s identity');
+});
+
+test('native publication metadata is not duplicated by a mixed legacy group', async t => {
+  const control = runtimeCore(moon).publicationControl;
+  const invocation = control.seal('run_invocation',JSON.stringify({version:'actql-run-invocation/0.1',
+    invocation_template_cid:cid('1'),observation_set_cid:cid('2')}),limits);
+  const record = control.seal('publication_record',JSON.stringify({version:'actql-publication-record/0.1',
+    publication_attempt_cid:cid('3'),sequence:0,state:'preparing',cleanup_owner_cids:[],
+    observed_at:'2026-09-18T00:00:00.000Z'}),limits);
+  const directory = await mkdtemp(join(tmpdir(),'actql-publication-native-mixed-'));
+  let store;
+  t.after(async () => { if (store !== undefined) await store.close(); await rm(directory,{recursive:true}); });
+  store = await openLocalPublicationStore({directory,storeAuthorityCid:cid('5'),capacityBytes:1048576,
+    maxObjectBytes:65536,maxObjects:3,maxContractNodes:4096,maxContractDepth:64},control);
+  await store.putOriginalPublicationContracts([invocation]);
+  await store.putPublicationContracts([invocation,record].map(({name,wire}) => ({name,wire})));
+  assert.equal(store.status().objectCount,2,'a mixed file/native group retains each original representation once');
+  const stored = await store.putOriginalPublicationContracts([invocation,record]);
+  assert.deepEqual(stored.map(value=>value.semanticCid),[invocation.identity,record.identity]);
+  assert.equal(store.status().objectCount,2);
+  assert.equal((await readdir(join(directory,'contracts'))).length,1);
+  assert.equal((await readdir(join(directory,'objects'))).length,1);
+  for (const contract of [invocation,record]) {
+    assert.equal((await store.readPublicationContract(contract.identity,contract.name)).wire,contract.wire);
+  }
+});
+
+test('publication originals preserve owner identity and captured issuance bounds', () => {
+  const control = runtimeCore(moon).publicationControl;
+  const selected = {maxWireBytes: 65536, maxNodes: 4096, maxDepth: 64};
+  const original = control.seal('run_invocation', JSON.stringify({
+    version: 'actql-run-invocation/0.1', invocation_template_cid: cid('1'),
+    observation_set_cid: cid('2'),
+  }), selected);
+  selected.maxWireBytes = selected.maxNodes = selected.maxDepth = 1;
+  assert.equal(control.admitOriginal(original, limits), original);
+  assert.equal(control.admitOriginal(original, {...limits, maxNodes: original.wire.length}), original);
+  assert.equal(control.admitOriginal(original, {...limits, maxNodes: 1}), undefined);
+  assert.equal(control.admitOriginal(original, {...limits, maxDepth: 1}), undefined);
+  assert.equal(control.admitOriginal(original, {...limits,
+    maxWireBytes: Buffer.byteLength(original.wire, 'utf8') - 1}), undefined);
+  assert.equal(control.admitOriginal(Object.freeze({...original}), limits), undefined);
+  const foreign = runtimeCore(Object.freeze({...moon})).publicationControl;
+  assert.equal(foreign.admitOriginal(original, limits), undefined);
+  const admitted = control.admit(original.name, original.wire, limits);
+  assert.equal(control.admitOriginal(admitted, limits), admitted);
+  const {run, invoked} = admittedRun(control, cid('6'));
+  assert.equal(control.admitOriginal(run, limits), run, 'actual Run issuer retains its checked bounds');
+  assert.equal(control.admitOriginal(invoked, limits), invoked, 'actual Invocation issuer retains its checked bounds');
+});
+
+test('publication original persistence falls back for copies foreign owners and tighter limits', async t => {
+  let admissions = 0;
+  const observed = Object.freeze({...moon, strategyPublicationAdmit(...args) {
+    admissions++;
+    return Reflect.apply(moon.strategyPublicationAdmit, moon, args);
+  }});
+  const control = runtimeCore(observed).publicationControl;
+  const body = JSON.stringify({version: 'actql-run-invocation/0.1',
+    invocation_template_cid: cid('1'), observation_set_cid: cid('2')});
+  const owned = control.seal('run_invocation', body, limits);
+  const foreign = runtimeCore(moon).publicationControl.seal('run_invocation', body, limits);
+  const stores = [], directories = [];
+  t.after(async () => {
+    for (const store of stores) await store.close();
+    for (const directory of directories) await rm(directory, {recursive: true});
+  });
+  const makeStore = async extra => {
+    const directory = await mkdtemp(join(tmpdir(), 'actql-original-fallback-'));
+    directories.push(directory);
+    const store = await openLocalPublicationStore({directory, storeAuthorityCid: cid('5'),
+      capacityBytes: 1024 * 1024, maxObjectBytes: 65536, maxObjects: 100,
+      maxContractNodes: 4096, maxContractDepth: 64, ...extra}, control);
+    stores.push(store);return store;
+  };
+  const store = await makeStore({});
+  await store.putOriginalPublicationContracts([Object.freeze({...owned})]);
+  assert.equal(admissions, 1);
+  await store.putOriginalPublicationContracts([foreign]);
+  assert.equal(admissions, 2);
+  const bounded = await makeStore({maxContractNodes: 1});
+  await assert.rejects(bounded.putOriginalPublicationContracts([owned]),
+    error => error.code === 'InvalidPublicationContract');
+  assert.equal(admissions, 3, 'the actual Core checks a tighter unsupported node bound');
+  assert.equal(bounded.status().objectCount, 0);
+  assert.deepEqual(await readdir(join(directories[1], 'staging')), []);
+  const changed = Object.freeze({...owned, wire: owned.wire.replace(cid('2'), cid('3'))});
+  await assert.rejects(store.putOriginalPublicationContracts([changed]),
+    error => error.code === 'InvalidPublicationContract');
+  assert.equal(admissions, 4);
+  const freshRead = await store.readPublicationContract(owned.identity, owned.name);
+  assert.equal(freshRead.wire, owned.wire);
+  assert.equal(admissions, 5, 'a cold selected read still admits its actual disk bytes');
+});
+
+test('publication persister retains legacy receivers and waits for the selected group outcome', async () => {
+  const source = await readFile(new URL('./run-publication.mjs', import.meta.url), 'utf8');
+  const declaration = parse(source, {sourceType: 'module', ecmaVersion: 'latest'}).body
+    .find(node => node.type === 'FunctionDeclaration' && node.id.name === 'persistContracts');
+  assert.ok(declaration);
+  // Execute this exact private adapter function, not a second publication
+  // implementation. The real Common/Store integration is checked below.
+  const persist = Function('return ('+source.slice(declaration.start, declaration.end)+')')();
+  const first = Object.freeze({identity: cid('1'), name: 'first', wire: 'first-body'});
+  const second = Object.freeze({identity: cid('2'), name: 'second', wire: 'second-body'});
+  const calls = [];
+  const legacy = {async putPublicationContract(name, wire) {
+    assert.equal(this, legacy);calls.push([name, wire]);
+  }};
+  await persist(legacy, [first, second, first]);
+  assert.deepEqual(calls, [['first', 'first-body'], ['second', 'second-body']]);
+  const gate = Promise.withResolvers();let batches = 0, settled = false;
+  const grouped = {putPublicationContract() {throw new Error('NoIndividualFallback');},
+    async putPublicationContracts(contracts) {
+      assert.equal(this, grouped);batches++;
+      assert.equal(Object.isFrozen(contracts), true);
+      assert(contracts.every(Object.isFrozen));
+      assert.deepEqual(contracts, [{name: 'first', wire: 'first-body'}, {name: 'second', wire: 'second-body'}]);
+      await gate.promise;
+    }};
+  const pending = persist(grouped, [first, second, first]).then(() => {settled = true;});
+  await Promise.resolve();assert.equal(settled, false);assert.equal(batches, 1);
+  gate.resolve();await pending;
+  const original = new Error('OriginalGroupFailure');
+  grouped.putPublicationContracts = async () => {throw original;};
+  await assert.rejects(persist(grouped, [first]), error => error === original);
+  await persist({putPublicationContracts() {throw new Error('EmptyGroupDoesNoWork');}}, []);
+  const owned = {putPublicationContracts() {throw new Error('NoRawFallback');},
+    async putOriginalPublicationContracts(contracts) {
+      assert.equal(this, owned);
+      assert.equal(Object.isFrozen(contracts), true);
+      assert.equal(contracts[0], first);
+      assert.equal(contracts[1], second);
+      assert.equal(contracts.length, 2);
+      throw original;
+    }};
+  await assert.rejects(persist(owned, [first, second, first]), error => error === original);
 });
 
 test('generated publication owner crosses the JS bridge as named actions', () => {
@@ -207,6 +571,20 @@ function admittedRun(control, programDefinitionCid) {
     invoked: control.issueRunInvocation(template, observation, limits),
   });
 }
+
+test('Checkpoint lifetime projects only the same original admitted Run without renewal', () => {
+  const control = runtimeCore(moon).publicationControl;
+  const {run, invoked} = admittedRun(control, cid('6'));
+  const lifetime = control.runDefinitionLifetime(run, run.identity);
+  assert.deepEqual(lifetime, {createdAt: '2026-09-18T00:00:00.000Z',
+    validUntil: '2026-09-18T02:00:00.000Z'});
+  assert.equal(Object.isFrozen(lifetime), true);
+  assert.throws(() => control.runDefinitionLifetime(run, cid('f')));
+  assert.throws(() => control.runDefinitionLifetime(invoked, invoked.identity));
+  assert.throws(() => control.runDefinitionLifetime({...run}, run.identity),
+    /Foreign publication contract/u);
+  assert.deepEqual(control.runDefinitionLifetime(run, run.identity), lifetime);
+});
 
 function deliveryRoot(control) {
   const artifact = control.seal('result_artifact', JSON.stringify({
@@ -1056,6 +1434,16 @@ test('portable control validates the exact Run Result publication chain', () => 
 
 test('portable control validates Receipt and Captured Run references',
   async t => {
+  const retainedStores = [];
+  const retainedDirectories = [];
+  t.after(async () => {
+    for (const store of retainedStores.toReversed()) {
+      assert.equal(await store.close(), true);
+    }
+    for (const directory of retainedDirectories) {
+      await rm(directory, {recursive: true, force: true});
+    }
+  });
   const control = runtimeCore(moon).publicationControl;
   const template = control.sealRunEvidence(
     'bound_invocation_template',
@@ -1670,7 +2058,7 @@ test('portable control validates Receipt and Captured Run references',
   const directory = await mkdtemp(join(
     tmpdir(), 'actql-publication-chain-',
   ));
-  t.after(() => rm(directory, {recursive: true, force: true}));
+  retainedDirectories.push(directory);
   const store = await openLocalPublicationStore({
     directory,
     storeAuthorityCid: cid('a'),
@@ -1681,7 +2069,7 @@ test('portable control validates Receipt and Captured Run references',
     maxContractDepth: limits.maxDepth,
     privateEvidenceKey: Buffer.alloc(32, 4),
   }, control);
-  t.after(async () => { await store.close(); });
+  retainedStores.push(store);
   const privatePrepared = await store.preparePrivateEvidence(
     privateBinding.name, privateBinding.wire, privateBinding.semanticCid,
   );
@@ -1765,6 +2153,11 @@ test('portable control validates Receipt and Captured Run references',
   };
   const checkedPreparation = await store.inspectEffectfulStoredEvidence(
     effectfulPreparation);
+  assert.equal(Object.isFrozen(checkedPreparation.verifiedBindings), true);
+  assert.equal(checkedPreparation.verifiedBindings[0].binding
+    .durable_result_binding_cid, binding.identity);
+  assert.equal(checkedPreparation.verifiedBindings[0].physical.cid, physicalCid);
+  assert.equal(checkedPreparation.verifiedBindings[0].schema.cid, resultSchemaCid);
   assert.equal(checkedPreparation.finalReceipt.identity,
     finalReceipt.identity);
   assert.equal(checkedPreparation.privateHoldingCid,
@@ -1774,7 +2167,7 @@ test('portable control validates Receipt and Captured Run references',
   const effectfulDirectory = await mkdtemp(join(
     tmpdir(), 'actql-effectful-publication-commit-',
   ));
-  t.after(() => rm(effectfulDirectory, {recursive: true, force: true}));
+  retainedDirectories.push(effectfulDirectory);
   const effectfulConfiguration = {
     directory: effectfulDirectory,
     storeAuthorityCid: cid('a'),
@@ -1788,7 +2181,7 @@ test('portable control validates Receipt and Captured Run references',
   const effectfulStore = await openLocalPublicationStore(
     effectfulConfiguration, control,
   );
-  t.after(async () => { await effectfulStore.close(); });
+  retainedStores.push(effectfulStore);
   const effectfulPrivate = await effectfulStore.preparePrivateEvidence(
     privateBinding.name, privateBinding.wire, privateBinding.semanticCid,
   );
@@ -1894,10 +2287,42 @@ test('portable control validates Receipt and Captured Run references',
     runDefinitionCid: run.identity,
   }), undefined);
   let loseEffectfulCommitResponse = true;
+  const effectfulBindingPayloadReads = [];
+  let metadataBatches = 0, individualMetadataWrites = 0;
   const lostEffectfulStore = Object.freeze({
     ...effectfulStore,
+    async putPublicationContracts(contracts) {
+      metadataBatches++;
+      return Reflect.apply(effectfulStore.putPublicationContracts, effectfulStore, [contracts]);
+    },
+    async putOriginalPublicationContracts(contracts) {
+      metadataBatches++;
+      return Reflect.apply(effectfulStore.putOriginalPublicationContracts, effectfulStore, [contracts]);
+    },
+    async putPublicationContract(...args) {
+      individualMetadataWrites++;
+      return Reflect.apply(effectfulStore.putPublicationContract, effectfulStore, args);
+    },
     async commitEffectfulIndex(...args) {
-      const committed = await effectfulStore.commitEffectfulIndex(...args);
+      const originalOpen = fs.open;
+      const payloadPath = join(effectfulDirectory, 'objects', physicalCid.slice(7));
+      let reads = 0;
+      fs.open = async function(path, ...options) {
+        const bindingRead = path === payloadPath &&
+          new Error().stack.includes('verifyDurableResultBinding');
+        const handle = await Reflect.apply(originalOpen, this, [path, ...options]);
+        if (bindingRead) reads++;
+        return handle;
+      };
+      syncBuiltinESMExports();
+      let committed;
+      try {
+        committed = await effectfulStore.commitEffectfulIndex(...args);
+      } finally {
+        fs.open = originalOpen;
+        syncBuiltinESMExports();
+        effectfulBindingPayloadReads.push(reads);
+      }
       if (loseEffectfulCommitResponse) {
         loseEffectfulCommitResponse = false;
         throw new Error('LostEffectfulCommitResponse');
@@ -1908,12 +2333,27 @@ test('portable control validates Receipt and Captured Run references',
   const effectfulCommitted = await publishEffectfulRun({
     ...effectfulPublication, store: lostEffectfulStore,
   });
+  assert.equal(metadataBatches, 1, 'one publication setup persists its immutable metadata as one group');
+  assert.equal(individualMetadataWrites, 0, 'the grouped caller does not issue per-contract writes again');
+  assert.notEqual(effectfulBindingPayloadReads.length, 0);
+  assert.deepEqual(effectfulBindingPayloadReads,
+    effectfulBindingPayloadReads.map(() => 1));
   assert.equal(effectfulCommitted.committed, false);
   assert.equal(effectfulCommitted.idempotent, true);
   assert.equal(effectfulCommitted.state, 'succeeded');
   assert.equal(effectfulCommitted.index.identity, effectfulIndex.identity);
   const effectfulReplay = await publishEffectfulRun(effectfulPublication);
   assert.equal(effectfulReplay.idempotent, true);
+  const effectfulPayloadPath = join(effectfulDirectory, 'objects', physicalCid.slice(7));
+  try {
+    await fs.writeFile(effectfulPayloadPath, Buffer.alloc(payloadBytes, 0));
+    await assert.rejects(effectfulStore.validateCommittedEffectfulEvidence(
+      effectfulPreparation), {code: 'PublicationObjectCorrupt'});
+  } finally {
+    await fs.writeFile(effectfulPayloadPath, payloadWire);
+  }
+  assert.equal(await effectfulStore.validateCommittedEffectfulEvidence(
+    effectfulPreparation), true);
   const effectfulKey = {
     namespaceId: 'namespace-a',
     authorityScopeCid: cid('d'),
@@ -1926,7 +2366,7 @@ test('portable control validates Receipt and Captured Run references',
     {...effectfulConfiguration, privateEvidenceKey: Buffer.alloc(32, 4)},
     control,
   );
-  t.after(async () => { await reopenedEffectfulStore.close(); });
+  retainedStores.push(reopenedEffectfulStore);
   assert.deepEqual(
     await reopenedEffectfulStore.inspectCommittedIndex(effectfulKey),
     JSON.parse(effectfulIndex.wire),
@@ -1961,6 +2401,7 @@ test('portable control validates Receipt and Captured Run references',
   )).deleted, true);
   await assert.rejects(store.inspectEffectfulStoredEvidence(
     effectfulPreparation), {code: 'EffectfulPrivateEvidenceUnavailable'});
+  await t.test('Effect-free delivery and HTTP boundaries', async t => {
   const evidence = Object.freeze({
     runDefinition: run,
     invocation: invoked,
@@ -2124,9 +2565,7 @@ test('portable control validates Receipt and Captured Run references',
   const completedUnknownDirectory = await mkdtemp(join(
     tmpdir(), 'actql-completed-publication-unknown-',
   ));
-  t.after(() => rm(
-    completedUnknownDirectory, {recursive: true, force: true},
-  ));
+  retainedDirectories.push(completedUnknownDirectory);
   let completedUnknownIndexSyncFailures = 3;
   const completedUnknownDurability = Object.freeze({
     async syncDirectory(path) {
@@ -2151,6 +2590,7 @@ test('portable control validates Receipt and Captured Run references',
     maxContractNodes: limits.maxNodes,
     maxContractDepth: limits.maxDepth,
   }, control, completedUnknownDurability);
+  retainedStores.push(completedUnknownStore);
   await completedUnknownStore.putSemantic(resultSchemaWire, resultSchemaCid);
   const completedUnknownWriter =
     completedUnknownStore.createPreparedObjectWriter(payloadBytes);
@@ -2223,7 +2663,7 @@ test('portable control validates Receipt and Captured Run references',
     maxContractNodes: limits.maxNodes,
     maxContractDepth: limits.maxDepth,
   }, control);
-  t.after(async () => { await deliveryStore.close(); });
+  retainedStores.push(deliveryStore);
   const deliveryIndexValue = await deliveryStore.confirmCommittedIndex({
     namespaceId: 'namespace-a',
     authorityScopeCid: cid('d'),
@@ -3617,7 +4057,7 @@ test('portable control validates Receipt and Captured Run references',
   const lostDirectory = await mkdtemp(join(
     tmpdir(), 'actql-publication-lost-response-',
   ));
-  t.after(() => rm(lostDirectory, {recursive: true, force: true}));
+  retainedDirectories.push(lostDirectory);
   const lostBase = await openLocalPublicationStore({
     directory: lostDirectory,
     storeAuthorityCid: cid('a'),
@@ -3629,7 +4069,7 @@ test('portable control validates Receipt and Captured Run references',
   }, control);
   await lostBase.putSemantic(resultSchemaWire, resultSchemaCid);
   await lostBase.putBytes(Buffer.from(payloadWire, 'utf8'), physicalCid);
-  t.after(async () => { await lostBase.close(); });
+  retainedStores.push(lostBase);
   let loseCommitResponse = true;
   const lostStore = Object.freeze({
     ...lostBase,
@@ -3659,7 +4099,7 @@ test('portable control validates Receipt and Captured Run references',
   const raceDirectory = await mkdtemp(join(
     tmpdir(), 'actql-publication-race-',
   ));
-  t.after(() => rm(raceDirectory, {recursive: true, force: true}));
+  retainedDirectories.push(raceDirectory);
   const raceBase = await openLocalPublicationStore({
     directory: raceDirectory,
     storeAuthorityCid: cid('a'),
@@ -3671,7 +4111,7 @@ test('portable control validates Receipt and Captured Run references',
   }, control);
   await raceBase.putSemantic(resultSchemaWire, resultSchemaCid);
   await raceBase.putBytes(Buffer.from(payloadWire, 'utf8'), physicalCid);
-  t.after(async () => { await raceBase.close(); });
+  retainedStores.push(raceBase);
   let commitArrivals = 0;
   let releaseCommits;
   const commitsReady = new Promise(resolve => { releaseCommits = resolve; });
@@ -3754,7 +4194,7 @@ test('portable control validates Receipt and Captured Run references',
   const refusedDirectory = await mkdtemp(join(
     tmpdir(), 'actql-publication-finalization-refusal-',
   ));
-  t.after(() => rm(refusedDirectory, {recursive: true, force: true}));
+  retainedDirectories.push(refusedDirectory);
   const refusedBase = await openLocalPublicationStore({
     directory: refusedDirectory,
     storeAuthorityCid: cid('a'),
@@ -3764,7 +4204,7 @@ test('portable control validates Receipt and Captured Run references',
     maxContractNodes: limits.maxNodes,
     maxContractDepth: limits.maxDepth,
   }, control);
-  t.after(async () => { await refusedBase.close(); });
+  retainedStores.push(refusedBase);
   await refusedBase.putSemantic(resultSchemaWire, resultSchemaCid);
   await refusedBase.putBytes(Buffer.from(payloadWire, 'utf8'), physicalCid);
   const refusal = Object.assign(new Error('finalization not physically appended'), {
@@ -3812,7 +4252,7 @@ test('portable control validates Receipt and Captured Run references',
   const unknownDirectory = await mkdtemp(join(
     tmpdir(), 'actql-publication-unknown-',
   ));
-  t.after(() => rm(unknownDirectory, {recursive: true, force: true}));
+  retainedDirectories.push(unknownDirectory);
   const unknownBase = await openLocalPublicationStore({
     directory: unknownDirectory,
     storeAuthorityCid: cid('a'),
@@ -3824,7 +4264,7 @@ test('portable control validates Receipt and Captured Run references',
   }, control);
   await unknownBase.putSemantic(resultSchemaWire, resultSchemaCid);
   await unknownBase.putBytes(Buffer.from(payloadWire, 'utf8'), physicalCid);
-  t.after(async () => { await unknownBase.close(); });
+  retainedStores.push(unknownBase);
   let indexInspections = 0;
   const unknownStore = Object.freeze({
     ...unknownBase,
@@ -3863,7 +4303,7 @@ test('portable control validates Receipt and Captured Run references',
   const cancelledDirectory = await mkdtemp(join(
     tmpdir(), 'actql-publication-cancelled-',
   ));
-  t.after(() => rm(cancelledDirectory, {recursive: true, force: true}));
+  retainedDirectories.push(cancelledDirectory);
   const cancelledBase = await openLocalPublicationStore({
     directory: cancelledDirectory,
     storeAuthorityCid: cid('a'),
@@ -3875,7 +4315,7 @@ test('portable control validates Receipt and Captured Run references',
   }, control);
   await cancelledBase.putSemantic(resultSchemaWire, resultSchemaCid);
   await cancelledBase.putBytes(Buffer.from(payloadWire, 'utf8'), physicalCid);
-  t.after(async () => { await cancelledBase.close(); });
+  retainedStores.push(cancelledBase);
   const cancellation = new AbortController();
   const cancelledStore = Object.freeze({
     ...cancelledBase,
@@ -3901,6 +4341,7 @@ test('portable control validates Receipt and Captured Run references',
   assert.equal((await cancelledBase.latestRecord(
     cancelledContract.identity,
   )).state, 'cancelled');
+  });
 });
 
 test('local durable Store accepts only MoonBit-admitted contract wire',

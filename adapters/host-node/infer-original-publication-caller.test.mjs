@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {openNodeInferOperation} from './infer-operation.mjs';
+import {openNodeInferOperation,startCompleteInferObservation} from './infer-operation.mjs';
 import {retainInferOriginalReadInstallation} from './infer-original-installation.mjs';
 
 // Actual operation code, explicit Common/Resource ports. These DATA amounts
@@ -127,4 +127,172 @@ test('stop retains the original borrower and cleanup release does not request a 
   assert.equal(f.calls.filter(x=>x==='reserve').length,1);
   assert.equal(f.calls.filter(x=>x==='release').length,1);
   assert.equal(f.calls.includes('issue'),false);
+});
+
+// Actual adapter with explicit Common ports. This original ordinary composed
+// preparation has no legacy Node installation. The callback selects bounds;
+// only the existing same-Model Common reservation can issue its opaque borrow.
+function ordinaryFixture({select, reserveIssue}={}) {
+  const active={},consumer={},borrow={},issued={},compiled={},runDefinition={},graph={};
+  const calls=[];
+  const ok=_0=>({$tag:1,_0});
+  let current=true,releaseComplete=true;
+  const control={
+    claimCheckedClientInferOriginalComposedPreparation(c,d,g,read,r,w) {
+      assert.strictEqual(c,compiled);assert.strictEqual(d,runDefinition);
+      assert.strictEqual(g,graph);assert.strictEqual(read,preparation.read);
+      assert.deepEqual([r,w],[7n,5n]);calls.push('claim');return consumer;
+    },
+    startCheckedClientOriginalComposedInferExecution(c,d,occurrence,g,prefix,inputs,
+      provider,original,r,w,mr,mw,sources) {
+      assert.strictEqual(c,compiled);assert.strictEqual(d,runDefinition);
+      assert.strictEqual(g,graph);assert.strictEqual(original,consumer);
+      assert.deepEqual([r,w,mr,mw],[7n,5n,1000n,500n]);
+      assert.strictEqual(sources,composedInput.sources);calls.push('start');return active;
+    },
+  };
+  const preparation={compiled,runDefinition,control,scope:{},read:{},
+    readRetainedBytes:7n,readExecutionBytes:5n,modelRetainedBytes:1000n,modelExecutionBytes:500n,
+    publicationCapacity() {
+      assert.strictEqual(this,preparation,'retain the original callback receiver');
+      calls.push('select');
+      if(!current)throw Object.assign(new Error('ForeignInstalledModelPreparation'),{code:'OriginalCurrentRefused'});
+      return select===undefined?{retainedBytes:123n,workspaceBytes:456n}:select();
+    }};
+  const composedInput={occurrence:{},prefix:{},inputs:[],sources:[]};
+  const moon={
+    clientProgramReserveOriginalInferPublicationCapacity(owner,r,w) {
+      assert.strictEqual(owner,active);assert.deepEqual([r,w],[123n,456n]);calls.push('reserve');
+      return reserveIssue===undefined?ok(borrow):{$tag:0,_0:reserveIssue};
+    },
+    clientProgramStartOriginalInferObservationIssuance(owner,capacity,n,bytes,work,generations) {
+      assert.strictEqual(owner,active);assert.strictEqual(capacity,borrow);
+      assert.deepEqual([n,bytes,work],[1,4096,3]);assert.deepEqual(generations,[]);
+      calls.push('issue');return ok(issued);
+    },
+    clientProgramReleaseOriginalInferPublicationCapacity(value) {
+      assert.strictEqual(value,borrow);calls.push('release');return ok(releaseComplete);
+    },
+    clientProgramInferPublicationLedger(){assert.fail('never create a replacement Ledger');},
+    clientProgramStartInferObservationIssuance(){assert.fail('never fall back to the legacy issuer');},
+    clientProgramInferExecutionStopped:()=>true,
+    clientProgramCleanupInferExecution(owner){assert.strictEqual(owner,active);calls.push('cleanup');return ok(true);},
+  };
+  const options={moon,preparedProgram:{},graph,provider:{},composedInput,originalPreparation:preparation};
+  return {options,preparation,calls,issued,
+    current(value){current=value;},releaseComplete(value){releaseComplete=value;}};
+}
+
+test('ordinary original publication selects same-Run capacity without a legacy Node installation',()=>{
+  const f=ordinaryFixture(),operation=openNodeInferOperation(f.options);
+  assert.equal(Object.hasOwn(f.preparation,'nodeInstallation'),false);
+  assert.equal(Object.hasOwn(f.preparation,'metadataInstallation'),false);
+  operation.reserveOriginalPublicationCapacity();
+  operation.reserveOriginalPublicationCapacity();
+  assert.deepEqual(f.calls,['claim','start','select','reserve']);
+  assert.strictEqual(operation.startObservation(limits),f.issued);
+  assert.equal(operation.cleanup(),false);
+  f.releaseComplete(false);
+  assert.equal(operation.releaseOriginalPublicationCapacity(),false);
+  assert.equal(operation.cleanup(),false);
+  f.releaseComplete(true);
+  assert.equal(operation.releaseOriginalPublicationCapacity(),true);
+  assert.equal(operation.cleanup(),true);
+});
+
+test('ordinary original publication retains its original callback and receiver before completion',()=>{
+  const f=ordinaryFixture(),operation=openNodeInferOperation(f.options);
+  f.preparation.publicationCapacity=()=>assert.fail('a replacement is not the installing original');
+  operation.reserveOriginalPublicationCapacity();
+  assert.deepEqual(f.calls,['claim','start','select','reserve']);
+  assert.equal(operation.releaseOriginalPublicationCapacity(),true);
+  assert.equal(operation.cleanup(),true);
+  assert.throws(()=>operation.reserveOriginalPublicationCapacity(),/InferOriginalPublicationCapacityUnavailable/);
+  assert.equal(f.calls.filter(x=>x==='select').length,1);
+});
+
+test('ordinary original publication current refusal cannot invoke reservation or another issuer',()=>{
+  const f=ordinaryFixture(),operation=openNodeInferOperation(f.options);
+  f.current(false);
+  assert.throws(()=>operation.reserveOriginalPublicationCapacity(),{code:'OriginalCurrentRefused'});
+  assert.deepEqual(f.calls,['claim','start','select']);
+  assert.equal(operation.publicationCapacityPending(),false);
+  assert.throws(()=>operation.startObservation(limits),/InferOriginalPublicationCapacityUnavailable/);
+  assert.equal(operation.cleanup(),true);
+});
+
+test('ordinary original publication refuses malformed amounts without reading getters or reserving',()=>{
+  for(const value of [undefined,null,{},[],{retainedBytes:0n,workspaceBytes:0n},
+    {retainedBytes:123n,workspaceBytes:-1n},{retainedBytes:123,workspaceBytes:456n},
+    {retainedBytes:123n,workspaceBytes:9223372036854775808n},
+    {retainedBytes:123n,workspaceBytes:456n,extra:true},
+    {get retainedBytes(){assert.fail('do not invoke an unowned selection getter');},workspaceBytes:456n}]) {
+    const f=ordinaryFixture({select:()=>value}),operation=openNodeInferOperation(f.options);
+    assert.throws(()=>operation.reserveOriginalPublicationCapacity(),/InferOriginalPublicationCapacityUnavailable/);
+    assert.equal(f.calls.includes('reserve'),false);
+    assert.equal(operation.publicationCapacityPending(),false);
+    assert.equal(operation.cleanup(),true);
+  }
+});
+
+test('ordinary original publication preserves Common refusal without issuing a replacement borrower',()=>{
+  const issue={},f=ordinaryFixture({reserveIssue:issue}),operation=openNodeInferOperation(f.options);
+  assert.throws(()=>operation.reserveOriginalPublicationCapacity(),error=>error.cause===issue);
+  assert.deepEqual(f.calls,['claim','start','select','reserve']);
+  assert.equal(operation.publicationCapacityPending(),false);
+  assert.equal(operation.cleanup(),true);
+});
+
+test('ordinary original publication captures only an own data callback before claiming the read',()=>{
+  for(const value of [undefined,null,{},true]) {
+    const f=ordinaryFixture();f.preparation.publicationCapacity=value;
+    assert.throws(()=>openNodeInferOperation(f.options),/InferOriginalPublicationCapacityUnavailable/);
+    assert.deepEqual(f.calls,[]);
+  }
+  const f=ordinaryFixture();
+  Object.defineProperty(f.preparation,'publicationCapacity',{get(){assert.fail('not an original data callback');}});
+  assert.throws(()=>openNodeInferOperation(f.options),/InferOriginalPublicationCapacityUnavailable/);
+  assert.deepEqual(f.calls,[]);
+});
+
+test('complete original observation consumes the same single Model publication borrow without a Ledger',()=>{
+  const f=ordinaryFixture(),operation=openNodeInferOperation(f.options);
+  operation.reserveOriginalPublicationCapacity();
+  assert.strictEqual(startCompleteInferObservation({moon:f.options.moon,operations:[operation],...limits}),f.issued);
+  assert.equal(f.calls.filter(x=>x==='issue').length,1);
+  assert.equal(operation.releaseOriginalPublicationCapacity(),true);
+  assert.equal(operation.cleanup(),true);
+});
+
+test('complete original observation rejects foreign copied missing mixed and alternate Ledger owners',()=>{
+  const f=ordinaryFixture(),operation=openNodeInferOperation(f.options),other=ordinaryFixture();
+  const sibling=openNodeInferOperation(other.options);
+  f.options.moon.clientProgramStartCompleteInferObservationIssuance=()=>assert.fail('not the original issuer');
+  assert.throws(()=>startCompleteInferObservation({moon:f.options.moon,operations:[operation],...limits}),
+    /InferOriginalPublicationCapacityUnavailable/);
+  operation.reserveOriginalPublicationCapacity();
+  for(const options of [{operations:[operation],ledger:{}},{operations:[operation,sibling]},
+    {operations:[operation],content:{}},{operations:[{...operation}]},{operations:[{}]}]) {
+    assert.throws(()=>startCompleteInferObservation({moon:f.options.moon,...limits,...options}),
+      /InferOriginalPublicationCapacityUnavailable|ForeignInferOperation/);
+  }
+  assert.equal(f.calls.includes('issue'),false);
+  operation.releaseOriginalPublicationCapacity();
+  assert.equal(operation.cleanup(),true);assert.equal(sibling.cleanup(),true);
+});
+
+test('complete legacy observation preserves its explicit metadata Ledger and issuer',()=>{
+  const active={},ledger={},issued={};let calls=0;
+  const moon={
+    clientProgramStartComposedInferExecution:()=>({$tag:1,_0:active}),
+    clientProgramStartCompleteInferObservationIssuance(owners,original,n,bytes,work) {
+      assert.deepEqual(owners,[active]);assert.strictEqual(original,ledger);
+      assert.deepEqual([n,bytes,work],[1,4096,3]);calls++;return {$tag:1,_0:issued};
+    },
+    clientProgramInferExecutionStopped:()=>true,
+    clientProgramCleanupInferExecution:()=>({$tag:1,_0:true}),
+  };
+  const operation=openNodeInferOperation({moon,graph:{},provider:{},composedInput:{}});
+  assert.strictEqual(startCompleteInferObservation({moon,operations:[operation],ledger,...limits}),issued);
+  assert.equal(calls,1);assert.equal(operation.cleanup(),true);
 });

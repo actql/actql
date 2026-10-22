@@ -23,12 +23,16 @@ const unsupported = () => Object.assign(new Error('ClientProgramUnsupported'),
 export function installNodeClientEffectRun({moon,
   publicationControl: control = runtimeCore(moon).publicationControl,
   journal, authorizeRequest, authorizeRunStart, prepareExecution, execute,
+  prepareDefinition, assertRequestedStopAvailable,
   inferPlanFor, resultPolicyOriginalFor, validateInstallation, updateTargetOriginals,
   now = () => new Date().toISOString()}) {
   if (typeof moon?.clientProgramEffectCompilationIssueCode !== 'function' ||
       typeof authorizeRequest !== 'function' ||
       (prepareExecution !== undefined &&
         typeof prepareExecution !== 'function') ||
+      (prepareDefinition !== undefined && typeof prepareDefinition !== 'function') ||
+      (assertRequestedStopAvailable !== undefined &&
+        typeof assertRequestedStopAvailable !== 'function') ||
       (inferPlanFor !== undefined && typeof inferPlanFor !== 'function') ||
       (resultPolicyOriginalFor !== undefined &&
         typeof resultPolicyOriginalFor !== 'function') ||
@@ -71,6 +75,7 @@ export function installNodeClientEffectRun({moon,
   };
   const handles = new WeakMap();
   const compilations = new WeakMap();
+  const contentPolicies = new WeakMap();
   const compile = prepared => {
     if (prepared === null || typeof prepared !== 'object') throw denied();
     let compilation = compilations.get(prepared) ?? updateTargetOriginals?.compilationFor(prepared);
@@ -79,12 +84,28 @@ export function installNodeClientEffectRun({moon,
       return compilation;
     }
     const infer = inferPlanFor?.(prepared);
-    const outcome = infer === undefined
+    let contentPolicy;
+    if (infer === undefined && typeof moon.clientProgramEffectSerializationOccurrences === 'function' &&
+        moon.clientProgramEffectAcquisitionCount(prepared) === 0 &&
+        moon.clientProgramEffectSerializationOccurrences(prepared).length > 0) {
+      contentPolicy = resultPolicyOriginalFor?.(prepared);
+    }
+    let outcome;
+    if (contentPolicy !== undefined) {
+      if (contentPolicy?.kind !== 'data_policy' || typeof contentPolicy.cid !== 'string' ||
+          typeof contentPolicy.wire !== 'string' ||
+          typeof moon.clientProgramCompileLocalEffectsWithSourceFreePolicyBody !== 'function') {
+        throw new TypeError('InvalidHostResultDataPolicy');
+      }
+      outcome = moon.clientProgramCompileLocalEffectsWithSourceFreePolicyBody(prepared,
+        contentPolicy.cid, contentPolicy.wire, limits.maxWireBytes, limits.maxNodes, limits.maxDepth);
+    } else outcome = infer === undefined
       ? moon.clientProgramCompileLocalEffects(prepared)
       : moon.clientProgramCompileLocalEffectsWithInfer(prepared, infer);
     if (moon.clientProgramEffectCompilationIssueCode(outcome) ===
         'unsupported_program') throw unsupported();
     compilation = checked(outcome);
+    if (contentPolicy !== undefined) contentPolicies.set(prepared, contentPolicy);
     validateInstallation?.({prepared, compilation});
     compilations.set(prepared, compilation);
     return compilation;
@@ -164,6 +185,10 @@ export function installNodeClientEffectRun({moon,
       const accepted = await journal.admitOrLookupDefinition(identity, {
         namespaceId, lookupExpiresAt, submission,
         issueDefinition() {
+          // Only the Journal's new-Run branch needs this optional capability.
+          // Saved original Runs keep their lookup/recovery identity when a
+          // signer is absent; no new preparation or publication starts here.
+          if (requestedStop) assertRequestedStopAvailable?.();
           // This callback runs only after the same Journal lookup selected a
           // new invocation. A policy's old creation time is not a fresh query
           // sample. Keep the one preparation before dependent compilation;
@@ -175,7 +200,7 @@ export function installNodeClientEffectRun({moon,
             : queryTimeCall(2, [queryTimePreparation]);
           // The installed Host selects an actual Result policy original before
           // this new Run is recorded. A retained Run reuses its saved original.
-          const resultPolicyOriginal = resultPolicyOriginalFor?.(prepared);
+          const resultPolicyOriginal = contentPolicies.get(prepared) ?? resultPolicyOriginalFor?.(prepared);
           const allowed = checked(moon.clientProgramIssueAllowedEffectRun(
             compiled(), policy.executionContextCid, policy.hostPolicyCid,
             policy.expiresAt));
@@ -203,6 +228,17 @@ export function installNodeClientEffectRun({moon,
           const modelCompiled = inferPlanFor?.(prepared) === undefined ? undefined :
             control.adoptCheckedClientEffectInferRun(allowed, runDefinition,
               resultPolicyOriginal, limits);
+          // The same Host may retain its actual resource/Scope originals
+          // before the Journal publishes this business Run. A failure remains
+          // with that original preparation; no second definition or admission
+          // is issued by this callback, and it grants no Effect approval.
+          const originalPreparation = prepareDefinition?.(Object.freeze({prepared,
+            compilation: compiled(), allowed, definition, identity, runDefinition,
+            modelCompiled, resultPolicyOriginal, queryTimePreparation}));
+          if (typeof originalPreparation?.then === 'function') {
+            void Promise.resolve(originalPreparation).catch(() => {});
+            throw new TypeError('AsyncClientEffectDefinitionPreparation');
+          }
           return {
             resultNames: moon.clientProgramEffectCompilationResultNames(
               compiled()),
