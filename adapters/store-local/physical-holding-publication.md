@@ -56,6 +56,14 @@ and Result retirement retain their own actual acknowledgements. Pending
 recovery still owns its same cleanup, and a failed required ACK cannot become
 success merely because the containing directory was observed during opening.
 
+The existing staging, prepared-schema staging, metadata-deletion staging and
+clock directories likewise need no new acknowledgement when opening removes
+nothing. Their selected namespace/type checks remain. Actual interrupted
+temporary-file removal still precedes the same directory acknowledgement, and
+a failed acknowledgement refuses opening rather than returning a live Store.
+Initial format creation, ownership acquisition and later clock/publication
+writes retain their independent durability and close responsibilities.
+
 Manifest read grants follow the same selected-operation boundary. Ordinary
 opening does not enumerate their committed grant/use history. A selected new use
 checks its own grant directory and use names, recovers legacy staging files with

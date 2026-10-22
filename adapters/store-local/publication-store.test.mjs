@@ -2551,6 +2551,57 @@ test('unchanged opening staging and clock directories require no new durability 
   } finally {await reopened.close();}
 });
 
+test('opening staging cleanup still acknowledges each actual directory mutation', async t => {
+  const {store, directory, configuration} = await fixture(t);
+  await store.close();
+  const selected = [
+    ['staging', 'object-00000000-0000-0000-0000-000000000001'],
+    ['prepared-schemas', '.staging-00000000-0000-0000-0000-000000000001.json'],
+    ['metadata-deletions', '.staging-original'],
+    ['clocks', '.staging-original'],
+  ];
+  for (const [name, temporary] of selected) {
+    await writeFile(join(directory, name, temporary), 'interrupted private preparation');
+  }
+  const acknowledgements = [];
+  const reopened = await openLocalPublicationStore(configuration, contractControl, {async syncDirectory(path) {
+    const selectedDirectory = selected.find(([name]) => join(directory, name) === path);
+    if (selectedDirectory !== undefined) {
+      await assert.rejects(stat(join(path, selectedDirectory[1])), code('ENOENT'));
+      acknowledgements.push(path);
+    }
+    const handle = await open(path, 'r');
+    try {await handle.sync();} finally {await handle.close();}
+  }});
+  try {
+    assert.deepEqual(acknowledgements, selected.map(([name]) => join(directory, name)),
+      'each actual unlink still precedes its real directory acknowledgement');
+  } finally {await reopened.close();}
+});
+
+test('opening staging cleanup does not return a Store after its directory acknowledgement fails', async t => {
+  const {store, directory, configuration} = await fixture(t);
+  await store.close();
+  const clockDirectory = join(directory, 'clocks');
+  const temporary = join(clockDirectory, '.staging-original');
+  await writeFile(temporary, 'interrupted private clock preparation');
+  const primary = Object.assign(new Error('lost original clock-directory acknowledgement'), {code: 'EIO'});
+  let acknowledged = 0;
+  await assert.rejects(openLocalPublicationStore(configuration, contractControl, {async syncDirectory(path) {
+    const handle = await open(path, 'r');
+    try {
+      await handle.sync();
+      if (path === clockDirectory) {
+        acknowledged++;
+        await assert.rejects(stat(temporary), code('ENOENT'));
+        throw primary;
+      }
+    } finally {await handle.close();}
+  }}), error => error === primary);
+  assert.equal(acknowledged, 1);
+  await assert.rejects(stat(join(directory, 'owner')), code('ENOENT'));
+});
+
 test('ordinary opening retains an existing holding without ACK and selected writes still require their own ACK', async t => {
   const {store,directory,configuration}=await fixture(t);
   const bytes=Buffer.from('same holding through read-only open');
