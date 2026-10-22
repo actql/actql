@@ -1368,6 +1368,79 @@ test(`private confirmation retains a failed original directory close (${raw ? 'r
 });
 }
 
+for (const existing of [false, true]) {
+test(`holding commit retains its original failed directory close after reconciliation (${existing ? 'existing' : 'new'})`, async t => {
+  let f, record, prepared;
+  if (existing) {
+    f = await privateReadFixture(t);
+    record = await f.store.inspectPhysicalHolding(f.holdingCid);
+    prepared = [];
+  } else {
+    f = await fixture(t, {privateEvidenceKey: Buffer.alloc(32, 7)});
+    f.semanticCid = digest('new original holding close'); f.holdingCid = digest('new holding close custody');
+    f.wire = '{"private":"new holding"}';
+    const payload = await f.store.preparePrivateEvidence('effect_preview', f.wire, f.semanticCid);
+    prepared = [payload.prepared];
+    record = {version: 'actql-local-physical-holding/0.1', namespace: 'publication-private',
+      holding_cid: f.holdingCid, manifest_cid: f.semanticCid,
+      objects: [{cid: payload.physicalCid, byte_count: payload.bytes}]};
+  }
+  const ownerPath = join(f.directory, 'owner', 'owner.json'), token = await readFile(ownerPath);
+  const actualOpen = fsPromises.open;
+  let original, allowClose = false, opens = 0, syncs = 0, originalCloses = 0, failure;
+  t.mock.method(fsPromises, 'open', async function(path, ...args) {
+    const handle = await Reflect.apply(actualOpen, this, [path, ...args]);
+    if (String(path) === join(f.directory, 'physical-holdings')) {
+      opens++;
+      const sync = handle.sync;
+      t.mock.method(handle, 'sync', async function(...parameters) {
+        syncs++; return Reflect.apply(sync, this, parameters);
+      });
+      if (original === undefined) {
+        original = handle;
+        const close = handle.close;
+        t.mock.method(handle, 'close', async function(...parameters) {
+          assert.equal(this, original); originalCloses++;
+          if (!allowClose) return false;
+          return Reflect.apply(close, this, parameters);
+        });
+      }
+    }
+    return handle;
+  });
+  syncBuiltinESMExports();
+  try {
+    await assert.rejects(f.store.commitPhysicalHolding(record, prepared), error => {
+      failure = error; return error.cleanupHandle?.status().pending === true;
+    });
+    assert.equal(opens, 1); assert.equal(syncs, 1);
+    assert.deepEqual(await f.store.confirmPrivateEvidence({name: 'effect_preview', semanticCid: f.semanticCid,
+      holdingCid: f.holdingCid, wire: f.wire}), record);
+    assert.equal(prepared.every(handle => handle.status().pending === false), true);
+    await assert.rejects(f.store.close(), code('PublicationStoreCleanupPending'));
+    assert.equal(f.store.status().closed, false);
+    assert.deepEqual(await readFile(ownerPath), token);
+    const retirement = await f.store.retirePhysicalHolding(f.holdingCid);
+    assert.equal(retirement.cleanup.status().pending, true);
+    const before = {opens, syncs, closes: originalCloses};
+    allowClose = true;
+    const first = failure.cleanupHandle.retry(), second = failure.cleanupHandle.retry();
+    assert.strictEqual(first, second);
+    assert.equal((await first).pending, false);
+    assert.equal(originalCloses, before.closes + 1);
+    assert.equal(opens, before.opens); assert.equal(syncs, before.syncs);
+    await retirement.cleanup.retry();
+    assert.equal(retirement.cleanup.status().pending, false);
+    assert.equal(f.store.status().storedBytes, 0);
+    await f.store.close();
+  } finally {
+    allowClose = true;
+    if (failure?.cleanupHandle.status().pending) await failure.cleanupHandle.retry();
+    t.mock.restoreAll(); syncBuiltinESMExports();
+  }
+});
+}
+
 test('private evidence is encrypted, bound, and readable after restart',
   async t => {
     const suppliedKey = Buffer.alloc(32, 7);
