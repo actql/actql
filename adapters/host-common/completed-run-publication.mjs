@@ -1413,6 +1413,8 @@ export async function publishCompletedEffectFreeRun(options) {
     signal,
   } = options;
   const exported = [];
+  const retireCaptured = member(control, 'retireCapturedComputation');
+  let capturedRun, publicationEntered = false;
   try {
     await exportCompletedRunResultSet({
       execution, store, control, runDefinition, invocation, results,
@@ -1437,7 +1439,7 @@ export async function publishCompletedEffectFreeRun(options) {
       normalizationJournal,
       ...receiptEvidence,
     }, contractLimits);
-    const capturedRun = await control.issueEffectFreeCapturedRun({
+    capturedRun = await control.issueEffectFreeCapturedRun({
       runDefinition,
       invocation,
       definitions,
@@ -1476,6 +1478,8 @@ export async function publishCompletedEffectFreeRun(options) {
       capturedRun,
     });
     signal?.throwIfAborted();
+    // The publication entry owns every terminal/Unknown path from here.
+    publicationEntered = true;
     const publication = await publishEffectFreeRun({
       store,
       control,
@@ -1495,6 +1499,15 @@ export async function publishCompletedEffectFreeRun(options) {
       results: Object.freeze(exported),
     });
   } catch (error) {
+    if (!publicationEntered && capturedRun !== undefined && typeof retireCaptured === 'function') {
+      try {Reflect.apply(retireCaptured, control, [capturedRun]);}
+      catch (cleanup) {
+        const failure = new CompletedRunPublicationError('CompletedRunCaptureRetirementFailed', error);
+        failure.primaryFailure = error;
+        failure.cleanupError = cleanup;
+        error = failure;
+      }
+    }
     await releasePreparedResults(exported, error, control);
   }
 }

@@ -1346,6 +1346,7 @@ async function openOriginalLocalPublicationStore(
     ownership = Object.freeze({release: () => releasePreparedOwnership(prepared)});
   }
   try {
+  let removedStaging = false;
   for (const name of await readOpeningDirectory(stagingDirectory)) {
     const path = resolve(stagingDirectory, name);
     if (!/^object-[0-9a-f-]{36}$/u.test(name) ||
@@ -1353,8 +1354,9 @@ async function openOriginalLocalPublicationStore(
       fail('InvalidPublicationStagingObject');
     }
     await unlink(path);
+    removedStaging = true;
   }
-  await syncDirectory(stagingDirectory);
+  if (removedStaging) await syncDirectory(stagingDirectory);
 
   for (const name of await readOpeningDirectory(custodyDirectory)) {
     const path = resolve(custodyDirectory, name);
@@ -1364,27 +1366,31 @@ async function openOriginalLocalPublicationStore(
   }
   // Opening only observes these names. The selected custody recovery below
   // owns any actual unlink and its acknowledgement.
+  let removedSchemaStaging = false;
   for (const name of await readOpeningDirectory(preparedSchemasDirectory)) {
     const path = resolve(preparedSchemasDirectory, name);
     if (/^\.staging-[0-9a-f-]{36}\.json$/u.test(name)) {
       await unlink(path);
+      removedSchemaStaging = true;
       continue;
     }
     if (!custodyNamePattern.test(name) || !(await lstat(path)).isFile()) {
       fail('InvalidPublicationPreparedSchema');
     }
   }
-  await syncDirectory(preparedSchemasDirectory);
+  if (removedSchemaStaging) await syncDirectory(preparedSchemasDirectory);
 
   // Delivery coverage and pending recovery below own the selected entries.
   // Ordinary opens must not enumerate every historical delivery directory.
   // Manifest use admission and legacy staging recovery belong to the selected
   // grant. Committed grants are not another all-history opening inventory.
   const openingMetadataDeletionNames = [];
+  let removedMetadataStaging = false;
   for (const name of await readOpeningDirectory(metadataDeletionsDirectory)) {
     const path = resolve(metadataDeletionsDirectory, name);
     if (name.startsWith('.staging-')) {
       await unlink(path);
+      removedMetadataStaging = true;
       continue;
     }
     if (!/^[0-9a-f]{64}\.json$/u.test(name) ||
@@ -1393,7 +1399,7 @@ async function openOriginalLocalPublicationStore(
     }
     openingMetadataDeletionNames.push(name);
   }
-  await syncDirectory(metadataDeletionsDirectory);
+  if (removedMetadataStaging) await syncDirectory(metadataDeletionsDirectory);
   // Immutable holdings are checked through their selected original FD, not
   // by enumerating all committed names at every open. Pending deletion
   // records still require bounded opening admission and actual recovery.
@@ -1406,23 +1412,14 @@ async function openOriginalLocalPublicationStore(
   // Each selected extension reader owns its directory types, complete chain
   // and actual Result-directory ACK. Unrelated committed histories are not
   // another ordinary opening admission or durability transition.
-  for (const keyHash of await readOpeningDirectory(deletionsDirectory)) {
-    const directory = resolve(deletionsDirectory, keyHash);
-    if (!/^[0-9a-f]{64}$/u.test(keyHash) ||
-        !(await lstat(directory)).isDirectory()) {
-      fail('InvalidPublicationDeletionStore');
-    }
-    for (const name of await readOpeningDirectory(directory)) {
-      if (!/^[0-9a-f]{64}\.json$/u.test(name) ||
-          !(await lstat(resolve(directory, name))).isFile()) {
-        fail('InvalidPublicationDeletionStore');
-      }
-    }
-  }
+  // Result deletion recovery owns its bounded names only after the native
+  // lifecycle reports unfinished or legacy cleanup, not on every clean open.
+  let removedClockStaging = false;
   for (const name of await readOpeningDirectory(clocksDirectory)) {
     const path = resolve(clocksDirectory, name);
     if (name.startsWith('.staging-')) {
       await rm(path, {force: false});
+      removedClockStaging = true;
       continue;
     }
     if (!/^[0-9a-f]{64}\.json$/u.test(name) ||
@@ -1430,7 +1427,7 @@ async function openOriginalLocalPublicationStore(
       fail('InvalidPublicationClockObservation');
     }
   }
-  await syncDirectory(clocksDirectory);
+  if (removedClockStaging) await syncDirectory(clocksDirectory);
 
   let reservedBytes = 0;
   let reservedObjects = 0;
@@ -5333,6 +5330,10 @@ async function openOriginalLocalPublicationStore(
   };
 
   const readResultDeletion = async (keyHash, resultDefinitionCid) => {
+    let directory;
+    try {directory = await lstat(resultDeletionDirectory(keyHash));}
+    catch (error) {if (error?.code === 'ENOENT') return undefined; throw error;}
+    if (!directory.isDirectory() || directory.isSymbolicLink()) fail('InvalidPublicationDeletionStore');
     const path = resultDeletionPath(keyHash, resultDefinitionCid);
     let bytes;
     try { bytes = await readBounded(path, configuration.maxObjectBytes); }
@@ -7758,6 +7759,9 @@ async function openOriginalLocalPublicationStore(
     resultDefinitionCid,
     value,
   ) => {
+    // Persist recovery intent before any marker or physical cleanup. Native
+    // close alone cannot seal it; the Store waits for every original child.
+    deliveryIndex.beginResultDeletionLifetime();
     const directory = resultDeletionDirectory(keyHash);
     let createdDirectory = false;
     try {
@@ -7885,8 +7889,10 @@ async function openOriginalLocalPublicationStore(
   const recoverRetiredResults = async () => {
     active();
     const recovered = [];
-    for (const keyHash of await readdir(deletionsDirectory)) {
-      if (!/^[0-9a-f]{64}$/u.test(keyHash)) {
+    if (!deliveryIndex.resultDeletionRecoveryRequired()) return Object.freeze(recovered);
+    for (const keyHash of await readOpeningDirectory(deletionsDirectory)) {
+      if (!/^[0-9a-f]{64}$/u.test(keyHash) ||
+          !(await lstat(resultDeletionDirectory(keyHash))).isDirectory()) {
         fail('InvalidPublicationDeletionStore');
       }
       let indexBytes;
@@ -7904,8 +7910,9 @@ async function openOriginalLocalPublicationStore(
         'public_index_entry', indexBytes.toString('utf8'),
       );
       const entry = parseContract(indexContract);
-      for (const name of await readdir(resultDeletionDirectory(keyHash))) {
-        if (!/^[0-9a-f]{64}\.json$/u.test(name)) {
+      for (const name of await readOpeningDirectory(resultDeletionDirectory(keyHash))) {
+        if (!/^[0-9a-f]{64}\.json$/u.test(name) ||
+            !(await lstat(resolve(resultDeletionDirectory(keyHash), name))).isFile()) {
           fail('InvalidPublicationDeletionStore');
         }
         const resultDefinitionCid = `sha256:${name.slice(0, -5)}`;
@@ -8487,6 +8494,7 @@ async function openOriginalLocalPublicationStore(
           catch { fail('PublicationStoreCleanupPending'); }
         }
         if (activePhysicalRecordWriters.size !== 0) fail('PublicationStoreCleanupPending');
+        deliveryIndex.retainResultDeletionSeal();
         if (deliveryIndex?.close() !== true) fail('PublicationStoreCleanupPending');
         return ownership.release();
       }).then(released => {

@@ -4,6 +4,7 @@ import {readFileSync, existsSync, writeFileSync, mkdirSync, lstatSync} from 'nod
 import {dirname, join, relative, resolve, sep} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {execFileSync} from 'node:child_process';
+import {stop} from 'esbuild';
 import {checkComputeAssembly} from './connector-compute-bundles.mjs';
 import {checkRelaClientBridges} from './client-bridge-mirrors.mjs';
 export {checkRelaClientBridges} from './client-bridge-mirrors.mjs';
@@ -431,6 +432,10 @@ export function checkRelaNodeAssembly(root, write = false) {
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const root = fileURLToPath(new URL('../', import.meta.url));
   const write = process.argv.includes('--write');
-  console.log(`${checkNodeAssembly(root, write)} selected Node strategy contributions verified.`);
-  console.log(`${checkRelaNodeAssembly(root, write)} RelA-only Node strategy contributions verified.`);
+  try {
+    console.log(`${checkNodeAssembly(root, write)} selected Node strategy contributions verified.`);
+    console.log(`${checkRelaNodeAssembly(root, write)} RelA-only Node strategy contributions verified.`);
+  } finally {
+    await stop();
+  }
 }

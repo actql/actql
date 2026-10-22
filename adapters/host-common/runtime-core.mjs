@@ -1844,6 +1844,7 @@ function publicationControl(moon) {
   let control = publicationControls.get(moon);
   if (control !== undefined) return control;
   const tokens = new WeakMap();
+  const capturedComputationPreparations = new WeakMap();
   const contractBounds = new WeakMap();
   const issuedDeliveryGrants = new WeakMap();
   const issuedDeliveryAttempts = new WeakMap();
@@ -2070,7 +2071,8 @@ function publicationControl(moon) {
     maxNodes: limits?.maxNodes,
     maxDepth: limits?.maxDepth,
   }), label);
-  const finishCapturedPreparation = async (preparation, signal, limits) => {
+  const finishCapturedPreparation = async (preparation, signal, limits,
+    retainComputation = false) => {
     let finished = false;
     try {
       while (true) {
@@ -2080,8 +2082,12 @@ function publicationControl(moon) {
           ? setImmediate(resolve) : setTimeout(resolve, 0));
       }
       signal?.throwIfAborted();
-      const captured = inspect(checked(
-        moon.strategyCapturedRunFinish(preparation)), limits);
+      const captured = inspect(checked(retainComputation
+        ? moon.strategyCapturedRunFinishRetained(preparation)
+        : moon.strategyCapturedRunFinish(preparation)), limits);
+      if (retainComputation) {
+        capturedComputationPreparations.set(captured, preparation);
+      }
       finished = true;
       return captured;
     } finally {
@@ -4358,7 +4364,16 @@ function publicationControl(moon) {
         moon.strategyPublicationEvidenceWorkspace(limits.maxNodes),
         contentCaptures(evidence.contentGenerations),
       );
-      return finishCapturedPreparation(preparation, signal, limits);
+      return finishCapturedPreparation(preparation, signal, limits, true);
+    },
+    retireCapturedComputation(capturedRun) {
+      token(capturedRun);
+      const original = capturedComputationPreparations.get(capturedRun);
+      if (original === undefined) return;
+      // The publication operation owns this alias through reconciliation.
+      // Cancel releases managed facts, not physical children or an ACK.
+      moon.strategyCapturedRunCancel(original);
+      capturedComputationPreparations.delete(capturedRun);
     },
     admitEffectComputationPreview(wire, runDefinition, authoring, limits) {
       issuanceLimits(limits, 'Effect computation Preview');
@@ -5093,7 +5108,8 @@ function publicationControl(moon) {
       manifest, receipt, capturedRun, limits, signal) {
       issuanceLimits(limits, 'Effect-free chain validation');
       signal?.throwIfAborted();
-      const preparation = moon.strategyBeginEffectFreeChainCheck(
+      const original = capturedComputationPreparations.get(capturedRun);
+      const args = [
         token(runDefinition),
         token(invocation),
         definitions.map(token),
@@ -5105,7 +5121,10 @@ function publicationControl(moon) {
         limits.maxNodes,
         limits.maxDepth,
         moon.strategyPublicationEvidenceWorkspace(limits.maxNodes),
-      );
+      ];
+      const preparation = original === undefined
+        ? moon.strategyBeginEffectFreeChainCheck(...args)
+        : moon.strategyBeginEffectFreeChainCheckRetained(original, ...args);
       return finishPublicationValidation(preparation,
         moon.strategyEffectFreeChainCheckAdvance,
         moon.strategyEffectFreeChainCheckFinish,
@@ -5115,7 +5134,8 @@ function publicationControl(moon) {
       derivations, orderings, retentions, durableBindings, manifest, receipt,
       capturedRun, request, attempt, indexEntry, limits) {
       issuanceLimits(limits, 'Effect-free commit validation');
-      const preparation = moon.strategyBeginEffectFreeCommitCheck(
+      const original = capturedComputationPreparations.get(capturedRun);
+      const args = [
         token(runDefinition),
         token(invocation),
         definitions.map(token),
@@ -5134,7 +5154,10 @@ function publicationControl(moon) {
         limits.maxNodes,
         limits.maxDepth,
         moon.strategyPublicationEvidenceWorkspace(limits.maxNodes),
-      );
+      ];
+      const preparation = original === undefined
+        ? moon.strategyBeginEffectFreeCommitCheck(...args)
+        : moon.strategyBeginEffectFreeCommitCheckRetained(original, ...args);
       // A committed outcome is authoritative even after request cancellation.
       return finishPublicationValidation(preparation,
         moon.strategyEffectFreeCommitCheckAdvance,

@@ -261,3 +261,204 @@ test('Local loops retain the asynchronous timer fallback outside immediate-capab
   await localSnapshotFixture(f).owner.roundtrip();
   assert.deepEqual(f.counts,{yields:0,timers:5});
 });
+
+// Execute the actual publication entry/Unknown cleanup and completed caller
+// with explicit semantic and payload ports. These counters establish managed
+// alias transfer, not a new Common issuer, physical ACK or normal Host result.
+function publicationLifetimeLoops(publishRun) {
+  const text = readFileSync(new URL('./run-publication.mjs', import.meta.url), 'utf8');
+  const names = new Set(['RunPublicationError', 'member', 'fail', 'cleanupState',
+    'uncertainFailure', 'publishEffectFreeRun', 'capturedComputationLifetime']);
+  const declarations = parse(text, {ecmaVersion: 'latest', sourceType: 'module'}).body
+    .map(node => node.type === 'ExportNamedDeclaration' ? node.declaration : node)
+    .filter(node => node && (node.id && names.has(node.id.name) ||
+      node.type === 'VariableDeclaration' && node.declarations.some(item => names.has(item.id.name))))
+    .map(node => text.slice(node.start, node.end)).join('\n');
+  return new Function('publishRun', declarations +
+    '\nreturn {publishEffectFreeRun, uncertainFailure, member};')(publishRun);
+}
+
+test('publication computation lifetime captures the original retirement and waits for terminal success', async () => {
+  const captured = Object.freeze({original: 'captured'}), result = Object.freeze({state: 'succeeded'});
+  let retired = 0, finish;
+  const control = {retireCapturedComputation(value) {
+    assert.strictEqual(this, control); assert.strictEqual(value, captured); retired++;
+  }};
+  const loops = publicationLifetimeLoops(() => new Promise(resolve => {finish = resolve;}));
+  const pending = loops.publishEffectFreeRun({control, evidence: {capturedRun: captured}});
+  assert.equal(retired, 0);
+  control.retireCapturedComputation = () => assert.fail('replacement retirement used');
+  finish(result);
+  assert.strictEqual(await pending, result); assert.equal(retired, 1);
+});
+
+test('publication computation lifetime retires on the original terminal failure and accepts legacy absence', async () => {
+  for (const primary of [new Error('original terminal failure'), null]) {
+    let retired = 0;
+    const captured = Object.freeze({original: 'captured'});
+    const control = {retireCapturedComputation(value) {assert.strictEqual(value, captured); retired++;}};
+    const loops = publicationLifetimeLoops(async () => {throw primary;});
+    let caught = false;
+    try {await loops.publishEffectFreeRun({control, evidence: {capturedRun: captured}});}
+    catch (error) {caught = true; assert.strictEqual(error, primary);}
+    assert(caught); assert.equal(retired, 1);
+  }
+  const result = Object.freeze({legacy: true});
+  assert.strictEqual(await publicationLifetimeLoops(async () => result)
+    .publishEffectFreeRun({control: {}, evidence: {}}), result);
+});
+
+test('publication computation lifetime stays with failed or pending Unknown and retires after same-owner settlement', async () => {
+  const loops = publicationLifetimeLoops();
+  let pending = true, failed = true, retired = 0, reconciliations = 0, finish;
+  let gate = Promise.resolve();
+  const primary = Object.assign(new Error('original Unknown'), {cleanupPending: true,
+    cleanupHandle: {status: () => ({pending}), async retry() {}}});
+  const refusal = new Error('same original reconciliation refused');
+  const control = {publicationUnknownRetryAction(resolved, upstreamPending, available, attempted) {
+    // Existing Common action port: a finished retry may still be pending.
+    if (attempted && !resolved) return 'invalid';
+    if (!resolved) return 'reconcile';
+    if (upstreamPending && available && !attempted) return 'retry_upstream_cleanup';
+    return 'finished';
+  }};
+  const error = loops.uncertainFailure(primary, undefined, undefined, control, async () => {
+    reconciliations++; await gate;
+    if (failed) throw refusal;
+    return Object.freeze({outcome: 'uncommitted'});
+  }, () => {retired++;});
+  assert.equal(error.cleanupHandle.status().pending, true); assert.equal(retired, 0);
+  await assert.rejects(error.cleanupHandle.retry(), reason => reason === refusal);
+  assert.equal(retired, 0);
+  failed = false;
+  gate = new Promise(resolve => {finish = resolve;});
+  const first = error.cleanupHandle.retry(), again = error.cleanupHandle.retry();
+  finish();
+  const observations = await Promise.all([first, again]);
+  assert.strictEqual(first, again, 'same original reconciliation remains single-flight');
+  assert.equal(reconciliations, 2); assert(observations.every(value => value.pending));
+  assert.equal(retired, 0, 'finished retry is not proof that the upstream child settled');
+  pending = false;
+  assert.equal((await error.cleanupHandle.retry()).pending, false);
+  assert.equal(retired, 1);
+  await error.cleanupHandle.retry(); assert.equal(retired, 1);
+});
+
+test('publication computation lifetime preserves a terminal failure when managed retirement also fails', async () => {
+  const primary = new Error('original publication refusal'), cleanup = new Error('original cancel refused');
+  let attempts = 0;
+  const control = {retireCapturedComputation() {attempts++; throw cleanup;}};
+  const loops = publicationLifetimeLoops(async () => {throw primary;});
+  await assert.rejects(loops.publishEffectFreeRun({control, evidence: {capturedRun: {}}}), error =>
+    error.code === 'RunPublicationRetirementFailed' && error.primaryFailure === primary && error.cleanupError === cleanup);
+  assert.equal(attempts, 1, 'no blind cancellation retry on the terminal path');
+});
+
+test('publication computation lifetime retries only failed managed retirement after original Unknown resolution', async () => {
+  const loops = publicationLifetimeLoops(), refused = new Error('original cancel refused');
+  let attempts = 0, reconciliations = 0;
+  const control = {publicationUnknownRetryAction: resolved => resolved ? 'finished' : 'reconcile'};
+  const error = loops.uncertainFailure(new Error('original Unknown'), undefined, undefined, control,
+    async () => {reconciliations++; return {outcome: 'uncommitted'};},
+    () => {if (++attempts === 1) throw refused;});
+  await assert.rejects(error.cleanupHandle.retry(), reason => reason === refused);
+  assert.equal(error.cleanupHandle.status().pending, true);
+  assert.equal((await error.cleanupHandle.retry()).pending, false);
+  assert.equal(reconciliations, 1); assert.equal(attempts, 2);
+  await error.cleanupHandle.retry(); assert.equal(attempts, 2);
+});
+
+test('publication computation lifetime transfers through the actual Unknown return and commit validation', async () => {
+  const text = readFileSync(new URL('./run-publication.mjs', import.meta.url), 'utf8');
+  let block;
+  function visit(node) {
+    if (!node || typeof node !== 'object') return;
+    if (node.type === 'IfStatement' && node.test.type === 'BinaryExpression' &&
+        node.test.left.name === 'action' && node.test.right.value === 'return_unknown') {
+      assert.equal(block, undefined); block = node.consequent;
+    }
+    for (const value of Object.values(node)) {
+      if (Array.isArray(value)) value.forEach(visit); else if (value && typeof value === 'object') visit(value);
+    }
+  }
+  visit(parse(text, {ecmaVersion: 'latest', sourceType: 'module'})); assert(block);
+  const names = ['uncertainFailure', 'primary', 'reconciliationFailure', 'recordFailure', 'control',
+    'lookupCommit', 'validateCommit', 'finishResolvedCommit', 'store', 'publicationAttempt',
+    'index', 'now', 'limits', 'publicationRequest', 'withPublicationCleanup', 'computationLifetime'];
+  const originalUnknownReturn = new Function(...names, text.slice(block.start, block.end));
+  let loops, retired = 0, reads = 0, validations = 0, finalized = 0;
+  const captured = Object.freeze({original: 'capture'}), selected = Object.freeze({original: 'Index'});
+  const attempt = Object.freeze({original: 'attempt'}), store = Object.freeze({original: 'Store'});
+  const primary = new Error('original commit reply unavailable');
+  const control = {retireCapturedComputation(value) {assert.strictEqual(value, captured); retired++;},
+    publicationUnknownRetryAction: resolved => resolved ? 'finished' : 'reconcile'};
+  loops = publicationLifetimeLoops(async (_options, _effectful, lifetime) => originalUnknownReturn(
+    loops.uncertainFailure, primary, undefined, undefined, control,
+    async () => {reads++; return {index: selected};},
+    async value => {assert.strictEqual(value, selected); assert.equal(retired, 0); validations++;},
+    async (actualStore, actualControl, actualAttempt, _candidate, actualIndex) => {
+      assert.strictEqual(actualStore, store); assert.strictEqual(actualControl, control);
+      assert.strictEqual(actualAttempt, attempt); assert.strictEqual(actualIndex, selected);
+      assert.equal(retired, 0); finalized++; return {winner: attempt};
+    }, store, attempt, selected, () => 'original-time', {}, Object.freeze({original: 'request'}),
+    value => Object.freeze(value), lifetime));
+  let failure;
+  await assert.rejects(loops.publishEffectFreeRun({control, evidence: {capturedRun: captured}}), error => {
+    failure = error; return error.code === 'RunPublicationUnknown' && error.primaryFailure === primary;
+  });
+  assert.equal(retired, 0); assert.equal(reads, 0);
+  assert.equal((await failure.cleanupHandle.retry()).pending, false);
+  assert.equal(failure.publicationResult.state, 'succeeded');
+  assert.equal(reads, 1); assert.equal(validations, 1); assert.equal(finalized, 1); assert.equal(retired, 1);
+});
+
+test('publication computation lifetime latches retry before synchronous original reconciliation reentry', async () => {
+  const loops = publicationLifetimeLoops();
+  let error, nested, entered = false, reconciliations = 0, retired = 0;
+  const control = {publicationUnknownRetryAction: resolved => resolved ? 'finished' : 'reconcile'};
+  error = loops.uncertainFailure(new Error('original Unknown'), undefined, undefined, control, async () => {
+    reconciliations++;
+    if (!entered) {entered = true; nested = error.cleanupHandle.retry();}
+    return Object.freeze({outcome: 'uncommitted'});
+  }, () => {retired++;});
+  const original = error.cleanupHandle.retry();
+  assert.equal((await original).pending, false);
+  assert.strictEqual(nested, original);
+  assert.equal(reconciliations, 1); assert.equal(retired, 1);
+});
+
+test('publication computation lifetime retires capture cancelled before publication entry without replacing payload cleanup', async () => {
+  const text = readFileSync(new URL('./completed-run-publication.mjs', import.meta.url), 'utf8');
+  const declaration = parse(text, {ecmaVersion: 'latest', sourceType: 'module'}).body
+    .find(node => node.type === 'ExportNamedDeclaration' &&
+      node.declaration?.id?.name === 'publishCompletedEffectFreeRun').declaration;
+  const failureClass = parse(text, {ecmaVersion: 'latest', sourceType: 'module'}).body
+    .find(node => node.type === 'ExportNamedDeclaration' &&
+      node.declaration?.id?.name === 'CompletedRunPublicationError').declaration;
+  for (const retirementFailure of [undefined, new Error('original capture cancellation refused')]) {
+  const controller = new AbortController(), reason = new Error('original stop after capture');
+  const captured = Object.freeze({original: 'captured'}), original = Object.freeze({original: 'contract'});
+  let retired = 0, released = 0;
+  const control = {issueResultManifest: () => original, issueEffectFreeRunReceipt: () => original,
+    async issueEffectFreeCapturedRun() {controller.abort(reason); return captured;},
+    retireCapturedComputation(value) {
+      assert.strictEqual(this, control); assert.strictEqual(value, captured); retired++;
+      if (retirementFailure !== undefined) throw retirementFailure;
+    }};
+  const entry = new Function('validateOptions', 'exportCompletedRunResultSet', 'uniqueContracts',
+    'publishEffectFreeRun', 'releasePreparedResults', 'member', text.slice(failureClass.start, failureClass.end) +
+    '\n' + text.slice(declaration.start, declaration.end) +
+    '\nreturn publishCompletedEffectFreeRun;')(() => {}, async (_options, exported) => {
+      exported.push({publication: {artifact: original, derivation: original,
+        ordering: original, durableBinding: original}});
+    }, values => values, () => assert.fail('cancelled capture entered publication'),
+    async (_exported, primary) => {released++; throw primary;}, publicationLifetimeLoops().member);
+  await assert.rejects(entry({control, signal: controller.signal,
+    execution: {publicationInventory: {occurrences: [{definitionContract: original}]}},
+    results: [{retention: original}], captureEvidence: {}, receiptEvidence: {}}), error =>
+    retirementFailure === undefined ? error === reason :
+      error.code === 'CompletedRunCaptureRetirementFailed' &&
+      error.primaryFailure === reason && error.cleanupError === retirementFailure);
+  assert.equal(retired, 1); assert.equal(released, 1);
+  }
+});
