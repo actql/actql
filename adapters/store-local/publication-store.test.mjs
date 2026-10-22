@@ -1193,6 +1193,73 @@ test('private evidence selected extent and missing payload keep their original r
     'A selected unavailable payload never repairs or retires its original ownership');
 });
 
+function countPrivateReads(t, directory, objectCids, holdingCid) {
+  const actualOpen = fsPromises.open, payloads = new Map(objectCids.map(cid =>
+    [join(directory, 'objects', cid.slice(7)), 0]));
+  const holdingPath = join(directory, 'physical-holdings', holdingCid.slice(7) + '.json');
+  const counts = {payloads, holdings: 0, directoryAcks: 0};
+  t.mock.method(fsPromises, 'open', async function(path, ...args) {
+    const handle = await Reflect.apply(actualOpen, this, [path, ...args]);
+    if (String(path) === holdingPath) counts.holdings++;
+    if (payloads.has(String(path))) payloads.set(String(path), payloads.get(String(path)) + 1);
+    if (String(path) === join(directory, 'physical-holdings')) {
+      const sync = handle.sync;
+      t.mock.method(handle, 'sync', async function(...parameters) {
+        const result = await Reflect.apply(sync, this, parameters);
+        counts.directoryAcks++;
+        return result;
+      });
+    }
+    return handle;
+  });
+  syncBuiltinESMExports();
+  return counts;
+}
+
+test('private evidence confirmation reuses its one operation read before the real directory ACK', async t => {
+  const f = await privateReadFixture(t);
+  const counts = countPrivateReads(t, f.directory, [f.prepared.physicalCid], f.holdingCid);
+  try {
+    const binding = {name: 'effect_preview', semanticCid: f.semanticCid,
+      holdingCid: f.holdingCid, wire: f.wire};
+    const confirmed = f.store.confirmPrivateEvidence(binding);
+    binding.wire = '{"later":"not the submitted body"}';
+    const record = await confirmed;
+    assert.equal(record.holding_cid, f.holdingCid);
+    assert.deepEqual([...counts.payloads.values()], [1]);
+    assert.equal(counts.holdings, 1);
+    assert.equal(counts.directoryAcks, 1, 'Readable bytes are not a durable confirmation');
+    await f.store.confirmPrivateEvidence({...binding, wire: f.wire});
+    assert.deepEqual([...counts.payloads.values()], [2], 'A new confirmation reacquires its own original');
+    assert.equal(counts.holdings, 2);
+    assert.equal(counts.directoryAcks, 2);
+  } finally {t.mock.restoreAll(); syncBuiltinESMExports();}
+});
+
+test('Model raw confirmation reads each selected ciphertext once with the same descriptor and holding', async t => {
+  const {store, directory} = await fixture(t, {privateEvidenceKey: Buffer.alloc(32, 7)});
+  const bytes = Uint8Array.of(0, 255, 13, 10, 97);
+  const binding = {semanticCid: digest('single raw descriptor'), holdingCid: digest('single raw holding'),
+    wire: '{"descriptor":"original raw cell"}', contentCid: digest(bytes), byteCount: bytes.byteLength};
+  const prepared = await store.prepareModelRawEvidence(binding, bytes);
+  const record = {version: 'actql-local-physical-holding/0.1', namespace: 'publication-private',
+    holding_cid: binding.holdingCid, manifest_cid: binding.semanticCid,
+    objects: prepared.map(value => ({cid: value.physicalCid, byte_count: value.bytes}))};
+  await store.commitPhysicalHolding(record, prepared.map(value => value.prepared));
+  const counts = countPrivateReads(t, directory, record.objects.map(value => value.cid), record.holding_cid);
+  try {
+    const pending = store.confirmModelRawEvidence(binding);
+    binding.wire = '{"descriptor":"later mutation"}';
+    const confirmed = await pending;
+    assert.deepEqual(confirmed.bytes, Buffer.from(bytes));
+    assert.deepEqual(confirmed.record, record);
+    assert.deepEqual([...counts.payloads.values()], [1, 1]);
+    assert.equal(counts.holdings, 1);
+    assert.equal(counts.directoryAcks, 1);
+    await assert.rejects(store.readModelRawEvidence(binding), code('PublicationPrivateEvidenceConflict'));
+  } finally {t.mock.restoreAll(); syncBuiltinESMExports();}
+});
+
 test('private evidence is encrypted, bound, and readable after restart',
   async t => {
     const suppliedKey = Buffer.alloc(32, 7);
