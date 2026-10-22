@@ -5876,7 +5876,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "2adb271beef18ba5330ef3531ebd9a7fdf799e9437878b2fca5af6c209e55954",
+      "sha256": "f2557dc0e8b71a1f60e91fc69209fdaacac73b774cd28f5a39befb2cadc42aab",
       "exports": [
         "PublicationStoreError",
         "assertOriginalLocalPublicationStoreFacilityCurrent",
@@ -8340,7 +8340,8 @@
           "name": "openOriginalLocalPublicationStore/readCommittedResultDescriptionEvidence/readCommittedResultDescriptionEvidence",
           "parameters": [
             "key",
-            "definitionCid"
+            "definitionCid",
+            "publication"
           ],
           "async": true
         },
@@ -8355,7 +8356,8 @@
           "name": "openOriginalLocalPublicationStore/readCommittedResultRetentionExtension/readCommittedResultRetentionExtension",
           "parameters": [
             "key",
-            "resultDefinitionCid"
+            "resultDefinitionCid",
+            "publication"
           ],
           "async": false
         },
@@ -8636,7 +8638,8 @@
           "parameters": [
             "key",
             "resultDefinitionCid",
-            "metadataOnly"
+            "metadataOnly",
+            "publication"
           ],
           "async": true
         },
@@ -8856,7 +8859,8 @@
           "name": "openOriginalLocalPublicationStore/requireCommittedResultBinding/requireCommittedResultBinding",
           "parameters": [
             "key",
-            "resultDefinitionCid"
+            "resultDefinitionCid",
+            "publication"
           ],
           "async": true
         },
@@ -10626,6 +10630,10 @@
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "const writePhysicalHoldingRecord = async (path, bytes, exclusive = true, finalDirectory) => {"
+              },
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "### Selected publication metadata observation"
               }
             ],
             "identity": [
@@ -11598,6 +11606,18 @@
               {
                 "path": "adapters/store-local/prepared-custody-atomic-record.test.mjs",
                 "anchor": "test('a final-ACKed custody retains the same failed temporary unlink without repeating its ACK'"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "metadata consumes its own publication observation without another Index acquisition"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "test('selected metadata refuses copied foreign and wrong-Run observations without treating them as omitted'"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "test('same-Store metadata retirement invalidates an unused selected publication observation'"
               }
             ]
           }

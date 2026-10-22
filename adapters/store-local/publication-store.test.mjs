@@ -5139,6 +5139,92 @@ test('description evidence admits each selected immutable contract once per read
     ), code('InvalidPublicationContract'));
   });
 
+async function selectedMetadataFixture(t, label) {
+  const admissions = new Map();
+  const control = {...contractControl, admit(name, body, bounds) {
+    const original = contractControl.admit(name, body, bounds);
+    admissions.set(original.identity, (admissions.get(original.identity) ?? 0) + 1);
+    return original;
+  }};
+  const setup = await fixture(t, {}, control);
+  const invocationValue = invocation();
+  const definition = resultDefinition();
+  const request = publicationRequest(definition, digest(label));
+  await setup.store.putPublicationContract('result_definition', wire(definition));
+  const attempt = publicationAttempt(request);
+  const prepared = await prepareCommit(setup.store, request, attempt, invocationValue);
+  const entry = indexEntry(request, attempt, invocationValue, {
+    durable_result_binding_cids: [prepared.binding.identity],
+  });
+  await setup.store.commitIndex(wire(entry), prepared.required, prepared.evidence);
+  admissions.clear();
+  return {...setup, admissions, entry, key: indexKeyFor(request), definitionCid: definition.result_definition_cid};
+}
+
+for (const kind of ['description', 'retention']) {
+  test(`selected ${kind} metadata consumes its own publication observation without another Index acquisition`, async t => {
+    const setup = await selectedMetadataFixture(t, `selected ${kind} observation`);
+    const {store, key, definitionCid, entry, admissions, directory} = setup;
+    const method = kind === 'description' ? 'readCommittedResultDescriptionEvidence'
+      : 'readCommittedResultRetentionExtension';
+    const originalOpen = fsPromises.open;
+    let indexReads = 0;
+    fsPromises.open = async (...args) => {
+      if (typeof args[0] === 'string' && args[0].startsWith(join(directory, 'indexes') + sep)) indexReads++;
+      return originalOpen(...args);
+    };
+    syncBuiltinESMExports();
+    try {
+      const selected = await store.readCommittedPublication(key);
+      const answer = await store[method](key, definitionCid, selected);
+      if (kind === 'description') assert.equal(answer.definition.identity, definitionCid);
+      else assert.equal(answer, undefined);
+      assert.equal(indexReads, 1, 'A trusted nested metadata lookup consumes the already acquired original');
+      assert.equal(admissions.get(entry.public_index_entry_cid), 1);
+      await assert.rejects(store[method](key, definitionCid, selected), code('PublicationLookupDenied'),
+        'The operation-local observation cannot become a reusable public read cache');
+      assert.equal(indexReads, 1, 'An already consumed original refuses before another acquisition');
+      const fresh = await store.readCommittedPublication(key);
+      assert.notStrictEqual(fresh, selected);
+      await store[method](key, definitionCid, fresh);
+      assert.equal(indexReads, 2, 'A later operation acquires its own selected Index');
+      const [name] = await readdir(join(directory, 'indexes'));
+      await writeFile(join(directory, 'indexes', name), '{}');
+      await assert.rejects(store.readCommittedPublication(key), code('InvalidPublicationContract'));
+    } finally {
+      fsPromises.open = originalOpen; syncBuiltinESMExports();
+    }
+  });
+}
+
+test('selected metadata refuses copied foreign and wrong-Run observations without treating them as omitted', async t => {
+  const left = await selectedMetadataFixture(t, 'left selected observation');
+  const right = await selectedMetadataFixture(t, 'right selected observation');
+  const selected = await left.store.readCommittedPublication(left.key);
+  const foreign = await right.store.readCommittedPublication(right.key);
+  for (const original of [null, {...selected}, foreign]) {
+    await assert.rejects(left.store.readCommittedResultDescriptionEvidence(
+      left.key, left.definitionCid, original), code('PublicationLookupDenied'));
+  }
+  await assert.rejects(left.store.readCommittedResultDescriptionEvidence(
+    {...left.key, runDefinitionCid: digest('wrong selected Run')}, left.definitionCid, selected),
+  code('PublicationLookupDenied'));
+  assert.equal((await left.store.readCommittedResultDescriptionEvidence(
+    left.key, left.definitionCid, selected)).definition.identity, left.definitionCid);
+  assert.equal((await left.store.readCommittedResultDescriptionEvidence(
+    left.key, left.definitionCid)).definition.identity, left.definitionCid,
+  'The omitted legacy path retains its independent acquisition');
+});
+
+test('same-Store metadata retirement invalidates an unused selected publication observation', async t => {
+  const {store, key, definitionCid} = await selectedMetadataFixture(t, 'retired selected observation');
+  const selected = await store.readCommittedPublication(key);
+  const retired = await store.retireCommittedPublicationMetadata(key, '2026-09-18T04:00:00.000Z');
+  assert.equal(retired.cleanup.status().pending, false);
+  await assert.rejects(store.readCommittedResultDescriptionEvidence(
+    key, definitionCid, selected), code('PublicationLookupDenied'));
+});
+
 test('description evidence survives payload deletion and restart, not metadata deletion',
   async t => {
     const {store, configuration} = await fixture(t);

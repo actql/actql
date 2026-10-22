@@ -35,17 +35,20 @@ function fixture({authorize = async () => true, admit,
       calls.push(['clock']); return observeClock?.(...args);
     },
     async readCommittedResultRetentionExtension() {},
-    async readCommittedResultDescriptionEvidence() {
-      calls.push(['metadata']); return {bindings: [], definition: {}, schemaWire: '{}'};
+    async readCommittedResultDescriptionEvidence(_key, _definition, original) {
+      calls.push(['metadata', original]); return {bindings: [], definition: {}, schemaWire: '{}'};
     },
     async consumeManifestReadGrant() { calls.push(['consume']); },
   };
   if (selectedPublication !== undefined) {
     store.readCommittedPublication = selectedPublication === null ? null : async function () {
       assert.strictEqual(this, store);
-      calls.push(['selected', index]);
-      return typeof selectedPublication === 'function' ? selectedPublication() :
+      const observed = ['selected', index];
+      calls.push(observed);
+      const selected = typeof selectedPublication === 'function' ? selectedPublication() :
         Object.freeze({entry: Object.freeze({...index}), index: Object.freeze({})});
+      observed.push(selected);
+      return selected;
     };
   }
   if (sampleClock !== undefined) store.sampleTrustedClock = sampleClock;
@@ -89,8 +92,14 @@ test('description resolution consumes its selected publication without an Index 
   assert.equal(calls.filter(([kind]) => kind === 'contract').length, 2);
   assert.equal(calls.filter(([kind]) => kind === 'index').length, 1,
     'Final response head confirmation remains');
+  assert.strictEqual(calls.find(([kind]) => kind === 'metadata')[1],
+    calls.find(([kind]) => kind === 'selected')[2], 'Metadata consumes the identical Store original');
   assert.deepEqual(await describeAuthorizedResult(service, request()), {ref: key, ...projected});
   assert.equal(calls.filter(([kind]) => kind === 'selected').length, 2);
+  const selections = calls.filter(([kind]) => kind === 'selected').map(item => item[2]);
+  const metadata = calls.filter(([kind]) => kind === 'metadata').map(item => item[1]);
+  assert.notStrictEqual(selections[0], selections[1]);
+  assert.strictEqual(metadata[1], selections[1]);
 });
 
 test('selected description preserves denial, invalid input, physical failure and final confirmation', async () => {

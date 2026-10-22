@@ -22,7 +22,7 @@ function fixture(api, options = {}) {
     admissions: [], authorizations: [], availability: [], grantChecks: [],
     attempts: [], records: [], chunks: [], finishes: 0,
     contractReads: [], indexObservations: 0, selectedObservations: 0,
-    replacementIndex: undefined, operations: []};
+    replacementIndex: undefined, operations: [], selections: [], retentionSelections: []};
   const retentionEnd = options.retentionEnd ?? instant(100);
   const grantEnd = options.grantEnd ?? instant(100);
   const publication = (name, value) => options.mutableContracts
@@ -61,7 +61,9 @@ function fixture(api, options = {}) {
       return {public_index_entry: index, result_manifest: manifest,
         result_retention_policy: retention}[name];
     },
-    async readCommittedResultRetentionExtension() {},
+    async readCommittedResultRetentionExtension(_key, _definition, original) {
+      state.retentionSelections.push(original);
+    },
     async observeTrustedClock(_cid, at) {
       await readClock();
       acceptClock(at);
@@ -93,9 +95,11 @@ function fixture(api, options = {}) {
     store.readCommittedPublication = options.selectedPublication === null ? null : async function () {
       assert.strictEqual(this, store);
       state.selectedObservations++;
-      if (typeof options.selectedPublication === 'function') return options.selectedPublication();
-      return Object.freeze({entry: Object.freeze({public_index_entry_cid: index.identity,
-        result_manifest_cid: manifest.identity}), index});
+      const selected = typeof options.selectedPublication === 'function' ? options.selectedPublication()
+        : Object.freeze({entry: Object.freeze({public_index_entry_cid: index.identity,
+          result_manifest_cid: manifest.identity}), index});
+      state.selections.push(selected);
+      return selected;
     };
   }
   if (options.legacy) delete store.sampleTrustedClock;
@@ -178,9 +182,13 @@ for (const [name, api] of [['source', source], ['packaged', packaged]]) {
     assert.deepEqual(input.state.contractReads, ['result_manifest', 'result_retention_policy']);
     assert.equal(input.state.attempts.length, 1);
     assert.deepEqual(input.state.chunks, ['{"id":1}\n']);
+    assert.strictEqual(input.state.retentionSelections[0], input.state.selections[0],
+      'Initial retention consumes the identical Store original');
     await input.deliver();
     assert.equal(input.state.selectedObservations, 2, 'A new public operation reacquires its original');
     assert.equal(input.state.indexObservations, 2);
+    assert.notStrictEqual(input.state.selections[0], input.state.selections[1]);
+    assert.strictEqual(input.state.retentionSelections[1], input.state.selections[1]);
   });
 
   test(`${name}: Result selected publication errors are not a legacy fallback`, async () => {
