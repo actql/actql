@@ -16854,7 +16854,7 @@
     },
     {
       "module": "packages/run-host-core/index.mjs",
-      "sha256": "71ef116b11de51a9226b5c31d892236403835d41de98084eac1794de2b29a721",
+      "sha256": "187e9c9eac82b9c24509d123676963d76bf00d44db896e686f0d33ada3ac20dc",
       "role": "physical-io",
       "exports": [
         "admitCapturedResultSnapshot",
@@ -16893,6 +16893,7 @@
         "effectReviewCheckpointBinding",
         "effectReviewCheckpointBindingFacts",
         "effectReviewCheckpointMembers",
+        "effectReviewCheckpointWaitingState",
         "effectRunStartCurrent",
         "effectSourceEvidenceFacts",
         "effectSourceInputBinding",
@@ -17615,6 +17616,18 @@
           "name": "effectReviewCheckpointMembers/effectReviewCheckpointMembers",
           "parameters": [
             "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "effectReviewCheckpointWaitingState",
+          "parameters": [
+            "binding",
+            "allowed",
+            "definition",
+            "storedWire",
+            "updatedAt",
+            "declaredResults"
           ],
           "async": false
         },
@@ -20469,7 +20482,8 @@
             "validateTaskPhysicalStartClaim/validateTaskPhysicalStartClaim",
             "validateTaskPhysicalStartClaim/validateTaskPhysicalStartClaim#2",
             "bindPreparedEffectRunMaterials",
-            "effectReviewCheckpointBindingFacts"
+            "effectReviewCheckpointBindingFacts",
+            "effectReviewCheckpointWaitingState"
           ],
           "exports": [
             "admitCapturedResultSnapshot",
@@ -20507,6 +20521,7 @@
             "effectReviewCheckpointBinding",
             "effectReviewCheckpointBindingFacts",
             "effectReviewCheckpointMembers",
+            "effectReviewCheckpointWaitingState",
             "effectRunStartCurrent",
             "effectSourceEvidenceFacts",
             "effectSourceInputBinding",
@@ -20647,6 +20662,10 @@
               {
                 "path": "docs/design/remote-site-execution.md",
                 "anchor": "## Original sealed Checkpoint bindings"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "The same nominal association may supply the original to the existing persistence"
               }
             ],
             "inputsOutputs": [
@@ -20665,6 +20684,10 @@
               {
                 "path": "packages/run-host-core/index.mjs",
                 "anchor": "export function effectReviewCheckpointBindingFacts(binding, allowed, definition) {"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "The same nominal association may supply the original to the existing persistence"
               }
             ],
             "identity": [
@@ -20683,6 +20706,10 @@
               {
                 "path": "packages/run-host-core/index.mjs",
                 "anchor": "original.definition !== definition) throw new TypeError"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "The same nominal association may supply the original to the existing persistence"
               }
             ],
             "ownership": [
@@ -20701,6 +20728,10 @@
               {
                 "path": "packages/run-host-core/index.mjs",
                 "anchor": "const effectCheckpointBindings = new WeakMap();"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "The same nominal association may supply the original to the existing persistence"
               }
             ],
             "synchronization": [
@@ -20719,6 +20750,10 @@
               {
                 "path": "packages/run-host-core/index.mjs",
                 "anchor": "return binding;"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "The same nominal association may supply the original to the existing persistence"
               }
             ],
             "failure": [
@@ -20737,6 +20772,10 @@
               {
                 "path": "packages/run-host-core/effect-checkpoint-retention.test.mjs",
                 "anchor": "test('copies foreign bindings and changed original roots cannot borrow retained facts'"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "The same nominal association may supply the original to the existing persistence"
               }
             ],
             "cancellation": [
@@ -20755,6 +20794,10 @@
               {
                 "path": "docs/design/remote-site-execution.md",
                 "anchor": "A pending cancellation request does not prove a waiting exit."
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "The same nominal association may supply the original to the existing persistence"
               }
             ],
             "resources": [
@@ -20773,6 +20816,10 @@
               {
                 "path": "packages/run-host-core/index.mjs",
                 "anchor": "effectCheckpointBindings.set(binding, {original, allowed, definition});"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "The same nominal association may supply the original to the existing persistence"
               }
             ],
             "extension": [
@@ -20791,6 +20838,10 @@
               {
                 "path": "docs/design/remote-site-execution.md",
                 "anchor": "A restored operation admits its own original once."
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "The same nominal association may supply the original to the existing persistence"
               }
             ],
             "verification": [
@@ -20809,6 +20860,10 @@
               {
                 "path": "packages/run-host-core/effect-checkpoint-retention.test.mjs",
                 "anchor": "test('same-original binding retains one nominal Checkpoint across pure reads and await'"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "The same nominal association may supply the original to the existing persistence"
               }
             ]
           }
