@@ -56,6 +56,22 @@ and Result retirement retain their own actual acknowledgements. Pending
 recovery still owns its same cleanup, and a failed required ACK cannot become
 success merely because the containing directory was observed during opening.
 
+Manifest read grants follow the same selected-operation boundary. Ordinary
+opening does not enumerate their committed grant/use history. A selected new use
+checks its own grant directory and use names, recovers legacy staging files with
+their real directory acknowledgement, and preserves the existing use limit.
+New use files borrow the Store's existing exclusive final-link writer and its
+file-sync, close and directory-ACK responsibilities.
+
+A visible existing use is not acknowledgement of a prior failed directory sync.
+The selected reader confirms its same bytes after the real directory ACK before
+returning idempotent success. One last acknowledged target may be retained in the
+same Store lifetime; it is neither an authority cache nor a grant-use refund.
+Cold Stores and distinct targets establish their own selected observation.
+Failed original FD cleanup stays in the existing writer set, with captured child
+methods/receiver and single-flight close-only retry. Store retirement waits for
+that same child acknowledgement; cleanup does not repeat grant issuance or reads.
+
 Directory durability during initial format and ownership acquisition keeps its
 original opened FD through false or rejected close. The failure exports the
 same close-only, single-flight cleanup facade, without reopening the pathname

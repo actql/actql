@@ -19249,7 +19249,7 @@
     {
       "module": "adapters/host-node/client-request-journal.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "278c151581104ff935cdc524826cbae45f19c78021cd4f055ce85f5ac9a33d75",
+      "sha256": "6204e766905c0beba9eebaee12f0ee96b183fa891e69d77025ebcbfbdbad0c31",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
@@ -21071,6 +21071,23 @@
           "async": false
         },
         {
+          "name": "openClientRequestJournal/selectedRequestStatement/selectedRequestStatement",
+          "parameters": [
+            "statement",
+            "selection",
+            "completeRef",
+            "completeRow"
+          ],
+          "async": false
+        },
+        {
+          "name": "openClientRequestJournal/selectedRequestStatement/selectedRequestStatement/init:get/init:get",
+          "parameters": [
+            "parameters"
+          ],
+          "async": false
+        },
+        {
           "name": "openClientRequestJournal/sourceOperations/sourceOperations",
           "parameters": [
             "ref"
@@ -21510,6 +21527,8 @@
             "openClientRequestJournal/retainedRestart/retainedRestart/admitRef/admitRef",
             "openClientRequestJournal/sameRunStateRow/sameRunStateRow",
             "openClientRequestJournal/sameRunStateRow/sameRunStateRow/sameRunStateRow",
+            "openClientRequestJournal/selectedRequestStatement/selectedRequestStatement",
+            "openClientRequestJournal/selectedRequestStatement/selectedRequestStatement/init:get/init:get",
             "openClientRequestJournal/submissionAttempt/submissionAttempt",
             "openClientRequestJournal/submissionTransaction/submissionTransaction",
             "openClientRequestJournal/transact/transact",
@@ -22198,6 +22217,26 @@
               {
                 "path": "adapters/host-node/client-run-stop-observation.test.mjs",
                 "anchor": "physical stop transaction rejects mutation during the terminal decision callback"
+              },
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The request Journal hooks its actual prepared `client_requests` gets, including"
+              },
+              {
+                "path": "adapters/host-node/ordinary-host-journal.test.mjs",
+                "anchor": "Journal selected-row observations count actual target rows without traversing other Runs"
+              },
+              {
+                "path": "adapters/host-node/ordinary-host-journal.test.mjs",
+                "anchor": "Journal selected-row observations retain unknown classification before a Run is selected"
+              },
+              {
+                "path": "adapters/host-node/ordinary-host-journal.test.mjs",
+                "anchor": "Journal selected-row observations do not turn refused or failed reads into empty results"
+              },
+              {
+                "path": "adapters/host-node/ordinary-host-journal.test.mjs",
+                "anchor": "Journal selected-row observations retain the native get receiver and do not report a failed get as zero"
               }
             ]
           }
