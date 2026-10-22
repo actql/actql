@@ -4182,7 +4182,7 @@
     {
       "module": "adapters/store-local/delivery-attempt-index.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "a95b1e2f45e9297f36735adf6daa2e227c3201fcb9ad1abbd8e9962d4e10d6d3",
+      "sha256": "4bc16f008097815a6a0da55eb4326b6433dfb9e241dde11219f38b38d08e7bb9",
       "exports": [
         "openDeliveryAttemptIndex"
       ],
@@ -5070,6 +5070,13 @@
           "async": false
         },
         {
+          "name": "openDeliveryAttemptIndex/publicationMutation/publicationMutation/publicationMutation/publicationMutation#2",
+          "parameters": [
+            "entry"
+          ],
+          "async": false
+        },
+        {
           "name": "openDeliveryAttemptIndex/publicationMutation/publicationMutation/publicationMutation#2",
           "parameters": [
             "entry"
@@ -5078,6 +5085,13 @@
         },
         {
           "name": "openDeliveryAttemptIndex/publicationMutation/publicationMutation/publicationMutation#3",
+          "parameters": [
+            "record"
+          ],
+          "async": false
+        },
+        {
+          "name": "openDeliveryAttemptIndex/publicationMutation/publicationMutation/publicationMutation#4",
           "parameters": [],
           "async": false
         },
@@ -5434,8 +5448,10 @@
             "openDeliveryAttemptIndex/publicationMutation/publicationMutation/publicationMutation",
             "openDeliveryAttemptIndex/publicationMutation/publicationMutation/publicationMutation#2",
             "openDeliveryAttemptIndex/publicationMutation/publicationMutation/publicationMutation#3",
+            "openDeliveryAttemptIndex/publicationMutation/publicationMutation/publicationMutation#4",
             "openDeliveryAttemptIndex/publicationMutation/publicationMutation/publicationMutation/installed/installed",
             "openDeliveryAttemptIndex/publicationMutation/publicationMutation/publicationMutation/publicationMutation",
+            "openDeliveryAttemptIndex/publicationMutation/publicationMutation/publicationMutation/publicationMutation#2",
             "openDeliveryAttemptIndex/publicationMutation/publicationMutation/retry/retry",
             "openDeliveryAttemptIndex/recoveryOriginal/recoveryOriginal",
             "openDeliveryAttemptIndex/recoveryState/recoveryState",
@@ -5512,6 +5528,10 @@
               {
                 "path": "docs/design/result-description.md",
                 "anchor": "The existing publication caller can supply its immutable setup bodies and"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "The optional complete publication start also joins the immutable setup bodies,"
               }
             ],
             "inputsOutputs": [
@@ -5922,6 +5942,14 @@
               {
                 "path": "adapters/store-local/publication-store.test.mjs",
                 "anchor": "test(`initial publication group confirms only its original"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "publication start retains setup and initial progress in one transaction:"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "publication start caller confirms its original"
               }
             ]
           }
@@ -5931,7 +5959,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "214ea723204ef5f95652a847159c6a2d595e0912065cea53997dd6a77aa00d12",
+      "sha256": "62191c4f08690936e3c6ed6157335a287bfbf0e4f7b0f46ee83c7084b4715fd7",
       "exports": [
         "PublicationStoreError",
         "assertOriginalLocalPublicationStoreFacilityCurrent",
@@ -6385,12 +6413,20 @@
           "name": "openOriginalLocalPublicationStore/beginPublicationAttempt/beginPublicationAttempt",
           "parameters": [
             "supplied",
-            "attemptOriginal"
+            "attemptOriginal",
+            "initialRecords"
           ],
           "async": true
         },
         {
           "name": "openOriginalLocalPublicationStore/beginPublicationAttempt/beginPublicationAttempt/beginPublicationAttempt",
+          "parameters": [
+            "original"
+          ],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/beginPublicationAttempt/beginPublicationAttempt/beginPublicationAttempt/beginPublicationAttempt",
           "parameters": [
             "contract"
           ],
@@ -6404,9 +6440,48 @@
           "async": false
         },
         {
+          "name": "openOriginalLocalPublicationStore/beginPublicationAttempt/beginPublicationAttempt/beginPublicationAttempt#3",
+          "parameters": [
+            "contract"
+          ],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/beginPublicationAttempt/beginPublicationAttempt/beginPublicationAttempt#4",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/beginPublicationAttempt/beginPublicationAttempt/beginPublicationAttempt#5",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
           "name": "openOriginalLocalPublicationStore/beginPublicationAttempt/beginPublicationAttempt/selected/selected",
           "parameters": [
             "contract"
+          ],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/beginPublicationAttempt/beginPublicationAttempt/stored/stored",
+          "parameters": [
+            "contract",
+            "value",
+            "sequence"
+          ],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/beginPublicationAttemptWithRecords/beginPublicationAttemptWithRecords",
+          "parameters": [
+            "supplied",
+            "attemptOriginal",
+            "records"
           ],
           "async": false
         },
@@ -10120,7 +10195,13 @@
             "openOriginalLocalPublicationStore/beginPublicationAttempt/beginPublicationAttempt",
             "openOriginalLocalPublicationStore/beginPublicationAttempt/beginPublicationAttempt/beginPublicationAttempt",
             "openOriginalLocalPublicationStore/beginPublicationAttempt/beginPublicationAttempt/beginPublicationAttempt#2",
+            "openOriginalLocalPublicationStore/beginPublicationAttempt/beginPublicationAttempt/beginPublicationAttempt#3",
+            "openOriginalLocalPublicationStore/beginPublicationAttempt/beginPublicationAttempt/beginPublicationAttempt#4",
+            "openOriginalLocalPublicationStore/beginPublicationAttempt/beginPublicationAttempt/beginPublicationAttempt#5",
+            "openOriginalLocalPublicationStore/beginPublicationAttempt/beginPublicationAttempt/beginPublicationAttempt/beginPublicationAttempt",
             "openOriginalLocalPublicationStore/beginPublicationAttempt/beginPublicationAttempt/selected/selected",
+            "openOriginalLocalPublicationStore/beginPublicationAttempt/beginPublicationAttempt/stored/stored",
+            "openOriginalLocalPublicationStore/beginPublicationAttemptWithRecords/beginPublicationAttemptWithRecords",
             "openOriginalLocalPublicationStore/bindMetadataContractObjects/bindMetadataContractObjects",
             "openOriginalLocalPublicationStore/bootstrap/bootstrap",
             "openOriginalLocalPublicationStore/captureCustodyPath/captureCustodyPath",
@@ -10702,6 +10783,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "New and idempotent holding commits, shared holding publication and borrowed"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "The optional complete publication start also joins the immutable setup bodies,"
               }
             ],
             "inputsOutputs": [
@@ -11900,6 +11985,14 @@
               {
                 "path": "adapters/store-local/publication-store.test.mjs",
                 "anchor": "holding directory custody preserves shared publication boundaries"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "publication start retains setup and initial progress in one transaction:"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "publication start caller confirms its original"
               }
             ]
           }
