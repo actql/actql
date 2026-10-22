@@ -79,10 +79,64 @@ test('priority workflow commands preserve mode and collector failure at the actu
   }
 });
 
+test('Python priority lane reuses the formal wheel producer without changing release routes', () => {
+  const ci = parse(readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8'));
+  const job = workflow.jobs['ordinary-python-priority'];
+  assert.ok(job);
+  assert.equal(job.permissions.actions, 'read');
+  const inspect = job.steps.findIndex(s => s.name === 'Validate the original normal package artifact and producer job');
+  const download = job.steps.findIndex(s => s.name === 'Reuse the exact formal package artifact');
+  const install = job.steps.findIndex(s => s.id === 'consumer');
+  const collect = job.steps.findIndex(s => s.name === 'Collect actual varied Python priority operations');
+  assert(inspect >= 0 && inspect < download && download < install && install < collect);
+  assert.equal(job.steps[inspect].env.PACKAGE_ADAPTER, 'python');
+  assert.equal(job.steps[inspect].env.PACKAGE_RUN_ID, '${{ inputs.python-package-run-id }}');
+  assert.equal(job.steps[inspect].env.PACKAGE_PRODUCER_JOB, '${{ inputs.python-package-producer-job }}');
+  assert.equal(job.steps[download].with['artifact-ids'], '${{ inputs.python-package-artifact-id }}');
+  assert.equal(job.steps[download].with['run-id'], '${{ inputs.python-package-run-id }}');
+  assert.equal(job.steps[collect]['continue-on-error'], undefined);
+  assert.equal(job.steps.at(-1).if, 'always()');
+  assert.equal(job.steps.at(-1).with.name, 'ordinary-python-priority-${{ github.sha }}');
+  assert.deepEqual(workflow.on.workflow_dispatch.inputs['priority-python-mode'].options, ['diagnostic', 'final']);
+  assert.equal(workflow.on.workflow_call.inputs['priority-python-mode'].default, 'diagnostic');
+  assert.equal(ci.on.workflow_dispatch.inputs.performance_priority_python_mode.default, 'diagnostic');
+  assert.equal(ci.jobs['performance-matrix'].with['priority-python-mode'], '${{ inputs.performance_priority_python_mode }}');
+  assert(Object.keys(ci.on.workflow_dispatch.inputs).length <= 25);
+  assert(!job.steps.some(s => /\b(?:moon build|npm pack|pip wheel)\b/u.test(s.run ?? '')));
+  assert.deepEqual(workflow.jobs['ordinary-python'].strategy.matrix.operation,
+    ['first-init', 'cold-existing', 'warm-select', 'warm-result', 'warm-status']);
+});
+
+test('Python priority shell command forwards the selected mode and propagates failure', t => {
+  const root = temporary(t), bin = join(root, 'bin'), argv = join(root, 'python-argv.jsonl');
+  mkdirSync(bin);
+  const python = join(bin, 'python3');
+  writeFileSync(python, `#!${process.execPath}\nrequire('node:fs').appendFileSync(process.env.ARGV,JSON.stringify(process.argv.slice(2))+'\\n');process.exit(Number(process.env.EXIT));\n`);
+  chmodSync(python, 0o755);
+  const step = workflow.jobs['ordinary-python-priority'].steps.find(s =>
+    s.name === 'Collect actual varied Python priority operations');
+  assert.equal(step.env.PRIORITY_MODE, '${{ inputs.priority-python-mode }}');
+  assert.equal(step.env.PYTHON_CONSUMER, '${{ steps.consumer.outputs.path }}');
+  for (const mode of ['diagnostic', 'final']) {
+    const env = {PATH: `${bin}:${process.env.PATH}`, ARGV: argv, PRIORITY_MODE: mode,
+      PYTHON_CONSUMER: join(root, 'installed site-packages'), EXIT: '1'};
+    const child = run(step, root, env);
+    assert.equal(child.status, 1, child.stderr);
+  }
+  const calls = readFileSync(argv, 'utf8').trim().split('\n').map(JSON.parse);
+  for (let i = 0; i < 2; i++) {
+    assert.deepEqual(calls[i], ['-I', '-B', 'scripts/benchmark-ordinary-processes.py',
+      '--adapter', 'python', '--manifest', join(root, 'ordinary-python-priority/packages/cohort.json'),
+      '--consumer', join(root, 'installed site-packages'), '--venv', join(root, 'ordinary-python-priority/venv'),
+      '--source', source, '--selection', 'priority-transition', '--mode', ['diagnostic', 'final'][i],
+      '--load', 'isolated', '--output', join(root, 'ordinary-python-priority/measurement')]);
+  }
+});
+
 test('ordinary priority assessment reuses both platform reports without replacing release assessment', () => {
   const job = workflow.jobs['ordinary-priority-assessment'];
   assert(job, 'The controlled lane must assess the ordinary Node/Python priority transition separately');
-  assert.deepEqual(job.needs, ['ordinary-node-priority', 'ordinary-python']);
+  assert.deepEqual(job.needs, ['ordinary-node-priority', 'ordinary-python-priority']);
   assert(job.if.includes('always()'), 'Missing or failed collectors must still produce a failed/incomplete assessment');
   const expression = job.if.slice(3, -2).trim();
   for (const [enabled, visibility, privateFlag, expected] of [
@@ -108,7 +162,7 @@ test('ordinary priority assessment reuses both platform reports without replacin
   const downloads = job.steps.filter(step => step.uses?.startsWith('actions/download-artifact@'));
   assert.equal(downloads.length, 2);
   assert.equal(downloads[0].with.name, 'ordinary-node-priority-${{ github.sha }}');
-  assert.equal(downloads[1].with.pattern, 'ordinary-python-*-${{ github.sha }}');
+  assert.equal(downloads[1].with.name, 'ordinary-python-priority-${{ github.sha }}');
   assert.equal(downloads[1].with['merge-multiple'], false);
   for (const step of downloads) {
     assert.equal(step.if, 'always()');
@@ -128,7 +182,7 @@ test('priority report join preserves original collector failures and raw metadat
   const python = {sourceSha: source, operation: 'warm-result', firstFailure: null,
     cleanup: {closed: true}, rows: [{original: true}], unknown: null};
   put(join(root, 'ordinary-priority/node/measurement/measurements.json'), node);
-  put(join(root, `ordinary-priority/python/ordinary-python-warm-result-${source}/measurement/measurements.json`), python);
+  put(join(root, 'ordinary-priority/python/measurement/measurements.json'), python);
   const step = workflow.jobs['ordinary-priority-assessment'].steps.find(step => step.name === 'Join unchanged raw platform reports');
   assert.equal(step.if, 'always()');
   assert.equal(step['continue-on-error'], undefined);
@@ -158,7 +212,7 @@ test('unrelated release routes cannot add conditions or substitute priority evid
   const python = {original: 'warm Python select report'};
   put(join(root, 'ordinary-priority/node/measurement/measurements.json'), node);
   put(join(root, 'ordinary-priority/node/measurement/cold-existing/measurements.json'), {unrelated: 'cold'});
-  put(join(root, `ordinary-priority/python/ordinary-python-warm-select-${source}/measurement/measurements.json`), python);
+  put(join(root, 'ordinary-priority/python/measurement/measurements.json'), python);
   for (const operation of ['first-init', 'cold-existing', 'warm-status']) {
     put(join(root, `ordinary-priority/python/ordinary-python-${operation}-${source}/measurement/measurements.json`), {unrelated: operation});
   }
@@ -167,6 +221,19 @@ test('unrelated release routes cannot add conditions or substitute priority evid
   assert.equal(child.status, 0, child.stderr);
   assert.deepEqual(JSON.parse(readFileSync(join(root, 'ordinary-priority/input.json'))),
     {sourceSha: source, platforms: {node: [node], python: [python]}});
+});
+
+test('full-release Python reports cannot replace a missing varied priority population', t => {
+  const root = temporary(t);
+  for (const operation of ['warm-select', 'warm-result']) {
+    put(join(root, `ordinary-priority/python/ordinary-python-${operation}-${source}/measurement/measurements.json`),
+      {original: operation});
+  }
+  const step = workflow.jobs['ordinary-priority-assessment'].steps.find(s => s.name === 'Join unchanged raw platform reports');
+  const child = run(step, root);
+  assert.equal(child.status, 0, child.stderr);
+  assert.deepEqual(JSON.parse(readFileSync(join(root, 'ordinary-priority/input.json'))),
+    {sourceSha: source, platforms: {node: [], python: []}});
 });
 
 test('checkpoint command propagates assessor failure without replacing full release checks', t => {

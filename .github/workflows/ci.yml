@@ -22,6 +22,11 @@ on:
         type: choice
         options: [diagnostic, final]
         default: diagnostic
+      performance_priority_python_mode:
+        description: Priority Python samples; final is for a plausible fixed candidate
+        type: choice
+        options: [diagnostic, final]
+        default: diagnostic
       performance_package_run_id:
         description: Completed same-source normal CI run supplying existing Client tarballs
         type: string
@@ -102,6 +107,7 @@ jobs:
       actions: read
     with:
       priority-node-mode: ${{ inputs.performance_priority_node_mode }}
+      priority-python-mode: ${{ inputs.performance_priority_python_mode }}
       package-run-id: ${{ inputs.performance_package_run_id }}
       package-artifact-id: ${{ inputs.performance_package_artifact_id }}
       native-package-run-id: ${{ inputs.performance_native_package_run_id }}
