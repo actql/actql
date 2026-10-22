@@ -57,7 +57,7 @@ test "checked business requirements reduce acquisition without changing finite-f
     attempts: 1,
     holdings: 1,
     transfer_bytes: 1000000L,
-    retained_bytes: 1048576L,
+    retained_bytes: 1048577L,
     execution_bytes: 2097152L,
   }
   assert_eq(
@@ -79,7 +79,9 @@ test "checked business requirements reduce acquisition without changing finite-f
     maximum.retained_bytes + maximum.execution_bytes,
   ).unwrap()
   assert_true(small >= required.retained_bytes + required.execution_bytes)
+  assert_eq(small % native_storage_page_bytes(), 0L)
   assert_true(small < large)
+  assert_eq(local_command_business_domain_bytes(9223372036854775807L), None)
   assert_true(command_preparation_invocation.val is None)
 }
 

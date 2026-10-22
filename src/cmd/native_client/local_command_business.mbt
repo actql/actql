@@ -84,7 +84,13 @@ fn local_command_business_domain_bytes(payload : Int64) -> Int64? {
   if payload <= 0L {
     return None
   }
-  let mut bytes = payload
+  // The layout provider accepts a page-aligned domain candidate. Checked
+  // Program requirements count payload bytes and need not have that alignment.
+  let mut bytes = match
+    native_storage_page_round(payload, native_storage_page_bytes()) {
+    Ok(value) => value
+    Err(_) => return None
+  }
   for _ in 0..<16 {
     let necessary = @initial_bootstrap.execution_domain_necessary_bytes(
       bytes, payload,
