@@ -60,6 +60,8 @@ function validateStore(store) {
         typeof store.putOriginalPublicationContracts !== 'function' ||
       store.beginPublicationAttempt !== undefined &&
         typeof store.beginPublicationAttempt !== 'function' ||
+      store.beginPublicationAttemptWithRecords !== undefined &&
+        typeof store.beginPublicationAttemptWithRecords !== 'function' ||
       store.appendInitialPublicationRecords !== undefined &&
         typeof store.appendInitialPublicationRecords !== 'function') {
     fail('InvalidRunPublicationStore');
@@ -147,7 +149,7 @@ function commitEvidence(evidence) {
   });
 }
 
-async function persistContracts(store, contracts, attempt) {
+async function persistContracts(store, contracts, attempt, initialRecords) {
   const persisted = new Set();
   const selected = [];
   for (const contract of contracts) {
@@ -155,10 +157,11 @@ async function persistContracts(store, contracts, attempt) {
     selected.push(contract);
     persisted.add(contract.identity);
   }
-  const begin = store.beginPublicationAttempt;
+  const begin = initialRecords === undefined ? store.beginPublicationAttempt : store.beginPublicationAttemptWithRecords;
   if (attempt !== undefined && begin !== undefined) {
     try {
-      await Reflect.apply(begin, store, [Object.freeze(selected), attempt]);
+      await Reflect.apply(begin, store, initialRecords === undefined
+        ? [Object.freeze(selected), attempt] : [Object.freeze(selected), attempt, initialRecords]);
     } catch (primary) {
       // Continue only after this original setup's native outcome is confirmed.
       // Never invoke setup again, issue another attempt, or repeat Effect work.
@@ -172,14 +175,19 @@ async function persistContracts(store, contracts, attempt) {
       try {
         await Reflect.apply(retry, cleanup, []);
         if (member(Reflect.apply(status, cleanup, []), 'pending') !== false) throw primary;
-        for (const original of [...selected, attempt]) {
+        for (const original of [...selected, attempt, ...(initialRecords ?? [])]) {
           const confirmed = await Reflect.apply(read, store, [original.identity, original.name]);
           if (confirmed?.name !== original.name || confirmed.identity !== original.identity ||
               confirmed.identityField !== original.identityField || confirmed.wire !== original.wire) throw primary;
         }
         // A body alone is not the installed attempt/progress locator. The same
         // Store must successfully select that locator, even with no record yet.
-        await Reflect.apply(latest, store, [attempt.identity]);
+        const retained = await Reflect.apply(latest, store, [attempt.identity]);
+        if (initialRecords !== undefined) {
+          const next = initialRecords[initialRecords.length - 1];
+          if (retained?.name !== next.name || retained.identity !== next.identity ||
+              retained.identityField !== next.identityField || retained.wire !== next.wire) throw primary;
+        }
       } catch { throw primary; }
     }
     return true;
@@ -310,8 +318,7 @@ async function appendState(
   return record;
 }
 
-async function appendInitialStates(store, control, attempt, signal, now, limits) {
-  const append = member(store, 'appendInitialPublicationRecords');
+function initialPublicationStates(control, attempt, signal, now, limits) {
   const preparing = control.issuePublicationRecord(attempt, undefined, {
     state:'preparing', observedAt:now(), publicIndexEntry:undefined,
     failureCid:undefined, cleanupOwnerCids:[], uncommittedConfirmed:false,
@@ -331,6 +338,12 @@ async function appendInitialStates(store, control, attempt, signal, now, limits)
     failureCid:undefined, cleanupOwnerCids:[], uncommittedConfirmed:false,
   }, limits);
   const records = Object.freeze([preparing, next]);
+  return Object.freeze({records, next, cancelled, cancellation});
+}
+
+async function appendInitialStates(store, control, attempt, signal, now, limits) {
+  const append = member(store, 'appendInitialPublicationRecords');
+  const {records, next, cancelled, cancellation} = initialPublicationStates(control, attempt, signal, now, limits);
   try { await Reflect.apply(append, store, [records]); }
   catch (primary) {
     if (member(primary, 'code') !== 'PublicationMetadataCommitOutcomeUnknown' ||
@@ -644,9 +657,15 @@ async function publishRun(options, effectful) {
       continue;
     }
     if (action === 'persist_contracts') {
+      // Issuing immutable initial records performs no protected action. The
+      // selected Store can acknowledge their bodies, attempt and progress in
+      // one transaction; later cancellation/current dispatch checks remain.
+      const initial = typeof store.beginPublicationAttemptWithRecords === 'function'
+        ? initialPublicationStates(control, publicationAttempt, signal, now, limits) : undefined;
       attemptCreated = await persistContracts(store, [
         ...contracts, ...(effectful?.contracts ?? []), publicationRequest,
-      ], publicationAttempt);
+      ], publicationAttempt, initial?.records);
+      if (initial?.cancelled) throw initial.cancellation;
       contractsPersisted = true;
       continue;
     }

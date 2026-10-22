@@ -108,9 +108,11 @@ const persistOriginalPublicationSetup = compileFunction(
   publicationSource.slice(publicationMember.start, publicationMember.end) + '\n' +
   publicationSource.slice(publicationPersist.start, publicationPersist.end) + '\nreturn persistContracts;', [])();
 const publicationInitial = publicationAst.body.find(node => node.type === 'FunctionDeclaration' && node.id.name === 'appendInitialStates');
-assert.ok(publicationInitial);
+const publicationInitialValues = publicationAst.body.find(node => node.type === 'FunctionDeclaration' && node.id.name === 'initialPublicationStates');
+assert.ok(publicationInitial); assert.ok(publicationInitialValues);
 const appendOriginalInitialStates = compileFunction(
   publicationSource.slice(publicationMember.start, publicationMember.end) + '\n' +
+  publicationSource.slice(publicationInitialValues.start, publicationInitialValues.end) + '\n' +
   publicationSource.slice(publicationInitial.start, publicationInitial.end) + '\nreturn appendInitialStates;', ['fail'])(code => {
     throw Object.assign(new Error(code), {code});
   });
@@ -3759,6 +3761,67 @@ test('joint publication setup releases partial reservations without altering ret
   assert.equal(store.status().reservedBytes, 0);
   assert.deepEqual(await store.verifyObject(payload.cid), {cid: payload.cid, bytes: bytes.byteLength});
   await assert.rejects(store.readPublicationContract(request.publication_request_cid, 'publication_request'), code('PublicationContractMissing'));
+});
+
+for (const afterCommit of [false, true]) {
+test(`publication start caller confirms its original ${afterCommit ? 'committed' : 'rolled-back'} group without reissuing it`, async t => {
+  const exec = DatabaseSync.prototype.exec;
+  let armed = false, lost = false, commits = 0, begins = 0, database;
+  t.mock.method(DatabaseSync.prototype, 'exec', function(sql) {
+    if (armed && sql === 'COMMIT') {
+      commits++;
+      if (!lost) {
+        lost = true; database = this;
+        if (afterCommit) Reflect.apply(exec,this,[sql]);
+        throw Object.assign(new Error('publication start COMMIT reply unavailable'), {code:'EIO'});
+      }
+      assert.equal(this,database);
+    }
+    return Reflect.apply(exec,this,[sql]);
+  });
+  const {store,configuration} = await fixture(t);
+  const request = publicationRequest(), attempt = publicationAttempt(request, `start-unknown-${afterCommit}`);
+  const original = contractControl.admit('publication_request',wire(request),limits);
+  const originalAttempt = contractControl.admit('publication_attempt',wire(attempt),limits);
+  const preparing = publicationRecord(attempt,0,'preparing');
+  const committing = publicationRecord(attempt,1,'committing',preparing);
+  const records = [preparing,committing].map(value => contractControl.admit('publication_record',wire(value),limits));
+  const selected = {...store, async beginPublicationAttemptWithRecords(...args) {
+    assert.equal(this,selected); begins++;
+    return Reflect.apply(store.beginPublicationAttemptWithRecords,store,args);
+  }};
+  armed = true;
+  assert.equal(await persistOriginalPublicationSetup(selected,[original],originalAttempt,records),true);
+  armed = false;
+  assert.equal(begins,1);
+  assert.equal(commits,2,'one lost reply plus one real same-database confirmation');
+  assert.equal(store.status().reservedObjects,0);
+  assert.equal(store.status().objectCount,4);
+  assert.deepEqual(await store.latestRecord(originalAttempt.identity),committing);
+  await store.close();
+  const reopened = await openLocalPublicationStore(configuration,contractControl);
+  assert.deepEqual(await reopened.latestRecord(originalAttempt.identity),committing);
+});
+}
+
+test('publication start refuses capacity and foreign progress before any mutation', async t => {
+  const {store} = await fixture(t,{maxObjects:3});
+  const request = publicationRequest(), attempt = publicationAttempt(request,'start-capacity');
+  const original = contractControl.admit('publication_request',wire(request),limits);
+  const originalAttempt = contractControl.admit('publication_attempt',wire(attempt),limits);
+  const preparing = publicationRecord(attempt,0,'preparing');
+  const committing = publicationRecord(attempt,1,'committing',preparing);
+  const records = [preparing,committing].map(value=>contractControl.admit('publication_record',wire(value),limits));
+  await assert.rejects(store.beginPublicationAttemptWithRecords([original],originalAttempt,records),code('PublicationStoreObjectLimit'));
+  assert.equal(store.status().objectCount,0);
+  assert.equal(store.status().reservedObjects,0);
+  const {store:roomy} = await fixture(t);
+  const foreignAttempt = publicationAttempt(request,'foreign-start');
+  const foreign = publicationRecord(foreignAttempt,0,'preparing');
+  await assert.rejects(roomy.beginPublicationAttemptWithRecords([original],originalAttempt,
+    [contractControl.admit('publication_record',wire(foreign),limits),records[1]]),code('PublicationAttemptMismatch'));
+  assert.equal(roomy.status().objectCount,0);
+  assert.equal(roomy.status().reservedObjects,0);
 });
 
 test('joint publication setup rejects a non-attempt original before persistence', async t => {

@@ -438,8 +438,9 @@ test('initial publication group consumes actual Common originals and keeps the p
   const source = await readFile(new URL('./run-publication.mjs', import.meta.url), 'utf8');
   const ast = parse(source, {sourceType:'module', ecmaVersion:'latest'});
   const helper = ast.body.find(node=>node.type==='FunctionDeclaration' && node.id.name==='appendInitialStates');
+  const initial = ast.body.find(node=>node.type==='FunctionDeclaration' && node.id.name==='initialPublicationStates');
   const member = ast.body.find(node=>node.type==='VariableDeclaration' && node.declarations.some(item=>item.id.name==='member'));
-  const append = Function('fail', source.slice(member.start,member.end)+'\n'+source.slice(helper.start,helper.end)+'\nreturn appendInitialStates;')(
+  const append = Function('fail', source.slice(member.start,member.end)+'\n'+source.slice(initial.start,initial.end)+'\n'+source.slice(helper.start,helper.end)+'\nreturn appendInitialStates;')(
     code=>{throw Object.assign(new Error(code),{code});});
   let issued = 0;
   const observed = {...control, issuePublicationRecord(...args) {
