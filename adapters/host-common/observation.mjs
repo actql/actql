@@ -36,10 +36,40 @@ const resourceUsageNames = Object.freeze(['planning', 'attempts', 'holdings',
   'transferred', 'uncertain', 'reservedTransfer', 'heldBytes', 'reservedRetention',
   'reservedExecution', 'peakRetention']);
 const managedResourceSnapshots = new WeakSet();
+const selectedRowSnapshots = new WeakSet();
 const resourceAttribute = name => name.replace(/[A-Z]/gu, letter => `_${letter.toLowerCase()}`);
 attributeNames.push('actql.resource.scope',
   ...resourceLimitNames.map(name => `actql.resource.limit.${resourceAttribute(name)}`),
   ...resourceUsageNames.map(name => `actql.resource.usage.${resourceAttribute(name)}`));
+attributeNames.push(...['owner', 'selection', 'kind', 'returned', 'unrelated', 'coverage']
+  .map(name => `actql.rows.${name}`));
+function accumulateSelectedRows(context, detail) {
+  if (context === undefined || context.selectedRowsClosed || detail === null ||
+      typeof detail !== 'object' || Array.isArray(detail)) return false;
+  const {ref, rowOwner, selection, rowKind, returnedRows, unrelatedRows, coverage} = detail;
+  if (rowOwner !== 'request-journal' || !['run-definition', 'request'].includes(selection) ||
+      rowKind !== 'run' || coverage !== 'selected-returned' ||
+      !Number.isSafeInteger(returnedRows) || returnedRows < 0 ||
+      unrelatedRows !== undefined && (!Number.isSafeInteger(unrelatedRows) ||
+        unrelatedRows < 0 || unrelatedRows > returnedRows)) return false;
+  const previous = context.selectedRows;
+  if (previous === undefined) {
+    context.selectedRows = {ref, rowOwner, selection, rowKind, returnedRows, unrelatedRows, coverage};
+    return true;
+  }
+  const returned = previous.returnedRows + returnedRows;
+  const unrelated = previous.unrelatedRows === undefined || unrelatedRows === undefined
+    ? undefined : previous.unrelatedRows + unrelatedRows;
+  if (!Number.isSafeInteger(returned) || unrelated !== undefined && !Number.isSafeInteger(unrelated)) {
+    previous.unavailable = true; return false;
+  }
+  if (previous.ref === undefined || ref === undefined ||
+      previous.ref.namespaceId !== ref.namespaceId || previous.ref.authorityScopeCid !== ref.authorityScopeCid ||
+      previous.ref.runDefinitionCid !== ref.runDefinitionCid) previous.ref = undefined;
+  if (previous.selection !== selection) previous.selection = 'mixed-selected';
+  previous.returnedRows = returned; previous.unrelatedRows = unrelated;
+  return true;
+}
 function managedRunResources(values) {
   if (!Array.isArray(values) || values.length !== 16) return undefined;
   const captured = values.slice();
@@ -94,7 +124,7 @@ const events = Object.freeze({
 });
 const recordEvents = new Set(['segment_started', 'segment_ended', 'check_completed',
   'owner_observed', 'cancellation_requested', 'task_started', 'task_completed',
-  'transport_completed', 'acquisition_interval', 'resources_observed',
+  'transport_completed', 'acquisition_interval', 'resources_observed', 'selected_rows_observed',
   ...Object.values(events).map(value => value[1])]);
 
 export function validObservationContext(value) {
@@ -185,7 +215,7 @@ export function createHostObservationConnection(options = {}) {
       correlation: selectedCorrelation.length !== 0,
       correlations: Object.freeze([...selectedCorrelation]),
       measurements: Object.freeze({selected: Object.freeze([...selectedMeasurements]),
-        available: Object.freeze(['duration', 'resources'])}),
+        available: Object.freeze(['duration', 'resources', 'rows'])}),
       attributes: Object.freeze({exclude: Object.freeze([...attributeExclusions])}),
       events: Object.freeze({level: eventLevel})})});
   connections.set(token, config);
@@ -264,8 +294,11 @@ export function installHostObservation(connection, {journal, runId} = {}) {
     try {
       if (closed || !config.allowed.has(operation)) return;
       if (!recordEvents.has(event)) { drop('limited'); return; }
+      if (event === 'selected_rows_observed' && !selectedRowSnapshots.has(options.selectedRows)) {
+        drop('rowsUnavailable'); return;
+      }
       const context = contexts.getStore();
-      const ref = facts.ref ?? context?.ref;
+      const ref = event === 'selected_rows_observed' ? facts.ref : facts.ref ?? context?.ref;
       if (context && cid(facts.ref?.runDefinitionCid)) context.ref = facts.ref;
       const attributes = { 'actql.operation': operation,
         'actql.event': event, 'actql.observation.version': observationVersion };
@@ -284,6 +317,7 @@ export function installHostObservation(connection, {journal, runId} = {}) {
       if (typeof facts.cleanupPending === 'boolean') attributes['actql.cleanup.pending'] = facts.cleanupPending;
       if (outcomes.has(facts.physicalStop)) attributes['actql.physical_stop'] = facts.physicalStop;
       if (managedResourceSnapshots.has(options.resources)) Object.assign(attributes, options.resources);
+      if (selectedRowSnapshots.has(options.selectedRows)) Object.assign(attributes, options.selectedRows);
       const record = {version: observationVersion, operation, event,
         sequence: sequence++, observedAt: Date.now(),
         monotonicAt: performance.now(), attributes,
@@ -342,6 +376,24 @@ export function installHostObservation(connection, {journal, runId} = {}) {
       if (pending.size === 0) pump();
     } catch { drop('budgetUnavailable'); }
   };
+  const flushSelectedRows = context => {
+    if (context === undefined || context.selectedRowsClosed) return;
+    context.selectedRowsClosed = true;
+    const rows = context.selectedRows; context.selectedRows = undefined;
+    if (rows === undefined || rows.unavailable) return;
+    try {
+      // One bounded record for this existing ingress, not another durable
+      // observation transaction for each native get. Unknown classification
+      // and missing original correlation remain absent, not zero or a new Run.
+      const attributes = Object.freeze({'actql.rows.owner': rows.rowOwner,
+        'actql.rows.selection': rows.selection, 'actql.rows.kind': rows.rowKind,
+        'actql.rows.returned': rows.returnedRows,
+        ...(rows.unrelatedRows === undefined ? {} : {'actql.rows.unrelated': rows.unrelatedRows}),
+        'actql.rows.coverage': rows.coverage});
+      selectedRowSnapshots.add(attributes);
+      emit('run', 'selected_rows_observed', {ref: rows.ref}, {selectedRows: attributes});
+    } catch {drop('rowsUnavailable');}
+  };
   const accepted = (result, requestId) => {
     try {
       if (config.allowed.size === 0 || result?.ref === undefined) return;
@@ -372,11 +424,13 @@ export function installHostObservation(connection, {journal, runId} = {}) {
       emit(category, 'segment_started', {}, {segment, ingress: true});
       try {
         const result = await work();
+        flushSelectedRows(contexts.getStore());
         emit(category, 'segment_ended', {outcome: http?.response?.statusCode >= 400
           ? 'failed' : 'succeeded'},
           {segment, ingress: true, durationMs: performance.now() - started});
         return result;
       } catch (cause) {
+        flushSelectedRows(contexts.getStore());
         emit(category, 'segment_ended', {outcome: 'failed'},
           {segment, ingress: true, durationMs: performance.now() - started});
         throw cause;
@@ -411,6 +465,15 @@ export function installHostObservation(connection, {journal, runId} = {}) {
       config.measurements.has('duration'),
     noteLoss: () => drop('budgetUnavailable'),
     diagnostic(name, detail) {
+      if (name === 'selected_rows_observed') {
+        if (closed || config.eventLevel !== 'diagnostic' || !config.allowed.has('run') ||
+            !config.measurements.has('rows')) return;
+        let captured = false;
+        try {captured = accumulateSelectedRows(contexts.getStore(), detail);}
+        catch { /* Optional unreadable facts remain unavailable. */ }
+        if (!captured) drop('rowsUnavailable');
+        return;
+      }
       const mapping = events[name];
       if (mapping) emit(mapping[0], mapping[1], {ref: detail?.ref,
         task: detail?.task, attempt: detail?.attempt, slot: detail?.slot,
