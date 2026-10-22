@@ -170,7 +170,7 @@
     },
     {
       "module": "adapters/host-common/runtime-core.mjs",
-      "sha256": "212c31c320277fa1b26b666ed89567cdfd254d5612141e963e922d3a2cc55931",
+      "sha256": "f02f89e222401eb28666a20ec945a0c72ab309957d7d1e841841f8bbb5c1c5a4",
       "role": "physical-io",
       "exports": [
         "contentCaptureControl",
@@ -1354,7 +1354,8 @@
           "parameters": [
             "preparation",
             "signal",
-            "limits"
+            "limits",
+            "retainComputation"
           ],
           "async": true
         },
@@ -4457,6 +4458,13 @@
           "parameters": [
             "format",
             "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:retireCapturedComputation/init:retireCapturedComputation",
+          "parameters": [
+            "capturedRun"
           ],
           "async": false
         },
@@ -7798,7 +7806,8 @@
             "siteControl/siteControl/siteControl",
             "tuplePair/tuplePair",
             "publicationControl/captureContractLimits/captureContractLimits",
-            "publicationControl/init:admitOriginal/init:admitOriginal"
+            "publicationControl/init:admitOriginal/init:admitOriginal",
+            "publicationControl/init:retireCapturedComputation/init:retireCapturedComputation"
           ],
           "exports": [
             "contentCaptureControl",
@@ -7838,6 +7847,10 @@
               {
                 "path": "docs/design/result-description.md",
                 "anchor": "That setup can pass the original immutable contracts from the same publication"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "retireCapturedComputation(capturedRun) {"
               }
             ],
             "inputsOutputs": [
@@ -7872,6 +7885,10 @@
               {
                 "path": "adapters/host-common/runtime-core.mjs",
                 "anchor": "admitOriginal(original, limits) {"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "? moon.strategyCapturedRunFinishRetained(preparation)"
               }
             ],
             "identity": [
@@ -7906,6 +7923,10 @@
               {
                 "path": "adapters/host-common/runtime-core.mjs",
                 "anchor": "if (retained === undefined || !tokens.has(original)) return undefined;"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const original = capturedComputationPreparations.get(capturedRun);"
               }
             ],
             "ownership": [
@@ -7944,6 +7965,10 @@
               {
                 "path": "adapters/host-common/runtime-core.mjs",
                 "anchor": "const contractBounds = new WeakMap();"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const capturedComputationPreparations = new WeakMap();"
               }
             ],
             "synchronization": [
@@ -7982,6 +8007,10 @@
               {
                 "path": "adapters/host-common/runtime-core.mjs",
                 "anchor": "const captureContractLimits = (limits, label) => issuanceLimits(Object.freeze({"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": ": moon.strategyBeginEffectFreeCommitCheckRetained(original, ...args);"
               }
             ],
             "failure": [
@@ -8016,6 +8045,10 @@
               {
                 "path": "adapters/host-common/publication-contract-control.test.mjs",
                 "anchor": "test('publication original persistence falls back for copies foreign owners and tighter limits', async t => {"
+              },
+              {
+                "path": "adapters/host-common/captured-computation-retention.test.mjs",
+                "anchor": "test('retirement failure preserves the same holder for its original retry'"
               }
             ],
             "cancellation": [
@@ -8046,6 +8079,10 @@
               {
                 "path": "docs/design/result-description.md",
                 "anchor": "cleanup retain their independent checks and original acknowledgements."
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "moon.strategyCapturedRunCancel(original);"
               }
             ],
             "resources": [
@@ -8088,6 +8125,10 @@
               {
                 "path": "adapters/host-common/runtime-core.mjs",
                 "anchor": "maxNodes: Math.min(limits.maxNodes, value.wire.length),"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "capturedComputationPreparations.delete(capturedRun);"
               }
             ],
             "extension": [
@@ -8122,6 +8163,10 @@
               {
                 "path": "docs/design/result-description.md",
                 "anchor": "Foreign controls, copies, raw wires, unavailable original bounds or stricter"
+              },
+              {
+                "path": "adapters/host-common/captured-computation-retention.test.mjs",
+                "anchor": "test('restored wrappers take full checking and copied or foreign wrappers refuse'"
               }
             ],
             "verification": [
@@ -8176,6 +8221,10 @@
               {
                 "path": "adapters/host-common/publication-contract-control.test.mjs",
                 "anchor": "test('publication persistence consumes its same-owner immutable contracts without another admission', async t => {"
+              },
+              {
+                "path": "adapters/host-common/captured-computation-retention.test.mjs",
+                "anchor": "test('the original captured preparation reaches both checks with unchanged argument order'"
               }
             ]
           }
