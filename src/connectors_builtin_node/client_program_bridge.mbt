@@ -1,4 +1,56 @@
 ///|
+// These bodies and bounds belong to this loaded compiler module. No caller
+// can select different inputs through this private bridge; public body
+// admission remains with the original manifest reader.
+let client_generated_manifest_admission : Ref[
+  Result[
+    @publication_host.ClientCompilationManifests,
+    @publication_host.ClientCompilationManifestIssue,
+  ]?,
+] = Ref(None)
+
+///|
+fn read_client_generated_compilation_manifests() -> Result[
+  @publication_host.ClientCompilationManifests,
+  @publication_host.ClientCompilationManifestIssue,
+] {
+  @publication_host.admit_client_compilation_manifests(
+    @check_environment.compiler_grammar_manifest_wire(),
+    @check_environment.compiler_barrier_contract_manifest_wire(),
+    100000,
+    10000,
+    100,
+  )
+}
+
+///|
+fn client_generated_compilation_manifests(
+  cached? : Ref[
+    Result[
+      @publication_host.ClientCompilationManifests,
+      @publication_host.ClientCompilationManifestIssue,
+    ]?,
+  ] = client_generated_manifest_admission,
+  read? : () -> Result[
+    @publication_host.ClientCompilationManifests,
+    @publication_host.ClientCompilationManifestIssue,
+  ] = read_client_generated_compilation_manifests,
+) -> Result[
+  @publication_host.ClientCompilationManifests,
+  @publication_host.ClientCompilationManifestIssue,
+] {
+  // Lazy pure compiler metadata, not an authorization or preparation cache.
+  // Retain a typed failure too: another query cannot hide invalid compiler
+  // inputs. A different loaded compiler owns a separate admission cell.
+  if cached.val is Some(original) {
+    return original
+  }
+  let original = read()
+  cached.val = Some(original)
+  original
+}
+
+///|
 /// Internal JS bridge. The environment is an admitted machine-contract value,
 /// and its selected pure-operation profiles are supplied by the installed
 /// Host. None of these handles is a wire credential or execution authority.
@@ -1460,14 +1512,7 @@ pub fn client_program_issue_local_values_executable_plan(
   @publication_host.ClientValuesExecutablePlan,
   ClientProgramValuesPlanBridgeIssue,
 ] {
-  let manifests = match
-    @publication_host.admit_client_compilation_manifests(
-      @check_environment.compiler_grammar_manifest_wire(),
-      @check_environment.compiler_barrier_contract_manifest_wire(),
-      100000,
-      10000,
-      100,
-    ) {
+  let manifests = match client_generated_compilation_manifests() {
     Ok(manifests) => manifests
     Err(issue) => return Err(Manifests(issue))
   }
@@ -1527,14 +1572,7 @@ pub fn client_program_compile_local_values(
   @publication_host.ClientValuesCompilation,
   ClientProgramValuesCompilationBridgeIssue,
 ] {
-  let manifests = match
-    @publication_host.admit_client_compilation_manifests(
-      @check_environment.compiler_grammar_manifest_wire(),
-      @check_environment.compiler_barrier_contract_manifest_wire(),
-      100000,
-      10000,
-      100,
-    ) {
+  let manifests = match client_generated_compilation_manifests() {
     Ok(manifests) => manifests
     Err(issue) => return Err(Manifests(issue))
   }
@@ -1568,14 +1606,7 @@ pub fn client_program_issue_task_executable_plan(
   @publication_host.ClientTaskExecutablePlan,
   ClientProgramTaskPlanBridgeIssue,
 ] {
-  let manifests = match
-    @publication_host.admit_client_compilation_manifests(
-      @check_environment.compiler_grammar_manifest_wire(),
-      @check_environment.compiler_barrier_contract_manifest_wire(),
-      100000,
-      10000,
-      100,
-    ) {
+  let manifests = match client_generated_compilation_manifests() {
     Ok(manifests) => manifests
     Err(issue) => return Err(Manifests(issue))
   }
@@ -1613,14 +1644,7 @@ pub fn client_program_compile_local_tasks(
   @publication_host.ClientTaskCompilation,
   ClientProgramTaskCompilationBridgeIssue,
 ] {
-  let manifests = match
-    @publication_host.admit_client_compilation_manifests(
-      @check_environment.compiler_grammar_manifest_wire(),
-      @check_environment.compiler_barrier_contract_manifest_wire(),
-      100000,
-      10000,
-      100,
-    ) {
+  let manifests = match client_generated_compilation_manifests() {
     Ok(manifests) => manifests
     Err(issue) => return Err(Manifests(issue))
   }
@@ -2997,21 +3021,14 @@ pub fn client_program_prepare_published_effect_computation_with_parameters(
   parameters : String?,
   evidence : Array[@context.StageCapacityInput],
 ) -> ClientEffectProgramBridgeOutcome {
-  if !client_program_source_publication_valid(environment, publication) {
-    return EffectRejected(Input(SourcePreparation(Publication)))
-  }
-  let update_targets = match
-    @source_publication.published_update_targets(environment, publication) {
-    Ok(value) => value
-    Err(_) => return EffectRejected(Input(SourcePreparation(Publication)))
-  }
-  let store_targets = match
-    @source_publication.published_store_targets(environment, publication) {
-    Ok(value) => value
-    Err(_) => return EffectRejected(Input(SourcePreparation(Publication)))
-  }
-  let command_targets = match
-    @source_publication.published_command_targets(environment, publication) {
+  // One interpretation validates every publication section and retains the
+  // original target parts. These facts do not authorize an Effect or a Run.
+  let (_, _, update_targets, store_targets, command_targets) = match
+    @source_publication.bind_published_query_parts(
+      environment,
+      publication,
+      None,
+    ) {
     Ok(value) => value
     Err(_) => return EffectRejected(Input(SourcePreparation(Publication)))
   }
@@ -7525,14 +7542,7 @@ fn compile_client_local_effects(
   @publication_host.ClientEffectCompilation,
   ClientProgramEffectCompilationBridgeIssue,
 ] {
-  let manifests = match
-    @publication_host.admit_client_compilation_manifests(
-      @check_environment.compiler_grammar_manifest_wire(),
-      @check_environment.compiler_barrier_contract_manifest_wire(),
-      100000,
-      10000,
-      100,
-    ) {
+  let manifests = match client_generated_compilation_manifests() {
     Ok(manifests) => manifests
     Err(issue) => return Err(Manifests(issue))
   }

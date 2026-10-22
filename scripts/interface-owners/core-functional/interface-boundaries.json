@@ -15452,7 +15452,7 @@
     },
     {
       "module": "packages/run-host-core/index.mjs",
-      "sha256": "a0c6d61c8e35b06bce63e9c7db7c0b41ba1ccef75b8a9dea3cc693ac59d1bc53",
+      "sha256": "a75b272b4f53a17f91d16b52779e59681b3b5003ad80170fe5183427e7e26c89",
       "role": "physical-io",
       "exports": [
         "admitCapturedResultSnapshot",
@@ -15477,6 +15477,7 @@
         "admitTaskRun",
         "admitTaskRunDefinition",
         "beginResultMaterialHolds",
+        "bindPreparedEffectRunMaterials",
         "captureOriginalRunPlan",
         "checkRunBinding",
         "compileEffect",
@@ -15947,6 +15948,16 @@
           "async": false
         },
         {
+          "name": "bindPreparedEffectRunMaterials",
+          "parameters": [
+            "allowed",
+            "definition",
+            "issued",
+            "request"
+          ],
+          "async": false
+        },
+        {
           "name": "captureOriginalRunPlan",
           "parameters": [
             "prepared",
@@ -16059,7 +16070,8 @@
         {
           "name": "deliveryView",
           "parameters": [
-            "contract"
+            "contract",
+            "original"
           ],
           "async": false
         },
@@ -17159,6 +17171,14 @@
           "name": "openResultDeliveryControl/init:finishResultDelivery/init:finishResultDelivery",
           "parameters": [
             "serializer"
+          ],
+          "async": false
+        },
+        {
+          "name": "openResultDeliveryControl/init:fromPublication/init:fromPublication",
+          "parameters": [
+            "contract",
+            "expectedName"
           ],
           "async": false
         },
@@ -18669,6 +18689,7 @@
             "admitSourceFreeRequestFields",
             "admitSourceFreeRequestFields/admitSourceFreeRequestFields",
             "admitSourceFreeRunDefinition",
+            "admitSourceRequestFields",
             "admitTaskRun",
             "admitTaskRun/admitTaskRun",
             "admitTaskRunDefinition",
@@ -18677,6 +18698,7 @@
             "admittedTaskProgress",
             "admittedTaskProgress/admittedTaskProgress",
             "beginResultMaterialHolds",
+            "bindPreparedEffectRunMaterials",
             "captureOriginalRunPlan",
             "captureOriginalRunPlan/captureOriginalRunPlan",
             "checkRunBinding",
@@ -18817,6 +18839,7 @@
             "openResultDeliveryControl/init:feedDurableResultRowFrames/init:feedDurableResultRowFrames",
             "openResultDeliveryControl/init:finishDurableResultRowFrames/init:finishDurableResultRowFrames",
             "openResultDeliveryControl/init:finishResultDelivery/init:finishResultDelivery",
+            "openResultDeliveryControl/init:fromPublication/init:fromPublication",
             "openResultDeliveryControl/init:issueDeliveryAttempt/init:issueDeliveryAttempt",
             "openResultDeliveryControl/init:issueDeliveryRecord/init:issueDeliveryRecord",
             "openResultDeliveryControl/init:issueManifestReadGrant/init:issueManifestReadGrant",
@@ -18885,6 +18908,8 @@
             "prepareRunPreStartFailure/prepareRunPreStartFailure",
             "prepareRunStart",
             "prepareSourceFreeRequest",
+            "prepareSourceProgram",
+            "prepareSourceRequest",
             "prepareSubmissionEpoch",
             "prepareSubmittedIntent",
             "prepareTaskPhysicalStart",
@@ -18923,6 +18948,9 @@
             "requestRelation",
             "requireHandle",
             "restoreEffectRunNormalization",
+            "restoreSourceProgram",
+            "restoreSourceProgram/restoreSourceProgram",
+            "restoreSourceProgram/restoreSourceProgram#2",
             "resultDefinitions",
             "resultDefinitions/resultDefinitions",
             "resultDefinitions/resultDefinitions#2",
@@ -18958,6 +18986,12 @@
             "sourceEvidenceFacts",
             "sourceEvidenceFacts/sourceEvidenceFacts",
             "sourceEvidenceFacts/sourceEvidenceFacts#2",
+            "sourceProgramMaterialInput",
+            "sourceProgramOriginals",
+            "sourceProgramOriginals/sourceProgramOriginals",
+            "sourceProgramSourceInput",
+            "sourceProgramSourceInput/sourceProgramSourceInput",
+            "sourceProgramSourceInput/sourceProgramSourceInput#2",
             "submissionEpochFacts",
             "submissionEpochValidity",
             "submissionRequestId",
@@ -18986,19 +19020,7 @@
             "validateRunMaterialsInput/validateRunMaterialsInput",
             "validateTaskPhysicalStartClaim",
             "validateTaskPhysicalStartClaim/validateTaskPhysicalStartClaim",
-            "validateTaskPhysicalStartClaim/validateTaskPhysicalStartClaim#2",
-            "admitSourceRequestFields",
-            "prepareSourceProgram",
-            "prepareSourceRequest",
-            "restoreSourceProgram",
-            "restoreSourceProgram/restoreSourceProgram",
-            "restoreSourceProgram/restoreSourceProgram#2",
-            "sourceProgramMaterialInput",
-            "sourceProgramOriginals",
-            "sourceProgramOriginals/sourceProgramOriginals",
-            "sourceProgramSourceInput",
-            "sourceProgramSourceInput/sourceProgramSourceInput",
-            "sourceProgramSourceInput/sourceProgramSourceInput#2"
+            "validateTaskPhysicalStartClaim/validateTaskPhysicalStartClaim#2"
           ],
           "exports": [
             "admitCapturedResultSnapshot",
@@ -19019,9 +19041,11 @@
             "admitRunEvidenceValue",
             "admitSourceFreeRequestFields",
             "admitSourceFreeRunDefinition",
+            "admitSourceRequestFields",
             "admitTaskRun",
             "admitTaskRunDefinition",
             "beginResultMaterialHolds",
+            "bindPreparedEffectRunMaterials",
             "captureOriginalRunPlan",
             "checkRunBinding",
             "compileEffect",
@@ -19098,6 +19122,8 @@
             "prepareRunPreStartFailure",
             "prepareRunStart",
             "prepareSourceFreeRequest",
+            "prepareSourceProgram",
+            "prepareSourceRequest",
             "prepareSubmissionEpoch",
             "prepareSubmittedIntent",
             "prepareTaskPhysicalStart",
@@ -19117,6 +19143,7 @@
             "requestFields",
             "requestRelation",
             "restoreEffectRunNormalization",
+            "restoreSourceProgram",
             "resultDefinitions",
             "resultMaterialHoldsFacts",
             "resultMaterialHoldsWire",
@@ -19136,6 +19163,9 @@
             "runCancellationIntentCid",
             "sealRunEvidenceValue",
             "sourceEvidenceFacts",
+            "sourceProgramMaterialInput",
+            "sourceProgramOriginals",
+            "sourceProgramSourceInput",
             "submissionEpochFacts",
             "submissionEpochValidity",
             "submissionRequestId",
@@ -19151,14 +19181,7 @@
             "validatePublicationChain",
             "validatePublicationRecordTransition",
             "validateRetainedInputPlan",
-            "validateRetainedTaskInput",
-            "admitSourceRequestFields",
-            "prepareSourceProgram",
-            "prepareSourceRequest",
-            "restoreSourceProgram",
-            "sourceProgramMaterialInput",
-            "sourceProgramOriginals",
-            "sourceProgramSourceInput"
+            "validateRetainedTaskInput"
           ],
           "attributes": {
             "responsibility": [

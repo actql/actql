@@ -90149,7 +90149,7 @@
     {
       "module": "packages/run-host-core/index.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "a0c6d61c8e35b06bce63e9c7db7c0b41ba1ccef75b8a9dea3cc693ac59d1bc53",
+      "sha256": "a75b272b4f53a17f91d16b52779e59681b3b5003ad80170fe5183427e7e26c89",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -90175,6 +90175,7 @@
         "admitTaskRun",
         "admitTaskRunDefinition",
         "beginResultMaterialHolds",
+        "bindPreparedEffectRunMaterials",
         "captureOriginalRunPlan",
         "checkRunBinding",
         "compileEffect",
@@ -90645,6 +90646,16 @@
           "async": false
         },
         {
+          "name": "bindPreparedEffectRunMaterials",
+          "parameters": [
+            "allowed",
+            "definition",
+            "issued",
+            "request"
+          ],
+          "async": false
+        },
+        {
           "name": "captureOriginalRunPlan",
           "parameters": [
             "prepared",
@@ -90757,7 +90768,8 @@
         {
           "name": "deliveryView",
           "parameters": [
-            "contract"
+            "contract",
+            "original"
           ],
           "async": false
         },
@@ -91857,6 +91869,14 @@
           "name": "openResultDeliveryControl/init:finishResultDelivery/init:finishResultDelivery",
           "parameters": [
             "serializer"
+          ],
+          "async": false
+        },
+        {
+          "name": "openResultDeliveryControl/init:fromPublication/init:fromPublication",
+          "parameters": [
+            "contract",
+            "expectedName"
           ],
           "async": false
         },
@@ -103980,7 +104000,8 @@
             "openResultDeliveryControl/init:trustedClockNotBefore/init:trustedClockNotBefore",
             "openResultDeliveryControl/limitsOf/limitsOf",
             "openResultDeliveryControl/mark/mark",
-            "openResultDeliveryControl/progressToken/progressToken"
+            "openResultDeliveryControl/progressToken/progressToken",
+            "openResultDeliveryControl/init:fromPublication/init:fromPublication"
           ],
           "exports": [
             "openResultDeliveryControl"
@@ -114063,6 +114084,128 @@
               {
                 "path": "packages/run-host-core/source-preparation.test.mjs",
                 "anchor": "test('source Effect materials require the same source preparation and independently retained request'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "bindPreparedEffectRunMaterials"
+          ],
+          "exports": [
+            "bindPreparedEffectRunMaterials"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "bindPreparedEffectRunMaterials"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Responsibility"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "bindPreparedEffectRunMaterials"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Inputs and outputs"
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "bindPreparedEffectRunMaterials"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Identity"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "bindPreparedEffectRunMaterials"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Ownership"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "bindPreparedEffectRunMaterials"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Synchronization"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "bindPreparedEffectRunMaterials"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Failure"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "bindPreparedEffectRunMaterials"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Cancellation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "bindPreparedEffectRunMaterials"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Resources"
+              }
+            ],
+            "extension": [
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "bindPreparedEffectRunMaterials"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Extension"
+              }
+            ],
+            "verification": [
+              {
+                "path": "packages/run-host-core/index.mjs",
+                "anchor": "bindPreparedEffectRunMaterials"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Verification"
+              },
+              {
+                "path": "scripts/js-compiler-binding-runtime.test.mjs",
+                "anchor": "actual pinned MoonBit Result"
+              },
+              {
+                "path": "packages/run-host-core/original-effect-materials.test.mjs",
+                "anchor": "live package materials preserve the exact original handles and normalization"
+              },
+              {
+                "path": "packages/run-host-core/original-effect-materials.test.mjs",
+                "anchor": "live package material binding refuses copied and foreign original tuples"
               }
             ]
           }

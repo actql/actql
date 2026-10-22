@@ -288,7 +288,11 @@ fn environment_diagnostic_category(
         UnsupportedResponseCarrier => UnsupportedImplementation
         _ => InvalidConfiguration
       }
-    Registry(_) | Catalog(_) | Policies(_) | Values(_) => InvalidConfiguration
+    Registry(_)
+    | Catalog(_)
+    | Policies(_)
+    | Values(_)
+    | ForeignPreparedCatalog => InvalidConfiguration
   }
 }
 

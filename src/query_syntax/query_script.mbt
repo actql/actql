@@ -30,6 +30,67 @@ pub fn parse_query_script(
 }
 
 ///|
+/// Select an explicit SQL or query-text source and parse its original tokens.
+/// None is the existing wrong-form route, not a structural-text fallback.
+pub fn parse_selected_query_script(
+  text : String,
+  limits : QueryLimits,
+  sql_only : Bool,
+  source_path? : String = "<query>",
+) -> Result[QueryScript?, Diagnostic] {
+  parse_selected_query_script_owned(text, limits, sql_only, source_path)
+}
+
+///|
+fn parse_selected_query_script_owned(
+  text : String,
+  limits : QueryLimits,
+  sql_only : Bool,
+  source_path : String,
+  read_document? : (String, Int, String) -> Result[
+    @origin.Document,
+    @origin.Issue,
+  ] = (text, max_bytes, path) => {
+    @origin.document(text, max_bytes, source_path=path)
+  },
+) -> Result[QueryScript?, Diagnostic] {
+  if [limits.max_syntax_nodes, limits.max_cte_count, limits.max_work].any(n => {
+      n < 0 || n == 2147483647
+    }) {
+    return Err({ issue: InvalidLimits, span: None, })
+  }
+  let source = match
+    scan_tokens(
+      text,
+      limits.lexical,
+      source_path,
+      false,
+      query_route=Some(sql_only),
+      read_document~,
+    ) {
+    Ok(source) => source
+    Err(issue) => return Err(issue)
+  }
+  let first = source.tokens[0]
+  if !query_head(first) {
+    return Ok(None)
+  }
+  if sql_only {
+    let mut index = 0
+    while source.tokens[index].value == Symbol(40) {
+      index += 1
+    }
+    let head = source.tokens[index]
+    if !(sql_head(head) && (index == 0 || !keyword(head, "CREATE"))) {
+      return Ok(None)
+    }
+  }
+  parse_query_tokens(source, limits).map(query => {
+    Some(single_query_script(query))
+  })
+}
+
+///|
 pub fn single_query_script(query : Query) -> QueryScript {
   { query, }
 }

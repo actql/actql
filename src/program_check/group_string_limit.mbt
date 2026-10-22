@@ -32,20 +32,7 @@ fn assemble_group_string_limit(
   let mut non_author : Int64? = None
   if @context.group_string_limit_host(selected) is Some(ceiling) {
     let host = publication_host(ceiling, budget)
-    let bytes = publication_metadata(
-      w => @host.emit(host, w) catch { e => raise Encoding(e) },
-      budget,
-    )
-    identity_charge(budget, bytes.length())
-    let witness = match
-      @wire.admit(bytes, @host.cid(host), {
-        max_bytes: bytes.length(),
-        max_nodes: bytes.length(),
-        max_depth: budget.depth,
-      }) {
-      Ok(v) => v
-      Err(e) => raise PublicationWire(e)
-    }
+    let witness = publication_host_wire(host, budget)
     non_author = Some(@wire.value(witness))
     candidates.push((@wire.cid(witness), witness))
   }

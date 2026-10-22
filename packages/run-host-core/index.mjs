@@ -28,6 +28,7 @@ const submittedIntents = new WeakMap();
 const admissions = new WeakMap();
 const definitions = new WeakMap();
 const publicationContracts = new WeakMap();
+const publicationOriginals = new WeakMap();
 const runEvidences = new WeakMap();
 const originalRunPlans = new WeakMap();
 const resultOccurrences = new WeakMap();
@@ -398,7 +399,7 @@ export function issueAllowedEffectRun(prepared, compilation, {
   const value = checked(owner.clientValuesHostIssueAllowedEffectRun(
     effectCompilationFor(prepared, compilation), executionContextCid,
     hostPolicyCid, expiresAt), 'RunHostEffectAdmissionRejected');
-  return handle(effectAllowedRuns, {value, prepared}, 'allowed-effect-run');
+  return handle(effectAllowedRuns, {value, prepared, compilation}, 'allowed-effect-run');
 }
 
 export function privateEffectRunEvidence(allowed) {
@@ -440,6 +441,20 @@ export function issuePreparedEffectRunMaterials(allowed, definition, request) {
   return material;
 }
 
+/** Bind the same live issuer originals; no preparation, compilation or approval.
+ * The existing Common Owner verifies the Run, request and normalization custody. */
+export function bindPreparedEffectRunMaterials(allowed, definition, issued, request) {
+  const original = requireHandle(effectAllowedRuns, allowed);
+  const bound = checked(owner.clientValuesHostBindPreparedEffectRunMaterials(
+    original.value, requireHandle(definitions, definition),
+    requireHandle(issuedEffectMaterials, issued), requireHandle(requests, request)),
+  'RunHostEffectOriginalMaterialsRejected');
+  const materials = Object.freeze({prepared: original.prepared,
+    compilation: original.compilation, allowed, definition, request});
+  effectMaterialOwners.set(materials, bound);
+  return materials;
+}
+
 /** Restore saved journal bytes from this exact material admission; no approval. */
 export function restoreEffectRunNormalization(materials) {
   return runEvidence(checked(owner.clientValuesHostRestoreEffectRunNormalization(
@@ -467,9 +482,11 @@ export function admitEffectRunMaterials(wire, definitionCid, profiles, original,
   const originalRequest = owner.clientValuesHostRestoredEffectRequest(restored);
   if (!Array.isArray(originalRequest) || originalRequest.length > 1) throw new Error('InvalidRunHostOriginalRequest');
   const request = originalRequest.length === 1 ? handle(requests, originalRequest[0], 'request-identity') : undefined;
-  const materials = Object.freeze({prepared, ...(request === undefined ? {} : {request}),
-    compilation: handle(effectCompilations, {value: owner.clientValuesHostRestoredEffectCompilation(restored), prepared}, 'effect-compilation'),
-    allowed: handle(effectAllowedRuns, {value: owner.clientValuesHostRestoredEffectAllowed(restored), prepared}, 'allowed-effect-run'),
+  const compilation = handle(effectCompilations,
+    {value: owner.clientValuesHostRestoredEffectCompilation(restored), prepared}, 'effect-compilation');
+  const materials = Object.freeze({prepared, ...(request === undefined ? {} : {request}), compilation,
+    allowed: handle(effectAllowedRuns,
+      {value: owner.clientValuesHostRestoredEffectAllowed(restored), prepared, compilation}, 'allowed-effect-run'),
     definition: handle(definitions, owner.clientValuesHostRestoredEffectDefinition(restored), 'run-definition')});
   effectMaterialOwners.set(materials, restored);
   return materials;
@@ -1970,9 +1987,12 @@ function publicationLimits(limits) {
 
 function publicationContract(value) {
   const token = handle(publicationContracts, value, 'publication-contract');
-  return Object.freeze({token,
+  const contract = Object.freeze({token,
     cid: owner.clientValuesHostPublicationContractIdentity(value),
     wire: owner.clientValuesHostPublicationContractWire(value)});
+  publicationOriginals.set(contract, Object.freeze({value,
+    cid: contract.cid, wire: contract.wire}));
+  return contract;
 }
 
 function runEvidence(value) {
@@ -2416,13 +2436,15 @@ function deliveryResult(method, ...args) {
   return checked(deliveryCall(method, ...args), 'RunHostDeliveryRejected');
 }
 
-function deliveryView(contract) {
-  const value = publicationToken(contract);
+function deliveryView(contract, original) {
+  const value = original === undefined
+    ? publicationToken(contract) : original.value;
   const view = Object.freeze({
     name: owner.clientValuesHostPublicationContractName(value),
     identityField:
       owner.clientValuesHostPublicationContractIdentityField(value),
-    identity: contract.cid, wire: contract.wire,
+    identity: original === undefined ? contract.cid : original.cid,
+    wire: original === undefined ? contract.wire : original.wire,
   });
   deliveryViews.set(view, contract);
   return view;
@@ -2485,6 +2507,17 @@ export function openResultDeliveryControl() {
     },
     admit(name, wire, limits) {
       return deliveryView(admitPublicationContract(name, wire, limits));
+    },
+    fromPublication(contract, expectedName) {
+      const original = publicationOriginals.get(contract);
+      if (original === undefined) {
+        throw new TypeError('ForeignRunHostPublication');
+      }
+      const view = deliveryView(contract, original);
+      if (expectedName !== undefined && view.name !== expectedName) {
+        throw new TypeError('RunHostPublicationKindMismatch');
+      }
+      return view;
     },
     beginResultAccessProgress() {
       return handle(accessProgress,
@@ -2773,8 +2806,8 @@ export function projectEffectSiteRun(allowed, definition, authority, durableWire
   observedAt, cancellationRequested, savedClaims) {
   // The original checked graph bounds both complete claims and the at-most
   // one durable Coordinator record for each task, before reading elements.
-  const original = admittedEffectTaskProgress(allowed, definition, authority, []);
-  const count = owner.clientValuesHostEffectTaskProgressFields(original).length;
+  const {prepared, compilation} = requireHandle(effectAllowedRuns, allowed);
+  const count = effectExecutionShape(prepared, compilation).taskCount;
   const wires = effectProjectionArray(durableWires, count);
   const claims = effectProjectionArray(savedClaims, count);
   if (typeof observedAt !== 'string' || typeof cancellationRequested !== 'boolean') {

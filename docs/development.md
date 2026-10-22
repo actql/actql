@@ -558,11 +558,18 @@ The original preparation Owner issues its inventory-backed journal before the
 material projection; actual completions and unsupported profiles refuse rather
 than falling back to a fabricated empty journal.
 
+For an initial live Run, `bindPreparedEffectRunMaterials(allowed, definition,
+issued, request)` binds those exact nominal originals through the same Common
+material Owner without re-preparation or compilation. It retains the original
+prepared/compiled handles and accepts no replacement inputs or serialized proof.
+Cold restoration continues through `admitEffectRunMaterials`.
+
 `restoreEffectRunNormalization` accepts only the exact object returned by
-`admitEffectRunMaterials`. It reuses saved original journal bytes through the
-material Owner without journal issuance. Copying its visible fields does not
+`admitEffectRunMaterials` or `bindPreparedEffectRunMaterials`. It reuses saved
+original journal bytes through the material Owner without journal issuance. Copying its visible fields does not
 recreate that custody. Initial execution-material admission still reconstructs
-execution ownership once; the normalization inverse does not repeat it.
+execution ownership once on cold restoration; the normalization inverse does not
+repeat it.
 Neither a journal nor a material content digest supplies current authority,
 Provider permission, approval or physical cleanup evidence.
 

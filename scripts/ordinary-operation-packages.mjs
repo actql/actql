@@ -2,18 +2,31 @@
 // compiles, publishes or substitutes source packages for a missing artifact.
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
-import {execFileSync} from 'node:child_process';
+import {execFile, execFileSync} from 'node:child_process';
 import {mkdir, readFile, writeFile} from 'node:fs/promises';
 import {arch, cpus, platform, release, totalmem} from 'node:os';
 import {join, resolve} from 'node:path';
 import {pathToFileURL} from 'node:url';
+import {promisify} from 'node:util';
 import {CLIENT_PACKAGES, checkoutState} from './packed-client-packages.mjs';
 import {inventory, unpack} from './package-release.mjs';
 import {nodeOperationProtocol, nodeWarmSmallQueryFixtures} from './benchmark-node-operations.mjs';
+import {calibrateSqliteComparisonProfile} from './operation-performance.mjs';
 
 const hash = (value, algorithm = 'sha256', encoding = 'hex') =>
   createHash(algorithm).update(value).digest(encoding);
 const positiveId = value => /^[1-9][0-9]*$/u.test(String(value ?? ''));
+
+export async function readFixedSQLiteComparison(path, environment, load) {
+  const bytes = await readFile(path);
+  assert(bytes.length <= 16 * 1024 ** 2, 'Comparison exceeds bounded input');
+  const comparison = JSON.parse(bytes);
+  assert.deepEqual(comparison.profile, calibrateSqliteComparisonProfile(comparison.baseline, comparison.resultControl),
+    'Comparison differs from the baseline-only fixed policy');
+  assert.deepEqual(comparison.baseline.environment, environment, 'Comparator environment differs');
+  assert.equal(comparison.baseline.load, load, 'Comparator load differs');
+  return comparison;
+}
 
 export function validatePerformancePackageProducer({repository, sourceSha, runId, artifactId,
   artifact, run, jobs}) {
@@ -41,6 +54,30 @@ export function validatePerformancePackageProducer({repository, sourceSha, runId
     qualification: 'Successful package producer only; other source-run failures remain failures.'};
 }
 
+export function validatePerformanceProcessPackageProducer(options) {
+  const {repository, sourceSha, runId, artifactId, artifact, run, jobs, producerJob, adapter} = options;
+  assert(['native', 'python'].includes(adapter));
+  assert.match(repository, /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/u);
+  assert.match(sourceSha, /^[a-f0-9]{40}$/u);
+  assert(positiveId(runId) && positiveId(artifactId), 'Exact producer run/artifact IDs are required');
+  assert.equal(typeof producerJob, 'string'); assert(producerJob.trim().length > 0);
+  assert.equal(String(run.id), String(runId));
+  assert.equal(run.repository.full_name, repository);
+  assert.equal(run.head_sha, sourceSha);
+  assert.equal(run.path.split('@')[0], '.github/workflows/ci.yml');
+  assert.equal(run.status, 'completed'); assert(positiveId(run.run_attempt));
+  assert.equal(String(artifact.id), String(artifactId)); assert.equal(artifact.expired, false);
+  assert.equal(String(artifact.workflow_run.id), String(runId));
+  assert.equal(artifact.workflow_run.head_sha, sourceSha);
+  const selected = jobs.filter(job => job.name === producerJob);
+  assert.equal(selected.length, 1, 'Exactly one selected normal package job is required');
+  assert.equal(selected[0].status, 'completed'); assert.equal(selected[0].conclusion, 'success');
+  assert.equal(selected[0].head_sha, sourceSha);
+  return {repository, sourceSha, adapter, runId: String(runId), artifactId: String(artifactId),
+    attempt: run.run_attempt, producerJobId: selected[0].id, artifactName: artifact.name,
+    qualification: 'Original same-run artifact and selected package job only; installed payload and performance checks remain required.'};
+}
+
 export async function inspectPerformancePackageProducer(options, fetchMetadata = fetch) {
   const {repository, runId, artifactId, token} = options;
   assert.match(repository, /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/u);
@@ -65,10 +102,38 @@ export async function inspectPerformancePackageProducer(options, fetchMetadata =
     if (jobs.length >= result.total_count) { complete = true; break; }
   }
   assert(complete, 'Incomplete producer job inventory');
-  return validatePerformancePackageProducer({...options, run, artifact, jobs});
+  return (options.adapter === undefined ? validatePerformancePackageProducer
+    : validatePerformanceProcessPackageProducer)({...options, run, artifact, jobs});
 }
 
-export async function prepareOrdinaryPerformanceConsumer({packages, sourceSha, output,
+export async function prepareOrdinaryNativePerformanceConsumer({packages, sourceSha, output,
+  verify, openRegistry, install}) {
+  packages = resolve(packages); output = resolve(output);
+  verify ??= (await import('./native-cli-release.mjs')).verifyNativeCliRelease;
+  openRegistry ??= (await import('./release-test-registry.mjs')).openReleaseTestRegistry;
+  const manifest = await verify(packages);
+  assert.equal(manifest.sourceSha, sourceSha, 'Native packages differ from the checked source');
+  await mkdir(output);
+  const registry = await openRegistry([{directory: packages, manifest}]);
+  try {
+    const env = {...process.env};
+    for (const key of Object.keys(env)) if (/^npm_config_/iu.test(key)) delete env[key];
+    Object.assign(env, {npm_config_registry: registry.url,
+      npm_config_cache: join(output, 'npm-cache'), npm_config_userconfig: join(output, 'npmrc'),
+      npm_config_globalconfig: join(output, 'npmrc-global'), npm_config_update_notifier: 'false',
+      npm_config_proxy: '', npm_config_https_proxy: '', NO_PROXY: '127.0.0.1,localhost'});
+    delete env.NODE_PATH;
+    await writeFile(env.npm_config_userconfig, `registry=${registry.url}\n@actql:registry=${registry.url}\n`);
+    await writeFile(env.npm_config_globalconfig, '');
+    install ??= async (args, options) => promisify(execFile)('npm', args,
+      {...options, timeout: 120_000, maxBuffer: 8 * 1024 ** 2});
+    await install(['install', '-g', '--prefix', output, '--ignore-scripts', '--no-audit', '--no-fund',
+      `actql@${manifest.cohort.packageVersion}`], {cwd: output, env});
+    return {consumer: join(output, 'lib/node_modules/actql'), sourceSha};
+  } finally { await registry.close(); }
+}
+
+export async function prepareOrdinaryPerformanceConsumer({packages, sourceSha, output, comparisonPath,
   install = (args, cwd) => execFileSync('npm', args, {cwd, stdio: 'inherit', timeout: 120_000})}) {
   assert.match(sourceSha, /^[a-f0-9]{40}$/u);
   packages = resolve(packages); output = resolve(output);
@@ -104,6 +169,7 @@ export async function prepareOrdinaryPerformanceConsumer({packages, sourceSha, o
     cpuModel: cpus()[0].model, logicalCpus: cpus().length, memoryBytes: totalmem()};
   const controls = {sourceSha, cohortSha256: hash(await readFile(manifestPath)), environment, load: 'isolated',
     historyProtocolSha256: hash(JSON.stringify(nodeOperationProtocol('final')))};
+  if (comparisonPath) controls.comparison = await readFixedSQLiteComparison(comparisonPath, environment, controls.load);
   await writeFile(join(output, 'controls.json'), JSON.stringify(controls, null, 2) + '\n', {flag: 'wx'});
   return {manifestPath, consumer, controlsPath: join(output, 'controls.json')};
 }
@@ -122,7 +188,14 @@ export async function combineOrdinaryPerformanceMeasurements(root) {
     historyProtocolSha256: controls.historyProtocolSha256};
   const combined = {sourceSha: controls.sourceSha, ...binding, latency: [],
     functional: {...binding, rows: []}, collectors: [],
-    qualification: 'Actual warm and process reports only; unmeasured release gates remain incomplete.'};
+    qualification: 'Actual warm, process and selected boundary reports only; unmeasured release gates remain incomplete.'};
+  if (controls.comparison) {
+    assert.deepEqual(controls.comparison.profile, calibrateSqliteComparisonProfile(controls.comparison.baseline, controls.comparison.resultControl),
+      'Comparison differs from the baseline-only fixed policy');
+    assert.deepEqual(controls.comparison.baseline.environment, controls.environment, 'Comparator environment differs');
+    assert.equal(controls.comparison.baseline.load, controls.load, 'Comparator load differs');
+    combined.comparison = controls.comparison;
+  }
   for (const [family, operations] of Object.entries({warm: ['warm-select', 'warm-result', 'warm-status',
     ...nodeWarmSmallQueryFixtures.map(fixture => fixture.operation)],
     'cold-existing': ['cold-existing'], 'first-init': ['first-init']})) {
@@ -138,6 +211,8 @@ export async function combineOrdinaryPerformanceMeasurements(root) {
       assert.equal(report.functional[key], value, `Functional ${key} differs`);
     }
     assert.equal(report.mode, 'final');
+    if (family === 'warm') assert.deepEqual(report.comparison, controls.comparison,
+      'Collector comparison differs from the fixed pre-measurement profile');
     assert(report.firstFailure == null && report.packageFailure == null,
       'Collector recorded a public operation or package failure');
     assert.equal(report.installedPayloadsUnchanged, true, 'Collector package verification did not complete');
@@ -180,6 +255,35 @@ export async function combineOrdinaryPerformanceMeasurements(root) {
     combined.collectors.push({family, reportSha256: hash(bytes), rawSha256: hash(raw),
       cleanup: report.cleanup, firstFailure: report.firstFailure ?? null});
   }
+  let boundaryBytes;
+  try {boundaryBytes = await readFile(join(root, 'measurement/used-material/boundaries.json'));}
+  catch (error) {if (error.code !== 'ENOENT') throw error;}
+  if (boundaryBytes) {
+    assert(boundaryBytes.length <= 16 * 1024 ** 2, 'Boundary report exceeds assessor input bound');
+    const report = JSON.parse(boundaryBytes);
+    assert.equal(report.sourceSha, combined.sourceSha, 'Boundary source differs');
+    for (const [key, value] of Object.entries(binding)) {
+      assert.equal(report[key], value, `Boundary ${key} differs`);
+      assert.equal(report.boundaries[key], value, `Boundary section ${key} differs`);
+    }
+    assert.equal(hash(JSON.stringify(report.historyProtocol)), binding.historyProtocolSha256,
+      'Boundary experiment protocol differs');
+    assert.equal(report.mode, 'final');
+    assert(report.firstFailure == null && report.packageFailure == null, 'Boundary operation or package failed');
+    assert.equal(report.installedPayloadsUnchanged, true, 'Boundary package verification did not complete');
+    assert(report.cleanup?.closed === true && report.cleanup.failure == null, 'Boundary original Client cleanup failed');
+    assert.equal(report.latencyMeasured, false); assert.equal(report.fullAcceptance, false);
+    assert.equal(report.boundaries.rows.length, 1, 'Exactly one selected boundary observation required');
+    const row = report.boundaries.rows[0];
+    assert.equal(row.case, 'used-row-tamper');
+    assert(['rejected', 'succeeded'].includes(row.outcome), 'Selected boundary outcome is missing');
+    assert.deepEqual(row, report.observedBoundary, 'Selected boundary observation differs');
+    assert.equal(report.selectedBoundaryPassed, row.outcome === 'rejected');
+    // A successful corrupt read is a failing observation, not missing coverage.
+    combined.boundaries = report.boundaries;
+    combined.collectors.push({family: 'used-material', reportSha256: hash(boundaryBytes),
+      cleanup: report.cleanup, firstFailure: null, packageFailure: null});
+  }
   const output = join(root, 'measurements.json');
   await writeFile(output, JSON.stringify(combined, null, 2) + '\n', {flag: 'wx'});
   return output;
@@ -188,20 +292,33 @@ export async function combineOrdinaryPerformanceMeasurements(root) {
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   try {
     const [command, ...args] = process.argv.slice(2);
-    if (command === 'inspect-producer') {
+    if (command === 'inspect-producer' || command === 'inspect-process-producer') {
       assert.equal(args.length, 0);
+      if (command === 'inspect-process-producer') {
+        assert(['native', 'python'].includes(process.env.PACKAGE_ADAPTER), 'Exact process adapter is required');
+      }
       console.log(JSON.stringify(await inspectPerformancePackageProducer({repository: process.env.GITHUB_REPOSITORY,
         sourceSha: process.env.GITHUB_SHA, runId: process.env.PACKAGE_RUN_ID,
-        artifactId: process.env.PACKAGE_ARTIFACT_ID, token: process.env.GITHUB_TOKEN})));
+        artifactId: process.env.PACKAGE_ARTIFACT_ID, token: process.env.GITHUB_TOKEN,
+        ...(command === 'inspect-process-producer' ? {adapter: process.env.PACKAGE_ADAPTER,
+          producerJob: process.env.PACKAGE_PRODUCER_JOB} : {})})));
+    } else if (command === 'prepare-native') {
+      assert.equal(args.length, 3);
+      const before = checkoutState(process.cwd());
+      assert(before.clean && before.revision === args[1], 'Performance checkout differs from the package source');
+      console.log(JSON.stringify(await prepareOrdinaryNativePerformanceConsumer({packages: args[0],
+        sourceSha: args[1], output: args[2]})));
+      assert.deepEqual(checkoutState(process.cwd()), before);
     } else if (command === 'combine') {
       assert.equal(args.length, 1);
       console.log(await combineOrdinaryPerformanceMeasurements(args[0]));
     } else {
-      assert.equal(command, 'prepare'); assert.equal(args.length, 3);
+      assert.equal(command, 'prepare');
+      assert(args.length === 3 || args.length === 5 && args[3] === '--comparison');
       const before = checkoutState(process.cwd());
       assert(before.clean && before.revision === args[1], 'Performance checkout differs from the package source');
       const result = await prepareOrdinaryPerformanceConsumer({packages: args[0],
-        sourceSha: args[1], output: args[2]});
+        sourceSha: args[1], output: args[2], comparisonPath: args[4]});
       assert.deepEqual(checkoutState(process.cwd()), before, 'Source changed during consumer preparation');
       console.log(JSON.stringify(result));
     }

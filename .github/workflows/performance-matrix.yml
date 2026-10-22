@@ -11,12 +11,55 @@ on:
         description: Exact existing Client package artifact
         type: string
         required: true
+      native-package-run-id:
+        description: Completed same-source normal CI package run
+        type: string
+        required: true
+      native-package-artifact-id:
+        description: Exact formal packages and complete offline wheelhouse when applicable
+        type: string
+        required: true
+      native-package-producer-job:
+        description: Exact successful normal package job name
+        type: string
+        required: true
+      python-package-run-id:
+        description: Completed same-source normal CI package run
+        type: string
+        required: true
+      python-package-artifact-id:
+        description: Exact formal packages and complete offline wheelhouse when applicable
+        type: string
+        required: true
+      python-package-producer-job:
+        description: Exact successful normal package job name
+        type: string
+        required: true
   workflow_call:
     inputs:
       package-run-id:
         type: string
         required: true
       package-artifact-id:
+        type: string
+        required: true
+
+      native-package-run-id:
+        type: string
+        required: true
+      native-package-artifact-id:
+        type: string
+        required: true
+      native-package-producer-job:
+        type: string
+        required: true
+      python-package-run-id:
+        type: string
+        required: true
+      python-package-artifact-id:
+        type: string
+        required: true
+      python-package-producer-job:
         type: string
         required: true
 
@@ -55,11 +98,23 @@ jobs:
           artifact-ids: ${{ inputs.package-artifact-id }}
           path: ${{ runner.temp }}/ordinary-operation/packages
           merge-multiple: true
+      - name: Measure the same-machine local SQLite diagnostic baseline
+        run: node scripts/benchmark-node-sqlite.mjs --output "$RUNNER_TEMP/ordinary-operation/sqlite" --warm-samples 100 --cold-samples 5 --load isolated
+      - name: Freeze the baseline-only comparison before candidate measurements
+        run: node scripts/operation-performance.mjs --calibrate-sqlite "$RUNNER_TEMP/ordinary-operation/sqlite/sqlite-baseline.json" --output "$RUNNER_TEMP/ordinary-operation/comparison.json"
       - name: Install a fresh ordinary consumer without a producer fallback
-        run: node scripts/ordinary-operation-packages.mjs prepare "$RUNNER_TEMP/ordinary-operation/packages" "$GITHUB_SHA" "$RUNNER_TEMP/ordinary-operation/prepared"
-      - name: Measure completed public operations from the installed cohort
+        run: node scripts/ordinary-operation-packages.mjs prepare "$RUNNER_TEMP/ordinary-operation/packages" "$GITHUB_SHA" "$RUNNER_TEMP/ordinary-operation/prepared" --comparison "$RUNNER_TEMP/ordinary-operation/comparison.json"
+      - name: Check selected Result material integrity using the installed cohort
         run: |
           mkdir "$RUNNER_TEMP/ordinary-operation/measurement"
+          node scripts/benchmark-node-boundaries.mjs \
+            --manifest "$RUNNER_TEMP/ordinary-operation/packages/ordinary-operation-packages.json" \
+            --consumer "$RUNNER_TEMP/ordinary-operation/prepared/consumer" \
+            --output "$RUNNER_TEMP/ordinary-operation/measurement/used-material" \
+            --controls "$RUNNER_TEMP/ordinary-operation/prepared/controls.json" \
+            --mode final
+      - name: Measure completed public operations from the installed cohort
+        run: |
           node scripts/benchmark-node-operations.mjs \
             --manifest "$RUNNER_TEMP/ordinary-operation/packages/ordinary-operation-packages.json" \
             --consumer "$RUNNER_TEMP/ordinary-operation/prepared/consumer" \
@@ -97,12 +152,191 @@ jobs:
             ${{ runner.temp }}/ordinary-operation/producer.json
             ${{ runner.temp }}/ordinary-operation/packages/ordinary-operation-packages.json
             ${{ runner.temp }}/ordinary-operation/prepared/controls.json
+            ${{ runner.temp }}/ordinary-operation/comparison.json
+            ${{ runner.temp }}/ordinary-operation/sqlite/sqlite-baseline.json
             ${{ runner.temp }}/ordinary-operation/measurements.json
             ${{ runner.temp }}/ordinary-operation/measurement/*/*.json
             ${{ runner.temp }}/ordinary-operation/measurement/*/*.jsonl
             ${{ runner.temp }}/ordinary-operation/assessment.json
           if-no-files-found: warn
           retention-days: 30
+  ordinary-native:
+    name: Ordinary native ${{ matrix.operation }}
+    if: ${{ vars.ACTQL_MAIN_CI_ENABLED == 'true' && github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' }}
+    runs-on: macos-14
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      actions: read
+    strategy:
+      fail-fast: false
+      matrix:
+        operation: [first-init, cold-existing]
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: 22.22.0
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: '3.12'
+      - name: Install verification tooling without runtime preparation
+        run: npm ci --ignore-scripts
+      - name: Validate the original normal package artifact and producer job
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          PACKAGE_ADAPTER: native
+          PACKAGE_RUN_ID: ${{ inputs.native-package-run-id }}
+          PACKAGE_ARTIFACT_ID: ${{ inputs.native-package-artifact-id }}
+          PACKAGE_PRODUCER_JOB: ${{ inputs.native-package-producer-job }}
+        run: |
+          mkdir "$RUNNER_TEMP/ordinary-native"
+          node scripts/ordinary-operation-packages.mjs inspect-process-producer > "$RUNNER_TEMP/ordinary-native/producer.json"
+      - name: Reuse the exact formal package artifact
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          github-token: ${{ github.token }}
+          run-id: ${{ inputs.native-package-run-id }}
+          artifact-ids: ${{ inputs.native-package-artifact-id }}
+          path: ${{ runner.temp }}/ordinary-native/packages
+          merge-multiple: true
+      - name: Install only the original Native packages through their fixed registry
+        run: node scripts/ordinary-operation-packages.mjs prepare-native "$RUNNER_TEMP/ordinary-native/packages" "$GITHUB_SHA" "$RUNNER_TEMP/ordinary-native/consumer"
+      - name: Measure the supported completed public operation
+        run: |
+          python3 -I -B scripts/benchmark-ordinary-processes.py \
+            --adapter native --manifest "$RUNNER_TEMP/ordinary-native/packages/release.json" \
+            --consumer "$RUNNER_TEMP/ordinary-native/consumer/lib/node_modules/actql" \
+            --source "$GITHUB_SHA" --operation '${{ matrix.operation }}' \
+            --mode final --load isolated --output "$RUNNER_TEMP/ordinary-native/measurement"
+      - name: Require the actual report assessment including missing coverage
+        if: always()
+        run: node scripts/operation-performance.mjs --input "$RUNNER_TEMP/ordinary-native/measurement/measurements.json" --output "$RUNNER_TEMP/ordinary-native/assessment.json"
+      - name: Retain raw samples and failed or incomplete assessment
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: ordinary-native-${{ matrix.operation }}-${{ github.sha }}
+          path: |
+            ${{ runner.temp }}/ordinary-native/producer.json
+            ${{ runner.temp }}/ordinary-native/packages/release.json
+            ${{ runner.temp }}/ordinary-native/measurement/
+            ${{ runner.temp }}/ordinary-native/assessment.json
+          if-no-files-found: warn
+          retention-days: 30
+  ordinary-python:
+    name: Ordinary python ${{ matrix.operation }}
+    if: ${{ vars.ACTQL_MAIN_CI_ENABLED == 'true' && github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' }}
+    runs-on: macos-14
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      actions: read
+    strategy:
+      fail-fast: false
+      matrix:
+        operation: [first-init, cold-existing, warm-select, warm-result, warm-status]
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: 22.22.0
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: '3.12'
+      - name: Install verification tooling without runtime preparation
+        run: npm ci --ignore-scripts
+      - name: Validate the original normal package artifact and producer job
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          PACKAGE_ADAPTER: python
+          PACKAGE_RUN_ID: ${{ inputs.python-package-run-id }}
+          PACKAGE_ARTIFACT_ID: ${{ inputs.python-package-artifact-id }}
+          PACKAGE_PRODUCER_JOB: ${{ inputs.python-package-producer-job }}
+        run: |
+          mkdir "$RUNNER_TEMP/ordinary-python"
+          node scripts/ordinary-operation-packages.mjs inspect-process-producer > "$RUNNER_TEMP/ordinary-python/producer.json"
+      - name: Reuse the exact formal package artifact
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          github-token: ${{ github.token }}
+          run-id: ${{ inputs.python-package-run-id }}
+          artifact-ids: ${{ inputs.python-package-artifact-id }}
+          path: ${{ runner.temp }}/ordinary-python/packages
+          merge-multiple: true
+      - name: Install the original Python wheelhouse into a fresh local environment
+        id: consumer
+        run: |
+          python3 -I -B - <<'PYTHON'
+          import hashlib, json, os, re, subprocess, sys, sysconfig
+          from pathlib import Path
+          root = Path(os.environ['RUNNER_TEMP']) / 'ordinary-python'
+          packages = root / 'packages'
+          manifest = json.loads((packages / 'cohort.json').read_text())
+          assert manifest['source_sha'] == os.environ['GITHUB_SHA']
+          assert {row['distribution'] for row in manifest['wheels']} == {'actql', 'actql-sdk', 'actql-local-runtime'}
+          version = manifest['package_version']
+          assert isinstance(version, str) and re.fullmatch(r'[A-Za-z0-9.+!-]+', version)
+          for row in manifest['wheels']:
+              assert Path(row['file']).name == row['file']
+              data = (packages / 'wheels' / row['file']).read_bytes()
+              assert len(data) == row['bytes'] and hashlib.sha256(data).hexdigest() == row['sha256']
+          venv = root / 'venv'
+          subprocess.run([sys.executable, '-m', 'venv', '--symlinks', str(venv)], check=True)
+          interpreter = venv / 'bin/python'
+          subprocess.run([str(interpreter), '-I', '-B', '-m', 'pip', 'install', '--no-index',
+                          '--only-binary=:all:', '--no-compile', '--no-cache-dir', '--find-links', str(packages / 'wheels'),
+                          'actql==' + version], check=True)
+          purelib = subprocess.check_output([str(interpreter), '-I', '-B', '-c',
+                                            'import sysconfig;print(sysconfig.get_path("purelib"))'], text=True).strip()
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as out:
+              out.write('path=' + purelib + '\n')
+          PYTHON
+      - name: Measure the supported completed public operation
+        run: |
+          python3 -I -B scripts/benchmark-ordinary-processes.py \
+            --adapter python --manifest "$RUNNER_TEMP/ordinary-python/packages/cohort.json" \
+            --consumer "${{ steps.consumer.outputs.path }}" --venv "$RUNNER_TEMP/ordinary-python/venv" \
+            --source "$GITHUB_SHA" --operation '${{ matrix.operation }}' \
+            --mode final --load isolated --output "$RUNNER_TEMP/ordinary-python/measurement"
+      - name: Require the actual report assessment including missing coverage
+        if: always()
+        run: node scripts/operation-performance.mjs --input "$RUNNER_TEMP/ordinary-python/measurement/measurements.json" --output "$RUNNER_TEMP/ordinary-python/assessment.json"
+      - name: Retain raw samples and failed or incomplete assessment
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: ordinary-python-${{ matrix.operation }}-${{ github.sha }}
+          path: |
+            ${{ runner.temp }}/ordinary-python/producer.json
+            ${{ runner.temp }}/ordinary-python/packages/cohort.json
+            ${{ runner.temp }}/ordinary-python/measurement/
+            ${{ runner.temp }}/ordinary-python/assessment.json
+          if-no-files-found: warn
+          retention-days: 30
+  ordinary-platform-assessment:
+    needs: [ordinary-operations, ordinary-native, ordinary-python]
+    if: ${{ vars.ACTQL_MAIN_CI_ENABLED == 'true' && github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && always() }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Require every ordinary public platform measurement
+        env:
+          RESULTS: ${{ toJSON(needs) }}
+        run: |
+          node -e '
+            const assert = require("node:assert/strict");
+            const results = JSON.parse(process.env.RESULTS);
+            const platforms = ["ordinary-operations", "ordinary-native", "ordinary-python"];
+            assert.deepEqual(Object.keys(results).sort(), [...platforms].sort(), "Incomplete platform job inventory");
+            for (const name of platforms) {
+              assert.equal(results[name]?.result, "success", `${name} did not complete its required assessment`);
+            }
+          '
   registered-cases:
     if: ${{ vars.ACTQL_MAIN_CI_ENABLED == 'true' && github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' }}
     runs-on: ubuntu-24.04

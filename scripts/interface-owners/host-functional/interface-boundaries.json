@@ -51712,7 +51712,7 @@
     {
       "module": "packages/run-host-core/index.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "a32c700d0b564c899ac97670607c324d483e5131b849ff2d9e9f7b17c3703676",
+      "sha256": "b11533ce23a35afd20a46ddf32e8188403ffbaf5228694256abd0a943a3a9f26",
       "role": "common-semantics",
       "owner": "Existing client_values_host_abi/Run Publication Owners; public same-process type projection",
       "exports": [
@@ -51791,6 +51791,7 @@
         "admitTaskRun",
         "admitTaskRunDefinition",
         "beginResultMaterialHolds",
+        "bindPreparedEffectRunMaterials",
         "captureOriginalRunPlan",
         "checkRunBinding",
         "compileEffect",
@@ -52126,6 +52127,16 @@
             "materialGenerationCid: string"
           ],
           "result": "ResultMaterialHolds"
+        },
+        {
+          "name": "bindPreparedEffectRunMaterials",
+          "parameters": [
+            "allowed: AllowedEffectRun",
+            "definition: RunDefinition",
+            "issued: IssuedEffectRunMaterials",
+            "request: RequestIdentity"
+          ],
+          "result": "RestoredEffectRun"
         },
         {
           "name": "captureOriginalRunPlan",
@@ -53251,6 +53262,21 @@
           "result": "string"
         },
         {
+          "name": "ResultDeliveryControl/fromPublication",
+          "parameters": [
+            "original: PublicationContract<Kind>"
+          ],
+          "result": "DeliveryContractView<Kind>"
+        },
+        {
+          "name": "ResultDeliveryControl/fromPublication#2",
+          "parameters": [
+            "original: PublicationContract",
+            "expectedName: Kind"
+          ],
+          "result": "DeliveryContractView<Kind>"
+        },
+        {
           "name": "ResultDeliveryControl/issueDeliveryAttempt",
           "parameters": [
             "index: IndexView",
@@ -53816,6 +53842,8 @@
             "ResultDeliveryControl/feedDurableResultRowFrames",
             "ResultDeliveryControl/finishDurableResultRowFrames",
             "ResultDeliveryControl/finishResultDelivery",
+            "ResultDeliveryControl/fromPublication",
+            "ResultDeliveryControl/fromPublication#2",
             "ResultDeliveryControl/issueDeliveryAttempt",
             "ResultDeliveryControl/issueDeliveryRecord",
             "ResultDeliveryControl/issueManifestReadGrant",
@@ -53865,9 +53893,11 @@
             "admitRunEvidenceValue",
             "admitSourceFreeRequestFields",
             "admitSourceFreeRunDefinition",
+            "admitSourceRequestFields",
             "admitTaskRun",
             "admitTaskRunDefinition",
             "beginResultMaterialHolds",
+            "bindPreparedEffectRunMaterials",
             "captureOriginalRunPlan",
             "checkRunBinding",
             "compileEffect",
@@ -53945,6 +53975,8 @@
             "prepareRunPreStartFailure",
             "prepareRunStart",
             "prepareSourceFreeRequest",
+            "prepareSourceProgram",
+            "prepareSourceRequest",
             "prepareSubmissionEpoch",
             "prepareSubmittedIntent",
             "prepareTaskPhysicalStart",
@@ -53964,6 +53996,7 @@
             "requestFields",
             "requestRelation",
             "restoreEffectRunNormalization",
+            "restoreSourceProgram",
             "resultDefinitions",
             "resultMaterialHoldsFacts",
             "resultMaterialHoldsWire",
@@ -53983,6 +54016,9 @@
             "runCancellationIntentCid",
             "sealRunEvidenceValue",
             "sourceEvidenceFacts",
+            "sourceProgramMaterialInput",
+            "sourceProgramOriginals",
+            "sourceProgramSourceInput",
             "submissionEpochFacts",
             "submissionEpochValidity",
             "submissionRequestId",
@@ -53998,14 +54034,7 @@
             "validatePublicationChain",
             "validatePublicationRecordTransition",
             "validateRetainedInputPlan",
-            "validateRetainedTaskInput",
-            "admitSourceRequestFields",
-            "prepareSourceProgram",
-            "prepareSourceRequest",
-            "restoreSourceProgram",
-            "sourceProgramMaterialInput",
-            "sourceProgramOriginals",
-            "sourceProgramSourceInput"
+            "validateRetainedTaskInput"
           ],
           "exports": [
             "AllowedEffectRun",
@@ -54018,6 +54047,7 @@
             "OriginalRunPlan",
             "PreparedEffectProgram",
             "PreparedProgram",
+            "PreparedSourceProgram",
             "PrivateCompilationWires",
             "ProfileSelection",
             "PublicIndexEntryContract",
@@ -54053,6 +54083,7 @@
             "RunDefinition",
             "RunEvidence",
             "SourceFreeRunMaterialsInput",
+            "SourceProgramOriginals",
             "StoredRunPlanOriginal",
             "SubmissionEpoch",
             "SubmittedIntent",
@@ -54077,9 +54108,11 @@
             "admitRunEvidenceValue",
             "admitSourceFreeRequestFields",
             "admitSourceFreeRunDefinition",
+            "admitSourceRequestFields",
             "admitTaskRun",
             "admitTaskRunDefinition",
             "beginResultMaterialHolds",
+            "bindPreparedEffectRunMaterials",
             "captureOriginalRunPlan",
             "checkRunBinding",
             "compileEffect",
@@ -54156,6 +54189,8 @@
             "prepareRunPreStartFailure",
             "prepareRunStart",
             "prepareSourceFreeRequest",
+            "prepareSourceProgram",
+            "prepareSourceRequest",
             "prepareSubmissionEpoch",
             "prepareSubmittedIntent",
             "prepareTaskPhysicalStart",
@@ -54175,6 +54210,7 @@
             "requestFields",
             "requestRelation",
             "restoreEffectRunNormalization",
+            "restoreSourceProgram",
             "resultDefinitions",
             "resultMaterialHoldsFacts",
             "resultMaterialHoldsWire",
@@ -54194,6 +54230,9 @@
             "runCancellationIntentCid",
             "sealRunEvidenceValue",
             "sourceEvidenceFacts",
+            "sourceProgramMaterialInput",
+            "sourceProgramOriginals",
+            "sourceProgramSourceInput",
             "submissionEpochFacts",
             "submissionEpochValidity",
             "submissionRequestId",
@@ -54209,16 +54248,7 @@
             "validatePublicationChain",
             "validatePublicationRecordTransition",
             "validateRetainedInputPlan",
-            "validateRetainedTaskInput",
-            "PreparedSourceProgram",
-            "SourceProgramOriginals",
-            "admitSourceRequestFields",
-            "prepareSourceProgram",
-            "prepareSourceRequest",
-            "restoreSourceProgram",
-            "sourceProgramMaterialInput",
-            "sourceProgramOriginals",
-            "sourceProgramSourceInput"
+            "validateRetainedTaskInput"
           ],
           "attributes": {
             "responsibility": [

@@ -176,6 +176,11 @@ export function issuePreparedEffectRunMaterials(allowed: AllowedEffectRun,
 export type RestoredEffectRun = Readonly<{prepared: PreparedEffectProgram;
   compilation: EffectCompilation; allowed: AllowedEffectRun;
   definition: RunDefinition; request?: RequestIdentity}>;
+/** Bind the exact process-local issuer/Run/request originals without preparing
+ * or compiling again. Current authorization and durable custody are separate. */
+export function bindPreparedEffectRunMaterials(allowed: AllowedEffectRun,
+  definition: RunDefinition, issued: IssuedEffectRunMaterials,
+  request: RequestIdentity): RestoredEffectRun;
 /** definitionCid and expectedRequest must come from trusted original durable
  * context, independently of candidate wire. This is not current authorization. */
 export function admitEffectRunMaterials(wire: string, definitionCid: string,
@@ -287,6 +292,11 @@ export interface ResultDeliveryControl {
     bytes: number): boolean;
   admit<Kind extends string>(name: Kind, wire: string,
     limits: PublicationLimits): DeliveryContractView<Kind>;
+  /** Reuse an original publication from this module without wire admission. */
+  fromPublication<Kind extends string>(original: PublicationContract<Kind>):
+    DeliveryContractView<Kind>;
+  fromPublication<Kind extends string>(original: PublicationContract,
+    expectedName: Kind): DeliveryContractView<Kind>;
   beginResultAccessProgress(): ResultAccessProgress;
   resultAccessProgressAction(progress: ResultAccessProgress):
     'authorize_request' | 'resolve_committed_result' |

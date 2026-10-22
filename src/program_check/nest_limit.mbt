@@ -76,20 +76,7 @@ fn nest_host_witness(
   budget : IdentityBudget,
 ) -> @wire.WireWitness raise UnitBuildFailure {
   let host = publication_host(ceiling, budget)
-  let bytes = publication_metadata(
-    w => @host.emit(host, w) catch { e => raise Encoding(e) },
-    budget,
-  )
-  identity_charge(budget, bytes.length())
-  match
-    @wire.admit(bytes, @host.cid(host), {
-      max_bytes: bytes.length(),
-      max_nodes: bytes.length(),
-      max_depth: budget.depth,
-    }) {
-    Ok(v) => v
-    Err(e) => raise PublicationWire(e)
-  }
+  publication_host_wire(host, budget)
 }
 
 ///|

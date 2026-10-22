@@ -169,6 +169,7 @@ fn check(
   graph? : Bool = false,
   model_tasks? : @environment.ModelTasks? = None,
   request_value_policies? : Array[HostRequestValuePolicyEvidence] = [],
+  source_catalog? : PreparedSourceCatalog? = None,
 ) -> CheckedProgram raise LocalConstructionFailure {
   if max_work < 0 || max_bytes < 0 || max_nodes < 0 || max_depth < 0 {
     raise InvalidLimits
@@ -201,6 +202,7 @@ fn check(
     graph~,
     model_tasks~,
     request_value_policies~,
+    source_catalog~,
   )
   let conversion = Some(conversions[0])
   audit_source_execution(contracts, units[0].source_execution, budget) catch {

@@ -12,7 +12,7 @@ pub(all) enum Enforcement {
 /// Canonical limit assertions linked to arithmetic, not a runnable permission.
 struct LimitClaim {
   nodes : Int
-  cursor : @decode.Cursor
+  body : LimitBody
   claims : ArithmeticClaims
   minimum : @arithmetic.CandidateMinimum
   identity : String
@@ -142,7 +142,7 @@ pub fn admit_limit(
         raise Stop(InvalidWitness)
       }
       let witness = claims.witnesses[index]
-      if !same_cursor(candidate, witness.cursor) {
+      if !same_witness_body(candidate, witness) {
         raise Stop(InvalidWitness)
       }
       candidates.push({ node: index, role: witness.role, })
@@ -193,7 +193,7 @@ pub fn admit_limit(
     }
     Ok({
       nodes,
-      cursor: root,
+      body: ParsedLimit(root),
       claims,
       minimum,
       identity: expected_cid,
@@ -268,5 +268,9 @@ pub fn emit_limit(
   v : LimitClaim,
   writer : @encode.Writer,
 ) -> Unit raise @encode.EncodeFailure {
-  limit_emit(v.cursor, writer, false)
+  match v.body {
+    ParsedLimit(cursor) => limit_emit(cursor, writer, false)
+    ConstructedLimit(candidates, _, _) =>
+      emit_constructed_limit(v, candidates, writer, true)
+  }
 }

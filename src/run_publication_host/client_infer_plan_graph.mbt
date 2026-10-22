@@ -897,7 +897,11 @@ fn issue_client_infer_plan_graph_for_occurrence(
       source_ordinal: step,
       execution,
       item_limit,
-      graph: { wire: @encode.finish(graph_writer), transformations, },
+      graph: {
+        wire: @encode.finish(graph_writer),
+        transformations,
+        standard_progress_keys: None,
+      },
       input_fragment_cid: prefix.logical_cid,
       request_wire,
       request_cid,

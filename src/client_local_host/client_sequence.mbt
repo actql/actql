@@ -568,68 +568,19 @@ fn prepare_client_local_sequences_owned(
     @publication_host.ClientRequestIdentity,
   )? = None,
 ) -> Array[@execution.GeneratedSequence]? {
-  if registry_body.length() > 100000 || values_body.length() > 100000 {
+  guard client_local_sequence_contracts(
+      registry_body, values_body, fragment_body, ordered_body,
+    )
+    is Some(admitted) else {
     return None
   }
-  let registry_value = @identity.from_json(
-    @json.parse(registry_body),
-    10000,
-    100,
-    100000,
-  ) catch {
-    _ => return None
-  }
-  let values_value = @identity.from_json(
-    @json.parse(values_body),
-    10000,
-    100,
-    100000,
-  ) catch {
-    _ => return None
-  }
-  let contracts = match
-    @execution.admit_relation_registry(registry_value, values_value, {
-      max_body_bytes: 100000,
-      max_body_nodes: 10000,
-      max_body_depth: 100,
-    }) {
-    Ok(value) => value
-    Err(_) => return None
-  }
+  let contracts = admitted.contracts
+  let fragment_contract = admitted.fragment_contract
+  let ordered_contract = admitted.ordered_contract
   let physical : @execution.RegistryLimits = {
     max_body_bytes: 100000,
     max_body_nodes: 10000,
     max_body_depth: 100,
-  }
-  let fragment_contract = match fragment_body {
-    None => None
-    Some(body) => {
-      if body.length() > 100000 {
-        return None
-      }
-      let value = @identity.from_json(@json.parse(body), 10000, 100, 100000) catch {
-        _ => return None
-      }
-      match @execution.admit_fragment_contract(contracts, value, physical) {
-        Ok(contract) => Some(contract)
-        Err(_) => return None
-      }
-    }
-  }
-  let ordered_contract = match ordered_body {
-    None => None
-    Some(body) => {
-      if body.length() > 100000 {
-        return None
-      }
-      let value = @identity.from_json(@json.parse(body), 10000, 100, 100000) catch {
-        _ => return None
-      }
-      match @execution.admit_ordered_contract(contracts, value, physical) {
-        Ok(contract) => Some(contract)
-        Err(_) => return None
-      }
-    }
   }
   let graph = match prepared {
     Pure(value) => @publication_host.prepared_client_graph(value)

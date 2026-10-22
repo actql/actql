@@ -4,6 +4,7 @@ package "actql/actql/capacity_witness"
 import {
   "actql/actql/capacity_derivation",
   "actql/actql/capacity_law",
+  "actql/actql/capacity_policy",
   "actql/actql/encode_core",
   "moonbitlang/core/debug",
 }
@@ -37,6 +38,12 @@ pub fn claim_reference_count(ArithmeticClaims) -> Int
 
 pub fn collect_program_dependencies(Array[ProgramClaims], ClosureLimits, max_work~ : Int) -> Result[ProgramDependencies, ProgramDependencyIssue]
 
+pub fn create_host_source(@capacity_policy.Ceiling, @capacity_derivation.BoundUnit, @capacity_law.RegisteredLaw, Limits) -> Result[WireWitness, Issue]
+
+pub fn create_limit(ArithmeticClaims, Array[Int], @capacity_derivation.BoundUnit, String, Enforcement, LimitLimits) -> Result[LimitClaim, Issue]
+
+pub fn create_program_source(String, Int64, @capacity_derivation.BoundUnit, @capacity_law.RegisteredLaw, Limits) -> Result[ProgramProofClaim, Issue]
+
 pub fn dependencies(WireWitness) -> Array[String]
 
 pub fn dependency_count(WireWitness) -> Int
@@ -55,11 +62,15 @@ pub fn limit_cid(LimitClaim) -> String
 
 pub fn limit_claims(LimitClaim) -> ArithmeticClaims
 
+pub fn limit_creation_usage(LimitClaim) -> (Int, Int)?
+
 pub fn limit_enforcement(LimitClaim) -> Enforcement
 
 pub fn limit_minimum(LimitClaim) -> @capacity_derivation.CandidateMinimum
 
 pub fn limit_subject(LimitClaim) -> String
+
+pub fn measure_limit(LimitClaim, Int, Int, Int) -> (Int, Int, Int) raise @encode_core.EncodeFailure
 
 pub fn mixed_arithmetic(MixedClaims) -> ArithmeticClaims
 
