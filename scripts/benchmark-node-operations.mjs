@@ -6,7 +6,8 @@ import {appendFile, lstat, mkdir, readFile, readdir, writeFile} from 'node:fs/pr
 import {arch, platform, release, cpus, totalmem} from 'node:os';
 import {dirname, join, relative, resolve} from 'node:path';
 import {pathToFileURL} from 'node:url';
-import {assessLatency, calibratedLatencyTarget, collectOperationSamples} from './operation-performance.mjs';
+import {assessLatency, calibratedLatencyTarget, collectOperationSamples,
+  assessPriorityTransition, priorityTransitionTarget} from './operation-performance.mjs';
 
 const hash = bytes => createHash('sha256').update(bytes).digest('hex');
 // Independent literal oracles: JOIN selects the matching id and label; UNION
@@ -226,19 +227,175 @@ export async function runNodeWarmBenchmark({manifestPath, consumer, output, cont
   return report;
 }
 
+// This is a smaller selection of the same ordinary public route, not a
+// replacement for full performance acceptance or its SQLite comparison.
+export function nodePriorityProtocol(mode) {
+  assert(['diagnostic', 'final'].includes(mode));
+  return {selection: 'priority-transition', mode, entry: 'ordinary open/stateDir',
+    state: 'new empty directory', firstQuery: {text: 'SELECT 0 AS id', expected: [{id: 0}]},
+    queries: Array.from({length: mode === 'final' ? priorityTransitionTarget.samples : 3}, (_, index) =>
+      ({text: `SELECT ${index + 1} AS id`, expected: [{id: index + 1}]})),
+    samplesPerOperation: mode === 'final' ? priorityTransitionTarget.samples : 3,
+    savedOriginals: 'first three successful new-query Results, read cyclically without resubmission',
+    order: ['first-query-separate', 'warm-select', 'warm-result'],
+    queryIdentity: 'SHA256 of JSON-encoded exact query string',
+    timing: 'public construction/all plus public original-reference capture and independent row oracle',
+    close: 'await the original Client once; no retry of failed or Unknown operations',
+    missing: 'scan/temporary/safety observations are not synthesized from timings or configuration'};
+}
+
+export async function runNodePriorityBenchmark({manifestPath, consumer, output, controlsPath, mode = 'diagnostic'}) {
+  const protocol = nodePriorityProtocol(mode);
+  consumer = resolve(consumer); output = resolve(output);
+  const identify = value => hash(Buffer.from(JSON.stringify(value)));
+  const bytes = await readFile(manifestPath), manifest = JSON.parse(bytes);
+  const controls = JSON.parse(await readFile(controlsPath));
+  assert.match(manifest.sourceSha, /^[a-f0-9]{40}$/u);
+  assert.equal(controls.sourceSha, manifest.sourceSha);
+  assert.equal(controls.cohortSha256, hash(bytes));
+  const environment = {platform: platform(), arch: arch(), osRelease: release(), node: process.version,
+    cpuModel: cpus()[0].model, logicalCpus: cpus().length, memoryBytes: totalmem()};
+  assert.deepEqual(controls.environment, environment);
+  assert(['isolated', 'concurrent'].includes(controls.load));
+  assert.equal(controls.historyProtocolSha256, identify(protocol));
+  const before = await verifyNodeBenchmarkPackages(manifest, manifestPath, consumer);
+  await mkdir(output, {mode: 0o700});
+  const stateId = join(output, 'new-state'), hostId = randomUUID();
+  const binding = {cohortSha256: hash(bytes), environmentSha256: identify(environment),
+    historyProtocolSha256: controls.historyProtocolSha256};
+  const report = {sourceSha: manifest.sourceSha, ...binding, executionPath: 'node-sdk',
+    selection: 'priority-transition', mode, historyProtocol: protocol, observedEnvironment: environment,
+    ordinaryPackageManifest: resolve(manifestPath), load: controls.load, latency: [],
+    functional: {...binding, rows: []}, cleanup: {closed: false}, publicCallAttempts: {sql: 0, savedResultAll: 0},
+    priorityConditions: {},
+    qualification: 'Raw Node checkpoint selection only. Missing actual population/safety observations remain incomplete; no full acceptance or comparator claim.'};
+  // Explicit experiment facts stay explicit. A successful package check cannot
+  // invent quiet-machine, unchanged-guarantee or managed-resource observations.
+  for (const key of ['noCompetingLargeBuild', 'guaranteesUnchanged']) {
+    if (typeof controls.priorityConditions?.[key] === 'boolean') report.priorityConditions[key] = controls.priorityConditions[key];
+  }
+  const save = () => writeFile(join(output, 'measurements.json'), JSON.stringify(report, null, 2) + '\n', {mode: 0o600});
+  const originals = [], newRuns = new Set(), newResults = new Set();
+  let client, active = 'ordinary public open', observedFailure;
+  const attemptIdentity = fixture => ({publicOperationId: randomUUID(),
+    querySha256: identify(fixture.text), expectedSha256: identify(fixture.expected)});
+  const query = async (fixture, row) => {
+    report.publicCallAttempts.sql++;
+    const pending = client.sql(fixture.text), rows = await pending.all();
+    row.actualSha256 = identify(rows);
+    // Await the same ResultPromise for its public original; never submit again.
+    const selected = await pending;
+    assert.equal(selected.ref.resultName, 'main');
+    assert.deepEqual(selected.ref.run, selected.execution.ref);
+    row.runRefSha256 = identify(selected.execution.ref); row.resultRefSha256 = identify(selected.ref);
+    assert.deepEqual(rows, fixture.expected);
+    assert(!newRuns.has(row.runRefSha256) && !newResults.has(row.resultRefSha256),
+      'New query reused an original Run or Result');
+    newRuns.add(row.runRefSha256); newResults.add(row.resultRefSha256);
+    return {execution: selected.execution, runRef: selected.execution.ref,
+      resultRef: selected.ref, expected: fixture.expected, expectedSha256: row.expectedSha256,
+      runRefSha256: row.runRefSha256, resultRefSha256: row.resultRefSha256};
+  };
+  try {
+    const openStart = process.hrtime.bigint(), openCpu = process.cpuUsage();
+    const {open} = await import(pathToFileURL(join(consumer, 'node_modules/@actql/node/index.mjs')).href);
+    client = await open({stateDir: stateId});
+    report.moduleImportAndOpen = {wallNs: Number(process.hrtime.bigint() - openStart),
+      ...process.cpuUsage(openCpu), cpuScope: 'collector-process-only'};
+    assert.equal(client.info.stateDir, stateId);
+    report.priorityConditions.startedHost = true;
+    active = 'first-query-separate';
+    const first = {...binding, ...attemptIdentity(protocol.firstQuery), pid: process.pid, hostId, stateId,
+      completed: false, verified: false, cpuScope: 'collector-process-only'};
+    const start = process.hrtime.bigint(), cpu = process.cpuUsage();
+    try { await query(protocol.firstQuery, first); first.completed = first.verified = true; }
+    finally {
+      const used = process.cpuUsage(cpu);
+      Object.assign(first, {wallNs: Number(process.hrtime.bigint() - start), cpuUserUs: used.user, cpuSystemUs: used.system});
+      report.firstQuery = first;
+    }
+    for (const operation of ['warm-select', 'warm-result']) {
+      active = operation;
+      const fresh = operation === 'warm-select';
+      const publicWorkload = fresh ? {kind: 'new-durable-run-result-rows', fixtures: protocol.queries.map(fixture =>
+        ({querySha256: identify(fixture.text), expectedSha256: identify(fixture.expected)}))}
+        : {kind: 'saved-original-result-rows', originals: originals.map(({runRefSha256, resultRefSha256, expectedSha256}) =>
+          ({runRefSha256, resultRefSha256, expectedSha256}))};
+      const identity = {...binding, hostId, fixtureSha256: identify(publicWorkload)};
+      const execute = async iteration => {
+        // A failed new attempt must not inherit the previous successful Run's
+        // identities merely because the sampler uses the same private object.
+        for (const key of ['runRefSha256', 'resultRefSha256', 'actualSha256']) delete identity[key];
+        if (!fresh) identity.publicOperationId = randomUUID();
+        try {
+          if (fresh) {
+            const fixture = protocol.queries[iteration]; Object.assign(identity, attemptIdentity(fixture));
+            const original = await query(fixture, identity);
+            if (originals.length < 3) originals.push(original);
+          } else {
+            assert(originals.length > 0, 'No successful original Result to read');
+            const original = originals[iteration % originals.length];
+            Object.assign(identity, {runRefSha256: original.runRefSha256,
+              resultRefSha256: original.resultRefSha256, expectedSha256: original.expectedSha256});
+            report.publicCallAttempts.savedResultAll++;
+            const rows = await original.execution.result('main').all(); identity.actualSha256 = identify(rows);
+            assert.deepEqual(rows, original.expected);
+          }
+        } catch (error) {observedFailure = error; throw error;}
+      };
+      const collected = await collectOperationSamples({operation, mode, identity, stateId, execute,
+        targetP95Ms: priorityTransitionTarget.p95Ms,
+        emit: row => appendFile(join(output, 'samples.jsonl'), JSON.stringify({operation, ...row}) + '\n', {mode: 0o600})});
+      const series = {...binding, operation, mode, hostId, fixtureSha256: identify(publicWorkload), publicWorkload,
+        firstQuery: report.firstQuery, load: controls.load, ...nodeBenchmarkInstrumentation(), ...collected};
+      report.latency.push(series);
+      report.functional.rows.push({operation, fixtureSha256: series.fixtureSha256,
+        completed: collected.samples.every(row => row.verified),
+        expectedSha256: identify(collected.samples.map(row => row.expectedSha256)),
+        actualSha256: identify(collected.samples.map(row => row.actualSha256))});
+      await save();
+      if (observedFailure) throw observedFailure;
+      if (collected.stoppedEarly) {report.stoppedAt = operation; break;}
+    }
+  } catch (error) {
+    report.firstFailure = {operation: active, name: error.name, code: error.code ?? null, message: error.message};
+  } finally {
+    if (client) try {await client.close(); report.cleanup.closed = true;}
+    catch (error) {report.cleanup.failure = {name: error.name, code: error.code ?? null, message: error.message};}
+    try {assert.deepEqual(await verifyNodeBenchmarkPackages(manifest, manifestPath, consumer), before); report.installedPayloadsUnchanged = true;}
+    catch (error) {report.packageFailure = error.message;}
+    if (!report.cleanup.closed || report.packageFailure) for (const row of report.functional.rows) {
+      row.completed = false; delete row.actualSha256;
+    }
+    report.savedOriginals = originals.map(({runRef, resultRef, expected}) => ({runRef, resultRef, expected}));
+    report.priorityAssessment = assessPriorityTransition({sourceSha: report.sourceSha, platforms: {node: [report]}});
+    report.fullAcceptance = false;
+    await save();
+  }
+  return report;
+}
+
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   try {
     const args = process.argv.slice(2), options = {};
     assert(args.length % 2 === 0);
     for (let n = 0; n < args.length; n += 2) {
       const key = {'--manifest': 'manifestPath', '--consumer': 'consumer', '--output': 'output',
-        '--controls': 'controlsPath', '--mode': 'mode'}[args[n]];
+        '--controls': 'controlsPath', '--mode': 'mode', '--selection': 'selection'}[args[n]];
       assert(key && !Object.hasOwn(options, key)); options[key] = args[n + 1];
     }
     for (const key of ['manifestPath', 'consumer', 'output', 'controlsPath']) assert(options[key]);
-    const report = await runNodeWarmBenchmark(options);
-    console.log(JSON.stringify({sourceSha: report.sourceSha, stoppedAt: report.stoppedAt ?? null,
-      assessments: report.assessments, fullAcceptance: false}));
-    process.exitCode = report.initialLatencyExceeded || report.stoppedAt || report.assessments.some(row => row.status !== 'passed') ? 1 : 0;
+    assert(options.selection === undefined || options.selection === 'priority-transition');
+    if (options.selection === 'priority-transition') {
+      const report = await runNodePriorityBenchmark(options);
+      console.log(JSON.stringify({sourceSha: report.sourceSha, selection: report.selection,
+        assessment: report.priorityAssessment.gates.node, fullAcceptance: false}));
+      process.exitCode = report.priorityAssessment.gates.node?.status === 'passed' ? 0 : 1;
+    } else {
+      const report = await runNodeWarmBenchmark(options);
+      console.log(JSON.stringify({sourceSha: report.sourceSha, stoppedAt: report.stoppedAt ?? null,
+        assessments: report.assessments, fullAcceptance: false}));
+      process.exitCode = report.initialLatencyExceeded || report.stoppedAt || report.assessments.some(row => row.status !== 'passed') ? 1 : 0;
+    }
   } catch (error) { console.error(error.message); process.exitCode = 2; }
 }
