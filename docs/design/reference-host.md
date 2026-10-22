@@ -307,11 +307,8 @@ current permissions, target selection and durable Run transitions remain separat
 
 The existing Host slot binds the original runtime namespace, Environment and
 publication to that same Host. Use checks only its local identity and closing
-state; it does not repeat catalog admission or Account evaluation.
-The lifetime getter closes over those installed originals in their initialization
-scope, rather than resolving runtime or publication names outside that scope.
-Final Host retirement cuts its private publication association and aliases after
-the existing
+state; it does not repeat catalog admission or Account evaluation. Final Host
+retirement cuts its private publication association and aliases after the existing
 child shutdown duties, including partial-failure retries. It does not invalidate
 other holders of the pure immutable Environment or manufacture a physical ACK.
 The same boundary invokes the installed preparation consumer's captured
@@ -319,6 +316,8 @@ retirement method with its original receiver before releasing the Host slot.
 That consumer drops its retained Source/Effect catalog and installation aliases;
 a closed Client's surviving closures cannot keep that cache through this holder.
 Pending child cleanup retains the original holder and its same release retry.
+The lifetime getter closes over those installed originals in their initialization
+scope, rather than resolving runtime or publication names outside that scope.
 
 The existing Host and Resource Owners acquire actual buffers, files, database
 connections and selected workers. They bind each operation to its checked Run,
