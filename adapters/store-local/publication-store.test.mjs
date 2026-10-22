@@ -4516,6 +4516,15 @@ test('confirmed non-commit releases custody before prepared reclamation',
     const inventoryHandle = await open(inventoryPath, 'r');
     try { await inventoryHandle.sync(); }
     finally { await inventoryHandle.close(); }
+    // Model the same Effectful stage original in its retained recovery row,
+    // not an independently mutated file with a different pending original.
+    const recovery = new DatabaseSync(join(directory, 'delivery-attempts.sqlite3'));
+    try {
+      recovery.exec('PRAGMA synchronous=FULL; PRAGMA fullfsync=ON; BEGIN IMMEDIATE');
+      assert.equal(recovery.prepare('UPDATE pending_publications SET inventory_wire=? WHERE public_index_cid=?')
+        .run(JSON.stringify(inventory),entry.public_index_entry_cid).changes,1);
+      recovery.exec('COMMIT');
+    } finally { recovery.close(); }
     const candidateCleanup = await store.retireUncommittedPublication(
       entry.public_index_entry_cid,
     );
