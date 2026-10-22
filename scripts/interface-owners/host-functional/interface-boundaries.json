@@ -66794,7 +66794,7 @@
     {
       "module": "packages/run-host-core/index.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "b170ee98d86f5058ca0a279b8deff0556187a0b0a99ed30a127414e379cd2f3d",
+      "sha256": "98101458ca8f6d8c6d2e08f938594cbb6df06821cd6ac7141929068dd58a7712",
       "role": "common-semantics",
       "owner": "Existing client_values_host_abi/Run Publication Owners; public same-process type projection",
       "exports": [
@@ -66810,6 +66810,7 @@
         "OriginalRunPlan",
         "PreparedEffectProgram",
         "PreparedProgram",
+        "PreparedPublishedEnvironment",
         "PreparedSourceProgram",
         "PrivateCompilationWires",
         "ProfileSelection",
@@ -66938,6 +66939,7 @@
         "prepareEffectRetainedTaskInputEdge",
         "prepareEffectTaskPhysicalStart",
         "prepareProgram",
+        "preparePublishedEnvironment",
         "prepareRequest",
         "prepareResultMaterialHoldsStep",
         "prepareRetainedInputCurrentQuery",
@@ -66969,6 +66971,7 @@
         "projectSiteRun",
         "projectTaskSiteRun",
         "publicationIndexScopeKey",
+        "publishedEnvironmentMatches",
         "readStoredRunPlanOriginal",
         "requestFields",
         "requestRelation",
@@ -67818,7 +67821,8 @@
             "document: string",
             "format: 'json' | 'yaml'",
             "environment: CheckEnvironment",
-            "parametersWire?: string"
+            "parametersWire?: string",
+            "publishedEnvironment?: PreparedPublishedEnvironment"
           ],
           "result": "PreparedProgram"
         },
@@ -67828,7 +67832,8 @@
             "document: string",
             "format: 'json' | 'yaml'",
             "environment: CheckEnvironment",
-            "parametersWire?: string"
+            "parametersWire?: string",
+            "publishedEnvironment?: PreparedPublishedEnvironment"
           ],
           "result": "PreparedEffectProgram"
         },
@@ -67869,9 +67874,18 @@
             "document: string",
             "format: 'json' | 'yaml'",
             "environment: CheckEnvironment",
-            "parametersWire?: string"
+            "parametersWire?: string",
+            "publishedEnvironment?: PreparedPublishedEnvironment"
           ],
           "result": "Readonly<{kind: 'effect_free'; prepared: PreparedProgram}> |\n  Readonly<{kind: 'effect'; prepared: PreparedEffectProgram}>"
+        },
+        {
+          "name": "preparePublishedEnvironment",
+          "parameters": [
+            "environment: CheckEnvironment",
+            "publicationWire: string"
+          ],
+          "result": "PreparedPublishedEnvironment"
         },
         {
           "name": "prepareRequest",
@@ -68028,7 +68042,8 @@
           "parameters": [
             "intent: SubmittedIntent",
             "environment: CheckEnvironment",
-            "publicationWire: string"
+            "publicationWire: string",
+            "publishedEnvironment?: PreparedPublishedEnvironment"
           ],
           "result": "PreparedSourceProgram"
         },
@@ -68187,6 +68202,15 @@
           "result": "string"
         },
         {
+          "name": "publishedEnvironmentMatches",
+          "parameters": [
+            "prepared: PreparedPublishedEnvironment",
+            "environment: CheckEnvironment",
+            "publicationWire: string"
+          ],
+          "result": "boolean"
+        },
+        {
           "name": "readStoredRunPlanOriginal",
           "parameters": [
             "original: StoredRunPlanOriginal | undefined",
@@ -68222,7 +68246,8 @@
           "name": "restoreSourceProgram",
           "parameters": [
             "originals: SourceProgramOriginals",
-            "environment: CheckEnvironment"
+            "environment: CheckEnvironment",
+            "publishedEnvironment?: PreparedPublishedEnvironment"
           ],
           "result": "PreparedSourceProgram"
         },
@@ -69131,7 +69156,9 @@
             "validatePublicationRecordTransition",
             "validateRetainedInputPlan",
             "validateRetainedTaskInput",
-            "bindPreparedEffectRunMaterials"
+            "bindPreparedEffectRunMaterials",
+            "preparePublishedEnvironment",
+            "publishedEnvironmentMatches"
           ],
           "exports": [
             "AllowedEffectRun",
@@ -69338,7 +69365,10 @@
             "validatePublicationRecordTransition",
             "validateRetainedInputPlan",
             "validateRetainedTaskInput",
-            "bindPreparedEffectRunMaterials"
+            "bindPreparedEffectRunMaterials",
+            "PreparedPublishedEnvironment",
+            "preparePublishedEnvironment",
+            "publishedEnvironmentMatches"
           ],
           "attributes": {
             "responsibility": [
@@ -69586,7 +69616,7 @@
               },
               {
                 "path": "packages/run-host-core/index.mjs",
-                "anchor": "export function prepareSourceProgram(intent, environment, publicationWire) {"
+                "anchor": "export function prepareSourceProgram(intent, environment, publicationWire, publishedEnvironment) {"
               }
             ],
             "identity": [

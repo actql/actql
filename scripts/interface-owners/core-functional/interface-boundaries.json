@@ -16794,7 +16794,7 @@
     },
     {
       "module": "packages/run-host-core/index.mjs",
-      "sha256": "713fb27fe3f3853391c462951b531de497e592c6353dd6b0f1f3e2ac2c5cd9ed",
+      "sha256": "447819c36918295b42a9dbba6b3e9b7e7d38834aab8dcbe91c63cdb1ff2c6ebc",
       "role": "physical-io",
       "exports": [
         "admitCapturedResultSnapshot",
@@ -16882,6 +16882,7 @@
         "prepareEffectRetainedTaskInputEdge",
         "prepareEffectTaskPhysicalStart",
         "prepareProgram",
+        "preparePublishedEnvironment",
         "prepareRequest",
         "prepareResultMaterialHoldsStep",
         "prepareRetainedInputCurrentQuery",
@@ -16913,6 +16914,7 @@
         "projectSiteRun",
         "projectTaskSiteRun",
         "publicationIndexScopeKey",
+        "publishedEnvironmentMatches",
         "readStoredRunPlanOriginal",
         "requestFields",
         "requestRelation",
@@ -18824,7 +18826,8 @@
             "document",
             "format",
             "environment",
-            "parametersWire"
+            "parametersWire",
+            "publishedEnvironment"
           ],
           "async": false
         },
@@ -18834,7 +18837,8 @@
             "document",
             "format",
             "environment",
-            "parametersWire"
+            "parametersWire",
+            "publishedEnvironment"
           ],
           "async": false
         },
@@ -18875,7 +18879,16 @@
             "document",
             "format",
             "environment",
-            "parametersWire"
+            "parametersWire",
+            "publishedEnvironment"
+          ],
+          "async": false
+        },
+        {
+          "name": "preparePublishedEnvironment",
+          "parameters": [
+            "environment",
+            "publicationWire"
           ],
           "async": false
         },
@@ -19154,7 +19167,8 @@
           "parameters": [
             "intent",
             "environment",
-            "publicationWire"
+            "publicationWire",
+            "publishedEnvironment"
           ],
           "async": false
         },
@@ -19164,7 +19178,8 @@
             "intent",
             "environment",
             "publicationWire",
-            "primaryResultRecipe"
+            "primaryResultRecipe",
+            "publishedEnvironment"
           ],
           "async": false
         },
@@ -19423,6 +19438,15 @@
           "async": false
         },
         {
+          "name": "publishedEnvironmentMatches",
+          "parameters": [
+            "prepared",
+            "environment",
+            "publicationWire"
+          ],
+          "async": false
+        },
+        {
           "name": "readStoredRunPlanOriginal",
           "parameters": [
             "original",
@@ -19485,6 +19509,15 @@
           "async": false
         },
         {
+          "name": "requirePublishedEnvironment",
+          "parameters": [
+            "prepared",
+            "environment",
+            "publicationWire"
+          ],
+          "async": false
+        },
+        {
           "name": "restoreEffectRunNormalization",
           "parameters": [
             "materials"
@@ -19495,7 +19528,8 @@
           "name": "restoreSourceProgram",
           "parameters": [
             "originals",
-            "environment"
+            "environment",
+            "publishedEnvironment"
           ],
           "async": false
         },
@@ -20398,7 +20432,10 @@
             "validateTaskPhysicalStartClaim",
             "validateTaskPhysicalStartClaim/validateTaskPhysicalStartClaim",
             "validateTaskPhysicalStartClaim/validateTaskPhysicalStartClaim#2",
-            "bindPreparedEffectRunMaterials"
+            "bindPreparedEffectRunMaterials",
+            "preparePublishedEnvironment",
+            "publishedEnvironmentMatches",
+            "requirePublishedEnvironment"
           ],
           "exports": [
             "admitCapturedResultSnapshot",
@@ -20552,7 +20589,9 @@
             "validatePublicationRecordTransition",
             "validateRetainedInputPlan",
             "validateRetainedTaskInput",
-            "bindPreparedEffectRunMaterials"
+            "bindPreparedEffectRunMaterials",
+            "preparePublishedEnvironment",
+            "publishedEnvironmentMatches"
           ],
           "attributes": {
             "responsibility": [
@@ -20768,7 +20807,7 @@
               },
               {
                 "path": "packages/run-host-core/index.mjs",
-                "anchor": "export function prepareSourceProgram(intent, environment, publicationWire) {"
+                "anchor": "export function prepareSourceProgram(intent, environment, publicationWire, publishedEnvironment) {"
               },
               {
                 "path": "docs/design/oss-host-authorization.md",
