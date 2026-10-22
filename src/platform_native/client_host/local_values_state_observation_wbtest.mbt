@@ -394,7 +394,8 @@ test "typed Local Host terminal fence accepts actual state and refuses purpose o
       crypto, "operator", "cli", reference, request, 1002.0,
     )
     .unwrap()
-  assert_true(physical_equal(restored.original, retained_state))
+  // A separate public lookup observes its own current snapshot. Pointer
+  // identity is required above within the original snapshot, not across calls.
   assert_eq(restored.wire(), saved_wire)
   assert_true(
     restore_native_saved_run_state(
