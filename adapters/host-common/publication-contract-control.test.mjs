@@ -421,6 +421,42 @@ test('publication persister retains legacy receivers and waits for the selected 
   await assert.rejects(persist(owned, [first, second, first]), error => error === original);
 });
 
+test('initial publication group consumes actual Common originals and keeps the post-group cancellation boundary', async t => {
+  const control = runtimeCore(moon).publicationControl;
+  const attempt = control.seal('publication_attempt', JSON.stringify({
+    version:'actql-publication-attempt/0.1', publication_request_cid:cid('1'),
+    run_definition_cid:cid('2'), attempt_id:'actual-initial-group', fence_cid:cid('3'),
+    started_at:'2026-09-18T00:00:01.000Z',
+  }), limits);
+  const directory = await mkdtemp(join(tmpdir(), 'actql-common-initial-group-'));
+  let store;
+  t.after(async () => { if (store !== undefined) await store.close(); await rm(directory, {recursive:true}); });
+  store = await openLocalPublicationStore({directory, storeAuthorityCid:cid('5'),
+    capacityBytes:1024*1024, maxObjectBytes:65536, maxObjects:100,
+    maxContractNodes:4096, maxContractDepth:64}, control);
+  await store.createAttempt(attempt.wire);
+  const source = await readFile(new URL('./run-publication.mjs', import.meta.url), 'utf8');
+  const ast = parse(source, {sourceType:'module', ecmaVersion:'latest'});
+  const helper = ast.body.find(node=>node.type==='FunctionDeclaration' && node.id.name==='appendInitialStates');
+  const member = ast.body.find(node=>node.type==='VariableDeclaration' && node.declarations.some(item=>item.id.name==='member'));
+  const append = Function('fail', source.slice(member.start,member.end)+'\n'+source.slice(helper.start,helper.end)+'\nreturn appendInitialStates;')(
+    code=>{throw Object.assign(new Error(code),{code});});
+  let issued = 0;
+  const observed = {...control, issuePublicationRecord(...args) {
+    issued++; return Reflect.apply(control.issuePublicationRecord, control, args);
+  }};
+  const committing = await append(store, observed, attempt, undefined, ()=>'2026-09-18T00:00:02.000Z', limits);
+  assert.equal(issued,2);
+  assert.equal(JSON.parse(committing.wire).state,'committing');
+  assert.equal(control.publicationAttemptAction(committing,false,false),'check_active');
+  assert.equal(control.publicationCancellationAction(committing),'cancel_committing');
+  const cancelled = control.issuePublicationRecord(attempt, committing, {
+    state:'cancelled',observedAt:'2026-09-18T00:00:03.000Z',cleanupOwnerCids:[],uncommittedConfirmed:true,
+  },limits);
+  await store.appendRecord(cancelled.wire,{uncommittedConfirmed:true});
+  assert.equal((await store.latestRecord(attempt.identity)).state,'cancelled');
+});
+
 test('generated publication owner crosses the JS bridge as named actions', () => {
   const core = runtimeCore(moon);
   const control = core.publicationControl;
@@ -2291,6 +2327,10 @@ test('portable control validates Receipt and Captured Run references',
   let metadataBatches = 0, individualMetadataWrites = 0;
   const lostEffectfulStore = Object.freeze({
     ...effectfulStore,
+    async beginPublicationAttempt(...args) {
+      metadataBatches++;
+      return Reflect.apply(effectfulStore.beginPublicationAttempt, effectfulStore, args);
+    },
     async putPublicationContracts(contracts) {
       metadataBatches++;
       return Reflect.apply(effectfulStore.putPublicationContracts, effectfulStore, [contracts]);
@@ -4319,6 +4359,11 @@ test('portable control validates Receipt and Captured Run references',
   const cancellation = new AbortController();
   const cancelledStore = Object.freeze({
     ...cancelledBase,
+    async appendInitialPublicationRecords(records) {
+      const value = await cancelledBase.appendInitialPublicationRecords(records);
+      cancellation.abort();
+      return value;
+    },
     async appendRecord(wire, options) {
       const value = await cancelledBase.appendRecord(wire, options);
       if (value.state === 'preparing') cancellation.abort();
