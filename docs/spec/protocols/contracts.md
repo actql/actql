@@ -1453,12 +1453,38 @@ evidence remain explicit rather than being described as generally preserved.
 
 <!-- requirement-block: file-sources.listing-resolution-and-metadata -->
 A published file-list Source MUST identify the selected connection and expose
-`resource`, `version`, `path`, `media_type` and `size` as typed metadata,
+`resource`, `version`, `name`, `path`, `media_type`, `size_bytes` and
+`modified_at` as its canonical typed metadata roles,
 with its presence and version guarantees explicit in the SourceView contract.
 The bare-connection LIST_FILES form is admitted only with exactly one such
 Source. Selection, pagination and matching use the existing SourceView and
 file-list contracts; a LIMIT or page boundary is not a complete-listing witness.
 No metadata observation implicitly grants content-read authority.
+
+<!-- requirement-block: file-sources.declared-metadata-schema -->
+The listing Owner MUST admit the canonical required role base plus the full
+explicitly declared typed Source metadata schema, without projecting away
+additional columns. The canonical required role base is `resource`, `version`, `name`, `path`,
+`media_type`, `size_bytes` and `modified_at`, not an exclusive seven-field
+schema. The existing Resource kind and logical role domains remain exact;
+resource/name are nonnullable and version obeys its original capability.
+Canonical metadata can be refined to nonnullable by the Source declaration.
+The complete additional typed metadata remains visible to LIST_FILES, including
+Local `size:int64` and `modified_time:timestamp`. Ordinary full-schema presence
+and value admission applies without invented NULL/zero values, field dropping,
+Int64-to-Number conversion or Timestamp precision loss.
+
+<!-- requirement-block: file-sources.full-schema-correspondence -->
+The profile's `listing_schema_contract_cid` MUST identify the complete actual
+output schema, retained through the same original acquisition, capture, Result
+and restore; unchanged seven-field bodies retain their original identities.
+Additional schema/row/byte work is charged within existing budgets and the same
+Source lifetime, with original Source/Catalog/Environment/current/installation
+and acquisition/capture/Result/restore correspondence retained. Related native
+and canonical metadata comes from the same actual physical observation.
+Additional Source fields do not extend the separate fixed completed-listing
+report, whose original correlation, scan, issuer, funding and cleanup remain
+required; a matching shape or CID is not such evidence or a grant.
 
 <!-- requirement-block: file-sources.contents-versioned-correlation -->
 The `connection.contents` Source MUST declare `acquisition.kind: fetch`,
@@ -1860,7 +1886,7 @@ not a manifest.
 <!-- machine-import: ../../../spec/contracts/actql-compilation-manifests.json# sha256:f2590f98dbf689c88515222bad6159cdb7f3f98a4d3b36c5b2a17c8d314749c8 -->
 <!-- machine-import: ../../../spec/contracts/actql-compilation-manifests.json#/schemas/grammar_manifest sha256:73af863283cd7bda47fb5fe96b9def095def2fe4561ead3fa12cd6c37f535eec -->
 <!-- machine-import: ../../../spec/contracts/actql-compilation-manifests.json#/schemas/barrier_contract_manifest sha256:daba2ff5f44da16169d84f55da9156ea647bcbb88ed02a76286a6be40080e342 -->
-<!-- machine-import: ../../../spec/manifests/actql-grammar-0.1.json# sha256:55b38e8996ad9a700c0c46e357f59963804400781941531e8b8d79957b37f61d -->
+<!-- machine-import: ../../../spec/manifests/actql-grammar-0.1.json# sha256:05e94524fea27a3247f8303191466171c0dd713fd482bd50ea3d59b8bfc58493 -->
 <!-- machine-import: ../../../spec/manifests/actql-barrier-contracts-0.1.json# sha256:3c07ce1eb5eeba94cb2be58d56f38ee200645a6b5cbcc554230b5811f5a03a9b -->
 
 <a id="parameter-value-projection"></a>
@@ -2357,6 +2383,20 @@ today's aliases or replace the selected owner. Current read/write authority,
 approval, stale-preview, request, dispatch and receipt checks remain separate.
 Unavailable or changed original selection evidence fails closed; it does not
 authorize a fresh selection or resend an unknown Effect.
+
+<!-- requirement-block: compilation-identities.source-free-content-policy-original compilation-identities.source-free-content-policy-purpose compilation-identities.source-free-content-policy-correspondence compilation-identities.source-free-content-policy-refusal compilation-identities.source-free-content-policy-absence -->
+For an Effect with a source-free SERIALIZE component, prepared-original and
+saved Run materials MUST retain the explicit data-policy original already bound
+to that component as paired `source_free_result_policy_cid` and
+`source_free_result_policy_json` Strings. Admission MUST recheck the exact policy
+and its source-free serialization purpose on the same restored checked Program
+before recompilation, and MUST preserve the independently selected Compiled Plan
+or Run, request and canonical-material correspondence. Omission when required,
+half-presence, null, malformed or substituted bodies, and presence for another
+purpose MUST refuse; no current Host default repairs missing originals. Source
+and Model policy closures remain separate. Materials without this component
+MUST omit the pair, preserving their historical bytes and identities. Policy
+body integrity supplies no grant, approval, Source completion or cleanup ACK.
 
 The bounded selection reader admits at most 65,536 UTF-8 bytes, 8,192 JSON
 nodes and depth 4. Exceeding an admission budget is a checking limitation,

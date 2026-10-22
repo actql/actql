@@ -4,7 +4,8 @@
 import {runtimeField, runtimeIsOk} from '../host-common/compiler-binding.generated.mjs';
 import {contentCid} from './local-account-config.mjs';
 import {retainCapturedContent} from './captured-content-holding.mjs';
-import {issueStoredCapturedContent} from './generated-content-holding.mjs';
+import {issueStoredCapturedContent, consumeStoredContentOriginal,
+  closeStoredContentReaders} from './generated-content-holding.mjs';
 
 export function installRunKeyedContentCapture({moon, publications, control,
   preparedProgram, plan, acquisition, ledger, maxBytes, maxWork = 1000000, store, namespaceId,
@@ -36,6 +37,7 @@ export function installRunKeyedContentCapture({moon, publications, control,
   let reservation, current, last, flight, cleanupFlight, failureCleanup, cleaned = false;
   let inventoryReady = true, inventoryFlight;
   const inventory = new Map();
+  const contentReaders = new Set();
   const checkInventoryRoom = wire => {
     if (!inventory.has(wire) && inventory.size >= inventoryCount) {
       throw new TypeError('InstalledContentInventoryLimit');
@@ -73,6 +75,7 @@ export function installRunKeyedContentCapture({moon, publications, control,
     if (cleanupFlight !== undefined) return cleanupFlight;
     let operation;
     operation = (async () => {
+      if (!await closeStoredContentReaders(contentReaders)) return false;
       if (inventoryFlight !== undefined) await inventoryFlight.catch(() => {});
       if (flight !== undefined) await flight.catch(() => {});
       if (failureCleanup !== undefined) {
@@ -272,6 +275,14 @@ export function installRunKeyedContentCapture({moon, publications, control,
   };
   return Object.freeze({capture, recover: options => recover(options), recoverInventory, referenceIssuer,
     issuedForContent, storageForContent, storageCurrentForContent,
+    consumeContent(binding, accept) {
+      const original = storageForContent(binding);
+      if (original === undefined) throw new Error('OriginalEffectContentUnavailable');
+      return consumeStoredContentOriginal({store, original, readers: contentReaders, accept,
+        assertCurrent() {
+          if (!storageCurrentForContent(original, binding)) throw new Error('OriginalEffectContentUnavailable');
+        }});
+    },
     sourceBinding,
     recoveryInventory: () => !inventoryReady || !live() || cleaned || flight !== undefined ||
         inventoryFlight !== undefined ? undefined : Object.freeze({

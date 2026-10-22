@@ -29,6 +29,15 @@ facts, not a shared mutable context containing all families' identity stores.
 The `data.mjs` helpers capture and compare data; they do not validate the wire or
 own observations. Wire admission continues to use `@actql/client-wire`.
 
+Profile, attachment and Run-state replies are detached by `captureResponse`
+before their existing wire admission. Admit that snapshot once, without a
+verification clone or full structural serialization. This reuse ends at that
+synchronous boundary: every new status/wait/reconcile or attachment still calls
+the Host and validates its new reply. Independent state/control revisions and
+the stable-and-newer wait contract remain checked. Private retained control
+facts are separate from the returned mutable presentation; this does not cache
+Account authority, skip a durable claim or infer an Effect outcome.
+
 English facts-to-display projections and translations live in the existing
 presentation modules. Check rendering receives only original-input location
 resolvers; presentation cannot submit, retry, cancel, grant access or free Host

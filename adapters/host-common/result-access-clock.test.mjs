@@ -21,7 +21,7 @@ function fixture(api, options = {}) {
   const state = {wall: instant(0), bound: undefined, observations: 0,
     admissions: [], authorizations: [], availability: [], grantChecks: [],
     attempts: [], records: [], chunks: [], finishes: 0,
-    contractReads: [], indexObservations: 0, replacementIndex: undefined};
+    contractReads: [], indexObservations: 0, replacementIndex: undefined, operations: []};
   const retentionEnd = options.retentionEnd ?? instant(100);
   const grantEnd = options.grantEnd ?? instant(100);
   const publication = (name, value) => options.mutableContracts
@@ -90,6 +90,9 @@ function fixture(api, options = {}) {
   };
   if (options.legacy) delete store.sampleTrustedClock;
   const control = {...semantic,
+    // This time-handoff fixture issues bounded contract doubles, not the
+    // nominal contracts required by the optional original-attempt capture.
+    captureIssuedDeliveryAttempt: undefined,
     admit(name, wire, bounds) {
       return name === 'delivery_attempt'
         ? contract(name, 'a', JSON.parse(wire)) : semantic.admit(name, wire, bounds);
@@ -122,15 +125,17 @@ function fixture(api, options = {}) {
     issueResultDeliveryReceipt: () => contract('result_delivery_receipt', 'c'),
   };
   const authority = api.installResultAccessAuthority({
-    authorizeResultReadRequest: () => true,
-    admitResultRead(facts) {
+    authorizeResultReadRequest: (_facts, operation) => {state.operations.push(operation); return true;},
+    admitResultRead(facts, operation) {
+      state.operations.push(operation);
       state.admissions.push(facts);
       options.afterAdmission?.(state);
       return {authorizationContextCid: cid('a'), dataCeilingCid: cid('b'),
         egressAdmissionCid: cid('c'), expiresAt: grantEnd,
         maxBytes: 1000, maxUses: 1};
     },
-    async authorizeResultRead(facts) {
+    async authorizeResultRead(facts, operation) {
+      state.operations.push(operation);
       state.authorizations.push(facts);
       return await options.authorize?.(state, facts) ?? true;
     },
@@ -212,18 +217,41 @@ test('retained Result contracts cannot substitute a foreign Store or control', a
   assert.equal(input.state.attempts.length, 0);
 });
 
+test('one public Result operation has one durable clock observation', async () => {
+  const input = fixture(source);
+  await input.deliver();
+  assert.equal(input.state.observations, 1);
+  const operation = input.state.operations[0];
+  assert.ok(Object.isFrozen(operation));
+  assert.ok(input.state.operations.every(value => value === operation),
+    'request, admission and delivery consume the same existing owned request');
+  assert.equal(input.state.records.at(-1).state, 'succeeded');
+  await input.deliver();
+  assert.equal(input.state.observations, 2, 'a new public operation observes its own clock');
+  assert.notStrictEqual(input.state.operations.at(-1), operation);
+});
+
+test('explicit authority callback refusals cannot dispatch or complete delivery', async () => {
+  for (const stage of ['attempt', 'read', 'write', 'finish', 'receipt']) {
+    const input = fixture(source, {authorize(_state, facts) {
+      return facts.delivery.stage !== stage;
+    }});
+    await assert.rejects(input.deliver(), {code: 'ResultDeliveryDenied'});
+    assert.equal(input.state.records.some(record => record.state === 'succeeded'), false);
+    if (['attempt', 'read', 'write'].includes(stage)) assert.equal(input.state.chunks.length, 0);
+    if (stage !== 'receipt') assert.equal(input.state.finishes, 0);
+  }
+});
 for (const [name, api] of [['source', source], ['packaged', packaged]]) {
   test(`${name}: later concurrent observation does not reject an earlier sample`, async () => {
-    const input = fixture(api, {beforeSample(state) {
-      if (state.observations === 2) {
-        // Another observer advances the shared durable head while this
-        // delivery's previously sampled attempt time waits on physical IO.
-        state.wall = instant(1);
-        state.bound = instant(1);
-      }
+    const input = fixture(api, {afterAdmission(state) {
+      // Another operation may advance the head. Consuming the already
+      // admitted floor here requires no second read or durable clock write.
+      state.wall = instant(1);
+      state.bound = instant(1);
     }});
     await input.deliver();
-    assert.equal(input.state.attempts[0].requestedAt, instant(0));
+    assert.equal(input.state.attempts[0].requestedAt, instant(1));
     assert.equal(input.state.authorizations[0].delivery.observedAt, instant(1));
     assert.deepEqual(input.state.chunks, ['{"id":1}\n']);
     assert.equal(input.state.finishes, 1);
@@ -247,7 +275,7 @@ for (const [name, api] of [['source', source], ['packaged', packaged]]) {
           if (phase === 'authorization') state.wall = instant(1);
         },
         afterSample(state) {
-          if (phase === 'persistence' && state.observations === 3) {
+          if (phase === 'persistence' && state.observations === 1) {
             state.wall = instant(1);
           }
         }});
@@ -266,29 +294,24 @@ for (const [name, api] of [['source', source], ['packaged', packaged]]) {
   });
 
   test(`${name}: true clock rollback is refused with no sink effect`, async () => {
-    for (const phase of ['durable', 'supplied', 'post-persistence']) {
+    for (const phase of ['durable', 'callback', 'post-persistence']) {
       const input = fixture(api, {
         beforeSample(state) {
-          if (state.observations === 1 && phase !== 'supplied') {
+          if (phase !== 'callback') {
             state.wall = instant(2);
           }
-          if (phase === 'durable' && state.observations === 2) {
-            state.wall = instant(1);
-          }
-          if (phase === 'supplied' && state.observations === 2) {
-            // The original delivery sample can be newer than the persisted
-            // head. Its known ordering must survive the physical handoff.
+          if (phase === 'durable') {
+            state.bound = instant(2);
             state.wall = instant(1);
           }
         },
         afterSample(state) {
-          if (phase === 'supplied' && state.observations === 1) {
-            state.wall = instant(2);
-          }
-          if (phase === 'post-persistence' && state.observations === 3) {
+          if (phase === 'post-persistence') {
             state.wall = instant(1);
           }
-        }});
+        },
+        afterAdmission(state) { if (phase === 'callback') state.wall = instant(2); },
+        authorize(state) { if (phase === 'callback') state.wall = instant(1); }});
       await assert.rejects(input.deliver(), error =>
         error.message === (phase === 'durable' ? 'ClockRegressed' :
           'InvalidResultAccessClock'));
@@ -309,12 +332,10 @@ for (const [name, api] of [['source', source], ['packaged', packaged]]) {
     }
   });
 
-  test(`${name}: legacy explicit observations retain strict rejection`, async () => {
+  test(`${name}: explicit observation rejects rollback at the one durable admission`, async () => {
     const input = fixture(api, {legacy: true, beforeSample(state) {
-      if (state.observations === 2) {
-        state.wall = instant(1);
-        state.bound = instant(1);
-      }
+      state.wall = instant(1);
+      state.bound = instant(1);
     }});
     await assert.rejects(input.deliver(), /ClockRegressed/u);
     assert.equal(input.state.chunks.length, 0);

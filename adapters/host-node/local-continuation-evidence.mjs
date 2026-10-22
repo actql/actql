@@ -19,10 +19,13 @@
 // key id of every holding and a different installation key is refused before
 // any decryption.
 import {createHash, randomBytes, randomUUID} from 'node:crypto';
-import {mkdir, open as openFile, readFile, readdir, rename, stat} from
+import {mkdir, open as openFile, readFile, readdir, rename, stat, lstat} from
   'node:fs/promises';
-import {dirname, join} from 'node:path';
-import {openLocalPublicationStore, readBoundedLocalMetadata} from '../store-local/publication-store.mjs';
+import {dirname, join, resolve} from 'node:path';
+import {openLocalPublicationStore, readBoundedLocalMetadata,
+  assertOriginalPreparedLocalPublicationStoreOwnership,
+  assertOriginalPreparedLocalPublicationStoreFirstInitialization} from '../store-local/publication-store.mjs';
+import {withOriginalFile} from './source-profile-json.mjs';
 import {selectOriginalInferMetadataAcquisition,
   selectOriginalInferStoreBootstrapAcquisition} from './infer-operation.mjs';
 import {readContinuationLedgerBounded} from './bounded-continuation-metadata.mjs';
@@ -158,6 +161,145 @@ export async function loadPrivateEvidenceKey(stateDirectory) {
     fail('InvalidPrivateEvidenceKey');
   }
   return Object.freeze({key, keyId: cidOf(key)});
+}
+
+// The same ordinary Host/Store initializer selects an installation key, not
+// an Account/Reviewer/Effect permission. An immutable intent precedes the key
+// write; interrupted/lost material is loaded or refused, never regenerated.
+export async function preparePrivateEvidenceKeyInstallation(stateDirectory,
+  {storeDirectory, storeAuthorityCid, preparedOwnership, assertCurrent, assertFirstInitialization}) {
+  const current = () => {
+    assertCurrent();
+    assertOriginalPreparedLocalPublicationStoreOwnership(preparedOwnership, storeDirectory);
+  };
+  current();
+  if (!/^sha256:[0-9a-f]{64}$/u.test(storeAuthorityCid) ||
+      resolve(stateDirectory) !== resolve(storeDirectory, '..', 'checkpoints')) {
+    fail('InvalidPrivateEvidenceInstallation');
+  }
+  const intentPath = join(stateDirectory, 'private-evidence-initialization.json');
+  const adoptedPath = join(stateDirectory, 'private-evidence-adopted.json');
+  const keyPath = join(stateDirectory, PRIVATE_EVIDENCE_KEY_FILE);
+  const storePath = join(storeDirectory, 'store.json');
+  const canonical = value => JSON.stringify(value);
+  async function optional(path, maximum = 4096) {
+    current();
+    try {
+      const info = await lstat(path);
+      if (!info.isFile() || info.isSymbolicLink() || (info.mode & 0o077) !== 0) fail('PrivateEvidenceKeyExposed');
+      const bytes = await readBoundedLocalMetadata(path, maximum);
+      current(); return bytes.toString('utf8');
+    } catch (cause) {if (cause?.code === 'ENOENT' && cause?.cleanupHandle === undefined) return undefined; throw cause;}
+  }
+  let intentWire = await optional(intentPath), adoptedWire = await optional(adoptedPath);
+  if (intentWire === undefined) {
+    if (adoptedWire !== undefined) fail('PrivateEvidenceKeyUnavailable');
+    try {
+      assertFirstInitialization();
+      await assertOriginalPreparedLocalPublicationStoreFirstInitialization(preparedOwnership, storeDirectory);
+    } catch (cause) {
+      // Old no-key Stores remain usable for plain Results. They do not gain
+      // an unproved first-adoption right merely because the key is absent.
+      if (cause?.code === 'PublicationStoreFirstInitializationUnavailable' ||
+          cause?.code === 'PrivateEvidenceFirstInitializationUnavailable') return undefined;
+      throw cause;
+    }
+    current();
+    try {await mkdir(stateDirectory, {mode: 0o700});}
+    catch (cause) {
+      if (cause?.code === 'EEXIST') fail('PrivateEvidenceInitializationConflict', cause);
+      throw cause;
+    }
+    current();
+    await syncPrivateEvidenceInitializationPath(stateDirectory, current);
+    const bytes = randomBytes(32);
+    try {
+      intentWire = canonical({purpose: 'local-private-evidence', attempt: randomUUID(),
+        storeAuthorityCid, keyId: cidOf(bytes)});
+      await writePrivateEvidenceInitializationFile(intentPath, Buffer.from(intentWire), current);
+      await writePrivateEvidenceInitializationFile(keyPath, bytes, current);
+    } finally {bytes.fill(0);}
+  }
+  let intent;
+  try {intent = JSON.parse(intentWire);} catch (cause) {fail('InvalidPrivateEvidenceInstallation', cause);}
+  if (canonical(intent) !== intentWire || Object.keys(intent).join(',') !== 'purpose,attempt,storeAuthorityCid,keyId' ||
+      intent.purpose !== 'local-private-evidence' || intent.storeAuthorityCid !== storeAuthorityCid ||
+      typeof intent.attempt !== 'string' || !/^[0-9a-f-]{36}$/u.test(intent.attempt) ||
+      !/^sha256:[0-9a-f]{64}$/u.test(intent.keyId)) fail('InvalidPrivateEvidenceInstallation');
+  let key;
+  try {
+    const info = await lstat(keyPath);
+    if (!info.isFile() || info.isSymbolicLink()) fail('PrivateEvidenceKeyExposed');
+    key = await loadPrivateEvidenceKey(stateDirectory);
+    current();
+    if (key.keyId !== intent.keyId) fail('PrivateEvidenceKeyGenerationMismatch');
+    // Reconcile durability of these SAME validated originals, including an
+    // interrupted sync. This never writes bytes or generates a replacement.
+    await syncPrivateEvidenceInitializationPath(intentPath, current);
+    await syncPrivateEvidenceInitializationPath(keyPath, current);
+    if (adoptedWire !== undefined) {
+      const storeWire = await optional(storePath);
+      if (storeWire === undefined || adoptedWire !== canonical({intentCid: cidOf(Buffer.from(intentWire)),
+        storeAuthorityCid, keyId: key.keyId, storeContractCid: cidOf(Buffer.from(storeWire))})) {
+        fail('PrivateEvidenceAdoptedStateMissing');
+      }
+    }
+  } catch (cause) {
+    key?.key.fill(0);
+    if (cause?.code === 'ENOENT') fail('PrivateEvidenceKeyUnavailable', cause);
+    throw cause;
+  }
+  let adoptionFlight;
+  return Object.freeze({key: key.key, keyId: key.keyId,
+    adoptStore(store) {
+      if (adoptionFlight !== undefined) return adoptionFlight;
+      const status = store.status;
+      if (typeof status !== 'function' || store.storeAuthorityCid !== storeAuthorityCid) {
+        fail('InvalidPrivateEvidenceInstallation');
+      }
+      adoptionFlight = Promise.resolve().then(async () => {
+        current();
+        if (Reflect.apply(status, store, []).closed !== false) fail('PrivateEvidenceAdoptedStateMissing');
+        const storeWire = await optional(storePath);
+        if (storeWire === undefined) fail('PrivateEvidenceAdoptedStateMissing');
+        const receipt = canonical({intentCid: cidOf(Buffer.from(intentWire)), storeAuthorityCid,
+          keyId: key.keyId, storeContractCid: cidOf(Buffer.from(storeWire))});
+        if (adoptedWire !== undefined) {
+          if (adoptedWire !== receipt) fail('PrivateEvidenceAdoptedStateMissing');
+          await syncPrivateEvidenceInitializationPath(adoptedPath, current);
+        } else {
+          await writePrivateEvidenceInitializationFile(adoptedPath, Buffer.from(receipt), current);
+          adoptedWire = receipt;
+        }
+        current();
+      });
+      return adoptionFlight;
+    }});
+}
+
+async function syncPrivateEvidenceInitializationPath(path, current) {
+  current();
+  await withOriginalFile(path, name => openFile(name, 'r'), async handle => {
+    current(); await handle.sync(); current();
+  });
+  await withOriginalFile(dirname(path), name => openFile(name, 'r'), async handle => {
+    current(); await handle.sync(); current();
+  });
+  current();
+}
+
+async function writePrivateEvidenceInitializationFile(path, bytes, current) {
+  current();
+  // The existing original-file custody helper captures close before write or
+  // sync. Its failure carrier retries that same close, never this write.
+  await withOriginalFile(path, name => openFile(name, 'wx', 0o600), async handle => {
+    current(); await handle.writeFile(bytes); current(); await handle.sync(); current();
+  });
+  current();
+  await withOriginalFile(dirname(path), name => openFile(name, 'r'), async handle => {
+    current(); await handle.sync(); current();
+  });
+  current();
 }
 
 const holdingCidOf = (prepareAttemptId, name, semanticCid) => cidOf(

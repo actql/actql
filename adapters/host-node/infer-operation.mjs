@@ -3,6 +3,7 @@
 // this adapter does not authorize dispatch or issue a public Run outcome.
 import {runtimeFailure, runtimeField, runtimeTriple} from '../host-common/compiler-binding.generated.mjs';
 import {setImmediate as yieldEventLoop} from 'node:timers/promises';
+import {types as utilTypes} from 'node:util';
 import {checked} from '../host-common/runtime-result.mjs';
 import {claimInferIoNotification} from './infer-io-notification.mjs';
 import {selectedInferOriginalMetadataLimits, selectedInferOriginalStoreBootstrapLimits,
@@ -13,6 +14,17 @@ import {originalModelRawTransportPersistenceMatches, bindOriginalModelRawTranspo
 const pending = () => Object.assign(new Error('ClientDispatchCleanupPending'),
   {code: 'ClientDispatchCleanupPending'});
 const activeOperations = new WeakMap();
+const originalOperations = new WeakSet();
+const cleanedOriginalReads = new WeakSet();
+const isPromise = utilTypes.isPromise;
+const observePromise = Promise.prototype.then;
+
+// A parent may retire this exact descriptor alias after the consumer's actual
+// Core cleanup. This observation issues no ACK and cannot mark another read,
+// release a Scope, or turn a stopped/unknown operation into completed cleanup.
+export function inferOriginalReadCleanupComplete(read) {
+  return cleanedOriginalReads.has(read);
+}
 // This is nominal membership in the existing operation, not a resource Owner.
 // Escaped handles weakly borrow its retained record and cannot keep the original
 // Model/Scope/Ledger graph alive after actual operation cleanup.
@@ -72,6 +84,14 @@ export function startCompleteInferObservation({moon, operations, ledger, maxSlot
     if (value === undefined) throw new TypeError('ForeignInferOperation');
     return value;
   });
+  if (operations.some(operation => originalOperations.has(operation))) {
+    if (operations.length !== 1 || ledger !== undefined || content !== undefined) {
+      throw new TypeError('InferOriginalPublicationCapacityUnavailable');
+    }
+    // The actual operation retains its original opaque publication borrow.
+    // A Source Ledger or a matching caller object cannot select that issuer.
+    return operations[0].startObservation({maxSlots, maxWireBytes, maxWork});
+  }
   if (content !== undefined) {
     return content.control.startCheckedClientContentInferObservation(content.compiled,
       active, content.generations, ledger, {maxSlots, maxWireBytes, maxWork});
@@ -103,6 +123,7 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
   // envelope, including this adapter's controls. Do not derive it from counts,
   // aggregate headroom or the later Model seal's distinct requirements.
   let originalConsumer;
+  let originalRead;
   let originalScope = originalPreparation?.scope;
   let metadataInstallation = originalPreparation?.metadataInstallation;
   let metadataNodeInstallation = originalPreparation?.nodeInstallation;
@@ -111,10 +132,13 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
   let originalMetadata;
   let originalStoreBootstrap;
   let originalPublicationCapacity;
+  let originalPublicationSelection;
+  let originalPublicationReceiver;
   if (originalPreparation !== undefined) {
-    if (provider === undefined || acquiredInput !== undefined || composedInput !== undefined || keyedInput !== undefined ||
+    if (provider === undefined || acquiredInput !== undefined || keyedInput !== undefined ||
         restoredInput !== undefined || savedCapture !== undefined || savedSlots !== undefined ||
         originalPreparation === null || typeof originalPreparation !== 'object' ||
+        composedInput !== undefined && Object.hasOwn(originalPreparation, 'nodeInstallation') ||
         typeof originalPreparation.readRetainedBytes !== 'bigint' ||
         originalPreparation.readRetainedBytes <= 0n ||
         typeof originalPreparation.readExecutionBytes !== 'bigint' ||
@@ -125,9 +149,31 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
         originalPreparation.modelExecutionBytes < 0n) {
       throw new TypeError('InvalidInferOriginalPreparation');
     }
+    originalRead = originalPreparation.read;
+    const publication = Object.getOwnPropertyDescriptor(originalPreparation, 'publicationCapacity');
+    if (publication !== undefined) {
+      if (!Object.hasOwn(publication, 'value') || typeof publication.value !== 'function') {
+        throw Object.assign(new Error('InferOriginalPublicationCapacityUnavailable'),
+          {code: 'InferOriginalPublicationCapacityUnavailable'});
+      }
+      // Keep the same installing callback/receiver across Model execution.
+      // Its current same-Run selection is DATA, not a reservation or grant.
+      originalPublicationSelection = publication.value;
+      originalPublicationReceiver = originalPreparation;
+    }
     // The original read owner retains the issued ticket if a later constructor
     // fails. No JS ownership map, claim reset or unowned-start fallback exists.
-    if (Object.hasOwn(originalPreparation, 'nodeInstallation')) {
+    if (composedInput !== undefined) {
+      const control = originalPreparation.control;
+      if (typeof control?.claimCheckedClientInferOriginalComposedPreparation !== 'function' ||
+          typeof control?.startCheckedClientOriginalComposedInferExecution !== 'function') {
+        throw new TypeError('InferOriginalComposedControlUnavailable');
+      }
+      originalConsumer = control.claimCheckedClientInferOriginalComposedPreparation(
+        originalPreparation.compiled, originalPreparation.runDefinition, graph,
+        originalRead, originalPreparation.readRetainedBytes,
+        originalPreparation.readExecutionBytes);
+    } else if (Object.hasOwn(originalPreparation, 'nodeInstallation')) {
       const selected = originalPreparation.nodeInstallation;
       if (selected === null || typeof selected !== 'object' ||
           Object.keys(selected).sort().join(',') !==
@@ -140,11 +186,11 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
       // the older private envelope seam, or derive grants from support bounds.
       originalConsumer = originalPreparation.control.claimCheckedClientInferNodePreparationLayout(
         originalPreparation.compiled, originalPreparation.runDefinition, graph,
-        originalPreparation.read, selected);
+        originalRead, selected);
     } else {
       // Explicit existing private envelope caller; no production supplier or
       // physical adequacy is implied by this older diagnostic interface.
-      originalConsumer = checked(moon.clientProgramClaimInferOriginalPreparation(originalPreparation.read,
+      originalConsumer = checked(moon.clientProgramClaimInferOriginalPreparation(originalRead,
         originalPreparation.compiled, originalPreparation.runDefinition, graph,
         originalPreparation.readRetainedBytes, originalPreparation.readExecutionBytes));
     }
@@ -251,6 +297,13 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
           originalPreparation.readRetainedBytes, originalPreparation.readExecutionBytes,
           originalPreparation.modelRetainedBytes, originalPreparation.modelExecutionBytes)
 
+    : originalPreparation !== undefined && composedInput !== undefined
+    ? originalPreparation.control.startCheckedClientOriginalComposedInferExecution(
+      originalPreparation.compiled, originalPreparation.runDefinition,
+      composedInput.occurrence, graph, composedInput.prefix, composedInput.inputs,
+      provider, originalConsumer, originalPreparation.readRetainedBytes,
+      originalPreparation.readExecutionBytes, originalPreparation.modelRetainedBytes,
+      originalPreparation.modelExecutionBytes, composedInput.sources)
     : originalPreparation !== undefined && Object.hasOwn(originalPreparation, 'nodeInstallation')
     ? originalPreparation.control.startCheckedClientInferOriginalPreparation(
       originalPreparation.compiled, originalPreparation.runDefinition,
@@ -352,6 +405,11 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
     if (!moon.clientProgramInferExecutionStopped(active)) return false;
     reclaimed = checked(moon.clientProgramCleanupInferExecution(active));
     if (reclaimed) {
+      if (reclaimed === true && originalConsumer !== undefined && originalRead !== null &&
+          (typeof originalRead === 'object' || typeof originalRead === 'function')) {
+        cleanedOriginalReads.add(originalRead);
+      }
+      originalRead = undefined;
       signal?.removeEventListener('abort', requestStop);
       originalPreparedCallSet = undefined;
       if (originalMetadata !== undefined) originalMetadataSources.delete(originalMetadata.handle);
@@ -367,6 +425,8 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
       metadataNodeInstallation = undefined;
       metadataControl = undefined;
       metadataDefinition = undefined;
+      originalPublicationSelection = undefined;
+      originalPublicationReceiver = undefined;
       rawCaptureBinder = undefined;
       preparedRawCaptureBinders = undefined;
       runtimeObservedCallSet = undefined;
@@ -938,10 +998,25 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
       if (originalConsumer === undefined) return;
       if (reclaimed || closing) throw new Error('InferOriginalPublicationCapacityUnavailable');
       if (originalPublicationCapacity !== undefined) return;
-      const selection = selectedInferOriginalPublicationCapacity(metadataInstallation,
-        metadataNodeInstallation);
+      const selection = originalPublicationSelection === undefined
+        ? selectedInferOriginalPublicationCapacity(metadataInstallation, metadataNodeInstallation)
+        : Reflect.apply(originalPublicationSelection, originalPublicationReceiver, []);
+      const names = selection !== null && typeof selection === 'object' && !Array.isArray(selection)
+        ? Reflect.ownKeys(selection) : [];
+      const retained = Object.getOwnPropertyDescriptor(selection ?? {}, 'retainedBytes');
+      const workspace = Object.getOwnPropertyDescriptor(selection ?? {}, 'workspaceBytes');
+      if (names.length !== 2 || !names.includes('retainedBytes') || !names.includes('workspaceBytes') ||
+          retained === undefined || workspace === undefined ||
+          !Object.hasOwn(retained, 'value') || !Object.hasOwn(workspace, 'value') ||
+          typeof retained.value !== 'bigint' || retained.value <= 0n || retained.value > 9223372036854775807n ||
+          typeof workspace.value !== 'bigint' || workspace.value < 0n || workspace.value > 9223372036854775807n) {
+        throw Object.assign(new Error('InferOriginalPublicationCapacityUnavailable'),
+          {code: 'InferOriginalPublicationCapacityUnavailable'});
+      }
+      // Common binds this borrow to the exact terminal Model/Scope and its
+      // original Run Ledger. Missing/refused selection never falls back.
       originalPublicationCapacity = checked(moon.clientProgramReserveOriginalInferPublicationCapacity(
-        active, selection.retainedBytes, selection.workspaceBytes));
+        active, retained.value, workspace.value));
     },
     publicationCapacityPending: () => originalPublicationCapacity !== undefined,
     releaseOriginalPublicationCapacity() {
@@ -982,6 +1057,7 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
         signal: resultSignal, quantum}),
   });
   activeOperations.set(operation, active);
+  if (originalConsumer !== undefined) originalOperations.add(operation);
   try {
     // Input construction already owns Core resources. Transfer that exact
     // owner before any fallible binding, without granting permission to run.
@@ -1033,22 +1109,54 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
 // installing Run retains physical custody before binding current admissions.
 export function openNodeComposedInferProvider({moon, selected, sources,
   control, plan, principalId, now, signal, retainOperation, retainCompleted,
-  durableCalls = false, restoredInput, generatedInput}) {
+  durableCalls = false, restoredInput, generatedInput, originalPreparation}) {
   if (selected?.occurrence === undefined ||
       typeof retainOperation !== 'function') {
     throw new TypeError('InvalidComposedInferProvider');
   }
+  let prepareRead = originalPreparation?.prepareRead;
+  const deferredRead = prepareRead !== undefined;
+  if (deferredRead && (typeof prepareRead !== 'function' ||
+      generatedInput !== undefined || restoredInput !== undefined)) {
+    throw new TypeError('InvalidComposedInferOriginalPreparation');
+  }
+  let readAttempted = false;
   let operation;
   let failure;
+  const computePrefix = selected.computePrefix;
   const selectProvider = generatedInput === undefined
     ? moon.clientProgramComposedInferLocalProvider : moon.clientProgramGeneratedInferLocalProvider;
   const provider = selectProvider(
     selected.occurrence, inputs => {
       try {
-        if (operation !== undefined) throw new Error('ComposedInferAlreadyOpened');
+        if (operation !== undefined || readAttempted || deferredRead && failure !== undefined) {
+          throw failure ?? new Error('ComposedInferAlreadyOpened');
+        }
+        let preparation = originalPreparation;
+        if (deferredRead) {
+          // The parent already retains the Scope. Claim its read only after
+          // Local has supplied the actual inputs, with no intervening await.
+          readAttempted = true;
+          try { preparation = Reflect.apply(prepareRead, originalPreparation, []); }
+          finally {
+            // Retire only these callback aliases, never the original parent's
+            // read/Scope duty or a failed issuance's pending cleanup.
+            prepareRead = undefined;
+            originalPreparation = undefined;
+          }
+          // Do not read an inherited getter on the original view. A native
+          // async return is observed only to suppress detached rejection, not
+          // awaited or admitted as a synchronous read original.
+          const asyncView = isPromise(preparation);
+          if (preparation === null || typeof preparation !== 'object' ||
+              asyncView || Object.hasOwn(preparation, 'then')) {
+            if (asyncView) void Reflect.apply(observePromise, preparation, [undefined, () => {}]);
+            throw new TypeError('InvalidComposedInferOriginalPreparation');
+          }
+        }
         operation = openNodeInferOperation({moon, graph: selected.graph,
           composedInput: generatedInput !== undefined ? undefined : {occurrence: selected.occurrence,
-            prefix: selected.computePrefix, inputs, sources},
+            prefix: computePrefix, inputs, sources},
           serializedInput: generatedInput === undefined ? undefined : {
             control, compiled: plan.compiled, definition: plan.runDefinition,
             generation: generatedInput.generation(), inputs,
@@ -1057,6 +1165,7 @@ export function openNodeComposedInferProvider({moon, selected, sources,
           quantityCapacity: selected.quantityCapacity,
           physicalPreflight: selected.physicalPreflight,
           egressAdmission: selected.egressAdmission, signal, durableCalls, restoredInput,
+          originalPreparation: preparation,
           retainOperation(value) { operation = value; retainOperation(value); }});
         operation.bindRun(control, plan);
         if (!durableCalls) operation.bindDispatch(control, {...plan, account: selected.account,
@@ -1064,7 +1173,8 @@ export function openNodeComposedInferProvider({moon, selected, sources,
           observeAt: now});
         return activeOperations.get(operation);
       } catch (error) {
-        failure = error;
+        if (deferredRead) failure ??= error;
+        else failure = error;
         return undefined;
       }
     }, issue => {
@@ -1082,7 +1192,8 @@ export function openNodeComposedInferProvider({moon, selected, sources,
       }
     }, active => operation !== undefined &&
       activeOperations.get(operation) === active &&
-      operation.cleanupPending() === false);
+      operation.cleanupPending() === false,
+    ...(generatedInput === undefined ? [computePrefix] : []));
   return Object.freeze({provider, operation: () => operation,
     failure: () => failure});
 }

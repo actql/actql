@@ -134,6 +134,16 @@ export async function signedAnswer(summary, decision, signer, decidedAt) {
     reviewerId: sourceSigner.reviewerId,
     authorityScopeCid: sourceSigner.authorityScopeCid,
     sign: bytes => signBytes.call(sourceSigner, bytes)});
+  const profile = supportedAnswerProfile(summary);
+  if (!validCheckpointPage({items: [summary]}, 1)) {
+    throw new TypeError(profile.model ? 'UnsupportedCheckpointAnswer' : 'InvalidCheckpointAnswer');
+  }
+  return constructSignedAnswer(summary, decision, signer, decidedAt, profile);
+}
+
+// Generic safe Checkpoint metadata also includes profiles this signing helper
+// has never supported. Retain that cheap selection independently of admission.
+function supportedAnswerProfile(summary) {
   const preparation = ['run_scope', 'read_access'].includes(summary?.kind) &&
     summary.subject?.kind === 'prepare_attempt';
   const acquiredRead = summary?.kind === 'read_access' &&
@@ -143,7 +153,6 @@ export async function signedAnswer(summary, decision, signer, decidedAt) {
     summary.phase === 'commit' && summary.subject?.kind === 'run_unit' &&
     summary.requiredArtifact?.type === 'effect_set_preview';
   const model = summary?.kind === 'model_invocation' &&
-    validCheckpointPage({items: [summary]}, 1) &&
     summary.phase === 'preflight' && summary.subject?.kind === 'run_unit' &&
     summary.requiredArtifact?.type === 'model_invocation_scope' &&
     /^sha256:[0-9a-f]{64}$/u.test(summary.preparedInvocationCid ?? '') &&
@@ -157,9 +166,20 @@ export async function signedAnswer(summary, decision, signer, decidedAt) {
     // evidence profiles (for example an Effect Set attestation).
     throw new TypeError('UnsupportedCheckpointAnswer');
   }
-  if (!validCheckpointPage({items: [summary]}, 1)) {
-    throw new TypeError('InvalidCheckpointAnswer');
-  }
+  return {effect, acquiredRead, model};
+}
+
+// Private SDK continuation, not a package entry or an admission/authority
+// factory. Its callers already own the validated immutable Summary and the
+// captured application signer. Constructing their artifact creates no second
+// wire-admission boundary; the external signer's output is still checked below.
+export async function signedAnswerFromAdmittedSummary(summary, decision, signer, decidedAt) {
+  return constructSignedAnswer(summary, decision, signer, decidedAt,
+    supportedAnswerProfile(summary));
+}
+
+async function constructSignedAnswer(summary, decision, signer, decidedAt,
+  {effect, acquiredRead, model}) {
   let evidence;
   if (decision === 'approved') {
     if (effect && !/^sha256:[0-9a-f]{64}$/u.test(

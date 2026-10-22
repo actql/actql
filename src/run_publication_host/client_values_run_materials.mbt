@@ -46,7 +46,8 @@ let client_run_materials_fields : Array[String] = [
   "check_environment", "check_environment_cid", "client_request_identity", "created_at",
   "effect_target_selections_json", "infer_execution_contract_cid", "infer_execution_contract_json",
   "normalization_journal_json", "parameters", "prepared_invocation", "program", "program_format",
-  "run_authorization", "run_id", "scope_id", "valid_until", "version",
+  "run_authorization", "run_id", "scope_id", "source_free_result_policy_cid", "source_free_result_policy_json",
+  "valid_until", "version",
 ]
 
 ///|
@@ -175,6 +176,7 @@ fn encode_client_run_materials_body(
   normalization_wire? : String? = None,
   target_selections_wire? : String? = None,
   infer_input? : (String, String)? = None,
+  source_free_policy_input? : (String, String)? = None,
 ) -> Result[String, ClientValuesRunMaterialsIssue] {
   // This is a read-only projection of an already admitted definition. It does
   // not reissue it (nor extend its original lifetime).
@@ -257,6 +259,13 @@ fn encode_client_run_materials_body(
       }
       if field.0 == "parameters" && normalization_wire is Some(wire) {
         @encode.key(writer, "normalization_journal_json")
+        @encode.string_value(writer, wire)
+      }
+      if field.0 == "valid_until" &&
+        source_free_policy_input is Some((cid, wire)) {
+        @encode.key(writer, "source_free_result_policy_cid")
+        @encode.string_value(writer, cid)
+        @encode.key(writer, "source_free_result_policy_json")
         @encode.string_value(writer, wire)
       }
       @encode.key(writer, field.0)
@@ -413,8 +422,17 @@ fn read_client_run_materials_body(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
+  let source_free_policy_input = match
+    read_client_effect_original_source_free_policy_input(
+      @decode.lookup(object, "source_free_result_policy_cid"),
+      @decode.lookup(object, "source_free_result_policy_json"),
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
   Ok({
     infer_input,
+    source_free_policy_input,
     target_selections_wire,
     normalization_wire,
     request_wire,
@@ -433,6 +451,7 @@ fn read_client_run_materials_body(
 ///|
 priv struct ClientRunMaterialsBody {
   infer_input : (String, String)?
+  source_free_policy_input : (String, String)?
   target_selections_wire : String?
   normalization_wire : String?
   request_wire : String?
@@ -465,6 +484,9 @@ fn read_client_run_materials_input(
   }
   if body.target_selections_wire is Some(_) {
     return Err(MaterialsEvidence("effect_target_selections"))
+  }
+  if body.source_free_policy_input is Some(_) {
+    return Err(MaterialsEvidence("source_free_result_policy"))
   }
   if !allow_infer && body.infer_input is Some(_) {
     return Err(MaterialsEvidence("infer_execution_contract"))

@@ -21,7 +21,7 @@ pub fn[T] enter_installation_preparation_read(InstallationPreparationRead[T], T)
 
 pub fn[T] installation_preparation_read_current(InstallationPreparationRead[T], T) -> Bool
 
-pub fn lower_prepared_published_query(PreparedPublishedQueryEnvironment, @program_check.CheckEnvironment, String, @source_frontend.Format, String?) -> Result[(@source_frontend.Lowered, @program_check.PreparedSourceCatalog), PreparedPublicationIssue]
+pub fn lower_prepared_published_query(PreparedPublishedQueryEnvironment, @program_check.CheckEnvironment, String, @source_frontend.Format, String?, public_primary? : Bool) -> Result[(@source_frontend.Lowered, @program_check.PreparedSourceCatalog), PreparedPublicationIssue]
 
 pub fn[T] prepare_installation_preparation_read(@client_host_buffers.OriginalWorkspaceRead[T], T, @client_host_buffers.WorkspaceLoan, Int64, Int64) -> Result[InstallationPreparationRead[T], @physical_resources.OriginalReadIssue]
 

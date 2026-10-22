@@ -5,6 +5,13 @@ Local execution needs no additional internal package, compiler, Cloud login,
 or provider assembly. For fixed release candidates and publication status,
 see the [release guide](https://github.com/actql/actql/tree/main/release).
 
+Use Node.js 22.16 or later in the 22.x line, or Node.js 24.0 or later
+(`^22.16.0 || >=24.0.0`). The bundled Local Host needs the native
+`node:sqlite` connection state, including `DatabaseSync.isOpen` and
+[`DatabaseSync.isTransaction`](https://nodejs.org/download/release/v22.16.0/docs/api/sqlite.html#databaseistransaction).
+Node.js 23 does not provide the required `isTransaction` API. This Local
+requirement does not change the transport-only `@actql/sdk` runtime range.
+
 `@actql/node` exports the same Client, Execution and Result API as the
 lightweight `@actql/sdk`. Standard installation includes `@actql/local-node`.
 Embedded Local loads that provider only when selected; Remote and connected

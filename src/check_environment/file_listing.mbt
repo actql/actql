@@ -240,29 +240,33 @@ fn read_file_list_profile(
     _ => request_fail(InvalidFileListProfile, source)
   }
   let schema = match @carrier.complete_schema(records) {
-    Some(schema) if @row.field_count(schema) == 7 &&
-      @row.all_fields_required(schema) => schema
+    Some(schema) if @row.field_count(schema) >= 7 => schema
     _ => request_fail(InvalidFileListProfile, source)
   }
+  // The seven roles are a required base, not a projection of the Source's
+  // complete declared metadata. Carrier admission already checks every field
+  // contract; include the additional fields in this interpreter's work too.
+  request_charge(b, @row.field_count(schema) - 7, source)
   let resource_kind = file_list_text(root, "resource_kind", b)
   for
     name in [
       "resource", "version", "name", "path", "media_type", "size_bytes", "modified_at",
     ] {
     request_charge(b, 1, source)
-    let contract = match @row.lookup(schema, @row.Unqualified(name)) {
-      Some(value) => value
-      None => request_fail(InvalidFileListProfile, source)
+    guard @row.lookup_reference(schema, name) is Some(field) &&
+      @row.field_presence(field) == @row.Required else {
+      request_fail(InvalidFileListProfile, source)
     }
+    let contract = @row.field_contract(field)
     let matches = match (name, contract.shape) {
       ("resource", @value_contract.ResourceRef(resource_kind=kind)) =>
         !contract.nullable && kind == resource_kind
       ("version", @value_contract.Text(_)) =>
         !nonnull_version || !contract.nullable
       ("name", @value_contract.Text(_)) => !contract.nullable
-      ("path" | "media_type", @value_contract.Text(_)) => contract.nullable
-      ("size_bytes", @value_contract.Number) => contract.nullable
-      ("modified_at", @value_contract.Timestamp) => contract.nullable
+      ("path" | "media_type", @value_contract.Text(_)) => true
+      ("size_bytes", @value_contract.Number) => true
+      ("modified_at", @value_contract.Timestamp) => true
       _ => false
     }
     if !matches {

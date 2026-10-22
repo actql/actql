@@ -45,6 +45,22 @@ an echoed identity. Those observations remain not-found/Unknown; acceptance of a
 wire shape does not permit a new submission or resend. Current schema CIDs and
 input revisions are checked independently of their digest-shaped spellings.
 
+## Deferred Local request capture
+
+The existing wire preparation Owner can detach and deeply freeze a request
+before Local service initialization awaits. Submission and check requests use
+their existing JSON snapshot once; shallow control requests acquire the same
+owned snapshot when they need to cross that wait. Original Workspace targeting,
+JSON number refusals and validation of serializer-produced values remain.
+
+The in-process ingress retains only the captured packet's exact object,
+operation and structural preparation. The activated ingress consumes those
+immutable facts without another serialization, deep freeze or body validation.
+A copy or different operation re-enters normal preparation. This association
+does not retain an authenticated principal, Account decision, Run or Result,
+and does not bypass Source lineage or current authorization after reentry.
+HTTP/raw packets keep ordinary admission; no wire fields or identities change.
+
 ## Source responsibilities and ten interface attributes
 
 This table is a reference projection for the interface inventory, not a second

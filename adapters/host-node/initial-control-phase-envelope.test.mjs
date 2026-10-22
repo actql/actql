@@ -20,9 +20,9 @@ test('finite disposition includes simultaneous managed, native, compiler and ful
   assert.equal(selected.declaration.moduleNativeBytes, 134217728);
   assert.equal(selected.declaration.sourceBackingBytes, 167772160);
   assert.equal(selected.declaration.nativeBytes, 2550136832);
-  assert.equal(selected.declaration.preparationExternalBytes, 408944640);
+  assert.equal(selected.declaration.preparationExternalBytes, 1214251008);
   assert.equal(selected.declaration.journalExternalBytes, 1114112);
-  assert.equal(selected.declaration.bytes, 3129016320);
+  assert.equal(selected.declaration.bytes, 3934322688);
   assert.equal(selected.limits.generations, 1);
   assert.equal(selected.limits.preparations, 1);
   assert.equal(selected.limits.opaqueCallerAliases, 0);
@@ -33,6 +33,39 @@ test('finite disposition includes simultaneous managed, native, compiler and ful
   assert.equal(selected.declaration.lifetime, 'original-process-and-escaped-module-lifetime');
   assert.ok(Object.isFrozen(selected)); assert.ok(Object.isFrozen(selected.limits));
   assert.equal(selected.begin, undefined); assert.equal(selected.close, undefined);
+});
+
+test('ordinary lazy compilation is a separate selected disposition without an eager or second-VM claim', () => {
+  const runtime=Object.freeze({...original,eager:false});
+  const data={...inventory(),ordinaryEngine:runtime};
+  const declaration=module.declareOrdinaryInitialControlPhaseEnvelope(1024*1024);
+  const phase=module.inspectOrdinaryInitialControlPhaseEnvelope(data,declaration,runtime);
+  assert.equal(phase.declaration.eager,false);
+  assert.equal(phase.declaration.compilation,'ordinary-lazy');
+  assert.equal(phase.declaration.heapCeilingBytes,1048576);
+  assert.equal(phase.declaration.compilerBytes,8589934592);
+  assert.equal(phase.declaration.nativeBytes,8992587776);
+  assert.equal(phase.declaration.bytes,10376773632);
+  assert.equal(phase.declaration.lifetime,'original-process-and-escaped-module-lifetime');
+  assert.throws(()=>module.inspectOrdinaryInitialControlPhaseEnvelope(
+    {...data,ordinaryEngine:original},declaration,runtime),unavailable);
+  assert.throws(()=>module.inspectInitialControlPhaseEnvelope(data,declaration,runtime),unavailable);
+});
+
+test('mock definition acquisition adds original Task rereads and answer documents before capture without Model credit', () => {
+  const declaration = module.declareInitialControlPhaseEnvelope(1024 * 1024);
+  const held = declaration.mockAnswerPreparation;
+  assert.equal(held.documents, 128); assert.equal(held.taskRereads, 128);
+  assert.equal(held.additionalExternalBytes, 805306368);
+  assert.equal(declaration.preparationExternalBytes - held.additionalExternalBytes, 408944640);
+  assert.equal(held.coversInvocation, false);
+  assert.equal(held.lifetime, 'same-original-preparation-and-all-escaped-definition-aliases');
+  assert.deepEqual(held.readLimits, {contractDepth:64,contractNodes:4096,contractTextBytes:65536,
+    maxBytes:65536,maxDepth:64,maxEntries:128,maxMembers:256,maxNodes:4096,
+    maxTasks:128,maxWork:2097152,valueDepth:64,valueNodes:4096,valueTextBytes:65536});
+  assert.ok(Object.isFrozen(held)); assert.ok(Object.isFrozen(held.readLimits));
+  assert.equal(declaration.heapCeilingBytes, 1048576);
+  assert.equal(declaration.nativeBytes, 2550136832);
 });
 
 test('all package/facade images and dependency edges contribute, not just Local sourceBytes', () => {

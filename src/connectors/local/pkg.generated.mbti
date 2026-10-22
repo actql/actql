@@ -170,6 +170,8 @@ pub fn managed_provider_supplied_relation_input(@execution_relation.SuppliedRela
 
 pub fn managed_provider_waiting(Int64, Int64) -> ManagedProviderPoll
 
+pub fn managed_provider_with_infer_relation_prefix(ManagedProvider, @execution_relation.GeneratedSequence, Int, @execution_relation.SequenceExecutionLimits, @execution_relation.FixedInputGuardMeasureLimits) -> ManagedProvider
+
 pub fn managed_provider_with_inputs((@execution_relation.GeneratedSequence) -> Bool, (@execution_relation.GeneratedSequence) -> @execution_relation.ExecutionCapacity?, (@execution_relation.GeneratedSequence, Array[ManagedProviderInput], Int, Int, @execution_relation.SequenceExecutionLimits) -> Result[ManagedProviderExecution, @connector_sdk.FixedComputeIssue]) -> ManagedProvider
 
 pub fn managed_provider_with_numeric((@execution_relation.GeneratedSequence) -> Bool, (@execution_relation.GeneratedSequence) -> @execution_relation.ExecutionCapacity?, (@execution_relation.GeneratedSequence, Array[ManagedProviderInput], Int, Int, @execution_relation.SequenceExecutionLimits, @execution_relation.NumericAggregateExecution?) -> Result[ManagedProviderExecution, @connector_sdk.FixedComputeIssue]) -> ManagedProvider

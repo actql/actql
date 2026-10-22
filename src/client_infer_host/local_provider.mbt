@@ -8,7 +8,11 @@ fn composed_local_sequence_matches(
   let (_, _, step) = @publication_host.client_infer_occurrence_coordinates(
     occurrence,
   )
-  let count = @lower.node_count(@lower.bound_preparation(owner))
+  guard @publication_host.client_infer_occurrence_output_step(occurrence)
+    is Some(last) else {
+    return false
+  }
+  let count = last + 1
   if boundary_only {
     return physical_equal(owner, @relation.generated_sequence_owner(sequence)) &&
       @relation.generated_sequence_step_count(sequence) == 1 &&
@@ -115,7 +119,10 @@ pub fn keyed_root_capacity(
         return None
       }
     Some(sequence) => {
-      let count = @lower.node_count(@lower.bound_preparation(owner)) - step - 1
+      let count = @publication_host.client_infer_occurrence_output_step(
+          occurrence,
+        ).unwrap_or(-1) -
+        step
       if !physical_equal(owner, @relation.generated_sequence_owner(sequence)) ||
         count < 1 ||
         @relation.generated_sequence_step_count(sequence) != count {
@@ -168,9 +175,10 @@ pub fn composed_local_provider(
   retain_completed? : (Execution) -> Bool = _ => true,
   allow_cleanup? : (Execution) -> Bool = _ => true,
   boundary_only? : Bool = false,
+  input_prefix? : @relation.GeneratedSequence? = None,
 ) -> @local.ManagedProvider {
   let opened = Ref(false)
-  @local.managed_provider_with_inputs(
+  let provider = @local.managed_provider_with_inputs(
     sequence => {
       composed_local_sequence_matches(occurrence, sequence, boundary_only)
     },
@@ -211,4 +219,18 @@ pub fn composed_local_provider(
       )
     },
   )
+  if !boundary_only && input_prefix is Some(prefix) {
+    let (_, _, step) = @publication_host.client_infer_occurrence_coordinates(
+      occurrence,
+    )
+    @local.managed_provider_with_infer_relation_prefix(
+      provider,
+      prefix,
+      step,
+      limits.input,
+      limits.measurement,
+    )
+  } else {
+    provider
+  }
 }

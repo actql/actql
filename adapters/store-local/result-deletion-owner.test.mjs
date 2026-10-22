@@ -97,6 +97,18 @@ test('shared or absent allocation settles without releasing Store capacity',
     }
   });
 
+test('an absent original with retained quota waits for its same directory ACK',async()=>{
+  const {owner,calls,setAllocation,failSync}=fixture();
+  setAllocation('missing-unconfirmed');failSync();
+  await assert.rejects(owner.retry(),{code:'SYNC_FAILED'});
+  assert.equal(owner.status().pending,true);
+  assert.equal(calls.includes('unlink'),false);
+  assert.equal(calls.includes('account'),false);
+  assert.equal((await owner.retry()).pending,false);
+  assert.equal(calls.includes('unlink'),false);
+  assert.equal(calls.filter(call=>call==='account').length,1);
+});
+
 test('another live reference settles this deletion without reclaiming',
   async () => {
     const {owner, calls, setRetention} = fixture();

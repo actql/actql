@@ -28,7 +28,7 @@ pub fn issue_prepared_client_infer_run_materials(
 }
 
 ///|
-/// Retain the existing single installed INFER compilation in the original Run
+/// Retain one installed INFER compilation in the original Run
 /// materials codec. The original Environment contains the normalized Task and
 /// handling/generation settings; no current project or provider default is read.
 /// Physical input custody, current authority and restore admission stay separate.
@@ -42,13 +42,11 @@ pub fn issue_client_infer_run_materials(
   limits : ClientValuesRunMaterialsLimits,
 ) -> Result[String, ClientTaskRunMaterialsIssue] {
   guard compiled.compilation is Tasks(compilation) &&
-    compilation.infer is Some(graph) &&
     compilation.infers.length() == 1 &&
-    physical_equal(compilation.infers[0], graph) &&
-    compilation.serialization is None &&
-    prepared_client_infer_step(compiled.owner) == Some(graph.source_ordinal) else {
+    compilation.serialization is None else {
     return Err(Binding(UnsupportedProgram))
   }
+  let graph = compilation.infers[0]
   match
     bind_client_task_run(
       compiled.owner,
@@ -62,14 +60,11 @@ pub fn issue_client_infer_run_materials(
   // This material form encodes the installed compiler's original dependency
   // selection. Custom graphs must not emit bundles their inverse would reject.
   let installed = match
-    issue_installed_client_infer_plan_graph(
+    infer_run_materials_installed_graph(
       compiled.owner,
-      graph.source_ordinal,
       graph.execution,
-      limits.sequence,
-      limits.max_evidence_bytes,
-      limits.max_evidence_nodes,
-      limits.max_evidence_depth,
+      limits,
+      compilation.infer is None,
     ) {
     Ok(value) => value
     Err(_) => return Err(Binding(UnsupportedProgram))
@@ -123,11 +118,11 @@ pub fn admit_client_infer_run_materials(
     Ok(value) => value
     Err(issue) => return Err(Input(issue))
   }
-  guard input.infer_input is Some((cid, wire)) &&
-    prepared_client_infer_step(input.prepared) is Some(step) else {
+  guard input.infer_input is Some((cid, wire)) else {
     return Err(Input(MaterialsEvidence("infer_execution_contract")))
   }
-  let execution = match
+  let legacy_step = prepared_client_infer_step(input.prepared)
+  let execution_result = if legacy_step is Some(step) {
     read_prepared_client_infer_model_execution(
       input.prepared,
       step,
@@ -135,24 +130,85 @@ pub fn admit_client_infer_run_materials(
       cid,
       { max_bytes: 65536, max_nodes: 4096, max_depth: 64, max_members: 256, },
       1000000,
+    )
+  } else if prepared_client_composed_infer_occurrence(input.prepared)
+    is Some(occurrence) {
+    read_client_infer_occurrence_model_execution(
+      occurrence,
+      @utf8.encode(wire),
+      cid,
+      { max_bytes: 65536, max_nodes: 4096, max_depth: 64, max_members: 256, },
+      1000000,
+    )
+  } else {
+    return Err(Input(MaterialsEvidence("infer_execution_contract")))
+  }
+  let execution = match execution_result {
+    Ok(value) => value
+    Err(_) => return Err(Input(MaterialsEvidence("infer_execution_contract")))
+  }
+  // A one-task Program can have either the historical whole-INFER compiler
+  // or the composed compiler used by the ordinary Host. Syntax alone cannot
+  // select its original: only a complete saved admission/Run match can do so.
+  // Both candidates use this same checked input and saved Model contract.
+  let modes = if legacy_step is Some(_) { [false, true] } else { [true] }
+  let mut selected : ClientTaskRunMaterials? = None
+  let mut first_error : ClientTaskRunMaterialsIssue? = None
+  for composed in modes {
+    let candidate = infer_run_materials_compilation(
+      input, execution, composed, manifests, limits,
+    ).bind(compilation => {
+      admit_client_task_run_materials_compilation(
+        input, compilation, expected_run_definition_cid, limits,
+      )
+    })
+    match candidate {
+      Ok(value) => {
+        if selected is Some(_) {
+          return Err(Binding(UnsupportedProgram))
+        }
+        selected = Some(value)
+      }
+      Err(issue) => if first_error is None { first_error = Some(issue) }
+    }
+  }
+  match selected {
+    Some(value) => Ok(value)
+    None => Err(first_error.unwrap_or(Binding(UnsupportedProgram)))
+  }
+}
+
+///|
+fn infer_run_materials_compilation(
+  input : ClientRunMaterialsInput,
+  execution : @environment.ModelExecutionContract,
+  composed : Bool,
+  manifests : ClientCompilationManifests,
+  limits : ClientValuesRunMaterialsLimits,
+) -> Result[ClientTaskCompilation, ClientTaskRunMaterialsIssue] {
+  let graph = match
+    infer_run_materials_installed_graph(
+      input.prepared,
+      execution,
+      limits,
+      composed,
     ) {
     Ok(value) => value
     Err(_) => return Err(Input(MaterialsEvidence("infer_execution_contract")))
   }
-  let graph = match
-    issue_installed_client_infer_plan_graph(
+  let result = if composed {
+    issue_prepared_client_multi_infer_compilation(
       input.prepared,
-      step,
-      execution,
+      [graph],
+      manifests,
       limits.sequence,
+      limits.max_sequence_steps,
+      limits.max_sequence_work,
       limits.max_evidence_bytes,
       limits.max_evidence_nodes,
       limits.max_evidence_depth,
-    ) {
-    Ok(value) => value
-    Err(_) => return Err(Input(MaterialsEvidence("infer_execution_contract")))
-  }
-  let compilation = match
+    )
+  } else {
     issue_prepared_client_infer_compilation(
       input.prepared,
       graph,
@@ -162,11 +218,45 @@ pub fn admit_client_infer_run_materials(
       limits.max_evidence_bytes,
       limits.max_evidence_nodes,
       limits.max_evidence_depth,
-    ) {
-    Ok(value) => value
-    Err(issue) => return Err(Compilation(issue))
+    )
   }
-  admit_client_task_run_materials_compilation(
-    input, compilation, expected_run_definition_cid, limits,
+  result.map_err(issue => Compilation(issue))
+}
+
+///|
+// Both directions select from the same checked Program. Preserve the legacy
+// component graph, including its Result transformations, byte-for-byte. A
+// composed Program must have exactly one whole checked Model occurrence; its
+// surrounding producers and Results belong to the ordinary composed compiler.
+fn infer_run_materials_installed_graph(
+  prepared : PreparedClientProgram,
+  execution : @environment.ModelExecutionContract,
+  limits : ClientValuesRunMaterialsLimits,
+  composed : Bool,
+) -> Result[ClientInferPlanGraph, ClientInferPlanGraphIssue] {
+  if !composed {
+    guard prepared_client_infer_step(prepared) is Some(step) else {
+      return Err(UnsupportedProgram)
+    }
+    return issue_installed_client_infer_plan_graph(
+      prepared,
+      step,
+      execution,
+      limits.sequence,
+      limits.max_evidence_bytes,
+      limits.max_evidence_nodes,
+      limits.max_evidence_depth,
+    )
+  }
+  guard prepared_client_composed_infer_occurrence(prepared) is Some(occurrence) else {
+    return Err(UnsupportedProgram)
+  }
+  issue_installed_client_composed_infer_plan_graph(
+    occurrence,
+    execution,
+    limits.sequence,
+    limits.max_evidence_bytes,
+    limits.max_evidence_nodes,
+    limits.max_evidence_depth,
   )
 }

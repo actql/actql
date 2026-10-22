@@ -683,42 +683,15 @@ fn start_occurrence(
     ) {
     return Err(Model(@model.RequestIdentity))
   }
-  let (ceiling, request_ceiling) = match
-    @publication_host.client_infer_occurrence_host_ceilings(occurrence) {
+  let limits = match
+    select_infer_execution_limits(
+      occurrence,
+      plan,
+      limits,
+      source is Physical(_),
+    ) {
     Ok(value) => value
-    Err(issue) => return Err(Capacity(issue))
-  }
-  if limits.model.max_items < 0 || limits.model.max_request_bytes < 0L {
-    return Err(Model(@model.InvalidLimits))
-  }
-  // A Host-installed physical envelope may tighten the checked policy, never
-  // widen it. The common model owner checks this after all keys are admitted
-  // and before it reserves attempts or invokes the provider.
-  let limits = {
-    ..limits,
-    model: {
-      ..limits.model,
-      max_items: Int64::min(ceiling, limits.model.max_items.to_int64()).to_int(),
-      max_request_bytes: Int64::min(
-        request_ceiling,
-        limits.model.max_request_bytes,
-      ),
-    },
-  }
-  // The graph's admitted body supplies another ceiling, not permission to
-  // dispatch. Reuse the physical ledger's atomic all-slot reservation path;
-  // a large caller envelope cannot silently widen the selected contract.
-  // Replay consumes existing observations, not another physical allowance.
-  let limits = if source is Physical(_) && plan is Some(graph) {
-    {
-      ..limits,
-      model: {
-        ..limits.model,
-        ledger: original_model_ledger_limits(graph, limits.model),
-      },
-    }
-  } else {
-    limits
+    Err(issue) => return Err(issue)
   }
   let input = match start_input(limits) {
     Ok(value) => value
@@ -900,10 +873,13 @@ pub fn bind_compute_suffix(
     ) else {
     return Err(InvalidAdvance)
   }
-  let full = @relation.generated_prepared_sequence(sequence)
   let count = @relation.generated_sequence_step_count(sequence)
   if count < 1 ||
-    count != @lower.sequence_count(full) - active.step - 1 ||
+    count !=
+    @publication_host.client_infer_occurrence_output_step(active.occurrence).unwrap_or(
+      -1,
+    ) -
+    active.step ||
     @local.local_bounded_relation_provider(
       active.limits.input,
       active.limits.measurement,
@@ -961,16 +937,31 @@ fn begin_model(active : Execution) -> Poll {
               original.execution_bytes,
             )
           Claimed(consumer) =>
-            @model.prepare_original_model_consumer_startup(
-              consumer,
-              bound.compiled,
-              bound.definition,
-              plan,
-              scope,
-              rows,
-              original.retained_bytes,
-              original.execution_bytes,
-            )
+            if original.shared_mock {
+              @model.prepare_original_model_provider_consumer_startup(
+                consumer,
+                bound.compiled,
+                bound.definition,
+                plan,
+                scope,
+                rows,
+                provider,
+                active.limits.model,
+                original.retained_bytes,
+                original.execution_bytes,
+              )
+            } else {
+              @model.prepare_original_model_consumer_startup(
+                consumer,
+                bound.compiled,
+                bound.definition,
+                plan,
+                scope,
+                rows,
+                original.retained_bytes,
+                original.execution_bytes,
+              )
+            }
         }
         let startup = match issued {
           Ok(value) => value

@@ -13,6 +13,7 @@ struct OriginalModelPreparation {
   read : OriginalModelRead
   retained_bytes : Int64
   execution_bytes : Int64
+  shared_mock : Bool
   mut startup : @model.OriginalModelStartup?
 }
 
@@ -152,12 +153,14 @@ fn retain_original_model_preparation(
   consumer : @publication_host.ClientModelReadConsumer,
   model_retained_bytes : Int64,
   model_execution_bytes : Int64,
+  shared_mock? : Bool = false,
 ) -> Unit {
   active.run_binding = Some({ compiled, definition, })
   active.original_preparation = Some({
     read: Claimed(consumer),
     retained_bytes: model_retained_bytes,
     execution_bytes: model_execution_bytes,
+    shared_mock,
     startup: None,
   })
 }
@@ -202,6 +205,7 @@ pub fn bind_original_model_preparation(
     read: Bound(read),
     retained_bytes,
     execution_bytes,
+    shared_mock: false,
     startup: None,
   })
   Ok(())

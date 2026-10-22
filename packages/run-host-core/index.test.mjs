@@ -1546,3 +1546,5 @@ test('Result generation holds retain two consumers and an active reader', () => 
     prepareResultMaterialHoldsStep(ended, 'end_reader', reader)),
   resultMaterialHoldsWire(ended));
 });
+
+import './delivery-attempt-original.test.mjs';

@@ -18,6 +18,7 @@ fn original_startup_test_grant(
     capacity,
     retained_bytes: 100L,
     execution_bytes: 5L,
+    shared_mock: None,
     used: false,
   }
 }

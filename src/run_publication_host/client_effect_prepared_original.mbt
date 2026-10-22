@@ -40,6 +40,11 @@ pub fn issue_client_effect_prepared_original(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
+  let source_free_policy_input = match
+    client_effect_original_source_free_policy_input(compilation) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
   try {
     let writer = @encode.writer(@remote.REMOTE_RUN_MATERIALS_MAX_BYTES, 32, 2)
     @encode.begin_object(writer)
@@ -74,6 +79,12 @@ pub fn issue_client_effect_prepared_original(
     }
     @encode.key(writer, "program")
     @encode.string_value(writer, program)
+    if source_free_policy_input is Some((cid, wire)) {
+      @encode.key(writer, "source_free_result_policy_cid")
+      @encode.string_value(writer, cid)
+      @encode.key(writer, "source_free_result_policy_json")
+      @encode.string_value(writer, wire)
+    }
     @encode.end_object(writer)
     Ok(@encode.finish(writer))
   } catch {
@@ -125,7 +136,8 @@ pub fn admit_client_effect_prepared_original(
     @decode.closed_object(root, [
       "check_environment", "check_environment_cid", "effect_target_selections_json",
       "infer_execution_contract_cid", "infer_execution_contract_json", "normalization_profile_cid",
-      "normalization_profile_key", "parameters", "program",
+      "normalization_profile_key", "parameters", "program", "source_free_result_policy_cid",
+      "source_free_result_policy_json",
     ]) {
     Ok(value) => value
     Err(_) => return Err(Input(MaterialsMalformed))
@@ -192,6 +204,21 @@ pub fn admit_client_effect_prepared_original(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
+  let source_free_policy_input = match
+    read_client_effect_original_source_free_policy_input(
+      @decode.lookup(object, "source_free_result_policy_cid"),
+      @decode.lookup(object, "source_free_result_policy_json"),
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Input(issue))
+  }
+  let source_free_policy = match
+    restore_client_effect_original_source_free_policy(
+      prepared, source_free_policy_input,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
   let normalization_profile = match
     (
       @decode.lookup(object, "normalization_profile_key"),
@@ -227,6 +254,7 @@ pub fn admit_client_effect_prepared_original(
       limits.max_evidence_depth,
       normalization_profile,
       infer~,
+      source_free_policy~,
     ) {
     Ok(value) => value
     Err(issue) => return Err(Compilation(issue))

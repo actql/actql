@@ -161,10 +161,9 @@ fn admit_client_serialization_captured_input_owned(
       guard acquisition.program is KeyedPure(original) &&
         physical_equal(original, owner) &&
         physical_equal(keyed.lookup.left.source, source) &&
-        client_keyed_acquisition_coordinates(acquisition)
-        is Some((_, keyed_task, join)) &&
-        keyed_task == task &&
-        join < step &&
+        client_keyed_acquisition_reaches_serialization(
+          owner, acquisition, task, step,
+        ) &&
         client_keyed_observation_covers_sources(owner, acquisition, requirement) &&
         client_keyed_lookup_observation_wires(keyed) is Some(_) &&
         @planning.keyed_source_evidence_facts(acquisition.facts) is Some(right) else {

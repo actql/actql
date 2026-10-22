@@ -6,6 +6,7 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {DatabaseSync} from 'node:sqlite';
 import {openClientRequestJournal} from './client-request-journal.mjs';
+import {installClientRunPlan} from './client-run-plan.mjs';
 import {controls, request, requestControl, options, definition, evidence,
   planOriginal, originalPlanWire} from './fixtures/original-plan-journal.mjs';
 
@@ -21,6 +22,56 @@ function fixture(t, limits) {
     lookup: () => journal.lookupRunDefinition(ref, requestControl, owner.publication),
     reopen() {journal.close(); journal = openClientRequestJournal(path, limits);}};
 }
+
+function planRequest(ref) {
+  return {connection:{mode:'local',owner:'local',consentRefs:[],runners:[]},
+    principalId:'original-caller',ref,maxWireBytes:65536,maxNodes:4096,maxDepth:64};
+}
+
+test('Run metadata and nominal acceptance do not validate an unused logical map', t => {
+  const f = fixture(t);
+  f.accept(f.owner.ticket());
+  assert.equal(f.owner.counts.captureReads,1);
+  assert.equal(f.owner.counts.storedReads,0,
+    'the nominal compiler owner already checked the original before its ticket escaped');
+  for (let i = 0; i < 20; i++) assert.deepEqual(f.lookup().runDefinition,definition);
+  f.reopen();
+  assert.deepEqual(f.lookup().runAdmissionEvidence.logicalPlanOriginal,planOriginal);
+  assert.equal(f.owner.counts.storedReads,0,
+    'Run metadata does not consume the logical map or compile another one');
+});
+
+test('actual Run plan read validates its original once across Journal lookups', async t => {
+  const f = fixture(t);
+  f.accept(f.owner.ticket());
+  f.owner.counts.storedReads = 0;
+  let allowed = true;
+  const read = installClientRunPlan({authorize:()=>allowed,
+    lookupOriginal:()=>f.lookup(),control:f.owner.publication});
+  const view = await read(planRequest(f.ref));
+  assert.deepEqual(view.plan_view,JSON.parse(planOriginal.planViewWire));
+  assert.equal(f.owner.counts.storedReads,1,
+    'only the actual plan reader admits its used map; metadata observations do not repeat it');
+  allowed = false;
+  await assert.rejects(read(planRequest(f.ref)),{code:'RunObservationAccessDenied'});
+  assert.equal(f.owner.counts.storedReads,1,'a later Deny refuses before another plan read');
+});
+
+test('unused original map still obeys retained shape and byte limits', t => {
+  const f = fixture(t);
+  f.accept(f.owner.ticket());
+  f.owner.counts.storedReads = 0;
+  const database = new DatabaseSync(join(f.path,'client-requests.sqlite3'));
+  try {
+    const stored = JSON.parse(database.prepare('SELECT run_admission_evidence_json FROM client_requests').get().run_admission_evidence_json);
+    for (const view of ['x'.repeat(65537),42]) {
+      const changed = {...stored,logicalPlanOriginal:{...stored.logicalPlanOriginal,planViewWire:view}};
+      database.prepare('UPDATE client_requests SET run_admission_evidence_json=?').run(JSON.stringify(changed));
+      assert.throws(f.lookup,{code:'ClientRequestJournalCorrupt'});
+    }
+    assert.equal(f.owner.counts.storedReads,0,'range/shape refusal does not run semantic map admission');
+  } finally { database.close(); }
+});
 
 test('original compiler plan is retained atomically and lookup never recaptures it', t => {
   const f = fixture(t), selected = f.owner.ticket();
@@ -61,6 +112,11 @@ test('copied wire or unowned compiler ticket cannot supply the first original ma
     runAdmissionEvidence: {...evidence, logicalPlanOriginal: planOriginal}},
   requestControl, f.owner.publication), {code: 'InvalidClientRunPlanOriginal'});
   assert.equal(f.lookup(), undefined);
+  for (const value of [null, {}, {...planOriginal,planViewWire:''},
+    {...planOriginal,compiledPlanWire:42}]) {
+    assert.throws(() => f.accept(f.owner.ticket(value)), {code:'InvalidClientRunPlanOriginal'});
+  }
+  assert.equal(f.lookup(),undefined);
 });
 
 test('original map aggregate bytes use the existing admission capacity', t => {
@@ -111,14 +167,21 @@ test('original map string values retain Unicode and line endings across storage 
   assert.deepEqual(JSON.parse(stored).logical_map.steps[0].names, names);
 });
 
-test('original reader failure retains evidence and cannot recapture a replacement', t => {
+test('original reader failure belongs to plan use and cannot recapture a replacement', async t => {
   const f = fixture(t); f.accept(f.owner.ticket());
   const reads = f.owner.counts.captureReads;
+  const originalFailure = new Error('OriginalMapReadFailure');
+  let mapReads = 0;
   const unavailable = {...f.owner.publication, readStoredRunPlanOriginal() {
-    throw new Error('OriginalMapReadFailure');
+    mapReads++;
+    throw originalFailure;
   }};
-  assert.throws(() => f.journal.lookupRunDefinition(f.ref, requestControl, unavailable),
-    {code: 'ClientRequestPlanReadUnknown'});
+  const lookupOriginal = () => f.journal.lookupRunDefinition(f.ref,requestControl,unavailable);
+  assert.equal(lookupOriginal().runDefinition.identity,definition.identity);
+  assert.equal(mapReads,0,'an unused map reader cannot block Run metadata or cleanup');
+  const read = installClientRunPlan({authorize:()=>true,lookupOriginal,control:unavailable});
+  await assert.rejects(read(planRequest(f.ref)),error=>error===originalFailure);
+  assert.equal(mapReads,1);
   assert.deepEqual(f.lookup().runAdmissionEvidence.logicalPlanOriginal, planOriginal);
   assert.equal(f.owner.counts.captureReads, reads);
   assert.equal(f.lookup().revision, 0);

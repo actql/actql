@@ -570,12 +570,20 @@ pub fn emit_prepared_client_task_pipeline(
   // Selected consumers of a Content completion retain the original checked
   // producer boundary, rather than trying to lower generation as pure Compute.
   let mut completed_serialization = None
+  let mut completed_infer = None
   if selected is Some(step) {
     let prepared = @lower.bound_preparation(owner)
     for producer in 0..<step {
       if @lower.node_at(prepared, producer) is Some(node) &&
         @lower.payload(node) is @lower.Serialize(_) {
         completed_serialization = Some((producer, end_step))
+      }
+    }
+    for
+      occurrence in prepared_client_composed_infer_occurrences(value).unwrap_or([],
+      ) {
+      if physical_equal(occurrence.preparation, owner) && occurrence.step < step {
+        completed_infer = Some(occurrence.step)
       }
     }
   }
@@ -590,6 +598,7 @@ pub fn emit_prepared_client_task_pipeline(
     max_wire_bytes,
     max_nodes,
     max_depth,
+    infer_boundary=completed_infer,
     completed_serialization~,
   )
 }
@@ -956,6 +965,12 @@ pub struct ClientValuesAoAIdentity {
 }
 
 ///|
+priv struct ClientValuesAoAParts {
+  identity : ClientValuesAoAIdentity
+  body : @canonical.CanonicalValue
+}
+
+///|
 pub(all) enum ClientValuesAoAIdentityIssue {
   Pipeline(ClientValuesPipelineIssue)
   NoncanonicalPipeline
@@ -1156,6 +1171,20 @@ fn issue_client_values_aoa_identity_graph(
   max_nodes : Int,
   max_depth : Int,
 ) -> Result[ClientValuesAoAIdentity, ClientValuesAoAIdentityIssue] {
+  issue_client_values_aoa_parts_graph(
+    graph, task, limits, max_wire_bytes, max_nodes, max_depth,
+  ).map(parts => parts.identity)
+}
+
+///|
+fn issue_client_values_aoa_parts_graph(
+  graph : @strategy.CheckedDAG,
+  task : Int,
+  limits : @lower.SequenceLimits,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[ClientValuesAoAParts, ClientValuesAoAIdentityIssue] {
   let wire = match
     emit_client_values_pipeline_graph(
       graph, task, limits, max_wire_bytes, max_nodes, max_depth,
@@ -1178,7 +1207,7 @@ fn issue_client_values_aoa_identity_graph(
   let cid = @canonical.cid_value(body, max_wire_bytes, max_nodes, max_depth) catch {
     _ => return Err(Encoding)
   }
-  Ok({ wire, cid, })
+  Ok({ identity: { wire, cid, }, body, })
 }
 
 ///|
@@ -1387,13 +1416,14 @@ pub fn prepare_effect_free_client_program(
   environment : @checked.CheckEnvironment,
   supplied : @decode.Cursor?,
   limits : ClientProgramPreparationLimits,
+  source_catalog? : @checked.PreparedSourceCatalog? = None,
 ) -> Result[PreparedClientProgram, ClientProgramPreparationIssue] {
   let parsed = match @syntax.parse(document, limits.checking.input, format~) {
     Ok(value) => value
     Err(issue) => return Err(Syntax(issue))
   }
   prepare_parsed_effect_free_client_program(
-    parsed, environment, supplied, limits,
+    parsed, environment, supplied, limits, source_catalog~,
   )
 }
 

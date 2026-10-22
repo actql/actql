@@ -33,7 +33,32 @@ pub fn charge_original_model_observation_step(
     original_model_publication_capacity_current(value, execution, scope) else {
     return Err(OutputIdentity)
   }
-  @resources.charge_planning(execution.state.ledger, 1).map_err(issue => {
-    Ledger(issue)
-  })
+  if execution.state.original_startup is Some(startup) &&
+    startup.shared_mock is Some(purpose) &&
+    purpose.publication_planning >= purpose.limits.ledger.planning_work {
+    return Err(Ledger(@resources.PlanningLimit))
+  }
+  let shared = execution.state.original_startup is Some(startup) &&
+    startup.shared_mock is Some(_)
+  if shared {
+    execution.advancing = true
+  }
+  match @resources.charge_planning(execution.state.ledger, 1) {
+    Err(issue) => {
+      if shared {
+        execution.advancing = false
+      }
+      Err(Ledger(issue))
+    }
+    Ok(_) => {
+      if execution.state.original_startup is Some(startup) &&
+        startup.shared_mock is Some(purpose) {
+        purpose.publication_planning += 1
+      }
+      if shared {
+        execution.advancing = false
+      }
+      Ok(())
+    }
+  }
 }

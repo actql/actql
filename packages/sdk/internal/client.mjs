@@ -2,7 +2,7 @@
 import {createCheckOperation} from './check-observation.mjs';
 import {createCheckpointOperations} from './checkpoint-operations.mjs';
 import {createClientLifecycle} from './client-lifecycle.mjs';
-import {captureResponse, freezeInput, structuralKey} from './data.mjs';
+import {captureResponse, freezeInput} from './data.mjs';
 import {ClientError, fail} from './errors.mjs';
 import {createPlan} from './plan.mjs';
 import {createResources} from './resources.mjs';
@@ -32,17 +32,10 @@ export async function connectSelected(selected, port) {
   try { profile = await responseValue(profileResponse); }
   catch (cause) { throw new ClientError('InvalidHostProfile', {cause}); }
   try {
-    // Negotiated scope and limits use the same owned observation as later
-    // replies. Neither validation nor conversion may rebind that context.
+    // Capture detaches caller-owned fields once. Validate that owned snapshot;
+    // a second clone/admission cannot add facts to this connection boundary.
     profile = captureResponse(profile);
     if (!validClientProfile(profile, selected.wire)) fail('InvalidHostProfile');
-    const observation = profile;
-    const observedKey = structuralKey(profile);
-    profile = structuredClone(profile);
-    if (!validClientProfile(profile, selected.wire)) fail('InvalidHostProfile');
-    if (structuralKey(profile) !== observedKey) fail('InvalidHostProfile');
-    if (structuralKey(observation) !== observedKey) fail('InvalidHostProfile');
-    profile = observation;
   } catch { fail('InvalidHostProfile'); }
   const confirmed = freezeInput(profile);
 

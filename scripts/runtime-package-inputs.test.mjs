@@ -9,7 +9,7 @@ import {productionPackageImports} from './source-dependency-closure.mjs';
 import {sourceInterfaceClosure} from './source-interface-closure.mjs';
 import {typescriptInterface, typescriptInterfaceClosure} from './typescript-interface-inventory.mjs';
 import {npmInterfaceRoots} from './distribution-interface-roots.mjs';
-import {assertInterfaceCoverage} from './interface-inventory.mjs';
+import {assertInterfaceCoverage, javascriptInterface} from './interface-inventory.mjs';
 
 test('ordinary runtime builder consumes the same side-effect-free input reader', () => {
   const root = process.cwd(), inputs = runtimePackageInputs(root);
@@ -107,4 +107,42 @@ test('pinned TypeScript parser inventories named declaration roles and relative 
     parameters: ['run: string', 'task: string'], result: 'Promise<void>'});
   assert(typescriptInterfaceClosure(process.cwd(), ['packages/sdk/index.d.ts'])
     .some(value => value.module === 'packages/sdk/standard-schema.d.ts'));
+});
+
+test('ordinary Local source binds its finite native delivery images to the actual build inputs', async () => {
+  const result = await sourceInterfaceClosure(process.cwd(), {distributionRoots:
+    npmInterfaceRoots(process.cwd()).filter(value => value.name === '@actql/local-node')});
+  assert.equal(result.qualification, 'source-input-coverage-only');
+  const native = result.artifacts.filter(value => value.module.endsWith('.node'));
+  assert.equal(native.length, 4);
+  for (const artifact of native) {
+    assert.equal(artifact.build, 'scripts/build-node-directory-native.mjs');
+    assert.deepEqual(artifact.sourcePackages, []);
+    assert.deepEqual(artifact.sourceFiles, ['adapters/host-node/native/directory-darwin.c',
+      'adapters/connectors/local/site/root-filesystem.inc',
+      'adapters/connectors/local/site/root-file-writer.inc']);
+    assert.equal(artifact.qualification, 'native-build-input-reference-only');
+    assert.equal(artifact.sha256, undefined, 'Source coverage is not native artifact acceptance');
+  }
+  for (const path of [...native[0].sourceFiles, native[0].build]) {
+    assert(result.assets.some(value => value.module === path && value.qualification === 'compiled-native-build-source'));
+  }
+  const builder = readFileSync(native[0].build, 'utf8');
+  for (const path of native[0].sourceFiles) assert(builder.includes(`'${path}'`));
+  const host = result.modules.find(value => value.module === 'adapters/host-node/embedded-local.mjs');
+  assert.deepEqual(host.unresolvedSyntax, []);
+  assert.equal(host.imports.filter(path => path.endsWith('.node')).length, 4);
+  assert(result.modules.every(value => !value.module.endsWith('.node')));
+});
+
+test('unregistered native paths and computed require remain outside the fixed delivery mapping', async t => {
+  const root = process.cwd(), directory = mkdtempSync(join(root, '_build/interface-native-'));
+  t.after(() => rmSync(directory, {recursive: true}));
+  const name = relative(root, directory);
+  writeFileSync(join(directory, 'entry.mjs'), 'import {createRequire} from "node:module"; const require=createRequire(import.meta.url); export const value=require("./foreign.node");');
+  writeFileSync(join(directory, 'foreign.node'), Buffer.from([0xcf, 0xfa, 0xed, 0xfe]));
+  await assert.rejects(sourceInterfaceClosure(root, {distributionRoots: [
+    {name: '@actql/source-control', entrances: [`${name}/entry.mjs`]}]}), /Unregistered native source interface artifact/u);
+  assert.deepEqual(javascriptInterface('export function load(path) {return require(path);}').unresolvedSyntax,
+    ['runtime-dependent module dependency requires original owner/artifact mapping']);
 });

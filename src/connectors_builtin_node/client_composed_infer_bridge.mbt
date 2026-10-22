@@ -192,6 +192,78 @@ pub fn client_program_open_captured_composed_infer_host(
 }
 
 ///|
+/// Source-free Mock components use the same admitted Run as their Local
+/// driver. Provider construction does not create a replacement Ledger.
+#export_name("clientProgramOpenInstalledManagedSourceFreeComposedInferHost")
+pub fn client_program_open_installed_managed_source_free_composed_infer_host(
+  value : @client_local_host.ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientProgram,
+  request : @publication_host.ClientRequestIdentity,
+  registry : String,
+  values : String,
+  fragment : String?,
+  ordered : String?,
+  providers : Array[@local.ManagedProvider],
+) -> Result[
+  @builtin.ConfiguredComputeHost[@strategy.RunIssue]?,
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
+  @client_local_host.open_installed_managed_source_free_host(
+    value,
+    prepared,
+    request,
+    registry,
+    values,
+    fragment,
+    ordered,
+    true,
+    provider_factory=capacity => {
+      let families = installed_client_family_providers(capacity)
+      for provider in providers {
+        families.push(provider)
+      }
+      families
+    },
+  )
+}
+
+///|
+/// Both captured Sources and the Mock component borrow the already admitted
+/// Run. The Local driver remains the only scheduler; no scalar fallback or
+/// new resource parent is constructed by this provider connection.
+#export_name("clientProgramOpenMultiCapturedComposedInferHost")
+pub fn client_program_open_multi_captured_composed_infer_host(
+  prepared : @publication_host.PreparedClientProgram,
+  sources : Array[@query.CapturedInputSource],
+  ledger : @resources.Ledger,
+  registry : String,
+  values : String,
+  fragment : String?,
+  ordered : String?,
+  providers : Array[@local.ManagedProvider],
+) -> @builtin.ConfiguredComputeHost[@strategy.RunIssue]? {
+  if sources.length() != 2 {
+    return None
+  }
+  @client_local_host.open_multi_captured_local_retained_host(
+    prepared,
+    [(0, sources[0]), (1, sources[1])],
+    ledger,
+    registry,
+    values,
+    fragment,
+    ordered,
+    provider_factory=capacity => {
+      let families = installed_client_family_providers(capacity)
+      for provider in providers {
+        families.push(provider)
+      }
+      families
+    },
+  )
+}
+
+///|
 #export_name("clientProgramPrepareEffectInferSegments")
 pub fn client_program_prepare_effect_infer_segments(
   prepared : @publication_host.PreparedClientEffectComputation,
@@ -554,9 +626,16 @@ pub fn client_program_composed_infer_local_provider(
   observe_issue : (@infer_host.Issue) -> Unit,
   retain_completed : (@infer_host.Execution) -> Bool,
   allow_cleanup : (@infer_host.Execution) -> Bool,
+  input_prefix : @execution.GeneratedSequence?,
 ) -> @local.ManagedProvider {
   client_infer_local_provider(
-    occurrence, open, observe_issue, retain_completed, allow_cleanup, false,
+    occurrence,
+    open,
+    observe_issue,
+    retain_completed,
+    allow_cleanup,
+    false,
+    input_prefix~,
   )
 }
 
@@ -582,6 +661,7 @@ fn client_infer_local_provider(
   retain_completed : (@infer_host.Execution) -> Bool,
   allow_cleanup : (@infer_host.Execution) -> Bool,
   boundary_only : Bool,
+  input_prefix? : @execution.GeneratedSequence? = None,
 ) -> @local.ManagedProvider {
   @infer_host.composed_local_provider(
     occurrence,
@@ -599,6 +679,7 @@ fn client_infer_local_provider(
     retain_completed~,
     allow_cleanup~,
     boundary_only~,
+    input_prefix~,
   )
 }
 

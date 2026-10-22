@@ -294,6 +294,8 @@ pub fn client_values_host_prepare_pre_start_failure(@run_publication_host.Client
 
 pub fn client_values_host_prepare_program(String, String, @program_check.CheckEnvironment, String?) -> Result[ClientValuesHostProgramPreparation, ClientValuesHostProgramPreparationIssue]
 
+pub fn client_values_host_prepare_public_source_program(@run_publication_host.ClientSubmittedIntent, @program_check.CheckEnvironment, String) -> Result[@run_publication_host.ClientSourcePreparation, @run_publication_host.ClientSourcePreparationIssue]
+
 pub fn client_values_host_prepare_remote_task_physical_start(@run_publication_host.ClientRemoteTaskProgress, String, String, @run_publication_host.ClientRequestIdentity, @run_publication_host.ClientRequestIdentity, String, Bool, Bool, Bool, Bool, Bool) -> Result[Bool, Unit]
 
 pub fn client_values_host_prepare_result_delivery_serializer(String, String, Array[String], Int, Int, Int) -> @run_publication.ResultDeliverySerializer raise ClientValuesHostDeliveryIssue

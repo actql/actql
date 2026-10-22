@@ -6,6 +6,7 @@ export {getCheckReasonCatalogInfo, getCheckReasonCatalogEntry,
 import type {ClientSourceFormat, WireCancellationAttempt, WireCancellationRef, WireOperationAttemptRef,
   WireCancellationLookup, WireCheckpointSummary, WireClientProfile,
   WireConnection, WireSubmissionRef, WireSubmissionOutcome, WireSubmissionLookup, WireSubmissionRestart, WireSubmissionAttempt,
+  WireNamedSubmissionAttempt,
   WireRequestCancellation,
   WireDeliveryAttemptLookup, WireHeldRequest, WireRequestLookup,
   WireResolveItem, WireResolveResult, WireRunRef,
@@ -18,8 +19,8 @@ export type RunReference = WireRunRef;
 export type CancellationReference = WireCancellationRef;
 export type CancellationLookup = WireCancellationLookup;
 export type SubmissionReference = WireSubmissionRef;
-export type SubmissionOutcome = WireSubmissionOutcome;
-export type SubmissionAttempt = WireSubmissionAttempt;
+export type SubmissionOutcome = WireSubmissionOutcome | Extract<WireSubmissionLookup, {kind: 'unresolvable'}>;
+export type SubmissionAttempt = WireSubmissionAttempt | WireNamedSubmissionAttempt;
 export type SubmissionLookup = WireSubmissionLookup;
 /** actql-check-outcome/0.1. */
 export type CheckOutcome = WireCheckOutcome;
@@ -133,6 +134,9 @@ export declare function createCheckSupplementationSession(client: Pick<Client, '
   options: Readonly<{maxAttempts: number}>): CheckSupplementationSession;
 export type SubmissionInput = Readonly<{
   requestId: string;
+  /** A public scoped name; the retained submissionRef is its sent first-binding
+   * candidate, not evidence that this candidate became the durable original. */
+  requestName?: string;
   submissionRef?: WireSubmissionRef;
   attemptRef?: WireOperationAttemptRef;
   unresolvedHistory?: WireSubmissionRestart;
@@ -561,6 +565,9 @@ export interface Execution {
 type SubmissionIdentityOptions = (
   /** Omit for deliberate new work; retain getSubmissionInput(promise) before awaiting. */
   Readonly<{submissionRef?: undefined; requestId?: never; unresolvedHistory?: never}> |
+  /** Scoped durable name, resolved by the Host's original named-submission
+   * Owner. A new connection's candidate never replaces saved named custody. */
+  Readonly<{submissionRef?: undefined; requestId: string; unresolvedHistory?: never}> |
   /** requestId only asserts this original nonce; it never allocates an identity. */
   Readonly<{submissionRef: WireSubmissionRef; requestId?: string;
     unresolvedHistory?: WireSubmissionRestart}>

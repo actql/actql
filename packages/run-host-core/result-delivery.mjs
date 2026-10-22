@@ -49,9 +49,18 @@ function validateControl(control) {
 }
 
 function selectDeliveryAttempt(control, admitted, proposed, index, manifest,
-  grant, request, limits) {
+  grant, request, limits, original) {
   try {
-    if (typeof admitted?.created !== 'boolean' || admitted.attempt === null ||
+    if (typeof admitted?.created !== 'boolean') fail('InvalidResultDeliveryAttemptState');
+    if (admitted.original !== undefined) {
+      if (original === undefined || admitted.original !== original) {
+        fail('InvalidResultDeliveryAttemptState');
+      }
+      // The physical owner selected this exact issued immutable attempt.
+      // The opaque echo is not a claim, durability ACK or read permission.
+      return proposed;
+    }
+    if (admitted.attempt === null ||
         typeof admitted.attempt !== 'object' || Array.isArray(admitted.attempt)) {
       fail('InvalidResultDeliveryAttemptState');
     }
@@ -110,8 +119,8 @@ function validateRequest(options) {
   }
 }
 
-async function requireCurrentAuthorization(authorize, facts) {
-  if (await authorize(Object.freeze(facts)) !== true) {
+async function requireCurrentAuthorization(authorize, facts, sinkCallbackCount) {
+  if (await authorize(Object.freeze({...facts, sinkCallbackCount})) !== true) {
     fail('ResultDeliveryDenied');
   }
 }
@@ -171,12 +180,21 @@ function pendingRecordFailure(
   control,
   records,
   recordFailure,
+  appendRecord = record => appendExactRecord(store, record),
 ) {
   const failure = new DeliveryRecordDurabilityFailure(code, reason);
   const errors = [recordFailure];
   let pending = true;
   let nextRecord = 0;
   let retrying;
+  let pendingChild;
+  const retainChild = error => {
+    const child = error?.cleanupHandle;
+    if (child !== undefined) {
+      pendingChild = {child, status: child.status, retry: child.retry};
+    }
+  };
+  retainChild(recordFailure);
   const status = () => Object.freeze({
     pending,
     errors: Object.freeze([...errors]),
@@ -206,9 +224,25 @@ function pendingRecordFailure(
             fail('InvalidResultDeliveryRecordRetry');
           }
           try {
-            await appendExactRecord(store, records[nextRecord]);
+            if (pendingChild !== undefined) {
+              const {child, status, retry} = pendingChild;
+              if (typeof status !== 'function' || typeof retry !== 'function') {
+                fail('ResultDeliveryDurabilityPending');
+              }
+              let observation = await Reflect.apply(status, child, []);
+              if (Object.getOwnPropertyDescriptor(observation ?? {}, 'pending')?.value !== false) {
+                await Reflect.apply(retry, child, []);
+                observation = await Reflect.apply(status, child, []);
+              }
+              if (Object.getOwnPropertyDescriptor(observation ?? {}, 'pending')?.value !== false) {
+                fail('ResultDeliveryDurabilityPending');
+              }
+              pendingChild = undefined;
+            }
+            await appendRecord(records[nextRecord]);
             nextRecord++;
           } catch (error) {
+            if (pendingChild === undefined) retainChild(error);
             errors.push(error);
             break;
           }
@@ -248,6 +282,17 @@ export async function deliverPublishedResult(options, resolvedPublication) {
   validateControl(options.control);
   const {store, control, indexKey, grant, resultName, format, attemptId,
     limits, frameLimits, now, sink, createDigest, authorize, signal} = options;
+  // Existing delivery-local state identifies actual application output
+  // callbacks, not internal awaits or another public authorization frame.
+  let sinkCallbackCount = 0;
+  const appendCompletion = store.appendDeliveryCompletion;
+  if (appendCompletion !== undefined && typeof appendCompletion !== 'function') {
+    fail('InvalidResultDeliveryStore');
+  }
+  const beginAttempt = store.beginDeliveryAttempt;
+  if (beginAttempt !== undefined && typeof beginAttempt !== 'function') {
+    fail('InvalidResultDeliveryStore');
+  }
   // The access owner has already read these immutable typed contracts. This
   // operation-local handoff is neither a read grant nor a cross-call cache.
   // Capture it before the current-head await and preserve the generic path
@@ -295,7 +340,7 @@ export async function deliverPublishedResult(options, resolvedPublication) {
     ...authorizationFacts,
     stage: 'attempt',
     observedAt: requestedAt,
-  });
+  }, sinkCallbackCount);
   const proposed = control.issueDeliveryAttempt(
     index,
     manifest,
@@ -303,11 +348,23 @@ export async function deliverPublishedResult(options, resolvedPublication) {
     {resultName, format, attemptId, requestedAt},
     limits,
   );
-  const admitted = await store.createDeliveryAttempt(
-    proposed.wire, grant.wire,
-  );
+  const original = typeof control.captureIssuedDeliveryAttempt === 'function'
+    ? control.captureIssuedDeliveryAttempt(proposed, index, manifest, grant, limits)
+    : undefined;
+  // The same issued attempt and initial state can become durable together.
+  // No sink or material reader runs before the physical owner returns.
+  const initialStreaming = beginAttempt === undefined || original === undefined ? undefined :
+    control.issueDeliveryRecord(proposed, undefined, {
+      state: 'streaming', confirmedByteCount: 0, exposure: 'exact',
+      possibleUnconfirmedMaxBytes: undefined, deliveredSha256: undefined,
+      receipt: undefined, failureCid: undefined, observedAt: requestedAt,
+      cleanupOwnerCids: [],
+    }, limits);
+  const admitted = initialStreaming === undefined ? await store.createDeliveryAttempt(
+    proposed.wire, grant.wire, original,
+  ) : await Reflect.apply(beginAttempt, store, [original, initialStreaming]);
   const attempt = selectDeliveryAttempt(control, admitted, proposed, index,
-    manifest, grant, {resultName, format, attemptId}, limits);
+    manifest, grant, {resultName, format, attemptId}, limits, original);
   if (!admitted.created) {
     const existing = await store.latestDeliveryRecordContract(
       attempt.identity,
@@ -335,7 +392,7 @@ export async function deliverPublishedResult(options, resolvedPublication) {
           attempt,
           stage: 'receipt',
           observedAt: trustedNow(now),
-        });
+        }, sinkCallbackCount);
         const receipt = await store.readPublicationContract(
           value.result_delivery_receipt_cid,
           'result_delivery_receipt',
@@ -364,7 +421,7 @@ export async function deliverPublishedResult(options, resolvedPublication) {
   let confirmedByteCount = 0;
   let writeFailure;
   try {
-    streaming = control.issueDeliveryRecord(attempt, undefined, {
+    streaming = initialStreaming ?? control.issueDeliveryRecord(attempt, undefined, {
       state: 'streaming',
       confirmedByteCount: 0,
       exposure: 'exact',
@@ -375,7 +432,9 @@ export async function deliverPublishedResult(options, resolvedPublication) {
       observedAt: trustedNow(now),
       cleanupOwnerCids: [],
     }, limits);
-    try { await store.appendDeliveryRecord(streaming.wire); }
+    try {
+      if (initialStreaming === undefined) await store.appendDeliveryRecord(streaming.wire);
+    }
     catch (recordFailure) {
       const terminal = control.issueDeliveryRecord(attempt, streaming, {
         state: 'failed',
@@ -429,13 +488,14 @@ export async function deliverPublishedResult(options, resolvedPublication) {
         observedAt,
         confirmedByteCount,
         nextByteCount: confirmedByteCount + bytes.byteLength,
-      });
+      }, sinkCallbackCount);
       const dispatchAt = trustedNow(now);
       if (!control.resultReadGrantValidAt(grant, dispatchAt)) {
         fail('ResultDeliveryGrantExpired');
       }
       signal?.throwIfAborted();
       let result;
+      sinkCallbackCount++;
       try { result = await sink.write(bytes, signal); }
       catch (reason) {
         writeFailure = sinkFailure(reason, bytes.byteLength);
@@ -481,7 +541,7 @@ export async function deliverPublishedResult(options, resolvedPublication) {
           resultSchemaCid: metadata.resultSchemaCid,
           rowCount: metadata.rowCount,
           payloadBytes: metadata.payloadBytes,
-        });
+        }, sinkCallbackCount);
         const serializer = control.prepareResultDeliverySerializer(
           format,
           metadata.resultSchemaWire,
@@ -503,8 +563,9 @@ export async function deliverPublishedResult(options, resolvedPublication) {
       stage: 'finish',
       observedAt: finishedAt,
       confirmedByteCount,
-    });
+    }, sinkCallbackCount);
     signal?.throwIfAborted();
+    sinkCallbackCount++;
     await finishSink(sink, signal);
     const committedAt = trustedNow(now);
     if (!control.resultReadGrantValidAt(grant, committedAt)) {
@@ -516,7 +577,7 @@ export async function deliverPublishedResult(options, resolvedPublication) {
       stage: 'receipt',
       observedAt: committedAt,
       confirmedByteCount,
-    });
+    }, sinkCallbackCount);
     const deliveredSha256 = await digest.finish();
     if (!digestPattern.test(deliveredSha256)) {
       fail('InvalidResultDeliveryDigest');
@@ -529,7 +590,9 @@ export async function deliverPublishedResult(options, resolvedPublication) {
       {byteCount: confirmedByteCount, sha256: deliveredSha256},
       limits,
     );
-    await store.putPublicationContract(receipt.name, receipt.wire);
+    if (appendCompletion === undefined) {
+      await store.putPublicationContract(receipt.name, receipt.wire);
+    }
     const succeeded = control.issueDeliveryRecord(attempt, streaming, {
       state: 'succeeded',
       confirmedByteCount,
@@ -541,7 +604,12 @@ export async function deliverPublishedResult(options, resolvedPublication) {
       observedAt: committedAt,
       cleanupOwnerCids: [],
     }, limits);
-    try { await appendExactRecord(store, succeeded); }
+    const appendSucceeded = appendCompletion === undefined ? undefined : record =>
+      Reflect.apply(appendCompletion, store, [attempt, receipt, record]);
+    try {
+      if (appendSucceeded === undefined) await appendExactRecord(store, succeeded);
+      else await appendSucceeded(succeeded);
+    }
     catch (recordFailure) {
       throw pendingRecordFailure(
         'ResultDeliveryDurabilityPending',
@@ -550,6 +618,7 @@ export async function deliverPublishedResult(options, resolvedPublication) {
         control,
         [succeeded],
         recordFailure,
+        appendSucceeded,
       );
     }
     return Object.freeze({

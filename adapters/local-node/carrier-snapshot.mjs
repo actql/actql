@@ -2,7 +2,8 @@
 // common driver owns work, checked ports, source revocation and restored custody.
 // This adapter neither interprets Graph records nor issues completion evidence.
 import {createMoonBitRetainedRowFrames} from '../store-local/moonbit-row-frames.mjs';
-const yieldToHost = () => new Promise(resolve => setTimeout(resolve, 0));
+const yieldToHost = () => new Promise(resolve =>
+  typeof setImmediate === 'function' ? setImmediate(resolve) : setTimeout(resolve, 0));
 const quantum = 32;
 
 const validateAdvance = observation => {

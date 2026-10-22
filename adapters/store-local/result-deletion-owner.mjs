@@ -34,7 +34,7 @@ export function createResultDeletionOwner(operations) {
               settle(true);
               return;
             }
-            await operations.unlink();
+            if (allocation !== 'missing-unconfirmed') await operations.unlink();
             unlinked = true;
           }
           await operations.syncObjects();

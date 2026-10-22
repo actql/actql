@@ -903,7 +903,6 @@ fn selected_relation_provider(
           .map(carrier => @carrier.kind(carrier) == @carrier.RelationKind)
           .unwrap_or(false)
       }
-      let used_by_later = Array::make(count, false)
       for index in 0..<count {
         guard @execution.generated_sequence_step_index_at(sequence, index)
           is Some(step) &&
@@ -984,20 +983,17 @@ fn selected_relation_provider(
                 if producer_position < 0 {
                   return false
                 }
-                used_by_later[producer_position] = true
               }
               None => return false
             }
           }
         }
       }
-      // An external-only child may form a second branch. Every private
-      // output before the final step must still be consumed within the task.
-      for index in 0..<(count - 1) {
-        if !used_by_later[index] {
-          return false
-        }
-      }
+      // Checked lowering may retain an unconsumed branch before the terminal
+      // operation (for example the public projection beside STORE inputs).
+      // This chain still executes every selected step: its capacity includes
+      // every child, failures stop the task, and all child cleanup is retained.
+      // Only producer edges must resolve to an earlier exact checked occurrence.
       match
         @execution.completion_preparation_selected_step(
           @execution.generated_completion_preparation(sequence),

@@ -1,4 +1,130 @@
 ///|
+#export_name("clientLocalCheckpointProofPrepare")
+pub fn client_local_checkpoint_proof_prepare(
+  checkpoint_wire : String,
+  unsigned_resolution_wire : String,
+) -> Result[
+  @publication_host.ClientLocalCheckpointProof,
+  @publication_host.ClientLocalCheckpointProofIssue,
+] {
+  @publication_host.prepare_client_local_checkpoint_proof(
+    checkpoint_wire, unsigned_resolution_wire,
+  )
+}
+
+///|
+#export_name("clientLocalCheckpointProofPreimage")
+pub fn client_local_checkpoint_proof_preimage(
+  proof : @publication_host.ClientLocalCheckpointProof,
+) -> String {
+  proof.preimage()
+}
+
+///|
+#export_name("clientLocalCheckpointProofActor")
+pub fn client_local_checkpoint_proof_actor(
+  proof : @publication_host.ClientLocalCheckpointProof,
+) -> String {
+  proof.actor()
+}
+
+///|
+#export_name("clientLocalCheckpointProofSeal")
+pub fn client_local_checkpoint_proof_seal(
+  proof : @publication_host.ClientLocalCheckpointProof,
+  key_id : String,
+  signature : String,
+) -> Result[String, @publication_host.ClientLocalCheckpointProofIssue] {
+  proof.seal(key_id, signature)
+}
+
+///|
+#export_name("clientLocalCheckpointProofEffectSubject")
+pub fn client_local_checkpoint_proof_effect_subject(
+  materials : @publication_host.ClientEffectRunMaterials,
+  reference_wire : String,
+  checkpoint_wire : String,
+) -> Result[(String, String), @publication_host.ClientLocalCheckpointProofIssue] {
+  @publication_host.client_local_checkpoint_effect_subject(
+    materials, reference_wire, checkpoint_wire,
+  )
+}
+
+///|
+/// Project the same admitted Run's immutable lifetime. This is neither a new
+/// admission nor a renewal; the Host retains current authority independently.
+#export_name("clientLocalCheckpointRunLifetime")
+pub fn client_local_checkpoint_run_lifetime(
+  definition : @publication.PublicationContract,
+  expected_cid : String,
+) -> Result[(String, String), @publication_host.ClientLocalCheckpointProofIssue] {
+  if @publication.publication_contract_identity(definition) != expected_cid {
+    return Err(ForeignOriginal)
+  }
+  match @publication.run_definition_lifetime(definition) {
+    Some(lifetime) => Ok(lifetime)
+    None => Err(ForeignOriginal)
+  }
+}
+
+///|
+/// Canonical public-byte identity only. The Host must independently retain the
+/// actual adopted private key, generation, purpose and current authority.
+#export_name("clientLocalSigningPublicKeyOriginal")
+pub fn client_local_signing_public_key_original(
+  raw32 : Bytes,
+) -> Result[(String, String), @credential.LocalSigningPublicKeyIssue] {
+  match @credential.prepare_local_signing_public_key(raw32) {
+    Ok(key) => Ok((key.json(), key.cid()))
+    Err(issue) => Err(issue)
+  }
+}
+
+///|
+/// Packaged policy DATA for explicit first initialization only. The Host must
+/// persist this original with its actual initialization intent; this getter
+/// cannot backfill a missing adoption or authorize a physical key operation.
+#export_name("clientLocalSigningBootstrapOriginal")
+pub fn client_local_signing_bootstrap_original() -> (String, String) {
+  let policy = @publication_host.client_local_default_signing_bootstrap_policy()
+  (policy.original_wire(), policy.cid())
+}
+
+///|
+/// Authenticate saved policy DATA and compute the first issue's finite
+/// candidate. The actual clock sample, original intent, key custody, current
+/// authority and durable one-shot claim remain the physical Host's duties.
+#export_name("clientLocalSigningBootstrapIssue")
+pub fn client_local_signing_bootstrap_issue(
+  policy_wire : String,
+  policy_cid : String,
+  initialization_intent_cid : String,
+  trusted_sample_ms : Int64,
+  original_valid_until_ms : Int64,
+) -> Result[
+  (String, Int64, Int64, Int),
+  @publication_host.ClientLocalSigningBootstrapIssueError,
+] {
+  let policy = match
+    @publication_host.admit_client_local_signing_bootstrap_policy(
+      policy_wire, policy_cid,
+    ) {
+    Ok(policy) => policy
+    Err(issue) => return Err(issue)
+  }
+  let issuer = match policy.issuer_identity(initialization_intent_cid) {
+    Ok(issuer) => issuer
+    Err(issue) => return Err(issue)
+  }
+  let issue = match
+    policy.prepare_first_issue(trusted_sample_ms, Some(original_valid_until_ms)) {
+    Ok(issue) => issue
+    Err(issue) => return Err(issue)
+  }
+  Ok((issuer, issue.sampled_at(), issue.expires_at(), policy.max_uses()))
+}
+
+///|
 /// DATA metadata only. The physical Host must independently retain original
 /// key/issuer/current authority and the durable claim before signing. An admitted
 /// grant/use here is not an adoption, permission, signature or cleanup ACK.

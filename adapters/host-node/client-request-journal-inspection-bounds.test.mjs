@@ -160,7 +160,58 @@ test('fixed journal markers use no whole-file materialization during admission o
   scratch.passed();
 });
 
-for(const mode of['false','throw'])test('real marker FD '+mode+' close retains the original callback and close-only retry',async()=>{
+test('consumed marker close Unknown cannot close a reused descriptor during cleanup observation',async()=>{
+  const{directory,scratch}=await fixture();
+  const first=openClientRequestJournal(directory);first.close();
+  const sentinel=join(scratch.path,'separate-original');
+  await writeFile(sentinel,'separate original must stay open');
+  const originalOpen=fs.openSync,originalClose=fs.closeSync;
+  let marker,reused,pending,closes=0,injected=false;
+  const cause=Object.freeze(new Error('OriginalCloseOutcomeLost'));
+  fs.openSync=function(path,...args){
+    const fd=Reflect.apply(originalOpen,fs,[path,...args]);
+    if(path===join(directory,'journal-format.json'))marker=fd;
+    return fd;
+  };
+  fs.closeSync=function(fd){
+    if(fd===marker){
+      closes++;
+      if(!injected){
+        injected=true;
+        Reflect.apply(originalClose,fs,[fd]);
+        reused=Reflect.apply(originalOpen,fs,[sentinel,'r']);
+        assert.equal(reused,marker,'fresh synchronous descriptor reuse is required by this counter');
+        throw cause;
+      }
+    }
+    return Reflect.apply(originalClose,fs,[fd]);
+  };
+  syncBuiltinESMExports();
+  try{
+    assert.throws(()=>openClientRequestJournal(directory),failure=>{
+      assert.equal(failure.code,'ClientRequestJournalInspectionCleanupPending');
+      assert.strictEqual(failure.primaryFailure,cause);
+      pending=failure.cleanupHandle;return failure.cleanupPending===true;
+    });
+    assert.equal(injected,true);
+    const identity=fs.statSync(sentinel,{bigint:true});
+    for(let attempt=0;attempt<2;attempt++){
+      assert.equal(pending.retry().pending,true);
+      const actual=fs.fstatSync(reused,{bigint:true});
+      assert.equal(actual.dev,identity.dev);assert.equal(actual.ino,identity.ino);
+    }
+    assert.equal(closes,1);
+  }finally{
+    fs.openSync=originalOpen;fs.closeSync=originalClose;syncBuiltinESMExports();
+    // Only the counter owns this separate fresh descriptor. This is not an
+    // ACK of the product's unknown original or a cleanup retry for its number.
+    if(reused!==undefined){try{fs.fstatSync(reused);Reflect.apply(originalClose,fs,[reused]);}
+      catch(error){if(error.code!=='EBADF')throw error;}}
+  }
+  scratch.passed();
+});
+
+for(const mode of['false','throw'])test('real marker FD '+mode+' close retains consumed-close Unknown without another close',async()=>{
   const{directory,scratch}=await fixture();
   const first=openClientRequestJournal(directory);first.close();
   const originalOpen=fs.openSync,originalRead=fs.readSync,originalClose=fs.closeSync;
@@ -187,13 +238,17 @@ for(const mode of['false','throw'])test('real marker FD '+mode+' close retains t
     });
     const capturedReads=reads;
     assert.equal(pending.status().pending,true);assert.equal(closes,1);
-    assert.equal(pending.retry().pending,true);assert.equal(closes,2);
+    assert.equal(pending.retry().pending,true);assert.equal(closes,1);
     assert.equal(reads,capturedReads);
-    allow=true;assert.equal(pending.retry().pending,false);assert.equal(closes,3);
+    allow=true;assert.equal(pending.retry().pending,true);assert.equal(closes,1);
     assert.equal(reads,capturedReads);
   }finally{
-    allow=true;if(pending?.status().pending)pending.retry();journal?.close();
     fs.openSync=originalOpen;fs.readSync=originalRead;fs.closeSync=originalClose;syncBuiltinESMExports();
+    // This fault fixture deliberately did NOT enter the native close. The
+    // fixture still owns that open descriptor and closes it exactly once for
+    // teardown; this does not turn the product's unknown outcome into an ACK.
+    if(fd!==undefined)Reflect.apply(originalClose,fs,[fd]);
+    journal?.close();
   }
   scratch.passed();
 });

@@ -26,10 +26,14 @@ import {
   randomUUID,
 } from 'node:crypto';
 import {resolve} from 'node:path';
+import {Buffer as OriginalBuffer} from 'node:buffer';
+import {assertHostJournalDirectoryInspector, inspectHostJournalDirectory}
+  from '../host-node/host-journal-directory.mjs';
 import {createObjectWriterOwner} from './object-writer-owner.mjs';
 import {createResultDeletionOwner} from './result-deletion-owner.mjs';
 import {createMetadataDeletionOwner} from './metadata-deletion-owner.mjs';
 import {createPublicationCommitOwner} from './publication-commit-owner.mjs';
+import {openDeliveryAttemptIndex} from './delivery-attempt-index.mjs';
 
 // Internal physical adapter primitive, not a Client read/authority entry. Its
 // caller funds the complete metadata/decode lifetime before I/O and retains
@@ -38,6 +42,22 @@ import {createPublicationCommitOwner} from './publication-commit-owner.mjs';
 export {readBounded as readBoundedLocalMetadata};
 
 const cidPattern = /^sha256:([0-9a-f]{64})$/u;
+const originalByteLength = OriginalBuffer.byteLength;
+const originalApply = Reflect.apply;
+
+// Read-only facility correspondence for the selected startup. Matching these
+// actual imports does not issue a service, key, capacity or permission.
+export function assertOriginalLocalPublicationStoreFacilityCurrent(bindings) {
+  const originals = {promises: {lstat, link, mkdir, open, opendir, readdir, readFile,
+    rename, rm, rmdir, unlink, writeFile},
+    crypto: {createCipheriv, createDecipheriv, createHash, randomBytes, randomUUID},
+    buffer: {alloc: OriginalBuffer.alloc, allocUnsafe: OriginalBuffer.allocUnsafe,
+      allocUnsafeSlow: OriginalBuffer.allocUnsafeSlow, byteLength: originalByteLength,
+      concat: OriginalBuffer.concat, from: OriginalBuffer.from, isBuffer: OriginalBuffer.isBuffer}};
+  for (const group of Object.keys(originals)) for (const name of Object.keys(originals[group])) {
+    if (bindings?.[group]?.[name] !== originals[group][name]) fail('PublicationStoreFacilityChanged');
+  }
+}
 // Physical holdings: Transfer material, Effect source/capture custody,
 // encrypted publication evidence, Local continuation evidence, and generated
 // or captured Content. These are kinds in the same physical custody owner,
@@ -53,6 +73,20 @@ const localContinuationEvidenceNames = Object.freeze([
   'review_projection', 'continuation_record', 'source_capture',
   'original_model_state',
 ]);
+const nativeDeliveryContractNames = Object.freeze([
+  'delivery_attempt', 'result_read_grant', 'delivery_record', 'result_delivery_receipt',
+]);
+// These objects retain their existing file/alias representation. Other
+// publication contracts may live in the same Store's native metadata table.
+const filePublicationContractNames = Object.freeze(['public_index_entry','schema',
+  'publication_attempt','publication_record',...nativeDeliveryContractNames]);
+const nativePublicationContract = name => !filePublicationContractNames.includes(name);
+const nativeContractRead = name => nativePublicationContract(name) || nativeDeliveryContractNames.includes(name);
+const metadataContractObject = object => object !== null && typeof object === 'object' &&
+  cidPattern.test(object.semantic_cid) && quantity(object.byte_count) && (
+    exactKeys(object, ['semantic_cid','physical_cid','byte_count']) && cidPattern.test(object.physical_cid) ||
+    exactKeys(object, ['semantic_cid','native','body_sha256','byte_count']) &&
+      object.native === 'sqlite' && cidPattern.test(object.body_sha256));
 const recordNamePattern = /^(0|[1-9][0-9]*)\.json$/u;
 const custodyNamePattern =
   /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\.json$/u;
@@ -296,7 +330,15 @@ async function readBounded(path, maximum, closed, signal, ownerOnly = false) {
   }
   let readFailure;
   let readFailed = false;
+  let originalClose;
+  const captureClose = () => {
+    if (originalClose !== undefined) return;
+    const method = handle.close;
+    if (typeof method !== 'function') fail('PublicationMetadataReaderCleanupPending');
+    originalClose = method;
+  };
   try {
+    captureClose();
     signal?.throwIfAborted();
     const before = await handle.stat({bigint: true});
     signal?.throwIfAborted();
@@ -353,13 +395,15 @@ async function readBounded(path, maximum, closed, signal, ownerOnly = false) {
     throw error;
   } finally {
     try {
-      if (await handle.close() === false) fail('PublicationMetadataReaderCleanupPending');
+      captureClose();
+      if (await originalApply(originalClose, handle, []) === false) fail('PublicationMetadataReaderCleanupPending');
     } catch (closeFailure) {
       // Retain exactly this failed FD, not a pathname reopen or another read.
       // As for the existing object reader, the original caller's reservation
       // and custody stay live until confirmed close. This control/frame and
       // any escaped error are part of the original funded read inventory.
       let original = handle;
+      let closeOriginal = originalClose;
       let retire = closed;
       let flight;
       const status = () => Object.freeze({pending: original !== undefined});
@@ -368,9 +412,18 @@ async function readBounded(path, maximum, closed, signal, ownerOnly = false) {
         retry() {
           if (flight !== undefined) return flight;
           if (original === undefined) return Promise.resolve(status());
-          flight = Promise.resolve().then(() => original.close()).then(result => {
+          flight = Promise.resolve().then(() => {
+            // Retry the successfully captured original only. If its getter
+            // never yielded a method, custody stays with this same handle.
+            if (closeOriginal === undefined) {
+              const method = original.close;
+              if (typeof method !== 'function') fail('PublicationMetadataReaderCleanupPending');
+              closeOriginal = method;
+            }
+            return originalApply(closeOriginal, original, []);
+          }).then(result => {
             if (result === false) fail('PublicationMetadataReaderCleanupPending');
-            original = undefined;
+            original = closeOriginal = undefined;
             const acknowledge = retire;
             retire = undefined;
             acknowledge?.();
@@ -433,7 +486,7 @@ async function processIsAlive(pid) {
 // until it completes: no earlier Buffer/String/Promise retirement is assumed.
 // The original Host envelope separately funds decode/tree/backing, the one
 // excess Dirent/EOF probe, FD/Dir/cleanup controls and generated Host baseline.
-function storeBootstrapAcquisition(supplied, maxMetadataBytes) {
+function storeBootstrapAcquisition(supplied, maxMetadataBytes, directoryInspection) {
   if (!exactKeys(supplied, ['maxWireBytes', 'maxDirectoryEntries']) ||
       !quantity(supplied.maxWireBytes) || supplied.maxWireBytes === 0 ||
       !quantity(supplied.maxDirectoryEntries)) {
@@ -441,6 +494,9 @@ function storeBootstrapAcquisition(supplied, maxMetadataBytes) {
   }
   // Capture before I/O. A mutated argument never widens this opening.
   const {maxWireBytes, maxDirectoryEntries} = supplied;
+  if (directoryInspection !== undefined) {
+    assertHostJournalDirectoryInspector(directoryInspection, maxDirectoryEntries);
+  }
   let entries = 0, rawBytes = 0;
   const readMetadata = async path => {
     const bytes = await readBounded(path,
@@ -449,6 +505,23 @@ function storeBootstrapAcquisition(supplied, maxMetadataBytes) {
     return bytes;
   };
   const readDirectory = async path => {
+    if (directoryInspection !== undefined) {
+      // The same Root owns this nominal native view and its cumulative scan
+      // allowance before acquisition. A whole scan's retained names/backing
+      // precedes these Store processing bounds; it is not a stock Dir lease.
+      // Unknown close propagates the view's original cleanup duty unchanged.
+      const names = inspectHostJournalDirectory(directoryInspection, path, maxDirectoryEntries);
+      for (const name of names) {
+        if (entries === maxDirectoryEntries) fail('PublicationStoreBootstrapEntriesLimit');
+        entries++;
+        const bytes = originalApply(originalByteLength, OriginalBuffer, [name, 'utf8']);
+        if (!Number.isSafeInteger(bytes) || bytes < name.length || bytes > maxWireBytes - rawBytes) {
+          fail('PublicationStoreBootstrapWireLimit');
+        }
+        rawBytes += bytes;
+      }
+      return names;
+    }
     const directory = await opendir(path, {encoding: 'buffer', bufferSize: 1});
     let primary, failed = false;
     try {
@@ -532,13 +605,62 @@ async function acquireStoreOwnership(root, bootstrap, key) {
         pid: process.pid,
         token,
       }), 'utf8');
-      await writeFile(ownerPath, owner, {flag: 'wx', mode: 0o600});
       let released = false, ownerRemoved = false, directoryRemoved = false;
       let ownershipDevice, ownershipInode;
       let retirementDirectory, retirementSynced = false;
+      let ownerWriter, ownerWriterClose, ownerFileIdentity;
+      let retirementReadCleanup, retirementReadFailure;
+      let ownerFileCreated = false, ownerWritten = false;
       const ownership = Object.freeze({
+        async assertCurrent() {
+          if (!ownerWritten || ownerWriter !== undefined || released || ownerRemoved ||
+              directoryRemoved || retirementDirectory !== undefined) {
+            fail('PublicationStoreOwnershipLost');
+          }
+          const currentRoot = await lstat(root, {bigint: true});
+          const directory = await lstat(ownershipDirectory, {bigint: true});
+          if (!currentRoot.isDirectory() || currentRoot.isSymbolicLink() ||
+              currentRoot.dev !== rootDevice || currentRoot.ino !== rootInode ||
+              !directory.isDirectory() || directory.isSymbolicLink()) fail('PublicationStoreOwnershipLost');
+          const before = await lstat(ownerPath, {bigint: true});
+          const sameFile = state => state.isFile() && !state.isSymbolicLink() &&
+            ['dev', 'ino', 'size', 'mtimeNs', 'ctimeNs'].every(name => state[name] === ownerFileIdentity?.[name]);
+          if (!sameFile(before)) fail('PublicationStoreOwnershipLost');
+          const existing = JSON.parse(await readBounded(ownerPath, 4096));
+          if (!sameFile(await lstat(ownerPath, {bigint: true}))) fail('PublicationStoreOwnershipLost');
+          if (existing?.token !== token || existing?.pid !== process.pid) fail('PublicationStoreOwnershipLost');
+          if (ownershipDevice === undefined) {
+            ownershipDevice = directory.dev;
+            ownershipInode = directory.ino;
+          } else if (directory.dev !== ownershipDevice || directory.ino !== ownershipInode) {
+            fail('PublicationStoreOwnershipLost');
+          }
+        },
         async release() {
           if (released) return false;
+          if (retirementReadCleanup !== undefined) {
+            const child = retirementReadCleanup;
+            const acknowledged = state => {
+              const pending = state !== null && typeof state === 'object'
+                ? Object.getOwnPropertyDescriptor(state, 'pending') : undefined;
+              return pending !== undefined && Object.hasOwn(pending, 'value') && pending.value === false;
+            };
+            if (child.status === undefined || child.retry === undefined) throw retirementReadFailure;
+            let state = await originalApply(child.status, child.handle, []);
+            if (!acknowledged(state)) state = await originalApply(child.retry, child.handle, []);
+            if (!acknowledged(state)) throw retirementReadFailure;
+            retirementReadCleanup = retirementReadFailure = undefined;
+          }
+          // The opener owns this exact metadata writer even if writing or
+          // closing failed before an ownership handle could be returned.
+          if (ownerWriter !== undefined) {
+            ownerWriterClose ??= ownerWriter.close;
+            if (typeof ownerWriterClose !== 'function' ||
+                await Reflect.apply(ownerWriterClose, ownerWriter, []) === false) {
+              fail('PublicationStoreCleanupPending');
+            }
+            ownerWriter = undefined;
+          }
           // This FD is already owned independently of the current pathname.
           // Drain it even if root has vanished or names a foreign directory;
           // successful FD close alone does not retire the Store or its key.
@@ -563,14 +685,39 @@ async function acquireStoreOwnership(root, bootstrap, key) {
               fail('PublicationStoreOwnershipLost');
             }
             if (!ownerRemoved) {
-              let existing;
-              try { existing = JSON.parse(await readFile(ownerPath, 'utf8')); }
-              catch (error) {
-                if (error?.code === 'ENOENT') return false;
-                throw error;
-              }
-              if (existing?.token !== token || existing?.pid !== process.pid) {
-                fail('PublicationStoreOwnershipLost');
+              if (ownerWritten) {
+                let existing;
+                try { existing = JSON.parse(bootstrap === undefined
+                  ? await readFile(ownerPath, 'utf8') : await readBounded(ownerPath, 4096)); }
+                catch (error) {
+                  const handle = error !== null && typeof error === 'object'
+                    ? Object.getOwnPropertyDescriptor(error, 'cleanupHandle')?.value : undefined;
+                  if (handle !== undefined) {
+                    const status = Object.getOwnPropertyDescriptor(handle, 'status')?.value;
+                    const retry = Object.getOwnPropertyDescriptor(handle, 'retry')?.value;
+                    retirementReadCleanup = {handle,
+                      status: typeof status === 'function' ? status : undefined,
+                      retry: typeof retry === 'function' ? retry : undefined};
+                    retirementReadFailure = error;
+                    throw error;
+                  }
+                  if (error?.code === 'ENOENT') return false;
+                  throw error;
+                }
+                if (existing?.token !== token || existing?.pid !== process.pid) {
+                  fail('PublicationStoreOwnershipLost');
+                }
+              } else if (ownerFileCreated) {
+                // Incomplete bytes do not contain a readable token yet. Only
+                // the exact file identity from our own writer may be removed.
+                const state = await lstat(ownerPath, {bigint: true});
+                if (ownerFileIdentity === undefined || !state.isFile() || state.isSymbolicLink() ||
+                    state.dev !== ownerFileIdentity.dev || state.ino !== ownerFileIdentity.ino) {
+                  fail('PublicationStoreOwnershipLost');
+                }
+              } else {
+                try { await lstat(ownerPath); fail('PublicationStoreOwnershipLost'); }
+                catch (cause) { if (cause?.code !== 'ENOENT') throw cause; }
               }
             }
             if (ownershipDevice === undefined) {
@@ -582,7 +729,7 @@ async function acquireStoreOwnership(root, bootstrap, key) {
             // Record only actually acknowledged phases in this original
             // handle. Never reconstruct an absent record or unlink again.
             if (!ownerRemoved) {
-              await unlink(ownerPath);
+              if (ownerFileCreated) await unlink(ownerPath);
               ownerRemoved = true;
             }
             await rmdir(ownershipDirectory);
@@ -616,6 +763,25 @@ async function acquireStoreOwnership(root, bootstrap, key) {
         },
       });
       try {
+        ownerWriter = await open(ownerPath, constants.O_CREAT | constants.O_EXCL | constants.O_WRONLY, 0o600);
+        ownerFileCreated = true;
+        ownerWriterClose = ownerWriter.close;
+        if (typeof ownerWriterClose !== 'function') fail('PublicationStoreCleanupPending');
+        const physical = await ownerWriter.stat({bigint: true});
+        ownerFileIdentity = {dev: physical.dev, ino: physical.ino};
+        let offset = 0;
+        while (offset < owner.byteLength) {
+          const {bytesWritten} = await ownerWriter.write(owner, offset, owner.byteLength - offset, offset);
+          if (bytesWritten === 0) fail('IncompletePublicationWrite');
+          offset += bytesWritten;
+        }
+        await ownerWriter.sync();
+        const written = await ownerWriter.stat({bigint: true});
+        ownerFileIdentity = Object.fromEntries(
+          ['dev', 'ino', 'size', 'mtimeNs', 'ctimeNs'].map(name => [name, written[name]]));
+        if (await Reflect.apply(ownerWriterClose, ownerWriter, []) === false) fail('PublicationStoreCleanupPending');
+        ownerWriter = undefined;
+        ownerWritten = true;
         await syncDirectoryPath(ownershipDirectory);
         await syncDirectoryPath(root);
         return ownership;
@@ -696,6 +862,141 @@ async function retainStoreOpeningFailure(cause, ownership, key) {
   return failure;
 }
 
+// A prepared original is only the existing physical exclusion duty. It is
+// neither a Store/capacity authority nor permission to initialize a format,
+// create keys, publish, or repair an unknown prefix.
+const preparedStoreOwnerships = new WeakMap();
+function originalPreparedStoreOwnership(original) {
+  const entry = preparedStoreOwnerships.get(original);
+  if (entry === undefined) fail('PublicationStoreOwnershipLost');
+  return entry;
+}
+function preparedOwnershipStatus(entry) {
+  return Object.freeze({pending: entry.ownership !== undefined || entry.child !== undefined,
+    adopted: entry.phase === 'adopted'});
+}
+async function releasePreparedOwnership(entry) {
+  if (entry.releaseFlight !== undefined) return entry.releaseFlight;
+  if (entry.ownership === undefined) return true;
+  entry.closing = true;
+  entry.releaseFlight = Promise.resolve().then(async () => {
+    // The selected Host may share this SAME exclusion with its Journal.
+    // Payload cleanup must still run independently, but cannot release the
+    // original owner while the retained Journal's physical close is pending.
+    // This dependency only delays release; it issues no capacity/authority.
+    if (entry.dependency !== undefined) {
+      const observation = await Reflect.apply(entry.dependencyStatus, entry.dependency, []);
+      const pending = observation !== null && typeof observation === 'object'
+        ? Object.getOwnPropertyDescriptor(observation, 'pending') : undefined;
+      if (pending === undefined || !Object.hasOwn(pending, 'value') || pending.value !== false) {
+        fail('PublicationStoreCleanupPending');
+      }
+      entry.dependency = entry.dependencyStatus = undefined;
+    }
+    if (await entry.ownership.release() !== true) fail('PublicationStoreOwnershipLost');
+    entry.ownership = undefined;
+    entry.phase = 'closed';
+    return true;
+  }).finally(() => { entry.releaseFlight = undefined; });
+  return entry.releaseFlight;
+}
+export function assertOriginalPreparedLocalPublicationStoreOwnership(original, directory) {
+  const entry = originalPreparedStoreOwnership(original);
+  if (entry.root !== resolve(directory) || entry.closing ||
+      entry.ownership === undefined || !['prepared', 'adopting', 'adopted'].includes(entry.phase)) {
+    fail('PublicationStoreOwnershipLost');
+  }
+}
+// Only this actual prepared Owner can select first private-key setup. An
+// absent key/path or caller flag cannot make an existing Store never-adopted.
+export async function assertOriginalPreparedLocalPublicationStoreFirstInitialization(original, directory) {
+  assertOriginalPreparedLocalPublicationStoreOwnership(original, directory);
+  const entry = originalPreparedStoreOwnership(original);
+  await entry.ownership.assertCurrent();
+  assertOriginalPreparedLocalPublicationStoreOwnership(original, directory);
+  if (!entry.fresh || entry.phase !== 'prepared') {
+    fail('PublicationStoreFirstInitializationUnavailable');
+  }
+}
+export async function prepareLocalPublicationStoreOwnership(directory, bounds, dependency, directoryInspection) {
+  if (typeof directory !== 'string' || directory.length === 0) fail('InvalidPublicationStoreConfiguration');
+  // Capture before any acquisition/callback. The actual Root supplies its
+  // original close-only observation, never a replacement DB or public flag.
+  const dependencyProperty = dependency !== null && typeof dependency === 'object'
+    ? Object.getOwnPropertyDescriptor(dependency, 'status') : undefined;
+  if (dependency !== undefined && (dependencyProperty === undefined ||
+      !Object.hasOwn(dependencyProperty, 'value') || typeof dependencyProperty.value !== 'function')) {
+    fail('InvalidPublicationStoreConfiguration');
+  }
+  const dependencyStatus = dependencyProperty?.value;
+  const root = resolve(directory);
+  if (bounds === undefined && directoryInspection !== undefined) {
+    fail('InvalidPublicationStoreBootstrapBounds');
+  }
+  // Ordinary installed Hosts move this same exclusion before their Journal
+  // without selecting a resource recipe or changing their existing intake.
+  // Selected operational callers still supply their explicit finite bounds.
+  const bootstrap = bounds === undefined ? Object.freeze({
+    readDirectory: readdir, readMetadata: path => readBounded(path, 4096),
+  }) : storeBootstrapAcquisition(bounds, 4096, directoryInspection);
+  let names;
+  try {
+    const state = await lstat(root);
+    if (!state.isDirectory() || state.isSymbolicLink()) fail('UnknownPublicationStoreFormat');
+    names = await bootstrap.readDirectory(root);
+  } catch (cause) {
+    if (cause?.code !== 'ENOENT') throw cause;
+    await mkdir(root, {recursive: true, mode: 0o700});
+    names = await bootstrap.readDirectory(root);
+  }
+  const fresh = names.length === 0;
+  if (!fresh) {
+    if (!names.includes('store.json')) fail('UnknownPublicationStoreFormat');
+    const contract = JSON.parse(await bootstrap.readMetadata(resolve(root, 'store.json')));
+    if (!exactKeys(contract, ['version', 'isolation', 'store_authority_cid']) ||
+        contract.version !== 'actql-local-publication-store/0.1' ||
+        contract.isolation !== 'execution-namespace' || !cidPattern.test(contract.store_authority_cid)) {
+      fail('UnknownPublicationStoreFormat');
+    }
+  }
+  const original = Object.freeze(Object.create(null));
+  const entry = {root, fresh, ownership: undefined, phase: 'prepared',
+    directoryBootstrap: directoryInspection === undefined ? undefined : bootstrap,
+    dependency, dependencyStatus,
+    closing: false, releaseFlight: undefined, cleanupFlight: undefined,
+    child: undefined, childStatus: undefined, childRetry: undefined, unknownChild: false};
+  preparedStoreOwnerships.set(original, entry);
+  entry.ownership = await acquireStoreOwnership(root, bootstrap, undefined);
+  try { await entry.ownership.assertCurrent(); }
+  catch (cause) {
+    entry.closing = true;
+    throw await retainStoreOpeningFailure(cause,
+      Object.freeze({release: () => releasePreparedOwnership(entry)}), undefined);
+  }
+  return original;
+}
+export function closePreparedLocalPublicationStoreOwnership(original) {
+  const entry = originalPreparedStoreOwnership(original);
+  entry.closing = true;
+  if (entry.cleanupFlight !== undefined) return entry.cleanupFlight;
+  entry.cleanupFlight = Promise.resolve().then(async () => {
+    if (entry.unknownChild) return preparedOwnershipStatus(entry);
+    if (entry.child !== undefined) {
+      let state = await Reflect.apply(entry.childStatus, entry.child, []);
+      if (state?.pending !== false) state = await Reflect.apply(entry.childRetry, entry.child, []);
+      if (state?.pending !== false) return preparedOwnershipStatus(entry);
+      entry.child = entry.childStatus = entry.childRetry = undefined;
+    }
+    // A live/adopting Store owns its children and the same original release.
+    // Parent close cannot certify or interrupt that Store's physical work.
+    if (entry.phase !== 'adopted' && entry.phase !== 'adopting') {
+      await releasePreparedOwnership(entry);
+    }
+    return preparedOwnershipStatus(entry);
+  }).finally(() => { entry.cleanupFlight = undefined; });
+  return entry.cleanupFlight;
+}
+
 function validateConfiguration(options) {
   const fields = [
     'directory',
@@ -766,11 +1067,68 @@ export async function openLocalPublicationStore(
   suppliedControl,
   durability = localDurability,
   suppliedBootstrap,
+  preparedOriginal,
+  operationalCurrent,
 ) {
+  if (operationalCurrent !== undefined) {
+    if (typeof operationalCurrent !== 'function') fail('InvalidPublicationStoreCurrent');
+    operationalCurrent();
+  }
+  const prepared = preparedOriginal === undefined ? undefined : originalPreparedStoreOwnership(preparedOriginal);
+  if (prepared !== undefined) {
+    if (prepared.phase !== 'prepared' || prepared.closing) fail('PublicationStoreOwnershipLost');
+    prepared.phase = 'adopting';
+  }
+  try {
+    return await openOriginalLocalPublicationStore(supplied, suppliedControl, durability,
+      suppliedBootstrap, prepared, operationalCurrent);
+  } catch (cause) {
+    if (prepared !== undefined && prepared.ownership !== undefined) {
+      // Retain any original failed child before observing its cleanup ports.
+      // Parent retirement never erases an unreadable/pending child carrier.
+      try {
+        const property = cause !== null && typeof cause === 'object'
+          ? Object.getOwnPropertyDescriptor(cause, 'cleanupHandle') : undefined;
+        if (property !== undefined) {
+          if (!Object.hasOwn(property, 'value')) throw new TypeError('UnobservedStoreCleanup');
+          prepared.child = property.value;
+          prepared.childStatus = prepared.child.status;
+          prepared.childRetry = prepared.child.retry;
+          if (typeof prepared.childStatus !== 'function' || typeof prepared.childRetry !== 'function') {
+            throw new TypeError('UnobservedStoreCleanup');
+          }
+        }
+      } catch { prepared.unknownChild = true; }
+      if (prepared.phase === 'adopting') prepared.phase = 'prepared';
+      prepared.closing = true;
+    }
+    throw cause;
+  }
+}
+
+async function openOriginalLocalPublicationStore(
+  supplied,
+  suppliedControl,
+  durability,
+  suppliedBootstrap,
+  prepared,
+  operationalCurrent,
+) {
+  operationalCurrent?.();
   const configuration = validateConfiguration(supplied);
   const contractControl = validateContractControl(suppliedControl);
-  const bootstrap = suppliedBootstrap === undefined ? undefined
+  const readDeliveryOriginal = contractControl.readIssuedDeliveryAttempt;
+  const deliveryStartTransition = contractControl.deliveryTransition;
+  const openingBootstrap = suppliedBootstrap === undefined ? undefined
     : storeBootstrapAcquisition(suppliedBootstrap, configuration.maxObjectBytes);
+  // Adopt the selected exclusion's SAME cumulative directory reader. Creating
+  // another view here would reset its history between prepare and Store open.
+  // Metadata keeps its existing object bound and acquisition semantics.
+  const bootstrap = prepared?.directoryBootstrap === undefined ? openingBootstrap : Object.freeze({
+    readDirectory: prepared.directoryBootstrap.readDirectory,
+    readMetadata: openingBootstrap?.readMetadata ??
+      (path => readBounded(path, configuration.maxObjectBytes)),
+  });
   const readOpeningDirectory = bootstrap?.readDirectory ?? readdir;
   const readOpeningMetadata = bootstrap?.readMetadata ??
     (path => readBounded(path, configuration.maxObjectBytes));
@@ -785,6 +1143,8 @@ export async function openLocalPublicationStore(
     maxDepth: configuration.maxContractDepth,
   });
   const root = configuration.directory;
+  if (prepared !== undefined && prepared.root !== root) fail('PublicationStoreOwnershipLost');
+  if (prepared !== undefined) await prepared.ownership.assertCurrent();
   const objectsDirectory = resolve(root, 'objects');
   const contractsDirectory = resolve(root, 'contracts');
   const stagingDirectory = resolve(root, 'staging');
@@ -793,6 +1153,8 @@ export async function openLocalPublicationStore(
   const preparedSchemasDirectory = resolve(root, 'prepared-schemas');
   const attemptsDirectory = resolve(root, 'attempts');
   const deliveriesDirectory = resolve(root, 'deliveries');
+  const deliveryIndexPath = resolve(root, 'delivery-attempts.sqlite3');
+  const deliveryCoveragePath = resolve(root, 'delivery-attempts-index.json');
   const manifestReadsDirectory = resolve(root, 'manifest-reads');
   const indexesDirectory = resolve(root, 'indexes');
   const metadataInventoriesDirectory = resolve(root, 'metadata-inventories');
@@ -820,7 +1182,12 @@ export async function openLocalPublicationStore(
   } catch (error) {
     if (error?.code !== 'ENOENT') throw error;
   }
-  if (existingNames?.length > 0) {
+  // Only the same still-held original may explain this exact fresh prefix.
+  // Ordinary opens and cold owner-only directories retain their old refusal.
+  const preparedFreshPrefix = prepared !== undefined && prepared.fresh &&
+    prepared.phase === 'adopting' && prepared.ownership !== undefined &&
+    existingNames?.length === 1 && existingNames[0] === 'owner';
+  if (existingNames?.length > 0 && !preparedFreshPrefix) {
     if (!existingNames.includes('store.json')) {
       const legacy = existingNames.some(name => [
         'objects', 'contracts', 'indexes', 'staging', 'owner',
@@ -893,27 +1260,91 @@ export async function openLocalPublicationStore(
 
   let storedBytes = 0;
   let objectCount = 0;
-  for (const name of await readOpeningDirectory(objectsDirectory)) {
-    if (!/^[0-9a-f]{64}$/u.test(name)) {
-      fail('InvalidPublicationStoreObject');
-    }
-    const state = await lstat(resolve(objectsDirectory, name));
-    if (!state.isFile() || !quantity(state.size) ||
-        state.size > configuration.maxObjectBytes ||
-        storedBytes + state.size > configuration.capacityBytes) {
-      fail('InvalidPublicationStoreObject');
-    }
-    storedBytes += state.size;
+  let nativePublicationBytes = 0, nativePublicationObjects = 0;
+  let physicalBytes = 0, physicalObjects = 0;
+  const unconfirmedPhysicalInstalls = new Map();
+  const physicalRemovalOriginals = new Map();
+  const physicalOriginal = (cid, bytes, state) => Object.freeze({cid,
+    byte_count: bytes, device: String(state.dev), inode: String(state.ino)});
+  const accountPhysicalUsage = usage => {
+    storedBytes += usage.bytes - physicalBytes;
+    objectCount += usage.objects - physicalObjects;
+    physicalBytes = usage.bytes;
+    physicalObjects = usage.objects;
+  };
+  const accountPhysicalInstall = original => {
+    const existing = unconfirmedPhysicalInstalls.get(original.cid);
+    if (existing !== undefined) return existing.device === original.device && existing.inode === original.inode;
+    unconfirmedPhysicalInstalls.set(original.cid, original);
+    storedBytes += original.byte_count;
     objectCount++;
-  }
-  if (objectCount > configuration.maxObjects) {
-    fail('PublicationStoreObjectLimit');
-  }
-
+    return true;
+  };
+  const settlePhysicalInstalls = originals => {
+    for (const original of originals) {
+      const pending = unconfirmedPhysicalInstalls.get(original.cid);
+      if (pending === undefined || pending.device !== original.device || pending.inode !== original.inode) continue;
+      storedBytes -= pending.byte_count;
+      objectCount--;
+      unconfirmedPhysicalInstalls.delete(original.cid);
+    }
+  };
+  // These calls follow the actual object directory ACK. A lost native reply
+  // retains the same originals and their in-memory charge until cleanup or
+  // same-original confirmation; no visible row alone supplies that ACK.
+  const confirmPhysicalCapacity = originals => {
+    accountPhysicalUsage(deliveryIndex.recordPhysicalObjects(originals));
+    settlePhysicalInstalls(originals);
+  };
+  const rememberPhysicalRemoval = (cid, bytes, state) => {
+    if (physicalRemovalOriginals.has(cid)) return;
+    deliveryIndex.beginPhysicalObjectLifetime();
+    const original = unconfirmedPhysicalInstalls.get(cid) ?? deliveryIndex.physicalObject(cid);
+    if (original === undefined) {
+      if (state !== undefined) fail('PublicationObjectAccountingMissing');
+      return;
+    }
+    if (original.byte_count !== bytes || state !== undefined &&
+        (original.device !== String(state.dev) || original.inode !== String(state.ino))) {
+      fail('PublicationObjectAccountingMismatch');
+    }
+    physicalRemovalOriginals.set(cid, original);
+    deliveryIndex.retainPhysicalRemoval(original);
+  };
+  const releasePhysicalCapacity = objects => {
+    const originals = [];
+    for (const [cid, bytes] of objects) {
+      rememberPhysicalRemoval(cid, bytes);
+      const original = physicalRemovalOriginals.get(cid);
+      if (original !== undefined) originals.push(original);
+    }
+    accountPhysicalUsage(deliveryIndex.removePhysicalObjects(originals));
+    settlePhysicalInstalls(originals);
+    for (const [cid] of objects) physicalRemovalOriginals.delete(cid);
+  };
+  const accountNativePublication = usage => {
+    storedBytes += usage.bytes - nativePublicationBytes;
+    objectCount += usage.objects - nativePublicationObjects;
+    nativePublicationBytes = usage.bytes;
+    nativePublicationObjects = usage.objects;
+  };
   // One process owns the complete capacity authority for this local Store.
   // A dead local owner can be reclaimed, but two live opens never maintain
   // independent counters for the same physical allocation scope.
-  const ownership = await acquireStoreOwnership(root, bootstrap, configuration.privateEvidenceKey);
+  let ownership, deliveryIndex;
+  // This is file-preparation progress, never cached authorization or durable
+  // ACK. A failed same-lifetime preparation remains unresolved until restart.
+  const deliveryStarts = new Map();
+  if (prepared === undefined) {
+    ownership = await acquireStoreOwnership(root, bootstrap, configuration.privateEvidenceKey);
+  } else {
+    await prepared.ownership.assertCurrent();
+    if (prepared.phase !== 'adopting' || prepared.closing || prepared.ownership === undefined) {
+      fail('PublicationStoreOwnershipLost');
+    }
+    prepared.phase = 'adopted';
+    ownership = Object.freeze({release: () => releasePreparedOwnership(prepared)});
+  }
   try {
   for (const name of await readOpeningDirectory(stagingDirectory)) {
     const path = resolve(stagingDirectory, name);
@@ -944,17 +1375,8 @@ export async function openLocalPublicationStore(
   }
   await syncDirectory(preparedSchemasDirectory);
 
-  for (const name of await readOpeningDirectory(deliveriesDirectory)) {
-    const path = resolve(deliveriesDirectory, name);
-    if (name.startsWith('.staging-')) {
-      await removeOpeningTree(path, bootstrap);
-      continue;
-    }
-    if (!/^[0-9a-f]{64}$/u.test(name) || !(await lstat(path)).isDirectory()) {
-      fail('InvalidDeliveryAttemptStore');
-    }
-  }
-  await syncDirectory(deliveriesDirectory);
+  // Delivery coverage and pending recovery below own the selected entries.
+  // Ordinary opens must not enumerate every historical delivery directory.
   for (const name of await readOpeningDirectory(manifestReadsDirectory)) {
     const path = resolve(manifestReadsDirectory, name);
     if (name.startsWith('.staging-')) {
@@ -976,13 +1398,7 @@ export async function openLocalPublicationStore(
     }
   }
   await syncDirectory(manifestReadsDirectory);
-  for (const name of await readOpeningDirectory(metadataInventoriesDirectory)) {
-    if (!/^[0-9a-f]{64}\.json$/u.test(name) ||
-        !(await lstat(resolve(metadataInventoriesDirectory, name))).isFile()) {
-      fail('InvalidPublicationMetadataInventoryStore');
-    }
-  }
-  await syncDirectory(metadataInventoriesDirectory);
+  const openingMetadataDeletionNames = [];
   for (const name of await readOpeningDirectory(metadataDeletionsDirectory)) {
     const path = resolve(metadataDeletionsDirectory, name);
     if (name.startsWith('.staging-')) {
@@ -993,6 +1409,7 @@ export async function openLocalPublicationStore(
         !(await lstat(resolve(metadataDeletionsDirectory, name))).isFile()) {
       fail('InvalidPublicationMetadataDeletionStore');
     }
+    openingMetadataDeletionNames.push(name);
   }
   await syncDirectory(metadataDeletionsDirectory);
   for (const directory of [
@@ -1007,28 +1424,9 @@ export async function openLocalPublicationStore(
     }
     await syncDirectory(directory);
   }
-  for (const keyHash of await readOpeningDirectory(retentionExtensionsDirectory)) {
-    const directory = resolve(retentionExtensionsDirectory, keyHash);
-    if (!/^[0-9a-f]{64}$/u.test(keyHash) ||
-        !(await lstat(directory)).isDirectory()) {
-      fail('InvalidPublicationRetentionExtensionStore');
-    }
-    for (const name of await readOpeningDirectory(directory)) {
-      const path = resolve(directory, name);
-      if (!/^[0-9a-f]{64}$/u.test(name) ||
-          !(await lstat(path)).isDirectory()) {
-        fail('InvalidPublicationRetentionExtensionStore');
-      }
-      for (const record of await readOpeningDirectory(path)) {
-        if (!recordNamePattern.test(record) ||
-            !(await lstat(resolve(path, record))).isFile()) {
-          fail('InvalidPublicationRetentionExtensionStore');
-        }
-      }
-      await syncDirectory(path);
-    }
-    await syncDirectory(directory);
-  }
+  // Each selected extension reader owns its directory types, complete chain
+  // and actual Result-directory ACK. Unrelated committed histories are not
+  // another ordinary opening admission or durability transition.
   await syncDirectory(retentionExtensionsDirectory);
   for (const keyHash of await readOpeningDirectory(deletionsDirectory)) {
     const directory = resolve(deletionsDirectory, keyHash);
@@ -1072,10 +1470,15 @@ export async function openLocalPublicationStore(
     return flight;
   };
   const durablyConfirmedIndexes = new Map();
+  // One bounded durability observation, not a retained contract or Allow.
+  // Each public confirmation still acquires and checks its selected record.
+  let lastConfirmedDeliveryRecord;
   const durablyConfirmedClocks = new Map();
+  const durablyConfirmedClockFiles = new Map();
   let deliveryAdmissionBusy = Promise.resolve();
   let manifestReadAdmissionBusy = Promise.resolve();
   let clockObservationBusy = Promise.resolve();
+  let clockObservationsPending = 0;
   let materialRetentionBusy = Promise.resolve();
   let metadataRetentionBusy = Promise.resolve();
   const activeResultReaders = new Map();
@@ -1088,6 +1491,10 @@ export async function openLocalPublicationStore(
   const activePhysicalRecordWriters = new Set();
   const pendingResultDeletions = new Map();
   const pendingMetadataDeletions = new Map();
+  const pendingMetadataDeletionMarkers = new Map();
+  const metadataDeletionIntents = new Set();
+  const pendingMetadataFenceCompletions = new Map();
+  let metadataFencesReady = false;
   const pendingPhysicalHoldingDeletions = new Map();
   const pendingUncommittedMetadataCleanups = new Map();
   const reclaimingMaterialCids = new Set();
@@ -1199,6 +1606,9 @@ export async function openLocalPublicationStore(
       `${cidHex(resultDefinitionCid)}.json`,
     );
   const active = () => {
+    // This refusal-only callback is captured from the actual selected Root;
+    // it is not itself an issuer and never participates in cleanup ACKs.
+    operationalCurrent?.();
     if (closed || closeRequested) fail('PublicationStoreClosed');
   };
 
@@ -1239,21 +1649,25 @@ export async function openLocalPublicationStore(
     });
   };
 
-  const readPhysicalHoldingAt = async path => {
+  const readPhysicalHoldingAt = async (path, holdingCid) => {
     let bytes;
     try { bytes = await readBounded(path, configuration.maxObjectBytes); }
     catch (error) {
       if (error?.code === 'ENOENT') return undefined;
       throw error;
     }
-    return parsePhysicalHolding(bytes);
+    const record = parsePhysicalHolding(bytes);
+    if (record.holding_cid !== holdingCid) {
+      fail('InvalidPublicationPhysicalHoldingStore');
+    }
+    return record;
   };
 
   const readPhysicalHolding = holdingCid =>
-    readPhysicalHoldingAt(physicalHoldingPath(holdingCid));
+    readPhysicalHoldingAt(physicalHoldingPath(holdingCid), holdingCid);
 
   const readPhysicalHoldingDeletion = holdingCid =>
-    readPhysicalHoldingAt(physicalHoldingDeletionPath(holdingCid));
+    readPhysicalHoldingAt(physicalHoldingDeletionPath(holdingCid), holdingCid);
 
   const parseMetadataInventory = bytes => {
     let value;
@@ -1274,11 +1688,7 @@ export async function openLocalPublicationStore(
         !cidPattern.test(value.publication_attempt_cid) ||
         !Array.isArray(value.contract_objects) ||
         value.contract_objects.length === 0 ||
-        value.contract_objects.some(object => !exactKeys(object, [
-          'semantic_cid', 'physical_cid', 'byte_count',
-        ]) || !cidPattern.test(object.semantic_cid) ||
-          !cidPattern.test(object.physical_cid) ||
-          !quantity(object.byte_count)) ||
+        value.contract_objects.some(object => !metadataContractObject(object)) ||
         new Set(value.contract_objects.map(object => object.semantic_cid))
           .size !== value.contract_objects.length ||
         [...value.contract_objects]
@@ -1305,6 +1715,8 @@ export async function openLocalPublicationStore(
   };
 
   const readMetadataInventory = async publicIndexEntryCid => {
+    const native = deliveryIndex?.nativePublicationInventory(publicIndexEntryCid);
+    if (native !== undefined) return publicationRecoveryValue(native);
     let bytes;
     try {
       bytes = await readBounded(
@@ -1315,10 +1727,44 @@ export async function openLocalPublicationStore(
       if (error?.code === 'ENOENT') return undefined;
       throw error;
     }
-    return parseMetadataInventory(bytes);
+    const inventory = parseMetadataInventory(bytes);
+    if (inventory.public_index_entry_cid !== publicIndexEntryCid) {
+      fail('InvalidPublicationMetadataInventoryStore');
+    }
+    return inventory;
   };
 
-  const ensureMetadataInventory = async value => {
+  const readCommittedMetadataInventory = async entry => {
+    const inventory = await readMetadataInventory(entry.public_index_entry_cid);
+    if (inventory === undefined ||
+        inventory.namespace_id !== entry.namespace_id ||
+        inventory.authority_scope_cid !== entry.authority_scope_cid ||
+        inventory.run_definition_cid !== entry.run_definition_cid ||
+        inventory.publication_attempt_cid !== entry.publication_attempt_cid) {
+      fail('InvalidPublicationMetadataInventoryStore');
+    }
+    return inventory;
+  };
+
+  const requireCommittedMetadataInventory = async entry => {
+    const inventory = await readCommittedMetadataInventory(entry);
+    // Only this selected publication's owner links belong to the read.
+    // Payload availability remains the actual Result consumer's duty.
+    for (const holdingCid of inventory.physical_holding_cids) {
+      if (await readPhysicalHoldingDeletion(holdingCid) !== undefined ||
+          await readPhysicalHolding(holdingCid) === undefined) {
+        fail('InvalidPublicationMetadataInventoryStore');
+      }
+    }
+    return inventory;
+  };
+
+  const publicationRecoveryOriginal = value => Object.freeze({
+    public_index_cid: value.public_index_entry_cid,
+    inventory_wire: JSON.stringify(value),
+  });
+
+  const ensureMetadataInventoryFile = async value => {
     const bytes = Buffer.from(JSON.stringify(value), 'utf8');
     if (bytes.byteLength > configuration.maxObjectBytes) {
       fail('PublicationObjectLimit');
@@ -1342,6 +1788,92 @@ export async function openLocalPublicationStore(
     return parseMetadataInventory(bytes);
   };
 
+  const stageMetadataInventory = (original, native) => {
+    const index = deliveryIndex;
+    const stage = native ? index.stageNativePublicationInventory : index.stagePublicationInventory;
+    const writer = {failed: false, cleanup: undefined};
+    activePhysicalRecordWriters.add(writer);
+    try { Reflect.apply(stage, index, [original]); }
+    catch (primary) {
+      if (primary?.outcome !== 'unknown') {
+        activePhysicalRecordWriters.delete(writer);
+        throw primary;
+      }
+      // stage() precedes the Index commit's payload-custody owner. Keep its
+      // SAME native mutation here, not only inside an inaccessible DB latch.
+      // Finalization confirms storage only; it never publishes or reruns a Run.
+      writer.failed = true;
+      let pending = true, flight;
+      const failure = new PublicationStoreError('PublicationMetadataCommitOutcomeUnknown', primary);
+      const status = () => Object.freeze({pending});
+      writer.cleanup = Object.freeze({status, retry() {
+        if (flight !== undefined) return flight;
+        flight = Promise.resolve().then(() => {
+          if (pending) {
+            Reflect.apply(stage, index, [original]);
+            pending = false;
+            activePhysicalRecordWriters.delete(writer);
+          }
+          return status();
+        }).finally(() => {
+          failure.cleanupPending = pending;
+          flight = undefined;
+        });
+        return flight;
+      }});
+      failure.outcome = 'unknown';
+      failure.primaryFailure = primary;
+      failure.cleanupPending = true;
+      failure.cleanupHandle = writer.cleanup;
+      throw failure;
+    }
+    activePhysicalRecordWriters.delete(writer);
+  };
+
+  const ensureMetadataInventory = async value => {
+    const original = publicationRecoveryOriginal(value);
+    if (deliveryIndex.nativePublicationInventory(original.public_index_cid) === undefined) {
+      try {
+        // Preserve an existing independently adopted file representation.
+        await lstat(metadataInventoryPath(original.public_index_cid));
+        stageMetadataInventory(original, false);
+        return ensureMetadataInventoryFile(value);
+      } catch (error) { if (error?.code !== 'ENOENT') throw error; }
+    }
+    // The same native transaction owns both the complete inventory original
+    // and its pending lookup. Do not also persist a duplicate inventory file.
+    stageMetadataInventory(original, true);
+    return publicationRecoveryValue(original);
+  };
+
+  const publicationRecoveryValue = original => {
+    const value = parseMetadataInventory(Buffer.from(original.inventory_wire,'utf8'));
+    if (value.public_index_entry_cid !== original.public_index_cid) {
+      fail('InvalidPublicationMetadataInventoryStore');
+    }
+    return value;
+  };
+
+  const restoreMetadataInventory = async (original, value) => {
+    const native = deliveryIndex.nativePublicationInventory(original.public_index_cid);
+    if (native !== undefined) {
+      if (native.inventory_wire !== original.inventory_wire) fail('PublicationMetadataInventoryConflict');
+      return value;
+    }
+    const existing = await readMetadataInventory(original.public_index_cid);
+    if (existing === undefined) return ensureMetadataInventoryFile(value);
+    if (JSON.stringify(existing) !== original.inventory_wire) fail('PublicationMetadataInventoryConflict');
+    return existing;
+  };
+
+  const recoverMetadataInventory = async original => {
+    const value = publicationRecoveryValue(original);
+    const marker = await readMetadataDeletion(indexKey({namespaceId:value.namespace_id,
+      authorityScopeCid:value.authority_scope_cid,runDefinitionCid:value.run_definition_cid}));
+    if (marker !== undefined) fail('PublicationMetadataDeleted');
+    return restoreMetadataInventory(original,value);
+  };
+
   const readMetadataDeletion = async keyHash => {
     let bytes;
     try {
@@ -1349,7 +1881,14 @@ export async function openLocalPublicationStore(
         metadataDeletionPath(keyHash), configuration.maxObjectBytes,
       );
     } catch (error) {
-      if (error?.code === 'ENOENT') return undefined;
+      if (error?.code === 'ENOENT') {
+        if (!metadataFencesReady) return undefined;
+        const fence = deliveryIndex.metadataDeletionFence(keyHash);
+        if (fence === undefined) return undefined;
+        if (fence.retired !== 1) fail('InvalidPublicationMetadataDeletionStore');
+        return Object.freeze({version:'actql-local-publication-metadata-retired/0.1',
+          run_definition_cid:fence.run_cid});
+      }
       throw error;
     }
     let value;
@@ -1383,11 +1922,7 @@ export async function openLocalPublicationStore(
           .size !== value.results.length ||
         !Array.isArray(value.contract_objects) ||
         value.contract_objects.length === 0 ||
-        value.contract_objects.some(object => !exactKeys(object, [
-          'semantic_cid', 'physical_cid', 'byte_count',
-        ]) || !cidPattern.test(object.semantic_cid) ||
-          !cidPattern.test(object.physical_cid) ||
-          !quantity(object.byte_count)) ||
+        value.contract_objects.some(object => !metadataContractObject(object)) ||
         new Set(value.contract_objects.map(object => object.semantic_cid))
           .size !== value.contract_objects.length ||
         [...value.contract_objects]
@@ -1412,21 +1947,14 @@ export async function openLocalPublicationStore(
       version: 'actql-local-publication-metadata-retired/0.1',
       run_definition_cid: runDefinitionCid,
     });
-    const bytes = Buffer.from(JSON.stringify(value), 'utf8');
-    const staging = resolve(
-      metadataDeletionsDirectory,
-      `.staging-${randomUUID()}`,
-    );
-    try {
-      await writeExclusive(staging, bytes);
-      await rename(staging, metadataDeletionPath(keyHash));
-      await syncDirectory(metadataDeletionsDirectory);
-    } finally {
-      try { await unlink(staging); }
-      catch (error) {
-        if (error?.code !== 'ENOENT') throw error;
-      }
-    }
+    const original = Object.freeze({metadata_key:keyHash,run_cid:runDefinitionCid});
+    pendingMetadataFenceCompletions.set(keyHash,original);
+    deliveryIndex.finishMetadataDeletionFence(original);
+    pendingMetadataFenceCompletions.delete(keyHash);
+    try { await unlink(metadataDeletionPath(keyHash)); }
+    catch (error) { if (error?.code !== 'ENOENT') throw error; }
+    // Absence after a lost unlink/ACK reply is not its directory ACK.
+    await syncDirectory(metadataDeletionsDirectory);
     return value;
   };
 
@@ -1435,6 +1963,7 @@ export async function openLocalPublicationStore(
     if (bytes.byteLength > configuration.maxObjectBytes) {
       fail('PublicationObjectLimit');
     }
+    metadataDeletionIntents.add(value.run_definition_cid);
     try { await writeExclusive(metadataDeletionPath(keyHash), bytes); }
     catch (error) {
       if (error?.code !== 'EEXIST') throw error;
@@ -1450,14 +1979,8 @@ export async function openLocalPublicationStore(
   };
 
   const runMetadataDeletionStarted = async runDefinitionCid => {
-    for (const name of await readdir(metadataDeletionsDirectory)) {
-      if (!/^[0-9a-f]{64}\.json$/u.test(name)) {
-        fail('InvalidPublicationMetadataDeletionStore');
-      }
-      const value = await readMetadataDeletion(name.slice(0, -5));
-      if (value.run_definition_cid === runDefinitionCid) return true;
-    }
-    return false;
+    return metadataDeletionIntents.has(runDefinitionCid) ||
+      deliveryIndex.hasRunMetadataDeletionFence(runDefinitionCid);
   };
 
   const parseCustodyRecord = bytes => {
@@ -1478,6 +2001,7 @@ export async function openLocalPublicationStore(
   };
 
   const registerCustody = async (cid, bytes, state) => {
+    deliveryIndex.beginPhysicalObjectLifetime();
     const token = randomUUID();
     const record = Object.freeze({
       version: 'actql-local-prepared-custody/0.1',
@@ -1518,8 +2042,7 @@ export async function openLocalPublicationStore(
       const confirmUnlink = async () => {
         await syncDirectory(objectsDirectory);
         if (custody.accounted) {
-          storedBytes -= custody.record.byte_count;
-          objectCount--;
+          releasePhysicalCapacity(new Map([[cid,custody.record.byte_count]]));
           custody.accounted = false;
         }
         custody.pendingUnlink = false;
@@ -1543,12 +2066,19 @@ export async function openLocalPublicationStore(
       const ownsAllocation = String(state.dev) === custody.record.device &&
         String(state.ino) === custody.record.inode;
       if (ownsAllocation) {
+        // Complete the SAME possible installation before indexed reference
+        // reads. This also settles its lost native COMMIT reply without
+        // replaying a payload write, link, business operation or authority.
+        await syncDirectory(objectsDirectory);
+        confirmPhysicalCapacity([physicalOriginal(cid,custody.record.byte_count,state)]);
+        custody.accounted = true;
         const hasLiveReference = await materialHasLiveReference(cid);
         if (!hasLiveReference) {
           // A second link is not proof that another owner accepted custody.
           // The prepared writer may still own its staging alias.
           if (state.nlink !== 1) return false;
           await verifyObject(cid);
+          rememberPhysicalRemoval(cid, custody.record.byte_count, state);
           await unlink(objectPath(cid));
           custody.pendingUnlink = true;
           await confirmUnlink();
@@ -1684,7 +2214,7 @@ export async function openLocalPublicationStore(
   let lastClockObservation;
   const sameClockFile = (left, right) => ['dev', 'ino', 'size', 'mtimeNs', 'ctimeNs']
     .every(field => left[field] === right[field]);
-  const readClockObservation = async clockContractCid => {
+  const readClockSnapshot = async clockContractCid => {
     const path = clockObservationPath(clockContractCid);
     let before;
     try {
@@ -1698,7 +2228,7 @@ export async function openLocalPublicationStore(
     }
     if (lastClockObservation?.clockContractCid === clockContractCid &&
         sameClockFile(lastClockObservation.state, before)) {
-      return lastClockObservation.value;
+      return lastClockObservation;
     }
     // Keep this original metadata size as the receive ceiling, not merely the
     // Store-wide limit. Growth cannot allocate a larger readFile buffer before
@@ -1709,7 +2239,8 @@ export async function openLocalPublicationStore(
     let value;
     try { value = JSON.parse(bytes.toString('utf8')); }
     catch (error) { fail('InvalidPublicationClockObservation', error); }
-    if (!exactKeys(value, ['clockContractCid', 'observedAt']) ||
+    const checksummed = exactKeys(value, ['clockContractCid', 'observedAt', 'contentSha256']);
+    if ((!checksummed && !exactKeys(value, ['clockContractCid', 'observedAt'])) ||
         value.clockContractCid !== clockContractCid ||
         typeof value.observedAt !== 'string' ||
         contractControl.trustedClockNotBefore(
@@ -1717,23 +2248,110 @@ export async function openLocalPublicationStore(
         ) !== true) {
       fail('InvalidPublicationClockObservation');
     }
-    const observation = Object.freeze(value);
-    lastClockObservation = {clockContractCid, state: after, value: observation};
-    return observation;
-  };
-
-  const observeTrustedClock = (clockContractCid, observedAt) => {
-    active();
-    cidHex(clockContractCid);
-    if (typeof observedAt !== 'string' ||
-        contractControl.trustedClockNotBefore(
-          undefined, observedAt,
-        ) !== true) {
+    const observation = Object.freeze({clockContractCid, observedAt: value.observedAt});
+    if (checksummed && value.contentSha256 !== createHash('sha256')
+      .update(JSON.stringify(observation), 'utf8').digest('hex')) {
       fail('InvalidPublicationClockObservation');
     }
+    lastClockObservation = {clockContractCid, state: after, value: observation, checksummed};
+    return lastClockObservation;
+  };
+  const readClockObservation = async clockContractCid =>
+    (await readClockSnapshot(clockContractCid))?.value;
+
+  // A confirmed directory entry needs no new directory commit when neither
+  // name nor inode changes. Flush every new value on that SAME file instead.
+  // Its checksum detects interrupted fixed-length writes; a torn record is
+  // unavailable, never an excuse to recover an older floor or create a clock.
+  const flushClockFile = async (clockContractCid, snapshot, bytes) => {
+    const writer = {cleanup: undefined, failed: false};
+    let handle, closeOriginal, flight;
+    const status = () => Object.freeze({pending: handle !== undefined});
+    const cleanup = Object.freeze({status, retry() {
+      if (flight !== undefined) return flight;
+      flight = Promise.resolve().then(async () => {
+        if (handle !== undefined) {
+          if (await Reflect.apply(closeOriginal, handle, []) === false) {
+            fail('PublicationStoreCleanupPending');
+          }
+          handle = undefined;
+          closeOriginal = undefined;
+        }
+        activePhysicalRecordWriters.delete(writer);
+        return status();
+      }).finally(() => { flight = undefined; });
+      return flight;
+    }});
+    activePhysicalRecordWriters.add(writer);
+    try {
+      handle = await open(clockObservationPath(clockContractCid),
+        constants.O_RDWR | constants.O_NOFOLLOW);
+      closeOriginal = handle.close;
+      const before = await handle.stat({bigint: true});
+      if (!before.isFile() || !sameClockFile(before, snapshot.state) ||
+          bytes !== undefined && BigInt(bytes.byteLength) !== before.size) {
+        fail('PublicationClockUncertain');
+      }
+      if (bytes !== undefined) {
+        let offset = 0;
+        while (offset < bytes.byteLength) {
+          const {bytesWritten} = await handle.write(bytes, offset,
+            bytes.byteLength - offset, offset);
+          if (!Number.isSafeInteger(bytesWritten) || bytesWritten <= 0 ||
+              bytesWritten > bytes.byteLength - offset) fail('IncompletePublicationWrite');
+          offset += bytesWritten;
+        }
+      }
+      await handle.sync();
+      const written = bytes === undefined ? undefined : await handle.stat({bigint: true});
+      if (written !== undefined && (!written.isFile() || written.dev !== before.dev || written.ino !== before.ino ||
+          written.size !== before.size)) fail('PublicationClockUncertain');
+      await cleanup.retry();
+      if (written === undefined) return;
+      const current = await lstat(clockObservationPath(clockContractCid), {bigint: true});
+      if (!current.isFile() || !sameClockFile(written,current)) fail('PublicationClockUncertain');
+      return current;
+    } catch (primary) {
+      writer.failed = true;
+      writer.cleanup = cleanup;
+      try { await cleanup.retry(); } catch {}
+      if (!status().pending) throw primary;
+      const failure = new PublicationStoreError('PublicationStoreCleanupPending', primary);
+      failure.primaryFailure = primary;
+      failure.cleanupPending = true;
+      failure.cleanupHandle = cleanup;
+      throw failure;
+    }
+  };
+
+  const updateTrustedClock = (clockContractCid, suppliedAt, sample) => {
+    active();
+    cidHex(clockContractCid);
+    if (sample === undefined && (typeof suppliedAt !== 'string' ||
+        contractControl.trustedClockNotBefore(
+          undefined, suppliedAt,
+        ) !== true)) {
+      fail('InvalidPublicationClockObservation');
+    }
+    clockObservationsPending++;
     const operation = clockObservationBusy.then(async () => {
+      for (const writer of activePhysicalRecordWriters) {
+        if (writer.failed) fail('PublicationStoreCleanupPending');
+      }
       const confirmed = durablyConfirmedClocks.get(clockContractCid);
-      const previous = await readClockObservation(clockContractCid);
+      const snapshot = await readClockSnapshot(clockContractCid);
+      const previous = snapshot?.value;
+      // The same queue reads the latest original floor BEFORE sampling. A
+      // concurrent accepted observation cannot make an earlier caller sample
+      // into a false rollback. A returned sample still owns the full commit.
+      const observedAt = sample === undefined ? suppliedAt : sample();
+      if (sample !== undefined && (typeof observedAt !== 'string' ||
+          contractControl.trustedClockNotBefore(undefined, observedAt) !== true)) {
+        fail('InvalidPublicationClockObservation');
+      }
+      const confirmedFile = durablyConfirmedClockFiles.get(clockContractCid);
+      const sameConfirmedInode = confirmedFile !== undefined && snapshot !== undefined &&
+        ['dev', 'ino', 'size'].every(field => confirmedFile[field] === snapshot.state[field]);
       // A known durable floor cannot disappear or move backwards while this
       // owner is live. Missing history is not a fresh clock admission.
       if (confirmed !== undefined && (previous === undefined ||
@@ -1746,20 +2364,42 @@ export async function openLocalPublicationStore(
         fail('PublicationClockUncertain');
       }
       if (previous?.observedAt === observedAt) {
-        if (confirmed !== observedAt) {
-          await syncDirectory(clocksDirectory);
-          const current = await readClockObservation(clockContractCid);
-          if (current?.observedAt !== observedAt) {
+        if (confirmed !== observedAt || !sameClockFile(confirmedFile ?? {}, snapshot.state)) {
+          if (snapshot.checksummed) await flushClockFile(clockContractCid, snapshot);
+          if (!sameConfirmedInode) await syncDirectory(clocksDirectory);
+          const current = await readClockSnapshot(clockContractCid);
+          if (current?.value.observedAt !== observedAt ||
+              !['dev', 'ino', 'size'].every(field =>
+                current.state[field] === snapshot.state[field])) {
             fail('PublicationClockUncertain');
           }
           durablyConfirmedClocks.set(clockContractCid, observedAt);
+          durablyConfirmedClockFiles.set(clockContractCid, current.state);
         }
         return previous;
       }
       const value = Object.freeze({clockContractCid, observedAt});
-      const bytes = Buffer.from(JSON.stringify(value), 'utf8');
+      const plain = JSON.stringify(value);
+      const checked = Buffer.from(JSON.stringify({...value,
+        contentSha256: createHash('sha256').update(plain, 'utf8').digest('hex')}), 'utf8');
+      // Preserve small legacy Store configurations rather than imposing a new
+      // limit. They retain the original atomic replacement protocol.
+      const bytes = checked.byteLength <= configuration.maxObjectBytes
+        ? checked : Buffer.from(plain, 'utf8');
       if (bytes.byteLength > configuration.maxObjectBytes) {
         fail('PublicationObjectLimit');
+      }
+      if (snapshot?.checksummed && sameConfirmedInode &&
+          snapshot.state.size === BigInt(bytes.byteLength)) {
+        const state = await flushClockFile(clockContractCid, snapshot, bytes);
+        // This same original FD wrote the already typed value and really
+        // synced/closed it. Trusted internal I/O is not another wire input.
+        // Keep its physical version so the next operation still detects any
+        // intervening change and reads/adopts that new original normally.
+        lastClockObservation = {clockContractCid,state,value,checksummed:true};
+        durablyConfirmedClocks.set(clockContractCid, observedAt);
+        durablyConfirmedClockFiles.set(clockContractCid, state);
+        return value;
       }
       const staging = resolve(clocksDirectory, `.staging-${randomUUID()}`);
       try {
@@ -1773,15 +2413,23 @@ export async function openLocalPublicationStore(
         }
         throw error;
       }
-      const current = await readClockObservation(clockContractCid);
-      if (current?.observedAt !== observedAt) {
+      const current = await readClockSnapshot(clockContractCid);
+      if (current?.value.observedAt !== observedAt) {
         fail('PublicationClockUncertain');
       }
       durablyConfirmedClocks.set(clockContractCid, observedAt);
-      return current;
+      durablyConfirmedClockFiles.set(clockContractCid, current.state);
+      return current.value;
     });
     clockObservationBusy = operation.catch(() => {});
-    return operation;
+    return operation.finally(() => { clockObservationsPending--; });
+  };
+  const observeTrustedClock = (clockContractCid, observedAt) =>
+    updateTrustedClock(clockContractCid, observedAt);
+  const sampleTrustedClock = (clockContractCid, sample) => {
+    if (typeof sample !== 'function') fail('InvalidPublicationClockObservation');
+    return updateTrustedClock(clockContractCid, undefined, sample)
+      .then(observation => observation.observedAt);
   };
 
   const reserveObjectCapacity = maxBytes => {
@@ -1827,12 +2475,20 @@ export async function openLocalPublicationStore(
         objectPath,
         isReclaiming: cid => reclaimingMaterialCids.has(cid),
         registerCustody,
+        protectInstallation: true,
+        async confirmInstalled(cid, bytes, state, custody, installed) {
+          if (installed) confirmPhysicalCapacity([physicalOriginal(cid, bytes, state)]);
+        },
+        discardInstallation(cid, bytes, state, custody) {
+          settlePhysicalInstalls([physicalOriginal(cid, bytes, state)]);
+          if (custody !== undefined) custody.accounted = false;
+        },
+        finishUntrackedCustody: removeCustodyRecord,
         reclaimCustody,
         verifyObject,
-        accountInstalled(bytes, custody) {
-          storedBytes += bytes;
-          objectCount++;
-          if (custody !== undefined) custody.accounted = true;
+        accountInstalled(bytes, custody, cid, state) {
+          const accounted = accountPhysicalInstall(physicalOriginal(cid, bytes, state));
+          if (custody !== undefined) custody.accounted = accounted;
         },
       },
     );
@@ -1881,8 +2537,7 @@ export async function openLocalPublicationStore(
           if (pending === undefined) return;
           if (!pending.accounted) {
             await syncDirectory(objectsDirectory);
-            storedBytes -= pending.bytes;
-            objectCount--;
+            releasePhysicalCapacity(new Map([[physical.cid,pending.bytes]]));
             pending.accounted = true;
           }
           await clearCustodies();
@@ -1938,6 +2593,7 @@ export async function openLocalPublicationStore(
             // not permission to unlink. Keep this exact pending handle until
             // the same commit is confirmed or its holding is lawfully retired.
             if (await materialHasLiveReference(physical.cid)) return false;
+            rememberPhysicalRemoval(physical.cid, before.size, before);
             await unlink(path);
             group.removable = false;
             group.pendingUnlink = {
@@ -2124,74 +2780,223 @@ export async function openLocalPublicationStore(
   // Semantic contract identities exclude their self-CID field and therefore
   // are deliberately not the physical digest of the stored complete body.
   // The binding is an exclusive hard link to one immutable physical object.
-  const putSemantic = async (wire, semanticCid) => {
-    if (typeof wire !== 'string' ||
-        Buffer.byteLength(wire, 'utf8') > configuration.maxObjectBytes) {
-      fail('InvalidPublicationSemanticWire');
+  const putSemanticBatch = async (supplied, retainedOriginals) => {
+    active();
+    for (const pending of activePhysicalRecordWriters) {
+      if (pending.failed) fail('PublicationStoreCleanupPending');
     }
-    cidHex(semanticCid);
-    const bytes = Buffer.from(wire, 'utf8');
-    const physical = await putBytesInternal(bytes, undefined, true);
-    const target = contractPath(semanticCid);
-    let created = true;
+    // This private caller supplies one semantic body, an admitted delivery
+    // group or a bounded publication metadata group. Original generation
+    // records precede final-name acquisition in the existing native metadata
+    // transaction. No per-item custody file or directory barrier is needed.
+    const items = supplied.map(({wire, semanticCid}) => {
+      if (typeof wire !== 'string' ||
+          Buffer.byteLength(wire, 'utf8') > configuration.maxObjectBytes) {
+        fail('InvalidPublicationSemanticWire');
+      }
+      cidHex(semanticCid);
+      const bytes = Buffer.from(wire, 'utf8');
+      return {wire, semanticCid, bytes,
+        cid: `sha256:${createHash('sha256').update(bytes).digest('hex')}`,
+        handle: undefined, close: undefined, temporary: undefined,
+        reservation: undefined, state: undefined, objectLinkAttempted: false,
+        accounted: false, objectCreated: false, created: true};
+    });
+    const writer = {cleanup: undefined, failed: false};
+    const dirty = new Set();
+    activePhysicalRecordWriters.add(writer);
+    const account = item => {
+      if (item.accounted) return;
+      item.accounted = accountPhysicalInstall(physicalOriginal(item.cid,item.bytes.byteLength,item.state));
+    };
+    let physicalPreparations;
+    const syncNames = async () => {
+      for (const directory of [objectsDirectory, contractsDirectory]) {
+        if (!dirty.has(directory)) continue;
+        await syncDirectory(directory);
+        if (directory === objectsDirectory) {
+          confirmPhysicalCapacity(items.filter(item=>item.objectCreated)
+            .map(item=>physicalOriginal(item.cid,item.bytes.byteLength,item.state)));
+          if(physicalPreparations!==undefined) {
+            deliveryIndex.finishPhysicalPreparations(physicalPreparations);
+            physicalPreparations=undefined;
+          }
+        }
+        dirty.delete(directory);
+      }
+    };
+    let flight, failure;
+    const status = () => Object.freeze({pending: dirty.size !== 0 || physicalPreparations!==undefined || items.some(item =>
+      item.handle !== undefined || item.temporary !== undefined || item.reservation?.held)});
+    const cleanup = Object.freeze({status, retry() {
+      if (flight !== undefined) return flight;
+      flight = Promise.resolve().then(async () => {
+        let firstFailure, failed = false;
+        // Each original FD can retire independently. A failed second close
+        // must not retain an already closed unpublished first staging file.
+        for (const item of items) {
+          try {
+            if (item.handle !== undefined) {
+              if (item.close === undefined) item.close = item.handle.close;
+              if (await Reflect.apply(item.close, item.handle, []) === false) {
+                fail('PublicationStoreCleanupPending');
+              }
+              item.handle = item.close = undefined;
+            }
+            if (item.objectLinkAttempted && !item.objectCreated) {
+              let original;
+              try { original = await lstat(objectPath(item.cid)); }
+              catch (error) { if (error?.code !== 'ENOENT') throw error; }
+              // Observe a lost link reply without reissuing the link/write.
+              if (original?.isFile() && original.dev === item.state.dev &&
+                  original.ino === item.state.ino) {
+                account(item);item.objectCreated=true;
+              } else {
+                settlePhysicalInstalls([physicalOriginal(item.cid,item.bytes.byteLength,item.state)]);
+                item.accounted=false;
+              }
+            }
+            if (item.temporary !== undefined) {
+              try { await unlink(item.temporary); }
+              catch (error) { if (error?.code !== 'ENOENT') throw error; }
+              item.temporary = undefined;
+            }
+            item.reservation?.release();
+          } catch (error) {
+            if (!failed) firstFailure = error;
+            failed = true;
+          }
+        }
+        // Complete only those original final-name ACKs already attempted.
+        // Completed immutable objects remain charged in the Store inventory;
+        // a failed semantic publication is not permission to refill capacity.
+        try { await syncNames(); } catch (error) {
+          if (!failed) firstFailure = error;
+          failed = true;
+        }
+        if (dirty.size===0 && physicalPreparations!==undefined) {
+          try {
+            // An uncertain preparation never reached link. Confirm actual
+            // name absence before settling only its native pending originals.
+            await syncDirectory(objectsDirectory);
+            deliveryIndex.finishPhysicalPreparations(physicalPreparations);
+            physicalPreparations=undefined;
+          } catch(error){if(!failed)firstFailure=error;failed=true;}
+        }
+        if (!status().pending) activePhysicalRecordWriters.delete(writer);
+        if (failed) throw firstFailure;
+        return status();
+      }).finally(() => {
+        flight = undefined;
+        if (failure !== undefined) failure.cleanupPending = status().pending;
+      });
+      return flight;
+    }});
     try {
-      try {
-        await link(objectPath(physical.cid), target);
-      } catch (error) {
-        if (error?.code !== 'EEXIST') throw error;
-        created = false;
-        const existing = await readBounded(
-          target, configuration.maxObjectBytes,
-        );
-        if (!existing.equals(bytes)) {
-          fail('PublicationSemanticIdentityConflict');
+      for (const item of items) {
+        try {
+          const existing = await verifyObject(item.cid);
+          if (existing.bytes !== item.bytes.byteLength) fail('PublicationObjectIdentityMismatch');
+          continue;
+        } catch (error) { if (error?.code !== 'PublicationObjectMissing') throw error; }
+        item.reservation = reserveObjectCapacity(item.bytes.byteLength);
+        item.temporary = resolve(stagingDirectory, `object-${randomUUID()}`);
+        item.handle = await open(item.temporary,
+          constants.O_CREAT | constants.O_EXCL | constants.O_WRONLY, 0o600);
+        item.close = item.handle.close;
+        let offset = 0;
+        while (offset < item.bytes.byteLength) {
+          const {bytesWritten} = await item.handle.write(item.bytes, offset,
+            item.bytes.byteLength - offset, offset);
+          if (!quantity(bytesWritten) || bytesWritten === 0 ||
+              bytesWritten > item.bytes.byteLength - offset) fail('IncompletePublicationWrite');
+          offset += bytesWritten;
+        }
+        await item.handle.sync();
+        item.state = await item.handle.stat();
+        if (!item.state.isFile() || item.state.size !== item.bytes.byteLength) {
+          fail('IncompletePublicationWrite');
+        }
+        if (await Reflect.apply(item.close, item.handle, []) === false) {
+          fail('PublicationStoreCleanupPending');
+        }
+        item.handle = item.close = undefined;
+      }
+      const originals=items.filter(item=>item.temporary!==undefined)
+        .map(item=>physicalOriginal(item.cid,item.bytes.byteLength,item.state));
+      if(originals.length!==0) {
+        deliveryIndex.beginPhysicalObjectLifetime();
+        physicalPreparations=originals;
+        deliveryIndex.stagePhysicalObjects(originals);
+      }
+      for (const item of items) {
+        if (item.temporary === undefined) continue;
+        if (reclaimingMaterialCids.has(item.cid)) fail('PublicationObjectReclamationPending');
+        item.objectLinkAttempted = true;
+        dirty.add(objectsDirectory);
+        account(item);
+        try { await link(item.temporary, objectPath(item.cid)); item.objectCreated=true; }
+        catch (error) {
+          if (error?.code !== 'EEXIST') throw error;
+          if ((await verifyObject(item.cid)).bytes !== item.bytes.byteLength) {
+            fail('PublicationObjectIdentityMismatch');
+          }
+          settlePhysicalInstalls([physicalOriginal(item.cid,item.bytes.byteLength,item.state)]);
+          item.accounted=false;
         }
       }
-      await syncDirectory(contractsDirectory);
-      if (physical.custody !== undefined) {
-        await removeCustodyRecord(physical.custody);
+      await syncNames();
+      for (const item of items) {
+        dirty.add(contractsDirectory);
+        try { await link(objectPath(item.cid), contractPath(item.semanticCid)); }
+        catch (error) {
+          if (error?.code !== 'EEXIST') throw error;
+          item.created = false;
+          const existing = await readBounded(contractPath(item.semanticCid), configuration.maxObjectBytes);
+          if (!exactUtf8WireMatches(existing, item.wire)) fail('PublicationSemanticIdentityConflict');
+        }
       }
-      const visible = Object.freeze({
-        cid: physical.cid,
-        bytes: physical.bytes,
-        created: physical.created,
-      });
-      return Object.freeze({semanticCid, physical: visible, created});
-    } catch (error) {
-      if (physical.custody === undefined ||
-          !reclaimableCustodies.has(physical.custody.token)) throw error;
-      const cleanupErrors = [];
-      try { await reclaimCustody(physical.custody); }
-      catch (cleanupError) { cleanupErrors.push(cleanupError); }
-      if (!reclaimableCustodies.has(physical.custody.token)) throw error;
-      const failure = new PublicationStoreError(
-        typeof error?.code === 'string'
-          ? error.code : 'PublicationSemanticWriteFailed',
-        error,
-      );
-      failure.primaryFailure = error;
-      const status = () => Object.freeze({
-        pending: reclaimableCustodies.has(physical.custody.token),
-        errors: Object.freeze([...cleanupErrors]),
-      });
+      await syncNames();
+      // Staging names never establish durable state. They are unlinked only
+      // after original close; a name resurrected by a crash is removed by the
+      // existing exclusive opening recovery, not interpreted as a commit.
+      await cleanup.retry();
+      // Only these two newly linked names belong to this successful writer.
+      // Its bounded bytes/digest and real file/close/directory ACKs already
+      // establish the same-commit inventory fact. Existing aliases still use
+      // their actual reader; no observation escapes this operation's map.
+      if (retainedOriginals !== undefined) {
+        for (const item of items) {
+          if (item.objectCreated && item.created) retainedOriginals.set(
+            item.semanticCid, Object.freeze({bytes: item.bytes, physicalCid: item.cid}),
+          );
+        }
+      }
+      return Object.freeze(items.map(item => Object.freeze({semanticCid: item.semanticCid,
+        physical: Object.freeze({cid: item.cid, bytes: item.bytes.byteLength,
+          created: item.objectCreated}), created: item.created})));
+    } catch (primary) {
+      writer.failed = true;
+      writer.cleanup = cleanup;
+      try { await cleanup.retry(); } catch {}
+      if (!status().pending) throw primary;
+      failure = new PublicationStoreError(primary?.code ?? 'PublicationSemanticWriteFailed', primary);
+      failure.primaryFailure = primary;
       failure.cleanupPending = true;
-      failure.cleanupErrors = status().errors;
-      failure.cleanupHandle = Object.freeze({
-        status,
-        async retry() {
-          try { await reclaimCustody(physical.custody); }
-          catch (cleanupError) {
-            cleanupErrors.push(cleanupError);
-            throw cleanupError;
-          } finally {
-            failure.cleanupPending = status().pending;
-            failure.cleanupErrors = status().errors;
-          }
-          return status();
-        },
-      });
+      failure.cleanupHandle = cleanup;
       throw failure;
     }
+  };
+
+  const putSemantic = async (wire, semanticCid) =>
+    (await putSemanticBatch([{wire, semanticCid}]))[0];
+
+  // These immutable inputs were admitted by the existing delivery queue.
+  // They share final-name durability, without an exported prepared interval.
+  const putDeliveryContracts = async (grant, attempt, streaming) => {
+    await putSemanticBatch([grant, attempt, ...(streaming === undefined ? [] : [streaming])].map(contract => ({
+      wire: contract.wire, semanticCid: contract.identity,
+    })));
   };
 
   const parsePreparedSchema = bytes => {
@@ -2223,8 +3028,7 @@ export async function openLocalPublicationStore(
       if (!holder.active) return false;
       if (group.unconfirmedPhysical !== undefined) {
         await syncDirectory(objectsDirectory);
-        storedBytes -= group.unconfirmedPhysical.bytes;
-        objectCount--;
+        releasePhysicalCapacity(new Map([[group.record.physical_cid,group.unconfirmedPhysical.bytes]]));
         for (const custody of reclaimableCustodies.values()) {
           if (custody.record.material_generation_cid ===
                 group.record.physical_cid &&
@@ -2276,6 +3080,24 @@ export async function openLocalPublicationStore(
             group.pendingAliasSync = false;
           }
         }
+        if (!group.generationRetired && physical === undefined &&
+            group.generation !== undefined) {
+          // A crash can leave the original quota row after unlink, before
+          // its directory ACK. Only this prepared generation can settle it;
+          // absence never refunds a successor with the same content CID.
+          const original = deliveryIndex.physicalObject(group.record.physical_cid);
+          if (original !== undefined &&
+              original.byte_count === group.record.byte_count &&
+              original.device === group.generation.device &&
+              original.inode === group.generation.inode) {
+            rememberPhysicalRemoval(group.record.physical_cid, group.record.byte_count);
+            group.unconfirmedPhysical = {bytes: group.record.byte_count, ...group.generation};
+            await syncDirectory(objectsDirectory);
+            releasePhysicalCapacity(new Map([[group.record.physical_cid, group.record.byte_count]]));
+            group.unconfirmedPhysical = undefined;
+          }
+          group.generationRetired = true;
+        }
         if (!group.generationRetired && physical !== undefined &&
             group.generation !== undefined &&
             String(physical.dev) === group.generation.device &&
@@ -2285,6 +3107,7 @@ export async function openLocalPublicationStore(
             !await materialHasLiveReference(group.record.physical_cid)) {
           const remaining = await lstat(physicalPath);
           if (remaining.nlink === 1) {
+            rememberPhysicalRemoval(group.record.physical_cid,group.record.byte_count,remaining);
             await unlink(physicalPath);
             group.unconfirmedPhysical = {
               bytes: group.record.byte_count,
@@ -2292,8 +3115,7 @@ export async function openLocalPublicationStore(
               inode: String(remaining.ino),
             };
             await syncDirectory(objectsDirectory);
-            storedBytes -= group.unconfirmedPhysical.bytes;
-            objectCount--;
+            releasePhysicalCapacity(new Map([[group.record.physical_cid,group.unconfirmedPhysical.bytes]]));
             for (const custody of reclaimableCustodies.values()) {
               if (custody.record.material_generation_cid ===
                     group.record.physical_cid &&
@@ -2306,9 +3128,11 @@ export async function openLocalPublicationStore(
           }
         }
       }
-      try { await unlink(holder.path); }
-      catch (error) { if (error?.code !== 'ENOENT') throw error; }
-      await syncDirectory(preparedSchemasDirectory);
+      if (holder.path !== undefined) {
+        try { await unlink(holder.path); }
+        catch (error) { if (error?.code !== 'ENOENT') throw error; }
+        await syncDirectory(preparedSchemasDirectory);
+      }
       group.holders.delete(holder);
       holder.active = false;
       if (group.holders.size === 0) {
@@ -2344,11 +3168,12 @@ export async function openLocalPublicationStore(
       if (group === undefined) continue;
       const adopted = [...group.holders].filter(holder =>
         holder.runDefinitionCid === runDefinitionCid);
-      for (const holder of adopted) {
+      const durable = adopted.filter(holder => holder.path !== undefined);
+      for (const holder of durable) {
         try { await unlink(holder.path); }
         catch (error) { if (error?.code !== 'ENOENT') throw error; }
       }
-      await syncDirectory(preparedSchemasDirectory);
+      if (durable.length !== 0) await syncDirectory(preparedSchemasDirectory);
       for (const holder of adopted) {
         holder.active = false;
         group.holders.delete(holder);
@@ -2399,7 +3224,11 @@ export async function openLocalPublicationStore(
       }
       const token = randomUUID();
       const holder = {
-        path: preparedSchemaPath(token), active: true,
+        // A visible link from an unsettled writer is not a durable original.
+        // Keep the existing write/ACK protocol until those duties complete.
+        path: group.removable || activePhysicalRecordWriters.size !== 0
+          ? preparedSchemaPath(token) : undefined,
+        active: true,
         releasing: undefined, errors: [], runDefinitionCid,
       };
       const record = Object.freeze({
@@ -2408,38 +3237,62 @@ export async function openLocalPublicationStore(
       group.holders.add(holder);
       const prepared = preparedSchemaHandle(group, holder);
       try {
-        await writeExclusive(holder.path,
-          Buffer.from(JSON.stringify(record), 'utf8'));
-        await syncDirectory(preparedSchemasDirectory);
-        const stored = await putSemantic(wire, semanticCid);
-        const physical = await lstat(objectPath(physicalCid));
-        const semantic = await lstat(contractPath(semanticCid));
-        if (!physical.isFile() || !semantic.isFile() ||
-            physical.dev !== semantic.dev ||
-            physical.ino !== semantic.ino ||
-            physical.size !== bytes.byteLength) {
-          fail('PublicationPreparedSchemaGenerationMismatch');
+        let stored, generation;
+        if (holder.path !== undefined) {
+          // Newly created bytes need the existing crash-reclamation marker.
+          await writeExclusive(holder.path,
+            Buffer.from(JSON.stringify(record), 'utf8'));
+          await syncDirectory(preparedSchemasDirectory);
+          stored = await putSemantic(wire, semanticCid);
+        } else {
+          // An already owned immutable schema creates no new durable state.
+          // Acquire this operation's real original; retain its live holder,
+          // without rewriting crash markers for an allocation we cannot delete.
+          const original = await readSemanticOriginal(semanticCid, false, true);
+          if (original.physicalCid !== physicalCid ||
+              !exactUtf8WireMatches(original.bytes, wire)) {
+            fail('PublicationObjectIdentityMismatch');
+          }
+          stored = Object.freeze({semanticCid, physical: Object.freeze({
+            cid: physicalCid, bytes: original.bytes.byteLength, created: false,
+          }), created: false});
+          generation = original.generation;
         }
-        const generation = {
-          device: String(physical.dev), inode: String(physical.ino),
-        };
+        if (generation === undefined) {
+          // A writer still needs its actual final aliases observed. An
+          // existing body's reader already checked these same inode/extent
+          // facts while acquiring its bytes in this preparation.
+          const physical = await lstat(objectPath(physicalCid));
+          const semantic = await lstat(contractPath(semanticCid));
+          if (!physical.isFile() || !semantic.isFile() ||
+              physical.dev !== semantic.dev ||
+              physical.ino !== semantic.ino ||
+              physical.size !== bytes.byteLength) {
+            fail('PublicationPreparedSchemaGenerationMismatch');
+          }
+          generation = Object.freeze({
+            device: String(physical.dev), inode: String(physical.ino),
+          });
+        }
         if (group.generation !== undefined &&
             (group.generation.device !== generation.device ||
               group.generation.inode !== generation.inode)) {
           fail('PublicationPreparedSchemaGenerationMismatch');
         }
-        const staged = resolve(preparedSchemasDirectory,
-          `.staging-${randomUUID()}.json`);
-        await writeExclusive(staged, Buffer.from(JSON.stringify({
-          ...record, ...generation,
-        }), 'utf8'));
-        await rename(staged, holder.path);
-        await syncDirectory(preparedSchemasDirectory);
+        if (holder.path !== undefined) {
+          const staged = resolve(preparedSchemasDirectory,
+            `.staging-${randomUUID()}.json`);
+          await writeExclusive(staged, Buffer.from(JSON.stringify({
+            ...record, ...generation,
+          }), 'utf8'));
+          await rename(staged, holder.path);
+          await syncDirectory(preparedSchemasDirectory);
+        }
         group.generation = generation;
         return Object.freeze({...stored, prepared});
       } catch (error) {
-        // The marker remains durable if either physical or alias cleanup
-        // cannot be confirmed. The caller can retry without resending data.
+        // A new allocation keeps its durable marker. Every path retains the
+        // same acquired reader/holder cleanup without resending any data.
         const failure = new PublicationStoreError(
           typeof error?.code === 'string'
             ? error.code : 'PublicationPreparedSchemaFailed', error,
@@ -2500,6 +3353,9 @@ export async function openLocalPublicationStore(
     const contract = admitContract(name, suppliedWire);
     const value = parseContract(contract);
     const semanticCid = contract.identity;
+    if (nativePublicationContract(name) && deliveryIndex?.publicationContract(semanticCid) !== undefined) {
+      return (await putNativePublicationContracts([Object.freeze({contract,value})]))[0];
+    }
     return Object.freeze({
       value,
       contract,
@@ -2507,9 +3363,189 @@ export async function openLocalPublicationStore(
     });
   };
 
-  const readSemanticBytes = async cid => {
+  const putNativePublicationContracts = async admitted => {
+    active();
+    for (const pending of activePhysicalRecordWriters) {
+      if (pending.failed) fail('PublicationStoreCleanupPending');
+    }
+    const entries = [], results = [], reservations = [];
+    let reservationBytes = 0;
+    try {
+      for (const original of admitted) {
+        const {contract} = original;
+        // Existing file originals remain files. Do not duplicate their charge
+        // or silently replace an independently adopted physical representation.
+        try {
+          await lstat(contractPath(contract.identity));
+          const retained = await readSemanticOriginal(contract.identity, false);
+          if (!exactUtf8WireMatches(retained.bytes, contract.wire)) fail('PublicationSemanticIdentityConflict');
+          results.push(Object.freeze({...original, semanticCid:contract.identity, storage:'file', created:false}));
+          continue;
+        } catch (error) { if (error?.code !== 'ENOENT') throw error; }
+        const entry = Object.freeze({semantic_cid:contract.identity,name:contract.name,
+          wire:contract.wire,byte_count:Buffer.byteLength(contract.wire,'utf8')});
+        const existing = deliveryIndex.publicationContract(entry.semantic_cid);
+        if (existing !== undefined && (existing.name !== entry.name || existing.wire !== entry.wire)) {
+          fail('PublicationSemanticIdentityConflict');
+        }
+        entries.push(entry);
+        if (existing === undefined) {
+          reservations.push(reserveObjectCapacity(entry.byte_count));
+          reservationBytes += entry.byte_count;
+        }
+        results.push(Object.freeze({...original, semanticCid:contract.identity, storage:'sqlite', created:existing === undefined}));
+      }
+    } catch (error) {
+      for (const reservation of reservations) reservation.release();
+      throw error;
+    }
+    if (entries.length === 0) return Object.freeze(results);
+    const originalEntries = Object.freeze(entries);
+    const allowance = Object.freeze({objects:reservations.length,bytes:reservationBytes});
+    const writer = {failed:false,cleanup:undefined};
+    let pending = true, flight, failure;
+    const finish = () => {
+      const usage = deliveryIndex.putPublicationContracts(originalEntries,allowance);
+      accountNativePublication(usage);
+      for (const reservation of reservations) reservation.release();
+      pending = false;
+      activePhysicalRecordWriters.delete(writer);
+    };
+    const status = () => Object.freeze({pending});
+    writer.cleanup = Object.freeze({status,retry() {
+      if (flight !== undefined) return flight;
+      flight = Promise.resolve().then(() => {
+        if (pending) finish();
+        if (failure !== undefined) failure.cleanupPending = pending;
+        return status();
+      })
+        .finally(() => { flight = undefined; });
+      return flight;
+    }});
+    activePhysicalRecordWriters.add(writer);
+    try { finish(); }
+    catch (error) {
+      if (error?.outcome !== 'unknown') {
+        for (const reservation of reservations) reservation.release();
+        pending = false;
+        activePhysicalRecordWriters.delete(writer);
+        throw error;
+      }
+      writer.failed = true;
+      // The same bodies and capacity reservation remain owned until an actual
+      // same-database write confirms their outcome. Visibility is not an ACK.
+      failure = new PublicationStoreError('PublicationMetadataCommitOutcomeUnknown',error);
+      failure.outcome = 'unknown';
+      failure.primaryFailure = error;
+      failure.cleanupPending = true;
+      failure.cleanupHandle = writer.cleanup;
+      throw failure;
+    }
+    return Object.freeze(results);
+  };
+
+  const putPublicationContractBatch = async (supplied, originals) => {
+    active();
+    if (!Array.isArray(supplied)) fail('InvalidPublicationContractWire');
+    const count = supplied.length;
+    if (!Number.isSafeInteger(count) || count < 0 || count > configuration.maxObjects) {
+      fail('PublicationStoreObjectLimit');
+    }
+    // Own the finite input before an admission callback or physical await.
+    const inputs = Array.from({length: count}, (_, index) => {
+      const input = supplied[index];
+      if (!exactKeys(input, originals
+        ? ['name', 'identityField', 'identity', 'wire'] : ['name', 'wire'])) {
+        fail('InvalidPublicationContractWire');
+      }
+      return Object.freeze({name: input.name, wire: input.wire,
+        original: originals ? input : undefined});
+    });
+    const admitted = [], identities = new Map(), wires = new Map();
+    let bytes = 0n;
+    for (const input of inputs) {
+      const sameWire = wires.get(input.wire);
+      if (sameWire !== undefined && sameWire.contract.name === input.name) continue;
+      let contract;
+      if (input.original !== undefined && typeof contractControl.admitOriginal === 'function') {
+        try { contract = contractControl.admitOriginal(input.original, contractLimits); }
+        catch (error) { fail('InvalidPublicationContract', error); }
+        if (contract !== undefined &&
+            (contract !== input.original || !Object.isFrozen(contract) ||
+              typeof contract.name !== 'string' || contract.name !== input.name ||
+              typeof contract.identityField !== 'string' ||
+              !cidPattern.test(contract.identity) || contract.wire !== input.wire ||
+              typeof contract.wire !== 'string' ||
+              Buffer.byteLength(contract.wire, 'utf8') > configuration.maxObjectBytes)) {
+          fail('InvalidPublicationContractControlResult');
+        }
+      }
+      contract ??= admitContract(input.name, input.wire);
+      const value = parseContract(contract);
+      const previous = identities.get(contract.identity);
+      if (previous !== undefined) {
+        if (previous.contract.name !== contract.name || previous.contract.wire !== contract.wire) {
+          fail('PublicationSemanticIdentityConflict');
+        }
+        continue;
+      }
+      bytes += BigInt(Buffer.byteLength(contract.wire, 'utf8'));
+      if (bytes > BigInt(configuration.capacityBytes)) fail('PublicationStoreCapacity');
+      const original = Object.freeze({contract, value});
+      admitted.push(original);
+      identities.set(contract.identity, original);
+      wires.set(input.wire, original);
+    }
+    const nativeOnly = admitted.every(({contract}) => nativePublicationContract(contract.name));
+    if (originals && nativeOnly) {
+      return putNativePublicationContracts(admitted);
+    }
+    const existingNative = new Map();
+    for (const original of admitted) {
+      const {contract} = original;
+      if (!nativePublicationContract(contract.name)) continue;
+      const retained = deliveryIndex.publicationContract(contract.identity);
+      if (retained === undefined) continue;
+      if (retained.name !== contract.name || retained.wire !== contract.wire) {
+        fail('PublicationSemanticIdentityConflict');
+      }
+      existingNative.set(contract.identity,Object.freeze({...original,
+        semanticCid:contract.identity,storage:'sqlite',created:false}));
+    }
+    if (nativeOnly && existingNative.size !== 0) return putNativePublicationContracts(admitted);
+    // A legacy file member does not turn an already native sibling into a
+    // second file allocation. Only the remaining original files enter the
+    // unchanged physical batch and its actual capacity/ACK protocol.
+    const stored = await putSemanticBatch(admitted.filter(({contract}) =>
+      !existingNative.has(contract.identity)).map(({contract}) => ({
+      wire: contract.wire, semanticCid: contract.identity,
+    })));
+    let physicalIndex = 0;
+    return Object.freeze(admitted.map(original => existingNative.get(original.contract.identity) ??
+      Object.freeze({...original,...stored[physicalIndex++]})));
+  };
+
+  const putPublicationContracts = supplied => putPublicationContractBatch(supplied, false);
+  const putOriginalPublicationContracts = supplied => putPublicationContractBatch(supplied, true);
+
+  const admitNativeContract = (native, cid, name, retained) => {
+    if (native === undefined) return undefined;
+    if (name !== undefined && native.name !== name) fail('InvalidDeliveryAttemptIndex');
+    const contract = retained?.identity === cid && retained.name === native.name && retained.wire === native.wire
+      ? retained : admitContract(native.name,native.wire);
+    if (contract.identity !== cid) fail('InvalidDeliveryAttemptIndex');
+    return contract;
+  };
+  const nativeDeliveryContract = (cid, name, retained) =>
+    admitNativeContract(deliveryIndex?.contract(cid), cid, name, retained);
+
+  const readSemanticOriginal = async function readSemanticBytes(cid, includeNative = true, retainGeneration = false) {
     const path = contractPath(cid);
     active();
+    const nativeRecord = includeNative ? deliveryIndex?.contract(cid) : undefined;
+    const native = admitNativeContract(nativeRecord,cid);
+    if (native !== undefined) return Object.freeze({bytes: Buffer.from(native.wire,'utf8'), native,
+      publication: nativeRecord.publication === true});
     // This is the original read duty in the same Store lifetime. Keep its
     // private failure reachable even when a public ingress redacts the Error.
     const reader = {cleanup: undefined, failure: undefined};
@@ -2553,11 +3589,19 @@ export async function openLocalPublicationStore(
       if (!after.isFile() || before.dev !== after.dev ||
           before.ino !== after.ino || before.size !== after.size ||
           before.mtimeMs !== after.mtimeMs || size !== after.size ||
-          physical.dev !== after.dev || physical.ino !== after.ino) {
+          physical.dev !== after.dev || physical.ino !== after.ino ||
+          physical.size !== after.size || physical.mtimeMs !== after.mtimeMs) {
         fail('PublicationContractCorrupt');
       }
-      await verifyObject(physicalCid);
-      return bytes;
+      // This original FD already supplied every hashed byte, and the digest's
+      // object path names the same unchanged hard-linked allocation. Reopening
+      // that allocation to hash it again adds no independent fact. A later
+      // read still acquires and validates its own original; no Store-wide
+      // successful-digest cache substitutes for that observation.
+      if (retainGeneration) return Object.freeze({bytes, physicalCid, generation: Object.freeze({
+        device: String(after.dev), inode: String(after.ino),
+      })});
+      return Object.freeze({bytes, physicalCid});
     } catch (error) {
       readFailure = error;
       readFailed = true;
@@ -2611,6 +3655,11 @@ export async function openLocalPublicationStore(
       }
     }
   };
+
+  // Public callers receive their own mutable bytes. The private observation
+  // also retains the digest of this exact allocation after its real FD close.
+  const readSemanticBytes = async (cid, includeNative = true) =>
+    (await readSemanticOriginal(cid, includeNative)).bytes;
 
   // Private evidence uses the prepared-object and physical-holding custody
   // already used by Transfer. A semantic alias before a durable owner would
@@ -2917,8 +3966,15 @@ export async function openLocalPublicationStore(
     return true;
   };
 
-  const readContract = async (cid, contractName) => {
-    const bytes = await readSemanticBytes(cid);
+  const readContract = async (cid, contractName, readOriginal = readSemanticOriginal) => {
+    const includeNative = contractName === undefined || nativeContractRead(contractName);
+    const original = await readOriginal(cid, includeNative);
+    const native = original.native;
+    if (native !== undefined) {
+      if (contractName !== undefined && native.name !== contractName) fail('InvalidDeliveryAttemptIndex');
+      return Object.freeze({wire:native.wire,value:parseContract(native),contract:native});
+    }
+    const bytes = original.bytes;
     const wire = bytes.toString('utf8');
     if (contractName === undefined) {
       let value;
@@ -2934,11 +3990,13 @@ export async function openLocalPublicationStore(
   const readJsonObject = async (cid, contractName) =>
     (await readContract(cid, contractName)).value;
 
-  const verifyDurableResultBinding = async contract => {
+  const verifyDurableResultBinding = async (contract, readOriginal = readSemanticOriginal, retainedBinding) => {
     if (contract.name !== 'durable_result_binding') {
       fail('InvalidPublicationCommitEvidence');
     }
-    const binding = parseContract(contract);
+    // Only the private selected reader supplies this same already parsed
+    // body. Other internal callers still interpret their own contract here.
+    const binding = retainedBinding === undefined ? parseContract(contract) : retainedBinding;
     if (binding.store_authority_cid !== configuration.storeAuthorityCid ||
         binding.physical_sha256 !== cidHex(binding.material_generation_cid)) {
       fail('PublicationDurableBindingMismatch');
@@ -2947,14 +4005,16 @@ export async function openLocalPublicationStore(
     if (physical.bytes !== binding.byte_count) {
       fail('PublicationDurableBindingMismatch');
     }
-    const schemaBytes = await readSemanticBytes(binding.result_schema_cid);
-    const schemaCid = `sha256:${createHash('sha256')
+    const original = await readOriginal(binding.result_schema_cid, false);
+    const schemaBytes = original.bytes;
+    const schemaCid = original.physicalCid ?? `sha256:${createHash('sha256')
       .update(schemaBytes).digest('hex')}`;
     if (schemaCid !== binding.result_schema_cid) {
       fail('PublicationDurableBindingMismatch');
     }
+    const schemaWire = schemaBytes.toString('utf8');
     let schema;
-    try { schema = JSON.parse(schemaBytes.toString('utf8')); }
+    try { schema = JSON.parse(schemaWire); }
     catch (error) { fail('PublicationDurableBindingMismatch', error); }
     if (schema === null || typeof schema !== 'object' ||
         Array.isArray(schema) || !Array.isArray(binding.result_fields) ||
@@ -2969,7 +4029,7 @@ export async function openLocalPublicationStore(
       physical,
       schema: Object.freeze({
         cid: schemaCid,
-        wire: schemaBytes.toString('utf8'),
+        wire: schemaWire,
       }),
     });
   };
@@ -3078,105 +4138,404 @@ export async function openLocalPublicationStore(
     return record;
   };
 
-  const readDeliveryAttemptContract = async attemptCid => {
+  const readFileDeliveryAttemptContract = async (attemptCid, retained) => {
     const bytes = await readBounded(
       resolve(deliveryAttemptPath(attemptCid), 'attempt.json'),
       configuration.maxObjectBytes,
     );
     try {
-      return admitContract('delivery_attempt', bytes.toString('utf8'));
+      const contract = retained !== undefined && exactUtf8WireMatches(bytes, retained.wire)
+        ? retained : admitContract('delivery_attempt', bytes.toString('utf8'));
+      if (contract.identity !== attemptCid) fail('InvalidDeliveryAttempt');
+      return contract;
     } catch (error) {
       fail('InvalidDeliveryAttempt', error);
     }
   };
 
-  const createDeliveryAttempt = (suppliedWire, suppliedGrantWire) => {
-    active();
-    const operation = deliveryAdmissionBusy.then(async () => {
-      const admitted = admitContract('delivery_attempt', suppliedWire);
-      const attempt = parseContract(admitted);
-      const grantContract = admitContract(
-        'result_read_grant', suppliedGrantWire,
-      );
-      const grant = parseContract(grantContract);
-      if (await runMetadataDeletionStarted(attempt.run_definition_cid)) {
-        fail('PublicationMetadataDeleted');
-      }
-      if (attempt.result_read_grant_cid !== grantContract.identity) {
-        fail('DeliveryGrantMismatch');
-      }
-      if (attempt.run_definition_cid !== grant.run_definition_cid ||
-          attempt.result_manifest_cid !== grant.result_manifest_cid ||
-          !grant.results.some(result => result.result_name === attempt.result_name &&
-            result.result_artifact_cid === attempt.result_artifact_cid)) {
-        fail('DeliveryGrantMismatch');
-      }
-      // The existing durable lookup owns the logical key. Selection and grant
-      // consumption stay in this one admission queue and under Store ownership;
-      // no second index or process-local attempt cache substitutes for the files.
-      const {match: retained, grantUses} = await scanDeliveryAttempts({
-        indexKey: {namespaceId: grant.namespace_id,
-          authorityScopeCid: grant.authority_scope_cid,
-          runDefinitionCid: grant.run_definition_cid},
-        principalId: grant.principal_id, purpose: grant.purpose,
-        resultName: attempt.result_name, attemptId: attempt.attempt_id,
-      }, grantContract.identity);
-      if (retained !== undefined) {
-        let original;
-        try {
-          // Admission recomputes/checks the complete canonical identity after
-          // restoring only the selected birth time. All other bindings must
-          // reproduce the retained CID; no JS hashing or field subset compare.
-          original = admitContract('delivery_attempt', JSON.stringify({...attempt,
-            requested_at: retained.attempt.requested_at,
-            delivery_attempt_cid: retained.attempt.delivery_attempt_cid}));
-        } catch (cause) { fail('DeliveryAttemptConflict', cause); }
-        const existing = await readDeliveryAttemptContract(original.identity);
-        if (original.wire !== existing.wire) fail('DeliveryAttemptConflict');
-        // A previous caller may have lost the final directory-sync response.
-        // Confirm that same selection, never allocate another attempt/reader.
-        await syncDirectory(deliveryAttemptPath(original.identity));
-        await syncDirectory(deliveriesDirectory);
-        return Object.freeze({attempt: parseContract(existing), created: false});
-      }
-      const target = deliveryAttemptPath(attempt.delivery_attempt_cid);
+  const readDeliveryAttemptContract = async (attemptCid, retained) =>
+    nativeDeliveryContract(attemptCid,'delivery_attempt',retained) ??
+      readFileDeliveryAttemptContract(attemptCid,retained);
 
-      if (grantUses >= grant.max_uses) fail('DeliveryGrantUseLimit');
-
-      await putPublicationContract(
-        'result_read_grant', grantContract.wire,
-      );
-      await putPublicationContract('delivery_attempt', admitted.wire);
-      const staging = resolve(
-        deliveriesDirectory, `.staging-${randomUUID()}`,
-      );
-      await mkdir(staging, {mode: 0o700});
-      try {
-        await link(
-          contractPath(admitted.identity),
-          resolve(staging, 'attempt.json'),
-        );
-        await syncDirectory(staging);
-        await rename(staging, target);
-        await syncDirectory(deliveriesDirectory);
-      } catch (error) {
-        try { await rm(staging, {recursive: true, force: false}); }
-        catch (cleanupError) {
-          if (cleanupError?.code !== 'ENOENT') throw cleanupError;
-        }
+  const deliveryLogicalKey = query => JSON.stringify([
+    query.indexKey.namespaceId, query.indexKey.authorityScopeCid,
+    query.indexKey.runDefinitionCid, query.principalId, query.purpose,
+    query.resultName, query.attemptId,
+  ]);
+  const deliveryQuery = (attempt, grant) => ({
+    indexKey: {namespaceId: grant.namespace_id, authorityScopeCid: grant.authority_scope_cid,
+      runDefinitionCid: attempt.run_definition_cid},
+    principalId: grant.principal_id, purpose: grant.purpose,
+    resultName: attempt.result_name, attemptId: attempt.attempt_id,
+  });
+  const deliveryIndexRow = (attempt, grant, attemptContract, grantContract) => ({
+    logical_key: deliveryLogicalKey(deliveryQuery(attempt, grant)),
+    attempt_cid: attemptContract.identity, grant_cid: grantContract.identity,
+    run_cid: attempt.run_definition_cid,
+    attempt_wire: attemptContract.wire, grant_wire: grantContract.wire,
+  });
+  const installDeliveryAttempt = async (admitted, streaming) => {
+    const writer = {cleanup: undefined, failed: false};
+    activePhysicalRecordWriters.add(writer);
+    let retainedChild = false;
+    try {
+    const target = deliveryAttemptPath(admitted.identity);
+    const linkInitialRecord = async directory => {
+      if (streaming === undefined) return;
+      const path = resolve(directory, '0.json');
+      try {await link(contractPath(streaming.identity), path);}
+      catch (error) {
         if (error?.code !== 'EEXIST') throw error;
-        const existing = await readDeliveryAttemptContract(
-          attempt.delivery_attempt_cid,
-        );
-        if (existing.wire !== admitted.wire) {
-          fail('DeliveryAttemptConflict');
+        if (!exactUtf8WireMatches(await readBounded(path, configuration.maxObjectBytes), streaming.wire)) {
+          fail('DeliveryRecordConflict');
         }
-        return Object.freeze({attempt, created: false});
       }
-      return Object.freeze({attempt, created: true});
+    };
+    try {
+      const retained = await readDeliveryAttemptContract(admitted.identity, admitted);
+      if (retained.wire !== admitted.wire) fail('DeliveryAttemptConflict');
+      await linkInitialRecord(target);
+      await syncDirectory(target);
+      await syncDirectory(deliveriesDirectory);
+      return;
+    } catch (error) { if (error?.code !== 'ENOENT') throw error; }
+    // A pending claim determines its one original staging alias. Recovery can
+    // revisit that alias without scanning unrelated directories on every open.
+    const staging = resolve(deliveriesDirectory, `.staging-${admitted.identity.slice(7)}`);
+    try { await mkdir(staging, {mode: 0o700}); }
+    catch (error) {
+      if (error?.code !== 'EEXIST') throw error;
+      if (!(await lstat(staging)).isDirectory()) fail('InvalidDeliveryAttemptStore');
+    }
+    try {
+      try { await link(contractPath(admitted.identity), resolve(staging, 'attempt.json')); }
+      catch (error) {
+        if (error?.code !== 'EEXIST') throw error;
+        const bytes = await readBounded(resolve(staging,'attempt.json'),configuration.maxObjectBytes);
+        if (!exactUtf8WireMatches(bytes,admitted.wire)) fail('DeliveryAttemptConflict');
+      }
+      await linkInitialRecord(staging);
+      await syncDirectory(staging);
+      await rename(staging, target);
+      await syncDirectory(deliveriesDirectory);
+    } catch (primary) {
+      if (primary?.code !== 'EEXIST') throw primary;
+      await rm(staging, {recursive: true, force: false});
+      const retained = await readDeliveryAttemptContract(admitted.identity, admitted);
+      if (retained.wire !== admitted.wire) fail('DeliveryAttemptConflict');
+      await linkInitialRecord(target);
+      await syncDirectory(target);
+      await syncDirectory(deliveriesDirectory);
+    }
+    } catch (primary) {
+      const child = primary?.cleanupHandle;
+      if (child !== undefined) {
+        const statusOriginal = child.status, retryOriginal = child.retry;
+        let pending = true, flight;
+        const status = () => Object.freeze({pending});
+        writer.failed = retainedChild = true;
+        writer.cleanup = Object.freeze({status,retry() {
+          if (flight !== undefined) return flight;
+          flight = Promise.resolve().then(async () => {
+            if (!pending) return status();
+            if (typeof statusOriginal !== 'function' || typeof retryOriginal !== 'function') {
+              fail('PublicationStoreCleanupPending');
+            }
+            await Reflect.apply(retryOriginal,child,[]);
+            const observation = await Reflect.apply(statusOriginal,child,[]);
+            const descriptor = observation !== null && typeof observation === 'object'
+              ? Object.getOwnPropertyDescriptor(observation,'pending') : undefined;
+            if (descriptor?.value !== false) fail('PublicationStoreCleanupPending');
+            pending = false;
+            activePhysicalRecordWriters.delete(writer);
+            return status();
+          }).finally(() => { flight = undefined; });
+          return flight;
+        }});
+      }
+      throw primary;
+    } finally {
+      if (!retainedChild) activePhysicalRecordWriters.delete(writer);
+    }
+  };
+  const admitDeliveryClaim = (row, suppliedAttempt, suppliedGrant) => {
+    const attemptContract = suppliedAttempt?.contract.identity === row.attempt_cid && suppliedAttempt.contract.wire === row.attempt_wire
+      ? suppliedAttempt.contract : admitContract('delivery_attempt', row.attempt_wire);
+    const grantContract = suppliedGrant?.contract.identity === row.grant_cid && suppliedGrant.contract.wire === row.grant_wire
+      ? suppliedGrant.contract : admitContract('result_read_grant', row.grant_wire);
+    const attempt = attemptContract === suppliedAttempt?.contract ? suppliedAttempt.value : parseContract(attemptContract);
+    const grant = grantContract === suppliedGrant?.contract ? suppliedGrant.value : parseContract(grantContract);
+    const expected = deliveryIndexRow(attempt,grant,attemptContract,grantContract);
+    if (Object.keys(expected).some(name => expected[name] !== row[name]) ||
+        attempt.result_read_grant_cid !== grantContract.identity ||
+        attempt.run_definition_cid !== grant.run_definition_cid ||
+        attempt.result_manifest_cid !== grant.result_manifest_cid ||
+        !grant.results.some(result => result.result_name === attempt.result_name &&
+          result.result_artifact_cid === attempt.result_artifact_cid)) fail('InvalidDeliveryAttemptIndex');
+    let streaming, streamingRecord;
+    if (row.initial_wire != null) {
+      streaming = admitContract('delivery_record',row.initial_wire);
+      const record = streamingRecord = parseContract(streaming);
+      if (row.initial_cid != null && streaming.identity !== row.initial_cid ||
+          record.delivery_attempt_cid !== attemptContract.identity ||
+          record.sequence !== 0 || record.state !== 'streaming' ||
+          Reflect.apply(deliveryStartTransition,contractControl,[undefined,streaming]) !== true) {
+        fail('InvalidDeliveryAttemptIndex');
+      }
+    }
+    return {attemptContract,attempt,grantContract,grant,streaming,streamingRecord};
+  };
+  const restoreDeliveryClaim = async row => {
+    const {attemptContract,attempt,grantContract,grant,streaming} = admitDeliveryClaim(row);
+    await putDeliveryContracts(grantContract,attemptContract,streaming);
+    await installDeliveryAttempt(attemptContract,streaming);
+    if (row.ready === 0) deliveryIndex.finish(row.logical_key,attemptContract.identity);
+    return {attemptContract,attempt,grantContract,grant};
+  };
+
+  const initializeDeliveryIndex = async () => {
+    let coverage, indexExists = false;
+    try {
+      const bytes = await readBounded(deliveryCoveragePath,128);
+      coverage = JSON.parse(bytes.toString('utf8'));
+      if (!exactKeys(coverage,['version','phase']) || coverage.version !== 1 ||
+          !['building','ready'].includes(coverage.phase)) fail('DeliveryAttemptIndexUnavailable');
+    } catch (error) { if (error?.code !== 'ENOENT') throw error; }
+    try {
+      const state = await lstat(deliveryIndexPath);
+      if (!state.isFile() || state.isSymbolicLink()) fail('DeliveryAttemptIndexUnavailable');
+      indexExists = true;
+    } catch (error) { if (error?.code !== 'ENOENT') throw error; }
+    if (coverage?.phase === 'ready' && !indexExists || coverage === undefined && indexExists) {
+      fail('DeliveryAttemptIndexUnavailable');
+    }
+    const publishCoverage = async phase => {
+      const staging = resolve(stagingDirectory,`object-${randomUUID()}`);
+      await writePhysicalHoldingRecord(staging,Buffer.from(JSON.stringify({version:1,phase}),'utf8'));
+      await rename(staging,deliveryCoveragePath);
+      await syncDirectory(root);
+    };
+    // An explicit one-time legacy migration has a durable building intent.
+    // Ready coverage is never recreated from a missing adopted database.
+    if (coverage === undefined) {
+      await publishCoverage('building');
+      coverage = {version:1,phase:'building'};
+    }
+    deliveryIndex = await openDeliveryAttemptIndex(deliveryIndexPath,{
+      create: coverage.phase === 'building', maxEntries: configuration.maxObjects,
+      maxWireBytes: configuration.maxObjectBytes,
     });
+    const migratePhysical=deliveryIndex.physicalObjectUsage().complete===0;
+    const recoverPhysical=deliveryIndex.physicalObjectRecoveryRequired();
+    if(migratePhysical&&recoverPhysical)fail('DeliveryAttemptIndexUnavailable');
+    if (migratePhysical || recoverPhysical) {
+      const originals = [];
+      let bytes = 0;
+      // Only first adoption or an actually unsealed prior owned lifetime
+      // permits this bounded physical census. Clean opening uses its index;
+      // missing adopted metadata never requests reconstruction.
+      for (const name of await readOpeningDirectory(objectsDirectory)) {
+        if (!/^[0-9a-f]{64}$/u.test(name)) fail('InvalidPublicationStoreObject');
+        const state = await lstat(resolve(objectsDirectory, name));
+        if (!state.isFile() || !quantity(state.size) || state.size > configuration.maxObjectBytes ||
+            bytes + state.size > configuration.capacityBytes) fail('InvalidPublicationStoreObject');
+        if (originals.length === configuration.maxObjects) fail('PublicationStoreObjectLimit');
+        bytes += state.size;
+        originals.push(physicalOriginal(`sha256:${name}`, state.size, state));
+      }
+      if(migratePhysical)deliveryIndex.migratePhysicalObjects(originals);
+      else{
+        await syncDirectory(objectsDirectory);
+        deliveryIndex.recoverPhysicalObjects(originals);
+      }
+    }
+    accountPhysicalUsage(deliveryIndex.physicalObjectUsage());
+    if (deliveryIndex.needsMigration()) {
+      if (coverage.phase !== 'building') fail('DeliveryAttemptIndexUnavailable');
+      const rows = [], grants = new Map(), uses = new Map();
+      // Building coverage is not an empty native lookup. This explicit
+      // migration reads the original legacy files before publishing rows;
+      // ordinary lookups still require complete native coverage.
+      const readLegacySemantic = cid => readSemanticOriginal(cid,false);
+      for (const name of await readdir(deliveriesDirectory)) {
+        if (name.startsWith('.staging-')) {
+          await removeOpeningTree(resolve(deliveriesDirectory,name),bootstrap);
+          continue;
+        }
+        if (!/^[0-9a-f]{64}$/u.test(name) ||
+            !(await lstat(resolve(deliveriesDirectory,name))).isDirectory()) fail('InvalidDeliveryAttemptStore');
+        if (rows.length >= configuration.maxObjects) fail('DeliveryAttemptIndexLimit');
+        const attemptContract = await readFileDeliveryAttemptContract(`sha256:${name}`);
+        const attempt = parseContract(attemptContract);
+        let original = grants.get(attempt.result_read_grant_cid);
+        if (original === undefined) {
+          original = await readContract(attempt.result_read_grant_cid,'result_read_grant',readLegacySemantic);
+          grants.set(attempt.result_read_grant_cid,original);
+        }
+        const grant = original.value;
+        if (grant.run_definition_cid !== attempt.run_definition_cid ||
+            grant.result_manifest_cid !== attempt.result_manifest_cid ||
+            !grant.results.some(result => result.result_name === attempt.result_name &&
+              result.result_artifact_cid === attempt.result_artifact_cid)) fail('DeliveryGrantMismatch');
+        const count = (uses.get(original.contract.identity) ?? 0) + 1;
+        if (count > grant.max_uses) fail('DeliveryGrantUseLimit');
+        uses.set(original.contract.identity,count);
+        rows.push(deliveryIndexRow(attempt,grant,attemptContract,original.contract));
+      }
+      await syncDirectory(deliveriesDirectory);
+      deliveryIndex.migrate(rows);
+    }
+    accountNativePublication(deliveryIndex.publicationUsage());
+    if (storedBytes > configuration.capacityBytes || objectCount > configuration.maxObjects) {
+      fail('PublicationStoreCapacity');
+    }
+    if (coverage.phase !== 'ready') await publishCoverage('ready');
+    if (deliveryIndex.needsPublicationRecoveryMigration()) {
+      // Only the unadopted private format permits this bounded one-time
+      // history classification. Later opens consume native pending rows.
+      const rows = [];
+      const names = await readOpeningDirectory(metadataInventoriesDirectory);
+      if (names.length > configuration.maxObjects) fail('DeliveryAttemptIndexLimit');
+      for (const name of names) {
+        if (!/^[0-9a-f]{64}\.json$/u.test(name) ||
+            !(await lstat(resolve(metadataInventoriesDirectory,name))).isFile()) {
+          fail('InvalidPublicationMetadataInventoryStore');
+        }
+        const inventory = await readMetadataInventory(`sha256:${name.slice(0,-5)}`);
+        const key = {namespaceId:inventory.namespace_id,
+          authorityScopeCid:inventory.authority_scope_cid,runDefinitionCid:inventory.run_definition_cid};
+        if ((await confirmCommittedIndex(key))?.public_index_entry_cid !== inventory.public_index_entry_cid) {
+          rows.push(publicationRecoveryOriginal(inventory));
+        }
+      }
+      await syncDirectory(metadataInventoriesDirectory);
+      deliveryIndex.migratePublicationRecovery(rows);
+    }
+    // Only a newly adopted private format reads historical retirement markers.
+    // Batch progress is idempotent after a lost migration COMMIT; the actual
+    // files remain until complete native coverage acknowledges their fences.
+    const names = openingMetadataDeletionNames;
+    if (deliveryIndex.needsMetadataDeletionFenceMigration()) {
+      let rows=[];
+      for (const name of names) {
+        if (!/^[0-9a-f]{64}\.json$/u.test(name)) fail('InvalidPublicationMetadataDeletionStore');
+        const keyHash=name.slice(0,-5),marker=await readMetadataDeletion(keyHash);
+        if(marker===undefined)fail('InvalidPublicationMetadataDeletionStore');
+        rows.push({metadata_key:keyHash,run_cid:marker.run_definition_cid,
+          retired:marker.version==='actql-local-publication-metadata-retired/0.1'?1:0});
+        if(rows.length===Math.max(1,configuration.maxObjects)) {
+          deliveryIndex.migrateMetadataDeletionFences(rows);rows=[];
+        }
+      }
+      deliveryIndex.migrateMetadataDeletionFences(rows,true);
+    }
+    metadataFencesReady=true;
+    let removed=false;
+    for(const name of names) {
+      if (!/^[0-9a-f]{64}\.json$/u.test(name)) fail('InvalidPublicationMetadataDeletionStore');
+      const keyHash=name.slice(0,-5),marker=await readMetadataDeletion(keyHash);
+      if(marker===undefined)fail('InvalidPublicationMetadataDeletionStore');
+      const fence=deliveryIndex.metadataDeletionFence(keyHash);
+      if(fence!==undefined&&fence.run_cid!==marker.run_definition_cid)fail('InvalidPublicationMetadataDeletionStore');
+      if(marker.version==='actql-local-publication-metadata-retired/0.1') {
+        if(fence?.retired!==1)fail('InvalidPublicationMetadataDeletionStore');
+        await unlink(metadataDeletionPath(keyHash));removed=true;
+      } else {
+        // A crash after the full marker ACK but before its indexed transfer
+        // still hides this Run before any pending delivery can be restored.
+        metadataDeletionIntents.add(marker.run_definition_cid);
+      }
+    }
+    if(removed)await syncDirectory(metadataDeletionsDirectory);
+    names.length=0;
+    // Later opens see only pending physical cleanup files, never retired
+    // history. Delivery restoration consumes the exact indexed Run fence.
+    const pending = deliveryIndex.pending();
+    if (pending.length > configuration.maxObjects) fail('DeliveryAttemptIndexLimit');
+    for (const row of pending) {
+      if (!await runMetadataDeletionStarted(row.run_cid)) await restoreDeliveryClaim(row);
+    }
+  };
+
+  const enqueueDeliveryAdmission = action => {
+    active();
+    const operation = deliveryAdmissionBusy.then(action);
     deliveryAdmissionBusy = operation.catch(() => {});
     return operation;
+  };
+  const createAdmittedDeliveryAttempt = async (admitted, grantContract, initial) => {
+    const attempt = parseContract(admitted);
+    const grant = parseContract(grantContract);
+    if (await runMetadataDeletionStarted(attempt.run_definition_cid)) {
+      fail('PublicationMetadataDeleted');
+    }
+    if (attempt.result_read_grant_cid !== grantContract.identity ||
+        attempt.run_definition_cid !== grant.run_definition_cid ||
+        attempt.result_manifest_cid !== grant.result_manifest_cid ||
+        !grant.results.some(result => result.result_name === attempt.result_name &&
+          result.result_artifact_cid === attempt.result_artifact_cid)) {
+      fail('DeliveryGrantMismatch');
+    }
+    const {match: retained} = await selectDeliveryAttempt(
+      deliveryQuery(attempt,grant), {contract: admitted, value: attempt},
+      {contract: grantContract, value: grant}, false);
+    if (retained !== undefined) {
+      // Both originals were admitted. Compare every scalar field, restoring
+      // only the selected birth/identity, rather than hash the same body again.
+      const keys = Object.keys(attempt);
+      if (keys.length !== Object.keys(retained.attempt).length ||
+          keys.some(name => name !== 'requested_at' && name !== 'delivery_attempt_cid' &&
+            attempt[name] !== retained.attempt[name])) fail('DeliveryAttemptConflict');
+      return Object.freeze({attempt: retained.attempt, created: false});
+    }
+    if (deliveryIndex === undefined) fail('DeliveryAttemptIndexUnavailable');
+    const row = deliveryIndexRow(attempt,grant,admitted,grantContract);
+    const progress = initial === undefined ? undefined :
+      {runCid:attempt.run_definition_cid,phase:'preparing'};
+    if (progress !== undefined) deliveryStarts.set(admitted.identity,progress);
+    try {
+      const selected = deliveryIndex.claim(row,grant.max_uses,initial?.streaming.wire,initial?.streaming.identity);
+      if (!selected.created) fail('DeliveryAttemptConflict');
+      // This SAME transaction owns uniqueness, use quota and the original
+      // initial state. Its native COMMIT is the durable metadata original;
+      // no duplicate contract file or alias ACK is required for joint START.
+      // Legacy callers retain their original physical representation.
+      if (initial === undefined) {
+        await putDeliveryContracts(grantContract,admitted);
+        await installDeliveryAttempt(admitted);
+        deliveryIndex.finish(row.logical_key,admitted.identity);
+      } else progress.phase = 'installed';
+    } catch (error) {
+      if (progress !== undefined) progress.phase = 'failed';
+      throw error;
+    }
+    return Object.freeze(initial === undefined ? {attempt, created: true} :
+      {original: initial.original, created: true});
+  };
+  const createDeliveryAttempt = (suppliedWire, suppliedGrantWire) => enqueueDeliveryAdmission(() =>
+    createAdmittedDeliveryAttempt(admitContract('delivery_attempt', suppliedWire),
+      admitContract('result_read_grant', suppliedGrantWire)));
+  const beginDeliveryAttempt = (original, streaming) => {
+    active();
+    let facts;
+    try {
+      facts = Reflect.apply(readDeliveryOriginal, contractControl, [original]);
+      if (Reflect.apply(deliveryStartTransition, contractControl, [undefined, streaming]) !== true) {
+        fail('InvalidDeliveryStartEvidence');
+      }
+    } catch (cause) {fail('InvalidDeliveryStartEvidence', cause);}
+    for (const contract of [facts.grant, facts.attempt, streaming]) {
+      if (!exactKeys(contract, ['name', 'identityField', 'identity', 'wire']) ||
+          !Object.isFrozen(contract) || typeof contract.wire !== 'string' ||
+          Buffer.byteLength(contract.wire, 'utf8') > configuration.maxObjectBytes) {
+        fail('InvalidDeliveryStartEvidence');
+      }
+    }
+    const record = parseContract(streaming);
+    if (streaming.name !== 'delivery_record' || record.delivery_attempt_cid !== facts.attempt.identity ||
+        record.sequence !== 0 || record.state !== 'streaming') fail('InvalidDeliveryStartEvidence');
+    return enqueueDeliveryAdmission(() => createAdmittedDeliveryAttempt(facts.attempt, facts.grant,
+      {original, streaming}));
   };
 
   const consumeManifestReadGrant = (suppliedWire, attemptId) => {
@@ -3242,10 +4601,34 @@ export async function openLocalPublicationStore(
     return operation;
   };
 
-  const latestDeliveryRecordContract = async attemptCid => {
+  const readLatestDeliveryRecordContract = async (attemptCid, original, retainedBirth, retainedBirthValue) => {
     active();
+    const completed=deliveryIndex?.completion(attemptCid);
+    if(completed!==undefined) {
+      const retained=original?.contract;
+      const contract=retained?.identity===completed.record_cid && retained.wire===completed.record_wire
+        ? retained : admitContract('delivery_record',completed.record_wire);
+      const record=parseContract(contract);
+      if(contract.identity!==completed.record_cid || record.delivery_attempt_cid!==attemptCid ||
+          record.sequence!==1 || record.state!=='succeeded' || record.result_delivery_receipt_cid!==completed.receipt_cid) {
+        fail('InvalidDeliveryAttemptIndex');
+      }
+      return contract;
+    }
     const directory = deliveryAttemptPath(attemptCid);
-    const entries = await readdir(directory);
+    const row = deliveryIndex?.attempt(attemptCid);
+    let initial;
+    if (row?.initial_cid != null) {
+      initial = retainedBirth ?? admitContract('delivery_record',row.initial_wire);
+      const record = retainedBirthValue ?? parseContract(initial);
+      if (initial.identity !== row.initial_cid || initial.wire !== row.initial_wire ||
+          record.delivery_attempt_cid !== attemptCid || record.sequence !== 0 || record.state !== 'streaming') {
+        fail('InvalidDeliveryAttemptIndex');
+      }
+    }
+    let entries;
+    try {entries = await readdir(directory);}
+    catch(error) {if(error?.code !== 'ENOENT' || initial === undefined) throw error; entries=[];}
     if (entries.some(name => name !== 'attempt.json' &&
         !recordNamePattern.test(name))) {
       fail('InvalidDeliveryRecord');
@@ -3255,19 +4638,29 @@ export async function openLocalPublicationStore(
       .map(name => ({name, sequence: Number(name.slice(0, -5))}))
       .filter(value => Number.isSafeInteger(value.sequence))
       .sort((left, right) => left.sequence - right.sequence);
-    if (names.length === 0) return undefined;
+    if (names.length === 0) return initial;
     for (let index = 0; index < names.length; index++) {
-      if (names[index].sequence !== index) fail('DeliveryRecordGap');
+      if (names[index].sequence !== index + (initial === undefined ? 0 : 1)) fail('DeliveryRecordGap');
     }
     const bytes = await readBounded(
       resolve(directory, names.at(-1).name), configuration.maxObjectBytes,
     );
+    const retained = original?.contract;
+    if (original !== undefined) original.bytes = bytes;
+    // An append already admitted its immutable input. Equal canonical bytes
+    // are the same fact in this operation, not a second contract admission.
+    if (retained !== undefined && exactUtf8WireMatches(bytes, retained.wire)) {
+      return retained;
+    }
     try {
       return admitContract('delivery_record', bytes.toString('utf8'));
     } catch (error) {
       fail('InvalidDeliveryRecord', error);
     }
   };
+
+  const latestDeliveryRecordContract = attemptCid =>
+    readLatestDeliveryRecordContract(attemptCid);
 
   const latestDeliveryRecord = async attemptCid => {
     const contract = await latestDeliveryRecordContract(attemptCid);
@@ -3291,102 +4684,191 @@ export async function openLocalPublicationStore(
         query.attemptId.length > 256) {
       fail('InvalidDeliveryAttemptLookup');
     }
-    return (await scanDeliveryAttempts(query)).match;
+    return (await selectDeliveryAttempt(query)).match;
   };
 
-  // Both callers use this same durable scan. Admission has already checked the
-  // full attempt/grant contracts; it must not acquire the lookup API's separate
-  // request-size restrictions as a new writer/contract restriction.
-  // Count only within this traversal. The admission queue serializes additions;
-  // metadata retirement can still remove entries after they were counted.
-  const scanDeliveryAttempts = async (query, grantCid) => {
-    let match;
-    let grantUses = 0;
-    for (const name of await readdir(deliveriesDirectory)) {
-      if (!/^[0-9a-f]{64}$/u.test(name)) continue;
-      const attempt = parseContract(await readDeliveryAttemptContract(
-        `sha256:${name}`,
-      ));
-      if (attempt.result_read_grant_cid === grantCid) grantUses++;
-      if (attempt.attempt_id !== query.attemptId ||
-          attempt.run_definition_cid !== query.indexKey.runDefinitionCid ||
-          attempt.result_name !== query.resultName) continue;
-      const grant = (await readContract(
-        attempt.result_read_grant_cid, 'result_read_grant',
-      )).value;
-      if (grant.namespace_id !== query.indexKey.namespaceId ||
-          grant.authority_scope_cid !== query.indexKey.authorityScopeCid ||
-          grant.principal_id !== query.principalId ||
-          grant.purpose !== query.purpose ||
-          grant.run_definition_cid !== query.indexKey.runDefinitionCid ||
-          grant.result_manifest_cid !== attempt.result_manifest_cid) continue;
-      if (match !== undefined) fail('AmbiguousDeliveryAttemptLookup');
-      const record = await latestDeliveryRecord(attempt.delivery_attempt_cid);
-      const hostReleaseReceipt = record?.result_delivery_receipt_cid ===
-        undefined ? undefined : (await readContract(
-          record.result_delivery_receipt_cid,
-          'result_delivery_receipt',
-        )).value;
-      match = Object.freeze({attempt, record, hostReleaseReceipt});
+  // The native index is complete before this Store escapes. Each public
+  // selection reads only its exact target and referenced grant, never unrelated
+  // attempt history. The same admission queue owns transactional claim changes.
+  const selectDeliveryAttempt = async (query, suppliedAttempt, suppliedGrant,
+    includeProgress = true) => {
+    if (deliveryIndex === undefined) fail('DeliveryAttemptIndexUnavailable');
+    const key = deliveryLogicalKey(query);
+    const row = deliveryIndex.lookup(key);
+    if (row === undefined) return {match: undefined};
+    if (row.ready !== 1) fail('ResultDeliveryAttemptUnresolved');
+    let recovered;
+    if (row.initial_cid != null) {
+      const progress = deliveryStarts.get(row.attempt_cid);
+      if (progress !== undefined && progress.phase !== 'installed') fail('ResultDeliveryAttemptUnresolved');
+      recovered = admitDeliveryClaim(row,suppliedAttempt,suppliedGrant);
+    } else if (row.initial_wire != null) {
+      let progress = deliveryStarts.get(row.attempt_cid);
+      if (progress === undefined) {
+        // Recovery is target-specific, not an O(history) ordinary-open pass.
+        // Latch before any await/reentry and retain failure for this lifetime.
+        progress = {runCid:row.run_cid,phase:'preparing'};
+        deliveryStarts.set(row.attempt_cid,progress);
+        try {
+          if (await runMetadataDeletionStarted(row.run_cid)) fail('PublicationMetadataDeleted');
+          recovered = await restoreDeliveryClaim(row);
+          progress.phase = 'installed';
+        } catch (error) { progress.phase = 'failed'; throw error; }
+      } else if (progress.phase !== 'installed') fail('ResultDeliveryAttemptUnresolved');
     }
-    return {match, grantUses};
+    const attemptContract = recovered?.attemptContract ?? await readDeliveryAttemptContract(
+      row.attempt_cid, suppliedAttempt?.contract);
+    const attempt = recovered?.attempt ?? (attemptContract === suppliedAttempt?.contract
+      ? suppliedAttempt.value : parseContract(attemptContract));
+    let grantContract, grant;
+    if (recovered !== undefined) {
+      grantContract = recovered.grantContract;
+      grant = recovered.grant;
+    } else if (suppliedGrant?.contract.identity === row.grant_cid) {
+      const bytes = await readSemanticBytes(row.grant_cid);
+      grantContract = exactUtf8WireMatches(bytes,suppliedGrant.contract.wire)
+        ? suppliedGrant.contract : admitContract('result_read_grant',bytes.toString('utf8'));
+      grant = grantContract === suppliedGrant.contract ? suppliedGrant.value : parseContract(grantContract);
+    } else {
+      const original = await readContract(row.grant_cid,'result_read_grant');
+      grantContract = original.contract;
+      grant = original.value;
+    }
+    const expected = deliveryIndexRow(attempt,grant,attemptContract,grantContract);
+    if (Object.keys(expected).some(name => expected[name] !== row[name]) ||
+        attempt.result_read_grant_cid !== row.grant_cid ||
+        grant.run_definition_cid !== attempt.run_definition_cid ||
+        grant.result_manifest_cid !== attempt.result_manifest_cid) {
+      fail('InvalidDeliveryAttemptIndex');
+    }
+    const recordContract = includeProgress ? await readLatestDeliveryRecordContract(
+      attemptContract.identity,undefined,row.initial_cid == null ? undefined : recovered.streaming,
+      row.initial_cid == null ? undefined : recovered.streamingRecord) : undefined;
+    const record = recordContract === undefined ? undefined : recordContract === recovered?.streaming
+      ? recovered.streamingRecord : parseContract(recordContract);
+    const hostReleaseReceipt = record?.result_delivery_receipt_cid === undefined
+      ? undefined : (await readContract(record.result_delivery_receipt_cid,
+        'result_delivery_receipt')).value;
+    return {match: Object.freeze({attempt,record,hostReleaseReceipt})};
   };
 
   const confirmDeliveryRecord = async suppliedWire => {
     active();
     const contract = admitContract('delivery_record', suppliedWire);
     const record = parseContract(contract);
+    return confirmAdmittedDeliveryRecord(contract, record, false);
+  };
+
+  const confirmAdmittedDeliveryRecord = async (contract, record, observed) => {
+    if(deliveryIndex?.confirmRecord(record.delivery_attempt_cid,contract.identity,contract.wire)===true) return record;
     const directory = deliveryAttemptPath(record.delivery_attempt_cid);
     const target = resolve(directory, `${record.sequence}.json`);
-    let installed;
-    try {
-      const bytes = await readBounded(target, configuration.maxObjectBytes);
-      installed = admitContract(
-        'delivery_record', bytes.toString('utf8'),
-      );
-    } catch (error) {
-      if (error?.code === 'ENOENT') {
-        fail('DeliveryRecordMissing', error);
+    let previousBytes = Buffer.isBuffer(observed) ? observed : undefined;
+    const matches = bytes => {
+      if (exactUtf8WireMatches(bytes, contract.wire)) return true;
+      // Preserve existing admission of another valid wire spelling. Only a
+      // distinct acquired wire needs this fallback; identical rereads reuse it.
+      const admitted = admitContract('delivery_record', bytes.toString('utf8'));
+      return admitted.identity === contract.identity && admitted.wire === contract.wire;
+    };
+    if (observed === false) {
+      let bytes;
+      try { bytes = await readBounded(target, configuration.maxObjectBytes); }
+      catch (error) {
+        if (error?.code === 'ENOENT') fail('DeliveryRecordMissing', error);
+        throw error;
       }
-      throw error;
+      if (!matches(bytes)) fail('DeliveryRecordConflict');
+      previousBytes = bytes;
     }
-    if (installed.identity !== contract.identity ||
-        installed.wire !== contract.wire) {
-      fail('DeliveryRecordConflict');
-    }
+    if (previousBytes !== undefined &&
+        lastConfirmedDeliveryRecord === contract.identity) return record;
     // A directory entry may be visible before its containing directory is
-    // durable. Re-sync the exact immutable record, then verify that the same
-    // record remains installed before acknowledging it.
+    // durable. Unless this Store already confirmed this immutable record,
+    // sync its directory and check the same original before acknowledging it.
     await syncDirectory(directory);
     const confirmed = await readBounded(
       target, configuration.maxObjectBytes,
     );
-    const admitted = admitContract(
-      'delivery_record', confirmed.toString('utf8'),
-    );
-    if (admitted.identity !== contract.identity ||
-        admitted.wire !== contract.wire) {
+    // The input was admitted once. Trusted I/O and its directory ACK do not
+    // require parsing/hashing identical bytes again; changed bytes still fail.
+    if (!(previousBytes !== undefined && confirmed.equals(previousBytes)) &&
+        !matches(confirmed)) {
       fail('DeliveryRecordDurabilityMismatch');
     }
+    lastConfirmedDeliveryRecord = contract.identity;
     return record;
   };
 
   const appendDeliveryRecord = async suppliedWire => {
     active();
     const contract = admitContract('delivery_record', suppliedWire);
+    return enqueueDeliveryAdmission(()=>appendAdmittedDeliveryRecord(contract));
+  };
+
+  const appendDeliveryCompletion = async (attempt, receipt, contract) => {
+    active();
+    for (const [original, name, identityField] of [
+      [attempt, 'delivery_attempt', 'delivery_attempt_cid'],
+      [receipt, 'result_delivery_receipt', 'result_delivery_receipt_cid'],
+      [contract, 'delivery_record', 'delivery_record_cid'],
+    ]) {
+      if (!exactKeys(original, ['name', 'identityField', 'identity', 'wire']) ||
+          !Object.isFrozen(original) || original.name !== name ||
+          original.identityField !== identityField || !cidPattern.test(original.identity) ||
+          typeof original.wire !== 'string' ||
+          Buffer.byteLength(original.wire, 'utf8') > configuration.maxObjectBytes) {
+        fail('InvalidDeliverySuccessEvidence');
+      }
+    }
+    let valid = false;
+    try { valid = contractControl.deliverySuccessValid(attempt, receipt, contract) === true; }
+    catch (error) { fail('InvalidDeliverySuccessEvidence', error); }
+    if (!valid) fail('InvalidDeliverySuccessEvidence');
     const record = parseContract(contract);
+    if (record.state !== 'succeeded') fail('InvalidDeliverySuccessEvidence');
+    return enqueueDeliveryAdmission(()=>{
+      const progress=deliveryStarts.get(attempt.identity), pending=progress?.completion;
+      if(pending!==undefined) {
+        if(pending.attempt!==attempt || pending.receipt!==receipt || pending.contract!==contract) {
+          fail('ResultDeliveryAttemptUnresolved');
+        }
+        deliveryIndex.complete(pending.entry);
+        progress.completion=undefined;
+        return record;
+      }
+      return appendAdmittedDeliveryRecord(contract, {attempt, receipt, record});
+    });
+  };
+
+  const appendAdmittedDeliveryRecord = async (contract, completion) => {
+    const suppliedReceipt = completion?.receipt;
+    const record = completion?.record ?? parseContract(contract);
     const directory = deliveryAttemptPath(record.delivery_attempt_cid);
-    const attempt = parseContract(await readDeliveryAttemptContract(
-      record.delivery_attempt_cid,
-    ));
+    const attemptContract = await readDeliveryAttemptContract(
+      record.delivery_attempt_cid, completion?.attempt,
+    );
+    const attempt = parseContract(attemptContract);
     if (await runMetadataDeletionStarted(attempt.run_definition_cid)) {
       fail('PublicationMetadataDeleted');
     }
-    const previous = await latestDeliveryRecordContract(
-      record.delivery_attempt_cid,
+    const original = {contract, bytes: undefined};
+    const previous = await readLatestDeliveryRecordContract(
+      record.delivery_attempt_cid, original,
     );
+    if (completion !== undefined && attemptContract !== completion.attempt) {
+      let valid = false;
+      try {
+        valid = record.state === 'succeeded' &&
+          contractControl.deliverySuccessValid(attemptContract, suppliedReceipt, contract) === true;
+      } catch (error) { fail('InvalidDeliverySuccessEvidence', error); }
+      if (!valid) fail('InvalidDeliverySuccessEvidence');
+    }
     if (previous?.identity === contract.identity) {
-      return confirmDeliveryRecord(contract.wire);
+      if (suppliedReceipt !== undefined && !exactUtf8WireMatches(
+        await readSemanticBytes(suppliedReceipt.identity), suppliedReceipt.wire,
+      )) fail('InvalidDeliverySuccessEvidence');
+      return confirmAdmittedDeliveryRecord(contract, record, original.bytes);
     }
     if (contractControl.deliveryTransition(previous, contract) !== true) {
       fail('InvalidDeliveryRecordTransition');
@@ -3394,31 +4876,59 @@ export async function openLocalPublicationStore(
     if (attempt.delivery_attempt_cid !== record.delivery_attempt_cid) {
       fail('DeliveryAttemptMismatch');
     }
-    if (record.state === 'succeeded') {
+    if (record.state === 'succeeded' && suppliedReceipt === undefined) {
       const receipt = (await readContract(
         record.result_delivery_receipt_cid,
         'result_delivery_receipt',
       )).contract;
-      const attemptContract = await readDeliveryAttemptContract(
-        record.delivery_attempt_cid,
-      );
       if (contractControl.deliverySuccessValid(
         attemptContract, receipt, contract,
       ) !== true) {
         fail('InvalidDeliverySuccessEvidence');
       }
     }
-    await putPublicationContract('delivery_record', contract.wire);
+    const native=deliveryIndex?.attempt(record.delivery_attempt_cid);
+    if(completion!==undefined && record.sequence===1 && native?.initial_cid===previous?.identity) {
+      const progress=deliveryStarts.get(record.delivery_attempt_cid) ?? {runCid:attempt.run_definition_cid,phase:'installed'};
+      deliveryStarts.set(record.delivery_attempt_cid,progress);
+      const entry=Object.freeze({attempt_cid:record.delivery_attempt_cid,prior_cid:previous.identity,
+        record_cid:contract.identity,record_wire:contract.wire,
+        receipt_cid:suppliedReceipt.identity,receipt_wire:suppliedReceipt.wire});
+      try {deliveryIndex.complete(entry);}
+      catch(error) {
+        // Retain these SAME nominal inputs for storage-only finalization.
+        // A retry cannot send again, reissue a receipt or replace this duty.
+        progress.completion=Object.freeze({attempt:completion.attempt,receipt:suppliedReceipt,contract,entry});
+        throw error;
+      }
+      return record;
+    }
+    if (suppliedReceipt === undefined) await putSemantic(contract.wire, contract.identity);
+    else await putSemanticBatch([suppliedReceipt, contract].map(value => ({
+      wire: value.wire, semanticCid: value.identity,
+    })));
     const target = resolve(directory, `${record.sequence}.json`);
+    // Native START has no alias directory. Its first later record owns this
+    // directory ACK; a failed ACK remains pending even when mkdir is visible.
+    const start=deliveryStarts.get(record.delivery_attempt_cid);
+    if(deliveryIndex?.attempt(record.delivery_attempt_cid)?.initial_cid != null &&
+        start?.recordDirectoryAcknowledged !== true) {
+      try {await mkdir(directory,{mode:0o700});}
+      catch(error) {if(error?.code!=='EEXIST') throw error;}
+      await syncDirectory(deliveriesDirectory);
+      const progress=start ?? {runCid:attempt.run_definition_cid,phase:'installed'};
+      progress.recordDirectoryAcknowledged=true;
+      deliveryStarts.set(record.delivery_attempt_cid,progress);
+    }
     try { await link(contractPath(record.delivery_record_cid), target); }
     catch (error) {
       if (error?.code === 'EEXIST') fail('DeliveryRecordConflict');
       throw error;
     }
-    return confirmDeliveryRecord(contract.wire);
+    return confirmAdmittedDeliveryRecord(contract, record, true);
   };
 
-  const inspectCommittedIndexRaw = async key => {
+  const readCommittedIndexRaw = async (key, original) => {
     active();
     const path = resolve(indexesDirectory, `${indexKey(key)}.json`);
     let bytes;
@@ -3427,6 +4937,7 @@ export async function openLocalPublicationStore(
       if (error?.code === 'ENOENT') return undefined;
       throw error;
     }
+    if (original !== undefined && bytes.equals(original.bytes)) return original;
     const admitted = admitContract(
       'public_index_entry', bytes.toString('utf8'),
     );
@@ -3436,21 +4947,35 @@ export async function openLocalPublicationStore(
         entry.run_definition_cid !== key.runDefinitionCid) {
       fail('PublicIndexBindingMismatch');
     }
-    await readJsonObject(entry.public_index_entry_cid, 'public_index_entry');
-    return entry;
+    const semantic = await readSemanticBytes(entry.public_index_entry_cid, false);
+    // The selected Index and its immutable contract alias describe the same
+    // fact. Reuse its admission for identical bytes, without skipping the
+    // alias's real FD/inode/digest checks or admitting a changed spelling as
+    // though it were the original.
+    if (!exactUtf8WireMatches(semantic, admitted.wire)) {
+      parseContract(admitContract('public_index_entry', semantic.toString('utf8')));
+    }
+    return {entry, bytes, contract: admitted};
   };
+
+  const inspectCommittedIndexRaw = async key =>
+    (await readCommittedIndexRaw(key))?.entry;
 
   const inspectCommittedIndex = async key => {
     const keyHash = indexKey(key);
     if (await readMetadataDeletion(keyHash) !== undefined) return undefined;
-    return inspectCommittedIndexRaw(key);
+    const entry = await inspectCommittedIndexRaw(key);
+    if (entry !== undefined) await requireCommittedMetadataInventory(entry);
+    return entry;
   };
 
-  const confirmCommittedIndex = async key => {
+  const confirmCommittedIndexOriginal = async key => {
     active();
-    const entry = await inspectCommittedIndex(key);
-    if (entry === undefined) return undefined;
     const keyHash = indexKey(key);
+    if (await readMetadataDeletion(keyHash) !== undefined) return undefined;
+    const original = await readCommittedIndexRaw(key);
+    if (original === undefined) return undefined;
+    const {entry} = original;
     const durableCid = durablyConfirmedIndexes.get(keyHash);
     if (durableCid !== undefined &&
         durableCid !== entry.public_index_entry_cid) {
@@ -3461,14 +4986,34 @@ export async function openLocalPublicationStore(
       // directory and then ensure that the same immutable entry is still
       // installed before reporting a durable commit.
       await syncDirectory(indexesDirectory);
-      const confirmed = await inspectCommittedIndex(key);
+      const confirmed = await readMetadataDeletion(keyHash) === undefined
+        ? (await readCommittedIndexRaw(key, original))?.entry : undefined;
       if (confirmed?.public_index_entry_cid !==
           entry.public_index_entry_cid) {
         fail('PublicIndexDurabilityMismatch');
       }
       durablyConfirmedIndexes.set(keyHash, entry.public_index_entry_cid);
     }
+    return original;
+  };
+
+  const confirmCommittedIndex = async key =>
+    (await confirmCommittedIndexOriginal(key))?.entry;
+
+  const confirmSelectedCommittedIndex = async key => {
+    const entry = await confirmCommittedIndex(key);
+    if (entry !== undefined) await requireCommittedMetadataInventory(entry);
     return entry;
+  };
+
+  const readCommittedPublication = async key => {
+    // The selected body's nominal admission already belongs to this read.
+    // Return that original, not another public raw-wire read/admission.
+    const original = await confirmCommittedIndexOriginal(Object.freeze({...key}));
+    if (original === undefined) return undefined;
+    await requireCommittedMetadataInventory(original.entry);
+    Object.freeze(original.entry.durable_result_binding_cids);
+    return Object.freeze({entry: Object.freeze(original.entry), index: original.contract});
   };
 
   const lookupCommittedIndex = async (key, authorize) => {
@@ -3476,7 +5021,7 @@ export async function openLocalPublicationStore(
     if (typeof authorize !== 'function' || authorize(Object.freeze({...key})) !== true) {
       fail('PublicationLookupDenied');
     }
-    const entry = await confirmCommittedIndex(key);
+    const entry = await confirmSelectedCommittedIndex(key);
     if (entry === undefined || authorize(Object.freeze({...key, entry})) !== true) {
       // Missing and unauthorized entries deliberately share one external code.
       fail('PublicationLookupDenied');
@@ -3492,7 +5037,13 @@ export async function openLocalPublicationStore(
       keyHash, resultDefinitionCid,
     );
     let names;
-    try { names = await readdir(directory); }
+    try {
+      if (!(await lstat(retentionExtensionDirectory(keyHash))).isDirectory() ||
+          !(await lstat(directory)).isDirectory()) {
+        fail('InvalidPublicationRetentionExtensionStore');
+      }
+      names = await readdir(directory);
+    }
     catch (error) {
       if (error?.code === 'ENOENT') return undefined;
       throw error;
@@ -3573,14 +5124,13 @@ export async function openLocalPublicationStore(
     resultDefinitionCid,
   ) => {
     cidHex(resultDefinitionCid);
-    const entry = await confirmCommittedIndex(key);
+    const entry = await confirmSelectedCommittedIndex(key);
     if (entry === undefined) fail('PublicationLookupDenied');
     const matches = [];
     for (const bindingCid of entry.durable_result_binding_cids) {
-      const contract = (await readContract(
+      const {contract, value} = await readContract(
         bindingCid, 'durable_result_binding',
-      )).contract;
-      const value = parseContract(contract);
+      );
       if (value.result_definition_cid === resultDefinitionCid) {
         matches.push({contract, value});
       }
@@ -3650,6 +5200,7 @@ export async function openLocalPublicationStore(
     entry,
     suppliedEvidence,
     required,
+    readOriginal = readSemanticOriginal,
   ) => {
     if (!exactKeys(suppliedEvidence, [
       'runDefinition',
@@ -3696,22 +5247,22 @@ export async function openLocalPublicationStore(
           required !== undefined && !required.has(contract.identity)) {
         fail('InvalidPublicationCommitEvidence');
       }
-      const persisted = await readSemanticBytes(contract.identity);
+      const persisted = (await readOriginal(contract.identity,
+        nativeContractRead(contract.name))).bytes;
       if (!persisted.equals(Buffer.from(contract.wire, 'utf8'))) {
         fail('PublicationCommitEvidenceMismatch');
       }
     }
-    const boundPhysicalCids = [];
+    const verifiedBindings = [];
     for (const contract of suppliedEvidence.durableBindings) {
-      const verified = await verifyDurableResultBinding(contract);
-      boundPhysicalCids.push(verified.binding.material_generation_cid);
+      verifiedBindings.push(await verifyDurableResultBinding(contract, readOriginal));
     }
     const attemptStored = await readContract(
-      entry.publication_attempt_cid, 'publication_attempt',
+      entry.publication_attempt_cid, 'publication_attempt', readOriginal,
     );
     const attempt = attemptStored.value;
     const requestStored = await readContract(
-      entry.publication_request_cid, 'publication_request',
+      entry.publication_request_cid, 'publication_request', readOriginal,
     );
     if (attempt.publication_request_cid !== entry.publication_request_cid ||
         attempt.run_definition_cid !== entry.run_definition_cid) {
@@ -3740,7 +5291,7 @@ export async function openLocalPublicationStore(
       fail('InvalidPublicationCommitChain', error);
     }
     if (chainValid !== true) fail('InvalidPublicationCommitChain');
-    return boundPhysicalCids;
+    return Object.freeze(verifiedBindings);
   };
 
   const validateCommittedEvidence = async (
@@ -3767,16 +5318,16 @@ export async function openLocalPublicationStore(
     if (committed?.public_index_entry_cid !== admitted.identity) {
       fail('InvalidCommittedPublicationIndex');
     }
-    const boundPhysicalCids = await verifyCommitEvidence(
+    const verifiedBindings = await verifyCommitEvidence(
       admitted, entry, suppliedEvidence, undefined,
     );
     const expectedContent = await confirmCapturedContentHoldings(
       suppliedEvidence.capturedRun, suppliedEvidence.runDefinition);
-    const inventory = await readMetadataInventory(admitted.identity);
+    const inventory = await readCommittedMetadataInventory(committed);
     if (inventory?.physical_holding_cids.join('\0') !== expectedContent.join('\0')) {
       fail('InvalidPublicationMetadataInventoryStore');
     }
-    await adoptPreparedObjects(boundPhysicalCids);
+    await adoptPreparedObjects(verifiedBindings.map(value => value.physical.cid));
     return true;
   };
 
@@ -3785,7 +5336,7 @@ export async function openLocalPublicationStore(
   // chain; the Store confirms its public bodies and private physical holdings.
   // A caller cannot use this result as an apply or commit permit.
   const inspectEffectfulStoredEvidence = async ({index, chain, preview,
-    receipts, privateBinding, effectSources}) => {
+    receipts, privateBinding, effectSources}, readOriginal = readSemanticOriginal) => {
     active();
     if (typeof contractControl.effectfulCommitValid !== 'function' ||
         typeof contractControl.effectPrivateEvidenceBinding !== 'function' ||
@@ -3817,10 +5368,10 @@ export async function openLocalPublicationStore(
     }
     const entry = parseContract(admittedIndex);
     const request = (await readContract(
-      entry.publication_request_cid, 'publication_request',
+      entry.publication_request_cid, 'publication_request', readOriginal,
     )).contract;
     const attempt = (await readContract(
-      entry.publication_attempt_cid, 'publication_attempt',
+      entry.publication_attempt_cid, 'publication_attempt', readOriginal,
     )).contract;
     const finalReceipt = admitContract('run_receipt', receipts.finalWire);
     const setReceipt = admitContract(
@@ -3837,7 +5388,8 @@ export async function openLocalPublicationStore(
       if (!exactKeys(contract, [
         'name', 'identityField', 'identity', 'wire',
       ]) || !cidPattern.test(contract.identity) ||
-          !(await readSemanticBytes(contract.identity)).equals(
+          !(await readOriginal(contract.identity,
+            nativeContractRead(contract.name))).bytes.equals(
             Buffer.from(contract.wire, 'utf8'))) {
         fail('EffectfulCommitEvidenceMismatch');
       }
@@ -3882,15 +5434,16 @@ export async function openLocalPublicationStore(
         fail('EffectfulSourceHoldingUnavailable');
       }
       const artifact = (await readContract(
-        artifactCid, 'effect_source_artifact',
+        artifactCid, 'effect_source_artifact', readOriginal,
       )).value;
-      await readSemanticBytes(artifact.result_schema_cid);
+      await readOriginal(artifact.result_schema_cid, false);
       sourceArtifactCids.push(artifactCid);
       sourceSchemaCids.push(artifact.result_schema_cid);
       await commitPhysicalHolding(holding, []);
     }
+    const verifiedBindings = [];
     for (const binding of chain.durableBindings) {
-      await verifyDurableResultBinding(binding);
+      verifiedBindings.push(await verifyDurableResultBinding(binding, readOriginal));
     }
     let captureHoldingCid;
     let captureRecordHoldingCid;
@@ -3973,6 +5526,7 @@ export async function openLocalPublicationStore(
       }
     }
     return Object.freeze({index: admittedIndex, finalReceipt,
+      verifiedBindings: Object.freeze(verifiedBindings),
       privateHoldingCid: privateBinding.holdingCid,
       captureHoldingCid, captureRecordHoldingCid,
       effectSourceHoldingCids: Object.freeze([...seen]),
@@ -4017,12 +5571,22 @@ export async function openLocalPublicationStore(
     ]) {
       if (!required.has(cid)) fail('IncompletePublicationCommitInventory');
     }
-    for (const cid of required) await readSemanticBytes(cid);
-    let boundPhysicalCids;
+    // This is the existing serialized commit operation, not a Store-wide
+    // cache or authority. Its private bytes never escape to a public caller.
+    // Share successful acquisition/close facts across the pure evidence and
+    // metadata-inventory phases; a new operation acquires new originals.
+    const semanticOriginals = new Map();
+    const readOriginal = (cid, includeNative = cid !== admitted.identity) => {
+      if (!semanticOriginals.has(cid)) {
+        semanticOriginals.set(cid, readSemanticOriginal(cid, includeNative));
+      }
+      return semanticOriginals.get(cid);
+    };
+    let verifiedBindings;
     let physicalHoldingCids = [];
     if (effectfulEvidence === undefined) {
-      boundPhysicalCids = await verifyCommitEvidence(
-        admitted, entry, suppliedEvidence, required,
+      verifiedBindings = await verifyCommitEvidence(
+        admitted, entry, suppliedEvidence, required, readOriginal,
       );
       physicalHoldingCids = [...await confirmCapturedContentHoldings(
         suppliedEvidence.capturedRun, suppliedEvidence.runDefinition)];
@@ -4032,7 +5596,7 @@ export async function openLocalPublicationStore(
       }
       const inspected = await inspectEffectfulStoredEvidence({
         ...effectfulEvidence, index: admitted,
-      });
+      }, readOriginal);
       for (const cid of [
         ...inspected.publicContractCids,
         ...inspected.sourceArtifactCids,
@@ -4042,11 +5606,7 @@ export async function openLocalPublicationStore(
           fail('IncompletePublicationCommitInventory');
         }
       }
-      boundPhysicalCids = [];
-      for (const binding of suppliedEvidence.durableBindings) {
-        const verified = await verifyDurableResultBinding(binding);
-        boundPhysicalCids.push(verified.binding.material_generation_cid);
-      }
+      verifiedBindings = inspected.verifiedBindings;
       physicalHoldingCids = [
         inspected.privateHoldingCid,
         ...inspected.effectSourceHoldingCids,
@@ -4058,11 +5618,18 @@ export async function openLocalPublicationStore(
           suppliedEvidence.runDefinition),
       ].sort();
     }
+    // Typed evidence establishes its file/native representation first. Only
+    // remaining untyped inventory needs the generic native lookup/fallback.
+    for (const cid of required) await readOriginal(cid);
+    const boundPhysicalCids = verifiedBindings.map(value => value.physical.cid);
+    const bindingSchemas = new Map();
+    for (const value of verifiedBindings) {
+      bindingSchemas.set(value.binding.durable_result_binding_cid, value.schema.cid);
+    }
     const inventorySemanticCids = Object.freeze([...new Set([
       ...requiredObjectCids,
       admitted.identity,
-      ...suppliedEvidence.durableBindings.map(contract =>
-        parseContract(contract).result_schema_cid),
+      ...verifiedBindings.map(value => value.schema.cid),
     ])].sort());
     const previous = await latestRecordContract(entry.publication_attempt_cid);
     if (previous === undefined ||
@@ -4070,9 +5637,11 @@ export async function openLocalPublicationStore(
       fail('PublicationAttemptNotCommitting');
     }
     const adoptObjects = () => adoptPreparedObjects(boundPhysicalCids);
-    const adoptSchemas = () => adoptPreparedSchemas(
-      inventorySemanticCids, entry.run_definition_cid,
-    );
+    let inventoryOriginal;
+    const adoptSchemas = async () => {
+      await adoptPreparedSchemas(inventorySemanticCids, entry.run_definition_cid);
+      deliveryIndex.retainPublicationInventoryFinish(inventoryOriginal);
+    };
     return createPublicationCommitOwner({entry, admitted, key}, {
       confirm: confirmCommittedIndex,
       async sameContent(existing, candidate) {
@@ -4083,9 +5652,7 @@ export async function openLocalPublicationStore(
       },
       conflict() { fail('PublicationCommitConflict'); },
       async verifyExistingInventory(existingCommit) {
-        const inventory = await readMetadataInventory(
-          existingCommit.public_index_entry_cid,
-        );
+        const inventory = await readCommittedMetadataInventory(existingCommit);
         const directlyRequired = [
           existingCommit.public_index_entry_cid,
           existingCommit.invocation_cid,
@@ -4098,10 +5665,10 @@ export async function openLocalPublicationStore(
         ];
         for (const bindingCid of
           existingCommit.durable_result_binding_cids) {
-          const binding = (await readContract(
-            bindingCid, 'durable_result_binding',
-          )).value;
-          directlyRequired.push(binding.result_schema_cid);
+          const schemaCid = bindingSchemas.get(bindingCid) ?? (await readContract(
+            bindingCid, 'durable_result_binding', readOriginal,
+          )).value.result_schema_cid;
+          directlyRequired.push(schemaCid);
         }
         if (inventory === undefined ||
             inventory.public_index_entry_cid !==
@@ -4113,13 +5680,18 @@ export async function openLocalPublicationStore(
                 object.semantic_cid === cid))) {
           fail('InvalidPublicationMetadataInventoryStore');
         }
+        inventoryOriginal = publicationRecoveryOriginal(inventory);
       },
       async stage() {
-        await putPublicationContract('public_index_entry', admitted.wire);
+        // The exact Index was admitted at this operation's public entry.
+        // Persist that immutable body; this internal write is not another
+        // input boundary. All actual semantic file/directory ACKs remain.
+        await putSemanticBatch([{wire: admitted.wire, semanticCid: admitted.identity}],
+          semanticOriginals);
         const inventoryContractObjects = await bindMetadataContractObjects(
-          inventorySemanticCids,
+          inventorySemanticCids, readOriginal,
         );
-        await ensureMetadataInventory(Object.freeze({
+        const inventory = await ensureMetadataInventory(Object.freeze({
           version: 'actql-local-publication-metadata-inventory/0.1',
           namespace_id: entry.namespace_id,
           authority_scope_cid: entry.authority_scope_cid,
@@ -4129,6 +5701,7 @@ export async function openLocalPublicationStore(
           contract_objects: inventoryContractObjects,
           physical_holding_cids: physicalHoldingCids,
         }));
+        inventoryOriginal = publicationRecoveryOriginal(inventory);
       },
       beginCustody() {
         return beginPreparedCommit(
@@ -4182,7 +5755,7 @@ export async function openLocalPublicationStore(
     if (committed?.public_index_entry_cid !== inspected.index.identity) {
       fail('InvalidCommittedPublicationIndex');
     }
-    const inventory = await readMetadataInventory(inspected.index.identity);
+    const inventory = await readCommittedMetadataInventory(committed);
     const expectedHoldings = [inspected.privateHoldingCid,
       ...inspected.effectSourceHoldingCids,
       ...(inspected.captureHoldingCid === undefined ? [] :
@@ -4350,8 +5923,16 @@ export async function openLocalPublicationStore(
     activeResultReaders.set(
       materialCid, (activeResultReaders.get(materialCid) ?? 0) + 1,
     );
+    let scopeActive = true, physicalReadPending = false, readerRetired = false;
+    const retireReader = () => {
+      if (scopeActive || physicalReadPending || readerRetired) return;
+      readerRetired = true;
+      const remaining = (activeResultReaders.get(materialCid) ?? 1) - 1;
+      if (remaining === 0) activeResultReaders.delete(materialCid);
+      else activeResultReaders.set(materialCid, remaining);
+    };
     try {
-      const verified = await verifyDurableResultBinding(selected.contract);
+      const verified = await verifyDurableResultBinding(selected.contract, undefined, selected.value);
       await requireResultNotDeleted(
         keyHash, selected, resultDefinitionCid,
       );
@@ -4371,14 +5952,20 @@ export async function openLocalPublicationStore(
           fail('InvalidPublicationObjectConsumer');
         }
         consumed = true;
-        return consumeObject(materialCid, accept);
+        physicalReadPending = true;
+        return consumeObject(materialCid, accept, () => {
+          // Scope completion alone is not the consuming FD's close ACK.
+          // A failed close keeps this same reader until its original cleanup
+          // callback acknowledges retirement, without reopening or rereading.
+          physicalReadPending = false;
+          retireReader();
+        });
       };
       try { return await use(metadata, consume); }
       finally { scopeOpen = false; }
     } finally {
-      const remaining = (activeResultReaders.get(materialCid) ?? 1) - 1;
-      if (remaining === 0) activeResultReaders.delete(materialCid);
-      else activeResultReaders.set(materialCid, remaining);
+      scopeActive = false;
+      retireReader();
     }
   };
 
@@ -4484,6 +6071,14 @@ export async function openLocalPublicationStore(
     if (!metadataOnly) {
       await requireResultNotDeleted(keyHash, selected, resultDefinitionCid);
     }
+    return readSelectedResultRetentionExtension(
+      selected, keyHash, resultDefinitionCid,
+    );
+  };
+
+  const readSelectedResultRetentionExtension = async (
+    selected, keyHash, resultDefinitionCid,
+  ) => {
     const record = await readResultRetentionExtension(
       keyHash, resultDefinitionCid,
     );
@@ -4512,13 +6107,14 @@ export async function openLocalPublicationStore(
     const selected = await requireCommittedResultBinding(key, definitionCid);
     const bindings = await Promise.all(
       selected.entry.durable_result_binding_cids.map(async cid =>
-        (await readContract(cid, 'durable_result_binding')).contract));
+        cid === selected.contract.identity ? selected.contract :
+          (await readContract(cid, 'durable_result_binding')).contract));
     const schemaWire = (await readSemanticBytes(
-      selected.value.result_schema_cid)).toString('utf8');
+      selected.value.result_schema_cid, false)).toString('utf8');
     const definition = (await readContract(
       definitionCid, 'result_definition')).contract;
-    const retained = await readRetainedResultExtension(
-      key, definitionCid, true);
+    const retained = await readSelectedResultRetentionExtension(
+      selected, indexKey(key), definitionCid);
     return Object.freeze({bindings, schemaWire, definition, retained});
   };
 
@@ -4631,6 +6227,22 @@ export async function openLocalPublicationStore(
     initial,
   ) => {
     const collected = new Set(initial);
+    // Native originals retire in the SAME indexed Run deletion transaction.
+    // Identify their exact bodies without allocating temporary shadow files
+    // or requiring spare object-file quota merely to delete native metadata.
+    for (const row of deliveryIndex?.run(runDefinitionCid) ?? []) {
+      if (row.initial_cid == null) continue;
+      const {attemptContract,grantContract,streaming}=admitDeliveryClaim(row);
+      for(const contract of [grantContract,attemptContract,streaming]) collected.add(contract.identity);
+      const completed=deliveryIndex.completion(row.attempt_cid);
+      if(completed!==undefined) {
+        const record=admitContract('delivery_record',completed.record_wire);
+        const receipt=admitContract('result_delivery_receipt',completed.receipt_wire);
+        if(record.identity!==completed.record_cid || receipt.identity!==completed.receipt_cid ||
+            contractControl.deliverySuccessValid(attemptContract,receipt,record)!==true) fail('InvalidDeliveryAttemptIndex');
+        collected.add(record.identity);collected.add(receipt.identity);
+      }
+    }
     for (const name of await readdir(attemptsDirectory)) {
       if (!/^[0-9a-f]{64}$/u.test(name)) {
         fail('InvalidPublicationAttemptStore');
@@ -4726,13 +6338,27 @@ export async function openLocalPublicationStore(
     return Object.freeze([...collected].sort());
   };
 
-  const bindMetadataContractObjects = async contractCids => {
+  const bindMetadataContractObjects = async (contractCids, readOriginal = readSemanticOriginal) => {
     const objects = [];
     for (const semanticCid of contractCids) {
-      const bytes = await readSemanticBytes(semanticCid);
-      const physicalCid = `sha256:${createHash('sha256')
+      const original = await readOriginal(semanticCid);
+      if (original.publication === true) {
+        objects.push(Object.freeze({semantic_cid:semanticCid,native:'sqlite',
+          body_sha256:`sha256:${createHash('sha256').update(original.bytes).digest('hex')}`,
+          byte_count:original.bytes.byteLength}));
+        continue;
+      }
+      if(original.native !== undefined) {
+        try {await lstat(contractPath(semanticCid));}
+        catch(error) {if(error?.code==='ENOENT') continue; throw error;}
+        // Only an independently present real file enters the physical-file
+        // inventory. Native body identity is never a fabricated file/ACK.
+      }
+      const bytes = original.bytes;
+      const physicalCid = original.physicalCid ?? `sha256:${createHash('sha256')
         .update(bytes).digest('hex')}`;
-      const physical = await verifyObject(physicalCid);
+      const physical = original.physicalCid === undefined
+        ? await verifyObject(physicalCid) : {cid: physicalCid, bytes: bytes.byteLength};
       if (physical.bytes !== bytes.byteLength) {
         fail('PublicationContractCorrupt');
       }
@@ -4794,6 +6420,10 @@ export async function openLocalPublicationStore(
       }
     }
     await syncDirectory(deliveriesDirectory);
+    deliveryIndex?.forgetRun(runDefinitionCid);
+    for (const [attemptCid,progress] of deliveryStarts) {
+      if (progress.runCid === runDefinitionCid) deliveryStarts.delete(attemptCid);
+    }
     for (const name of await readdir(manifestReadsDirectory)) {
       if (!/^[0-9a-f]{64}$/u.test(name)) {
         fail('InvalidManifestReadStore');
@@ -4822,6 +6452,14 @@ export async function openLocalPublicationStore(
     semanticCid,
     excludedPublicIndexEntryCid,
   ) => {
+    for (const original of deliveryIndex.nativePublicationInventories()) {
+      if (original.public_index_cid === excludedPublicIndexEntryCid) continue;
+      const inventory = publicationRecoveryValue(original);
+      const keyHash = indexKey({namespaceId:inventory.namespace_id,
+        authorityScopeCid:inventory.authority_scope_cid,runDefinitionCid:inventory.run_definition_cid});
+      if (await readMetadataDeletion(keyHash) !== undefined) continue;
+      if (inventory.contract_objects.some(object => object.semantic_cid === semanticCid)) return true;
+    }
     for (const name of await readdir(metadataInventoriesDirectory)) {
       if (!/^[0-9a-f]{64}\.json$/u.test(name)) {
         fail('InvalidPublicationMetadataInventoryStore');
@@ -4845,6 +6483,10 @@ export async function openLocalPublicationStore(
   const metadataHoldingHasOtherOwner = async (
     holdingCid, excludedPublicIndexEntryCid,
   ) => {
+    for (const original of deliveryIndex.nativePublicationInventories()) {
+      if (original.public_index_cid === excludedPublicIndexEntryCid) continue;
+      if (publicationRecoveryValue(original).physical_holding_cids.includes(holdingCid)) return true;
+    }
     for (const name of await readdir(metadataInventoriesDirectory)) {
       if (!/^[0-9a-f]{64}\.json$/u.test(name)) {
         fail('InvalidPublicationMetadataInventoryStore');
@@ -4861,6 +6503,7 @@ export async function openLocalPublicationStore(
     return false;
   };
 
+  const pendingNativeMetadataReclaims = new Map();
   const reclaimMetadataContractInternal = async (
     excludedPublicIndexEntryCid,
     object,
@@ -4870,6 +6513,19 @@ export async function openLocalPublicationStore(
         await metadataContractHasLiveReference(
       object.semantic_cid, excludedPublicIndexEntryCid,
     )) return;
+    if (object.native === 'sqlite') {
+      let original = pendingNativeMetadataReclaims.get(object.semantic_cid);
+      if (original === undefined) original = deliveryIndex.publicationContract(object.semantic_cid);
+      if (original === undefined) return; // A durable deletion marker owns this exact idempotent removal.
+      if (original.byte_count !== object.byte_count ||
+          `sha256:${createHash('sha256').update(original.wire,'utf8').digest('hex')}` !== object.body_sha256) {
+        fail('PublicationContractCorrupt');
+      }
+      pendingNativeMetadataReclaims.set(object.semantic_cid,original);
+      accountNativePublication(deliveryIndex.removePublicationContract(original));
+      pendingNativeMetadataReclaims.delete(object.semantic_cid);
+      return;
+    }
     const semanticPath = contractPath(object.semantic_cid);
     let semanticState;
     try { semanticState = await lstat(semanticPath); }
@@ -4898,19 +6554,22 @@ export async function openLocalPublicationStore(
     catch (error) {
       if (error?.code !== 'ENOENT') throw error;
     }
-    if (physicalState === undefined) return;
+    if (physicalState === undefined) {
+      rememberPhysicalRemoval(object.physical_cid,object.byte_count);
+      if(physicalRemovalOriginals.has(object.physical_cid))unconfirmedObjects.set(object.physical_cid,object.byte_count);
+      return;
+    }
     if (!physicalState.isFile() ||
         physicalState.size !== object.byte_count) {
       fail('InvalidPublicationStoreObject');
     }
     if (physicalState.nlink > 1) return;
+    rememberPhysicalRemoval(object.physical_cid,object.byte_count,physicalState);
     await unlink(objectPath(object.physical_cid));
     unconfirmedObjects.set(object.physical_cid, object.byte_count);
     await syncDirectory(objectsDirectory);
-    if (unconfirmedObjects.delete(object.physical_cid)) {
-      storedBytes -= object.byte_count;
-      objectCount--;
-    }
+    releasePhysicalCapacity(unconfirmedObjects);
+    unconfirmedObjects.clear();
   };
 
   const reclaimMetadataContract = (...args) =>
@@ -4923,6 +6582,7 @@ export async function openLocalPublicationStore(
       }
       const holding = await readPhysicalHoldingAt(
         resolve(physicalHoldingsDirectory, name),
+        `sha256:${name.slice(0, -5)}`,
       );
       if (holding.objects.some(object => object.cid === materialCid)) {
         return true;
@@ -5311,20 +6971,22 @@ export async function openLocalPublicationStore(
             catch (error) {
               if (error?.code !== 'ENOENT') throw error;
             }
-            if (state === undefined) continue;
+            if (state === undefined) {
+              rememberPhysicalRemoval(cid,bytes);
+              if(physicalRemovalOriginals.has(cid))unconfirmedObjects.set(cid,bytes);
+              continue;
+            }
             if (!state.isFile() || state.size !== bytes) {
               fail('InvalidPublicationStoreObject');
             }
             if (state.nlink > 1) continue;
+            rememberPhysicalRemoval(cid,bytes,state);
             await unlink(objectPath(cid));
             unconfirmedObjects.set(cid, bytes);
           }
           if (unconfirmedObjects.size !== 0) {
             await syncDirectory(objectsDirectory);
-            for (const bytes of unconfirmedObjects.values()) {
-              storedBytes -= bytes;
-              objectCount--;
-            }
+            releasePhysicalCapacity(unconfirmedObjects);
             unconfirmedObjects.clear();
           }
           await unlink(physicalHoldingDeletionPath(record.holding_cid));
@@ -5517,6 +7179,7 @@ export async function openLocalPublicationStore(
       }
       const record = await readPhysicalHoldingAt(
         resolve(physicalHoldingDeletionsDirectory, name),
+        `sha256:${name.slice(0, -5)}`,
       );
       const cleanup = createPhysicalHoldingDeletionCleanup(record);
       try { await cleanup.retry(); }
@@ -5524,24 +7187,6 @@ export async function openLocalPublicationStore(
       recovered.push(cleanup);
     }
     return Object.freeze(recovered);
-  };
-
-  const validatePhysicalHoldingStore = async () => {
-    for (const directory of [
-      physicalHoldingsDirectory,
-      physicalHoldingDeletionsDirectory,
-    ]) {
-      for (const name of await readdir(directory)) {
-        const record = await readPhysicalHoldingAt(resolve(directory, name));
-        if (`${cidHex(record.holding_cid)}.json` !== name) {
-          fail('InvalidPublicationPhysicalHoldingStore');
-        }
-        // Startup validates ownership records, not every Run's payload.
-        // inspect/consume/commit still verify bytes before using a holding.
-        // A missing or damaged object must not disable unrelated Runs, nor
-        // turn its retained recovery responsibility into absent evidence.
-      }
-    }
   };
 
   const recoverPreparedCustodies = async () => {
@@ -5560,10 +7205,18 @@ export async function openLocalPublicationStore(
       catch (error) {
         if (error?.code !== 'ENOENT') throw error;
       }
-      const accounted = state !== undefined && state.isFile() &&
+      let accounted = state !== undefined && state.isFile() &&
         state.size === record.byte_count &&
         String(state.dev) === record.device &&
         String(state.ino) === record.inode;
+      if(accounted) {
+        await syncDirectory(objectsDirectory);
+        confirmPhysicalCapacity([physicalOriginal(record.material_generation_cid,record.byte_count,state)]);
+      } else if(state===undefined) {
+        const retained=deliveryIndex.physicalObject(record.material_generation_cid);
+        accounted=retained!==undefined && retained.byte_count===record.byte_count &&
+          retained.device===record.device && retained.inode===record.inode;
+      }
       const custody = {
         token,
         path,
@@ -5580,10 +7233,14 @@ export async function openLocalPublicationStore(
   };
 
   const recoverPreparedSchemas = async () => {
+    const names = await readdir(preparedSchemasDirectory);
+    // No pending original means there is no schema recovery transition to
+    // confirm. Selected reads and later mutations keep their own real ACKs.
+    if (names.length === 0) return Object.freeze([]);
     await syncDirectory(contractsDirectory);
     await syncDirectory(objectsDirectory);
     const recovered = [];
-    for (const name of await readdir(preparedSchemasDirectory)) {
+    for (const name of names) {
       if (!custodyNamePattern.test(name)) {
         fail('InvalidPublicationPreparedSchema');
       }
@@ -5634,19 +7291,29 @@ export async function openLocalPublicationStore(
     const inventoryCid = inventory.public_index_entry_cid;
     const existing = pendingUncommittedMetadataCleanups.get(inventoryCid);
     if (existing !== undefined) return existing;
-    let pending = true;
+    let pending = true, inventoryRetired = false;
+    const recoveryOriginal = publicationRecoveryOriginal(inventory);
     const errors = [];
     const unconfirmedObjects = new Map();
     const status = () => Object.freeze({
       pending,
       errors: Object.freeze([...errors]),
     });
+    const finishInventory = () => {
+      deliveryIndex.retireNativePublicationInventory(recoveryOriginal);
+      pending = false;
+      pendingUncommittedMetadataCleanups.delete(inventoryCid);
+      return status();
+    };
     const cleanup = Object.freeze({
       status,
       retry() {
         if (!pending) return Promise.resolve(status());
         const operation = metadataRetentionBusy.then(async () => {
           if (!pending) return status();
+          // No other indexed read may precede this same-original Unknown
+          // retry after all physical metadata retirement was acknowledged.
+          if (inventoryRetired) return finishInventory();
           const key = {
             namespaceId: inventory.namespace_id,
             authorityScopeCid: inventory.authority_scope_cid,
@@ -5676,10 +7343,7 @@ export async function openLocalPublicationStore(
           }
           if (unconfirmedObjects.size !== 0) {
             await syncDirectory(objectsDirectory);
-            for (const bytes of unconfirmedObjects.values()) {
-              storedBytes -= bytes;
-              objectCount--;
-            }
+            releasePhysicalCapacity(unconfirmedObjects);
             unconfirmedObjects.clear();
           }
           try {
@@ -5688,9 +7352,8 @@ export async function openLocalPublicationStore(
           } catch (error) {
             if (error?.code !== 'ENOENT') throw error;
           }
-          pending = false;
-          pendingUncommittedMetadataCleanups.delete(inventoryCid);
-          return status();
+          inventoryRetired = true;
+          return finishInventory();
         });
         metadataRetentionBusy = operation.catch(() => {});
         return operation.catch(error => {
@@ -5706,7 +7369,9 @@ export async function openLocalPublicationStore(
   const retireUncommittedPublication = async publicIndexEntryCid => {
     active();
     cidHex(publicIndexEntryCid);
-    const inventory = await readMetadataInventory(publicIndexEntryCid);
+    const original = deliveryIndex.pendingPublication(publicIndexEntryCid);
+    const inventory = original === undefined ? await readMetadataInventory(publicIndexEntryCid)
+      : await recoverMetadataInventory(original);
     if (inventory === undefined) {
       const cleanup = Object.freeze({
         status: () => Object.freeze({pending: false, errors: Object.freeze([])}),
@@ -5730,20 +7395,32 @@ export async function openLocalPublicationStore(
   const recoverUncommittedPublications = async () => {
     active();
     const recovered = [];
-    for (const name of await readdir(metadataInventoriesDirectory)) {
-      if (!/^[0-9a-f]{64}\.json$/u.test(name)) {
-        fail('InvalidPublicationMetadataInventoryStore');
-      }
-      const inventory = await readMetadataInventory(
-        `sha256:${name.slice(0, -5)}`,
-      );
+    for (const original of deliveryIndex.pendingPublications()) {
+      const retained = publicationRecoveryValue(original);
       const key = {
-        namespaceId: inventory.namespace_id,
-        authorityScopeCid: inventory.authority_scope_cid,
-        runDefinitionCid: inventory.run_definition_cid,
+        namespaceId: retained.namespace_id,
+        authorityScopeCid: retained.authority_scope_cid,
+        runDefinitionCid: retained.run_definition_cid,
       };
-      if ((await inspectCommittedIndexRaw(key))?.public_index_entry_cid ===
-          inventory.public_index_entry_cid) continue;
+      // The already durable deletion marker owns retirement. Do not restore
+      // an inventory file it has physically retired, or read its removed Run.
+      const marker = await readMetadataDeletion(indexKey(key));
+      if (marker !== undefined) {
+        if (marker.version !== 'actql-local-publication-metadata-deletion/0.1' ||
+            marker.namespace_id !== retained.namespace_id ||
+            marker.authority_scope_cid !== retained.authority_scope_cid ||
+            marker.run_definition_cid !== retained.run_definition_cid ||
+            marker.public_index_entry_cid !== retained.public_index_entry_cid) {
+          fail('InvalidPublicationMetadataDeletionStore');
+        }
+        continue;
+      }
+      const inventory = await restoreMetadataInventory(original,retained);
+      if ((await confirmCommittedIndex(key))?.public_index_entry_cid ===
+          inventory.public_index_entry_cid) {
+        deliveryIndex.finishPublicationInventory(original);
+        continue;
+      }
       const attempt = await latestRecord(inventory.publication_attempt_cid);
       if (!['failed', 'cancelled'].includes(attempt?.state)) continue;
       const cleanup = await createUncommittedMetadataCleanup(inventory);
@@ -5830,19 +7507,23 @@ export async function openLocalPublicationStore(
         catch (error) {
           if (error?.code !== 'ENOENT') throw error;
         }
-        if (state === undefined) return 'missing';
+        if (state === undefined) {
+          rememberPhysicalRemoval(materialCid,expectedBytes);
+          return physicalRemovalOriginals.has(materialCid)?'missing-unconfirmed':'missing';
+        }
         if (!state.isFile() || state.size !== expectedBytes) {
           fail('PublicationDurableBindingMismatch');
         }
         // Other Store-owned references can share this inode. Keep the base
         // name and capacity charge while any physical link remains.
-        return state.nlink > 1 ? 'shared' : 'exclusive';
+        if(state.nlink>1)return 'shared';
+        rememberPhysicalRemoval(materialCid,expectedBytes,state);
+        return 'exclusive';
       },
       unlink: () => unlink(objectPath(materialCid)),
       syncObjects: () => syncDirectory(objectsDirectory),
       releaseCapacity() {
-        storedBytes -= expectedBytes;
-        objectCount--;
+        releasePhysicalCapacity(new Map([[materialCid,expectedBytes]]));
       },
       settle(clearReclaiming) {
         pendingResultDeletions.delete(deletionKey);
@@ -5943,18 +7624,48 @@ export async function openLocalPublicationStore(
     if (existing !== undefined) {
       return Object.freeze({marker, cleanup: existing, deleted: false});
     }
+    let recoveryOriginal, recoveryCaptured = false, recoveryTransferred = false;
     const cleanup = createMetadataDeletionOwner(marker, {
       serialize(run) {
-        const operation = metadataRetentionBusy.then(run);
+        const operation = metadataRetentionBusy.then(async () => {
+          const completion=pendingMetadataFenceCompletions.get(keyHash);
+          if(completion!==undefined) {
+            deliveryIndex.finishMetadataDeletionFence(completion);
+            pendingMetadataFenceCompletions.delete(keyHash);
+          }
+          if (!recoveryTransferred) {
+            if(!recoveryCaptured) {
+              recoveryOriginal = deliveryIndex.pendingPublication(marker.public_index_entry_cid) ??
+                deliveryIndex.nativePublicationInventory(marker.public_index_entry_cid);
+              recoveryCaptured=true;
+            }
+            if (recoveryOriginal !== undefined) {
+              const inventory = publicationRecoveryValue(recoveryOriginal);
+              if (inventory.namespace_id !== marker.namespace_id ||
+                  inventory.authority_scope_cid !== marker.authority_scope_cid ||
+                  inventory.run_definition_cid !== marker.run_definition_cid ||
+                  inventory.physical_holding_cids.join('\0') !== marker.physical_holding_cids.join('\0') ||
+                  inventory.contract_objects.some(object => !marker.contract_objects.some(
+                    member => member.semantic_cid === object.semantic_cid))) {
+                fail('InvalidPublicationMetadataDeletionStore');
+              }
+              // The same durable marker now owns all cleanup. Settle its
+              // pending lookup row before physical work so an Unknown retry
+              // reaches this exact native mutation before any other DB read.
+            }
+            deliveryIndex.retireNativePublicationInventory(recoveryOriginal,
+              {metadata_key:keyHash,run_cid:marker.run_definition_cid});
+            metadataDeletionIntents.delete(marker.run_definition_cid);
+            recoveryTransferred = true;
+          }
+          return run();
+        });
         metadataRetentionBusy = operation.catch(() => {});
         return operation;
       },
       syncObjects: () => syncDirectory(objectsDirectory),
       releaseUnconfirmed(objects) {
-        for (const bytes of objects.values()) {
-          storedBytes -= bytes;
-          objectCount--;
-        }
+        releasePhysicalCapacity(objects);
       },
       async retireResult(result) {
         const retired = await createResultDeletionCleanup(
@@ -6028,9 +7739,13 @@ export async function openLocalPublicationStore(
       compactMarker: () => compactMetadataDeletion(
         keyHash, marker.run_definition_cid,
       ),
-      settle() { pendingMetadataDeletions.delete(keyHash); },
+      settle() {
+        pendingMetadataDeletions.delete(keyHash);
+        pendingMetadataDeletionMarkers.delete(keyHash);
+      },
     });
     pendingMetadataDeletions.set(keyHash, cleanup);
+    pendingMetadataDeletionMarkers.set(keyHash, marker);
     try { await cleanup.retry(); }
     catch {}
     return Object.freeze({
@@ -6046,6 +7761,9 @@ export async function openLocalPublicationStore(
       fail('InvalidPublicationMetadataDeletion');
     }
     const keyHash = indexKey(key);
+    const pending=pendingMetadataDeletions.get(keyHash);
+    if(pending!==undefined) return Object.freeze({marker:pendingMetadataDeletionMarkers.get(keyHash),
+      cleanup:pending,deleted:false});
     let marker = await readMetadataDeletion(keyHash);
     if (marker?.version ===
         'actql-local-publication-metadata-retired/0.1') {
@@ -6111,41 +7829,36 @@ export async function openLocalPublicationStore(
     return Object.freeze(recovered);
   };
 
-  const validateCommittedMetadataInventories = async () => {
-    for (const name of await readdir(indexesDirectory)) {
-      if (!/^[0-9a-f]{64}\.json$/u.test(name)) {
-        fail('InvalidPublicationStoreIndex');
-      }
-      const keyHash = name.slice(0, -5);
-      const index = admitContract(
-        'public_index_entry',
-        (await readBounded(
-          resolve(indexesDirectory, name), configuration.maxObjectBytes,
-        )).toString('utf8'),
-      );
-      const inventory = await readMetadataInventory(index.identity);
-      if (inventory === undefined ||
-          inventory.public_index_entry_cid !== index.identity) {
-        fail('InvalidPublicationMetadataInventoryStore');
-      }
-      if (await readMetadataDeletion(keyHash) === undefined) {
-        for (const holdingCid of inventory.physical_holding_cids) {
-          // Validate the index-to-owner link without opening its payloads.
-          // Payload availability is checked by the actual Result consumer.
-          if (await readPhysicalHoldingDeletion(holdingCid) !== undefined ||
-              await readPhysicalHolding(holdingCid) === undefined) {
-            fail('InvalidPublicationMetadataInventoryStore');
-          }
-        }
-      }
-    }
-  };
-
-  await validatePhysicalHoldingStore();
-
+  // Immutable holding bodies are admitted at their selected read. Pending
+  // deletion recovery below still owns its exact records and original ACKs;
+  // unrelated history is not another ordinary opening admission boundary.
   // Recover process-crash custody before accepting new Store work. A
   // committed or shared allocation survives; an unpublished allocation is
   // reclaimed using its exact recorded generation.
+  // Native publication bodies and their persisted capacity are available to
+  // the same targeted recovery/retirement paths as legacy file originals.
+  await initializeDeliveryIndex();
+  const physicalPreparations = deliveryIndex.pendingPhysicalObjects();
+  if (physicalPreparations.length !== 0) {
+    const installed=[];
+    for(const original of physicalPreparations) {
+      let state;
+      try {state=await lstat(objectPath(original.cid));}
+      catch(error){if(error?.code!=='ENOENT')throw error;}
+      if(state!==undefined && state.isFile() && state.size===original.byte_count &&
+          String(state.dev)===original.device && String(state.ino)===original.inode) {
+        installed.push(original);
+      }
+    }
+    // Only pending generations are observed. Existing committed payloads are
+    // never enumerated; neither a missing name nor a successor refunds them.
+    await syncDirectory(objectsDirectory);
+    if(installed.length!==0)confirmPhysicalCapacity(installed);
+    deliveryIndex.finishPhysicalPreparations(physicalPreparations);
+  }
+  if(storedBytes>configuration.capacityBytes||objectCount>configuration.maxObjects) {
+    fail('PublicationStoreCapacity');
+  }
   await recoverPreparedCustodies();
   await recoverPreparedSchemas();
   // A crash between semantic alias creation and physical-custody handoff
@@ -6156,8 +7869,6 @@ export async function openLocalPublicationStore(
   // Recovery resumes the exact durable cleanup without treating an absent
   // object name as proof that another live holding was released.
   await recoverPhysicalHoldingDeletions();
-
-  await validateCommittedMetadataInventories();
 
   // A terminal attempt that never won the public index retains an exact
   // inventory until every unshared metadata allocation is durably reclaimed.
@@ -6314,8 +8025,11 @@ export async function openLocalPublicationStore(
     confirmCapturedContentHoldings,
     putPreparedResultSchema,
     putPublicationContract,
+    putPublicationContracts,
+    putOriginalPublicationContracts,
     verifyObject,
     observeTrustedClock,
+    sampleTrustedClock,
     readClockObservation,
     readSemanticBytes,
     readPrivateEvidence,
@@ -6348,18 +8062,21 @@ export async function openLocalPublicationStore(
     appendRecord,
     consumeManifestReadGrant,
     createDeliveryAttempt,
+    beginDeliveryAttempt,
     lookupDeliveryAttempt,
     latestDeliveryRecord,
     latestDeliveryRecordContract,
     confirmDeliveryRecord,
     appendDeliveryRecord,
+    appendDeliveryCompletion,
     commitIndex,
     commitEffectfulIndex,
     validateCommittedEvidence,
     validateCommittedEffectfulEvidence,
     inspectEffectfulStoredEvidence,
     inspectCommittedIndex,
-    confirmCommittedIndex,
+    confirmCommittedIndex: confirmSelectedCommittedIndex,
+    readCommittedPublication,
     lookupCommittedIndex,
     publicationCapacitySupports(requirement) {
       active();
@@ -6389,7 +8106,7 @@ export async function openLocalPublicationStore(
     close() {
       if (closeFlight !== undefined) return closeFlight;
       if (closed) return Promise.resolve(true);
-      if (reservedObjects !== 0 || preparedObjects.size !== 0 ||
+      if (clockObservationsPending !== 0 || reservedObjects !== 0 || preparedObjects.size !== 0 ||
           preparedSchemas.size !== 0 ||
           reclaimableCustodies.size !== 0 ||
           pendingResultDeletions.size !== 0 ||
@@ -6433,6 +8150,7 @@ export async function openLocalPublicationStore(
           catch { fail('PublicationStoreCleanupPending'); }
         }
         if (activePhysicalRecordWriters.size !== 0) fail('PublicationStoreCleanupPending');
+        if (deliveryIndex?.close() !== true) fail('PublicationStoreCleanupPending');
         return ownership.release();
       }).then(released => {
         if (released !== true) fail('PublicationStoreOwnershipLost');
@@ -6445,7 +8163,8 @@ export async function openLocalPublicationStore(
     },
   });
   } catch (cause) {
-    throw await retainStoreOpeningFailure(cause, ownership,
+    const primary = deliveryIndex === undefined ? cause : deliveryIndex.retainFailure(cause);
+    throw await retainStoreOpeningFailure(primary, ownership,
       configuration.privateEvidenceKey);
   }
 }

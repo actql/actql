@@ -173,18 +173,24 @@ export function prepareProgram(document, format, environment, parametersWire) {
 
 /** One original submitted source and trusted installation publication. */
 export function prepareSourceProgram(intent, environment, publicationWire) {
+  return prepareSourceProgramOriginal(intent, environment, publicationWire, 'public-main');
+}
+
+function prepareSourceProgramOriginal(intent, environment, publicationWire, primaryResultRecipe) {
   if (typeof publicationWire !== 'string') throw new TypeError('InvalidRunHostSourcePublication');
   const originalIntent = requireHandle(submittedIntents, intent);
   const originalEnvironment = requireHandle(environments, environment);
-  const value = checked(owner.clientValuesHostPrepareSourceProgram(originalIntent,
-    originalEnvironment, publicationWire), 'RunHostSourcePreparationRejected');
+  const prepare = primaryResultRecipe === undefined
+    ? owner.clientValuesHostPrepareSourceProgram : owner.clientValuesHostPreparePublicSourceProgram;
+  const value = checked(Reflect.apply(prepare, owner, [originalIntent,
+    originalEnvironment, publicationWire]), 'RunHostSourcePreparationRejected');
   const kind = owner.clientValuesHostSourceProgramKind(value);
   const raw = kind === 'effect_free' ? owner.clientValuesHostSourceProgramPure(value)
     : kind === 'effect' ? owner.clientValuesHostSourceProgramEffect(value) : undefined;
   if (raw === undefined) throw new Error('InvalidRunHostOwnerResult');
   const prepared = handle(kind === 'effect_free' ? preparations : effectPreparations,
     raw, kind === 'effect_free' ? 'prepared-program' : 'prepared-effect-program');
-  sourcePreparations.set(prepared, {value, intent, environment});
+  sourcePreparations.set(prepared, {value, intent, environment, primaryResultRecipe});
   return Object.freeze({kind, prepared, originalIntent: intent});
 }
 
@@ -197,7 +203,9 @@ export function sourceProgramOriginals(prepared) {
     throw new Error('InvalidRunHostOwnerResult');
   }
   return Object.freeze({intentWire: facts[0], intentCid: facts[1],
-    environmentCid: facts[2], publicationWire: facts[3]});
+    environmentCid: facts[2], publicationWire: facts[3],
+    ...(original.primaryResultRecipe === undefined ? {} :
+      {primaryResultRecipe: original.primaryResultRecipe})});
 }
 
 /** Original lowerer projection for the existing JSON Run material codec. */
@@ -233,6 +241,14 @@ export function sourceProgramSourceInput(prepared) {
 /** Re-admit saved originals; the Host still verifies current custody and Run. */
 export function restoreSourceProgram(originals, environment) {
   const keys = ['intentWire', 'intentCid', 'environmentCid', 'publicationWire'];
+  const recipe = originals === null || typeof originals !== 'object' ? undefined
+    : Object.getOwnPropertyDescriptor(originals, 'primaryResultRecipe');
+  if (recipe !== undefined) {
+    if (!Object.hasOwn(recipe, 'value') || recipe.value !== 'public-main') {
+      throw new TypeError('InvalidRunHostSourceOriginals');
+    }
+    keys.push('primaryResultRecipe');
+  }
   if (originals === null || typeof originals !== 'object' || Array.isArray(originals) ||
       Reflect.ownKeys(originals).length !== keys.length || keys.some(key => {
         const d = Object.getOwnPropertyDescriptor(originals, key);
@@ -240,7 +256,11 @@ export function restoreSourceProgram(originals, environment) {
       })) throw new TypeError('InvalidRunHostSourceOriginals');
   const intent = prepareSubmittedIntent(originals.intentWire,
     {maxWireBytes: 1048576, maxNodes: 65536, maxDepth: 64});
-  const selected = prepareSourceProgram(intent, environment, originals.publicationWire);
+  // Absence means the exact historical configured-primary recipe. Never
+  // upgrade a saved source preparation merely because new public input uses
+  // main. Run restoration independently checks its saved request/materials.
+  const selected = prepareSourceProgramOriginal(intent, environment,
+    originals.publicationWire, recipe?.value);
   const actual = sourceProgramOriginals(selected.prepared);
   if (keys.some(key => actual[key] !== originals[key])) throw new TypeError('ForeignRunHostSourceOriginals');
   return selected;
@@ -2467,6 +2487,11 @@ function issuedDelivery(method, ...args) {
 // This is a semantic port for the existing common Result access service.
 // The Host still supplies current authorization, trusted time, Store and sink.
 export function openResultDeliveryControl() {
+  const issuedGrantBounds = new WeakMap();
+  const issuedAttempts = new WeakMap();
+  const originalAttempts = new WeakMap();
+  const sameBounds = (first, second) => first.length === second.length &&
+    first.every((value, index) => value === second[index]);
   const limitsOf = limits => {
     const value = publicationLimits(limits);
     return [value.maxWireBytes, value.maxNodes, value.maxDepth];
@@ -2571,12 +2596,14 @@ export function openResultDeliveryControl() {
     },
     issueResultReadGrant(index, manifest, grant, limits) {
       const bounds = limitsOf(limits);
-      return issuedDelivery('clientValuesHostIssueResultReadGrant',
+      const result = issuedDelivery('clientValuesHostIssueResultReadGrant',
         deliveryToken(index), deliveryToken(manifest),
         grant.resultNames, grant.formats, grant.principalId, grant.purpose,
         grant.dataCeilingCid, grant.maxBytes, grant.maxUses,
         grant.expiresAt, grant.authorizationContextCid,
         grant.egressAdmissionCid, ...bounds);
+      issuedGrantBounds.set(result, Object.freeze(bounds));
+      return result;
     },
     resultReadGrantValidAt(grant, observedAt) {
       return owner.clientValuesHostResultReadGrantValidAt(
@@ -2587,10 +2614,47 @@ export function openResultDeliveryControl() {
         deliveryToken(grant), count);
     },
     issueDeliveryAttempt(index, manifest, grant, attempt, limits) {
-      return issuedDelivery('clientValuesHostIssueDeliveryAttempt',
+      const request = Object.freeze({resultName: attempt.resultName,
+        format: attempt.format, attemptId: attempt.attemptId,
+        requestedAt: attempt.requestedAt});
+      const bounds = Object.freeze(limitsOf(limits));
+      const result = issuedDelivery('clientValuesHostIssueDeliveryAttempt',
         deliveryToken(index), deliveryToken(manifest), deliveryToken(grant),
-        attempt.resultName, attempt.format, attempt.attemptId,
-        attempt.requestedAt, ...limitsOf(limits));
+        request.resultName, request.format, request.attemptId,
+        request.requestedAt, ...bounds);
+      const original = Object.freeze({kind: 'issued-delivery-attempt'});
+      const facts = Object.freeze({index, manifest, grant, attempt: result,
+        request, limits: Object.freeze({maxWireBytes: bounds[0],
+          maxNodes: bounds[1], maxDepth: bounds[2]})});
+      issuedAttempts.set(result, {index: deliveryContract(index),
+        manifest: deliveryContract(manifest), grant: deliveryContract(grant),
+        bounds, original});
+      originalAttempts.set(original, facts);
+      return result;
+    },
+    captureIssuedDeliveryAttempt(attempt, index, manifest, grant, limits) {
+      // Nominal lookups precede any view-field access. A valid raw admission
+      // remains compatible, but cannot claim this issuer's captured inputs.
+      deliveryContract(attempt);
+      const actualIndex = deliveryContract(index);
+      const actualManifest = deliveryContract(manifest);
+      const actualGrant = deliveryContract(grant);
+      const captured = issuedAttempts.get(attempt);
+      if (captured === undefined) return undefined;
+      if (captured.index !== actualIndex || captured.manifest !== actualManifest ||
+          captured.grant !== actualGrant) {
+        throw new TypeError('RunHostDeliveryOriginalMismatch');
+      }
+      const bounds = limitsOf(limits);
+      const grantBounds = issuedGrantBounds.get(grant);
+      if (grantBounds === undefined || !sameBounds(bounds, grantBounds) ||
+          !sameBounds(bounds, captured.bounds)) return undefined;
+      return captured.original;
+    },
+    readIssuedDeliveryAttempt(original) {
+      const facts = originalAttempts.get(original);
+      if (facts === undefined) throw new TypeError('ForeignRunHostDeliveryOriginal');
+      return facts;
     },
     deliveryResultDefinitionCid(manifest, attempt) {
       return deliveryResult('clientValuesHostDeliveryResultDefinitionCid',

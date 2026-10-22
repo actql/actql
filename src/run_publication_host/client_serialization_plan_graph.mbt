@@ -214,9 +214,15 @@ fn issue_acquired_client_serialization_plan_graph(
     max_depth <= 0 {
     return Err(InvalidLimits)
   }
-  if !client_serialization_single_capture_shape(owner, task) ||
+  if !client_serialization_single_capture_shape(
+      owner,
+      task,
+      max_work=max_preparation_work,
+    ) ||
     prepared_client_acquisition_count(owner) != 1 ||
-    !client_serialization_source_inventory_supported(owner, task, step) ||
+    !client_serialization_source_inventory_supported(
+      owner, task, step, max_preparation_work,
+    ) ||
     (@strategy.graph_program_has_effects(owner.graph) && !effect_component) {
     return Err(UnsupportedGraph)
   }
@@ -293,16 +299,115 @@ fn client_serialization_source_inventory_supported(
   owner : PreparedClientProgram,
   task : Int,
   step : Int,
+  max_work : Int,
 ) -> Bool {
   if client_single_direct_observation_covers_sources(owner) {
     return true
   }
-  guard select_client_single_keyed_acquisition(owner) is Ok(Some(keyed)) &&
-    client_keyed_acquisition_coordinates(keyed) is Some((_, keyed_task, join)) &&
-    keyed_task == task &&
+  guard select_client_single_keyed_acquisition(owner) is Ok(Some(keyed)) else {
+    return false
+  }
+  client_keyed_acquisition_reaches_serialization(
+    owner,
+    keyed,
+    task,
+    step,
+    max_work~,
+  )
+}
+
+///|
+/// Read correspondence in the original checked graph. A split JOIN and its
+/// downstream Serialize need not share a physical task ordinal. Follow their
+/// actual single-input producer edges under the same nominal lowered owner;
+/// equal coordinates, contracts or source bytes do not supply this relation.
+/// This query issues no Source observation, permission, capacity or completion.
+pub fn client_keyed_acquisition_reaches_serialization(
+  prepared : PreparedClientProgram,
+  keyed : ClientKeyedAcquisition,
+  task : Int,
+  step : Int,
+  max_work? : Int = 1000000,
+) -> Bool {
+  let graph = prepared.graph
+  guard max_work > 0 &&
+    keyed.program is KeyedPure(original) &&
+    physical_equal(original, prepared) &&
+    client_keyed_acquisition_coordinates(keyed)
+    is Some((stage, keyed_task, join)) &&
     join < step &&
+    @strategy.graph_stage_operation_task(graph, stage, step) == Some(task) &&
+    @strategy.graph_task_owner(graph, task) is Some(owner) &&
+    physical_equal(owner, keyed.owner) &&
     client_keyed_direct_acquisition_coordinates(keyed) is Some(_) else {
     return false
+  }
+  client_serialization_original_task_path(
+    graph,
+    keyed_task,
+    task,
+    max_work,
+    Some(keyed.owner),
+  )
+}
+
+///|
+/// The checked edge ports prove ancestry, including across a real Stage input.
+/// A keyed suffix additionally retains one exact nominal lowered owner. The
+/// decreasing task order and shared work cursor bound the scan without a new
+/// worklist, copied graph or caller-supplied ancestry assertion.
+fn client_serialization_original_task_path(
+  graph : @strategy.CheckedDAG,
+  producer : Int,
+  consumer : Int,
+  max_work : Int,
+  original_owner : @lower.BoundPrepared?,
+) -> Bool {
+  if producer < 0 ||
+    consumer < producer ||
+    consumer >= @strategy.graph_task_count(graph) ||
+    max_work <= 0 {
+    return false
+  }
+  let mut current = consumer
+  let mut remaining = max_work
+  while current != producer {
+    if current <= producer ||
+      remaining <= 0 ||
+      @strategy.graph_task_input_count(graph, current) != Some(1) {
+      return false
+    }
+    let mut predecessor = None
+    for index in 0..<@strategy.graph_data_count(graph) {
+      if remaining <= 0 {
+        return false
+      }
+      remaining -= 1
+      guard @strategy.graph_data_at(graph, index) is Some(edge) else {
+        return false
+      }
+      if @strategy.data_edge_consumer(edge) == current {
+        let parent = @strategy.data_edge_producer(edge)
+        guard predecessor is None &&
+          @strategy.data_edge_input(edge) == 0 &&
+          parent >= producer &&
+          parent < current &&
+          client_task_edge_input(graph, edge) is Some(_) else {
+          return false
+        }
+        if original_owner is Some(original) {
+          guard @strategy.graph_task_owner(graph, current) is Some(child) &&
+            physical_equal(child, original) &&
+            @strategy.graph_task_owner(graph, parent) is Some(owner) &&
+            physical_equal(owner, original) else {
+            return false
+          }
+        }
+        predecessor = Some(parent)
+      }
+    }
+    guard predecessor is Some(producer) else { return false }
+    current = producer
   }
   true
 }
@@ -314,6 +419,7 @@ fn client_serialization_source_inventory_supported(
 fn client_serialization_single_capture_shape(
   owner : PreparedClientProgram,
   task : Int,
+  max_work? : Int = 1000000,
 ) -> Bool {
   let graph = owner.graph
   if @strategy.graph_task_count(graph) == 1 && task == 0 {
@@ -324,25 +430,22 @@ fn client_serialization_single_capture_shape(
     // ordinary graph verifies every exact operation edge and retains each
     // predecessor; source inventory is checked separately above.
     guard @strategy.graph_captured_prefix(graph) == 1 &&
-      @strategy.graph_task_unit_index(graph, task) == Some(1) &&
       @strategy.graph_task_input_count(graph, task) == Some(1) else {
       return false
     }
-    let mut inputs = 0
-    for index in 0..<@strategy.graph_data_count(graph) {
-      guard @strategy.graph_data_at(graph, index) is Some(edge) else {
-        return false
-      }
-      if @strategy.data_edge_consumer(edge) == task {
-        guard @strategy.data_edge_producer(edge) >= 0 &&
-          @strategy.data_edge_producer(edge) < task &&
-          @strategy.data_edge_operation_input(edge) == Some((step, 0)) else {
-          return false
-        }
-        inputs += 1
-      }
+    return match select_client_single_keyed_acquisition(owner) {
+      Ok(Some(keyed)) =>
+        client_keyed_acquisition_reaches_serialization(
+          owner,
+          keyed,
+          task,
+          step,
+          max_work~,
+        )
+      Ok(None) =>
+        client_serialization_original_task_path(graph, 0, task, max_work, None)
+      Err(_) => false
     }
-    return inputs == 1
   }
   guard @strategy.graph_task_count(graph) >= 2 &&
     task == 1 &&
