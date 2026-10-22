@@ -719,6 +719,51 @@ test('publication inventory acquires an existing Index alias instead of treating
   assert.equal(await prepared.prepared.release(), true);
 });
 
+test('publication inventory retains failed Index alias durability before a fresh acquisition', async t => {
+  const {store, directory} = await fixture(t);
+  const invocationValue = invocation();
+  const request = publicationRequest(resultDefinition(), invocationValue.invocation_cid);
+  const attempt = publicationAttempt(request);
+  const prepared = await prepareCommit(store, request, attempt, invocationValue);
+  const entry = indexEntry(request, attempt, invocationValue, {
+    durable_result_binding_cids: [prepared.binding.identity],
+  });
+  const alias = join(directory, 'contracts', entry.public_index_entry_cid.slice(7) + '.json');
+  const actualOpen = fsPromises.open;
+  const primary = new Error('Index alias durability unavailable');
+  let refuse = true, reads = 0, failure;
+  t.mock.method(fsPromises, 'open', async function(path, ...args) {
+    if (String(path) === alias) reads++;
+    const handle = await Reflect.apply(actualOpen, this, [path, ...args]);
+    if (String(path) === join(directory, 'contracts')) {
+      const sync = handle.sync;
+      t.mock.method(handle, 'sync', function(...values) {
+        if (refuse) throw primary;
+        return Reflect.apply(sync, this, values);
+      });
+    }
+    return handle;
+  });
+  syncBuiltinESMExports();
+  try {
+    await assert.rejects(store.commitIndex(wire(entry), prepared.required, prepared.evidence), error => {
+      failure = error;
+      return error.primaryFailure === primary && error.cleanupHandle.status().pending;
+    });
+    assert.equal(reads, 0, 'failed durability cannot proceed to inventory acquisition');
+    assert.equal(await store.inspectCommittedIndex(indexKeyFor(request)), undefined);
+    await assert.rejects(store.close(), code('PublicationStoreCleanupPending'));
+    refuse = false;
+    assert.equal((await failure.cleanupHandle.retry()).pending, false);
+    assert.equal((await store.commitIndex(wire(entry), prepared.required, prepared.evidence)).committed, true);
+    assert.equal(reads, 2, 'a new attempt checks both its existing alias and its original reader');
+  } finally {
+    refuse = false;
+    if (failure?.cleanupHandle?.status().pending) await failure.cleanupHandle.retry();
+    t.mock.restoreAll(); syncBuiltinESMExports();
+  }
+});
+
 test('publication commit parses its Binding once across evidence and metadata inventory', async t => {
   const {store} = await fixture(t);
   const invocationValue = invocation();

@@ -2738,7 +2738,7 @@ async function openOriginalLocalPublicationStore(
   // Semantic contract identities exclude their self-CID field and therefore
   // are deliberately not the physical digest of the stored complete body.
   // The binding is an exclusive hard link to one immutable physical object.
-  const putSemanticBatch = async supplied => {
+  const putSemanticBatch = async (supplied, retainedOriginals) => {
     active();
     for (const pending of activePhysicalRecordWriters) {
       if (pending.failed) fail('PublicationStoreCleanupPending');
@@ -2919,6 +2919,17 @@ async function openOriginalLocalPublicationStore(
       // after original close; a name resurrected by a crash is removed by the
       // existing exclusive opening recovery, not interpreted as a commit.
       await cleanup.retry();
+      // Only these two newly linked names belong to this successful writer.
+      // Its bounded bytes/digest and real file/close/directory ACKs already
+      // establish the same-commit inventory fact. Existing aliases still use
+      // their actual reader; no observation escapes this operation's map.
+      if (retainedOriginals !== undefined) {
+        for (const item of items) {
+          if (item.objectCreated && item.created) retainedOriginals.set(
+            item.semanticCid, Object.freeze({bytes: item.bytes, physicalCid: item.cid}),
+          );
+        }
+      }
       return Object.freeze(items.map(item => Object.freeze({semanticCid: item.semanticCid,
         physical: Object.freeze({cid: item.cid, bytes: item.bytes.byteLength,
           created: item.objectCreated}), created: item.created})));
@@ -5620,7 +5631,8 @@ async function openOriginalLocalPublicationStore(
         // The exact Index was admitted at this operation's public entry.
         // Persist that immutable body; this internal write is not another
         // input boundary. All actual semantic file/directory ACKs remain.
-        await putSemantic(admitted.wire, admitted.identity);
+        await putSemanticBatch([{wire: admitted.wire, semanticCid: admitted.identity}],
+          semanticOriginals);
         const inventoryContractObjects = await bindMetadataContractObjects(
           inventorySemanticCids, readOriginal,
         );

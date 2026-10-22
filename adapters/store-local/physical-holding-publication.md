@@ -122,6 +122,18 @@ owners refuse the selected operation. A later operation acquires new originals.
 Already inspected Pure/Effect evidence reuses its own holding facts when joining
 the same inventory rather than reading the same bodies again in a pure helper.
 
+During one serialized Index commit, a newly written semantic body may also
+retain its private bytes and digest in that commit's existing observation map.
+This observation is published only after the original file sync and close,
+both new physical and semantic links, their actual directory acknowledgements,
+and writer cleanup succeed. Its metadata inventory consumes that same original
+without reopening and hashing it immediately. Existing objects or aliases,
+including names left by an interrupted attempt, still use the actual semantic
+reader and its hard-link validation. Failed durability never publishes this
+observation or retires the pending writer. The map is operation-local and its
+bytes never escape; the next public read acquires its own original and detects
+a changed or replacement alias. No permission, claim or physical ACK is cached.
+
 Internal index durability reconciliation remains separate from public selected
 use. It still confirms the real directory acknowledgement and original custody
 outcome, including before metadata has been fully staged or during retirement.
