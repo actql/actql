@@ -42,7 +42,7 @@ pub fn issue_prepared_client_serialization_compilation(
       owner,
       component.graph.wire,
       component.graph.transformations,
-      material.wire,
+      material,
       max_facts,
       max_witnesses,
       max_wire_bytes,
