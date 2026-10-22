@@ -485,3 +485,112 @@ test('priority managed Run collection requires a verified installed module befor
   assert.equal(report.publicCallAttempts.sql, 0); assert.equal(report.cleanup.closed, false);
   await assert.rejects(readFile(options.importMarker), {code: 'ENOENT'});
 });
+
+async function rowFixture(t, fault = '', both = false) {
+  const options = await resourceFixture(t, ['unknown', 'package'].includes(fault) ? fault : '');
+  const observerFile = join(options.consumer, 'node_modules/@actql/local-node/adapters/host-common/observation.mjs');
+  const original = (await readFile(observerFile, 'utf8'))
+    .replace('export function createHostObservationConnection', 'function createResourceConnection');
+  // Synthetic projected rows only. They are not product reads or DB metrics.
+  const observer = original + `
+export function createHostObservationConnection(options){
+ let sequence=0;
+ const resource=createResourceConnection({...options,deliver:record=>options.deliver({...record,sequence:sequence++})});
+ return{record(ref){
+  if(options.measurements.include.includes('resources'))resource.record(ref);
+  for(let index=0;index<2;index++){
+   const attributes={'actql.rows.owner':'request-journal','actql.rows.selection':index?'request':'run-definition',
+    'actql.rows.kind':'run','actql.rows.returned':index?0:1,'actql.rows.coverage':'selected-returned',
+    'actql.run.definition_cid':ref.runDefinitionCid,...(index?{'actql.rows.unrelated':0}:{})};
+   ${fault === 'foreign' ? "attributes['actql.run.definition_cid']='sha256:'+'f'.repeat(64);" : ''}
+   ${fault === 'missing-run' ? "delete attributes['actql.run.definition_cid'];" : ''}
+   ${fault === 'scalar' ? "attributes['actql.rows.returned']='1';" : ''}
+   const record={version:'actql-observation/0.1',operation:'run',event:'selected_rows_observed',
+    sequence:sequence++,parent:options.currentContext(),attributes};
+   ${fault === 'context' ? "record.parent={traceId:'f'.repeat(32),spanId:'f'.repeat(16)};" : ''}
+   ${fault === 'missing' ? '' : 'options.deliver(record);'}
+  }
+ },status(){return{...resource.status(),${fault === 'loss' ? "dropped:1,loss:{rowsUnavailable:1}," : ''}repeated:3};},close:()=>resource.close()};
+}`;
+  await writeFile(observerFile, observer);
+  const manifest = JSON.parse(await readFile(options.manifestPath));
+  // The base synthetic observer artifact is rebound to its new exact bytes.
+  const pkg = manifest.packages.find(row => row.name === '@actql/local-node');
+  pkg.files[0] = {...pkg.files[0], bytes: Buffer.byteLength(observer), sha256: hash(Buffer.from(observer))};
+  await writeFile(options.manifestPath, JSON.stringify(manifest));
+  delete options.resourceObservations;
+  if (both) options.resourceObservations = 'managed-run-ledger';
+  options.rowObservations = 'selected-returned';
+  const controls = JSON.parse(await readFile(options.controlsPath));
+  controls.cohortSha256 = hash(await readFile(options.manifestPath));
+  controls.historyProtocolSha256 = hash(Buffer.from(JSON.stringify(nodePriorityProtocol(options.mode,
+    options.resourceObservations, options.rowObservations))));
+  await writeFile(options.controlsPath, JSON.stringify(controls));
+  return options;
+}
+
+test('priority selected rows preserve actual multiplicity and missing classification without a population claim', async t => {
+  const options = await rowFixture(t), report = await runNodePriorityBenchmark(options);
+  const captured = report.selectedRowObservations;
+  assert.equal(captured.status, 'passed'); assert.equal(captured.records.length, 14);
+  assert.equal(captured.operations.length, 7);
+  assert(captured.operations.every(row => row.rowObservationSequences.length === 2));
+  assert(captured.records.filter(row => row.selection === 'run-definition').every(row => !Object.hasOwn(row, 'unrelated')));
+  assert(captured.records.filter(row => row.selection === 'request').every(row => row.unrelated === 0));
+  assert.equal(captured.afterClose.repeated, 3, 'Deduplicated lifecycle events are not missing row records');
+  assert(report.latency.every(row => !Object.hasOwn(row, 'population')));
+  assert.equal(report.priorityAssessment.gates.node.status, 'incomplete');
+  const foreign = structuredClone(report); foreign.selectedRowObservations.environmentSha256 = 'f'.repeat(64);
+  assert.throws(() => assessPriorityTransition({sourceSha: foreign.sourceSha, platforms: {node: [foreign]}}), /Selected row observation differs/u);
+  const unmatched = structuredClone(report); unmatched.selectedRowObservations.operations[0].rowObservationSequences = [999];
+  assert.equal(assessPriorityTransition({sourceSha: unmatched.sourceSha, platforms: {node: [unmatched]}}).gates.node.status, 'failed');
+  const unrelated = structuredClone(report); unrelated.selectedRowObservations.records[0].unrelated = 1;
+  assert.equal(assessPriorityTransition({sourceSha: unrelated.sourceSha, platforms: {node: [unrelated]}}).gates.node.status, 'failed');
+});
+for (const fault of ['foreign', 'scalar', 'missing', 'loss', 'context', 'missing-run']) {
+  test(`priority selected rows ${fault} cannot qualify requested collection`, async t => {
+    const options = await rowFixture(t, fault), report = await runNodePriorityBenchmark(options);
+    const expected = ['missing', 'loss', 'missing-run'].includes(fault) ? 'incomplete' : 'failed';
+    assert.equal(report.selectedRowObservations.status, expected);
+    assert.equal(report.priorityAssessment.gates.node.status, expected);
+    assert.equal(report.cleanup.closed, true);
+    assert(report.functional.rows.every(row => row.completed));
+    if (fault === 'missing-run') assert(report.selectedRowObservations.records.every(row => !Object.hasOwn(row, 'runDefinitionCid')));
+    if (fault === 'loss') assert.deepEqual(report.selectedRowObservations.afterClose.loss, {rowsUnavailable: 1});
+  });
+}
+test('priority selected rows and managed resources bind the same seven public operations', async t => {
+  const options = await rowFixture(t, '', true), report = await runNodePriorityBenchmark(options);
+  assert.equal(report.managedRunObservations.status, 'passed');
+  assert.equal(report.selectedRowObservations.status, 'passed');
+  assert.equal(report.managedRunObservations.records.length, 7);
+  assert.deepEqual(report.managedRunObservations.operations.map(row => row.publicOperationId),
+    report.selectedRowObservations.operations.map(row => row.publicOperationId));
+  assert.equal(report.priorityAssessment.status, 'incomplete');
+});
+test('priority selected rows package failure cannot retain functional or collection qualification', async t => {
+  const options = await rowFixture(t, 'package'), report = await runNodePriorityBenchmark(options);
+  assert.equal(report.selectedRowObservations.status, 'failed');
+  assert.equal(report.selectedRowObservations.records.length, 14);
+  assert.equal(report.priorityAssessment.gates.node.status, 'failed');
+  assert(report.functional.rows.every(row => !row.completed && !Object.hasOwn(row, 'actualSha256')));
+});
+test('priority selected rows retain Unknown without retry or saved-read continuation', async t => {
+  const options = await rowFixture(t, 'unknown'), report = await runNodePriorityBenchmark(options);
+  assert.equal(report.firstFailure.code, 'SubmissionUnknown');
+  assert.equal(report.selectedRowObservations.status, 'incomplete');
+  assert.equal(report.publicCallAttempts.savedResultAll, 0); assert.equal(report.cleanup.closed, true);
+  assert.deepEqual((await priorityEvents(options)).filter(row => row.kind === 'submit').map(row => row.id), [0, 1, 2]);
+});
+test('priority selected rows CLI is explicit and cannot turn partial rows into population acceptance', async t => {
+  const options = await rowFixture(t);
+  const result = spawnSync(process.execPath, [new URL('./benchmark-node-operations.mjs', import.meta.url).pathname,
+    '--selection', 'priority-transition', '--row-observations', 'selected-returned',
+    '--manifest', options.manifestPath, '--consumer', options.consumer, '--output', options.output,
+    '--controls', options.controlsPath, '--mode', options.mode], {encoding: 'utf8'});
+  assert.equal(result.status, 1, result.stderr);
+  const report = JSON.parse(await readFile(join(options.output, 'measurements.json')));
+  assert.equal(report.selectedRowObservations.status, 'passed');
+  assert.equal(report.priorityAssessment.gates.node.status, 'incomplete');
+  assert.throws(() => nodePriorityProtocol('diagnostic', undefined, 'all-reads'));
+});
