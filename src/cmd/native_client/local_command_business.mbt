@@ -134,7 +134,7 @@ fn local_command_source_free_business_profile(
     static_profile.read_domain_bytes,
     static_profile.sqlite_domain_bytes,
     bytes,
-  ]).unwrap_or_else(_ => stop("LocalBusinessLayoutUnavailable"))
+  ]).unwrap_or_else(() => stop("LocalBusinessLayoutUnavailable"))
   let (arena, control) = local_command_backing_layout(domains).unwrap_or_else(() => {
     stop("LocalBusinessLayoutUnavailable")
   })

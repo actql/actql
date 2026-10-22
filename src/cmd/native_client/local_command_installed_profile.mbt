@@ -25,13 +25,13 @@ fn local_command_installed_profile(
   let read_retained = native_storage_sum([
     read_budget.bootstrap_retained,
     read_budget.read_retained,
-  ]).unwrap_or_else(_ => stop("LocalCommandPreparationLayoutUnavailable"))
+  ]).unwrap_or_else(() => stop("LocalCommandPreparationLayoutUnavailable"))
   let read_execution = native_storage_sum([
     read_budget.bootstrap_execution,
     read_budget.workspace_execution,
     read_budget.read_execution,
-  ]).unwrap_or_else(_ => stop("LocalCommandPreparationLayoutUnavailable"))
-  let read_payload = native_storage_sum([read_retained, read_execution]).unwrap_or_else(_ => {
+  ]).unwrap_or_else(() => stop("LocalCommandPreparationLayoutUnavailable"))
+  let read_payload = native_storage_sum([read_retained, read_execution]).unwrap_or_else(() => {
       stop("LocalCommandPreparationLayoutUnavailable")
     },
   )
@@ -45,7 +45,7 @@ fn local_command_installed_profile(
       stop("LocalCommandPreparationLayoutUnavailable")
     },
   )
-  let domains = native_storage_sum([read_domain, sqlite_domain]).unwrap_or_else(_ => {
+  let domains = native_storage_sum([read_domain, sqlite_domain]).unwrap_or_else(() => {
       stop("LocalCommandPreparationLayoutUnavailable")
     },
   )
