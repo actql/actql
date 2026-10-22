@@ -102,7 +102,7 @@ fn emit_host_source(
 fn same_witness_body(candidate : @decode.Cursor, witness : WireWitness) -> Bool {
   match witness.body {
     Parsed(cursor) => same_cursor(candidate, cursor)
-    HostSource(_) =>
+    HostSource(_) | ProgramSourceValue =>
       try {
         let object = get(
           @decode.closed_object(candidate, [

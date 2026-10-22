@@ -148,68 +148,60 @@ fn resolve_values_resource_wire_limit(
   }
   // The measurement retains the exact resource occurrence before proof emission.
   let subject = "checked-step:" + values_resource_step(owner).to_string()
-  let limits : @wire.Limits = {
-    max_bytes: metadata.max_bytes,
-    max_nodes: metadata.max_nodes,
-    max_depth: metadata.max_depth,
+  let proof = match
+    prepare_values_measurement_proof(subject, bytes, metadata, meter) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
   }
-  fn writer() -> @encode.Writer raise @encode.EncodeFailure {
-    @encode.writer(limits.max_bytes, limits.max_nodes, limits.max_depth)
+  // The claim was derived from this measurement, rather than supplied by a
+  // caller; retain that exact ownership without measuring the payload twice.
+  let bound : ValuesWireBound = { owner, proof, bytes, nodes, depth, }
+  match create_values_wire_limit_metered(bound, metadata, meter) {
+    Ok(v) => Ok(v)
+    Err(e) => Err(Limit(e))
   }
-  fn hasher() -> @encode.Writer raise @encode.EncodeFailure {
-    @encode.hashing_writer(limits.max_bytes, limits.max_nodes, limits.max_depth)
-  }
+}
+
+///|
+// The original measurement owner applies the law before this integrity-only
+// construction. Reserve the same two complete artifacts, with fixed-width CID
+// placeholders, then hash each original preimage once without a JSON round trip.
+fn prepare_values_measurement_proof(
+  subject : String,
+  bytes : Int,
+  metadata : @wire.LimitLimits,
+  meter : ValuesMetadataBudget?,
+) -> Result[@wire.ProgramProofClaim, ValuesWireResolutionIssue] {
   try {
     reserve_values_metadata(meter, metadata, out => {
       emit_values_measurement_proof(subject, bytes, out)
     })
-    let hash = hasher()
-    emit_values_measurement_proof(subject, bytes, hash)
-    let proof_cid = "sha256:" + @encode.finish_hash(hash)
-    let proof_out = writer()
-    emit_values_measurement_proof(subject, bytes, proof_out)
-    let proof_bytes = @wire_utf8.encode(@encode.finish(proof_out))
     reserve_values_metadata(meter, metadata, out => {
       emit_values_measurement_witness(
         subject,
         bytes,
-        proof_cid,
+        values_metadata_cid,
         Some(values_metadata_cid),
         out,
       )
     })
-    let hash = hasher()
-    emit_values_measurement_witness(subject, bytes, proof_cid, None, hash)
-    let witness_cid = "sha256:" + @encode.finish_hash(hash)
-    let witness_out = writer()
-    emit_values_measurement_witness(
-      subject,
-      bytes,
-      proof_cid,
-      Some(witness_cid),
-      witness_out,
-    )
-    let witness = match
-      @wire.admit(
-        @wire_utf8.encode(@encode.finish(witness_out)),
-        witness_cid,
-        limits,
+    match
+      @wire.create_program_source(
+        subject,
+        bytes.to_int64(),
+        @derivation.Bytes,
+        @law.admit("actql.bound.values-wire").unwrap(),
+        {
+          max_bytes: metadata.max_bytes,
+          max_nodes: metadata.max_nodes,
+          max_depth: metadata.max_depth,
+        },
       ) {
-      Ok(v) => v
-      Err(e) => return Err(Proof(e))
-    }
-    let proof = match @wire.bind_program_proof(proof_bytes, witness, limits) {
-      Ok(v) => v
-      Err(e) => return Err(Proof(e))
-    }
-    // The claim was derived from this measurement, rather than supplied by a
-    // caller; retain that exact ownership without measuring the payload twice.
-    let bound : ValuesWireBound = { owner, proof, bytes, nodes, depth, }
-    match create_values_wire_limit_metered(bound, metadata, meter) {
-      Ok(v) => Ok(v)
-      Err(e) => Err(Limit(e))
+      Ok(value) => Ok(value)
+      Err(@wire.BudgetExceeded) => Err(Encoding(@encode.OutputLimit))
+      Err(issue) => Err(Proof(issue))
     }
   } catch {
-    e => Err(Encoding(e))
+    issue => Err(Encoding(issue))
   }
 }
