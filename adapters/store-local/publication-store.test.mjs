@@ -31,6 +31,8 @@ import {canonicalCid, createPublicationContractControlFixture} from
 import {openLocalPublicationStore as openActualLocalPublicationStore} from './publication-store.mjs';
 import {preparePrivatePublicationHolding} from
   '../host-common/private-publication-holding.mjs';
+import {definition as captureCustodyRunFixture} from
+  '../host-node/fixtures/original-plan-journal.mjs';
 
 const fixtureStores = new Map();
 async function openLocalPublicationStore(configuration, ...arguments_) {
@@ -8757,6 +8759,116 @@ test('capture holding borrows an exact allocation across manifest scopes',
     assert.equal(reopened.status().storedBytes, 0);
     assert.equal(reopened.status().objectCount, 0);
   });
+
+async function captureCustodyFixture(t) {
+  // This existing fixed Run is an explicit admission port, not a Common issuer.
+  const run = Object.freeze({...captureCustodyRunFixture,
+    identityField: 'run_definition_cid'});
+  const control = Object.freeze({...contractControl, admit(name, wire, limits) {
+    if (name !== 'run_definition') return contractControl.admit(name, wire, limits);
+    assert.equal(wire, run.wire);
+    return run;
+  }});
+  const setup = await fixture(t, {}, control);
+  const holding = physicalHolding(digest('capture durability source'),
+    digest('capture durability artifact'), [], 'effect-source');
+  const path = join(setup.directory, 'effect-capture-custody',
+    `${run.identity.slice(7)}.json`);
+  const originalOpen = fsPromises.open;
+  const calls = {writes: 0, fileSyncs: 0, directorySyncs: 0};
+  let rejectNextDirectorySync = false;
+  t.mock.method(fsPromises, 'open', async function(selected, ...args) {
+    const handle = await Reflect.apply(originalOpen, this, [selected, ...args]);
+    const staging = String(selected).startsWith(join(setup.directory, 'staging') + sep);
+    if (staging) {
+      const write = handle.write;
+      handle.write = async function(...args) {
+        calls.writes++;
+        return Reflect.apply(write, this, args);
+      };
+    }
+    if (staging || String(selected) === join(setup.directory, 'effect-capture-custody')) {
+      const sync = handle.sync;
+      handle.sync = async function(...args) {
+        const result = await Reflect.apply(sync, this, args);
+        if (staging) calls.fileSyncs++;
+        else {
+          calls.directorySyncs++;
+          if (rejectNextDirectorySync) {
+            rejectNextDirectorySync = false;
+            throw Object.assign(new Error('CaptureCustodySyncReplyLost'), {code: 'EIO'});
+          }
+        }
+        return result;
+      };
+    }
+    return handle;
+  });
+  syncBuiltinESMExports();
+  t.after(() => {t.mock.restoreAll(); syncBuiltinESMExports();});
+  return {...setup, control, run, holding, path, calls,
+    reset() {for (const key of Object.keys(calls)) calls[key] = 0;},
+    rejectDirectorySync() {rejectNextDirectorySync = true;}};
+}
+
+test('unchanged acknowledged Effect capture custody performs no repeated physical write', async t => {
+  const f = await captureCustodyFixture(t);
+  await f.store.retainEffectCaptureCustody(f.run, [f.holding]);
+  assert.deepEqual(f.calls, {writes: 1, fileSyncs: 1, directorySyncs: 1});
+  const original = await stat(f.path);
+  f.reset();
+  await f.store.retainEffectCaptureCustody(f.run, [f.holding]);
+  assert.deepEqual(f.calls, {writes: 0, fileSyncs: 0, directorySyncs: 0});
+  const current = await stat(f.path);
+  assert.equal(current.dev, original.dev);
+  assert.equal(current.ino, original.ino);
+  assert.deepEqual((await f.store.readEffectCaptureCustody(f.run)).holdings, [f.holding]);
+});
+
+test('Effect capture custody never reuses failed acknowledgement or a replacement file', async t => {
+  const f = await captureCustodyFixture(t);
+  f.rejectDirectorySync();
+  await assert.rejects(f.store.retainEffectCaptureCustody(f.run, [f.holding]), {code: 'EIO'});
+  f.reset();
+  await f.store.retainEffectCaptureCustody(f.run, [f.holding]);
+  assert.deepEqual(f.calls, {writes: 1, fileSyncs: 1, directorySyncs: 1});
+  const bytes = await readFile(f.path);
+  const predecessor = await open(f.path, 'r');
+  try {
+    await unlink(f.path);
+    await writeFile(f.path, bytes);
+    assert.notEqual((await stat(f.path)).ino, (await predecessor.stat()).ino);
+    f.reset();
+    await f.store.retainEffectCaptureCustody(f.run, [f.holding]);
+    assert.deepEqual(f.calls, {writes: 1, fileSyncs: 1, directorySyncs: 1});
+  } finally {await predecessor.close();}
+  await writeFile(f.path, '{');
+  f.reset();
+  await assert.rejects(f.store.retainEffectCaptureCustody(f.run, [f.holding]),
+    {code: 'InvalidEffectCaptureCustody'});
+  assert.deepEqual(f.calls, {writes: 0, fileSyncs: 0, directorySyncs: 0});
+});
+
+test('Effect capture custody changes and a fresh Store retain real durability', async t => {
+  const f = await captureCustodyFixture(t);
+  await f.store.retainEffectCaptureCustody(f.run, [f.holding]);
+  const capture = physicalHolding(digest('capture durability output'),
+    digest('capture durability Run'), [], 'effect-capture');
+  f.reset();
+  await f.store.retainEffectCaptureCustody(f.run, [f.holding, capture]);
+  assert.deepEqual(f.calls, {writes: 1, fileSyncs: 1, directorySyncs: 1});
+  await assert.rejects(f.store.retainEffectCaptureCustody(f.run,
+    [{...f.holding, manifest_cid: digest('conflicting capture manifest')}]),
+  {code: 'EffectCaptureCustodyConflict'});
+  await f.store.close();
+  const reopened = await openLocalPublicationStore(f.configuration, f.control);
+  f.reset();
+  await reopened.retainEffectCaptureCustody(f.run, [f.holding, capture]);
+  assert.deepEqual(f.calls, {writes: 1, fileSyncs: 1, directorySyncs: 1});
+  assert.deepEqual((await reopened.readEffectCaptureCustody(f.run)).holdings,
+    [f.holding, capture]);
+  await reopened.close();
+});
 
 async function preparePhysical(store, value) {
   const bytes = Buffer.from(value, 'utf8');
