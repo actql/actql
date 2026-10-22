@@ -6,7 +6,7 @@ import {tmpdir, arch, platform, release, cpus, totalmem} from 'node:os';
 import {join} from 'node:path';
 import test from 'node:test';
 import {nodeBenchmarkInstrumentation, nodeWarmSmallQueryFixtures, runNodeWarmBenchmark, nodeWarmProtocol,
-  nodePriorityProtocol, runNodePriorityBenchmark} from './benchmark-node-operations.mjs';
+  nodePriorityProtocol, runNodePriorityBenchmark, nodeBenchmarkFailure} from './benchmark-node-operations.mjs';
 
 const hash = bytes => createHash('sha256').update(bytes).digest('hex');
 test('known startup profiling cannot be labeled uninstrumented latency', () => {
@@ -187,6 +187,17 @@ export async function open({stateDir}) {
   const ensure=()=>promise??=(async()=>{
    const id=Number(/^SELECT (\\d+) AS id$/.exec(text)?.[1]);assert(Number.isInteger(id));await event('submit',id);
    ${fault === 'unknown' ? "if(id===2)throw Object.assign(new Error('Unknown; no resend'),{code:'SubmissionUnknown'});" : ''}
+   ${fault === 'nested-unknown' ? `if(id===2){
+    const cause=Object.assign(new Error('underlying observation refused'),{code:'LocalObservationRefused'});
+    Object.defineProperty(cause,'original_error',{value:Object.assign(new Error('selected resource issue'),{code:'SelectedResourceIssue'})});
+    const execution={ref:{namespaceId:'local',authorityScopeCid:'scope-original',runDefinitionCid:'run-original'},
+      status(){event('unexpected-status',id);throw new Error('must not query');},
+      result(){event('unexpected-result',id);throw new Error('must not read');}};
+    const error=Object.assign(new Error('QueryObservationUnknown'),{code:'QueryObservationUnknown'});
+    Object.defineProperties(error,{cause:{value:cause},execution:{value:execution},
+      observation:{value:{run_id:'original-run',status:'resuming',revision:2,result_available:false}}});
+    throw error;
+   }` : ''}
    const rows=${fault === 'wrong' ? 'id===2?[{id:999}]:[{id}]' : '[{id}]'};
    const ref={id:${fault === 'same-run' ? "'same'" : 'id'}};
    const execution={ref,result(name){assert.equal(name,'main');return{all:async()=>{await event('saved',id);return[{id}];}};}};
@@ -298,4 +309,42 @@ test('priority CLI emits raw observations but remains nonzero for missing popula
   assert.deepEqual(raw.latency.map(row => row.samples.length), [3, 3]);
   assert.equal(raw.cleanup.closed, true); assert.equal(raw.installedPayloadsUnchanged, true);
   assert.equal(Object.hasOwn(raw.latency[0], 'population'), false);
+});
+
+
+test('priority retains nonenumerable failure causes and original execution data without another public call', async t => {
+  const options = await priorityFixture(t, 'nested-unknown');
+  const result = spawnSync(process.execPath, [new URL('./benchmark-node-operations.mjs', import.meta.url).pathname,
+    '--selection', 'priority-transition', '--manifest', options.manifestPath, '--consumer', options.consumer,
+    '--output', options.output, '--controls', options.controlsPath, '--mode', options.mode], {encoding: 'utf8'});
+  assert.equal(result.status, 1, result.stderr); assert.equal(result.signal, null);
+  const report = JSON.parse(await readFile(join(options.output, 'measurements.json')));
+  assert.equal(report.firstFailure.code, 'QueryObservationUnknown');
+  assert.deepEqual(report.firstFailure.errorChain.map(row => [row.edge, row.code]),
+    [['primary', 'QueryObservationUnknown'], ['cause', 'LocalObservationRefused'], ['original_error', 'SelectedResourceIssue']]);
+  assert.deepEqual(report.firstFailure.executionRef,
+    {namespaceId: 'local', authorityScopeCid: 'scope-original', runDefinitionCid: 'run-original'});
+  assert.deepEqual(report.firstFailure.observation,
+    {run_id: 'original-run', status: 'resuming', revision: 2, result_available: false});
+  assert.equal(report.cleanup.closed, true); assert.equal(report.installedPayloadsUnchanged, true);
+  assert.equal(report.publicCallAttempts.savedResultAll, 0);
+  assert.equal(report.latency[0].samples.at(-1).verified, false);
+  assert.equal(Object.hasOwn(report.latency[0].samples.at(-1), 'runRefSha256'), false);
+  const events = await priorityEvents(options);
+  assert.deepEqual(events.filter(row => row.kind === 'submit').map(row => row.id), [0, 1, 2]);
+  assert.equal(events.filter(row => row.kind === 'close').length, 1);
+  assert(!events.some(row => row.kind.startsWith('unexpected-')));
+});
+
+test('failure diagnostics bound cycles and text without evaluating accessors or serializing live handles', () => {
+  const first = new Error('x'.repeat(4096)); let getterCalls = 0, toJSONCalls = 0;
+  Object.defineProperty(first, 'execution', {get() {getterCalls++; throw new Error('unexpected accessor');}});
+  first.toJSON = () => {toJSONCalls++; throw new Error('unexpected serialization');};
+  let tail = first;
+  for (let n = 0; n < 12; n++) {const next = new Error(String(n)); tail.cause = next; tail = next;}
+  tail.cause = first;
+  const report = nodeBenchmarkFailure(first);
+  assert.equal(report.message.length, 2048); assert.equal(report.errorChain.length, 8);
+  assert.equal(report.errorChainTruncated, true); assert.equal(getterCalls, 0);
+  assert.doesNotThrow(() => JSON.stringify(report)); assert.equal(toJSONCalls, 0);
 });
