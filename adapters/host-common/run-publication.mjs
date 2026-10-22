@@ -498,8 +498,24 @@ function cleanupState(handle, required) {
   } catch (error) { return {pending: true, errors: [error]}; }
 }
 
+function capturedComputationLifetime(control, capturedRun) {
+  const original = member(control, 'retireCapturedComputation');
+  if (original !== undefined && typeof original !== 'function') {
+    fail('InvalidCapturedComputationRetirement');
+  }
+  let retired = false;
+  return {
+    transferred: false,
+    retire() {
+      if (retired) return;
+      retired = true;
+      if (original !== undefined) Reflect.apply(original, control, [capturedRun]);
+    },
+  };
+}
+
 function uncertainFailure(
-  primary, reconciliation, recordFailure, control, reconcile,
+  primary, reconciliation, recordFailure, control, reconcile, retireComputation,
 ) {
   const failure = new RunPublicationError('RunPublicationUnknown', primary);
   failure.publicationState = 'publication_unknown';
@@ -510,7 +526,7 @@ function uncertainFailure(
     ? member(primary, 'cleanupHandle') : undefined;
   const errors = [];
   let resolved = false;
-  let result;
+  let result, flight, computationRetired = false;
   const status = () => {
     const cleanup = cleanupState(upstream, upstreamRequired);
     return Object.freeze({
@@ -521,7 +537,9 @@ function uncertainFailure(
   };
   const handle = Object.freeze({
     status,
-    async retry() {
+    retry() {
+      if (flight !== undefined) return flight;
+      flight = (async () => {
       let upstreamRetryAttempted = false;
       while (true) {
         const cleanup = cleanupState(upstream, upstreamRequired);
@@ -548,12 +566,22 @@ function uncertainFailure(
           catch (error) { errors.push(error); }
           continue;
         }
-        if (action === 'finished') break;
+        if (action === 'finished') {
+          // Common may finish this retry while its upstream remains pending.
+          // Neither that action nor a status observation retires the facts.
+          if (resolved && !cleanup.pending && !computationRetired) {
+            computationRetired = true;
+            retireComputation?.();
+          }
+          break;
+        }
         fail('InvalidRunPublicationUnknownRetry');
       }
       failure.cleanupPending = status().pending;
       failure.cleanupErrors = status().errors;
       return status();
+      })().finally(() => {flight = undefined;});
+      return flight;
     },
   });
   failure.cleanupPending = true;
@@ -564,7 +592,7 @@ function uncertainFailure(
 
 // Both Run kinds share one publication progression. Only their exact chain
 // admission and Store commit differ; retry and unknown handling do not.
-async function publishRun(options, effectful) {
+async function publishRun(options, effectful, computationLifetime) {
   const keys = ['store', 'control', 'evidence', 'request', 'attempt', 'limits',
     'now', 'signal'];
   if (!exactKeys(options, keys)) fail('InvalidRunPublicationOptions');
@@ -822,13 +850,16 @@ async function publishRun(options, effectful) {
             }, resolution.cleanup),
           });
         };
-        throw uncertainFailure(
+        const failure = uncertainFailure(
           primary,
           reconciliationFailure,
           recordFailure,
           control,
           reconcile,
+          computationLifetime?.retire,
         );
+        if (computationLifetime !== undefined) computationLifetime.transferred = true;
+        throw failure;
       }
       if (action === 'confirm_uncommitted_failure') {
         const cleanup = member(primary, 'cleanupHandle');
@@ -876,7 +907,13 @@ async function publishRun(options, effectful) {
 /// A repeated immutable request reconciles the existing commit without
 /// changing the internal Compute outcome.
 export async function publishEffectFreeRun(options) {
-  return publishRun(options, undefined);
+  const lifetime = capturedComputationLifetime(options?.control, options?.evidence?.capturedRun);
+  try { return await publishRun(options, undefined, lifetime); }
+  finally {
+    // A same-original Unknown owns its reconciliation closure beyond return.
+    // Ordinary terminal paths no longer need the completed computation fact.
+    if (!lifetime.transferred) lifetime.retire();
+  }
 }
 
 // The caller must first establish each physical row outcome from the saved
