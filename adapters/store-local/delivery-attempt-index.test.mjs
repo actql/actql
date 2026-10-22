@@ -278,7 +278,7 @@ test('legacy indexed attempts keep the original pending and finish protocol afte
   index.close();
   // Reconstruct the exact pre-extension schema, not an empty replacement DB.
   const database = new DatabaseSync(path);
-  try {database.exec('DROP TABLE pending_publications; DROP TABLE publication_recovery; DROP TABLE publication_contracts; DROP TABLE publication_usage; DROP TABLE completions; DROP TABLE initial_records; UPDATE coverage SET version=1 WHERE id=1');}
+  try {database.exec('DROP TABLE native_publication_inventories; DROP TABLE native_publication_inventory_usage; DROP TABLE pending_publications; DROP TABLE publication_recovery; DROP TABLE publication_contracts; DROP TABLE publication_usage; DROP TABLE completions; DROP TABLE initial_records; UPDATE coverage SET version=1 WHERE id=1');}
   finally {database.close();}
   index = await openDeliveryAttemptIndex(path,{create:false,maxEntries:2,maxWireBytes:4096});
   assert.equal(index.pending().length,1);
@@ -314,7 +314,7 @@ test('version two initial records remain file-backed after additive native-origi
   index.claim(row,1,'{"initial":1}');
   index.close();
   const database=new DatabaseSync(path);
-  try {database.exec(`DROP TABLE pending_publications; DROP TABLE publication_recovery; DROP TABLE publication_contracts; DROP TABLE publication_usage; DROP TABLE completions;
+  try {database.exec(`DROP TABLE native_publication_inventories; DROP TABLE native_publication_inventory_usage; DROP TABLE pending_publications; DROP TABLE publication_recovery; DROP TABLE publication_contracts; DROP TABLE publication_usage; DROP TABLE completions;
     ALTER TABLE initial_records DROP COLUMN ack_revision;
     DROP INDEX initial_record_identity;
     ALTER TABLE initial_records DROP COLUMN initial_cid; UPDATE coverage SET version=2 WHERE id=1`);}
@@ -339,7 +339,7 @@ test('version three native originals survive additive completion storage without
   index.claim(row,1,'{"initial":1}',cid('4'));
   index.close();
   const database=new DatabaseSync(path);
-  try {database.exec(`DROP TABLE pending_publications; DROP TABLE publication_recovery; DROP TABLE publication_contracts; DROP TABLE publication_usage; DROP TABLE completions; ALTER TABLE initial_records DROP COLUMN ack_revision;
+  try {database.exec(`DROP TABLE native_publication_inventories; DROP TABLE native_publication_inventory_usage; DROP TABLE pending_publications; DROP TABLE publication_recovery; DROP TABLE publication_contracts; DROP TABLE publication_usage; DROP TABLE completions; ALTER TABLE initial_records DROP COLUMN ack_revision;
     UPDATE coverage SET version=3 WHERE id=1`);} finally {database.close();}
   index=await openDeliveryAttemptIndex(path,options);
   assert.deepEqual(index.contract(cid('4')),{name:'delivery_record',wire:'{"initial":1}'});

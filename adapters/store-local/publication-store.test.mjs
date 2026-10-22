@@ -125,6 +125,27 @@ async function fixture(t, options = {}, control = contractControl) {
   };
 }
 
+async function legacyInventoryFixture(directory, publicIndexCid) {
+  // Compatibility-only fixture for the prior file representation. Transfer
+  // this new disposable fixture's exact body before dropping its native copy;
+  // production never rewrites an independently adopted representation.
+  const path=join(directory,'metadata-inventories',publicIndexCid.slice(7)+'.json');
+  const database=new DatabaseSync(join(directory,'delivery-attempts.sqlite3'));
+  try {
+    const row=database.prepare('SELECT inventory_wire FROM native_publication_inventories WHERE public_index_cid=?').get(publicIndexCid);
+    if(row!==undefined) {
+      await writeFile(path,row.inventory_wire,{mode:0o600});
+      const file=await open(path,'r');try{await file.sync();}finally{await file.close();}
+      const parent=await open(join(directory,'metadata-inventories'),'r');
+      try{await parent.sync();}finally{await parent.close();}
+      database.exec('PRAGMA synchronous=FULL; PRAGMA fullfsync=ON; BEGIN IMMEDIATE');
+      assert.equal(database.prepare('DELETE FROM native_publication_inventories WHERE public_index_cid=?').run(publicIndexCid).changes,1);
+      database.exec('UPDATE native_publication_inventory_usage SET entries=entries-1,ack_revision=ack_revision+1 WHERE id=1; COMMIT');
+    }
+  } finally {database.close();}
+  return path;
+}
+
 test('unmarked and prior-format Stores are refused without changing files',
   async t => {
     const parent = await mkdtemp(join(tmpdir(), 'actql-store-format-'));
@@ -4535,8 +4556,7 @@ test('confirmed non-commit releases custody before prepared reclamation',
       objects: [{cid: held.cid, byte_count: held.bytes}],
     }, [held.prepared]);
     // Model an Effectful commit's exact durable inventory at the fault edge.
-    const inventoryPath = join(directory, 'metadata-inventories',
-      `${entry.public_index_entry_cid.slice(7)}.json`);
+    const inventoryPath = await legacyInventoryFixture(directory,entry.public_index_entry_cid);
     const inventory = JSON.parse(await readFile(inventoryPath, 'utf8'));
     inventory.physical_holding_cids = [holdingCid];
     await writeFile(inventoryPath, JSON.stringify(inventory));
@@ -4907,8 +4927,7 @@ async function committedHoldingFixture(setup, label) {
   await setup.store.commitPhysicalHolding(holding, [payload.prepared]);
   // Explicit adapter evidence fixture: bind this real holding to the committed
   // inventory without claiming an actual Common-issued Effect/capture chain.
-  const inventoryPath = join(setup.directory, 'metadata-inventories',
-    `${entry.public_index_entry_cid.slice(7)}.json`);
+  const inventoryPath = await legacyInventoryFixture(setup.directory,entry.public_index_entry_cid);
   const inventory = JSON.parse(await readFile(inventoryPath, 'utf8'));
   inventory.physical_holding_cids = [holding.holding_cid];
   await writeFile(inventoryPath, JSON.stringify(inventory));
@@ -4968,7 +4987,7 @@ test('publication recovery migrates the legacy inventory once and preserves adop
   // Reconstruct only this new disposable fixture's exact prior private format.
   const path=join(setup.directory,'delivery-attempts.sqlite3');
   const old=new DatabaseSync(path);
-  try{old.exec('DROP TABLE pending_publications; DROP TABLE publication_recovery; UPDATE coverage SET version=5 WHERE id=1');}
+  try{old.exec('DROP TABLE native_publication_inventories; DROP TABLE native_publication_inventory_usage; DROP TABLE pending_publications; DROP TABLE publication_recovery; UPDATE coverage SET version=5 WHERE id=1');}
   finally{old.close();}
   const originalOpen=fsPromises.open,reads=[];
   t.mock.method(fsPromises,'open',function(path,...args){reads.push(String(path));return Reflect.apply(originalOpen,this,[path,...args]);});
@@ -5020,8 +5039,13 @@ test('publication recovery completes only its retained inventory after a lost pr
   await prepared.prepared.release();
   await setup.store.close();
   const reopened=await openLocalPublicationStore(setup.configuration,contractControl);
-  const inventoryPath=join(setup.directory,'metadata-inventories',entry.public_index_entry_cid.slice(7)+'.json');
-  assert.equal(JSON.parse(await readFile(inventoryPath,'utf8')).public_index_entry_cid,entry.public_index_entry_cid);
+  const originalDatabase=new DatabaseSync(join(setup.directory,'delivery-attempts.sqlite3'));
+  try {
+    const original=originalDatabase.prepare('SELECT inventory_wire FROM native_publication_inventories WHERE public_index_cid=?').get(entry.public_index_entry_cid);
+    assert.equal(JSON.parse(original.inventory_wire).public_index_entry_cid,entry.public_index_entry_cid);
+  } finally {originalDatabase.close();}
+  assert.deepEqual(await readdir(join(setup.directory,'metadata-inventories')),[],
+    'native recovery retains its original instead of creating a shadow file');
   assert.deepEqual(await readdir(join(setup.directory,'indexes')),[],'recovery never publishes or resubmits the Run');
   assert.equal((await reopened.latestRecord(attempt.publication_attempt_cid)).state,'committing');
   const cancelled=publicationRecord(attempt,2,'cancelled',prepared.committing);
