@@ -668,6 +668,57 @@ test('publication commit admits its exact Index once before durable staging', as
     code('InvalidPublicationContract'));
 });
 
+test('publication inventory reuses only its newly acknowledged Index write within the commit', async t => {
+  const {store, directory} = await fixture(t);
+  const invocationValue = invocation();
+  const request = publicationRequest(resultDefinition(), invocationValue.invocation_cid);
+  const attempt = publicationAttempt(request);
+  const prepared = await prepareCommit(store, request, attempt, invocationValue);
+  const entry = indexEntry(request, attempt, invocationValue, {
+    durable_result_binding_cids: [prepared.binding.identity],
+  });
+  const path = join(directory, 'contracts', entry.public_index_entry_cid.slice(7) + '.json');
+  const actualOpen = fsPromises.open;
+  let reads = 0;
+  t.mock.method(fsPromises, 'open', function(selected, ...args) {
+    if (String(selected) === path) reads++;
+    return Reflect.apply(actualOpen, this, [selected, ...args]);
+  });
+  syncBuiltinESMExports();
+  try {
+    assert.equal((await store.commitIndex(wire(entry), prepared.required, prepared.evidence)).committed, true);
+    assert.equal(reads, 0, 'same-commit inventory consumes the actual acknowledged writer, not a second reader/hash');
+    assert.deepEqual(await store.inspectCommittedIndex(indexKeyFor(request)), entry);
+    assert.equal(reads, 1, 'the next public operation acquires its own actual original');
+    const physical = join(directory, 'objects', digest(wire(entry)).slice(7));
+    assert.equal((await stat(path)).ino, (await stat(physical)).ino);
+    await unlink(path);
+    await writeFile(path, wire(entry), {mode: 0o600});
+    await assert.rejects(store.inspectCommittedIndex(indexKeyFor(request)),
+      code('PublicationContractCorrupt'));
+    assert.equal(reads, 2, 'a byte-identical replacement alias does not reuse the earlier write');
+  } finally { t.mock.restoreAll(); syncBuiltinESMExports(); }
+});
+
+test('publication inventory acquires an existing Index alias instead of treating it as a new write', async t => {
+  const {store, directory} = await fixture(t);
+  const invocationValue = invocation();
+  const request = publicationRequest(resultDefinition(), invocationValue.invocation_cid);
+  const attempt = publicationAttempt(request);
+  const prepared = await prepareCommit(store, request, attempt, invocationValue);
+  const entry = indexEntry(request, attempt, invocationValue, {
+    durable_result_binding_cids: [prepared.binding.identity],
+  });
+  await store.putSemantic(wire(entry), entry.public_index_entry_cid);
+  const path = join(directory, 'contracts', entry.public_index_entry_cid.slice(7) + '.json');
+  await unlink(path);
+  await writeFile(path, wire(entry), {mode: 0o600});
+  await assert.rejects(store.commitIndex(wire(entry), prepared.required, prepared.evidence),
+    code('PublicationContractCorrupt'));
+  assert.equal(await store.inspectCommittedIndex(indexKeyFor(request)), undefined);
+  assert.equal(await prepared.prepared.release(), true);
+});
+
 test('publication commit parses its Binding once across evidence and metadata inventory', async t => {
   const {store} = await fixture(t);
   const invocationValue = invocation();
