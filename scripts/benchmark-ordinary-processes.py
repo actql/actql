@@ -268,7 +268,205 @@ def python_sample(config):
     return 0 if not result.get('failure') and result['cleanup']['closed'] and all(r['verified'] for r in rows) else 1
 
 
+def python_priority_protocol(mode):
+    count = 100 if mode == 'final' else 3
+    return dict(selection='priority-transition', mode=mode,
+                entry='ordinary actql.open(state_dir)', firstQuery={'text':'SELECT 0 AS id', 'expected':[{'id':0}]},
+                queries=[{'text':f'SELECT {n} AS id', 'expected':[{'id':n}]} for n in range(1, count+1)],
+                samplesPerOperation=count,
+                savedOriginals='first three successful new-query Results, read cyclically without resubmission',
+                order=['first-query-separate', 'warm-select', 'warm-result'],
+                timing='public construction/all, public execution.ref capture and independent row oracle',
+                diagnosticStopMs=5000,
+                close='one original public close; failed or Unknown operations are never retried')
+
+
+def python_priority_sample(config):
+    """One actual installed SDK process/Host, with separate original Run targets."""
+    assert Path(sys.prefix).resolve() == Path(config['venv']).resolve(), 'Wrong installed Python interpreter'
+    protocol = python_priority_protocol(config['mode'])
+    result = dict(pid=os.getpid(), hostId=str(uuid.uuid4()), stateId=config['stateId'],
+                  environment=dict(platform=sys.platform, architecture=platform.machine(),
+                      osRelease=platform.release(), python=platform.python_version(),
+                      pythonExecutableSha256=digest(Path(sys.executable).read_bytes())),
+                  cleanup=dict(closed=False), latency=[], savedOriginals=[],
+                  publicCallAttempts=dict(open=0, sql=0, savedResultAll=0, close=0))
+    client = None
+    active = 'ordinary public import/open'
+    originals, runs, results = [], set(), set()
+
+    def measured(row, action):
+        start, cpu = time.perf_counter_ns(), time.process_time_ns()
+        before = resource.getrusage(resource.RUSAGE_SELF)
+        try:
+            action(row)
+            row.update(completed=True, verified=True)
+        except BaseException as error:
+            row.update(completed=False, verified=False,
+                       error=dict(name=type(error).__name__, message=str(error)))
+            raise
+        finally:
+            after = resource.getrusage(resource.RUSAGE_SELF)
+            row.update(wallNs=time.perf_counter_ns()-start, processCpuNs=time.process_time_ns()-cpu,
+                       cpuUserUs=round((after.ru_utime-before.ru_utime)*1e6),
+                       cpuSystemUs=round((after.ru_stime-before.ru_stime)*1e6),
+                       cpuScope='actual retained Python SDK process including native threads; unrelated processes excluded')
+
+    def identity():
+        return dict(pid=os.getpid(), hostId=result['hostId'], stateId=config['stateId'],
+                    publicOperationId=str(uuid.uuid4()))
+
+    def query(fixture, row):
+        row.update(querySha256=digest(wire(fixture['text'])), expectedSha256=digest(wire(fixture['expected'])))
+        result['publicCallAttempts']['sql'] += 1
+        pending = client.sql(fixture['text'])
+        value = pending.all()
+        row['actualSha256'] = digest(wire(value))
+        assert value == fixture['expected'], 'Independent materialized-row oracle differs'
+        execution = pending.execution
+        assert execution is not None
+        reference = dict(execution.ref)
+        # Python has no public Result.ref getter. This is the exact public Run
+        # reference plus the documented named-Result request, not a physical CID.
+        selected = dict(run=reference, resultName='main')
+        row.update(runRefSha256=digest(wire(reference)), resultRefSha256=digest(wire(selected)))
+        assert row['runRefSha256'] not in runs and row['resultRefSha256'] not in results, 'New SQL reused an original Run/Result'
+        runs.add(row['runRefSha256']); results.add(row['resultRefSha256'])
+        return dict(execution=execution, runRef=reference, resultRef=selected,
+                    runRefSha256=row['runRefSha256'], resultRefSha256=row['resultRefSha256'],
+                    expected=fixture['expected'], expectedSha256=row['expectedSha256'])
+
+    try:
+        assert sys.getprofile() is None and sys.gettrace() is None, 'Priority latency must be unprofiled'
+        start, cpu = time.perf_counter_ns(), time.process_time_ns()
+        import actql
+        assert Path(actql.__file__).resolve().is_relative_to(Path(config['consumer']).resolve())
+        result['publicCallAttempts']['open'] += 1
+        client = actql.open(state_dir=Path(config['stateId']))
+        result['moduleImportAndOpen'] = dict(wallNs=time.perf_counter_ns()-start,
+                                             processCpuNs=time.process_time_ns()-cpu)
+        active = 'first-query-separate'
+        result['firstQuery'] = identity()
+        measured(result['firstQuery'], lambda row: query(protocol['firstQuery'], row))
+        for operation in ['warm-select', 'warm-result']:
+            active = operation
+            fresh = operation == 'warm-select'
+            workload = (dict(kind='new-durable-run-result-rows', fixtures=[dict(
+                querySha256=digest(wire(f['text'])), expectedSha256=digest(wire(f['expected']))) for f in protocol['queries']])
+                if fresh else dict(kind='saved-original-result-rows', originals=[{
+                    k:original[k] for k in ['runRefSha256','resultRefSha256','expectedSha256']} for original in originals]))
+            series = dict(operation=operation, publicWorkload=workload,
+                          fixtureSha256=digest(wire(workload)), samples=[], stoppedEarly=False)
+            result['latency'].append(series)
+            for iteration in range(protocol['samplesPerOperation']):
+                row = dict(**identity(), iteration=iteration)
+                series['samples'].append(row)
+
+                def execute(row):
+                    if fresh:
+                        original = query(protocol['queries'][iteration], row)
+                        if len(originals) < 3:
+                            originals.append(original)
+                    else:
+                        original = originals[iteration % len(originals)]
+                        row.update({k:original[k] for k in ['runRefSha256','resultRefSha256','expectedSha256']})
+                        result['publicCallAttempts']['savedResultAll'] += 1
+                        value = original['execution'].result('main').all()
+                        row['actualSha256'] = digest(wire(value))
+                        assert value == original['expected'], 'Saved original rows differ'
+
+                measured(row, execute)
+                if row['wallNs'] >= protocol['diagnosticStopMs'] * 1_000_000:
+                    series.update(stoppedEarly=True, stopReason='slow diagnostic; final distribution not measured')
+                    result['stoppedAt'] = operation
+                    break
+            if series['stoppedEarly']:
+                break
+    except BaseException as error:
+        result['firstFailure'] = dict(operation=active, name=type(error).__name__, message=str(error))
+        if result['latency']:
+            result['latency'][-1].update(stoppedEarly=True, stopReason='public functional failure')
+    finally:
+        if client is not None:
+            start = time.perf_counter_ns()
+            try:
+                result['publicCallAttempts']['close'] += 1
+                client.close()
+                result['cleanup']['closed'] = True
+            except BaseException as error:
+                result['cleanup']['failure'] = dict(name=type(error).__name__, message=str(error))
+            result['cleanup']['wallNs'] = time.perf_counter_ns()-start
+        result['savedOriginals'] = [{k:original[k] for k in ['runRef','resultRef','expected']} for original in originals]
+        write(Path(config['resultPath']), result)
+    return 1 if result.get('firstFailure') or not result['cleanup']['closed'] else 0
+
+
+def collect_python_priority(args):
+    assert args.adapter == 'python' and args.operation in (None, 'warm-select'), 'Priority selection requires ordinary Python warm operations'
+    output, consumer = Path(args.output).resolve(), Path(args.consumer).absolute()
+    manifest_path, environment = Path(args.manifest).resolve(), Path(args.venv).resolve()
+    _, cohort, before = verify_packages('python', manifest_path, consumer, args.source)
+    assert not output.exists(), 'Use distinct new benchmark state; no old Run replay'
+    output.mkdir(mode=0o700, parents=True)
+    protocol = python_priority_protocol(args.mode)
+    report = dict(sourceSha=args.source, cohortSha256=cohort, executionPath='python-sdk',
+                  selection='priority-transition', mode=args.mode, historyProtocol=protocol,
+                  historyProtocolSha256=digest(wire(protocol)), latency=[], functional={'rows':[]},
+                  cleanup=dict(closed=False), priorityConditions={}, installedPayloadsUnchanged=False,
+                  packageFailure=None, fullAcceptance=False,
+                  structuralCounters=None, population=None,
+                  qualification='Raw ordinary Python checkpoint selection only. Missing actual safety, population and experiment observations remain incomplete; no performance or release acceptance.')
+    config = dict(selection='priority-transition', mode=args.mode, consumer=str(consumer), venv=str(environment),
+                  stateId=str(output/'new-state'), resultPath=str(output/'priority-child.json'))
+    config_path = output/'priority-config.json'; write(config_path, config)
+    try:
+        record = command(environment/'bin/python', ['-I','-B',str(Path(__file__).resolve()), '--sample',str(config_path)],
+                         output, output, 'priority')
+        report['command'] = record
+        observed = json.loads(Path(config['resultPath']).read_text())
+        assert observed['pid'] == record['pid'], 'Actual priority child PID/receipt differs'
+        report.update({k:observed[k] for k in ['cleanup','savedOriginals','publicCallAttempts']})
+        report['observedEnvironment'] = observed['environment']
+        binding = dict(cohortSha256=cohort, environmentSha256=digest(wire(observed['environment'])),
+                       historyProtocolSha256=report['historyProtocolSha256'])
+        report.update(binding); report['functional'].update(binding)
+        for key in ['firstQuery','firstFailure','stoppedAt','moduleImportAndOpen']:
+            if key in observed:
+                report[key] = observed[key]
+        if 'moduleImportAndOpen' in observed:
+            report['priorityConditions']['startedHost'] = True
+        for series in observed['latency']:
+            series.update(binding, mode=args.mode, firstQuery=observed.get('firstQuery'),
+                          profiled=False, load=args.load)
+            for row in series['samples']:
+                row.update(binding, fixtureSha256=series['fixtureSha256'])
+            report['latency'].append(series)
+            rows = series['samples']
+            complete = bool(rows) and all(row['verified'] for row in rows)
+            report['functional']['rows'].append(dict(operation=series['operation'], completed=complete,
+                expectedSha256=digest(wire([row.get('expectedSha256') for row in rows])),
+                **({'actualSha256':digest(wire([row.get('actualSha256') for row in rows]))} if complete else {})))
+        if record['code'] != 0 and not report.get('firstFailure'):
+            report['firstFailure'] = dict(operation='priority child', message='Public operation or close process failed')
+    except BaseException as error:
+        report.setdefault('firstFailure', dict(operation='priority observation', name=type(error).__name__, message=str(error)))
+    finally:
+        try:
+            assert verify_packages('python', manifest_path, consumer, args.source)[2] == before
+            report['installedPayloadsUnchanged'] = True
+        except BaseException as error:
+            report['packageFailure'] = str(error)
+        if report.get('firstFailure') or report['packageFailure'] or not report['cleanup']['closed']:
+            for row in report['functional']['rows']:
+                row['completed'] = False
+                row.pop('actualSha256', None)
+        write(output/'measurements.json', report)
+    return 1 if report.get('firstFailure') or report['packageFailure'] or not report['cleanup']['closed'] else 0
+
+
 def collect(args):
+    if args.selection == 'priority-transition':
+        return collect_python_priority(args)
     output = Path(args.output).resolve()
     consumer = Path(args.consumer).absolute()
     manifest_path = Path(args.manifest).resolve()
@@ -409,11 +607,14 @@ def main():
     parser.add_argument('--output')
     parser.add_argument('--operation', choices=OPERATIONS)
     parser.add_argument('--mode', choices=('diagnostic','final'), default='diagnostic')
+    parser.add_argument('--selection', choices=('ordinary','priority-transition'), default='ordinary')
     parser.add_argument('--load', choices=('isolated','concurrent'), default='concurrent')
     args = parser.parse_args()
     if args.sample:
-        return python_sample(json.loads(Path(args.sample).read_text()))
-    assert all(getattr(args,k) for k in ('adapter','manifest','consumer','source','output','operation'))
+        config = json.loads(Path(args.sample).read_text())
+        return python_priority_sample(config) if config.get('selection') == 'priority-transition' else python_sample(config)
+    assert all(getattr(args,k) for k in ('adapter','manifest','consumer','source','output'))
+    assert args.selection == 'priority-transition' or args.operation
     assert len(args.source)==40 and all(c in '0123456789abcdef' for c in args.source)
     assert args.adapter != 'python' or args.venv
     return collect(args)

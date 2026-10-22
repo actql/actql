@@ -256,6 +256,7 @@ test('controlled performance check consumes existing artifacts and cannot omit f
   const ci = parse(readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8'));
   assert.deepEqual(ci.jobs['performance-matrix'].with, {
     'priority-node-mode': '${{ inputs.performance_priority_node_mode }}',
+    'priority-python-mode': '${{ inputs.performance_priority_python_mode }}',
     'package-run-id': '${{ inputs.performance_package_run_id }}',
     'package-artifact-id': '${{ inputs.performance_package_artifact_id }}',
     'native-package-run-id': '${{ inputs.performance_native_package_run_id }}',
