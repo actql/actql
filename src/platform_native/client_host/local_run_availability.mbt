@@ -332,14 +332,7 @@ pub fn NativeLocalJournalCapture::refresh_original_run_availability_in_original_
       Err(Journal(TransactionUnknown)) => Err(Journal(TransactionUnknown))
       Err(Journal(Epoch(TransactionUnknown))) =>
         Err(Journal(Epoch(TransactionUnknown)))
-      _ =>
-        Ok(
-          result.map(state => {
-            reference: original.reference,
-            definition: original.definition,
-            state,
-          }),
-        )
+      _ => Ok(result.map(state => { original, state, }))
     }
   })
 }
