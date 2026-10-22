@@ -559,6 +559,51 @@ fn require_installed_managed_run(
 }
 
 ///|
+/// Observe the same live Run's managed limits and counters without borrowing
+/// execution authority. Observation does not check Account admission, report
+/// usage, stop the child or acknowledge cleanup. A pending original remains
+/// observable; a foreign or retired handle cannot supply a zero snapshot.
+///
+/// The fresh array contains six LedgerLimits fields followed by the ten
+/// LedgerUsage fields, in their declaration order. These are managed accounting
+/// values, not a measurement of process memory or physical cleanup.
+pub fn installed_managed_run_usage(
+  value : ClientInstalledManagedRun,
+) -> Result[Array[Int64], ClientInstalledManagedRunIssue] {
+  guard value.original is Some(original) && physical_equal(value, original) else {
+    return Err(ForeignOriginal)
+  }
+  guard value.ledger is Some(ledger) else { return Err(Retired) }
+  Ok(installed_managed_run_usage_values(ledger))
+}
+
+///|
+fn installed_managed_run_usage_values(
+  ledger : @resources.Ledger,
+) -> Array[Int64] {
+  let limits = @resources.ledger_limits(ledger)
+  let usage = @resources.ledger_usage(ledger)
+  [
+    limits.planning_work.to_int64(),
+    limits.attempts.to_int64(),
+    limits.holdings.to_int64(),
+    limits.transfer_bytes,
+    limits.retained_bytes,
+    limits.execution_bytes,
+    usage.planning_work.to_int64(),
+    usage.attempts.to_int64(),
+    usage.holdings.to_int64(),
+    usage.transferred_bytes,
+    usage.uncertain_transfer_bytes,
+    usage.reserved_transfer_bytes,
+    usage.held_bytes,
+    usage.reserved_retention_bytes,
+    usage.reserved_execution_bytes,
+    usage.peak_retention_bytes,
+  ]
+}
+
+///|
 fn[P] check_installed_managed_run_admission(
   admission : @resources.NodeManagedRunAdmission[P],
   prepared : P,
