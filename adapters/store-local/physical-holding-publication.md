@@ -122,6 +122,18 @@ owners refuse the selected operation. A later operation acquires new originals.
 Already inspected Pure/Effect evidence reuses its own holding facts when joining
 the same inventory rather than reading the same bodies again in a pure helper.
 
+During one serialized Index commit, a newly written semantic body may also
+retain its private bytes and digest in that commit's existing observation map.
+This observation is published only after the original file sync and close,
+both new physical and semantic links, their actual directory acknowledgements,
+and writer cleanup succeed. Its metadata inventory consumes that same original
+without reopening and hashing it immediately. Existing objects or aliases,
+including names left by an interrupted attempt, still use the actual semantic
+reader and its hard-link validation. Failed durability never publishes this
+observation or retires the pending writer. The map is operation-local and its
+bytes never escape; the next public read acquires its own original and detects
+a changed or replacement alias. No permission, claim or physical ACK is cached.
+
 Internal index durability reconciliation remains separate from public selected
 use. It still confirms the real directory acknowledgement and original custody
 outcome, including before metadata has been fully staged or during retirement.
@@ -156,6 +168,19 @@ deletion marker owns the same complete inventory, recovery transfers the pending
 original to that marker before physical retirement and never reconstructs its
 already removed file. Failed transfer or physical cleanup retains the original
 retry duty; no quota refund, permission or cleanup success follows from a callback.
+
+Inventory staging precedes the public Index commit's payload-custody owner.
+If its native COMMIT reply is lost, the Store therefore retains that exact
+staging original in its existing pending-writer collection and returns its
+storage-only, single-flight finalizer with the original Unknown failure. The
+finalizer calls the captured same native method and receiver with the same
+inventory; it neither selects a replacement mutation nor treats a visible row
+as an ACK. Concurrent finalization shares one attempt. An unresolved original
+continues to block native reads and Store retirement; close may drain this same
+writer but cannot erase its duty. A successful confirmation retires only that
+staging acknowledgement, not the Index or Run publication. The next commit
+still performs its normal current, evidence, ownership and Index transition.
+Legacy file-backed staging retains the same protocol and separate file ACKs.
 
 New inventory bodies are durable originals in that same native staging
 transaction, not duplicate filesystem preparations. Completion removes only the

@@ -668,6 +668,171 @@ test('publication commit admits its exact Index once before durable staging', as
     code('InvalidPublicationContract'));
 });
 
+test('publication inventory reuses only its newly acknowledged Index write within the commit', async t => {
+  const {store, directory} = await fixture(t);
+  const invocationValue = invocation();
+  const request = publicationRequest(resultDefinition(), invocationValue.invocation_cid);
+  const attempt = publicationAttempt(request);
+  const prepared = await prepareCommit(store, request, attempt, invocationValue);
+  const entry = indexEntry(request, attempt, invocationValue, {
+    durable_result_binding_cids: [prepared.binding.identity],
+  });
+  const path = join(directory, 'contracts', entry.public_index_entry_cid.slice(7) + '.json');
+  const actualOpen = fsPromises.open;
+  let reads = 0;
+  t.mock.method(fsPromises, 'open', function(selected, ...args) {
+    if (String(selected) === path) reads++;
+    return Reflect.apply(actualOpen, this, [selected, ...args]);
+  });
+  syncBuiltinESMExports();
+  try {
+    assert.equal((await store.commitIndex(wire(entry), prepared.required, prepared.evidence)).committed, true);
+    assert.equal(reads, 0, 'same-commit inventory consumes the actual acknowledged writer, not a second reader/hash');
+    assert.deepEqual(await store.inspectCommittedIndex(indexKeyFor(request)), entry);
+    assert.equal(reads, 1, 'the next public operation acquires its own actual original');
+    const physical = join(directory, 'objects', digest(wire(entry)).slice(7));
+    assert.equal((await stat(path)).ino, (await stat(physical)).ino);
+    await unlink(path);
+    await writeFile(path, wire(entry), {mode: 0o600});
+    await assert.rejects(store.inspectCommittedIndex(indexKeyFor(request)),
+      code('PublicationContractCorrupt'));
+    assert.equal(reads, 2, 'a byte-identical replacement alias does not reuse the earlier write');
+  } finally { t.mock.restoreAll(); syncBuiltinESMExports(); }
+});
+
+test('publication inventory acquires an existing Index alias instead of treating it as a new write', async t => {
+  const {store, directory} = await fixture(t);
+  const invocationValue = invocation();
+  const request = publicationRequest(resultDefinition(), invocationValue.invocation_cid);
+  const attempt = publicationAttempt(request);
+  const prepared = await prepareCommit(store, request, attempt, invocationValue);
+  const entry = indexEntry(request, attempt, invocationValue, {
+    durable_result_binding_cids: [prepared.binding.identity],
+  });
+  await store.putSemantic(wire(entry), entry.public_index_entry_cid);
+  const path = join(directory, 'contracts', entry.public_index_entry_cid.slice(7) + '.json');
+  await unlink(path);
+  await writeFile(path, wire(entry), {mode: 0o600});
+  await assert.rejects(store.commitIndex(wire(entry), prepared.required, prepared.evidence),
+    code('PublicationContractCorrupt'));
+  assert.equal(await store.inspectCommittedIndex(indexKeyFor(request)), undefined);
+  assert.equal(await prepared.prepared.release(), true);
+});
+
+test('publication inventory retains failed Index alias durability before a fresh acquisition', async t => {
+  const {store, directory} = await fixture(t);
+  const invocationValue = invocation();
+  const request = publicationRequest(resultDefinition(), invocationValue.invocation_cid);
+  const attempt = publicationAttempt(request);
+  const prepared = await prepareCommit(store, request, attempt, invocationValue);
+  const entry = indexEntry(request, attempt, invocationValue, {
+    durable_result_binding_cids: [prepared.binding.identity],
+  });
+  const alias = join(directory, 'contracts', entry.public_index_entry_cid.slice(7) + '.json');
+  const actualOpen = fsPromises.open;
+  const primary = new Error('Index alias durability unavailable');
+  let refuse = true, reads = 0, failure;
+  t.mock.method(fsPromises, 'open', async function(path, ...args) {
+    if (String(path) === alias) reads++;
+    const handle = await Reflect.apply(actualOpen, this, [path, ...args]);
+    if (String(path) === join(directory, 'contracts')) {
+      const sync = handle.sync;
+      t.mock.method(handle, 'sync', function(...values) {
+        if (refuse) throw primary;
+        return Reflect.apply(sync, this, values);
+      });
+    }
+    return handle;
+  });
+  syncBuiltinESMExports();
+  try {
+    await assert.rejects(store.commitIndex(wire(entry), prepared.required, prepared.evidence), error => {
+      failure = error;
+      return error.primaryFailure === primary && error.cleanupHandle.status().pending;
+    });
+    assert.equal(reads, 0, 'failed durability cannot proceed to inventory acquisition');
+    assert.equal(await store.inspectCommittedIndex(indexKeyFor(request)), undefined);
+    await assert.rejects(store.close(), code('PublicationStoreCleanupPending'));
+    refuse = false;
+    assert.equal((await failure.cleanupHandle.retry()).pending, false);
+    assert.equal((await store.commitIndex(wire(entry), prepared.required, prepared.evidence)).committed, true);
+    assert.equal(reads, 2, 'a new attempt checks both its existing alias and its original reader');
+  } finally {
+    refuse = false;
+    if (failure?.cleanupHandle?.status().pending) await failure.cleanupHandle.retry();
+    t.mock.restoreAll(); syncBuiltinESMExports();
+  }
+});
+
+for (const afterCommit of [false, true]) {
+test(`publication inventory staging retains its ${afterCommit ? 'committed' : 'rolled-back'} Unknown acknowledgement at the Store boundary`, async t => {
+  const directory = await mkdtemp(join(tmpdir(), 'actql-inventory-stage-unknown-'));
+  let store, failure, settled = false, armed = false, staged = false, lost = false, commits = 0;
+  t.after(async () => {
+    if (failure?.cleanupHandle?.status().pending) await failure.cleanupHandle.retry();
+    if (store && !store.status().closed) await store.close();
+    if (settled) await removeFixtureDirectory(directory);
+    else t.diagnostic(`Unconfirmed original fixture retained: ${directory}`);
+  });
+  const prepare = DatabaseSync.prototype.prepare, exec = DatabaseSync.prototype.exec;
+  t.mock.method(DatabaseSync.prototype, 'prepare', function(sql, ...args) {
+    const statement = Reflect.apply(prepare, this, [sql, ...args]);
+    if (sql === 'INSERT INTO native_publication_inventories VALUES(?,?)') {
+      const run = statement.run;
+      t.mock.method(statement, 'run', function(...values) {
+        if (armed) staged = true;
+        return Reflect.apply(run, this, values);
+      });
+    }
+    return statement;
+  });
+  t.mock.method(DatabaseSync.prototype, 'exec', function(sql, ...args) {
+    if (armed && staged && sql === 'COMMIT') {
+      commits++;
+      if (!lost) {
+        lost = true;
+        if (afterCommit) Reflect.apply(exec, this, [sql, ...args]);
+        throw Object.assign(new Error('lost inventory staging COMMIT reply'), {code: 'EIO'});
+      }
+    }
+    return Reflect.apply(exec, this, [sql, ...args]);
+  });
+  store = await openLocalPublicationStore({directory, storeAuthorityCid: cids.authority,
+    capacityBytes: 1024 * 1024, maxObjectBytes: 65536, maxObjects: 100,
+    maxContractNodes: limits.maxNodes, maxContractDepth: limits.maxDepth}, contractControl);
+  const invocationValue = invocation();
+  const request = publicationRequest(resultDefinition(), invocationValue.invocation_cid);
+  const attempt = publicationAttempt(request);
+  const prepared = await prepareCommit(store, request, attempt, invocationValue);
+  const entry = indexEntry(request, attempt, invocationValue, {
+    durable_result_binding_cids: [prepared.binding.identity],
+  });
+  armed = true;
+  await assert.rejects(store.commitIndex(wire(entry), prepared.required, prepared.evidence), error => {
+    failure = error;
+    return (error.primaryFailure ?? error).outcome === 'unknown';
+  });
+  assert.equal(lost, true);
+  assert.equal(commits, 1);
+  assert.equal(failure.cleanupHandle?.status().pending, true,
+    'the same original native staging ACK must remain reachable from the Store failure');
+  await assert.rejects(store.close(), code('PublicationStoreCleanupPending'));
+  await assert.rejects(store.inspectCommittedIndex(indexKeyFor(request)),
+    code('DeliveryAttemptIndexCommitOutcomeUnknown'));
+  const first = failure.cleanupHandle.retry(), concurrent = failure.cleanupHandle.retry();
+  assert.equal(first, concurrent, 'concurrent finalization owns one original write');
+  assert.equal((await first).pending, false);
+  assert.equal(failure.cleanupHandle.status().pending, false);
+  assert.equal(commits, 2, 'same-original confirmation is one real native write, not a probe ACK');
+  assert.equal(await store.inspectCommittedIndex(indexKeyFor(request)), undefined,
+    'staging acknowledgement is not publication success');
+  assert.equal((await store.latestRecord(attempt.publication_attempt_cid)).state, 'committing');
+  assert.equal((await store.commitIndex(wire(entry), prepared.required, prepared.evidence)).committed, true);
+  assert.equal(prepared.prepared.status().pending, false);
+  settled = true;
+});
+}
+
 test('publication commit parses its Binding once across evidence and metadata inventory', async t => {
   const {store} = await fixture(t);
   const invocationValue = invocation();

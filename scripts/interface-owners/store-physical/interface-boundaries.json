@@ -5579,7 +5579,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "a17c1689e5950030127add8fc153485cedfe2ac4b368d071686ce453c2533441",
+      "sha256": "3feb0f6f320cf0164f452eec581e2dcd5ffc6ef93e8af4b619ba682695782436",
       "exports": [
         "PublicationStoreError",
         "assertOriginalLocalPublicationStoreFacilityCurrent",
@@ -7839,7 +7839,8 @@
         {
           "name": "openOriginalLocalPublicationStore/putSemanticBatch/putSemanticBatch",
           "parameters": [
-            "supplied"
+            "supplied",
+            "retainedOriginals"
           ],
           "async": true
         },
@@ -8726,6 +8727,34 @@
         },
         {
           "name": "openOriginalLocalPublicationStore/sharePhysicalHolding/sharePhysicalHolding/sharePhysicalHolding",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/stageMetadataInventory/stageMetadataInventory",
+          "parameters": [
+            "original",
+            "native"
+          ],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/stageMetadataInventory/stageMetadataInventory/init:retry/init:retry",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/stageMetadataInventory/stageMetadataInventory/init:retry/init:retry/init:retry",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/stageMetadataInventory/stageMetadataInventory/init:retry/init:retry/init:retry#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/stageMetadataInventory/stageMetadataInventory/status/status",
           "parameters": [],
           "async": false
         },
@@ -9881,6 +9910,11 @@
             "openOriginalLocalPublicationStore/sharePhysicalHolding/sharePhysicalHolding",
             "openOriginalLocalPublicationStore/sharePhysicalHolding/sharePhysicalHolding/operation/operation",
             "openOriginalLocalPublicationStore/sharePhysicalHolding/sharePhysicalHolding/sharePhysicalHolding",
+            "openOriginalLocalPublicationStore/stageMetadataInventory/stageMetadataInventory",
+            "openOriginalLocalPublicationStore/stageMetadataInventory/stageMetadataInventory/init:retry/init:retry",
+            "openOriginalLocalPublicationStore/stageMetadataInventory/stageMetadataInventory/init:retry/init:retry/init:retry",
+            "openOriginalLocalPublicationStore/stageMetadataInventory/stageMetadataInventory/init:retry/init:retry/init:retry#2",
+            "openOriginalLocalPublicationStore/stageMetadataInventory/stageMetadataInventory/status/status",
             "openOriginalLocalPublicationStore/validateCommittedEffectfulEvidence/validateCommittedEffectfulEvidence",
             "openOriginalLocalPublicationStore/validateCommittedEvidence/validateCommittedEvidence",
             "openOriginalLocalPublicationStore/validateCommittedEvidence/validateCommittedEvidence/validateCommittedEvidence",
@@ -10065,6 +10099,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "### Owned physical quota lifetime"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "Inventory staging precedes the public Index commit's payload-custody owner."
               }
             ],
             "inputsOutputs": [
@@ -10122,7 +10160,7 @@
               },
               {
                 "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "deliveryIndex.stageNativePublicationInventory(original);"
+                "anchor": "stageMetadataInventory(original, true);"
               },
               {
                 "path": "adapters/store-local/publication-store.mjs",
@@ -10155,6 +10193,10 @@
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "const recoverPhysical=deliveryIndex.physicalObjectRecoveryRequired();"
+              },
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "const stageMetadataInventory = (original, native) => {"
               }
             ],
             "identity": [
@@ -10253,6 +10295,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "and totals are compared within that transaction. Lost COMMIT replies retain the"
+              },
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "Reflect.apply(stage, index, [original]);"
               }
             ],
             "ownership": [
@@ -10343,6 +10389,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "After that ACK, the same index retains bounded quota changes and preparation"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "staging original in its existing pending-writer collection and returns its"
               }
             ],
             "synchronization": [
@@ -10364,7 +10414,7 @@
               },
               {
                 "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "await putSemantic(admitted.wire, admitted.identity);"
+                "anchor": "await putSemanticBatch([{wire: admitted.wire, semanticCid: admitted.identity}],"
               },
               {
                 "path": "adapters/store-local/publication-store.mjs",
@@ -10433,6 +10483,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "Safe Store close seals those exact deltas and usage totals atomically with a"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "as an ACK. Concurrent finalization shares one attempt. An unresolved original"
               }
             ],
             "failure": [
@@ -10523,6 +10577,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "same immutable seal, forbid new work and retry only that original transition."
+              },
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "failure.outcome = 'unknown';"
               }
             ],
             "cancellation": [
@@ -10609,6 +10667,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "The seal does not replace the original native close ACK; once sealed, failed"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "writer but cannot erase its duty. A successful confirmation retires only that"
               }
             ],
             "resources": [
@@ -10699,6 +10761,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "generations. The delta retains at most the old indexed generations"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "continues to block native reads and Store retirement; close may drain this same"
               }
             ],
             "extension": [
@@ -10789,6 +10855,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "Only an actually unsealed prior lifetime permits bounded physical extent"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "Legacy file-backed staging retains the same protocol and separate file ACKs."
               }
             ],
             "verification": [
@@ -10951,6 +11021,10 @@
               {
                 "path": "adapters/store-local/semantic-publication-commit.test.mjs",
                 "anchor": "only an actually unsealed physical quota lifetime audits its bounded objects on reopen"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "publication inventory staging retains its ${afterCommit"
               }
             ]
           }
@@ -11560,12 +11634,16 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "### Owned physical quota lifetime"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "During one serialized Index commit, a newly written semantic body may also"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "const putSemanticBatch = async supplied => {"
+                "anchor": "const putSemanticBatch = async (supplied, retainedOriginals) => {"
               },
               {
                 "path": "adapters/store-local/publication-store.mjs",
@@ -11574,6 +11652,10 @@
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "const recoverPhysical=deliveryIndex.physicalObjectRecoveryRequired();"
+              },
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "const putSemanticBatch = async (supplied, retainedOriginals) => {"
               }
             ],
             "identity": [
@@ -11588,6 +11670,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "and totals are compared within that transaction. Lost COMMIT replies retain the"
+              },
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "if (item.objectCreated && item.created) retainedOriginals.set("
               }
             ],
             "ownership": [
@@ -11602,6 +11688,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "After that ACK, the same index retains bounded quota changes and preparation"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "bytes never escape; the next public read acquires its own original and detects"
               }
             ],
             "synchronization": [
@@ -11616,6 +11706,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "Safe Store close seals those exact deltas and usage totals atomically with a"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "both new physical and semantic links, their actual directory acknowledgements,"
               }
             ],
             "failure": [
@@ -11630,6 +11724,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "same immutable seal, forbid new work and retry only that original transition."
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "reader and its hard-link validation. Failed durability never publishes this"
               }
             ],
             "cancellation": [
@@ -11644,6 +11742,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "The seal does not replace the original native close ACK; once sealed, failed"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "observation or retires the pending writer. The map is operation-local and its"
               }
             ],
             "resources": [
@@ -11658,6 +11760,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "generations. The delta retains at most the old indexed generations"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "retain its private bytes and digest in that commit's existing observation map."
               }
             ],
             "extension": [
@@ -11672,6 +11778,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "Only an actually unsealed prior lifetime permits bounded physical extent"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "without reopening and hashing it immediately. Existing objects or aliases,"
               }
             ],
             "verification": [
@@ -11686,6 +11796,10 @@
               {
                 "path": "adapters/store-local/semantic-publication-commit.test.mjs",
                 "anchor": "only an actually unsealed physical quota lifetime audits its bounded objects on reopen"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "publication inventory retains failed Index alias durability before a fresh acquisition"
               }
             ]
           }
