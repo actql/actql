@@ -114,3 +114,21 @@ test('completion refuses an already assembled or partially staged artifact witho
   await assert.rejects(f.admit());
   assert.equal(await readFile(marker, 'utf8'), 'retained original');
 });
+
+test('actual Moon source spelling matches only the same original C input, never different flags or outputs', async t => {
+  const f = await fixture(t);
+  const planned = {...f.step, original: ['-o', f.binary.path, '-O2', './src/platform_native/sqlite/sqlite_stub.c']};
+  const original = ['-o', f.binary.path, '-O2', join(f.repository, 'src/platform_native/sqlite/sqlite_stub.c')];
+  await f.json(join(f.provider, 'cc-plan.json'), {steps: [planned]});
+  const actual = {...planned, original, exit: 0, output: f.binary};
+  await f.json(f.step.receipt, actual);
+  assert.equal((await f.admit()).binary, f.binary.path);
+  for (const changed of [
+    ['-o', f.binary.path, '-O0', original[3]],
+    ['-o', f.binary.path + '.other', '-O2', original[3]],
+    ['-o', f.binary.path, '-O2', join(f.root, 'foreign/src/platform_native/sqlite/sqlite_stub.c')],
+  ]) {
+    await f.json(f.step.receipt, {...actual, original: changed});
+    await assert.rejects(f.admit());
+  }
+});

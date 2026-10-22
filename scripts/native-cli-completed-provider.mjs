@@ -8,6 +8,10 @@ import {lstat, open, readFile, readdir} from 'node:fs/promises';
 import {isAbsolute, join, resolve} from 'node:path';
 
 const digest = bytes => createHash('sha256').update(bytes).digest('hex');
+// Match the pinned compiler driver's one original-source spelling adjustment.
+// Flags, outputs and all other paths remain byte-for-byte command arguments.
+const canonicalCArguments = (arguments_, repository) => arguments_.map(value =>
+  value.startsWith('./src/') && value.endsWith('.c') ? resolve(repository, value) : value);
 
 async function observedFile(path, expected, maximum = 512 * 1024 * 1024) {
   assert.equal(expected.path, path);
@@ -82,7 +86,8 @@ export async function admitCompletedNativeLocalProvider(destination, source, rep
     assert(!executed.has(step.receipt)); executed.add(step.receipt);
     const actual = await jsonMember(step.receipt, 1024 * 1024);
     assert.equal(actual.exit, 0);
-    assert.deepEqual(actual.original, step.original);
+    assert.deepEqual(canonicalCArguments(actual.original, repository),
+      canonicalCArguments(step.original, repository));
     assert.deepEqual(actual.selected, step.selected);
     assert(actual.output && isAbsolute(actual.output.path));
     assert(resolve(actual.output.path).startsWith(join(provider, 'emission') + '/'));
