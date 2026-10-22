@@ -3597,6 +3597,27 @@ test('legacy delivery coverage migrates once and missing adopted database refuse
   await assert.rejects(stat(join(directory,'owner')),code('ENOENT'));
 });
 
+test('legacy delivery building refuses a missing original grant without adopting empty coverage', async t => {
+  const {store,directory,configuration}=await fixture(t);
+  const root=deliveryFixture(2),attempt=deliveryAttempt(root,'missing-legacy-grant');
+  await store.createDeliveryAttempt(wire(attempt),wire(root.grant));await store.close();
+  // Dedicated old-layout fixture; no live or uncertain business state is reused.
+  await unlink(join(directory,'delivery-attempts.sqlite3'));
+  await unlink(join(directory,'delivery-attempts-index.json'));
+  await unlink(join(directory,'contracts',root.grant.result_read_grant_cid.slice(7)+'.json'));
+  await assert.rejects(openLocalPublicationStore(configuration,contractControl),code('PublicationContractMissing'));
+  assert.deepEqual(JSON.parse(await readFile(join(directory,'delivery-attempts-index.json'),'utf8')),
+    {version:1,phase:'building'});
+  const native=new DatabaseSync(join(directory,'delivery-attempts.sqlite3'),{readOnly:true});
+  try{
+    assert.deepEqual({...native.prepare('SELECT complete,entries FROM coverage WHERE id=1').get()},
+      {complete:0,entries:0});
+    assert.equal(native.prepare('SELECT count(*) AS n FROM grant_uses').get().n,0);
+  }finally{native.close();}
+  assert.equal(await readFile(join(directory,'deliveries',attempt.delivery_attempt_cid.slice(7),'attempt.json'),'utf8'),wire(attempt));
+  await assert.rejects(stat(join(directory,'owner')),code('ENOENT'));
+});
+
 test('pending delivery claim restores only its same originals and retains quota', async t => {
   const {store,directory,configuration} = await fixture(t);
   await store.close();

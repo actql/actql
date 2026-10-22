@@ -4085,9 +4085,7 @@ async function openOriginalLocalPublicationStore(
     return record;
   };
 
-  const readDeliveryAttemptContract = async (attemptCid, retained) => {
-    const native = nativeDeliveryContract(attemptCid,'delivery_attempt',retained);
-    if (native !== undefined) return native;
+  const readFileDeliveryAttemptContract = async (attemptCid, retained) => {
     const bytes = await readBounded(
       resolve(deliveryAttemptPath(attemptCid), 'attempt.json'),
       configuration.maxObjectBytes,
@@ -4101,6 +4099,10 @@ async function openOriginalLocalPublicationStore(
       fail('InvalidDeliveryAttempt', error);
     }
   };
+
+  const readDeliveryAttemptContract = async (attemptCid, retained) =>
+    nativeDeliveryContract(attemptCid,'delivery_attempt',retained) ??
+      readFileDeliveryAttemptContract(attemptCid,retained);
 
   const deliveryLogicalKey = query => JSON.stringify([
     query.indexKey.namespaceId, query.indexKey.authorityScopeCid,
@@ -4298,6 +4300,10 @@ async function openOriginalLocalPublicationStore(
     if (deliveryIndex.needsMigration()) {
       if (coverage.phase !== 'building') fail('DeliveryAttemptIndexUnavailable');
       const rows = [], grants = new Map(), uses = new Map();
+      // Building coverage is not an empty native lookup. This explicit
+      // migration reads the original legacy files before publishing rows;
+      // ordinary lookups still require complete native coverage.
+      const readLegacySemantic = cid => readSemanticOriginal(cid,false);
       for (const name of await readdir(deliveriesDirectory)) {
         if (name.startsWith('.staging-')) {
           await removeOpeningTree(resolve(deliveriesDirectory,name),bootstrap);
@@ -4306,11 +4312,11 @@ async function openOriginalLocalPublicationStore(
         if (!/^[0-9a-f]{64}$/u.test(name) ||
             !(await lstat(resolve(deliveriesDirectory,name))).isDirectory()) fail('InvalidDeliveryAttemptStore');
         if (rows.length >= configuration.maxObjects) fail('DeliveryAttemptIndexLimit');
-        const attemptContract = await readDeliveryAttemptContract(`sha256:${name}`);
+        const attemptContract = await readFileDeliveryAttemptContract(`sha256:${name}`);
         const attempt = parseContract(attemptContract);
         let original = grants.get(attempt.result_read_grant_cid);
         if (original === undefined) {
-          original = await readContract(attempt.result_read_grant_cid,'result_read_grant');
+          original = await readContract(attempt.result_read_grant_cid,'result_read_grant',readLegacySemantic);
           grants.set(attempt.result_read_grant_cid,original);
         }
         const grant = original.value;

@@ -436,6 +436,11 @@ index correspondence; unrelated history is neither read nor re-admitted.
 A durable building/ready marker distinguishes migration from ready coverage.
 The bounded legacy migration reads each original attempt and referenced grant,
 refuses ambiguous keys or excess uses, and commits complete coverage once.
+Its attempt and grant readers explicitly acquire their original legacy files;
+they do not query the incomplete native index or interpret it as absence. The
+same bounded admission, semantic digest/hard-link and original reader-close
+duties remain. Ordinary native readers still require complete coverage, and
+ready or missing adopted state cannot enter this building-only reader path.
 Ready opens read only legacy pending indexed claims, not historical delivery
 names or grant bodies. A missing adopted database refuses, rather than returning
 false absence. A legacy pending claim retains its exact attempt/grant wires and
