@@ -36,6 +36,15 @@ struct NativeClientRunJournal {
     @publication.PublicationContract,
     NativeClientStoredRunObservation?,
   )?
+  // Pure immutable compilation correspondence, not row custody or permission.
+  // Own row revisions do not change it; operation failure/end retires it.
+  mut operation_prepared_binding : (
+    @host.PreparedClientProgram,
+    @host.ClientCompiledRun,
+    String,
+    String,
+    String,
+  )?
   admitted_publications : Array[
     (String, Array[@publication.CapturedEffectDependencyBody]),
   ]
@@ -506,6 +515,7 @@ fn open_native_client_run_journal_with_reads(
         operation_submission: None,
         admitted_record: None,
         operation_run_identity: None,
+        operation_prepared_binding: None,
         admitted_adoption: None,
       })
     Err(issue) => Err(issue)
@@ -598,6 +608,7 @@ fn NativeClientRunJournal::invalidate_operation_record(
   self.invalidate_operation_run()
   self.invalidate_operation_submission()
   self.observed_evidence_schema = None
+  self.operation_prepared_binding = None
 }
 
 ///|
@@ -892,7 +903,7 @@ pub fn NativeClientRunJournal::bind_run(
     return Err(AuthorizationDenied)
   }
   match
-    validate_native_client_run_binding(request, prepared, compiled, definition) {
+    self.validate_prepared_run_binding(request, prepared, compiled, definition) {
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
@@ -908,11 +919,55 @@ fn validate_native_client_run_binding(
   compiled : @host.ClientCompiledRun,
   definition : @publication.PublicationContract,
 ) -> Result[Unit, NativeClientRunJournalIssue] {
+  native_timing_begin(21)
+  defer native_timing_end(21)
   match
     @host.validate_client_run_binding(request, prepared, compiled, definition) {
     Ok(_) => Ok(())
     Err(ChangedIntent) => Err(ChangedIntent)
     Err(ForeignRun) => Err(ForeignRun)
+  }
+}
+
+///|
+// Only the unchanged pure join is retained. Callers still observe current
+// authorization, actual rows and durable claims at their existing boundaries.
+fn NativeClientRunJournal::validate_prepared_run_binding(
+  self : NativeClientRunJournal,
+  request : @host.ClientRequestIdentity,
+  prepared : @host.PreparedClientProgram,
+  compiled : @host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+) -> Result[Unit, NativeClientRunJournalIssue] {
+  if self.fenced {
+    self.operation_prepared_binding = None
+    return Err(Fenced)
+  }
+  let program = @host.client_request_program_cid(request)
+  let parameters = @host.client_request_parameters_cid(request)
+  let definition_cid = @publication.publication_contract_identity(definition)
+  if self.operation_active &&
+    self.operation_prepared_binding
+    is Some((owner, run, cid, program_cid, parameters_cid)) &&
+    physical_equal(owner, prepared) &&
+    physical_equal(run, compiled) &&
+    cid == definition_cid &&
+    program_cid == program &&
+    parameters_cid == parameters {
+    return Ok(())
+  }
+  self.operation_prepared_binding = None
+  match
+    validate_native_client_run_binding(request, prepared, compiled, definition) {
+    Err(issue) => Err(issue)
+    Ok(_) => {
+      if self.operation_active {
+        self.operation_prepared_binding = Some(
+          (prepared, compiled, definition_cid, program, parameters),
+        )
+      }
+      Ok(())
+    }
   }
 }
 

@@ -1561,8 +1561,6 @@ fn main {
   let command_cleanup = local_finish_command_preparation()
   let command_closed = command_cleanup is Ok(_)
   let crypto_closed = if command_closed {
-    native_timing_begin(30)
-    defer native_timing_end(30)
     local_finish_initial_crypto()
   } else {
     false

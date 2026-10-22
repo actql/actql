@@ -397,11 +397,20 @@ fn local_submission_start(
     }
     // The current installed profile must genuinely have zero semantic
     // completions. No test-side lowering or fabricated empty journal is used.
-    @run_host.issue_prepared_client_local_normalization(prepared).unwrap_or_else(() => {
-        stop("LocalOriginalNormalizationNotInstalled")
-      },
-    )
-    |> ignore
+    match business {
+      None =>
+        @run_host.issue_prepared_client_local_normalization(prepared).unwrap_or_else(() => {
+            stop("LocalOriginalNormalizationNotInstalled")
+          },
+        )
+        |> ignore
+      Some(original) =>
+        // Business preparation already admitted normalization on this exact
+        // checked owner before acquiring execution or a durable attempt.
+        if !physical_equal(original.prepared, prepared) {
+          stop("LocalBusinessOriginalUnavailable")
+        }
+    }
     let request = @run_host.prepare_source_free_client_request_identity(
       prepared,
       scope,
@@ -634,7 +643,7 @@ fn local_submission_start(
           _ => stop("InvalidLocalReadPolicyOriginal")
         },
       )
-      if read.enabled() {
+      if read.enabled() && !source_free {
         local_retain_values_policy_originals(
           host,
           settings,

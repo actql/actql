@@ -154,7 +154,7 @@ fn NativeClientRunJournal::accept_submitted_run_with_operations(
     return Err(UnsupportedPreparation)
   }
   match
-    validate_native_client_run_binding(request, prepared, compiled, definition) {
+    self.validate_prepared_run_binding(request, prepared, compiled, definition) {
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
