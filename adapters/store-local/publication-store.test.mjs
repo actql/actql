@@ -2497,11 +2497,20 @@ test('seal failure removes its staging alias before reclaiming custody',
     assert.equal((await readdir(join(
       directory, 'prepared-custody',
     ))).length, 1);
-    assert.deepEqual(await readdir(objects), []);
+    // The second failure is the SAME possible installation's confirmation
+    // before indexed-reference reads, not its later unlink acknowledgement.
+    // Keep that exact allocation/charge until the original retry confirms it.
+    assert.deepEqual(await readdir(objects), [digest('payload').slice(7)]);
+    const retained=await stat(join(objects,digest('payload').slice(7)));
+    const [custodyName]=await readdir(join(directory,'prepared-custody'));
+    const custody=JSON.parse(await readFile(join(directory,'prepared-custody',custodyName),'utf8'));
+    assert.equal(String(retained.dev),custody.device);assert.equal(String(retained.ino),custody.inode);
+    assert.deepEqual(await readFile(join(objects,digest('payload').slice(7))),Buffer.from('payload'));
     assert.equal(await retriedWriter.cancel(), true);
     assert.equal(retriedWriter.status().custodyPending, false);
     assert.equal(retriedWriter.status().cleanupPending, false);
     assert.equal(store.status().storedBytes, 0);
+    assert.deepEqual(await readdir(objects), []);
     assert.deepEqual(await readdir(join(
       directory, 'prepared-custody',
     )), []);
