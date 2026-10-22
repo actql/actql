@@ -6,6 +6,132 @@ import {join} from 'node:path';
 import {DatabaseSync} from 'node:sqlite';
 import {openDeliveryAttemptIndex} from './delivery-attempt-index.mjs';
 
+test('publication completion batch joins the next required native transaction', async t => {
+  const directory = await mkdtemp(join(tmpdir(), 'actql-publication-finish-batch-'));
+  let index, armed = false, commits = 0;
+  t.after(async () => { armed = false; index?.close(); await rm(directory, {recursive: true}); });
+  const exec = DatabaseSync.prototype.exec;
+  t.mock.method(DatabaseSync.prototype, 'exec', function(sql) {
+    if (armed && sql === 'COMMIT') commits++;
+    return Reflect.apply(exec, this, [sql]);
+  });
+  const path = join(directory, 'index.sqlite3'), options = {create: false, maxEntries: 4, maxWireBytes: 4096};
+  index = await openDeliveryAttemptIndex(path, {...options, create: true});
+  index.migrate([]); index.migratePublicationRecovery([]);
+  const originals = [1, 2, 3].map(n => ({public_index_cid: 'sha256:' + String(n).repeat(64),
+    inventory_wire: JSON.stringify({original: n})}));
+  for (const original of originals) index.stageNativePublicationInventory(original);
+  armed = true;
+  for (const original of originals) index.retainPublicationInventoryFinish(original);
+  assert.equal(commits, 0, 'retention is not a durable completion acknowledgement');
+  assert.deepEqual(index.pendingPublications(), originals, 'actual pending originals remain durable until COMMIT');
+  assert.throws(() => index.retainPublicationInventoryFinish({...originals[0], inventory_wire: '{}'}),
+    {code: 'PublicationMetadataInventoryConflict'});
+  const body = {semantic_cid: 'sha256:' + '4'.repeat(64), name: 'invocation', wire: '{}', byte_count: 2};
+  index.putPublicationContracts([body], {bytes: 2, objects: 1});
+  assert.equal(commits, 1);
+  assert.deepEqual(index.pendingPublications(), []);
+  assert.deepEqual(index.nativePublicationInventories(), originals);
+  index.close(); assert.equal(commits, 1);
+  armed = false; index = await openDeliveryAttemptIndex(path, options);
+  assert.deepEqual(index.pendingPublications(), []);
+  assert.equal(index.publicationContract(body.semantic_cid).wire, '{}');
+});
+
+test('publication completion batch flushes at close and keeps the original native close ACK separate', async t => {
+  const directory = await mkdtemp(join(tmpdir(), 'actql-publication-finish-close-'));
+  let index, armed = false, refuse = false, commits = 0;
+  t.after(async () => { armed = false; refuse = false; index?.close(); await rm(directory, {recursive: true}); });
+  const exec = DatabaseSync.prototype.exec, close = DatabaseSync.prototype.close;
+  t.mock.method(DatabaseSync.prototype, 'exec', function(sql) {
+    if (armed && sql === 'COMMIT') commits++;
+    return Reflect.apply(exec, this, [sql]);
+  });
+  t.mock.method(DatabaseSync.prototype, 'close', function() { return refuse ? false : Reflect.apply(close, this, []); });
+  const path = join(directory, 'index.sqlite3'), options = {create: false, maxEntries: 2, maxWireBytes: 4096};
+  index = await openDeliveryAttemptIndex(path, {...options, create: true});
+  index.migrate([]); index.migratePublicationRecovery([]);
+  const original = {public_index_cid: 'sha256:' + '1'.repeat(64), inventory_wire: '{"original":1}'};
+  index.stageNativePublicationInventory(original); index.retainPublicationInventoryFinish(original);
+  armed = refuse = true;
+  assert.throws(() => index.close(), {code: 'DeliveryAttemptIndexCleanupPending'});
+  assert.equal(commits, 1);
+  assert.throws(() => index.pendingPublications(), {code: 'DeliveryAttemptIndexCleanupPending'});
+  refuse = false; assert.equal(index.close(), true); assert.equal(commits, 1);
+  armed = false; index = await openDeliveryAttemptIndex(path, options);
+  assert.deepEqual(index.pendingPublications(), []);
+  assert.deepEqual(index.nativePublicationInventory(original.public_index_cid), original);
+});
+
+for (const phase of ['next transaction', 'close']) for (const afterCommit of [false, true]) {
+test(`publication completion batch keeps its ${phase} ${afterCommit ? 'committed' : 'rolled-back'} Unknown original`, async t => {
+  const directory = await mkdtemp(join(tmpdir(), 'actql-publication-finish-unknown-'));
+  let index, armed = false, lost = false;
+  t.after(async () => { armed = false; index?.close(); await rm(directory, {recursive: true}); });
+  const exec = DatabaseSync.prototype.exec;
+  t.mock.method(DatabaseSync.prototype, 'exec', function(sql) {
+    if (armed && !lost && sql === 'COMMIT') {
+      lost = true; if (afterCommit) Reflect.apply(exec, this, [sql]);
+      throw Object.assign(new Error('lost original completion batch reply'), {code: 'EIO'});
+    }
+    return Reflect.apply(exec, this, [sql]);
+  });
+  const path = join(directory, 'index.sqlite3'), options = {create: false, maxEntries: 2, maxWireBytes: 4096};
+  index = await openDeliveryAttemptIndex(path, {...options, create: true});
+  index.migrate([]); index.migratePublicationRecovery([]);
+  const original = {public_index_cid: 'sha256:' + '1'.repeat(64), inventory_wire: '{"original":1}'};
+  index.stageNativePublicationInventory(original); index.retainPublicationInventoryFinish(original);
+  const body = {semantic_cid: 'sha256:' + '2'.repeat(64), name: 'invocation', wire: '{}', byte_count: 2};
+  const finish = () => phase === 'close' ? index.close() : index.putPublicationContracts([body], {bytes: 2, objects: 1});
+  armed = true; assert.throws(finish, error => error.outcome === 'unknown'); assert.equal(lost, true);
+  assert.throws(() => index.retainPublicationInventoryFinish({...original, inventory_wire: '{}'}));
+  if (phase !== 'close') {
+    assert.throws(() => index.putPublicationContracts([{...body, wire: '[]'}], {bytes: 2, objects: 1}),
+      {code: 'DeliveryAttemptIndexCommitOutcomeUnknown'});
+  }
+  finish();
+  if (phase === 'close') { armed = false; index = await openDeliveryAttemptIndex(path, options); }
+  assert.deepEqual(index.pendingPublications(), []);
+  assert.deepEqual(index.nativePublicationInventory(original.public_index_cid), original);
+  if (phase !== 'close') assert.equal(index.publicationUsage().objects, 1);
+});
+}
+
+for (const afterCommit of [false, true]) {
+test(`publication completion batch closes an unrelated ${afterCommit ? 'committed' : 'rolled-back'} Unknown without acknowledging it`, async t => {
+  const directory = await mkdtemp(join(tmpdir(), 'actql-publication-finish-unrelated-'));
+  let index, armed = false, lost = false, commits = 0;
+  t.after(async () => { armed = false; index?.close(); await rm(directory, {recursive: true}); });
+  const exec = DatabaseSync.prototype.exec;
+  t.mock.method(DatabaseSync.prototype, 'exec', function(sql) {
+    if (armed && sql === 'COMMIT') {
+      commits++;
+      if (!lost) {
+        lost = true; if (afterCommit) Reflect.apply(exec, this, [sql]);
+        throw Object.assign(new Error('lost unrelated native metadata reply'), {code: 'EIO'});
+      }
+    }
+    return Reflect.apply(exec, this, [sql]);
+  });
+  const path = join(directory, 'index.sqlite3'), options = {create: false, maxEntries: 2, maxWireBytes: 4096};
+  index = await openDeliveryAttemptIndex(path, {...options, create: true});
+  index.migrate([]); index.migratePublicationRecovery([]);
+  const original = {public_index_cid: 'sha256:' + '1'.repeat(64), inventory_wire: '{"original":1}'};
+  const body = {semantic_cid: 'sha256:' + '2'.repeat(64), name: 'invocation', wire: '{}', byte_count: 2};
+  index.stageNativePublicationInventory(original); index.retainPublicationInventoryFinish(original);
+  armed = true; let failure;
+  assert.throws(() => index.putPublicationContracts([body], {bytes: 2, objects: 1}), error => {
+    failure = error; return error.outcome === 'unknown';
+  });
+  assert.equal(index.close(), true); assert.equal(commits, 1, 'physical close does not confirm the unrelated mutation');
+  assert.equal(failure.outcome, 'unknown');
+  armed = false; index = await openDeliveryAttemptIndex(path, options);
+  assert.deepEqual(index.pendingPublications(), afterCommit ? [] : [original]);
+  assert.equal(index.publicationContract(body.semantic_cid)?.wire, afterCommit ? '{}' : undefined);
+  if (!afterCommit) index.finishPublicationInventory(original);
+});
+}
+
 test('owned physical quota lifetime seals only its bounded final changes',async t=>{
   const directory=await mkdtemp(join(tmpdir(),'actql-physical-lifetime-'));
   let index,armed=false,commits=0;t.after(async()=>{armed=false;index?.close();await rm(directory,{recursive:true});});

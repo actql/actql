@@ -150,8 +150,20 @@ originals in its private recovery index. Before acquiring an inventory file,
 the Store stages its exact Index CID and bounded inventory wire in a real native
 transaction. An existing file representation retains its own write, close and
 directory acknowledgements. The pending row is removed only after the original Index
-directory acknowledgement and schema adoption. These two native transitions
-do not replace those file acknowledgements or establish a minimum barrier count.
+directory acknowledgement and schema adoption. At that point the same Store may
+retain the exact bounded completion original and include its removal in the next
+already-required transaction of this database. Retention is not a durable ACK:
+the original pending row remains until actual COMMIT, and an interrupted process
+uses the existing targeted pending recovery. If no later transaction occurs,
+close performs the real completion write; an existing physical-quota seal can
+include it without a second transaction. Native close remains a separate duty.
+These transitions do not replace file acknowledgements or establish a minimum
+barrier count. Strict recovery completion remains immediately durable.
+The retained map is bounded by the existing pending-entry and wire limits; it
+keeps immutable originals, not permission or a new byte allowance. Successful
+COMMIT retires exactly those originals. Lost replies retain them for the same
+mutation or close retry, and actual native close releases their managed aliases
+without claiming an unrelated uncertain mutation succeeded.
 
 An older private database format permits one bounded inventory migration. The
 Store confirms each selected Index's actual directory durability, retains only
@@ -186,7 +198,7 @@ New inventory bodies are durable originals in that same native staging
 transaction, not duplicate filesystem preparations. Completion removes only the
 pending lookup; the exact bounded inventory wire remains available to selected
 reads. The existing Index file and its actual directory acknowledgement still
-determine publication. Stage and completion remain distinct native transitions;
+determine publication. Stage and completion remain distinct logical transitions;
 storing the body with its pending lookup removes the redundant inventory-file
 write/sync/close and directory sync, not those logical transitions or payload ACKs.
 

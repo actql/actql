@@ -64,7 +64,8 @@ export async function openDeliveryAttemptIndex(path, {create, maxEntries, maxWir
   const database = new DatabaseSync(path, {__proto__: null, open: false,
     readOnly: false, enableForeignKeyConstraints: true, allowExtension: false});
   let closeOriginal, isOpenOriginal, execOriginal, prepareOriginal, transactionState;
-  let closed = false, closing = false, mutating = false, sealPhysicalLifetime;
+  let closed = false, closing = false, mutating = false, sealPhysicalLifetime,
+    sealPublicationFinishes, retirePublicationFinishReferences, publicationFinishClosing = false;
   const exec = sql => Reflect.apply(execOriginal,database,[sql]);
   const prepare = sql => {
     const original = Reflect.apply(prepareOriginal,database,[sql]);
@@ -84,6 +85,7 @@ export async function openDeliveryAttemptIndex(path, {create, maxEntries, maxWir
     if (closed) return true;
     if (closing || mutating) fail('DeliveryAttemptIndexCleanupPending');
     sealPhysicalLifetime?.();
+    sealPublicationFinishes?.();
     closing = true;
     try {
       captureClose();
@@ -94,6 +96,7 @@ export async function openDeliveryAttemptIndex(path, {create, maxEntries, maxWir
         fail('DeliveryAttemptIndexCleanupPending');
       }
       closed = true;
+      retirePublicationFinishReferences?.();
       return true;
     } finally { closing = false; }
   };
@@ -360,11 +363,28 @@ export async function openDeliveryAttemptIndex(path, {create, maxEntries, maxWir
     const updateCount = prepare('UPDATE coverage SET entries=entries+? WHERE id=1');
     let uncertain = false, uncertainRemoval, uncertainCompletion, uncertainInitial, confirmedRecord,
       uncertainPublication, uncertainPublicationRecovery, uncertainMetadataFence, uncertainPhysical,
-      uncertainPhysicalPreparation, uncertainPhysicalSeal = false;
+      uncertainPhysicalPreparation, uncertainPhysicalSeal = false, uncertainPublicationFinishSeal = false;
+    const retainedPublicationFinishes = new Map();
+    let flushPublicationFinishes = () => [];
     const run = body => {
       if (mutating) fail('DeliveryAttemptIndexBusy');
       mutating = true;
-      try { return transaction.run(body); }
+      try {
+        let finished;
+        const result = transaction.run(() => {
+          const value = body();
+          finished = flushPublicationFinishes();
+          return value;
+        });
+        // Only this transaction's real COMMIT retires retained completion
+        // originals. A thrown/lost reply keeps them for the SAME retry.
+        for (const original of finished) {
+          if (retainedPublicationFinishes.get(original.public_index_cid) === original) {
+            retainedPublicationFinishes.delete(original.public_index_cid);
+          }
+        }
+        return result;
+      }
       catch (error) {
         if (error?.outcome === 'unknown') uncertain = true;
         throw error;
@@ -372,7 +392,7 @@ export async function openDeliveryAttemptIndex(path, {create, maxEntries, maxWir
     };
     const requireOpen = () => {
       if (closed || closing) fail('DeliveryAttemptIndexClosed');
-      if (physicalLifetime?.sealing) fail('DeliveryAttemptIndexCleanupPending');
+      if (physicalLifetime?.sealing || publicationFinishClosing) fail('DeliveryAttemptIndexCleanupPending');
       if (mutating) fail('DeliveryAttemptIndexBusy');
       if (uncertain) fail('DeliveryAttemptIndexCommitOutcomeUnknown');
       transaction.assertUsable();
@@ -641,6 +661,39 @@ export async function openDeliveryAttemptIndex(path, {create, maxEntries, maxWir
     };
     const sameRecoveryOriginal = (left,right) => left!==undefined && right!==undefined &&
       left.public_index_cid===right.public_index_cid && left.inventory_wire===right.inventory_wire;
+    flushPublicationFinishes = () => {
+      if (retainedPublicationFinishes.size === 0) return [];
+      const originals = [...retainedPublicationFinishes.values()];
+      if (recoveryState().complete !== 1) fail('DeliveryAttemptIndexUnavailable');
+      let removed = 0;
+      for (const original of originals) {
+        const row = pendingPublication.get(original.public_index_cid);
+        if (row !== undefined) {
+          if (!sameRecoveryOriginal(recoveryOriginal(row), original)) fail('PublicationMetadataInventoryConflict');
+          removed += removePendingPublication.run(original.public_index_cid).changes;
+        }
+      }
+      // Even an already-removed original needs a real write to confirm an
+      // earlier lost COMMIT. Presence or absence is not an ACK.
+      if (updatePublicationRecovery.run(-removed).changes !== 1) fail('DeliveryAttemptIndexUnavailable');
+      return originals;
+    };
+    sealPublicationFinishes = () => {
+      if (retainedPublicationFinishes.size === 0) return;
+      // Preserve the existing ability to close an unrelated uncertain native
+      // mutation without pretending to settle it. Its durable pending rows
+      // remain available to the existing targeted restart recovery.
+      if ((uncertain && !uncertainPublicationFinishSeal) || !transaction.connectionUsable) return;
+      publicationFinishClosing = true;
+      try {
+        run(() => {});
+        uncertainPublicationFinishSeal = false; uncertain = false;
+      } catch (error) {
+        if (error?.outcome === 'unknown') uncertainPublicationFinishSeal = true;
+        throw error;
+      }
+    };
+    retirePublicationFinishReferences = () => retainedPublicationFinishes.clear();
     const inventoryUsage = () => {
       const row=nativeInventoryUsage.get();
       if (!row || !Number.isSafeInteger(row.entries) || row.entries<0 || row.entries>maxEntries ||
@@ -869,6 +922,20 @@ export async function openDeliveryAttemptIndex(path, {create, maxEntries, maxWir
       stagePublicationInventory(value) { return mutatePublicationRecovery('stage',value); },
       stageNativePublicationInventory(value) { return mutatePublicationRecovery('stage-native',value); },
       finishPublicationInventory(value) { return mutatePublicationRecovery('finish',value); },
+      retainPublicationInventoryFinish(value) {
+        requireComplete();
+        const original = recoveryOriginal(value);
+        if (recoveryState().complete !== 1) fail('DeliveryAttemptIndexUnavailable');
+        const row = pendingPublication.get(original.public_index_cid);
+        if (row === undefined) return;
+        if (!sameRecoveryOriginal(recoveryOriginal(row), original)) fail('PublicationMetadataInventoryConflict');
+        if (!retainedPublicationFinishes.has(original.public_index_cid) && retainedPublicationFinishes.size >= maxEntries) {
+          fail('DeliveryAttemptIndexLimit');
+        }
+        // Store invokes this only after the real Index ACK and schema
+        // adoption. It retains derived recovery work, not an ACK or authority.
+        retainedPublicationFinishes.set(original.public_index_cid, original);
+      },
       retireNativePublicationInventory(value,fence) { return mutatePublicationRecovery('retire-native',value,fence); },
       needsMetadataDeletionFenceMigration() { requireComplete();return fenceState(false).complete===0; },
       migrateMetadataDeletionFences(values,finished=false) {

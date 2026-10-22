@@ -764,6 +764,34 @@ test('publication inventory retains failed Index alias durability before a fresh
   }
 });
 
+test('publication completion batch avoids a separate post-Index native commit', async t => {
+  const exec = DatabaseSync.prototype.exec;
+  let armed = false, commits = 0;
+  t.mock.method(DatabaseSync.prototype, 'exec', function(sql, ...args) {
+    if (armed && sql === 'COMMIT') commits++;
+    return Reflect.apply(exec, this, [sql, ...args]);
+  });
+  const {store, directory} = await fixture(t);
+  const invocationValue = invocation();
+  const request = publicationRequest(resultDefinition(), invocationValue.invocation_cid);
+  const attempt = publicationAttempt(request);
+  const prepared = await prepareCommit(store, request, attempt, invocationValue);
+  const entry = indexEntry(request, attempt, invocationValue, {
+    durable_result_binding_cids: [prepared.binding.identity],
+  });
+  armed = true;
+  const outcome = await store.commitIndex(wire(entry), prepared.required, prepared.evidence);
+  assert.equal(outcome.committed, true);
+  assert.equal(commits, 1, 'inventory staging is durable; completion joins a later necessary transaction');
+  assert.equal((await store.inspectCommittedIndex(indexKeyFor(request))).public_index_entry_cid, entry.public_index_entry_cid);
+  const observed = new DatabaseSync(join(directory, 'delivery-attempts.sqlite3'), {readOnly: true});
+  try { assert.equal(observed.prepare('SELECT count(*) AS n FROM pending_publications').get().n, 1); }
+  finally { observed.close(); }
+  await store.close();
+  assert.equal(commits, 2, 'the existing physical-lifetime seal also completes the recovery row');
+  armed = false;
+});
+
 for (const afterCommit of [false, true]) {
 test(`publication inventory staging retains its ${afterCommit ? 'committed' : 'rolled-back'} Unknown acknowledgement at the Store boundary`, async t => {
   const directory = await mkdtemp(join(tmpdir(), 'actql-inventory-stage-unknown-'));
@@ -5694,8 +5722,13 @@ test('native publication inventory is the durable original without duplicate fil
   try {
     const row=database.prepare('SELECT inventory_wire FROM native_publication_inventories WHERE public_index_cid=?').get(entry.public_index_entry_cid);
     assert.equal(JSON.parse(row.inventory_wire).run_definition_cid,entry.run_definition_cid);
-    assert.equal(database.prepare('SELECT count(*) AS n FROM pending_publications').get().n,0);
+    assert.equal(database.prepare('SELECT count(*) AS n FROM pending_publications').get().n,1,
+      'the derived completion is retained, not acknowledged before its next actual transaction');
   } finally { database.close(); }
+  await store.close();
+  const closedDatabase = new DatabaseSync(join(directory, 'delivery-attempts.sqlite3'), {readOnly: true});
+  try { assert.equal(closedDatabase.prepare('SELECT count(*) AS n FROM pending_publications').get().n, 0); }
+  finally { closedDatabase.close(); }
 });
 
 test('native publication inventory survives reopen and retires only its original ownership',async t=>{
@@ -6030,6 +6063,9 @@ test('publication recovery completes only its retained inventory after a lost pr
   assert.equal(lost,true);
   assert.deepEqual(await readdir(join(setup.directory,'indexes')),[]);
   assert.deepEqual(await readdir(join(setup.directory,'metadata-inventories')),[]);
+  assert.equal(originalFailure.cleanupHandle.status().pending, true);
+  assert.equal((await originalFailure.cleanupHandle.retry()).pending, false,
+    'settle the same staging original before acquiring physical-removal metadata');
   await prepared.prepared.release();
   await setup.store.close();
   const reopened=await openLocalPublicationStore(setup.configuration,contractControl);
@@ -6127,6 +6163,11 @@ test('publication recovery transfers its pending original to the durable deletio
     return result;
   });
   const setup=await fixture(t),selected=await committedHoldingFixture(setup,'pending deletion transfer');
+  // Close the real current completion before modelling an older file-backed
+  // interrupted stage. Its edited legacy holding inventory is not a replacement
+  // for the current lifetime's retained native completion original.
+  await setup.store.close();
+  setup.store = await openLocalPublicationStore(setup.configuration, contractControl);
   // Exact retained metadata from the same already-published stage, modelling
   // its still-pending native completion at the deletion transition.
   pendingPublicationFixture(setup.directory,selected.inventory);
