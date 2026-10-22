@@ -6015,7 +6015,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "44fe56643cdd64d88148935dd50b6b2baff24bdc86750e01078d80b6e0c31326",
+      "sha256": "75d116c25c11ce6ebf7e51c3a853c4f9b7dbc3d000d9eb0317b34b5695034833",
       "exports": [
         "PublicationStoreError",
         "assertOriginalLocalPublicationStoreFacilityCurrent",
@@ -6280,6 +6280,15 @@
             "cid",
             "name",
             "retained"
+          ],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/admitOriginalContract/admitOriginalContract",
+          "parameters": [
+            "name",
+            "wire",
+            "original"
           ],
           "async": false
         },
@@ -6609,7 +6618,10 @@
         {
           "name": "openOriginalLocalPublicationStore/commitIndex/commitIndex",
           "parameters": [
-            "args"
+            "suppliedWire",
+            "requiredObjectCids",
+            "suppliedEvidence",
+            "indexOriginal"
           ],
           "async": false
         },
@@ -6624,7 +6636,8 @@
             "suppliedWire",
             "requiredObjectCids",
             "suppliedEvidence",
-            "effectfulEvidence"
+            "effectfulEvidence",
+            "indexOriginal"
           ],
           "async": true
         },
@@ -7703,7 +7716,8 @@
             "receipts",
             "privateBinding",
             "effectSources",
-            "readOriginal"
+            "readOriginal",
+            "retainedIndex"
           ],
           "async": true
         },
@@ -10257,6 +10271,7 @@
             "openOriginalLocalPublicationStore/active/active",
             "openOriginalLocalPublicationStore/admitContract/admitContract",
             "openOriginalLocalPublicationStore/admitNativeContract/admitNativeContract",
+            "openOriginalLocalPublicationStore/admitOriginalContract/admitOriginalContract",
             "openOriginalLocalPublicationStore/admitPhysicalHolding/admitPhysicalHolding",
             "openOriginalLocalPublicationStore/admitPhysicalHolding/admitPhysicalHolding/admitPhysicalHolding",
             "openOriginalLocalPublicationStore/admitPhysicalHolding/admitPhysicalHolding/record/record",
@@ -10895,6 +10910,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "Cheap current/closed checks remain at the queued update's actual entry and"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "## Original Index admission within publication"
               }
             ],
             "inputsOutputs": [
@@ -11046,7 +11065,7 @@
               },
               {
                 "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "contract ??= admitContract(input.name, input.wire);"
+                "anchor": "const contract = admitOriginalContract(input.name, input.wire, input.original);"
               },
               {
                 "path": "adapters/store-local/publication-store.mjs",
@@ -12145,6 +12164,22 @@
               {
                 "path": "adapters/store-local/publication-store.test.mjs",
                 "anchor": "Effect capture retirement refuses final unlink after the same Store closes"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "publication commit consumes its same-owner issued Index without raw readmission"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "publication Index original reuse keeps copied and omitted-port full admission"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "publication Index original refuses conflicting body and invalid nominal control"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "Effectful commit inspection consumes only its original private Index observation"
               }
             ]
           }

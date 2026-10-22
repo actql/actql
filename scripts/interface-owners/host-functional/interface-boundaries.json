@@ -8250,7 +8250,7 @@
     {
       "module": "adapters/host-common/run-publication.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "de569c64befcab760a810809d87e076d44d67520820a2166ee4b86760211df80",
+      "sha256": "9d13f290dbfb2ed6ded5b2a2a59c4780b5951f6f6eef114d6fcff69962c33b28",
       "role": "physical-io",
       "owner": "Existing Run Publication/Artifact Owners and physical Store sequencing",
       "exports": [
@@ -8760,6 +8760,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "An already-started attempt retains its existing progress."
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "The publication caller passes its original immutable Index wrapper alongside"
               }
             ],
             "inputsOutputs": [
@@ -9074,6 +9078,10 @@
               {
                 "path": "adapters/host-common/publication-yield.test.mjs",
                 "anchor": "publication computation lifetime latches retry before synchronous original reconciliation reentry"
+              },
+              {
+                "path": "adapters/host-common/publication-yield.test.mjs",
+                "anchor": "publication caller forwards its original Index to the existing Store commit"
               }
             ]
           }
