@@ -764,6 +764,38 @@ test('publication inventory retains failed Index alias durability before a fresh
   }
 });
 
+test('selected publication observation returns its one admitted Index original and reacquires the next read', async t => {
+  let armed = false, admissions = 0, original;
+  const counted = {...contractControl, admit(name, ...args) {
+    const value = contractControl.admit(name, ...args);
+    if (armed && name === 'public_index_entry') { admissions++; original = value; }
+    return value;
+  }};
+  const {store, directory} = await fixture(t, {}, counted);
+  const invocationValue = invocation(), request = publicationRequest(resultDefinition(), invocationValue.invocation_cid);
+  const attempt = publicationAttempt(request), prepared = await prepareCommit(store, request, attempt, invocationValue);
+  const entry = indexEntry(request, attempt, invocationValue, {durable_result_binding_cids: [prepared.binding.identity]});
+  await store.commitIndex(wire(entry), prepared.required, prepared.evidence);
+  armed = true;
+  const selected = await store.readCommittedPublication(indexKeyFor(request));
+  assert.strictEqual(selected.index, original); assert.equal(admissions, 1);
+  assert.equal(selected.entry.public_index_entry_cid, entry.public_index_entry_cid);
+  assert(Object.isFrozen(selected)); assert(Object.isFrozen(selected.entry));
+  assert.deepEqual(Object.keys(selected).sort(), ['entry', 'index']);
+  const next = await store.readCommittedPublication(indexKeyFor(request));
+  assert.equal(admissions, 2); assert.notStrictEqual(next.index, selected.index);
+  const alias = join(directory, 'contracts', entry.public_index_entry_cid.slice(7) + '.json');
+  const bytes = await readFile(alias); await unlink(alias); await writeFile(alias, bytes, {mode: 0o600});
+  await assert.rejects(store.readCommittedPublication(indexKeyFor(request)), code('PublicationContractCorrupt'));
+});
+
+test('selected publication observation preserves missing metadata and original close refusals', async t => {
+  const {store} = await fixture(t);
+  assert.equal(await store.readCommittedPublication(indexKey), undefined);
+  await store.close();
+  await assert.rejects(store.readCommittedPublication(indexKey), code('PublicationStoreClosed'));
+});
+
 test('publication completion batch avoids a separate post-Index native commit', async t => {
   const exec = DatabaseSync.prototype.exec;
   let armed = false, commits = 0;

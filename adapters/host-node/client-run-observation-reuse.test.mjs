@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import test from 'node:test';
 import {parse} from 'acorn';
+import * as runStateAccess from '../host-common/run-state-access.mjs';
 
 // Execute the actual Local observation statement with explicit owner ports.
 // These caller tests do not instantiate a full Host or Common runtime.
@@ -22,7 +23,7 @@ function visit(node) {
 visit(ast);
 assert.equal(statements.length, 1);
 const names = ['principalId', 'namespaceId', 'authorityScopeCid', 'journal', 'moon',
-  'control', 'store', 'inspectAuthorizedRunState', 'stateService', 'checkpoints',
+  'control', 'store', 'inspectAuthorizedRunState', 'observeAuthorizedRunState', 'stateService', 'checkpoints',
   'dispatchOwner', 'modelResumeFlights', 'issueInstalledUnpublishedRunState', 'now',
   'projectRunObservation', 'clientOperationError'];
 const compile = new Function(...names, `${statements[0]}; return observeRun;`);
@@ -63,7 +64,8 @@ function fixture({change = false, missing = false, conflict = false} = {}) {
   const observe = compile('actor', ref.namespaceId, ref.authorityScopeCid, journal,
     moon, control, {async confirmCommittedIndex(actual) {
       assert.strictEqual(actual, ref); counts.store++; return {};
-    }}, async () => {counts.state++; return {status: 'succeeded'};}, {}, undefined,
+    }}, async () => {counts.state++; return {status: 'succeeded'};},
+    async () => {counts.store++; counts.state++; return {status: 'succeeded'};}, {}, undefined,
     {live: () => false}, new Map(), () => assert.fail('No unpublished state'),
     () => assert.fail('No unpublished clock'), () => {},
     code => Object.assign(new Error(code), {code}));
@@ -95,4 +97,78 @@ test('Local Run observation preserves missing-row exhaustion and entry denial', 
   await assert.rejects(() => denied.observe({ref: denied.ref, principalId: 'foreign'}),
     {code: 'RunStateAccessDenied'});
   assert.equal(denied.counts.lookup, 0); assert.equal(denied.counts.store, 0);
+});
+
+function selectedPublicationFixture({legacy = false, missing = false, failRead = false,
+  denyAt, malformed = false} = {}) {
+  const cid = digit => 'sha256:' + digit.repeat(64);
+  const ref = Object.freeze({namespaceId: 'namespace', authorityScopeCid: cid('a'), runDefinitionCid: cid('b')});
+  const entry = Object.freeze({public_index_entry_cid: cid('c'), publication_attempt_cid: cid('d'),
+    result_manifest_cid: cid('e'), run_definition_cid: ref.runDefinitionCid});
+  const index = Object.freeze({original: 'selected-index'});
+  const counts = {probe: 0, indexRead: 0, selected: 0, request: 0, response: 0};
+  const store = {
+    async confirmCommittedIndex() { counts.probe++; return missing ? undefined : entry; },
+    async readPublicationContract(_cid, name) { if (name === 'public_index_entry') { counts.indexRead++; return index; } return {}; },
+    async latestRecordContract() { return {}; },
+    async observeTrustedClock() { assert.fail('Empty inventory has no retention clock'); },
+    async withCommittedResult() { assert.fail('Empty inventory has no Result'); },
+    async readCommittedResultRetentionExtension() { assert.fail('Empty inventory has no Result'); },
+    ...legacy ? {} : {async readCommittedPublication(key) {
+      assert.strictEqual(this, store); assert.deepEqual(key, ref); counts.selected++;
+      if (failRead) throw Object.assign(new Error('selected original failed'), {code: 'EIO'});
+      return missing ? undefined : malformed ? {entry} : Object.freeze({entry, index});
+    }},
+  };
+  const control = {manifestResultNames: () => [], resultReadDefinitionCid() {},
+    resultReadRetentionPolicyCid() {}, resultReadAvailability() {}, resultReadExtendedAvailability() {},
+    resultRetentionClockContractCid() {}, runDefinitionRunId: () => 'original-run',
+    projectCommittedPublicationState(_record, original) { assert.strictEqual(original, index); return 'succeeded'; },
+    issueSucceededRunState: () => JSON.stringify({run_id: 'original-run', status: 'succeeded'}),
+  };
+  const service = runStateAccess.installRunStateService({store, control,
+    authority: runStateAccess.installRunStateAuthority({authorizeRunState({stage}) {
+      counts[stage]++; return denyAt !== stage;
+    }, resultPolicyAvailable: () => true}),
+    now: () => '2026-10-22T00:00:00.000Z', limits: {maxWireBytes: 4096, maxNodes: 100, maxDepth: 10}});
+  const frame = Object.freeze({ref, revision: 0, resultNames: [], runDefinition: {},
+    dispatchReserved: false, physicalStartReserved: false, observedTerminalOutcome: null});
+  const journal = {lookupRunDefinition: () => frame, observeRunCancellation: () => () => ({revision: 0}),
+    publishRunState: (_original, state) => JSON.stringify(state)};
+  // The old strict entry makes this same actual-caller test a useful original
+  // counter before the optional observation entry exists. Product has no such fallback.
+  const observe = compile('actor', ref.namespaceId, ref.authorityScopeCid, journal, {}, control,
+    store, runStateAccess.inspectAuthorizedRunState,
+    runStateAccess.observeAuthorizedRunState ?? runStateAccess.inspectAuthorizedRunState,
+    service, undefined, {live: () => true}, new Map(), () => ({status: 'running'}),
+    () => '2026-10-22T00:00:00.000Z', () => {}, code => Object.assign(new Error(code), {code}));
+  return {counts, service, ref, run: () => observe({ref, principalId: 'actor'})};
+}
+
+test('selected publication observation acquires its Index once in the actual Local observer', async () => {
+  const f = selectedPublicationFixture();
+  assert.equal((await f.run()).status, 'succeeded');
+  assert.deepEqual(f.counts, {probe: 0, indexRead: 0, selected: 1, request: 1, response: 1});
+  await f.run();
+  assert.equal(f.counts.selected, 2, 'A distinct public operation acquires a fresh selected original');
+});
+
+test('selected publication observation preserves legacy Store reads and authorized absence', async () => {
+  const legacy = selectedPublicationFixture({legacy: true});
+  assert.equal((await legacy.run()).status, 'succeeded');
+  assert.equal(legacy.counts.probe, 1); assert.equal(legacy.counts.indexRead, 1);
+  const missing = selectedPublicationFixture({missing: true});
+  assert.equal((await missing.run()).status, 'running');
+  assert.equal(missing.counts.selected, 1); assert.equal(missing.counts.response, 0);
+  await assert.rejects(runStateAccess.inspectAuthorizedRunState(missing.service,
+    {indexKey: missing.ref, principalId: 'actor', purpose: 'inspect'}), {code: 'RunStateAccessDenied'});
+});
+
+test('selected publication observation never treats denial failure or malformed original as absence', async () => {
+  for (const options of [{denyAt: 'request'}, {denyAt: 'response'}, {failRead: true}, {malformed: true}]) {
+    const f = selectedPublicationFixture(options);
+    await assert.rejects(f.run);
+    assert.equal(f.counts.probe, 0, 'No fallback physical read after a selected failure');
+    if (options.denyAt === 'request') assert.equal(f.counts.selected, 0);
+  }
 });
