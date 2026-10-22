@@ -453,7 +453,8 @@ export async function openDeliveryAttemptIndex(path, {create, maxEntries, maxWir
       requireOpen();
       if (!complete) fail('DeliveryAttemptIndexUnavailable');
     };
-    const setResultRecovery = dirty => {
+    const beginResultRecovery = () => {
+      const dirty = 1;
       const retry = uncertain && uncertainResultRecovery?.dirty === dirty;
       if (retry) {
         if (closed || closing || mutating || !complete) fail('DeliveryAttemptIndexCleanupPending');
@@ -999,8 +1000,7 @@ export async function openDeliveryAttemptIndex(path, {create, maxEntries, maxWir
     usage();recoveryState();inventoryUsage();physicalState();
     return Object.freeze({
       resultDeletionRecoveryRequired() {requireComplete(); return resultRecovery.dirty === 1;},
-      beginResultDeletionLifetime() {setResultRecovery(1);},
-      sealResultDeletionLifetime() {setResultRecovery(0);},
+      beginResultDeletionLifetime: beginResultRecovery,
       retainResultDeletionSeal() {
         // Store calls this only after its real children settle. Retention is
         // not a seal ACK; close groups it with an existing native transaction.

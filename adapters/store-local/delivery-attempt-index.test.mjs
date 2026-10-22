@@ -32,9 +32,11 @@ test('Result cleanup lifecycle is durable and native close alone never seals it'
   armed = false; index = await openDeliveryAttemptIndex(path, options);
   assert.equal(index.resultDeletionRecoveryRequired(), true);
   armed = true;
-  index.sealResultDeletionLifetime(); index.sealResultDeletionLifetime();
+  index.retainResultDeletionSeal(); index.retainResultDeletionSeal();
+  assert.equal(commits, 1, 'retaining the Store acknowledgement is not a native seal ACK');
+  index.close();
   assert.equal(commits, 2, 'one real seal after the Store reports its original children settled');
-  index.close(); armed = false;
+  armed = false;
   index = await openDeliveryAttemptIndex(path, options);
   assert.equal(index.resultDeletionRecoveryRequired(), false);
 });
@@ -50,7 +52,7 @@ test('Result cleanup lifecycle upgrades version ten into required legacy recover
   finally {database.close();}
   index = await openDeliveryAttemptIndex(path, options);
   assert.equal(index.resultDeletionRecoveryRequired(), true, 'old producers did not record this cleanup lifetime');
-  index.sealResultDeletionLifetime(); index.close();
+  index.retainResultDeletionSeal(); index.close();
   index = await openDeliveryAttemptIndex(path, options);
   assert.equal(index.resultDeletionRecoveryRequired(), false);
 });
@@ -84,15 +86,15 @@ test(`Result cleanup lifecycle ${phase} retains its ${afterCommit ? 'committed' 
   });
   const path = join(directory, 'index.sqlite3'), options = {create: false, maxEntries: 4, maxWireBytes: 4096};
   index = await openDeliveryAttemptIndex(path, {...options, create: true}); index.migrate([]);
-  if (phase === 'seal') index.beginResultDeletionLifetime();
-  const change = () => index[phase === 'begin' ? 'beginResultDeletionLifetime' : 'sealResultDeletionLifetime']();
+  if (phase === 'seal') {index.beginResultDeletionLifetime(); index.retainResultDeletionSeal();}
+  const change = () => index[phase === 'begin' ? 'beginResultDeletionLifetime' : 'close']();
   armed = true;
   assert.throws(change, error => error.outcome === 'unknown');
-  assert.throws(() => index.publicationUsage(), {code: 'DeliveryAttemptIndexCommitOutcomeUnknown'});
-  assert.throws(() => index[phase === 'begin' ? 'sealResultDeletionLifetime' : 'beginResultDeletionLifetime'](),
-    {code: 'DeliveryAttemptIndexCommitOutcomeUnknown'});
+  const refusal = phase === 'begin' ? 'DeliveryAttemptIndexCommitOutcomeUnknown' : 'DeliveryAttemptIndexCleanupPending';
+  assert.throws(() => index.publicationUsage(), {code: refusal});
+  assert.throws(() => index.putPublicationContracts([], {objects: 0, bytes: 0}), {code: refusal});
   change();
-  assert.equal(index.resultDeletionRecoveryRequired(), phase === 'begin');
+  if (phase === 'begin') assert.equal(index.resultDeletionRecoveryRequired(), true);
   index.close(); armed = false;
   index = await openDeliveryAttemptIndex(path, options);
   assert.equal(index.resultDeletionRecoveryRequired(), phase === 'begin');
