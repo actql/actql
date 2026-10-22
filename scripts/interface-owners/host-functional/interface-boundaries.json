@@ -8242,7 +8242,7 @@
     {
       "module": "adapters/host-common/run-publication.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "5fd9d71a309cdf945c47b6d382f0ee9820261445f3a10302ea4e3808451ad4a5",
+      "sha256": "5b8df4083fc53d54b3cc9c7d2cb9a5650e808ac8984b5a05dd81925e136ddbd5",
       "role": "physical-io",
       "owner": "Existing Run Publication/Artifact Owners and physical Store sequencing",
       "exports": [
@@ -8376,6 +8376,13 @@
         },
         {
           "name": "persistContracts/persistContracts",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "persistContracts/persistContracts#2",
           "parameters": [
             "contract"
           ],
@@ -8617,6 +8624,7 @@
             "member/member",
             "persistContracts",
             "persistContracts/persistContracts",
+            "persistContracts/persistContracts#2",
             "publishEffectFreeRun",
             "publishEffectfulRun",
             "publishEffectfulRun/memberReceipts/memberReceipts",
@@ -8676,6 +8684,10 @@
               {
                 "path": "docs/design/result-description.md",
                 "anchor": "The existing publication caller can supply its immutable setup bodies and"
+              },
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "For an unknown native setup outcome, the caller may confirm that same cleanup"
               }
             ],
             "inputsOutputs": [
@@ -8792,6 +8804,10 @@
               {
                 "path": "docs/design/result-description.md",
                 "anchor": "The caller marks both setup duties complete only after that real COMMIT;"
+              },
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "once, then select the exact immutable bodies and installed attempt locator from"
               }
             ],
             "failure": [
@@ -8822,6 +8838,10 @@
               {
                 "path": "docs/design/result-description.md",
                 "anchor": "setup operations; an explicit refusal never falls back to another write."
+              },
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "cleanup, a missing locator, mismatched bodies or failed confirmation retains"
               }
             ],
             "cancellation": [
@@ -8878,6 +8898,10 @@
               {
                 "path": "docs/design/result-description.md",
                 "anchor": "operation. Native setup admits the bounded originals once and commits their"
+              },
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "setup adds no confirmation reads."
               }
             ],
             "extension": [
@@ -8934,6 +8958,10 @@
               {
                 "path": "adapters/store-local/publication-store.test.mjs",
                 "anchor": "test('publication setup commits its immutable bodies and initial attempt in one native transaction', async t => {"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "test('publication setup confirmation retains the original failure without complete same-Store acknowledgement', async t => {"
               }
             ]
           }
