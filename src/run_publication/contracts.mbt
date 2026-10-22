@@ -1457,6 +1457,18 @@ pub fn publication_contract_json(contract : PublicationContract) -> String {
 }
 
 ///|
+/// Read the original scope from an admitted Run Definition. This projection
+/// does not interpret scope syntax, authorize access or read the saved wire.
+pub fn publication_contract_run_definition_scope(
+  contract : PublicationContract,
+) -> String? {
+  if contract.name != "run_definition" {
+    return None
+  }
+  contract_string(contract, "scope_id")
+}
+
+///|
 /// Read the compiler-derived selection projection from an admitted Plan or
 /// Run. This identifies retained original material; it grants no execution.
 pub fn publication_contract_effect_target_selections_cid(
