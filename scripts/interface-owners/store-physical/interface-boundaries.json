@@ -9086,6 +9086,18 @@
           "async": false
         },
         {
+          "name": "openOriginalLocalPublicationStore/retainPhysicalHoldingReader/retainPhysicalHoldingReader",
+          "parameters": [
+            "holdingCid"
+          ],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/retainPhysicalHoldingReader/retainPhysicalHoldingReader/retainPhysicalHoldingReader",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "openOriginalLocalPublicationStore/retentionExtensionDirectory/retentionExtensionDirectory",
           "parameters": [
             "keyHash"
@@ -9098,18 +9110,6 @@
             "keyHash",
             "resultDefinitionCid"
           ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/retainPhysicalHoldingReader/retainPhysicalHoldingReader",
-          "parameters": [
-            "holdingCid"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/retainPhysicalHoldingReader/retainPhysicalHoldingReader/retainPhysicalHoldingReader",
-          "parameters": [],
           "async": false
         },
         {
@@ -10449,10 +10449,10 @@
             "openOriginalLocalPublicationStore/retainEffectCaptureCustody/retainEffectCaptureCustody/holdings/holdings",
             "openOriginalLocalPublicationStore/retainEffectCaptureCustody/retainEffectCaptureCustody/retainEffectCaptureCustody",
             "openOriginalLocalPublicationStore/retainEffectCaptureCustody/retainEffectCaptureCustody/retainEffectCaptureCustody/records/records",
-            "openOriginalLocalPublicationStore/retentionExtensionDirectory/retentionExtensionDirectory",
-            "openOriginalLocalPublicationStore/retentionExtensionResultDirectory/retentionExtensionResultDirectory",
             "openOriginalLocalPublicationStore/retainPhysicalHoldingReader/retainPhysicalHoldingReader",
             "openOriginalLocalPublicationStore/retainPhysicalHoldingReader/retainPhysicalHoldingReader/retainPhysicalHoldingReader",
+            "openOriginalLocalPublicationStore/retentionExtensionDirectory/retentionExtensionDirectory",
+            "openOriginalLocalPublicationStore/retentionExtensionResultDirectory/retentionExtensionResultDirectory",
             "openOriginalLocalPublicationStore/retireCommittedPublicationMetadata/retireCommittedPublicationMetadata",
             "openOriginalLocalPublicationStore/retireCommittedPublicationMetadata/retireCommittedPublicationMetadata/cleanup/cleanup",
             "openOriginalLocalPublicationStore/retireCommittedPublicationMetadata/retireCommittedPublicationMetadata/cleanup/cleanup#2",
