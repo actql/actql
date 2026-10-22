@@ -3292,12 +3292,13 @@ async function openInstalledHost(originalInstallation, preparation) {
     const accepted = await admitEffectDefinition(submission);
     // The durable accepted Ref is returned before physical work settles.
     // Its start claim cannot be reset by a lost response or a second submit.
-    void effectRun.start(accepted).catch(error => {
+    const settlement = effectRun.start(accepted).catch(error => {
       diagnostic('effect_start_failed', {ref: accepted.ref,
         code: error?.code ?? error?.message, cause: error?.cause});
     }).finally(() => settleHeldRun(accepted, runIdOf(accepted)))
       .catch(error => diagnostic('effect_settlement_failed', {
         ref: accepted.ref, code: error?.code ?? error?.message}));
+    try {observation?.retainOperation?.(settlement);} catch { /* Optional metadata. */ }
     return {ref: accepted.ref, durability: accepted.durability,
       revision: accepted.revision};
   };
@@ -3663,7 +3664,7 @@ async function openInstalledHost(originalInstallation, preparation) {
           finally { settle('started'); }
         },
       });
-      void flight.then(result => {
+      const settlement = flight.then(result => {
         if (!startObserved) {
           settle(result.kind === 'started' ? 'started' : 'not_started');
         }
@@ -3674,6 +3675,7 @@ async function openInstalledHost(originalInstallation, preparation) {
       }).finally(() => settleHeldRun(accepted, runId))
         .catch(error => diagnostic('effect_settlement_failed', {
           ref: accepted.ref, code: error?.code ?? error?.message}));
+      try {observation?.retainOperation?.(settlement);} catch { /* Optional metadata. */ }
       return observedStart;
     }
     const held = {preparedSource, preparedSources, keyedSource,
@@ -4090,7 +4092,7 @@ async function openInstalledHost(originalInstallation, preparation) {
               }
             })();
             effectResumeFlights.set(key, flight);
-            void flight.catch(error => diagnostic('source_resume_failed', {
+            const settlement = flight.catch(error => diagnostic('source_resume_failed', {
               ref, code: error?.code ?? error?.message,
               detail: error.authorization?.detail,
               cause: error.authorization?.error?.code,
@@ -4100,6 +4102,7 @@ async function openInstalledHost(originalInstallation, preparation) {
                 void checkpoints.sweep();
               }
             });
+            try {observation?.retainOperation?.(settlement);} catch { /* Optional metadata. */ }
             busy = true;
             continue;
           }
@@ -4156,7 +4159,7 @@ async function openInstalledHost(originalInstallation, preparation) {
             observeStopped: () => recordNodeRunPhysicalStop({ref, journal, moon, control}, null),
           });
           effectResumeFlights.set(key, flight);
-          void flight.catch(error => {
+          const settlement = flight.catch(error => {
             diagnostic('effect_resume_failed', {ref,
               code: error?.code ?? error?.message});
           }).finally(() => {
@@ -4166,6 +4169,7 @@ async function openInstalledHost(originalInstallation, preparation) {
               void checkpoints.sweep();
             }
           });
+          try {observation?.retainOperation?.(settlement);} catch { /* Optional metadata. */ }
           if (observing) await flight;
         } catch (error) {
           diagnostic('effect_resume_failed', {ref,
@@ -4494,6 +4498,7 @@ async function openInstalledHost(originalInstallation, preparation) {
           });
           transferred = true;
           modelResumeFlights.set(ref.runDefinitionCid, flight);
+          try {observation?.retainOperation?.(flight);} catch { /* Optional metadata. */ }
           busy = true;
         } catch (error) {
           busy = true;
@@ -4579,6 +4584,8 @@ async function openInstalledHost(originalInstallation, preparation) {
   const ingress = createNodeInProcessClientHost({
     authenticate: () => principalId,
     bindOwnedRequest,
+    captureResultOperation: observation === undefined ? undefined
+      : () => observation.captureCurrentOperation(),
     captureResultObservation: observation === undefined ? undefined : ref => {
       if (!observation.canMeasureResources()) return undefined;
       return captureManagedRunObservation(observation, ref,

@@ -72,3 +72,16 @@ test('tracked observation settlement cannot retire unresolved physical cleanup',
   assert.equal(owner.operation(ref), undefined);
   assert.equal(runs, 1);
 });
+
+test('optional dispatch observation cannot change execution or create another invocation', async () => {
+  for (const selected of [undefined, {emit() {}, retainOperation() {throw new Error('OptionalObserverFailed');}}]) {
+    let runs = 0;
+    const result = {}, ref = {runDefinitionCid: 'explicit-optional-observation'};
+    const owner = installNodeClientDispatchOwner({observation: selected});
+    assert.equal(await owner.track(ref, {run() {runs++; return result;},
+      observeStopped() {assert.fail('No physical operation to acknowledge');}}), result);
+    assert.equal(runs, 1);
+    assert.equal(owner.operation(ref), undefined);
+    await owner.drain();
+  }
+});

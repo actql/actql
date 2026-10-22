@@ -46,6 +46,14 @@ without a durable observation transaction per native read. Unknown unrelated-row
 classification and missing Run bindings stay absent; a later admitted Run cannot
 retroactively supply them. Contextless or late hooks remain unavailable rather
 than manufacturing a new operation frame.
+When accepted work outlives its ingress response, the installed dispatch and
+continuation Owners retain that same optional context against their original
+work Promises, including existing settlement callbacks. The physical-start
+barrier is not the work-completion boundary. A retained observation neither
+delays acceptance nor supplies a physical release ACK; failed resource cleanup
+remains with the original Owner even after its work Promise settles. Result
+iteration borrows the original operation context through its existing consumer
+lifetime rather than creating another ingress operation.
 Their `selected-returned` coverage does not count database rows visited, hidden
 aggregate work, other readers, parses or cache hits. A missing hook or lost record
 is unavailable coverage, never an observed zero or a completeness certificate.
