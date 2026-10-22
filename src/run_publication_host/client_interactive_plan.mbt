@@ -166,6 +166,8 @@ fn issue_client_static_plan_view(
   let checked = @strategy.graph_program(prepared.graph)
   let plan_cid = @publication.publication_contract_identity(plan)
   let steps : Array[String] = []
+  let step_ids : Map[String, Unit] = Map([])
+  let port_ids : Map[String, Unit] = Map([])
   let mut remaining = max_nodes
   for stage in 0..<@checked.unit_count(checked) {
     guard @checked.unit_pipeline(checked, stage) is Some(pipeline) else {
@@ -209,6 +211,10 @@ fn issue_client_static_plan_view(
         Err(issue) => return Err(issue)
       }
       let step_id = @publication.run_evidence_value_identity(key)
+      if step_ids.contains(step_id) {
+        return Err(Evidence(RunEvidenceReferenceMismatch("logical_map.step")))
+      }
+      step_ids[step_id] = ()
       let ports : Array[String] = []
       let mut names = "[]"
       let mut operator = "null"
@@ -217,7 +223,7 @@ fn issue_client_static_plan_view(
           @carrier.kind(carrier) == RelationKind else {
           return Err(UnsupportedCarrierContract)
         }
-        let (_, wire) = match
+        let (input_id, wire) = match
           interactive_port(
             plan_cid,
             step_id,
@@ -232,6 +238,10 @@ fn issue_client_static_plan_view(
           Ok(value) => value
           Err(issue) => return Err(issue)
         }
+        if port_ids.contains(input_id) {
+          return Err(Evidence(RunEvidenceReferenceMismatch("logical_map.port")))
+        }
+        port_ids[input_id] = ()
         ports.push(wire)
         carrier
       } else {
@@ -280,7 +290,7 @@ fn issue_client_static_plan_view(
               "\"}"
             }
           }
-          let (_, wire) = match
+          let (input_id, wire) = match
             interactive_port(
               plan_cid,
               step_id,
@@ -295,6 +305,12 @@ fn issue_client_static_plan_view(
             Ok(value) => value
             Err(issue) => return Err(issue)
           }
+          if port_ids.contains(input_id) {
+            return Err(
+              Evidence(RunEvidenceReferenceMismatch("logical_map.port")),
+            )
+          }
+          port_ids[input_id] = ()
           ports.push(wire)
         }
         step.output
@@ -318,6 +334,10 @@ fn issue_client_static_plan_view(
         Ok(value) => value
         Err(issue) => return Err(issue)
       }
+      if port_ids.contains(output_id) {
+        return Err(Evidence(RunEvidenceReferenceMismatch("logical_map.port")))
+      }
+      port_ids[output_id] = ()
       ports.push(wire)
       producers.push((step_id, output_id))
       steps.push(
@@ -353,13 +373,11 @@ fn issue_client_static_plan_view(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  match
-    @publication.check_interactive_logical_map_binding(
-      map, plan, max_bytes, max_nodes, max_depth,
-    ) {
-    Ok(_) => ()
-    Err(issue) => return Err(Evidence(issue))
-  }
+  // Each key and carrier above was just issued from this exact checked
+  // occurrence and Plan. Producer references use the retained prior output;
+  // uniqueness is checked in that same pass. Rechecking this fresh map through
+  // the external binding reader would parse and hash those unchanged keys
+  // again. External maps and control admission retain that full reader.
   let body = "{\"version\":\"actql-plan-view/0.1\",\"compiled_plan_cid\":\"" +
     plan_cid +
     "\",\"logical_map\":" +
