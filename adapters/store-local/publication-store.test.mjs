@@ -4271,6 +4271,28 @@ test('initial publication port keeps omitted compatibility and rejects explicit 
   assert.equal(validate(legacy),undefined);
   for (const invalid of [null,false,{},'missing']) assert.throws(
     ()=>validate({...legacy,appendInitialPublicationRecords:invalid}),code('InvalidRunPublicationStore'));
+  for (const invalid of [null,false,{},'missing']) assert.throws(
+    ()=>validate({...legacy,beginPublicationAttemptWithRecords:invalid}),code('InvalidRunPublicationStore'));
+});
+
+test('publication start preserves the independently adopted file attempt and record acknowledgements', async t => {
+  const {store,directory,configuration} = await fixture(t);
+  const request = publicationRequest(), attempt = publicationAttempt(request,'file-publication-start');
+  const original = contractControl.admit('publication_request',wire(request),limits);
+  const originalAttempt = contractControl.admit('publication_attempt',wire(attempt),limits);
+  const preparing = publicationRecord(attempt,0,'preparing');
+  const committing = publicationRecord(attempt,1,'committing',preparing);
+  const records = [preparing,committing].map(value=>contractControl.admit('publication_record',wire(value),limits));
+  await store.putSemantic(wire(attempt),originalAttempt.identity);
+  const before = await stat(join(directory,'contracts',originalAttempt.identity.slice(7)+'.json'));
+  await store.beginPublicationAttemptWithRecords([original],originalAttempt,records);
+  const after = await stat(join(directory,'attempts',originalAttempt.identity.slice(7),'attempt.json'));
+  assert.equal(after.dev,before.dev); assert.equal(after.ino,before.ino);
+  for (const record of [preparing,committing]) assert.equal(await readFile(
+    join(directory,'attempts',originalAttempt.identity.slice(7),`${record.sequence}.json`),'utf8'),wire(record));
+  await store.close();
+  const reopened = await openLocalPublicationStore(configuration,contractControl);
+  assert.deepEqual(await reopened.latestRecord(originalAttempt.identity),committing);
 });
 
 test('prepared publication bodies do not advance native progress and existing file bodies remain owned',async t=>{

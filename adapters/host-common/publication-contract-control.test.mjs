@@ -2328,6 +2328,10 @@ test('portable control validates Receipt and Captured Run references',
   let metadataBatches = 0, individualMetadataWrites = 0;
   const lostEffectfulStore = Object.freeze({
     ...effectfulStore,
+    async beginPublicationAttemptWithRecords(...args) {
+      metadataBatches++;
+      return Reflect.apply(effectfulStore.beginPublicationAttemptWithRecords, effectfulStore, args);
+    },
     async beginPublicationAttempt(...args) {
       metadataBatches++;
       return Reflect.apply(effectfulStore.beginPublicationAttempt, effectfulStore, args);
@@ -4360,6 +4364,11 @@ test('portable control validates Receipt and Captured Run references',
   const cancellation = new AbortController();
   const cancelledStore = Object.freeze({
     ...cancelledBase,
+    async beginPublicationAttemptWithRecords(...args) {
+      const value = await cancelledBase.beginPublicationAttemptWithRecords(...args);
+      cancellation.abort();
+      return value;
+    },
     async appendInitialPublicationRecords(records) {
       const value = await cancelledBase.appendInitialPublicationRecords(records);
       cancellation.abort();
