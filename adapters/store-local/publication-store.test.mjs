@@ -765,6 +765,12 @@ test('publication inventory retains failed Index alias durability before a fresh
 });
 
 test('publication completion batch avoids a separate post-Index native commit', async t => {
+  const exec = DatabaseSync.prototype.exec;
+  let armed = false, commits = 0;
+  t.mock.method(DatabaseSync.prototype, 'exec', function(sql, ...args) {
+    if (armed && sql === 'COMMIT') commits++;
+    return Reflect.apply(exec, this, [sql, ...args]);
+  });
   const {store, directory} = await fixture(t);
   const invocationValue = invocation();
   const request = publicationRequest(resultDefinition(), invocationValue.invocation_cid);
@@ -773,12 +779,7 @@ test('publication completion batch avoids a separate post-Index native commit', 
   const entry = indexEntry(request, attempt, invocationValue, {
     durable_result_binding_cids: [prepared.binding.identity],
   });
-  const exec = DatabaseSync.prototype.exec;
-  let armed = true, commits = 0;
-  t.mock.method(DatabaseSync.prototype, 'exec', function(sql, ...args) {
-    if (armed && sql === 'COMMIT') commits++;
-    return Reflect.apply(exec, this, [sql, ...args]);
-  });
+  armed = true;
   const outcome = await store.commitIndex(wire(entry), prepared.required, prepared.evidence);
   assert.equal(outcome.committed, true);
   assert.equal(commits, 1, 'inventory staging is durable; completion joins a later necessary transaction');
