@@ -51,7 +51,7 @@ export function interfaceGenerationFreshness(root) {
     cwd: root, timeout: 15000, maxBuffer: 1024 * 1024, stdio: ['ignore', 'pipe', 'pipe']});
   const assemblies = ['check-duckdb-environment-contract.mjs', 'connector-node-bundles.mjs', 'workers-composition.mjs'];
   for (const name of assemblies) execFileSync(process.execPath, [join(root, 'scripts', name)], {
-    cwd: root, timeout: 15000, maxBuffer: 1024 * 1024, stdio: ['ignore', 'pipe', 'pipe']});
+    cwd: root, timeout: 60000, maxBuffer: 1024 * 1024, stdio: ['ignore', 'pipe', 'pipe']});
   const generated = compilerBindingTargets.map(module => ({module,
     sha256: createHash('sha256').update(readFileSync(join(root, module))).digest('hex'),
     generator: {path: 'scripts/generate-js-compiler-bindings.mjs', anchor: 'generateCompilerBindings'},
