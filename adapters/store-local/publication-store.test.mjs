@@ -3832,6 +3832,72 @@ test(`publication start preserves existing ${file ? 'file' : 'native'} ${state} 
 });
 }
 
+for (const file of [false,true]) for (const afterCommit of [false,true]) {
+test(`existing publication start confirms only its ${file?'file':'native'} ${afterCommit?'committed':'rolled-back'} setup group`, async t => {
+  const exec=DatabaseSync.prototype.exec;
+  let armed=false,lost=false,commits=0,begins=0,database,failure;
+  t.mock.method(DatabaseSync.prototype,'exec',function(sql) {
+    if(armed&&sql==='COMMIT') {
+      commits++;
+      if(!lost) {
+        lost=true;database=this;
+        if(afterCommit)Reflect.apply(exec,this,[sql]);
+        throw Object.assign(new Error('existing setup COMMIT reply unavailable'),{code:'EIO'});
+      }
+      assert.equal(this,database);
+    }
+    return Reflect.apply(exec,this,[sql]);
+  });
+  const {store,configuration}=await fixture(t);
+  const request=publicationRequest(),attempt=publicationAttempt(request,`prior-start-unknown-${file}-${afterCommit}`);
+  const original=contractControl.admit('publication_request',wire(request),limits);
+  const originalAttempt=contractControl.admit('publication_attempt',wire(attempt),limits);
+  if(file)await store.putSemantic(wire(attempt),originalAttempt.identity);
+  await store.beginPublicationAttempt([original],originalAttempt);
+  const prior=publicationRecord(attempt,0,'preparing');
+  await store.appendRecord(wire(prior),{uncommittedConfirmed:false});
+  const first=publicationRecord(attempt,0,'preparing',undefined,{observed_at:'2026-09-18T00:00:10.000Z'});
+  const next=publicationRecord(attempt,1,'committing',first,{observed_at:'2026-09-18T00:00:11.000Z'});
+  const records=[first,next].map(value=>contractControl.admit('publication_record',wire(value),limits));
+  const extra=seal('run_invocation',{version:'actql-run-invocation/0.1',
+    invocation_template_cid:cids.template,observation_set_cid:digest(`setup-extra-${file}-${afterCommit}`)});
+  const extraOriginal=contractControl.admit('run_invocation',wire(extra),limits);
+  const selected={...store,async beginPublicationAttemptWithRecords(...args) {
+    assert.equal(this,selected);begins++;
+    try{return await Reflect.apply(store.beginPublicationAttemptWithRecords,store,args);}
+    catch(error){failure=error;throw error;}
+  }};
+  armed=true;
+  assert.equal(await persistOriginalPublicationSetup(selected,[original,extraOriginal],originalAttempt,records),true);
+  armed=false;
+  assert.equal(begins,1);assert.equal(commits,2);
+  assert.equal(failure.publicationStartKind,'setup');
+  assert.equal(failure.cleanupHandle.status().pending,false);
+  assert.deepEqual(await store.latestRecord(originalAttempt.identity),prior);
+  assert.equal((await store.readPublicationContract(extraOriginal.identity,extraOriginal.name)).wire,extraOriginal.wire);
+  for(const record of records)await assert.rejects(store.readPublicationContract(record.identity,'publication_record'),code('PublicationContractMissing'));
+  await store.close();
+  const reopened=await openLocalPublicationStore(configuration,contractControl);
+  assert.deepEqual(await reopened.latestRecord(originalAttempt.identity),prior);
+});
+}
+
+test('initial publication caller consumes its already issued cancellation pair without reissuing', async t => {
+  const {store}=await fixture(t);
+  const attempt=publicationAttempt(publicationRequest(),'prepared-cancellation-pair');
+  const originalAttempt=contractControl.admit('publication_attempt',wire(attempt),limits);
+  await store.createAttempt(wire(attempt));
+  const first=publicationRecord(attempt,0,'preparing');
+  const next=publicationRecord(attempt,1,'cancelled',first);
+  const records=Object.freeze([first,next].map(value=>contractControl.admit('publication_record',wire(value),limits)));
+  const reason=new Error('OriginalPreparedCancellation');
+  const prepared=Object.freeze({records,next:records[1],cancelled:true,cancellation:reason});
+  const control={issuePublicationRecord(){assert.fail('No repeated issuance for the same initial pair');}};
+  await assert.rejects(appendOriginalInitialStates(store,control,originalAttempt,undefined,
+    ()=>assert.fail('No repeated clock sample for immutable prepared records'),limits,prepared),error=>error===reason);
+  assert.deepEqual(await store.latestRecord(originalAttempt.identity),next);
+});
+
 test('publication start refuses capacity and foreign progress before any mutation', async t => {
   const {store} = await fixture(t,{maxObjects:3});
   const request = publicationRequest(), attempt = publicationAttempt(request,'start-capacity');
