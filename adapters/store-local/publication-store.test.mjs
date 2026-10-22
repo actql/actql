@@ -792,6 +792,9 @@ test('publication Index original refuses conflicting body and invalid nominal co
   await assert.rejects(store.commitIndex(selectedWire, prepared.required, prepared.evidence, original),
     error => error.code === 'InvalidPublicationContract' && error.cause?.code === 'OriginalRefused');
   assert.equal(await store.inspectCommittedIndex(indexKeyFor(request)), undefined);
+  // All refusals precede commit custody. This fixture still owns the original
+  // uncommitted payload preparation and must release it before Store close.
+  assert.equal(await prepared.prepared.release(), true);
 });
 
 test('publication inventory reuses only its newly acknowledged Index write within the commit', async t => {
