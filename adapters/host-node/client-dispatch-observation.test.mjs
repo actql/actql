@@ -25,10 +25,11 @@ test('dispatch observation retains the original operation beyond its start barri
   const pending = new Promise(resolve => {finish = resolve;});
   const retained = [], stopped = [], ref = {runDefinitionCid: 'observed-dispatch'};
   const definition = {wire: 'explicit-definition'};
+  const row = {cancellationRequested: false, revision: 1, runDefinition: definition};
   const owner = installNodeClientDispatchOwner({observation: observation(retained),
     moon: {}, control: {runDefinitionRunId: () => 'explicit-run', runCancellationConfirmed: () => false},
     journal: {reservePhysicalStart: () => true,
-      lookupRunDefinition: () => ({cancellationRequested: false, revision: 1, runDefinition: definition}),
+      lookupRunDefinition: () => row,
       lookupReconciliationState: () => undefined,
       markPhysicalClose: (...args) => stopped.push(args)},
     store: {confirmCommittedIndex: async () => committed ? {} : undefined},
