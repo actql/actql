@@ -432,6 +432,9 @@ test('publication computation lifetime retires capture cancelled before publicat
   const declaration = parse(text, {ecmaVersion: 'latest', sourceType: 'module'}).body
     .find(node => node.type === 'ExportNamedDeclaration' &&
       node.declaration?.id?.name === 'publishCompletedEffectFreeRun').declaration;
+  const failureClass = parse(text, {ecmaVersion: 'latest', sourceType: 'module'}).body
+    .find(node => node.type === 'ExportNamedDeclaration' &&
+      node.declaration?.id?.name === 'CompletedRunPublicationError').declaration;
   for (const retirementFailure of [undefined, new Error('original capture cancellation refused')]) {
   const controller = new AbortController(), reason = new Error('original stop after capture');
   const captured = Object.freeze({original: 'captured'}), original = Object.freeze({original: 'contract'});
@@ -443,7 +446,8 @@ test('publication computation lifetime retires capture cancelled before publicat
       if (retirementFailure !== undefined) throw retirementFailure;
     }};
   const entry = new Function('validateOptions', 'exportCompletedRunResultSet', 'uniqueContracts',
-    'publishEffectFreeRun', 'releasePreparedResults', 'member', text.slice(declaration.start, declaration.end) +
+    'publishEffectFreeRun', 'releasePreparedResults', 'member', text.slice(failureClass.start, failureClass.end) +
+    '\n' + text.slice(declaration.start, declaration.end) +
     '\nreturn publishCompletedEffectFreeRun;')(() => {}, async (_options, exported) => {
       exported.push({publication: {artifact: original, derivation: original,
         ordering: original, durableBinding: original}});
