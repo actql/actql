@@ -4182,7 +4182,7 @@
     {
       "module": "adapters/store-local/delivery-attempt-index.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "4bc16f008097815a6a0da55eb4326b6433dfb9e241dde11219f38b38d08e7bb9",
+      "sha256": "59f20a633d05ea1ccc59acfd724669b7283583b19a173cc54b13c0c7b9a15319",
       "exports": [
         "openDeliveryAttemptIndex"
       ],
@@ -4220,6 +4220,16 @@
             "initialWire",
             "initialCid"
           ],
+          "async": false
+        },
+        {
+          "name": "openDeliveryAttemptIndex/beginResultRecovery/beginResultRecovery",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openDeliveryAttemptIndex/beginResultRecovery/beginResultRecovery/beginResultRecovery",
+          "parameters": [],
           "async": false
         },
         {
@@ -4290,6 +4300,11 @@
         },
         {
           "name": "openDeliveryAttemptIndex/flushPublicationFinishes/flushPublicationFinishes",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openDeliveryAttemptIndex/flushResultSeal/flushResultSeal",
           "parameters": [],
           "async": false
         },
@@ -4700,6 +4715,11 @@
           "async": false
         },
         {
+          "name": "openDeliveryAttemptIndex/init:resultDeletionRecoveryRequired/init:resultDeletionRecoveryRequired",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "openDeliveryAttemptIndex/init:retainPhysicalRemoval/init:retainPhysicalRemoval",
           "parameters": [
             "value"
@@ -4711,6 +4731,11 @@
           "parameters": [
             "value"
           ],
+          "async": false
+        },
+        {
+          "name": "openDeliveryAttemptIndex/init:retainResultDeletionSeal/init:retainResultDeletionSeal",
+          "parameters": [],
           "async": false
         },
         {
@@ -4918,6 +4943,16 @@
           "async": false
         },
         {
+          "name": "openDeliveryAttemptIndex/openDeliveryAttemptIndex#17",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openDeliveryAttemptIndex/openDeliveryAttemptIndex#18",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "openDeliveryAttemptIndex/openDeliveryAttemptIndex#2",
           "parameters": [],
           "async": false
@@ -5101,6 +5136,11 @@
             "entry",
             "i"
           ],
+          "async": false
+        },
+        {
+          "name": "openDeliveryAttemptIndex/readResultRecovery/readResultRecovery",
+          "parameters": [],
           "async": false
         },
         {
@@ -5317,6 +5357,8 @@
             "fail/fail",
             "openDeliveryAttemptIndex",
             "openDeliveryAttemptIndex/add/add",
+            "openDeliveryAttemptIndex/beginResultRecovery/beginResultRecovery",
+            "openDeliveryAttemptIndex/beginResultRecovery/beginResultRecovery/beginResultRecovery",
             "openDeliveryAttemptIndex/captureClose/captureClose",
             "openDeliveryAttemptIndex/checkFence/checkFence",
             "openDeliveryAttemptIndex/close/close",
@@ -5328,6 +5370,7 @@
             "openDeliveryAttemptIndex/fenceOriginal/fenceOriginal",
             "openDeliveryAttemptIndex/fenceState/fenceState",
             "openDeliveryAttemptIndex/flushPublicationFinishes/flushPublicationFinishes",
+            "openDeliveryAttemptIndex/flushResultSeal/flushResultSeal",
             "openDeliveryAttemptIndex/init:attempt/init:attempt",
             "openDeliveryAttemptIndex/init:beginPhysicalObjectLifetime/init:beginPhysicalObjectLifetime",
             "openDeliveryAttemptIndex/init:beginPhysicalObjectLifetime/init:beginPhysicalObjectLifetime/init:beginPhysicalObjectLifetime",
@@ -5391,8 +5434,10 @@
             "openDeliveryAttemptIndex/init:recoverPhysicalObjects/init:recoverPhysicalObjects/init:recoverPhysicalObjects#2",
             "openDeliveryAttemptIndex/init:removePhysicalObjects/init:removePhysicalObjects",
             "openDeliveryAttemptIndex/init:removePublicationContract/init:removePublicationContract",
+            "openDeliveryAttemptIndex/init:resultDeletionRecoveryRequired/init:resultDeletionRecoveryRequired",
             "openDeliveryAttemptIndex/init:retainPhysicalRemoval/init:retainPhysicalRemoval",
             "openDeliveryAttemptIndex/init:retainPublicationInventoryFinish/init:retainPublicationInventoryFinish",
+            "openDeliveryAttemptIndex/init:retainResultDeletionSeal/init:retainResultDeletionSeal",
             "openDeliveryAttemptIndex/init:retireNativePublicationInventory/init:retireNativePublicationInventory",
             "openDeliveryAttemptIndex/init:run/init:run",
             "openDeliveryAttemptIndex/init:stageNativePublicationInventory/init:stageNativePublicationInventory",
@@ -5423,6 +5468,8 @@
             "openDeliveryAttemptIndex/openDeliveryAttemptIndex#14",
             "openDeliveryAttemptIndex/openDeliveryAttemptIndex#15",
             "openDeliveryAttemptIndex/openDeliveryAttemptIndex#16",
+            "openDeliveryAttemptIndex/openDeliveryAttemptIndex#17",
+            "openDeliveryAttemptIndex/openDeliveryAttemptIndex#18",
             "openDeliveryAttemptIndex/openDeliveryAttemptIndex#2",
             "openDeliveryAttemptIndex/openDeliveryAttemptIndex#3",
             "openDeliveryAttemptIndex/openDeliveryAttemptIndex#4",
@@ -5453,6 +5500,7 @@
             "openDeliveryAttemptIndex/publicationMutation/publicationMutation/publicationMutation/publicationMutation",
             "openDeliveryAttemptIndex/publicationMutation/publicationMutation/publicationMutation/publicationMutation#2",
             "openDeliveryAttemptIndex/publicationMutation/publicationMutation/retry/retry",
+            "openDeliveryAttemptIndex/readResultRecovery/readResultRecovery",
             "openDeliveryAttemptIndex/recoveryOriginal/recoveryOriginal",
             "openDeliveryAttemptIndex/recoveryState/recoveryState",
             "openDeliveryAttemptIndex/requireComplete/requireComplete",
@@ -5532,6 +5580,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "The optional complete publication start also joins the immutable setup bodies,"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "### Settled Result deletion recovery"
               }
             ],
             "inputsOutputs": [
@@ -5657,7 +5709,7 @@
               },
               {
                 "path": "adapters/store-local/delivery-attempt-index.mjs",
-                "anchor": "retirePublicationFinishReferences = () => retainedPublicationFinishes.clear();"
+                "anchor": "retirePublicationFinishReferences = () => {retainedPublicationFinishes.clear(); pendingResultSeal = undefined;};"
               },
               {
                 "path": "docs/design/result-description.md",
@@ -5950,6 +6002,10 @@
               {
                 "path": "adapters/store-local/publication-store.test.mjs",
                 "anchor": "publication start caller confirms its original"
+              },
+              {
+                "path": "adapters/store-local/delivery-attempt-index.test.mjs",
+                "anchor": "Result cleanup lifecycle is durable and native close alone never seals it"
               }
             ]
           }
@@ -5959,7 +6015,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "acd437cafe823f42e45387bd2d3618655ea6b4de67a48e31b7d68c6c1e8be0df",
+      "sha256": "f6d9573fdce23395042b252566188beb30a71c663baecc9700f141cbd3c33308",
       "exports": [
         "PublicationStoreError",
         "assertOriginalLocalPublicationStoreFacilityCurrent",
@@ -10799,6 +10855,14 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "An already-started attempt retains its existing progress."
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "### Settled Result deletion recovery"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "The existing staging, prepared-schema staging, metadata-deletion staging and"
               }
             ],
             "inputsOutputs": [
@@ -12013,6 +12077,22 @@
               {
                 "path": "adapters/store-local/publication-store.test.mjs",
                 "anchor": "existing publication start confirms only its"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "clean Store reopening does not rescan settled Result deletion history"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "unchanged opening staging and clock directories require no new durability acknowledgement"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "opening staging cleanup still acknowledges each actual directory mutation"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "opening staging cleanup does not return a Store after its directory acknowledgement fails"
               }
             ]
           }
