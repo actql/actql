@@ -317,14 +317,26 @@ fn NativeLocalProductConfigurationSession::check_original(
 pub fn NativeLocalProductConfigurationSession::stage_configuration(
   self : NativeLocalProductConfigurationSession,
 ) -> Result[Unit, NativeLocalAdoptionIssue] {
-  // Validate the Product once for this synchronous, locked staging interval.
-  // Every explicit call observes the originals again; no application callback
-  // or authorization decision is retained across staging calls.
-  native_timing_count(58)
+  // A new explicit staging call observes the Product again. The private
+  // restore path consumes its immediately preceding constructor observation.
   match self.check_original() {
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
+  self.stage_configuration_after_original_check()
+}
+
+///|
+// Only the explicit checked entrance above and the immediately returned
+// constructor below reach this synchronous interval under the same Lock.
+// No application callback or authorization decision is retained across calls.
+fn NativeLocalProductConfigurationSession::stage_configuration_after_original_check(
+  self : NativeLocalProductConfigurationSession,
+) -> Result[Unit, NativeLocalAdoptionIssue] {
+  if self.closed {
+    return Err(Closed)
+  }
+  native_timing_count(58)
   let allow_creation = !self.existing_only
   // Fence further creation before any I/O. A failed or interrupted staging
   // attempt is not converted into permission to retry an absent original.
@@ -596,6 +608,7 @@ fn restore_native_local_product_configuration_original(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  // This final locked check is read-only and also verifies every file witness.
-  session.stage_configuration().map(_ => session)
+  // The successful constructor just checked this same locked Product. Consume
+  // that observation while checking each original file, without another entry.
+  session.stage_configuration_after_original_check().map(_ => session)
 }
