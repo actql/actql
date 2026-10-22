@@ -135,8 +135,9 @@ export async function describeAuthorizedResult(service, input, signal) {
     retention = await store.readPublicationContract(
       control.resultReadRetentionPolicyCid(manifest, request.resultName),
       'result_retention_policy');
-    evidence = await store.readCommittedResultDescriptionEvidence(
-      request.indexKey, definitionCid);
+    evidence = installed.readCommittedPublication === undefined
+      ? await store.readCommittedResultDescriptionEvidence(request.indexKey, definitionCid)
+      : await store.readCommittedResultDescriptionEvidence(request.indexKey, definitionCid, selected);
   } catch (error) {
     if (error?.code === 'PublicationLookupDenied') fail('ResultAccessDenied');
     if (['PublicationObjectMissing', 'PublicationContractMissing']
@@ -474,9 +475,9 @@ export async function deliverAuthorizedResult(
     const resultDefinitionCid = installed.control.resultReadDefinitionCid(
       manifest, request.resultName,
     );
-    retained = await installed.store.readCommittedResultRetentionExtension(
-      indexKey, resultDefinitionCid,
-    );
+    retained = installed.readCommittedPublication === undefined
+      ? await installed.store.readCommittedResultRetentionExtension(indexKey, resultDefinitionCid)
+      : await installed.store.readCommittedResultRetentionExtension(indexKey, resultDefinitionCid, selected);
   } catch (error) {
     if (installed.control.resultAccessProgressAction(progress) ===
         'resolve_committed_result') {

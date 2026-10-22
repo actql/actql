@@ -312,3 +312,23 @@ admission, parsing, hashing or policy evaluation. Changed, missing, rejected or
 foreign Account state cannot reuse the prior Allow. This count is neither a
 permission nor a durable receipt, and does not change the original delivery
 claim, quota, byte exposure, COMMIT Unknown, non-resend or cleanup duties.
+
+### Selected publication metadata observation
+
+The initial Result resolution already acquires and admits one selected Index
+and its exact inventory from the same Store. Description evidence and initial
+retention lookup consume that frozen publication pair once instead of opening,
+hashing and admitting the same Index again in a trusted nested metadata read.
+The existing Store keeps the private association with that returned original;
+copied, foreign, wrong-Run or already-consumed pairs refuse. Explicit invalid
+input never becomes the omitted legacy path, which still acquires its own
+selected publication independently.
+
+The pair retains immutable facts, not permission, a Result delivery claim or a
+new durability acknowledgement. Same-Store metadata retirement invalidates it
+through the existing indexed Run fence. Binding, schema, payload and retention
+originals keep their existing validation and cleanup. Final response and actual
+delivery head checks remain after authorization or uncontrolled callbacks; the
+payload reader does not consume this preliminary observation. A new public
+operation acquires its own pair and detects changed or missing selected bytes.
+Weak-key retention adds no Store-wide successful-read or authorization cache.
