@@ -257,8 +257,9 @@ test "Original command failure survives a failed Read return without publishing 
     Some(Err("OriginalBusinessFailure")),
     returned,
   )
+  let refused : Result[Unit, LocalCommandPreparationIssue] = Err(issue)
   let message = try {
-    ignore(command_preparation_result(Err(issue), stage=Some("command-read")))
+    ignore(command_preparation_result(refused, stage=Some("command-read")))
     "unexpected success"
   } catch {
     ClientStop(message) => message
