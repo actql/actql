@@ -5075,6 +5075,101 @@ test('index opening cleanup retains native and failed metadata FD independently'
   }
 });
 
+test('Manifest selection leaves unrelated committed history out of ordinary Store opening', async t => {
+  const setup = await fixture(t), grants = [];
+  for (let n = 0; n < 3; n++) {
+    const grant = seal('manifest_read_grant', {...manifestReadGrant(3),
+      manifest_read_grant_cid: undefined, principal_id: `history-${n}`});
+    await setup.store.consumeManifestReadGrant(wire(grant), 'first');
+    await setup.store.consumeManifestReadGrant(wire(grant), 'second');
+    grants.push(grant);
+  }
+  await setup.store.close();
+  const root = join(setup.directory, 'manifest-reads'), enumerations = [], stats = [];
+  const originalReaddir = fsPromises.readdir, originalLstat = fsPromises.lstat;
+  t.mock.method(fsPromises, 'readdir', function(path, ...args) {
+    if (String(path) === root || String(path).startsWith(root + sep)) enumerations.push(String(path));
+    return Reflect.apply(originalReaddir, this, [path, ...args]);
+  });
+  t.mock.method(fsPromises, 'lstat', function(path, ...args) {
+    if (String(path).startsWith(root + sep)) stats.push(String(path));
+    return Reflect.apply(originalLstat, this, [path, ...args]);
+  });
+  syncBuiltinESMExports(); t.after(() => {t.mock.restoreAll(); syncBuiltinESMExports();});
+  const reopened = await openLocalPublicationStore(setup.configuration, contractControl);
+  assert.deepEqual({enumerations, stats}, {enumerations: [], stats: []});
+  const selected = join(root, grants[1].manifest_read_grant_cid.slice(7));
+  const staging = join(selected, '.staging-original-interrupted-use');
+  await writeFile(staging, 'incomplete private metadata');
+  assert.equal((await reopened.consumeManifestReadGrant(wire(grants[1]), 'third')).created, true);
+  assert.deepEqual(enumerations, [selected]);
+  assert(stats.length > 0 && stats.every(path => path === selected || path.startsWith(selected + sep)));
+  await assert.rejects(stat(staging), code('ENOENT'));
+  await assert.rejects(reopened.consumeManifestReadGrant(wire(grants[1]), 'fourth'), code('ManifestReadGrantUseLimit'));
+});
+
+test('Manifest selection requires its actual directory ACK after a lost use acknowledgement', async t => {
+  const setup = await fixture(t); await setup.store.close();
+  const grant = manifestReadGrant(1), directory = join(setup.directory, 'manifest-reads', grant.manifest_read_grant_cid.slice(7));
+  const primary = Object.assign(new Error('lost selected Manifest directory ACK'), {code: 'InjectedManifestAck'});
+  let refuse = true, attempts = 0;
+  t.after(() => {refuse = false;});
+  const store = await openLocalPublicationStore(setup.configuration, contractControl, {
+    async syncDirectory(path) {
+      if (path === directory) {attempts++; if (refuse) throw primary;}
+      const handle = await open(path, 'r'); try {await handle.sync();} finally {await handle.close();}
+    },
+  });
+  await assert.rejects(store.consumeManifestReadGrant(wire(grant), 'same'), error => error === primary);
+  const target = join(directory, createHash('sha256').update('same').digest('hex') + '.json');
+  const before = await stat(target), bytes = await readFile(target);
+  await assert.rejects(store.consumeManifestReadGrant(wire(grant), 'same'), error => error === primary);
+  assert.equal(attempts, 2, 'Visible same bytes are not a lost directory ACK');
+  refuse = false;
+  assert.equal((await store.consumeManifestReadGrant(wire(grant), 'same')).idempotent, true);
+  assert.equal(attempts, 3);
+  assert.deepEqual(await readFile(target), bytes);
+  const after = await stat(target); assert.equal(after.dev, before.dev); assert.equal(after.ino, before.ino);
+  assert.equal((await store.consumeManifestReadGrant(wire(grant), 'same')).idempotent, true);
+  assert.equal(attempts, 3, 'This same Store retains only the actual successful ACK');
+  await assert.rejects(store.consumeManifestReadGrant(wire(grant), 'different'), code('ManifestReadGrantUseLimit'));
+});
+
+test('Manifest selection retains the original failed directory FD close before Store retirement', async t => {
+  let failure, directoryHandle, refuse = true, armed = false;
+  t.after(async () => {
+    armed = refuse = false;
+    await failure?.cleanupHandle?.retry();
+    if (directoryHandle?.fd >= 0) await directoryHandle.close();
+  });
+  const setup = await fixture(t), grant = manifestReadGrant(1);
+  const directory = join(setup.directory, 'manifest-reads', grant.manifest_read_grant_cid.slice(7));
+  const originalOpen = fsPromises.open;
+  t.mock.method(fsPromises, 'open', async function(path, ...args) {
+    const handle = await Reflect.apply(originalOpen, this, [path, ...args]);
+    if (armed && String(path) === directory) {
+      directoryHandle = handle; const close = handle.close;
+      handle.close = function(...values) {
+        assert.strictEqual(this, handle);
+        return refuse ? false : Reflect.apply(close, this, values);
+      };
+    }
+    return handle;
+  });
+  syncBuiltinESMExports(); t.after(() => {t.mock.restoreAll(); syncBuiltinESMExports();});
+  armed = true;
+  await assert.rejects(setup.store.consumeManifestReadGrant(wire(grant), 'same'), error => {
+    failure = error; return error.cleanupHandle?.status().pending === true;
+  });
+  assert.ok(directoryHandle.fd >= 0);
+  await assert.rejects(setup.store.close(), code('PublicationStoreCleanupPending'));
+  assert.equal(setup.store.status().closed, false);
+  refuse = false; armed = false;
+  assert.equal((await failure.cleanupHandle.retry()).pending, false);
+  assert.equal(directoryHandle.fd, -1);
+  assert.equal((await setup.store.consumeManifestReadGrant(wire(grant), 'same')).idempotent, true);
+});
+
 test('Manifest grant use is durable idempotent and bounded across restart',
   async t => {
     const {store, configuration} = await fixture(t);
