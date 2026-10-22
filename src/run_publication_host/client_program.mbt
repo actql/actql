@@ -32,6 +32,7 @@ struct PreparedClientProgram {
   source : @syntax.Program
   local_values_max_rows : Int
   mut local_normalization : ClientLocalNormalization?
+  full_sequences : Array[ClientFullSequence]
 }
 
 ///|
@@ -64,7 +65,7 @@ pub fn with_prepared_client_values_row_limit(
       return None
     }
   }
-  Some({ ..value, local_values_max_rows: max_rows, })
+  Some({ ..value, local_values_max_rows: max_rows, full_sequences: [], })
 }
 
 ///|
@@ -75,6 +76,77 @@ pub fn prepared_client_values_sequence_limits(
     ..client_standard_values_sequence_limits(),
     max_rows: value.local_values_max_rows,
   }
+}
+
+///|
+/// Full lowering of the same original task. Runtime registry, contexts,
+/// query-time binding, capacity and permission remain separate obligations.
+pub fn prepare_prepared_client_full_sequence(
+  value : PreparedClientProgram,
+  task : Int,
+  limits : @lower.SequenceLimits,
+) -> Result[@lower.PreparedSequence, ClientValuesPipelineIssue] {
+  prepared_client_full_sequence(value, task, limits)
+}
+
+///|
+fn prepared_client_full_sequence(
+  value : PreparedClientProgram,
+  task : Int,
+  limits : @lower.SequenceLimits,
+  prepare? : (@lower.BoundPrepared, @lower.SequenceLimits) -> Result[
+    @lower.PreparedSequence,
+    @lower.SequenceIssue,
+  ] = @lower.prepare_sequence,
+) -> Result[@lower.PreparedSequence, ClientValuesPipelineIssue] {
+  guard @strategy.graph_task_owner(value.graph, task) is Some(owner) else {
+    return Err(MissingTask)
+  }
+  for retained in value.full_sequences {
+    if retained.task == task &&
+      physical_equal(@lower.sequence_owner(retained.sequence), owner) &&
+      client_full_sequence_limits_match(retained.limits, limits) {
+      return Ok(retained.sequence)
+    }
+  }
+  let sequence = match prepare(owner, limits) {
+    Ok(sequence) => sequence
+    Err(issue) => return Err(Sequence(issue))
+  }
+  if !physical_equal(@lower.sequence_owner(sequence), owner) {
+    return Err(MissingTask)
+  }
+  let retained = { task, limits, sequence, }
+  for index in 0..<value.full_sequences.length() {
+    if value.full_sequences[index].task == task {
+      value.full_sequences[index] = retained
+      return Ok(sequence)
+    }
+  }
+  // Only a task of this checked graph can enter. One successful full sequence
+  // per task is retained; changed limits replace it rather than growing a map.
+  value.full_sequences.push(retained)
+  Ok(sequence)
+}
+
+///|
+priv struct ClientFullSequence {
+  task : Int
+  limits : @lower.SequenceLimits
+  sequence : @lower.PreparedSequence
+}
+
+///|
+fn client_full_sequence_limits_match(
+  first : @lower.SequenceLimits,
+  second : @lower.SequenceLimits,
+) -> Bool {
+  first.max_steps == second.max_steps &&
+  first.max_rows == second.max_rows &&
+  first.max_cells == second.max_cells &&
+  first.max_bindings == second.max_bindings &&
+  first.max_name_bytes == second.max_name_bytes &&
+  first.expressions == second.expressions
 }
 
 ///|
@@ -431,12 +503,11 @@ pub fn emit_prepared_client_task_aoa_steps(
   max_nodes : Int,
   max_depth : Int,
 ) -> Result[String, ClientTaskAoAStepsIssue] {
-  guard @strategy.graph_task_owner(value.graph, task) is Some(owner) else {
-    return Err(MissingTask)
-  }
-  let sequence = match @lower.prepare_sequence(owner, limits) {
+  let sequence = match
+    prepare_prepared_client_full_sequence(value, task, limits) {
     Ok(result) => result
-    Err(issue) => return Err(Sequence(issue))
+    Err(Sequence(issue)) => return Err(Sequence(issue))
+    Err(_) => return Err(MissingTask)
   }
   let writer = @encode.writer(max_wire_bytes, max_nodes, max_depth) catch {
     _ => return Err(Encoding)
@@ -897,6 +968,7 @@ pub fn emit_prepared_client_values_pipeline(
     max_wire_bytes,
     max_nodes,
     max_depth,
+    preparation=Some(value),
   )
 }
 
@@ -908,13 +980,26 @@ fn emit_client_values_pipeline_graph(
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  preparation? : PreparedClientProgram? = None,
 ) -> Result[String, ClientValuesPipelineIssue] {
   guard @strategy.graph_task_owner(graph, task) is Some(owner) else {
     return Err(MissingTask)
   }
-  let sequence = match @lower.prepare_sequence(owner, limits) {
-    Ok(result) => result
-    Err(issue) => return Err(Sequence(issue))
+  let sequence = match preparation {
+    Some(value) => {
+      if !physical_equal(value.graph, graph) {
+        return Err(MissingTask)
+      }
+      match prepare_prepared_client_full_sequence(value, task, limits) {
+        Ok(result) => result
+        Err(issue) => return Err(issue)
+      }
+    }
+    None =>
+      match @lower.prepare_sequence(owner, limits) {
+        Ok(result) => result
+        Err(issue) => return Err(Sequence(issue))
+      }
   }
   let writer = @encode.writer(max_wire_bytes, max_nodes, max_depth) catch {
     _ => return Err(Encoding)
@@ -1159,6 +1244,7 @@ pub fn issue_prepared_client_values_aoa_identity(
     max_wire_bytes,
     max_nodes,
     max_depth,
+    preparation=Some(value),
   )
 }
 
@@ -1170,9 +1256,16 @@ fn issue_client_values_aoa_identity_graph(
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  preparation? : PreparedClientProgram? = None,
 ) -> Result[ClientValuesAoAIdentity, ClientValuesAoAIdentityIssue] {
   issue_client_values_aoa_parts_graph(
-    graph, task, limits, max_wire_bytes, max_nodes, max_depth,
+    graph,
+    task,
+    limits,
+    max_wire_bytes,
+    max_nodes,
+    max_depth,
+    preparation~,
   ).map(parts => parts.identity)
 }
 
@@ -1184,10 +1277,17 @@ fn issue_client_values_aoa_parts_graph(
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  preparation? : PreparedClientProgram? = None,
 ) -> Result[ClientValuesAoAParts, ClientValuesAoAIdentityIssue] {
   let wire = match
     emit_client_values_pipeline_graph(
-      graph, task, limits, max_wire_bytes, max_nodes, max_depth,
+      graph,
+      task,
+      limits,
+      max_wire_bytes,
+      max_nodes,
+      max_depth,
+      preparation~,
     ) {
     Ok(body) => body
     Err(issue) => return Err(Pipeline(issue))
@@ -1281,6 +1381,15 @@ pub fn prepare_client_task_sequence(
   max_entries : Int,
   prepared_sequence? : @lower.PreparedSequence? = None,
 ) -> Result[@execution.GeneratedSequence, ClientTaskSequenceIssue] {
+  let prepared_sequence = match prepared_sequence {
+    Some(sequence) => Some(sequence)
+    None =>
+      match prepare_prepared_client_full_sequence(value, task, limits) {
+        Ok(sequence) => Some(sequence)
+        Err(Sequence(issue)) => return Err(Sequence(issue))
+        Err(_) => return Err(MissingTask)
+      }
+  }
   prepare_client_task_sequence_graph(
     value.graph,
     task,
@@ -1423,7 +1532,11 @@ pub fn prepare_effect_free_client_program(
     Err(issue) => return Err(Syntax(issue))
   }
   prepare_parsed_effect_free_client_program(
-    parsed, environment, supplied, limits, source_catalog~,
+    parsed,
+    environment,
+    supplied,
+    limits,
+    source_catalog~,
   )
 }
 
@@ -1485,6 +1598,7 @@ pub fn prepare_parsed_effect_free_client_program(
         check_environment_cid: @checked.checking_environment_cid(environment),
         source: parsed,
         local_normalization: None,
+        full_sequences: [],
         local_values_max_rows: client_standard_values_sequence_limits().max_rows,
       })
     Err(issue) => Err(Graph(issue))

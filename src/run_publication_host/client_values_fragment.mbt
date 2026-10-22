@@ -77,6 +77,7 @@ pub fn issue_prepared_client_values_fragment(
     max_wire_bytes,
     max_nodes,
     max_depth,
+    preparation=Some(value),
   )
 }
 
@@ -109,9 +110,16 @@ fn issue_client_values_fragment_graph(
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  preparation? : PreparedClientProgram? = None,
 ) -> Result[ClientValuesFragmentNode, ClientValuesFragmentIssue] {
   issue_client_values_fragment_parts_graph(
-    graph, task, sequence_limits, max_wire_bytes, max_nodes, max_depth,
+    graph,
+    task,
+    sequence_limits,
+    max_wire_bytes,
+    max_nodes,
+    max_depth,
+    preparation~,
   ).map(parts => parts.0)
 }
 
@@ -124,6 +132,7 @@ fn issue_client_values_fragment_parts_graph(
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  preparation? : PreparedClientProgram? = None,
 ) -> Result[
   (ClientValuesFragmentNode, ClientValuesAoAParts),
   ClientValuesFragmentIssue,
@@ -133,7 +142,13 @@ fn issue_client_values_fragment_parts_graph(
   }
   let aoa = match
     issue_client_values_aoa_parts_graph(
-      graph, task, sequence_limits, max_wire_bytes, max_nodes, max_depth,
+      graph,
+      task,
+      sequence_limits,
+      max_wire_bytes,
+      max_nodes,
+      max_depth,
+      preparation~,
     ) {
     Ok(value) => value
     Err(issue) => return Err(AoA(issue))
