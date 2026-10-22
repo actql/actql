@@ -604,6 +604,19 @@ per-body ACK. The existing Store's byte/object limits include native bodies and
 unresolved reservations beside actual file objects. A persisted usage singleton
 changes atomically with those bodies; ordinary open does not enumerate them.
 
+The optional complete publication start also joins the immutable setup bodies,
+attempt locator and its two initial progress records in that transaction. The
+existing Common issuer prepares those records before persistence; there is no
+protected action between setup and initial progress. The exact attempt/Run and
+both sequential records, all bodies and quota changes commit together. Foreign
+progress, insufficient capacity and conflicting existing progress refuse. An
+independently adopted file attempt keeps its actual file append/ACK protocol.
+Stores without this optional port keep the original two-step caller.
+Cancellation after the grouped write still reaches the ordinary active check
+before Index publication. A lost reply retains the entire same start group,
+not a replacement attempt or record; only its real confirmation followed by
+exact body and final-locator observation permits the caller to continue.
+
 The optional initial-publication operation retains the two original records,
 `preparing` and its immediate `committing` or `cancelled` successor, in one
 native transaction. Both complete bodies, sequential locators and quota changes
