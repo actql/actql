@@ -5931,7 +5931,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "7c2e16e7bc8a8d647c9fbddeeb619b844d89627a328d16d48d6857fc820a4486",
+      "sha256": "ae9c1a837221e2cc73a16d993623820fe5fa272877e584f321a4611d3930d9b0",
       "exports": [
         "PublicationStoreError",
         "assertOriginalLocalPublicationStoreFacilityCurrent",
@@ -11718,7 +11718,15 @@
               },
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
-                "anchor": "Ordinary opening observes prepared-custody, physical-holding,"
+                "anchor": "Ordinary opening observes prepared-custody and pending physical-holding-deletion"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "test('ordinary Store opening does not enumerate or stat committed physical holding history'"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "test(`ordinary Store opening defers an unrelated holding"
               }
             ]
           }
