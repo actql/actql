@@ -4,6 +4,7 @@ import {readFileSync} from 'node:fs';
 import {compileFunction} from 'node:vm';
 import {parse} from 'acorn';
 import {diagnosticObserver} from '../host-common/diagnostic-observer.mjs';
+import {createHostObservationConnection, installHostObservation} from '../host-common/observation.mjs';
 
 // Execute the original declarations with explicit ports. No runtime, Model
 // permission, Store commit or physical capacity is issued by these fixtures.
@@ -84,4 +85,38 @@ test('optional dispatch observation cannot change execution or create another in
     assert.equal(owner.operation(ref), undefined);
     await owner.drain();
   }
+});
+
+test('installed observation follows the actual tracked work after ingress returns', async () => {
+  const records = [], ref = {namespaceId: 'explicit-namespace', authorityScopeCid: `sha256:${'a'.repeat(64)}`,
+    runDefinitionCid: `sha256:${'b'.repeat(64)}`};
+  const trace = {traceId: '1'.repeat(32), spanId: '2'.repeat(16), traceFlags: 1};
+  const projection = installHostObservation(createHostObservationConnection({
+    deliver: record => records.push(record), include: ['run'],
+    measurements: {include: ['rows']}, events: {level: 'diagnostic'},
+  }), {journal: {observationStorage: () => ({consume: () => ({accepted: true})})}});
+  let release, flight;
+  const gate = new Promise(resolve => {release = resolve;});
+  const owner = installNodeClientDispatchOwner({observation: projection});
+  const accepted = {};
+  try {
+    assert.equal(await projection.run('submit', trace, () => {
+      flight = owner.track(ref, {run: async () => {
+        await gate;
+        projection.diagnostic('selected_rows_observed', {ref, rowOwner: 'request-journal',
+          selection: 'run-definition', rowKind: 'run', returnedRows: 1, unrelatedRows: 0,
+          coverage: 'selected-returned'});
+      }, observeStopped() {assert.fail('No physical operation in this port fixture');}});
+      return accepted;
+    }), accepted);
+    assert.equal(projection.status().activeSegments, 1);
+    release(); await flight;
+    assert.equal(projection.status().activeSegments, 0);
+    await projection.close();
+    const rows = records.filter(record => record.event === 'selected_rows_observed');
+    assert.equal(rows.length, 1);
+    assert.equal(rows[0].attributes['actql.rows.returned'], 1);
+    assert.deepEqual(rows[0].parent, trace);
+    assert.deepEqual(projection.status().loss, {});
+  } finally {release(); if (flight) await flight; await owner.drain(); await projection.close();}
 });
