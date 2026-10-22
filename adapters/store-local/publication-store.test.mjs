@@ -3659,6 +3659,46 @@ test('metadata retirement preserves a second Run prepared schema owner',
       code('PublicationContractMissing'));
   });
 
+test('Result consumption retains its reader until the same failed FD close acknowledges',async t=>{
+  const {store,directory}=await fixture(t);
+  const invocationValue=invocation(),request=publicationRequest(resultDefinition(),invocationValue.invocation_cid);
+  const attempt=publicationAttempt(request),prepared=await prepareCommit(store,request,attempt,invocationValue);
+  const entry=indexEntry(request,attempt,invocationValue,{durable_result_binding_cids:[prepared.binding.identity]});
+  await store.commitIndex(wire(entry),prepared.required,prepared.evidence);
+  const binding=JSON.parse(prepared.binding.wire),path=join(directory,'objects',binding.material_generation_cid.slice(7));
+  const actualOpen=fsPromises.open;
+  let opens=0,streamCloseCalls=0,allowClose=false,failure;
+  t.mock.method(fsPromises,'open',async function(file,...args){
+    const handle=await Reflect.apply(actualOpen,this,[file,...args]);
+    if(String(file)===path&&++opens===2) {
+      // The first actual FD verifies the binding. This second original is
+      // the consuming FD whose failed close must retain the Result reader.
+      const close=handle.close;
+      handle.close=function(...values){streamCloseCalls++;return allowClose?Reflect.apply(close,this,values):false;};
+    }
+    return handle;
+  });
+  syncBuiltinESMExports();
+  try {
+    await assert.rejects(store.consumeCommittedResult(indexKeyFor(request),binding.result_definition_cid,
+      ()=>true,()=>{}),error=>{
+      failure=error;return error.code==='PublicationStoreCleanupPending'&&error.cleanupHandle?.status().pending===true;
+    });
+    assert.equal(streamCloseCalls,1);assert.equal(opens,2);
+    await assert.rejects(store.close(),code('PublicationStoreCleanupPending'));
+    assert.equal(store.status().closed,false);
+    assert.equal(failure.cleanupHandle.status().pending,true);
+    allowClose=true;assert.equal((await failure.cleanupHandle.retry()).pending,false);
+    assert.equal(streamCloseCalls,2);assert.equal(opens,2,'retry never reopens the generation');
+    assert.equal(await store.close(),true);
+  } finally {
+    // Even the original red assertion must close its real consuming FD
+    // before fixture directory teardown; this is test-owned cleanup only.
+    allowClose=true;if(failure?.cleanupHandle?.status().pending)await failure.cleanupHandle.retry();
+    t.mock.restoreAll();syncBuiltinESMExports();
+  }
+});
+
 test('durable Result retirement blocks new reads and waits for active readers',
   async t => {
     const {store, configuration} = await fixture(t);
