@@ -124,6 +124,7 @@ pub fn issue_prepared_client_publication_plan_facts(
   let limits : Array[String] = []
   let bindings : Array[String] = []
   let entries : Array[String] = []
+  let binding_fields : Array[ClientPublicationBindingFields?] = []
   for unit in 0..<@checked.unit_count(program) {
     guard @checked.unit_publication_count(program, unit) is Some(count) else {
       return Err(Limits(CheckedLimit(MissingPublication)))
@@ -140,8 +141,8 @@ pub fn issue_prepared_client_publication_plan_facts(
           Ok(body) => body
           Err(issue) => return Err(Limits(CheckedLimit(issue)))
         }
-        let binding = match
-          emit_prepared_client_publication_binding(
+        let (binding, fields) = match
+          emit_client_publication_binding_material(
             value, unit, index, scope, max_wire_bytes, max_nodes, max_depth,
           ) {
           Ok(body) => body
@@ -153,17 +154,32 @@ pub fn issue_prepared_client_publication_plan_facts(
         }
         limits.push(limit)
         bindings.push(binding)
+        binding_fields.push(fields)
         entries.push(entry)
       }
     }
   }
-  match
-    admit_prepared_client_publication_plan_facts(
-      value, limits, bindings, max_facts, max_wire_bytes, max_nodes, max_depth,
-    ) {
-    Ok(_) => Ok({ limits, bindings, entries, })
-    Err(issue) => Err(issue)
+  // The complete inventory was just emitted from these same checked ports.
+  // Preserve limit-before-binding refusal order without regenerating expected
+  // wires or parsing the issuer's own field copies through the saved reader.
+  let seen_limits : Map[String, Unit] = Map([])
+  for limit in limits {
+    if seen_limits.contains(limit) {
+      return Err(Limits(DuplicateCheckedLimit))
+    }
+    seen_limits[limit] = ()
   }
+  let seen_bindings : Map[String, Unit] = Map([])
+  for fields in binding_fields {
+    guard fields is Some(fields) else {
+      return Err(Bindings(CheckedBinding(Encoding)))
+    }
+    if seen_bindings.contains(fields.binding_cid) {
+      return Err(Bindings(CheckedBinding(MismatchedCheckedLimit)))
+    }
+    seen_bindings[fields.binding_cid] = ()
+  }
+  Ok({ limits, bindings, entries, })
 }
 
 ///|

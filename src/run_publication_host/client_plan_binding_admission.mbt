@@ -1,5 +1,5 @@
 ///|
-struct ParsedClientPublicationBinding {
+struct ClientPublicationBindingFields {
   binding_cid : String
   effective_max : Int64
   resolved_limit_cid : String
@@ -50,7 +50,7 @@ fn parse_client_publication_binding(
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
-) -> ParsedClientPublicationBinding? {
+) -> ClientPublicationBindingFields? {
   if max_wire_bytes < 0 || body.length() > max_wire_bytes {
     return None
   }
@@ -137,8 +137,8 @@ pub fn admit_prepared_client_publication_binding(
   max_nodes : Int,
   max_depth : Int,
 ) -> Result[Unit, ClientPublicationBindingAdmissionIssue] {
-  let expected = match
-    emit_prepared_client_publication_binding(
+  let (_, expected_fields) = match
+    emit_client_publication_binding_material(
       value, unit, index, scope, max_wire_bytes, max_nodes, max_depth,
     ) {
     Ok(body) => body
@@ -146,12 +146,7 @@ pub fn admit_prepared_client_publication_binding(
     Err(MismatchedCheckedLimit) => return Err(MismatchedBinding)
     Err(Encoding) => return Err(Encoding)
   }
-  guard parse_client_publication_binding(
-      expected, max_wire_bytes, max_nodes, max_depth,
-    )
-    is Some(expected_fields) else {
-    return Err(Encoding)
-  }
+  guard expected_fields is Some(expected_fields) else { return Err(Encoding) }
   guard parse_client_publication_binding(
       body, max_wire_bytes, max_nodes, max_depth,
     )
@@ -198,7 +193,7 @@ pub fn admit_prepared_client_publication_binding_set(
     return Err(BudgetExceeded)
   }
   let program = @strategy.graph_program(value.graph)
-  let expected : Array[ParsedClientPublicationBinding] = []
+  let expected : Array[ClientPublicationBindingFields] = []
   for unit in 0..<@checked.unit_count(program) {
     guard @checked.unit_publication_count(program, unit) is Some(count) else {
       return Err(CheckedBinding(MissingPublication))
@@ -208,17 +203,14 @@ pub fn admit_prepared_client_publication_binding_set(
         if expected.length() >= max_bindings {
           return Err(BudgetExceeded)
         }
-        let body = match
-          emit_prepared_client_publication_binding(
+        let (_, binding) = match
+          emit_client_publication_binding_material(
             value, unit, index, scope, max_wire_bytes, max_nodes, max_depth,
           ) {
           Ok(body) => body
           Err(issue) => return Err(CheckedBinding(issue))
         }
-        guard parse_client_publication_binding(
-            body, max_wire_bytes, max_nodes, max_depth,
-          )
-          is Some(binding) else {
+        guard binding is Some(binding) else {
           return Err(CheckedBinding(Encoding))
         }
         if expected.any(candidate => {
