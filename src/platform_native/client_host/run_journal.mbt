@@ -28,6 +28,13 @@ struct NativeClientRunJournal {
     RunRecordPolicyValidation,
     NativeClientRunRecord,
   )?
+  // Immutable header DATA for this operation, not a retained row or authority.
+  // New row revisions must still pass the complete outer and metadata readers.
+  mut operation_run_identity : (
+    String,
+    @host.ClientRequestIdentity,
+    @publication.PublicationContract,
+  )?
   admitted_publications : Array[
     (String, Array[@publication.CapturedEffectDependencyBody]),
   ]
@@ -168,10 +175,21 @@ fn read_run_record_in_mode(
   row : @sqlite.NativeJournalValue,
   mode : RunRecordPolicyValidation,
   journal? : NativeClientRunJournal? = None,
+  identity? : (@host.ClientRequestIdentity, @publication.PublicationContract)? = None,
 ) -> Result[NativeClientRunRecord, NativeClientRunJournalIssue] {
   native_timing_count(25)
+  let decoded = match identity {
+    None =>
+      @host.decode_client_run_journal_row_with_observation_originals(row.body)
+    Some((request, definition)) =>
+      @host.decode_client_run_journal_row_with_retained_identity(
+        row.body,
+        request,
+        definition,
+      )
+  }
   let (decoded, local_run_policy_originals, run_observation_originals) = match
-    @host.decode_client_run_journal_row_with_observation_originals(row.body) {
+    decoded {
     Ok(value) => value
     Err(_) => return Err(CustodyLost)
   }
@@ -477,6 +495,7 @@ fn open_native_client_run_journal_with_reads(
         operation_record: None,
         operation_submission: None,
         admitted_record: None,
+        operation_run_identity: None,
         admitted_adoption: None,
       })
     Err(issue) => Err(issue)
@@ -619,12 +638,23 @@ fn NativeClientRunJournal::admit_retained_record(
     native_timing_count(36)
     return Ok(record)
   }
-  let record = match read_run_record_in_mode(row, mode, journal=Some(self)) {
+  let identity = if self.transaction_active || self.operation_active {
+    match self.operation_run_identity {
+      Some((original, request, definition)) if original == key =>
+        Some((request, definition))
+      _ => None
+    }
+  } else {
+    None
+  }
+  let record = match
+    read_run_record_in_mode(row, mode, journal=Some(self), identity~) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
   if self.transaction_active || self.operation_active {
     self.admitted_record = Some((key, row.body, row.revision, mode, record))
+    self.operation_run_identity = Some((key, record.request, record.definition))
   }
   Ok(record)
 }
@@ -942,6 +972,11 @@ fn NativeClientRunJournal::bind_run_locked(
       }
     Err(issue) => return Err(Physical(issue))
   }
+  if self.transaction_active || self.operation_active {
+    self.operation_run_identity = Some(
+      (@host.client_request_scope_cid(request), request, definition),
+    )
+  }
   Ok({ ..record, revision, })
 }
 
@@ -1051,6 +1086,16 @@ fn NativeClientRunJournal::save_with_operations(
   match self.save_checkpoint_id_index(before, next, operations~) {
     Err(issue) => Err(issue)
     Ok(_) => {
+      // These opaque identities already belong to the emitted record. Keep
+      // them separately from row admission: changed metadata still needs its
+      // reader, while equal headers need no second parse or CID validation.
+      self.operation_run_identity = Some(
+        (
+          @host.client_request_scope_cid(next.request),
+          next.request,
+          next.definition,
+        ),
+      )
       // A control-only CAS without a Checkpoint changes flags and revision,
       // not its admitted Run or Policy originals. Retain that typed result with
       // the bytes just written; foreign metadata still takes full admission.
@@ -1226,6 +1271,7 @@ fn NativeClientRunJournal::invalidate_operation_run(
 ) -> Unit {
   self.operation_record = None
   self.admitted_record = None
+  self.operation_run_identity = None
   if self.operation_submission is Some((original, _)) {
     self.operation_submission = Some((original, None))
   }

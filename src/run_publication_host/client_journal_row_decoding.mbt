@@ -70,10 +70,79 @@ pub fn decode_client_run_journal_row_with_observation_originals(
 }
 
 ///|
+/// Decode a changed row using the same already admitted immutable identity
+/// when its exact canonical wire matches. Changed or foreign fields take the
+/// existing full admission. This is DATA reuse, not a Run or current grant.
+pub fn decode_client_run_journal_row_with_retained_identity(
+  body : Bytes,
+  request : ClientRequestIdentity,
+  definition : @publication.PublicationContract,
+) -> Result[
+  (ClientRunJournalEncoding, String?, String?),
+  ClientJournalDecodingIssue,
+] {
+  decode_client_run_journal_row_originals(
+    body,
+    true,
+    true,
+    retained_identity=Some((request, definition)),
+  )
+}
+
+///|
+fn decode_client_journal_request(
+  wire : String,
+  original : ClientRequestIdentity?,
+) -> Result[(ClientRequestIdentity, String), ClientJournalDecodingIssue] {
+  if original is Some(value) &&
+    client_request_identity_record_wire(value) is Ok(expected) &&
+    expected == wire {
+    return Ok((value, expected))
+  }
+  let value = match admit_client_request_identity_record_wire(wire) {
+    Ok(value) => value
+    Err(_) => return Err(CustodyLost)
+  }
+  // Request field admission checks its identities. Retain the original
+  // canonical-wire requirement as well, including nested JSON whitespace.
+  match client_request_identity_record_wire(value) {
+    Ok(expected) if expected == wire => Ok((value, expected))
+    _ => Err(CustodyLost)
+  }
+}
+
+///|
+fn decode_client_journal_definition(
+  wire : String,
+  original : @publication.PublicationContract?,
+) -> Result[
+  (@publication.PublicationContract, String),
+  ClientJournalDecodingIssue,
+] {
+  if original is Some(value) &&
+    @publication.publication_contract_name(value) == "run_definition" &&
+    @publication.publication_contract_json(value) == wire {
+    return Ok((value, wire))
+  }
+  let value = match
+    @publication.admit_publication_contract(
+      "run_definition", wire, 65536, 4096, 64,
+    ) {
+    Ok(value) => value
+    Err(_) => return Err(CustodyLost)
+  }
+  if @publication.publication_contract_json(value) != wire {
+    return Err(CustodyLost)
+  }
+  Ok((value, wire))
+}
+
+///|
 fn decode_client_run_journal_row_originals(
   body : Bytes,
   allow_local_policy : Bool,
   allow_observation_originals : Bool,
+  retained_identity? : (ClientRequestIdentity, @publication.PublicationContract)? = None,
 ) -> Result[
   (ClientRunJournalEncoding, String?, String?),
   ClientJournalDecodingIssue,
@@ -122,16 +191,21 @@ fn decode_client_run_journal_row_originals(
   if physical_start_claimed && !dispatch_reserved {
     return Err(CustodyLost)
   }
-  let request = match admit_client_request_identity_record_wire(request_wire) {
-    Ok(value) => value
-    Err(_) => return Err(CustodyLost)
-  }
-  let definition = match
-    @publication.admit_publication_contract(
-      "run_definition", definition_wire, 65536, 4096, 64,
+  let (request, request_wire) = match
+    decode_client_journal_request(
+      request_wire,
+      retained_identity.map(value => value.0),
     ) {
     Ok(value) => value
-    Err(_) => return Err(CustodyLost)
+    Err(issue) => return Err(issue)
+  }
+  let (definition, definition_wire) = match
+    decode_client_journal_definition(
+      definition_wire,
+      retained_identity.map(value => value.1),
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
   }
   let publication_binding = match
     @decode.lookup(object, "publication_binding") {
@@ -200,8 +274,10 @@ fn decode_client_run_journal_row_originals(
     checkpoint,
   }
   match
-    client_run_journal_row_body(
+    client_run_journal_row_body_from_wires(
       record,
+      request_wire,
+      definition_wire,
       local_run_policy_originals~,
       run_observation_originals~,
     ) {

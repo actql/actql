@@ -288,11 +288,13 @@ test "acknowledged control CAS retains the same typed Run originals within the o
   let (request, prepared, compiled, definition) = journal_test_run(
     "control-request", "control-run",
   )
+  journal.operation_active = true
   journal.bind_run(request, prepared, compiled, definition, true).unwrap()
   |> ignore
-  journal.operation_active = true
   let original = journal.lookup(request, true).unwrap()
   guard original is Retained(original) else { fail("missing original") }
+  assert_true(physical_equal(original.request, request))
+  assert_true(physical_equal(original.definition, definition))
   let (next, observed) = journal
     .transaction(() => {
       let next = journal.save({ ..original, dispatch_reserved: true, }).unwrap()
@@ -320,6 +322,7 @@ test "acknowledged control CAS retains the same typed Run originals within the o
   assert_eq(row.revision, started.revision)
   journal.operation_active = false
   journal.invalidate_operation_record()
+  assert_true(journal.operation_run_identity is None)
   guard journal.lookup(request, true).unwrap() is Retained(fresh) else {
     fail("missing committed original")
   }
@@ -368,6 +371,8 @@ test "changed Run metadata and invalid control shape do not inherit a typed orig
     .unwrap()
   assert_true(no_original)
   assert_false(physical_equal(next, admitted))
+  assert_true(physical_equal(next.request, admitted.request))
+  assert_true(physical_equal(next.definition, admitted.definition))
   assert_eq(
     @publication.publication_contract_identity(admitted.definition),
     @publication.publication_contract_identity(replacement),
@@ -398,6 +403,7 @@ test "failed control transaction retires the emitted original before rollback re
   assert_true(observed.val)
   assert_true(result is Err(CustodyLost))
   assert_true(journal.admitted_record is None)
+  assert_true(journal.operation_run_identity is None)
   guard journal.lookup(request, true).unwrap() is Retained(restored) else {
     fail("rollback lost original")
   }
@@ -438,6 +444,7 @@ test "lost control COMMIT retires emitted facts and cannot issue another start" 
     is Err(TransactionUnknown),
   )
   assert_true(journal.admitted_record is None)
+  assert_true(journal.operation_run_identity is None)
   assert_true(journal.fenced)
   assert_true(database.transaction_fenced())
   assert_true(journal.claim_physical_start(request, true) is Err(Fenced))
