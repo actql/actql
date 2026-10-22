@@ -95,12 +95,23 @@ pub fn encode_plan_fact_manifest_identity(
     "\",\"plan_facts\":" +
     facts +
     ",\"version\":\"actql-plan-fact-manifest/0.1\"}"
-  match
-    check_plan_fact_manifest_identity(
-      wire, facts, max_wire_bytes, max_nodes, max_depth,
-    ) {
-    Ok(_) => Ok({ wire, cid, })
-    Err(issue) => Err(issue)
+  // Both strings were assembled here from this admitted immutable fact array.
+  // Check the complete envelope's bounds without re-reading either string or
+  // hashing its already-issued identity again. Saved input uses the reader below.
+  try {
+    let measure = @encode.measuring_writer(max_wire_bytes, max_nodes, max_depth)
+    @encode.begin_object(measure)
+    @encode.key(measure, "plan_fact_manifest_cid")
+    @encode.string_value(measure, cid)
+    @encode.key(measure, "plan_facts")
+    @canonical.emit_value(plan_facts, measure)
+    @encode.key(measure, "version")
+    @encode.string_value(measure, "actql-plan-fact-manifest/0.1")
+    @encode.end_object(measure)
+    let _ = @encode.finish_measurement(measure)
+    Ok({ wire, cid, })
+  } catch {
+    _ => Err(InvalidManifest)
   }
 }
 
