@@ -28,12 +28,13 @@ struct NativeClientRunJournal {
     RunRecordPolicyValidation,
     NativeClientRunRecord,
   )?
-  // Immutable header DATA for this operation, not a retained row or authority.
-  // New row revisions must still pass the complete outer and metadata readers.
+  // Immutable header/compiler DATA for this operation, not a retained row or
+  // authority. New revisions still admit the outer row and changed metadata.
   mut operation_run_identity : (
     String,
     @host.ClientRequestIdentity,
     @publication.PublicationContract,
+    NativeClientStoredRunObservation?,
   )?
   admitted_publications : Array[
     (String, Array[@publication.CapturedEffectDependencyBody]),
@@ -86,6 +87,7 @@ struct NativeClientRunRecord {
   effect_material_originals : String?
   local_run_policy_originals : String?
   run_observation_originals : String?
+  observation_original : NativeClientStoredRunObservation?
   revision : Int64
   checkpoint : NativeClientCheckpointRecord?
 }
@@ -176,6 +178,7 @@ fn read_run_record_in_mode(
   mode : RunRecordPolicyValidation,
   journal? : NativeClientRunJournal? = None,
   identity? : (@host.ClientRequestIdentity, @publication.PublicationContract)? = None,
+  observation? : NativeClientStoredRunObservation? = None,
 ) -> Result[NativeClientRunRecord, NativeClientRunJournalIssue] {
   native_timing_count(25)
   let decoded = match identity {
@@ -230,6 +233,21 @@ fn read_run_record_in_mode(
         Err(_) => return Err(CustodyLost)
       }
   }
+  let observation_original = match run_observation_originals {
+    None => None
+    Some(wire) => {
+      let program = Some(@host.client_request_program_cid(request))
+      match observation {
+        Some(original) if original.matches(wire, definition, program) =>
+          Some(original)
+        _ =>
+          match read_native_stored_run_observation(wire, definition, program) {
+            Ok(original) => Some(original)
+            Err(_) => return Err(CustodyLost)
+          }
+      }
+    }
+  }
   let record : NativeClientRunRecord = {
     request,
     definition,
@@ -241,6 +259,7 @@ fn read_run_record_in_mode(
     effect_material_originals: decoded.effect_material_originals,
     local_run_policy_originals,
     run_observation_originals,
+    observation_original,
     revision: row.revision,
     checkpoint,
   }
@@ -252,15 +271,6 @@ fn read_run_record_in_mode(
       @effect.effect_ledger_entry_scope_cid(entry) !=
       @host.client_request_scope_cid(request)
     }) {
-    return Err(CustodyLost)
-  }
-  if run_observation_originals is Some(wire) &&
-    read_native_run_observation_originals(
-      wire,
-      definition,
-      program_cid=Some(@host.client_request_program_cid(request)),
-    )
-    is Err(_) {
     return Err(CustodyLost)
   }
   // The Common decoder already compared its complete canonical outer body
@@ -638,23 +648,32 @@ fn NativeClientRunJournal::admit_retained_record(
     native_timing_count(36)
     return Ok(record)
   }
-  let identity = if self.transaction_active || self.operation_active {
+  let (identity, observation) = if self.transaction_active ||
+    self.operation_active {
     match self.operation_run_identity {
-      Some((original, request, definition)) if original == key =>
-        Some((request, definition))
-      _ => None
+      Some((original, request, definition, observation)) if original == key =>
+        (Some((request, definition)), observation)
+      _ => (None, None)
     }
   } else {
-    None
+    (None, None)
   }
   let record = match
-    read_run_record_in_mode(row, mode, journal=Some(self), identity~) {
+    read_run_record_in_mode(
+      row,
+      mode,
+      journal=Some(self),
+      identity~,
+      observation~,
+    ) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
   if self.transaction_active || self.operation_active {
     self.admitted_record = Some((key, row.body, row.revision, mode, record))
-    self.operation_run_identity = Some((key, record.request, record.definition))
+    self.operation_run_identity = Some(
+      (key, record.request, record.definition, record.observation_original),
+    )
   }
   Ok(record)
 }
@@ -905,8 +924,18 @@ fn NativeClientRunJournal::bind_run_locked(
   request : @host.ClientRequestIdentity,
   definition : @publication.PublicationContract,
   run_observation_originals? : String? = None,
+  observation_original? : NativeClientStoredRunObservation? = None,
   operations? : NativeClientJournalOperationAccess? = None,
 ) -> Result[NativeClientRunRecord, NativeClientRunJournalIssue] {
+  if observation_original is Some(original) &&
+    !(run_observation_originals is Some(wire) &&
+    original.matches(
+      wire,
+      definition,
+      Some(@host.client_request_program_cid(request)),
+    )) {
+    return Err(ForeignRun)
+  }
   let reads = operations.map(value => value.reads)
   let issuance = match self.retained_with_issuance(request, reads~) {
     Err(issue) => return Err(issue)
@@ -938,6 +967,7 @@ fn NativeClientRunJournal::bind_run_locked(
     effect_material_originals: None,
     local_run_policy_originals: None,
     run_observation_originals,
+    observation_original,
     revision: 0L,
     checkpoint: None,
   }
@@ -974,7 +1004,12 @@ fn NativeClientRunJournal::bind_run_locked(
   }
   if self.transaction_active || self.operation_active {
     self.operation_run_identity = Some(
-      (@host.client_request_scope_cid(request), request, definition),
+      (
+        @host.client_request_scope_cid(request),
+        request,
+        definition,
+        observation_original,
+      ),
     )
   }
   Ok({ ..record, revision, })
@@ -1082,7 +1117,18 @@ fn NativeClientRunJournal::save_with_operations(
     Ok(value) => value
     Err(issue) => return Err(Physical(issue))
   }
-  let next = { ..record, revision, }
+  // An unrelated field's CAS spends its own row admission, not the unchanged
+  // compiler metadata. Use only the actual pre-CAS reader's typed originals;
+  // a copied candidate field cannot supply this retention.
+  let observation_original = before.observation_original.filter(original => {
+    record.run_observation_originals is Some(wire) &&
+    original.matches(
+      wire,
+      record.definition,
+      Some(@host.client_request_program_cid(record.request)),
+    )
+  })
+  let next = { ..record, revision, observation_original, }
   match self.save_checkpoint_id_index(before, next, operations~) {
     Err(issue) => Err(issue)
     Ok(_) => {
@@ -1094,6 +1140,7 @@ fn NativeClientRunJournal::save_with_operations(
           @host.client_request_scope_cid(next.request),
           next.request,
           next.definition,
+          next.observation_original,
         ),
       )
       // A control-only CAS without a Checkpoint changes flags and revision,

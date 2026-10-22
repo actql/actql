@@ -371,26 +371,7 @@ fn NativeLocalHostConnection::lookup_submitted_run_state_with_operations(
       }
       let read : Result[NativeClientSavedRunState?, NativeClientRunJournalIssue] = match
         self.journal.saved_run_state_locked(reference, request, reads~) {
-        Ok((original, run)) =>
-          match (original.run_state_original, original.run_state_observation) {
-            (Some(wire), Some((revision, Some(key)))) =>
-              @host.restore_client_run_state_original(run.definition, wire)
-              .map_err(_ => NativeClientRunJournalIssue::CustodyLost)
-              .bind(value => {
-                let observation = match
-                  native_saved_state_observation(run, value, revision) {
-                  Ok(result) => result
-                  Err(issue) => return Err(issue)
-                }
-                if observation.key() != key ||
-                  observation.wire(revision).to_option() !=
-                  Some(value.state_wire()) {
-                  return Err(CustodyLost)
-                }
-                Ok(Some({ original: value, control_revision: run.revision, }))
-              })
-            _ => Ok(None)
-          }
+        Ok((original, run)) => restore_native_saved_run_state(original, run)
         Err(issue) => Err(issue)
       }
       if !authority.current_for(self.journal, request) {

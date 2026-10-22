@@ -311,7 +311,7 @@ fn NativeClientRunJournal::accept_original_submitted_run(
     ) {
     return Err(ForeignRun)
   }
-  let observation_wire = match run_observation_originals {
+  let stored_observation = match run_observation_originals {
     None => None
     Some(value) =>
       match
@@ -319,20 +319,20 @@ fn NativeClientRunJournal::accept_original_submitted_run(
           value,
           plan=run_plan_original.map(ticket => ticket.original),
         ) {
-        Ok(wire) => {
-          if read_native_run_observation_originals(
+        Ok(wire) =>
+          match
+            read_native_stored_run_observation(
               wire,
               definition,
-              program_cid=Some(@host.client_request_program_cid(request)),
-            )
-            is Err(_) {
-            return Err(ForeignRun)
+              Some(@host.client_request_program_cid(request)),
+            ) {
+            Ok(original) => Some(original)
+            Err(_) => return Err(ForeignRun)
           }
-          Some(wire)
-        }
         Err(issue) => return Err(issue)
       }
   }
+  let observation_wire = stored_observation.map(original => original.wire)
   let local_run_policy_originals = match local_run_policy_original {
     None => None
     Some(original) => {
@@ -436,6 +436,11 @@ fn NativeClientRunJournal::accept_original_submitted_run(
           operations~,
           run_observation_originals=if original.run_admission is None {
             observation_wire
+          } else {
+            None
+          },
+          observation_original=if original.run_admission is None {
+            stored_observation
           } else {
             None
           },
