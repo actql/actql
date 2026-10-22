@@ -1523,7 +1523,7 @@ async function openOriginalLocalPublicationStore(
     `${cidHex(holdingCid)}.json`,
   );
 
-  const writePhysicalHoldingRecord = async (path, bytes, exclusive = true) => {
+  const writePhysicalHoldingRecord = async (path, bytes, exclusive = true, finalDirectory) => {
     // Existing holding publication retains its exclusive preparation fence.
     // Independent prepared-object custodies historically write concurrently;
     // they share this same Store's FD duties without a new serialization owner.
@@ -1539,7 +1539,7 @@ async function openOriginalLocalPublicationStore(
     const writer = {cleanup: undefined, failed: false};
     activePhysicalRecordWriters.add(writer);
     let original = {writers: activePhysicalRecordWriters, writer, temporary,
-      directory: stagingDirectory, syncDirectory};
+      directory: stagingDirectory, syncDirectory, finalNameAcknowledged: false};
     const status = () => Object.freeze({pending: original !== undefined});
     const cleanup = Object.freeze({status, retry() {
       if (flight !== undefined) return flight;
@@ -1551,7 +1551,13 @@ async function openOriginalLocalPublicationStore(
         }
         try { await unlink(original.temporary); }
         catch (error) { if (error?.code !== 'ENOENT') throw error; }
-        await original.syncDirectory(original.directory);
+        // A real final-name ACK retains these same synced bytes. Its removed
+        // temporary alias is not another durable allocation; exclusive open
+        // recovery already removes a crash-resurrected staging alias. Failed
+        // publication and unselected holding writers keep their original ACK.
+        if (!original.finalNameAcknowledged) {
+          await original.syncDirectory(original.directory);
+        }
         original.writers.delete(original.writer);
         original = undefined;
         return status();
@@ -1574,6 +1580,10 @@ async function openOriginalLocalPublicationStore(
       // The containing holding directory still needs its original separate
       // durability ACK before prepared ownership can be adopted.
       await link(temporary, path);
+      if (finalDirectory !== undefined) {
+        await syncDirectory(finalDirectory);
+        original.finalNameAcknowledged = true;
+      }
       writer.cleanup = cleanup;
       await cleanup.retry();
     } catch (primary) {
@@ -2014,8 +2024,8 @@ async function openOriginalLocalPublicationStore(
     // Publish a final recovery name only after the original record is complete,
     // synced and closed. An abrupt process stop may leave staging bytes, never
     // a partial final custody. Failed close stays in the same Store duty set.
-    await writePhysicalHoldingRecord(path, Buffer.from(JSON.stringify(record), 'utf8'), false);
-    await syncDirectory(custodyDirectory);
+    await writePhysicalHoldingRecord(path, Buffer.from(JSON.stringify(record), 'utf8'),
+      false, custodyDirectory);
     const custody = {
       token,
       path,

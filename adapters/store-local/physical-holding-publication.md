@@ -683,6 +683,19 @@ interrupted write remain in the existing staging namespace, where original
 restart recovery already reclaims unpublished aliases. A corrupt final record
 from an older process remains refused, not repaired or treated as absence.
 
+For prepared-object custody, that same metadata writer acknowledges the final
+custody directory before retiring its temporary alias. Once the original
+file and final name are durably acknowledged, removing the staging alias needs
+no additional directory acknowledgement: it is not a second retained object,
+and existing exclusive opening recovery removes any resurrected staging alias.
+Failed final-name acknowledgement still refuses payload installation and keeps
+the existing failure cleanup. A failed unlink retains the same cleanup and
+already acknowledged final name; retry does not rewrite the record or repeat
+its held acknowledgement. Other physical holding writers keep their existing
+separate staging and final-directory protocol. This ordering removes one
+redundant intermediate acknowledgement, not a payload sync, quota obligation,
+cleanup duty or uncertainty boundary.
+
 Independent prepared writers retain their existing concurrent behavior; they
 do not acquire the holding-publication exclusive fence or a new queue. Their
 metadata FDs join the same Store duty set before acquisition. Failed/false close
