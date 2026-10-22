@@ -5931,7 +5931,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "d859384b38292419303d345a9872083e9e5cc0b07495495930f1dbcda8bbdd8f",
+      "sha256": "18b612a7f73ee7c45a6f158c1a56f497f3e8da6e93da6c21af115d861ec28c29",
       "exports": [
         "PublicationStoreError",
         "assertOriginalLocalPublicationStoreFacilityCurrent",
@@ -6754,10 +6754,37 @@
           "async": true
         },
         {
-          "name": "openOriginalLocalPublicationStore/confirmPrivateEvidence/confirmPrivateEvidence/operation/operation/operation",
+          "name": "openOriginalLocalPublicationStore/confirmPrivateHoldingRead/confirmPrivateHoldingRead",
+          "parameters": [
+            "record"
+          ],
+          "async": true
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/confirmPrivateHoldingRead/confirmPrivateHoldingRead/confirmPrivateHoldingRead",
           "parameters": [
             "object"
           ],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/confirmPrivateHoldingRead/confirmPrivateHoldingRead/init:retry/init:retry",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/confirmPrivateHoldingRead/confirmPrivateHoldingRead/init:retry/init:retry/init:retry",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/confirmPrivateHoldingRead/confirmPrivateHoldingRead/init:retry/init:retry/init:retry#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/confirmPrivateHoldingRead/confirmPrivateHoldingRead/status/status",
+          "parameters": [],
           "async": false
         },
         {
@@ -8677,13 +8704,6 @@
           "async": true
         },
         {
-          "name": "openOriginalLocalPublicationStore/readModelRawEvidenceOriginal/readModelRawEvidenceOriginal/readModelRawEvidenceOriginal",
-          "parameters": [
-            "object"
-          ],
-          "async": false
-        },
-        {
           "name": "openOriginalLocalPublicationStore/readOpeningMetadata/readOpeningMetadata",
           "parameters": [
             "path"
@@ -10155,7 +10175,12 @@
             "openOriginalLocalPublicationStore/confirmPrivateEvidence/confirmPrivateEvidence",
             "openOriginalLocalPublicationStore/confirmPrivateEvidence/confirmPrivateEvidence/confirmPrivateEvidence",
             "openOriginalLocalPublicationStore/confirmPrivateEvidence/confirmPrivateEvidence/operation/operation",
-            "openOriginalLocalPublicationStore/confirmPrivateEvidence/confirmPrivateEvidence/operation/operation/operation",
+            "openOriginalLocalPublicationStore/confirmPrivateHoldingRead/confirmPrivateHoldingRead",
+            "openOriginalLocalPublicationStore/confirmPrivateHoldingRead/confirmPrivateHoldingRead/confirmPrivateHoldingRead",
+            "openOriginalLocalPublicationStore/confirmPrivateHoldingRead/confirmPrivateHoldingRead/init:retry/init:retry",
+            "openOriginalLocalPublicationStore/confirmPrivateHoldingRead/confirmPrivateHoldingRead/init:retry/init:retry/init:retry",
+            "openOriginalLocalPublicationStore/confirmPrivateHoldingRead/confirmPrivateHoldingRead/init:retry/init:retry/init:retry#2",
+            "openOriginalLocalPublicationStore/confirmPrivateHoldingRead/confirmPrivateHoldingRead/status/status",
             "openOriginalLocalPublicationStore/confirmSelectedCommittedIndex/confirmSelectedCommittedIndex",
             "openOriginalLocalPublicationStore/consumeCommittedResult/consumeCommittedResult",
             "openOriginalLocalPublicationStore/consumeCommittedResult/consumeCommittedResult/consumeCommittedResult",
@@ -10392,7 +10417,6 @@
             "openOriginalLocalPublicationStore/readMetadataInventory/readMetadataInventory",
             "openOriginalLocalPublicationStore/readModelRawEvidence/readModelRawEvidence",
             "openOriginalLocalPublicationStore/readModelRawEvidenceOriginal/readModelRawEvidenceOriginal",
-            "openOriginalLocalPublicationStore/readModelRawEvidenceOriginal/readModelRawEvidenceOriginal/readModelRawEvidenceOriginal",
             "openOriginalLocalPublicationStore/readOpeningMetadata/readOpeningMetadata",
             "openOriginalLocalPublicationStore/readPhysicalHolding/readPhysicalHolding",
             "openOriginalLocalPublicationStore/readPhysicalHoldingAt/readPhysicalHoldingAt",
@@ -11863,6 +11887,14 @@
               {
                 "path": "adapters/store-local/publication-store.test.mjs",
                 "anchor": "test('private confirmation keeps the existing reader and retirement scope through its real directory ACK'"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "If confirmation's directory sync exports a still-pending acquired FD, the same"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "test(`private confirmation retains a failed original directory close"
               }
             ]
           }
