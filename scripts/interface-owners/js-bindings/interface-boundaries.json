@@ -42690,7 +42690,7 @@
               },
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "retained.row.run_definition_cid !== selected.runDefinitionCid)"
+                "anchor": "original.row.run_definition_cid!==selected?.runDefinitionCid)"
               }
             ],
             "ownership": [
