@@ -1121,8 +1121,8 @@ evaluations; admitting open schemas or profile nodes requires their retained
 evidence rather than silently inheriting these projections. The candidate is
 still separate from sealed admission, backend obligations and Program permission.
 
-Generated-fragment checking rebuilds request material and the complete candidate
-from its retained checked request. It compares both the canonical stored body
+The private candidate-integrity regression fixture rebuilds request material and
+the complete candidate from its retained checked request. It compares both the canonical stored body
 and the material used by the emitter with the rebuilt body, in addition to the
 claimed CID and selected contracts. A correctly hashed unrelated graph or root
 cannot replace part of that request. Successful checking retains regenerated
@@ -1130,6 +1130,15 @@ material rather than preparation arrays owned by the caller. This typed check
 does not admit arbitrary saved JSON, reparse author source, or discharge runtime
 input/key/order/value-limit obligations. The execution boundary must still
 enforce those obligations before using the retained checked kernel.
+
+The public typed-request constructor generates that same complete material and
+candidate once under its original demand and physical bounds. It retains those
+completed private facts synchronously, without accepting a candidate, graph,
+application callback or digest from its caller. Selected contract correspondence,
+ordered evidence, backend capability and logical/runtime ceilings still apply.
+The full separate-candidate regression checker keeps its regeneration and
+altered-material refusals; no arbitrary-candidate execution entry is exposed.
+There is no cross-operation cache or discount to execution work.
 
 The shared row evaluator accepts logical accounting for snapshot maps and
 filters as well as ordered bindings. Map results remain leased until the
@@ -1140,7 +1149,7 @@ roots without publishing a partial table. This internal accounting hook does
 not yet choose request/Host limits or establish input evidence on its own.
 
 An immutable fragment runtime context binds explicitly supplied enforcement
-limits to the regenerated fragment and its exact checked kernel. Row and value
+limits to the generated checked fragment and its exact kernel. Row and value
 ceilings cannot exceed that fragment's request; tighter supplied bounds remain
 explicit. Live/work and physical encoder limits are supplied separately, not
 inferred from static capacity facts. Fresh counters are created for each
