@@ -8,6 +8,7 @@ fn snapshot_contract(
     name,
     identity,
     identity_field: "fixture_identity",
+    wire_usage: None,
     wire,
     value: parse_contract_wire(wire, 10000, 1000, 16).unwrap(),
   }

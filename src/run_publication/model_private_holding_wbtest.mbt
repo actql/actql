@@ -5,6 +5,7 @@ test "two Source custody cells preserve the original identity and cannot collide
   let definition : PublicationContract = {
     name: "run_definition",
     identity_field: "run_definition_cid",
+    wire_usage: None,
     identity: "sha256:" + "a".repeat(64),
     wire: "{}",
     value: @json.from_json(Json::null(), 1, 1, 1),
@@ -39,6 +40,7 @@ test "scoped Model custody uses the canonical independent preimage" {
   let definition : PublicationContract = {
     name: "run_definition",
     identity_field: "run_definition_cid",
+    wire_usage: None,
     identity: "sha256:" + "a".repeat(64),
     wire: "{}",
     value: @json.from_json(Json::null(), 1, 1, 1),
@@ -65,6 +67,7 @@ test "raw Model custody has one original entered cell and no legacy address" {
   let definition : PublicationContract = {
     name: "run_definition",
     identity_field: "run_definition_cid",
+    wire_usage: None,
     identity: "sha256:" + "a".repeat(64),
     wire: "{}",
     value: @json.from_json(Json::null(), 1, 1, 1),

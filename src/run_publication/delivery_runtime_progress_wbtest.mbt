@@ -6,6 +6,7 @@ fn delivery_runtime_record(state : String) -> PublicationContract {
   {
     name: "delivery_record",
     identity_field: "delivery_record_cid",
+    wire_usage: None,
     identity: "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
     wire,
     value: parse_contract_wire(wire, 4096, 128, 16).unwrap(),

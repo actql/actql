@@ -736,6 +736,8 @@ pub fn publication_commit_failure_action_code(PublicationCommitFailureAction) ->
 
 pub fn publication_commit_preparation_fixture_phase(PublicationCommitPreparation) -> String
 
+pub fn publication_contract_check_limits(PublicationContract, Int, Int, Int) -> Result[Unit, PublicationContractIssue]
+
 pub fn publication_contract_effect_target_selections_cid(PublicationContract) -> String?
 
 pub fn publication_contract_identity(PublicationContract) -> String
@@ -747,6 +749,8 @@ pub fn publication_contract_json(PublicationContract) -> String
 pub fn publication_contract_name(PublicationContract) -> String
 
 pub fn publication_contract_representation_extent(PublicationContract, Int, Int, Int) -> Result[PublicationRepresentationExtent, PublicationContractIssue]
+
+pub fn publication_contract_run_definition_scope(PublicationContract) -> String?
 
 pub fn publication_evidence_workspace(Int) -> Int
 

@@ -8,6 +8,7 @@ fn native_custody_record_contract(
   {
     name,
     identity_field: "fixture_cid",
+    wire_usage: None,
     identity: "fixture",
     wire,
     value: @json.from_json(Json::null(), 1, 1, 1),

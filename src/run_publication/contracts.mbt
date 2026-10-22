@@ -8,6 +8,7 @@ struct PublicationContract {
   identity : String
   wire : String
   value : @json.CanonicalValue
+  wire_usage : (Int, Int, Int)?
 }
 
 ///|
@@ -1171,12 +1172,21 @@ pub fn seal_publication_contract(
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
-  let wire = @json.stringify_value(
-    complete, max_wire_bytes, max_nodes, max_depth,
-  ) catch {
+  let (wire, bytes, nodes, depth) = try {
+    let writer = @encode.writer(max_wire_bytes, max_nodes, max_depth)
+    @json.emit_value(complete, writer)
+    @encode.finish_text_usage(writer)
+  } catch {
     _ => return Err(Encoding)
   }
-  Ok({ name, identity_field: spec.identity, identity, wire, value: complete, })
+  Ok({
+    name,
+    identity_field: spec.identity,
+    identity,
+    wire,
+    value: complete,
+    wire_usage: Some((bytes, nodes, depth)),
+  })
 }
 
 ///|
@@ -1222,16 +1232,25 @@ pub fn admit_publication_contract(
     Err(issue) => return Err(issue)
   }
   let identity = optional_string(@json.object_field(complete, spec.identity)).unwrap()
-  let wire = @json.stringify_value(
-    complete, max_wire_bytes, max_nodes, max_depth,
-  ) catch {
+  let (wire, bytes, nodes, depth) = try {
+    let writer = @encode.writer(max_wire_bytes, max_nodes, max_depth)
+    @json.emit_value(complete, writer)
+    @encode.finish_text_usage(writer)
+  } catch {
     _ => return Err(Encoding)
   }
   if (name == "acquisition_relation" || name == "acquisition_scope") &&
     wire != complete_wire {
     return Err(InvalidWire)
   }
-  Ok({ name, identity_field: spec.identity, identity, wire, value: complete, })
+  Ok({
+    name,
+    identity_field: spec.identity,
+    identity,
+    wire,
+    value: complete,
+    wire_usage: Some((bytes, nodes, depth)),
+  })
 }
 
 ///|
@@ -1454,6 +1473,40 @@ pub fn publication_contract_identity(contract : PublicationContract) -> String {
 ///|
 pub fn publication_contract_json(contract : PublicationContract) -> String {
   contract.wire
+}
+
+///|
+/// Apply tighter serialization limits to this same immutable admitted contract.
+/// Usage comes from its original final encoder, not its preimage or caller facts.
+/// This checks no permission, lifetime or physical capacity.
+pub fn publication_contract_check_limits(
+  contract : PublicationContract,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[Unit, PublicationContractIssue] {
+  if max_wire_bytes < 1 || max_nodes < 1 || max_depth < 1 {
+    return Err(InvalidLimits)
+  }
+  guard contract.wire_usage is Some((bytes, nodes, depth)) else {
+    return Err(Encoding)
+  }
+  if bytes > max_wire_bytes || nodes > max_nodes || depth > max_depth {
+    return Err(Encoding)
+  }
+  Ok(())
+}
+
+///|
+/// Read the original scope from an admitted Run Definition. This projection
+/// does not interpret scope syntax, authorize access or read the saved wire.
+pub fn publication_contract_run_definition_scope(
+  contract : PublicationContract,
+) -> String? {
+  if contract.name != "run_definition" {
+    return None
+  }
+  contract_string(contract, "scope_id")
 }
 
 ///|
