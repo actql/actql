@@ -1070,3 +1070,48 @@ test "Captured Run sealing and restoration retain typed JSON data keys" {
   assert_true(@json.object_field(payload, "é") is Some(@json.Null))
   assert_true(@json.object_field(payload, "é") is None)
 }
+
+///|
+test "Captured Run issuance checks its unchanged publication root once" {
+  let preparation = captured_preparation_test_start()
+  let mut root_checks = 0
+  let mut in_root = false
+  let mut finished = false
+  for _ in 0..<500000 {
+    let (done, _) = preparation.advance(1).unwrap()
+    let root = captured_run_preparation_fixture_phase(preparation) ==
+      "root-check"
+    if root && !in_root {
+      root_checks += 1
+    }
+    in_root = root
+    if done {
+      finished = true
+      break
+    }
+  }
+  assert_true(finished)
+  let captured = preparation.finish().unwrap()
+  assert_eq(root_checks, 1)
+  let chain = captured_run_test_chain()
+  let independent = captured_validation_test_start(chain, captured)
+  let mut independent_roots = 0
+  in_root = false
+  finished = false
+  for _ in 0..<500000 {
+    let (done, _) = independent.advance(1).unwrap()
+    let root = computation_evidence_check_fixture_phase(independent) ==
+      "root-check"
+    if root && !in_root {
+      independent_roots += 1
+    }
+    in_root = root
+    if done {
+      finished = true
+      break
+    }
+  }
+  assert_true(finished)
+  independent.finish().unwrap()
+  assert_eq(independent_roots, 1)
+}

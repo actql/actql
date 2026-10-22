@@ -22,6 +22,11 @@ on:
         type: choice
         options: [diagnostic, final]
         default: diagnostic
+      performance_priority_python_mode:
+        description: Priority Python samples; final is for a plausible fixed candidate
+        type: choice
+        options: [diagnostic, final]
+        default: diagnostic
       performance_package_run_id:
         description: Completed same-source normal CI run supplying existing Client tarballs
         type: string
@@ -102,6 +107,7 @@ jobs:
       actions: read
     with:
       priority-node-mode: ${{ inputs.performance_priority_node_mode }}
+      priority-python-mode: ${{ inputs.performance_priority_python_mode }}
       package-run-id: ${{ inputs.performance_package_run_id }}
       package-artifact-id: ${{ inputs.performance_package_artifact_id }}
       native-package-run-id: ${{ inputs.performance_native_package_run_id }}
@@ -221,6 +227,9 @@ jobs:
       - name: Test ordinary operation performance assessment
         if: ${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}
         run: node --test scripts/operation-performance.test.mjs scripts/benchmark-node-operations.test.mjs scripts/operation-performance-policy.test.mjs scripts/operation-performance-native-control.test.mjs scripts/benchmark-node-process-operations.test.mjs scripts/benchmark-node-sqlite.test.mjs scripts/benchmark-node-boundaries.test.mjs scripts/node-operation-fs-trace.test.mjs scripts/operation-performance-priority-transition.test.mjs scripts/operation-performance-transition-ci.test.mjs
+      - name: Test ordinary process collector protocols
+        if: ${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}
+        run: python3 -I -B scripts/benchmark-ordinary-processes.test.py
       - name: Test ordinary artifact reuse and controlled performance gate
         if: ${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}
         run: node --test scripts/ordinary-operation-packages.test.mjs
@@ -780,6 +789,8 @@ jobs:
         run: npm run check:remote-site-runtime
       - name: Test non-destructive SQLite format inspection
         run: node --test adapters/host-common/sqlite-format-inspection.test.mjs adapters/host-node/ordinary-host-journal.test.mjs
+      - name: Test bounded Journal preparation and execution
+        run: node --test adapters/host-node/client-request-journal-sql-bounds.test.mjs adapters/host-node/client-request-journal-execution-bounds.test.mjs adapters/host-node/client-request-journal-wal-bounds.test.mjs
       - name: Test durable Checkpoint journal and resumed dispatch admission
         run: npm run check:checkpoint-runtime
       - name: Test operation authorization and unchanged Run observations

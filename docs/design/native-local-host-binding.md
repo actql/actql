@@ -1742,6 +1742,15 @@ OpenSSL callbacks, extent retirement and context release; the allocator lock is
 not held across those callbacks. Cleanup may allocate only inside the same
 original extent, including its simultaneous retirement overlap.
 
+On the selected Darwin arm64 owned-component path, `Library.random_bytes`
+uses the supported OS `getentropy` CSPRNG through requests of at most 256 bytes.
+The existing Library/entered-Read checks and 1–4096 byte output bound remain;
+no new generator or capacity original is issued. A failed request clears the
+complete partial output and returns failure without an OpenSSL fallback.
+Legacy dynamic Libraries and other platforms retain their selected `RAND_bytes`
+path. Hashing, HMAC, signing, key generation and all component/Library cleanup
+remain bound to their original selected component.
+
 Each Library retires its own hashers and diagnostic buffers before acknowledging
 its borrow. Closing a Library neither unloads the component nor acknowledges the
 Host, domain, Root, Writer or parent loan. Only after all Library/operation users

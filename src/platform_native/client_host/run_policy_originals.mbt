@@ -51,7 +51,7 @@ fn NativeClientRunJournal::retain_publication_policy_originals(
     return Err(AuthorizationDenied)
   }
   match
-    validate_native_client_run_binding(request, prepared, compiled, definition) {
+    self.validate_prepared_run_binding(request, prepared, compiled, definition) {
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }

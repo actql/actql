@@ -133,16 +133,18 @@ export async function prepareOrdinaryNativePerformanceConsumer({packages, source
   } finally { await registry.close(); }
 }
 
-export async function prepareOrdinaryPerformanceConsumer({packages, sourceSha, output, comparisonPath, selection, mode,
+export async function prepareOrdinaryPerformanceConsumer({packages, sourceSha, output, comparisonPath, selection, mode, resourceObservations, rowObservations,
   install = (args, cwd) => execFileSync('npm', args, {cwd, stdio: 'inherit', timeout: 120_000})}) {
   let protocol;
   if (selection === undefined) {
     assert.equal(mode, undefined, 'A mode requires the explicit priority selection');
+    assert.equal(resourceObservations, undefined, 'Resource observations require the explicit priority selection');
+    assert.equal(rowObservations, undefined, 'Row observations require the explicit priority selection');
     protocol = nodeOperationProtocol('final');
   } else {
     assert.equal(selection, 'priority-transition', 'Unknown performance selection');
     assert.equal(comparisonPath, undefined, 'Priority controls do not use the full-release comparator');
-    protocol = nodePriorityProtocol(mode ?? 'diagnostic');
+    protocol = nodePriorityProtocol(mode ?? 'diagnostic', resourceObservations, rowObservations);
   }
   assert.match(sourceSha, /^[a-f0-9]{40}$/u);
   packages = resolve(packages); output = resolve(output);
@@ -326,7 +328,8 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
       assert(args.length >= 3 && (args.length - 3) % 2 === 0);
       const options = {};
       for (let i = 3; i < args.length; i += 2) {
-        const key = {'--comparison': 'comparisonPath', '--selection': 'selection', '--mode': 'mode'}[args[i]];
+        const key = {'--comparison': 'comparisonPath', '--selection': 'selection', '--mode': 'mode',
+          '--resource-observations': 'resourceObservations', '--row-observations': 'rowObservations'}[args[i]];
         assert(key && !Object.hasOwn(options, key), 'Unknown or duplicate preparation option');
         options[key] = args[i + 1];
       }

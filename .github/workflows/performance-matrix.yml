@@ -9,6 +9,12 @@ on:
         options: [diagnostic, final]
         default: diagnostic
         required: false
+      priority-python-mode:
+        description: Python priority collector sample selection; final is for a plausible fixed candidate
+        type: choice
+        options: [diagnostic, final]
+        default: diagnostic
+        required: false
       package-run-id:
         description: Completed same-source normal CI run supplying existing Client tarballs
         type: string
@@ -44,6 +50,10 @@ on:
   workflow_call:
     inputs:
       priority-node-mode:
+        type: string
+        default: diagnostic
+        required: false
+      priority-python-mode:
         type: string
         default: diagnostic
         required: false
@@ -328,6 +338,93 @@ jobs:
             ${{ runner.temp }}/ordinary-python/assessment.json
           if-no-files-found: warn
           retention-days: 30
+  ordinary-python-priority:
+    name: Ordinary Python priority collector
+    if: ${{ vars.ACTQL_MAIN_CI_ENABLED == 'true' && github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' }}
+    runs-on: macos-14
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: 22.22.0
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: '3.12'
+      - name: Install verification tooling without runtime preparation
+        run: npm ci --ignore-scripts
+      - name: Validate the original normal package artifact and producer job
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          PACKAGE_ADAPTER: python
+          PACKAGE_RUN_ID: ${{ inputs.python-package-run-id }}
+          PACKAGE_ARTIFACT_ID: ${{ inputs.python-package-artifact-id }}
+          PACKAGE_PRODUCER_JOB: ${{ inputs.python-package-producer-job }}
+        run: |
+          mkdir "$RUNNER_TEMP/ordinary-python-priority"
+          node scripts/ordinary-operation-packages.mjs inspect-process-producer > "$RUNNER_TEMP/ordinary-python-priority/producer.json"
+      - name: Reuse the exact formal package artifact
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          github-token: ${{ github.token }}
+          run-id: ${{ inputs.python-package-run-id }}
+          artifact-ids: ${{ inputs.python-package-artifact-id }}
+          path: ${{ runner.temp }}/ordinary-python-priority/packages
+          merge-multiple: true
+      - name: Install the original Python wheelhouse into a fresh local environment
+        id: consumer
+        run: |
+          python3 -I -B - <<'PYTHON'
+          import hashlib, json, os, re, subprocess, sys, sysconfig
+          from pathlib import Path
+          root = Path(os.environ['RUNNER_TEMP']) / 'ordinary-python-priority'
+          packages = root / 'packages'
+          manifest = json.loads((packages / 'cohort.json').read_text())
+          assert manifest['source_sha'] == os.environ['GITHUB_SHA']
+          assert {row['distribution'] for row in manifest['wheels']} == {'actql', 'actql-sdk', 'actql-local-runtime'}
+          version = manifest['package_version']
+          assert isinstance(version, str) and re.fullmatch(r'[A-Za-z0-9.+!-]+', version)
+          for row in manifest['wheels']:
+              assert Path(row['file']).name == row['file']
+              data = (packages / 'wheels' / row['file']).read_bytes()
+              assert len(data) == row['bytes'] and hashlib.sha256(data).hexdigest() == row['sha256']
+          venv = root / 'venv'
+          subprocess.run([sys.executable, '-m', 'venv', '--symlinks', str(venv)], check=True)
+          interpreter = venv / 'bin/python'
+          subprocess.run([str(interpreter), '-I', '-B', '-m', 'pip', 'install', '--no-index',
+                          '--only-binary=:all:', '--no-compile', '--no-cache-dir', '--find-links', str(packages / 'wheels'),
+                          'actql==' + version], check=True)
+          purelib = subprocess.check_output([str(interpreter), '-I', '-B', '-c',
+                                            'import sysconfig;print(sysconfig.get_path("purelib"))'], text=True).strip()
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as out:
+              out.write('path=' + purelib + '\n')
+          PYTHON
+      - name: Collect actual varied Python priority operations
+        env:
+          PRIORITY_MODE: ${{ inputs.priority-python-mode }}
+          PYTHON_CONSUMER: ${{ steps.consumer.outputs.path }}
+        run: |
+          python3 -I -B scripts/benchmark-ordinary-processes.py \
+            --adapter python --manifest "$RUNNER_TEMP/ordinary-python-priority/packages/cohort.json" \
+            --consumer "$PYTHON_CONSUMER" --venv "$RUNNER_TEMP/ordinary-python-priority/venv" \
+            --source "$GITHUB_SHA" --selection priority-transition \
+            --mode "$PRIORITY_MODE" --load isolated --output "$RUNNER_TEMP/ordinary-python-priority/measurement"
+      - name: Retain raw samples and failed or incomplete assessment
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: ordinary-python-priority-${{ github.sha }}
+          path: |
+            ${{ runner.temp }}/ordinary-python-priority/producer.json
+            ${{ runner.temp }}/ordinary-python-priority/packages/cohort.json
+            ${{ runner.temp }}/ordinary-python-priority/measurement/
+          if-no-files-found: warn
+          retention-days: 30
   ordinary-node-priority:
     name: Ordinary Node priority collector
     if: ${{ vars.ACTQL_MAIN_CI_ENABLED == 'true' && github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' }}
@@ -387,7 +484,7 @@ jobs:
           retention-days: 30
   ordinary-priority-assessment:
     name: Ordinary Node and Python priority checkpoint
-    needs: [ordinary-node-priority, ordinary-python]
+    needs: [ordinary-node-priority, ordinary-python-priority]
     if: ${{ vars.ACTQL_MAIN_CI_ENABLED == 'true' && github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && always() }}
     runs-on: ubuntu-24.04
     timeout-minutes: 5
@@ -411,7 +508,7 @@ jobs:
         if: always()
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
-          pattern: ordinary-python-*-${{ github.sha }}
+          name: ordinary-python-priority-${{ github.sha }}
           path: ${{ runner.temp }}/ordinary-priority/python
           merge-multiple: false
       - name: Join unchanged raw platform reports
@@ -425,11 +522,9 @@ jobs:
           assert.match(sourceSha, /^[0-9a-f]{40}$/);
           const root = join(process.env.RUNNER_TEMP, 'ordinary-priority');
           const input = {sourceSha, platforms: {node: [], python: []}};
-          const operations = ['warm-select', 'warm-result'];
           const paths = {
             node: [join(root, 'node', 'measurement', 'measurements.json')],
-            python: operations.map(operation => join(root, 'python',
-              `ordinary-python-${operation}-${sourceSha}`, 'measurement', 'measurements.json')),
+            python: [join(root, 'python', 'measurement', 'measurements.json')],
           };
           for (const platform of ['node', 'python']) {
             for (const path of paths[platform]) {

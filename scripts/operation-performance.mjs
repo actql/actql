@@ -939,6 +939,62 @@ export function assessPriorityTransition(input) {
       if (report.executionPath !== `${platform}-sdk`) localMissing.push('actual ordinary public SDK execution path');
       if (report.installedPayloadsUnchanged !== true) localMissing.push('successful installed-package correspondence');
       if (report.packageFailure || report.firstFailure || report.cleanup?.failure) localFailures.push('reported public/package/cleanup failure');
+      if (report.managedRunObservations !== undefined) {
+        const observed = report.managedRunObservations;
+        requireValue(observed?.scope === 'managed-run-ledger' &&
+          ['cohortSha256', 'environmentSha256', 'historyProtocolSha256'].every(key => observed[key] === report[key]),
+        'Managed Run observation differs from original report binding');
+        if (observed.status === 'failed') localFailures.push('requested managed Run observation failure');
+        else if (observed.status !== 'passed') localMissing.push('complete requested managed Run observations');
+        else {
+          const samples = [report.firstQuery, ...(report.latency ?? []).flatMap(row => row.samples ?? [])].filter(Boolean);
+          const captured = observed.operations;
+          if (!Array.isArray(captured) || captured.length !== samples.length ||
+              !Array.isArray(observed.records) || observed.records.length !== samples.length ||
+              new Set(captured.map(row => row.publicOperationId)).size !== samples.length ||
+              samples.some(sample => !captured.some(row => row.publicOperationId === sample.publicOperationId &&
+                row.completed === true && row.runRefSha256 === sample.runRefSha256 &&
+                Number.isSafeInteger(row.observationSequence) && observed.records.filter(record =>
+                  record.sequence === row.observationSequence && record.traceId === row.traceId &&
+                  record.spanId === row.spanId && record.runDefinitionCid === row.runDefinitionCid).length === 1))) {
+            localFailures.push('managed Run observations differ from timed public operations');
+          }
+        }
+      }
+      if (report.historyProtocol?.rowObservations !== undefined || report.selectedRowObservations !== undefined) {
+        const observed = report.selectedRowObservations;
+        if (observed === undefined) localMissing.push('requested selected row observations');
+        else {
+          requireValue(report.historyProtocol?.rowObservations?.scope === 'selected-returned' &&
+            observed.scope === 'selected-returned' &&
+            ['cohortSha256', 'environmentSha256', 'historyProtocolSha256'].every(key => observed[key] === report[key]),
+          'Selected row observation differs from original report binding');
+          if (observed.status === 'failed') localFailures.push('requested selected row observation failure');
+          else if (observed.status !== 'passed') localMissing.push('complete requested selected row observations');
+          else {
+            const samples = [report.firstQuery, ...(report.latency ?? []).flatMap(row => row.samples ?? [])].filter(Boolean);
+            const captured = observed.operations, records = observed.records;
+            if (!Array.isArray(captured) || !Array.isArray(records) || captured.length !== samples.length ||
+                new Set(captured.map(row => row.publicOperationId)).size !== samples.length ||
+                new Set(records.map(row => row.sequence)).size !== records.length ||
+                records.some(row => row.owner !== 'request-journal' || row.kind !== 'run' ||
+                  row.coverage !== 'selected-returned' || !['run-definition', 'request', 'mixed-selected'].includes(row.selection) ||
+                  !integer(row.returned) || row.unrelated !== undefined && (!integer(row.unrelated) || row.unrelated > row.returned)) ||
+                samples.some(sample => !captured.some(row => row.publicOperationId === sample.publicOperationId &&
+                  row.completed === true && row.runRefSha256 === sample.runRefSha256 &&
+                  Array.isArray(row.rowObservationSequences) && row.rowObservationSequences.length > 0 &&
+                  new Set(row.rowObservationSequences).size === row.rowObservationSequences.length &&
+                  row.rowObservationSequences.every(sequence => integer(sequence) && records.filter(record =>
+                    record.sequence === sequence && record.traceId === row.traceId && record.spanId === row.spanId &&
+                    record.runDefinitionCid === row.runDefinitionCid).length === 1))) ||
+                records.some(record => captured.filter(row => row.rowObservationSequences?.includes(record.sequence) &&
+                  row.traceId === record.traceId && row.spanId === record.spanId).length !== 1)) {
+              localFailures.push('selected row observations differ from timed public operations');
+            }
+            if (Array.isArray(records) && records.some(row => row.unrelated > 0)) localFailures.push('observed unrelated selected Run rows');
+          }
+        }
+      }
       if (report.cleanup?.closed !== true) localMissing.push('explicit successful original Host close');
       for (const key of ['startedHost', 'noCompetingLargeBuild', 'guaranteesUnchanged']) {
         if (report.priorityConditions?.[key] === false && key !== 'noCompetingLargeBuild') localFailures.push(`${key} requirement violated`);
