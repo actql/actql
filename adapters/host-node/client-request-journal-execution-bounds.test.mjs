@@ -287,6 +287,78 @@ test('actual native rollback failure remains original Unknown with no replacemen
   }
 });
 
+test('owned SELECT metadata reads do not spend WAL write history or change actual WAL bytes', async () => {
+  const {scratch} = await fixture();
+  const path = join(scratch.path, 'native.sqlite');
+  const database = new DatabaseSync(path);
+  database.exec('PRAGMA journal_mode = WAL; CREATE TABLE samples(n INTEGER); INSERT INTO samples VALUES (0)');
+  const page = database.prepare('PRAGMA page_size').get().page_size;
+  const pages = database.prepare('PRAGMA page_count').get().page_count;
+  const sourceBytes = readFileSync(path).length + readFileSync(path + '-wal').length;
+  const charge = 2 * pages + Math.ceil(65536 / (page + 24));
+  const wal = boundedOriginalWal(Math.floor(sourceBytes / 536) + 3 * charge, sourceBytes, page * pages);
+  wal.configure(page);
+  const prepare = database.prepare;
+  let nativeWrites = 0;
+  database.prepare = function(sql) {
+    const statement = Reflect.apply(prepare, this, [sql]);
+    if (sql.startsWith('INSERT')) {
+      const run = statement.run;
+      statement.run = function(...values) {nativeWrites++; return Reflect.apply(run, this, values);};
+    }
+    return statement;
+  };
+  const port = boundedOriginalSql(database, primarySqlLimits, execution, undefined, wal);
+  try {
+    const write = port.database.prepare('INSERT INTO samples VALUES (?)');
+    write.run(1);
+    const beforeReads = readFileSync(path + '-wal');
+    for (let index = 0; index < 32; index++) {
+      assert.equal(port.database.prepare(' SELECT n FROM samples WHERE n = ?').get(1).n, 1);
+    }
+    assert.deepEqual(readFileSync(path + '-wal'), beforeReads);
+    write.run(2);
+    assert.throws(() => write.run(3), {code: 'ClientRequestJournalWalUnavailable'});
+    assert.equal(nativeWrites, 2);
+    const afterWrites = readFileSync(path + '-wal');
+    assert.deepEqual(port.database.prepare('SELECT n FROM samples ORDER BY n').all().map(row => row.n), [0, 1, 2]);
+    assert.deepEqual(readFileSync(path + '-wal'), afterWrites);
+  } finally {database.close(); assert.equal(database.isOpen, false); port.retireClosedNativeAliases();}
+  scratch.passed();
+});
+
+test('WAL terminal work remains available when another write is refused before native acquisition', () => {
+  const database = new DatabaseSync(':memory:');
+  const wal = boundedOriginalWal(54, 0, 4096);
+  wal.configure(4096);
+  const port = boundedOriginalSql(database, primarySqlLimits, execution, undefined, wal);
+  try {
+    port.database.exec('BEGIN IMMEDIATE');
+    port.database.prepare('CREATE TABLE committed(n INTEGER)').run();
+    assert.throws(() => port.database.prepare('INSERT INTO committed VALUES (1)'),
+      {code: 'ClientRequestJournalWalUnavailable'});
+    port.database.exec('COMMIT');
+    assert.equal(database.isTransaction, false);
+    assert.equal(database.prepare("SELECT count(*) AS n FROM sqlite_master WHERE name = 'committed'").get().n, 1);
+    assert.throws(() => port.database.exec('BEGIN IMMEDIATE'), {code: 'ClientRequestJournalWalUnavailable'});
+    assert.equal(database.isTransaction, false);
+  } finally {database.close(); port.retireClosedNativeAliases();}
+});
+
+test('failed native writes keep their WAL write charge and cannot borrow terminal work', () => {
+  const database = new DatabaseSync(':memory:');
+  database.exec('CREATE TABLE samples(n INTEGER UNIQUE); INSERT INTO samples VALUES (1)');
+  const wal = boundedOriginalWal(40, 0, 8192);
+  wal.configure(4096);
+  const port = boundedOriginalSql(database, primarySqlLimits, execution, undefined, wal);
+  try {
+    const write = port.database.prepare('INSERT INTO samples VALUES (?)');
+    assert.throws(() => write.run(1), {code: 'ERR_SQLITE_ERROR'});
+    assert.throws(() => write.run(2), {code: 'ClientRequestJournalWalUnavailable'});
+    assert.equal(database.prepare('SELECT count(*) AS n FROM samples').get().n, 1);
+  } finally {database.close(); port.retireClosedNativeAliases();}
+});
+
 test('selected primary metadata uses original bounded cursors instead of native All vectors', async () => {
   const {scratch, directory} = await fixture();
   openClientRequestJournal(directory).close();
