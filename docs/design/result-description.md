@@ -198,6 +198,17 @@ selected file still supplies its real bounded bytes, inode/digest checks and
 close duty. Generic semantic reads and supported native publication/delivery
 families use selected database rows with legacy file fallback.
 
+A successful fresh object seal closes its original writer, installs and
+acknowledges the final object name, and keeps that same allocation fully
+charged in the Store. Removing its private staging alias is not a second
+durable publication or capacity refund. After that success, the alias is
+unlinked without another staging-directory barrier; exclusive opening recovery
+removes any resurrected temporary alias. An existing-object duplicate has a
+different temporary allocation, and cancellation or any failed seal keeps the
+original staging-unlink acknowledgement before releasing its reservation.
+Failed unlink still retains the same writer/reservation and retry path. No
+payload sync, final-name ACK, actual close or pending custody is waived.
+
 Typed publication evidence selects its storage representation before the commit's
 generic inventory traversal. The traversal reuses those acquired originals;
 it does not repeat the same selected row/file admission merely because it
