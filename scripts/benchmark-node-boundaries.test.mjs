@@ -42,8 +42,18 @@ export async function open({stateDir}) {
   await writeFile(material,payload);
   ${fault === 'hardlink' ? `await link(material,${JSON.stringify(join(root, 'outside-original'))});` : ''}
   await writeFile(join(stateDir,'publication/indexes',h.digest('hex')+'.json'),JSON.stringify({namespace_id:ref.namespaceId,authority_scope_cid:ref.authorityScopeCid,run_definition_cid:ref.runDefinitionCid,durable_result_binding_cids:${fault === 'ambiguous' ? '[bindingCid,bindingCid]' : '[bindingCid]'}}));
-  await writeFile(join(stateDir,'publication/contracts',bindingCid.slice(7)+'.json'),JSON.stringify({run_definition_cid:ref.runDefinitionCid,result_definition_cid:definitionCid,material_generation_cid:cid,byte_count:payload.length}));
-  await writeFile(join(stateDir,'publication/contracts',definitionCid.slice(7)+'.json'),JSON.stringify({result_name:'main'}));
+  const bindingWire=JSON.stringify({run_definition_cid:ref.runDefinitionCid,result_definition_cid:definitionCid,material_generation_cid:cid,byte_count:payload.length});
+  const definitionWire=JSON.stringify({result_name:'main'});
+  ${fault === 'native' ? `const {DatabaseSync}=await import('node:sqlite');
+  const database=new DatabaseSync(join(stateDir,'publication/delivery-attempts.sqlite3'));
+  try {
+   database.exec('CREATE TABLE publication_contracts (semantic_cid TEXT PRIMARY KEY,name TEXT,wire TEXT,byte_count INTEGER) WITHOUT ROWID');
+   const insert=database.prepare('INSERT INTO publication_contracts VALUES(?,?,?,?)');
+   insert.run(bindingCid,'durable_result_binding',bindingWire,Buffer.byteLength(bindingWire));
+   insert.run(definitionCid,'result_definition',definitionWire,Buffer.byteLength(definitionWire));
+   insert.run('sha256:'+'e'.repeat(64),'unrelated','not JSON',8);
+  } finally {database.close();}` : `await writeFile(join(stateDir,'publication/contracts',bindingCid.slice(7)+'.json'),bindingWire);
+  await writeFile(join(stateDir,'publication/contracts',definitionCid.slice(7)+'.json'),definitionWire);`}
   ${fault === 'symlink' ? `await import('node:fs/promises').then(async fs=>{await fs.rename(join(stateDir,'publication/objects'),join(stateDir,'original-objects'));await symlink(join(stateDir,'original-objects'),join(stateDir,'publication/objects'));});` : ''}
   return run;},close:async()=>{await event('close');${fault === 'close' ? "throw new Error('cleanup pending');" : ''}}};
 }`);
@@ -82,6 +92,15 @@ test('a successful read of changed material remains a failing boundary, with awa
   assert.equal(report.boundaries.rows[0].outcome, 'succeeded');
   assert.equal(report.assessment.status, 'failed');
   assert.deepEqual(await events(options), ['submit', 'read', 'read', 'close']);
+});
+test('native indexed contracts select the original material without legacy shadows or unrelated rows', async t => {
+  const options = await fixture(t, 'native'), report = await runNodeUsedMaterialBoundary(options);
+  assert.equal(report.selectedBoundaryPassed, true, JSON.stringify(report.firstFailure));
+  assert.deepEqual(report.mutation.metadataStorage, {binding: 'sqlite', definition: 'sqlite'});
+  assert.equal(report.observedBoundary.outcome, 'rejected');
+  assert.equal(report.cleanup.closed, true);
+  assert.deepEqual(await events(options), ['submit', 'read', 'read', 'close']);
+  assert.equal((await readFile(join(options.output, 'original-selected-generation.bin'))).toString(), 'one original test-owned row frame');
 });
 test('cleanup failure cannot qualify a rejected material read or overwrite its observation', async t => {
   const options = await fixture(t, 'close'), report = await runNodeUsedMaterialBoundary(options);
