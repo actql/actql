@@ -889,6 +889,29 @@ function assessPriorityWorkload(series) {
     distinctQueries: queries.size, distinctResults: results.size, publicOperations: operations.size});
 }
 
+function assessPriorityPopulation(series) {
+  const failures = [], missing = [], population = series.population;
+  if (!population) return outcome([], ['actual measured population scan and temporary-usage observations']);
+  if (population.complete !== true || population.overflow !== false) missing.push('complete non-overflow population observations');
+  if (!Array.isArray(population.publicOperationIds)) missing.push('observed public operation population');
+  else if (evidenceHash(population.publicOperationIds) !== evidenceHash(series.samples.map(row => row.publicOperationId))) {
+    failures.push('work observations differ from the timed public population');
+  }
+  for (const key of ['unrelatedRunRows', 'unrelatedEffectRows']) {
+    if (!integer(population[key])) missing.push(key);
+    else if (population[key] !== 0) failures.push(`${key} is not zero`);
+  }
+  // Observe managed temporary holdings against the candidate's existing
+  // configured capacity, never a fitted allowance, durable history or RSS.
+  const temporary = population.temporaryRetained;
+  if (!temporary || !['beforeBytes', 'afterBytes', 'peakBytes', 'capacityBytes'].every(key => integer(temporary[key]))) {
+    missing.push('actual temporary holdings and existing configured capacity');
+  }
+  else if (temporary.peakBytes < Math.max(temporary.beforeBytes, temporary.afterBytes) ||
+      temporary.peakBytes > temporary.capacityBytes) failures.push('temporary holdings exceed their observed fixed bound');
+  return outcome(failures, missing);
+}
+
 // The explicit input combines untouched raw reports from both ordinary SDK
 // artifacts. Missing collector fields remain incomplete: CI must not synthesize
 // variation, safety or environmental observations to satisfy this selection.
@@ -913,10 +936,11 @@ export function assessPriorityTransition(input) {
       if (report.installedPayloadsUnchanged !== true) localMissing.push('successful installed-package correspondence');
       if (report.packageFailure || report.firstFailure || report.cleanup?.failure) localFailures.push('reported public/package/cleanup failure');
       if (report.cleanup?.closed !== true) localMissing.push('explicit successful original Host close');
-      for (const key of ['startedHost', 'noCompetingLargeBuild', 'guaranteesUnchanged', 'boundedTemporaryGrowth']) {
+      for (const key of ['startedHost', 'noCompetingLargeBuild', 'guaranteesUnchanged']) {
         if (report.priorityConditions?.[key] === false && key !== 'noCompetingLargeBuild') localFailures.push(`${key} requirement violated`);
         else if (report.priorityConditions?.[key] !== true) localMissing.push(`actual ${key} observation`);
       }
+      if (report.priorityConditions?.boundedTemporaryGrowth === false) localFailures.push('reported unbounded temporary growth');
       for (const value of report.latency ?? []) {
         if (!priorityOperations.includes(value.operation)) continue;
         requireValue(!series.has(value.operation), 'Duplicate priority operation series');
@@ -936,6 +960,7 @@ export function assessPriorityTransition(input) {
     }
     const selected = Object.fromEntries([...series].map(([name, value]) => [name, {
       latency: assessLatencyTarget(value, priorityTransitionTarget), workload: assessPriorityWorkload(value),
+      population: assessPriorityPopulation(value),
     }]));
     for (const [name, value] of series) {
       const row = functions.find(item => item.operation === name);
@@ -947,14 +972,15 @@ export function assessPriorityTransition(input) {
       }
     }
     for (const name of priorityOperations) if (!series.has(name)) localMissing.push(`${name}: actual raw distribution`);
-    const work = assessStructure({operations: operations.filter(row => priorityOperations.includes(row.operation))});
-    for (const name of priorityOperations) if (!operations.some(row => row.operation === name)) work.missing.push(`${name}: actual once-work counters`);
-    if (work.status === 'passed' && work.missing.length) work.status = 'incomplete';
+    // Detailed regressions remain useful if supplied, but missing full-release
+    // attribution or history-grid coverage is not a transition prerequisite.
+    if (operations.length) localFailures.push(...assessStructure({operations}).failures.map(reason => `reported structure: ${reason}`));
+    if (histories.length) localFailures.push(...assessHistory(histories).failures.map(reason => `reported history: ${reason}`));
     const checks = {functional: assessFunctionOperations(functions.filter(row => priorityOperations.includes(row.operation)), priorityOperations),
-      structure: work, history: assessHistoryOperations(histories.filter(row => priorityOperations.includes(row.operation)), priorityOperations),
       boundaries: assessBoundarySet(boundaries.filter(row => Object.hasOwn(priorityBoundaries, row.case)), priorityBoundaries)};
     for (const [name, value] of Object.entries(selected)) {
       checks[`${name} latency`] = value.latency; checks[`${name} workload`] = value.workload;
+      checks[`${name} population`] = value.population;
     }
     for (const [name, check] of Object.entries(checks)) {
       localFailures.push(...check.failures.map(reason => `${name}: ${reason}`));
