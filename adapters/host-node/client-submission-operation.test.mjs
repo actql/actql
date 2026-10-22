@@ -144,6 +144,20 @@ test('failed or oversized input is never retained and a closed Journal cannot re
   } finally {release();}
 });
 
+test('named submission shares its admitted intent with new and original saved-reference consumers', async t => {
+  const f = await fixture(t);
+  const request = {...f.request, requestName: 'original-name'};
+  assert.equal((await f.service.submitNamedAttempt(request)).outcome.kind, 'ready');
+  assert.deepEqual(f.intentAdmissions(), [1]);
+  const observed = await f.service.submitNamedAttempt({...request,
+    submissionRef: {...request.submissionRef, nonce: 'fresh-nonce'}});
+  assert.equal(observed.outcome.kind, 'ready');
+  assert.deepEqual(f.intentAdmissions(), [2]);
+  f.deny();
+  assert.equal((await f.service.submitNamedAttempt(request)).reason, 'authorization');
+  assert.deepEqual(f.intentAdmissions(), [2]);
+});
+
 test('one actual submit retains epoch authentication and one durable floor through the same Run acceptance', async t => {
   const f = await fixture(t);
   f.now(start + 10);

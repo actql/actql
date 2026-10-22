@@ -422,16 +422,23 @@ export function installNodeClientSubmission({journal, moon, authorizedScope,
         ...(resolution.kind === 'refused' ? {guarantee: resolution.guarantee} : {})};
     } else {
       const retained = resolution.submission;
-      const bound = ownedSnapshot(own(value, {...value, submissionRef: retained.submissionRef}));
+      const bound = Object.freeze(own(value, {...value, submissionRef: retained.submissionRef}));
+      ownedSnapshots.add(bound);
       // The original name and intent are already committed before preparation.
       // Another connection may only observe this original, never replay it or
       // replace its epoch because its first outcome is still preparing/unknown.
-      const outcome = retained.inserted ? await submitIntent(bound) : await lookupSubmission({
-        principalId: value.principalId, connection: value.connection, submissionRef: retained.submissionRef});
-      const current = await authorize(value);
-      if (current.authorityScopeCid !== fields.authorityScopeCid ||
-          current.namespaceId !== fields.namespaceId) fail('ClientRequestLookupDenied');
-      answer = {...original, kind: 'observed', outcome};
+      const release = retained.submissionRef.epoch === value.submissionRef.epoch ? undefined :
+        journal.retainSubmissionOperation?.(retained.submissionRef.epoch, moon, value.submissionRef.epoch);
+      try {
+        const lookup = Object.freeze({principalId: value.principalId, connection: value.connection,
+          submissionRef: retained.submissionRef});
+        ownedSnapshots.add(lookup);
+        const outcome = retained.inserted ? await submitIntent(bound) : await lookupSubmission(lookup);
+        const current = await authorize(value);
+        if (current.authorityScopeCid !== fields.authorityScopeCid ||
+            current.namespaceId !== fields.namespaceId) fail('ClientRequestLookupDenied');
+        answer = {...original, kind: 'observed', outcome};
+      } finally {release?.();}
     }
     if (!validNamedSubmissionAttempt(answer, value.connection, value.requestName,
       value.submissionRef, value.intentCid, value.attemptRef)) fail('InvalidClientHostSubmissionOutcome');

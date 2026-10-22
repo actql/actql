@@ -2871,12 +2871,17 @@ export function openClientRequestJournal(directory, {
     // Only that exact epoch may reuse pure authentication and its durable
     // time floor. Current permission and the retained authority row are still
     // checked at use; releasing this scope retains no cross-operation fact.
-    retainSubmissionOperation(epoch, control) {
+    retainSubmissionOperation(epoch, control, parentEpoch) {
       ensureOpen();
       if (epoch === undefined) return undefined;
       if (epoch === null || typeof epoch !== 'object' || !Object.isFrozen(epoch) ||
           submissionOperations.has(epoch)) fail('InvalidClientSubmissionOperation');
       const operation = {epoch, control, wire: canonicalValueJson(epoch, {dataKeys: true})};
+      const parent = submissionOperations.get(parentEpoch);
+      // A named resolution can select a different saved epoch in the same
+      // operation. Only its immutable input crosses; authentication and time
+      // remain this epoch's independent observations.
+      if (parent?.control === control) operation.intentOriginal = parent.intentOriginal;
       submissionOperations.set(epoch, operation);
       return () => {submissionOperations.delete(epoch);};
     },
@@ -2952,7 +2957,7 @@ export function openClientRequestJournal(directory, {
           // Formal retirement leaves this permanent bounded fence. Missing
           // history is never promoted to an unused name or a fresh epoch.
           if (row === undefined) fail('ClientSubmissionNameUnresolvable');
-          const retained = retainedIntent(row, control);
+          const retained = retainedIntent(row, control, submissionRef?.epoch);
           if (retained.requestId !== existing.submission_id ||
               retained.intentCid !== existing.intent_cid || retained.intentWire !== original.wire ||
               retained.submissionRef.epoch.authorityScopeCid !== authorityScopeCid) {
