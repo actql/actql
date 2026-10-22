@@ -1303,6 +1303,8 @@ pub fn decode_client_run_journal_row_with_local_policy(Bytes) -> Result[(ClientR
 
 pub fn decode_client_run_journal_row_with_observation_originals(Bytes) -> Result[(ClientRunJournalEncoding, String?, String?), ClientJournalDecodingIssue]
 
+pub fn decode_client_run_journal_row_with_retained_identity(Bytes, ClientRequestIdentity, @run_publication.PublicationContract) -> Result[(ClientRunJournalEncoding, String?, String?), ClientJournalDecodingIssue]
+
 pub fn decode_client_submitted_journal_row(Bytes) -> Result[ClientSubmittedJournalEncoding, ClientJournalDecodingIssue]
 
 pub fn decode_client_submitted_name_row(Bytes) -> Result[ClientSubmittedNameRow, ClientSubmittedNameIssue]
