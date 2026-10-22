@@ -24,7 +24,7 @@ test('normal lint executes behavioral operation performance assessment tests', (
   assert.ok(jobs.host.steps.some(row => row.run === 'npm run check:checkpoint-runtime'));
   const observed = jobs.host.steps.find(row =>
     row.name === 'Test operation authorization and unchanged Run observations');
-  assert.equal(observed.run, 'node --test adapters/host-node/authorization-account-current.test.mjs adapters/host-node/local-account-current.test.mjs adapters/host-node/client-run-state-revision.test.mjs');
+  assert.equal(observed.run, 'node --test adapters/host-node/authorization-account-current.test.mjs adapters/host-node/local-account-current.test.mjs adapters/host-node/client-run-state-revision.test.mjs adapters/host-node/client-run-observation-reuse.test.mjs adapters/host-node/client-run-stop-observation.test.mjs adapters/host-node/embedded-managed-compute-projection.test.mjs adapters/host-node/embedded-managed-compute-lifecycle.test.mjs adapters/host-node/embedded-source-environment-scope.test.mjs adapters/host-node/client-original-submitted-intent.test.mjs');
   assert.ok(jobs.host.steps.indexOf(observed) > jobs.host.steps.findIndex(row =>
     row.run === 'npm run check:retained-boundary'));
 });
