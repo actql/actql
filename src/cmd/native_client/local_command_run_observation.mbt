@@ -305,8 +305,6 @@ fn LocalCommandPreparationOriginal::refresh_run_observation_state(
     ),
   )
   |> ignore
-  local_host_result(capture.require_packaged_runtime_upgrade_in_original_read())
-  |> ignore
   let original = match
     local_host_result(
       capture.lookup_submitted_run_original_by_id_in_original_read(

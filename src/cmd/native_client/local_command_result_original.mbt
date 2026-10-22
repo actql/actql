@@ -105,10 +105,6 @@ fn LocalCommandPreparationOriginal::prepare_original_result(
     ),
     "runtime binding",
   )
-  local_result_host_value(
-    capture.require_packaged_runtime_upgrade_in_original_read(),
-    "runtime correspondence",
-  )
   let scope = local_result_host_value(
     capture.authority_scope_cid_in_original_read(
       settings.principal,

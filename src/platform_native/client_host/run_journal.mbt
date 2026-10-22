@@ -531,6 +531,23 @@ fn[T] NativeClientRunJournal::transaction(
 }
 
 ///|
+// Inherited local/physical fences only. This neither begins a transaction nor
+// claims that a later BEGIN will succeed. Pure command metadata can consume
+// its already admitted originals without manufacturing another SQL snapshot.
+fn NativeClientRunJournal::check_transaction_context(
+  self : NativeClientRunJournal,
+  reads? : NativeClientJournalReadAccess? = None,
+) -> Result[Unit, NativeClientRunJournalIssue] {
+  if self.fenced || client_journal_transaction_fenced(self.database, reads) {
+    return Err(Fenced)
+  }
+  if self.publication_read_locked || self.transaction_active {
+    return Err(Physical(@sqlite.Busy))
+  }
+  Ok(())
+}
+
+///|
 fn[T] NativeClientRunJournal::transaction_with_reads(
   self : NativeClientRunJournal,
   work : () -> Result[T, NativeClientRunJournalIssue],
@@ -538,11 +555,9 @@ fn[T] NativeClientRunJournal::transaction_with_reads(
 ) -> Result[T, NativeClientRunJournalIssue] {
   native_timing_begin(7)
   defer native_timing_end(7)
-  if self.fenced || client_journal_transaction_fenced(self.database, reads) {
-    return Err(Fenced)
-  }
-  if self.publication_read_locked || self.transaction_active {
-    return Err(Physical(@sqlite.Busy))
+  match self.check_transaction_context(reads~) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
   }
   match
     client_journal_transaction_operation(self.database, JournalBegin, reads) {
