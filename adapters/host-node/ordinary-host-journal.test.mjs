@@ -20,6 +20,8 @@ async function selectedRowsFixture(t) {
   const cid = digit => 'sha256:' + digit.repeat(64);
   const control = {clientRequestAdmitRecord(...fields) {
     return Object.freeze(Object.fromEntries(keys.map((key, index) => [key, fields[index]])));
+  }, clientRequestRelation(a, b) {
+    return keys.every(key => a[key] === b[key]) ? 1 : 2;
   }};
   for (const [method, key] of Object.entries({clientRequestAuthorityScopeCid: 'authorityScopeCid',
     clientRequestCallerId: 'requestId', clientRequestScopeCid: 'logicalRequestScopeCid',
