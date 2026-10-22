@@ -528,6 +528,24 @@ per-body ACK. The existing Store's byte/object limits include native bodies and
 unresolved reservations beside actual file objects. A persisted usage singleton
 changes atomically with those bodies; ordinary open does not enumerate them.
 
+The optional initial-publication operation retains the two original records,
+`preparing` and its immediate `committing` or `cancelled` successor, in one
+native transaction. Both complete bodies, sequential locators and quota changes
+commit together; neither record receives a provisional acknowledgement. The
+existing Common owner still issues each record and admits both transitions.
+Cancellation is checked between issuance, and the ordinary active check remains
+after the group before Index publication. File-backed attempts and Stores without
+this optional operation retain their independently durable append protocol.
+
+A lost initial-group COMMIT reply retains exactly that pair and its reservation.
+Only the same original confirmation may find either no installed progress or
+both exact sequential locators, and it performs a real confirmation COMMIT.
+Partial or different progress refuses; it is not completed with replacement
+records. Before continuing, the publication caller observes both original bodies
+and the exact final locator. Healthy groups add no confirmation reads. This
+grouping does not combine the later Index acknowledgement, succeeded record,
+business dispatch or payload lifetime with the initial transition.
+
 The private inventory identifies native semantic bodies by their complete-body
 digest and byte count, not a fabricated physical-file identity. Shared inventory
 references retain the same row. Last-reference removal changes the row and usage

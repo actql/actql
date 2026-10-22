@@ -807,6 +807,18 @@ export async function openDeliveryAttemptIndex(path, {create, maxEntries, maxWir
     };
     const progressCopy = value => {
       if (value === undefined) return undefined;
+      if (value?.kind === 'initial-records') {
+        if (Object.keys(value).sort().join(',') !== 'attemptCid,kind,records' || !cid(value.attemptCid) ||
+            !Array.isArray(value.records) || value.records.length !== 2) fail('InvalidPublicationRecord');
+        const records = value.records.map((record, sequence) => {
+          if (!record || Object.keys(record).sort().join(',') !== 'previousCid,recordCid,sequence' ||
+              !cid(record.recordCid) || record.sequence !== sequence ||
+              record.previousCid !== (sequence === 0 ? null : value.records[0].recordCid)) fail('InvalidPublicationRecord');
+          return Object.freeze({...record});
+        });
+        if (records[0].recordCid === records[1].recordCid) fail('InvalidPublicationRecord');
+        return Object.freeze({kind:value.kind,attemptCid:value.attemptCid,records:Object.freeze(records)});
+      }
       const keys = value?.kind === 'attempt' ? 'attemptCid,kind,runCid' : 'attemptCid,kind,previousCid,recordCid,sequence';
       if (!value || Object.keys(value).sort().join(',') !== keys || !cid(value.attemptCid) ||
           (value.kind === 'attempt' ? !cid(value.runCid) : value.kind !== 'record' || !cid(value.recordCid) ||
@@ -817,7 +829,9 @@ export async function openDeliveryAttemptIndex(path, {create, maxEntries, maxWir
       return Object.freeze({...value});
     };
     const sameProgress = (a,b) => a === undefined ? b === undefined : b !== undefined &&
-      ['kind','attemptCid','runCid','previousCid','recordCid','sequence'].every(key=>a[key]===b[key]);
+      ['kind','attemptCid','runCid','previousCid','recordCid','sequence'].every(key=>a[key]===b[key]) &&
+      (a.kind !== 'initial-records' || a.records.every((record,i) =>
+        ['previousCid','recordCid','sequence'].every(key=>record[key]===b.records[i][key])));
     const publicationMutation = (kind, entries, allowance, suppliedProgress) => {
       const progress = progressCopy(suppliedProgress);
       if (!Array.isArray(entries) || entries.length > maxEntries) fail('DeliveryAttemptIndexLimit');
@@ -835,7 +849,9 @@ export async function openDeliveryAttemptIndex(path, {create, maxEntries, maxWir
           progress.kind === 'attempt' && !originals.some(entry => entry?.name === 'publication_attempt' &&
             entry.semantic_cid === progress.attemptCid) ||
           progress.kind === 'record' && originals.length === 1 && (originals[0].name !== 'publication_record' ||
-            originals[0].semantic_cid !== progress.recordCid))) {
+            originals[0].semantic_cid !== progress.recordCid) ||
+          progress.kind === 'initial-records' && (originals.length > 2 || originals.some(entry =>
+            entry.name !== 'publication_record' || !progress.records.some(record=>record.recordCid===entry.semantic_cid))))) {
         fail('InvalidPublicationRecord');
       }
       const before = usage();
@@ -872,6 +888,15 @@ export async function openDeliveryAttemptIndex(path, {create, maxEntries, maxWir
                 if (attempt !== undefined && attempt.run_cid !== progress.runCid) fail('PublicationAttemptConflict');
                 if (attempt === undefined) {
                   insertPublicationAttempt.run(progress.attemptCid,progress.runCid); progressCreated = true;
+                }
+              } else if (progress.kind === 'initial-records') {
+                if (attempt === undefined) fail('PublicationAttemptMismatch');
+                const existing = publicationAttemptRecords.all(progress.attemptCid,3);
+                const installed = retry && existing.length === 2 && existing.every((record,i) =>
+                  record.sequence === i && record.record_cid === progress.records[i].recordCid);
+                if (!installed && existing.length !== 0) fail('PublicationRecordConflict');
+                if (!installed) for (const record of progress.records) {
+                  insertPublicationRecord.run(progress.attemptCid,record.sequence,record.recordCid);
                 }
               } else {
                 if (attempt === undefined) fail('PublicationAttemptMismatch');
