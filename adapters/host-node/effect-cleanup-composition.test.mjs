@@ -68,6 +68,9 @@ test('completed Effect publication preserves its exact pending failure instead o
       cleanupHandle: f.original.cleanupHandle})), false);
   assert.equal(f.isCompletedEffectfulPublicationCleanupFailure({...f.options, computation: {}}, f.original), false);
   assert.equal(f.isCompletedEffectfulPublicationCleanupFailure({...f.options, store: {}}, f.original), false);
+  f.owner.releaseComplete = true;
+  assert.equal(f.isCompletedEffectfulPublicationCleanupFailure(f.options, f.original), false);
+  f.owner.releaseComplete = false;
   assert.equal(f.publications(), 1);
   assert.equal(f.confirms(), 0, 'Classification cannot confirm storage or retry publication');
   assert.equal(f.original.cleanupHandle.status().pending, true);
@@ -84,6 +87,49 @@ test('completed publication failure recognition keeps preparation and foreign fa
   assert.equal(f.isCompletedEffectfulPublicationCleanupFailure(f.options, f.original), false);
   assert.equal(f.publications(), 0);
 });
+
+test('completed publication retains its existing exact post-publication cleanup recognition', () => {
+  const f = publicationFailureFixture();
+  f.owner.capturePublished = true;
+  f.owner.retainCapture = false;
+  f.owner.cleanupFailure = f.original;
+  assert.equal(f.isCompletedEffectfulPublicationCleanupFailure(f.options, f.original), true);
+  assert.equal(f.isCompletedEffectfulPublicationCleanupFailure(f.options, new Error(f.original.message)), false);
+});
+
+const effectSiteSource = readFileSync(new URL('./installed-effect-site.mjs', import.meta.url), 'utf8');
+const effectSiteAst = parse(effectSiteSource, {ecmaVersion: 'latest', sourceType: 'module'});
+const publicationCatches = [];
+function collectPublicationCatches(node) {
+  if (node?.type === 'CatchClause') {
+    const body = effectSiteSource.slice(node.start, node.end);
+    if (body.includes('completeInterruptedEffectRun(options,')) publicationCatches.push(body);
+  }
+  if (node === null || typeof node !== 'object') return;
+  for (const value of Object.values(node)) {
+    if (Array.isArray(value)) value.forEach(collectPublicationCatches);
+    else if (value?.type) collectPublicationCatches(value);
+  }
+}
+collectPublicationCatches(effectSiteAst);
+assert.equal(publicationCatches.length, 2);
+for (const [index, handler] of publicationCatches.entries()) {
+test(`Effect Site ${index === 0 ? 'captured' : 'recovered'} caller preserves original publication cleanup without recompletion`, async () => {
+  const f = publicationFailureFixture();
+  await assert.rejects(f.publishCompletedEffectfulRun(f.options), error => error === f.original);
+  let recompletions = 0;
+  const runCatch = compileFunction(`return (async () => {
+    let result; try { throw primary; } ${handler}
+    return result;
+  })();`, [], {contextExtensions: [{primary: f.original, options: {publication: f.options},
+    observing: false, isCompletedEffectfulPublicationCleanupFailure: f.isCompletedEffectfulPublicationCleanupFailure,
+    completeInterruptedEffectRun() {recompletions++; throw new Error('ReplacedOriginalPublicationFailure');},
+    terminalPreSendRefusal: () => assert.fail('Not an apply refusal')} ]});
+  await assert.rejects(runCatch(), error => error === f.original);
+  assert.equal(recompletions, 0);
+  assert.equal(f.original.cleanupHandle.status().pending, true);
+});
+}
 
 test('Effect-only completed inventory retains the existing release owner without public payloads', async () => {
   const {storeCompletedRunResultSet, releaseCompletedRunPreparedPayloads} =

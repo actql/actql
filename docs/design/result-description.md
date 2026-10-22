@@ -159,6 +159,12 @@ mutation for an idempotent same-database confirmation, never a Run replay.
 Store close attempts that retained failed writer's original confirmation before
 checking its reserved capacity. An unavailable confirmation remains pending;
 independent live payloads, readers and other cleanup duties still refuse close.
+Once a completed Effect receipt enters publication, its existing completed
+Result owner retains the exact publication failure and any original cleanup
+receiver. Captured and recovered Site callers propagate that failure instead
+of issuing another interrupted-apply completion. This does not mark the Run
+committed or acknowledge storage; the original cleanup confirms only its own
+physical mutation, with current authority and Run reconciliation still separate.
 Run metadata retirement selects its indexed attempts and records, removes
 their actual bodies, and retires their locators with the existing Run fence.
 
