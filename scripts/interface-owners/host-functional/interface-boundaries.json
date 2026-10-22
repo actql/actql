@@ -8860,7 +8860,7 @@
     {
       "module": "adapters/host-common/run-state-access.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "319744ad0f0594fba2c4e4c97322a1561d4bfc07f8d8439614c23ec176801c6a",
+      "sha256": "571b67320f62701973533dcb3341eaab6eed2594820d2e8cd03f7010badef282",
       "role": "physical-io",
       "owner": "Existing Result access/delivery/publication Owners and physical read/sink adapter",
       "exports": [
@@ -8938,9 +8938,15 @@
           "parameters": [
             "installed",
             "context",
-            "resultName"
+            "resultName",
+            "clocks"
           ],
           "async": true
+        },
+        {
+          "name": "observeResult/acceptedAt/acceptedAt",
+          "parameters": [],
+          "async": false
         },
         {
           "name": "observeResult/observeResult",
@@ -9013,7 +9019,8 @@
             "unavailableFrom",
             "validateRequest",
             "authorizeRunStateRequest",
-            "observeAuthorizedRunState"
+            "observeAuthorizedRunState",
+            "observeResult/acceptedAt/acceptedAt"
           ],
           "exports": [
             "RunStateAccessError",
@@ -9044,6 +9051,10 @@
               {
                 "path": "docs/design/interactive-run-control.md",
                 "anchor": "The ordinary Local observer selects committed publication through the existing"
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "Within one authorized Run observation, each distinct Result clock contract"
               }
             ],
             "inputsOutputs": [
@@ -9070,6 +9081,10 @@
               {
                 "path": "adapters/host-common/run-state-access.mjs",
                 "anchor": "export async function observeAuthorizedRunState(service, request) {"
+              },
+              {
+                "path": "adapters/host-common/run-state-access.mjs",
+                "anchor": "const acceptedAt = await Reflect.apply(installed.sampleTrustedClock, installed.store,"
               }
             ],
             "identity": [
@@ -9096,6 +9111,10 @@
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "return {entry, bytes, contract: admitted};"
+              },
+              {
+                "path": "adapters/host-common/run-state-access.mjs",
+                "anchor": "const original = clocks.get(clockCid);"
               }
             ],
             "ownership": [
@@ -9122,6 +9141,10 @@
               {
                 "path": "docs/design/interactive-run-control.md",
                 "anchor": "These immutable metadata facts live within this observation; a new operation"
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "mutating operation. The private clock facts never enter authority callbacks."
               }
             ],
             "synchronization": [
@@ -9148,6 +9171,10 @@
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "await requireCommittedMetadataInventory(original.entry);"
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "accepts one durable floor through the existing Store clock sampler. Sampling"
               }
             ],
             "failure": [
@@ -9174,6 +9201,10 @@
               {
                 "path": "docs/design/interactive-run-control.md",
                 "anchor": "selected originals and physical failures do not become absence or trigger a"
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "independent sampling. A failed sampling outcome remains Unknown for that"
               }
             ],
             "cancellation": [
@@ -9200,6 +9231,10 @@
               {
                 "path": "docs/design/interactive-run-control.md",
                 "anchor": "current authorization and transactional observation CAS remain unchanged."
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "authorization, final state comparison/CAS and real payload/FD cleanup remain"
               }
             ],
             "resources": [
@@ -9226,6 +9261,10 @@
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "Object.freeze(original.entry.durable_result_binding_cids);"
+              },
+              {
+                "path": "adapters/host-common/run-state-access.mjs",
+                "anchor": "const clocks = new Map();"
               }
             ],
             "extension": [
@@ -9252,6 +9291,10 @@
               {
                 "path": "docs/design/interactive-run-control.md",
                 "anchor": "Stores without the optional combined read keep their original selected reads;"
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "Stores with only the explicit-observation API retain that protocol; an invalid"
               }
             ],
             "verification": [
@@ -9274,6 +9317,10 @@
               {
                 "path": "adapters/host-node/client-run-observation-reuse.test.mjs",
                 "anchor": "test('selected publication observation acquires its Index once in the actual Local observer', async () => {"
+              },
+              {
+                "path": "adapters/host-common/run-state-clock-order.test.mjs",
+                "anchor": "test('Run clock observation retains a real Store floor and releases the original synced FD',async t=>{"
               }
             ]
           }
