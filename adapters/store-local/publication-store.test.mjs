@@ -7488,13 +7488,13 @@ test('ordinary Store opening does not enumerate or stat committed physical holdi
   await setup.store.close();
   const directory=join(setup.directory,'physical-holdings');
   const originalReaddir=fsPromises.readdir,originalLstat=fsPromises.lstat,originalOpen=fsPromises.open;
-  let enumerations=0,stats=0;const reads=[];
+  let enumerations=0;const stats=[],reads=[];
   t.mock.method(fsPromises,'readdir',function(path,...args){
     if(String(path)===directory)enumerations++;
     return Reflect.apply(originalReaddir,this,[path,...args]);
   });
   t.mock.method(fsPromises,'lstat',function(path,...args){
-    if(String(path).startsWith(directory+sep))stats++;
+    if(String(path).startsWith(directory+sep))stats.push(String(path));
     return Reflect.apply(originalLstat,this,[path,...args]);
   });
   t.mock.method(fsPromises,'open',function(path,...args){
@@ -7503,11 +7503,14 @@ test('ordinary Store opening does not enumerate or stat committed physical holdi
   });
   syncBuiltinESMExports();t.after(()=>{t.mock.restoreAll();syncBuiltinESMExports();});
   const reopened=await openLocalPublicationStore(setup.configuration,contractControl);
-  assert.deepEqual({enumerations,stats,reads},{enumerations:0,stats:0,reads:[]});
+  assert.deepEqual({enumerations,stats,reads},{enumerations:0,stats:[],reads:[]});
   const selected=holdings[7];
   assert.deepEqual(await reopened.inspectPhysicalHolding(selected.holding_cid),selected);
-  assert.deepEqual(reads,[join(directory,selected.holding_cid.slice(7)+'.json')]);
-  assert.equal(enumerations,0);assert.equal(stats,0);
+  const selectedPath=join(directory,selected.holding_cid.slice(7)+'.json');
+  assert.deepEqual(reads,[selectedPath]);
+  assert.equal(enumerations,0);
+  assert(stats.length>0&&stats.every(path=>path===selectedPath),
+    'the selected original retains its real path-generation checks, not an unrelated history walk');
   const chunks=[];await reopened.consumePhysicalHolding(selected.holding_cid,0,chunk=>chunks.push(Buffer.from(chunk)));
   assert.equal(Buffer.concat(chunks).toString(),'history 7');
   assert.equal(reopened.status().objectCount,12);
