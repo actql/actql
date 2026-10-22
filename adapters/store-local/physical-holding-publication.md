@@ -134,6 +134,16 @@ confirmation. The original sync/close failures remain causes of the outward
 pending-cleanup failure. A later confirmation still performs its own actual
 read and required acknowledgement.
 
+New and idempotent holding commits, shared holding publication and borrowed
+holding directory acknowledgements use that same failed-writer custody. A
+later successful read or reconciliation may establish the exact holding's
+durability, but cannot acknowledge another acquired directory FD's close.
+The same original FD keeps Store ownership and its holding-retirement fence
+until close-only retry confirms; it is not replaced by the reconciliation FD.
+Prepared payloads are adopted only after the final holding acknowledgement.
+Borrowed pre-publication and shared-holding acknowledgements do not adopt
+prepared payloads or publish a target before their original boundary succeeds.
+
 The existing bounded metadata reader does not publish bytes or invoke its FD
 retirement callback after an explicit false close. Its existing cleanup facade
 keeps the same native handle and callback through rejected or false close-only
