@@ -769,15 +769,6 @@ async function openInstalledHost(originalInstallation, preparation) {
     if (modelRuntimeClosing) throw clientOperationError('ClientHostClosing');
     assertModelRuntime();
   }
-  function getPreparedSourceEnvironment() {
-    if (modelRuntimeClosing) throw clientOperationError('ClientHostClosing');
-    const original = preparedSourceEnvironment;
-    if (original === undefined || original.host !== host || original.moon !== moon ||
-        original.environment !== environment || original.publication !== sourcePublication) {
-      throw clientOperationError('InstalledPublicSourceEnvironmentChanged');
-    }
-    return original.preparedEnvironment;
-  }
   function bindModelSdkStaticOriginals(originals) {
     // Existing borrow/current rechecks remain legal while cleanup is pending;
     // this check is not new-allocation or send admission during Host closing.
@@ -1344,6 +1335,15 @@ async function openInstalledHost(originalInstallation, preparation) {
   let environment;
   let evidenceCid;
   let sourcePublication;
+  function getPreparedSourceEnvironment() {
+    if (modelRuntimeClosing) throw clientOperationError('ClientHostClosing');
+    const original = preparedSourceEnvironment;
+    if (original === undefined || original.host !== host || original.moon !== moon ||
+        original.environment !== environment || original.publication !== sourcePublication) {
+      throw clientOperationError('InstalledPublicSourceEnvironmentChanged');
+    }
+    return original.preparedEnvironment;
+  }
   try {
     evidenceCid = JSON.parse(environmentWire).evidence_bundle_cid;
     const numericProfile = JSON.parse(preparation === undefined

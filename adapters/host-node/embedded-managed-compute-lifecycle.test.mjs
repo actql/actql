@@ -47,7 +47,13 @@ function preparedEnvironmentLifetime({missing = false, retire = () => {},
   const opening = declared('openInstalledHost');
   const functions = new Map(opening.body.body.filter(node => node.type === 'FunctionDeclaration')
     .map(node => [node.id.name,node]));
-  const getter = functions.get('getPreparedSourceEnvironment');
+  let getter;
+  visit(opening.body,node => {
+    if (node.type === 'FunctionDeclaration' && node.id.name === 'getPreparedSourceEnvironment') {
+      assert.equal(getter,undefined);
+      getter = node;
+    }
+  });
   const retirement = functions.get('retireModelPreparationReferences');
   assert(getter && retirement);
   let capture, installation, retain, consumerCapture;
