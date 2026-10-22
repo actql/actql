@@ -744,6 +744,32 @@ successfully after the audit text update. No product source or contract changed
 during those checks. This regression evidence does not establish missing
 registry support, input-claim verification or ordered-derive conformance.
 
+## Full lowering retained by the prepared Program
+
+An Effect-free `PreparedClientProgram` retains at most one successful full
+`PreparedSequence` for each task in its original checked graph. Pure Values
+compilation, full task emission and Local runtime preparation consume that
+same immutable lowering when all sequence limits match, including every
+expression limit. The retained sequence still identifies the original bound
+owner, Parameter values, expression closure and text/time policy. Equal
+Program CIDs or SQL and types cannot substitute for that preparation.
+
+A changed limit runs the existing bounded lowerer. Success replaces the prior
+entry for that task; failure returns its original issue and does not borrow a
+less restrictive sequence. A row-limit view starts with an empty inventory,
+including when its numeric limit is equal. Prefix, Infer, serialization and
+completed-producer constructors remain separate; Effectful graph-only callers
+keep their original preparation path.
+
+The inventory shares the existing prepared Program lifetime and contains only
+a task coordinate, the complete limits and the original typed sequence per
+checked task. Its task count is bounded by the checked graph and its contents
+by the existing sequence row, cell, binding, name and expression budgets. It
+does not duplicate wire inventories or retain Run, attempt, grant or Result
+state. Runtime contracts, expression contexts, query-time binding, execution
+budgets, current permission and physical resources remain separately admitted.
+Retiring this managed preparation is not a physical release acknowledgement.
+
 ## Internal sequence component driver
 
 The package-private `evaluate_sequence_components` now drives capture, conversion,

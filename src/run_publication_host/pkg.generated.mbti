@@ -1812,6 +1812,8 @@ pub fn prepare_parsed_client_effect_computation(@stage_syntax.Program, @program_
 
 pub fn prepare_parsed_effect_free_client_program(@stage_syntax.Program, @program_check.CheckEnvironment, @decode_core.Cursor?, ClientProgramPreparationLimits, source_catalog? : @program_check.PreparedSourceCatalog?) -> Result[PreparedClientProgram, ClientProgramPreparationIssue]
 
+pub fn prepare_prepared_client_full_sequence(PreparedClientProgram, Int, @lowering_relation.SequenceLimits) -> Result[@lowering_relation.PreparedSequence, ClientValuesPipelineIssue]
+
 pub fn prepare_publication_output_export(@execution_relation.CompletedOutput, PublicationOutputExportLimits) -> Result[PublicationOutputExport, PublicationOutputExportIssue]
 
 pub fn prepare_recorded_client_retained_receiver_cleanup_from_plan(ClientRecordedSourceCleanup, @remote_site_protocol.DispatchRecord, @remote_site_protocol.RemoteExecutionEvidence, @remote_site_protocol.RemoteManagedOutputSubject, @remote_site_protocol.RemoteManagedOutputMeasurement, @remote_site_protocol.RemoteRetainedInputIntent, @remote_site_protocol.RemoteRetainedInputResult, @remote_site_protocol.DispatchRequest, @remote_site_protocol.DispatchRecord, Int, Int, Int, Int64) -> Result[ClientRetainedInputCleanup, ClientRetainedTaskInputIssue]
