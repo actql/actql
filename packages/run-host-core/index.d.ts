@@ -1,6 +1,7 @@
 declare const retainedInputCurrentQueryBrand: unique symbol;
 declare const retainedInputCurrentReplyBrand: unique symbol;
 declare const environmentBrand: unique symbol;
+declare const publishedEnvironmentBrand: unique symbol;
 declare const preparedBrand: unique symbol;
 declare const compilationBrand: unique symbol;
 declare const taskCompilationBrand: unique symbol;
@@ -44,6 +45,17 @@ export function prepareResultMaterialHoldsStep(value: ResultMaterialHolds,
 export interface CheckEnvironment {
   readonly [environmentBrand]: true;
 }
+
+/** Static publication/Catalog facts for one original admitted Environment.
+ * No Program values, current permission, Run or physical custody is retained. */
+export interface PreparedPublishedEnvironment {
+  readonly [publishedEnvironmentBrand]: true;
+}
+export function preparePublishedEnvironment(environment: CheckEnvironment,
+  publicationWire: string): PreparedPublishedEnvironment;
+/** Cheap original Environment and complete publication-wire match. */
+export function publishedEnvironmentMatches(prepared: PreparedPublishedEnvironment,
+  environment: CheckEnvironment, publicationWire: string): boolean;
 
 export interface PreparedProgram {
   readonly [preparedBrand]: true;
@@ -91,7 +103,8 @@ export interface AllowedEffectRun {
 }
 /** Static preparation selection; never permission to acquire or apply. */
 export function prepareProgram(document: string, format: 'json' | 'yaml',
-  environment: CheckEnvironment, parametersWire?: string):
+  environment: CheckEnvironment, parametersWire?: string,
+  publishedEnvironment?: PreparedPublishedEnvironment):
   Readonly<{kind: 'effect_free'; prepared: PreparedProgram}> |
   Readonly<{kind: 'effect'; prepared: PreparedEffectProgram}>;
 /** Same original submitted SQL/AQL and trusted installation publication.
@@ -108,7 +121,8 @@ export interface SourceProgramOriginals {
   readonly publicationWire: string;
 }
 export function prepareSourceProgram(intent: SubmittedIntent,
-  environment: CheckEnvironment, publicationWire: string): PreparedSourceProgram;
+  environment: CheckEnvironment, publicationWire: string,
+  publishedEnvironment?: PreparedPublishedEnvironment): PreparedSourceProgram;
 export function sourceProgramOriginals(prepared: PreparedProgram | PreparedEffectProgram): SourceProgramOriginals;
 export function sourceProgramSourceInput(prepared: PreparedProgram | PreparedEffectProgram): Readonly<{
   document: string; format: string; parametersWire?: string; parameterDeclarationsWire?: string}>;
@@ -116,13 +130,14 @@ export function sourceProgramMaterialInput(prepared: PreparedProgram | PreparedE
   environmentWire: string): SourceFreeRunMaterialsInput;
 /** Host-authenticated saved originals; never rediscover publication on restore. */
 export function restoreSourceProgram(originals: SourceProgramOriginals,
-  environment: CheckEnvironment): PreparedSourceProgram;
+  environment: CheckEnvironment, publishedEnvironment?: PreparedPublishedEnvironment): PreparedSourceProgram;
 export function prepareSourceRequest(prepared: PreparedProgram | PreparedEffectProgram,
   intent: SubmittedIntent, authorityScopeCid: string, requestId: string): RequestIdentity;
 export function admitSourceRequestFields(prepared: PreparedProgram | PreparedEffectProgram,
   intent: SubmittedIntent, fields: RequestFields): RequestIdentity;
 export function prepareEffect(document: string, format: 'json' | 'yaml',
-  environment: CheckEnvironment, parametersWire?: string): PreparedEffectProgram;
+  environment: CheckEnvironment, parametersWire?: string,
+  publishedEnvironment?: PreparedPublishedEnvironment): PreparedEffectProgram;
 /** Explicit finite normalization selected by the original checked create/update kind.
  * Actual semantic completions refuse; current authority/approval stay separate. */
 export function compileEffect(prepared: PreparedEffectProgram,
@@ -493,7 +508,8 @@ export interface PrivateCompilationWires {
 export function admitEnvironment(body: string, evidenceBundleCid: string,
   profiles: ProfileSelection): CheckEnvironment;
 export function prepare(document: string, format: 'json' | 'yaml',
-  environment: CheckEnvironment, parametersWire?: string): PreparedProgram;
+  environment: CheckEnvironment, parametersWire?: string,
+  publishedEnvironment?: PreparedPublishedEnvironment): PreparedProgram;
 export function compileValues(prepared: PreparedProgram): ValuesCompilation;
 export function compileTasks(prepared: PreparedProgram): TaskCompilation;
 export function privateTaskCompilationWires(

@@ -270,6 +270,7 @@ pub fn lower_prepared_published_query(
   document : String,
   format : @source_frontend.Format,
   declarations : String?,
+  public_primary? : Bool = false,
 ) -> Result[
   (@source_frontend.Lowered, @program_check.PreparedSourceCatalog),
   PreparedPublicationIssue,
@@ -289,6 +290,7 @@ pub fn lower_prepared_published_query(
     update_targets=prepared.update_targets,
     store_targets=prepared.store_targets,
     command_targets=prepared.command_targets,
+    public_primary~,
   )
   .map(lowered => (lowered, prepared.catalog))
   .map_err(issue => Frontend(issue))

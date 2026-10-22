@@ -65,6 +65,7 @@ pub fn prepare_client_effect_computation(
   update_targets? : @update_targets.UpdateTargetPublication? = None,
   store_targets? : @update_targets.StoreTargetPublication? = None,
   command_targets? : @update_targets.CommandTargetPublication? = None,
+  source_catalog? : @checked.PreparedSourceCatalog? = None,
 ) -> Result[PreparedClientEffectComputation, ClientEffectComputationIssue] {
   let parsed = match
     @syntax.parse(document, limits.program.checking.input, format~) {
@@ -80,6 +81,7 @@ pub fn prepare_client_effect_computation(
     update_targets~,
     store_targets~,
     command_targets~,
+    source_catalog~,
   )
 }
 
