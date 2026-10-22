@@ -19340,7 +19340,7 @@
     {
       "module": "adapters/host-node/client-request-journal.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "6204e766905c0beba9eebaee12f0ee96b183fa891e69d77025ebcbfbdbad0c31",
+      "sha256": "bdd547bc517c8caee8fb0ffd21b3a4899be3ebc6e8b5238a91cfc8124fcac70c",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
@@ -20162,6 +20162,17 @@
           "async": false
         },
         {
+          "name": "openClientRequestJournal/admitIntentOriginal/admitIntentOriginal",
+          "parameters": [
+            "wire",
+            "control",
+            "epoch",
+            "code",
+            "canonical"
+          ],
+          "async": false
+        },
+        {
           "name": "openClientRequestJournal/admitRunDefinitionRow/admitRunDefinitionRow",
           "parameters": [
             "row",
@@ -20635,6 +20646,15 @@
           "async": false
         },
         {
+          "name": "openClientRequestJournal/journal/init:prepareSubmittedIntent/init:prepareSubmittedIntent",
+          "parameters": [
+            "epoch",
+            "wire",
+            "control"
+          ],
+          "async": false
+        },
+        {
           "name": "openClientRequestJournal/journal/init:publishRunState/init:publishRunState",
           "parameters": [
             "frame",
@@ -21002,7 +21022,8 @@
           "name": "openClientRequestJournal/originalIntent/originalIntent",
           "parameters": [
             "intent",
-            "control"
+            "control",
+            "epoch"
           ],
           "async": false
         },
@@ -21643,7 +21664,9 @@
             "validateSourceInventory/validPhysicalBinding/validPhysicalBinding/validPhysicalBinding#2",
             "validateSourceInventory/validPhysicalBinding/validPhysicalBinding/validPhysicalBinding#3",
             "validateSourceInventory/validPhysicalBinding/validPhysicalBinding/validPhysicalBinding#4",
-            "validateSourceInventory/validPhysicalBinding/validPhysicalBinding/validPhysicalBinding#5"
+            "validateSourceInventory/validPhysicalBinding/validPhysicalBinding/validPhysicalBinding#5",
+            "openClientRequestJournal/admitIntentOriginal/admitIntentOriginal",
+            "openClientRequestJournal/journal/init:prepareSubmittedIntent/init:prepareSubmittedIntent"
           ],
           "exports": [
             "openClientRequestJournal",
@@ -21702,6 +21725,10 @@
               {
                 "path": "docs/design/interactive-run-control.md",
                 "anchor": "Physical-stop observation uses the same journal-owned frame across publication"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "const admitIntentOriginal = (wire, control, epoch, code, canonical = true) => {"
               }
             ],
             "inputsOutputs": [
@@ -21764,6 +21791,10 @@
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
                 "anchor": "lookupRunDefinition(ref, requestControl, publicationControl, originalFrame) {"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "prepareSubmittedIntent(epoch, wire, control) {"
               }
             ],
             "identity": [
@@ -21826,6 +21857,10 @@
               {
                 "path": "docs/design/interactive-run-control.md",
                 "anchor": "COMMIT failure retains the existing Unknown outcome. Copied, foreign-journal,"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "if (previous !== undefined && previous.intent === intent) return previous;"
               }
             ],
             "ownership": [
@@ -21892,6 +21927,10 @@
               {
                 "path": "docs/design/interactive-run-control.md",
                 "anchor": "Physical-stop observation uses the same journal-owned frame across publication"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "return () => {submissionOperations.delete(epoch);};"
               }
             ],
             "synchronization": [
@@ -21958,6 +21997,10 @@
               {
                 "path": "docs/design/interactive-run-control.md",
                 "anchor": "physical-close transaction compares that complete original row before its"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "const original = admitIntentOriginal(wire, control, epoch,"
               }
             ],
             "failure": [
@@ -22020,6 +22063,10 @@
               {
                 "path": "docs/design/interactive-run-control.md",
                 "anchor": "COMMIT failure retains the existing Unknown outcome. Copied, foreign-journal,"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "if (canonical && original.wire !== wire) fail(code);"
               }
             ],
             "cancellation": [
@@ -22086,6 +22133,10 @@
               {
                 "path": "docs/design/interactive-run-control.md",
                 "anchor": "remain separate prerequisites, and an already recorded stop needs no repeated"
+              },
+              {
+                "path": "adapters/host-node/client-submission.mjs",
+                "anchor": "finally {release?.();}"
               }
             ],
             "resources": [
@@ -22164,6 +22215,10 @@
               {
                 "path": "docs/design/interactive-run-control.md",
                 "anchor": "they do not cache Account decisions, issue a cleanup ACK or replay execution."
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "const intent = control.clientSubmittedIntent(wire, 1048576, 65536, 64);"
               }
             ],
             "extension": [
@@ -22222,6 +22277,10 @@
               {
                 "path": "docs/design/interactive-run-control.md",
                 "anchor": "An unchanged complete row reuses its original request identity and"
+              },
+              {
+                "path": "adapters/host-node/client-submission.mjs",
+                "anchor": "const input = typeof journal.prepareSubmittedIntent === 'function' ?"
               }
             ],
             "verification": [
@@ -22328,6 +22387,10 @@
               {
                 "path": "adapters/host-node/ordinary-host-journal.test.mjs",
                 "anchor": "Journal selected-row observations retain the native get receiver and do not report a failed get as zero"
+              },
+              {
+                "path": "adapters/host-node/client-submission-operation.test.mjs",
+                "anchor": "test('one submit admits each unchanged intent wire once through preparation and original Run acceptance'"
               }
             ]
           }
@@ -24565,7 +24628,7 @@
     {
       "module": "adapters/host-node/client-submission.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "fc216fa6311a7fc683d62a7b1749f7219a6bea1e35fdb514fd68fa5c3e67c4da",
+      "sha256": "ebb0c5d6f0d19a8a66fe5960673b85a96bd4c60e6d85aaae46b7e515e530068f",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
@@ -25280,6 +25343,10 @@
               {
                 "path": "docs/design/client-submission-identity.md",
                 "anchor": "## Scoped durable request names"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "const admitIntentOriginal = (wire, control, epoch, code, canonical = true) => {"
               }
             ],
             "inputsOutputs": [
@@ -25290,6 +25357,10 @@
               {
                 "path": "packages/client-wire/index.d.ts",
                 "anchor": "export declare function validNamedSubmissionAttempt("
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "prepareSubmittedIntent(epoch, wire, control) {"
               }
             ],
             "identity": [
@@ -25300,6 +25371,10 @@
               {
                 "path": "docs/design/client-submission-identity.md",
                 "anchor": "a newly supplied connection epoch is not its"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "if (previous !== undefined && previous.intent === intent) return previous;"
               }
             ],
             "ownership": [
@@ -25310,6 +25385,10 @@
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
                 "anchor": "resolveOrBindSubmittedName(name, intent, {namespaceId, actorId, authorityScopeCid,"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "return () => {submissionOperations.delete(epoch);};"
               }
             ],
             "synchronization": [
@@ -25320,6 +25399,10 @@
               {
                 "path": "adapters/host-node/client-submission.mjs",
                 "anchor": "const outcome = retained.inserted ? await submitIntent(bound) : await lookupSubmission({"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "const original = admitIntentOriginal(wire, control, epoch,"
               }
             ],
             "failure": [
@@ -25330,6 +25413,10 @@
               {
                 "path": "docs/design/client-submission-identity.md",
                 "anchor": "Missing retained outcome, formal retirement,"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "if (canonical && original.wire !== wire) fail(code);"
               }
             ],
             "cancellation": [
@@ -25340,6 +25427,10 @@
               {
                 "path": "docs/spec/protocols/run.md",
                 "anchor": "Run/Effect reconciliation, current authorization and resource rules remain separate."
+              },
+              {
+                "path": "adapters/host-node/client-submission.mjs",
+                "anchor": "finally {release?.();}"
               }
             ],
             "resources": [
@@ -25350,6 +25441,10 @@
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
                 "anchor": "rejectSubmission('ClientSubmissionNameCapacity', 'refused', 'admission_capacity');"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "const intent = control.clientSubmittedIntent(wire, 1048576, 65536, 64);"
               }
             ],
             "extension": [
@@ -25360,6 +25455,10 @@
               {
                 "path": "docs/design/client-submission-identity.md",
                 "anchor": "The old explicit-epoch submission response still requires its original exact"
+              },
+              {
+                "path": "adapters/host-node/client-submission.mjs",
+                "anchor": "const input = typeof journal.prepareSubmittedIntent === 'function' ?"
               }
             ],
             "verification": [
@@ -25374,6 +25473,10 @@
               {
                 "path": "packages/client-wire/named-submission.typecheck.mts",
                 "anchor": "const retained: WireNamedSubmissionAttempt = value;"
+              },
+              {
+                "path": "adapters/host-node/client-submission-operation.test.mjs",
+                "anchor": "test('one submit admits each unchanged intent wire once through preparation and original Run acceptance'"
               }
             ]
           }
