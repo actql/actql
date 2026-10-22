@@ -3250,8 +3250,8 @@ test(`native publication progress retains its ${phase} ${afterCommit?'committed'
   const exec=DatabaseSync.prototype.exec;
   let armed=false,lost=false,failure;
   t.mock.method(DatabaseSync.prototype,'exec',function(sql){
-    if(armed&&!lost&&sql==='COMMIT'){
-      lost=true;if(afterCommit)Reflect.apply(exec,this,[sql]);
+    if(armed&&sql==='COMMIT'){
+      if(!lost){lost=true;if(afterCommit)Reflect.apply(exec,this,[sql]);}
       throw Object.assign(new Error('lost original publication progress COMMIT reply'),{code:'EIO'});
     }
     return Reflect.apply(exec,this,[sql]);
@@ -3306,7 +3306,9 @@ test(`Store close confirms its original ${afterCommit ? 'committed' : 'rolled-ba
   });
   assert.equal(store.status().reservedObjects, 1);
   try {
-    await store.close();
+    const closing = store.close();
+    assert.equal(store.close(), closing, 'Concurrent close shares the same original cleanup flight');
+    await closing;
     assert.equal(store.status().closed, true);
     assert.equal(store.status().reservedObjects, 0);
     assert.equal(failure.cleanupHandle.status().pending, false);
@@ -3322,6 +3324,38 @@ test(`Store close confirms its original ${afterCommit ? 'committed' : 'rolled-ba
   assert.deepEqual(await reopened.latestRecord(attempt.publication_attempt_cid), record);
 });
 }
+
+test('Store close confirms failed metadata without releasing an independent live payload', async t => {
+  const exec = DatabaseSync.prototype.exec;
+  let armed = false, failed = false;
+  t.mock.method(DatabaseSync.prototype, 'exec', function(sql) {
+    const result = Reflect.apply(exec, this, [sql]);
+    if (armed && !failed && sql === 'COMMIT') {
+      failed = true;
+      throw Object.assign(new Error('publication COMMIT reply unavailable'), {code: 'EIO'});
+    }
+    return result;
+  });
+  const {store} = await fixture(t);
+  const payload = store.createObjectWriter(7);
+  await payload.append('payload');
+  const attempt = publicationAttempt(publicationRequest(), 'close-with-live-payload');
+  let failure;
+  armed = true;
+  await assert.rejects(store.createAttempt(wire(attempt)), error => {
+    failure = error;
+    return error.outcome === 'unknown';
+  });
+  assert.equal(store.status().reservedObjects, 2);
+  await assert.rejects(store.close(), code('PublicationStoreCleanupPending'));
+  assert.equal(failure.cleanupHandle.status().pending, false);
+  assert.equal(store.status().closed, false);
+  assert.equal(store.status().reservedObjects, 1);
+  assert.equal(payload.status().reservationHeld, true);
+  await payload.cancel();
+  await store.close();
+  assert.equal(store.status().closed, true);
+});
 
 test('publication progress persists its incoming admitted contract once per operation',async t=>{
   const admissions=new Map();

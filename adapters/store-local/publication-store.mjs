@@ -8149,46 +8149,58 @@ async function openOriginalLocalPublicationStore(
     close() {
       if (closeFlight !== undefined) return closeFlight;
       if (closed) return Promise.resolve(true);
-      if (clockObservationsPending !== 0 || reservedObjects !== 0 || preparedObjects.size !== 0 ||
-          preparedSchemas.size !== 0 ||
-          reclaimableCustodies.size !== 0 ||
-          pendingResultDeletions.size !== 0 ||
-          pendingMetadataDeletions.size !== 0 ||
-          pendingUncommittedMetadataCleanups.size !== 0 ||
-          pendingPhysicalHoldingDeletions.size !== 0 ||
-          activeResultReaders.size !== 0 ||
-          activePhysicalHoldingReaders.size !== 0 ||
-          originalModelStorageBindingReaders !== 0 ||
-          originalInstallationPublicationStorageBindingReaders !== 0) {
-        return Promise.reject(new PublicationStoreError(
-          'PublicationStoreCleanupPending',
-        ));
-      }
-      // An unsettled read still owns its FD; close must not interrupt it.
-      for (const reader of activeSemanticReaders) {
-        if (reader.cleanup === undefined) {
-          return Promise.reject(new PublicationStoreError(
-            'PublicationStoreCleanupPending',
-          ));
-        }
-      }
-      for (const writer of activePhysicalRecordWriters) {
-        if (writer.cleanup === undefined) {
-          return Promise.reject(new PublicationStoreError('PublicationStoreCleanupPending'));
-        }
-      }
-      // Refuse new Store work once retirement starts, but do not report closed
-      // or erase the original key until the SAME ownership confirms release.
-      // A redacted control-read error cannot drive private cleanup. The same
-      // Store retains that original duty and drains close only, never read/send.
-      closeRequested = true;
       closeFlight = Promise.resolve().then(async () => {
+        // A failed native writer retains its capacity until its SAME mutation
+        // receives a real confirmation. Drain that original before treating its
+        // reservation as an independent live user. Healthy in-flight writers
+        // and every other unfinished owner still keep the existing close fence.
+        const retriedWriters = new Set();
+        for (const writer of activePhysicalRecordWriters) {
+          if (!writer.failed || writer.cleanup === undefined) continue;
+          retriedWriters.add(writer);
+          try { await writer.cleanup.retry(); }
+          catch (cause) { fail('PublicationStoreCleanupPending', cause); }
+        }
+        if (clockObservationsPending !== 0 || reservedObjects !== 0 || preparedObjects.size !== 0 ||
+            preparedSchemas.size !== 0 ||
+            reclaimableCustodies.size !== 0 ||
+            pendingResultDeletions.size !== 0 ||
+            pendingMetadataDeletions.size !== 0 ||
+            pendingUncommittedMetadataCleanups.size !== 0 ||
+            pendingPhysicalHoldingDeletions.size !== 0 ||
+            activeResultReaders.size !== 0 ||
+            activePhysicalHoldingReaders.size !== 0 ||
+            originalModelStorageBindingReaders !== 0 ||
+            originalInstallationPublicationStorageBindingReaders !== 0) {
+          throw new PublicationStoreError(
+            'PublicationStoreCleanupPending',
+          );
+        }
+        // An unsettled read still owns its FD; close must not interrupt it.
+        for (const reader of activeSemanticReaders) {
+          if (reader.cleanup === undefined) {
+            throw new PublicationStoreError(
+              'PublicationStoreCleanupPending',
+            );
+          }
+        }
+        for (const writer of activePhysicalRecordWriters) {
+          if (writer.cleanup === undefined) {
+            throw new PublicationStoreError('PublicationStoreCleanupPending');
+          }
+        }
+        // Refuse new Store work once retirement starts, but do not report closed
+        // or erase the original key until the SAME ownership confirms release.
+        // A redacted control-read error cannot drive private cleanup. The same
+        // Store retains that original duty and drains close only, never read/send.
+        closeRequested = true;
         for (const reader of activeSemanticReaders) {
           try { await reader.cleanup.retry(); }
           catch { fail('PublicationStoreCleanupPending'); }
         }
         if (activeSemanticReaders.size !== 0) fail('PublicationStoreCleanupPending');
         for (const writer of activePhysicalRecordWriters) {
+          if (retriedWriters.has(writer)) continue;
           try { await writer.cleanup.retry(); }
           catch { fail('PublicationStoreCleanupPending'); }
         }

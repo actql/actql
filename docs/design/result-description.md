@@ -156,6 +156,9 @@ file record without replacing or refunding that physical holding. Payload and
 public Index writes retain their separate real durability and cleanup duties.
 Lost COMMIT replies retain the same bodies, capacity reservation and sequence
 mutation for an idempotent same-database confirmation, never a Run replay.
+Store close attempts that retained failed writer's original confirmation before
+checking its reserved capacity. An unavailable confirmation remains pending;
+independent live payloads, readers and other cleanup duties still refuse close.
 Run metadata retirement selects its indexed attempts and records, removes
 their actual bodies, and retires their locators with the existing Run fence.
 
