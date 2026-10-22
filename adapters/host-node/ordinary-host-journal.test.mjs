@@ -32,7 +32,8 @@ async function selectedRowsFixture(t) {
   let selected;
   for (let index = 0; index < 16; index++) {
     const identity = Object.freeze(Object.fromEntries(keys.map((key, position) =>
-      [key, position === 1 ? 'selected-request-' + index : cid(String(position))])));
+      [key, position === 1 ? 'selected-request-' + index : position === 5
+        ? 'sha256:' + (index + 32).toString(16).padStart(64, '0') : cid(String(position))])));
     const accepted = journal.accept(identity, {namespaceId: 'selected-rows',
       runDefinitionCid: 'sha256:' + index.toString(16).padStart(64, '0'),
       lookupExpiresAt: '2099-01-01T00:00:00.000Z'}, control);
