@@ -9,6 +9,119 @@ const ref = {namespaceId: 'local', authorityScopeCid: `sha256:${'a'.repeat(64)}`
   runDefinitionCid: `sha256:${'b'.repeat(64)}`};
 const turn = () => new Promise(resolve => setImmediate(resolve));
 
+const selectedRows = (extra = {}) => ({ref, rowOwner: 'request-journal', selection: 'run-definition',
+  rowKind: 'run', returnedRows: 1, unrelatedRows: 0, coverage: 'selected-returned', ...extra});
+
+test('selected row diagnostics copy only actual reader scalars and the original operation context', async () => {
+  const records = [], charges = [];
+  const connection = createHostObservationConnection({deliver: value => records.push(value),
+    events: {level: 'diagnostic'}, measurements: {include: ['rows']}, include: ['run']});
+  const observer = installHostObservation(connection, {journal: {observationStorage: () => ({
+    consume(value) {charges.push(value); return {accepted: true};},
+  })}});
+  const facts = selectedRows({payload: 'SECRET_ROW', statement: 'SECRET_QUERY'});
+  await observer.run('read', trace, () => {
+    observer.diagnostic('selected_rows_observed', facts);
+    observer.diagnostic('selected_rows_observed', selectedRows());
+    assert.equal(charges.length, 0, 'Reader hooks do not consume a durable observation budget per native get');
+    facts.returnedRows = 999;
+  });
+  await observer.close();
+  const selected = records.filter(record => record.event === 'selected_rows_observed');
+  assert.equal(selected.length, 1); assert.deepEqual(selected[0].parent, trace);
+  assert.equal(selected[0].attributes['actql.run.definition_cid'], ref.runDefinitionCid);
+  assert.equal(selected[0].attributes['actql.rows.returned'], 2);
+  assert.equal(selected[0].attributes['actql.rows.unrelated'], 0);
+  assert.equal(selected[0].attributes['actql.rows.coverage'], 'selected-returned');
+  assert.equal(JSON.stringify(records).includes('SECRET_'), false);
+  assert(Object.isFrozen(selected[0].attributes));
+  assert.equal(charges.filter(charge => charge.ref === ref).length, 2,
+    'One aggregate record and the ending segment use the existing Run budget, not each native get');
+  assert(connection.configuration().measurements.available.includes('rows'));
+});
+
+test('selected row diagnostics stay disabled before reading facts unless explicitly selected', async () => {
+  for (const options of [{}, {events: {level: 'diagnostic'}, include: ['compute']},
+    {events: {level: 'diagnostic'}, measurements: {exclude: ['rows']}}]) {
+    let reads = 0;
+    const observer = installHostObservation(createHostObservationConnection({deliver() {}, ...options}));
+    observer.diagnostic('selected_rows_observed', {get rowOwner() {reads++; throw new Error('MustNotRead');}});
+    await observer.close();
+    assert.equal(reads, 0); assert.deepEqual(observer.status().loss, {});
+  }
+});
+
+test('selected row diagnostics preserve missing and invalid coverage instead of inventing zero counts', async () => {
+  const records = [];
+  const observer = installHostObservation(createHostObservationConnection({deliver: value => records.push(value),
+    events: {level: 'diagnostic'}, measurements: {include: ['rows']}}));
+  await observer.run('read', trace, () => {
+    for (const facts of [undefined, selectedRows({coverage: undefined}), selectedRows({rowOwner: 'unknown-owner'}),
+      selectedRows({selection: 'all-history'}), selectedRows({rowKind: 'effect'}), selectedRows({returnedRows: -1}),
+      selectedRows({unrelatedRows: 2}), selectedRows({returnedRows: 1.5}),
+      {get rowOwner() {throw new Error('Unavailable');}}]) observer.diagnostic('selected_rows_observed', facts);
+  });
+  assert.equal(observer.status().loss.rowsUnavailable, 9);
+  await observer.close(); assert.equal(records.filter(record => record.event === 'selected_rows_observed').length, 0);
+});
+
+test('selected row diagnostics keep unknown classification and pre-Run binding absent in a mixed aggregate', async () => {
+  const records = [];
+  const observer = installHostObservation(createHostObservationConnection({deliver: value => records.push(value),
+    events: {level: 'diagnostic'}, measurements: {include: ['rows']}}),
+    {journal: {observationStorage: () => ({consume: () => ({accepted: true})})}});
+  await observer.run('read', trace, () => {
+    observer.accepted({ref, inserted: false});
+    observer.diagnostic('selected_rows_observed', selectedRows());
+    observer.diagnostic('selected_rows_observed', selectedRows({ref: undefined, selection: 'request',
+      returnedRows: 0, unrelatedRows: undefined}));
+  });
+  await observer.close();
+  const selected = records.filter(record => record.event === 'selected_rows_observed');
+  assert.equal(selected.length, 1);
+  assert.equal(selected[0].attributes['actql.rows.returned'], 1);
+  assert.equal(selected[0].attributes['actql.rows.selection'], 'mixed-selected');
+  assert.equal(Object.hasOwn(selected[0].attributes, 'actql.rows.unrelated'), false);
+  assert.equal(Object.hasOwn(selected[0].attributes, 'actql.run.definition_cid'), false,
+    'A later admitted Run in the context cannot substitute the missing earlier binding');
+});
+
+test('selected row diagnostics refuse contextless or late facts instead of creating another operation frame', async () => {
+  const records = [];
+  const observer = installHostObservation(createHostObservationConnection({deliver: value => records.push(value),
+    events: {level: 'diagnostic'}, measurements: {include: ['rows']}}));
+  observer.diagnostic('selected_rows_observed', selectedRows());
+  let release, late;
+  const pending = new Promise(resolve => {release = resolve;});
+  await observer.run('read', trace, () => {
+    late = pending.then(() => observer.diagnostic('selected_rows_observed', selectedRows()));
+  });
+  release(); await late; await observer.close();
+  assert.equal(observer.status().loss.rowsUnavailable, 2);
+  assert.equal(records.filter(record => record.event === 'selected_rows_observed').length, 0);
+});
+
+test('selected row diagnostics cannot be forged through generic event attributes', async () => {
+  const records = [];
+  const observer = installHostObservation(createHostObservationConnection({deliver: value => records.push(value),
+    events: {level: 'diagnostic'}}));
+  observer.emit('run', 'selected_rows_observed', {ref}, {selectedRows: {'actql.rows.returned': 0}});
+  assert.equal(observer.status().loss.rowsUnavailable, 1);
+  await observer.close(); assert.equal(records.length, 0);
+});
+
+test('selected row diagnostics cannot replace the original result when optional custody refuses', async () => {
+  const records = [], result = {};
+  const observer = installHostObservation(createHostObservationConnection({deliver: value => records.push(value),
+    events: {level: 'diagnostic'}}), {journal: {observationStorage: () => ({consume() {throw new Error('Unavailable');}})}});
+  const actual = await observer.run('read', trace, () => {
+    observer.diagnostic('selected_rows_observed', selectedRows()); return result;
+  });
+  assert.strictEqual(actual, result); assert(observer.status().budgetUnavailable > 0);
+  await observer.close();
+  assert.equal(records.filter(record => record.event === 'selected_rows_observed').length, 0);
+});
+
 test('managed usage retains one original reader and operation correlation across row consumption', async () => {
   const records = [], charges = [];
   const connection = createHostObservationConnection({deliver: value => records.push(value)});

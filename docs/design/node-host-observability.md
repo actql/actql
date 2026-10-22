@@ -39,6 +39,24 @@ context correlate that observation after actual row consumption. An unavailable
 or retired reader and queue loss remain explicit; they do not become zero usage.
 These logical counters exclude durable Store history, shared Host holdings and
 JavaScript heap/RSS, and supply neither capacity nor a physical cleanup receipt.
+Diagnostic-level `rows` observations copy only the selected request-Journal
+reader's fixed owner, selection, kind, returned-row and unrelated-row counts.
+The existing ingress context accumulates these scalars into one terminal record,
+without a durable observation transaction per native read. Unknown unrelated-row
+classification and missing Run bindings stay absent; a later admitted Run cannot
+retroactively supply them. Contextless or late hooks remain unavailable rather
+than manufacturing a new operation frame.
+Their `selected-returned` coverage does not count database rows visited, hidden
+aggregate work, other readers, parses or cache hits. A missing hook or lost record
+is unavailable coverage, never an observed zero or a completeness certificate.
+No row body, query, key or authentication material enters this projection.
+The request Journal hooks its actual prepared `client_requests` gets, including
+the two targeted reconciliation projections. Full-ref/full-row reads compare
+the selected namespace, authority scope and Run identity. Request-key, CID-only
+and partial-row reads retain their actual returned count but do not invent a
+complete unrelated-Run classification. A failed native get emits no empty-row
+fact. Startup aggregates, other Journal tables and Store/Checkpoint readers are
+outside this selected-reader coverage.
 Measured Source/Model attempts use standard CLIENT span kind. Finite interval
 boundaries do not duplicate lifecycle logs or spend the discrete-log allowance
 merely because a caller polls status.
