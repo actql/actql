@@ -28,7 +28,7 @@ pub fn issue_prepared_client_infer_compilation(
       value,
       graph.graph.wire,
       graph.graph.transformations,
-      material.wire,
+      material,
       max_facts,
       max_witnesses,
       max_wire_bytes,

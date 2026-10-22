@@ -10,6 +10,58 @@ import {assessLatency, calibratedLatencyTarget, collectOperationSamples,
   assessPriorityTransition, priorityTransitionTarget} from './operation-performance.mjs';
 
 const hash = bytes => createHash('sha256').update(bytes).digest('hex');
+
+// Keep failure inspection outside successful sample timing. Read only bounded
+// public data: never call execution/status/result/cleanup methods to diagnose it.
+export function nodeBenchmarkFailure(error) {
+  const data = (value, key) => {
+    try {
+      for (let depth = 0; value !== null && typeof value === 'object' && depth < 4;
+        depth++, value = Object.getPrototypeOf(value)) {
+        const property = Object.getOwnPropertyDescriptor(value, key);
+        if (property) return Object.hasOwn(property, 'value') ? property.value : undefined;
+      }
+    } catch { /* An unreadable diagnostic must not replace the original failure. */ }
+  };
+  const text = value => typeof value === 'string' ? value.slice(0, 2048) : undefined;
+  const reference = value => {
+    const result = {};
+    for (const key of ['namespaceId', 'authorityScopeCid', 'runDefinitionCid']) {
+      const field = text(data(value, key)); if (field !== undefined) result[key] = field;
+    }
+    return Object.keys(result).length ? result : undefined;
+  };
+  const queue = [{edge: 'primary', value: error}], seen = new Set(), chain = [];
+  while (queue.length && chain.length < 8) {
+    const {edge, value} = queue.shift();
+    if (value === null || typeof value !== 'object' || seen.has(value)) continue;
+    seen.add(value);
+    const entry = {edge, name: text(data(value, 'name')) ?? 'Error',
+      code: text(data(value, 'code')) ?? null, message: text(data(value, 'message')) ?? ''};
+    const status = data(value, 'status'), requestId = text(data(value, 'requestId'));
+    if (Number.isSafeInteger(status)) entry.status = status;
+    if (requestId !== undefined) entry.requestId = requestId;
+    const cleanupPending = data(value, 'cleanupPending');
+    if (typeof cleanupPending === 'boolean') entry.cleanupPending = cleanupPending;
+    const executionRef = reference(data(value, 'executionRef')) ?? reference(data(data(value, 'execution'), 'ref'));
+    if (executionRef) entry.executionRef = executionRef;
+    const observation = data(value, 'observation'), state = {};
+    for (const key of ['run_id', 'status', 'revision', 'result_available']) {
+      const field = data(observation, key);
+      if (typeof field === 'string') state[key] = text(field);
+      else if (typeof field === 'boolean' || Number.isSafeInteger(field)) state[key] = field;
+    }
+    if (Object.keys(state).length) entry.observation = state;
+    chain.push(entry);
+    for (const key of ['cause', 'original_error', 'cleanup_error', 'originalError', 'cleanupError']) {
+      const child = data(value, key);
+      if (child !== null && typeof child === 'object') queue.push({edge: key, value: child});
+    }
+  }
+  const primary = chain[0] ?? {name: 'Error', code: null,
+    message: typeof error === 'string' ? text(error) : 'Uninspectable thrown value'};
+  return {...primary, errorChain: chain, ...(queue.length ? {errorChainTruncated: true} : {})};
+}
 // Independent literal oracles: JOIN selects the matching id and label; UNION
 // retains both ordered ids; Decimal SUM is (125 + 250 + 25) / 100 = "4.00".
 // No expected value is obtained from a compiler or a previous product result.
@@ -178,14 +230,19 @@ export async function runNodeWarmBenchmark({manifestPath, consumer, output, cont
           fixtureSha256: hash(Buffer.from(JSON.stringify(query)))} : identity;
         const comparison = comparisonSeries(operation, expected);
         const calibration = calibratedLatencyTarget(comparison, controls.comparison);
-        let observed;
-        const execute = query || operation === 'warm-select' ? async () => {
-          observed = await client.sql(query?.text ?? 'SELECT 1 AS id').all(); assert.deepEqual(observed, expected);
-        } : operation === 'warm-result' ? async () => {
-          observed = await original.result('main').all(); assert.deepEqual(observed, expected);
-        } : async () => {
-          const state = await original.status();
-          observed = {status: state.status, revision: state.revision}; assert.deepEqual(observed, expected);
+        let observed, observedFailure;
+        const execute = async () => {
+          try {
+            if (query || operation === 'warm-select') {
+              observed = await client.sql(query?.text ?? 'SELECT 1 AS id').all();
+              assert.deepEqual(observed, expected);
+            } else if (operation === 'warm-result') {
+              observed = await original.result('main').all(); assert.deepEqual(observed, expected);
+            } else {
+              const state = await original.status();
+              observed = {status: state.status, revision: state.revision}; assert.deepEqual(observed, expected);
+            }
+          } catch (error) { observedFailure = error; throw error; }
         };
         const collected = await collectOperationSamples({operation, mode, identity: sampleIdentity, stateId, execute,
           ...(calibration.missing.length ? {} : {targetP95Ms: calibration.target.p95Ms}),
@@ -200,7 +257,7 @@ export async function runNodeWarmBenchmark({manifestPath, consumer, output, cont
         if (collected.stoppedEarly) {
           const failed = collected.samples.find(row => row.verified !== true);
           if (failed) {
-            report.firstFailure = {operation, message: failed.error}; report.stoppedAt = operation; break;
+            report.firstFailure = {operation, ...nodeBenchmarkFailure(observedFailure)}; report.stoppedAt = operation; break;
           }
           report.diagnosticFindings.push(`${operation}: ${collected.stopReason}`);
           if (mode !== 'diagnostic') { report.stoppedAt = operation; break; }
@@ -209,12 +266,12 @@ export async function runNodeWarmBenchmark({manifestPath, consumer, output, cont
     }
   } catch (error) {
     primary = error;
-    report.firstFailure = {operation: active, name: error.name, code: error.code ?? null, message: error.message};
+    report.firstFailure = {operation: active, ...nodeBenchmarkFailure(error)};
   } finally {
     if (client) {
       const closeStart = process.hrtime.bigint();
       try { await client.close(); report.cleanup.closed = true; }
-      catch (error) { primary ??= error; report.cleanup.failure = {name: error.name, code: error.code ?? null, message: error.message}; }
+      catch (error) { primary ??= error; report.cleanup.failure = nodeBenchmarkFailure(error); }
       report.cleanup.wallNs = Number(process.hrtime.bigint() - closeStart);
     }
     try { assert.deepEqual(await verifyNodeBenchmarkPackages(manifest, manifestPath, consumer), before); report.installedPayloadsUnchanged = true; }
@@ -358,10 +415,10 @@ export async function runNodePriorityBenchmark({manifestPath, consumer, output, 
       if (collected.stoppedEarly) {report.stoppedAt = operation; break;}
     }
   } catch (error) {
-    report.firstFailure = {operation: active, name: error.name, code: error.code ?? null, message: error.message};
+    report.firstFailure = {operation: active, ...nodeBenchmarkFailure(error)};
   } finally {
     if (client) try {await client.close(); report.cleanup.closed = true;}
-    catch (error) {report.cleanup.failure = {name: error.name, code: error.code ?? null, message: error.message};}
+    catch (error) {report.cleanup.failure = nodeBenchmarkFailure(error);}
     try {assert.deepEqual(await verifyNodeBenchmarkPackages(manifest, manifestPath, consumer), before); report.installedPayloadsUnchanged = true;}
     catch (error) {report.packageFailure = error.message;}
     if (!report.cleanup.closed || report.packageFailure) for (const row of report.functional.rows) {

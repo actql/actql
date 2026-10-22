@@ -16,6 +16,7 @@ test "Native Run admission consumes the canonical Common row without rebuilding 
     effect_material_originals: None,
     local_run_policy_originals: None,
     run_observation_originals: None,
+    observation_original: None,
     revision: 0L,
     checkpoint: None,
   }

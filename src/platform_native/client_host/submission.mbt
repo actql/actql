@@ -94,6 +94,9 @@ struct NativeClientSubmittedIntentRecord {
   revision : Int64
   run_state_original : String?
   run_state_observation : (Int64, String?)?
+  // Same immutable state already restored by the selected Common snapshot,
+  // bound to its authenticated Run definition. No availability or permission.
+  restored_state_original : (String, @host.ClientRunStateOriginal)?
 }
 
 ///|
@@ -255,6 +258,7 @@ fn NativeClientRunJournal::inspect_submitted_intent_row(
     revision: row.revision,
     run_state_original: original.run_state_original,
     run_state_observation: original.run_state_observation,
+    restored_state_original: None,
   }
   if record.reference.request_id != row.key {
     return Err(CustodyLost)
@@ -400,6 +404,7 @@ fn NativeClientRunJournal::retained_submission_with_run(
         revision: @host.client_saved_submission_revision(snapshot),
         run_state_original: decoded.run_state_original,
         run_state_observation: decoded.run_state_observation,
+        restored_state_original: native_saved_submission_state(snapshot),
       }
       (original, selected_run.val)
     })
@@ -554,6 +559,7 @@ fn NativeClientRunJournal::record_submitted_intent_locked(
         revision: @host.client_saved_submission_revision(snapshot),
         run_state_original: original.run_state_original,
         run_state_observation: original.run_state_observation,
+        restored_state_original: native_saved_submission_state(snapshot),
       })
     }
     Ok(@host.Append(plan)) => plan
@@ -612,6 +618,7 @@ fn NativeClientRunJournal::record_submitted_intent_locked(
     revision,
     run_state_original: None,
     run_state_observation: None,
+    restored_state_original: None,
   })
   .map_err(issue => Physical(issue))
 }

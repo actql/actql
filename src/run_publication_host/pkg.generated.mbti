@@ -2,6 +2,7 @@
 package "actql/actql/run_publication_host"
 
 import {
+  "actql/actql/canonical_json",
   "actql/actql/check_environment",
   "actql/actql/checkpoint_runtime",
   "actql/actql/client_source_publication",
@@ -1082,6 +1083,8 @@ pub fn client_saved_submission_revision(ClientSavedSubmissionSnapshot) -> Int64
 pub fn client_saved_submission_row(ClientSavedSubmissionSnapshot) -> ClientJournalPhysicalRow
 
 pub fn client_saved_submission_run_row(ClientSavedSubmissionSnapshot) -> ClientJournalPhysicalRow?
+
+pub fn client_saved_submission_state_original(ClientSavedSubmissionSnapshot) -> ClientRunStateOriginal?
 
 pub fn client_serialization_byte_holding_cid(ClientCompiledRun, @run_publication.PublicationContract, String) -> String?
 
@@ -2682,6 +2685,11 @@ pub(all) enum ClientEmptyInvocationBindingsIssue {
 } derive(Eq, @debug.Debug)
 
 pub struct ClientExecutionMaterial {
+  owner : PreparedClientProgram
+  body : @canonical_json.CanonicalValue
+  wire_bytes : Int
+  wire_nodes : Int
+  wire_depth : Int
   wire : String
   invocation_template_cid : String
   invocation_template_wire : String
@@ -3434,6 +3442,8 @@ pub(all) enum ClientPublicationBindingAdmissionIssue {
   Encoding
 } derive(Eq, @debug.Debug)
 
+type ClientPublicationBindingFields derive(Eq, @debug.Debug)
+
 pub(all) enum ClientPublicationBindingIssue {
   MissingPublication
   MismatchedCheckedLimit
@@ -3962,6 +3972,7 @@ pub struct ClientSavedSubmissionSnapshot {
   submission : ClientJournalPhysicalRow
   run : ClientJournalPhysicalRow?
   inspection : ClientRunJournalInspection?
+  state_original : ClientRunStateOriginal?
 }
 
 pub(all) enum ClientSavedSubmissionViewIssue {
@@ -4553,8 +4564,6 @@ pub(all) enum ClientValuesUnitSourceIssue {
   UnsupportedSource
   Encoding
 }
-
-type ParsedClientPublicationBinding derive(Eq, @debug.Debug)
 
 pub struct PlanFactManifestIdentity {
   wire : String
