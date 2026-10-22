@@ -206,7 +206,7 @@ for (const boundary of ['compilation', 'wal', 'current']) {
     let allowed = true;
     const refused = Object.assign(new Error('ExplicitCurrentRefusal'), {code: 'ExplicitCurrentRefusal'});
     const primary = new Error('OriginalBodyFailure');
-    const wal = boundary === 'wal' ? boundedOriginalWal(18, 0, 4096) : undefined;
+    const wal = boundary === 'wal' ? boundedOriginalWal(54, 0, 4096) : undefined;
     wal?.configure(4096);
     const port = boundedOriginalSql(database,
       {...primarySqlLimits, maxCalls: boundary === 'compilation' ? 1 : 1000}, execution,
@@ -214,14 +214,18 @@ for (const boundary of ['compilation', 'wal', 'current']) {
     const transaction = createSqliteTransaction(port.database, 'ClientRequestJournal');
     try {
       assert.throws(() => transaction.run(() => {
-        if (boundary === 'wal') port.database.prepare('SELECT 1 AS n').get();
+        if (boundary === 'wal') {
+          port.database.prepare('CREATE TABLE body_work(n INTEGER)').run();
+          port.database.prepare('INSERT INTO body_work VALUES (1)').run();
+        }
         if (boundary === 'current') allowed = false;
         throw primary;
       }), error => boundary === 'wal' ? error.code === 'ClientRequestJournalWalUnavailable' : error === primary);
       assert.equal(database.isTransaction, false);
       assert.equal(transaction.connectionUsable, true);
       assert.deepEqual(commands, ['BEGIN IMMEDIATE', 'ROLLBACK']);
-      assert.throws(() => port.database.prepare('SELECT 2 AS n'), error =>
+      assert.throws(() => port.database.prepare(boundary === 'wal'
+        ? 'INSERT INTO body_work VALUES (2)' : 'SELECT 2 AS n'), error =>
         boundary === 'compilation' ? error.code === 'ClientRequestJournalSqlUnavailable' :
           boundary === 'wal' ? error.code === 'ClientRequestJournalWalUnavailable' : error === refused);
       assert.deepEqual(commands, ['BEGIN IMMEDIATE', 'ROLLBACK']);

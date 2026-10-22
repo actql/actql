@@ -1108,11 +1108,20 @@ native-heap backing. The primary and optional observation connection share one
 counter under that Journal; opening the latter does not issue another allowance.
 Before cold native acquisition it retains a conservative frame allowance for
 the bounded original DB/WAL source. The actual native page geometry then selects
-the same bounded page-number set for both connections. Before native SQL work,
+the same bounded page-number set for both connections. Before native writable SQL,
 the counter consumes a conservative transaction allowance for dirty pages,
 possible final commit repetition and FULL-sync sector padding. Batch SQL counts
 every semicolon plus its final statement, deliberately overestimating literal,
 comment and trigger-body separators rather than introducing another SQL parser.
+Only this Owner's fixed prepared metadata SQL reaches these private connections;
+they register no application SQL functions, extensions or writable virtual tables.
+A leading [`SELECT`](https://www.sqlite.org/lang_select.html) therefore retains
+all SQL/input/current/cursor limits but
+does not consume writable WAL history. This is not a general SQL authorization
+classifier or an exemption for caller SQL. Unknown statements and PRAGMAs keep
+the conservative writer debit. Before admitting more writable work, its check
+also leaves one original terminal COMMIT allowance; that check itself neither
+spends nor refunds it. COMMIT consumes the existing terminal allowance.
 Failed attempts, rollback, checkpoint and one child's close never refill it.
 Refusal leaves the original connection and its independent cleanup reachable.
 This condition depends on the same original cooperative writer exclusion; it

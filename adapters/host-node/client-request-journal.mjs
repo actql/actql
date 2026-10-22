@@ -254,11 +254,14 @@ function boundedJournalWalFrames(maxFrames, sourceBytes, maxDatabaseBytes) {
       transactionFrames = 2n * integer(floor(maxDatabaseBytes / page)) +
         integer(ceil(65536 / (page + 24)));
     },
-    beforePrepare() { check(1); },
+    beforePrepare() { check(2); },
     beforeStatement() {
       // Only the fixed page-size probe precedes configuration. Later extent
       // and temporary-storage operations keep their conservative charges.
-      reserved += check(1);
+      // Keep one conservative terminal COMMIT allowance available before
+      // admitting another write. Checking it neither spends nor refunds it.
+      check(2);
+      reserved += amount(1);
     },
     beforeExec(sql) {
       if (transactionFrames === undefined) fail('ClientRequestJournalWalUnavailable');
@@ -269,7 +272,8 @@ function boundedJournalWalFrames(maxFrames, sourceBytes, maxDatabaseBytes) {
       for (let index = 0; index < sql.length; index++) {
         if (applyOriginal(character, sql, [index]) === 59) statements++;
       }
-      reserved += check(statements);
+      check(statements + (sql === 'COMMIT' ? 0 : 1));
+      reserved += amount(statements);
     },
   });
 }
@@ -350,7 +354,7 @@ function boundedPrimarySql(connection, limits, executionLimits, assertCurrent, w
       total += size;
     }
   };
-  const wrap = statement => {
+  const wrap = (statement, statementWal) => {
     if (executionLimits === undefined) return statement;
     // Keep native statements in this original connection's custody until its
     // real close. Losing a local wrapper or GC supplies no earlier ACK.
@@ -363,14 +367,14 @@ function boundedPrimarySql(connection, limits, executionLimits, assertCurrent, w
       get(...values) {
         beginOperation();
         try {
-          operands(values); walFrames?.beforeStatement();
+          operands(values); statementWal?.beforeStatement();
           return applyOriginal(get, statement, values);
         } finally { endOperation(); }
       },
       run(...values) {
         beginOperation();
         try {
-          operands(values); walFrames?.beforeStatement();
+          operands(values); statementWal?.beforeStatement();
           return applyOriginal(run, statement, values);
         } finally { endOperation(); }
       },
@@ -378,7 +382,7 @@ function boundedPrimarySql(connection, limits, executionLimits, assertCurrent, w
         beginOperation();
         try {
           operands(values);
-          walFrames?.beforeStatement();
+          statementWal?.beforeStatement();
           const iterator = applyOriginal(iterate, statement, values);
           const cursor = {iterator, next: undefined, end: undefined};
           cursors.push(cursor);
@@ -433,8 +437,14 @@ function boundedPrimarySql(connection, limits, executionLimits, assertCurrent, w
           // occurs; every execution still checks its own operands and limits.
           return retained;
         }
-        consume(sql, true); walFrames?.beforePrepare();
-        const original = wrap(applyOriginal(prepare, connection, [sql]));
+        consume(sql, true);
+        // Only authored metadata SQL reaches this private connection. It
+        // installs no application SQL functions/extensions or writable virtual
+        // tables. A leading SELECT reads metadata, not WAL-write history;
+        // arbitrary SQL/PRAGMA and every write keep the conservative debit.
+        const statementWal = /^\s*SELECT\b/iu.test(sql) ? undefined : walFrames;
+        statementWal?.beforePrepare();
+        const original = wrap(applyOriginal(prepare, connection, [sql]), statementWal);
         statementsBySql?.set(sql, original);
         return original;
       } finally { endOperation(); }
