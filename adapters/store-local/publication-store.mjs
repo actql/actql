@@ -1354,13 +1354,6 @@ async function openOriginalLocalPublicationStore(
     }
   }
   await syncDirectory(manifestReadsDirectory);
-  for (const name of await readOpeningDirectory(metadataInventoriesDirectory)) {
-    if (!/^[0-9a-f]{64}\.json$/u.test(name) ||
-        !(await lstat(resolve(metadataInventoriesDirectory, name))).isFile()) {
-      fail('InvalidPublicationMetadataInventoryStore');
-    }
-  }
-  await syncDirectory(metadataInventoriesDirectory);
   for (const name of await readOpeningDirectory(metadataDeletionsDirectory)) {
     const path = resolve(metadataDeletionsDirectory, name);
     if (name.startsWith('.staging-')) {
@@ -1733,7 +1726,12 @@ async function openOriginalLocalPublicationStore(
     return inventory;
   };
 
-  const ensureMetadataInventory = async value => {
+  const publicationRecoveryOriginal = value => Object.freeze({
+    public_index_cid: value.public_index_entry_cid,
+    inventory_wire: JSON.stringify(value),
+  });
+
+  const ensureMetadataInventoryFile = async value => {
     const bytes = Buffer.from(JSON.stringify(value), 'utf8');
     if (bytes.byteLength > configuration.maxObjectBytes) {
       fail('PublicationObjectLimit');
@@ -1755,6 +1753,25 @@ async function openOriginalLocalPublicationStore(
     }
     await syncDirectory(metadataInventoriesDirectory);
     return parseMetadataInventory(bytes);
+  };
+
+  const ensureMetadataInventory = async value => {
+    const original = publicationRecoveryOriginal(value);
+    // Before a file may be acquired, retain its complete bounded recovery
+    // original in the same Store database, not another authority or grant.
+    deliveryIndex.stagePublicationInventory(original);
+    return ensureMetadataInventoryFile(value);
+  };
+
+  const recoverMetadataInventory = async original => {
+    const value = parseMetadataInventory(Buffer.from(original.inventory_wire,'utf8'));
+    if (value.public_index_entry_cid !== original.public_index_cid) {
+      fail('InvalidPublicationMetadataInventoryStore');
+    }
+    const existing = await readMetadataInventory(original.public_index_cid);
+    if (existing === undefined) return ensureMetadataInventoryFile(value);
+    if (JSON.stringify(existing) !== original.inventory_wire) fail('PublicationMetadataInventoryConflict');
+    return existing;
   };
 
   const readMetadataDeletion = async keyHash => {
@@ -4161,6 +4178,27 @@ async function openOriginalLocalPublicationStore(
     for (const row of pending) {
       if (!await runMetadataDeletionStarted(row.run_cid)) await restoreDeliveryClaim(row);
     }
+    if (deliveryIndex.needsPublicationRecoveryMigration()) {
+      // Only the unadopted private format permits this bounded one-time
+      // history classification. Later opens consume native pending rows.
+      const rows = [];
+      const names = await readOpeningDirectory(metadataInventoriesDirectory);
+      if (names.length > configuration.maxObjects) fail('DeliveryAttemptIndexLimit');
+      for (const name of names) {
+        if (!/^[0-9a-f]{64}\.json$/u.test(name) ||
+            !(await lstat(resolve(metadataInventoriesDirectory,name))).isFile()) {
+          fail('InvalidPublicationMetadataInventoryStore');
+        }
+        const inventory = await readMetadataInventory(`sha256:${name.slice(0,-5)}`);
+        const key = {namespaceId:inventory.namespace_id,
+          authorityScopeCid:inventory.authority_scope_cid,runDefinitionCid:inventory.run_definition_cid};
+        if ((await confirmCommittedIndex(key))?.public_index_entry_cid !== inventory.public_index_entry_cid) {
+          rows.push(publicationRecoveryOriginal(inventory));
+        }
+      }
+      await syncDirectory(metadataInventoriesDirectory);
+      deliveryIndex.migratePublicationRecovery(rows);
+    }
   };
 
   const enqueueDeliveryAdmission = action => {
@@ -5325,9 +5363,11 @@ async function openOriginalLocalPublicationStore(
       fail('PublicationAttemptNotCommitting');
     }
     const adoptObjects = () => adoptPreparedObjects(boundPhysicalCids);
-    const adoptSchemas = () => adoptPreparedSchemas(
-      inventorySemanticCids, entry.run_definition_cid,
-    );
+    let inventoryOriginal;
+    const adoptSchemas = async () => {
+      await adoptPreparedSchemas(inventorySemanticCids, entry.run_definition_cid);
+      deliveryIndex.finishPublicationInventory(inventoryOriginal);
+    };
     return createPublicationCommitOwner({entry, admitted, key}, {
       confirm: confirmCommittedIndex,
       async sameContent(existing, candidate) {
@@ -5366,6 +5406,7 @@ async function openOriginalLocalPublicationStore(
                 object.semantic_cid === cid))) {
           fail('InvalidPublicationMetadataInventoryStore');
         }
+        inventoryOriginal = publicationRecoveryOriginal(inventory);
       },
       async stage() {
         // The exact Index was admitted at this operation's public entry.
@@ -5375,7 +5416,7 @@ async function openOriginalLocalPublicationStore(
         const inventoryContractObjects = await bindMetadataContractObjects(
           inventorySemanticCids, readOriginal,
         );
-        await ensureMetadataInventory(Object.freeze({
+        const inventory = await ensureMetadataInventory(Object.freeze({
           version: 'actql-local-publication-metadata-inventory/0.1',
           namespace_id: entry.namespace_id,
           authority_scope_cid: entry.authority_scope_cid,
@@ -5385,6 +5426,7 @@ async function openOriginalLocalPublicationStore(
           contract_objects: inventoryContractObjects,
           physical_holding_cids: physicalHoldingCids,
         }));
+        inventoryOriginal = publicationRecoveryOriginal(inventory);
       },
       beginCustody() {
         return beginPreparedCommit(
@@ -6985,6 +7027,7 @@ async function openOriginalLocalPublicationStore(
           } catch (error) {
             if (error?.code !== 'ENOENT') throw error;
           }
+          deliveryIndex.finishPublicationInventory(publicationRecoveryOriginal(inventory));
           pending = false;
           pendingUncommittedMetadataCleanups.delete(inventoryCid);
           return status();
@@ -7003,7 +7046,9 @@ async function openOriginalLocalPublicationStore(
   const retireUncommittedPublication = async publicIndexEntryCid => {
     active();
     cidHex(publicIndexEntryCid);
-    const inventory = await readMetadataInventory(publicIndexEntryCid);
+    const original = deliveryIndex.pendingPublication(publicIndexEntryCid);
+    const inventory = original === undefined ? await readMetadataInventory(publicIndexEntryCid)
+      : await recoverMetadataInventory(original);
     if (inventory === undefined) {
       const cleanup = Object.freeze({
         status: () => Object.freeze({pending: false, errors: Object.freeze([])}),
@@ -7027,20 +7072,18 @@ async function openOriginalLocalPublicationStore(
   const recoverUncommittedPublications = async () => {
     active();
     const recovered = [];
-    for (const name of await readdir(metadataInventoriesDirectory)) {
-      if (!/^[0-9a-f]{64}\.json$/u.test(name)) {
-        fail('InvalidPublicationMetadataInventoryStore');
-      }
-      const inventory = await readMetadataInventory(
-        `sha256:${name.slice(0, -5)}`,
-      );
+    for (const original of deliveryIndex.pendingPublications()) {
+      const inventory = await recoverMetadataInventory(original);
       const key = {
         namespaceId: inventory.namespace_id,
         authorityScopeCid: inventory.authority_scope_cid,
         runDefinitionCid: inventory.run_definition_cid,
       };
-      if ((await inspectCommittedIndexRaw(key))?.public_index_entry_cid ===
-          inventory.public_index_entry_cid) continue;
+      if ((await confirmCommittedIndex(key))?.public_index_entry_cid ===
+          inventory.public_index_entry_cid) {
+        deliveryIndex.finishPublicationInventory(original);
+        continue;
+      }
       const attempt = await latestRecord(inventory.publication_attempt_cid);
       if (!['failed', 'cancelled'].includes(attempt?.state)) continue;
       const cleanup = await createUncommittedMetadataCleanup(inventory);
@@ -7321,6 +7364,8 @@ async function openOriginalLocalPublicationStore(
         } catch (error) {
           if (error?.code !== 'ENOENT') throw error;
         }
+        const original = deliveryIndex.pendingPublication(marker.public_index_entry_cid);
+        if (original !== undefined) deliveryIndex.finishPublicationInventory(original);
       },
       compactMarker: () => compactMetadataDeletion(
         keyHash, marker.run_definition_cid,
