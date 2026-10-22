@@ -3047,7 +3047,8 @@ test('delivery admission reads no unrelated attempts and admits its selected ori
 
 test('delivery admission retains corruption and metadata deletion refusals',
   async t => {
-    // Synthetic adapter corruption and retirement markers, not public history.
+    // Synthetic adapter corruption and a durable same-Store retirement fence,
+    // not public history or an issued delivery permission.
     const {store, directory} = await fixture(t);
     const root = deliveryFixture(1);
     const other = deliveryFixture(2);
@@ -3072,11 +3073,11 @@ test('delivery admission retains corruption and metadata deletion refusals',
     await assert.rejects(store.lookupDeliveryAttempt({...query,
       attemptId: damaged.attempt_id}), code('InvalidDeliveryAttempt'));
 
-    await writeFile(join(directory, 'metadata-deletions',
-      `${digest('synthetic retired Run').slice(7)}.json`), wire({
-      version: 'actql-local-publication-metadata-retired/0.1',
-      run_definition_cid: cids.run,
-    }));
+    const native=await openDeliveryAttemptIndex(join(directory,'delivery-attempts.sqlite3'),
+      {create:false,maxEntries:100,maxWireBytes:limits.maxWireBytes});
+    try {native.retireNativePublicationInventory(undefined,
+      {metadata_key:digest('synthetic retired Run').slice(7),run_cid:cids.run});}
+    finally{native.close();}
     for (const attempt of [retained, deliveryAttempt(root, 'after-retirement')]) {
       await assert.rejects(store.createDeliveryAttempt(
         wire(attempt), wire(root.grant),
@@ -3810,15 +3811,10 @@ test('metadata retirement hides the Run and reclaims its durable chain',
     const deletionNames = await readdir(join(
       configuration.directory, 'metadata-deletions',
     ));
-    assert.equal(deletionNames.length, 1);
-    assert.deepEqual(JSON.parse(await readFile(join(
-      configuration.directory,
-      'metadata-deletions',
-      deletionNames[0],
-    ), 'utf8')), {
-      version: 'actql-local-publication-metadata-retired/0.1',
-      run_definition_cid: request.run_definition_cid,
-    });
+    assert.deepEqual(deletionNames, []);
+    const fences=new DatabaseSync(join(configuration.directory,'delivery-attempts.sqlite3'),{readOnly:true});
+    try{assert.deepEqual({...fences.prepare('SELECT run_cid,retired FROM metadata_deletion_fences').get()},
+      {run_cid:request.run_definition_cid,retired:1});}finally{fences.close();}
     assert.equal(await store.inspectCommittedIndex(
       indexKeyFor(request),
     ), undefined);
@@ -3913,15 +3909,10 @@ test('metadata retirement retains capacity until durability retry', async t => {
   assert.equal(retried.errors.length, 1);
   assert.equal(store.status().storedBytes, 0);
   assert.equal(store.status().objectCount, 0);
-  const retiredMarker = JSON.parse(await readFile(join(
-    directory,
-    'metadata-deletions',
-    (await readdir(join(directory, 'metadata-deletions')))[0],
-  ), 'utf8'));
-  assert.deepEqual(retiredMarker, {
-    version: 'actql-local-publication-metadata-retired/0.1',
-    run_definition_cid: request.run_definition_cid,
-  });
+  assert.deepEqual(await readdir(join(directory,'metadata-deletions')),[]);
+  const fences=new DatabaseSync(join(directory,'delivery-attempts.sqlite3'),{readOnly:true});
+  try{assert.deepEqual({...fences.prepare('SELECT run_cid,retired FROM metadata_deletion_fences').get()},
+    {run_cid:request.run_definition_cid,retired:1});}finally{fences.close();}
   assert.equal(await store.close(), true);
 });
 
@@ -4938,6 +4929,63 @@ test('native publication inventory survives reopen and retires only its original
   await reopened.close();
 });
 
+test('metadata deletion history is indexed once and unrelated Run operations read no marker bodies',async t=>{
+  const {store,directory,configuration}=await fixture(t);await store.close();
+  // Model the actual prior private version and its compact retired files.
+  const db=new DatabaseSync(join(directory,'delivery-attempts.sqlite3'));
+  try{db.exec('DROP TABLE metadata_deletion_fences; DROP TABLE metadata_deletion_fence_coverage; UPDATE coverage SET version=7 WHERE id=1');}
+  finally{db.close();}
+  const history=Array.from({length:12},(_,i)=>({key:digest(`retired key ${i}`).slice(7),run:digest(`retired Run ${i}`)}));
+  for(const row of history)await writeFile(join(directory,'metadata-deletions',row.key+'.json'),wire({
+    version:'actql-local-publication-metadata-retired/0.1',run_definition_cid:row.run}));
+  const migrated=await openLocalPublicationStore(configuration,contractControl);
+  assert.deepEqual(await readdir(join(directory,'metadata-deletions')),[]);await migrated.close();
+  let reads=0,historyEnumerations=0;
+  const actualOpen=fsPromises.open,actualReaddir=fsPromises.readdir;
+  t.mock.method(fsPromises,'open',function(path,...args){
+    if(String(path).startsWith(join(directory,'metadata-deletions')+sep))reads++;
+    return Reflect.apply(actualOpen,this,[path,...args]);
+  });
+  t.mock.method(fsPromises,'readdir',function(path,...args){
+    if(String(path)===join(directory,'metadata-deletions'))historyEnumerations++;
+    return Reflect.apply(actualReaddir,this,[path,...args]);
+  });
+  syncBuiltinESMExports();t.after(()=>{t.mock.restoreAll();syncBuiltinESMExports();});
+  const reopened=await openLocalPublicationStore(configuration,contractControl);
+  assert.equal(reads,0,'ordinary reopen does not read retired metadata history');
+  historyEnumerations=0;
+  const request=publicationRequest(resultDefinition(),digest('unrelated current Run'));
+  await reopened.createAttempt(wire(publicationAttempt(request,'target-only')));
+  assert.equal(historyEnumerations,0);assert.equal(reads,0);
+  const denied={...request,run_definition_cid:history[7].run};
+  await assert.rejects(reopened.createAttempt(wire(publicationAttempt(denied,'same retired Run'))),code('PublicationMetadataDeleted'));
+  assert.equal(reads,0);await reopened.close();
+});
+
+test('metadata deletion keeps the same cleanup after native retirement and lost marker directory ACK',async t=>{
+  const {store,directory,configuration}=await fixture(t);
+  const invocationValue=invocation(),request=publicationRequest(resultDefinition(),invocationValue.invocation_cid);
+  const attempt=publicationAttempt(request),prepared=await prepareCommit(store,request,attempt,invocationValue);
+  const entry=indexEntry(request,attempt,invocationValue,{durable_result_binding_cids:[prepared.binding.identity]});
+  await store.commitIndex(wire(entry),prepared.required,prepared.evidence);await store.close();
+  let lost=false,armed=false;
+  const reopened=await openLocalPublicationStore(configuration,contractControl,{async syncDirectory(path){
+    if(armed&&!lost&&path===join(directory,'metadata-deletions')&&(await readdir(path)).length===0){
+      lost=true;throw Object.assign(new Error('lost final marker directory ACK'),{code:'EIO'});
+    }
+    const handle=await open(path,'r');try{await handle.sync();}finally{await handle.close();}
+  }});
+  armed=true;
+  const retired=await reopened.retireCommittedPublicationMetadata(indexKeyFor(request),'2027-01-01T00:00:00.000Z');
+  assert.equal(lost,true);assert.equal(retired.cleanup.status().pending,true);
+  const again=await reopened.retireCommittedPublicationMetadata(indexKeyFor(request),'2027-01-01T00:00:01.000Z');
+  assert.equal(again.cleanup,retired.cleanup);assert.equal(again.deleted,false);
+  await assert.rejects(reopened.close(),code('PublicationStoreCleanupPending'));
+  assert.equal((await again.cleanup.retry()).pending,false);
+  assert.equal((await reopened.retireCommittedPublicationMetadata(indexKeyFor(request),'2027-01-01T00:00:02.000Z')).deleted,true);
+  await reopened.close();
+});
+
 test('native publication inventories retain one shared physical holding until its final original ACK',async t=>{
   const setup=await fixture(t),{store,directory,configuration}=setup;
   const publish=async label=>{
@@ -5105,7 +5153,7 @@ test('publication recovery migrates the legacy inventory once and preserves adop
   // Reconstruct only this new disposable fixture's exact prior private format.
   const path=join(setup.directory,'delivery-attempts.sqlite3');
   const old=new DatabaseSync(path);
-  try{old.exec('DROP TABLE native_publication_inventories; DROP TABLE native_publication_inventory_usage; DROP TABLE pending_publications; DROP TABLE publication_recovery; UPDATE coverage SET version=5 WHERE id=1');}
+  try{old.exec('DROP TABLE metadata_deletion_fences; DROP TABLE metadata_deletion_fence_coverage; DROP TABLE native_publication_inventories; DROP TABLE native_publication_inventory_usage; DROP TABLE pending_publications; DROP TABLE publication_recovery; UPDATE coverage SET version=5 WHERE id=1');}
   finally{old.close();}
   const originalOpen=fsPromises.open,reads=[];
   t.mock.method(fsPromises,'open',function(path,...args){reads.push(String(path));return Reflect.apply(originalOpen,this,[path,...args]);});

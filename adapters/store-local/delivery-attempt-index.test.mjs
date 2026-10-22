@@ -6,6 +6,66 @@ import {join} from 'node:path';
 import {DatabaseSync} from 'node:sqlite';
 import {openDeliveryAttemptIndex} from './delivery-attempt-index.mjs';
 
+test('metadata deletion fences select the exact Run and migrate retired history only once',async t=>{
+  const directory=await mkdtemp(join(tmpdir(),'actql-metadata-fences-'));
+  let index;t.after(async()=>{index?.close();await rm(directory,{recursive:true});});
+  const path=join(directory,'index.sqlite3'),options={create:false,maxEntries:1,maxWireBytes:4096};
+  index=await openDeliveryAttemptIndex(path,{...options,create:true});index.migrate([]);index.migratePublicationRecovery([]);
+  const first={metadata_key:'1'.repeat(64),run_cid:'sha256:'+'2'.repeat(64)},other='sha256:'+'3'.repeat(64);
+  assert.throws(()=>index.hasRunMetadataDeletionFence(first.run_cid),{code:'DeliveryAttemptIndexUnavailable'});
+  index.migrateMetadataDeletionFences([{...first,retired:1}]);index.close();
+  index=await openDeliveryAttemptIndex(path,options);
+  assert.equal(index.needsMetadataDeletionFenceMigration(),true);
+  index.migrateMetadataDeletionFences([{...first,retired:1}]);
+  const second={metadata_key:'4'.repeat(64),run_cid:other};
+  index.migrateMetadataDeletionFences([{...second,retired:0}],true);
+  assert.equal(index.hasRunMetadataDeletionFence(first.run_cid),true);
+  assert.equal(index.hasRunMetadataDeletionFence('sha256:'+'5'.repeat(64)),false);
+  assert.deepEqual(index.metadataDeletionFence(first.metadata_key),{...first,retired:1});
+  assert.throws(()=>index.retireNativePublicationInventory(undefined,{...first,run_cid:other}),
+    {code:'PublicationMetadataDeletionConflict'});
+  index.finishMetadataDeletionFence(second);index.close();index=await openDeliveryAttemptIndex(path,options);
+  assert.equal(index.needsMetadataDeletionFenceMigration(),false);
+  assert.equal(index.hasRunMetadataDeletionFence(other),true);
+  assert.deepEqual(index.metadataDeletionFence(second.metadata_key),{...second,retired:1});
+});
+
+for(const finish of [false,true])for(const afterCommit of [false,true]) {
+test(`metadata deletion fence ${finish?'completion':'transfer'} retains ${afterCommit?'committed':'rolled-back'} Unknown`,async t=>{
+  const directory=await mkdtemp(join(tmpdir(),'actql-metadata-fence-unknown-'));
+  let index,armed=false,lost=false;t.after(async()=>{index?.close();await rm(directory,{recursive:true});});
+  const exec=DatabaseSync.prototype.exec;
+  t.mock.method(DatabaseSync.prototype,'exec',function(sql){
+    if(armed&&!lost&&sql==='COMMIT'){
+      lost=true;if(afterCommit)Reflect.apply(exec,this,[sql]);
+      throw Object.assign(new Error('lost original metadata fence reply'),{code:'EIO'});
+    }
+    return Reflect.apply(exec,this,[sql]);
+  });
+  index=await openDeliveryAttemptIndex(join(directory,'index.sqlite3'),{create:true,maxEntries:2,maxWireBytes:4096});
+  index.migrate([]);index.migratePublicationRecovery([]);index.migrateMetadataDeletionFences([],true);
+  const fence={metadata_key:'1'.repeat(64),run_cid:'sha256:'+'2'.repeat(64)};
+  if(finish)index.retireNativePublicationInventory(undefined,fence);
+  const mutate=value=>finish?index.finishMetadataDeletionFence(value):index.retireNativePublicationInventory(undefined,value);
+  armed=true;assert.throws(()=>mutate(fence),error=>error.outcome==='unknown');
+  assert.throws(()=>index.hasRunMetadataDeletionFence(fence.run_cid),{code:'DeliveryAttemptIndexCommitOutcomeUnknown'});
+  assert.throws(()=>mutate({...fence,run_cid:'sha256:'+'3'.repeat(64)}),{code:'DeliveryAttemptIndexCommitOutcomeUnknown'});
+  mutate(fence);
+  assert.deepEqual(index.metadataDeletionFence(fence.metadata_key),{...fence,retired:finish?1:0});
+});
+}
+
+for(const missing of ['metadata_deletion_fences','metadata_deletion_fence_coverage','metadata_deletion_runs']) {
+test(`metadata deletion fences refuse missing adopted ${missing}`,async t=>{
+  const directory=await mkdtemp(join(tmpdir(),'actql-metadata-fence-missing-'));
+  t.after(()=>rm(directory,{recursive:true}));
+  const path=join(directory,'index.sqlite3'),options={create:false,maxEntries:1,maxWireBytes:4096};
+  const index=await openDeliveryAttemptIndex(path,{...options,create:true});index.close();
+  const db=new DatabaseSync(path);try{db.exec(`DROP ${missing==='metadata_deletion_runs'?'INDEX':'TABLE'} ${missing}`);}finally{db.close();}
+  await assert.rejects(openDeliveryAttemptIndex(path,options),{code:'DeliveryAttemptIndexUnavailable'});
+});
+}
+
 test('native publication inventory and pending lookup share one commit without a shadow body',async t=>{
   const directory=await mkdtemp(join(tmpdir(),'actql-native-inventory-'));
   let index,armed=false,commits=0;
@@ -89,7 +149,7 @@ test('native publication inventory upgrades version6 without reclassifying its p
   const original={public_index_cid:'sha256:'+'1'.repeat(64),inventory_wire:'{"legacy":1}'};
   index.migratePublicationRecovery([original]);index.close();
   const database=new DatabaseSync(path);
-  try{database.exec('DROP TABLE native_publication_inventories; DROP TABLE native_publication_inventory_usage; UPDATE coverage SET version=6 WHERE id=1');}
+  try{database.exec('DROP TABLE metadata_deletion_fences; DROP TABLE metadata_deletion_fence_coverage; DROP TABLE native_publication_inventories; DROP TABLE native_publication_inventory_usage; UPDATE coverage SET version=6 WHERE id=1');}
   finally{database.close();}
   index=await openDeliveryAttemptIndex(path,options);
   assert.equal(index.needsPublicationRecoveryMigration(),false);
@@ -309,7 +369,7 @@ test('legacy indexed attempts keep the original pending and finish protocol afte
   index.close();
   // Reconstruct the exact pre-extension schema, not an empty replacement DB.
   const database = new DatabaseSync(path);
-  try {database.exec('DROP TABLE native_publication_inventories; DROP TABLE native_publication_inventory_usage; DROP TABLE pending_publications; DROP TABLE publication_recovery; DROP TABLE publication_contracts; DROP TABLE publication_usage; DROP TABLE completions; DROP TABLE initial_records; UPDATE coverage SET version=1 WHERE id=1');}
+  try {database.exec('DROP TABLE metadata_deletion_fences; DROP TABLE metadata_deletion_fence_coverage; DROP TABLE native_publication_inventories; DROP TABLE native_publication_inventory_usage; DROP TABLE pending_publications; DROP TABLE publication_recovery; DROP TABLE publication_contracts; DROP TABLE publication_usage; DROP TABLE completions; DROP TABLE initial_records; UPDATE coverage SET version=1 WHERE id=1');}
   finally {database.close();}
   index = await openDeliveryAttemptIndex(path,{create:false,maxEntries:2,maxWireBytes:4096});
   assert.equal(index.pending().length,1);
@@ -345,7 +405,7 @@ test('version two initial records remain file-backed after additive native-origi
   index.claim(row,1,'{"initial":1}');
   index.close();
   const database=new DatabaseSync(path);
-  try {database.exec(`DROP TABLE native_publication_inventories; DROP TABLE native_publication_inventory_usage; DROP TABLE pending_publications; DROP TABLE publication_recovery; DROP TABLE publication_contracts; DROP TABLE publication_usage; DROP TABLE completions;
+  try {database.exec(`DROP TABLE metadata_deletion_fences; DROP TABLE metadata_deletion_fence_coverage; DROP TABLE native_publication_inventories; DROP TABLE native_publication_inventory_usage; DROP TABLE pending_publications; DROP TABLE publication_recovery; DROP TABLE publication_contracts; DROP TABLE publication_usage; DROP TABLE completions;
     ALTER TABLE initial_records DROP COLUMN ack_revision;
     DROP INDEX initial_record_identity;
     ALTER TABLE initial_records DROP COLUMN initial_cid; UPDATE coverage SET version=2 WHERE id=1`);}
@@ -370,7 +430,7 @@ test('version three native originals survive additive completion storage without
   index.claim(row,1,'{"initial":1}',cid('4'));
   index.close();
   const database=new DatabaseSync(path);
-  try {database.exec(`DROP TABLE native_publication_inventories; DROP TABLE native_publication_inventory_usage; DROP TABLE pending_publications; DROP TABLE publication_recovery; DROP TABLE publication_contracts; DROP TABLE publication_usage; DROP TABLE completions; ALTER TABLE initial_records DROP COLUMN ack_revision;
+  try {database.exec(`DROP TABLE metadata_deletion_fences; DROP TABLE metadata_deletion_fence_coverage; DROP TABLE native_publication_inventories; DROP TABLE native_publication_inventory_usage; DROP TABLE pending_publications; DROP TABLE publication_recovery; DROP TABLE publication_contracts; DROP TABLE publication_usage; DROP TABLE completions; ALTER TABLE initial_records DROP COLUMN ack_revision;
     UPDATE coverage SET version=3 WHERE id=1`);} finally {database.close();}
   index=await openDeliveryAttemptIndex(path,options);
   assert.deepEqual(index.contract(cid('4')),{name:'delivery_record',wire:'{"initial":1}'});

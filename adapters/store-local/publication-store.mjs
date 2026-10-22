@@ -1464,6 +1464,10 @@ async function openOriginalLocalPublicationStore(
   const activePhysicalRecordWriters = new Set();
   const pendingResultDeletions = new Map();
   const pendingMetadataDeletions = new Map();
+  const pendingMetadataDeletionMarkers = new Map();
+  const metadataDeletionIntents = new Set();
+  const pendingMetadataFenceCompletions = new Map();
+  let metadataFencesReady = false;
   const pendingPhysicalHoldingDeletions = new Map();
   const pendingUncommittedMetadataCleanups = new Map();
   const reclaimingMaterialCids = new Set();
@@ -1808,7 +1812,14 @@ async function openOriginalLocalPublicationStore(
         metadataDeletionPath(keyHash), configuration.maxObjectBytes,
       );
     } catch (error) {
-      if (error?.code === 'ENOENT') return undefined;
+      if (error?.code === 'ENOENT') {
+        if (!metadataFencesReady) return undefined;
+        const fence = deliveryIndex.metadataDeletionFence(keyHash);
+        if (fence === undefined) return undefined;
+        if (fence.retired !== 1) fail('InvalidPublicationMetadataDeletionStore');
+        return Object.freeze({version:'actql-local-publication-metadata-retired/0.1',
+          run_definition_cid:fence.run_cid});
+      }
       throw error;
     }
     let value;
@@ -1867,21 +1878,14 @@ async function openOriginalLocalPublicationStore(
       version: 'actql-local-publication-metadata-retired/0.1',
       run_definition_cid: runDefinitionCid,
     });
-    const bytes = Buffer.from(JSON.stringify(value), 'utf8');
-    const staging = resolve(
-      metadataDeletionsDirectory,
-      `.staging-${randomUUID()}`,
-    );
-    try {
-      await writeExclusive(staging, bytes);
-      await rename(staging, metadataDeletionPath(keyHash));
-      await syncDirectory(metadataDeletionsDirectory);
-    } finally {
-      try { await unlink(staging); }
-      catch (error) {
-        if (error?.code !== 'ENOENT') throw error;
-      }
-    }
+    const original = Object.freeze({metadata_key:keyHash,run_cid:runDefinitionCid});
+    pendingMetadataFenceCompletions.set(keyHash,original);
+    deliveryIndex.finishMetadataDeletionFence(original);
+    pendingMetadataFenceCompletions.delete(keyHash);
+    try { await unlink(metadataDeletionPath(keyHash)); }
+    catch (error) { if (error?.code !== 'ENOENT') throw error; }
+    // Absence after a lost unlink/ACK reply is not its directory ACK.
+    await syncDirectory(metadataDeletionsDirectory);
     return value;
   };
 
@@ -1890,6 +1894,7 @@ async function openOriginalLocalPublicationStore(
     if (bytes.byteLength > configuration.maxObjectBytes) {
       fail('PublicationObjectLimit');
     }
+    metadataDeletionIntents.add(value.run_definition_cid);
     try { await writeExclusive(metadataDeletionPath(keyHash), bytes); }
     catch (error) {
       if (error?.code !== 'EEXIST') throw error;
@@ -1905,14 +1910,8 @@ async function openOriginalLocalPublicationStore(
   };
 
   const runMetadataDeletionStarted = async runDefinitionCid => {
-    for (const name of await readdir(metadataDeletionsDirectory)) {
-      if (!/^[0-9a-f]{64}\.json$/u.test(name)) {
-        fail('InvalidPublicationMetadataDeletionStore');
-      }
-      const value = await readMetadataDeletion(name.slice(0, -5));
-      if (value.run_definition_cid === runDefinitionCid) return true;
-    }
-    return false;
+    return metadataDeletionIntents.has(runDefinitionCid) ||
+      deliveryIndex.hasRunMetadataDeletionFence(runDefinitionCid);
   };
 
   const parseCustodyRecord = bytes => {
@@ -4198,13 +4197,6 @@ async function openOriginalLocalPublicationStore(
       fail('PublicationStoreCapacity');
     }
     if (coverage.phase !== 'ready') await publishCoverage('ready');
-    // Only unfinished indexed claims are revisited. No ordinary open scans or
-    // re-admits all historical attempts/grants after coverage is complete.
-    const pending = deliveryIndex.pending();
-    if (pending.length > configuration.maxObjects) fail('DeliveryAttemptIndexLimit');
-    for (const row of pending) {
-      if (!await runMetadataDeletionStarted(row.run_cid)) await restoreDeliveryClaim(row);
-    }
     if (deliveryIndex.needsPublicationRecoveryMigration()) {
       // Only the unadopted private format permits this bounded one-time
       // history classification. Later opens consume native pending rows.
@@ -4225,6 +4217,49 @@ async function openOriginalLocalPublicationStore(
       }
       await syncDirectory(metadataInventoriesDirectory);
       deliveryIndex.migratePublicationRecovery(rows);
+    }
+    // Only a newly adopted private format reads historical retirement markers.
+    // Batch progress is idempotent after a lost migration COMMIT; the actual
+    // files remain until complete native coverage acknowledges their fences.
+    const names = await readdir(metadataDeletionsDirectory);
+    if (deliveryIndex.needsMetadataDeletionFenceMigration()) {
+      let rows=[];
+      for (const name of names) {
+        if (!/^[0-9a-f]{64}\.json$/u.test(name)) fail('InvalidPublicationMetadataDeletionStore');
+        const keyHash=name.slice(0,-5),marker=await readMetadataDeletion(keyHash);
+        if(marker===undefined)fail('InvalidPublicationMetadataDeletionStore');
+        rows.push({metadata_key:keyHash,run_cid:marker.run_definition_cid,
+          retired:marker.version==='actql-local-publication-metadata-retired/0.1'?1:0});
+        if(rows.length===Math.max(1,configuration.maxObjects)) {
+          deliveryIndex.migrateMetadataDeletionFences(rows);rows=[];
+        }
+      }
+      deliveryIndex.migrateMetadataDeletionFences(rows,true);
+    }
+    metadataFencesReady=true;
+    let removed=false;
+    for(const name of names) {
+      if (!/^[0-9a-f]{64}\.json$/u.test(name)) fail('InvalidPublicationMetadataDeletionStore');
+      const keyHash=name.slice(0,-5),marker=await readMetadataDeletion(keyHash);
+      if(marker===undefined)fail('InvalidPublicationMetadataDeletionStore');
+      const fence=deliveryIndex.metadataDeletionFence(keyHash);
+      if(fence!==undefined&&fence.run_cid!==marker.run_definition_cid)fail('InvalidPublicationMetadataDeletionStore');
+      if(marker.version==='actql-local-publication-metadata-retired/0.1') {
+        if(fence?.retired!==1)fail('InvalidPublicationMetadataDeletionStore');
+        await unlink(metadataDeletionPath(keyHash));removed=true;
+      } else {
+        // A crash after the full marker ACK but before its indexed transfer
+        // still hides this Run before any pending delivery can be restored.
+        metadataDeletionIntents.add(marker.run_definition_cid);
+      }
+    }
+    if(removed)await syncDirectory(metadataDeletionsDirectory);
+    // Later opens see only pending physical cleanup files, never retired
+    // history. Delivery restoration consumes the exact indexed Run fence.
+    const pending = deliveryIndex.pending();
+    if (pending.length > configuration.maxObjects) fail('DeliveryAttemptIndexLimit');
+    for (const row of pending) {
+      if (!await runMetadataDeletionStarted(row.run_cid)) await restoreDeliveryClaim(row);
     }
   };
 
@@ -7348,13 +7383,21 @@ async function openOriginalLocalPublicationStore(
     if (existing !== undefined) {
       return Object.freeze({marker, cleanup: existing, deleted: false});
     }
-    let recoveryOriginal, recoveryTransferred = false;
+    let recoveryOriginal, recoveryCaptured = false, recoveryTransferred = false;
     const cleanup = createMetadataDeletionOwner(marker, {
       serialize(run) {
         const operation = metadataRetentionBusy.then(async () => {
+          const completion=pendingMetadataFenceCompletions.get(keyHash);
+          if(completion!==undefined) {
+            deliveryIndex.finishMetadataDeletionFence(completion);
+            pendingMetadataFenceCompletions.delete(keyHash);
+          }
           if (!recoveryTransferred) {
-            recoveryOriginal ??= deliveryIndex.pendingPublication(marker.public_index_entry_cid) ??
-              deliveryIndex.nativePublicationInventory(marker.public_index_entry_cid);
+            if(!recoveryCaptured) {
+              recoveryOriginal = deliveryIndex.pendingPublication(marker.public_index_entry_cid) ??
+                deliveryIndex.nativePublicationInventory(marker.public_index_entry_cid);
+              recoveryCaptured=true;
+            }
             if (recoveryOriginal !== undefined) {
               const inventory = publicationRecoveryValue(recoveryOriginal);
               if (inventory.namespace_id !== marker.namespace_id ||
@@ -7368,8 +7411,10 @@ async function openOriginalLocalPublicationStore(
               // The same durable marker now owns all cleanup. Settle its
               // pending lookup row before physical work so an Unknown retry
               // reaches this exact native mutation before any other DB read.
-              deliveryIndex.retireNativePublicationInventory(recoveryOriginal);
             }
+            deliveryIndex.retireNativePublicationInventory(recoveryOriginal,
+              {metadata_key:keyHash,run_cid:marker.run_definition_cid});
+            metadataDeletionIntents.delete(marker.run_definition_cid);
             recoveryTransferred = true;
           }
           return run();
@@ -7456,9 +7501,13 @@ async function openOriginalLocalPublicationStore(
       compactMarker: () => compactMetadataDeletion(
         keyHash, marker.run_definition_cid,
       ),
-      settle() { pendingMetadataDeletions.delete(keyHash); },
+      settle() {
+        pendingMetadataDeletions.delete(keyHash);
+        pendingMetadataDeletionMarkers.delete(keyHash);
+      },
     });
     pendingMetadataDeletions.set(keyHash, cleanup);
+    pendingMetadataDeletionMarkers.set(keyHash, marker);
     try { await cleanup.retry(); }
     catch {}
     return Object.freeze({
@@ -7474,6 +7523,9 @@ async function openOriginalLocalPublicationStore(
       fail('InvalidPublicationMetadataDeletion');
     }
     const keyHash = indexKey(key);
+    const pending=pendingMetadataDeletions.get(keyHash);
+    if(pending!==undefined) return Object.freeze({marker:pendingMetadataDeletionMarkers.get(keyHash),
+      cleanup:pending,deleted:false});
     let marker = await readMetadataDeletion(keyHash);
     if (marker?.version ===
         'actql-local-publication-metadata-retired/0.1') {

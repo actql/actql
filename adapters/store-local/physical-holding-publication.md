@@ -175,6 +175,35 @@ and its pending lookup together. Same-original Unknown confirmation is retained.
 Shared contract and holding cleanup checks both representations before reclaim;
 this does not eliminate the remaining shared-reference history work.
 
+### Indexed Run metadata retirement
+
+The same private database keeps a minimal retirement fence keyed by the complete
+metadata key, with an index over the original Run CID. Delivery and publication
+operations select that Run alone; they do not enumerate or parse other retired
+Runs. The fence denies the whole Run as before, independently of namespace or
+Result permission. It is not authorization, capacity or a physical cleanup ACK.
+
+A full deletion marker remains the original pending physical cleanup inventory.
+After its actual file and directory ACK, its native fence is staged in the same
+transaction that transfers the native publication inventory. A same-lifetime
+intent conservatively hides that Run before the transfer ACK. A lost native
+reply retains the exact original inventory and fence for confirmation before
+other native reads; a legacy file inventory may transfer without a native body.
+
+Only after the original cleanup completes does the native fence record retirement.
+The full marker is then unlinked and its directory really acknowledged. A failed
+final ACK retains the same cleanup even if the marker is absent and the native
+row is already retired. Retry does not manufacture success from either fact.
+Completed fences retain only metadata key, Run and retirement state, not the
+deleted metadata bodies. They do not permit re-creation of that Run.
+
+An additive format transition reads prior full and compact marker files once,
+in bounded native batches. Durable coverage is completed before redundant compact
+files are removed. Interrupted migration resumes the same tuples idempotently;
+missing adopted tables or incomplete coverage never mean not-found. Subsequent
+opens recover pending physical markers only. Other quota and shared-reference
+history work remains separate; this is not fully history-independent startup.
+
 ## Same-owner cleanup and inventory
 
 The existing Store retains each active metadata writer's record in its private
