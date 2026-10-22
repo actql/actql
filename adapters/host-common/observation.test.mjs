@@ -12,6 +12,163 @@ const turn = () => new Promise(resolve => setImmediate(resolve));
 const selectedRows = (extra = {}) => ({ref, rowOwner: 'request-journal', selection: 'run-definition',
   rowKind: 'run', returnedRows: 1, unrelatedRows: 0, coverage: 'selected-returned', ...extra});
 
+test('Run identity lookup contributes its actual row before the final selected-row record closes', async () => {
+  const records = []; let lookups = 0, observer;
+  observer = installHostObservation(createHostObservationConnection({
+    deliver: record => records.push(record), include: ['run'],
+    measurements: {include: ['rows']}, events: {level: 'diagnostic'},
+  }), {journal: {observationStorage: () => ({consume: () => ({accepted: true})})},
+    runId(original) {
+      assert.deepEqual(original, ref); lookups++;
+      // Explicit original-port fixture: the Host's real resolver performs a
+      // selected Journal lookup before deriving this immutable identifier.
+      observer.diagnostic('selected_rows_observed', selectedRows());
+      return 'original-run';
+    }});
+  await observer.run('read', trace, () => observer.diagnostic('selected_rows_observed', selectedRows()));
+  await observer.close();
+  const rows = records.filter(record => record.event === 'selected_rows_observed');
+  assert.equal(rows.length, 1); assert.equal(rows[0].attributes['actql.rows.returned'], 2);
+  assert.equal(rows[0].attributes['actql.run.id'], 'original-run');
+  assert.deepEqual(rows[0].parent, trace); assert.equal(lookups, 1);
+  assert.deepEqual(observer.status().loss, {});
+});
+
+test('positive Run identity is reused only inside the same original operation and exact Run tuple', async () => {
+  const records = [], calls = [], foreignScope = {...ref, authorityScopeCid: `sha256:${'c'.repeat(64)}`};
+  const observer = installHostObservation(createHostObservationConnection({deliver: record => records.push(record)}), {
+    journal: {observationStorage: () => ({consume: () => ({accepted: true})})},
+    runId(original) {calls.push({...original}); return original.authorityScopeCid === ref.authorityScopeCid ? 'first-run' : 'other-run';},
+  });
+  await observer.run('submit', trace, () => {
+    observer.emit('run', 'dispatch_reserved', {ref});
+    observer.emit('run', 'physical_start_reserved', {ref: {...ref}});
+    observer.emit('run', 'dispatch_reserved', {ref: foreignScope});
+    observer.emit('run', 'owner_observed', {ref});
+  });
+  assert.deepEqual(calls, [ref, foreignScope]);
+  await observer.run('read', trace, () => observer.emit('run', 'owner_observed', {ref}));
+  assert.deepEqual(calls, [ref, foreignScope, ref], 'A new operation resolves its own original metadata');
+  await observer.close();
+  const other = records.find(record => record.attributes['actql.run.definition_cid'] === foreignScope.runDefinitionCid &&
+    record.attributes['actql.run.id'] === 'other-run');
+  assert(other); assert.equal(observer.status().dropped, 0);
+});
+
+test('missing Run identity is not retained as a positive original and disabled correlation performs no lookup', async () => {
+  const records = [], failure = new Error('OriginalRunLookupFailed'); let available = false, calls = 0;
+  const observer = installHostObservation(createHostObservationConnection({deliver: record => records.push(record)}), {
+    journal: {observationStorage: () => ({consume: () => ({accepted: true})})},
+    runId() {calls++; if (!available) return undefined; return 'now-original';},
+  });
+  await observer.run('submit', trace, () => {
+    observer.emit('run', 'dispatch_reserved', {ref}); available = true;
+    observer.emit('run', 'physical_start_reserved', {ref});
+    observer.emit('run', 'owner_observed', {ref});
+  });
+  await observer.close(); assert.equal(calls, 2);
+  assert.equal(records.find(record => record.event === 'dispatch_reserved').attributes['actql.run.id'], undefined);
+  assert.equal(records.find(record => record.event === 'physical_start_reserved').attributes['actql.run.id'], 'now-original');
+  const disabled = installHostObservation(createHostObservationConnection({deliver() {}, correlation: false}), {
+    runId() {throw failure;}, journal: {observationStorage: () => ({consume: () => ({accepted: true})})},
+  });
+  assert.equal(await disabled.run('read', trace, () => {disabled.emit('run', 'owner_observed', {ref}); return 7;}), 7);
+  await disabled.close(); assert.equal(disabled.status().dropped, 0);
+});
+
+test('failed Run identity lookup preserves execution and never becomes a successful retained fact', async () => {
+  const records = [], failure = new Error('OriginalRunLookupFailed'), answer = {};
+  let calls = 0, failing = true;
+  const observer = installHostObservation(createHostObservationConnection({deliver: record => records.push(record)}), {
+    journal: {observationStorage: () => ({consume: () => ({accepted: true})})},
+    runId() {calls++; if (failing) throw failure; return 'original-after-observation';},
+  });
+  assert.strictEqual(await observer.run('read', trace, () => {
+    observer.emit('run', 'dispatch_reserved', {ref}); failing = false;
+    observer.emit('run', 'physical_start_reserved', {ref});
+    observer.emit('run', 'owner_observed', {ref}); return answer;
+  }), answer);
+  await observer.close();
+  assert.equal(calls, 2); assert.equal(observer.status().budgetUnavailable, 1);
+  assert.equal(records.some(record => record.event === 'dispatch_reserved'), false);
+  assert.equal(records.find(record => record.event === 'physical_start_reserved').attributes['actql.run.id'], 'original-after-observation');
+});
+
+test('foreign Run identity projections do not borrow the current installation context', async () => {
+  const firstRecords = [], otherRecords = []; let firstCalls = 0, otherCalls = 0;
+  const first = installHostObservation(createHostObservationConnection({deliver: r => firstRecords.push(r),
+    include: ['run'], measurements: {include: ['rows']}, events: {level: 'diagnostic'}}), {
+    runId() {firstCalls++; return 'first-original';},
+    journal: {observationStorage: () => ({consume: () => ({accepted: true})})},
+  });
+  const other = installHostObservation(createHostObservationConnection({deliver: r => otherRecords.push(r),
+    include: ['run'], measurements: {include: ['rows']}, events: {level: 'diagnostic'}}), {
+    runId() {otherCalls++; return 'other-original';},
+    journal: {observationStorage: () => ({consume: () => ({accepted: true})})},
+  });
+  await first.run('read', trace, () => {
+    first.emit('run', 'owner_observed', {ref});
+    other.diagnostic('selected_rows_observed', selectedRows());
+    other.emit('run', 'owner_observed', {ref});
+  });
+  await first.close(); await other.close();
+  assert.equal(firstCalls, 1); assert.equal(otherCalls, 1);
+  assert.equal(firstRecords.some(record => record.event === 'selected_rows_observed'), false);
+  assert.equal(otherRecords[0].parent, undefined);
+  assert.equal(otherRecords[0].attributes['actql.run.id'], 'other-original');
+  assert.equal(other.status().loss.rowsUnavailable, 1);
+});
+
+test('Run identity lookup is unnecessary for excluded or already limited observation records', async () => {
+  for (const options of [{attributes: {exclude: ['actql.event']}}, {limits: {requestRecords: 1}}]) {
+    let calls = 0;
+    const observer = installHostObservation(createHostObservationConnection({deliver() {}, ...options}), {
+      runId() {calls++; return 'must-not-be-needed';},
+      journal: {observationStorage: () => ({consume: () => ({accepted: true})})},
+    });
+    assert.equal(await observer.run('read', trace, () => {observer.emit('run', 'owner_observed', {ref}); return 7;}), 7);
+    await observer.close(); assert.equal(calls, 0);
+  }
+});
+
+test('selected-row Run identity snapshots cannot be transferred to another installation projection', async () => {
+  const firstRecords = [], otherRecords = [];
+  const options = deliver => ({deliver, include: ['run'], measurements: {include: ['rows']}, events: {level: 'diagnostic'}});
+  const journal = {observationStorage: () => ({consume: () => ({accepted: true})})};
+  const first = installHostObservation(createHostObservationConnection(options(r => firstRecords.push(r))), {
+    journal, runId: () => 'first-original',
+  });
+  await first.run('read', trace, () => first.diagnostic('selected_rows_observed', selectedRows()));
+  await first.close();
+  const snapshot = firstRecords.find(record => record.event === 'selected_rows_observed').attributes;
+  const other = installHostObservation(createHostObservationConnection(options(r => otherRecords.push(r))), {
+    journal, runId: () => 'other-original',
+  });
+  other.emit('run', 'selected_rows_observed', {ref}, {selectedRows: snapshot});
+  await other.close();
+  assert.equal(otherRecords.length, 0); assert.equal(other.status().loss.rowsUnavailable, 1);
+});
+
+test('selected-row Run identity remains absent for unbound references without losing actual row counts', async () => {
+  const records = []; let lookups = 0;
+  const observer = installHostObservation(createHostObservationConnection({deliver: r => records.push(r),
+    include: ['run'], measurements: {include: ['rows']}, events: {level: 'diagnostic'}}), {
+    journal: {observationStorage: () => ({consume: () => ({accepted: true})})},
+    runId() {lookups++; throw new Error('NoOriginalRun');},
+  });
+  for (const unbound of [undefined, null]) await observer.run('read', trace, () => {
+    observer.diagnostic('selected_rows_observed', selectedRows({ref: unbound}));
+  });
+  await observer.close();
+  const rows = records.filter(record => record.event === 'selected_rows_observed');
+  assert.equal(rows.length, 2); assert.equal(lookups, 0); assert.deepEqual(observer.status().loss, {});
+  for (const row of rows) {
+    assert.equal(row.attributes['actql.rows.returned'], 1);
+    assert.equal(Object.hasOwn(row.attributes, 'actql.run.definition_cid'), false);
+    assert.equal(Object.hasOwn(row.attributes, 'actql.run.id'), false);
+  }
+});
+
 test('retained original work settles without delaying ingress or creating a second observation context', async () => {
   const records = [], observer = installHostObservation(createHostObservationConnection({
     deliver: record => records.push(record), include: ['run'], measurements: {include: ['rows']}, events: {level: 'diagnostic'},

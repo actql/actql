@@ -36,7 +36,7 @@ const resourceUsageNames = Object.freeze(['planning', 'attempts', 'holdings',
   'transferred', 'uncertain', 'reservedTransfer', 'heldBytes', 'reservedRetention',
   'reservedExecution', 'peakRetention']);
 const managedResourceSnapshots = new WeakSet();
-const selectedRowSnapshots = new WeakSet();
+const selectedRowSnapshots = new WeakMap();
 const resourceAttribute = name => name.replace(/[A-Z]/gu, letter => `_${letter.toLowerCase()}`);
 attributeNames.push('actql.resource.scope',
   ...resourceLimitNames.map(name => `actql.resource.limit.${resourceAttribute(name)}`),
@@ -262,6 +262,7 @@ export function installHostObservation(connection, {journal, runId} = {}) {
   };
   const queue = [], pending = new Set(), activeContexts = new Set();
   const contextOwner = {};
+  const runIdentityLimit = Symbol('RunIdentityLimit');
   const observeRows = config.eventLevel === 'diagnostic' && config.allowed.has('run') &&
     config.measurements.has('rows');
   let queuedBytes = 0, closed = false, pumping = false, sequence = 0, activeSegments = 0;
@@ -293,6 +294,23 @@ export function installHostObservation(connection, {journal, runId} = {}) {
       });
     });
   };
+  const resolveRunIdentity = (context, ref, terminal = false) => {
+    if (ref === undefined || ref === null || typeof ref.namespaceId !== 'string' ||
+        !cid(ref.authorityScopeCid) || !cid(ref.runDefinitionCid)) return undefined;
+    const original = context?.owner === contextOwner ? context : undefined;
+    if (original?.finished && !terminal) return undefined;
+    const key = JSON.stringify([ref.namespaceId, ref.authorityScopeCid, ref.runDefinitionCid]);
+    if (original?.runIdentities?.has(key)) return original.runIdentities.get(key);
+    if ((original?.runIdentities?.size ?? 0) >=
+        Math.min(config.selected.requestRecords, config.selected.segmentRecords)) throw runIdentityLimit;
+    const id = runId?.(ref);
+    if (typeof id !== 'string' || id.length > 128) return undefined;
+    // Only an actual positive result from this installation's resolver is
+    // retained, under the complete immutable Run tuple and this operation.
+    // Missing/error observations and authority/current facts are not cached.
+    if (original) (original.runIdentities ??= new Map()).set(key, id);
+    return id;
+  };
   const emit = (operation, event, facts = {}, options = {}) => {
     try {
       if (closed || !config.allowed.has(operation)) return;
@@ -300,7 +318,13 @@ export function installHostObservation(connection, {journal, runId} = {}) {
       if (event === 'selected_rows_observed' && !selectedRowSnapshots.has(options.selectedRows)) {
         drop('rowsUnavailable'); return;
       }
-      const context = contexts.getStore();
+      if (mandatoryAttributes.some(key => config.attributeExclusions.has(key))) {
+        drop('requiredAttributeExcluded'); return;
+      }
+      const current = contexts.getStore();
+      const context = current?.owner === contextOwner ? current : undefined;
+      if (context && context.records >= Math.min(config.selected.requestRecords,
+        config.selected.segmentRecords)) {context.records++; drop('limited'); return;}
       const ref = event === 'selected_rows_observed' ? facts.ref : facts.ref ?? context?.ref;
       if (context && cid(facts.ref?.runDefinitionCid)) context.ref = facts.ref;
       const attributes = { 'actql.operation': operation,
@@ -331,7 +355,8 @@ export function installHostObservation(connection, {journal, runId} = {}) {
       };
       if (config.correlations.has('run') && cid(ref?.runDefinitionCid)) {
         attributes['actql.run.definition_cid'] = ref.runDefinitionCid;
-        const id = runId?.(ref);
+        const id = event === 'selected_rows_observed'
+          ? selectedRowSnapshots.get(options.selectedRows) : resolveRunIdentity(context, ref);
         if (typeof id === 'string' && id.length <= 128) attributes['actql.run.id'] = id;
       }
       if (config.correlations.has('attempt') && cid(facts.attemptCid)) attributes['actql.model.attempt_cid'] = facts.attemptCid;
@@ -346,9 +371,6 @@ export function installHostObservation(connection, {journal, runId} = {}) {
           attributes['http.response.status_code'] = code;
           if (code >= 500) attributes['error.type'] = String(code);
         }
-      }
-      if (mandatoryAttributes.some(key => config.attributeExclusions.has(key))) {
-        drop('requiredAttributeExcluded'); return;
       }
       for (const key of config.attributeExclusions) delete attributes[key];
       // Reserve space for both restored correlation contexts before reading
@@ -377,12 +399,24 @@ export function installHostObservation(connection, {journal, runId} = {}) {
       queue.push({record: Object.freeze(record), bytes});
       queuedBytes += bytes;
       if (pending.size === 0) pump();
-    } catch { drop('budgetUnavailable'); }
+    } catch (cause) { drop(cause === runIdentityLimit ? 'limited' : 'budgetUnavailable'); }
   };
   const flushSelectedRows = context => {
     if (context === undefined || context.selectedRowsClosed) return;
-    context.selectedRowsClosed = true;
-    const rows = context.selectedRows; context.selectedRows = undefined;
+    const rows = context.selectedRows;
+    let id;
+    try {
+      if (rows !== undefined && !rows.unavailable && config.correlations.has('run')) {
+        // The original resolver may perform a selected Journal read. Count
+        // that real read before closing the aggregate; emission must not
+        // recursively ask the Journal for metadata about its own record.
+        id = resolveRunIdentity(context, rows.ref, true);
+      }
+    } catch (cause) {
+      context.selectedRowsClosed = true; context.selectedRows = undefined;
+      drop(cause === runIdentityLimit ? 'limited' : 'budgetUnavailable'); return;
+    }
+    context.selectedRowsClosed = true; context.selectedRows = undefined;
     if (rows === undefined || rows.unavailable) return;
     try {
       // One bounded record for this existing ingress, not another durable
@@ -393,7 +427,7 @@ export function installHostObservation(connection, {journal, runId} = {}) {
         'actql.rows.returned': rows.returnedRows,
         ...(rows.unrelatedRows === undefined ? {} : {'actql.rows.unrelated': rows.unrelatedRows}),
         'actql.rows.coverage': rows.coverage});
-      selectedRowSnapshots.add(attributes);
+      selectedRowSnapshots.set(attributes, id);
       emit('run', 'selected_rows_observed', {ref: rows.ref}, {selectedRows: attributes});
     } catch {drop('rowsUnavailable');}
   };
@@ -401,6 +435,7 @@ export function installHostObservation(connection, {journal, runId} = {}) {
     if (context.finished || !context.ingressSettled || context.children !== 0) return;
     context.finished = true;
     contexts.run(context, () => flushSelectedRows(context));
+    context.runIdentities = undefined;
     if (observeRows) activeContexts.delete(context);
     activeSegments--;
   };
@@ -439,7 +474,8 @@ export function installHostObservation(connection, {journal, runId} = {}) {
   const accepted = (result, requestId) => {
     try {
       if (config.allowed.size === 0 || result?.ref === undefined) return;
-      const context = contexts.getStore();
+      const current = contexts.getStore();
+      const context = current?.owner === contextOwner ? current : undefined;
       if (context) context.ref = result.ref;
       if (result.inserted && storage !== undefined) {
         storage.initialize({ref: result.ref, requestId,
@@ -469,16 +505,20 @@ export function installHostObservation(connection, {journal, runId} = {}) {
       try {
         const result = await work();
         context.ingressSettled = true;
-        finishContext(context);
+        const selectedRef = context.selectedRows?.ref;
+        if (cid(selectedRef?.runDefinitionCid)) context.ref = selectedRef;
         emit(category, 'segment_ended', {outcome: http?.response?.statusCode >= 400
           ? 'failed' : 'succeeded'},
           {segment, ingress: true, durationMs: performance.now() - started});
+        finishContext(context);
         return result;
       } catch (cause) {
         context.ingressSettled = true;
-        finishContext(context);
+        const selectedRef = context.selectedRows?.ref;
+        if (cid(selectedRef?.runDefinitionCid)) context.ref = selectedRef;
         emit(category, 'segment_ended', {outcome: 'failed'},
           {segment, ingress: true, durationMs: performance.now() - started});
+        finishContext(context);
         throw cause;
       }
     }); } finally {context.ingressSettled = true; finishContext(context);}
@@ -515,7 +555,10 @@ export function installHostObservation(connection, {journal, runId} = {}) {
         if (closed || config.eventLevel !== 'diagnostic' || !config.allowed.has('run') ||
             !config.measurements.has('rows')) return;
         let captured = false;
-        try {captured = accumulateSelectedRows(contexts.getStore(), detail);}
+        try {
+          const context = contexts.getStore();
+          if (context?.owner === contextOwner) captured = accumulateSelectedRows(context, detail);
+        }
         catch { /* Optional unreadable facts remain unavailable. */ }
         if (!captured) drop('rowsUnavailable');
         return;
@@ -549,6 +592,7 @@ export function installHostObservation(connection, {journal, runId} = {}) {
         context.finished = true; context.selectedRowsClosed = true;
         context.selectedRows = context.trace = context.ref = context.http = undefined;
         context.retainedPromises = undefined;
+        context.runIdentities = undefined;
       }
       activeContexts.clear(); if (observeRows) activeSegments = 0;
       for (const _ of queue) drop('shutdown');

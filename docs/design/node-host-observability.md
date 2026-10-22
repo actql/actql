@@ -76,6 +76,18 @@ and partial-row reads retain their actual returned count but do not invent a
 complete unrelated-Run classification. A failed native get emits no empty-row
 fact. Startup aggregates, other Journal tables and Store/Checkpoint readers are
 outside this selected-reader coverage.
+
+Run ID correlation reuses only a positively resolved immutable identifier under
+the complete namespace, authority-scope and Run-definition tuple in that same
+operation and installation. The bounded holder contains copied identity values,
+not permission, currentness, a prepared Run or a durable observation cache.
+Missing and failed lookups are not positive facts; a new operation resolves its
+own original. Excluded or already limited records do not perform this lookup.
+The ending segment keeps the selected Run binding. Any real Journal read needed
+to resolve its metadata is counted before the final row aggregate closes; the
+aggregate emits with that private resolved fact rather than querying itself.
+Retirement drops these identity aliases without acknowledging physical cleanup.
+
 Measured Source/Model attempts use standard CLIENT span kind. Finite interval
 boundaries do not duplicate lifecycle logs or spend the discrete-log allowance
 merely because a caller polls status.
