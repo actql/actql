@@ -424,7 +424,7 @@ fn LocalCommandPreparationOriginal::execute_adopted_command(
             capture=Some(capture),
             original_reader=Some(id => {
               self.refresh_run_observation_state(
-                host, capture, settings, name, runtime, id,
+                host, capture, configuration, runtime, id,
               )
             }),
           )
