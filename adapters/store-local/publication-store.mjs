@@ -4141,7 +4141,11 @@ async function openOriginalLocalPublicationStore(
     // Only an all-native setup joins the bodies and attempt locator in one
     // existing transaction; either path returns after its actual acknowledgements.
     if (fileAttempt || admitted.some(({contract}) => !nativePublicationContract(contract.name))) {
-      await putAdmittedPublicationContracts(admitted, true);
+      // Do not preinstall progress bodies as native metadata for a file-backed
+      // attempt: its original append path must still create and ACK the files
+      // that its sequence links select.
+      await putAdmittedPublicationContracts(records === undefined ? admitted :
+        admitted.filter(value => !records.includes(value)), true);
       const created = await createAdmittedAttempt(selected.contract, selected.value);
       if (records !== undefined) await appendInitialPublicationRecords(initialRecords);
       return created;
