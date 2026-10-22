@@ -1441,6 +1441,70 @@ test(`holding commit retains its original failed directory close after reconcili
 });
 }
 
+for (const phase of ['share-new', 'share-existing', 'borrowed-before-link']) {
+test(`holding directory custody preserves shared publication boundaries (${phase})`, async t => {
+  const f = await privateReadFixture(t), source = await f.store.inspectPhysicalHolding(f.holdingCid);
+  const target = {...source, holding_cid: digest('holding directory custody ' + phase)};
+  if (phase === 'share-existing') await f.store.sharePhysicalHolding(f.holdingCid, target);
+  const physical = await stat(f.payloadPath), bytes = await readFile(f.payloadPath);
+  const ownerPath = join(f.directory, 'owner', 'owner.json'), token = await readFile(ownerPath);
+  const actualOpen = fsPromises.open;
+  let original, allowClose = false, opens = 0, syncs = 0, closes = 0, failure;
+  t.mock.method(fsPromises, 'open', async function(path, ...args) {
+    const handle = await Reflect.apply(actualOpen, this, [path, ...args]);
+    if (String(path) === join(f.directory, 'physical-holdings')) {
+      opens++;
+      const sync = handle.sync, close = handle.close;
+      t.mock.method(handle, 'sync', async function(...parameters) {
+        syncs++; return Reflect.apply(sync, this, parameters);
+      });
+      if (original === undefined) {
+        original = handle;
+        t.mock.method(handle, 'close', async function(...parameters) {
+          assert.equal(this, original); closes++;
+          if (!allowClose) return false;
+          return Reflect.apply(close, this, parameters);
+        });
+      }
+    }
+    return handle;
+  });
+  syncBuiltinESMExports();
+  try {
+    await assert.rejects(phase === 'borrowed-before-link'
+      ? f.store.commitPhysicalHolding(target, [], [f.holdingCid])
+      : f.store.sharePhysicalHolding(f.holdingCid, target), error => {
+      failure = error; return error.cleanupHandle?.status().pending === true;
+    });
+    assert.equal(opens, 1); assert.equal(syncs, 1);
+    const targetPath = join(f.directory, 'physical-holdings', target.holding_cid.slice(7) + '.json');
+    if (phase === 'borrowed-before-link') await assert.rejects(stat(targetPath), {code: 'ENOENT'});
+    else assert.deepEqual(await f.store.inspectPhysicalHolding(target.holding_cid), target);
+    await assert.rejects(f.store.close(), code('PublicationStoreCleanupPending'));
+    assert.deepEqual(await readFile(ownerPath), token);
+    assert.deepEqual(await readFile(f.payloadPath), bytes);
+    const retained = await stat(f.payloadPath);
+    assert.equal(retained.dev, physical.dev); assert.equal(retained.ino, physical.ino);
+    const before = {opens, syncs, closes}; allowClose = true;
+    const first = failure.cleanupHandle.retry(), second = failure.cleanupHandle.retry();
+    assert.strictEqual(first, second); assert.equal((await first).pending, false);
+    assert.deepEqual({opens, syncs, closes}, {...before, closes: before.closes + 1});
+    if (phase !== 'borrowed-before-link') {
+      const retired = await f.store.retirePhysicalHolding(target.holding_cid);
+      if (retired.cleanup.status().pending) await retired.cleanup.retry();
+      assert.equal(retired.cleanup.status().pending, false);
+      assert.deepEqual(await readFile(f.payloadPath), bytes);
+      assert.equal((await stat(f.payloadPath)).ino, physical.ino);
+    }
+    await f.store.close();
+  } finally {
+    allowClose = true;
+    if (failure?.cleanupHandle.status().pending) await failure.cleanupHandle.retry();
+    t.mock.restoreAll(); syncBuiltinESMExports();
+  }
+});
+}
+
 test('private evidence is encrypted, bound, and readable after restart',
   async t => {
     const suppliedKey = Buffer.alloc(32, 7);

@@ -3950,7 +3950,7 @@ async function openOriginalLocalPublicationStore(
       if (confirm) {
         // This exact metadata and both payloads belong to the same operation.
         // Confirmation still requires its original directory ACK and adoption.
-        await confirmPrivateHoldingRead(record);
+        await confirmPhysicalHoldingDirectory(record);
       }
       return Object.freeze({record, bytes});
     } finally {release();}
@@ -6881,10 +6881,7 @@ async function openOriginalLocalPublicationStore(
         fail('PublicationPhysicalHoldingConflict');
       }
       await verifyPhysicalHoldingObjects(current);
-      await syncDirectory(physicalHoldingsDirectory);
-      await adoptPreparedObjects([...new Set(
-        current.objects.map(object => object.cid),
-      )]);
+      await confirmPhysicalHoldingDirectory(current);
       return Object.freeze({record: current, created: false});
     }
     if (!Array.isArray(prepared)) {
@@ -6925,7 +6922,7 @@ async function openOriginalLocalPublicationStore(
       }
     }
     if (borrowedHoldingCids.length !== 0) {
-      await syncDirectory(physicalHoldingsDirectory);
+      await confirmPhysicalHoldingDirectory(record, false);
     }
     for (const [cid, bytes] of expected) {
       if (supplied.get(cid) !== bytes && borrowed.get(cid) !== bytes) {
@@ -6951,8 +6948,7 @@ async function openOriginalLocalPublicationStore(
         fail('PublicationPhysicalHoldingConflict');
       }
     }
-    await syncDirectory(physicalHoldingsDirectory);
-    await adoptPreparedObjects([...expected.keys()]);
+    await confirmPhysicalHoldingDirectory(record);
     return Object.freeze({record, created: true});
   };
 
@@ -7000,7 +6996,7 @@ async function openOriginalLocalPublicationStore(
         if (!exactUtf8WireMatches(stored, original.wire)) fail('PublicationPrivateEvidenceConflict');
         // The same serialized operation retains its actual read facts through
         // the real directory ACK, excluding retirement until adoption finishes.
-        await confirmPrivateHoldingRead(record);
+        await confirmPhysicalHoldingDirectory(record);
         return record;
       } finally {release();}
     });
@@ -7039,7 +7035,7 @@ async function openOriginalLocalPublicationStore(
           fail('PublicationPhysicalHoldingConflict');
         }
         await verifyPhysicalHoldingObjects(current);
-        await syncDirectory(physicalHoldingsDirectory);
+        await confirmPhysicalHoldingDirectory(current, false);
         return Object.freeze({record: current, created: false});
       }
       await verifyPhysicalHoldingObjects(source);
@@ -7058,7 +7054,7 @@ async function openOriginalLocalPublicationStore(
           fail('PublicationPhysicalHoldingConflict');
         }
       }
-      await syncDirectory(physicalHoldingsDirectory);
+      await confirmPhysicalHoldingDirectory(record, false);
       return Object.freeze({record, created: true});
     });
     materialRetentionBusy = operation.catch(() => {});
@@ -7103,14 +7099,14 @@ async function openOriginalLocalPublicationStore(
     };
   };
 
-  const confirmPrivateHoldingRead = async record => {
+  const confirmPhysicalHoldingDirectory = async (record, adopt = true) => {
     try {
       await syncDirectory(physicalHoldingsDirectory);
-      await adoptPreparedObjects(record.objects.map(object => object.cid));
+      if (adopt) await adoptPreparedObjects(record.objects.map(object => object.cid));
     } catch (primary) {
       const child = primary?.cleanupHandle;
       if (child === undefined) throw primary;
-      // The existing confirmation scope ends on rejection, but this SAME
+      // The existing publication scope ends on rejection, but this SAME
       // acquired directory FD still prevents Store and holding retirement.
       // Reuse the Store's failed-writer custody; cleanup confirms no evidence.
       const release = retainPhysicalHoldingReader(record.holding_cid);
