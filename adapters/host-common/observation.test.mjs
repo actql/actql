@@ -84,6 +84,22 @@ test('observation close detaches its bounded metadata without settling original 
   await other.close();
 });
 
+test('no-row observation close preserves the pending ingress count until its original settlement', async () => {
+  const connection = createHostObservationConnection({deliver() {}, include: ['run'], measurements: {include: ['duration']}});
+  const observer = installHostObservation(connection), answer = {};
+  let release;
+  const gate = new Promise(resolve => {release = resolve;});
+  const original = observer.run('read', trace, () => gate.then(() => answer));
+  try {
+    assert.equal(observer.status().activeSegments, 1);
+    await observer.close();
+    release(); assert.strictEqual(await original, answer);
+    assert.equal(observer.status().activeSegments, 0);
+    const reopened = installHostObservation(connection);
+    await reopened.close(); assert.equal(reopened.status().activeSegments, 0);
+  } finally {release(); await original;}
+});
+
 test('selected row diagnostics copy only actual reader scalars and the original operation context', async () => {
   const records = [], charges = [];
   const connection = createHostObservationConnection({deliver: value => records.push(value),
