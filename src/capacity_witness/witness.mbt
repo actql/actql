@@ -40,6 +40,7 @@ pub(all) enum Derivation {
 priv enum WitnessBody {
   Parsed(@decode.Cursor)
   HostSource(@policy.Ceiling)
+  ProgramSourceValue
 }
 
 ///|
@@ -495,5 +496,6 @@ pub fn emit(
   match w.body {
     Parsed(cursor) => emit_cursor(cursor, writer, false)
     HostSource(ceiling) => emit_host_source(w, ceiling, writer, true)
+    ProgramSourceValue => emit_program_source_value(w, writer, true)
   }
 }
