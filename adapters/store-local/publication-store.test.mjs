@@ -4042,6 +4042,112 @@ test('metadata retirement preserves allocations shared by another Run',
     );
   });
 
+async function selectedRetentionFixture(setup, label) {
+  const {store,directory}=setup;
+  const base=seal('result_retention_policy',{
+    version:'actql-result-retention-policy/0.1',retention_contract_cid:digest('retention-contract'),
+    effective_data_policy_cid:digest('data-policy'),available_until:'2026-09-18T01:00:00.000Z',
+    delete_by:'2026-09-18T03:00:00.000Z',extension_ceiling_at:'2026-09-18T02:30:00.000Z',
+    metadata_retention_policy_cid:digest('metadata-retention'),metadata_delete_by:'2026-09-18T04:00:00.000Z',
+    clock_contract_cid:digest('clock-contract'),
+  });
+  const extension=seal('result_retention_policy',{...base,available_until:'2026-09-18T02:00:00.000Z',
+    effective_retention_policy_cid:undefined});
+  await store.putPublicationContract('result_retention_policy',wire(base));
+  const invocationValue=invocation(),request=publicationRequest(resultDefinition(),digest(label));
+  const attempt=publicationAttempt(request,label),prepared=await prepareCommit(store,request,attempt,invocationValue,base.effective_retention_policy_cid);
+  const entry=indexEntry(request,attempt,invocationValue,{durable_result_binding_cids:[prepared.binding.identity]});
+  await store.commitIndex(wire(entry),prepared.required,prepared.evidence);
+  const resultCid=request.inventory[0].result_definition_cid,key=indexKeyFor(request);
+  await store.putCommittedResultRetentionExtension(key,resultCid,undefined,
+    contractControl.admit('result_retention_policy',wire(extension),limits),'2026-09-18T00:30:00.000Z');
+  const root=join(directory,'retention-extensions');
+  for(const parent of await readdir(root)) {
+    const path=join(root,parent,resultCid.slice(7));
+    try {
+      if(JSON.parse(await readFile(join(path,'0.json'),'utf8')).public_index_entry_cid===entry.public_index_entry_cid) {
+        return{key,resultCid,entry,extension,path};
+      }
+    } catch(error) {if(error.code!=='ENOENT')throw error;}
+  }
+  throw new Error('MissingSelectedRetentionFixture');
+}
+
+test('selected retention opening performs no committed extension history walk',async t=>{
+  const setup=await fixture(t),first=await selectedRetentionFixture(setup,'first selected retention');
+  await selectedRetentionFixture(setup,'unrelated selected retention');
+  await setup.store.close();
+  const root=join(setup.directory,'retention-extensions'),enumerations=[],acks=[];
+  const original=fsPromises.readdir;
+  t.mock.method(fsPromises,'readdir',function(path,...args){
+    if(String(path)===root||String(path).startsWith(root+sep))enumerations.push(String(path));
+    return Reflect.apply(original,this,[path,...args]);
+  });
+  syncBuiltinESMExports();t.after(()=>{t.mock.restoreAll();syncBuiltinESMExports();});
+  const reopened=await openLocalPublicationStore(setup.configuration,contractControl,{
+    async syncDirectory(path){acks.push(path);const handle=await open(path,'r');try{await handle.sync();}finally{await handle.close();}},
+  });
+  assert.deepEqual(enumerations,[],'ordinary open does not enumerate even valid unrelated extension histories');
+  assert.deepEqual(acks.filter(path=>path.startsWith(root+sep)),[],
+    'ordinary open does not acknowledge every historical Result directory');
+  enumerations.length=acks.length=0;
+  const selected=await reopened.readCommittedResultRetentionExtension(first.key,first.resultCid);
+  assert.equal(selected.extension.identity,first.extension.effective_retention_policy_cid);
+  assert.deepEqual(enumerations,[first.path]);
+  assert.deepEqual(acks.filter(path=>path.startsWith(root+sep)),[first.path],
+    'the selected original still receives its actual containing-directory ACK');
+  await reopened.close();
+});
+
+test('selected retention keeps malformed unrelated history deferred and refuses selected corruption',async t=>{
+  const setup=await fixture(t),healthy=await selectedRetentionFixture(setup,'healthy retained Result');
+  const damaged=await selectedRetentionFixture(setup,'damaged retained Result');
+  await setup.store.close();
+  const foreign=join(damaged.path,'foreign.txt');await writeFile(foreign,'unrelated malformed history');
+  const reopened=await openLocalPublicationStore(setup.configuration,contractControl);
+  assert.equal((await reopened.readCommittedResultRetentionExtension(healthy.key,healthy.resultCid))
+    .extension.identity,healthy.extension.effective_retention_policy_cid);
+  await assert.rejects(reopened.readCommittedResultRetentionExtension(damaged.key,damaged.resultCid),
+    code('InvalidPublicationRetentionExtensionStore'));
+  assert.equal(await readFile(foreign,'utf8'),'unrelated malformed history');
+  await reopened.close();
+});
+
+for(const level of ['Run','Result']) {
+test(`selected retention refuses a symlink at its ${level} directory`,async t=>{
+  const setup=await fixture(t),selected=await selectedRetentionFixture(setup,`symlink retention ${level}`);
+  await setup.store.close();
+  const target=level==='Run'?resolve(selected.path,'..'):selected.path;
+  const original=target+'.fixture-original';
+  await fsPromises.rename(target,original);await fsPromises.symlink(original,target);
+  const reopened=await openLocalPublicationStore(setup.configuration,contractControl);
+  await assert.rejects(reopened.readCommittedResultRetentionExtension(selected.key,selected.resultCid),
+    code('InvalidPublicationRetentionExtensionStore'));
+  assert.equal((await fsPromises.lstat(target)).isSymbolicLink(),true);
+  await reopened.close();
+});
+}
+
+test('selected retention refuses a failed target ACK without changing or adopting the record',async t=>{
+  const setup=await fixture(t),selected=await selectedRetentionFixture(setup,'selected retention ACK failure');
+  await setup.store.close();
+  const bytes=await readFile(join(selected.path,'0.json'));
+  let failSelected=true,attempts=0;
+  const reopened=await openLocalPublicationStore(setup.configuration,contractControl,{
+    async syncDirectory(path){
+      if(path===selected.path){attempts++;if(failSelected)throw Object.assign(new Error('selected extension ACK failed'),{code:'EIO'});}
+      const handle=await open(path,'r');try{await handle.sync();}finally{await handle.close();}
+    },
+  });
+  await assert.rejects(reopened.readCommittedResultRetentionExtension(selected.key,selected.resultCid),code('EIO'));
+  assert.deepEqual(await readFile(join(selected.path,'0.json')),bytes);
+  failSelected=false;
+  assert.equal((await reopened.readCommittedResultRetentionExtension(selected.key,selected.resultCid))
+    .extension.identity,selected.extension.effective_retention_policy_cid);
+  assert.equal(attempts,2,'the failed ACK is not a successful durability observation');
+  await reopened.close();
+});
+
 test('Result retention extensions are append-only CAS records across restart',
   async t => {
     const {store, configuration} = await fixture(t);
