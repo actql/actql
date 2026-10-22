@@ -246,3 +246,84 @@ test "native filesystem creates an allocation area exclusively and removes only 
   ignore(writer.seal("object-area-" + token).unwrap())
   writer.cancel().unwrap()
 }
+
+///|
+test "native filesystem streaming SHA256 preserves original Reader before finish" {
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_STORE_ROOT") is Some(path) else {
+    return
+  }
+  let root = open_root(path).unwrap()
+  let token = @env.now().to_string()
+  let vectors = [
+    (
+      Bytes::new(0),
+      b"\xe3\xb0\xc4\x42\x98\xfc\x1c\x14\x9a\xfb\xf4\xc8\x99\x6f\xb9\x24\x27\xae\x41\xe4\x64\x9b\x93\x4c\xa4\x95\x99\x1b\x78\x52\xb8\x55",
+    ),
+    (
+      b"abc", b"\xba\x78\x16\xbf\x8f\x01\xcf\xea\x41\x41\x40\xde\x5d\xae\x22\x23\xb0\x03\x61\xa3\x96\x17\x7a\x9c\xb4\x10\xff\x61\xf2\x00\x15\xad",
+    ),
+    (
+      Bytes::make(32769, 97),
+      b"\x94\xc9\x39\x4b\xd6\xee\x8f\xca\xd7\xb3\x73\x32\x52\x91\x86\xfd\x12\x35\x4d\xc3\x9b\x01\x09\xdb\x7e\x1b\xce\x51\x0e\x25\x04\x8d",
+    ),
+  ]
+  for index, vector in vectors {
+    let (body, expected) = vector
+    let suffix = token + "-" + index.to_string()
+    let writer = root
+      .create_writer("digest-stage-" + suffix, body.length().to_int64())
+      .unwrap()
+    writer.append(body).unwrap()
+    let name = "digest-object-" + suffix
+    let generation = writer.seal(name).unwrap()
+    let reader = root.open_reader(name, generation).unwrap()
+    match reader.sha256() {
+      Ok(actual) => {
+        assert_eq(actual, expected)
+        assert_true(reader_ready_ffi(reader))
+        assert_true(reader.sha256() is Err(Read(_)))
+        reader.finish().unwrap()
+        assert_false(reader_ready_ffi(reader))
+      }
+      Err(UnsupportedTarget) => {
+        // An unselected platform has not consumed even the first byte.
+        assert_true(reader_ready_ffi(reader))
+        let first = reader.next(1048576).unwrap()
+        assert_eq(first.bytes, body)
+        reader.finish().unwrap()
+      }
+      Err(_) => fail("streaming digest refused")
+    }
+    reader.close().unwrap()
+    writer.cancel().unwrap()
+  }
+  root.close().unwrap()
+}
+
+///|
+test "native filesystem streaming SHA256 refuses a partially consumed original" {
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_STORE_ROOT") is Some(path) else {
+    return
+  }
+  let root = open_root(path).unwrap()
+  let suffix = @env.now().to_string()
+  let writer = root.create_writer("digest-partial-stage-" + suffix, 3L).unwrap()
+  writer.append(b"abc").unwrap()
+  let name = "digest-partial-object-" + suffix
+  let generation = writer.seal(name).unwrap()
+  let reader = root.open_reader(name, generation).unwrap()
+  assert_eq(reader.next(1).unwrap().bytes, b"a")
+  match reader.sha256() {
+    Err(Read(_)) | Err(UnsupportedTarget) => ()
+    _ => fail("partially consumed digest was accepted")
+  }
+  assert_true(reader_ready_ffi(reader))
+  assert_eq(reader.next(2).unwrap().bytes, b"bc")
+  reader.finish().unwrap()
+  assert_true(
+    reader.sha256() is Err(ReaderClosed) ||
+    reader.sha256() is Err(UnsupportedTarget),
+  )
+  writer.cancel().unwrap()
+  root.close().unwrap()
+}

@@ -239,6 +239,10 @@ extern "C" fn reader_open_kind_ffi(reader : Reader) -> Int = "actql_native_files
 extern "C" fn reader_next_ffi(reader : Reader, max_bytes : Int) -> Int = "actql_native_filesystem_reader_next"
 
 ///|
+#borrow(reader, digest)
+extern "C" fn reader_sha256_ffi(reader : Reader, digest : Bytes) -> Int = "actql_native_filesystem_reader_sha256"
+
+///|
 #borrow(reader)
 extern "C" fn reader_chunk_ffi(reader : Reader) -> Bytes = "actql_native_filesystem_reader_chunk"
 
@@ -795,6 +799,24 @@ pub fn Reader::next(
     0 => Ok({ bytes: reader_chunk_ffi(self), eof: reader_eof_ffi(self), })
     1 => Err(GenerationMismatch)
     2 => Err(ReaderClosed)
+    _ => Err(Read(decode_diagnostic_message(reader_error_ffi(self))))
+  }
+}
+
+///|
+/// Stream the fresh original Reader to EOF; leave its descriptor open for
+/// the caller's opened-file inspection and separate finish acknowledgement.
+pub fn Reader::sha256(self : Reader) -> Result[Bytes, NativeFilesystemIssue] {
+  if !reader_read_available_ffi(self) {
+    return Err(Read("Current read scope was refused"))
+  }
+  let digest = Bytes::make(32, 0)
+  match reader_sha256_ffi(self, digest) {
+    0 => Ok(digest)
+    1 => Err(GenerationMismatch)
+    2 => Err(ReaderClosed)
+    3 => Err(IncompleteRead)
+    4 => Err(UnsupportedTarget)
     _ => Err(Read(decode_diagnostic_message(reader_error_ffi(self))))
   }
 }

@@ -254,7 +254,22 @@ fn local_runtime_read_member(
   }
   runtime.reader = Some(reader)
   native_timing_count(16)
-  let hasher = @sha.hasher()
+  // Large members need only their digest. The optional system primitive keeps
+  // this Reader open at EOF; only an untouched unsupported Reader uses the
+  // portable path. Actual read failures retain the original cleanup carrier.
+  let streamed_digest = if collect {
+    None
+  } else {
+    match reader.sha256() {
+      Ok(digest) => Some(epoch_hex(digest))
+      Err(UnsupportedTarget) => None
+      Err(issue) => local_runtime_stop(Physical(issue))
+    }
+  }
+  let hasher = match streamed_digest {
+    Some(_) => None
+    None => Some(@sha.hasher())
+  }
   // Reader.next returns owned immutable Bytes, independently of its C scratch.
   // Keep a complete metadata chunk directly. Short reads use one destination
   // bounded by the admitted size, rather than growing a byte-at-a-time Array.
@@ -265,7 +280,7 @@ fn local_runtime_read_member(
   }
   let mut partial : FixedArray[Byte]? = None
   let mut copied = 0
-  let mut done = false
+  let mut done = streamed_digest is Some(_)
   while !done {
     let chunk = reader.next(65536).map_err(issue => Physical(issue))
       |> local_runtime_result
@@ -274,7 +289,7 @@ fn local_runtime_read_member(
       // preparation. Empty EOF chunks add no digest work.
       native_timing_begin(31)
       defer native_timing_end(31)
-      @sha.update(hasher, chunk.bytes) catch {
+      @sha.update(hasher.unwrap(), chunk.bytes) catch {
         _ => local_runtime_stop(Limit)
       }
     }
@@ -303,11 +318,14 @@ fn local_runtime_read_member(
   |> local_runtime_result
   reader.finish().map_err(issue => Physical(issue)) |> local_runtime_result
   runtime.reader = None
-  let digest = {
-    native_timing_begin(31)
-    defer native_timing_end(31)
-    @sha.finish_hex(hasher) catch {
-      _ => local_runtime_stop(Limit)
+  let digest = match streamed_digest {
+    Some(digest) => digest
+    None => {
+      native_timing_begin(31)
+      defer native_timing_end(31)
+      @sha.finish_hex(hasher.unwrap()) catch {
+        _ => local_runtime_stop(Limit)
+      }
     }
   }
   if digest != hash {
