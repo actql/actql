@@ -4048,8 +4048,8 @@ async function openOriginalLocalPublicationStore(
     });
   };
 
-  const createAdmittedAttempt = async admitted => {
-    const attempt = parseContract(admitted);
+  const createAdmittedAttempt = async (admitted, retainedAttempt) => {
+    const attempt = retainedAttempt ?? parseContract(admitted);
     if (await runMetadataDeletionStarted(attempt.run_definition_cid)) {
       fail('PublicationMetadataDeleted');
     }
@@ -4107,7 +4107,7 @@ async function openOriginalLocalPublicationStore(
     // existing transaction; either path returns after its actual acknowledgements.
     if (fileAttempt || admitted.some(({contract}) => !nativePublicationContract(contract.name))) {
       await putAdmittedPublicationContracts(admitted, true);
-      return createAdmittedAttempt(selected.contract);
+      return createAdmittedAttempt(selected.contract, selected.value);
     }
     const stored = await putAdmittedPublicationContracts(admitted, true,
       Object.freeze({kind: 'attempt', attemptCid: selected.contract.identity,
