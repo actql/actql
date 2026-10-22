@@ -6015,7 +6015,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "d304e8293b013538d683a63bf29e8638180499272b65ae12d1b3a3ffc0478b48",
+      "sha256": "cd99d2eca9873509940486fda6be654287ccae7690b8f31d53b8dc18e9239c3c",
       "exports": [
         "PublicationStoreError",
         "assertOriginalLocalPublicationStoreFacilityCurrent",
@@ -7733,33 +7733,41 @@
         {
           "name": "openOriginalLocalPublicationStore/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence",
           "parameters": [
-            "name"
+            "cid",
+            "includeNative"
           ],
           "async": false
         },
         {
           "name": "openOriginalLocalPublicationStore/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence#2",
           "parameters": [
-            "wire"
+            "name"
           ],
           "async": false
         },
         {
           "name": "openOriginalLocalPublicationStore/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence#3",
           "parameters": [
-            "key"
+            "wire"
           ],
           "async": false
         },
         {
           "name": "openOriginalLocalPublicationStore/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence#4",
           "parameters": [
-            "object"
+            "key"
           ],
           "async": false
         },
         {
           "name": "openOriginalLocalPublicationStore/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence#5",
+          "parameters": [
+            "object"
+          ],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence#6",
           "parameters": [
             "contract"
           ],
@@ -9569,6 +9577,14 @@
           "async": true
         },
         {
+          "name": "openOriginalLocalPublicationStore/verifyCommitEvidence/verifyCommitEvidence/verifyCommitEvidence",
+          "parameters": [
+            "cid",
+            "includeNative"
+          ],
+          "async": false
+        },
+        {
           "name": "openOriginalLocalPublicationStore/verifyDurableResultBinding/verifyDurableResultBinding",
           "parameters": [
             "contract",
@@ -10475,6 +10491,7 @@
             "openOriginalLocalPublicationStore/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence#3",
             "openOriginalLocalPublicationStore/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence#4",
             "openOriginalLocalPublicationStore/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence#5",
+            "openOriginalLocalPublicationStore/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence#6",
             "openOriginalLocalPublicationStore/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence/memberReceipts/memberReceipts",
             "openOriginalLocalPublicationStore/inspectPhysicalHolding/inspectPhysicalHolding",
             "openOriginalLocalPublicationStore/inspectPhysicalHoldingForRetirement/inspectPhysicalHoldingForRetirement",
@@ -10694,6 +10711,7 @@
             "openOriginalLocalPublicationStore/validateCommittedEvidence/validateCommittedEvidence/validateCommittedEvidence",
             "openOriginalLocalPublicationStore/validateModelRawBinding/validateModelRawBinding",
             "openOriginalLocalPublicationStore/verifyCommitEvidence/verifyCommitEvidence",
+            "openOriginalLocalPublicationStore/verifyCommitEvidence/verifyCommitEvidence/verifyCommitEvidence",
             "openOriginalLocalPublicationStore/verifyDurableResultBinding/verifyDurableResultBinding",
             "openOriginalLocalPublicationStore/verifyDurableResultBinding/verifyDurableResultBinding/verifyDurableResultBinding",
             "openOriginalLocalPublicationStore/verifyModelRawBytes/verifyModelRawBytes",
@@ -10929,6 +10947,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "## Selected native evidence originals"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "Independent verification adapts its default reader to the two supported CID"
               }
             ],
             "inputsOutputs": [
@@ -12207,6 +12229,10 @@
               {
                 "path": "adapters/store-local/publication-store.test.mjs",
                 "anchor": "publication native original reuse retains copied and omitted-control admission"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "independent publication reader defaults never interpret a contract as generation retention"
               }
             ]
           }
