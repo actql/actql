@@ -4881,8 +4881,12 @@ test(`publication recovery defers an unrelated damaged committed ${damaged} to s
   const setup=await fixture(t);
   const selected=await committedHoldingFixture(setup,'healthy recovery selection');
   const other=await committedHoldingFixture(setup,'damaged recovery selection');
-  const indexName=createHash('sha256').update(JSON.stringify([
-    other.request.namespace_id,other.request.authority_scope_cid,other.request.run_definition_cid])).digest('hex');
+  const hash=createHash('sha256').update('actql-local-public-index-key/0.1\0','utf8');
+  for(const text of [other.request.namespace_id,other.request.authority_scope_cid,other.request.run_definition_cid]){
+    const bytes=Buffer.from(text,'utf8'),length=Buffer.alloc(8);
+    length.writeBigUInt64BE(BigInt(bytes.length));hash.update(length);hash.update(bytes);
+  }
+  const indexName=hash.digest('hex');
   const path=damaged==='inventory'?other.inventoryPath:join(setup.directory,'indexes',indexName+'.json');
   await setup.store.close();
   const bytes=Buffer.from('{}');await writeFile(path,bytes);
