@@ -37726,7 +37726,7 @@
     {
       "module": "adapters/host-node/embedded-local.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "e2c62374c84f9761c00074c853fd329c85a808bd36afdc0e5e79b46f02a5b0ee",
+      "sha256": "9ff82d01193c7135dfce1839e30827a1d8a60fd506b19d59e27fdbf01a879e6d",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -42395,6 +42395,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "The final installed Check Environment and query-name publication retain their"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The lifetime getter closes over those installed originals in their initialization"
               }
             ],
             "inputsOutputs": [
@@ -42437,6 +42441,10 @@
               {
                 "path": "adapters/host-node/local-result-authorization.mjs",
                 "anchor": "export function createLocalReadAuthorizations({moon, authorization,"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "function getPreparedSourceEnvironment() {"
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
@@ -42499,6 +42507,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "original.environment !== environment || original.publication !== sourcePublication)"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "if (original === undefined || original.host !== host || original.moon !== moon ||"
               }
             ],
             "ownership": [
@@ -42557,6 +42569,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "preparedSourceEnvironment = Object.freeze({host, moon, environment, publication:sourcePublication,"
+              },
+              {
+                "path": "adapters/host-node/embedded-source-environment-scope.test.mjs",
+                "anchor": "// Keep the complete original enclosing function before/after its acquisition"
               }
             ],
             "synchronization": [
@@ -42611,6 +42627,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "...(preparedSourceEnvironment?.preparedEnvironment === undefined ? {} : {getPreparedSourceEnvironment}),"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "if (modelRuntimeClosing) throw clientOperationError('ClientHostClosing');"
               }
             ],
             "failure": [
@@ -42657,6 +42677,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "throw clientOperationError('InstalledPublicSourceEnvironmentChanged');"
+              },
+              {
+                "path": "adapters/host-node/embedded-source-environment-scope.test.mjs",
+                "anchor": "assert.throws(host.get,{code:'InstalledPublicSourceEnvironmentChanged'});"
               }
             ],
             "cancellation": [
@@ -42703,6 +42727,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "retireSourceAliasPublicationOriginal(original.moon, original.environment, original.publication);"
+              },
+              {
+                "path": "adapters/host-node/embedded-source-environment-scope.test.mjs",
+                "anchor": "host.stop();assert.throws(host.get,{code:'ClientHostClosing'});"
               }
             ],
             "resources": [
@@ -42765,6 +42793,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "retirement cuts its private publication association and aliases after the existing"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "state; it does not repeat catalog admission or Account evaluation."
               }
             ],
             "extension": [
@@ -42815,6 +42847,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "a changed or request-specific Environment receives its own preparation rather"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "scope, rather than resolving runtime or publication names outside that scope."
               }
             ],
             "verification": [
@@ -42905,6 +42941,10 @@
               {
                 "path": "adapters/host-node/embedded-managed-compute-lifecycle.test.mjs",
                 "anchor": "test('Host prepared Environment waits for the original child shutdown before cutting its aliases', async () => {"
+              },
+              {
+                "path": "adapters/host-node/embedded-source-environment-scope.test.mjs",
+                "anchor": "test('actual Host enclosing scopes bind its prepared Source Environment getter to installed originals',async()=>{"
               }
             ]
           }
