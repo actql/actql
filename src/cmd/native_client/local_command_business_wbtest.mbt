@@ -78,7 +78,12 @@ test "checked business requirements reduce acquisition without changing finite-f
   let large = local_command_business_domain_bytes(
     maximum.retained_bytes + maximum.execution_bytes,
   ).unwrap()
-  assert_true(small >= required.retained_bytes + required.execution_bytes)
+  assert_true(small > required.retained_bytes + required.execution_bytes)
+  assert_true(
+    (required.retained_bytes + required.execution_bytes) %
+    native_storage_page_bytes() !=
+    0L,
+  )
   assert_eq(small % native_storage_page_bytes(), 0L)
   assert_true(small < large)
   assert_eq(local_command_business_domain_bytes(9223372036854775807L), None)

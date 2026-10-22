@@ -275,7 +275,9 @@ fn LocalCommandPreparationOriginal::prepare_business_execution(
   match
     host.prepare_domain_read(
       domain,
-      execution_ceiling=selected.payload_facility_bytes,
+      // The physical ceiling counts the whole acquired page span, including
+      // control and context pages. Task payload budgets remain in the Ledger.
+      execution_ceiling=selected.domain_bytes,
     ) {
     Err(issue) => return Err(CommandDomain(issue))
     Ok(_) => ()

@@ -122,9 +122,11 @@ fn LocalCommandPreparationOriginal::prepare_business_submission(
   ).unwrap_or_else(() => stop("LocalBusinessProgramUnavailable"))
   command_preparation_result(
     self.prepare_business_capacity(capture, requirements),
+    stage=Some("business-capacity"),
   )
   command_preparation_result(
     self.require_business_program(prepared, assets, requirements),
+    stage=Some("business-program"),
   )
   |> ignore
   let selection : LocalCommandBusinessPreparation = {
@@ -155,6 +157,7 @@ fn LocalCommandPreparationOriginal::prepare_business_submission(
   // exact admitted Runtime/Program/current selection may activate its route.
   command_preparation_result(
     original_operation.activate().map_err(issue => CommandStoreOperation(issue)),
+    stage=Some("business-activation"),
   )
   selection
 }
