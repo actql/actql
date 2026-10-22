@@ -5422,7 +5422,7 @@
               },
               {
                 "path": "adapters/store-local/delivery-attempt-index.mjs",
-                "anchor": "putPublicationContracts(entries, allowance) { return publicationMutation('put',entries,allowance); },"
+                "anchor": "putPublicationContracts(entries, allowance, progress) { return publicationMutation('put',entries,allowance,progress); },"
               },
               {
                 "path": "adapters/store-local/delivery-attempt-index.mjs",
@@ -5498,7 +5498,7 @@
               },
               {
                 "path": "adapters/store-local/delivery-attempt-index.mjs",
-                "anchor": "if (error?.outcome === 'unknown') uncertainPublication = Object.freeze({kind,entries:originals});"
+                "anchor": "if (error?.outcome === 'unknown') uncertainPublication = Object.freeze({kind,entries:originals,progress});"
               },
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
@@ -10391,7 +10391,7 @@
               },
               {
                 "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "const putNativePublicationContracts = async admitted => {"
+                "anchor": "const putNativePublicationContracts = async (admitted, progress) => {"
               },
               {
                 "path": "adapters/store-local/publication-store.mjs",
@@ -10717,7 +10717,7 @@
               },
               {
                 "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "const usage = deliveryIndex.putPublicationContracts(originalEntries,allowance);"
+                "anchor": "const usage = deliveryIndex.putPublicationContracts(originalEntries,allowance,progress);"
               },
               {
                 "path": "adapters/store-local/publication-store.mjs",
