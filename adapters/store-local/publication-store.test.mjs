@@ -1084,6 +1084,290 @@ test('bounded object writes are durable, streamed, and physically addressed',
     assert.equal(reopened.status().storedBytes, 6);
   });
 
+async function privateReadFixture(t) {
+  const setup = await fixture(t, {privateEvidenceKey: Buffer.alloc(32, 7)});
+  const wire = '{"private":"selected-evidence-body"}';
+  const semanticCid = digest('selected-private-evidence');
+  const holdingCid = digest('selected-private-evidence-holding');
+  const prepared = await setup.store.preparePrivateEvidence('effect_preview', wire, semanticCid);
+  await setup.store.commitPhysicalHolding({version: 'actql-local-physical-holding/0.1',
+    namespace: 'publication-private', holding_cid: holdingCid, manifest_cid: semanticCid,
+    objects: [{cid: prepared.physicalCid, byte_count: prepared.bytes}]}, [prepared.prepared]);
+  return {...setup, wire, semanticCid, holdingCid, prepared,
+    payloadPath: join(setup.directory, 'objects', prepared.physicalCid.slice(7)),
+    holdingPath: join(setup.directory, 'physical-holdings', holdingCid.slice(7) + '.json')};
+}
+
+test('private evidence selected read acquires one holding and ciphertext and rechecks the next operation', async t => {
+  const f = await privateReadFixture(t);
+  const original = await readFile(f.payloadPath), actualOpen = fsPromises.open;
+  let payloadOpens = 0, holdingOpens = 0, payloadBytes = 0;
+  t.mock.method(fsPromises, 'open', async function(path, ...args) {
+    const handle = await Reflect.apply(actualOpen, this, [path, ...args]);
+    if (String(path) === f.holdingPath) holdingOpens++;
+    if (String(path) === f.payloadPath) {
+      payloadOpens++;
+      const read = handle.read;
+      t.mock.method(handle, 'read', async function(...parameters) {
+        const result = await Reflect.apply(read, this, parameters);
+        payloadBytes += result.bytesRead;
+        return result;
+      });
+    }
+    return handle;
+  });
+  syncBuiltinESMExports();
+  try {
+    assert.deepEqual(await f.store.readPrivateEvidence('effect_preview', f.semanticCid, f.holdingCid), Buffer.from(f.wire));
+    assert.equal(payloadOpens, 1, 'one selected ciphertext FD, not inspect/inspect/consume');
+    assert.equal(holdingOpens, 1, 'one selected immutable holding body in this private operation');
+    assert.equal(payloadBytes, original.byteLength, 'one full ciphertext hash/transfer');
+    const changed = Buffer.from(original); changed[0] ^= 1;
+    await writeFile(f.payloadPath, changed);
+    await assert.rejects(f.store.readPrivateEvidence('effect_preview', f.semanticCid, f.holdingCid),
+      code('PublicationObjectCorrupt'));
+    assert.equal(payloadOpens, 2, 'a new operation reacquires its own payload rather than retaining an admission');
+    assert.equal(holdingOpens, 2);
+  } finally {t.mock.restoreAll(); syncBuiltinESMExports();}
+});
+
+test('private evidence selected read retains its consuming FD through failed close and retirement', async t => {
+  const f = await privateReadFixture(t), actualOpen = fsPromises.open;
+  let allowClose = false, opens = 0, closes = 0, failure;
+  t.mock.method(fsPromises, 'open', async function(path, ...args) {
+    const handle = await Reflect.apply(actualOpen, this, [path, ...args]);
+    if (String(path) === f.payloadPath) {
+      opens++;
+      const close = handle.close;
+      t.mock.method(handle, 'close', async function(...parameters) {
+        closes++;
+        if (!allowClose) return false;
+        return Reflect.apply(close, this, parameters);
+      });
+    }
+    return handle;
+  });
+  syncBuiltinESMExports();
+  try {
+    await assert.rejects(f.store.readPrivateEvidence('effect_preview', f.semanticCid, f.holdingCid), error => {
+      failure = error;
+      return error.cleanupPending === true && error.cleanupHandle.status().pending === true;
+    });
+    assert.equal(opens, 1);
+    const retiring = await f.store.retirePhysicalHolding(f.holdingCid);
+    assert.equal(retiring.cleanup.status().pending, true);
+    assert.equal((await stat(f.payloadPath)).size, f.prepared.bytes);
+    await assert.rejects(f.store.close(), code('PublicationStoreCleanupPending'));
+    await assert.rejects(failure.cleanupHandle.retry(), code('PublicationStoreCleanupPending'));
+    assert.equal(failure.cleanupHandle.status().pending, true, 'false close is not ACK');
+    allowClose = true;
+    assert.equal((await failure.cleanupHandle.retry()).pending, false);
+    assert.equal(opens, 1, 'close-only retries keep the same original FD');
+    assert.equal(closes, 3);
+    await retiring.cleanup.retry();
+    assert.equal(retiring.cleanup.status().pending, false);
+    assert.equal(f.store.status().storedBytes, 0);
+    await assert.rejects(stat(f.payloadPath), code('ENOENT'));
+  } finally {
+    allowClose = true;
+    if (failure?.cleanupHandle.status().pending) await failure.cleanupHandle.retry();
+    t.mock.restoreAll(); syncBuiltinESMExports();
+  }
+});
+
+test('private evidence selected extent and missing payload keep their original refusals', async t => {
+  const f = await privateReadFixture(t);
+  const bytes = await readFile(f.holdingPath), record = JSON.parse(bytes);
+  try {
+    for (const delta of [-1, 1]) {
+      await writeFile(f.holdingPath, JSON.stringify({...record,
+        objects: record.objects.map(object => ({...object, byte_count: object.byte_count + delta}))}));
+      await assert.rejects(f.store.readPrivateEvidence('effect_preview', f.semanticCid, f.holdingCid),
+        code('InvalidPublicationPhysicalHoldingStore'));
+    }
+  } finally {await writeFile(f.holdingPath, bytes);}
+  await unlink(f.payloadPath);
+  await assert.rejects(f.store.readPrivateEvidence('effect_preview', f.semanticCid, f.holdingCid),
+    code('PublicationObjectMissing'));
+  assert.deepEqual(await readFile(f.holdingPath), bytes,
+    'A selected unavailable payload never repairs or retires its original ownership');
+});
+
+function countPrivateReads(t, directory, objectCids, holdingCid) {
+  const actualOpen = fsPromises.open, payloads = new Map(objectCids.map(cid =>
+    [join(directory, 'objects', cid.slice(7)), 0]));
+  const holdingPath = join(directory, 'physical-holdings', holdingCid.slice(7) + '.json');
+  const counts = {payloads, holdings: 0, directoryAcks: 0};
+  t.mock.method(fsPromises, 'open', async function(path, ...args) {
+    const handle = await Reflect.apply(actualOpen, this, [path, ...args]);
+    if (String(path) === holdingPath) counts.holdings++;
+    if (payloads.has(String(path))) payloads.set(String(path), payloads.get(String(path)) + 1);
+    if (String(path) === join(directory, 'physical-holdings')) {
+      const sync = handle.sync;
+      t.mock.method(handle, 'sync', async function(...parameters) {
+        const result = await Reflect.apply(sync, this, parameters);
+        counts.directoryAcks++;
+        return result;
+      });
+    }
+    return handle;
+  });
+  syncBuiltinESMExports();
+  return counts;
+}
+
+test('private evidence confirmation reuses its one operation read before the real directory ACK', async t => {
+  const f = await privateReadFixture(t);
+  const counts = countPrivateReads(t, f.directory, [f.prepared.physicalCid], f.holdingCid);
+  try {
+    const binding = {name: 'effect_preview', semanticCid: f.semanticCid,
+      holdingCid: f.holdingCid, wire: f.wire};
+    const confirmed = f.store.confirmPrivateEvidence(binding);
+    binding.wire = '{"later":"not the submitted body"}';
+    const record = await confirmed;
+    assert.equal(record.holding_cid, f.holdingCid);
+    assert.deepEqual([...counts.payloads.values()], [1]);
+    assert.equal(counts.holdings, 1);
+    assert.equal(counts.directoryAcks, 1, 'Readable bytes are not a durable confirmation');
+    await f.store.confirmPrivateEvidence({...binding, wire: f.wire});
+    assert.deepEqual([...counts.payloads.values()], [2], 'A new confirmation reacquires its own original');
+    assert.equal(counts.holdings, 2);
+    assert.equal(counts.directoryAcks, 2);
+  } finally {t.mock.restoreAll(); syncBuiltinESMExports();}
+});
+
+test('Model raw confirmation reads each selected ciphertext once with the same descriptor and holding', async t => {
+  const {store, directory} = await fixture(t, {privateEvidenceKey: Buffer.alloc(32, 7)});
+  const bytes = Uint8Array.of(0, 255, 13, 10, 97);
+  const binding = {semanticCid: digest('single raw descriptor'), holdingCid: digest('single raw holding'),
+    wire: '{"descriptor":"original raw cell"}', contentCid: digest(bytes), byteCount: bytes.byteLength};
+  const prepared = await store.prepareModelRawEvidence(binding, bytes);
+  const record = {version: 'actql-local-physical-holding/0.1', namespace: 'publication-private',
+    holding_cid: binding.holdingCid, manifest_cid: binding.semanticCid,
+    objects: prepared.map(value => ({cid: value.physicalCid, byte_count: value.bytes}))};
+  await store.commitPhysicalHolding(record, prepared.map(value => value.prepared));
+  const counts = countPrivateReads(t, directory, record.objects.map(value => value.cid), record.holding_cid);
+  try {
+    const pending = store.confirmModelRawEvidence(binding);
+    binding.wire = '{"descriptor":"later mutation"}';
+    const confirmed = await pending;
+    assert.deepEqual(confirmed.bytes, Buffer.from(bytes));
+    assert.deepEqual(confirmed.record, record);
+    assert.deepEqual([...counts.payloads.values()], [1, 1]);
+    assert.equal(counts.holdings, 1);
+    assert.equal(counts.directoryAcks, 1);
+    await assert.rejects(store.readModelRawEvidence(binding), code('PublicationPrivateEvidenceConflict'));
+  } finally {t.mock.restoreAll(); syncBuiltinESMExports();}
+});
+
+test('private confirmation keeps the existing reader and retirement scope through its real directory ACK', async t => {
+  const f = await privateReadFixture(t), actualOpen = fsPromises.open;
+  let reached, resume;
+  const atSync = new Promise(resolve => {reached = resolve;});
+  const paused = new Promise(resolve => {resume = resolve;});
+  let block = true, pending;
+  t.mock.method(fsPromises, 'open', async function(path, ...args) {
+    const handle = await Reflect.apply(actualOpen, this, [path, ...args]);
+    if (String(path) === join(f.directory, 'physical-holdings')) {
+      const sync = handle.sync;
+      t.mock.method(handle, 'sync', async function(...parameters) {
+        if (block) {block = false; reached(); await paused;}
+        return Reflect.apply(sync, this, parameters);
+      });
+    }
+    return handle;
+  });
+  syncBuiltinESMExports();
+  try {
+    pending = f.store.confirmPrivateEvidence({name: 'effect_preview', semanticCid: f.semanticCid,
+      holdingCid: f.holdingCid, wire: f.wire});
+    await atSync;
+    await assert.rejects(f.store.close(), code('PublicationStoreCleanupPending'));
+    let retired = false;
+    const retirement = f.store.retirePhysicalHolding(f.holdingCid).then(value => {retired = true; return value;});
+    await new Promise(resolve => setImmediate(resolve));
+    assert.equal(retired, false, 'The same retention queue excludes retirement before confirmation ACK');
+    assert.equal((await stat(f.payloadPath)).size, f.prepared.bytes);
+    resume();
+    assert.equal((await pending).holding_cid, f.holdingCid);
+    const result = await retirement;
+    if (result.cleanup.status().pending) await result.cleanup.retry();
+    assert.equal(result.cleanup.status().pending, false);
+    assert.equal(f.store.status().storedBytes, 0);
+  } finally {
+    resume();
+    if (pending !== undefined) await pending.catch(() => {});
+    t.mock.restoreAll(); syncBuiltinESMExports();
+  }
+});
+
+for (const raw of [false, true]) {
+test(`private confirmation retains a failed original directory close (${raw ? 'raw' : 'single'})`, async t => {
+  let f, binding;
+  if (!raw) {
+    f = await privateReadFixture(t);
+    binding = {name: 'effect_preview', semanticCid: f.semanticCid, holdingCid: f.holdingCid, wire: f.wire};
+  } else {
+    f = await fixture(t, {privateEvidenceKey: Buffer.alloc(32, 7)});
+    const bytes = Uint8Array.of(0, 255, 97);
+    binding = {semanticCid: digest('pending raw directory envelope'), holdingCid: digest('pending raw directory holding'),
+      wire: '{"descriptor":"same original"}', contentCid: digest(bytes), byteCount: bytes.byteLength};
+    const prepared = await f.store.prepareModelRawEvidence(binding, bytes);
+    await f.store.commitPhysicalHolding({version: 'actql-local-physical-holding/0.1', namespace: 'publication-private',
+      holding_cid: binding.holdingCid, manifest_cid: binding.semanticCid,
+      objects: prepared.map(value => ({cid: value.physicalCid, byte_count: value.bytes}))}, prepared.map(value => value.prepared));
+  }
+  const actualOpen = fsPromises.open, ownerPath = join(f.directory, 'owner', 'owner.json');
+  const token = await readFile(ownerPath);
+  let allowClose = false, opens = 0, syncs = 0, closes = 0, failure;
+  t.mock.method(fsPromises, 'open', async function(path, ...args) {
+    const handle = await Reflect.apply(actualOpen, this, [path, ...args]);
+    if (String(path) === join(f.directory, 'physical-holdings')) {
+      opens++;
+      const sync = handle.sync, close = handle.close;
+      t.mock.method(handle, 'sync', async function(...parameters) {
+        syncs++;
+        return Reflect.apply(sync, this, parameters);
+      });
+      t.mock.method(handle, 'close', async function(...parameters) {
+        closes++;
+        if (!allowClose) return false;
+        return Reflect.apply(close, this, parameters);
+      });
+    }
+    return handle;
+  });
+  syncBuiltinESMExports();
+  try {
+    await assert.rejects(raw ? f.store.confirmModelRawEvidence(binding) : f.store.confirmPrivateEvidence(binding), error => {
+      failure = error;
+      return error.cleanupHandle?.status().pending === true;
+    });
+    assert.equal(opens, 1); assert.equal(syncs, 1);
+    await assert.rejects(f.store.close(), code('PublicationStoreCleanupPending'));
+    assert.equal(f.store.status().closed, false);
+    assert.deepEqual(await readFile(ownerPath), token);
+    const retirement = await f.store.retirePhysicalHolding(binding.holdingCid);
+    assert.equal(retirement.cleanup.status().pending, true);
+    const before = closes;
+    allowClose = true;
+    const first = failure.cleanupHandle.retry(), second = failure.cleanupHandle.retry();
+    assert.strictEqual(first, second, 'Same retained child cleanup is single-flight');
+    assert.equal((await first).pending, false);
+    assert.equal(closes, before + 1);
+    assert.equal(opens, 1); assert.equal(syncs, 1, 'Cleanup does not reopen, resync, reread or return a saved observation');
+    await retirement.cleanup.retry();
+    assert.equal(retirement.cleanup.status().pending, false);
+    assert.equal(f.store.status().storedBytes, 0);
+    await f.store.close();
+  } finally {
+    allowClose = true;
+    if (failure?.cleanupHandle.status().pending) await failure.cleanupHandle.retry();
+    t.mock.restoreAll(); syncBuiltinESMExports();
+  }
+});
+}
+
 test('private evidence is encrypted, bound, and readable after restart',
   async t => {
     const suppliedKey = Buffer.alloc(32, 7);
