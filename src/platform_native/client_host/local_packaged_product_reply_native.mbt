@@ -43,14 +43,8 @@ pub fn read_native_local_packaged_product_reply(
 ) -> NativeLocalPackagedProductReply {
   let result = if runtime.original_read is None {
     Err(OriginalReadUnavailable)
-  } else if runtime.command_preparation {
-    runtime.verified_product_identity().bind(identity => identity.wire())
   } else {
-    runtime
-    .check_product_current()
-    .bind(_ => {
-      runtime.verified_product_identity().bind(identity => identity.wire())
-    })
+    runtime.verified_product_identity().bind(identity => identity.wire())
   }
   let (metadata, issue) = match result {
     Ok(wire) => (Some(wire), None)

@@ -22,7 +22,14 @@ pub fn NativeLocalPackagedRuntime::verified_product_identity(
     Ok(_) => ()
   }
   let result = try {
-    self.local_runtime_require_live() |> local_runtime_result
+    let current = if self.command_preparation {
+      self.local_runtime_require_live()
+    } else {
+      // The separate unscoped constructor observes its originals once. Wire
+      // encoding below is pure and does not create another observation.
+      self.local_runtime_check_originals()
+    }
+    current |> local_runtime_result
     guard self.product is Some(product) &&
       self.selection is Some((_, source, platform, manifest_hash)) &&
       product.native_image_sha256 is Some(image_hash) &&
