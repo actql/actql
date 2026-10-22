@@ -123,7 +123,7 @@ test('request-key selected rows bind only through the same accepted original Run
   const rows = records.filter(record => record.event === 'selected_rows_observed');
   assert.equal(rows.length, 1);
   assert.equal(rows[0].attributes['actql.rows.selection'], 'mixed-selected');
-  assert.equal(rows[0].attributes['actql.run.definition_cid'], answer.outcome.ref.runDefinitionCid);
+  assert.equal(rows[0].attributes['actql.run.definition_cid'], answer.outcome.admission.ref.runDefinitionCid);
   assert.equal(rows[0].attributes['actql.rows.unrelated'], 0);
   assert.equal(rows[0].attributes['actql.rows.returned'], returnedRows,
     'Only actual returned native rows, including the original Run resolver, are counted');
