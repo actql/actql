@@ -9,20 +9,49 @@ fn local_command_installed_profile(
   manifest : String,
 ) -> LocalCommandPreparationProfile raise ClientStop {
   let mib = 1048576L
-  let arena = 208L * mib
-  let read_domain = 128L * mib
-  let sqlite_domain = 64L * mib
   let read_ceiling = 96L * mib
   let sqlite_ceiling = 48L * mib
   let sqlite_heap = 32L * mib
-  // Use the actual selected provider layout before acquisition. Neither an
-  // outer control envelope nor unused mapping space can fill a missing query.
-  let control = @initial_bootstrap.command_backing_control_necessary_bytes(
-    arena,
-  ).unwrap_or_else(() => stop("LocalCommandPreparationLayoutUnavailable"))
-  if control <= 0L || control > arena - read_domain - sqlite_domain {
-    stop("LocalCommandPreparationLayoutUnavailable")
+  let read_budget : @initial_arena.InstalledArenaOriginalReadBudget = {
+    bootstrap_retained: mib,
+    bootstrap_execution: mib,
+    workspace_execution: 8L * mib,
+    read_retained: 7L * mib,
+    read_execution: read_ceiling,
   }
+  // Keep every existing read/workspace claim and facility ceiling. The
+  // enclosing ledger sums those actual simultaneous claims, not unused
+  // capacity from a larger allocation.
+  let read_retained = native_storage_sum([
+    read_budget.bootstrap_retained,
+    read_budget.read_retained,
+  ]).unwrap_or_else(_ => stop("LocalCommandPreparationLayoutUnavailable"))
+  let read_execution = native_storage_sum([
+    read_budget.bootstrap_execution,
+    read_budget.workspace_execution,
+    read_budget.read_execution,
+  ]).unwrap_or_else(_ => stop("LocalCommandPreparationLayoutUnavailable"))
+  let read_payload = native_storage_sum([read_retained, read_execution]).unwrap_or_else(_ => {
+      stop("LocalCommandPreparationLayoutUnavailable")
+    },
+  )
+  // Use actual provider control/context geometry for each complete domain.
+  // SQLite's existing occupied-page facility includes its contained heap;
+  // adding that heap again would quote the same bytes twice.
+  let read_domain = local_command_domain_bytes(read_payload).unwrap_or_else(() => {
+    stop("LocalCommandPreparationLayoutUnavailable")
+  })
+  let sqlite_domain = local_command_domain_bytes(sqlite_ceiling).unwrap_or_else(() => {
+      stop("LocalCommandPreparationLayoutUnavailable")
+    },
+  )
+  let domains = native_storage_sum([read_domain, sqlite_domain]).unwrap_or_else(_ => {
+      stop("LocalCommandPreparationLayoutUnavailable")
+    },
+  )
+  let (arena, control) = local_command_backing_layout(domains).unwrap_or_else(() => {
+    stop("LocalCommandPreparationLayoutUnavailable")
+  })
   let sqlite_minimum = @local_sqlite.command_domain_necessary_bytes(
     sqlite_domain, sqlite_heap,
   ).unwrap_or_else(() => stop("LocalCommandPreparationLayoutUnavailable"))
@@ -53,8 +82,8 @@ fn local_command_installed_profile(
       attempts: 64,
       holdings: 32,
       transfer_bytes: 8L * mib,
-      retained_bytes: 8L * mib,
-      execution_bytes: 120L * mib,
+      retained_bytes: read_retained,
+      execution_bytes: read_execution,
     },
     sqlite_domain_bytes: sqlite_domain,
     sqlite_domain_limits: {
@@ -63,15 +92,9 @@ fn local_command_installed_profile(
       holdings: 16,
       transfer_bytes: 8L * mib,
       retained_bytes: 0L,
-      execution_bytes: 56L * mib,
+      execution_bytes: sqlite_ceiling,
     },
-    read_budget: {
-      bootstrap_retained: mib,
-      bootstrap_execution: mib,
-      workspace_execution: 8L * mib,
-      read_retained: 7L * mib,
-      read_execution: read_ceiling,
-    },
+    read_budget,
     consumer_retained_bytes: mib,
     consumer_execution_bytes: read_ceiling,
     sqlite_heap_bytes: sqlite_heap,
@@ -211,4 +234,37 @@ fn prepare_native_command_invocation(
     stage=Some("acquire"),
   )
   command_preparation_result(original.enter(), stage=Some("enter"))
+}
+
+///|
+// Close the selected provider's outer-control layout around the complete
+// simultaneous child domains. A larger business reservation changes this
+// control requirement too; no fixed spare region or residual credit is used.
+fn local_command_backing_layout(domains : Int64) -> (Int64, Int64)? {
+  if domains <= 0L {
+    return None
+  }
+  let mut bytes = match
+    native_storage_page_round(domains, native_storage_page_bytes()) {
+    Ok(value) => value
+    Err(_) => return None
+  }
+  for _ in 0..<16 {
+    guard @initial_bootstrap.command_backing_control_necessary_bytes(bytes)
+      is Some(control) &&
+      control > 0L &&
+      control <= 9223372036854775807L - domains else {
+      return None
+    }
+    let necessary = match
+      native_storage_page_round(domains + control, native_storage_page_bytes()) {
+      Ok(value) => value
+      Err(_) => return None
+    }
+    if necessary <= bytes {
+      return Some((bytes, control))
+    }
+    bytes = necessary
+  }
+  None
 }

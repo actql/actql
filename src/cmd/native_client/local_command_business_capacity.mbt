@@ -41,7 +41,7 @@ fn LocalCommandPreparationOriginal::prepare_business_capacity(
     return Err(CommandUnavailable)
   }
   let payload = selected.retained_bytes + selected.execution_bytes
-  guard local_command_business_domain_bytes(payload) is Some(bytes) &&
+  guard local_command_domain_bytes(payload) is Some(bytes) &&
     bytes <= business.profile.domain_bytes else {
     return Err(CommandUnavailable)
   }

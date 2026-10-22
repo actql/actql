@@ -80,7 +80,7 @@ fn local_command_selected_business_limits(
 }
 
 ///|
-fn local_command_business_domain_bytes(payload : Int64) -> Int64? {
+fn local_command_domain_bytes(payload : Int64) -> Int64? {
   if payload <= 0L {
     return None
   }
@@ -127,38 +127,17 @@ fn local_command_source_free_business_profile(
     execution_bytes: 536870912L,
   }
   let payload = limits.retained_bytes + limits.execution_bytes
-  let mut bytes = payload
-  let mut converged = false
-  // The actual provider's extent table depends on the complete domain size.
-  // Iterate its checked, page-rounded layout, never add guessed spare space.
-  for _ in 0..<16 {
-    let necessary = @initial_bootstrap.execution_domain_necessary_bytes(
-      bytes, payload,
-    )
-    if necessary <= 0L {
-      stop("LocalBusinessLayoutUnavailable")
-    }
-    if necessary <= bytes {
-      converged = true
-      break
-    }
-    bytes = necessary
-  }
-  if !converged || bytes > 9223372036854775807L - static_profile.arena_bytes {
+  let bytes = local_command_domain_bytes(payload).unwrap_or_else(() => {
     stop("LocalBusinessLayoutUnavailable")
-  }
-  let arena = static_profile.arena_bytes + bytes
-  let control = @initial_bootstrap.command_backing_control_necessary_bytes(
-    arena,
-  ).unwrap_or_else(() => stop("LocalBusinessLayoutUnavailable"))
-  if control <= 0L ||
-    control >
-    arena -
-    static_profile.read_domain_bytes -
-    static_profile.sqlite_domain_bytes -
-    bytes {
+  })
+  let domains = native_storage_sum([
+    static_profile.read_domain_bytes,
+    static_profile.sqlite_domain_bytes,
+    bytes,
+  ]).unwrap_or_else(_ => stop("LocalBusinessLayoutUnavailable"))
+  let (arena, control) = local_command_backing_layout(domains).unwrap_or_else(() => {
     stop("LocalBusinessLayoutUnavailable")
-  }
+  })
   let original = static_profile.host_limits
   let profile : LocalCommandPreparationProfile = {
     ..static_profile,
