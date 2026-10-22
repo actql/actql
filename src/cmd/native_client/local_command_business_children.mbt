@@ -204,6 +204,11 @@ fn LocalCommandPreparationOriginal::close_business_children(
       }
       business.values_failure = None
     }
+    if !self.business_inventory_recorded && business.domain is Some(domain) {
+      self.business_inventory_recorded = self.record_domain_inventory(
+        host, domain, 14,
+      )
+    }
     match host.leave_domain_retained_execution(execution) {
       Err(issue) => return Err(CommandRetainedExecution(issue))
       Ok(_) => business.active = false
