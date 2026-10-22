@@ -11,6 +11,7 @@ fn ordered_inventory_contract(
   {
     name,
     identity_field: "self_cid",
+    wire_usage: None,
     identity: ordered_inventory_cid(digit),
     wire: "{}",
     value: stream_fixture_value("{}"),

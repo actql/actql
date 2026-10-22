@@ -11,6 +11,7 @@ fn snapshot_index_entry(
   {
     name: "public_index_entry",
     identity_field: "public_index_entry_cid",
+    wire_usage: None,
     identity,
     wire,
     value: parse_contract_wire(wire, 4096, 128, 16).unwrap(),
