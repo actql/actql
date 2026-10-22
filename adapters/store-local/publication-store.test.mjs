@@ -519,6 +519,7 @@ async function prepareCommit(
   invocationValue,
   retentionPolicyCid = cids.policy,
   preparedSchema = false,
+  nativeProgress = false,
 ) {
   await store.putPublicationContract(
     'run_invocation', wire(invocationValue),
@@ -560,6 +561,9 @@ async function prepareCommit(
     await store.putSemantic(contract.wire, contract.identity);
   }
   await store.putPublicationContract('publication_request', wire(request));
+  // Preserve the legacy file-original vectors below. Native progress has
+  // separate real commit/recovery/retirement coverage, not a fixture issuer.
+  if (!nativeProgress) await store.putPublicationContract('publication_attempt',wire(attempt));
   await store.createAttempt(wire(attempt));
   const preparing = publicationRecord(attempt, 0, 'preparing');
   await store.appendRecord(wire(preparing), {uncommittedConfirmed: false});
@@ -3053,23 +3057,24 @@ test('publication records are append-only and sequence creation is CAS',
   });
 
 test('publication progress uses one native commit and no shadow file ACKs per transition',async t=>{
-  const {store,directory,configuration}=await fixture(t);
   const request=publicationRequest(),attempt=publicationAttempt(request,'native-progress');
   const preparing=publicationRecord(attempt,0,'preparing');
   const committing=publicationRecord(attempt,1,'committing',preparing);
-  let commits=0,syncs=0;
+  let commits=0,syncs=0,armed=false;
   const exec=DatabaseSync.prototype.exec, originalOpen=fsPromises.open;
   t.mock.method(DatabaseSync.prototype,'exec',function(sql){
-    if(sql==='COMMIT')commits++;
+    if(armed&&sql==='COMMIT')commits++;
     return Reflect.apply(exec,this,[sql]);
   });
   fsPromises.open=async function(...args){
     const handle=await Reflect.apply(originalOpen,this,args),sync=handle.sync;
-    handle.sync=function(...values){syncs++;return Reflect.apply(sync,this,values);};
+    handle.sync=function(...values){if(armed)syncs++;return Reflect.apply(sync,this,values);};
     return handle;
   };
   syncBuiltinESMExports();
   try{
+    const {store,directory,configuration}=await fixture(t);
+    armed=true;
     assert.equal((await store.createAttempt(wire(attempt))).created,true);
     assert.equal(commits,1);assert.equal(syncs,0);
     for(const record of[preparing,committing]){
@@ -3083,9 +3088,8 @@ test('publication progress uses one native commit and no shadow file ACKs per tr
     assert.equal(store.status().objectCount,3);
     assert.equal(store.status().storedBytes,[attempt,preparing,committing].reduce((n,v)=>n+Buffer.byteLength(wire(v)),0));
     assert.equal((await store.createAttempt(wire(attempt))).created,false);
-    await store.close();
-  }finally{fsPromises.open=originalOpen;syncBuiltinESMExports();}
-  const reopened=await openLocalPublicationStore(configuration,contractControl);
+    await store.close();armed=false;
+    const reopened=await openLocalPublicationStore(configuration,contractControl);
   assert.deepEqual(await reopened.latestRecord(attempt.publication_attempt_cid),committing);
   for(const value of[attempt,preparing,committing]){
     const name=value===attempt?'publication_attempt':'publication_record';
@@ -3094,6 +3098,7 @@ test('publication progress uses one native commit and no shadow file ACKs per tr
   }
   await assert.rejects(reopened.appendRecord(wire(preparing),{uncommittedConfirmed:false}),
     code('InvalidPublicationRecordTransition'));
+  }finally{armed=false;fsPromises.open=originalOpen;syncBuiltinESMExports();}
 });
 
 test('prepared publication bodies do not advance native progress and existing file bodies remain owned',async t=>{
@@ -3112,14 +3117,56 @@ test('prepared publication bodies do not advance native progress and existing fi
   assert.equal(store.status().objectCount,2);
 });
 
+test('native publication progress commits a real Index and retires only the selected Run metadata',async t=>{
+  const {store,configuration}=await fixture(t);
+  const value=invocation(),request=publicationRequest(resultDefinition(),value.invocation_cid);
+  const attempt=publicationAttempt(request,'native-index');
+  const prepared=await prepareCommit(store,request,attempt,value,cids.policy,false,true);
+  const entry=indexEntry(request,attempt,value,{durable_result_binding_cids:[prepared.binding.identity]});
+  assert.equal((await store.commitIndex(wire(entry),prepared.required,prepared.evidence)).committed,true);
+  const committed=publicationRecord(attempt,2,'succeeded',prepared.committing,{
+    public_index_entry_cid:entry.public_index_entry_cid,
+  });
+  await store.appendRecord(wire(committed),{uncommittedConfirmed:false});
+  const other=publicationAttempt(publicationRequest(resultDefinition(),digest('other native Run')),'other');
+  await store.createAttempt(wire(other));
+  await store.close();
+  const reopened=await openLocalPublicationStore(configuration,contractControl);
+  assert.deepEqual(await reopened.latestRecord(attempt.publication_attempt_cid),committed);
+  assert.equal((await reopened.inspectCommittedIndex(indexKeyFor(request))).public_index_entry_cid,entry.public_index_entry_cid);
+  const retired=await reopened.retireCommittedPublicationMetadata(indexKeyFor(request),'2026-09-19T00:00:00.000Z');
+  assert.equal(retired.deleted,true);
+  await assert.rejects(reopened.createAttempt(wire(attempt)),code('PublicationMetadataDeleted'));
+  assert.equal((await reopened.createAttempt(wire(other))).created,false);
+  assert.equal((await reopened.readPublicationContract(other.publication_attempt_cid,'publication_attempt')).wire,wire(other));
+});
+
+test('native publication progress keeps sequence CAS and capacity refusals',async t=>{
+  const {store}=await fixture(t,{maxObjects:3});
+  const attempt=publicationAttempt(publicationRequest(),'native-CAS');
+  const preparing=publicationRecord(attempt,0,'preparing');
+  await store.createAttempt(wire(attempt));
+  await store.appendRecord(wire(preparing),{uncommittedConfirmed:false});
+  const committing=publicationRecord(attempt,1,'committing',preparing);
+  const cancelled=publicationRecord(attempt,1,'cancelled',preparing);
+  const results=await Promise.allSettled([committing,cancelled].map(record=>
+    store.appendRecord(wire(record),{uncommittedConfirmed:false})));
+  assert.equal(results.filter(result=>result.status==='fulfilled').length,1);
+  assert.equal(results.filter(result=>result.status==='rejected').length,1);
+  assert.equal(store.status().objectCount,3);
+  const latest=await store.latestRecord(attempt.publication_attempt_cid);
+  assert.equal([committing.publication_record_cid,cancelled.publication_record_cid].includes(latest.publication_record_cid),true);
+  await assert.rejects(store.createAttempt(wire(publicationAttempt(publicationRequest(),'over-quota'))),
+    code('PublicationStoreObjectLimit'));
+  assert.equal(store.status().objectCount,3);
+});
+
 for(const afterCommit of[false,true])for(const phase of['attempt','record']){
 test(`native publication progress retains its ${phase} ${afterCommit?'committed':'rolled-back'} Unknown original`,async t=>{
-  const {store,configuration}=await fixture(t);
   const attempt=publicationAttempt(publicationRequest(),`unknown-${phase}-${afterCommit}`);
   const record=publicationRecord(attempt,0,'preparing');
-  if(phase==='record')await store.createAttempt(wire(attempt));
   const exec=DatabaseSync.prototype.exec;
-  let armed=true,lost=false,failure;
+  let armed=false,lost=false,failure;
   t.mock.method(DatabaseSync.prototype,'exec',function(sql){
     if(armed&&!lost&&sql==='COMMIT'){
       lost=true;if(afterCommit)Reflect.apply(exec,this,[sql]);
@@ -3127,6 +3174,9 @@ test(`native publication progress retains its ${phase} ${afterCommit?'committed'
     }
     return Reflect.apply(exec,this,[sql]);
   });
+  const {store,configuration}=await fixture(t);
+  if(phase==='record')await store.createAttempt(wire(attempt));
+  armed=true;
   const operation=()=>phase==='attempt'?store.createAttempt(wire(attempt)):
     store.appendRecord(wire(record),{uncommittedConfirmed:false});
   await assert.rejects(operation(),error=>{failure=error;return error.outcome==='unknown'&&error.cleanupHandle?.status().pending===true;});
@@ -5943,7 +5993,7 @@ test('metadata deletion history is indexed once and unrelated Run operations rea
   const {store,directory,configuration}=await fixture(t);await store.close();
   // Model the actual prior private version and its compact retired files.
   const db=new DatabaseSync(join(directory,'delivery-attempts.sqlite3'));
-  try{db.exec('DROP TABLE physical_objects; DROP TABLE physical_object_usage; DROP TABLE physical_object_preparations; DROP TABLE metadata_deletion_fences; DROP TABLE metadata_deletion_fence_coverage; UPDATE coverage SET version=7 WHERE id=1');}
+  try{db.exec('DROP TABLE publication_records; DROP TABLE publication_attempts; DROP TABLE physical_objects; DROP TABLE physical_object_usage; DROP TABLE physical_object_preparations; DROP TABLE metadata_deletion_fences; DROP TABLE metadata_deletion_fence_coverage; UPDATE coverage SET version=7 WHERE id=1');}
   finally{db.close();}
   const history=Array.from({length:12},(_,i)=>({key:digest(`retired key ${i}`).slice(7),run:digest(`retired Run ${i}`)}));
   for(const row of history)await writeFile(join(directory,'metadata-deletions',row.key+'.json'),wire({
@@ -6196,7 +6246,7 @@ test('publication recovery migrates the legacy inventory once and preserves adop
   // Reconstruct only this new disposable fixture's exact prior private format.
   const path=join(setup.directory,'delivery-attempts.sqlite3');
   const old=new DatabaseSync(path);
-  try{old.exec('DROP TABLE physical_objects; DROP TABLE physical_object_usage; DROP TABLE physical_object_preparations; DROP TABLE metadata_deletion_fences; DROP TABLE metadata_deletion_fence_coverage; DROP TABLE native_publication_inventories; DROP TABLE native_publication_inventory_usage; DROP TABLE pending_publications; DROP TABLE publication_recovery; UPDATE coverage SET version=5 WHERE id=1');}
+  try{old.exec('DROP TABLE publication_records; DROP TABLE publication_attempts; DROP TABLE physical_objects; DROP TABLE physical_object_usage; DROP TABLE physical_object_preparations; DROP TABLE metadata_deletion_fences; DROP TABLE metadata_deletion_fence_coverage; DROP TABLE native_publication_inventories; DROP TABLE native_publication_inventory_usage; DROP TABLE pending_publications; DROP TABLE publication_recovery; UPDATE coverage SET version=5 WHERE id=1');}
   finally{old.close();}
   const originalOpen=fsPromises.open,reads=[];
   t.mock.method(fsPromises,'open',function(path,...args){reads.push(String(path));return Reflect.apply(originalOpen,this,[path,...args]);});

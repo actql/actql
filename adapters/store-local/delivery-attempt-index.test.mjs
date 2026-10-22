@@ -6,6 +6,41 @@ import {join} from 'node:path';
 import {DatabaseSync} from 'node:sqlite';
 import {openDeliveryAttemptIndex} from './delivery-attempt-index.mjs';
 
+// These fixtures reconstruct an earlier private schema, rather than merely
+// relabel a current database while retaining its newer adopted tables.
+function removePublicationProgressSchema(database) {
+  database.exec('DROP TABLE publication_records; DROP TABLE publication_attempts');
+}
+
+test('native publication progress upgrades version nine without re-admitting historical bodies',async t=>{
+  const directory=await mkdtemp(join(tmpdir(),'actql-publication-progress-v9-'));
+  let index; t.after(async()=>{index?.close();await rm(directory,{recursive:true});});
+  const path=join(directory,'index.sqlite3'),options={create:false,maxEntries:4,maxWireBytes:4096};
+  index=await openDeliveryAttemptIndex(path,{...options,create:true});index.migrate([]);
+  const body={semantic_cid:'sha256:'+'a'.repeat(64),name:'invocation',wire:'{}',byte_count:2};
+  index.putPublicationContracts([body],{objects:1,bytes:2});index.close();
+  const database=new DatabaseSync(path);
+  try{removePublicationProgressSchema(database);database.exec('UPDATE coverage SET version=9');}
+  finally{database.close();}
+  index=await openDeliveryAttemptIndex(path,options);
+  assert.deepEqual(index.publicationContract(body.semantic_cid),body);
+  assert.deepEqual(index.publicationAttemptsForRun('sha256:'+'b'.repeat(64)),[]);
+  assert.equal(index.publicationUsage().objects,1);
+});
+
+for(const missing of['publication_attempts','publication_records','publication_attempt_runs']){
+test(`native publication progress refuses adopted ${missing} loss`,async t=>{
+  const directory=await mkdtemp(join(tmpdir(),'actql-publication-progress-loss-'));
+  t.after(()=>rm(directory,{recursive:true}));
+  const path=join(directory,'index.sqlite3'),options={create:false,maxEntries:4,maxWireBytes:4096};
+  const index=await openDeliveryAttemptIndex(path,{...options,create:true});index.migrate([]);index.close();
+  const database=new DatabaseSync(path);
+  try{database.exec(`DROP ${missing==='publication_attempt_runs'?'INDEX':'TABLE'} ${missing}`);}
+  finally{database.close();}
+  await assert.rejects(openDeliveryAttemptIndex(path,options),{code:'DeliveryAttemptIndexUnavailable'});
+});
+}
+
 test('publication completion batch joins the next required native transaction', async t => {
   const directory = await mkdtemp(join(tmpdir(), 'actql-publication-finish-batch-'));
   let index, armed = false, commits = 0;
@@ -304,7 +339,7 @@ test('version eight physical capacity migration is explicit and adopted only onc
   const path=join(directory,'index.sqlite3'),options={create:false,maxEntries:2,maxWireBytes:4096};
   index=await openDeliveryAttemptIndex(path,{...options,create:true});index.migrate([]);index.close();
   const db=new DatabaseSync(path);
-  try{db.exec('DROP TABLE physical_objects; DROP TABLE physical_object_usage; DROP TABLE physical_object_preparations; UPDATE coverage SET version=8 WHERE id=1');}finally{db.close();}
+  try{removePublicationProgressSchema(db);db.exec('DROP TABLE physical_objects; DROP TABLE physical_object_usage; DROP TABLE physical_object_preparations; UPDATE coverage SET version=8 WHERE id=1');}finally{db.close();}
   index=await openDeliveryAttemptIndex(path,options);
   assert.equal(index.physicalObjectUsage().complete,0);
   const original={cid:'sha256:'+'1'.repeat(64),byte_count:13,device:'1',inode:'2'};
@@ -557,7 +592,7 @@ test('native publication inventory upgrades version6 without reclassifying its p
   const original={public_index_cid:'sha256:'+'1'.repeat(64),inventory_wire:'{"legacy":1}'};
   index.migratePublicationRecovery([original]);index.close();
   const database=new DatabaseSync(path);
-  try{database.exec('DROP TABLE physical_objects; DROP TABLE physical_object_usage; DROP TABLE physical_object_preparations; DROP TABLE metadata_deletion_fences; DROP TABLE metadata_deletion_fence_coverage; DROP TABLE native_publication_inventories; DROP TABLE native_publication_inventory_usage; UPDATE coverage SET version=6 WHERE id=1');}
+  try{removePublicationProgressSchema(database);database.exec('DROP TABLE physical_objects; DROP TABLE physical_object_usage; DROP TABLE physical_object_preparations; DROP TABLE metadata_deletion_fences; DROP TABLE metadata_deletion_fence_coverage; DROP TABLE native_publication_inventories; DROP TABLE native_publication_inventory_usage; UPDATE coverage SET version=6 WHERE id=1');}
   finally{database.close();}
   index=await openDeliveryAttemptIndex(path,options);
   assert.equal(index.needsPublicationRecoveryMigration(),false);
@@ -777,7 +812,7 @@ test('legacy indexed attempts keep the original pending and finish protocol afte
   index.close();
   // Reconstruct the exact pre-extension schema, not an empty replacement DB.
   const database = new DatabaseSync(path);
-  try {database.exec('DROP TABLE physical_objects; DROP TABLE physical_object_usage; DROP TABLE physical_object_preparations; DROP TABLE metadata_deletion_fences; DROP TABLE metadata_deletion_fence_coverage; DROP TABLE native_publication_inventories; DROP TABLE native_publication_inventory_usage; DROP TABLE pending_publications; DROP TABLE publication_recovery; DROP TABLE publication_contracts; DROP TABLE publication_usage; DROP TABLE completions; DROP TABLE initial_records; UPDATE coverage SET version=1 WHERE id=1');}
+  try {removePublicationProgressSchema(database);database.exec('DROP TABLE physical_objects; DROP TABLE physical_object_usage; DROP TABLE physical_object_preparations; DROP TABLE metadata_deletion_fences; DROP TABLE metadata_deletion_fence_coverage; DROP TABLE native_publication_inventories; DROP TABLE native_publication_inventory_usage; DROP TABLE pending_publications; DROP TABLE publication_recovery; DROP TABLE publication_contracts; DROP TABLE publication_usage; DROP TABLE completions; DROP TABLE initial_records; UPDATE coverage SET version=1 WHERE id=1');}
   finally {database.close();}
   index = await openDeliveryAttemptIndex(path,{create:false,maxEntries:2,maxWireBytes:4096});
   assert.equal(index.pending().length,1);
@@ -813,7 +848,7 @@ test('version two initial records remain file-backed after additive native-origi
   index.claim(row,1,'{"initial":1}');
   index.close();
   const database=new DatabaseSync(path);
-  try {database.exec(`DROP TABLE physical_objects; DROP TABLE physical_object_usage; DROP TABLE physical_object_preparations; DROP TABLE metadata_deletion_fences; DROP TABLE metadata_deletion_fence_coverage; DROP TABLE native_publication_inventories; DROP TABLE native_publication_inventory_usage; DROP TABLE pending_publications; DROP TABLE publication_recovery; DROP TABLE publication_contracts; DROP TABLE publication_usage; DROP TABLE completions;
+  try {removePublicationProgressSchema(database);database.exec(`DROP TABLE physical_objects; DROP TABLE physical_object_usage; DROP TABLE physical_object_preparations; DROP TABLE metadata_deletion_fences; DROP TABLE metadata_deletion_fence_coverage; DROP TABLE native_publication_inventories; DROP TABLE native_publication_inventory_usage; DROP TABLE pending_publications; DROP TABLE publication_recovery; DROP TABLE publication_contracts; DROP TABLE publication_usage; DROP TABLE completions;
     ALTER TABLE initial_records DROP COLUMN ack_revision;
     DROP INDEX initial_record_identity;
     ALTER TABLE initial_records DROP COLUMN initial_cid; UPDATE coverage SET version=2 WHERE id=1`);}
@@ -838,7 +873,7 @@ test('version three native originals survive additive completion storage without
   index.claim(row,1,'{"initial":1}',cid('4'));
   index.close();
   const database=new DatabaseSync(path);
-  try {database.exec(`DROP TABLE physical_objects; DROP TABLE physical_object_usage; DROP TABLE physical_object_preparations; DROP TABLE metadata_deletion_fences; DROP TABLE metadata_deletion_fence_coverage; DROP TABLE native_publication_inventories; DROP TABLE native_publication_inventory_usage; DROP TABLE pending_publications; DROP TABLE publication_recovery; DROP TABLE publication_contracts; DROP TABLE publication_usage; DROP TABLE completions; ALTER TABLE initial_records DROP COLUMN ack_revision;
+  try {removePublicationProgressSchema(database);database.exec(`DROP TABLE physical_objects; DROP TABLE physical_object_usage; DROP TABLE physical_object_preparations; DROP TABLE metadata_deletion_fences; DROP TABLE metadata_deletion_fence_coverage; DROP TABLE native_publication_inventories; DROP TABLE native_publication_inventory_usage; DROP TABLE pending_publications; DROP TABLE publication_recovery; DROP TABLE publication_contracts; DROP TABLE publication_usage; DROP TABLE completions; ALTER TABLE initial_records DROP COLUMN ack_revision;
     UPDATE coverage SET version=3 WHERE id=1`);} finally {database.close();}
   index=await openDeliveryAttemptIndex(path,options);
   assert.deepEqual(index.contract(cid('4')),{name:'delivery_record',wire:'{"initial":1}'});
