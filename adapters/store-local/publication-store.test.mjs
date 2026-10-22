@@ -835,7 +835,10 @@ test('Effectful commit inspection consumes only its original private Index obser
     {maxObjectBytes:limits.maxWireBytes}, control, limits,
     code=>{throw Object.assign(new Error(code),{code});}, ()=>{active++;},
     ()=>assert.fail('No physical read in the admission prefix'));
-  const original = contractControl.admit('public_index_entry', wire(indexEntry(publicationRequest(),publicationAttempt())), limits);
+  const invocationValue = invocation();
+  const request = publicationRequest(resultDefinition(), invocationValue.invocation_cid);
+  const attempt = publicationAttempt(request);
+  const original = contractControl.admit('public_index_entry', wire(indexEntry(request, attempt, invocationValue)), limits);
   const observation = Object.freeze({contract:original,entry:JSON.parse(original.wire)});
   const chain = Object.fromEntries(['runDefinition','invocation','definitions','artifacts','derivations',
     'orderings','retentions','durableBindings','manifest','computationReceipt','capturedRun'].map(name=>
