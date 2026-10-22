@@ -4091,7 +4091,7 @@
     {
       "module": "adapters/store-local/delivery-attempt-index.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "0aa586faeb34feb1458e7fe2ba111662183abd80b3e1d1296580ba26993aaedc",
+      "sha256": "37282afd1731138fef5b512cfe76ae80e579bf4d8df163ed463c60e6f32ee2d2",
       "exports": [
         "openDeliveryAttemptIndex"
       ],
@@ -4137,6 +4137,13 @@
           "async": false
         },
         {
+          "name": "openDeliveryAttemptIndex/checkFence/checkFence",
+          "parameters": [
+            "original"
+          ],
+          "async": false
+        },
+        {
           "name": "openDeliveryAttemptIndex/close/close",
           "parameters": [],
           "async": false
@@ -4166,6 +4173,27 @@
           "name": "openDeliveryAttemptIndex/exec/exec",
           "parameters": [
             "sql"
+          ],
+          "async": false
+        },
+        {
+          "name": "openDeliveryAttemptIndex/fenceCopy/fenceCopy",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "openDeliveryAttemptIndex/fenceOriginal/fenceOriginal",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "openDeliveryAttemptIndex/fenceState/fenceState",
+          "parameters": [
+            "ready"
           ],
           "async": false
         },
@@ -4245,6 +4273,18 @@
           "async": false
         },
         {
+          "name": "openDeliveryAttemptIndex/init:finishMetadataDeletionFence/init:finishMetadataDeletionFence",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "openDeliveryAttemptIndex/init:finishMetadataDeletionFence/init:finishMetadataDeletionFence/init:finishMetadataDeletionFence",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "openDeliveryAttemptIndex/init:finishPublicationInventory/init:finishPublicationInventory",
           "parameters": [
             "value"
@@ -4264,7 +4304,21 @@
           "async": false
         },
         {
+          "name": "openDeliveryAttemptIndex/init:hasRunMetadataDeletionFence/init:hasRunMetadataDeletionFence",
+          "parameters": [
+            "runCid"
+          ],
+          "async": false
+        },
+        {
           "name": "openDeliveryAttemptIndex/init:lookup/init:lookup",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "openDeliveryAttemptIndex/init:metadataDeletionFence/init:metadataDeletionFence",
           "parameters": [
             "key"
           ],
@@ -4280,6 +4334,33 @@
         {
           "name": "openDeliveryAttemptIndex/init:migrate/init:migrate/init:migrate",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openDeliveryAttemptIndex/init:migrateMetadataDeletionFences/init:migrateMetadataDeletionFences",
+          "parameters": [
+            "values",
+            "finished"
+          ],
+          "async": false
+        },
+        {
+          "name": "openDeliveryAttemptIndex/init:migrateMetadataDeletionFences/init:migrateMetadataDeletionFences/init:migrateMetadataDeletionFences",
+          "parameters": [
+            "row"
+          ],
+          "async": false
+        },
+        {
+          "name": "openDeliveryAttemptIndex/init:migrateMetadataDeletionFences/init:migrateMetadataDeletionFences/init:migrateMetadataDeletionFences#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openDeliveryAttemptIndex/init:migrateMetadataDeletionFences/init:migrateMetadataDeletionFences/keys/keys",
+          "parameters": [
+            "row"
+          ],
           "async": false
         },
         {
@@ -4311,6 +4392,11 @@
           "parameters": [
             "publicIndexCid"
           ],
+          "async": false
+        },
+        {
+          "name": "openDeliveryAttemptIndex/init:needsMetadataDeletionFenceMigration/init:needsMetadataDeletionFenceMigration",
+          "parameters": [],
           "async": false
         },
         {
@@ -4370,7 +4456,8 @@
         {
           "name": "openDeliveryAttemptIndex/init:retireNativePublicationInventory/init:retireNativePublicationInventory",
           "parameters": [
-            "value"
+            "value",
+            "fence"
           ],
           "async": false
         },
@@ -4404,7 +4491,8 @@
           "name": "openDeliveryAttemptIndex/mutatePublicationRecovery/mutatePublicationRecovery",
           "parameters": [
             "kind",
-            "value"
+            "value",
+            "suppliedFence"
           ],
           "async": false
         },
@@ -4415,6 +4503,11 @@
         },
         {
           "name": "openDeliveryAttemptIndex/openDeliveryAttemptIndex",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openDeliveryAttemptIndex/openDeliveryAttemptIndex#10",
           "parameters": [],
           "async": false
         },
@@ -4598,6 +4691,14 @@
           "async": false
         },
         {
+          "name": "openDeliveryAttemptIndex/sameFence/sameFence",
+          "parameters": [
+            "left",
+            "right"
+          ],
+          "async": false
+        },
+        {
           "name": "openDeliveryAttemptIndex/samePublication/samePublication",
           "parameters": [
             "left",
@@ -4663,11 +4764,15 @@
             "openDeliveryAttemptIndex",
             "openDeliveryAttemptIndex/add/add",
             "openDeliveryAttemptIndex/captureClose/captureClose",
+            "openDeliveryAttemptIndex/checkFence/checkFence",
             "openDeliveryAttemptIndex/close/close",
             "openDeliveryAttemptIndex/completionCopy/completionCopy",
             "openDeliveryAttemptIndex/completionCopy/completionCopy/completionCopy",
             "openDeliveryAttemptIndex/copy/copy",
             "openDeliveryAttemptIndex/exec/exec",
+            "openDeliveryAttemptIndex/fenceCopy/fenceCopy",
+            "openDeliveryAttemptIndex/fenceOriginal/fenceOriginal",
+            "openDeliveryAttemptIndex/fenceState/fenceState",
             "openDeliveryAttemptIndex/init:attempt/init:attempt",
             "openDeliveryAttemptIndex/init:claim/init:claim",
             "openDeliveryAttemptIndex/init:claim/init:claim/result/result",
@@ -4679,17 +4784,26 @@
             "openDeliveryAttemptIndex/init:contract/init:contract",
             "openDeliveryAttemptIndex/init:finish/init:finish",
             "openDeliveryAttemptIndex/init:finish/init:finish/init:finish",
+            "openDeliveryAttemptIndex/init:finishMetadataDeletionFence/init:finishMetadataDeletionFence",
+            "openDeliveryAttemptIndex/init:finishMetadataDeletionFence/init:finishMetadataDeletionFence/init:finishMetadataDeletionFence",
             "openDeliveryAttemptIndex/init:finishPublicationInventory/init:finishPublicationInventory",
             "openDeliveryAttemptIndex/init:forgetRun/init:forgetRun",
             "openDeliveryAttemptIndex/init:forgetRun/init:forgetRun/init:forgetRun",
+            "openDeliveryAttemptIndex/init:hasRunMetadataDeletionFence/init:hasRunMetadataDeletionFence",
             "openDeliveryAttemptIndex/init:lookup/init:lookup",
+            "openDeliveryAttemptIndex/init:metadataDeletionFence/init:metadataDeletionFence",
             "openDeliveryAttemptIndex/init:migrate/init:migrate",
             "openDeliveryAttemptIndex/init:migrate/init:migrate/init:migrate",
+            "openDeliveryAttemptIndex/init:migrateMetadataDeletionFences/init:migrateMetadataDeletionFences",
+            "openDeliveryAttemptIndex/init:migrateMetadataDeletionFences/init:migrateMetadataDeletionFences/init:migrateMetadataDeletionFences",
+            "openDeliveryAttemptIndex/init:migrateMetadataDeletionFences/init:migrateMetadataDeletionFences/init:migrateMetadataDeletionFences#2",
+            "openDeliveryAttemptIndex/init:migrateMetadataDeletionFences/init:migrateMetadataDeletionFences/keys/keys",
             "openDeliveryAttemptIndex/init:migratePublicationRecovery/init:migratePublicationRecovery",
             "openDeliveryAttemptIndex/init:migratePublicationRecovery/init:migratePublicationRecovery/init:migratePublicationRecovery",
             "openDeliveryAttemptIndex/init:migratePublicationRecovery/init:migratePublicationRecovery/keys/keys",
             "openDeliveryAttemptIndex/init:nativePublicationInventories/init:nativePublicationInventories",
             "openDeliveryAttemptIndex/init:nativePublicationInventory/init:nativePublicationInventory",
+            "openDeliveryAttemptIndex/init:needsMetadataDeletionFenceMigration/init:needsMetadataDeletionFenceMigration",
             "openDeliveryAttemptIndex/init:needsMigration/init:needsMigration",
             "openDeliveryAttemptIndex/init:needsPublicationRecoveryMigration/init:needsPublicationRecoveryMigration",
             "openDeliveryAttemptIndex/init:pending/init:pending",
@@ -4707,6 +4821,7 @@
             "openDeliveryAttemptIndex/mutatePublicationRecovery/mutatePublicationRecovery",
             "openDeliveryAttemptIndex/mutatePublicationRecovery/mutatePublicationRecovery/mutatePublicationRecovery",
             "openDeliveryAttemptIndex/openDeliveryAttemptIndex",
+            "openDeliveryAttemptIndex/openDeliveryAttemptIndex#10",
             "openDeliveryAttemptIndex/openDeliveryAttemptIndex#2",
             "openDeliveryAttemptIndex/openDeliveryAttemptIndex#3",
             "openDeliveryAttemptIndex/openDeliveryAttemptIndex#4",
@@ -4736,6 +4851,7 @@
             "openDeliveryAttemptIndex/run/run",
             "openDeliveryAttemptIndex/sameCompletion/sameCompletion",
             "openDeliveryAttemptIndex/sameCompletion/sameCompletion/sameCompletion",
+            "openDeliveryAttemptIndex/sameFence/sameFence",
             "openDeliveryAttemptIndex/samePublication/samePublication",
             "openDeliveryAttemptIndex/samePublication/samePublication/samePublication",
             "openDeliveryAttemptIndex/sameRecoveryOriginal/sameRecoveryOriginal",
@@ -4764,6 +4880,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "New inventory bodies are durable originals in that same native staging"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "### Indexed Run metadata retirement"
               }
             ],
             "inputsOutputs": [
@@ -4790,6 +4910,10 @@
               {
                 "path": "adapters/store-local/delivery-attempt-index.mjs",
                 "anchor": "stageNativePublicationInventory(value) {"
+              },
+              {
+                "path": "adapters/store-local/delivery-attempt-index.mjs",
+                "anchor": "hasRunMetadataDeletionFence(runCid) {"
               }
             ],
             "identity": [
@@ -4808,6 +4932,10 @@
               {
                 "path": "adapters/store-local/delivery-attempt-index.mjs",
                 "anchor": "const nativeInventory = prepare('SELECT * FROM native_publication_inventories WHERE public_index_cid=?');"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "metadata key, with an index over the original Run CID. Delivery and publication"
               }
             ],
             "ownership": [
@@ -4826,6 +4954,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "pending lookup; the exact bounded inventory wire remains available to selected"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "A full deletion marker remains the original pending physical cleanup inventory."
               }
             ],
             "synchronization": [
@@ -4844,6 +4976,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "transaction, not duplicate filesystem preparations. Completion removes only the"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "The full marker is then unlinked and its directory really acknowledged. A failed"
               }
             ],
             "failure": [
@@ -4866,6 +5002,10 @@
               {
                 "path": "adapters/store-local/delivery-attempt-index.test.mjs",
                 "anchor": "native publication inventory refuses missing adopted"
+              },
+              {
+                "path": "adapters/store-local/delivery-attempt-index.test.mjs",
+                "anchor": "metadata deletion fences refuse missing adopted"
               }
             ],
             "cancellation": [
@@ -4883,7 +5023,11 @@
               },
               {
                 "path": "adapters/store-local/delivery-attempt-index.mjs",
-                "anchor": "retireNativePublicationInventory(value) {"
+                "anchor": "retireNativePublicationInventory(value,fence) {"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "final ACK retains the same cleanup even if the marker is absent and the native"
               }
             ],
             "resources": [
@@ -4902,6 +5046,10 @@
               {
                 "path": "adapters/store-local/delivery-attempt-index.mjs",
                 "anchor": "if(rows.length!==usage.entries)fail('DeliveryAttemptIndexUnavailable');"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "Completed fences retain only metadata key, Run and retirement state, not the"
               }
             ],
             "extension": [
@@ -4920,6 +5068,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "Additive format adoption creates their tables and count atomically; adopted"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "An additive format transition reads prior full and compact marker files once,"
               }
             ],
             "verification": [
@@ -4954,6 +5106,10 @@
               {
                 "path": "adapters/store-local/delivery-attempt-index.test.mjs",
                 "anchor": "native publication inventory and pending lookup share one commit without a shadow body"
+              },
+              {
+                "path": "adapters/store-local/delivery-attempt-index.test.mjs",
+                "anchor": "metadata deletion fence ${finish?"
               }
             ]
           }
@@ -4963,7 +5119,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "1f41cdd50b7b7d25a944416a76ac95b2dfdf49eb6cc498e66411a4eef9c7c684",
+      "sha256": "1463c18134b2e2e71a07e7be7df50b31c9af879dc7cad5eed7ce8892629fd457",
       "exports": [
         "PublicationStoreError",
         "assertOriginalLocalPublicationStoreFacilityCurrent",
@@ -9282,6 +9438,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "New inventory bodies are durable originals in that same native staging"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "### Indexed Run metadata retirement"
               }
             ],
             "inputsOutputs": [
@@ -9340,6 +9500,10 @@
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "deliveryIndex.stageNativePublicationInventory(original);"
+              },
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "const runMetadataDeletionStarted = async runDefinitionCid => {"
               }
             ],
             "identity": [
@@ -9406,6 +9570,10 @@
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "if (native.inventory_wire !== original.inventory_wire) fail('PublicationMetadataInventoryConflict');"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "metadata key, with an index over the original Run CID. Delivery and publication"
               }
             ],
             "ownership": [
@@ -9464,6 +9632,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "the same complete durable deletion marker before removing the native original"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "A full deletion marker remains the original pending physical cleanup inventory."
               }
             ],
             "synchronization": [
@@ -9522,6 +9694,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "The existing Index file and its actual directory acknowledgement still"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "The full marker is then unlinked and its directory really acknowledged. A failed"
               }
             ],
             "failure": [
@@ -9580,6 +9756,10 @@
               {
                 "path": "adapters/store-local/publication-store.test.mjs",
                 "anchor": "publication recovery completes only its retained inventory after a lost pre-file stage reply"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "metadata deletion keeps the same cleanup after native retirement and lost marker directory ACK"
               }
             ],
             "cancellation": [
@@ -9634,6 +9814,10 @@
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "deliveryIndex.retireNativePublicationInventory(recoveryOriginal);"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "final ACK retains the same cleanup even if the marker is absent and the native"
               }
             ],
             "resources": [
@@ -9692,6 +9876,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "Private native-inventory count and wire bounds are enforced before insertion."
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "Completed fences retain only metadata key, Run and retirement state, not the"
               }
             ],
             "extension": [
@@ -9750,6 +9938,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "file inventories remain files and use the same selected-use checks. They are"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "An additive format transition reads prior full and compact marker files once,"
               }
             ],
             "verification": [
@@ -9880,6 +10072,10 @@
               {
                 "path": "adapters/store-local/publication-store.test.mjs",
                 "anchor": "native publication inventory survives reopen and retires only its original ownership"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "metadata deletion history is indexed once and unrelated Run operations read no marker bodies"
               }
             ]
           }
