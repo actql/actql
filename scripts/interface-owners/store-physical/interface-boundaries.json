@@ -5422,7 +5422,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "27081ec5e4fca253bdf39392c7ee07049fe5d07d521f85e2824c90f5c6fd3c3b",
+      "sha256": "1470dae10ad9b3e139090f29890393e2431163be88ad90a4a671eb059b038504",
       "exports": [
         "PublicationStoreError",
         "assertOriginalLocalPublicationStoreFacilityCurrent",
@@ -8107,7 +8107,8 @@
           "name": "openOriginalLocalPublicationStore/readSemanticOriginal/readSemanticBytes",
           "parameters": [
             "cid",
-            "includeNative"
+            "includeNative",
+            "retainGeneration"
           ],
           "async": true
         },
@@ -9884,6 +9885,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "### Indexed physical object usage"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "An existing schema preparation retains the device/inode scalars already checked"
               }
             ],
             "inputsOutputs": [
@@ -9966,6 +9971,10 @@
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "const accountPhysicalUsage = usage => {"
+              },
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "generation = original.generation;"
               }
             ],
             "identity": [
@@ -10056,6 +10065,10 @@
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "fail('PublicationObjectAccountingMismatch');"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "by its actual semantic reader against the digest object's hard link and extent."
               }
             ],
             "ownership": [
@@ -10138,6 +10151,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "usage and removes those pending originals together. No per-item custody file"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "It joins those same-operation facts to the existing prepared-schema generation"
               }
             ],
             "synchronization": [
@@ -10220,6 +10237,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "Unlink and its containing-directory ACK precede decrementing the same physical"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "the requested schema and closes its original FD before returning. A later"
               }
             ],
             "failure": [
@@ -10302,6 +10323,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "ACK keeps the charge and pending owner; retries do not relink, resend, substitute"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "preparation reacquires its own reader, and a changed retained generation refuses."
               }
             ],
             "cancellation": [
@@ -10380,6 +10405,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "until a real same-original idempotent transaction confirms the outcome. Reads,"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "New or pending writers keep their final alias observations and real durability"
               }
             ],
             "resources": [
@@ -10462,6 +10491,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "The existing Store limits bound installed totals, pending generation rows,"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "requests the extra frozen generation pair; ordinary contract reads do not retain"
               }
             ],
             "extension": [
@@ -10544,6 +10577,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "legacy census completes atomically with its totals. Missing adopted tables or"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "and cleanup duties; the reuse supplies neither capacity nor an ACK."
               }
             ],
             "verification": [
@@ -10698,6 +10735,10 @@
               {
                 "path": "adapters/store-local/publication-store.test.mjs",
                 "anchor": "physical object capacity survives reopen without inspecting unrelated payload history"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "existing schema preparation refuses a replacement generation while its original holder is live"
               }
             ]
           }
