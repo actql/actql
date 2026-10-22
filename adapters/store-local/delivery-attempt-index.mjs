@@ -6,7 +6,14 @@ import {createSqliteTransaction} from '../host-common/sqlite-transaction.mjs';
 
 const fail = (code, cause) => { throw Object.assign(new Error(code, {cause}), {code}); };
 const cid = value => typeof value === 'string' && /^sha256:[0-9a-f]{64}$/u.test(value);
-const version = 6;
+const version = 7;
+const nativeInventoryTable = `CREATE TABLE native_publication_inventories (
+  public_index_cid TEXT PRIMARY KEY, inventory_wire TEXT NOT NULL
+) WITHOUT ROWID`;
+const nativeInventoryUsageTable = `CREATE TABLE native_publication_inventory_usage (
+  id INTEGER PRIMARY KEY CHECK(id=1), entries INTEGER NOT NULL CHECK(entries>=0),
+  ack_revision INTEGER NOT NULL CHECK(ack_revision>=1 AND ack_revision<=9007199254740991)
+)`;
 const publicationRecoveryTable = `CREATE TABLE publication_recovery (
   id INTEGER PRIMARY KEY CHECK(id=1), complete INTEGER NOT NULL CHECK(complete IN (0,1)),
   entries INTEGER NOT NULL CHECK(entries>=0),
@@ -131,7 +138,7 @@ export async function openDeliveryAttemptIndex(path, {create, maxEntries, maxWir
       exec(`CREATE TABLE coverage (
         id INTEGER PRIMARY KEY CHECK(id=1), version INTEGER NOT NULL,
         complete INTEGER NOT NULL CHECK(complete IN (0,1)), entries INTEGER NOT NULL);
-        INSERT INTO coverage VALUES(1,6,0,0);
+        INSERT INTO coverage VALUES(1,7,0,0);
         CREATE TABLE attempts (
           logical_key TEXT PRIMARY KEY, attempt_cid TEXT NOT NULL UNIQUE,
           grant_cid TEXT NOT NULL, run_cid TEXT NOT NULL,
@@ -148,12 +155,14 @@ export async function openDeliveryAttemptIndex(path, {create, maxEntries, maxWir
         CREATE UNIQUE INDEX initial_record_identity ON initial_records(initial_cid);
         ${completionTable}; ${publicationTable}; ${publicationUsageTable};
         ${publicationRecoveryTable}; ${pendingPublicationTable};
+        ${nativeInventoryTable}; ${nativeInventoryUsageTable};
+        INSERT INTO native_publication_inventory_usage VALUES(1,0,1);
         INSERT INTO publication_recovery VALUES(1,0,0,1);
         INSERT INTO publication_usage VALUES(1,0,0,1);`);
     });
     const state = prepare('SELECT version,complete,entries FROM coverage WHERE id=1');
     const selected = state.get();
-    if (![1,2,3,4,5,version].includes(selected?.version) || ![0,1].includes(selected.complete) ||
+    if (![1,2,3,4,5,6,version].includes(selected?.version) || ![0,1].includes(selected.complete) ||
         !Number.isSafeInteger(selected.entries) || selected.entries < 0 || selected.entries > maxEntries) {
       fail('DeliveryAttemptIndexUnavailable');
     }
@@ -216,7 +225,25 @@ export async function openDeliveryAttemptIndex(path, {create, maxEntries, maxWir
         fail('DeliveryAttemptIndexUnavailable');
       }
     }
+    if (selected.version < 7) transaction.run(() => {
+      exec(`${nativeInventoryTable}; ${nativeInventoryUsageTable};
+        INSERT INTO native_publication_inventory_usage VALUES(1,0,1);
+        UPDATE coverage SET version=7 WHERE id=1;`);
+    });
+    for (const [name,sql] of [['native_publication_inventories',nativeInventoryTable],
+      ['native_publication_inventory_usage',nativeInventoryUsageTable]]) {
+      if (prepare("SELECT sql FROM sqlite_schema WHERE type='table' AND name=?").get(name)?.sql !== sql) {
+        fail('DeliveryAttemptIndexUnavailable');
+      }
+    }
     let complete = selected.complete === 1;
+    const nativeInventory = prepare('SELECT * FROM native_publication_inventories WHERE public_index_cid=?');
+    const nativeInventories = prepare('SELECT * FROM native_publication_inventories ORDER BY public_index_cid LIMIT ?');
+    const insertNativeInventory = prepare('INSERT INTO native_publication_inventories VALUES(?,?)');
+    const removeNativeInventory = prepare('DELETE FROM native_publication_inventories WHERE public_index_cid=?');
+    const nativeInventoryUsage = prepare('SELECT entries,ack_revision FROM native_publication_inventory_usage WHERE id=1');
+    const updateNativeInventoryUsage = prepare(`UPDATE native_publication_inventory_usage SET entries=entries+?,
+      ack_revision=ack_revision+1 WHERE id=1`);
     const publicationRecovery = prepare('SELECT complete,entries,ack_revision FROM publication_recovery WHERE id=1');
     const pendingPublication = prepare('SELECT * FROM pending_publications WHERE public_index_cid=?');
     const pendingPublications = prepare('SELECT * FROM pending_publications ORDER BY public_index_cid LIMIT ?');
@@ -343,6 +370,12 @@ export async function openDeliveryAttemptIndex(path, {create, maxEntries, maxWir
     };
     const sameRecoveryOriginal = (left,right) => left!==undefined && right!==undefined &&
       left.public_index_cid===right.public_index_cid && left.inventory_wire===right.inventory_wire;
+    const inventoryUsage = () => {
+      const row=nativeInventoryUsage.get();
+      if (!row || !Number.isSafeInteger(row.entries) || row.entries<0 || row.entries>maxEntries ||
+          !Number.isSafeInteger(row.ack_revision) || row.ack_revision<1) fail('DeliveryAttemptIndexUnavailable');
+      return row;
+    };
     const mutatePublicationRecovery = (kind,value) => {
       const original=recoveryOriginal(value);
       const retry=uncertain && uncertainPublicationRecovery?.kind===kind &&
@@ -357,14 +390,29 @@ export async function openDeliveryAttemptIndex(path, {create, maxEntries, maxWir
       if (existing!==undefined && !sameRecoveryOriginal(recoveryOriginal(existing),original)) {
         fail('PublicationMetadataInventoryConflict');
       }
-      if (!retry && (kind==='stage')===(existing!==undefined)) return original;
-      if (kind==='stage' && existing===undefined && state.entries>=maxEntries) fail('DeliveryAttemptIndexLimit');
+      const native=nativeInventory.get(original.public_index_cid);
+      if (native!==undefined && !sameRecoveryOriginal(recoveryOriginal(native),original)) {
+        fail('PublicationMetadataInventoryConflict');
+      }
+      const stage=kind==='stage'||kind==='stage-native',retire=kind==='retire-native';
+      const usage=inventoryUsage();
+      if (!retry && (stage ? existing!==undefined && (kind!=='stage-native'||native!==undefined)
+          : existing===undefined && (!retire||native===undefined))) return original;
+      if (stage && existing===undefined && state.entries>=maxEntries ||
+          kind==='stage-native' && native===undefined && usage.entries>=maxEntries) fail('DeliveryAttemptIndexLimit');
       try {
         run(()=>{
           let change=0;
-          if (kind==='stage' && existing===undefined) {
+          if (stage && existing===undefined) {
             insertPendingPublication.run(original.public_index_cid,original.inventory_wire);change=1;
-          } else if (kind==='finish') change=-removePendingPublication.run(original.public_index_cid).changes;
+          } else if (!stage) change=-removePendingPublication.run(original.public_index_cid).changes;
+          let nativeChange=0;
+          if (kind==='stage-native' && native===undefined) {
+            insertNativeInventory.run(original.public_index_cid,original.inventory_wire);nativeChange=1;
+          } else if (retire) nativeChange=-removeNativeInventory.run(original.public_index_cid).changes;
+          if ((kind==='stage-native'||retire) && updateNativeInventoryUsage.run(nativeChange).changes!==1) {
+            fail('DeliveryAttemptIndexUnavailable');
+          }
           // A same-original Unknown retry performs a real write even if its
           // previous COMMIT already installed/removed the pending row.
           if (updatePublicationRecovery.run(change).changes!==1) fail('DeliveryAttemptIndexUnavailable');
@@ -420,8 +468,18 @@ export async function openDeliveryAttemptIndex(path, {create, maxEntries, maxWir
       }
       return usage();
     };
-    usage();recoveryState();
+    usage();recoveryState();inventoryUsage();
     return Object.freeze({
+      nativePublicationInventory(publicIndexCid) {
+        requireComplete();if(!cid(publicIndexCid))fail('InvalidDeliveryAttemptIndex');
+        inventoryUsage();const row=nativeInventory.get(publicIndexCid);
+        return row===undefined?undefined:recoveryOriginal(row);
+      },
+      nativePublicationInventories() {
+        requireComplete();const usage=inventoryUsage(),rows=nativeInventories.all(maxEntries+1);
+        if(rows.length!==usage.entries)fail('DeliveryAttemptIndexUnavailable');
+        return Object.freeze(rows.map(recoveryOriginal));
+      },
       needsPublicationRecoveryMigration() { requireComplete();return recoveryState().complete===0; },
       migratePublicationRecovery(values) {
         requireComplete();
@@ -449,7 +507,9 @@ export async function openDeliveryAttemptIndex(path, {create, maxEntries, maxWir
         return row===undefined?undefined:recoveryOriginal(row);
       },
       stagePublicationInventory(value) { return mutatePublicationRecovery('stage',value); },
+      stageNativePublicationInventory(value) { return mutatePublicationRecovery('stage-native',value); },
       finishPublicationInventory(value) { return mutatePublicationRecovery('finish',value); },
+      retireNativePublicationInventory(value) { return mutatePublicationRecovery('retire-native',value); },
       publicationUsage() { requireComplete(); return usage(); },
       publicationContract(semanticCid) { requireComplete(); return publicationCopy(publication.get(semanticCid)); },
       putPublicationContracts(entries, allowance) { return publicationMutation('put',entries,allowance); },

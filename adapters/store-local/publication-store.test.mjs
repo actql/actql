@@ -4867,6 +4867,31 @@ test('publication capacity preflight observes limits without reserving',
     assert.deepEqual(store.status(), before);
   });
 
+test('native publication inventory is the durable original without duplicate file ACKs',async t=>{
+  const {store,directory}=await fixture(t),invocationValue=invocation();
+  const request=publicationRequest(resultDefinition(),digest('native inventory Run'));
+  const attempt=publicationAttempt(request,'native inventory');
+  const prepared=await prepareCommit(store,request,attempt,invocationValue);
+  const entry=indexEntry(request,attempt,invocationValue,{durable_result_binding_cids:[prepared.binding.identity]});
+  const inventoryDirectory=join(directory,'metadata-inventories'),opens=[];
+  const actualOpen=fsPromises.open;
+  t.mock.method(fsPromises,'open',function(path,...args){
+    if(String(path)===inventoryDirectory||String(path).startsWith(inventoryDirectory+sep))opens.push(String(path));
+    return Reflect.apply(actualOpen,this,[path,...args]);
+  });
+  syncBuiltinESMExports();t.after(()=>{t.mock.restoreAll();syncBuiltinESMExports();});
+  assert.equal((await store.commitIndex(wire(entry),prepared.required,prepared.evidence)).committed,true);
+  assert.deepEqual(opens,[],'native inventory is not also an FS body/directory acknowledgement');
+  assert.deepEqual(await readdir(inventoryDirectory),[]);
+  assert.equal((await store.lookupCommittedIndex(indexKeyFor(request),()=>true)).public_index_entry_cid,entry.public_index_entry_cid);
+  const database=new DatabaseSync(join(directory,'delivery-attempts.sqlite3'));
+  try {
+    const row=database.prepare('SELECT inventory_wire FROM native_publication_inventories WHERE public_index_cid=?').get(entry.public_index_entry_cid);
+    assert.equal(JSON.parse(row.inventory_wire).run_definition_cid,entry.run_definition_cid);
+    assert.equal(database.prepare('SELECT count(*) AS n FROM pending_publications').get().n,0);
+  } finally { database.close(); }
+});
+
 async function committedHoldingFixture(setup, label) {
   const request = publicationRequest(resultDefinition(), digest(`published ${label}`));
   const invocationValue = invocation();

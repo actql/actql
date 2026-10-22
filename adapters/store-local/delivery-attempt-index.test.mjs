@@ -6,6 +6,67 @@ import {join} from 'node:path';
 import {DatabaseSync} from 'node:sqlite';
 import {openDeliveryAttemptIndex} from './delivery-attempt-index.mjs';
 
+test('native publication inventory and pending lookup share one commit without a shadow body',async t=>{
+  const directory=await mkdtemp(join(tmpdir(),'actql-native-inventory-'));
+  let index,armed=false,commits=0;
+  t.after(async()=>{index?.close();await rm(directory,{recursive:true});});
+  const exec=DatabaseSync.prototype.exec;
+  t.mock.method(DatabaseSync.prototype,'exec',function(sql){
+    if(armed&&sql==='COMMIT')commits++;
+    return Reflect.apply(exec,this,[sql]);
+  });
+  const path=join(directory,'index.sqlite3'),options={create:false,maxEntries:1,maxWireBytes:4096};
+  index=await openDeliveryAttemptIndex(path,{...options,create:true});
+  index.migrate([]);index.migratePublicationRecovery([]);
+  const original={public_index_cid:'sha256:'+'1'.repeat(64),inventory_wire:'{"original":1}'};
+  armed=true;index.stageNativePublicationInventory(original);
+  assert.equal(commits,1);
+  assert.deepEqual(index.pendingPublications(),[original]);
+  assert.deepEqual(index.nativePublicationInventory(original.public_index_cid),original);
+  index.stageNativePublicationInventory(original);assert.equal(commits,1);
+  index.finishPublicationInventory(original);assert.equal(commits,2);
+  assert.deepEqual(index.pendingPublications(),[]);
+  assert.deepEqual(index.nativePublicationInventories(),[original]);
+  assert.throws(()=>index.stageNativePublicationInventory({...original,public_index_cid:'sha256:'+'2'.repeat(64)}),
+    {code:'DeliveryAttemptIndexLimit'});
+  index.close();index=await openDeliveryAttemptIndex(path,options);
+  assert.equal(commits,2,'opening does not rewrite completed originals');
+  assert.deepEqual(index.nativePublicationInventory(original.public_index_cid),original);
+  assert.throws(()=>index.retireNativePublicationInventory({...original,inventory_wire:'{"different":1}'}),
+    {code:'PublicationMetadataInventoryConflict'});
+  index.retireNativePublicationInventory(original);assert.equal(commits,3);
+  index.retireNativePublicationInventory(original);assert.equal(commits,3);
+  assert.deepEqual(index.nativePublicationInventories(),[]);
+});
+
+for(const phase of ['stageNativePublicationInventory','finishPublicationInventory','retireNativePublicationInventory']) {
+for(const afterCommit of [false,true]) {
+test(`native publication inventory ${phase} retains ${afterCommit?'committed':'rolled-back'} Unknown original`,async t=>{
+  const directory=await mkdtemp(join(tmpdir(),'actql-native-inventory-unknown-'));
+  let index,armed=false,lost=false;
+  t.after(async()=>{index?.close();await rm(directory,{recursive:true});});
+  const exec=DatabaseSync.prototype.exec;
+  t.mock.method(DatabaseSync.prototype,'exec',function(sql){
+    if(armed&&!lost&&sql==='COMMIT'){
+      lost=true;if(afterCommit)Reflect.apply(exec,this,[sql]);
+      throw Object.assign(new Error('lost same native inventory reply'),{code:'EIO'});
+    }
+    return Reflect.apply(exec,this,[sql]);
+  });
+  index=await openDeliveryAttemptIndex(join(directory,'index.sqlite3'),{create:true,maxEntries:2,maxWireBytes:4096});
+  index.migrate([]);index.migratePublicationRecovery([]);
+  const original={public_index_cid:'sha256:'+'1'.repeat(64),inventory_wire:'{"original":1}'};
+  if(phase!=='stageNativePublicationInventory')index.stageNativePublicationInventory(original);
+  armed=true;
+  assert.throws(()=>index[phase](original),error=>error.outcome==='unknown');
+  assert.throws(()=>index.nativePublicationInventory(original.public_index_cid),{code:'DeliveryAttemptIndexCommitOutcomeUnknown'});
+  assert.throws(()=>index[phase]({...original,inventory_wire:'{"foreign":1}'}),{code:'DeliveryAttemptIndexCommitOutcomeUnknown'});
+  index[phase](original);
+  assert.deepEqual(index.nativePublicationInventory(original.public_index_cid),phase==='retireNativePublicationInventory'?undefined:original);
+  assert.deepEqual(index.pendingPublications(),phase==='stageNativePublicationInventory'?[original]:[]);
+});
+}}
+
 test('publication recovery coverage retains only pending originals across reopen', async t => {
   const directory=await mkdtemp(join(tmpdir(),'actql-publication-recovery-'));
   let index;
