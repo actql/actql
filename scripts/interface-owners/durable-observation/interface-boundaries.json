@@ -246,7 +246,7 @@
     {
       "module": "adapters/host-common/observation.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "d5d7d8eeb143bb5a30227a1483c728868c475e8ed235cdbb3f3ffada4521796d",
+      "sha256": "06eee4f188b29819668da3f7bef05485161fe62be587cbb0d6d852a778fe6155",
       "exports": [
         "captureManagedRunObservation",
         "createHostObservationConnection",
@@ -271,6 +271,21 @@
           "name": "<anonymous>#2",
           "parameters": [
             "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "<anonymous>#3",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "accumulateSelectedRows",
+          "parameters": [
+            "context",
+            "detail"
           ],
           "async": false
         },
@@ -399,6 +414,13 @@
           "name": "installHostObservation/emit/emit/emit",
           "parameters": [
             "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "installHostObservation/flushSelectedRows/flushSelectedRows",
+          "parameters": [
+            "context"
           ],
           "async": false
         },
@@ -855,6 +877,120 @@
               {
                 "path": "adapters/host-node/embedded-managed-compute-lifecycle.test.mjs",
                 "anchor": "test('managed usage reader selects only the same admitted Run and releases its installation alias'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "<anonymous>#3",
+            "accumulateSelectedRows",
+            "installHostObservation/flushSelectedRows/flushSelectedRows"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "Diagnostic-level `rows` observations copy only the selected request-Journal"
+              },
+              {
+                "path": "adapters/host-common/observation.mjs",
+                "anchor": "function accumulateSelectedRows(context, detail) {"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "Diagnostic-level `rows` observations copy only the selected request-Journal"
+              },
+              {
+                "path": "adapters/host-common/observation.mjs",
+                "anchor": "const {ref, rowOwner, selection, rowKind, returnedRows, unrelatedRows, coverage} = detail;"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "Diagnostic-level `rows` observations copy only the selected request-Journal"
+              },
+              {
+                "path": "adapters/host-common/observation.mjs",
+                "anchor": "const ref = event === 'selected_rows_observed' ? facts.ref : facts.ref ?? context?.ref;"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "Diagnostic-level `rows` observations copy only the selected request-Journal"
+              },
+              {
+                "path": "adapters/host-common/observation.mjs",
+                "anchor": "const rows = context.selectedRows; context.selectedRows = undefined;"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "Diagnostic-level `rows` observations copy only the selected request-Journal"
+              },
+              {
+                "path": "adapters/host-common/observation.mjs",
+                "anchor": "// One bounded record for this existing ingress, not another durable"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "Diagnostic-level `rows` observations copy only the selected request-Journal"
+              },
+              {
+                "path": "adapters/host-common/observation.mjs",
+                "anchor": "if (!captured) drop('rowsUnavailable');"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "Diagnostic-level `rows` observations copy only the selected request-Journal"
+              },
+              {
+                "path": "adapters/host-common/observation.mjs",
+                "anchor": "context.selectedRowsClosed = true;"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "Diagnostic-level `rows` observations copy only the selected request-Journal"
+              },
+              {
+                "path": "adapters/host-common/observation.mjs",
+                "anchor": "const attributes = Object.freeze({'actql.rows.owner': rows.rowOwner,"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "Diagnostic-level `rows` observations copy only the selected request-Journal"
+              },
+              {
+                "path": "adapters/host-common/observation.mjs",
+                "anchor": "rowKind !== 'run' || coverage !== 'selected-returned' ||"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-common/observation.test.mjs",
+                "anchor": "test('selected row diagnostics copy only actual reader scalars and the original operation context'"
+              },
+              {
+                "path": "adapters/host-common/observation.test.mjs",
+                "anchor": "test('selected row diagnostics keep unknown classification and pre-Run binding absent in a mixed aggregate'"
+              },
+              {
+                "path": "adapters/host-common/observation.test.mjs",
+                "anchor": "test('selected row diagnostics refuse contextless or late facts instead of creating another operation frame'"
               }
             ]
           }
