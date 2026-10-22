@@ -1084,6 +1084,97 @@ test('bounded object writes are durable, streamed, and physically addressed',
     assert.equal(reopened.status().storedBytes, 6);
   });
 
+async function privateReadFixture(t) {
+  const setup = await fixture(t, {privateEvidenceKey: Buffer.alloc(32, 7)});
+  const wire = '{"private":"selected-evidence-body"}';
+  const semanticCid = digest('selected-private-evidence');
+  const holdingCid = digest('selected-private-evidence-holding');
+  const prepared = await setup.store.preparePrivateEvidence('effect_preview', wire, semanticCid);
+  await setup.store.commitPhysicalHolding({version: 'actql-local-physical-holding/0.1',
+    namespace: 'publication-private', holding_cid: holdingCid, manifest_cid: semanticCid,
+    objects: [{cid: prepared.physicalCid, byte_count: prepared.bytes}]}, [prepared.prepared]);
+  return {...setup, wire, semanticCid, holdingCid, prepared,
+    payloadPath: join(setup.directory, 'objects', prepared.physicalCid.slice(7)),
+    holdingPath: join(setup.directory, 'physical-holdings', holdingCid.slice(7) + '.json')};
+}
+
+test('private evidence selected read acquires one holding and ciphertext and rechecks the next operation', async t => {
+  const f = await privateReadFixture(t);
+  const original = await readFile(f.payloadPath), actualOpen = fsPromises.open;
+  let payloadOpens = 0, holdingOpens = 0, payloadBytes = 0;
+  t.mock.method(fsPromises, 'open', async function(path, ...args) {
+    const handle = await Reflect.apply(actualOpen, this, [path, ...args]);
+    if (String(path) === f.holdingPath) holdingOpens++;
+    if (String(path) === f.payloadPath) {
+      payloadOpens++;
+      const read = handle.read;
+      t.mock.method(handle, 'read', async function(...parameters) {
+        const result = await Reflect.apply(read, this, parameters);
+        payloadBytes += result.bytesRead;
+        return result;
+      });
+    }
+    return handle;
+  });
+  syncBuiltinESMExports();
+  try {
+    assert.deepEqual(await f.store.readPrivateEvidence('effect_preview', f.semanticCid, f.holdingCid), Buffer.from(f.wire));
+    assert.equal(payloadOpens, 1, 'one selected ciphertext FD, not inspect/inspect/consume');
+    assert.equal(holdingOpens, 1, 'one selected immutable holding body in this private operation');
+    assert.equal(payloadBytes, original.byteLength, 'one full ciphertext hash/transfer');
+    const changed = Buffer.from(original); changed[0] ^= 1;
+    await writeFile(f.payloadPath, changed);
+    await assert.rejects(f.store.readPrivateEvidence('effect_preview', f.semanticCid, f.holdingCid),
+      code('PublicationObjectCorrupt'));
+    assert.equal(payloadOpens, 2, 'a new operation reacquires its own payload rather than retaining an admission');
+    assert.equal(holdingOpens, 2);
+  } finally {t.mock.restoreAll(); syncBuiltinESMExports();}
+});
+
+test('private evidence selected read retains its consuming FD through failed close and retirement', async t => {
+  const f = await privateReadFixture(t), actualOpen = fsPromises.open;
+  let allowClose = false, opens = 0, closes = 0, failure;
+  t.mock.method(fsPromises, 'open', async function(path, ...args) {
+    const handle = await Reflect.apply(actualOpen, this, [path, ...args]);
+    if (String(path) === f.payloadPath) {
+      opens++;
+      const close = handle.close;
+      t.mock.method(handle, 'close', async function(...parameters) {
+        closes++;
+        if (!allowClose) return false;
+        return Reflect.apply(close, this, parameters);
+      });
+    }
+    return handle;
+  });
+  syncBuiltinESMExports();
+  try {
+    await assert.rejects(f.store.readPrivateEvidence('effect_preview', f.semanticCid, f.holdingCid), error => {
+      failure = error;
+      return error.cleanupPending === true && error.cleanupHandle.status().pending === true;
+    });
+    assert.equal(opens, 1);
+    const retiring = await f.store.retirePhysicalHolding(f.holdingCid);
+    assert.equal(retiring.cleanup.status().pending, true);
+    assert.equal((await stat(f.payloadPath)).size, f.prepared.bytes);
+    await assert.rejects(f.store.close(), code('PublicationStoreCleanupPending'));
+    await failure.cleanupHandle.retry();
+    assert.equal(failure.cleanupHandle.status().pending, true, 'false close is not ACK');
+    allowClose = true;
+    assert.equal((await failure.cleanupHandle.retry()).pending, false);
+    assert.equal(opens, 1, 'close-only retries keep the same original FD');
+    assert.equal(closes, 3);
+    await retiring.cleanup.retry();
+    assert.equal(retiring.cleanup.status().pending, false);
+    assert.equal(f.store.status().storedBytes, 0);
+    await assert.rejects(stat(f.payloadPath), code('ENOENT'));
+  } finally {
+    allowClose = true;
+    if (failure?.cleanupHandle.status().pending) await failure.cleanupHandle.retry();
+    t.mock.restoreAll(); syncBuiltinESMExports();
+  }
+});
+
 test('private evidence is encrypted, bound, and readable after restart',
   async t => {
     const suppliedKey = Buffer.alloc(32, 7);
