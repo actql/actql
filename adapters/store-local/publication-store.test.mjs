@@ -856,6 +856,50 @@ test('Effectful commit inspection consumes only its original private Index obser
   assert.equal(admissions, 1, 'foreign private observation refuses rather than admitting it as an original');
 });
 
+test('independent Effect inspection ignores caller supplied private Index observations', async t => {
+  let admissions = 0;
+  const control = {...contractControl,
+    admit(name, value, bounds) {
+      if (name === 'public_index_entry') admissions++;
+      return contractControl.admit(name, value, bounds);
+    },
+    ...Object.fromEntries(['effectfulCommitValid', 'effectPrivateEvidenceBinding',
+      'capturedEffectSourceHoldingCid', 'capturedEffectSourceArtifactCid',
+      'capturedEffectSourceStoreAuthorityCid'].map(name => [name,
+        () => assert.fail('No semantic verdict before the selected reader')])),
+  };
+  const {store} = await fixture(t, {}, control);
+  const invocationValue = invocation();
+  const request = publicationRequest(resultDefinition(), invocationValue.invocation_cid);
+  const attempt = publicationAttempt(request);
+  const original = contractControl.admit('public_index_entry',
+    wire(indexEntry(request, attempt, invocationValue)), limits);
+  const chain = Object.fromEntries(['runDefinition', 'invocation', 'definitions',
+    'artifacts', 'derivations', 'orderings', 'retentions', 'durableBindings',
+    'manifest', 'computationReceipt', 'capturedRun'].map(name => [name,
+    ['definitions', 'artifacts', 'derivations', 'orderings', 'retentions',
+      'durableBindings'].includes(name) ? [] : {}]));
+  const preparation = {index: original, chain, preview: {},
+    receipts: {setWire: '', memberWires: [], finalWire: ''},
+    privateBinding: {name: '', semanticCid: '', holdingCid: '', wire: ''}, effectSources: []};
+  const reads = [];
+  const selectedRead = new Error('SelectedEvidenceRead');
+  const reader = async cid => {reads.push(cid);throw selectedRead;};
+  const callerEntry = {publication_request_cid: digest('caller substituted request')};
+  const malformed = Object.freeze({...original, wire: '{}'});
+  await assert.rejects(store.inspectEffectfulStoredEvidence(
+    {...preparation, index: malformed}, reader, {contract: malformed, entry: callerEntry},
+  ), code('InvalidPublicationContract'));
+  assert.equal(admissions, 1, 'an extra argument cannot bypass incoming Index admission');
+  assert.deepEqual(reads, [], 'malformed Index refuses before any selected evidence read');
+  await assert.rejects(store.inspectEffectfulStoredEvidence(
+    preparation, reader, {contract: original, entry: callerEntry},
+  ), error => error === selectedRead);
+  assert.equal(admissions, 2, 'a separate supported inspection admits its actual input');
+  assert.deepEqual(reads, [request.publication_request_cid],
+    'the supported reader receives the actually parsed entry, not the extra caller body');
+});
+
 test('publication inventory reuses only its newly acknowledged Index write within the commit', async t => {
   const {store, directory} = await fixture(t);
   const invocationValue = invocation();
