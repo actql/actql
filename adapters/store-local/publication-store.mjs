@@ -3334,6 +3334,26 @@ async function openOriginalLocalPublicationStore(
     return value;
   };
 
+  const admitOriginalContract = (name, wire, original) => {
+    let contract;
+    if (original !== undefined && typeof contractControl.admitOriginal === 'function') {
+      try { contract = contractControl.admitOriginal(original, contractLimits); }
+      catch (error) { fail('InvalidPublicationContract', error); }
+      if (contract !== undefined &&
+          (contract !== original || !Object.isFrozen(contract) ||
+            typeof contract.name !== 'string' || contract.name !== name ||
+            typeof contract.identityField !== 'string' ||
+            !cidPattern.test(contract.identity) || contract.wire !== wire ||
+            typeof contract.wire !== 'string' ||
+            Buffer.byteLength(contract.wire, 'utf8') > configuration.maxObjectBytes)) {
+        fail('InvalidPublicationContractControlResult');
+      }
+    }
+    // Unrecognized originals and legacy controls still use full admission.
+    // An actual refusal or malformed nominal response never takes this path.
+    return contract ?? admitContract(name, wire);
+  };
+
   // Only this Store's private incoming-contract admission supplies these
   // facts. Physical persistence remains the same original operation.
   const putAdmittedPublicationContract = async (contract, value) => {
@@ -3458,21 +3478,7 @@ async function openOriginalLocalPublicationStore(
     for (const input of inputs) {
       const sameWire = wires.get(input.wire);
       if (sameWire !== undefined && sameWire.contract.name === input.name) continue;
-      let contract;
-      if (input.original !== undefined && typeof contractControl.admitOriginal === 'function') {
-        try { contract = contractControl.admitOriginal(input.original, contractLimits); }
-        catch (error) { fail('InvalidPublicationContract', error); }
-        if (contract !== undefined &&
-            (contract !== input.original || !Object.isFrozen(contract) ||
-              typeof contract.name !== 'string' || contract.name !== input.name ||
-              typeof contract.identityField !== 'string' ||
-              !cidPattern.test(contract.identity) || contract.wire !== input.wire ||
-              typeof contract.wire !== 'string' ||
-              Buffer.byteLength(contract.wire, 'utf8') > configuration.maxObjectBytes)) {
-          fail('InvalidPublicationContractControlResult');
-        }
-      }
-      contract ??= admitContract(input.name, input.wire);
+      const contract = admitOriginalContract(input.name, input.wire, input.original);
       const value = parseContract(contract);
       const previous = identities.get(contract.identity);
       if (previous !== undefined) {
@@ -5791,9 +5797,17 @@ async function openOriginalLocalPublicationStore(
     requiredObjectCids,
     suppliedEvidence,
     effectfulEvidence,
+    indexOriginal,
   ) => {
     active();
-    const admitted = admitContract('public_index_entry', suppliedWire);
+    if (indexOriginal !== undefined &&
+        (!exactKeys(indexOriginal, ['name', 'identityField', 'identity', 'wire']) ||
+          indexOriginal.name !== 'public_index_entry' || indexOriginal.wire !== suppliedWire)) {
+      fail('InvalidPublicationCommitEvidence');
+    }
+    const admitted = admitOriginalContract('public_index_entry', suppliedWire, indexOriginal);
+    if (indexOriginal !== undefined && (admitted.identity !== indexOriginal.identity ||
+        admitted.identityField !== indexOriginal.identityField)) fail('InvalidPublicationCommitEvidence');
     const entry = parseContract(admitted);
     const key = {
       namespaceId: entry.namespace_id,
@@ -5977,8 +5991,10 @@ async function openOriginalLocalPublicationStore(
 
   // A prepared schema cannot be retired between commit evidence validation
   // and installation of the inventory that acquires its durable ownership.
-  const commitIndex = (...args) =>
-    withSemanticCommit(() => commitIndexInternal(...args));
+  const commitIndex = (suppliedWire, requiredObjectCids, suppliedEvidence, indexOriginal) =>
+    withSemanticCommit(() => commitIndexInternal(
+      suppliedWire, requiredObjectCids, suppliedEvidence, undefined, indexOriginal,
+    ));
 
   const commitEffectfulIndex = (preparation, requiredObjectCids) => {
     if (!exactKeys(preparation, [
@@ -5989,7 +6005,7 @@ async function openOriginalLocalPublicationStore(
     }
     return withSemanticCommit(() => commitIndexInternal(
       preparation.index.wire, requiredObjectCids, preparation.chain,
-      preparation,
+      preparation, preparation.index,
     ));
   };
 

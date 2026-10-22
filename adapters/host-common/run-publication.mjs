@@ -789,7 +789,7 @@ async function publishRun(options, effectful, computationLifetime) {
     ], publicationRequest, publicationAttempt);
     committed = effectful === undefined
       ? await store.commitIndex(
-        index.wire, inventory, commitEvidence(evidence),
+        index.wire, inventory, commitEvidence(evidence), index,
       )
       : await store.commitEffectfulIndex({
         ...effectful.preparation, index,
