@@ -1572,6 +1572,33 @@ test('publication commit adopts an existing schema holder without rewriting its 
   assert.equal((await store.readSemanticBytes(cids.schema)).toString(), resultSchemaWire);
 });
 
+test('empty prepared schema recovery performs no payload or contract directory ACK', async t => {
+  const {store, directory, configuration} = await fixture(t);
+  await store.putSemantic(resultSchemaWire, cids.schema);
+  await store.close();
+  assert.deepEqual(await readdir(join(directory, 'prepared-schemas')), []);
+  const acknowledgements = [];
+  const durability = Object.freeze({async syncDirectory(path) {
+    acknowledgements.push(path);
+    const handle = await open(path, 'r');
+    try { await handle.sync(); }
+    finally { await handle.close(); }
+  }});
+  const reopened = await openLocalPublicationStore(configuration, contractControl, durability);
+  assert.deepEqual(acknowledgements.filter(path =>
+    path === join(directory, 'objects') || path === join(directory, 'contracts')), [],
+  'no pending schema or physical mutation needs these acknowledgements');
+  assert.equal((await reopened.readSemanticBytes(cids.schema)).toString(), resultSchemaWire);
+  const before = acknowledgements.length;
+  const other = 'another selected semantic body';
+  await reopened.putSemantic(other, digest(other));
+  assert(acknowledgements.slice(before).includes(join(directory, 'objects')),
+    'new physical bytes retain their actual containing-directory ACK');
+  assert(acknowledgements.slice(before).includes(join(directory, 'contracts')),
+    'new semantic alias retains its separate actual directory ACK');
+  await reopened.close();
+});
+
 test('restart reclaims an unpublished prepared Result schema', async t => {
   const directory = await mkdtemp(join(
     tmpdir(), 'actql-publication-schema-crash-',
