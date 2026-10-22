@@ -39,6 +39,15 @@ test('normal lint executes behavioral operation performance assessment tests', (
     row.run === 'npm run check:retained-boundary'));
 });
 
+test('normal Host CI executes bounded Journal preparation and cursor regressions', () => {
+  const step = jobs.host.steps.find(row =>
+    row.name === 'Test bounded Journal preparation and execution');
+  assert.ok(step);
+  assert.equal(step.run, 'node --test adapters/host-node/client-request-journal-sql-bounds.test.mjs adapters/host-node/client-request-journal-execution-bounds.test.mjs');
+  assert.ok(jobs.host.steps.indexOf(step) > jobs.host.steps.findIndex(row =>
+    row.run === 'npm run check:retained-boundary'));
+});
+
 test('manual integration keeps full core and explicit macOS opt-in', () => {
   assert.deepEqual(selectTargets(['README.md'], {event: 'push'}).targets, all);
   assert.equal(selectTargets(['README.md'], {event: 'push'}).macos, true);
