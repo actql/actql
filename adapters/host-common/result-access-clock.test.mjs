@@ -135,7 +135,10 @@ function fixture(api, options = {}) {
     issueResultDeliveryReceipt: () => contract('result_delivery_receipt', 'c'),
   };
   const authority = api.installResultAccessAuthority({
-    authorizeResultReadRequest: (_facts, operation) => {state.operations.push(operation); return true;},
+    authorizeResultReadRequest: (facts, operation) => {
+      state.operations.push(operation);
+      return options.authorizeRequest?.(facts) ?? true;
+    },
     admitResultRead(facts, operation) {
       state.operations.push(operation);
       state.admissions.push(facts);
@@ -196,6 +199,27 @@ for (const [name, api] of [['source', source], ['packaged', packaged]]) {
       assert.equal(input.state.chunks.length, 0);
     }
     assert.throws(() => fixture(api, {selectedPublication: null}), {code: 'InvalidResultAccessService'});
+  });
+
+  test(`${name}: selected Result resolution keeps current denial and final target confirmation`, async () => {
+    let allowed = true;
+    const input = fixture(api, {selectedPublication: true, authorizeRequest: () => allowed});
+    await input.deliver();
+    allowed = false;
+    await assert.rejects(input.deliver(), {code: 'ResultAccessDenied'});
+    assert.equal(input.state.selectedObservations, 1, 'The denied next operation does not read publication');
+    assert.equal(input.state.attempts.length, 1);
+    for (const field of ['public_index_entry_cid', 'result_manifest_cid']) {
+      const changed = fixture(api, {selectedPublication: true, afterAdmission(state) {
+        state.replacementIndex = {public_index_entry_cid: cid('1'),
+          result_manifest_cid: cid('2'), [field]: cid('d')};
+      }});
+      await assert.rejects(changed.deliver(), {code: 'ResultDeliveryDenied'});
+      assert.equal(changed.state.selectedObservations, 1);
+      assert.equal(changed.state.indexObservations, 1);
+      assert.equal(changed.state.attempts.length, 0);
+      assert.equal(changed.state.chunks.length, 0);
+    }
   });
 }
 

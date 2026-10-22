@@ -93,6 +93,26 @@ test('description resolution consumes its selected publication without an Index 
   assert.equal(calls.filter(([kind]) => kind === 'selected').length, 2);
 });
 
+test('selected description preserves denial, invalid input, physical failure and final confirmation', async () => {
+  const denied = fixture({selectedPublication: true, authorize: () => false});
+  await assert.rejects(describeAuthorizedResult(denied.service, request()), {code: 'ResultAccessDenied'});
+  assert.deepEqual(denied.calls, []);
+  for (const [read, code] of [
+    [() => undefined, 'ResultAccessDenied'],
+    [() => null, 'InvalidCommittedPublicationState'],
+    [() => ({entry: null, index: {}}), 'InvalidCommittedPublicationState'],
+    [() => { throw Object.assign(new Error('read failed'), {code: 'EIO'}); }, 'EIO'],
+  ]) {
+    const input = fixture({selectedPublication: read});
+    await assert.rejects(describeAuthorizedResult(input.service, request()), {code});
+    assert.deepEqual(input.calls.map(([kind]) => kind), ['selected']);
+  }
+  const changed = fixture({selectedPublication: true, committed: () => false});
+  await assert.rejects(describeAuthorizedResult(changed.service, request()), {code: 'ResultDescriptionUnavailable'});
+  assert.equal(changed.calls.filter(([kind]) => kind === 'consume').length, 1);
+  assert.throws(() => fixture({selectedPublication: null}), {code: 'InvalidResultAccessService'});
+});
+
 test('description denial occurs before Store I/O and hides publication', async () => {
   for (const authorize of [async () => false,
     async () => { throw new Error('offline authority'); }]) {
