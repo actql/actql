@@ -140,7 +140,9 @@ fn open_native_client_local_values_work(
     return Err(local_values_work_failure(UnsupportedProfile))
   }
   match
-    validate_native_client_run_binding(request, prepared, compiled, definition) {
+    journal.validate_prepared_run_binding(
+      request, prepared, compiled, definition,
+    ) {
     Ok(_) => ()
     Err(issue) => return Err(local_values_work_failure(Journal(issue)))
   }
@@ -356,7 +358,7 @@ fn NativeClientValuesWork::require_current(
   self : NativeClientValuesWork,
 ) -> Result[Unit, NativeClientValuesWorkIssue] {
   match
-    validate_native_client_run_binding(
+    self.start.journal.validate_prepared_run_binding(
       self.start.request,
       self.prepared,
       self.compiled,

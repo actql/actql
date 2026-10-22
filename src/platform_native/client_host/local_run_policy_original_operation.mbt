@@ -73,8 +73,6 @@ pub fn NativeLocalJournalCapture::bind_run_policy_profile_in_original_read(
   read_file : String,
   run_file : String,
 ) -> Result[NativeLocalRunPolicyBinding, NativeLocalAdoptionIssue] {
-  native_timing_begin(21)
-  defer native_timing_end(21)
   match self.check_current_in_original_read() {
     Err(issue) => return Err(issue)
     Ok(_) => ()
