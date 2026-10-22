@@ -80,8 +80,17 @@ test "one unchanged command admits its selected Submission once and observes act
       value == "read:client_runs:" + @host.client_request_scope_cid(request)
     })
     .length(),
-    1,
+    0,
   )
+  // The successful control CAS retained its exact emitted row. Inspect the
+  // durable fixture separately; a pure getter must not select it a second time.
+  let stored = read_run_record(
+    database
+    .read("client_runs", @host.client_request_scope_cid(request))
+    .unwrap(),
+  ).unwrap()
+  assert_true(stored.dispatch_reserved)
+  assert_eq(stored.revision, changed.1.unwrap().revision)
   journal.operation_active = false
   journal.invalidate_operation_record()
   journal.operation_active = true
@@ -171,7 +180,17 @@ test "command Submission lookup keeps one anchor and target without read transac
   )
   assert_eq(
     calls.filter(value => value.has_prefix("read:client_runs:")).length(),
-    1,
+    0,
+  )
+  let stored = read_run_record(
+    database
+    .read("client_runs", @host.client_request_scope_cid(request))
+    .unwrap(),
+  ).unwrap()
+  assert_true(stored.dispatch_reserved)
+  assert_eq(
+    stored.revision,
+    journal.operation_submission.unwrap().1.unwrap().revision,
   )
   assert_false(calls.contains("begin"))
   assert_false(
