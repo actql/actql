@@ -1568,6 +1568,36 @@ test('existing prepared schemas retain real readers and owners without new durab
   await reopened.close();
 });
 
+test('existing schema preparation reuses its actual read generation without repeated pathname observations', async t => {
+  const {store,directory}=await fixture(t);
+  await store.putSemantic(resultSchemaWire,cids.schema);
+  const semantic=join(directory,'contracts',cids.schema.slice(7)+'.json');
+  const physical=join(directory,'objects',cids.schema.slice(7));
+  const originalLstat=fsPromises.lstat,counts={semantic:0,physical:0};
+  fsPromises.lstat=async function(path,...args){
+    if(path===semantic)counts.semantic++;
+    if(path===physical)counts.physical++;
+    return Reflect.apply(originalLstat,this,[path,...args]);
+  };
+  syncBuiltinESMExports();
+  const prepared=[];
+  try{
+    prepared.push(await store.putPreparedResultSchema(resultSchemaWire,cids.schema,cids.run));
+    assert.deepEqual(counts,{semantic:1,physical:1},
+      'one existing-name selection and the actual reader link check, not post-read repeats');
+    prepared.push(await store.putPreparedResultSchema(resultSchemaWire,cids.schema,cids.result));
+    assert.deepEqual(counts,{semantic:1,physical:2},
+      'a second preparation reacquires its own original without repeating the retained group selection');
+    assert(prepared.every(value=>value.created===false&&value.prepared.status().pending));
+    await assert.rejects(store.close(),code('PublicationStoreCleanupPending'));
+  }finally{
+    fsPromises.lstat=originalLstat;syncBuiltinESMExports();
+    for(const value of prepared)await value.prepared.release();
+  }
+  assert.equal(store.status().objectCount,1);
+  assert.equal((await store.readSemanticBytes(cids.schema)).toString(),resultSchemaWire);
+});
+
 test('existing schema preparation retains the same failed reader close', async t => {
   const {store, directory} = await fixture(t);
   await store.putSemantic(resultSchemaWire, cids.schema);
