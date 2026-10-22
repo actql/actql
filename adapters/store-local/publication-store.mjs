@@ -7372,9 +7372,7 @@ async function openOriginalLocalPublicationStore(
     `${cidHex(run.identity)}.json`);
   // One same-Store durability observation, not capture completion or authority.
   let lastConfirmedEffectCaptureCustody;
-  const readEffectCaptureCustody = async suppliedRun => {
-    active();
-    const run = captureCustodyRun(suppliedRun);
+  const readEffectCaptureCustodyOriginal = async run => {
     let bytes;
     try { bytes = await readBounded(captureCustodyPath(run),
       Math.min(configuration.maxObjectBytes, 16 * 1024 * 1024)); }
@@ -7397,13 +7395,17 @@ async function openOriginalLocalPublicationStore(
     }
     return Object.freeze({...value, holdings: Object.freeze(holdings)});
   };
+  const readEffectCaptureCustody = async suppliedRun => {
+    active();
+    return readEffectCaptureCustodyOriginal(captureCustodyRun(suppliedRun));
+  };
   const retainEffectCaptureCustody = (suppliedRun, suppliedHoldings) => {
     active();
     const run = captureCustodyRun(suppliedRun);
     const holdings = suppliedHoldings.map(value =>
       parsePhysicalHolding(Buffer.from(JSON.stringify(value))));
     return withSemanticCommit(async () => {
-      const previous = await readEffectCaptureCustody(run);
+      const previous = await readEffectCaptureCustodyOriginal(run);
       const records = new Map((previous?.holdings ?? []).map(value =>
         [value.holding_cid, value]));
       for (const holding of holdings) {
@@ -7476,21 +7478,26 @@ async function openOriginalLocalPublicationStore(
       if (`${cidHex(run.identity)}.json` !== name) {
         fail('InvalidEffectCaptureCustody');
       }
-      if (await readEffectCaptureCustody(run) !== undefined) result.push(run);
+      if (await readEffectCaptureCustodyOriginal(run) !== undefined) result.push(run);
     }
     return Object.freeze(result);
   };
-  const forgetEffectCaptureCustody = async suppliedRun => {
-    active();
-    const run = captureCustodyRun(suppliedRun);
-    await readEffectCaptureCustody(run);
+  const forgetEffectCaptureCustodyOriginal = async run => {
     lastConfirmedEffectCaptureCustody = undefined;
     try { await unlink(captureCustodyPath(run)); }
     catch (error) { if (error?.code !== 'ENOENT') throw error; }
     await syncDirectory(captureCustodyDirectory);
   };
+  const forgetEffectCaptureCustody = async suppliedRun => {
+    active();
+    const run = captureCustodyRun(suppliedRun);
+    await readEffectCaptureCustodyOriginal(run);
+    return forgetEffectCaptureCustodyOriginal(run);
+  };
   const retireEffectCaptureCustody = async suppliedRun => {
-    const record = await readEffectCaptureCustody(suppliedRun);
+    active();
+    const run = captureCustodyRun(suppliedRun);
+    const record = await readEffectCaptureCustodyOriginal(run);
     if (record === undefined) return false;
     // Validate the entire exact inventory before deleting any holding. A
     // missing record can be progress from an interrupted retirement pass.
@@ -7510,7 +7517,7 @@ async function openOriginalLocalPublicationStore(
         throw error;
       }
     }
-    await forgetEffectCaptureCustody(suppliedRun);
+    await forgetEffectCaptureCustodyOriginal(run);
     return true;
   };
 

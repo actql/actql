@@ -8764,8 +8764,10 @@ async function captureCustodyFixture(t) {
   // This existing fixed Run is an explicit admission port, not a Common issuer.
   const run = Object.freeze({...captureCustodyRunFixture,
     identityField: 'run_definition_cid'});
+  let runAdmissions = 0;
   const control = Object.freeze({...contractControl, admit(name, wire, limits) {
     if (name !== 'run_definition') return contractControl.admit(name, wire, limits);
+    runAdmissions++;
     assert.equal(wire, run.wire);
     return run;
   }});
@@ -8807,17 +8809,20 @@ async function captureCustodyFixture(t) {
   syncBuiltinESMExports();
   t.after(() => {t.mock.restoreAll(); syncBuiltinESMExports();});
   return {...setup, control, run, holding, path, calls,
-    reset() {for (const key of Object.keys(calls)) calls[key] = 0;},
+    get runAdmissions() {return runAdmissions;},
+    reset() {for (const key of Object.keys(calls)) calls[key] = 0; runAdmissions = 0;},
     rejectDirectorySync() {rejectNextDirectorySync = true;}};
 }
 
 test('unchanged acknowledged Effect capture custody performs no repeated physical write', async t => {
   const f = await captureCustodyFixture(t);
   await f.store.retainEffectCaptureCustody(f.run, [f.holding]);
+  assert.equal(f.runAdmissions, 1);
   assert.deepEqual(f.calls, {writes: 1, fileSyncs: 1, directorySyncs: 1});
   const original = await stat(f.path);
   f.reset();
   await f.store.retainEffectCaptureCustody(f.run, [f.holding]);
+  assert.equal(f.runAdmissions, 1);
   assert.deepEqual(f.calls, {writes: 0, fileSyncs: 0, directorySyncs: 0});
   const current = await stat(f.path);
   assert.equal(current.dev, original.dev);
@@ -8867,6 +8872,10 @@ test('Effect capture custody changes and a fresh Store retain real durability', 
   assert.deepEqual(f.calls, {writes: 1, fileSyncs: 1, directorySyncs: 1});
   assert.deepEqual((await reopened.readEffectCaptureCustody(f.run)).holdings,
     [f.holding, capture]);
+  f.reset();
+  await reopened.retireEffectCaptureCustody(f.run);
+  assert.equal(f.runAdmissions, 1);
+  assert.deepEqual(f.calls, {writes: 0, fileSyncs: 0, directorySyncs: 1});
   await reopened.close();
 });
 
