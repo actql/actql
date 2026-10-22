@@ -4144,18 +4144,43 @@ async function openOriginalLocalPublicationStore(
       // Do not preinstall progress bodies as native metadata for a file-backed
       // attempt: its original append path must still create and ACK the files
       // that its sequence links select.
-      await putAdmittedPublicationContracts(records === undefined ? admitted :
-        admitted.filter(value => !records.includes(value)), true);
+      try {
+        await putAdmittedPublicationContracts(records === undefined ? admitted :
+          admitted.filter(value => !records.includes(value)), true);
+      } catch (error) {
+        // This original mutation contains setup only, not the proposed pair.
+        // Its caller must confirm exactly that group after a lost reply.
+        if (records !== undefined && error instanceof PublicationStoreError &&
+            error.code === 'PublicationMetadataCommitOutcomeUnknown' && error.outcome === 'unknown') {
+          Object.defineProperty(error,'publicationStartKind',{value:'setup'});
+        }
+        throw error;
+      }
       const created = await createAdmittedAttempt(selected.contract, selected.value);
-      if (records !== undefined) await appendInitialPublicationRecords(initialRecords);
+      if (records !== undefined && !(await readdir(publicationAttemptPath(selected.contract.identity)))
+        .some(name => recordNamePattern.test(name))) await appendInitialPublicationRecords(initialRecords);
       return created;
     }
-    const stored = await putAdmittedPublicationContracts(admitted, true,
-      Object.freeze({kind: records === undefined ? 'attempt' : 'initial-attempt',
+    const existingProgress = records !== undefined &&
+      deliveryIndex.publicationAttempt(selected.contract.identity) !== undefined &&
+      deliveryIndex.latestPublicationRecord(selected.contract.identity) !== undefined;
+    const initial = existingProgress ? undefined : records;
+    let stored;
+    try {
+      stored = await putAdmittedPublicationContracts(existingProgress
+        ? admitted.filter(value => !records.includes(value)) : admitted, true,
+      Object.freeze({kind: initial === undefined ? 'attempt' : 'initial-attempt',
         attemptCid: selected.contract.identity, runCid: selected.value.run_definition_cid,
-        ...(records === undefined ? {} : {records:Object.freeze(records.map(({contract,value},sequence)=>
+        ...(initial === undefined ? {} : {records:Object.freeze(initial.map(({contract,value},sequence)=>
           Object.freeze({previousCid:sequence === 0 ? null : records[0].contract.identity,
             recordCid:contract.identity,sequence:value.sequence})))})}));
+    } catch (error) {
+      if (existingProgress && error instanceof PublicationStoreError &&
+          error.code === 'PublicationMetadataCommitOutcomeUnknown' && error.outcome === 'unknown') {
+        Object.defineProperty(error,'publicationStartKind',{value:'setup'});
+      }
+      throw error;
+    }
     return Object.freeze({attempt: selected.value,
       created: stored.find(value => value.semanticCid === selected.contract.identity).progressCreated});
   };
