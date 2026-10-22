@@ -7477,6 +7477,64 @@ function physicalHolding(holdingCid, manifestCid, objects,
   });
 }
 
+test('ordinary Store opening does not enumerate or stat committed physical holding history', async t => {
+  const setup=await fixture(t),holdings=[];
+  for(let i=0;i<12;i++){
+    const payload=await preparePhysical(setup.store,`history ${i}`);
+    const holding=physicalHolding(digest(`history holding ${i}`),digest(`history manifest ${i}`),
+      [{cid:payload.cid,byte_count:payload.bytes}]);
+    await setup.store.commitPhysicalHolding(holding,[payload.prepared]);holdings.push(holding);
+  }
+  await setup.store.close();
+  const directory=join(setup.directory,'physical-holdings');
+  const originalReaddir=fsPromises.readdir,originalLstat=fsPromises.lstat,originalOpen=fsPromises.open;
+  let enumerations=0,stats=0;const reads=[];
+  t.mock.method(fsPromises,'readdir',function(path,...args){
+    if(String(path)===directory)enumerations++;
+    return Reflect.apply(originalReaddir,this,[path,...args]);
+  });
+  t.mock.method(fsPromises,'lstat',function(path,...args){
+    if(String(path).startsWith(directory+sep))stats++;
+    return Reflect.apply(originalLstat,this,[path,...args]);
+  });
+  t.mock.method(fsPromises,'open',function(path,...args){
+    if(String(path).startsWith(directory+sep))reads.push(String(path));
+    return Reflect.apply(originalOpen,this,[path,...args]);
+  });
+  syncBuiltinESMExports();t.after(()=>{t.mock.restoreAll();syncBuiltinESMExports();});
+  const reopened=await openLocalPublicationStore(setup.configuration,contractControl);
+  assert.deepEqual({enumerations,stats,reads},{enumerations:0,stats:0,reads:[]});
+  const selected=holdings[7];
+  assert.deepEqual(await reopened.inspectPhysicalHolding(selected.holding_cid),selected);
+  assert.deepEqual(reads,[join(directory,selected.holding_cid.slice(7)+'.json')]);
+  assert.equal(enumerations,0);assert.equal(stats,0);
+  const chunks=[];await reopened.consumePhysicalHolding(selected.holding_cid,0,chunk=>chunks.push(Buffer.from(chunk)));
+  assert.equal(Buffer.concat(chunks).toString(),'history 7');
+  assert.equal(reopened.status().objectCount,12);
+  await reopened.close();
+});
+
+for(const type of ['directory','symlink']) {
+test(`ordinary Store opening defers an unrelated holding ${type} but refuses its selected FD`,async t=>{
+  const setup=await fixture(t);
+  const payload=await preparePhysical(setup.store,'selected intact generation');
+  const holding=physicalHolding(digest('opening selected intact'),digest('opening selected manifest'),
+    [{cid:payload.cid,byte_count:payload.bytes}]);
+  await setup.store.commitPhysicalHolding(holding,[payload.prepared]);await setup.store.close();
+  const invalidCid=digest(`unrelated ${type}`),target=join(setup.directory,'physical-holdings',invalidCid.slice(7)+'.json');
+  if(type==='directory')await mkdir(target);
+  else await fsPromises.symlink(join(setup.directory,'physical-holdings',holding.holding_cid.slice(7)+'.json'),target);
+  const reopened=await openLocalPublicationStore(setup.configuration,contractControl);
+  assert.deepEqual(await reopened.inspectPhysicalHolding(holding.holding_cid),holding);
+  await assert.rejects(reopened.inspectPhysicalHolding(invalidCid),
+    error=>type==='directory'?error.code==='InvalidPublicationStoreObject':error.code==='ELOOP');
+  const state=await fsPromises.lstat(target);
+  assert.equal(type==='directory'?state.isDirectory():state.isSymbolicLink(),true);
+  assert.equal(reopened.status().objectCount,1);
+  await reopened.close();
+});
+}
+
 test('ordinary Store reopen reads no unrelated immutable physical holding bodies', async t => {
   const setup = await fixture(t);
   const holdings = [];
