@@ -41,6 +41,8 @@ pub fn object_field_count(CanonicalValue) -> Int?
 
 pub fn object_fields(CanonicalValue) -> Array[(String, CanonicalValue)]?
 
+pub fn object_with_replaced_fields(CanonicalValue, Array[(String, CanonicalValue)]) -> CanonicalValue?
+
 pub fn object_with_string_field(CanonicalValue, String, String) -> CanonicalValue?
 
 pub fn object_without_field(CanonicalValue, String) -> CanonicalValue?
