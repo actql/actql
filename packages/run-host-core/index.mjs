@@ -19,6 +19,7 @@ const taskCompilations = new WeakMap();
 const effectPreparations = new WeakMap();
 const effectCompilations = new WeakMap();
 const effectAllowedRuns = new WeakMap();
+const effectCheckpointBindings = new WeakMap();
 const effectMaterialOwners = new WeakMap();
 const issuedEffectMaterials = new WeakMap();
 const requests = new WeakMap();
@@ -524,16 +525,31 @@ export function effectRunStartCurrent(allowed, definition, at) {
 export function effectReviewCheckpointBinding(allowed, definition, wire) {
   if (typeof wire !== 'string') throw new TypeError('InvalidRunHostCheckpointWire');
   const {value} = requireHandle(effectAllowedRuns, allowed);
-  const fields = checked(owner.clientValuesHostEffectCheckpointBinding(value,
+  const original = checked(owner.clientValuesHostAdmitEffectCheckpointBinding(value,
     requireHandle(definitions, definition), wire), 'RunHostEffectCheckpointBindingRejected');
+  const fields = checked(owner.clientValuesHostEffectCheckpointBindingFields(original),
+    'RunHostEffectCheckpointBindingRejected');
   if (!Array.isArray(fields) || fields.length !== 8 ||
       fields.some(field => typeof field !== 'string') ||
       [0, 4, 5, 6, 7].some(index => !/^sha256:[0-9a-f]{64}$/u.test(fields[index]))) {
     throw new Error('InvalidRunHostCheckpointBinding');
   }
-  return Object.freeze({checkpointCid: fields[0], checkpointWire: fields[1],
+  const binding = Object.freeze({checkpointCid: fields[0], checkpointWire: fields[1],
     runId: fields[2], unitId: fields[3], runDefinitionCid: fields[4],
     previewCid: fields[5], reviewProjectionCid: fields[6], continuationCid: fields[7]});
+  // Only this returned binding retains its nominal Checkpoint and exact
+  // original roots. It is neither a persistence receipt nor current authority.
+  effectCheckpointBindings.set(binding, {original, allowed, definition});
+  return binding;
+}
+
+/** Pure same-original facts; helpers and awaits do not re-admit the wire.
+ * Restored operations must obtain their own original binding. */
+export function effectReviewCheckpointBindingFacts(binding, allowed, definition) {
+  const original = effectCheckpointBindings.get(binding);
+  if (original === undefined || original.allowed !== allowed ||
+      original.definition !== definition) throw new TypeError('ForeignRunHostCheckpointBinding');
+  return binding;
 }
 
 /** Original checked member IDs, not Source grants or Effect authority. */

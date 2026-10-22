@@ -518,6 +518,8 @@ pub fn client_effect_result_import_observation_cid(ClientEffectResultImportObser
 
 pub fn client_effect_result_import_observation_json(ClientEffectResultImportObservation) -> String
 
+pub fn client_effect_review_checkpoint_binding_fields(@checkpoint_runtime.SealedCheckpoint) -> Result[Array[String], ClientEffectCheckpointBindingIssue]
+
 pub fn client_effect_review_checkpoint_members(ClientEffectAllowedRun, @run_publication.PublicationContract, String, @checkpoint_runtime.WireLimits, Int, Int) -> Result[Array[String], ClientEffectCheckpointMembersIssue]
 
 pub fn client_effect_review_checkpoint_unit_definition_cid(ClientEffectAllowedRun, @run_publication.PublicationContract, @checkpoint_runtime.SealedCheckpoint) -> Result[String, ClientEffectCheckpointBindingIssue]
