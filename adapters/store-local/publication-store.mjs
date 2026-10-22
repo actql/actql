@@ -1378,27 +1378,8 @@ async function openOriginalLocalPublicationStore(
 
   // Delivery coverage and pending recovery below own the selected entries.
   // Ordinary opens must not enumerate every historical delivery directory.
-  for (const name of await readOpeningDirectory(manifestReadsDirectory)) {
-    const path = resolve(manifestReadsDirectory, name);
-    if (name.startsWith('.staging-')) {
-      await removeOpeningTree(path, bootstrap);
-      continue;
-    }
-    if (!/^[0-9a-f]{64}$/u.test(name) || !(await lstat(path)).isDirectory()) {
-      fail('InvalidManifestReadStore');
-    }
-    for (const useName of await readOpeningDirectory(path)) {
-      if (useName.startsWith('.staging-')) {
-        await rm(resolve(path, useName), {force: false});
-        continue;
-      }
-      if (!/^[0-9a-f]{64}\.json$/u.test(useName) ||
-          !(await lstat(resolve(path, useName))).isFile()) {
-        fail('InvalidManifestReadStore');
-      }
-    }
-  }
-  await syncDirectory(manifestReadsDirectory);
+  // Manifest use admission and legacy staging recovery belong to the selected
+  // grant. Committed grants are not another all-history opening inventory.
   const openingMetadataDeletionNames = [];
   for (const name of await readOpeningDirectory(metadataDeletionsDirectory)) {
     const path = resolve(metadataDeletionsDirectory, name);
@@ -1469,6 +1450,7 @@ async function openOriginalLocalPublicationStore(
   // One bounded durability observation, not a retained contract or Allow.
   // Each public confirmation still acquires and checks its selected record.
   let lastConfirmedDeliveryRecord;
+  let lastConfirmedManifestRead;
   const durablyConfirmedClocks = new Map();
   const durablyConfirmedClockFiles = new Map();
   let deliveryAdmissionBusy = Promise.resolve();
@@ -4649,12 +4631,19 @@ async function openOriginalLocalPublicationStore(
       fail('InvalidManifestReadAttempt');
     }
     const operation = manifestReadAdmissionBusy.then(async () => {
+      for (const pending of activePhysicalRecordWriters) {
+        if (pending.failed) fail('PublicationStoreCleanupPending');
+      }
       const admitted = admitContract('manifest_read_grant', suppliedWire);
       const grant = parseContract(admitted);
       if (await runMetadataDeletionStarted(grant.run_definition_cid)) {
         fail('PublicationMetadataDeleted');
       }
-      await putPublicationContract('manifest_read_grant', admitted.wire);
+      await putAdmittedPublicationContract(admitted, grant);
+      const writer = {failed: false, cleanup: undefined};
+      activePhysicalRecordWriters.add(writer);
+      let retainedChild = false;
+      try {
       const directory = manifestReadGrantPath(admitted.identity);
       let createdDirectory = false;
       try {
@@ -4680,26 +4669,72 @@ async function openOriginalLocalPublicationStore(
           target, configuration.maxObjectBytes,
         );
         if (!existing.equals(bytes)) fail('ManifestReadAttemptConflict');
+        // Visibility after a lost sync reply is not durability. Only this
+        // Store's real ACK of the same immutable target avoids another ACK.
+        if (lastConfirmedManifestRead !== target) {
+          await syncDirectory(directory);
+          if (!(await readBounded(target, configuration.maxObjectBytes)).equals(bytes)) {
+            fail('ManifestReadAttemptConflict');
+          }
+          lastConfirmedManifestRead = target;
+        }
         return Object.freeze({grant, created: false, idempotent: true});
       } catch (error) {
         if (error?.code !== 'ENOENT') throw error;
       }
-      const uses = (await readdir(directory)).filter(name =>
-        /^[0-9a-f]{64}\.json$/u.test(name)).length;
-      if (uses >= grant.max_uses) fail('ManifestReadGrantUseLimit');
-      const staging = resolve(directory, `.staging-${randomUUID()}`);
-      try {
-        await writeExclusive(staging, bytes);
-        await rename(staging, target);
-        await syncDirectory(directory);
-      } catch (error) {
-        try { await unlink(staging); }
-        catch (cleanupError) {
-          if (cleanupError?.code !== 'ENOENT') throw cleanupError;
+      let uses = 0, recovered = false;
+      for (const name of await readdir(directory)) {
+        if (name.startsWith('.staging-')) {
+          await unlink(resolve(directory, name));
+          recovered = true;
+        } else {
+          if (!/^[0-9a-f]{64}\.json$/u.test(name) ||
+              !(await lstat(resolve(directory, name))).isFile()) {
+            fail('InvalidManifestReadStore');
+          }
+          uses++;
         }
-        throw error;
       }
+      if (recovered) await syncDirectory(directory);
+      if (uses >= grant.max_uses) fail('ManifestReadGrantUseLimit');
+      // Reuse the existing Store writer's FD/temporary/final-link custody.
+      // Future writes leave no private per-grant staging traversal at open.
+      await writePhysicalHoldingRecord(target, bytes, false, directory);
+      lastConfirmedManifestRead = target;
       return Object.freeze({grant, created: true, idempotent: false});
+      } catch (primary) {
+        const child = primary?.cleanupHandle;
+        if (child === undefined) throw primary;
+        const childStatus = child.status, childRetry = child.retry;
+        let pending = true, flight;
+        const failure = new PublicationStoreError('PublicationStoreCleanupPending', primary);
+        failure.primaryFailure = primary;
+        failure.cleanupPending = true;
+        writer.failed = retainedChild = true;
+        const status = () => Object.freeze({pending});
+        writer.cleanup = Object.freeze({status, retry() {
+          if (flight !== undefined) return flight;
+          if (!pending) return Promise.resolve(status());
+          flight = Promise.resolve().then(async () => {
+            if (typeof childStatus !== 'function' || typeof childRetry !== 'function') {
+              fail('PublicationStoreCleanupPending');
+            }
+            await Reflect.apply(childRetry, child, []);
+            const observation = await Reflect.apply(childStatus, child, []);
+            const descriptor = observation !== null && typeof observation === 'object'
+              ? Object.getOwnPropertyDescriptor(observation, 'pending') : undefined;
+            if (descriptor?.value !== false) fail('PublicationStoreCleanupPending');
+            pending = false;
+            activePhysicalRecordWriters.delete(writer);
+            return status();
+          }).finally(() => {failure.cleanupPending = pending; flight = undefined;});
+          return flight;
+        }});
+        failure.cleanupHandle = writer.cleanup;
+        throw failure;
+      } finally {
+        if (!retainedChild) activePhysicalRecordWriters.delete(writer);
+      }
     });
     manifestReadAdmissionBusy = operation.catch(() => {});
     return operation;
