@@ -46,6 +46,16 @@ directory readers or publication paths.
 
 ## Original opening directory custody
 
+Ordinary opening observes prepared-custody and pending physical-holding-deletion
+and Result-deletion directory names without mutating them. Committed holding
+and retention-extension namespaces are not enumerated at this boundary.
+Those read-only observations and unchanged namespaces
+need no new directory acknowledgement. This is not a durable-write shortcut:
+the selected custody unlink, holding installation/deletion, retention append
+and Result retirement retain their own actual acknowledgements. Pending
+recovery still owns its same cleanup, and a failed required ACK cannot become
+success merely because the containing directory was observed during opening.
+
 Directory durability during initial format and ownership acquisition keeps its
 original opened FD through false or rejected close. The failure exports the
 same close-only, single-flight cleanup facade, without reopening the pathname
@@ -105,8 +115,14 @@ the exclusive link leaves complete final bytes, not a new commit receipt.
 
 This does not repair a corrupt final record. Each selected holding read admits
 its bounded body against the exact requested holding CID before using it;
-unrelated immutable records are not all read at ordinary startup. Required
-pending-deletion recovery still reads its own original records and refuses
+unrelated immutable records are not all read at ordinary startup. Selected
+holding reads retain their own no-follow/nonblocking FD, regular-file,
+extent, generation and exact record-identity checks. Ordinary open does not
+enumerate or stat every committed holding name. A malformed or wrong-type
+unrelated entry is left intact; selecting it refuses rather than treating it as
+missing or repairing it. An actual pending cleanup may still inspect shared
+references when needed to retire its original allocation.
+Required pending-deletion recovery still reads its own original records and refuses
 invalid identity or bytes. No missing/empty record is interpreted as an
 unapplied operation, permission or cleanup success. Physical capacity accounting,
 other Store recovery and their actual acknowledgement duties are unchanged;
