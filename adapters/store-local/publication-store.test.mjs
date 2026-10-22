@@ -4925,7 +4925,7 @@ test('native publication inventory survives reopen and retires only its original
   await store.close();
   const reopened=await openLocalPublicationStore(configuration,contractControl);
   assert.equal((await reopened.lookupCommittedIndex(indexKeyFor(first.request),()=>true)).public_index_entry_cid,first.entry.public_index_entry_cid);
-  const retirement=await reopened.retireCommittedMetadata(indexKeyFor(first.request),'2027-01-01T00:00:00.000Z');
+  const retirement=await reopened.retireCommittedPublicationMetadata(indexKeyFor(first.request),'2027-01-01T00:00:00.000Z');
   assert.equal(retirement.cleanup.status().pending,false);
   await assert.rejects(reopened.lookupCommittedIndex(indexKeyFor(first.request),()=>true),code('PublicationLookupDenied'));
   assert.equal((await reopened.lookupCommittedIndex(indexKeyFor(second.request),()=>true)).public_index_entry_cid,second.entry.public_index_entry_cid);
