@@ -3707,7 +3707,7 @@ async function openOriginalLocalPublicationStore(
     return decoded;
   };
   const readPrivateEvidenceObject = async (
-    name, semanticCid, holdingCid, index = 0, objectCount = 1,
+    name, semanticCid, holdingCid, index = 0, objectCount = 1, originalHolding,
   ) => {
     active();
     if (typeof name !== 'string' || !/^[a-z][a-z0-9_]*$/u.test(name)) {
@@ -3724,10 +3724,13 @@ async function openOriginalLocalPublicationStore(
       // No plaintext or application callback escapes this private acquisition.
       // Admit the selected holding once; consume/hash its ciphertext once on
       // the original FD below, then authenticate AEAD before returning bytes.
-      if (await readPhysicalHoldingDeletion(holdingCid) !== undefined) {
-        fail('PublicationPrivateEvidenceUnavailable');
+      let holding = originalHolding;
+      if (holding === undefined) {
+        if (await readPhysicalHoldingDeletion(holdingCid) !== undefined) {
+          fail('PublicationPrivateEvidenceUnavailable');
+        }
+        holding = await readPhysicalHolding(holdingCid);
       }
-      const holding = await readPhysicalHolding(holdingCid);
       if (!privateEvidenceHolding(holding, name) ||
           holding.manifest_cid !== semanticCid ||
           holding.objects.length !== objectCount) {
@@ -3856,7 +3859,9 @@ async function openOriginalLocalPublicationStore(
   const validateModelRawBinding = binding => {
     if (!exactKeys(binding, [
       'semanticCid', 'holdingCid', 'wire', 'contentCid', 'byteCount',
-    ]) || typeof binding.wire !== 'string' ||
+    ])) fail('InvalidPublicationModelRawEvidence');
+    binding = Object.freeze({...binding});
+    if (typeof binding.wire !== 'string' ||
         Buffer.byteLength(binding.wire, 'utf8') > configuration.maxObjectBytes ||
         !quantity(binding.byteCount) ||
         binding.byteCount > configuration.maxObjectBytes) {
@@ -3865,6 +3870,7 @@ async function openOriginalLocalPublicationStore(
     for (const cid of [binding.semanticCid, binding.holdingCid, binding.contentCid]) {
       cidHex(cid);
     }
+    return binding;
   };
   const verifyModelRawBytes = (binding, bytes) => {
     if (!(bytes instanceof Uint8Array) || bytes.byteLength !== binding.byteCount ||
@@ -3875,7 +3881,7 @@ async function openOriginalLocalPublicationStore(
   };
   const prepareModelRawEvidence = async (binding, bytes) => {
     active();
-    validateModelRawBinding(binding);
+    binding = validateModelRawBinding(binding);
     verifyModelRawBytes(binding, bytes);
     // Hash and encrypt the same borrowed physical bytes before the first
     // await. No caller callback can change the content between these steps.
@@ -3921,34 +3927,45 @@ async function openOriginalLocalPublicationStore(
       throw failure;
     }
   };
-  const readModelRawEvidence = async binding => {
+  const readModelRawEvidenceOriginal = async (binding, confirm = false) => {
     active();
-    validateModelRawBinding(binding);
-    const record = await inspectPhysicalHolding(binding.holdingCid);
+    if (await readPhysicalHoldingDeletion(binding.holdingCid) !== undefined) return undefined;
+    const record = await readPhysicalHolding(binding.holdingCid);
     if (record === undefined) return undefined;
     if (record.namespace !== 'publication-private' ||
         record.manifest_cid !== binding.semanticCid || record.objects.length !== 2) {
       fail('PublicationPrivateEvidenceUnavailable');
     }
-    if (!exactUtf8WireMatches(await readPrivateEvidenceObject(
-      'model_raw_descriptor', binding.semanticCid, binding.holdingCid, 0, 2,
-    ), binding.wire)) {
-      fail('PublicationPrivateEvidenceConflict');
-    }
-    const bytes = await readPrivateEvidenceObject(
-      'model_raw_content', binding.semanticCid, binding.holdingCid, 1, 2,
-    );
-    verifyModelRawBytes(binding, bytes);
-    return bytes;
+    const release = retainPhysicalHoldingReader(binding.holdingCid);
+    try {
+      if (!exactUtf8WireMatches(await readPrivateEvidenceObject(
+        'model_raw_descriptor', binding.semanticCid, binding.holdingCid, 0, 2, record,
+      ), binding.wire)) {
+        fail('PublicationPrivateEvidenceConflict');
+      }
+      const bytes = await readPrivateEvidenceObject(
+        'model_raw_content', binding.semanticCid, binding.holdingCid, 1, 2, record,
+      );
+      verifyModelRawBytes(binding, bytes);
+      if (confirm) {
+        // This exact metadata and both payloads belong to the same operation.
+        // Confirmation still requires its original directory ACK and adoption.
+        await syncDirectory(physicalHoldingsDirectory);
+        await adoptPreparedObjects(record.objects.map(object => object.cid));
+      }
+      return Object.freeze({record, bytes});
+    } finally {release();}
+  };
+  const readModelRawEvidence = async binding => {
+    active();
+    return (await readModelRawEvidenceOriginal(validateModelRawBinding(binding)))?.bytes;
   };
   const confirmModelRawEvidence = async binding => {
-    const bytes = await readModelRawEvidence(binding);
-    if (bytes === undefined) return undefined;
-    const record = await inspectPhysicalHolding(binding.holdingCid);
-    // A readable directory link is not the nominal saved observation. The
-    // adapter may report saved only after this existing durability boundary.
-    await commitPhysicalHolding(record, []);
-    return Object.freeze({record, bytes});
+    active();
+    const original = validateModelRawBinding(binding);
+    const operation = materialRetentionBusy.then(() => readModelRawEvidenceOriginal(original, true));
+    materialRetentionBusy = operation.catch(() => {});
+    return operation;
   };
 
   // Availability of exact common-owner-admitted originals, not policy
@@ -6954,32 +6971,43 @@ async function openOriginalLocalPublicationStore(
     active();
     if (!exactKeys(binding, [
       'name', 'semanticCid', 'holdingCid', 'wire',
-    ]) || !['effect_preview', 'effect_capture', 'effect_catalog', 'credential_raw_observation', 'model_capture_bundle',
+    ])) fail('InvalidPublicationPrivateEvidence');
+    const original = Object.freeze({...binding});
+    if (!['effect_preview', 'effect_capture', 'effect_catalog', 'credential_raw_observation', 'model_capture_bundle',
       'model_slot_capture', 'model_invocation_evidence', 'model_call_attempt', 'model_attempt_accounting',
       'model_attempt_outcome', 'model_dispatch_authority', 'model_attachment_admission',
       'observation_set', 'run_invocation', 'source_evidence',
       'content_input_artifact', 'content_evidence', 'content_generation',
-      'installation_publication'].includes(binding.name) ||
-        typeof binding.wire !== 'string') {
+      'installation_publication'].includes(original.name) ||
+        typeof original.wire !== 'string') {
       fail('InvalidPublicationPrivateEvidence');
     }
-    cidHex(binding.semanticCid);
-    cidHex(binding.holdingCid);
-    const record = await inspectPhysicalHolding(binding.holdingCid);
-    if (record === undefined) return undefined;
-    if (record.namespace !== 'publication-private' ||
-        record.manifest_cid !== binding.semanticCid ||
-        record.objects.length !== 1) {
-      fail('PublicationPrivateEvidenceUnavailable');
-    }
-    const stored = await readPrivateEvidence(
-      binding.name, binding.semanticCid, binding.holdingCid,
-    );
-    if (!exactUtf8WireMatches(stored, binding.wire)) {
-      fail('PublicationPrivateEvidenceConflict');
-    }
-    await commitPhysicalHolding(record, []);
-    return record;
+    cidHex(original.semanticCid);
+    cidHex(original.holdingCid);
+    const operation = materialRetentionBusy.then(async () => {
+      active();
+      if (await readPhysicalHoldingDeletion(original.holdingCid) !== undefined) return undefined;
+      const record = await readPhysicalHolding(original.holdingCid);
+      if (record === undefined) return undefined;
+      if (record.namespace !== 'publication-private' ||
+          record.manifest_cid !== original.semanticCid || record.objects.length !== 1) {
+        fail('PublicationPrivateEvidenceUnavailable');
+      }
+      const release = retainPhysicalHoldingReader(original.holdingCid);
+      try {
+        const stored = await readPrivateEvidenceObject(
+          original.name, original.semanticCid, original.holdingCid, 0, 1, record,
+        );
+        if (!exactUtf8WireMatches(stored, original.wire)) fail('PublicationPrivateEvidenceConflict');
+        // The same serialized operation retains its actual read facts through
+        // the real directory ACK, excluding retirement until adoption finishes.
+        await syncDirectory(physicalHoldingsDirectory);
+        await adoptPreparedObjects(record.objects.map(object => object.cid));
+        return record;
+      } finally {release();}
+    });
+    materialRetentionBusy = operation.catch(() => {});
+    return operation;
   };
 
   const sharePhysicalHolding = async (sourceHoldingCid, value) => {
@@ -7061,16 +7089,13 @@ async function openOriginalLocalPublicationStore(
       await readPhysicalHoldingDeletion(holdingCid);
   };
 
-  // Private selected metadata only. Public consumers still perform their
-  // original full inspection before application callbacks can receive bytes.
-  const consumeSelectedPhysicalHolding = async (record, objectIndex, accept) => {
-    const holdingCid = record.holding_cid;
+  const retainPhysicalHoldingReader = holdingCid => {
     activePhysicalHoldingReaders.set(
       holdingCid,
       (activePhysicalHoldingReaders.get(holdingCid) ?? 0) + 1,
     );
     let released = false;
-    const closed = () => {
+    return () => {
       if (released) return;
       released = true;
       const remaining =
@@ -7078,6 +7103,12 @@ async function openOriginalLocalPublicationStore(
       if (remaining === 0) activePhysicalHoldingReaders.delete(holdingCid);
       else activePhysicalHoldingReaders.set(holdingCid, remaining);
     };
+  };
+
+  // Private selected metadata only. Public consumers still perform their
+  // original full inspection before application callbacks can receive bytes.
+  const consumeSelectedPhysicalHolding = async (record, objectIndex, accept) => {
+    const closed = retainPhysicalHoldingReader(record.holding_cid);
     return await consumeObject(record.objects[objectIndex].cid, accept, closed);
   };
 

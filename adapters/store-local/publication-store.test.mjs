@@ -1260,6 +1260,47 @@ test('Model raw confirmation reads each selected ciphertext once with the same d
   } finally {t.mock.restoreAll(); syncBuiltinESMExports();}
 });
 
+test('private confirmation keeps the existing reader and retirement scope through its real directory ACK', async t => {
+  const f = await privateReadFixture(t), actualOpen = fsPromises.open;
+  let reached, resume;
+  const atSync = new Promise(resolve => {reached = resolve;});
+  const paused = new Promise(resolve => {resume = resolve;});
+  let block = true, pending;
+  t.mock.method(fsPromises, 'open', async function(path, ...args) {
+    const handle = await Reflect.apply(actualOpen, this, [path, ...args]);
+    if (String(path) === join(f.directory, 'physical-holdings')) {
+      const sync = handle.sync;
+      t.mock.method(handle, 'sync', async function(...parameters) {
+        if (block) {block = false; reached(); await paused;}
+        return Reflect.apply(sync, this, parameters);
+      });
+    }
+    return handle;
+  });
+  syncBuiltinESMExports();
+  try {
+    pending = f.store.confirmPrivateEvidence({name: 'effect_preview', semanticCid: f.semanticCid,
+      holdingCid: f.holdingCid, wire: f.wire});
+    await atSync;
+    await assert.rejects(f.store.close(), code('PublicationStoreCleanupPending'));
+    let retired = false;
+    const retirement = f.store.retirePhysicalHolding(f.holdingCid).then(value => {retired = true; return value;});
+    await new Promise(resolve => setImmediate(resolve));
+    assert.equal(retired, false, 'The same retention queue excludes retirement before confirmation ACK');
+    assert.equal((await stat(f.payloadPath)).size, f.prepared.bytes);
+    resume();
+    assert.equal((await pending).holding_cid, f.holdingCid);
+    const result = await retirement;
+    if (result.cleanup.status().pending) await result.cleanup.retry();
+    assert.equal(result.cleanup.status().pending, false);
+    assert.equal(f.store.status().storedBytes, 0);
+  } finally {
+    resume();
+    if (pending !== undefined) await pending.catch(() => {});
+    t.mock.restoreAll(); syncBuiltinESMExports();
+  }
+});
+
 test('private evidence is encrypted, bound, and readable after restart',
   async t => {
     const suppliedKey = Buffer.alloc(32, 7);
