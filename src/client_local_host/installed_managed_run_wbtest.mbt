@@ -8,7 +8,7 @@ fn source_free_managed_prepared_fixture(
 ) -> @publication_host.PreparedClientProgram {
   let environment = @publication_host.admit_client_check_environment(
     source_query_original_environment,
-    "sha256:4ea01561b9ac9815baaf04a81cff8260c8a47c56f19828b5889cf45ec1436e78",
+    "sha256:05ee9059ef5f173069a3f3f1896e16ee62d34d0c842d81e9b0f8421db62e67a8",
     { text_time: false, veca: false, },
     { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
   ).unwrap()
