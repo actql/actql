@@ -797,6 +797,62 @@ test('publication Index original refuses conflicting body and invalid nominal co
   assert.equal(await prepared.prepared.release(), true);
 });
 
+test('Effectful commit inspection consumes only its original private Index observation', async () => {
+  // Execute the real inspector's pre-I/O admission prefix and its actual
+  // helpers. This is not complete Effect evidence or physical commit coverage.
+  const text = readFileSync(new URL('./publication-store.mjs', import.meta.url), 'utf8');
+  const wanted = new Set(['exactKeys', 'admitContract', 'parseContract', 'inspectEffectfulStoredEvidence']);
+  const declarations = new Map();
+  function visit(node) {
+    if (!node || typeof node !== 'object') return;
+    if (node.type === 'VariableDeclaration') for (const value of node.declarations) {
+      if (wanted.has(value.id.name)) {
+        assert(!declarations.has(value.id.name)); declarations.set(value.id.name, {node,value});
+      }
+    }
+    for (const value of Object.values(node)) {
+      if (Array.isArray(value)) value.forEach(visit);
+      else if (value && typeof value === 'object') visit(value);
+    }
+  }
+  visit(parse(text, {ecmaVersion:'latest',sourceType:'module'}));
+  assert.equal(declarations.size, wanted.size);
+  const inspector = declarations.get('inspectEffectfulStoredEvidence').value.init;
+  const boundary = inspector.body.body.find(node => node.type === 'VariableDeclaration' &&
+    node.declarations.some(value => value.id.name === 'request'));
+  assert(boundary);
+  const helpers = ['exactKeys','admitContract','parseContract'].map(name => {
+    const node = declarations.get(name).node; return text.slice(node.start,node.end);
+  }).join('\n');
+  let admissions = 0, active = 0;
+  const control = {...contractControl, admit(...args) {admissions++;return contractControl.admit(...args);},
+    ...Object.fromEntries(['effectfulCommitValid','effectPrivateEvidenceBinding',
+      'capturedEffectSourceHoldingCid','capturedEffectSourceArtifactCid','capturedEffectSourceStoreAuthorityCid']
+      .map(name=>[name,()=>assert.fail('No semantic or physical callback in the admission prefix')]))};
+  const prefix = compileFunction(helpers + '\nreturn (' + text.slice(inspector.start,inspector.body.start+1) +
+    text.slice(inspector.body.start+1,boundary.start) + '\nreturn {contract:admittedIndex,entry};});',
+    ['configuration','contractControl','contractLimits','fail','active','readSemanticOriginal'])(
+    {maxObjectBytes:limits.maxWireBytes}, control, limits,
+    code=>{throw Object.assign(new Error(code),{code});}, ()=>{active++;},
+    ()=>assert.fail('No physical read in the admission prefix'));
+  const original = contractControl.admit('public_index_entry', wire(indexEntry(publicationRequest(),publicationAttempt())), limits);
+  const observation = Object.freeze({contract:original,entry:JSON.parse(original.wire)});
+  const chain = Object.fromEntries(['runDefinition','invocation','definitions','artifacts','derivations',
+    'orderings','retentions','durableBindings','manifest','computationReceipt','capturedRun'].map(name=>
+    [name,['definitions','artifacts','derivations','orderings','retentions','durableBindings'].includes(name)?[]:{}]));
+  const args = {index:original,chain,preview:{},receipts:{setWire:'',memberWires:[],finalWire:''},
+    privateBinding:{name:'',semanticCid:'',holdingCid:'',wire:''},effectSources:[]};
+  const retained = await prefix(args, undefined, observation);
+  assert.strictEqual(retained.contract, original); assert.strictEqual(retained.entry, observation.entry);
+  assert.equal(admissions, 0); assert.equal(active, 1);
+  const external = await prefix(args);
+  assert.equal(external.contract.wire, original.wire); assert.notStrictEqual(external.entry, observation.entry);
+  assert.equal(admissions, 1, 'an external stored-evidence inspection keeps its full admission');
+  await assert.rejects(prefix({...args,index:Object.freeze({...original})},undefined,observation),
+    code('InvalidEffectfulStoredEvidence'));
+  assert.equal(admissions, 1, 'foreign private observation refuses rather than admitting it as an original');
+});
+
 test('publication inventory reuses only its newly acknowledged Index write within the commit', async t => {
   const {store, directory} = await fixture(t);
   const invocationValue = invocation();

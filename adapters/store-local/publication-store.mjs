@@ -5592,7 +5592,7 @@ async function openOriginalLocalPublicationStore(
   // chain; the Store confirms its public bodies and private physical holdings.
   // A caller cannot use this result as an apply or commit permit.
   const inspectEffectfulStoredEvidence = async ({index, chain, preview,
-    receipts, privateBinding, effectSources}, readOriginal = readSemanticOriginal) => {
+    receipts, privateBinding, effectSources}, readOriginal = readSemanticOriginal, retainedIndex) => {
     active();
     if (typeof contractControl.effectfulCommitValid !== 'function' ||
         typeof contractControl.effectPrivateEvidenceBinding !== 'function' ||
@@ -5618,11 +5618,15 @@ async function openOriginalLocalPublicationStore(
         ])) {
       fail('InvalidEffectfulStoredEvidence');
     }
-    const admittedIndex = admitContract('public_index_entry', index?.wire);
+    if (retainedIndex !== undefined && retainedIndex.contract !== index) {
+      fail('InvalidEffectfulStoredEvidence');
+    }
+    const admittedIndex = retainedIndex === undefined
+      ? admitContract('public_index_entry', index?.wire) : retainedIndex.contract;
     if (admittedIndex.identity !== index?.identity) {
       fail('InvalidEffectfulStoredEvidence');
     }
-    const entry = parseContract(admittedIndex);
+    const entry = retainedIndex === undefined ? parseContract(admittedIndex) : retainedIndex.entry;
     const request = (await readContract(
       entry.publication_request_cid, 'publication_request', readOriginal,
     )).contract;
@@ -5860,7 +5864,7 @@ async function openOriginalLocalPublicationStore(
       }
       const inspected = await inspectEffectfulStoredEvidence({
         ...effectfulEvidence, index: admitted,
-      }, readOriginal);
+      }, readOriginal, {contract: admitted, entry});
       for (const cid of [
         ...inspected.publicContractCids,
         ...inspected.sourceArtifactCids,
