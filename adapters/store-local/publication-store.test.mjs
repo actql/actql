@@ -1331,6 +1331,98 @@ test('trusted clock cache revalidates corrupt replacements', async t => {
     code('InvalidPublicationClockObservation'));
 });
 
+test('trusted clock warm write consumes its typed value without reopening its own body',async t=>{
+  const {store,directory,configuration}=await fixture(t);
+  const first='2026-09-18T01:00:00.000Z',next='2026-09-18T01:00:00.001Z';
+  await store.observeTrustedClock(cids.scope,first);
+  const path=join(directory,'clocks',cids.scope.slice(7)+'.json');
+  let opens=0,reads=0,syncs=0,closes=0;
+  const actualOpen=fsPromises.open;
+  t.mock.method(fsPromises,'open',async function(file,...args){
+    const handle=await Reflect.apply(actualOpen,this,[file,...args]);
+    if(String(file)===path) {
+      opens++;
+      const read=handle.read,readFile=handle.readFile,sync=handle.sync,close=handle.close;
+      handle.read=function(...values){reads++;return Reflect.apply(read,this,values);};
+      handle.readFile=function(...values){reads++;return Reflect.apply(readFile,this,values);};
+      handle.sync=function(...values){syncs++;return Reflect.apply(sync,this,values);};
+      handle.close=function(...values){closes++;return Reflect.apply(close,this,values);};
+    }
+    return handle;
+  });
+  syncBuiltinESMExports();
+  try {
+    assert.equal(await store.sampleTrustedClock(cids.scope,()=>next),next);
+    assert.equal(reads,0,'the same successful write is not a second wire admission');
+    assert.equal(opens,1);assert.equal(syncs,1);assert.equal(closes,1);
+    assert.deepEqual(await store.readClockObservation(cids.scope),{clockContractCid:cids.scope,observedAt:next});
+    assert.equal(reads,0,'the unchanged private snapshot remains typed after the write');
+  } finally {t.mock.restoreAll();syncBuiltinESMExports();}
+  const written=JSON.parse(await readFile(path,'utf8'));
+  assert.equal(written.observedAt,next);
+  assert.equal(written.contentSha256,createHash('sha256').update(JSON.stringify({clockContractCid:cids.scope,observedAt:next}),'utf8').digest('hex'));
+  await store.close();const reopened=await openLocalPublicationStore(configuration,contractControl);
+  await assert.rejects(reopened.observeTrustedClock(cids.scope,first),code('PublicationClockUncertain'));
+  assert.equal((await reopened.readClockObservation(cids.scope)).observedAt,next);await reopened.close();
+});
+
+test('trusted clock warm write refuses a changed original before accepting close',async t=>{
+  const {store,directory}=await fixture(t);
+  const first='2026-09-18T01:00:00.000Z',next='2026-09-18T01:00:00.001Z',changed='2026-09-18T01:00:00.002Z';
+  await store.observeTrustedClock(cids.scope,first);
+  const path=join(directory,'clocks',cids.scope.slice(7)+'.json');
+  let changedOnce=false;const actualOpen=fsPromises.open;
+  t.mock.method(fsPromises,'open',async function(file,...args){
+    const handle=await Reflect.apply(actualOpen,this,[file,...args]);
+    if(String(file)===path&&!changedOnce) {
+      const close=handle.close;
+      handle.close=async function(...values){
+        const result=await Reflect.apply(close,this,values);
+        if(!changedOnce) {
+          changedOnce=true;
+          const value={clockContractCid:cids.scope,observedAt:changed};
+          await writeFile(path,JSON.stringify({...value,contentSha256:createHash('sha256').update(JSON.stringify(value),'utf8').digest('hex')}));
+        }
+        return result;
+      };
+    }
+    return handle;
+  });
+  syncBuiltinESMExports();
+  try {await assert.rejects(store.observeTrustedClock(cids.scope,next),code('PublicationClockUncertain'));}
+  finally {t.mock.restoreAll();syncBuiltinESMExports();}
+  assert.equal(changedOnce,true);
+  await assert.rejects(store.observeTrustedClock(cids.scope,next),code('PublicationClockUncertain'));
+});
+
+test('trusted clock warm write retains its original failed close and floor',async t=>{
+  const {store,directory}=await fixture(t);
+  const first='2026-09-18T01:00:00.000Z',next='2026-09-18T01:00:00.001Z';
+  await store.observeTrustedClock(cids.scope,first);
+  const path=join(directory,'clocks',cids.scope.slice(7)+'.json');
+  let original,closes=0,failClose=true;const actualOpen=fsPromises.open;
+  t.mock.method(fsPromises,'open',async function(file,...args){
+    const handle=await Reflect.apply(actualOpen,this,[file,...args]);
+    if(String(file)===path) {
+      original=handle;const close=handle.close;
+      handle.close=function(...values){closes++;return failClose?false:Reflect.apply(close,this,values);};
+    }
+    return handle;
+  });
+  syncBuiltinESMExports();let failure;
+  try {
+    await assert.rejects(store.observeTrustedClock(cids.scope,next),error=>{
+      failure=error;return error.code==='PublicationStoreCleanupPending'&&error.cleanupHandle.status().pending===true;
+    });
+    assert(original);assert.equal(closes,2,'original attempt and original cleanup attempt both refuse');
+    await assert.rejects(store.sampleTrustedClock(cids.scope,()=>next),code('PublicationStoreCleanupPending'));
+    failClose=false;assert.equal((await failure.cleanupHandle.retry()).pending,false);
+    assert.equal(closes,3);
+  } finally {failClose=false;t.mock.restoreAll();syncBuiltinESMExports();}
+  assert.equal(await store.sampleTrustedClock(cids.scope,()=>next),next);
+  assert.equal((await store.readClockObservation(cids.scope)).observedAt,next);
+});
+
 test('prepared payload holdings reclaim only the final uncommitted owner',
   async t => {
     const {store} = await fixture(t);
@@ -3047,7 +3139,8 @@ test('delivery admission reads no unrelated attempts and admits its selected ori
 
 test('delivery admission retains corruption and metadata deletion refusals',
   async t => {
-    // Synthetic adapter corruption and retirement markers, not public history.
+    // Synthetic adapter corruption and a durable same-Store retirement fence,
+    // not public history or an issued delivery permission.
     const {store, directory} = await fixture(t);
     const root = deliveryFixture(1);
     const other = deliveryFixture(2);
@@ -3072,11 +3165,11 @@ test('delivery admission retains corruption and metadata deletion refusals',
     await assert.rejects(store.lookupDeliveryAttempt({...query,
       attemptId: damaged.attempt_id}), code('InvalidDeliveryAttempt'));
 
-    await writeFile(join(directory, 'metadata-deletions',
-      `${digest('synthetic retired Run').slice(7)}.json`), wire({
-      version: 'actql-local-publication-metadata-retired/0.1',
-      run_definition_cid: cids.run,
-    }));
+    const native=await openDeliveryAttemptIndex(join(directory,'delivery-attempts.sqlite3'),
+      {create:false,maxEntries:100,maxWireBytes:limits.maxWireBytes});
+    try {native.retireNativePublicationInventory(undefined,
+      {metadata_key:digest('synthetic retired Run').slice(7),run_cid:cids.run});}
+    finally{native.close();}
     for (const attempt of [retained, deliveryAttempt(root, 'after-retirement')]) {
       await assert.rejects(store.createDeliveryAttempt(
         wire(attempt), wire(root.grant),
@@ -3566,6 +3659,46 @@ test('metadata retirement preserves a second Run prepared schema owner',
       code('PublicationContractMissing'));
   });
 
+test('Result consumption retains its reader until the same failed FD close acknowledges',async t=>{
+  const {store,directory}=await fixture(t);
+  const invocationValue=invocation(),request=publicationRequest(resultDefinition(),invocationValue.invocation_cid);
+  const attempt=publicationAttempt(request),prepared=await prepareCommit(store,request,attempt,invocationValue);
+  const entry=indexEntry(request,attempt,invocationValue,{durable_result_binding_cids:[prepared.binding.identity]});
+  await store.commitIndex(wire(entry),prepared.required,prepared.evidence);
+  const binding=JSON.parse(prepared.binding.wire),path=join(directory,'objects',binding.material_generation_cid.slice(7));
+  const actualOpen=fsPromises.open;
+  let opens=0,streamCloseCalls=0,allowClose=false,failure;
+  t.mock.method(fsPromises,'open',async function(file,...args){
+    const handle=await Reflect.apply(actualOpen,this,[file,...args]);
+    if(String(file)===path&&++opens===2) {
+      // The first actual FD verifies the binding. This second original is
+      // the consuming FD whose failed close must retain the Result reader.
+      const close=handle.close;
+      handle.close=function(...values){streamCloseCalls++;return allowClose?Reflect.apply(close,this,values):false;};
+    }
+    return handle;
+  });
+  syncBuiltinESMExports();
+  try {
+    await assert.rejects(store.consumeCommittedResult(indexKeyFor(request),binding.result_definition_cid,
+      ()=>true,()=>{}),error=>{
+      failure=error;return error.code==='PublicationStoreCleanupPending'&&error.cleanupHandle?.status().pending===true;
+    });
+    assert.equal(streamCloseCalls,1);assert.equal(opens,2);
+    await assert.rejects(store.close(),code('PublicationStoreCleanupPending'));
+    assert.equal(store.status().closed,false);
+    assert.equal(failure.cleanupHandle.status().pending,true);
+    allowClose=true;assert.equal((await failure.cleanupHandle.retry()).pending,false);
+    assert.equal(streamCloseCalls,2);assert.equal(opens,2,'retry never reopens the generation');
+    assert.equal(await store.close(),true);
+  } finally {
+    // Even the original red assertion must close its real consuming FD
+    // before fixture directory teardown; this is test-owned cleanup only.
+    allowClose=true;if(failure?.cleanupHandle?.status().pending)await failure.cleanupHandle.retry();
+    t.mock.restoreAll();syncBuiltinESMExports();
+  }
+});
+
 test('durable Result retirement blocks new reads and waits for active readers',
   async t => {
     const {store, configuration} = await fixture(t);
@@ -3810,15 +3943,10 @@ test('metadata retirement hides the Run and reclaims its durable chain',
     const deletionNames = await readdir(join(
       configuration.directory, 'metadata-deletions',
     ));
-    assert.equal(deletionNames.length, 1);
-    assert.deepEqual(JSON.parse(await readFile(join(
-      configuration.directory,
-      'metadata-deletions',
-      deletionNames[0],
-    ), 'utf8')), {
-      version: 'actql-local-publication-metadata-retired/0.1',
-      run_definition_cid: request.run_definition_cid,
-    });
+    assert.deepEqual(deletionNames, []);
+    const fences=new DatabaseSync(join(configuration.directory,'delivery-attempts.sqlite3'),{readOnly:true});
+    try{assert.deepEqual({...fences.prepare('SELECT run_cid,retired FROM metadata_deletion_fences').get()},
+      {run_cid:request.run_definition_cid,retired:1});}finally{fences.close();}
     assert.equal(await store.inspectCommittedIndex(
       indexKeyFor(request),
     ), undefined);
@@ -3913,15 +4041,10 @@ test('metadata retirement retains capacity until durability retry', async t => {
   assert.equal(retried.errors.length, 1);
   assert.equal(store.status().storedBytes, 0);
   assert.equal(store.status().objectCount, 0);
-  const retiredMarker = JSON.parse(await readFile(join(
-    directory,
-    'metadata-deletions',
-    (await readdir(join(directory, 'metadata-deletions')))[0],
-  ), 'utf8'));
-  assert.deepEqual(retiredMarker, {
-    version: 'actql-local-publication-metadata-retired/0.1',
-    run_definition_cid: request.run_definition_cid,
-  });
+  assert.deepEqual(await readdir(join(directory,'metadata-deletions')),[]);
+  const fences=new DatabaseSync(join(directory,'delivery-attempts.sqlite3'),{readOnly:true});
+  try{assert.deepEqual({...fences.prepare('SELECT run_cid,retired FROM metadata_deletion_fences').get()},
+    {run_cid:request.run_definition_cid,retired:1});}finally{fences.close();}
   assert.equal(await store.close(), true);
 });
 
@@ -5044,6 +5167,96 @@ test('native publication inventory survives reopen and retires only its original
   await reopened.close();
 });
 
+test('metadata deletion history is indexed once and unrelated Run operations read no marker bodies',async t=>{
+  const {store,directory,configuration}=await fixture(t);await store.close();
+  // Model the actual prior private version and its compact retired files.
+  const db=new DatabaseSync(join(directory,'delivery-attempts.sqlite3'));
+  try{db.exec('DROP TABLE metadata_deletion_fences; DROP TABLE metadata_deletion_fence_coverage; UPDATE coverage SET version=7 WHERE id=1');}
+  finally{db.close();}
+  const history=Array.from({length:12},(_,i)=>({key:digest(`retired key ${i}`).slice(7),run:digest(`retired Run ${i}`)}));
+  for(const row of history)await writeFile(join(directory,'metadata-deletions',row.key+'.json'),wire({
+    version:'actql-local-publication-metadata-retired/0.1',run_definition_cid:row.run}));
+  const migrated=await openLocalPublicationStore(configuration,contractControl);
+  assert.deepEqual(await readdir(join(directory,'metadata-deletions')),[]);await migrated.close();
+  let reads=0,historyEnumerations=0;
+  const actualOpen=fsPromises.open,actualReaddir=fsPromises.readdir;
+  t.mock.method(fsPromises,'open',function(path,...args){
+    if(String(path).startsWith(join(directory,'metadata-deletions')+sep))reads++;
+    return Reflect.apply(actualOpen,this,[path,...args]);
+  });
+  t.mock.method(fsPromises,'readdir',function(path,...args){
+    if(String(path)===join(directory,'metadata-deletions'))historyEnumerations++;
+    return Reflect.apply(actualReaddir,this,[path,...args]);
+  });
+  syncBuiltinESMExports();t.after(()=>{t.mock.restoreAll();syncBuiltinESMExports();});
+  const reopened=await openLocalPublicationStore(configuration,contractControl);
+  assert.equal(reads,0,'ordinary reopen does not read retired metadata history');
+  historyEnumerations=0;
+  const request=publicationRequest(resultDefinition(),digest('unrelated current Run'));
+  await reopened.createAttempt(wire(publicationAttempt(request,'target-only')));
+  assert.equal(historyEnumerations,0);assert.equal(reads,0);
+  const denied={...request,run_definition_cid:history[7].run};
+  await assert.rejects(reopened.createAttempt(wire(publicationAttempt(denied,'same retired Run'))),code('PublicationMetadataDeleted'));
+  assert.equal(reads,0);await reopened.close();
+});
+
+test('metadata deletion keeps the same cleanup after native retirement and lost marker directory ACK',async t=>{
+  const {store,directory,configuration}=await fixture(t);
+  const invocationValue=invocation(),request=publicationRequest(resultDefinition(),invocationValue.invocation_cid);
+  const attempt=publicationAttempt(request),prepared=await prepareCommit(store,request,attempt,invocationValue);
+  const entry=indexEntry(request,attempt,invocationValue,{durable_result_binding_cids:[prepared.binding.identity]});
+  await store.commitIndex(wire(entry),prepared.required,prepared.evidence);await store.close();
+  let lost=false,armed=false;
+  const reopened=await openLocalPublicationStore(configuration,contractControl,{async syncDirectory(path){
+    if(armed&&!lost&&path===join(directory,'metadata-deletions')&&(await readdir(path)).length===0){
+      lost=true;throw Object.assign(new Error('lost final marker directory ACK'),{code:'EIO'});
+    }
+    const handle=await open(path,'r');try{await handle.sync();}finally{await handle.close();}
+  }});
+  armed=true;
+  const retired=await reopened.retireCommittedPublicationMetadata(indexKeyFor(request),'2027-01-01T00:00:00.000Z');
+  assert.equal(lost,true);assert.equal(retired.cleanup.status().pending,true);
+  const again=await reopened.retireCommittedPublicationMetadata(indexKeyFor(request),'2027-01-01T00:00:01.000Z');
+  assert.equal(again.cleanup,retired.cleanup);assert.equal(again.deleted,false);
+  await assert.rejects(reopened.close(),code('PublicationStoreCleanupPending'));
+  assert.equal((await again.cleanup.retry()).pending,false);
+  assert.equal((await reopened.retireCommittedPublicationMetadata(indexKeyFor(request),'2027-01-01T00:00:02.000Z')).deleted,true);
+  await reopened.close();
+});
+
+for(const phase of ['transfer','completion']) {
+test(`metadata deletion ${phase} Unknown retains the actual Store cleanup original`,async t=>{
+  let armed=false,lost=false,request;
+  const exec=DatabaseSync.prototype.exec;
+  t.mock.method(DatabaseSync.prototype,'exec',function(sql){
+    if(armed&&!lost&&sql==='COMMIT') {
+      const fence=this.prepare('SELECT retired FROM metadata_deletion_fences WHERE run_cid=?').get(request.run_definition_cid);
+      if(fence?.retired===(phase==='transfer'?0:1)) {
+        lost=true;Reflect.apply(exec,this,[sql]);
+        throw Object.assign(new Error('lost original Store metadata '+phase+' reply'),{code:'EIO'});
+      }
+    }
+    return Reflect.apply(exec,this,[sql]);
+  });
+  // Install the fault before opening: the real Store captures its original
+  // native exec and must not dispatch through a later prototype replacement.
+  const {store,directory}=await fixture(t);
+  const invocationValue=invocation();request=publicationRequest(resultDefinition(),invocationValue.invocation_cid);
+  const attempt=publicationAttempt(request),prepared=await prepareCommit(store,request,attempt,invocationValue);
+  const entry=indexEntry(request,attempt,invocationValue,{durable_result_binding_cids:[prepared.binding.identity]});
+  await store.commitIndex(wire(entry),prepared.required,prepared.evidence);armed=true;
+  const retired=await store.retireCommittedPublicationMetadata(indexKeyFor(request),'2027-01-01T00:00:00.000Z');
+  assert.equal(lost,true);assert.equal(retired.cleanup.status().pending,true);
+  const again=await store.retireCommittedPublicationMetadata(indexKeyFor(request),'2027-01-01T00:00:01.000Z');
+  assert.equal(again.cleanup,retired.cleanup);
+  await assert.rejects(store.close(),code('PublicationStoreCleanupPending'));
+  assert.equal((await retired.cleanup.retry()).pending,false);armed=false;
+  assert.deepEqual(await readdir(join(directory,'metadata-deletions')),[]);
+  assert.equal(await store.inspectCommittedIndex(indexKeyFor(request)),undefined);
+  await store.close();
+});
+}
+
 test('native publication inventories retain one shared physical holding until its final original ACK',async t=>{
   const setup=await fixture(t),{store,directory,configuration}=setup;
   const publish=async label=>{
@@ -5211,7 +5424,7 @@ test('publication recovery migrates the legacy inventory once and preserves adop
   // Reconstruct only this new disposable fixture's exact prior private format.
   const path=join(setup.directory,'delivery-attempts.sqlite3');
   const old=new DatabaseSync(path);
-  try{old.exec('DROP TABLE native_publication_inventories; DROP TABLE native_publication_inventory_usage; DROP TABLE pending_publications; DROP TABLE publication_recovery; UPDATE coverage SET version=5 WHERE id=1');}
+  try{old.exec('DROP TABLE metadata_deletion_fences; DROP TABLE metadata_deletion_fence_coverage; DROP TABLE native_publication_inventories; DROP TABLE native_publication_inventory_usage; DROP TABLE pending_publications; DROP TABLE publication_recovery; UPDATE coverage SET version=5 WHERE id=1');}
   finally{old.close();}
   const originalOpen=fsPromises.open,reads=[];
   t.mock.method(fsPromises,'open',function(path,...args){reads.push(String(path));return Reflect.apply(originalOpen,this,[path,...args]);});

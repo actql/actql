@@ -175,7 +175,45 @@ and its pending lookup together. Same-original Unknown confirmation is retained.
 Shared contract and holding cleanup checks both representations before reclaim;
 this does not eliminate the remaining shared-reference history work.
 
+### Indexed Run metadata retirement
+
+The same private database keeps a minimal retirement fence keyed by the complete
+metadata key, with an index over the original Run CID. Delivery and publication
+operations select that Run alone; they do not enumerate or parse other retired
+Runs. The fence denies the whole Run as before, independently of namespace or
+Result permission. It is not authorization, capacity or a physical cleanup ACK.
+
+A full deletion marker remains the original pending physical cleanup inventory.
+After its actual file and directory ACK, its native fence is staged in the same
+transaction that transfers the native publication inventory. A same-lifetime
+intent conservatively hides that Run before the transfer ACK. A lost native
+reply retains the exact original inventory and fence for confirmation before
+other native reads; a legacy file inventory may transfer without a native body.
+
+Only after the original cleanup completes does the native fence record retirement.
+The full marker is then unlinked and its directory really acknowledged. A failed
+final ACK retains the same cleanup even if the marker is absent and the native
+row is already retired. Retry does not manufacture success from either fact.
+Completed fences retain only metadata key, Run and retirement state, not the
+deleted metadata bodies. They do not permit re-creation of that Run.
+
+An additive format transition reads prior full and compact marker files once,
+in bounded native batches. Durable coverage is completed before redundant compact
+files are removed. Interrupted migration resumes the same tuples idempotently;
+missing adopted tables or incomplete coverage never mean not-found. Subsequent
+opens recover pending physical markers only. Other quota and shared-reference
+history work remains separate; this is not fully history-independent startup.
+
 ## Same-owner cleanup and inventory
+
+A scoped Result reader retires only after both its use callback ends and its
+actual consuming FD closes. The existing consume operation's original close
+notification cuts that same generation-reader reference. Failed close leaves
+the existing cleanup handle responsible, even after the caller receives an
+error; Store close and Result deletion remain blocked by the retained reader.
+Retry closes the same FD without reopening, rereading or repeating a sink.
+No-consume completion and failure before FD acquisition release only their
+scope reference; a successful sibling reader cannot retire this duty twice.
 
 The existing Store retains each active metadata writer's record in its private
 writer set before opening its staging FD. Holding publication keeps its existing
@@ -219,6 +257,21 @@ Append-only CAS, new-directory durability and deletion/restart cleanup retain
 their existing transitions. The retention root's existing opening ACK remains
 separate; it is not a per-history acknowledgement or a minimum barrier allowance.
 This localization does not remove payload quota or other recovery history work.
+### Trusted clock write observation
+
+A warm fixed-length clock update consumes its already typed observation after
+the same original file completes write, sync and close. Post-sync FD state and
+post-close path state must agree in device, inode, size, modification and change
+time. A changed original refuses; a failed close retains the original writer
+and retry. The successful write is not reopened, parsed or hashed as a second
+wire input. The retained observation is private and immutable.
+
+Each later operation still checks the current physical version; changed bytes
+receive ordinary bounded checksum/time admission. Confirmed-floor loss,
+rollback, corrupt replacement and unknown durability remain refusal. No write,
+sync, close or cold directory acknowledgement is omitted. The no-write flush
+and cold/legacy replacement protocol retain their existing post-ACK read; this
+optimization introduces no new cold confirmation filesystem operations.
 
 A Result description selects its committed Index and exact Result Binding once.
 The description, binding inventory and retention-extension lookup consume those

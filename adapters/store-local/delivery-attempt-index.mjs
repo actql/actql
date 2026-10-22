@@ -6,7 +6,15 @@ import {createSqliteTransaction} from '../host-common/sqlite-transaction.mjs';
 
 const fail = (code, cause) => { throw Object.assign(new Error(code, {cause}), {code}); };
 const cid = value => typeof value === 'string' && /^sha256:[0-9a-f]{64}$/u.test(value);
-const version = 7;
+const version = 8;
+const metadataFenceTable = `CREATE TABLE metadata_deletion_fences (
+  metadata_key TEXT PRIMARY KEY, run_cid TEXT NOT NULL,
+  retired INTEGER NOT NULL CHECK(retired IN (0,1))
+) WITHOUT ROWID`;
+const metadataFenceCoverageTable = `CREATE TABLE metadata_deletion_fence_coverage (
+  id INTEGER PRIMARY KEY CHECK(id=1), complete INTEGER NOT NULL CHECK(complete IN (0,1)),
+  ack_revision INTEGER NOT NULL CHECK(ack_revision>=1 AND ack_revision<=9007199254740991)
+)`;
 const nativeInventoryTable = `CREATE TABLE native_publication_inventories (
   public_index_cid TEXT PRIMARY KEY, inventory_wire TEXT NOT NULL
 ) WITHOUT ROWID`;
@@ -138,7 +146,7 @@ export async function openDeliveryAttemptIndex(path, {create, maxEntries, maxWir
       exec(`CREATE TABLE coverage (
         id INTEGER PRIMARY KEY CHECK(id=1), version INTEGER NOT NULL,
         complete INTEGER NOT NULL CHECK(complete IN (0,1)), entries INTEGER NOT NULL);
-        INSERT INTO coverage VALUES(1,7,0,0);
+        INSERT INTO coverage VALUES(1,8,0,0);
         CREATE TABLE attempts (
           logical_key TEXT PRIMARY KEY, attempt_cid TEXT NOT NULL UNIQUE,
           grant_cid TEXT NOT NULL, run_cid TEXT NOT NULL,
@@ -156,13 +164,16 @@ export async function openDeliveryAttemptIndex(path, {create, maxEntries, maxWir
         ${completionTable}; ${publicationTable}; ${publicationUsageTable};
         ${publicationRecoveryTable}; ${pendingPublicationTable};
         ${nativeInventoryTable}; ${nativeInventoryUsageTable};
+        ${metadataFenceTable}; ${metadataFenceCoverageTable};
+        CREATE INDEX metadata_deletion_runs ON metadata_deletion_fences(run_cid);
+        INSERT INTO metadata_deletion_fence_coverage VALUES(1,0,1);
         INSERT INTO native_publication_inventory_usage VALUES(1,0,1);
         INSERT INTO publication_recovery VALUES(1,0,0,1);
         INSERT INTO publication_usage VALUES(1,0,0,1);`);
     });
     const state = prepare('SELECT version,complete,entries FROM coverage WHERE id=1');
     const selected = state.get();
-    if (![1,2,3,4,5,6,version].includes(selected?.version) || ![0,1].includes(selected.complete) ||
+    if (![1,2,3,4,5,6,7,version].includes(selected?.version) || ![0,1].includes(selected.complete) ||
         !Number.isSafeInteger(selected.entries) || selected.entries < 0 || selected.entries > maxEntries) {
       fail('DeliveryAttemptIndexUnavailable');
     }
@@ -236,7 +247,27 @@ export async function openDeliveryAttemptIndex(path, {create, maxEntries, maxWir
         fail('DeliveryAttemptIndexUnavailable');
       }
     }
+    if (selected.version < 8) transaction.run(() => {
+      exec(`${metadataFenceTable}; ${metadataFenceCoverageTable};
+        CREATE INDEX metadata_deletion_runs ON metadata_deletion_fences(run_cid);
+        INSERT INTO metadata_deletion_fence_coverage VALUES(1,0,1);
+        UPDATE coverage SET version=8 WHERE id=1;`);
+    });
+    for (const [name,sql] of [['metadata_deletion_fences',metadataFenceTable],
+      ['metadata_deletion_fence_coverage',metadataFenceCoverageTable]]) {
+      if (prepare("SELECT sql FROM sqlite_schema WHERE type='table' AND name=?").get(name)?.sql !== sql) {
+        fail('DeliveryAttemptIndexUnavailable');
+      }
+    }
+    if (prepare("SELECT sql FROM sqlite_schema WHERE type='index' AND name='metadata_deletion_runs'").get()?.sql !==
+        'CREATE INDEX metadata_deletion_runs ON metadata_deletion_fences(run_cid)') fail('DeliveryAttemptIndexUnavailable');
     let complete = selected.complete === 1;
+    const metadataFence = prepare('SELECT * FROM metadata_deletion_fences WHERE metadata_key=?');
+    const runMetadataFence = prepare('SELECT * FROM metadata_deletion_fences WHERE run_cid=? LIMIT 1');
+    const insertMetadataFence = prepare('INSERT INTO metadata_deletion_fences VALUES(?,?,?)');
+    const retireMetadataFence = prepare('UPDATE metadata_deletion_fences SET retired=1 WHERE metadata_key=? AND run_cid=?');
+    const metadataFenceCoverage = prepare('SELECT complete,ack_revision FROM metadata_deletion_fence_coverage WHERE id=1');
+    const acknowledgeMetadataFences = prepare('UPDATE metadata_deletion_fence_coverage SET ack_revision=ack_revision+1 WHERE id=1');
     const nativeInventory = prepare('SELECT * FROM native_publication_inventories WHERE public_index_cid=?');
     const nativeInventories = prepare('SELECT * FROM native_publication_inventories ORDER BY public_index_cid LIMIT ?');
     const insertNativeInventory = prepare('INSERT INTO native_publication_inventories VALUES(?,?)');
@@ -286,7 +317,7 @@ export async function openDeliveryAttemptIndex(path, {create, maxEntries, maxWir
     const remove = prepare('DELETE FROM attempts WHERE run_cid=?');
     const updateCount = prepare('UPDATE coverage SET entries=entries+? WHERE id=1');
     let uncertain = false, uncertainRemoval, uncertainCompletion, uncertainInitial, confirmedRecord,
-      uncertainPublication, uncertainPublicationRecovery;
+      uncertainPublication, uncertainPublicationRecovery, uncertainMetadataFence;
     const run = body => {
       if (mutating) fail('DeliveryAttemptIndexBusy');
       mutating = true;
@@ -376,28 +407,58 @@ export async function openDeliveryAttemptIndex(path, {create, maxEntries, maxWir
           !Number.isSafeInteger(row.ack_revision) || row.ack_revision<1) fail('DeliveryAttemptIndexUnavailable');
       return row;
     };
-    const mutatePublicationRecovery = (kind,value) => {
-      const original=recoveryOriginal(value);
+    const fenceOriginal = value => {
+      if (!value || typeof value.metadata_key !== 'string' || !/^[0-9a-f]{64}$/u.test(value.metadata_key) ||
+          !cid(value.run_cid)) fail('InvalidDeliveryAttemptIndex');
+      return Object.freeze({metadata_key:value.metadata_key,run_cid:value.run_cid});
+    };
+    const sameFence = (left,right) => left === undefined ? right === undefined :
+      right !== undefined && left.metadata_key === right.metadata_key && left.run_cid === right.run_cid;
+    const fenceCopy = value => {
+      if (value === undefined) return undefined;
+      const original = fenceOriginal(value);
+      if (![0,1].includes(value.retired)) fail('InvalidDeliveryAttemptIndex');
+      return Object.freeze({...original,retired:value.retired});
+    };
+    const fenceState = (ready = true) => {
+      const row = metadataFenceCoverage.get();
+      if (!row || ![0,1].includes(row.complete) || !Number.isSafeInteger(row.ack_revision) ||
+          row.ack_revision < 1 || ready && row.complete !== 1) fail('DeliveryAttemptIndexUnavailable');
+      return row;
+    };
+    const checkFence = original => {
+      const existing = fenceCopy(metadataFence.get(original.metadata_key));
+      if (existing !== undefined && !sameFence(existing,original)) fail('PublicationMetadataDeletionConflict');
+      return existing;
+    };
+    const mutatePublicationRecovery = (kind,value,suppliedFence) => {
+      const fence = suppliedFence === undefined ? undefined : fenceOriginal(suppliedFence);
+      const original = value === undefined && kind === 'retire-native' && fence !== undefined
+        ? undefined : recoveryOriginal(value);
       const retry=uncertain && uncertainPublicationRecovery?.kind===kind &&
-        sameRecoveryOriginal(uncertainPublicationRecovery.original,original);
+        (original === undefined ? uncertainPublicationRecovery.original === undefined :
+          sameRecoveryOriginal(uncertainPublicationRecovery.original,original)) &&
+        sameFence(uncertainPublicationRecovery.fence,fence);
       if (retry) {
         if (closed||closing||mutating||!complete) fail('DeliveryAttemptIndexCleanupPending');
         transaction.assertUsable();
       } else requireComplete();
       const state=recoveryState();
       if (state.complete!==1) fail('DeliveryAttemptIndexUnavailable');
-      const existing=pendingPublication.get(original.public_index_cid);
+      const priorFence = fence === undefined ? undefined : (fenceState(),checkFence(fence));
+      const existing=original === undefined ? undefined : pendingPublication.get(original.public_index_cid);
       if (existing!==undefined && !sameRecoveryOriginal(recoveryOriginal(existing),original)) {
         fail('PublicationMetadataInventoryConflict');
       }
-      const native=nativeInventory.get(original.public_index_cid);
+      const native=original === undefined ? undefined : nativeInventory.get(original.public_index_cid);
       if (native!==undefined && !sameRecoveryOriginal(recoveryOriginal(native),original)) {
         fail('PublicationMetadataInventoryConflict');
       }
       const stage=kind==='stage'||kind==='stage-native',retire=kind==='retire-native';
       const usage=inventoryUsage();
       if (!retry && (stage ? existing!==undefined && (kind!=='stage-native'||native!==undefined)
-          : existing===undefined && (!retire||native===undefined))) return original;
+          : existing===undefined && (!retire||native===undefined)) &&
+          (fence === undefined || priorFence !== undefined)) return original;
       if (stage && existing===undefined && state.entries>=maxEntries ||
           kind==='stage-native' && native===undefined && usage.entries>=maxEntries) fail('DeliveryAttemptIndexLimit');
       try {
@@ -405,11 +466,12 @@ export async function openDeliveryAttemptIndex(path, {create, maxEntries, maxWir
           let change=0;
           if (stage && existing===undefined) {
             insertPendingPublication.run(original.public_index_cid,original.inventory_wire);change=1;
-          } else if (!stage) change=-removePendingPublication.run(original.public_index_cid).changes;
+          } else if (!stage && original !== undefined) change=-removePendingPublication.run(original.public_index_cid).changes;
           let nativeChange=0;
           if (kind==='stage-native' && native===undefined) {
             insertNativeInventory.run(original.public_index_cid,original.inventory_wire);nativeChange=1;
-          } else if (retire) nativeChange=-removeNativeInventory.run(original.public_index_cid).changes;
+          } else if (retire && original !== undefined) nativeChange=-removeNativeInventory.run(original.public_index_cid).changes;
+          if (fence !== undefined && priorFence === undefined) insertMetadataFence.run(fence.metadata_key,fence.run_cid,0);
           if ((kind==='stage-native'||retire) && updateNativeInventoryUsage.run(nativeChange).changes!==1) {
             fail('DeliveryAttemptIndexUnavailable');
           }
@@ -419,7 +481,7 @@ export async function openDeliveryAttemptIndex(path, {create, maxEntries, maxWir
         });
         if (retry) {uncertain=false;uncertainPublicationRecovery=undefined;}
       } catch (error) {
-        if (error?.outcome==='unknown') uncertainPublicationRecovery=Object.freeze({kind,original});
+        if (error?.outcome==='unknown') uncertainPublicationRecovery=Object.freeze({kind,original,fence});
         throw error;
       }
       return original;
@@ -509,7 +571,61 @@ export async function openDeliveryAttemptIndex(path, {create, maxEntries, maxWir
       stagePublicationInventory(value) { return mutatePublicationRecovery('stage',value); },
       stageNativePublicationInventory(value) { return mutatePublicationRecovery('stage-native',value); },
       finishPublicationInventory(value) { return mutatePublicationRecovery('finish',value); },
-      retireNativePublicationInventory(value) { return mutatePublicationRecovery('retire-native',value); },
+      retireNativePublicationInventory(value,fence) { return mutatePublicationRecovery('retire-native',value,fence); },
+      needsMetadataDeletionFenceMigration() { requireComplete();return fenceState(false).complete===0; },
+      migrateMetadataDeletionFences(values,finished=false) {
+        requireComplete();
+        if (fenceState(false).complete !== 0) fail('DeliveryAttemptIndexAlreadyComplete');
+        if (!Array.isArray(values) || values.length > Math.max(1,maxEntries) || typeof finished !== 'boolean') {
+          fail('DeliveryAttemptIndexLimit');
+        }
+        const rows=values.map(fenceCopy),keys=new Set(rows.map(row=>row?.metadata_key));
+        if(rows.some(row=>row===undefined)||keys.size!==rows.length) fail('InvalidDeliveryAttemptIndex');
+        run(()=>{
+          for(const row of rows) {
+            const prior=checkFence(row);
+            if(prior===undefined)insertMetadataFence.run(row.metadata_key,row.run_cid,row.retired);
+            else if(row.retired===1)retireMetadataFence.run(row.metadata_key,row.run_cid);
+          }
+          if(finished) {
+            if(prepare('UPDATE metadata_deletion_fence_coverage SET complete=1,ack_revision=ack_revision+1 WHERE id=1 AND complete=0')
+              .run().changes!==1)fail('DeliveryAttemptIndexUnavailable');
+          } else if(acknowledgeMetadataFences.run().changes!==1)fail('DeliveryAttemptIndexUnavailable');
+        });
+      },
+      metadataDeletionFence(key) {
+        requireComplete();fenceState();
+        if(typeof key!=='string'||!/^[0-9a-f]{64}$/u.test(key))fail('InvalidDeliveryAttemptIndex');
+        return fenceCopy(metadataFence.get(key));
+      },
+      hasRunMetadataDeletionFence(runCid) {
+        requireComplete();fenceState();
+        if(!cid(runCid))fail('InvalidDeliveryAttemptIndex');
+        const row=fenceCopy(runMetadataFence.get(runCid));
+        if(row!==undefined&&row.run_cid!==runCid)fail('InvalidDeliveryAttemptIndex');
+        return row!==undefined;
+      },
+      finishMetadataDeletionFence(value) {
+        const original=fenceOriginal(value);
+        const retry=uncertain&&sameFence(uncertainMetadataFence,original);
+        if(retry) {
+          if(closed||closing||mutating||!complete)fail('DeliveryAttemptIndexCleanupPending');
+          transaction.assertUsable();
+        } else requireComplete();
+        fenceState();const before=checkFence(original);
+        if(before===undefined)fail('PublicationMetadataDeletionConflict');
+        if(!retry&&before.retired===1)return;
+        try {
+          run(()=>{
+            if(retireMetadataFence.run(original.metadata_key,original.run_cid).changes!==1 ||
+                acknowledgeMetadataFences.run().changes!==1)fail('DeliveryAttemptIndexUnavailable');
+          });
+          if(retry){uncertain=false;uncertainMetadataFence=undefined;}
+        } catch(error) {
+          if(error?.outcome==='unknown')uncertainMetadataFence=original;
+          throw error;
+        }
+      },
       publicationUsage() { requireComplete(); return usage(); },
       publicationContract(semanticCid) { requireComplete(); return publicationCopy(publication.get(semanticCid)); },
       putPublicationContracts(entries, allowance) { return publicationMutation('put',entries,allowance); },
