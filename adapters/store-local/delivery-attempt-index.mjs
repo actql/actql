@@ -6,7 +6,11 @@ import {createSqliteTransaction} from '../host-common/sqlite-transaction.mjs';
 
 const fail = (code, cause) => { throw Object.assign(new Error(code, {cause}), {code}); };
 const cid = value => typeof value === 'string' && /^sha256:[0-9a-f]{64}$/u.test(value);
-const version = 10;
+const version = 11;
+const resultRecoveryTable = `CREATE TABLE result_deletion_recovery (
+  id INTEGER PRIMARY KEY CHECK(id=1), dirty INTEGER NOT NULL CHECK(dirty IN (0,1)),
+  ack_revision INTEGER NOT NULL CHECK(ack_revision>=1 AND ack_revision<=9007199254740991)
+)`;
 const publicationAttemptsTable = `CREATE TABLE publication_attempts (
   attempt_cid TEXT PRIMARY KEY, run_cid TEXT NOT NULL
 ) WITHOUT ROWID`;
@@ -173,7 +177,7 @@ export async function openDeliveryAttemptIndex(path, {create, maxEntries, maxWir
       exec(`CREATE TABLE coverage (
         id INTEGER PRIMARY KEY CHECK(id=1), version INTEGER NOT NULL,
         complete INTEGER NOT NULL CHECK(complete IN (0,1)), entries INTEGER NOT NULL);
-        INSERT INTO coverage VALUES(1,10,0,0);
+        INSERT INTO coverage VALUES(1,11,0,0);
         CREATE TABLE attempts (
           logical_key TEXT PRIMARY KEY, attempt_cid TEXT NOT NULL UNIQUE,
           grant_cid TEXT NOT NULL, run_cid TEXT NOT NULL,
@@ -194,6 +198,7 @@ export async function openDeliveryAttemptIndex(path, {create, maxEntries, maxWir
         ${nativeInventoryTable}; ${nativeInventoryUsageTable};
         ${metadataFenceTable}; ${metadataFenceCoverageTable};
         ${physicalObjectsTable}; ${physicalUsageTable}; ${physicalPreparationsTable};
+        ${resultRecoveryTable}; INSERT INTO result_deletion_recovery VALUES(1,0,1);
         INSERT INTO physical_object_usage VALUES(1,0,0,0,1);
         CREATE INDEX metadata_deletion_runs ON metadata_deletion_fences(run_cid);
         INSERT INTO metadata_deletion_fence_coverage VALUES(1,0,1);
@@ -203,7 +208,7 @@ export async function openDeliveryAttemptIndex(path, {create, maxEntries, maxWir
     });
     const state = prepare('SELECT version,complete,entries FROM coverage WHERE id=1');
     const selected = state.get();
-    if (![1,2,3,4,5,6,7,8,9,version].includes(selected?.version) || ![0,1].includes(selected.complete) ||
+    if (![1,2,3,4,5,6,7,8,9,10,version].includes(selected?.version) || ![0,1].includes(selected.complete) ||
         !Number.isSafeInteger(selected.entries) || selected.entries < 0 || selected.entries > maxEntries) {
       fail('DeliveryAttemptIndexUnavailable');
     }
@@ -310,6 +315,20 @@ export async function openDeliveryAttemptIndex(path, {create, maxEntries, maxWir
         fail('DeliveryAttemptIndexUnavailable');
       }
     }
+    if (selected.version < 11) transaction.run(() => exec(`${resultRecoveryTable};
+      INSERT INTO result_deletion_recovery VALUES(1,1,1);
+      UPDATE coverage SET version=11 WHERE id=1;`));
+    if (prepare("SELECT sql FROM sqlite_schema WHERE type='table' AND name='result_deletion_recovery'")
+      .get()?.sql !== resultRecoveryTable) fail('DeliveryAttemptIndexUnavailable');
+    const resultRecoveryRow = prepare('SELECT dirty,ack_revision FROM result_deletion_recovery WHERE id=1');
+    const readResultRecovery = () => {
+      const row = resultRecoveryRow.get();
+      if (![0,1].includes(row?.dirty) || !Number.isSafeInteger(row.ack_revision) || row.ack_revision < 1) {
+        fail('DeliveryAttemptIndexUnavailable');
+      }
+      return Object.freeze({...row});
+    };
+    let resultRecovery = readResultRecovery();
     // This database's previously unused SQLite header field records only
     // derived physical-quota cleanliness, not a Run/Account or file ACK.
     const physicalHeader = prepare('PRAGMA user_version').get().user_version;
@@ -389,7 +408,8 @@ export async function openDeliveryAttemptIndex(path, {create, maxEntries, maxWir
     const updateCount = prepare('UPDATE coverage SET entries=entries+? WHERE id=1');
     let uncertain = false, uncertainRemoval, uncertainCompletion, uncertainInitial, confirmedRecord,
       uncertainPublication, uncertainPublicationRecovery, uncertainMetadataFence, uncertainPhysical,
-      uncertainPhysicalPreparation, uncertainPhysicalSeal = false, uncertainPublicationFinishSeal = false;
+      uncertainPhysicalPreparation, uncertainResultRecovery,
+      uncertainPhysicalSeal = false, uncertainPublicationFinishSeal = false;
     const retainedPublicationFinishes = new Map();
     let flushPublicationFinishes = () => [];
     const run = body => {
@@ -426,6 +446,32 @@ export async function openDeliveryAttemptIndex(path, {create, maxEntries, maxWir
     const requireComplete = () => {
       requireOpen();
       if (!complete) fail('DeliveryAttemptIndexUnavailable');
+    };
+    const setResultRecovery = dirty => {
+      const retry = uncertain && uncertainResultRecovery?.dirty === dirty;
+      if (retry) {
+        if (closed || closing || mutating || !complete) fail('DeliveryAttemptIndexCleanupPending');
+        transaction.assertUsable();
+      } else requireComplete();
+      if (!retry && resultRecovery.dirty === dirty) return;
+      const original = retry ? uncertainResultRecovery : Object.freeze({dirty, before: resultRecovery});
+      try {
+        resultRecovery = run(() => {
+          const row = readResultRecovery(), before = original.before;
+          if (!(row.ack_revision === before.ack_revision && row.dirty === before.dirty) &&
+              !(retry && row.ack_revision === before.ack_revision + 1 && row.dirty === dirty)) {
+            fail('DeliveryAttemptIndexUnavailable');
+          }
+          const next = Object.freeze({dirty, ack_revision: row.ack_revision + 1});
+          if (prepare('UPDATE result_deletion_recovery SET dirty=?,ack_revision=? WHERE id=1 AND ack_revision=?')
+            .run(dirty,next.ack_revision,row.ack_revision).changes !== 1) fail('DeliveryAttemptIndexUnavailable');
+          return next;
+        });
+        if (retry) {uncertain = false; uncertainResultRecovery = undefined;}
+      } catch (error) {
+        if (error?.outcome === 'unknown') uncertainResultRecovery = original;
+        throw error;
+      }
     };
     const storedPhysicalState = () => {
       const row = physicalUsage.get();
@@ -933,6 +979,9 @@ export async function openDeliveryAttemptIndex(path, {create, maxEntries, maxWir
     };
     usage();recoveryState();inventoryUsage();physicalState();
     return Object.freeze({
+      resultDeletionRecoveryRequired() {requireComplete(); return resultRecovery.dirty === 1;},
+      beginResultDeletionLifetime() {setResultRecovery(1);},
+      sealResultDeletionLifetime() {setResultRecovery(0);},
       physicalObjectUsage() {requireOpen();return physicalState();},
       physicalObjectRecoveryRequired() {requireOpen();return physicalRecoveryRequired;},
       recoverPhysicalObjects(values) {
