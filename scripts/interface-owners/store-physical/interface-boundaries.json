@@ -5931,7 +5931,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "18b612a7f73ee7c45a6f158c1a56f497f3e8da6e93da6c21af115d861ec28c29",
+      "sha256": "214ea723204ef5f95652a847159c6a2d595e0912065cea53997dd6a77aa00d12",
       "exports": [
         "PublicationStoreError",
         "assertOriginalLocalPublicationStoreFacilityCurrent",
@@ -6631,13 +6631,6 @@
         {
           "name": "openOriginalLocalPublicationStore/commitPhysicalHoldingInternal/commitPhysicalHoldingInternal/commitPhysicalHoldingInternal#2",
           "parameters": [
-            "object"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/commitPhysicalHoldingInternal/commitPhysicalHoldingInternal/commitPhysicalHoldingInternal#3",
-          "parameters": [
             "cid",
             "bytes"
           ],
@@ -6737,6 +6730,41 @@
           "async": false
         },
         {
+          "name": "openOriginalLocalPublicationStore/confirmPhysicalHoldingDirectory/confirmPhysicalHoldingDirectory",
+          "parameters": [
+            "record",
+            "adopt"
+          ],
+          "async": true
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/confirmPhysicalHoldingDirectory/confirmPhysicalHoldingDirectory/confirmPhysicalHoldingDirectory",
+          "parameters": [
+            "object"
+          ],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/confirmPhysicalHoldingDirectory/confirmPhysicalHoldingDirectory/init:retry/init:retry",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/confirmPhysicalHoldingDirectory/confirmPhysicalHoldingDirectory/init:retry/init:retry/init:retry",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/confirmPhysicalHoldingDirectory/confirmPhysicalHoldingDirectory/init:retry/init:retry/init:retry#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/confirmPhysicalHoldingDirectory/confirmPhysicalHoldingDirectory/status/status",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "openOriginalLocalPublicationStore/confirmPrivateEvidence/confirmPrivateEvidence",
           "parameters": [
             "binding"
@@ -6752,40 +6780,6 @@
           "name": "openOriginalLocalPublicationStore/confirmPrivateEvidence/confirmPrivateEvidence/operation/operation",
           "parameters": [],
           "async": true
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/confirmPrivateHoldingRead/confirmPrivateHoldingRead",
-          "parameters": [
-            "record"
-          ],
-          "async": true
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/confirmPrivateHoldingRead/confirmPrivateHoldingRead/confirmPrivateHoldingRead",
-          "parameters": [
-            "object"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/confirmPrivateHoldingRead/confirmPrivateHoldingRead/init:retry/init:retry",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/confirmPrivateHoldingRead/confirmPrivateHoldingRead/init:retry/init:retry/init:retry",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/confirmPrivateHoldingRead/confirmPrivateHoldingRead/init:retry/init:retry/init:retry#2",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/confirmPrivateHoldingRead/confirmPrivateHoldingRead/status/status",
-          "parameters": [],
-          "async": false
         },
         {
           "name": "openOriginalLocalPublicationStore/confirmSelectedCommittedIndex/confirmSelectedCommittedIndex",
@@ -10160,7 +10154,6 @@
             "openOriginalLocalPublicationStore/commitPhysicalHoldingInternal/commitPhysicalHoldingInternal",
             "openOriginalLocalPublicationStore/commitPhysicalHoldingInternal/commitPhysicalHoldingInternal/commitPhysicalHoldingInternal",
             "openOriginalLocalPublicationStore/commitPhysicalHoldingInternal/commitPhysicalHoldingInternal/commitPhysicalHoldingInternal#2",
-            "openOriginalLocalPublicationStore/commitPhysicalHoldingInternal/commitPhysicalHoldingInternal/commitPhysicalHoldingInternal#3",
             "openOriginalLocalPublicationStore/compactMetadataDeletion/compactMetadataDeletion",
             "openOriginalLocalPublicationStore/confirmCapturedContentHoldings/confirmCapturedContentHoldings",
             "openOriginalLocalPublicationStore/confirmCommittedIndex/confirmCommittedIndex",
@@ -10172,15 +10165,15 @@
             "openOriginalLocalPublicationStore/confirmModelRawEvidence/confirmModelRawEvidence/confirmModelRawEvidence",
             "openOriginalLocalPublicationStore/confirmModelRawEvidence/confirmModelRawEvidence/operation/operation",
             "openOriginalLocalPublicationStore/confirmPhysicalCapacity/confirmPhysicalCapacity",
+            "openOriginalLocalPublicationStore/confirmPhysicalHoldingDirectory/confirmPhysicalHoldingDirectory",
+            "openOriginalLocalPublicationStore/confirmPhysicalHoldingDirectory/confirmPhysicalHoldingDirectory/confirmPhysicalHoldingDirectory",
+            "openOriginalLocalPublicationStore/confirmPhysicalHoldingDirectory/confirmPhysicalHoldingDirectory/init:retry/init:retry",
+            "openOriginalLocalPublicationStore/confirmPhysicalHoldingDirectory/confirmPhysicalHoldingDirectory/init:retry/init:retry/init:retry",
+            "openOriginalLocalPublicationStore/confirmPhysicalHoldingDirectory/confirmPhysicalHoldingDirectory/init:retry/init:retry/init:retry#2",
+            "openOriginalLocalPublicationStore/confirmPhysicalHoldingDirectory/confirmPhysicalHoldingDirectory/status/status",
             "openOriginalLocalPublicationStore/confirmPrivateEvidence/confirmPrivateEvidence",
             "openOriginalLocalPublicationStore/confirmPrivateEvidence/confirmPrivateEvidence/confirmPrivateEvidence",
             "openOriginalLocalPublicationStore/confirmPrivateEvidence/confirmPrivateEvidence/operation/operation",
-            "openOriginalLocalPublicationStore/confirmPrivateHoldingRead/confirmPrivateHoldingRead",
-            "openOriginalLocalPublicationStore/confirmPrivateHoldingRead/confirmPrivateHoldingRead/confirmPrivateHoldingRead",
-            "openOriginalLocalPublicationStore/confirmPrivateHoldingRead/confirmPrivateHoldingRead/init:retry/init:retry",
-            "openOriginalLocalPublicationStore/confirmPrivateHoldingRead/confirmPrivateHoldingRead/init:retry/init:retry/init:retry",
-            "openOriginalLocalPublicationStore/confirmPrivateHoldingRead/confirmPrivateHoldingRead/init:retry/init:retry/init:retry#2",
-            "openOriginalLocalPublicationStore/confirmPrivateHoldingRead/confirmPrivateHoldingRead/status/status",
             "openOriginalLocalPublicationStore/confirmSelectedCommittedIndex/confirmSelectedCommittedIndex",
             "openOriginalLocalPublicationStore/consumeCommittedResult/consumeCommittedResult",
             "openOriginalLocalPublicationStore/consumeCommittedResult/consumeCommittedResult/consumeCommittedResult",
@@ -10705,6 +10698,10 @@
               {
                 "path": "docs/design/result-description.md",
                 "anchor": "The existing publication caller can supply its immutable setup bodies and"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "New and idempotent holding commits, shared holding publication and borrowed"
               }
             ],
             "inputsOutputs": [
@@ -11895,6 +11892,14 @@
               {
                 "path": "adapters/store-local/publication-store.test.mjs",
                 "anchor": "test(`private confirmation retains a failed original directory close"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "holding commit retains its original failed directory close after reconciliation"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "holding directory custody preserves shared publication boundaries"
               }
             ]
           }
