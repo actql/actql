@@ -126,8 +126,35 @@ test "independent contract cells and bounded admission failures remain separate"
 ///|
 test "shared contracts retain distinct original query sequence preparation" {
   let assets = @publication_host.client_local_product_assets()
-  let first = single_source_free_capacity_prepared()
-  let second = single_source_free_capacity_prepared()
+  guard @json.parse(assets.environment) is Object(fields) &&
+    fields.get("evidence_bundle_cid") is Some(String(evidence)) else {
+    fail("original bundled Environment evidence missing")
+  }
+  let environment = @publication_host.admit_client_check_environment(
+    assets.environment,
+    evidence,
+    { text_time: false, veca: false, },
+    { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
+  ).unwrap()
+  let prepare = (document : String) => {
+    @publication_host.prepare_effect_free_client_program(
+      document,
+      Json,
+      environment,
+      None,
+      @publication_host.client_standard_program_preparation_limits(),
+    ).unwrap()
+  }
+  let first = prepare(
+    (
+      #|{"version":"actql/0.1","id":"first-contract-query","stages":[{"id":"source","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false}},"rows":[{"id":1}]},"as":"selected"}],"results":{"rows":{"from":"selected","fields":["id"]}}}],"results":{"answer":{"from":{"stage":"source","result":"rows"}}}}
+    ),
+  )
+  let second = prepare(
+    (
+      #|{"version":"actql/0.1","id":"second-contract-query","stages":[{"id":"source","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false}},"rows":[{"id":2}]},"as":"selected"}],"results":{"rows":{"from":"selected","fields":["id"]}}}],"results":{"answer":{"from":{"stage":"source","result":"rows"}}}}
+    ),
+  )
   assert_false(physical_equal(first, second))
   let a = prepare_client_local_sequences(
     first,
