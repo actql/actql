@@ -255,7 +255,16 @@ fn local_runtime_read_member(
   runtime.reader = Some(reader)
   native_timing_count(16)
   let hasher = @sha.hasher()
-  let retained : Array[Byte] = []
+  // Reader.next returns owned immutable Bytes, independently of its C scratch.
+  // Keep a complete metadata chunk directly. Short reads use one destination
+  // bounded by the admitted size, rather than growing a byte-at-a-time Array.
+  let mut retained : Bytes? = if collect && bytes == 0L {
+    Some(b"")
+  } else {
+    None
+  }
+  let mut partial : FixedArray[Byte]? = None
+  let mut copied = 0
   let mut done = false
   while !done {
     let chunk = reader.next(65536).map_err(issue => Physical(issue))
@@ -263,10 +272,22 @@ fn local_runtime_read_member(
     @sha.update(hasher, chunk.bytes) catch {
       _ => local_runtime_stop(Limit)
     }
-    if collect {
-      for byte in chunk.bytes {
-        retained.push(byte)
+    if collect && !chunk.bytes.is_empty() {
+      let length = chunk.bytes.length()
+      if length > bytes.to_int() - copied {
+        local_runtime_stop(Limit)
       }
+      if copied == 0 && length == bytes.to_int() {
+        retained = Some(chunk.bytes)
+      } else {
+        let body = partial.unwrap_or_else(() => {
+          let body : FixedArray[Byte] = FixedArray::make(bytes.to_int(), 0)
+          partial = Some(body)
+          body
+        })
+        body.blit_from_bytes(copied, chunk.bytes, 0, length)
+      }
+      copied += length
     }
     done = chunk.eof
   }
@@ -284,7 +305,15 @@ fn local_runtime_read_member(
   |> local_runtime_result
   runtime.witnesses.push(original)
   if collect {
-    @utf8.decode(Bytes::from_array(retained)) catch {
+    if copied.to_int64() != bytes {
+      local_runtime_stop(Changed)
+    }
+    let body = retained.unwrap_or_else(() => {
+      Bytes::from_array(
+        partial.unwrap_or_else(() => local_runtime_stop(Changed)),
+      )
+    })
+    @utf8.decode(body) catch {
       _ => local_runtime_stop(InvalidManifest)
     }
   } else {
