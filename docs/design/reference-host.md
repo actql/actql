@@ -989,6 +989,14 @@ failures and refused attempts do not refill those counters. Positional scalar
 operand count and extent are checked before native binding. These conditions
 are not a heap reservation or permission and leave unselected callers unchanged.
 
+For a selected connection, exact `ROLLBACK` of its already-active transaction
+remains cleanup rather than new admitted SQL work. It uses the same captured
+native receiver without spending or refilling work/currentness credit; the
+synchronous reentry and pending-cursor fences still apply. An actual native
+rollback failure and transaction-state uncertainty remain failures under the
+existing transaction Owner. `BEGIN`, `COMMIT`, other SQL and a rollback without
+an active transaction retain their ordinary work/currentness admission.
+
 When those execution support conditions are selected, the same connection
 latches a synchronous prepare/execute call before invoking its original
 currentness or native callbacks. Reentry cannot begin another SQL call inside

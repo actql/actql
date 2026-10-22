@@ -442,6 +442,14 @@ function boundedPrimarySql(connection, limits, executionLimits, assertCurrent, w
     exec(sql) {
       beginOperation();
       try {
+        if (executionLimits !== undefined && sql === 'ROLLBACK' &&
+            applyOriginal(isTransaction, connection, []) === true) {
+          // This exact same-connection cleanup must remain reachable after
+          // work/current refusal. It admits no new SQL work or statement,
+          // refills no counter and still owns the native rollback outcome.
+          if (cursors.length !== 0) fail('ClientRequestJournalSqlCleanupPending');
+          return applyOriginal(exec, connection, [sql]);
+        }
         consume(sql, false); walFrames?.beforeExec(sql);
         return applyOriginal(exec, connection, [sql]);
       } finally { endOperation(); }

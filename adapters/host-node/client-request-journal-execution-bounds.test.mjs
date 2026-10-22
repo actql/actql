@@ -231,6 +231,62 @@ for (const boundary of ['compilation', 'wal', 'current']) {
   });
 }
 
+test('rollback cleanup keeps the original native method and synchronous reentry fence', () => {
+  const database = new DatabaseSync(':memory:');
+  const exec = database.exec;
+  let port, nested, rollbacks = 0;
+  database.exec = function(sql) {
+    assert.equal(this, database);
+    if (sql === 'ROLLBACK') {
+      rollbacks++;
+      try {port.database.prepare('SELECT 9 AS n');} catch (error) {nested = error;}
+    }
+    return Reflect.apply(exec, this, [sql]);
+  };
+  port = boundedOriginalSql(database, {...primarySqlLimits, maxCalls: 1}, execution);
+  database.exec = () => {throw new Error('ReplacementMustNotRun');};
+  const transaction = createSqliteTransaction(port.database, 'ClientRequestJournal');
+  const primary = new Error('OriginalBodyFailure');
+  try {
+    assert.throws(() => transaction.run(() => {throw primary;}), error => error === primary);
+    assert.equal(rollbacks, 1);
+    assert.equal(nested?.code, 'ClientRequestJournalSqlCleanupPending');
+    assert.equal(database.isTransaction, false);
+    assert.throws(() => port.database.exec('ROLLBACK'), {code: 'ClientRequestJournalSqlUnavailable'});
+    assert.equal(rollbacks, 1);
+  } finally {database.close(); port.retireClosedNativeAliases();}
+});
+
+test('actual native rollback failure remains original Unknown with no replacement transaction', () => {
+  const database = new DatabaseSync(':memory:');
+  const exec = database.exec;
+  const nativeFailure = new Error('OriginalNativeRollbackFailure');
+  const primary = new Error('OriginalBodyFailure');
+  let rollbacks = 0;
+  database.exec = function(sql) {
+    if (sql === 'ROLLBACK') {rollbacks++; throw nativeFailure;}
+    return Reflect.apply(exec, this, [sql]);
+  };
+  const port = boundedOriginalSql(database, {...primarySqlLimits, maxCalls: 1}, execution);
+  const transaction = createSqliteTransaction(port.database, 'ClientRequestJournal');
+  try {
+    assert.throws(() => transaction.run(() => {throw primary;}), error => {
+      assert.equal(error.code, 'ClientRequestJournalRollbackFailed');
+      assert.equal(error.cause, primary);
+      assert.equal(error.rollbackCause, nativeFailure);
+      assert.equal(error.outcome, 'unknown');
+      assert.equal(error.connectionUsable, false);
+      return true;
+    });
+    assert.equal(database.isTransaction, true);
+    assert.equal(rollbacks, 1);
+    assert.throws(() => transaction.run(() => {}), {code: 'ClientRequestJournalConnectionUnusable'});
+    assert.equal(rollbacks, 1);
+  } finally {
+    database.close(); assert.equal(database.isOpen, false); port.retireClosedNativeAliases();
+  }
+});
+
 test('selected primary metadata uses original bounded cursors instead of native All vectors', async () => {
   const {scratch, directory} = await fixture();
   openClientRequestJournal(directory).close();
