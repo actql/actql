@@ -29812,7 +29812,7 @@
     {
       "module": "adapters/host-node/client-dispatch-owner.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "7da5436d684683dc72b8169f51d3736ef189ccce5b0a08f5c75e4d62057c7105",
+      "sha256": "4fbfb702563af59610dd5e36ad358e9dd510ee5af84249e73c99dd22f31ec4e1",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -29841,7 +29841,8 @@
             "moon",
             "control",
             "cleanupConfirmed",
-            "physicalStopConfirmed"
+            "physicalStopConfirmed",
+            "originalFrame"
           ],
           "async": true
         },
@@ -30566,6 +30567,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Responsibility"
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "Physical-stop observation uses the same journal-owned frame across publication"
               }
             ],
             "inputsOutputs": [
@@ -30576,6 +30581,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Inputs and outputs"
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "async function observeNodeRunStop(facts, {failureObserved}) {"
               }
             ],
             "identity": [
@@ -30586,6 +30595,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Identity"
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "COMMIT failure retains the existing Unknown outcome. Copied, foreign-journal,"
               }
             ],
             "ownership": [
@@ -30596,6 +30609,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Ownership"
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "Physical-stop observation uses the same journal-owned frame across publication"
               }
             ],
             "synchronization": [
@@ -30606,6 +30623,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Synchronization"
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "physical-close transaction compares that complete original row before its"
               }
             ],
             "failure": [
@@ -30616,6 +30637,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Failure"
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "COMMIT failure retains the existing Unknown outcome. Copied, foreign-journal,"
               }
             ],
             "cancellation": [
@@ -30626,6 +30651,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Cancellation"
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "remain separate prerequisites, and an already recorded stop needs no repeated"
               }
             ],
             "resources": [
@@ -30636,6 +30665,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Resources"
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "they do not cache Account decisions, issue a cleanup ACK or replay execution."
               }
             ],
             "extension": [
@@ -30646,6 +30679,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Extension"
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "An unchanged complete row reuses its original request identity and"
               }
             ],
             "verification": [
@@ -30660,6 +30697,10 @@
               {
                 "path": "scripts/js-compiler-binding-runtime.test.mjs",
                 "anchor": "actual pinned MoonBit Result"
+              },
+              {
+                "path": "adapters/host-node/client-run-stop-observation.test.mjs",
+                "anchor": "physical stop transaction rejects mutation during the terminal decision callback"
               }
             ]
           }
@@ -30678,6 +30719,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Responsibility"
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "Physical-stop observation uses the same journal-owned frame across publication"
               }
             ],
             "inputsOutputs": [
@@ -30688,6 +30733,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Inputs and outputs"
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "async function observeNodeRunStop(facts, {failureObserved}) {"
               }
             ],
             "identity": [
@@ -30698,6 +30747,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Identity"
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "COMMIT failure retains the existing Unknown outcome. Copied, foreign-journal,"
               }
             ],
             "ownership": [
@@ -30708,6 +30761,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Ownership"
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "Physical-stop observation uses the same journal-owned frame across publication"
               }
             ],
             "synchronization": [
@@ -30718,6 +30775,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Synchronization"
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "physical-close transaction compares that complete original row before its"
               }
             ],
             "failure": [
@@ -30728,6 +30789,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Failure"
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "COMMIT failure retains the existing Unknown outcome. Copied, foreign-journal,"
               }
             ],
             "cancellation": [
@@ -30738,6 +30803,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Cancellation"
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "remain separate prerequisites, and an already recorded stop needs no repeated"
               }
             ],
             "resources": [
@@ -30748,6 +30817,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Resources"
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "they do not cache Account decisions, issue a cleanup ACK or replay execution."
               }
             ],
             "extension": [
@@ -30758,6 +30831,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Extension"
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "An unchanged complete row reuses its original request identity and"
               }
             ],
             "verification": [
@@ -30772,6 +30849,10 @@
               {
                 "path": "scripts/js-compiler-binding-runtime.test.mjs",
                 "anchor": "actual pinned MoonBit Result"
+              },
+              {
+                "path": "adapters/host-node/client-run-stop-observation.test.mjs",
+                "anchor": "physical stop transaction rejects mutation during the terminal decision callback"
               }
             ]
           }
@@ -31218,6 +31299,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Responsibility"
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "Physical-stop observation uses the same journal-owned frame across publication"
               }
             ],
             "inputsOutputs": [
@@ -31228,6 +31313,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Inputs and outputs"
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "async function observeNodeRunStop(facts, {failureObserved}) {"
               }
             ],
             "identity": [
@@ -31238,6 +31327,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Identity"
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "COMMIT failure retains the existing Unknown outcome. Copied, foreign-journal,"
               }
             ],
             "ownership": [
@@ -31248,6 +31341,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Ownership"
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "Physical-stop observation uses the same journal-owned frame across publication"
               }
             ],
             "synchronization": [
@@ -31258,6 +31355,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Synchronization"
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "physical-close transaction compares that complete original row before its"
               }
             ],
             "failure": [
@@ -31268,6 +31369,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Failure"
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "COMMIT failure retains the existing Unknown outcome. Copied, foreign-journal,"
               }
             ],
             "cancellation": [
@@ -31278,6 +31383,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Cancellation"
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "remain separate prerequisites, and an already recorded stop needs no repeated"
               }
             ],
             "resources": [
@@ -31288,6 +31397,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Resources"
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "they do not cache Account decisions, issue a cleanup ACK or replay execution."
               }
             ],
             "extension": [
@@ -31298,6 +31411,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Extension"
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "An unchanged complete row reuses its original request identity and"
               }
             ],
             "verification": [
@@ -31312,6 +31429,10 @@
               {
                 "path": "scripts/js-compiler-binding-runtime.test.mjs",
                 "anchor": "actual pinned MoonBit Result"
+              },
+              {
+                "path": "adapters/host-node/client-run-stop-observation.test.mjs",
+                "anchor": "physical stop transaction rejects mutation during the terminal decision callback"
               }
             ]
           }
@@ -31332,6 +31453,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Responsibility"
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "Physical-stop observation uses the same journal-owned frame across publication"
               }
             ],
             "inputsOutputs": [
@@ -31342,6 +31467,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Inputs and outputs"
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "async function observeNodeRunStop(facts, {failureObserved}) {"
               }
             ],
             "identity": [
@@ -31352,6 +31481,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Identity"
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "COMMIT failure retains the existing Unknown outcome. Copied, foreign-journal,"
               }
             ],
             "ownership": [
@@ -31362,6 +31495,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Ownership"
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "Physical-stop observation uses the same journal-owned frame across publication"
               }
             ],
             "synchronization": [
@@ -31372,6 +31509,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Synchronization"
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "physical-close transaction compares that complete original row before its"
               }
             ],
             "failure": [
@@ -31382,6 +31523,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Failure"
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "COMMIT failure retains the existing Unknown outcome. Copied, foreign-journal,"
               }
             ],
             "cancellation": [
@@ -31392,6 +31537,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Cancellation"
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "remain separate prerequisites, and an already recorded stop needs no repeated"
               }
             ],
             "resources": [
@@ -31402,6 +31551,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Resources"
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "they do not cache Account decisions, issue a cleanup ACK or replay execution."
               }
             ],
             "extension": [
@@ -31412,6 +31565,10 @@
               {
                 "path": "docs/development/js-compiler-bindings.md",
                 "anchor": "## Extension"
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "An unchanged complete row reuses its original request identity and"
               }
             ],
             "verification": [
@@ -31426,6 +31583,10 @@
               {
                 "path": "scripts/js-compiler-binding-runtime.test.mjs",
                 "anchor": "actual pinned MoonBit Result"
+              },
+              {
+                "path": "adapters/host-node/client-run-stop-observation.test.mjs",
+                "anchor": "physical stop transaction rejects mutation during the terminal decision callback"
               }
             ]
           }

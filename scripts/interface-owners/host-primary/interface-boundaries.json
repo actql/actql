@@ -1343,7 +1343,7 @@
     },
     {
       "module": "adapters/host-node/client-dispatch-owner.mjs",
-      "sha256": "7da5436d684683dc72b8169f51d3736ef189ccce5b0a08f5c75e4d62057c7105",
+      "sha256": "4fbfb702563af59610dd5e36ad358e9dd510ee5af84249e73c99dd22f31ec4e1",
       "exports": [
         "cancelNodeRunContinuation",
         "confirmNodeRunCancellation",
@@ -1370,7 +1370,8 @@
             "moon",
             "control",
             "cleanupConfirmed",
-            "physicalStopConfirmed"
+            "physicalStopConfirmed",
+            "originalFrame"
           ],
           "async": true
         },
@@ -2011,6 +2012,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Host through this opaque Run and rechecks the original Ledger after sequence"
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "Physical-stop observation uses the same journal-owned frame across publication"
               }
             ],
             "inputsOutputs": [
@@ -2025,6 +2030,10 @@
               {
                 "path": "adapters/host-node/client-dispatch-owner.mjs",
                 "anchor": "held.managedRun, preparedProgram, requested, registry, values,"
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "async function observeNodeRunStop(facts, {failureObserved}) {"
               }
             ],
             "identity": [
@@ -2047,6 +2056,10 @@
               {
                 "path": "src/client_local_host/installed_managed_run.mbt",
                 "anchor": "check_installed_managed_run(value, prepared, request)"
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "COMMIT failure retains the existing Unknown outcome. Copied, foreign-journal,"
               }
             ],
             "ownership": [
@@ -2061,6 +2074,10 @@
               {
                 "path": "adapters/host-node/client-dispatch-owner.mjs",
                 "anchor": "entry.pendingSetup = setup;"
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "Physical-stop observation uses the same journal-owned frame across publication"
               }
             ],
             "synchronization": [
@@ -2071,6 +2088,10 @@
               {
                 "path": "adapters/host-node/client-dispatch-owner.mjs",
                 "anchor": "// Retain before the reservation/fault boundary: cancellation can"
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "physical-close transaction compares that complete original row before its"
               }
             ],
             "failure": [
@@ -2085,6 +2106,10 @@
               {
                 "path": "adapters/host-node/embedded-managed-compute-lifecycle.test.mjs",
                 "anchor": "actual dispatcher propagates missing/foreign/parked original refusal without fallback"
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "COMMIT failure retains the existing Unknown outcome. Copied, foreign-journal,"
               }
             ],
             "cancellation": [
@@ -2095,6 +2120,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "the original Run retires only after dispatch/DAG cleanup, before its installation"
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "remain separate prerequisites, and an already recorded stop needs no repeated"
               }
             ],
             "resources": [
@@ -2113,6 +2142,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "selection. It cannot use the legacy scalar constructor on refusal."
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "they do not cache Account decisions, issue a cleanup ACK or replay execution."
               }
             ],
             "extension": [
@@ -2127,6 +2160,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "or Content storage, Model, Effect and external I/O keep their separate actual"
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "An unchanged complete row reuses its original request identity and"
               }
             ],
             "verification": [
@@ -2141,6 +2178,10 @@
               {
                 "path": "adapters/host-node/embedded-managed-compute-lifecycle.test.mjs",
                 "anchor": "actual dispatcher opens its opaque Run without the legacy accounting constructor"
+              },
+              {
+                "path": "adapters/host-node/client-run-stop-observation.test.mjs",
+                "anchor": "physical stop transaction rejects mutation during the terminal decision callback"
               }
             ]
           }

@@ -18964,7 +18964,7 @@
     {
       "module": "adapters/host-node/client-request-journal.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "a24de0df670c030c1526eb5e85bd8c4fa2404bf89b66db7c615c238f2d6a9c03",
+      "sha256": "b176809f29fc8431f990b36e614e75f91de8d60c482a3dead2f9c2e50f38a732",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
@@ -20155,7 +20155,8 @@
           "parameters": [
             "ref",
             "requestControl",
-            "publicationControl"
+            "publicationControl",
+            "originalFrame"
           ],
           "async": false
         },
@@ -20173,7 +20174,8 @@
           "name": "openClientRequestJournal/journal/init:markPhysicalClose/init:markPhysicalClose",
           "parameters": [
             "ref",
-            "terminalOutcome"
+            "terminalOutcome",
+            "originalFrame"
           ],
           "async": false
         },
@@ -20226,13 +20228,6 @@
         {
           "name": "openClientRequestJournal/journal/init:observeRunCancellation/init:observeRunCancellation/init:observeRunCancellation",
           "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openClientRequestJournal/journal/init:observeRunCancellation/init:observeRunCancellation/init:observeRunCancellation/init:observeRunCancellation",
-          "parameters": [
-            "key"
-          ],
           "async": false
         },
         {
@@ -20767,6 +20762,29 @@
           "async": false
         },
         {
+          "name": "openClientRequestJournal/retainRunStateFrame/retainRunStateFrame",
+          "parameters": [
+            "frame",
+            "selected"
+          ],
+          "async": false
+        },
+        {
+          "name": "openClientRequestJournal/sameRunStateRow/sameRunStateRow",
+          "parameters": [
+            "row",
+            "original"
+          ],
+          "async": false
+        },
+        {
+          "name": "openClientRequestJournal/sameRunStateRow/sameRunStateRow/sameRunStateRow",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
           "name": "openClientRequestJournal/sourceOperations/sourceOperations",
           "parameters": [
             "ref"
@@ -21147,7 +21165,6 @@
             "openClientRequestJournal/journal/init:observationStorage/init:observationStorage",
             "openClientRequestJournal/journal/init:observeRunCancellation/init:observeRunCancellation",
             "openClientRequestJournal/journal/init:observeRunCancellation/init:observeRunCancellation/init:observeRunCancellation",
-            "openClientRequestJournal/journal/init:observeRunCancellation/init:observeRunCancellation/init:observeRunCancellation/init:observeRunCancellation",
             "openClientRequestJournal/journal/init:originalSubmittedIntent/init:originalSubmittedIntent",
             "openClientRequestJournal/journal/init:originalSubmittedIntent/init:originalSubmittedIntent/init:assertCurrent/init:assertCurrent",
             "openClientRequestJournal/journal/init:originalSubmittedIntent/init:originalSubmittedIntent/readOriginal/readOriginal",
@@ -21198,12 +21215,15 @@
             "openClientRequestJournal/rejectSubmissionEpoch/rejectSubmissionEpoch",
             "openClientRequestJournal/resolveOriginalDefinition/resolveOriginalDefinition",
             "openClientRequestJournal/restartDecision/restartDecision",
+            "openClientRequestJournal/retainRunStateFrame/retainRunStateFrame",
             "openClientRequestJournal/retainedIntent/retainedIntent",
             "openClientRequestJournal/retainedIntentOriginal/retainedIntentOriginal",
             "openClientRequestJournal/retainedIntentOriginal/retainedIntentOriginal/retainedIntentOriginal",
             "openClientRequestJournal/retainedIntentOriginal/retainedIntentOriginal/retainedIntentOriginal#2",
             "openClientRequestJournal/retainedRestart/retainedRestart",
             "openClientRequestJournal/retainedRestart/retainedRestart/admitRef/admitRef",
+            "openClientRequestJournal/sameRunStateRow/sameRunStateRow",
+            "openClientRequestJournal/sameRunStateRow/sameRunStateRow/sameRunStateRow",
             "openClientRequestJournal/submissionAttempt/submissionAttempt",
             "openClientRequestJournal/submissionTransaction/submissionTransaction",
             "openClientRequestJournal/transact/transact",
@@ -21282,6 +21302,10 @@
               {
                 "path": "docs/design/interactive-run-control.md",
                 "anchor": "A Local status observation retains its journal's nominal admitted Run frame"
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "Physical-stop observation uses the same journal-owned frame across publication"
               }
             ],
             "inputsOutputs": [
@@ -21340,6 +21364,10 @@
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
                 "anchor": "observeRunCancellation(ref, requestControl, publicationControl, originalFrame) {"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "lookupRunDefinition(ref, requestControl, publicationControl, originalFrame) {"
               }
             ],
             "identity": [
@@ -21398,6 +21426,10 @@
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
                 "anchor": "retained.row.run_definition_cid !== selected.runDefinitionCid)"
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "COMMIT failure retains the existing Unknown outcome. Copied, foreign-journal,"
               }
             ],
             "ownership": [
@@ -21460,6 +21492,10 @@
               {
                 "path": "docs/design/interactive-run-control.md",
                 "anchor": "observation; they retain no current Account decision or physical cleanup ACK."
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "Physical-stop observation uses the same journal-owned frame across publication"
               }
             ],
             "synchronization": [
@@ -21522,6 +21558,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "const after = observeControl();"
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "physical-close transaction compares that complete original row before its"
               }
             ],
             "failure": [
@@ -21580,6 +21620,10 @@
               {
                 "path": "adapters/host-node/client-run-state-revision.test.mjs",
                 "anchor": "A changed payload without a revision increment cannot reuse the frame"
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "COMMIT failure retains the existing Unknown outcome. Copied, foreign-journal,"
               }
             ],
             "cancellation": [
@@ -21642,6 +21686,10 @@
               {
                 "path": "docs/design/interactive-run-control.md",
                 "anchor": "facts, and closed journals refuse. These managed references end with the"
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "remain separate prerequisites, and an already recorded stop needs no repeated"
               }
             ],
             "resources": [
@@ -21716,6 +21764,10 @@
               {
                 "path": "adapters/host-node/client-run-state-revision.test.mjs",
                 "anchor": "The complete original row has already been admitted"
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "they do not cache Account decisions, issue a cleanup ACK or replay execution."
               }
             ],
             "extension": [
@@ -21770,6 +21822,10 @@
               {
                 "path": "docs/design/interactive-run-control.md",
                 "anchor": "Run bytes, while a new public observation acquires its own current original."
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "An unchanged complete row reuses its original request identity and"
               }
             ],
             "verification": [
@@ -21852,6 +21908,10 @@
               {
                 "path": "adapters/host-node/client-run-observation-reuse.test.mjs",
                 "anchor": "Local Run observation retries changed control and final publication conflicts"
+              },
+              {
+                "path": "adapters/host-node/client-run-stop-observation.test.mjs",
+                "anchor": "physical stop transaction rejects mutation during the terminal decision callback"
               }
             ]
           }
