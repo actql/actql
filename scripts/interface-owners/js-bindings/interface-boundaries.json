@@ -37726,7 +37726,7 @@
     {
       "module": "adapters/host-node/embedded-local.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "ae76c97be9b781aa5c5dc4422e7d715988ffe6d4740d566a5fbbab6fc20c0276",
+      "sha256": "4a948c78988855c520127d5359991c4a86053ae92666dd5bd354119fb3b7b988",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -42395,6 +42395,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "The final installed Check Environment and query-name publication retain their"
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "A Local status observation retains its journal's nominal admitted Run frame"
               }
             ],
             "inputsOutputs": [
@@ -42441,6 +42445,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "function getPreparedSourceEnvironment() {"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "observeRunCancellation(ref, requestControl, publicationControl, originalFrame) {"
               }
             ],
             "identity": [
@@ -42499,6 +42507,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "original.environment !== environment || original.publication !== sourcePublication)"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "retained.row.run_definition_cid !== selected.runDefinitionCid)"
               }
             ],
             "ownership": [
@@ -42557,6 +42569,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "preparedSourceEnvironment = Object.freeze({host, moon, environment, publication:sourcePublication,"
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "observation; they retain no current Account decision or physical cleanup ACK."
               }
             ],
             "synchronization": [
@@ -42611,6 +42627,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "...(preparedSourceEnvironment?.preparedEnvironment === undefined ? {} : {getPreparedSourceEnvironment}),"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const after = observeControl();"
               }
             ],
             "failure": [
@@ -42657,6 +42677,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "throw clientOperationError('InstalledPublicSourceEnvironmentChanged');"
+              },
+              {
+                "path": "adapters/host-node/client-run-state-revision.test.mjs",
+                "anchor": "A changed payload without a revision increment cannot reuse the frame"
               }
             ],
             "cancellation": [
@@ -42703,6 +42727,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "retireSourceAliasPublicationOriginal(original.moon, original.environment, original.publication);"
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "facts, and closed journals refuse. These managed references end with the"
               }
             ],
             "resources": [
@@ -42765,6 +42793,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "retirement cuts its private publication association and aliases after the existing"
+              },
+              {
+                "path": "adapters/host-node/client-run-state-revision.test.mjs",
+                "anchor": "The complete original row has already been admitted"
               }
             ],
             "extension": [
@@ -42815,6 +42847,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "a changed or request-specific Environment receives its own preparation rather"
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "Run bytes, while a new public observation acquires its own current original."
               }
             ],
             "verification": [
@@ -42905,6 +42941,10 @@
               {
                 "path": "adapters/host-node/embedded-managed-compute-lifecycle.test.mjs",
                 "anchor": "test('Host prepared Environment waits for the original child shutdown before cutting its aliases', async () => {"
+              },
+              {
+                "path": "adapters/host-node/client-run-observation-reuse.test.mjs",
+                "anchor": "Local Run observation retries changed control and final publication conflicts"
               }
             ]
           }
