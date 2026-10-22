@@ -155,7 +155,31 @@ async function persistContracts(store, contracts, attempt) {
   }
   const begin = store.beginPublicationAttempt;
   if (attempt !== undefined && begin !== undefined) {
-    await Reflect.apply(begin, store, [Object.freeze(selected), attempt]);
+    try {
+      await Reflect.apply(begin, store, [Object.freeze(selected), attempt]);
+    } catch (primary) {
+      // Continue only after this original setup's native outcome is confirmed.
+      // Never invoke setup again, issue another attempt, or repeat Effect work.
+      if (member(primary, 'code') !== 'PublicationMetadataCommitOutcomeUnknown' ||
+          member(primary, 'outcome') !== 'unknown') throw primary;
+      const cleanup = member(primary, 'cleanupHandle');
+      const retry = member(cleanup, 'retry'), status = member(cleanup, 'status');
+      const read = member(store, 'readPublicationContract');
+      const latest = member(store, 'latestRecordContract');
+      if ([retry, status, read, latest].some(value => typeof value !== 'function')) throw primary;
+      try {
+        await Reflect.apply(retry, cleanup, []);
+        if (member(Reflect.apply(status, cleanup, []), 'pending') !== false) throw primary;
+        for (const original of [...selected, attempt]) {
+          const confirmed = await Reflect.apply(read, store, [original.identity, original.name]);
+          if (confirmed?.name !== original.name || confirmed.identity !== original.identity ||
+              confirmed.identityField !== original.identityField || confirmed.wire !== original.wire) throw primary;
+        }
+        // A body alone is not the installed attempt/progress locator. The same
+        // Store must successfully select that locator, even with no record yet.
+        await Reflect.apply(latest, store, [attempt.identity]);
+      } catch { throw primary; }
+    }
     return true;
   }
   if (selected.length === 0) return false;

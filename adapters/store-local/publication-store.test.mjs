@@ -105,6 +105,7 @@ const appendOriginalPublicationState = compileFunction(
 const publicationPersist = publicationAst.body.find(node => node.type === 'FunctionDeclaration' && node.id.name === 'persistContracts');
 assert.ok(publicationPersist);
 const persistOriginalPublicationSetup = compileFunction(
+  publicationSource.slice(publicationMember.start, publicationMember.end) + '\n' +
   publicationSource.slice(publicationPersist.start, publicationPersist.end) + '\nreturn persistContracts;', [])();
 
 async function runStoreChild(source) {
@@ -3285,7 +3286,7 @@ test(`joint publication setup retains the same ${afterCommit ? 'committed' : 'ro
   const originalAttempt = contractControl.admit('publication_attempt', wire(attempt), limits);
   let failure;
   armed = true;
-  await assert.rejects(persistOriginalPublicationSetup(store, originals, originalAttempt), error => {
+  await assert.rejects(store.beginPublicationAttempt(originals, originalAttempt), error => {
     failure = error; return error.outcome === 'unknown' && error.cleanupHandle.status().pending;
   });
   assert.equal(store.status().reservedObjects, 2);
@@ -3336,6 +3337,64 @@ test('publication setup keeps omitted joint support and refuses a failed explici
   const selected = {...legacy, async beginPublicationAttempt() {assert.equal(this, selected); throw primary;}};
   await assert.rejects(persistOriginalPublicationSetup(selected, [original], attempt), error => error === primary);
   assert.equal(oldCalls, 1, 'A refused joint operation never falls back to another persistence attempt');
+});
+
+test('publication setup confirmation retains the original failure without complete same-Store acknowledgement', async t => {
+  for (const boundary of ['pending', 'retry-failure', 'different-wire', 'different-kind', 'different-identity', 'different-identity-field', 'missing-locator', 'missing-reader']) {
+    await t.test(boundary, async () => {
+      const original = Object.freeze({name: 'publication_request', identity: digest('setup-request'), identityField: 'publication_request_cid', wire: 'request'});
+      const attempt = Object.freeze({name: 'publication_attempt', identity: digest('setup-attempt'), identityField: 'publication_attempt_cid', wire: 'attempt'});
+      let retries = 0, begins = 0, reads = 0;
+      const secondary = new Error('SecondaryFailure');
+      const cleanup = {status() {assert.equal(this, cleanup); return {pending: boundary === 'pending'};},
+        async retry() {assert.equal(this, cleanup); retries++; if (boundary === 'retry-failure') throw secondary;}};
+      const primary = Object.assign(new Error('OriginalSetupUnknown'), {code: 'PublicationMetadataCommitOutcomeUnknown', outcome: 'unknown', cleanupHandle: cleanup});
+      const store = {async beginPublicationAttempt() {begins++; throw primary;},
+        async readPublicationContract(cid, name) {
+          assert.equal(this, store); reads++;
+          const value = cid === attempt.identity ? attempt : original;
+          assert.equal(name, value.name);
+          if (boundary === 'different-wire') return {...value, wire: 'other'};
+          if (boundary === 'different-kind') return {...value, name: 'other'};
+          if (boundary === 'different-identity') return {...value, identity: digest('other')};
+          if (boundary === 'different-identity-field') return {...value, identityField: 'other'};
+          return value;
+        }, async latestRecordContract(cid) {assert.equal(this, store); assert.equal(cid, attempt.identity); throw secondary;}};
+      if (boundary === 'missing-reader') delete store.readPublicationContract;
+      await assert.rejects(persistOriginalPublicationSetup(store, [original], attempt), error => error === primary);
+      assert.equal(begins, 1);
+      assert.equal(retries, boundary === 'missing-reader' ? 0 : 1);
+      if (['pending', 'retry-failure', 'missing-reader'].includes(boundary)) assert.equal(reads, 0);
+    });
+  }
+});
+
+test('publication setup confirmation captures original methods and receivers before cleanup callbacks', async () => {
+  const request = Object.freeze({name: 'publication_request', identity: digest('captured-setup-request'), identityField: 'publication_request_cid', wire: 'request'});
+  const attempt = Object.freeze({name: 'publication_attempt', identity: digest('captured-setup-attempt'), identityField: 'publication_attempt_cid', wire: 'attempt'});
+  let begins = 0, reads = 0, locators = 0, pending = true;
+  const replaced = () => {throw new Error('ReplacementMustNotRun');};
+  const cleanup = {status() {assert.equal(this, cleanup); return {pending};}, async retry() {
+    assert.equal(this, cleanup); pending = false;
+    cleanup.status = replaced; store.readPublicationContract = replaced; store.latestRecordContract = replaced;
+  }};
+  const primary = Object.assign(new Error('OriginalSetupUnknown'), {code: 'PublicationMetadataCommitOutcomeUnknown', outcome: 'unknown', cleanupHandle: cleanup});
+  const store = {async beginPublicationAttempt() {assert.equal(this, store); begins++; throw primary;},
+    async readPublicationContract(cid) {assert.equal(this, store); reads++; return cid === attempt.identity ? attempt : request;},
+    async latestRecordContract(cid) {assert.equal(this, store); assert.equal(cid, attempt.identity); locators++;}};
+  assert.equal(await persistOriginalPublicationSetup(store, [request], attempt), true);
+  assert.deepEqual({begins, reads, locators}, {begins: 1, reads: 2, locators: 1});
+});
+
+test('healthy publication setup performs no confirmation reads or cleanup', async () => {
+  const original = {identity: digest('healthy-setup-request')}, attempt = {};
+  let calls = 0;
+  const unexpected = () => {throw new Error('HealthySetupNeedsNoConfirmation');};
+  const store = {async beginPublicationAttempt(items, supplied) {
+    assert.equal(this, store); assert.deepEqual(items, [original]); assert.equal(supplied, attempt); calls++;
+  }, readPublicationContract: unexpected, latestRecordContract: unexpected};
+  assert.equal(await persistOriginalPublicationSetup(store, [original], attempt), true);
+  assert.equal(calls, 1);
 });
 
 test('publication progress uses one native commit and no shadow file ACKs per transition',async t=>{

@@ -156,6 +156,12 @@ bodies, complete quota change and attempt locator in the same transaction.
 The caller marks both setup duties complete only after that real COMMIT;
 preparing and committing records remain later independent transitions.
 The original complete group and reservations remain owned on a lost reply.
+For an unknown native setup outcome, the caller may confirm that same cleanup
+once, then select the exact immutable bodies and installed attempt locator from
+the same Store before continuing its original publication progression. Pending
+cleanup, a missing locator, mismatched bodies or failed confirmation retains
+the original Unknown; none invokes setup again or repeats Effect work. Healthy
+setup adds no confirmation reads.
 An independently adopted file attempt retains its file progress and actual
 acknowledgements. A Store without this optional operation keeps the separate
 setup operations; an explicit refusal never falls back to another write.
