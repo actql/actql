@@ -51,6 +51,7 @@ fn client_effect_program_view(
     local_values_max_rows: client_standard_values_sequence_limits().max_rows,
     check_environment_cid: value.check_environment_cid,
     local_normalization: None,
+    full_sequences: [],
   }
 }
 

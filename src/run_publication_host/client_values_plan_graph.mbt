@@ -64,7 +64,13 @@ fn issue_prepared_client_values_plan_graph_parts(
   }
   let (fragment, aoa) = match
     issue_client_values_fragment_parts_graph(
-      graph, 0, sequence_limits, max_wire_bytes, max_nodes, max_depth,
+      graph,
+      0,
+      sequence_limits,
+      max_wire_bytes,
+      max_nodes,
+      max_depth,
+      preparation=Some(value),
     ) {
     Ok(parts) => parts
     Err(issue) => return Err(Fragment(issue))
