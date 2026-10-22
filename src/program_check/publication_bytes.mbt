@@ -18,20 +18,7 @@ fn prepare_publication_bytes(
     raise PublicationRows(@context.MissingHostCeiling)
   }
   let host = publication_host(ceiling, remaining)
-  let host_bytes = publication_metadata(
-    w => @host.emit(host, w) catch { e => raise Encoding(e) },
-    remaining,
-  )
-  identity_charge(remaining, host_bytes.length())
-  let witness = match
-    @wire.admit(host_bytes, @host.cid(host), {
-      max_bytes: host_bytes.length(),
-      max_nodes: host_bytes.length(),
-      max_depth: remaining.depth,
-    }) {
-    Ok(v) => v
-    Err(e) => raise PublicationWire(e)
-  }
+  let witness = publication_host_wire(host, remaining)
   identity_charge(remaining, 2)
   let claims = match
     @wire.check_arithmetic_claims([witness], {

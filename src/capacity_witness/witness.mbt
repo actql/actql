@@ -37,8 +37,14 @@ pub(all) enum Derivation {
 ///|
 /// Canonical, content-addressed claims only. Source and law applications are
 /// not authenticated, and this type is not runnable capacity evidence.
+priv enum WitnessBody {
+  Parsed(@decode.Cursor)
+  HostSource(@policy.Ceiling)
+}
+
+///|
 struct WireWitness {
-  cursor : @decode.Cursor
+  body : WitnessBody
   cid : String
   source : Source
   law : @law.RegisteredLaw
@@ -388,7 +394,7 @@ pub fn admit(
       }
     }
     let witness : WireWitness = {
-      cursor,
+      body: Parsed(cursor),
       cid,
       source,
       law,
@@ -486,5 +492,8 @@ pub fn emit(
   w : WireWitness,
   writer : @encode.Writer,
 ) -> Unit raise @encode.EncodeFailure {
-  emit_cursor(w.cursor, writer, false)
+  match w.body {
+    Parsed(cursor) => emit_cursor(cursor, writer, false)
+    HostSource(ceiling) => emit_host_source(w, ceiling, writer, true)
+  }
 }

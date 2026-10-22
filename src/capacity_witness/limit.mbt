@@ -142,7 +142,7 @@ pub fn admit_limit(
         raise Stop(InvalidWitness)
       }
       let witness = claims.witnesses[index]
-      if !same_cursor(candidate, witness.cursor) {
+      if !same_witness_body(candidate, witness) {
         raise Stop(InvalidWitness)
       }
       candidates.push({ node: index, role: witness.role, })

@@ -4,6 +4,7 @@ package "actql/actql/capacity_witness"
 import {
   "actql/actql/capacity_derivation",
   "actql/actql/capacity_law",
+  "actql/actql/capacity_policy",
   "actql/actql/encode_core",
   "moonbitlang/core/debug",
 }
@@ -36,6 +37,8 @@ pub fn claim_index(ArithmeticClaims, String) -> Int?
 pub fn claim_reference_count(ArithmeticClaims) -> Int
 
 pub fn collect_program_dependencies(Array[ProgramClaims], ClosureLimits, max_work~ : Int) -> Result[ProgramDependencies, ProgramDependencyIssue]
+
+pub fn create_host_source(@capacity_policy.Ceiling, @capacity_derivation.BoundUnit, @capacity_law.RegisteredLaw, Limits) -> Result[WireWitness, Issue]
 
 pub fn dependencies(WireWitness) -> Array[String]
 
