@@ -5931,7 +5931,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "1ebce783ed524232c1749c0a2af51fed2e770c200cb039f5e5f4959a93261c78",
+      "sha256": "18b612a7f73ee7c45a6f158c1a56f497f3e8da6e93da6c21af115d861ec28c29",
       "exports": [
         "PublicationStoreError",
         "assertOriginalLocalPublicationStoreFacilityCurrent",
@@ -6720,6 +6720,16 @@
           "async": true
         },
         {
+          "name": "openOriginalLocalPublicationStore/confirmModelRawEvidence/confirmModelRawEvidence/confirmModelRawEvidence",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/confirmModelRawEvidence/confirmModelRawEvidence/operation/operation",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "openOriginalLocalPublicationStore/confirmPhysicalCapacity/confirmPhysicalCapacity",
           "parameters": [
             "originals"
@@ -6732,6 +6742,50 @@
             "binding"
           ],
           "async": true
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/confirmPrivateEvidence/confirmPrivateEvidence/confirmPrivateEvidence",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/confirmPrivateEvidence/confirmPrivateEvidence/operation/operation",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/confirmPrivateHoldingRead/confirmPrivateHoldingRead",
+          "parameters": [
+            "record"
+          ],
+          "async": true
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/confirmPrivateHoldingRead/confirmPrivateHoldingRead/confirmPrivateHoldingRead",
+          "parameters": [
+            "object"
+          ],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/confirmPrivateHoldingRead/confirmPrivateHoldingRead/init:retry/init:retry",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/confirmPrivateHoldingRead/confirmPrivateHoldingRead/init:retry/init:retry/init:retry",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/confirmPrivateHoldingRead/confirmPrivateHoldingRead/init:retry/init:retry/init:retry#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/confirmPrivateHoldingRead/confirmPrivateHoldingRead/status/status",
+          "parameters": [],
+          "async": false
         },
         {
           "name": "openOriginalLocalPublicationStore/confirmSelectedCommittedIndex/confirmSelectedCommittedIndex",
@@ -6842,9 +6896,13 @@
           "async": true
         },
         {
-          "name": "openOriginalLocalPublicationStore/consumePhysicalHolding/consumePhysicalHolding/closed/closed",
-          "parameters": [],
-          "async": false
+          "name": "openOriginalLocalPublicationStore/consumeSelectedPhysicalHolding/consumeSelectedPhysicalHolding",
+          "parameters": [
+            "record",
+            "objectIndex",
+            "accept"
+          ],
+          "async": true
         },
         {
           "name": "openOriginalLocalPublicationStore/contractPath/contractPath",
@@ -8638,6 +8696,14 @@
           "async": true
         },
         {
+          "name": "openOriginalLocalPublicationStore/readModelRawEvidenceOriginal/readModelRawEvidenceOriginal",
+          "parameters": [
+            "binding",
+            "confirm"
+          ],
+          "async": true
+        },
+        {
           "name": "openOriginalLocalPublicationStore/readOpeningMetadata/readOpeningMetadata",
           "parameters": [
             "path"
@@ -8682,7 +8748,8 @@
             "semanticCid",
             "holdingCid",
             "index",
-            "objectCount"
+            "objectCount",
+            "originalHolding"
           ],
           "async": true
         },
@@ -9036,6 +9103,18 @@
           "parameters": [
             "value"
           ],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/retainPhysicalHoldingReader/retainPhysicalHoldingReader",
+          "parameters": [
+            "holdingCid"
+          ],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/retainPhysicalHoldingReader/retainPhysicalHoldingReader/retainPhysicalHoldingReader",
+          "parameters": [],
           "async": false
         },
         {
@@ -10090,8 +10169,18 @@
             "openOriginalLocalPublicationStore/confirmModelRawCaptureOriginals/confirmModelRawCaptureOriginals",
             "openOriginalLocalPublicationStore/confirmModelRawCaptureOriginals/confirmModelRawCaptureOriginals/expected/expected",
             "openOriginalLocalPublicationStore/confirmModelRawEvidence/confirmModelRawEvidence",
+            "openOriginalLocalPublicationStore/confirmModelRawEvidence/confirmModelRawEvidence/confirmModelRawEvidence",
+            "openOriginalLocalPublicationStore/confirmModelRawEvidence/confirmModelRawEvidence/operation/operation",
             "openOriginalLocalPublicationStore/confirmPhysicalCapacity/confirmPhysicalCapacity",
             "openOriginalLocalPublicationStore/confirmPrivateEvidence/confirmPrivateEvidence",
+            "openOriginalLocalPublicationStore/confirmPrivateEvidence/confirmPrivateEvidence/confirmPrivateEvidence",
+            "openOriginalLocalPublicationStore/confirmPrivateEvidence/confirmPrivateEvidence/operation/operation",
+            "openOriginalLocalPublicationStore/confirmPrivateHoldingRead/confirmPrivateHoldingRead",
+            "openOriginalLocalPublicationStore/confirmPrivateHoldingRead/confirmPrivateHoldingRead/confirmPrivateHoldingRead",
+            "openOriginalLocalPublicationStore/confirmPrivateHoldingRead/confirmPrivateHoldingRead/init:retry/init:retry",
+            "openOriginalLocalPublicationStore/confirmPrivateHoldingRead/confirmPrivateHoldingRead/init:retry/init:retry/init:retry",
+            "openOriginalLocalPublicationStore/confirmPrivateHoldingRead/confirmPrivateHoldingRead/init:retry/init:retry/init:retry#2",
+            "openOriginalLocalPublicationStore/confirmPrivateHoldingRead/confirmPrivateHoldingRead/status/status",
             "openOriginalLocalPublicationStore/confirmSelectedCommittedIndex/confirmSelectedCommittedIndex",
             "openOriginalLocalPublicationStore/consumeCommittedResult/consumeCommittedResult",
             "openOriginalLocalPublicationStore/consumeCommittedResult/consumeCommittedResult/consumeCommittedResult",
@@ -10109,7 +10198,7 @@
             "openOriginalLocalPublicationStore/consumeObject/consumeObject/consumeObject",
             "openOriginalLocalPublicationStore/consumeObject/consumeObject/status/status",
             "openOriginalLocalPublicationStore/consumePhysicalHolding/consumePhysicalHolding",
-            "openOriginalLocalPublicationStore/consumePhysicalHolding/consumePhysicalHolding/closed/closed",
+            "openOriginalLocalPublicationStore/consumeSelectedPhysicalHolding/consumeSelectedPhysicalHolding",
             "openOriginalLocalPublicationStore/contractPath/contractPath",
             "openOriginalLocalPublicationStore/createAdmittedAttempt/createAdmittedAttempt",
             "openOriginalLocalPublicationStore/createAttempt/createAttempt",
@@ -10327,6 +10416,7 @@
             "openOriginalLocalPublicationStore/readMetadataDeletion/readMetadataDeletion/readMetadataDeletion#8",
             "openOriginalLocalPublicationStore/readMetadataInventory/readMetadataInventory",
             "openOriginalLocalPublicationStore/readModelRawEvidence/readModelRawEvidence",
+            "openOriginalLocalPublicationStore/readModelRawEvidenceOriginal/readModelRawEvidenceOriginal",
             "openOriginalLocalPublicationStore/readOpeningMetadata/readOpeningMetadata",
             "openOriginalLocalPublicationStore/readPhysicalHolding/readPhysicalHolding",
             "openOriginalLocalPublicationStore/readPhysicalHoldingAt/readPhysicalHoldingAt",
@@ -10383,6 +10473,8 @@
             "openOriginalLocalPublicationStore/retainEffectCaptureCustody/retainEffectCaptureCustody/holdings/holdings",
             "openOriginalLocalPublicationStore/retainEffectCaptureCustody/retainEffectCaptureCustody/retainEffectCaptureCustody",
             "openOriginalLocalPublicationStore/retainEffectCaptureCustody/retainEffectCaptureCustody/retainEffectCaptureCustody/records/records",
+            "openOriginalLocalPublicationStore/retainPhysicalHoldingReader/retainPhysicalHoldingReader",
+            "openOriginalLocalPublicationStore/retainPhysicalHoldingReader/retainPhysicalHoldingReader/retainPhysicalHoldingReader",
             "openOriginalLocalPublicationStore/retentionExtensionDirectory/retentionExtensionDirectory",
             "openOriginalLocalPublicationStore/retentionExtensionResultDirectory/retentionExtensionResultDirectory",
             "openOriginalLocalPublicationStore/retireCommittedPublicationMetadata/retireCommittedPublicationMetadata",
@@ -11763,6 +11855,46 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "Manifest read grants follow the same selected-operation boundary. Ordinary"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "Private evidence reads admit the selected holding metadata once and acquire its"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "test('private evidence selected read acquires one holding and ciphertext and rechecks the next operation'"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "test('private evidence selected read retains its consuming FD through failed close and retirement'"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "test('private evidence selected extent and missing payload keep their original refusals'"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "Private confirmation captures its supplied scalar binding before the first"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "test('private evidence confirmation reuses its one operation read before the real directory ACK'"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "test('Model raw confirmation reads each selected ciphertext once with the same descriptor and holding'"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "test('private confirmation keeps the existing reader and retirement scope through its real directory ACK'"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "If confirmation's directory sync exports a still-pending acquired FD, the same"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "test(`private confirmation retains a failed original directory close"
               }
             ]
           }
