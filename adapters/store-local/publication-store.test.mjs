@@ -1598,6 +1598,35 @@ test('existing schema preparation reuses its actual read generation without repe
   assert.equal((await store.readSemanticBytes(cids.schema)).toString(),resultSchemaWire);
 });
 
+test('existing schema preparation refuses a replacement generation while its original holder is live', async t => {
+  const {store,directory}=await fixture(t);
+  await store.putSemantic(resultSchemaWire,cids.schema);
+  const semantic=join(directory,'contracts',cids.schema.slice(7)+'.json');
+  const physical=join(directory,'objects',cids.schema.slice(7));
+  const first=await store.putPreparedResultSchema(resultSchemaWire,cids.schema,cids.run);
+  let failure;
+  try{
+    const before=await stat(physical),replacement=join(directory,'schema-replacement');
+    await writeFile(replacement,resultSchemaWire);
+    const after=await stat(replacement);
+    assert.notEqual(String(before.dev)+':'+before.ino,String(after.dev)+':'+after.ino);
+    await unlink(semantic);await unlink(physical);
+    await fsPromises.link(replacement,physical);await fsPromises.link(replacement,semantic);
+    await unlink(replacement);
+    // Equal valid bytes are not the original prepared holder's generation.
+    await assert.rejects(store.putPreparedResultSchema(resultSchemaWire,cids.schema,cids.result),error=>{
+      failure=error;return error.code==='PublicationPreparedSchemaGenerationMismatch'&&error.cleanupPending===true;
+    });
+    assert.equal((await failure.cleanupHandle.retry()).pending,false);
+    assert.equal(first.prepared.status().pending,true);
+    await assert.rejects(store.close(),code('PublicationStoreCleanupPending'));
+    assert.equal(store.status().objectCount,1);
+  }finally{
+    if(failure?.cleanupHandle.status().pending)await failure.cleanupHandle.retry();
+    await first.prepared.release();
+  }
+});
+
 test('existing schema preparation retains the same failed reader close', async t => {
   const {store, directory} = await fixture(t);
   await store.putSemantic(resultSchemaWire, cids.schema);

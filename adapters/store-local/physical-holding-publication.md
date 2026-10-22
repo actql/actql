@@ -233,6 +233,17 @@ schema transition to confirm. A nonempty set retains the original directory
 acknowledgements before recovering its exact markers and physical allocations.
 Selected reads and subsequent writes retain their own integrity and real ACKs.
 
+An existing schema preparation retains the device/inode scalars already checked
+by its actual semantic reader against the digest object's hard link and extent.
+It joins those same-operation facts to the existing prepared-schema generation
+instead of immediately repeating both pathname observations. Only this reader
+requests the extra frozen generation pair; ordinary contract reads do not retain
+another generation object. The reader still hashes its actual bytes, compares
+the requested schema and closes its original FD before returning. A later
+preparation reacquires its own reader, and a changed retained generation refuses.
+New or pending writers keep their final alias observations and real durability
+and cleanup duties; the reuse supplies neither capacity nor an ACK.
+
 The original metadata envelope includes the admitted record/Buffer, temporary
 path/UUID Strings, file and hard-link/directory operations, writer-set entry,
 closure/status/cleanup record, pending Promise/flight, retained original FD and

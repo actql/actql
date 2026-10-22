@@ -3180,7 +3180,7 @@ async function openOriginalLocalPublicationStore(
       group.holders.add(holder);
       const prepared = preparedSchemaHandle(group, holder);
       try {
-        let stored;
+        let stored, generation;
         if (holder.path !== undefined) {
           // Newly created bytes need the existing crash-reclamation marker.
           await writeExclusive(holder.path,
@@ -3191,7 +3191,7 @@ async function openOriginalLocalPublicationStore(
           // An already owned immutable schema creates no new durable state.
           // Acquire this operation's real original; retain its live holder,
           // without rewriting crash markers for an allocation we cannot delete.
-          const original = await readSemanticOriginal(semanticCid, false);
+          const original = await readSemanticOriginal(semanticCid, false, true);
           if (original.physicalCid !== physicalCid ||
               !exactUtf8WireMatches(original.bytes, wire)) {
             fail('PublicationObjectIdentityMismatch');
@@ -3199,18 +3199,24 @@ async function openOriginalLocalPublicationStore(
           stored = Object.freeze({semanticCid, physical: Object.freeze({
             cid: physicalCid, bytes: original.bytes.byteLength, created: false,
           }), created: false});
+          generation = original.generation;
         }
-        const physical = await lstat(objectPath(physicalCid));
-        const semantic = await lstat(contractPath(semanticCid));
-        if (!physical.isFile() || !semantic.isFile() ||
-            physical.dev !== semantic.dev ||
-            physical.ino !== semantic.ino ||
-            physical.size !== bytes.byteLength) {
-          fail('PublicationPreparedSchemaGenerationMismatch');
+        if (generation === undefined) {
+          // A writer still needs its actual final aliases observed. An
+          // existing body's reader already checked these same inode/extent
+          // facts while acquiring its bytes in this preparation.
+          const physical = await lstat(objectPath(physicalCid));
+          const semantic = await lstat(contractPath(semanticCid));
+          if (!physical.isFile() || !semantic.isFile() ||
+              physical.dev !== semantic.dev ||
+              physical.ino !== semantic.ino ||
+              physical.size !== bytes.byteLength) {
+            fail('PublicationPreparedSchemaGenerationMismatch');
+          }
+          generation = Object.freeze({
+            device: String(physical.dev), inode: String(physical.ino),
+          });
         }
-        const generation = {
-          device: String(physical.dev), inode: String(physical.ino),
-        };
         if (group.generation !== undefined &&
             (group.generation.device !== generation.device ||
               group.generation.inode !== generation.inode)) {
@@ -3476,7 +3482,7 @@ async function openOriginalLocalPublicationStore(
   const nativeDeliveryContract = (cid, name, retained) =>
     admitNativeContract(deliveryIndex?.contract(cid), cid, name, retained);
 
-  const readSemanticOriginal = async function readSemanticBytes(cid, includeNative = true) {
+  const readSemanticOriginal = async function readSemanticBytes(cid, includeNative = true, retainGeneration = false) {
     const path = contractPath(cid);
     active();
     const nativeRecord = includeNative ? deliveryIndex?.contract(cid) : undefined;
@@ -3535,6 +3541,9 @@ async function openOriginalLocalPublicationStore(
       // that allocation to hash it again adds no independent fact. A later
       // read still acquires and validates its own original; no Store-wide
       // successful-digest cache substitutes for that observation.
+      if (retainGeneration) return Object.freeze({bytes, physicalCid, generation: Object.freeze({
+        device: String(after.dev), inode: String(after.ino),
+      })});
       return Object.freeze({bytes, physicalCid});
     } catch (error) {
       readFailure = error;
