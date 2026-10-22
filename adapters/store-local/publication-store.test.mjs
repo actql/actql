@@ -8879,6 +8879,72 @@ test('Effect capture custody changes and a fresh Store retain real durability', 
   await reopened.close();
 });
 
+test('queued Effect capture custody refuses after the same Store closes', async t => {
+  const f = await captureCustodyFixture(t);
+  const originalOpen = fsPromises.open;
+  let entered, release;
+  const enteredRead = new Promise(resolve => {entered = resolve;});
+  const blockedRead = new Promise(resolve => {release = resolve;});
+  const primary = Object.assign(new Error('OriginalCaptureReadStopped'), {code: 'EIO'});
+  let intercepted = false;
+  t.mock.method(fsPromises, 'open', async function(selected, ...args) {
+    if (!intercepted && String(selected) === f.path) {
+      intercepted = true;
+      entered();
+      await blockedRead;
+      throw primary; // No original FD was acquired by this test-owned read.
+    }
+    return Reflect.apply(originalOpen, this, [selected, ...args]);
+  });
+  syncBuiltinESMExports();
+  const first = f.store.retainEffectCaptureCustody(f.run, [f.holding]);
+  const firstResult = first.then(value => ({value}), error => ({error}));
+  await enteredRead;
+  const queued = f.store.retainEffectCaptureCustody(f.run, [f.holding]);
+  const queuedResult = queued.then(value => ({value}), error => ({error}));
+  try {
+    await f.store.close();
+    assert.equal(f.store.status().closed, true);
+  } finally {release();}
+  assert.strictEqual((await firstResult).error, primary);
+  assert.equal((await queuedResult).error?.code, 'PublicationStoreClosed');
+  assert.equal(f.runAdmissions, 2, 'one admission per original public operation');
+  assert.deepEqual(f.calls, {writes: 0, fileSyncs: 0, directorySyncs: 0});
+  await assert.rejects(readFile(f.path), {code: 'ENOENT'});
+});
+
+test('Effect capture retirement refuses final unlink after the same Store closes', async t => {
+  const f = await captureCustodyFixture(t);
+  await f.store.retainEffectCaptureCustody(f.run, [f.holding]);
+  const original = await readFile(f.path), state = await stat(f.path);
+  const originalOpen = fsPromises.open;
+  const holdingPath = join(f.directory, 'physical-holdings',
+    `${f.holding.holding_cid.slice(7)}.json`);
+  let holdingReads = 0, closedDuringRetirement = false;
+  t.mock.method(fsPromises, 'open', async function(selected, ...args) {
+    // The first read validates the custody inventory. The second belongs to
+    // actual holding retirement; absence means this holding already retired,
+    // not that the capture's later unlink may ignore Store lifetime.
+    if (String(selected) === holdingPath && ++holdingReads === 2) {
+      await f.store.close();
+      closedDuringRetirement = true;
+    }
+    return Reflect.apply(originalOpen, this, [selected, ...args]);
+  });
+  syncBuiltinESMExports();
+  f.reset();
+  await assert.rejects(f.store.retireEffectCaptureCustody(f.run),
+    {code: 'PublicationStoreClosed'});
+  assert.equal(closedDuringRetirement, true);
+  assert.equal(f.store.status().closed, true);
+  assert.equal(f.runAdmissions, 1);
+  assert.deepEqual(f.calls, {writes: 0, fileSyncs: 0, directorySyncs: 0});
+  assert.deepEqual(await readFile(f.path), original);
+  const retained = await stat(f.path);
+  assert.equal(retained.dev, state.dev);
+  assert.equal(retained.ino, state.ino);
+});
+
 async function preparePhysical(store, value) {
   const bytes = Buffer.from(value, 'utf8');
   const writer = store.createPreparedObjectWriter(bytes.byteLength);
