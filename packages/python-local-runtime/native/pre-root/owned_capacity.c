@@ -28,6 +28,8 @@ struct extent {
     size_t pages;
     bool retired;
     bool sealed;
+    /* Private domain registration storage is not a generic readable span. */
+    bool domain_storage;
     size_t external_readers;
     bool external_writer;
     /* Private Rust storage is never a generic exportable span. */
@@ -334,10 +336,16 @@ int actql_native_owned_domain_returned(actql_owned_capacity *lease,
 }
 
 /* Existing generic placement, called under the original capacity lock. */
-static int allocate_locked(actql_owned_capacity *lease, size_t bytes,
-                           size_t alignment, void **out) {
+static int allocate_storage_locked(actql_owned_capacity *lease, size_t bytes,
+                           size_t alignment, void **out, bool domain_storage) {
     size_t pages;
     if (!round_pages(bytes, lease->page_size, &pages)) return ACTQL_OWNED_INVALID;
+    size_t clear_pages = pages;
+    if (domain_storage &&
+        (pages > (SIZE_MAX - sizeof(*lease)) / sizeof(struct extent) ||
+         !round_pages(sizeof(*lease) + pages * sizeof(struct extent),
+                      lease->page_size, &clear_pages) || clear_pages >= pages))
+        return ACTQL_OWNED_INVALID;
     if (lease->first_free_page < lease->control_pages ||
         lease->first_free_page > lease->page_count) {
         return ACTQL_OWNED_INVALID;
@@ -368,8 +376,11 @@ static int allocate_locked(actql_owned_capacity *lease, size_t bytes,
             status = ACTQL_OWNED_PHYSICAL_FAILURE;
             break;
         }
-        memset(base, 0, length);
-        const uint64_t work[3] = {1, length, length};
+        /* Only the private domain path withholds its payload from all generic
+         * consumers. Every generic allocation still clears its full extent. */
+        size_t cleared = clear_pages * lease->page_size;
+        memset(base, 0, cleared);
+        const uint64_t work[3] = {1, length, cleared};
         for (size_t i = 0; i < 3; i++) {
             if (lease->extent_work[i] > UINT64_MAX - work[i])
                 lease->extent_work_overflow = true;
@@ -377,6 +388,7 @@ static int allocate_locked(actql_owned_capacity *lease, size_t bytes,
         }
         lease->extents[start].pages = pages;
         lease->extents[start].retired = false;
+        lease->extents[start].domain_storage = domain_storage;
         lease->occupied_pages += pages;
         if (lease->occupied_pages > lease->peak_occupied_pages)
             lease->peak_occupied_pages = lease->occupied_pages;
@@ -394,6 +406,11 @@ static int allocate_locked(actql_owned_capacity *lease, size_t bytes,
         break;
     }
     return status;
+}
+
+static int allocate_locked(actql_owned_capacity *lease, size_t bytes,
+                           size_t alignment, void **out) {
+    return allocate_storage_locked(lease, bytes, alignment, out, false);
 }
 
 int actql_native_owned_allocate(actql_owned_capacity *lease, size_t bytes,
@@ -473,6 +490,7 @@ int actql_native_owned_contains_live_span(actql_owned_capacity *lease,
         start--;
     size_t pages = lease->extents[start].pages;
     if (pages == 0 || pages == SIZE_MAX || lease->extents[start].rust_class != 0 ||
+        lease->extents[start].domain_storage ||
         lease->extents[start].retired ||
         pages > lease->page_count - start) goto done;
     size_t begin = start * lease->page_size;
@@ -495,7 +513,8 @@ int actql_native_owned_protect(actql_owned_capacity *lease, void *allocation,
     lock_capacity(lease);
     size_t start;
     int status = ACTQL_OWNED_INVALID;
-    if (!foreign_domain_process(lease) && allocation_start(lease, allocation, &start) && !lease->extents[start].retired) {
+    if (!foreign_domain_process(lease) && allocation_start(lease, allocation, &start) &&
+        !lease->extents[start].domain_storage && !lease->extents[start].retired) {
         if (allocation_has_external_use(lease, start, false) ||
             (lease->fd_backed && lease->extents[start].sealed && protection != PROT_READ)) {
             unlock_capacity(lease);
@@ -557,7 +576,8 @@ int actql_native_owned_seal_readonly(actql_owned_capacity *lease, void *allocati
     lock_capacity(lease);
     size_t start;
     int status = ACTQL_OWNED_INVALID;
-    if (!foreign_domain_process(lease) && allocation_start(lease, allocation, &start) && !lease->extents[start].retired) {
+    if (!foreign_domain_process(lease) && allocation_start(lease, allocation, &start) &&
+        !lease->extents[start].domain_storage && !lease->extents[start].retired) {
         if (allocation_has_external_use(lease, start, true)) {
             unlock_capacity(lease);
             return ACTQL_OWNED_BUSY;

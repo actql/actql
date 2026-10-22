@@ -169,7 +169,11 @@ fn InstalledArenaDomain::prepare_original(
   bytes : Int64,
   limits : @resources.LedgerLimits,
 ) -> Result[Unit, @bootstrap.NativeBackedExecutionIssue] {
-  let allocation = match self.backing.allocate(self.host, bytes) {
+  let acquired = match fd {
+    Some(_) => self.backing.allocate(self.host, bytes)
+    None => self.backing.allocate_in_process_domain(self.host, bytes)
+  }
+  let allocation = match acquired {
     Err(issue) => return Err(@bootstrap.Bootstrap(issue))
     Ok(value) => value
   }

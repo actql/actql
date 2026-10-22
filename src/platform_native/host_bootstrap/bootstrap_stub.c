@@ -43,6 +43,7 @@ typedef struct {
     actql_bootstrap_backing *owner;
     void *address;
     int status;
+    bool domain_storage;
 } actql_bootstrap_extent;
 
 static void keep_physical_custody(void *record) {
@@ -241,18 +242,32 @@ MOONBIT_FFI_EXPORT int32_t actql_bootstrap_claim(actql_bootstrap_backing *record
     return actql_native_owned_transfer(record->lease, (uint64_t)generation, recipe);
 }
 
-MOONBIT_FFI_EXPORT void *actql_bootstrap_allocate(actql_bootstrap_backing *record,
-                                                int64_t bytes) {
+static void *allocate_extent(actql_bootstrap_backing *record,
+                            int64_t bytes, bool domain_storage) {
     actql_bootstrap_extent *extent = moonbit_make_external_object(
         keep_physical_custody, sizeof(*extent));
     extent->owner = record;
     extent->address = NULL;
     extent->status = ACTQL_OWNED_INVALID;
+    extent->domain_storage = domain_storage;
     if (bytes > 0 && (uint64_t)bytes <= SIZE_MAX) {
-        extent->status = actql_native_owned_allocate(record->lease,
+        extent->status = domain_storage
+            ? actql_native_owned_allocate_in_process_domain(record->lease,
+                                    (size_t)bytes, &extent->address)
+            : actql_native_owned_allocate(record->lease,
                                     (size_t)bytes, 1, &extent->address);
     }
     return extent;
+}
+
+MOONBIT_FFI_EXPORT void *actql_bootstrap_allocate(actql_bootstrap_backing *record,
+                                                int64_t bytes) {
+    return allocate_extent(record, bytes, false);
+}
+
+MOONBIT_FFI_EXPORT void *actql_bootstrap_allocate_in_process_domain(
+    actql_bootstrap_backing *record, int64_t bytes) {
+    return allocate_extent(record, bytes, true);
 }
 
 MOONBIT_FFI_EXPORT int32_t actql_bootstrap_extent_status(actql_bootstrap_extent *extent) {
@@ -304,7 +319,11 @@ static void *lend_region(
     if (extent->owner == owner && extent->address != NULL &&
         offset >= 0 && length > 0 && (uint64_t)offset <= SIZE_MAX &&
         (uint64_t)length <= SIZE_MAX && (writable == 0 || writable == 1)) {
-        record->status = (in_process ? actql_native_owned_lend_in_process_extent_range
+        if (extent->domain_storage) {
+            if (in_process && offset == 0 && writable == 1)
+                record->status = actql_native_owned_lend_in_process_domain(
+                    owner->lease, extent->address, (size_t)length, &record->loan);
+        } else record->status = (in_process ? actql_native_owned_lend_in_process_extent_range
                                      : actql_native_owned_lend_extent_range)(
             owner->lease, extent->address, (size_t)offset, (size_t)length,
             writable != 0, &record->loan);
@@ -438,9 +457,14 @@ MOONBIT_FFI_EXPORT void *actql_bootstrap_view_region_in_process(
     record->status = ACTQL_OWNED_INVALID;
     if (loan->owner == owner && loan->extent == extent && extent->owner == owner &&
         payload_offset >= 0 && payload_length > 0 &&
-        (uint64_t)payload_offset <= SIZE_MAX && (uint64_t)payload_length <= SIZE_MAX)
-        record->status = actql_native_owned_view_in_process_extent(&loan->loan,
+        (uint64_t)payload_offset <= SIZE_MAX && (uint64_t)payload_length <= SIZE_MAX) {
+        if (extent->domain_storage) {
+            if (payload_offset == 0 && (uint64_t)payload_length == loan->loan.extent.length)
+                record->status = actql_native_owned_view_in_process_domain(
+                    &loan->loan, &record->view);
+        } else record->status = actql_native_owned_view_in_process_extent(&loan->loan,
             (size_t)payload_offset, (size_t)payload_length, &record->view);
+    }
     return record;
 }
 
