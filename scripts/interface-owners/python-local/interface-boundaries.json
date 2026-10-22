@@ -143,10 +143,11 @@
     {
       "module": "packages/native-cli/bin/actql.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "bb39f2a477d5c4d101ff844ebbd96935dfb57199b5da12e83e7afd98550ede53",
+      "sha256": "277ab3dc0da7dd47102be52d0d1bd42a796ad087ba5c3e0aef2ec871a364b5af",
       "exports": [
         "admitInstalledBinary",
         "launch",
+        "macOSProductVersion",
         "platformKey"
       ],
       "operations": [
@@ -195,6 +196,13 @@
           "name": "launch",
           "parameters": [
             "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "macOSProductVersion",
+          "parameters": [
+            "query"
           ],
           "async": false
         },
@@ -769,6 +777,105 @@
               {
                 "path": "packages/native-cli/bin/actql.mjs",
                 "anchor": "#!/usr/bin/env node"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "macOSProductVersion"
+          ],
+          "exports": [
+            "macOSProductVersion"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/native-cli/bin/actql.mjs",
+                "anchor": "export function macOSProductVersion"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/native-cli/bin/actql.mjs",
+                "anchor": "['/usr/sbin/sysctl', ['-n', 'kern.osproductversion']]"
+              },
+              {
+                "path": "packages/native-cli/bin/actql.mjs",
+                "anchor": "return typeof version === 'string'"
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/native-cli/bin/actql.mjs",
+                "anchor": "actual ProductVersion"
+              },
+              {
+                "path": "packages/native-cli/bin/actql.mjs",
+                "anchor": "SYSTEM_VERSION_COMPAT: '0'"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "packages/native-cli/bin/actql.mjs",
+                "anchor": "const result = query(command, args"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/native-cli/bin/actql.mjs",
+                "anchor": "for (const [command, args] of ["
+              },
+              {
+                "path": "packages/native-cli/bin/actql.mjs",
+                "anchor": "spawnSync(executable, selectedArguments"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/native-cli/bin/actql.mjs",
+                "anchor": "if (result.error || result.status !== 0 || result.signal)"
+              },
+              {
+                "path": "packages/native-cli/bin/actql.mjs",
+                "anchor": "return undefined"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "This synchronous OS metadata query does not issue, cancel, resume or retire a Run. Query timeout or process exit is not an application resource retirement acknowledgement."
+            },
+            "resources": [
+              {
+                "path": "packages/native-cli/bin/actql.mjs",
+                "anchor": "maxBuffer: 1024, timeout: 1000"
+              },
+              {
+                "path": "packages/native-cli/bin/actql.mjs",
+                "anchor": "version.length <= 47"
+              }
+            ],
+            "extension": [
+              {
+                "path": "packages/native-cli/bin/actql.mjs",
+                "anchor": "['/usr/bin/sw_vers', ['-productVersion']]"
+              },
+              {
+                "path": "packages/native-cli/bin/actql.mjs",
+                "anchor": "const required = parse(metadata.abi.minimumMacOS), actual = parse(macOS)"
+              }
+            ],
+            "verification": [
+              {
+                "path": "scripts/native-cli-release.test.mjs",
+                "anchor": "macOS version uses one bounded kernel query when available"
+              },
+              {
+                "path": "scripts/native-cli-release.test.mjs",
+                "anchor": "macOS version never replaces a valid unsupported version or admits missing replies"
+              },
+              {
+                "path": "scripts/native-cli-release.test.mjs",
+                "anchor": "macOS version agrees with the existing OS service and ignores compatibility spelling"
               }
             ]
           }

@@ -464,52 +464,61 @@ fn local_submission_start(
       local_input_cursor(@publication.publication_contract_json(run.retention)),
     ).unwrap_or_else(() => stop("InvalidLocalResultRetentionPolicy"))
     let until = run_text(retention, "available_until")
-    let manifests = @run_host.admit_client_compilation_manifests(
-      @compiler_environment.compiler_grammar_manifest_wire(),
-      @compiler_environment.compiler_barrier_contract_manifest_wire(),
-      10000,
-      1000,
-      20,
-    ).unwrap_or_else(() => stop("LocalCompilerManifestUnavailable"))
-    let compilation = @run_host.issue_prepared_client_task_compilation(
-      prepared,
-      manifests,
-      @run_host.client_standard_values_sequence_limits(),
-      1000,
-      1000,
-      65536,
-      8192,
-      64,
-    ).unwrap_or_else(() => stop("LocalCompilationNotReady"))
-    let configuration_cid = local_host_result(
-      match business {
-        None => host.configuration()
-        Some(original) => original.capture.configuration_in_original_read()
-      },
-    ).configuration_cid()
-    let compiled = @run_host.issue_client_task_compiled_run(
-      prepared, compilation, scope, configuration_cid, until,
-    ).unwrap_or_else(() => stop("LocalCompiledRunNotReady"))
-    let compiled = if source_free {
-      let values = run.source_free.unwrap()
-      @run_host.with_client_source_free_result_policy(
-        compiled,
-        values.result_policy_cid,
-        values.result_policy_wire,
+    let compilation = {
+      native_timing_begin(22)
+      defer native_timing_end(22)
+      let manifests = @run_host.admit_client_compilation_manifests(
+        @compiler_environment.compiler_grammar_manifest_wire(),
+        @compiler_environment.compiler_barrier_contract_manifest_wire(),
+        10000,
+        1000,
+        20,
+      ).unwrap_or_else(() => stop("LocalCompilerManifestUnavailable"))
+      @run_host.issue_prepared_client_task_compilation(
+        prepared,
+        manifests,
+        @run_host.client_standard_values_sequence_limits(),
+        1000,
+        1000,
         65536,
         8192,
         64,
-      ).unwrap_or_else(() => stop("LocalValuesResultPolicyNotAdmitted"))
-    } else {
-      compiled
+      ).unwrap_or_else(() => stop("LocalCompilationNotReady"))
     }
-    let definition = @run_host.issue_client_compiled_run_definition(
-      compiled,
-      run.namespace_id,
-      @local_host.native_client_submission_request_id(reference),
-      now,
-      until,
-    ).unwrap_or_else(() => stop("LocalRunDefinitionNotReady"))
+    let (compiled, definition) = {
+      native_timing_begin(23)
+      defer native_timing_end(23)
+      let configuration_cid = local_host_result(
+        match business {
+          None => host.configuration()
+          Some(original) => original.capture.configuration_in_original_read()
+        },
+      ).configuration_cid()
+      let compiled = @run_host.issue_client_task_compiled_run(
+        prepared, compilation, scope, configuration_cid, until,
+      ).unwrap_or_else(() => stop("LocalCompiledRunNotReady"))
+      let compiled = if source_free {
+        let values = run.source_free.unwrap()
+        @run_host.with_client_source_free_result_policy(
+          compiled,
+          values.result_policy_cid,
+          values.result_policy_wire,
+          65536,
+          8192,
+          64,
+        ).unwrap_or_else(() => stop("LocalValuesResultPolicyNotAdmitted"))
+      } else {
+        compiled
+      }
+      let definition = @run_host.issue_client_compiled_run_definition(
+        compiled,
+        run.namespace_id,
+        @local_host.native_client_submission_request_id(reference),
+        now,
+        until,
+      ).unwrap_or_else(() => stop("LocalRunDefinitionNotReady"))
+      (compiled, definition)
+    }
     let accepted : Result[
       @local_host.NativeClientSubmittedIntentRecord,
       @local_host.NativeClientRunJournalIssue,
