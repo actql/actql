@@ -116,6 +116,7 @@ type Reader
 pub fn Reader::close(Self) -> Result[Unit, NativeFilesystemIssue]
 pub fn Reader::finish(Self) -> Result[Unit, NativeFilesystemIssue]
 pub fn Reader::next(Self, Int) -> Result[NativeFileChunk, NativeFilesystemIssue]
+pub fn Reader::sha256(Self) -> Result[Bytes, NativeFilesystemIssue]
 
 type Root
 pub fn Root::acquire_lock(Self, String) -> Result[Lock, NativeFilesystemIssue]
