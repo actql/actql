@@ -3,6 +3,7 @@ import hashlib
 import importlib.util
 import json
 from pathlib import Path
+import subprocess
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -20,6 +21,25 @@ def entry(data):
 
 
 class CurrentProviderClosureTests(unittest.TestCase):
+    def test_real_provider_patch_and_derived_outputs_match(self):
+        manifest = json.loads((CANDIDATE / 'scoped-read-source.json').read_bytes())
+        source_patch = PREPARE._read(CANDIDATE, manifest['patch']['path'], manifest['patch'])
+        with tempfile.TemporaryDirectory() as temporary:
+            stage = Path(temporary)
+            for item in manifest['inputs']:
+                if item['root'] == 'provider':
+                    (stage / item['output']).write_bytes(
+                        PREPARE._read(CANDIDATE, item['path'], item))
+            # Exercise the real provider hunks, including the two newly added
+            # Read files, without needing a compiler or a MoonBit installation.
+            result = subprocess.run(
+                ['git', 'apply', '--no-index', '--exclude=moonbit_runtime.h', '-'],
+                input=source_patch, cwd=stage, capture_output=True, timeout=10)
+            self.assertEqual(result.returncode, 0, result.stderr.decode())
+            for path in stage.iterdir():
+                with self.subTest(path=path.name):
+                    self.assertEqual(entry(path.read_bytes()), manifest['outputs'][path.name])
+
     def test_real_provider_inputs_and_unpatched_borrow_outputs_are_pinned(self):
         manifest = json.loads((CANDIDATE / 'scoped-read-source.json').read_bytes())
         for item in manifest['inputs']:
