@@ -25,7 +25,7 @@ fn LocalCommandPreparationOriginal::prepare_business_submission(
   self : LocalCommandPreparationOriginal,
   host : @local_host.NativeLocalHostConnection,
   capture : @local_host.NativeLocalJournalCapture,
-  configuration_name : String,
+  configuration : LocalCommandConfiguration,
   runtime : LocalPackagedRuntime,
   input_root : String,
   operation : String,
@@ -54,21 +54,12 @@ fn LocalCommandPreparationOriginal::prepare_business_submission(
     optional(child, "operation-attempt-id") is Some(_) {
     stop("LocalBusinessOriginalReferenceRequired")
   }
-  let configuration_body = local_host_result(
-    capture.selected_configuration_in_original_read(configuration_name),
-  )
-  let configuration = local_check_original_text(configuration_body)
-  let settings = local_host_settings(configuration)
-  let (environment_name, evidence) = local_configuration(configuration)
-  let environment_body = local_host_result(
-    capture.selected_configuration_in_original_read(environment_name),
-  )
-  let environment = @run_host.admit_client_check_environment(
-    local_check_original_text(environment_body),
-    evidence,
-    { text_time: false, veca: false, },
-    { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
-  ).unwrap_or_else(() => stop("LocalBusinessEnvironmentUnavailable"))
+  let configuration_name = configuration.configuration_name
+  let configuration_body = configuration.configuration_body
+  let settings = configuration.settings
+  let environment_name = configuration.environment_name
+  let environment_body = configuration.environment_body
+  let environment = configuration.checked_environment()
   let account = local_host_result(capture.configuration_in_original_read())
   if account.account_id() != settings.account_id {
     stop("LocalConfigurationChanged")

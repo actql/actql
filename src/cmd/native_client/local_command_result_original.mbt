@@ -36,6 +36,7 @@ fn LocalCommandPreparationOriginal::prepare_original_result(
   sqlite : @local_sqlite.Library,
   child : @argparse.Matches,
   publication? : LocalCommandBusinessPreparation? = None,
+  configuration? : LocalCommandConfiguration? = None,
 ) -> LocalCommandResultOriginal raise ClientStop {
   native_timing_begin(6)
   defer native_timing_end(6)
@@ -61,13 +62,33 @@ fn LocalCommandPreparationOriginal::prepare_original_result(
     local_result_stdout_only(child)
   }
   ignore(local_result_format(child))
-  let configuration = local_check_original_text(
-    local_result_host_value(
-      capture.selected_configuration_in_original_read(configuration_name),
-      "configuration",
-    ),
-  )
-  let (environment_name, _) = local_configuration(configuration)
+  let environment_name = match configuration {
+    Some(original) => {
+      guard original.configuration_name == configuration_name &&
+        physical_equal(original.settings, settings) else {
+        stop("LocalConfigurationChanged")
+      }
+      original.environment_name
+    }
+    None if publication is Some(original) => {
+      guard original.configuration_name == configuration_name &&
+        physical_equal(original.original, self) &&
+        physical_equal(original.host, host) &&
+        physical_equal(original.capture, capture) else {
+        stop("LocalConfigurationChanged")
+      }
+      original.environment_name
+    }
+    None => {
+      let text = local_check_original_text(
+        local_result_host_value(
+          capture.selected_configuration_in_original_read(configuration_name),
+          "configuration",
+        ),
+      )
+      local_configuration(text).0
+    }
+  }
   let run_file = settings.run_file.unwrap_or_else(() => {
     stop("LocalRunOriginalNotSelected")
   })
