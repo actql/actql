@@ -6762,7 +6762,7 @@
     {
       "module": "adapters/host-common/result-access.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "cfd8597bd913f82ee018ea7ff7bdddb9dd35add63ea21cbb5de22f7ae567f609",
+      "sha256": "4d8fdcda47dfa5ad9ba3ce0e9e613f8770fd41ff1e64a2cea35a70cfcce2bc78",
       "role": "physical-io",
       "owner": "Existing Result access/delivery/publication Owners and physical read/sink adapter",
       "exports": [
@@ -6901,6 +6901,14 @@
           "async": false
         },
         {
+          "name": "readSelectedPublication",
+          "parameters": [
+            "installed",
+            "indexKey"
+          ],
+          "async": true
+        },
+        {
           "name": "ResultAccessError/constructor:constructor/constructor:constructor",
           "parameters": [
             "code",
@@ -6978,7 +6986,8 @@
             "validateAdmission",
             "validateAuthority",
             "validateRequest",
-            "validateServiceConfiguration"
+            "validateServiceConfiguration",
+            "readSelectedPublication"
           ],
           "exports": [
             "ResultAccessError",
@@ -7001,6 +7010,10 @@
               {
                 "path": "src/run_publication/pkg.generated.mbti",
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "Result description and payload resolution consume the existing Store's selected"
               }
             ],
             "inputsOutputs": [
@@ -7015,6 +7028,10 @@
               {
                 "path": "docs/spec/protocols/artifacts.md",
                 "anchor": "### Result delivery"
+              },
+              {
+                "path": "adapters/host-common/result-access.mjs",
+                "anchor": "async function readSelectedPublication(installed, indexKey) {"
               }
             ],
             "identity": [
@@ -7029,6 +7046,10 @@
               {
                 "path": "src/run_publication/pkg.generated.mbti",
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
+              },
+              {
+                "path": "adapters/host-common/result-access.mjs",
+                "anchor": "// This same Store read owns the selected Index's nominal admission. It is"
               }
             ],
             "ownership": [
@@ -7043,6 +7064,10 @@
               {
                 "path": "docs/design/result-description.md",
                 "anchor": "# Committed Result descriptions"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "installation; a new public operation acquires a new selected original. Stores"
               }
             ],
             "synchronization": [
@@ -7057,6 +7082,10 @@
               {
                 "path": "src/run_publication/pkg.generated.mbti",
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
+              },
+              {
+                "path": "adapters/host-common/result-access.mjs",
+                "anchor": "const readCommittedPublication = configuration.store.readCommittedPublication;"
               }
             ],
             "failure": [
@@ -7071,6 +7100,10 @@
               {
                 "path": "src/run_publication/pkg.generated.mbti",
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "invalid port, malformed selected result, refusal or physical error never selects"
               }
             ],
             "cancellation": [
@@ -7085,6 +7118,10 @@
               {
                 "path": "docs/spec/protocols/artifacts.md",
                 "anchor": "### Result delivery"
+              },
+              {
+                "path": "adapters/host-common/result-access.mjs",
+                "anchor": "signal?.throwIfAborted();"
               }
             ],
             "resources": [
@@ -7099,6 +7136,10 @@
               {
                 "path": "docs/design/result-description.md",
                 "anchor": "# Committed Result descriptions"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "reader/cleanup acknowledgments remain separate responsibilities."
               }
             ],
             "extension": [
@@ -7113,6 +7154,10 @@
               {
                 "path": "docs/spec/protocols/artifacts.md",
                 "anchor": "### Result delivery"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "without that optional port keep their existing selected reads. An explicitly"
               }
             ],
             "verification": [
@@ -7123,6 +7168,10 @@
               {
                 "path": "src/run_publication/pkg.generated.mbti",
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
+              },
+              {
+                "path": "adapters/host-common/result-description.test.mjs",
+                "anchor": "test('selected description preserves denial, invalid input, physical failure and final confirmation', async () => {"
               }
             ]
           }
