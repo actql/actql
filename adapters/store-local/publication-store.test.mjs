@@ -4938,6 +4938,31 @@ test('native publication inventory survives reopen and retires only its original
   await reopened.close();
 });
 
+test('native publication inventory validates only the selected body and exact Index tuple',async t=>{
+  const setup=await fixture(t),{store,directory,configuration}=setup;
+  const publish=async label=>{
+    const invocationValue=invocation(),request=publicationRequest(resultDefinition(),digest(label));
+    const attempt=publicationAttempt(request,label),prepared=await prepareCommit(store,request,attempt,invocationValue);
+    const entry=indexEntry(request,attempt,invocationValue,{durable_result_binding_cids:[prepared.binding.identity]});
+    await store.commitIndex(wire(entry),prepared.required,prepared.evidence);return {request,entry};
+  };
+  const healthy=await publish('healthy native tuple'),selected=await publish('selected native tuple');
+  await store.close();
+  const database=new DatabaseSync(join(directory,'delivery-attempts.sqlite3'));
+  let inventory;
+  try {
+    inventory=JSON.parse(database.prepare('SELECT inventory_wire FROM native_publication_inventories WHERE public_index_cid=?')
+      .get(selected.entry.public_index_entry_cid).inventory_wire);
+    database.exec('PRAGMA synchronous=FULL; PRAGMA fullfsync=ON');
+    database.prepare('UPDATE native_publication_inventories SET inventory_wire=? WHERE public_index_cid=?')
+      .run(JSON.stringify({...inventory,run_definition_cid:digest('foreign native inventory Run')}),selected.entry.public_index_entry_cid);
+  } finally {database.close();}
+  const reopened=await openLocalPublicationStore(configuration,contractControl);
+  assert.equal((await reopened.lookupCommittedIndex(indexKeyFor(healthy.request),()=>true)).public_index_entry_cid,healthy.entry.public_index_entry_cid);
+  await assert.rejects(reopened.lookupCommittedIndex(indexKeyFor(selected.request),()=>true),code('InvalidPublicationMetadataInventoryStore'));
+  await reopened.close();
+});
+
 async function committedHoldingFixture(setup, label) {
   const request = publicationRequest(resultDefinition(), digest(`published ${label}`));
   const invocationValue = invocation();
