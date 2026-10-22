@@ -5627,7 +5627,7 @@ async function openOriginalLocalPublicationStore(
     let inventoryOriginal;
     const adoptSchemas = async () => {
       await adoptPreparedSchemas(inventorySemanticCids, entry.run_definition_cid);
-      deliveryIndex.finishPublicationInventory(inventoryOriginal);
+      deliveryIndex.retainPublicationInventoryFinish(inventoryOriginal);
     };
     return createPublicationCommitOwner({entry, admitted, key}, {
       confirm: confirmCommittedIndex,
