@@ -67,6 +67,37 @@ test(`native publication inventory ${phase} retains ${afterCommit?'committed':'r
 });
 }}
 
+for(const missing of ['native_publication_inventories','native_publication_inventory_usage']) {
+test(`native publication inventory refuses missing adopted ${missing}`,async t=>{
+  const directory=await mkdtemp(join(tmpdir(),'actql-native-inventory-missing-'));
+  t.after(()=>rm(directory,{recursive:true}));
+  const path=join(directory,'index.sqlite3'),options={create:false,maxEntries:2,maxWireBytes:4096};
+  const index=await openDeliveryAttemptIndex(path,{...options,create:true});
+  index.migrate([]);index.migratePublicationRecovery([]);index.close();
+  const database=new DatabaseSync(path);
+  try{database.exec(`DROP TABLE ${missing}`);}finally{database.close();}
+  await assert.rejects(openDeliveryAttemptIndex(path,options),{code:'DeliveryAttemptIndexUnavailable'});
+});
+}
+
+test('native publication inventory upgrades version6 without reclassifying its pending originals',async t=>{
+  const directory=await mkdtemp(join(tmpdir(),'actql-native-inventory-v6-'));
+  let index;
+  t.after(async()=>{index?.close();await rm(directory,{recursive:true});});
+  const path=join(directory,'index.sqlite3'),options={create:false,maxEntries:2,maxWireBytes:4096};
+  index=await openDeliveryAttemptIndex(path,{...options,create:true});index.migrate([]);
+  const original={public_index_cid:'sha256:'+'1'.repeat(64),inventory_wire:'{"legacy":1}'};
+  index.migratePublicationRecovery([original]);index.close();
+  const database=new DatabaseSync(path);
+  try{database.exec('DROP TABLE native_publication_inventories; DROP TABLE native_publication_inventory_usage; UPDATE coverage SET version=6 WHERE id=1');}
+  finally{database.close();}
+  index=await openDeliveryAttemptIndex(path,options);
+  assert.equal(index.needsPublicationRecoveryMigration(),false);
+  assert.deepEqual(index.pendingPublications(),[original]);
+  assert.deepEqual(index.nativePublicationInventories(),[]);
+  index.finishPublicationInventory(original);
+});
+
 test('publication recovery coverage retains only pending originals across reopen', async t => {
   const directory=await mkdtemp(join(tmpdir(),'actql-publication-recovery-'));
   let index;

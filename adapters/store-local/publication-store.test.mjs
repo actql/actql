@@ -4912,6 +4912,32 @@ test('native publication inventory is the durable original without duplicate fil
   } finally { database.close(); }
 });
 
+test('native publication inventory survives reopen and retires only its original ownership',async t=>{
+  const setup=await fixture(t),{store,directory,configuration}=setup;
+  const publish=async label=>{
+    const invocationValue=invocation(),request=publicationRequest(resultDefinition(),digest(label));
+    const attempt=publicationAttempt(request,label),prepared=await prepareCommit(store,request,attempt,invocationValue);
+    const entry=indexEntry(request,attempt,invocationValue,{durable_result_binding_cids:[prepared.binding.identity]});
+    await store.commitIndex(wire(entry),prepared.required,prepared.evidence);
+    return {request,entry};
+  };
+  const first=await publish('first native owner'),second=await publish('second native owner');
+  await store.close();
+  const reopened=await openLocalPublicationStore(configuration,contractControl);
+  assert.equal((await reopened.lookupCommittedIndex(indexKeyFor(first.request),()=>true)).public_index_entry_cid,first.entry.public_index_entry_cid);
+  const retirement=await reopened.retireCommittedMetadata(indexKeyFor(first.request),'2027-01-01T00:00:00.000Z');
+  assert.equal(retirement.cleanup.status().pending,false);
+  await assert.rejects(reopened.lookupCommittedIndex(indexKeyFor(first.request),()=>true),code('PublicationLookupDenied'));
+  assert.equal((await reopened.lookupCommittedIndex(indexKeyFor(second.request),()=>true)).public_index_entry_cid,second.entry.public_index_entry_cid);
+  assert.equal((await reopened.readSemanticBytes(cids.schema)).toString(),resultSchemaWire);
+  const database=new DatabaseSync(join(directory,'delivery-attempts.sqlite3'));
+  try {
+    assert.equal(database.prepare('SELECT count(*) AS n FROM native_publication_inventories').get().n,1);
+    assert.equal(database.prepare('SELECT entries FROM native_publication_inventory_usage').get().entries,1);
+  } finally {database.close();}
+  await reopened.close();
+});
+
 async function committedHoldingFixture(setup, label) {
   const request = publicationRequest(resultDefinition(), digest(`published ${label}`));
   const invocationValue = invocation();
