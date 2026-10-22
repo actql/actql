@@ -5170,6 +5170,22 @@ test('Manifest selection retains the original failed directory FD close before S
   assert.equal((await setup.store.consumeManifestReadGrant(wire(grant), 'same')).idempotent, true);
 });
 
+test('Manifest selected use reuses admission but still refuses changed target bytes', async t => {
+  let admissions = 0;
+  const control = {...contractControl, admit(name, ...args) {
+    if (name === 'manifest_read_grant') admissions++;
+    return Reflect.apply(contractControl.admit, contractControl, [name, ...args]);
+  }};
+  const setup = await fixture(t, {}, control), grant = manifestReadGrant(1);
+  await setup.store.consumeManifestReadGrant(wire(grant), 'same');
+  assert.equal(admissions, 1, 'One contract-control admission, not another admission for persistence');
+  const target = join(setup.directory, 'manifest-reads', grant.manifest_read_grant_cid.slice(7),
+    createHash('sha256').update('same').digest('hex') + '.json');
+  await writeFile(target, JSON.stringify({manifestReadGrantCid: grant.manifest_read_grant_cid, attemptId: 'foreign'}));
+  await assert.rejects(setup.store.consumeManifestReadGrant(wire(grant), 'same'), code('ManifestReadAttemptConflict'));
+  assert.equal(admissions, 2, 'A new operation admits its actual input; the ACK observation is not authority');
+});
+
 test('Manifest grant use is durable idempotent and bounded across restart',
   async t => {
     const {store, configuration} = await fixture(t);
