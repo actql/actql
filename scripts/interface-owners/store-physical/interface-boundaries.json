@@ -9918,7 +9918,7 @@
               },
               {
                 "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "const original = await readSemanticOriginal(semanticCid, false);"
+                "anchor": "const original = await readSemanticOriginal(semanticCid, false, true);"
               },
               {
                 "path": "adapters/host-common/runtime-core.mjs",
