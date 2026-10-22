@@ -19340,7 +19340,7 @@
     {
       "module": "adapters/host-node/client-request-journal.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "bdd547bc517c8caee8fb0ffd21b3a4899be3ebc6e8b5238a91cfc8124fcac70c",
+      "sha256": "4be3819f87fef971bae80a9bab6c73ad3c5786945e969fd79a317a492bc27eb9",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
@@ -20897,7 +20897,8 @@
           "name": "openClientRequestJournal/journal/init:retainSubmissionOperation/init:retainSubmissionOperation",
           "parameters": [
             "epoch",
-            "control"
+            "control",
+            "parentEpoch"
           ],
           "async": false
         },
@@ -24628,7 +24629,7 @@
     {
       "module": "adapters/host-node/client-submission.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "ebb0c5d6f0d19a8a66fe5960673b85a96bd4c60e6d85aaae46b7e515e530068f",
+      "sha256": "ca4b33457020772afedf21c2c95f2cf48a11daee29fd0487033f14a73f0e2b92",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
