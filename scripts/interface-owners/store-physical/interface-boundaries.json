@@ -4963,7 +4963,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "1f41cdd50b7b7d25a944416a76ac95b2dfdf49eb6cc498e66411a4eef9c7c684",
+      "sha256": "c869be033629fb90e485e3a6fe7e2db86e054664d38383e971b5f6f30282dcfa",
       "exports": [
         "PublicationStoreError",
         "assertOriginalLocalPublicationStoreFacilityCurrent",
@@ -9282,6 +9282,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "New inventory bodies are durable originals in that same native staging"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "Committed Result retention-extension histories are selected-use facts. Ordinary"
               }
             ],
             "inputsOutputs": [
@@ -9340,6 +9344,10 @@
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "deliveryIndex.stageNativePublicationInventory(original);"
+              },
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "const readResultRetentionExtension = async ("
               }
             ],
             "identity": [
@@ -9406,6 +9414,10 @@
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "if (native.inventory_wire !== original.inventory_wire) fail('PublicationMetadataInventoryConflict');"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "chain and exact Result/Index/base-policy bindings. Missing history still means"
               }
             ],
             "ownership": [
@@ -9464,6 +9476,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "the same complete durable deletion marker before removing the native original"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "both directory types without following a substituted symlink, retains its real"
               }
             ],
             "synchronization": [
@@ -9522,6 +9538,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "The existing Index file and its actual directory acknowledgement still"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "the selected original still receives its actual containing-directory ACK"
               }
             ],
             "failure": [
@@ -9580,6 +9600,10 @@
               {
                 "path": "adapters/store-local/publication-store.test.mjs",
                 "anchor": "publication recovery completes only its retained inventory after a lost pre-file stage reply"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "selected retention refuses a failed target ACK without changing or adopting the record"
               }
             ],
             "cancellation": [
@@ -9634,6 +9658,10 @@
               {
                 "path": "adapters/store-local/publication-store.mjs",
                 "anchor": "deliveryIndex.retireNativePublicationInventory(recoveryOriginal);"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "Append-only CAS, new-directory durability and deletion/restart cleanup retain"
               }
             ],
             "resources": [
@@ -9692,6 +9720,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "Private native-inventory count and wire bounds are enforced before insertion."
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "ordinary open does not enumerate even valid unrelated extension histories"
               }
             ],
             "extension": [
@@ -9750,6 +9782,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "file inventories remain files and use the same selected-use checks. They are"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "This localization does not remove payload quota or other recovery history work."
               }
             ],
             "verification": [
@@ -9880,6 +9916,10 @@
               {
                 "path": "adapters/store-local/publication-store.test.mjs",
                 "anchor": "native publication inventory survives reopen and retires only its original ownership"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "selected retention keeps malformed unrelated history deferred and refuses selected corruption"
               }
             ]
           }
