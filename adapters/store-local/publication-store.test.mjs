@@ -1,7 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import {compileFunction} from 'node:vm';
+import {parse} from 'acorn';
 import {
   chmod,
+  link,
   mkdir,
   mkdtemp,
   open,
@@ -85,6 +89,19 @@ const cids = Object.freeze({
   fence: digest('fence'),
 });
 const code = expected => error => error?.code === expected;
+
+// Execute the existing publication caller's exact append step with real
+// Store/SQLite and explicit immutable-contract ports. This is not complete
+// Common-chain or ordinary installed SDK acceptance.
+const publicationSource = readFileSync(new URL('../host-common/run-publication.mjs', import.meta.url), 'utf8');
+const publicationAst = parse(publicationSource, {ecmaVersion: 'latest', sourceType: 'module'});
+const publicationAppend = publicationAst.body.find(node => node.type === 'FunctionDeclaration' && node.id.name === 'appendState');
+const publicationMember = publicationAst.body.find(node => node.type === 'VariableDeclaration' &&
+  node.declarations.some(item => item.id.name === 'member'));
+assert.ok(publicationAppend); assert.ok(publicationMember);
+const appendOriginalPublicationState = compileFunction(
+  publicationSource.slice(publicationMember.start, publicationMember.end) + '\n' +
+  publicationSource.slice(publicationAppend.start, publicationAppend.end) + '\nreturn appendState;', [])();
 
 async function runStoreChild(source) {
   const child = spawn(process.execPath, [
@@ -1654,6 +1671,77 @@ test('trusted clock warm write retains its original failed close and floor',asyn
   assert.equal((await store.readClockObservation(cids.scope)).observedAt,next);
 });
 
+test('sealed new objects need only their actual final directory ACK, not a staging alias ACK',async t=>{
+  const directory=await mkdtemp(join(tmpdir(),'actql-sealed-staging-'));
+  t.after(()=>removeFixtureDirectory(directory));
+  const events=[];let selectedTemporary,removedSelectedTemporary=false;
+  const configuration={directory,storeAuthorityCid:cids.authority,capacityBytes:1024*1024,
+    maxObjectBytes:65536,maxObjects:100,maxContractNodes:4096,maxContractDepth:64};
+  const durability={async syncDirectory(path){
+    events.push({path,afterSelectedRemoval:removedSelectedTemporary});
+    const fd=await open(path,'r');try{await fd.sync();}finally{await fd.close();}
+  }};
+  const store=await openLocalPublicationStore(configuration,contractControl,durability);
+  const actualOpen=fsPromises.open,actualUnlink=fsPromises.unlink;
+  t.mock.method(fsPromises,'open',function(file,...args){
+    if(selectedTemporary===undefined&&String(file).startsWith(join(directory,'staging')+sep))selectedTemporary=String(file);
+    return Reflect.apply(actualOpen,this,[file,...args]);
+  });
+  t.mock.method(fsPromises,'unlink',async function(file,...args){
+    const result=await Reflect.apply(actualUnlink,this,[file,...args]);
+    if(String(file)===selectedTemporary)removedSelectedTemporary=true;
+    return result;
+  });
+  syncBuiltinESMExports();t.after(()=>{t.mock.restoreAll();syncBuiltinESMExports();});
+  const bytes=Buffer.from('one durable allocation with two temporary aliases');
+  const cid=digest(bytes),path=join(directory,'objects',cid.slice(7));
+  const writer=store.createObjectWriter(bytes.length);await writer.append(bytes);events.length=0;
+  assert.equal((await writer.seal(cid)).created,true);
+  assert(selectedTemporary);assert.equal(removedSelectedTemporary,true);
+  assert.equal(events.filter(x=>x.path===join(directory,'objects')).length,1);
+  // Other custody writers keep their own ACKs. Count only this payload
+  // alias's cleanup, after its actual selected unlink completed.
+  assert.equal(events.filter(x=>x.path===join(directory,'staging')&&x.afterSelectedRemoval).length,0);
+  assert.deepEqual(await readdir(join(directory,'staging')),[]);
+  const before=await stat(path);
+  assert.deepEqual(await readFile(path),bytes);
+  assert.equal(store.status().objectCount,1);assert.equal(store.status().storedBytes,bytes.length);
+  assert.equal(writer.status().reservationHeld,false);
+  // A duplicate has a DIFFERENT temporary allocation. It must retain its
+  // original staging-unlink ACK before that temporary reservation retires.
+  selectedTemporary=undefined;removedSelectedTemporary=false;
+  const duplicate=store.createObjectWriter(bytes.length);await duplicate.append(bytes);events.length=0;
+  assert.equal((await duplicate.seal(cid)).created,false);
+  assert.equal(events.filter(x=>x.path===join(directory,'staging')&&x.afterSelectedRemoval).length,1);
+  const after=await stat(path);assert.equal(after.dev,before.dev);assert.equal(after.ino,before.ino);
+  assert.equal(store.status().objectCount,1);assert.equal(store.status().storedBytes,bytes.length);
+  await store.close();
+  const reopened=await openLocalPublicationStore(configuration,contractControl,durability);
+  assert.deepEqual(await reopened.verifyObject(cid),{cid,bytes:bytes.length});
+  assert.deepEqual(await readFile(path),bytes);
+  assert.equal(reopened.status().objectCount,1);assert.equal(reopened.status().storedBytes,bytes.length);
+});
+
+test('opening removes a reappeared sealed staging alias without losing or recharging the final object',async t=>{
+  const {store,directory,configuration}=await fixture(t);
+  const bytes=Buffer.from('same physical object after alias recovery'),cid=digest(bytes);
+  const writer=store.createObjectWriter(bytes.length);await writer.append(bytes);await writer.seal(cid);
+  const path=join(directory,'objects',cid.slice(7)),before=await stat(path);
+  // Simulate only the possible reappeared directory entry, not a crash or
+  // an allocation ACK: this is another link to the SAME actual inode.
+  const alias=join(directory,'staging','object-00000000-0000-0000-0000-000000000001');
+  await link(path,alias);const aliasState=await stat(alias);
+  assert.equal(aliasState.dev,before.dev);assert.equal(aliasState.ino,before.ino);
+  assert.equal((await stat(path)).nlink,2);
+  await store.close();
+  const reopened=await openLocalPublicationStore(configuration,contractControl);
+  assert.deepEqual(await readdir(join(directory,'staging')),[]);
+  assert.deepEqual(await reopened.verifyObject(cid),{cid,bytes:bytes.length});
+  const after=await stat(path);assert.equal(after.dev,before.dev);assert.equal(after.ino,before.ino);assert.equal(after.nlink,1);
+  assert.deepEqual(await readFile(path),bytes);
+  assert.equal(reopened.status().objectCount,1);assert.equal(reopened.status().storedBytes,bytes.length);
+});
+
 test('prepared payload cleanup reuses installed directory acknowledgement before its real unlink ACK',async t=>{
   const directory=await mkdtemp(join(tmpdir(),'actql-prepared-capacity-ack-'));
   t.after(()=>removeFixtureDirectory(directory));
@@ -2446,11 +2534,20 @@ test('seal failure removes its staging alias before reclaiming custody',
     assert.equal((await readdir(join(
       directory, 'prepared-custody',
     ))).length, 1);
-    assert.deepEqual(await readdir(objects), []);
+    // The second failure is the SAME possible installation's confirmation
+    // before indexed-reference reads, not its later unlink acknowledgement.
+    // Keep that exact allocation/charge until the original retry confirms it.
+    assert.deepEqual(await readdir(objects), [digest('payload').slice(7)]);
+    const retained=await stat(join(objects,digest('payload').slice(7)));
+    const [custodyName]=await readdir(join(directory,'prepared-custody'));
+    const custody=JSON.parse(await readFile(join(directory,'prepared-custody',custodyName),'utf8'));
+    assert.equal(String(retained.dev),custody.device);assert.equal(String(retained.ino),custody.inode);
+    assert.deepEqual(await readFile(join(objects,digest('payload').slice(7))),Buffer.from('payload'));
     assert.equal(await retriedWriter.cancel(), true);
     assert.equal(retriedWriter.status().custodyPending, false);
     assert.equal(retriedWriter.status().cleanupPending, false);
     assert.equal(store.status().storedBytes, 0);
+    assert.deepEqual(await readdir(objects), []);
     assert.deepEqual(await readdir(join(
       directory, 'prepared-custody',
     )), []);
@@ -3169,8 +3266,8 @@ test(`native publication progress retains its ${phase} ${afterCommit?'committed'
   const exec=DatabaseSync.prototype.exec;
   let armed=false,lost=false,failure;
   t.mock.method(DatabaseSync.prototype,'exec',function(sql){
-    if(armed&&!lost&&sql==='COMMIT'){
-      lost=true;if(afterCommit)Reflect.apply(exec,this,[sql]);
+    if(armed&&sql==='COMMIT'){
+      if(!lost){lost=true;if(afterCommit)Reflect.apply(exec,this,[sql]);}
       throw Object.assign(new Error('lost original publication progress COMMIT reply'),{code:'EIO'});
     }
     return Reflect.apply(exec,this,[sql]);
@@ -3195,6 +3292,181 @@ test(`native publication progress retains its ${phase} ${afterCommit?'committed'
   assert.deepEqual(await reopened.latestRecord(attempt.publication_attempt_cid),phase==='attempt'?undefined:record);
 });
 }
+
+for (const afterCommit of [false, true]) {
+test(`Store close confirms its original ${afterCommit ? 'committed' : 'rolled-back'} publication writer before retiring capacity`, async t => {
+  const exec = DatabaseSync.prototype.exec;
+  let armed = false, failed = false, commits = 0, originalDatabase;
+  t.mock.method(DatabaseSync.prototype, 'exec', function(sql) {
+    if (armed && sql === 'COMMIT') {
+      commits++;
+      if (!failed) {
+        failed = true;
+        originalDatabase = this;
+        if (afterCommit) Reflect.apply(exec, this, [sql]);
+        throw Object.assign(new Error('publication COMMIT reply unavailable'), {code: 'EIO'});
+      }
+      assert.equal(this, originalDatabase);
+    }
+    return Reflect.apply(exec, this, [sql]);
+  });
+  const {store, configuration} = await fixture(t);
+  const attempt = publicationAttempt(publicationRequest(), `close-unknown-${afterCommit}`);
+  await store.createAttempt(wire(attempt));
+  const record = publicationRecord(attempt, 0, 'preparing');
+  let failure;
+  armed = true;
+  await assert.rejects(store.appendRecord(wire(record), {uncommittedConfirmed: false}), error => {
+    failure = error;
+    return error.outcome === 'unknown' && error.cleanupHandle.status().pending;
+  });
+  assert.equal(store.status().reservedObjects, 1);
+  try {
+    const closing = store.close();
+    assert.equal(store.close(), closing, 'Concurrent close shares the same original cleanup flight');
+    await closing;
+    assert.equal(store.status().closed, true);
+    assert.equal(store.status().reservedObjects, 0);
+    assert.equal(failure.cleanupHandle.status().pending, false);
+    assert.ok(commits >= 2, 'Closing confirms the same original with an actual later COMMIT');
+  } finally {
+    // Failed baseline evidence still owns this fixture. Test teardown uses its
+    // actual original cleanup, never an ACK inferred from process exit.
+    armed = false;
+    if (!store.status().closed) await failure.cleanupHandle.retry();
+    await store.close();
+  }
+  const reopened = await openLocalPublicationStore(configuration, contractControl);
+  assert.deepEqual(await reopened.latestRecord(attempt.publication_attempt_cid), record);
+});
+}
+
+test('Store close confirms failed metadata without releasing an independent live payload', async t => {
+  const exec = DatabaseSync.prototype.exec;
+  let armed = false, failed = false;
+  t.mock.method(DatabaseSync.prototype, 'exec', function(sql) {
+    const result = Reflect.apply(exec, this, [sql]);
+    if (armed && !failed && sql === 'COMMIT') {
+      failed = true;
+      throw Object.assign(new Error('publication COMMIT reply unavailable'), {code: 'EIO'});
+    }
+    return result;
+  });
+  const {store} = await fixture(t);
+  const payload = store.createObjectWriter(7);
+  await payload.append('payload');
+  const attempt = publicationAttempt(publicationRequest(), 'close-with-live-payload');
+  let failure;
+  armed = true;
+  await assert.rejects(store.createAttempt(wire(attempt)), error => {
+    failure = error;
+    return error.outcome === 'unknown';
+  });
+  assert.equal(store.status().reservedObjects, 2);
+  await assert.rejects(store.close(), code('PublicationStoreCleanupPending'));
+  assert.equal(failure.cleanupHandle.status().pending, false);
+  assert.equal(store.status().closed, false);
+  assert.equal(store.status().reservedObjects, 1);
+  assert.equal(payload.status().reservationHeld, true);
+  await payload.cancel();
+  await store.close();
+  assert.equal(store.status().closed, true);
+});
+
+for (const afterCommit of [false, true]) {
+test(`publication caller continues its exact ${afterCommit ? 'committed' : 'rolled-back'} progress original after real confirmation`, async t => {
+  const exec = DatabaseSync.prototype.exec;
+  let armed = false, lost = false, originalDatabase, confirmations = 0;
+  t.mock.method(DatabaseSync.prototype, 'exec', function(sql) {
+    if (armed && sql === 'COMMIT') {
+      if (!lost) {
+        lost = true; originalDatabase = this;
+        if (afterCommit) Reflect.apply(exec, this, [sql]);
+        throw Object.assign(new Error('publication progress reply unavailable'), {code: 'EIO'});
+      }
+      assert.equal(this, originalDatabase);
+      confirmations++;
+    }
+    return Reflect.apply(exec, this, [sql]);
+  });
+  const {store, configuration} = await fixture(t);
+  const attempt = publicationAttempt(publicationRequest(), `same-caller-confirmation-${afterCommit}`);
+  const preparing = publicationRecord(attempt, 0, 'preparing');
+  const committing = publicationRecord(attempt, 1, 'committing', preparing);
+  const attemptContract = contractControl.admit('publication_attempt', wire(attempt), limits);
+  const previousContract = contractControl.admit('publication_record', wire(preparing), limits);
+  const expected = contractControl.admit('publication_record', wire(committing), limits);
+  await store.createAttempt(wire(attempt));
+  await store.appendRecord(wire(preparing), {uncommittedConfirmed: false});
+  let issued = 0, failure;
+  const callerStore = {...store, async appendRecord(...args) {
+    try { return await store.appendRecord(...args); }
+    catch (error) {failure = error; throw error;}
+  }};
+  armed = true;
+  try {
+    const actual = await appendOriginalPublicationState(callerStore, {
+      issuePublicationRecord(selectedAttempt, selectedPrevious) {
+        issued++; assert.equal(selectedAttempt, attemptContract);
+        assert.equal(selectedPrevious, previousContract); return expected;
+      }}, attemptContract, previousContract, 'committing', committing.observed_at, limits);
+    assert.equal(actual, expected, 'Continue with the original issued record, not a replacement Receipt');
+    assert.equal(issued, 1);
+    assert.equal(lost, true);
+    assert.equal(confirmations, 1, 'Exactly one original mutation confirmation, not publication replay');
+    assert.equal(failure.cleanupHandle.status().pending, false);
+    assert.equal(store.status().reservedObjects, 0);
+    assert.deepEqual(await store.latestRecord(attempt.publication_attempt_cid), committing);
+  } finally {
+    armed = false;
+    if (failure?.cleanupHandle.status().pending) await failure.cleanupHandle.retry();
+    await store.close();
+  }
+  const reopened = await openLocalPublicationStore(configuration, contractControl);
+  assert.deepEqual(await reopened.latestRecord(attempt.publication_attempt_cid), committing);
+});
+}
+
+for (const boundary of ['generic-error', 'missing-cleanup', 'retry-failure', 'still-pending', 'missing-record', 'foreign-record', 'changed-wire']) {
+test(`publication progress confirmation preserves the original failure for ${boundary}`, async () => {
+  const attempt = publicationAttempt(publicationRequest(), `confirmation-${boundary}`);
+  const record = publicationRecord(attempt, 0, 'preparing');
+  const original = contractControl.admit('publication_record', wire(record), limits);
+  let retries = 0, reads = 0;
+  const cleanup = {status: () => ({pending: boundary === 'still-pending'}), async retry() {
+    assert.equal(this, cleanup); retries++;
+    if (boundary === 'retry-failure') throw new Error('OriginalConfirmationUnavailable');
+  }};
+  const primary = Object.assign(new Error('OriginalProgressFailure'), {
+    code: boundary === 'generic-error' ? 'EIO' : 'PublicationMetadataCommitOutcomeUnknown',
+    outcome: 'unknown', cleanupPending: true,
+    ...(boundary === 'missing-cleanup' ? {} : {cleanupHandle: cleanup})});
+  const store = {async appendRecord() {throw primary;}, async latestRecordContract() {
+    assert.equal(this, store); reads++;
+    if (boundary === 'missing-record') return undefined;
+    return {...original, ...(boundary === 'foreign-record' ? {identity: digest('foreign')} : {}),
+      ...(boundary === 'changed-wire' ? {wire: original.wire + ' '} : {})};
+  }};
+  await assert.rejects(appendOriginalPublicationState(store,
+    {issuePublicationRecord: () => original}, {identity: attempt.publication_attempt_cid},
+    undefined, 'preparing', record.observed_at, limits), error => error === primary);
+  assert.equal(retries, ['generic-error', 'missing-cleanup'].includes(boundary) ? 0 : 1);
+  assert.equal(reads, ['missing-record', 'foreign-record', 'changed-wire'].includes(boundary) ? 1 : 0);
+});
+}
+
+test('healthy publication progress needs no cleanup retry or confirming reread', async () => {
+  const attempt = publicationAttempt(publicationRequest(), 'healthy-original-caller');
+  const record = publicationRecord(attempt, 0, 'preparing');
+  const original = contractControl.admit('publication_record', wire(record), limits);
+  let writes = 0, issued = 0;
+  const result = await appendOriginalPublicationState({
+    async appendRecord(body) {writes++; assert.equal(body, original.wire);},
+    latestRecordContract() {assert.fail('No extra selected read after a healthy append');}},
+  {issuePublicationRecord() {issued++; return original;}}, {identity: attempt.publication_attempt_cid},
+  undefined, 'preparing', record.observed_at, limits);
+  assert.equal(result, original); assert.equal(writes, 1); assert.equal(issued, 1);
+});
 
 test('publication progress persists its incoming admitted contract once per operation',async t=>{
   const admissions=new Map();
