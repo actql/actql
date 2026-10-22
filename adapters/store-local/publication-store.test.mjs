@@ -4988,12 +4988,7 @@ test('metadata deletion keeps the same cleanup after native retirement and lost 
 
 for(const phase of ['transfer','completion']) {
 test(`metadata deletion ${phase} Unknown retains the actual Store cleanup original`,async t=>{
-  const {store,directory}=await fixture(t);
-  const invocationValue=invocation(),request=publicationRequest(resultDefinition(),invocationValue.invocation_cid);
-  const attempt=publicationAttempt(request),prepared=await prepareCommit(store,request,attempt,invocationValue);
-  const entry=indexEntry(request,attempt,invocationValue,{durable_result_binding_cids:[prepared.binding.identity]});
-  await store.commitIndex(wire(entry),prepared.required,prepared.evidence);
-  let armed=true,lost=false;
+  let armed=false,lost=false,request;
   const exec=DatabaseSync.prototype.exec;
   t.mock.method(DatabaseSync.prototype,'exec',function(sql){
     if(armed&&!lost&&sql==='COMMIT') {
@@ -5005,6 +5000,13 @@ test(`metadata deletion ${phase} Unknown retains the actual Store cleanup origin
     }
     return Reflect.apply(exec,this,[sql]);
   });
+  // Install the fault before opening: the real Store captures its original
+  // native exec and must not dispatch through a later prototype replacement.
+  const {store,directory}=await fixture(t);
+  const invocationValue=invocation();request=publicationRequest(resultDefinition(),invocationValue.invocation_cid);
+  const attempt=publicationAttempt(request),prepared=await prepareCommit(store,request,attempt,invocationValue);
+  const entry=indexEntry(request,attempt,invocationValue,{durable_result_binding_cids:[prepared.binding.identity]});
+  await store.commitIndex(wire(entry),prepared.required,prepared.evidence);armed=true;
   const retired=await store.retireCommittedPublicationMetadata(indexKeyFor(request),'2027-01-01T00:00:00.000Z');
   assert.equal(lost,true);assert.equal(retired.cleanup.status().pending,true);
   const again=await store.retireCommittedPublicationMetadata(indexKeyFor(request),'2027-01-01T00:00:01.000Z');
