@@ -269,8 +269,14 @@ fn local_runtime_read_member(
   while !done {
     let chunk = reader.next(65536).map_err(issue => Physical(issue))
       |> local_runtime_result
-    @sha.update(hasher, chunk.bytes) catch {
-      _ => local_runtime_stop(Limit)
+    if !chunk.bytes.is_empty() {
+      // Attribute the digest transform separately from Reader and component
+      // preparation. Empty EOF chunks add no digest work.
+      native_timing_begin(31)
+      defer native_timing_end(31)
+      @sha.update(hasher, chunk.bytes) catch {
+        _ => local_runtime_stop(Limit)
+      }
     }
     if collect && !chunk.bytes.is_empty() {
       let length = chunk.bytes.length()
@@ -297,7 +303,13 @@ fn local_runtime_read_member(
   |> local_runtime_result
   reader.finish().map_err(issue => Physical(issue)) |> local_runtime_result
   runtime.reader = None
-  let digest = @sha.finish_hex(hasher) catch { _ => local_runtime_stop(Limit) }
+  let digest = {
+    native_timing_begin(31)
+    defer native_timing_end(31)
+    @sha.finish_hex(hasher) catch {
+      _ => local_runtime_stop(Limit)
+    }
+  }
   if digest != hash {
     local_runtime_stop(Changed)
   }
