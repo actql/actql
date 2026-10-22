@@ -57,7 +57,9 @@ function validateStore(store) {
       store.putPublicationContracts !== undefined &&
         typeof store.putPublicationContracts !== 'function' ||
       store.putOriginalPublicationContracts !== undefined &&
-        typeof store.putOriginalPublicationContracts !== 'function') {
+        typeof store.putOriginalPublicationContracts !== 'function' ||
+      store.beginPublicationAttempt !== undefined &&
+        typeof store.beginPublicationAttempt !== 'function') {
     fail('InvalidRunPublicationStore');
   }
 }
@@ -143,7 +145,7 @@ function commitEvidence(evidence) {
   });
 }
 
-async function persistContracts(store, contracts) {
+async function persistContracts(store, contracts, attempt) {
   const persisted = new Set();
   const selected = [];
   for (const contract of contracts) {
@@ -151,11 +153,16 @@ async function persistContracts(store, contracts) {
     selected.push(contract);
     persisted.add(contract.identity);
   }
-  if (selected.length === 0) return;
+  const begin = store.beginPublicationAttempt;
+  if (attempt !== undefined && begin !== undefined) {
+    await Reflect.apply(begin, store, [Object.freeze(selected), attempt]);
+    return true;
+  }
+  if (selected.length === 0) return false;
   const originals = store.putOriginalPublicationContracts;
   if (originals !== undefined) {
     await Reflect.apply(originals, store, [Object.freeze(selected)]);
-    return;
+    return false;
   }
   const batch = store.putPublicationContracts;
   if (batch !== undefined) {
@@ -163,11 +170,12 @@ async function persistContracts(store, contracts) {
     // Its existing Store returns only after the group's real durable ACKs.
     await Reflect.apply(batch, store, [Object.freeze(selected.map(contract =>
       Object.freeze({name: contract.name, wire: contract.wire})))]);
-    return;
+    return false;
   }
   for (const contract of selected) {
     await store.putPublicationContract(contract.name, contract.wire);
   }
+  return false;
 }
 
 function requiredInventory(contracts, request, attempt) {
@@ -563,9 +571,9 @@ async function publishRun(options, effectful) {
       continue;
     }
     if (action === 'persist_contracts') {
-      await persistContracts(store, [
+      attemptCreated = await persistContracts(store, [
         ...contracts, ...(effectful?.contracts ?? []), publicationRequest,
-      ]);
+      ], publicationAttempt);
       contractsPersisted = true;
       continue;
     }
