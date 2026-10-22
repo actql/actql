@@ -4584,13 +4584,13 @@ async function openInstalledHost(originalInstallation, preparation) {
   const ingress = createNodeInProcessClientHost({
     authenticate: () => principalId,
     bindOwnedRequest,
-    captureResultOperation: observation === undefined ? undefined
-      : () => observation.captureCurrentOperation(),
     captureResultObservation: observation === undefined ? undefined : ref => {
       if (!observation.canMeasureResources()) return undefined;
       return captureManagedRunObservation(observation, ref,
         preparation?.managedComputeUsageReader(ref));
     },
+    captureResultOperation: observation === undefined ? undefined
+      : () => observation.captureCurrentOperation(),
     ...hostOperations, maxRowBytes: 1024 * 1024,
   });
   const requestPreparation = preparation?.requestPreparation();
