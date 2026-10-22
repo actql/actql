@@ -360,6 +360,24 @@ fn NativeClientRunJournal::retained_submission_with_run(
   }
   let original_reference = reference.original
   let selected_run : Ref[NativeClientRunRecord?] = Ref(None)
+  // The admitted Submission slot includes its issuance anchor. A relevant
+  // mutation/failure or public operation end spends the same slot, so pure
+  // consumers need not select and decode that unchanged anchor again.
+  if self.operation_active {
+    match
+      client_journal_issuance_anchor(
+        self.database,
+        "client_submitted_intent_custody",
+        self.max_records,
+        reads~,
+      ) {
+      Ok(_) => ()
+      Err(issue) => {
+        self.invalidate_operation_submission()
+        return Err(issue)
+      }
+    }
+  }
   // Count actual selected-row admission attempts, never entries or cache hits.
   if self.operation_active {
     native_timing_count(39)
@@ -666,7 +684,31 @@ fn NativeClientRunJournal::lookup_submitted_intent_with_operations(
       operations~,
     ) {
     Ok(_) => ()
-    Err(issue) => return Err(Epoch(issue))
+    Err(issue) => {
+      self.invalidate_operation_record()
+      return Err(Epoch(issue))
+    }
+  }
+  if self.operation_active {
+    // This closed command already owns its current originals and actual SQL
+    // access. Epoch authentication above retains its monotonic clock/CAS;
+    // selected-row admission owns the anchor and immutable relationship once.
+    // A trusted target read creates no new transaction or authorization point.
+    match self.check_transaction_context(reads~) {
+      Ok(_) => ()
+      Err(issue) => {
+        self.invalidate_operation_record()
+        return Err(issue)
+      }
+    }
+    return self
+      .retained_submission(reference, reads~)
+      .map(record => {
+        match record {
+          Some(value) => Submitted(value)
+          None => UnresolvedSubmissionHistory
+        }
+      })
   }
   self.transaction_with_reads(
     () => {

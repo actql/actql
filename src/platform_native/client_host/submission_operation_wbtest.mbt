@@ -103,6 +103,200 @@ test "one unchanged command admits its selected Submission once and observes act
 }
 
 ///|
+test "command Submission lookup keeps one anchor and target without read transactions" {
+  let (database, journal, authority, reference, request) = submission_operation_fixture(
+    "submission-command-lookup",
+  )
+  let scope = "sha256:" + "a".repeat(64)
+  let calls : Array[String] = []
+  let operations = journal_test_operation_access(database, calls)
+  authority.begin_operation(false)
+  journal.operation_active = true
+  for _ in 0..<8 {
+    assert_true(
+      journal.lookup_submitted_intent_with_operations(
+        authority,
+        reference,
+        scope,
+        true,
+        1002.0,
+        operations=Some(operations),
+      )
+      is Ok(Submitted(_)),
+    )
+  }
+  // The only BEGIN/COMMIT observes the original epoch clock. A stable
+  // acknowledged clock and repeated selected-row reads create no new one.
+  assert_eq(calls.filter(value => value == "begin").length(), 1)
+  assert_eq(calls.filter(value => value == "commit").length(), 1)
+  for
+    selected in [
+      "read:client_submitted_intent_custody:issued",
+      "read:client_submitted_intents:" + reference.request_id,
+      "read:client_runs:" + @host.client_request_scope_cid(request),
+    ] {
+    assert_eq(calls.filter(value => value == selected).length(), 1)
+  }
+  calls.clear()
+  assert_true(
+    journal.lookup_submitted_intent_with_operations(
+      authority,
+      reference,
+      scope,
+      false,
+      1002.0,
+      operations=Some(operations),
+    )
+    is Err(AuthorizationDenied),
+  )
+  assert_eq(calls, [])
+  assert_true(
+    journal.reserve_dispatch(request, true).unwrap() is @host.ReserveDispatch,
+  )
+  calls.clear()
+  guard journal.lookup_submitted_intent_with_operations(
+      authority,
+      reference,
+      scope,
+      true,
+      1002.0,
+      operations=Some(operations),
+    )
+    is Ok(Submitted(updated)) else {
+    fail("lost original Submission")
+  }
+  assert_true(updated.run_admission is Some(_))
+  assert_true(
+    journal.operation_submission.unwrap().1.unwrap().dispatch_reserved,
+  )
+  assert_eq(
+    calls.filter(value => value.has_prefix("read:client_runs:")).length(),
+    1,
+  )
+  assert_false(calls.contains("begin"))
+  assert_false(
+    calls.contains("read:client_submitted_intent_custody:issued") ||
+    calls.contains("read:client_submitted_intents:" + reference.request_id),
+  )
+  journal.operation_active = false
+  journal.invalidate_operation_record()
+  authority.end_operation()
+  calls.clear()
+  assert_true(
+    journal.lookup_submitted_intent_with_operations(
+      authority,
+      reference,
+      scope,
+      true,
+      1002.0,
+      operations=Some(operations),
+    )
+    is Ok(Submitted(_)),
+  )
+  // Standalone callers retain both original transactions and fresh target
+  // admission; no operation fact or permission survives the previous end.
+  assert_eq(calls.filter(value => value == "begin").length(), 2)
+  assert_eq(calls.filter(value => value == "commit").length(), 2)
+  database.close_checked().unwrap()
+  authority.crypto.close_checked().unwrap()
+}
+
+///|
+test "command Submission lookup preserves epoch failure and actual anchor invalidation" {
+  let (database, journal, authority, reference, _) = submission_operation_fixture(
+    "submission-command-invalid",
+  )
+  let scope = "sha256:" + "a".repeat(64)
+  let calls : Array[String] = []
+  let failed = Ref(false)
+  let operations : NativeClientJournalOperationAccess = {
+    ..journal_test_operation_access(database, calls),
+    reads: {
+      ..journal_test_read_access(database, calls),
+      fenced: () => failed.val || database.transaction_fenced(),
+    },
+  }
+  authority.begin_operation(false)
+  journal.operation_active = true
+  assert_true(
+    journal.lookup_submitted_intent_with_operations(
+      authority,
+      reference,
+      scope,
+      true,
+      1002.0,
+      operations=Some(operations),
+    )
+    is Ok(Submitted(_)),
+  )
+  failed.val = true
+  assert_true(
+    journal.lookup_submitted_intent_with_operations(
+      authority,
+      reference,
+      scope,
+      true,
+      1002.0,
+      operations=Some(operations),
+    )
+    is Err(Epoch(Fenced)),
+  )
+  assert_true(journal.operation_submission is None)
+  failed.val = false
+  assert_true(
+    journal.lookup_submitted_intent_with_operations(
+      authority,
+      reference,
+      scope,
+      true,
+      1002.0,
+      operations=Some(operations),
+    )
+    is Err(Epoch(Fenced)),
+  )
+  journal.operation_active = false
+  journal.invalidate_operation_record()
+  authority.end_operation()
+  let anchor = database
+    .read("client_submitted_intent_custody", "issued")
+    .unwrap()
+  database.begin_immediate().unwrap()
+  database
+  .compare_exchange(
+    "client_submitted_intent_custody",
+    "issued",
+    anchor.revision,
+    b"corrupt",
+  )
+  .unwrap()
+  |> ignore
+  database.commit().unwrap()
+  journal.operation_active = true
+  authority.begin_operation(false)
+  calls.clear()
+  assert_true(
+    journal.lookup_submitted_intent_with_operations(
+      authority,
+      reference,
+      scope,
+      true,
+      1002.0,
+      operations=Some(operations),
+    )
+    is Err(CustodyLost),
+  )
+  assert_true(journal.operation_submission is None)
+  assert_false(
+    calls.contains("read:client_submitted_intents:" + reference.request_id),
+  )
+  journal.operation_active = false
+  journal.invalidate_operation_record()
+  authority.end_operation()
+  database.close_checked().unwrap()
+  authority.crypto.close_checked().unwrap()
+}
+
+///|
 test "failed original lifetime and foreign SQL access cannot revive a retained Submission" {
   let (database, journal, authority, reference, _) = submission_operation_fixture(
     "submission-operation-failure",
