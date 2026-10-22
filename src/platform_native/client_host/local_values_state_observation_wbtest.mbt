@@ -382,6 +382,54 @@ test "typed Local Host terminal fence accepts actual state and refuses purpose o
   assert_eq(saved_wire.replace(old="\"revision\":0,", new=""), observed.wire())
   assert_eq(saved.control_revision(), run_before.revision)
   let submitted_after = journal.retained_submission(reference).unwrap().unwrap()
+  let (_, retained_state) = submitted_after.restored_state_original.unwrap()
+  let reused = restore_native_saved_run_state(submitted_after, run_before)
+    .unwrap()
+    .unwrap()
+  assert_true(physical_equal(reused.original, retained_state))
+  assert_eq(reused.wire(), saved_wire)
+  assert_eq(reused.control_revision(), run_before.revision)
+  let restored = host
+    .lookup_submitted_run_state(
+      crypto, "operator", "cli", reference, request, 1002.0,
+    )
+    .unwrap()
+  assert_true(physical_equal(restored.original, retained_state))
+  assert_eq(restored.wire(), saved_wire)
+  assert_true(
+    restore_native_saved_run_state(
+      { ..submitted_after, run_state_original: Some("changed state"), },
+      run_before,
+    )
+    is Err(CustodyLost),
+  )
+  assert_true(
+    restore_native_saved_run_state(
+      {
+        ..submitted_after,
+        run_state_observation: Some((0L, Some("foreign observation"))),
+      },
+      run_before,
+    )
+    is Err(CustodyLost),
+  )
+  let (_, _, _, foreign_definition) = journal_test_run(
+    "foreign-state-definition", "foreign-state-definition",
+  )
+  assert_true(
+    restore_native_saved_run_state(submitted_after, {
+      ..run_before,
+      definition: foreign_definition,
+    })
+    is Err(CustodyLost),
+  )
+  assert_true(
+    restore_native_saved_run_state(
+      { ..submitted_after, run_state_original: None, },
+      run_before,
+    )
+    is Ok(None),
+  )
   assert_eq(submitted_after.revision, submitted_before.revision + 1L)
   assert_eq(
     submitted_after.run_admission.unwrap().revision,
