@@ -70,6 +70,7 @@ fn client_local_sequence_capacity_original(
   retained_inputs? : Array[Int]? = None,
   max_rows? : Int = 100,
   include_simultaneous? : Bool = false,
+  simultaneous_graph? : @strategy.CheckedDAG? = None,
 ) -> ClientLocalSequenceCapacity? {
   if task_count < 1 || task_count > 32 || sequences.length() > task_count {
     return None
@@ -85,7 +86,7 @@ fn client_local_sequence_capacity_original(
   }
   let mut input_import_bytes = 0L
   let mut output_export_bytes = 0L
-  for sequence in sequences {
+  for index, sequence in sequences {
     guard @execution.generated_sequence_capacity(
         sequence, execution, measurement,
       )
@@ -95,7 +96,31 @@ fn client_local_sequence_capacity_original(
     let retained = @execution.execution_capacity_retained_bytes(required)
     let executing = @execution.execution_capacity_execution_bytes(required)
     if individual is Some(values) {
-      values.push((retained, executing))
+      guard simultaneous_graph is Some(graph) else { return None }
+      // The installed dispatch selects an exact task step or prefix before
+      // selecting its bounded provider. Quote that same provider's complete
+      // child/scratch envelope, not only the generated outer sequence.
+      let selected = match @strategy.graph_task_selected_step(graph, index) {
+        Some(step) => @execution.select_generated_sequence_step(sequence, step)
+        None =>
+          match @strategy.graph_task_prefix_end(graph, index) {
+            Some(last) =>
+              @execution.select_generated_sequence_prefix(sequence, last)
+            None => Some(sequence)
+          }
+      }
+      guard selected is Some(selected) &&
+        @local.local_bounded_relation_provider(execution, measurement, selected)
+        is Some(provider) &&
+        @local.managed_provider_capacity(provider, selected) is Some(actual) else {
+        return None
+      }
+      values.push(
+        (
+          @execution.execution_capacity_retained_bytes(actual),
+          @execution.execution_capacity_execution_bytes(actual),
+        ),
+      )
     }
     if retained < 0L || retained > 536870912L - total_retained_bytes {
       return None

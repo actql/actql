@@ -125,6 +125,7 @@ fn prepare_source_free_local_requirements_original(
     retained_inputs=Some(inputs),
     max_rows=@publication_host.prepared_client_values_max_rows(prepared),
     include_simultaneous~,
+    simultaneous_graph=Some(graph),
   ).map(capacity => {
     prepared,
     registry: registry_body,
