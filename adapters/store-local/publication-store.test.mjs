@@ -5722,8 +5722,13 @@ test('native publication inventory is the durable original without duplicate fil
   try {
     const row=database.prepare('SELECT inventory_wire FROM native_publication_inventories WHERE public_index_cid=?').get(entry.public_index_entry_cid);
     assert.equal(JSON.parse(row.inventory_wire).run_definition_cid,entry.run_definition_cid);
-    assert.equal(database.prepare('SELECT count(*) AS n FROM pending_publications').get().n,0);
+    assert.equal(database.prepare('SELECT count(*) AS n FROM pending_publications').get().n,1,
+      'the derived completion is retained, not acknowledged before its next actual transaction');
   } finally { database.close(); }
+  await store.close();
+  const closedDatabase = new DatabaseSync(join(directory, 'delivery-attempts.sqlite3'), {readOnly: true});
+  try { assert.equal(closedDatabase.prepare('SELECT count(*) AS n FROM pending_publications').get().n, 0); }
+  finally { closedDatabase.close(); }
 });
 
 test('native publication inventory survives reopen and retires only its original ownership',async t=>{
