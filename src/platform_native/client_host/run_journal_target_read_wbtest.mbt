@@ -293,27 +293,24 @@ test "acknowledged control CAS retains the same typed Run originals within the o
   journal.operation_active = true
   let original = journal.lookup(request, true).unwrap()
   guard original is Retained(original) else { fail("missing original") }
-  let next = journal
+  let (next, observed) = journal
     .transaction(() => {
       let next = journal.save({ ..original, dispatch_reserved: true, }).unwrap()
-      let observed = journal.retained(request).unwrap().unwrap()
-      assert_true(physical_equal(next, observed))
-      assert_true(physical_equal(next.request, original.request))
-      assert_true(physical_equal(next.definition, original.definition))
-      Ok(next)
+      Ok((next, journal.retained(request).unwrap().unwrap()))
     })
     .unwrap()
-  let started = journal
+  assert_true(physical_equal(next, observed))
+  assert_true(physical_equal(next.request, original.request))
+  assert_true(physical_equal(next.definition, original.definition))
+  let (started, observed) = journal
     .transaction(() => {
       let started = journal
         .save({ ..next, physical_start_claimed: true, })
         .unwrap()
-      assert_true(
-        physical_equal(started, journal.retained(request).unwrap().unwrap()),
-      )
-      Ok(started)
+      Ok((started, journal.retained(request).unwrap().unwrap()))
     })
     .unwrap()
+  assert_true(physical_equal(started, observed))
   assert_eq(started.revision, original.revision + 2L)
   assert_true(started.physical_start_claimed)
   let row = database
@@ -362,17 +359,17 @@ test "changed Run metadata and invalid control shape do not inherit a typed orig
     }),
   )
   journal.operation_active = true
-  let next = journal
+  let (next, admitted, no_original) = journal
     .transaction(() => {
       let next = journal.save({ ..original, definition: replacement, }).unwrap()
-      assert_true(journal.admitted_record is None)
-      let admitted = journal.retained(request).unwrap().unwrap()
-      assert_false(physical_equal(next, admitted))
-      Ok(admitted)
+      let no_original = journal.admitted_record is None
+      Ok((next, journal.retained(request).unwrap().unwrap(), no_original))
     })
     .unwrap()
+  assert_true(no_original)
+  assert_false(physical_equal(next, admitted))
   assert_eq(
-    @publication.publication_contract_identity(next.definition),
+    @publication.publication_contract_identity(admitted.definition),
     @publication.publication_contract_identity(replacement),
   )
   journal.operation_active = false
@@ -391,12 +388,14 @@ test "failed control transaction retires the emitted original before rollback re
   journal.bind_run(request, prepared, compiled, definition, true).unwrap()
   |> ignore
   journal.operation_active = true
+  let observed = Ref(false)
   let result : Result[Unit, NativeClientRunJournalIssue] = journal.transaction(() => {
     let original = journal.retained(request).unwrap().unwrap()
     journal.save({ ..original, dispatch_reserved: true, }).unwrap() |> ignore
-    assert_true(journal.admitted_record is Some(_))
+    observed.val = journal.admitted_record is Some(_)
     Err(CustodyLost)
   })
+  assert_true(observed.val)
   assert_true(result is Err(CustodyLost))
   assert_true(journal.admitted_record is None)
   guard journal.lookup(request, true).unwrap() is Retained(restored) else {
