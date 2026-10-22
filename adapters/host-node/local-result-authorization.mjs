@@ -1,17 +1,22 @@
 // The installed Local Host's existing Result read tuple. Common alone
 // evaluates Account entries; identity/scope equality is never an Allow.
 import {observeInstalledAccount, createLocalAuthorizationGate} from './local-account-config.mjs';
+import {isHostObservationProjection} from '../host-common/observation.mjs';
 
 export function createLocalResultAuthorization({moon, authorization,
-  principalId, namespaceId, authorityScopeCid}) {
+  principalId, namespaceId, authorityScopeCid, observation}) {
   return createLocalReadAuthorizations({moon, authorization,
-    principalId, namespaceId, authorityScopeCid}).result;
+    principalId, namespaceId, authorityScopeCid, observation}).result;
 }
 
 // Two existing permissions share the installed Account identity, not an
 // outcome: run/read never substitutes for result/<actual name>/read.
 export function createLocalReadAuthorizations({moon, authorization,
-  principalId, namespaceId, authorityScopeCid}) {
+  principalId, namespaceId, authorityScopeCid, observation}) {
+  if (observation !== undefined && !isHostObservationProjection(observation)) {
+    throw new TypeError('ForeignHostObservationProjection');
+  }
+  const observeCallbacks = observation?.applicationCallbackState.bind(observation);
   const connection = authorization?.siteKey ?? 'actql-remote-host';
   let retainedAccount = observeInstalledAccount(moon, authorization);
   let identity = JSON.parse(moon.executionAuthorizationAccountJson(retainedAccount));
@@ -30,12 +35,14 @@ export function createLocalReadAuthorizations({moon, authorization,
       operation.indexKey?.namespaceId === facts.indexKey.namespaceId &&
       operation.indexKey?.authorityScopeCid === facts.indexKey.authorityScopeCid &&
       operation.indexKey?.runDefinitionCid === facts.indexKey.runDefinitionCid;
-    // Only an actual output callback advances this observation boundary.
+    // Only an actual application callback advances this observation boundary.
     // Pure internal stages/Store reads/FFI exchanges keep the original memo.
+    const callbackState = observeCallbacks?.();
     const sinkCallbackCount = facts.delivery?.sinkCallbackCount ?? 0;
     if (!Number.isSafeInteger(sinkCallbackCount) || sinkCallbackCount < 0) return false;
     const retained = sameOperation ? operations.get(operation) : undefined;
     if (retained !== undefined && retained.account === retainedAccount &&
+        callbackState?.active !== true && retained.callbackState === callbackState &&
         retained.sinkCallbackCount === sinkCallbackCount) return retained.allowed;
     const account = observeInstalledAccount(moon, authorization);
     if (account !== retainedAccount) {
@@ -45,7 +52,7 @@ export function createLocalReadAuthorizations({moon, authorization,
     if (retained !== undefined && retained.account === account) {
       // Same immutable Account after application reentry: observing current
       // bytes is not another admission/evaluation of this unchanged tuple.
-      operations.set(operation, {...retained, sinkCallbackCount});
+      operations.set(operation, {...retained, sinkCallbackCount, callbackState});
       return retained.allowed;
     }
     if (originalAccountId === undefined || identity.state !== 'admitted' ||
@@ -55,7 +62,7 @@ export function createLocalReadAuthorizations({moon, authorization,
     const outcome = JSON.parse(moon.executionAuthorizationEvaluationJson(evaluation));
     if (outcome.outcome !== 'delegate') {
       const allowed = outcome.outcome === 'allow';
-      if (sameOperation) operations.set(operation, {allowed, account, sinkCallbackCount});
+      if (sameOperation) operations.set(operation, {allowed, account, sinkCallbackCount, callbackState});
       return allowed;
     }
     // An immediate configured answer still belongs to the existing gate.
@@ -69,7 +76,7 @@ export function createLocalReadAuthorizations({moon, authorization,
       const allowed = decision.action === 'dispatch';
       // The application's answer and its post-callback current check have
       // completed. Internal consumption does not call that application again.
-      if (sameOperation) operations.set(operation, {allowed, account, sinkCallbackCount});
+      if (sameOperation) operations.set(operation, {allowed, account, sinkCallbackCount, callbackState});
       return allowed;
     } finally { gate.close(); }
   };

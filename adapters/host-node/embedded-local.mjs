@@ -1690,7 +1690,7 @@ async function openInstalledHost(originalInstallation, preparation) {
     authorizeRunStart: ({principalId: actual, connection, ref}) =>
       hostConnection({principalId: actual, connection, ref})});
   const {result: authorizeLocalResult, run: authorizeLocalRun} = createLocalReadAuthorizations({
-    moon, authorization, principalId, namespaceId, authorityScopeCid});
+    moon, authorization, principalId, namespaceId, authorityScopeCid, observation});
   const resultAuthority = installResultAccessAuthority({
     authorizeResultReadRequest: authorizeLocalResult,
     admitResultRead: async (facts, operation) => {
