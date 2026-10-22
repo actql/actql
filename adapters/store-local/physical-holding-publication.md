@@ -776,6 +776,9 @@ Store may seal. Missing adopted tables or singleton state refuse rather than
 requesting reconstruction. The physical-quota dirty header remains separate.
 A lost begin or seal COMMIT reply retains the same transition and blocks other
 native work until an exact same-database confirmation transaction succeeds.
+An unrelated native Unknown may close without acknowledging this seal; its
+dirty state remains for the next opening's recovery, independently of the
+original uncertain mutation and physical database close.
 
 This removes clean-open history work, not every recovery scan or durability
 barrier. A deletion lifetime adds one intent commit unless already active; its

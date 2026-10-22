@@ -99,6 +99,39 @@ test(`Result cleanup lifecycle ${phase} retains its ${afterCommit ? 'committed' 
 });
 }
 
+for (const afterCommit of [false, true]) {
+test(`Result cleanup keeps recovery dirty when an unrelated ${afterCommit ? 'committed' : 'rolled-back'} Unknown closes`, async t => {
+  const directory = await mkdtemp(join(tmpdir(), 'actql-result-recovery-unrelated-'));
+  let index, armed = false, lost = false, commits = 0;
+  t.after(async () => {armed = false; index?.close(); await rm(directory, {recursive: true});});
+  const exec = DatabaseSync.prototype.exec;
+  t.mock.method(DatabaseSync.prototype, 'exec', function(sql) {
+    if (armed && sql === 'COMMIT') {
+      commits++;
+      if (!lost) {
+        lost = true; if (afterCommit) Reflect.apply(exec, this, [sql]);
+        throw Object.assign(new Error('unrelated original native reply lost'), {code: 'EIO'});
+      }
+    }
+    return Reflect.apply(exec, this, [sql]);
+  });
+  const path = join(directory, 'index.sqlite3'), options = {create: false, maxEntries: 4, maxWireBytes: 4096};
+  index = await openDeliveryAttemptIndex(path, {...options, create: true}); index.migrate([]);
+  index.beginResultDeletionLifetime();
+  armed = true;
+  const body = {semantic_cid: 'sha256:' + 'a'.repeat(64), name: 'invocation', wire: '{}', byte_count: 2};
+  let primary;
+  assert.throws(() => index.putPublicationContracts([body], {objects: 1, bytes: 2}),
+    error => {primary = error; return error.outcome === 'unknown';});
+  index.retainResultDeletionSeal();
+  index.close();
+  assert.equal(commits, 1, 'native close does not invent a confirmation for the unrelated mutation or seal');
+  assert.equal(primary.outcome, 'unknown');
+  armed = false; index = await openDeliveryAttemptIndex(path, options);
+  assert.equal(index.resultDeletionRecoveryRequired(), true);
+});
+}
+
 test('native publication progress upgrades version nine without re-admitting historical bodies',async t=>{
   const directory=await mkdtemp(join(tmpdir(),'actql-publication-progress-v9-'));
   let index; t.after(async()=>{index?.close();await rm(directory,{recursive:true});});

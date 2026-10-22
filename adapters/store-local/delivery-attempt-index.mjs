@@ -1005,6 +1005,9 @@ export async function openDeliveryAttemptIndex(path, {create, maxEntries, maxWir
         // Store calls this only after its real children settle. Retention is
         // not a seal ACK; close groups it with an existing native transaction.
         if (resultRecovery.dirty === 0 || pendingResultSeal !== undefined) return;
+        // An unrelated Unknown may still close its real native connection.
+        // Leave recovery dirty; neither this return nor close confirms it.
+        if (uncertain) return;
         requireComplete(); pendingResultSeal = resultRecovery;
       },
       physicalObjectUsage() {requireOpen();return physicalState();},
