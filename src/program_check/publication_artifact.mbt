@@ -183,24 +183,7 @@ fn prepare_publication_row_artifact(
     proofs=Some(proofs),
     on_body_preparation~,
   )
-  let hash = identity_writer(remaining)
-  emit_prepared_publication_row_body(body, hash, remaining)
-  let cid = identity_finish(remaining, hash)
-  let bytes = publication_metadata(
-    w => emit_prepared_publication_row_body(body, w, remaining, cid=Some(cid)),
-    remaining,
-  )
-  identity_charge(remaining, bytes.length())
-  let result = match
-    @wire.admit_limit(bytes, cid, claims, {
-      max_bytes: bytes.length(),
-      max_nodes: bytes.length(),
-      max_depth: remaining.depth,
-      max_candidates: witnesses.length(),
-    }) {
-    Ok(v) => v
-    Err(e) => raise PublicationWire(e)
-  }
+  let result = publication_row_limit_claim(body, claims, remaining)
   budget.work = remaining.work
   budget.bytes = remaining.bytes
   budget.nodes = remaining.nodes
@@ -232,4 +215,96 @@ fn publication_host_wire(
   budget.nodes -= nodes
   identity_charge(budget, bytes)
   @host.wire_witness(host)
+}
+
+///|
+// The body and arithmetic collection were prepared from the same original
+// publication. Construct the canonical claim directly; do not parse and hash
+// our own serialized output again. Keep the original logical encoding debits.
+fn publication_row_limit_claim(
+  body : PreparedPublicationRowBody,
+  claims : @wire.ArithmeticClaims,
+  budget : IdentityBudget,
+) -> @wire.LimitClaim raise UnitBuildFailure {
+  let indices : Array[Int] = []
+  let mut previous = ""
+  for (cid, _) in body.candidates {
+    if cid == previous {
+      continue
+    }
+    previous = cid
+    guard @wire.claim_index(claims, cid) is Some(index) else {
+      raise PublicationWire(@wire.InvalidWitness)
+    }
+    indices.push(index)
+  }
+  typed_publication_limit_claim(
+    claims,
+    indices,
+    @derivation.Rows,
+    body.subject,
+    body.maximum,
+    body.candidates.length(),
+    budget,
+  )
+}
+
+///|
+// A row projection meters its original candidate traversals; the Host-only
+// byte projection has no such separate traversal debit. Both retain the same
+// bounded canonical preimage/full-wire and admission work accounting.
+fn typed_publication_limit_claim(
+  claims : @wire.ArithmeticClaims,
+  indices : Array[Int],
+  unit : @derivation.BoundUnit,
+  subject : String,
+  maximum : Int64,
+  traversal_work : Int,
+  budget : IdentityBudget,
+) -> @wire.LimitClaim raise UnitBuildFailure {
+  // The old hash writer is bounded before the emitter's candidate charge.
+  let hash_bytes = Int::min(budget.bytes, budget.work)
+  let hash_nodes = Int::min(budget.nodes, budget.work)
+  identity_charge(budget, traversal_work)
+  let claim = match
+    @wire.create_limit(claims, indices, unit, subject, @wire.EngineAtomic, {
+      max_bytes: hash_bytes,
+      max_nodes: hash_nodes,
+      max_depth: budget.depth,
+      max_candidates: @wire.claim_count(claims),
+    }) {
+    Ok(value) => value
+    Err(BudgetExceeded) => raise Encoding(@encode.OutputLimit)
+    Err(issue) => raise PublicationWire(issue)
+  }
+  if @derivation.minimum_value(@wire.limit_minimum(claim)) != maximum ||
+    @derivation.minimum_guard_binding(@wire.limit_minimum(claim)) != Absent {
+    raise PublicationWire(@wire.InvalidWitness)
+  }
+  let (preimage_bytes, preimage_nodes) = @wire.limit_creation_usage(claim).unwrap()
+  identity_charge(budget, preimage_bytes)
+  identity_charge(budget, preimage_nodes)
+  budget.bytes -= preimage_bytes
+  budget.nodes -= preimage_nodes
+  let max_bytes = Int::min(budget.bytes, budget.work / 2)
+  let max_nodes = Int::min(budget.nodes, budget.work / 2)
+  identity_charge(budget, traversal_work)
+  let (bytes, nodes, _) = @wire.measure_limit(
+    claim,
+    max_bytes,
+    max_nodes,
+    budget.depth,
+  ) catch {
+    e => raise Encoding(e)
+  }
+  identity_charge(budget, bytes)
+  identity_charge(budget, nodes)
+  identity_charge(budget, bytes)
+  identity_charge(budget, nodes)
+  identity_charge(budget, bytes)
+  identity_charge(budget, traversal_work)
+  budget.bytes -= bytes
+  budget.nodes -= nodes
+  identity_charge(budget, bytes)
+  claim
 }
