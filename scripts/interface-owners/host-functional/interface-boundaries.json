@@ -19228,7 +19228,7 @@
     {
       "module": "adapters/host-node/client-request-journal.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "b176809f29fc8431f990b36e614e75f91de8d60c482a3dead2f9c2e50f38a732",
+      "sha256": "278c151581104ff935cdc524826cbae45f19c78021cd4f055ce85f5ac9a33d75",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
@@ -19492,7 +19492,8 @@
         {
           "name": "boundedPrimarySql/wrap/wrap",
           "parameters": [
-            "statement"
+            "statement",
+            "statementWal"
           ],
           "async": false
         },
@@ -22670,7 +22671,7 @@
               },
               {
                 "path": "adapters/host-node/client-request-journal-wal-bounds.test.mjs",
-                "anchor": "both writable connections share one non-refilling WAL lifetime before native calls"
+                "anchor": "both writable connections share one non-refilling WAL lifetime without charging metadata reads"
               },
               {
                 "path": "adapters/host-node/client-request-journal-iterator-current.test.mjs",

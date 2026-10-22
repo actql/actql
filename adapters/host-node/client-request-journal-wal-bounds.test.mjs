@@ -90,7 +90,7 @@ test('WAL support requires the original finite SQL, operand and database boundar
   scratch.passed();
 });
 
-test('both writable connections share one non-refilling WAL lifetime before native calls', async () => {
+test('both writable connections share one non-refilling WAL lifetime without charging metadata reads', async () => {
   const scratch = await fixture();
   instrument(state => {
     const selected = options(200000);
@@ -103,17 +103,18 @@ test('both writable connections share one non-refilling WAL lifetime before nati
       assert.equal(state.databases.length, 2);
       let accepted = 0;
       for (; accepted < 1000; accepted++) {
-        try { assert.equal(journal.lookupReconciliationState(ref), undefined); }
+        try { assert.equal(observations.consume({ref, scope: 'test', revision: 'one',
+          bytes: 1, maxRecords: 1, maxBytes: 1}), undefined); }
         catch (cause) { assert.equal(cause.code, 'ClientRequestJournalWalUnavailable'); break; }
       }
       assert.ok(accepted > 0 && accepted < 1000);
       const before = state.calls;
-      assert.throws(() => journal.lookupReconciliationState(ref),
-        {code: 'ClientRequestJournalWalUnavailable'});
-      assert.equal(state.calls, before, 'Exhaustion must precede another native prepare');
+      assert.equal(journal.lookupReconciliationState(ref), undefined);
+      assert.ok(state.calls > before, 'A metadata read uses no writable-frame allowance');
+      const afterRead = state.calls;
       assert.throws(() => observations.consume({ref, scope: 'test', revision: 'one',
         bytes: 1, maxRecords: 1, maxBytes: 1}), {code: 'ClientRequestJournalWalUnavailable'});
-      assert.equal(state.calls, before, 'The observation connection cannot borrow a new allowance');
+      assert.equal(state.calls, afterRead, 'The observation connection cannot borrow a new allowance');
     } finally { journal.close(); }
     assert.ok(state.databases.every(database => database.isOpen === false));
     const custody = observeOriginalClientRequestJournalCustody(journal);
@@ -123,12 +124,13 @@ test('both writable connections share one non-refilling WAL lifetime before nati
   scratch.passed();
 });
 
-test('failed native work does not refill WAL and original pending close needs no remaining SQL budget', async () => {
+test('failed metadata reads do not debit writable WAL and exhausted writers retain original pending close', async () => {
   const scratch = await fixture();
   const remaining = [];
   for (const [index, fault] of [undefined, new Error('OriginalNativeReadFailure')].entries()) {
     instrument(state => {
       const journal = openClientRequestJournal(join(scratch.path, String(index)), options(200000));
+      const observations = journal.observationStorage();
       try {
         if (fault !== undefined) {
           state.fault = fault;
@@ -136,7 +138,8 @@ test('failed native work does not refill WAL and original pending close needs no
         }
         let accepted = 0;
         for (; accepted < 1000; accepted++) {
-          try { journal.lookupReconciliationState(ref); }
+          try { observations.consume({ref, scope: 'test', revision: 'one',
+            bytes: 1, maxRecords: 1, maxBytes: 1}); }
           catch (cause) { assert.equal(cause.code, 'ClientRequestJournalWalUnavailable'); break; }
         }
         assert.ok(accepted > 0 && accepted < 1000);
@@ -152,8 +155,8 @@ test('failed native work does not refill WAL and original pending close needs no
       assert.ok(state.databases.every(database => database.isOpen === false));
     });
   }
-  assert.equal(remaining[0], remaining[1] + 1,
-    'The original failed native step must retain its one conservative transaction charge');
+  assert.equal(remaining[0], remaining[1],
+    'A failed SELECT spends its SQL attempt, not a fictional WAL write; actual write charges never refill');
   scratch.passed();
 });
 
@@ -161,17 +164,20 @@ test('later integer conversion replacement cannot erase the original WAL lifetim
   const scratch = await fixture();
   instrument(state => {
     const journal = openClientRequestJournal(join(scratch.path, 'requests'), options(200000));
+    const observations = journal.observationStorage();
     const original = globalThis.BigInt;
     try {
       globalThis.BigInt = () => 0n;
       let accepted = 0;
       for (; accepted < 1000; accepted++) {
-        try { journal.lookupReconciliationState(ref); }
+        try { observations.consume({ref, scope: 'test', revision: 'one',
+          bytes: 1, maxRecords: 1, maxBytes: 1}); }
         catch (cause) { assert.equal(cause.code, 'ClientRequestJournalWalUnavailable'); break; }
       }
       assert.ok(accepted > 0 && accepted < 1000);
       const before = state.calls;
-      assert.throws(() => journal.lookupReconciliationState(ref),
+      assert.throws(() => observations.consume({ref, scope: 'test', revision: 'one',
+        bytes: 1, maxRecords: 1, maxBytes: 1}),
         {code: 'ClientRequestJournalWalUnavailable'});
       assert.equal(state.calls, before);
     } finally { globalThis.BigInt = original; journal.close(); }

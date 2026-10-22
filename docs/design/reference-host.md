@@ -989,6 +989,14 @@ failures and refused attempts do not refill those counters. Positional scalar
 operand count and extent are checked before native binding. These conditions
 are not a heap reservation or permission and leave unselected callers unchanged.
 
+For a selected connection, exact `ROLLBACK` of its already-active transaction
+remains cleanup rather than new admitted SQL work. It uses the same captured
+native receiver without spending or refilling work/currentness credit; the
+synchronous reentry and pending-cursor fences still apply. An actual native
+rollback failure and transaction-state uncertainty remain failures under the
+existing transaction Owner. `BEGIN`, `COMMIT`, other SQL and a rollback without
+an active transaction retain their ordinary work/currentness admission.
+
 When those execution support conditions are selected, the same connection
 latches a synchronous prepare/execute call before invoking its original
 currentness or native callbacks. Reentry cannot begin another SQL call inside
@@ -1100,11 +1108,20 @@ native-heap backing. The primary and optional observation connection share one
 counter under that Journal; opening the latter does not issue another allowance.
 Before cold native acquisition it retains a conservative frame allowance for
 the bounded original DB/WAL source. The actual native page geometry then selects
-the same bounded page-number set for both connections. Before native SQL work,
+the same bounded page-number set for both connections. Before native writable SQL,
 the counter consumes a conservative transaction allowance for dirty pages,
 possible final commit repetition and FULL-sync sector padding. Batch SQL counts
 every semicolon plus its final statement, deliberately overestimating literal,
 comment and trigger-body separators rather than introducing another SQL parser.
+Only this Owner's fixed prepared metadata SQL reaches these private connections;
+they register no application SQL functions, extensions or writable virtual tables.
+A leading [`SELECT`](https://www.sqlite.org/lang_select.html) therefore retains
+all SQL/input/current/cursor limits but
+does not consume writable WAL history. This is not a general SQL authorization
+classifier or an exemption for caller SQL. Unknown statements and PRAGMAs keep
+the conservative writer debit. Before admitting more writable work, its check
+also leaves one original terminal COMMIT allowance; that check itself neither
+spends nor refunds it. COMMIT consumes the existing terminal allowance.
 Failed attempts, rollback, checkpoint and one child's close never refill it.
 Refusal leaves the original connection and its independent cleanup reachable.
 This condition depends on the same original cooperative writer exclusion; it
@@ -1160,6 +1177,14 @@ declaration by reference; it does not duplicate that declaration's heap or
 native amounts. Recipe retention alone does not issue the operational service.
 The actual prefix must still bind the complete co-phase and original facility
 before native acquisition.
+
+Within the selected synchronous Journal connection, exact immutable SQL reuses
+the same captured bounded statement original. Each distinct native preparation
+attempt still consumes its compilation allowance, including failed attempts;
+reuse neither acquires another statement nor returns credit. Each execution
+rebinds its actual parameters and retains the current, cursor, WAL and execution
+limits. The same connection keeps its native originals until real close, then
+retires their managed aliases. The generic SQL-only path remains unchanged.
 
 The private service original is retained by the selected prefix before its
 builtin acquisition, then bound to the returned actual SQLite constructor and
