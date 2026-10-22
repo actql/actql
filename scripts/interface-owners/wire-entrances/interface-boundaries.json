@@ -5510,7 +5510,7 @@
     {
       "module": "packages/client-wire/index.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "31e92feb4ed62c0413f87ec04f6cf4ffba0995cffdfa41c7a95d3fd59fa8594e",
+      "sha256": "ca6a63c248ce750826c006f6243ab88b9fb56e80abd4521388e44281b3fda949",
       "exports": [
         "*:./interactive-control.generated.js",
         "checkOutcomeProtocol",
@@ -5597,6 +5597,13 @@
           "async": false
         },
         {
+          "name": "freezeCapturedRequest",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
           "name": "isClientSubmitRejection",
           "parameters": [
             "code"
@@ -5621,7 +5628,8 @@
           "name": "prepareClientHostRequest",
           "parameters": [
             "operation",
-            "original"
+            "original",
+            "retainSnapshot"
           ],
           "async": false
         },
@@ -6802,6 +6810,7 @@
         },
         {
           "operations": [
+            "freezeCapturedRequest",
             "prepareClientHostRequest"
           ],
           "exports": [
@@ -6824,6 +6833,10 @@
               {
                 "path": "spec/contracts/actql-client-host.json",
                 "anchor": "\"operations\""
+              },
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "## Deferred Local request capture"
               }
             ],
             "inputsOutputs": [
@@ -6842,12 +6855,20 @@
               {
                 "path": "packages/client-wire/index.mjs",
                 "anchor": "UnrepresentableCheckNumber"
+              },
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "## Deferred Local request capture"
               }
             ],
             "identity": [
               {
                 "path": "docs/design/public-wire-codecs.md",
                 "anchor": "| identity |"
+              },
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "## Deferred Local request capture"
               }
             ],
             "ownership": [
@@ -6858,12 +6879,20 @@
               {
                 "path": "packages/client-wire/index.mjs",
                 "anchor": "Capture the original Workspace target"
+              },
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "## Deferred Local request capture"
               }
             ],
             "synchronization": [
               {
                 "path": "docs/design/public-wire-codecs.md",
                 "anchor": "| synchronization |"
+              },
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "## Deferred Local request capture"
               }
             ],
             "failure": [
@@ -6874,18 +6903,30 @@
               {
                 "path": "packages/client-wire/index.mjs",
                 "anchor": "journal and start uncertainty are absent."
+              },
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "## Deferred Local request capture"
               }
             ],
             "cancellation": [
               {
                 "path": "docs/design/public-wire-codecs.md",
                 "anchor": "| cancellation |"
+              },
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "## Deferred Local request capture"
               }
             ],
             "resources": [
               {
                 "path": "docs/design/public-wire-codecs.md",
                 "anchor": "| resources |"
+              },
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "## Deferred Local request capture"
               }
             ],
             "extension": [
@@ -6896,6 +6937,10 @@
               {
                 "path": "packages/client-wire/package.json",
                 "anchor": "\"files\""
+              },
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "## Deferred Local request capture"
               }
             ],
             "verification": [
@@ -6910,6 +6955,14 @@
               {
                 "path": "packages/client-wire/index.test.mjs",
                 "anchor": "import"
+              },
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "## Deferred Local request capture"
+              },
+              {
+                "path": "adapters/host-node/deferred-ingress-original-snapshot.test.mjs",
+                "anchor": "test('deferred ingress serializes the same submission once without reusing connection authorization'"
               }
             ]
           }

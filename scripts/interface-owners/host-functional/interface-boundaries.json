@@ -32071,7 +32071,7 @@
     {
       "module": "adapters/host-node/in-process-client.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "5d3297c5f8a1020d70e8c3cb71e526bdd20ac9cec53ea5b628ad2c00013be043",
+      "sha256": "85f7104c26ea95afa668943a845eca81bfe7ef191c4ed04007613a4fc93784de",
       "role": "physical-io",
       "owner": "Existing Client Host admission/read services and physical Node ingress",
       "exports": [
@@ -32178,13 +32178,6 @@
           "async": false
         },
         {
-          "name": "freezeDeferredSnapshot/freezeDeferredSnapshot",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
           "name": "publicError/publicError",
           "parameters": [
             "code",
@@ -32230,7 +32223,6 @@
             "createNodeInProcessClientHost/init:perform/init:perform/invoke/invoke/invoke",
             "createNodeInProcessClientHost/init:perform/init:perform/own/own",
             "fail/fail",
-            "freezeDeferredSnapshot/freezeDeferredSnapshot",
             "publicError/publicError",
             "publicFailure/publicFailure",
             "publicResultRows",
@@ -32253,6 +32245,10 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "## Deferred Local request capture"
               }
             ],
             "inputsOutputs": [
@@ -32267,12 +32263,16 @@
               {
                 "path": "docs/spec/protocols/run.md",
                 "anchor": "### Logical request and dispatch evidence"
+              },
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "## Deferred Local request capture"
               }
             ],
             "identity": [
               {
                 "path": "adapters/host-node/in-process-client.mjs",
-                "anchor": "prepareClientHostRequest, snapshotClientRequest, validClientBody, validClientProfile, validDeliveryAttemptLookup, validCancellationAttempt, validCancellationLookup,"
+                "anchor": "prepareClientHostRequest, validClientProfile, validDeliveryAttemptLookup, validCancellationAttempt, validCancellationLookup,"
               },
               {
                 "path": "docs/spec/protocols/run.md",
@@ -32285,6 +32285,10 @@
               {
                 "path": "adapters/host-node/in-process-client.mjs",
                 "anchor": "return await performInstalledRequest(operation,body,signal);"
+              },
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "## Deferred Local request capture"
               }
             ],
             "ownership": [
@@ -32299,6 +32303,10 @@
               {
                 "path": "docs/design/oss-host-authorization.md",
                 "anchor": "# OSS Host authorization behavior"
+              },
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "## Deferred Local request capture"
               }
             ],
             "synchronization": [
@@ -32313,6 +32321,10 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "## Deferred Local request capture"
               }
             ],
             "failure": [
@@ -32327,12 +32339,16 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "## Deferred Local request capture"
               }
             ],
             "cancellation": [
               {
                 "path": "adapters/host-node/in-process-client.mjs",
-                "anchor": "prepareClientHostRequest, snapshotClientRequest, validClientBody, validClientProfile, validDeliveryAttemptLookup, validCancellationAttempt, validCancellationLookup,"
+                "anchor": "prepareClientHostRequest, validClientProfile, validDeliveryAttemptLookup, validCancellationAttempt, validCancellationLookup,"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -32341,6 +32357,10 @@
               {
                 "path": "docs/spec/protocols/run.md",
                 "anchor": "### Logical request and dispatch evidence"
+              },
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "## Deferred Local request capture"
               }
             ],
             "resources": [
@@ -32358,7 +32378,11 @@
               },
               {
                 "path": "adapters/host-node/in-process-client.mjs",
-                "anchor": "// This additional copy/overlap belongs to the selected facility."
+                "anchor": "const deferredRequests = new WeakMap();"
+              },
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "## Deferred Local request capture"
               }
             ],
             "extension": [
@@ -32373,6 +32397,10 @@
               {
                 "path": "docs/spec/protocols/run.md",
                 "anchor": "### Logical request and dispatch evidence"
+              },
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "## Deferred Local request capture"
               }
             ],
             "verification": [
@@ -32391,6 +32419,14 @@
               {
                 "path": "adapters/host-node/source-request-lineage.test.mjs",
                 "anchor": "test('deferred same-Host ingress retains the actual SDK Source receipt through both admitted snapshots', async t => {"
+              },
+              {
+                "path": "docs/design/public-wire-codecs.md",
+                "anchor": "## Deferred Local request capture"
+              },
+              {
+                "path": "adapters/host-node/deferred-ingress-original-snapshot.test.mjs",
+                "anchor": "test('deferred ingress serializes the same submission once without reusing connection authorization'"
               }
             ]
           }
