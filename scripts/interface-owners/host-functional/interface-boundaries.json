@@ -8811,7 +8811,7 @@
     {
       "module": "adapters/host-common/run-state-access.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "65fb6518faeea245e18c3624f56fa598cf1c37250a4f72c35e18e07d65283e60",
+      "sha256": "319744ad0f0594fba2c4e4c97322a1561d4bfc07f8d8439614c23ec176801c6a",
       "role": "physical-io",
       "owner": "Existing Result access/delivery/publication Owners and physical read/sink adapter",
       "exports": [
@@ -8819,7 +8819,8 @@
         "authorizeRunStateRequest",
         "inspectAuthorizedRunState",
         "installRunStateAuthority",
-        "installRunStateService"
+        "installRunStateService",
+        "observeAuthorizedRunState"
       ],
       "operations": [
         {
@@ -8867,6 +8868,14 @@
             "configuration"
           ],
           "async": false
+        },
+        {
+          "name": "observeAuthorizedRunState",
+          "parameters": [
+            "service",
+            "request"
+          ],
+          "async": true
         },
         {
           "name": "observedAt",
@@ -8954,14 +8963,16 @@
             "positive/positive",
             "unavailableFrom",
             "validateRequest",
-            "authorizeRunStateRequest"
+            "authorizeRunStateRequest",
+            "observeAuthorizedRunState"
           ],
           "exports": [
             "RunStateAccessError",
             "inspectAuthorizedRunState",
             "installRunStateAuthority",
             "installRunStateService",
-            "authorizeRunStateRequest"
+            "authorizeRunStateRequest",
+            "observeAuthorizedRunState"
           ],
           "attributes": {
             "responsibility": [
@@ -8980,6 +8991,10 @@
               {
                 "path": "docs/design/interactive-run-control.md",
                 "anchor": "## Read-only current Run projection"
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "The ordinary Local observer selects committed publication through the existing"
               }
             ],
             "inputsOutputs": [
@@ -9002,6 +9017,10 @@
               {
                 "path": "adapters/host-node/client-run-state.mjs",
                 "anchor": "export async function observeClientRunState"
+              },
+              {
+                "path": "adapters/host-common/run-state-access.mjs",
+                "anchor": "export async function observeAuthorizedRunState(service, request) {"
               }
             ],
             "identity": [
@@ -9024,6 +9043,10 @@
               {
                 "path": "adapters/host-node/client-run-state.mjs",
                 "anchor": "const original = lookup.call(journal"
+              },
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "return {entry, bytes, contract: admitted};"
               }
             ],
             "ownership": [
@@ -9046,6 +9069,10 @@
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
                 "anchor": "const retained = runStateFrames.get(frame);"
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "These immutable metadata facts live within this observation; a new operation"
               }
             ],
             "synchronization": [
@@ -9068,6 +9095,10 @@
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
                 "anchor": "state_revision = ? AND state_observation_key IS ?"
+              },
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "await requireCommittedMetadataInventory(original.entry);"
               }
             ],
             "failure": [
@@ -9090,6 +9121,10 @@
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
                 "anchor": "'ClientRunStateObservationUnknown'"
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "selected originals and physical failures do not become absence or trigger a"
               }
             ],
             "cancellation": [
@@ -9112,6 +9147,10 @@
               {
                 "path": "adapters/host-node/client-run-state-fallback.test.mjs",
                 "anchor": "state.control.cancellation_requested, true"
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "current authorization and transactional observation CAS remain unchanged."
               }
             ],
             "resources": [
@@ -9134,6 +9173,10 @@
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
                 "anchor": "ensureOpen();"
+              },
+              {
+                "path": "adapters/store-local/publication-store.mjs",
+                "anchor": "Object.freeze(original.entry.durable_result_binding_cids);"
               }
             ],
             "extension": [
@@ -9156,6 +9199,10 @@
               {
                 "path": "adapters/host-node/in-process-client.mjs",
                 "anchor": "observeClientRunState(runStateObservation, stateService"
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "Stores without the optional combined read keep their original selected reads;"
               }
             ],
             "verification": [
@@ -9174,6 +9221,10 @@
               {
                 "path": "adapters/host-node/client-program-bridge.test.mjs",
                 "anchor": "journal: lookupJournal, requestControl: moon, publicationControl: control"
+              },
+              {
+                "path": "adapters/host-node/client-run-observation-reuse.test.mjs",
+                "anchor": "test('selected publication observation acquires its Index once in the actual Local observer', async () => {"
               }
             ]
           }
