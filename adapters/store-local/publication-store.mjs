@@ -2229,7 +2229,13 @@ async function openOriginalLocalPublicationStore(
         }
       }
       await handle.sync();
+      const written = await handle.stat({bigint: true});
+      if (!written.isFile() || written.dev !== before.dev || written.ino !== before.ino ||
+          written.size !== before.size) fail('PublicationClockUncertain');
       await cleanup.retry();
+      const current = await lstat(clockObservationPath(clockContractCid), {bigint: true});
+      if (!current.isFile() || !sameClockFile(written,current)) fail('PublicationClockUncertain');
+      return current;
     } catch (primary) {
       writer.failed = true;
       writer.cleanup = cleanup;
@@ -2310,15 +2316,15 @@ async function openOriginalLocalPublicationStore(
       }
       if (snapshot?.checksummed && sameConfirmedInode &&
           snapshot.state.size === BigInt(bytes.byteLength)) {
-        await flushClockFile(clockContractCid, snapshot, bytes);
-        const current = await readClockSnapshot(clockContractCid);
-        if (current?.value.observedAt !== observedAt ||
-            !['dev', 'ino', 'size'].every(field => current.state[field] === snapshot.state[field])) {
-          fail('PublicationClockUncertain');
-        }
+        const state = await flushClockFile(clockContractCid, snapshot, bytes);
+        // This same original FD wrote the already typed value and really
+        // synced/closed it. Trusted internal I/O is not another wire input.
+        // Keep its physical version so the next operation still detects any
+        // intervening change and reads/adopts that new original normally.
+        lastClockObservation = {clockContractCid,state,value,checksummed:true};
         durablyConfirmedClocks.set(clockContractCid, observedAt);
-        durablyConfirmedClockFiles.set(clockContractCid, current.state);
-        return current.value;
+        durablyConfirmedClockFiles.set(clockContractCid, state);
+        return value;
       }
       const staging = resolve(clocksDirectory, `.staging-${randomUUID()}`);
       try {

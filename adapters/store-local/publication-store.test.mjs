@@ -1331,6 +1331,98 @@ test('trusted clock cache revalidates corrupt replacements', async t => {
     code('InvalidPublicationClockObservation'));
 });
 
+test('trusted clock warm write consumes its typed value without reopening its own body',async t=>{
+  const {store,directory,configuration}=await fixture(t);
+  const first='2026-09-18T01:00:00.000Z',next='2026-09-18T01:00:00.001Z';
+  await store.observeTrustedClock(cids.scope,first);
+  const path=join(directory,'clocks',cids.scope.slice(7)+'.json');
+  let opens=0,reads=0,syncs=0,closes=0;
+  const actualOpen=fsPromises.open;
+  t.mock.method(fsPromises,'open',async function(file,...args){
+    const handle=await Reflect.apply(actualOpen,this,[file,...args]);
+    if(String(file)===path) {
+      opens++;
+      const read=handle.read,readFile=handle.readFile,sync=handle.sync,close=handle.close;
+      handle.read=function(...values){reads++;return Reflect.apply(read,this,values);};
+      handle.readFile=function(...values){reads++;return Reflect.apply(readFile,this,values);};
+      handle.sync=function(...values){syncs++;return Reflect.apply(sync,this,values);};
+      handle.close=function(...values){closes++;return Reflect.apply(close,this,values);};
+    }
+    return handle;
+  });
+  syncBuiltinESMExports();
+  try {
+    assert.equal(await store.sampleTrustedClock(cids.scope,()=>next),next);
+    assert.equal(reads,0,'the same successful write is not a second wire admission');
+    assert.equal(opens,1);assert.equal(syncs,1);assert.equal(closes,1);
+    assert.deepEqual(await store.readClockObservation(cids.scope),{clockContractCid:cids.scope,observedAt:next});
+    assert.equal(reads,0,'the unchanged private snapshot remains typed after the write');
+  } finally {t.mock.restoreAll();syncBuiltinESMExports();}
+  const written=JSON.parse(await readFile(path,'utf8'));
+  assert.equal(written.observedAt,next);
+  assert.equal(written.contentSha256,createHash('sha256').update(JSON.stringify({clockContractCid:cids.scope,observedAt:next}),'utf8').digest('hex'));
+  await store.close();const reopened=await openLocalPublicationStore(configuration,contractControl);
+  await assert.rejects(reopened.observeTrustedClock(cids.scope,first),code('PublicationClockUncertain'));
+  assert.equal((await reopened.readClockObservation(cids.scope)).observedAt,next);await reopened.close();
+});
+
+test('trusted clock warm write refuses a changed original before accepting close',async t=>{
+  const {store,directory}=await fixture(t);
+  const first='2026-09-18T01:00:00.000Z',next='2026-09-18T01:00:00.001Z',changed='2026-09-18T01:00:00.002Z';
+  await store.observeTrustedClock(cids.scope,first);
+  const path=join(directory,'clocks',cids.scope.slice(7)+'.json');
+  let changedOnce=false;const actualOpen=fsPromises.open;
+  t.mock.method(fsPromises,'open',async function(file,...args){
+    const handle=await Reflect.apply(actualOpen,this,[file,...args]);
+    if(String(file)===path&&!changedOnce) {
+      const close=handle.close;
+      handle.close=async function(...values){
+        const result=await Reflect.apply(close,this,values);
+        if(!changedOnce) {
+          changedOnce=true;
+          const value={clockContractCid:cids.scope,observedAt:changed};
+          await writeFile(path,JSON.stringify({...value,contentSha256:createHash('sha256').update(JSON.stringify(value),'utf8').digest('hex')}));
+        }
+        return result;
+      };
+    }
+    return handle;
+  });
+  syncBuiltinESMExports();
+  try {await assert.rejects(store.observeTrustedClock(cids.scope,next),code('PublicationClockUncertain'));}
+  finally {t.mock.restoreAll();syncBuiltinESMExports();}
+  assert.equal(changedOnce,true);
+  await assert.rejects(store.observeTrustedClock(cids.scope,next),code('PublicationClockUncertain'));
+});
+
+test('trusted clock warm write retains its original failed close and floor',async t=>{
+  const {store,directory}=await fixture(t);
+  const first='2026-09-18T01:00:00.000Z',next='2026-09-18T01:00:00.001Z';
+  await store.observeTrustedClock(cids.scope,first);
+  const path=join(directory,'clocks',cids.scope.slice(7)+'.json');
+  let original,closes=0,failClose=true;const actualOpen=fsPromises.open;
+  t.mock.method(fsPromises,'open',async function(file,...args){
+    const handle=await Reflect.apply(actualOpen,this,[file,...args]);
+    if(String(file)===path) {
+      original=handle;const close=handle.close;
+      handle.close=function(...values){closes++;return failClose?false:Reflect.apply(close,this,values);};
+    }
+    return handle;
+  });
+  syncBuiltinESMExports();let failure;
+  try {
+    await assert.rejects(store.observeTrustedClock(cids.scope,next),error=>{
+      failure=error;return error.code==='PublicationStoreCleanupPending'&&error.cleanupHandle.status().pending===true;
+    });
+    assert(original);assert.equal(closes,2,'original attempt and original cleanup attempt both refuse');
+    await assert.rejects(store.sampleTrustedClock(cids.scope,()=>next),code('PublicationStoreCleanupPending'));
+    failClose=false;assert.equal((await failure.cleanupHandle.retry()).pending,false);
+    assert.equal(closes,3);
+  } finally {failClose=false;t.mock.restoreAll();syncBuiltinESMExports();}
+  assert.equal(await store.sampleTrustedClock(cids.scope,()=>next),next);
+  assert.equal((await store.readClockObservation(cids.scope)).observedAt,next);
+});
+
 test('prepared payload holdings reclaim only the final uncommitted owner',
   async t => {
     const {store} = await fixture(t);
