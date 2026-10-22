@@ -552,6 +552,27 @@ export function effectReviewCheckpointBindingFacts(binding, allowed, definition)
   return binding;
 }
 
+/** Same original plus actual stored bytes, through the existing waiting writer.
+ * Physical read/revision/current gates remain with the restoration operation. */
+export function effectReviewCheckpointWaitingState(binding, allowed, definition,
+  storedWire, updatedAt, declaredResults) {
+  effectReviewCheckpointBindingFacts(binding, allowed, definition);
+  const {original} = effectCheckpointBindings.get(binding);
+  if (typeof storedWire !== 'string' || typeof updatedAt !== 'string') {
+    throw new TypeError('InvalidRunHostCheckpointWaitingInput');
+  }
+  const results = effectProjectionArray(declaredResults, 65536);
+  let textUnits = 0;
+  for (const name of results) {
+    if (typeof name !== 'string') throw new TypeError('InvalidRunHostCheckpointWaitingInput');
+    textUnits += name.length;
+    // A necessary lower bound only; Common meters the complete emitted wire.
+    if (textUnits > 1048576) throw new TypeError('InvalidRunHostCheckpointWaitingInput');
+  }
+  return checked(owner.clientValuesHostEffectCheckpointWaitingState(original,
+    storedWire, updatedAt, results), 'RunHostEffectCheckpointWaitingRejected');
+}
+
 /** Original checked member IDs, not Source grants or Effect authority. */
 export function effectReviewCheckpointMembers(allowed, definition, wire) {
   if (typeof wire !== 'string' || wire.length > 65536 || new TextEncoder().encode(wire).length > 65536) {

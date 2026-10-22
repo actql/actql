@@ -68043,7 +68043,7 @@
     {
       "module": "packages/run-host-core/index.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "53799a889204c45cc5a4edc5c6f873b859af09162502d3f8c4f3d824a9589642",
+      "sha256": "df34679867f5147c93aa26769ca088b752d7fa4d783408687164511aa1998ea6",
       "role": "common-semantics",
       "owner": "Existing client_values_host_abi/Run Publication Owners; public same-process type projection",
       "exports": [
@@ -68139,6 +68139,7 @@
         "effectReviewCheckpointBinding",
         "effectReviewCheckpointBindingFacts",
         "effectReviewCheckpointMembers",
+        "effectReviewCheckpointWaitingState",
         "effectRunStartCurrent",
         "effectSourceEvidenceFacts",
         "effectSourceInputBinding",
@@ -68587,6 +68588,18 @@
             "checkpointWire: string"
           ],
           "result": "readonly string[]"
+        },
+        {
+          "name": "effectReviewCheckpointWaitingState",
+          "parameters": [
+            "binding: EffectReviewCheckpointBinding",
+            "allowed: AllowedEffectRun",
+            "definition: RunDefinition",
+            "storedWire: string",
+            "updatedAt: string",
+            "declaredResults: readonly string[]"
+          ],
+          "result": "string"
         },
         {
           "name": "effectRunStartCurrent",
@@ -70392,7 +70405,8 @@
             "validateRetainedInputPlan",
             "validateRetainedTaskInput",
             "bindPreparedEffectRunMaterials",
-            "effectReviewCheckpointBindingFacts"
+            "effectReviewCheckpointBindingFacts",
+            "effectReviewCheckpointWaitingState"
           ],
           "exports": [
             "AllowedEffectRun",
@@ -70484,6 +70498,7 @@
             "effectReviewCheckpointBinding",
             "effectReviewCheckpointBindingFacts",
             "effectReviewCheckpointMembers",
+            "effectReviewCheckpointWaitingState",
             "effectRunStartCurrent",
             "effectSourceEvidenceFacts",
             "effectSourceInputBinding",
@@ -70624,6 +70639,10 @@
               {
                 "path": "docs/design/remote-site-execution.md",
                 "anchor": "## Original sealed Checkpoint bindings"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "The same nominal association may supply the original to the existing persistence"
               }
             ],
             "inputsOutputs": [
@@ -70646,6 +70665,10 @@
               {
                 "path": "docs/design/remote-site-execution.md",
                 "anchor": "## Original sealed Checkpoint bindings"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "The same nominal association may supply the original to the existing persistence"
               }
             ],
             "identity": [
@@ -70668,6 +70691,10 @@
               {
                 "path": "docs/design/remote-site-execution.md",
                 "anchor": "## Original sealed Checkpoint bindings"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "The same nominal association may supply the original to the existing persistence"
               }
             ],
             "ownership": [
@@ -70690,6 +70717,10 @@
               {
                 "path": "docs/design/remote-site-execution.md",
                 "anchor": "## Original sealed Checkpoint bindings"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "The same nominal association may supply the original to the existing persistence"
               }
             ],
             "synchronization": [
@@ -70712,6 +70743,10 @@
               {
                 "path": "docs/design/remote-site-execution.md",
                 "anchor": "## Original sealed Checkpoint bindings"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "The same nominal association may supply the original to the existing persistence"
               }
             ],
             "failure": [
@@ -70734,6 +70769,10 @@
               {
                 "path": "docs/design/remote-site-execution.md",
                 "anchor": "## Original sealed Checkpoint bindings"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "The same nominal association may supply the original to the existing persistence"
               }
             ],
             "cancellation": [
@@ -70756,6 +70795,10 @@
               {
                 "path": "docs/design/remote-site-execution.md",
                 "anchor": "## Original sealed Checkpoint bindings"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "The same nominal association may supply the original to the existing persistence"
               }
             ],
             "resources": [
@@ -70778,6 +70821,10 @@
               {
                 "path": "docs/design/remote-site-execution.md",
                 "anchor": "## Original sealed Checkpoint bindings"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "The same nominal association may supply the original to the existing persistence"
               }
             ],
             "extension": [
@@ -70800,6 +70847,10 @@
               {
                 "path": "docs/design/remote-site-execution.md",
                 "anchor": "## Original sealed Checkpoint bindings"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "The same nominal association may supply the original to the existing persistence"
               }
             ],
             "verification": [
@@ -70822,6 +70873,10 @@
               {
                 "path": "docs/design/remote-site-execution.md",
                 "anchor": "## Original sealed Checkpoint bindings"
+              },
+              {
+                "path": "docs/design/remote-site-execution.md",
+                "anchor": "The same nominal association may supply the original to the existing persistence"
               }
             ]
           }
