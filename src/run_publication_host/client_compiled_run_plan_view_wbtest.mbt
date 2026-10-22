@@ -10,6 +10,29 @@ fn compiled_run_plan_field(
 }
 
 ///|
+test "fresh static maps satisfy the unchanged external binding reader" {
+  for tasks in [false, true] {
+    let (prepared, compiled, _) = local_values_invocation_fixture(tasks)
+    let wire = client_compiled_run_static_plan_view(
+      compiled, prepared, 65536, 8192, 64,
+    ).unwrap()
+    let view = parse_plan_identity_value(wire, 65536, 8192, 64).unwrap()
+    let map = @canonical.object_field(view, "logical_map").unwrap()
+    let map_wire = @canonical.stringify_value(map, 65536, 8192, 64)
+    let admitted = @publication.admit_run_evidence_value(
+      "logical_map", map_wire, 65536, 8192, 64,
+    ).unwrap()
+    @publication.check_interactive_logical_map_binding(
+      admitted,
+      client_compiled_run_plan(compiled),
+      65536,
+      8192,
+      64,
+    ).unwrap()
+  }
+}
+
+///|
 test "compiled Run map uses the retained compiler occurrence owner without another compilation" {
   for tasks in [false, true] {
     let (prepared, compiled, _) = local_values_invocation_fixture(tasks)

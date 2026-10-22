@@ -3451,7 +3451,7 @@ async function openOriginalLocalPublicationStore(
       Object.freeze({...result,progressCreated})));
   };
 
-  const putPublicationContractBatch = async (supplied, originals) => {
+  const admitPublicationContracts = (supplied, originals) => {
     active();
     if (!Array.isArray(supplied)) fail('InvalidPublicationContractWire');
     const count = supplied.length;
@@ -3503,9 +3503,13 @@ async function openOriginalLocalPublicationStore(
       identities.set(contract.identity, original);
       wires.set(input.wire, original);
     }
+    return admitted;
+  };
+
+  const putAdmittedPublicationContracts = async (admitted, originals, progress) => {
     const nativeOnly = admitted.every(({contract}) => nativePublicationContract(contract.name));
     if (originals && nativeOnly) {
-      return putNativePublicationContracts(admitted);
+      return putNativePublicationContracts(admitted, progress);
     }
     const existingNative = new Map();
     for (const original of admitted) {
@@ -3519,7 +3523,7 @@ async function openOriginalLocalPublicationStore(
       existingNative.set(contract.identity,Object.freeze({...original,
         semanticCid:contract.identity,storage:'sqlite',created:false}));
     }
-    if (nativeOnly && existingNative.size !== 0) return putNativePublicationContracts(admitted);
+    if (nativeOnly && existingNative.size !== 0) return putNativePublicationContracts(admitted, progress);
     // A legacy file member does not turn an already native sibling into a
     // second file allocation. Only the remaining original files enter the
     // unchanged physical batch and its actual capacity/ACK protocol.
@@ -3531,6 +3535,9 @@ async function openOriginalLocalPublicationStore(
     return Object.freeze(admitted.map(original => existingNative.get(original.contract.identity) ??
       Object.freeze({...original,...stored[physicalIndex++]})));
   };
+
+  const putPublicationContractBatch = async (supplied, originals) =>
+    putAdmittedPublicationContracts(admitPublicationContracts(supplied, originals), originals);
 
   const putPublicationContracts = supplied => putPublicationContractBatch(supplied, false);
   const putOriginalPublicationContracts = supplied => putPublicationContractBatch(supplied, true);
@@ -4041,10 +4048,8 @@ async function openOriginalLocalPublicationStore(
     });
   };
 
-  const createAttempt = async suppliedWire => {
-    active();
-    const admitted = admitContract('publication_attempt', suppliedWire);
-    const attempt = parseContract(admitted);
+  const createAdmittedAttempt = async (admitted, retainedAttempt) => {
+    const attempt = retainedAttempt ?? parseContract(admitted);
     if (await runMetadataDeletionStarted(attempt.run_definition_cid)) {
       fail('PublicationMetadataDeleted');
     }
@@ -4079,6 +4084,36 @@ async function openOriginalLocalPublicationStore(
       }
       return Object.freeze({attempt, created: false});
     }
+  };
+
+  const createAttempt = async suppliedWire => {
+    active();
+    return createAdmittedAttempt(admitContract('publication_attempt', suppliedWire));
+  };
+
+  const beginPublicationAttempt = async (supplied, attemptOriginal) => {
+    if (!Array.isArray(supplied)) fail('InvalidPublicationContractWire');
+    if (supplied.length >= configuration.maxObjects) fail('PublicationStoreObjectLimit');
+    const admitted = admitPublicationContracts([...supplied, attemptOriginal], true);
+    const selected = admitted.find(({contract}) => contract.identity === attemptOriginal.identity &&
+      contract.name === 'publication_attempt');
+    if (selected === undefined) fail('InvalidPublicationContract');
+    if (await runMetadataDeletionStarted(selected.value.run_definition_cid)) fail('PublicationMetadataDeleted');
+    let fileAttempt = false;
+    try { await lstat(contractPath(selected.contract.identity)); fileAttempt = true; }
+    catch (error) { if (error?.code !== 'ENOENT') throw error; }
+    // Independently adopted file attempts keep their original file progress.
+    // Only an all-native setup joins the bodies and attempt locator in one
+    // existing transaction; either path returns after its actual acknowledgements.
+    if (fileAttempt || admitted.some(({contract}) => !nativePublicationContract(contract.name))) {
+      await putAdmittedPublicationContracts(admitted, true);
+      return createAdmittedAttempt(selected.contract, selected.value);
+    }
+    const stored = await putAdmittedPublicationContracts(admitted, true,
+      Object.freeze({kind: 'attempt', attemptCid: selected.contract.identity,
+        runCid: selected.value.run_definition_cid}));
+    return Object.freeze({attempt: selected.value,
+      created: stored.find(value => value.semanticCid === selected.contract.identity).progressCreated});
   };
 
   const latestRecordContract = async attemptCid => {
@@ -8100,6 +8135,7 @@ async function openOriginalLocalPublicationStore(
       return (await readContract(cid, name)).contract;
     },
     createAttempt,
+    beginPublicationAttempt,
     latestRecord,
     latestRecordContract,
     appendRecord,
@@ -8149,46 +8185,58 @@ async function openOriginalLocalPublicationStore(
     close() {
       if (closeFlight !== undefined) return closeFlight;
       if (closed) return Promise.resolve(true);
-      if (clockObservationsPending !== 0 || reservedObjects !== 0 || preparedObjects.size !== 0 ||
-          preparedSchemas.size !== 0 ||
-          reclaimableCustodies.size !== 0 ||
-          pendingResultDeletions.size !== 0 ||
-          pendingMetadataDeletions.size !== 0 ||
-          pendingUncommittedMetadataCleanups.size !== 0 ||
-          pendingPhysicalHoldingDeletions.size !== 0 ||
-          activeResultReaders.size !== 0 ||
-          activePhysicalHoldingReaders.size !== 0 ||
-          originalModelStorageBindingReaders !== 0 ||
-          originalInstallationPublicationStorageBindingReaders !== 0) {
-        return Promise.reject(new PublicationStoreError(
-          'PublicationStoreCleanupPending',
-        ));
-      }
-      // An unsettled read still owns its FD; close must not interrupt it.
-      for (const reader of activeSemanticReaders) {
-        if (reader.cleanup === undefined) {
-          return Promise.reject(new PublicationStoreError(
-            'PublicationStoreCleanupPending',
-          ));
-        }
-      }
-      for (const writer of activePhysicalRecordWriters) {
-        if (writer.cleanup === undefined) {
-          return Promise.reject(new PublicationStoreError('PublicationStoreCleanupPending'));
-        }
-      }
-      // Refuse new Store work once retirement starts, but do not report closed
-      // or erase the original key until the SAME ownership confirms release.
-      // A redacted control-read error cannot drive private cleanup. The same
-      // Store retains that original duty and drains close only, never read/send.
-      closeRequested = true;
       closeFlight = Promise.resolve().then(async () => {
+        // A failed native writer retains its capacity until its SAME mutation
+        // receives a real confirmation. Drain that original before treating its
+        // reservation as an independent live user. Healthy in-flight writers
+        // and every other unfinished owner still keep the existing close fence.
+        const retriedWriters = new Set();
+        for (const writer of activePhysicalRecordWriters) {
+          if (!writer.failed || writer.cleanup === undefined) continue;
+          retriedWriters.add(writer);
+          try { await writer.cleanup.retry(); }
+          catch (cause) { fail('PublicationStoreCleanupPending', cause); }
+        }
+        if (clockObservationsPending !== 0 || reservedObjects !== 0 || preparedObjects.size !== 0 ||
+            preparedSchemas.size !== 0 ||
+            reclaimableCustodies.size !== 0 ||
+            pendingResultDeletions.size !== 0 ||
+            pendingMetadataDeletions.size !== 0 ||
+            pendingUncommittedMetadataCleanups.size !== 0 ||
+            pendingPhysicalHoldingDeletions.size !== 0 ||
+            activeResultReaders.size !== 0 ||
+            activePhysicalHoldingReaders.size !== 0 ||
+            originalModelStorageBindingReaders !== 0 ||
+            originalInstallationPublicationStorageBindingReaders !== 0) {
+          throw new PublicationStoreError(
+            'PublicationStoreCleanupPending',
+          );
+        }
+        // An unsettled read still owns its FD; close must not interrupt it.
+        for (const reader of activeSemanticReaders) {
+          if (reader.cleanup === undefined) {
+            throw new PublicationStoreError(
+              'PublicationStoreCleanupPending',
+            );
+          }
+        }
+        for (const writer of activePhysicalRecordWriters) {
+          if (writer.cleanup === undefined) {
+            throw new PublicationStoreError('PublicationStoreCleanupPending');
+          }
+        }
+        // Refuse new Store work once retirement starts, but do not report closed
+        // or erase the original key until the SAME ownership confirms release.
+        // A redacted control-read error cannot drive private cleanup. The same
+        // Store retains that original duty and drains close only, never read/send.
+        closeRequested = true;
         for (const reader of activeSemanticReaders) {
           try { await reader.cleanup.retry(); }
           catch { fail('PublicationStoreCleanupPending'); }
         }
         if (activeSemanticReaders.size !== 0) fail('PublicationStoreCleanupPending');
         for (const writer of activePhysicalRecordWriters) {
+          if (retriedWriters.has(writer)) continue;
           try { await writer.cleanup.retry(); }
           catch { fail('PublicationStoreCleanupPending'); }
         }

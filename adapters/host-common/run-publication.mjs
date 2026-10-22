@@ -57,7 +57,9 @@ function validateStore(store) {
       store.putPublicationContracts !== undefined &&
         typeof store.putPublicationContracts !== 'function' ||
       store.putOriginalPublicationContracts !== undefined &&
-        typeof store.putOriginalPublicationContracts !== 'function') {
+        typeof store.putOriginalPublicationContracts !== 'function' ||
+      store.beginPublicationAttempt !== undefined &&
+        typeof store.beginPublicationAttempt !== 'function') {
     fail('InvalidRunPublicationStore');
   }
 }
@@ -143,7 +145,7 @@ function commitEvidence(evidence) {
   });
 }
 
-async function persistContracts(store, contracts) {
+async function persistContracts(store, contracts, attempt) {
   const persisted = new Set();
   const selected = [];
   for (const contract of contracts) {
@@ -151,11 +153,40 @@ async function persistContracts(store, contracts) {
     selected.push(contract);
     persisted.add(contract.identity);
   }
-  if (selected.length === 0) return;
+  const begin = store.beginPublicationAttempt;
+  if (attempt !== undefined && begin !== undefined) {
+    try {
+      await Reflect.apply(begin, store, [Object.freeze(selected), attempt]);
+    } catch (primary) {
+      // Continue only after this original setup's native outcome is confirmed.
+      // Never invoke setup again, issue another attempt, or repeat Effect work.
+      if (member(primary, 'code') !== 'PublicationMetadataCommitOutcomeUnknown' ||
+          member(primary, 'outcome') !== 'unknown') throw primary;
+      const cleanup = member(primary, 'cleanupHandle');
+      const retry = member(cleanup, 'retry'), status = member(cleanup, 'status');
+      const read = member(store, 'readPublicationContract');
+      const latest = member(store, 'latestRecordContract');
+      if ([retry, status, read, latest].some(value => typeof value !== 'function')) throw primary;
+      try {
+        await Reflect.apply(retry, cleanup, []);
+        if (member(Reflect.apply(status, cleanup, []), 'pending') !== false) throw primary;
+        for (const original of [...selected, attempt]) {
+          const confirmed = await Reflect.apply(read, store, [original.identity, original.name]);
+          if (confirmed?.name !== original.name || confirmed.identity !== original.identity ||
+              confirmed.identityField !== original.identityField || confirmed.wire !== original.wire) throw primary;
+        }
+        // A body alone is not the installed attempt/progress locator. The same
+        // Store must successfully select that locator, even with no record yet.
+        await Reflect.apply(latest, store, [attempt.identity]);
+      } catch { throw primary; }
+    }
+    return true;
+  }
+  if (selected.length === 0) return false;
   const originals = store.putOriginalPublicationContracts;
   if (originals !== undefined) {
     await Reflect.apply(originals, store, [Object.freeze(selected)]);
-    return;
+    return false;
   }
   const batch = store.putPublicationContracts;
   if (batch !== undefined) {
@@ -163,11 +194,12 @@ async function persistContracts(store, contracts) {
     // Its existing Store returns only after the group's real durable ACKs.
     await Reflect.apply(batch, store, [Object.freeze(selected.map(contract =>
       Object.freeze({name: contract.name, wire: contract.wire})))]);
-    return;
+    return false;
   }
   for (const contract of selected) {
     await store.putPublicationContract(contract.name, contract.wire);
   }
+  return false;
 }
 
 function requiredInventory(contracts, request, attempt) {
@@ -252,7 +284,27 @@ async function appendState(
     cleanupOwnerCids: [],
     uncommittedConfirmed,
   }, limits);
-  await store.appendRecord(record.wire, {uncommittedConfirmed});
+  try {
+    await store.appendRecord(record.wire, {uncommittedConfirmed});
+  } catch (primary) {
+    // Confirm only this native progress mutation, never repeat apply or issue
+    // another Receipt. Cleanup retirement alone does not prove record storage:
+    // the same Store must also admit the exact selected original afterward.
+    if (member(primary, 'code') !== 'PublicationMetadataCommitOutcomeUnknown' ||
+        member(primary, 'outcome') !== 'unknown') throw primary;
+    const cleanup = member(primary, 'cleanupHandle');
+    const retry = member(cleanup, 'retry'), status = member(cleanup, 'status');
+    const observe = member(store, 'latestRecordContract');
+    if (typeof retry !== 'function' || typeof status !== 'function' ||
+        typeof observe !== 'function') throw primary;
+    try {
+      await Reflect.apply(retry, cleanup, []);
+      if (member(Reflect.apply(status, cleanup, []), 'pending') !== false) throw primary;
+      const confirmed = await Reflect.apply(observe, store, [attempt.identity]);
+      if (confirmed?.name !== record.name || confirmed.identity !== record.identity ||
+          confirmed.identityField !== record.identityField || confirmed.wire !== record.wire) throw primary;
+    } catch { throw primary; }
+  }
   return record;
 }
 
@@ -543,9 +595,9 @@ async function publishRun(options, effectful) {
       continue;
     }
     if (action === 'persist_contracts') {
-      await persistContracts(store, [
+      attemptCreated = await persistContracts(store, [
         ...contracts, ...(effectful?.contracts ?? []), publicationRequest,
-      ]);
+      ], publicationAttempt);
       contractsPersisted = true;
       continue;
     }

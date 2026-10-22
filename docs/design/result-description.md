@@ -149,6 +149,23 @@ the locator is private persistence metadata, not authorization or a second
 publication authority. Selected reads admit the referenced body and check its
 attempt and sequence. Ordinary reads do not scan unrelated attempts.
 
+The existing publication caller can supply its immutable setup bodies and
+initial attempt together through the Store's optional `beginPublicationAttempt`
+operation. Native setup admits the bounded originals once and commits their
+bodies, complete quota change and attempt locator in the same transaction.
+The caller marks both setup duties complete only after that real COMMIT;
+preparing and committing records remain later independent transitions.
+The original complete group and reservations remain owned on a lost reply.
+For an unknown native setup outcome, the caller may confirm that same cleanup
+once, then select the exact immutable bodies and installed attempt locator from
+the same Store before continuing its original publication progression. Pending
+cleanup, a missing locator, mismatched bodies or failed confirmation retains
+the original Unknown; none invokes setup again or repeats Effect work. Healthy
+setup adds no confirmation reads.
+An independently adopted file attempt retains its file progress and actual
+acknowledgements. A Store without this optional operation keeps the separate
+setup operations; an explicit refusal never falls back to another write.
+
 No duplicate object file, semantic alias or attempt-directory ACK is required
 for those native originals. Independently adopted file originals keep their
 file protocol and actual ACKs; a native attempt may reference an existing
@@ -156,6 +173,22 @@ file record without replacing or refunding that physical holding. Payload and
 public Index writes retain their separate real durability and cleanup duties.
 Lost COMMIT replies retain the same bodies, capacity reservation and sequence
 mutation for an idempotent same-database confirmation, never a Run replay.
+Store close attempts that retained failed writer's original confirmation before
+checking its reserved capacity. An unavailable confirmation remains pending;
+independent live payloads, readers and other cleanup duties still refuse close.
+Once a completed Effect receipt enters publication, its existing completed
+Result owner retains the exact publication failure and any original cleanup
+receiver. Captured and recovered Site callers propagate that failure instead
+of issuing another interrupted-apply completion. This does not mark the Run
+committed or acknowledge storage; the original cleanup confirms only its own
+physical mutation, with current authority and Run reconciliation still separate.
+If an append loses its native progress COMMIT reply, the same publication call
+may confirm that exact mutation once through its retained cleanup receiver.
+It continues only after the original cleanup retires and the same Store admits
+the complete expected latest record. The issued record, Receipt and attempt
+are reused; no Effect dispatch or publication reissue occurs. Failed or pending
+confirmation, a missing record, or any differing record retains the original
+failure. Healthy appends perform no confirming reread.
 Run metadata retirement selects its indexed attempts and records, removes
 their actual bodies, and retires their locators with the existing Run fence.
 
@@ -197,6 +230,17 @@ directly; they do not first query the native delivery-metadata tables. The
 selected file still supplies its real bounded bytes, inode/digest checks and
 close duty. Generic semantic reads and supported native publication/delivery
 families use selected database rows with legacy file fallback.
+
+A successful fresh object seal closes its original writer, installs and
+acknowledges the final object name, and keeps that same allocation fully
+charged in the Store. Removing its private staging alias is not a second
+durable publication or capacity refund. After that success, the alias is
+unlinked without another staging-directory barrier; exclusive opening recovery
+removes any resurrected temporary alias. An existing-object duplicate has a
+different temporary allocation, and cancellation or any failed seal keeps the
+original staging-unlink acknowledgement before releasing its reservation.
+Failed unlink still retains the same writer/reservation and retry path. No
+payload sync, final-name ACK, actual close or pending custody is waived.
 
 Typed publication evidence selects its storage representation before the commit's
 generic inventory traversal. The traversal reuses those acquired originals;
