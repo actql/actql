@@ -2014,7 +2014,7 @@ export function openClientRequestJournal(directory, {
     const ownedAttempt = Object.freeze({operation: 'submit', attemptId: attemptRef.attemptId});
     if (!options.currentAuthorization) return Object.freeze({kind: 'refused',
       attemptRef: ownedAttempt, guarantee: 'attempt_uncommitted_unconsumed', reason: 'authorization'});
-    const original = originalIntent(intent, control);
+    const original = originalIntent(intent, control, submissionRef.epoch);
     const ownedRef = Object.freeze({...submissionRef, epoch: Object.freeze({...submissionRef.epoch})});
     const ticket = {}, previous = activeSubmissionAttempt;
     activeSubmissionAttempt = ticket;
@@ -2320,13 +2320,27 @@ export function openClientRequestJournal(directory, {
     }
     return {...retained, issued, retired};
   };
-  const originalIntent = (intent, control) => {
+  const admitIntentOriginal = (wire, control, epoch, code, canonical = true) => {
+    const operation = submissionOperations.get(epoch);
+    const previous = operation?.control === control ? operation.intentOriginal : undefined;
+    if (previous !== undefined && previous.wire === wire) return previous;
+    const intent = control.clientSubmittedIntent(wire, 1048576, 65536, 64);
+    if (intent === undefined) fail(code);
+    const original = {intent, wire: control.clientSubmittedIntentWire(intent),
+      identity: control.clientSubmittedIntentCid(intent)};
+    if (canonical && original.wire !== wire) fail(code);
+    if (operation?.control === control) operation.intentOriginal = original;
+    return original;
+  };
+  const originalIntent = (intent, control, epoch) => {
+    const operation = submissionOperations.get(epoch);
+    const previous = operation?.control === control ? operation.intentOriginal : undefined;
+    if (previous !== undefined && previous.intent === intent) return previous;
     const wire = control.clientSubmittedIntentWire(intent);
     const identity = control.clientSubmittedIntentCid(intent);
-    const checked = control.clientSubmittedIntent(wire, 1048576, 65536, 64);
-    if (checked === undefined || control.clientSubmittedIntentCid(checked) !== identity ||
-        control.clientSubmittedIntentWire(checked) !== wire) fail('InvalidClientSubmittedIntent');
-    return {wire, identity};
+    const original = admitIntentOriginal(wire, control, epoch, 'InvalidClientSubmittedIntent');
+    if (original.identity !== identity) fail('InvalidClientSubmittedIntent');
+    return original;
   };
   const nameSelect = database.prepare(`SELECT * FROM client_submission_names
     WHERE namespace_id = ? AND actor_id = ? AND name = ?`);
@@ -2477,9 +2491,10 @@ export function openClientRequestJournal(directory, {
       assertRestartCustody();
       return previous;
     }
-    const intent = control.clientSubmittedIntent(row.intent_wire, 1048576, 65536, 64);
-    if (intent === undefined || control.clientSubmittedIntentCid(intent) !== row.intent_cid ||
-        control.clientSubmittedIntentWire(intent) !== row.intent_wire) fail('ClientSubmittedIntentCorrupt');
+    const original = admitIntentOriginal(row.intent_wire, control, originalEpoch,
+      'ClientSubmittedIntentCorrupt');
+    if (original.identity !== row.intent_cid) fail('ClientSubmittedIntentCorrupt');
+    const intent = original.intent;
     const operation = submissionOperations.get(originalEpoch);
     const epoch = operation?.control === control &&
       operation.wire === row.epoch_wire ? originalEpoch : JSON.parse(row.epoch_wire);
@@ -2865,6 +2880,12 @@ export function openClientRequestJournal(directory, {
       submissionOperations.set(epoch, operation);
       return () => {submissionOperations.delete(epoch);};
     },
+    prepareSubmittedIntent(epoch, wire, control) {
+      ensureOpen();
+      // Only this public operation retains the bounded immutable input. This
+      // does not retain its authorization, receipt revision or Run outcome.
+      return admitIntentOriginal(wire, control, epoch, 'InvalidClientSubmittedIntent', false).intent;
+    },
     closeObservationStorage,
     observationStorage() {
       ensureOpen();
@@ -2916,7 +2937,7 @@ export function openClientRequestJournal(directory, {
           !namespaceId.isWellFormed() || !text(actorId) || !actorId.isWellFormed() ||
           !cid(authorityScopeCid)) fail('InvalidClientSubmissionName');
       if (currentAuthorization !== true) fail('ClientSubmissionEpochUnauthorized');
-      const original = originalIntent(intent, control);
+      const original = originalIntent(intent, control, submissionRef?.epoch);
       const result = submissionTransaction(() => {
         const issued = assertNameCustody();
         const intentCustody = assertIntentCustody();
@@ -2977,7 +2998,7 @@ export function openClientRequestJournal(directory, {
     checkSubmittedIntent(submissionRef, intent, {authorityScopeCid,
       currentAuthorization, unresolvedHistory, actorId}, control) {
       ensureOpen();
-      const original = originalIntent(intent, control);
+      const original = originalIntent(intent, control, submissionRef.epoch);
       const restartWire = restartDecision(submissionRef, original.identity, unresolvedHistory, actorId);
       const fields = {authorityScopeCid, currentAuthorization};
       const result = submissionTransaction(() => {
@@ -3002,7 +3023,7 @@ export function openClientRequestJournal(directory, {
     recordSubmittedIntent(submissionRef, intent, {authorityScopeCid,
       currentAuthorization, phase = 'preparing', outcome, unresolvedHistory, actorId}, control) {
       ensureOpen();
-      const original = originalIntent(intent, control);
+      const original = originalIntent(intent, control, submissionRef.epoch);
       const verified = verifyEpoch(submissionRef.epoch, {authorityScopeCid,
         currentAuthorization, purpose: 'admit'}, control);
       const requestId = control.clientSubmissionRequestId(verified.handle, submissionRef.nonce);

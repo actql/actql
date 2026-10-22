@@ -8,6 +8,7 @@ import test from 'node:test';
 import {openClientRequestJournal} from './client-request-journal.mjs';
 import {installNodeClientSubmission} from './client-submission.mjs';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
+import {canonicalJson} from './local-account-config.mjs';
 
 const moon = await import(process.env.ACTQL_TEST_COMMON_RUNTIME ?? new URL(
   '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js', import.meta.url).href);
@@ -20,10 +21,15 @@ const cid = digit => `sha256:${digit.repeat(64)}`;
 async function fixture(t, {prepare, submit} = {}) {
   const root = await mkdtemp(join(tmpdir(), 'actql-submission-operation-'));
   let now = start, allowed = true, parsing = 0, authentication = 0, clockWrites = 0;
+  const intentAdmissions = new Map();
   const journal = openClientRequestJournal(root, {submissionEpochTtlMs: 1000, submissionEpochNow: () => now});
   t.after(async () => {journal.close(); await rm(root, {recursive: true, force: true});});
   const epoch = journal.issueSubmissionEpoch(fields, moon);
   const runtime = {...moon,
+    clientSubmittedIntent(wire, ...limits) {
+      intentAdmissions.set(wire, (intentAdmissions.get(wire) ?? 0) + 1);
+      return moon.clientSubmittedIntent(wire, ...limits);
+    },
     clientSubmissionEpoch(...args) {parsing++; return moon.clientSubmissionEpoch(...args);},
     clientSubmissionEpochWire(...args) {authentication++; return moon.clientSubmissionEpochWire(...args);},
   };
@@ -66,8 +72,77 @@ async function fixture(t, {prepare, submit} = {}) {
   });
   return {journal, runtime, service, request, root,
     now(value) {now = value;}, deny() {allowed = false;},
+    intentAdmissions() {return [...intentAdmissions.values()];},
     counts() {return {parsing, authentication, clockWrites};}};
 }
+
+test('one submit admits each unchanged intent wire once through preparation and original Run acceptance', async t => {
+  const f = await fixture(t);
+  f.now(start + 10);
+  assert.equal((await f.service.submitAttempt(f.request)).outcome.kind, 'ready');
+  assert.deepEqual(f.intentAdmissions(), [1], 'input and retained receipt share the same admitted immutable intent');
+  assert.equal((await f.service.lookupSubmission(f.request)).kind, 'ready');
+  assert.deepEqual(f.intentAdmissions(), [2], 'a new public observation admits its own saved original once');
+  f.deny();
+  assert.equal((await f.service.submitAttempt(f.request)).reason, 'authorization');
+  assert.deepEqual(f.intentAdmissions(), [2], 'current Deny performs no intent admission or write');
+});
+
+test('intent reuse ends with its original operation and never crosses controls or changed wire', async t => {
+  const f = await fixture(t), epoch = f.request.submissionRef.epoch;
+  const wire = canonicalJson({kind: f.request.kind, input: f.request.input, parameters: null}, {dataKeys: true});
+  const release = f.journal.retainSubmissionOperation(epoch, f.runtime);
+  try {
+    const original = f.journal.prepareSubmittedIntent(epoch, wire, f.runtime);
+    assert.strictEqual(f.journal.prepareSubmittedIntent(epoch, moon.clientSubmittedIntentWire(original), f.runtime), original);
+    const changed = f.journal.prepareSubmittedIntent(epoch, JSON.stringify({kind: f.request.kind,
+      input: {...f.request.input, text: 'SELECT 2 AS value'}, parameters: null}), f.runtime);
+    assert.notEqual(moon.clientSubmittedIntentCid(changed), moon.clientSubmittedIntentCid(original));
+    let foreignAdmissions = 0;
+    const other = {...f.runtime, clientSubmittedIntent(...args) {foreignAdmissions++; return moon.clientSubmittedIntent(...args);}};
+    f.journal.prepareSubmittedIntent(epoch, moon.clientSubmittedIntentWire(changed), other);
+    assert.equal(foreignAdmissions, 1, 'another control cannot borrow the operation original');
+    assert.deepEqual(f.intentAdmissions(), [1, 1]);
+  } finally {release();}
+  f.journal.prepareSubmittedIntent(epoch, wire, f.runtime);
+  assert.deepEqual(f.intentAdmissions(), [2, 1], 'the ended operation retains no reusable fact');
+});
+
+test('retained row identity is checked even when its wire is already admitted in this operation', async t => {
+  const f = await fixture(t);
+  assert.equal((await f.service.submitAttempt(f.request)).outcome.kind, 'ready');
+  const epoch = f.request.submissionRef.epoch, release = f.journal.retainSubmissionOperation(epoch, f.runtime);
+  try {
+    const wire = canonicalJson({kind: f.request.kind, input: f.request.input, parameters: null}, {dataKeys: true});
+    f.journal.prepareSubmittedIntent(epoch, wire, f.runtime);
+    const database = new DatabaseSync(join(f.root, 'client-requests.sqlite3'));
+    try {database.prepare('UPDATE client_submitted_intents SET intent_cid = ?').run(cid('f'));}
+    finally {database.close();}
+    assert.throws(() => f.journal.lookupSubmittedIntent(f.request.submissionRef, fields, f.runtime),
+      {code: 'ClientSubmittedIntentCorrupt'});
+    assert.deepEqual(f.intentAdmissions(), [2], 'the exact wire fact is reused, not the changed row identity');
+  } finally {release();}
+});
+
+test('failed or oversized input is never retained and a closed Journal cannot reuse an admitted intent', async t => {
+  const f = await fixture(t), epoch = f.request.submissionRef.epoch;
+  const release = f.journal.retainSubmissionOperation(epoch, f.runtime);
+  try {
+    for (let i = 0; i < 2; i++) {
+      assert.throws(() => f.journal.prepareSubmittedIntent(epoch, '{', f.runtime),
+        {code: 'InvalidClientSubmittedIntent'});
+    }
+    assert.throws(() => f.journal.prepareSubmittedIntent(epoch, 'x'.repeat(1048577), f.runtime),
+      {code: 'InvalidClientSubmittedIntent'});
+    const wire = canonicalJson({kind: f.request.kind, input: f.request.input, parameters: null}, {dataKeys: true});
+    f.journal.prepareSubmittedIntent(epoch, wire, f.runtime);
+    assert.deepEqual(f.intentAdmissions(), [2, 1, 1]);
+    f.journal.close();
+    assert.throws(() => f.journal.prepareSubmittedIntent(epoch, wire, f.runtime),
+      {code: 'ClientRequestJournalClosed'});
+    assert.deepEqual(f.intentAdmissions(), [2, 1, 1]);
+  } finally {release();}
+});
 
 test('one actual submit retains epoch authentication and one durable floor through the same Run acceptance', async t => {
   const f = await fixture(t);
