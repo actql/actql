@@ -203,13 +203,17 @@ pub fn NativeLocalPublisherBinding::current(
 fn NativeLocalPublisherBinding::current_in_owned_transaction(
   self : NativeLocalPublisherBinding,
 ) -> Bool {
+  if !self.authority.host.journal.transaction_active {
+    return false
+  }
   self.current_checked_in_mode(true)
 }
 
 ///|
 // A publication callback already owns the original Journal transaction. Join
 // that explicit read fence; attempting another BEGIN would reject the same
-// current publisher. Other callbacks acquire their own bounded snapshot.
+// current publisher. The closed command's read-only predicates consume its
+// existing operation; unscoped callers acquire their own bounded snapshot.
 fn NativeClientRunJournal::publisher_current_snapshot(
   self : NativeClientRunJournal,
   current : () -> Bool,
@@ -219,6 +223,12 @@ fn NativeClientRunJournal::publisher_current_snapshot(
     if !self.transaction_active ||
       self.fenced ||
       client_journal_transaction_fenced(self.database, reads) {
+      return false
+    }
+    return current()
+  }
+  if self.operation_active && !self.transaction_active {
+    if self.fenced || client_journal_transaction_fenced(self.database, reads) {
       return false
     }
     return current()
@@ -246,7 +256,7 @@ fn NativeLocalPublisherBinding::current_in_mode(
   }
   if join_owned_transaction &&
     (
-      !journal.transaction_active ||
+      (!journal.transaction_active && !journal.operation_active) ||
       journal.fenced ||
       client_journal_transaction_fenced(journal.database, reads)
     ) {
@@ -263,7 +273,7 @@ fn NativeLocalPublisherBinding::current_in_mode(
   let selected = fn() -> Result[Bytes, NativeLocalAdoptionIssue] {
     if self.authority.capture is Some(_) &&
       self.operation is Some(_) &&
-      journal.transaction_active {
+      (journal.transaction_active || journal.operation_active) {
       // The current material above admits these same immutable settings in
       // this snapshot. No callback or physical dispatch separates the reads.
       for file in host.session.settings.files {
