@@ -34,7 +34,13 @@ test "unchanged prepared Run binding survives own row revision but not failure o
   journal
   .validate_prepared_run_binding(another_request, prepared, compiled, admitted)
   .unwrap()
-  journal.invalidate_operation_run()
+  let record = journal
+    .bind_run(request, prepared, compiled, definition, true)
+    .unwrap()
+  let updated = journal
+    .transaction(() => journal.save({ ..record, dispatch_reserved: true, }))
+    .unwrap()
+  assert_eq(updated.revision, record.revision + 1L)
   journal
   .validate_prepared_run_binding(request, prepared, compiled, definition)
   .unwrap()
