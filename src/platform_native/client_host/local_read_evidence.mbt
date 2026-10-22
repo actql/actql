@@ -619,6 +619,7 @@ fn NativeLocalReadPolicyBinding::retain_read_admission_with_operations(
 ] {
   let reads = operations.map(value => value.reads)
   let mut authority_refusal : NativeLocalReadBindingIssue? = None
+  let committed_bodies : Ref[NativeLocalReadAdmissionOriginals?] = Ref(None)
   let stored = self.host.journal.transaction_with_reads(
     () => {
       match self.require_request(original, facts) {
@@ -772,6 +773,7 @@ fn NativeLocalReadPolicyBinding::retain_read_admission_with_operations(
       // dispatch. Keep receiver lifetime without repeating current admission.
       match self.require_receiver(facts) {
         Ok(_) => {
+          committed_bodies.val = Some(bodies)
           let admission : @result_access.NativeResultReadAdmission = {
             authorization_context_cid: bodies.authorization.cid,
             data_ceiling_cid: bodies.ceiling.cid,
@@ -791,9 +793,19 @@ fn NativeLocalReadPolicyBinding::retain_read_admission_with_operations(
     reads~,
   )
   match stored {
-    Ok(value) => Ok(value)
-    Err(TransactionUnknown) => Err(Journal(TransactionUnknown))
-    Err(issue) => Err(authority_refusal.unwrap_or(Journal(issue)))
+    Ok(value) => {
+      if committed_bodies.val is Some(bodies) {
+        self.remember_read_evidence(original, facts, bodies, value)
+      }
+      Ok(value)
+    }
+    Err(issue) => {
+      self.forget_read_evidence()
+      match issue {
+        TransactionUnknown => Err(Journal(TransactionUnknown))
+        _ => Err(authority_refusal.unwrap_or(Journal(issue)))
+      }
+    }
   }
 }
 

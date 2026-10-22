@@ -68,21 +68,15 @@ fn[T] NativeLocalJournalCapture::with_runtime_binding_access(
       self.read_facts_valid &&
       host.journal.operation_active {
       match
-        host.journal.check_transaction_context(
-          reads=Some(operations.reads),
-        ) {
+        host.journal.check_transaction_context(reads=Some(operations.reads)) {
         Ok(_) => observe()
         Err(issue) => Err(issue)
       }
     } else {
       // Preserve the unscoped entrance's original snapshot semantics.
-      host.journal.transaction_with_reads(
-        observe,
-        reads=Some(operations.reads),
-      )
+      host.journal.transaction_with_reads(observe, reads=Some(operations.reads))
     }
-    observed
-    .map_err(issue => Journal(issue))
+    observed.map_err(issue => Journal(issue))
   })
   match result {
     Err(issue) => Err(issue)
@@ -110,7 +104,8 @@ pub fn NativeLocalJournalCapture::bind_packaged_runtime_in_original_read(
   self.with_runtime_binding_access((host, access) => {
     match
       host.bind_packaged_runtime_with_access(
-        current, principal, connection, environment_file, run_file, runtime_file, access,
+        current, principal, connection, environment_file, run_file, runtime_file,
+        access,
       ) {
       Err(issue) => Err(issue)
       Ok(_) =>

@@ -167,6 +167,7 @@ fn NativeLocalJournalReadQueries::bootstrap_access(
   {
     reads: self.access(),
     install_read_evidence_schema: max_rows => {
+      (self.invalidate_snapshot)(Some("client_local_read_evidence"))
       self
       .query(() => self.database.install_client_read_evidence_schema(max_rows))
       .unwrap_or(Err(@sqlite.Busy))
@@ -235,6 +236,7 @@ fn NativeLocalJournalReadQueries::operation_access(
   {
     reads: self.access(),
     install_read_evidence_schema: max_rows => {
+      (self.invalidate_snapshot)(Some("client_local_read_evidence"))
       self
       .query(() => self.database.install_client_read_evidence_schema(max_rows))
       .unwrap_or(Err(@sqlite.Busy))
@@ -264,6 +266,7 @@ fn NativeLocalJournalReadQueries::operation_access(
       }
     },
     reserve_capacity: (table, key, bytes, objects, max_bytes, max_objects) => {
+      (self.invalidate_snapshot)(Some(table))
       match
         self.query(() => {
           self.database.reserve_capacity_in_transaction(

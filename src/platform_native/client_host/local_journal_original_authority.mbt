@@ -36,6 +36,11 @@ fn[T] NativeLocalJournalCapture::with_current_adoption_material_in_original_read
     database: host.database,
     failure: None,
     invalidate_snapshot: table => {
+      if table is None ||
+        table
+        is Some("client_local_read_evidence" | "client_local_read_custody") {
+        self.clear_read_evidence_observations()
+      }
       if table is Some("client_submission_epoch") {
         host.epoch.invalidate_custody()
       }
