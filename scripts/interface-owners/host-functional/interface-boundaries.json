@@ -24659,7 +24659,7 @@
     {
       "module": "adapters/host-node/client-submission.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "ca4b33457020772afedf21c2c95f2cf48a11daee29fd0487033f14a73f0e2b92",
+      "sha256": "ef9b800ff8fbe6e1e46fed6ad5385b8853de4587af8bc1e43f4af7c0bc46f960",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
@@ -24933,6 +24933,13 @@
           "async": false
         },
         {
+          "name": "installNodeClientSubmission/submitIntent/submitIntent/retainPreparationRefusal/retainPreparationRefusal",
+          "parameters": [
+            "error"
+          ],
+          "async": true
+        },
+        {
           "name": "installNodeClientSubmission/submitNamedAttempt/submitNamedAttempt",
           "parameters": [
             "request"
@@ -25026,6 +25033,7 @@
             "installNodeClientSubmission/submitIntent/submitIntent/flight/flight",
             "installNodeClientSubmission/submitIntent/submitIntent/flight/flight#2",
             "installNodeClientSubmission/submitIntent/submitIntent/restartFields/restartFields",
+            "installNodeClientSubmission/submitIntent/submitIntent/retainPreparationRefusal/retainPreparationRefusal",
             "installNodeClientSubmission/unresolved/unresolved",
             "installNodeClientSubmission/withRestart/withRestart",
             "issueNodeClientSubmissionEpoch",
@@ -25219,6 +25227,10 @@
               {
                 "path": "adapters/host-node/host-journal-ordinary-prefix.test.mjs",
                 "anchor": "Result failed actual Store construction keeps original cleanup until the same Journal closes"
+              },
+              {
+                "path": "adapters/host-node/client-submission.mjs",
+                "anchor": "const retainPreparationRefusal = async error => {"
               }
             ],
             "cancellation": [
@@ -25355,6 +25367,18 @@
               {
                 "path": "adapters/host-node/client-submission-operation.test.mjs",
                 "anchor": "one actual submit retains epoch authentication and one durable floor through the same Run acceptance"
+              },
+              {
+                "path": "adapters/host-node/client-submission.test.mjs",
+                "anchor": "test('typed pre-admission refusal is retained without entering the Run owner', async t => {"
+              },
+              {
+                "path": "adapters/host-node/client-submission.test.mjs",
+                "anchor": "test('unclassified pre-admission interruption is not certified as a refusal', async t => {"
+              },
+              {
+                "path": "adapters/host-node/client-submission.test.mjs",
+                "anchor": "test('response loss after Run admission retains the original without redispatch', async t => {"
               }
             ]
           }

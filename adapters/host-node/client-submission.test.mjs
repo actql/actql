@@ -39,6 +39,7 @@ async function fixture(t, callbacks = {}) {
     submit: async value => {submitCount++; return await callbacks.submit(value);},
     lookupRequest: async value => callbacks.lookup?.(value) ?? {kind: 'not_found'},
     checkSubmissionInput: callbacks.check ?? checkValues,
+    admitPreparedSubmission: callbacks.admit,
   });
   install();
   const ref = {epoch: await service.issueEpoch({principalId, connection}), nonce: 'original-nonce'};
@@ -720,3 +721,58 @@ for (const partial of [false, true]) {
     assert.deepEqual(f.counts, {prepare: 1, submit: 0});
   });
 }
+
+
+test('typed pre-admission refusal is retained without entering the Run owner', async t => {
+  let admissions = 0;
+  const f = await fixture(t, {admit() {admissions++;
+    throw Object.assign(new Error('actual checked preparation unsupported'), {code: 'ClientProgramUnsupported'});
+  }});
+  const original = await f.service.submitIntent(f.body());
+  assert.equal(original.kind, 'not_accepted');
+  assert.deepEqual(original.problem, {code: 'ClientProgramUnsupported', classification: 'implementation_limit'});
+  assert.equal('admission' in original, false);
+  f.restart();
+  assertReferenceOnly(await f.service.lookupSubmission({principalId, connection, submissionRef: f.ref}), original);
+  assert.deepEqual(await f.service.submitIntent(f.body()), original);
+  assert.deepEqual(f.counts, {prepare: 1, submit: 0});
+  assert.equal(admissions, 1);
+});
+
+test('unclassified pre-admission interruption is not certified as a refusal', async t => {
+  const interrupted = Object.assign(new Error('unknown original state'), {code: 'MoonBitHostFailure'});
+  const f = await fixture(t, {admit() {throw interrupted;}});
+  await assert.rejects(f.service.submitIntent(f.body()), error => error === interrupted);
+  assert.equal(f.journal.lookupSubmittedIntent(f.ref, fields, moon), undefined);
+  assert.equal((await f.service.lookupSubmission({principalId, connection, submissionRef: f.ref})).kind, 'unresolvable');
+  assert.deepEqual(f.counts, {prepare: 1, submit: 0});
+});
+
+test('pre-admission refusal rechecks current authority before recording its outcome', async t => {
+  let f;
+  f = await fixture(t, {admit() {f.authorize(false);
+    throw Object.assign(new Error('actual checked preparation unsupported'), {code: 'ClientProgramUnsupported'});
+  }});
+  await assert.rejects(f.service.submitIntent(f.body()), {code: 'ClientRequestLookupDenied'});
+  assert.equal(f.journal.lookupSubmittedIntent(f.ref, fields, moon), undefined);
+  assert.deepEqual(f.counts, {prepare: 1, submit: 0});
+});
+
+test('response loss after Run admission retains the original without redispatch', async t => {
+  let f, admitted, admissions = 0;
+  f = await fixture(t, {admit() {admissions++;}, submit(value) {
+    admitted = admitOriginal(f, value);
+    throw new Error('lost response after original COMMIT');
+  }, lookup(value) {
+    const saved = f.journal.lookup({...fields, requestId: value.requestId}, moon);
+    return saved === undefined ? {kind: 'not_found'} : {kind: 'found', ref: saved.ref};
+  }});
+  const original = await f.service.submitIntent(f.body());
+  assert.equal(original.kind, 'ready');
+  assert.deepEqual(original.admission, admitted);
+  f.restart();
+  assertReferenceOnly(await f.service.lookupSubmission({principalId, connection, submissionRef: f.ref}), original);
+  assertReferenceOnly(await f.service.lookupSubmission({principalId, connection, submissionRef: f.ref}), original);
+  assert.deepEqual(f.counts, {prepare: 1, submit: 1});
+  assert.equal(admissions, 1);
+});

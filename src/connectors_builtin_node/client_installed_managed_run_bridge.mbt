@@ -488,3 +488,16 @@ pub fn client_program_installed_keyed_source_read_retire(
 ) -> Result[Unit, @client_local_host.ClientInstalledSourceReadIssue] {
   @client_local_host.retire_installed_keyed_source_read(value)
 }
+
+///|
+/// Project only the original typed refusal. This is not evidence of journal
+/// nonexecution and must be used only at the owning pre-admission boundary.
+#export_name("clientProgramInstalledManagedRunIssueIsUnsupported")
+pub fn client_program_installed_managed_run_issue_is_unsupported(
+  issue : @client_local_host.ClientInstalledManagedRunIssue,
+) -> Bool {
+  match issue {
+    @client_local_host.Unsupported => true
+    _ => false
+  }
+}

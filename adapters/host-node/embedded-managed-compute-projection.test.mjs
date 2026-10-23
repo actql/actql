@@ -51,6 +51,8 @@ function fixture() {
       assert(assets.has(path), path); return assets.get(path);
     },
     checked: value => value,
+    runtimeIsError: () => false,
+    runtimeField: () => assert.fail('No failed Core result'),
     canonicalValueJson(value, options) {assert.deepEqual(options, {dataKeys: true}); return JSON.stringify(value);},
     clientOperationError: code => Object.assign(new Error(code), {code}),
   };
@@ -185,6 +187,7 @@ test('malformed or overflowing requirement observations are refused', () => {
 function preparedRunFixture() {
   const f = fixture(), original = {}, run = {runtime: f.moon, prepared: f.prepared, closed: false};
   f.originals.installation.computeRuns = new Map([[f.prepared, run]]);
+  f.moon.clientProgramInstalledManagedRunIssueIsUnsupported = () => false;
   f.moon.clientProgramPrepareInstalledManagedSourceFree = (...args) => {
     f.calls.push(['prepare', args]); return original;
   };
@@ -225,6 +228,7 @@ test('foreign or closed Run and missing typed APIs refuse without legacy regener
   for (const change of [f => {f.run.runtime = {};}, f => {f.run.prepared = {};},
     f => {f.run.closed = true;},
     f => {f.moon.clientProgramPrepareInstalledManagedSourceFree = undefined;},
+    f => {f.moon.clientProgramInstalledManagedRunIssueIsUnsupported = undefined;},
     f => {f.moon.clientProgramPreparedInstalledManagedSourceFreeRequirements = undefined;}]) {
     const f = preparedRunFixture(); change(f);
     assert.throws(() => f.requirements()(f.originals, f.prepared),
@@ -266,4 +270,22 @@ test('intent current changes, missing admission and malformed CID cannot become 
   const malformed = fixture(); malformed.moon.clientSubmittedIntentCid = () => 'foreign';
   assert.throws(() => malformed.intent()(malformed.originals, malformed.raw, body),
     error => error.code === 'InvalidHostRuntimeResult');
+});
+
+
+test('only the original pure preparation Unsupported is a typed refusal', () => {
+  for (const unsupported of [false, true]) {
+    const f = preparedRunFixture(), result = {}, issue = {}, originalFailure = new Error('OriginalCoreFailure');
+    f.moon.clientProgramPrepareInstalledManagedSourceFree = () => result;
+    f.ports.runtimeIsError = value => {assert.strictEqual(value, result); return true;};
+    f.ports.runtimeField = (value, index) => {assert.strictEqual(value, result); assert.equal(index, 0); return issue;};
+    f.moon.clientProgramInstalledManagedRunIssueIsUnsupported = value => {
+      assert.strictEqual(value, issue); return unsupported;
+    };
+    f.ports.checked = value => {assert.strictEqual(value, result); throw originalFailure;};
+    assert.throws(() => f.requirements()(f.originals, f.prepared), unsupported
+      ? {code: 'ClientProgramUnsupported'} : error => error === originalFailure);
+    assert.equal(f.run.preparedSequences, undefined);
+    assert.equal(f.calls.length, 0, 'No scalar projection or Resource admission after a failed preparation');
+  }
 });

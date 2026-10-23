@@ -37940,7 +37940,7 @@
     {
       "module": "adapters/host-node/embedded-local.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "839df9ff8a5ab34ac35758009a4ce467ec81a246cc7af49a5174a7d2fcef4564",
+      "sha256": "b9573b9889a6e84185a7b72e41367b4c6f4547123ab635531f29b8810b938bc9",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -40675,7 +40675,7 @@
             "responsibility": [
               {
                 "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "import {runtimeField, runtimeIsOk, runtimeIsOkRequired, runtimeOptionalField, runtimeTag} from '../host-common/compiler-binding.generated.mjs';"
+                "anchor": "import {runtimeField, runtimeIsError, runtimeIsOk, runtimeIsOkRequired, runtimeOptionalField, runtimeTag} from '../host-common/compiler-binding.generated.mjs';"
               },
               {
                 "path": "docs/development/js-compiler-bindings.md",
@@ -40693,7 +40693,7 @@
             "inputsOutputs": [
               {
                 "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "import {runtimeField, runtimeIsOk, runtimeIsOkRequired, runtimeOptionalField, runtimeTag} from '../host-common/compiler-binding.generated.mjs';"
+                "anchor": "import {runtimeField, runtimeIsError, runtimeIsOk, runtimeIsOkRequired, runtimeOptionalField, runtimeTag} from '../host-common/compiler-binding.generated.mjs';"
               },
               {
                 "path": "docs/development/js-compiler-bindings.md",
@@ -40715,7 +40715,7 @@
             "identity": [
               {
                 "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "import {runtimeField, runtimeIsOk, runtimeIsOkRequired, runtimeOptionalField, runtimeTag} from '../host-common/compiler-binding.generated.mjs';"
+                "anchor": "import {runtimeField, runtimeIsError, runtimeIsOk, runtimeIsOkRequired, runtimeOptionalField, runtimeTag} from '../host-common/compiler-binding.generated.mjs';"
               },
               {
                 "path": "docs/development/js-compiler-bindings.md",
@@ -40737,7 +40737,7 @@
             "ownership": [
               {
                 "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "import {runtimeField, runtimeIsOk, runtimeIsOkRequired, runtimeOptionalField, runtimeTag} from '../host-common/compiler-binding.generated.mjs';"
+                "anchor": "import {runtimeField, runtimeIsError, runtimeIsOk, runtimeIsOkRequired, runtimeOptionalField, runtimeTag} from '../host-common/compiler-binding.generated.mjs';"
               },
               {
                 "path": "docs/development/js-compiler-bindings.md",
@@ -40759,7 +40759,7 @@
             "synchronization": [
               {
                 "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "import {runtimeField, runtimeIsOk, runtimeIsOkRequired, runtimeOptionalField, runtimeTag} from '../host-common/compiler-binding.generated.mjs';"
+                "anchor": "import {runtimeField, runtimeIsError, runtimeIsOk, runtimeIsOkRequired, runtimeOptionalField, runtimeTag} from '../host-common/compiler-binding.generated.mjs';"
               },
               {
                 "path": "docs/development/js-compiler-bindings.md",
@@ -40781,7 +40781,7 @@
             "failure": [
               {
                 "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "import {runtimeField, runtimeIsOk, runtimeIsOkRequired, runtimeOptionalField, runtimeTag} from '../host-common/compiler-binding.generated.mjs';"
+                "anchor": "import {runtimeField, runtimeIsError, runtimeIsOk, runtimeIsOkRequired, runtimeOptionalField, runtimeTag} from '../host-common/compiler-binding.generated.mjs';"
               },
               {
                 "path": "docs/development/js-compiler-bindings.md",
@@ -40803,7 +40803,7 @@
             "cancellation": [
               {
                 "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "import {runtimeField, runtimeIsOk, runtimeIsOkRequired, runtimeOptionalField, runtimeTag} from '../host-common/compiler-binding.generated.mjs';"
+                "anchor": "import {runtimeField, runtimeIsError, runtimeIsOk, runtimeIsOkRequired, runtimeOptionalField, runtimeTag} from '../host-common/compiler-binding.generated.mjs';"
               },
               {
                 "path": "docs/development/js-compiler-bindings.md",
@@ -40821,7 +40821,7 @@
             "resources": [
               {
                 "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "import {runtimeField, runtimeIsOk, runtimeIsOkRequired, runtimeOptionalField, runtimeTag} from '../host-common/compiler-binding.generated.mjs';"
+                "anchor": "import {runtimeField, runtimeIsError, runtimeIsOk, runtimeIsOkRequired, runtimeOptionalField, runtimeTag} from '../host-common/compiler-binding.generated.mjs';"
               },
               {
                 "path": "docs/development/js-compiler-bindings.md",
@@ -40843,7 +40843,7 @@
             "extension": [
               {
                 "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "import {runtimeField, runtimeIsOk, runtimeIsOkRequired, runtimeOptionalField, runtimeTag} from '../host-common/compiler-binding.generated.mjs';"
+                "anchor": "import {runtimeField, runtimeIsError, runtimeIsOk, runtimeIsOkRequired, runtimeOptionalField, runtimeTag} from '../host-common/compiler-binding.generated.mjs';"
               },
               {
                 "path": "docs/development/js-compiler-bindings.md",
@@ -40865,7 +40865,7 @@
             "verification": [
               {
                 "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "import {runtimeField, runtimeIsOk, runtimeIsOkRequired, runtimeOptionalField, runtimeTag} from '../host-common/compiler-binding.generated.mjs';"
+                "anchor": "import {runtimeField, runtimeIsError, runtimeIsOk, runtimeIsOkRequired, runtimeOptionalField, runtimeTag} from '../host-common/compiler-binding.generated.mjs';"
               },
               {
                 "path": "docs/development/js-compiler-bindings.md",
@@ -45493,7 +45493,7 @@
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "run.preparedSequences ??= checked(moon.clientProgramPrepareInstalledManagedSourceFree("
+                "anchor": "run.preparedSequences = checked(result);"
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
@@ -45538,6 +45538,10 @@
               {
                 "path": "adapters/host-node/embedded-managed-compute-projection.test.mjs",
                 "anchor": "Failed construction cannot publish partial contract strings"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "if (runtimeIsError(result) && moon.clientProgramInstalledManagedRunIssueIsUnsupported("
               }
             ],
             "cancellation": [
@@ -45634,6 +45638,14 @@
               {
                 "path": "src/client_local_host/installed_managed_run_wbtest.mbt",
                 "anchor": "test \"managed Run usage projection returns independent exact Int64 snapshots\""
+              },
+              {
+                "path": "adapters/host-node/embedded-managed-compute-projection.test.mjs",
+                "anchor": "test('only the original pure preparation Unsupported is a typed refusal', () => {"
+              },
+              {
+                "path": "adapters/host-node/client-pre-admission-refusal.test.mjs",
+                "anchor": "capacity refusal retains its original submission through reopen"
               }
             ]
           }
@@ -47201,6 +47213,7 @@
         }
       ],
       "imports": [
+        "../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js",
         "../../_build/native/directory-darwin-arm64.node",
         "../../_build/native/directory-darwin-x64.node",
         "../../packages/client-wire/index.mjs",
@@ -47303,9 +47316,7 @@
         "node:url"
       ],
       "compilerFields": [],
-      "unresolvedSyntax": [
-        "runtime-dependent module dependency requires original owner/artifact mapping"
-      ],
+      "unresolvedSyntax": [],
       "referenceQualification": "Existing Host/Source/Resource and compiler-binding responsibilities only. Declaration coverage and explicit-port tests do not issue capacity, authority, cleanup ACK or installed acceptance."
     },
     {

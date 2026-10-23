@@ -280,12 +280,7 @@ export function installNodeClientSubmission({journal, moon, authorizedScope,
       // starts another preparation merely to wait for its response.
       return storedOutcome(journal.lookupSubmittedIntent(value.submissionRef, fields, moon));
     }
-    let preparedProgram;
-    try {
-      preparedProgram = await prepareOwned(value, requestId);
-      assertOriginalPreparation(preparedProgram, input, value);
-    }
-    catch (error) {
+    const retainPreparationRefusal = async error => {
       if (!isClientSubmitRejection(error?.code)) throw error;
       const kind = retained === undefined ? 'not_accepted' : 'preparation_failed';
       const current = await authorize(value);
@@ -307,14 +302,26 @@ export function installNodeClientSubmission({journal, moon, authorizedScope,
         : journal.completeSubmittedIntent(value.submissionRef, outcome,
           {...current, connection: value.connection, expectedRevision: retained.revision}, moon);
       return await discloseOutcome(value, storedOutcome(result), current, result);
+    };
+    let preparedProgram;
+    try {
+      preparedProgram = await prepareOwned(value, requestId);
+      assertOriginalPreparation(preparedProgram, input, value);
     }
+    catch (error) {return await retainPreparationRefusal(error);}
     const current = await authorize(value);
     // The actual selected Host validates its same finite business candidate
     // before this first durable business admission. This callback cannot
     // issue the service or replace authorization; unselected callers retain
     // their original path, and Promise/Bool is not synchronous acceptance.
-    if (admitPreparedSubmission !== undefined && admitPreparedSubmission(
-      own(value, {...value, requestId, preparedProgram})) !== undefined) fail('ClientPreparedSubmissionUnavailable');
+    try {
+      if (admitPreparedSubmission !== undefined && admitPreparedSubmission(
+        own(value, {...value, requestId, preparedProgram})) !== undefined) fail('ClientPreparedSubmissionUnavailable');
+    } catch (error) {
+      // Only the existing typed refusal set can certify this pre-admission
+      // failure. Arbitrary exceptions and durable journal uncertainty escape.
+      return await retainPreparationRefusal(error);
+    }
     retained = attempt === undefined
       ? journal.recordSubmittedIntent(value.submissionRef, input, restartFields(current), moon)
       : attempt.record(value.submissionRef, input, restartFields(current));

@@ -1,4 +1,4 @@
-import {runtimeField, runtimeIsOk, runtimeIsOkRequired, runtimeOptionalField, runtimeTag} from '../host-common/compiler-binding.generated.mjs';
+import {runtimeField, runtimeIsError, runtimeIsOk, runtimeIsOkRequired, runtimeOptionalField, runtimeTag} from '../host-common/compiler-binding.generated.mjs';
 // Private selected-namespace DATA reader. Exporting this pure operation does
 // not expose the startup issuer or authenticate a caller-created packet.
 export {snapshotInitialControlHostInput} from './initial-control-host-input.mjs';
@@ -443,14 +443,25 @@ export function readManagedComputeRunRequirements(originals, checkedPrepared) {
   if (run !== undefined) {
     if (run.runtime !== moon || run.prepared !== checkedPrepared || run.closed ||
         typeof moon.clientProgramPrepareInstalledManagedSourceFree !== 'function' ||
+        typeof moon.clientProgramInstalledManagedRunIssueIsUnsupported !== 'function' ||
         typeof moon.clientProgramPreparedInstalledManagedSourceFreeRequirements !== 'function') {
       throw clientOperationError('NodeManagedRunRuntimeUnavailable');
     }
     // The existing per-Host Run record retains this same immutable preparation
     // before limits projection or actual Resource admission can fail.
-    run.preparedSequences ??= checked(moon.clientProgramPrepareInstalledManagedSourceFree(
-      checkedPrepared, asset('spec/dependencies/aoa-pipeline-registry.json'),
-      contracts.values, contracts.expression, contracts.ordered));
+    if (run.preparedSequences === undefined) {
+      const result = moon.clientProgramPrepareInstalledManagedSourceFree(
+        checkedPrepared, asset('spec/dependencies/aoa-pipeline-registry.json'),
+        contracts.values, contracts.expression, contracts.ordered);
+      // This exact pure Core preparation precedes Resource and business Run
+      // admission. Only its typed Unsupported variant proves a refusal; no
+      // arbitrary Host exception or missing journal record does so.
+      if (runtimeIsError(result) && moon.clientProgramInstalledManagedRunIssueIsUnsupported(
+        runtimeField(result, 0))) {
+        throw clientOperationError('ClientProgramUnsupported', runtimeField(result, 0));
+      }
+      run.preparedSequences = checked(result);
+    }
     limits = moon.clientProgramPreparedInstalledManagedSourceFreeRequirements(run.preparedSequences);
   } else {
   limits = checked(moon.clientProgramInstalledManagedRunRequirements(
