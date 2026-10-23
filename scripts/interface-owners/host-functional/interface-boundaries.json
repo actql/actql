@@ -46516,7 +46516,7 @@
     },
     {
       "module": "adapters/host-node/installed-project-mock.mjs",
-      "sha256": "ba0fa201c8c61dc73da954a5a36f7972baf1870c49485131927bc7c666533652",
+      "sha256": "5ad1994e0048b12be343e7cf47d942b2b632859e5f499b5515dcd838ae3156b2",
       "exports": [
         "installPreparedProjectMockSources",
         "installedMockRequestRealization",
@@ -46974,7 +46974,7 @@
             "ownership": [
               {
                 "path": "adapters/host-node/installed-project-mock.mjs",
-                "anchor": "run.reads[index] = read;"
+                "anchor": "run.reads[slot] = read;"
               },
               {
                 "path": "adapters/host-node/installed-project-mock.mjs",

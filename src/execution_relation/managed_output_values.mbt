@@ -26,6 +26,7 @@ struct ManagedOutputValues {
   mut active_uses : Int
   mut disposal_requested : Bool
   mut disposal_complete : Bool
+  mut reclamation_steps : Int64
   mut issue : FixedInputGuardIssue?
 }
 
@@ -117,6 +118,7 @@ pub fn prepare_managed_output_values(
     active_uses: 0,
     disposal_requested: false,
     disposal_complete: false,
+    reclamation_steps: 0L,
     issue: None,
   })
 }
@@ -223,6 +225,7 @@ pub fn advance_managed_output_values_reclamation(
     } else {
       break
     }
+    value.reclamation_steps += 1L
   }
   if value.buffer.reclaiming ||
     value.row_measurements is Some(_) ||
@@ -241,6 +244,15 @@ pub fn advance_managed_output_values_reclamation(
   value.managed_producer = None
   value.disposal_complete = true
   true
+}
+
+///|
+/// Observe only entries retired by the original bounded reclamation cursor.
+/// A changed count permits another cleanup slice, never an assumption of stop.
+pub fn managed_output_values_reclamation_steps(
+  value : ManagedOutputValues,
+) -> Int64 {
+  value.reclamation_steps
 }
 
 ///|

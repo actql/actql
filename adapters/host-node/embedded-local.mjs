@@ -370,37 +370,29 @@ function readSourceManagedRunRequirementsOwned(originals, checkedPrepared, effec
   // rows; this is not a byte total sampled from the successful template.
   const documentBytes = 1048576n;
   const declarations = [], transferBytes = [], executionBytes = [];
-  if (projectSources === undefined) {
-    for (const source of bundle.sources) {
-      declarations.push(source.declaration); transferBytes.push(documentBytes); executionBytes.push(documentBytes);
-    }
-  } else {
-    const count = effectful ? moon.clientProgramEffectAcquisitionCount(checkedPrepared)
-      : moon.clientProgramAcquisitionCount(checkedPrepared);
-    if (!Number.isSafeInteger(count) || count < 1 || count > 32) {
-      throw clientOperationError('InstalledSourcePreparationMismatch');
-    }
-    const prepareRequirement = effectful ? moon.clientProgramEffectPrepareLocalQueryRequirement
-      : moon.clientProgramPrepareLocalQueryRequirement;
-    const registry = asset('spec/dependencies/aoa-pipeline-registry.json');
-    const values = contracts.values;
-    const fragment = contracts.expression;
-    const ordered = contracts.ordered;
-    for (let stage = 0; stage < count; stage++) {
-      // Common selects the actual occurrence's original requirement. A
-      // connection ordinal, duplicate declaration or matching CID alone is
-      // not the checked capture prefix. Repeated views retain separate slots.
-      const requirement = checked(Reflect.apply(prepareRequirement, moon,
-        [checkedPrepared, stage, 0, registry, values, fragment, ordered]));
-      const sourceRef = moon.clientProgramQueryRequirementSourceRef(requirement);
-      const matches = bundle.sources.filter(source =>
-        JSON.parse(source.wire).views.some(view => view.source_ref === sourceRef));
-      if (matches.length !== 1) throw clientOperationError('InstalledSourcePreparationMismatch');
-      const source = matches[0];
-      declarations.push(source.declaration);
-      transferBytes.push(BigInt(source.limits.maxPages) * BigInt(source.limits.maxPageBytes));
-      executionBytes.push(BigInt(source.limits.maxPageBytes));
-    }
+  const count = effectful ? moon.clientProgramEffectAcquisitionCount(checkedPrepared)
+    : moon.clientProgramAcquisitionCount(checkedPrepared);
+  if (!Number.isSafeInteger(count) || count < 1 || count > 32) {
+    throw clientOperationError('InstalledSourcePreparationMismatch');
+  }
+  const prepareRequirement = effectful ? moon.clientProgramEffectPrepareLocalQueryRequirement
+    : moon.clientProgramPrepareLocalQueryRequirement;
+  const registry = asset('spec/dependencies/aoa-pipeline-registry.json');
+  for (let stage = 0; stage < count; stage++) {
+    // Both Mock and configured Sources follow the checked capture inventory,
+    // not installation order. Repeated views retain separate occurrence slots.
+    const requirement = checked(Reflect.apply(prepareRequirement, moon,
+      [checkedPrepared, stage, 0, registry, contracts.values, contracts.expression, contracts.ordered]));
+    const sourceRef = moon.clientProgramQueryRequirementSourceRef(requirement);
+    const matches = bundle.sources.filter(source =>
+      JSON.parse(source.wire).views.some(view => view.source_ref === sourceRef));
+    if (matches.length !== 1) throw clientOperationError('InstalledSourcePreparationMismatch');
+    const source = matches[0];
+    declarations.push(source.declaration);
+    transferBytes.push(projectSources === undefined ? documentBytes
+      : BigInt(source.limits.maxPages) * BigInt(source.limits.maxPageBytes));
+    executionBytes.push(projectSources === undefined ? documentBytes
+      : BigInt(source.limits.maxPageBytes));
   }
   const limits = checked(Reflect.apply(requirements, moon, [
     checkedPrepared, declarations,
