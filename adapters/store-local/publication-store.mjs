@@ -3400,7 +3400,8 @@ async function openOriginalLocalPublicationStore(
       // Files retain their original representation. Select only the remaining
       // native keys together for quota preflight; mutation still owns its
       // actual selected-row conflict check and durable transaction.
-      const selected = new Map(deliveryIndex.publicationContracts(entries.map(entry => entry.semantic_cid))
+      const selected = new Map((entries.length === 0 ? [] :
+        deliveryIndex.publicationContracts(entries.map(entry => entry.semantic_cid)))
         .map(entry => [entry.semantic_cid, entry]));
       for (const entry of entries) {
         const existing = selected.get(entry.semantic_cid);

@@ -586,6 +586,16 @@ the existing same-database write/COMMIT. It never creates another attempt,
 refunds capacity, resends work or treats visible rows as a durability ACK.
 Unrelated metadata rows are not acquired by this selected-key lookup.
 
+Quota preflight uses the same bounded selected-key reader, rather than one
+native lookup per supplied body. Independently adopted file originals are
+verified first and keep their file representation and charge. Only the
+remaining native keys enter preflight, which retains bounded immutable row
+copies for this operation, reserves capacity only for missing bodies, and
+releases partial reservations on any refusal. The actual mutation still owns
+its selected-row conflict check, quota delta and durable transaction; a
+preflight observation cannot acknowledge a write or a lost COMMIT. Empty
+native selections perform no native read. No unrelated history is acquired.
+
 ### Connection-owned publication statements
 
 Opening still admits the exact publication body, attempt and progress table
