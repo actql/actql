@@ -65,7 +65,8 @@ fn Parser::parse_escape_scalar(
 /// Escapes are finite leaves; long decoded Text yields after 64 scalars.
 priv struct JsonString {
   start : Point
-  output : StringBuilder
+  content_start : Int
+  mut output : StringBuilder?
   key : Bool
 }
 
@@ -80,7 +81,25 @@ fn Parser::start_string(
     self.fail(InvalidString, path)
   }
   ignore(self.advance_scalar(path))
-  { start, output: StringBuilder(), key, }
+  { start, content_start: self.offset, output: None, key, }
+}
+
+///|
+// Before the first yield, the raw prefix contains at most 64 scalars. A
+// builder is needed only for escapes or a continuation beyond that quantum.
+fn JsonString::materialize_output(
+  cursor : JsonString,
+  parser : Parser,
+) -> StringBuilder {
+  match cursor.output {
+    Some(output) => output
+    None => {
+      let output = StringBuilder()
+      output.write_view(parser.source[cursor.content_start:parser.offset])
+      cursor.output = Some(output)
+      output
+    }
+  }
 }
 
 ///|
@@ -89,15 +108,44 @@ fn JsonString::advance(
   self : Parser,
   path : Array[PathSegment],
 ) -> (String, Span)? raise ParseAbort {
-  let output = cursor.output
-  for _ in 0..<64 {
+  let source = self.source
+  let length = source.length()
+  let mut used = 0
+  while used < 64 {
+    // Copy an unescaped ASCII span within the same scalar quantum. These
+    // units have byte/column width one and cannot change the source line.
+    let start = self.offset
+    let mut end = start
+    while end < length && end - start < 64 - used {
+      let unit = source[end].to_int()
+      if unit < 0x20 || unit >= 0x80 || unit == 0x22 || unit == 0x5C {
+        break
+      }
+      end += 1
+    }
+    if end > start {
+      let count = end - start
+      if cursor.output is Some(output) {
+        output.write_view(source[start:end])
+      }
+      self.offset = end
+      self.byte_offset += count
+      self.column += count
+      used += count
+      continue
+    }
+    used += 1
     let unit = match self.peek() {
       Some(value) => value
       None => self.fail(UnexpectedEnd, path)
     }
     if unit == 0x22 {
+      let end = self.offset
       ignore(self.advance_scalar(path))
-      let text = output.to_string()
+      let text = match cursor.output {
+        Some(output) => output.to_string()
+        None => source.unsafe_substring(start=cursor.content_start, end~)
+      }
       let decoded = if cursor.key && self.normalize_key() {
         match @canonical.normalize_nfc_lf(text) {
           Ok(value) => value
@@ -112,9 +160,13 @@ fn JsonString::advance(
       self.fail(InvalidString, path)
     }
     if unit != 0x5C {
-      output.write_char(self.advance_scalar(path).unsafe_to_char())
+      let scalar = self.advance_scalar(path)
+      if cursor.output is Some(output) {
+        output.write_char(scalar.unsafe_to_char())
+      }
       continue
     }
+    let output = cursor.materialize_output(self)
     ignore(self.advance_scalar(path))
     let escaped = match self.peek() {
       Some(value) => value
@@ -135,6 +187,7 @@ fn JsonString::advance(
       _ => raise self.failure_at(InvalidEscape, path, escape_start)
     }
   }
+  ignore(cursor.materialize_output(self))
   None
 }
 

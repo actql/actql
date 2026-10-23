@@ -389,12 +389,11 @@ fn ascii_span(
   w.remaining_bytes -= size
   match w.output {
     MeasureOutput => ()
-    TextOutput(output) =>
-      output.write_string(text.unsafe_substring(start~, end~))
+    TextOutput(output) => output.write_view(text[start:end])
     HashOutput(hash) => hash_ascii_range(w, hash, text, start, end)
     BufferedHashOutput(buffer) => {
       hash_ascii_range(w, buffer.hash, text, start, end)
-      buffer.text.write_string(text.unsafe_substring(start~, end~))
+      buffer.text.write_view(text[start:end])
     }
   }
 }

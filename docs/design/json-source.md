@@ -74,6 +74,21 @@ Parsing uses explicit frames, not recursion. Active paths use a segment stack,
 copied only on failure. Limits bound input and tree work; they are not exact heap
 or CPU quotas. Returned trees can subsequently be edited beyond those limits.
 
+The resumable reader retains the same parser and any materialized string builder
+across polls. A short unescaped string that completes in its first transition
+copies its original validated range directly, without a builder. An escape
+materializes the preceding raw prefix; before the first yield, the same cursor
+materializes any remaining prefix so later polls use the original builder.
+That initial copy is bounded by 64 scalars, at most 128 UTF-16 units. It does not
+turn a later escape into an unbounded prefix copy or defer validation.
+A string transition consumes at most 64 decoded scalars. Within that allowance,
+unescaped ASCII is appended as a bounded view of the original immutable text;
+byte and column positions advance by the same span length. Quotes, backslashes,
+control characters and non-ASCII stop the span and use the existing grammar
+path. Escape spelling still contributes its original source width, and a poll
+boundary neither renews input limits nor exposes a partial string. Cancellation
+releases the partial builder through the existing parser lifetime.
+
 ## Positions and ownership
 
 `source_span.Span` records original UTF-8 byte ranges, zero-based and end-exclusive.

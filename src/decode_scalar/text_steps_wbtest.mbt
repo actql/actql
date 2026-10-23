@@ -56,3 +56,31 @@ test "resumed UTF-8 cancellation drops only its borrowed Text" {
   assert_true(cursor.advance() is Utf8AdmissionTerminal)
   assert_eq(text.length(), 129)
 }
+
+///|
+test "resumed UTF-8 ASCII preserves scalar quantum and mixed error precedence" {
+  for prefix in [63, 64, 65] {
+    let text = String::make(prefix, 'a') + "😀z"
+    let bytes = prefix.to_int64() + 5L
+    let cursor = start_utf8_admission(text, bytes).unwrap()
+    assert_true(cursor.advance() is Utf8AdmissionContinue)
+    assert_eq(cursor.offset, if prefix == 63 { 65 } else { 64 })
+    assert_eq(cursor.bytes, if prefix == 63 { 67L } else { 64L })
+    assert_eq(finish_text(cursor), Ok(bytes))
+    let malformed = String::make(prefix, 'a') +
+      String::from_array([(0xd800).unsafe_to_char()])
+    for limit in [prefix.to_int64(), prefix.to_int64() + 1L, 1000L] {
+      let actual = match start_utf8_admission(malformed, limit) {
+        Err(issue) => Err(issue)
+        Ok(value) => finish_text(value)
+      }
+      assert_eq(actual, admit_utf8_length64(malformed, limit))
+    }
+  }
+  let overflow = start_utf8_admission("éa", 2L).unwrap()
+  assert_true(overflow.advance() is Utf8AdmissionFailed(LimitExceeded))
+  assert_eq(overflow.offset, 1)
+  assert_eq(overflow.bytes, 2L)
+  assert_true(overflow.text is None)
+  assert_true(overflow.advance() is Utf8AdmissionTerminal)
+}

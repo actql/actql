@@ -77,6 +77,12 @@ The Int64 API does not narrow large allowances. Internal Int accounting windows
 only batch the balance updates; their boundaries do not change error precedence.
 `unicode_scalar_count` validates and counts the whole string without normalization.
 
+Resumable UTF-8 admission borrows the immutable text and advances at most 64
+scalars per call. ASCII consumes one byte directly in that same loop, without
+constructing a per-scalar extent tuple or `Result`. Non-ASCII retains the shared
+scalar validator. The original limit, first-error offset, cancellation and
+terminal behavior remain unchanged; a quantum boundary does not renew allowance.
+
 For the language's [string constraints](../spec/language.md#value-contracts),
 callers must first obtain the canonical string using `normalize_nfc_lf`, then
 apply scalar-count or UTF-8-byte limits to that result. For example, U+0344 has

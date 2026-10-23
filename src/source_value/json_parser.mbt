@@ -86,8 +86,12 @@ fn JsonDocument::step(document : JsonDocument) -> Node? raise ParseAbort {
     }
     return None
   }
+  // Every branch below that advances the input returns from this transition.
+  // Attaching a completed child changes only the tree, so its lookahead stays
+  // the same. Whitespace consumes its own bounded sequence before returning.
+  let lookahead = self.peek()
   // Preserve whitespace grammar without draining a large gap in one poll.
-  if self.peek() is Some(unit) &&
+  if lookahead is Some(unit) &&
     (unit == 0x20 || unit == 0x09 || unit == 0x0a || unit == 0x0d) {
     for _ in 0..<64 {
       if self.peek() is Some(unit) &&
@@ -100,7 +104,7 @@ fn JsonDocument::step(document : JsonDocument) -> Node? raise ParseAbort {
     return None
   }
   if frames.length() > 0 && frames[frames.length() - 1].phase == BeforeColon {
-    if self.peek() != Some(0x3a) {
+    if lookahead != Some(0x3a) {
       self.fail(ExpectedColon, self.path)
     }
     ignore(self.advance_scalar(self.path))
@@ -115,13 +119,13 @@ fn JsonDocument::step(document : JsonDocument) -> Node? raise ParseAbort {
     self.nodes += 1
     let start = self.point()
     document.need_value = false
-    match self.peek() {
+    match lookahead {
       Some(0x5b) | Some(0x7b) => {
         if frames.length() >= self.limits.max_depth {
           self.fail(DepthLimit, self.path)
         }
         self.deepest = Int::max(self.deepest, frames.length() + 1)
-        let container = if self.peek() == Some(0x5b) {
+        let container = if lookahead == Some(0x5b) {
           ArrayItems([])
         } else {
           ObjectFields([], @shape.key_admission())
@@ -165,7 +169,7 @@ fn JsonDocument::step(document : JsonDocument) -> Node? raise ParseAbort {
   }
   if document.completed is Some(node) {
     if frames.is_empty() {
-      if self.peek() != None {
+      if lookahead != None {
         self.fail(TrailingContent, self.path)
       }
       return Some(node)
@@ -192,7 +196,7 @@ fn JsonDocument::step(document : JsonDocument) -> Node? raise ParseAbort {
     ObjectFields(_, _) => 0x7d
   }
   if (frame.phase == First || frame.phase == AfterValue) &&
-    self.peek() == Some(closing) {
+    lookahead == Some(closing) {
     ignore(self.advance_scalar(self.path))
     ignore(frames.pop())
     let value = match frame.container {
@@ -203,7 +207,7 @@ fn JsonDocument::step(document : JsonDocument) -> Node? raise ParseAbort {
     return None
   }
   if frame.phase == AfterValue {
-    if self.peek() != Some(0x2c) {
+    if lookahead != Some(0x2c) {
       let issue = match frame.container {
         ArrayItems(_) => ExpectedArraySeparator
         ObjectFields(_, _) => ExpectedObjectSeparator
