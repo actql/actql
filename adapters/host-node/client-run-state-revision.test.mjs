@@ -56,6 +56,60 @@ const publish = (journal, ref, at) => {
   return JSON.parse(journal.publishRunState(original, state(original, at), moon, control));
 };
 
+test('accepted original Run definition is returned without a second raw admission', async t => {
+  const path = await mkdtemp(join(tmpdir(), 'actql-a-accepted-definition-'));
+  t.after(() => rm(path, {recursive: true, force: true}));
+  const journal = openClientRequestJournal(path);
+  t.after(() => journal.close());
+  const identity = moon.clientRequestAdmitRecord(cid('a'), 'saved-request',
+    'sha256:f3514c8f22c6d72818a167ca3341b3c945397042351c51a5982d7abc881a298c',
+    'sha256:c183484727a250f184812053fce437f9b9c90ca889a7a7505a9f9791d84a7b52',
+    cid('b'), 'sha256:2e497e1244d7db59831b0ab81ae7dc89333babea783a102a747a55f3e7890dd3',
+    'sha256:d526e372e357f6bbd1d804e385fc8d88fad9e538ec5a70058f1205af9a0a7d9d');
+  const options = {namespaceId: 'namespace-a', runDefinition: definition(),
+    lookupExpiresAt: '2099-01-01T00:00:00.000Z'};
+  const admitted = [];
+  const counted = Object.freeze({...control, admit(...args) {
+    assert.equal(args[0], 'run_definition');
+    const original = control.admit(...args);
+    admitted.push(original);
+    return original;
+  }});
+  const accepted = journal.acceptDefinition(identity, options, moon, counted);
+  assert.equal(admitted.length, 1, 'The matching accepted bytes already have their original admitted definition');
+  assert.strictEqual(accepted.runDefinition, admitted[0]);
+  assert.equal(accepted.inserted, true);
+
+  const same = journal.acceptDefinition(identity, options, moon, counted);
+  assert.equal(admitted.length, 2, 'A new acceptance observation admits its own input once');
+  assert.strictEqual(same.runDefinition, admitted[1]);
+  assert.equal(same.inserted, false);
+  assert.deepEqual(same.ref, accepted.ref);
+
+  const copied = journal.acceptDefinition(identity,
+    {...options, runDefinition: {...options.runDefinition}}, moon, counted);
+  assert.equal(admitted.length, 3, 'A copied DATA input still follows full admission');
+  assert.strictEqual(copied.runDefinition, admitted[2]);
+
+  const winner = journal.acceptDefinition(identity,
+    {...options, runDefinition: definition('different-proposed-run')}, moon, counted);
+  assert.equal(admitted.length, 5, 'Distinct proposed and saved definitions each require admission');
+  assert.deepEqual(winner.ref, accepted.ref);
+  assert.equal(winner.runDefinition.identity, accepted.runDefinition.identity);
+  assert.strictEqual(winner.runDefinition, admitted[4]);
+
+  const writer = new DatabaseSync(join(path, 'client-requests.sqlite3'));
+  t.after(() => writer.close());
+  writer.prepare('UPDATE client_requests SET run_definition_wire = ?').run('{}');
+  assert.throws(() => journal.acceptDefinition(identity, options, moon, counted),
+    {code: 'ClientRequestJournalCorrupt'}, 'Matching saved CID cannot hide changed physical wire');
+  journal.close();
+  const beforeClosed = admitted.length;
+  assert.throws(() => journal.acceptDefinition(identity, options, moon, counted),
+    {code: 'ClientRequestJournalClosed'});
+  assert.equal(admitted.length, beforeClosed, 'A closed Journal does no raw admission work');
+});
+
 test('Effect cancellation callers share one actual Journal admission for unchanged rows', async t => {
   let selectedReads = 0, admissions = 0;
   const prepare = DatabaseSync.prototype.prepare;
