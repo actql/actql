@@ -877,6 +877,7 @@ fn validate_nested_identities(
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  known_artifacts? : Array[PublicationContract] = [],
 ) -> Result[Unit, PublicationContractIssue] {
   if spec.name != "result_manifest" {
     return Ok(())
@@ -889,6 +890,17 @@ fn validate_nested_identities(
   }
   let artifact_spec = contract_spec("result_artifact").unwrap()
   for (_, artifact) in results {
+    // Only an issuer in this package can supply its exact immutable child.
+    // External Manifest text has no such original and keeps full admission.
+    if known_artifacts.any(original => {
+        original.name == "result_artifact" &&
+        physical_equal(original.value, artifact) &&
+        publication_contract_check_limits(
+          original, max_wire_bytes, max_nodes, max_depth,
+        ) is Ok(_)
+      }) {
+      continue
+    }
     match
       validate_identity(
         artifact_spec, artifact, max_wire_bytes, max_nodes, max_depth,
@@ -1138,6 +1150,20 @@ pub fn seal_publication_contract(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
+  seal_publication_material(spec, body, max_wire_bytes, max_nodes, max_depth, [])
+}
+
+///|
+/// Same-owner canonical material. Text callers still parse and admit their
+/// original wire before entering this unchanged sealing sequence.
+fn seal_publication_material(
+  spec : ContractSpec,
+  body : @json.CanonicalValue,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  known_artifacts : Array[PublicationContract],
+) -> Result[PublicationContract, PublicationContractIssue] {
   match
     validate_bounded_contract(
       spec,
@@ -1168,6 +1194,7 @@ pub fn seal_publication_contract(
   match
     validate_nested_identities(
       spec, complete, max_wire_bytes, max_nodes, max_depth,
+      known_artifacts~,
     ) {
     Ok(_) => ()
     Err(issue) => return Err(issue)
@@ -1180,7 +1207,7 @@ pub fn seal_publication_contract(
     _ => return Err(Encoding)
   }
   Ok({
-    name,
+    name: spec.name,
     identity_field: spec.identity,
     identity,
     wire,

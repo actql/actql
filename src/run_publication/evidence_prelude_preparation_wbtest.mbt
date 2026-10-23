@@ -211,7 +211,15 @@ fn root_test_finish(
 test "publication root traverses long names and exact Artifact wires without inventory copies" {
   let prefix = "é".repeat(257) + "😀"
   let fixture = commit_cursor_fixture([prefix + "a", prefix + "b"])
-  let inputs = root_test_inputs(fixture)
+  let issued = root_test_inputs(fixture)
+  // This existing stream/workspace/cancellation regression exercises an
+  // independently admitted Manifest, not the issuer's same-child reuse.
+  let inputs = {
+    ..issued,
+    manifest: admit_publication_contract(
+      "result_manifest", issued.manifest.wire, 65536, 4096, 32,
+    ).unwrap(),
+  }
   let original = inputs.manifest.wire
   // Two twelve-field Artifacts each have 47 emitter transitions and 46
   // nonempty fragment comparisons: Begin + 47 + 46 + Done = 95. The root's
