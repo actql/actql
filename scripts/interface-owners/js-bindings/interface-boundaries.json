@@ -37940,7 +37940,7 @@
     {
       "module": "adapters/host-node/embedded-local.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "97f5cc10f80d16e005e15dc26f7072150c8138cac86428408d07c30da3ce6b72",
+      "sha256": "2777f120cc82fcc24aa44386d3131de614ec4388873a03fd6e79903b8e0bf941",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -39317,7 +39317,8 @@
             "resume",
             "activeResume",
             "journalPort",
-            "allowDefer"
+            "allowDefer",
+            "observeCancellation"
           ],
           "async": true
         },
@@ -42673,6 +42674,10 @@
               {
                 "path": "docs/design/interactive-run-control.md",
                 "anchor": "A Local status observation retains its journal's nominal admitted Run frame"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "One original Effect computation retains one existing Journal cancellation"
               }
             ],
             "inputsOutputs": [
@@ -42793,6 +42798,10 @@
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
                 "anchor": "original.row.run_definition_cid!==selected?.runDefinitionCid)"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const observeCancellation = journal.observeRunCancellation(facts.ref, moon, control);"
               }
             ],
             "ownership": [
@@ -43259,6 +43268,18 @@
               {
                 "path": "adapters/host-node/embedded-local-operation-observation.test.mjs",
                 "anchor": "initial Effect observation retains settlement after early acceptance"
+              },
+              {
+                "path": "adapters/host-node/embedded-local-operation-observation.test.mjs",
+                "anchor": "Effect cancellation probes share one original observer through target and Source work"
+              },
+              {
+                "path": "adapters/host-node/embedded-local-operation-observation.test.mjs",
+                "anchor": "Effect cancellation probes retain changed missing and failed current observations"
+              },
+              {
+                "path": "adapters/host-node/embedded-local-operation-observation.test.mjs",
+                "anchor": "Effect cancellation probes retain pending child lifetime and independent target observers"
               }
             ]
           }
