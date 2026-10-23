@@ -8250,7 +8250,7 @@
     {
       "module": "adapters/host-common/run-publication.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "0ea8707e7b64dd1ee34484140d8d223b6114b3f9a6419dcfffe3cbe9747e5e36",
+      "sha256": "ea495df9b1a659668dfc3b30a36e2f396b8781f1a35569b02deffe4aba840b68",
       "role": "physical-io",
       "owner": "Existing Run Publication/Artifact Owners and physical Store sequencing",
       "exports": [
@@ -8401,6 +8401,14 @@
             "limits"
           ],
           "async": false
+        },
+        {
+          "name": "lookupOriginalCommit",
+          "parameters": [
+            "primary",
+            "lookup"
+          ],
+          "async": true
         },
         {
           "name": "member/member",
@@ -8683,6 +8691,7 @@
             "finishSupersededAttempt",
             "indexKey",
             "initialPublicationStates",
+            "lookupOriginalCommit",
             "member/member",
             "persistContracts",
             "persistContracts/persistContracts",
@@ -8768,6 +8777,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "After a new Store commit acknowledges the exact issued Index identity, the"
+              },
+              {
+                "path": "docs/design/result-description.md",
+                "anchor": "An unknown Index installation can retain the same native storage writer before"
               }
             ],
             "inputsOutputs": [
@@ -8824,6 +8837,10 @@
               {
                 "path": "docs/design/result-description.md",
                 "anchor": "bodies, complete quota change and attempt locator in the same transaction."
+              },
+              {
+                "path": "adapters/host-common/run-publication.mjs",
+                "anchor": "async function lookupOriginalCommit(primary, lookup) {"
               }
             ],
             "ownership": [
@@ -9094,6 +9111,18 @@
               {
                 "path": "adapters/host-common/publication-yield.test.mjs",
                 "anchor": "publication caller still reads an idempotent or different committed Index"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "original Host commit lookup confirms its same native Index writer before reconciliation"
+              },
+              {
+                "path": "adapters/host-common/publication-yield.test.mjs",
+                "anchor": "publication original commit lookup keeps unresolved storage failure and actual lookup errors"
+              },
+              {
+                "path": "adapters/host-common/publication-yield.test.mjs",
+                "anchor": "publication original commit caller confirms once before real reconciliation and validation"
               }
             ]
           }
