@@ -460,6 +460,14 @@ separate; it is not a per-history acknowledgement or a minimum barrier allowance
 This localization does not remove payload quota or other recovery history work.
 ### Trusted clock write observation
 
+Ordinary opening admits clock entry names and reclaims interrupted legacy
+staging files with their real directory acknowledgement, but does not stat
+each stored clock file. The selected clock reader still opens the exact
+original with its existing file/type, extent, content/checksum and floor
+checks before sampling or accepting an observation. An unavailable selected
+floor is not fresh initialization. Name enumeration for legacy staging remains
+bounded opening work; this is not a history-independent clock directory.
+
 A warm fixed-length clock update consumes its already typed observation after
 the same original file completes write, sync and close. Post-sync FD state and
 post-close path state must agree in device, inode, size, modification and change
@@ -586,6 +594,29 @@ the existing same-database write/COMMIT. It never creates another attempt,
 refunds capacity, resends work or treats visible rows as a durability ACK.
 Unrelated metadata rows are not acquired by this selected-key lookup.
 
+Quota preflight uses the same bounded selected-key reader, rather than one
+native lookup per supplied body. Independently adopted file originals are
+verified first and keep their file representation and charge. Only the
+remaining native keys enter preflight, which retains bounded immutable row
+copies for this operation, reserves capacity only for missing bodies, and
+releases partial reservations on any refusal. The actual mutation still owns
+its selected-row conflict check, quota delta and durable transaction; a
+preflight observation cannot acknowledge a write or a lost COMMIT. Empty
+native selections perform no native read. No unrelated history is acquired.
+
+### Connection-owned publication statements
+
+Opening still admits the exact publication body, attempt and progress table
+definitions before exposing the connection. Their fixed read/write statements
+are acquired only when that connection first uses each statement; unused
+publication paths do not allocate native statements during opening. A selected
+statement is retained only by that connection and reused with new bound values,
+never with cached rows, permission or transaction outcomes. Failed acquisition
+does not install a statement and follows the existing transaction rollback or
+Unknown protocol. Only actual native close retires the retained statement
+references; a new connection starts with empty holders. Schema-loss refusal,
+selected row validation and every actual mutation/COMMIT remain unchanged.
+
 ## Joint delivery completion
 
 After the sink finishes and the existing receipt authorization succeeds, the
@@ -643,6 +674,18 @@ lookup validates the selected original attempt, its referenced grant and the
 index correspondence; unrelated history is neither read nor re-admitted.
 
 A durable building/ready marker distinguishes migration from ready coverage.
+Only successful first Store-format creation, including its real root directory
+acknowledgement, selects initially empty coverage. The original native schema
+transaction creates complete empty delivery, physical-quota, publication-recovery
+and metadata-retirement coverage together. It retains WAL/FULL/fullfsync and
+the separate building/ready marker acknowledgements. A prepared owner supplies
+its same held exclusion; it does not turn a cold owner-only directory into a
+fresh format. Existing or interrupted Store formats keep their bounded migration
+protocol, and an empty-initialization request cannot replace an existing native
+schema. A failed initial COMMIT remains Unknown whether its complete transition
+was committed or rolled back; later format completion does not rewrite that
+original failure or replay any Run.
+
 The bounded legacy migration reads each original attempt and referenced grant,
 refuses ambiguous keys or excess uses, and commits complete coverage once.
 Its attempt and grant readers explicitly acquire their original legacy files;

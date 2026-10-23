@@ -5,9 +5,134 @@ import {mkdtemp} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {DatabaseSync} from 'node:sqlite';
+import fs from 'node:fs';
+import {syncBuiltinESMExports} from 'node:module';
 import {prepareHostJournalInstallation} from './node-host-journal-installation.mjs';
 import {openClientRequestJournal, observeOriginalClientRequestJournalCustody} from './client-request-journal.mjs';
 import {createHostObservationConnection, installHostObservation} from '../host-common/observation.mjs';
+
+function initializationSyncs(directory, action, beforeDirectorySync = () => {}) {
+  const original = {openSync: fs.openSync, closeSync: fs.closeSync, fsyncSync: fs.fsyncSync};
+  const paths = new Map(), files = [], directories = [];
+  fs.openSync = function(path, ...args) {
+    const fd = Reflect.apply(original.openSync, this, [path, ...args]);
+    paths.set(fd, path); return fd;
+  };
+  fs.closeSync = function(fd) {
+    const result = Reflect.apply(original.closeSync, this, [fd]);
+    paths.delete(fd); return result;
+  };
+  fs.fsyncSync = function(fd) {
+    const stat = fs.fstatSync(fd), root = fs.statSync(directory);
+    const isRoot = stat.isDirectory() && stat.dev === root.dev && stat.ino === root.ino;
+    if (isRoot) beforeDirectorySync({files: [...files], directories: [...directories]});
+    const result = Reflect.apply(original.fsyncSync, this, [fd]);
+    if (isRoot) directories.push({files: [...files]});
+    else if (typeof paths.get(fd) === 'string' && paths.get(fd).endsWith('-format.json')) files.push(paths.get(fd));
+    return result;
+  };
+  syncBuiltinESMExports();
+  try {return {result: action(), files, directories};}
+  finally {Object.assign(fs, original); syncBuiltinESMExports();}
+}
+
+test('fresh Journal initialization shares one actual directory ACK after every original marker file ACK', async t => {
+  const directory = await mkdtemp(join(tmpdir(), 'actql-journal-initial-sync-'));
+  let journal;
+  t.after(() => journal?.close());
+  const observed = initializationSyncs(directory, () => journal = openClientRequestJournal(directory));
+  assert.equal(observed.files.length, 8, 'all original marker files retain their real file fsync');
+  assert.equal(new Set(observed.files).size, 8);
+  assert.equal(observed.directories.length, 1, 'one real final directory ACK covers the fresh initialization');
+  assert.deepEqual(observed.directories[0].files, observed.files, 'all marker ACKs precede the directory ACK');
+  journal.close();
+  const db = new DatabaseSync(join(directory, 'client-requests.sqlite3'), {readOnly: true});
+  let authority;
+  try {authority = db.prepare('SELECT * FROM client_submission_epoch_authority').get();}
+  finally {db.close();}
+  const reopened = initializationSyncs(directory, () => journal = openClientRequestJournal(directory));
+  assert.equal(reopened.files.length, 0);
+  assert.equal(reopened.directories.length, 0, 'unchanged reopen does not repeat initialization ACKs');
+  journal.close();
+  const after = new DatabaseSync(join(directory, 'client-requests.sqlite3'), {readOnly: true});
+  try {assert.deepEqual(after.prepare('SELECT * FROM client_submission_epoch_authority').get(), authority);}
+  finally {after.close();}
+});
+
+test('existing legacy Journal upgrades keep each original marker directory ACK', async t => {
+  const directory = await mkdtemp(join(tmpdir(), 'actql-journal-upgrade-sync-'));
+  const exec = DatabaseSync.prototype.exec, boundary = new Error('legacy schema fixture boundary');
+  let legacyDatabase, journal;
+  DatabaseSync.prototype.exec = function(sql) {
+    const result = Reflect.apply(exec, this, [sql]);
+    if (/CREATE TABLE IF NOT EXISTS client_requests/u.test(sql)) {legacyDatabase = this; throw boundary;}
+    return result;
+  };
+  try {assert.throws(() => openClientRequestJournal(directory), error => error === boundary);}
+  finally {DatabaseSync.prototype.exec = exec;}
+  assert.equal(legacyDatabase.isOpen, false);
+  // A complete base-format fixture, before any submission authority or
+  // additive feature ever existed; not a relabelled adopted Journal.
+  fs.writeFileSync(join(directory, 'journal-format.json'), JSON.stringify({
+    version: 'actql-client-request-journal/0.1', isolation: 'execution-namespace',
+  }), {mode: 0o600});
+  t.after(() => journal?.close());
+  const observed = initializationSyncs(directory, () => journal = openClientRequestJournal(directory));
+  assert.equal(observed.files.length, 7);
+  assert.equal(observed.directories.length, 7);
+  assert.deepEqual(observed.directories.map(value => value.files.length), [1, 2, 3, 4, 5, 6, 7]);
+});
+
+for (const failClose of [false, true]) {
+test(`failed fresh Journal directory ACK keeps original initialization cleanup with close ${failClose ? 'pending' : 'complete'}`, async t => {
+  const directory = await mkdtemp(join(tmpdir(), 'actql-journal-failed-sync-'));
+  const originalOpen = DatabaseSync.prototype.open, originalClose = DatabaseSync.prototype.close;
+  const primary = Object.assign(new Error('initial directory ACK failed'), {code: 'EIO'});
+  const cleanup = new Error('original initialization close pending');
+  let database, journal, failure, closes = 0, attempted = 0, authority;
+  DatabaseSync.prototype.open = function() {
+    const result = Reflect.apply(originalOpen, this, []); database = this; return result;
+  };
+  DatabaseSync.prototype.close = function() {
+    if (this === database && ++closes === 1 && failClose) throw cleanup;
+    return Reflect.apply(originalClose, this, []);
+  };
+  try {
+    assert.throws(() => initializationSyncs(directory,
+      () => journal = openClientRequestJournal(directory), ({files}) => {
+        attempted++;
+        assert.equal(files.length, 8, 'failure is at the final directory ACK, after actual file ACKs');
+        authority = database.prepare('SELECT * FROM client_submission_epoch_authority').get();
+        assert.equal(database.prepare('SELECT count(*) AS n FROM client_requests').get().n, 0);
+        throw primary;
+      }), error => {
+      failure = error;
+      if (!failClose) return error === primary;
+      return error.primaryFailure === primary && error.cleanupHandle.status().pending === true;
+    });
+    assert.equal(journal, undefined, 'no Journal is published without its directory ACK');
+    assert.equal(attempted, 1);
+    assert.equal(closes, 1);
+    assert.equal(database.isOpen, failClose);
+    if (failClose) {
+      assert.equal(failure.cleanupHandle.retry().pending, false);
+      assert.equal(failure.cleanupHandle.retry().pending, false);
+      assert.equal(closes, 2, 'same native connection closes exactly once successfully');
+    }
+    assert.equal(database.isOpen, false);
+  } finally {
+    DatabaseSync.prototype.open = originalOpen; DatabaseSync.prototype.close = originalClose;
+    if (database?.isOpen) Reflect.apply(originalClose, database, []);
+  }
+  journal = openClientRequestJournal(directory);
+  t.after(() => journal.close());
+  const observer = new DatabaseSync(join(directory, 'client-requests.sqlite3'), {readOnly: true});
+  try {
+    assert.deepEqual(observer.prepare('SELECT * FROM client_submission_epoch_authority').get(), authority);
+    assert.equal(observer.prepare('SELECT count(*) AS n FROM client_requests').get().n, 0);
+  } finally {observer.close();}
+});
+}
 
 async function selectedRowsFixture(t, openJournal = openClientRequestJournal) {
   const directory = await mkdtemp(join(tmpdir(), 'actql-journal-selected-rows-'));

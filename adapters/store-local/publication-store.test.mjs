@@ -28,7 +28,9 @@ import {DatabaseSync} from 'node:sqlite';
 import {openDeliveryAttemptIndex} from './delivery-attempt-index.mjs';
 import {canonicalCid, createPublicationContractControlFixture} from
   '../host-common/publication-contract-control.fixture.mjs';
-import {openLocalPublicationStore as openActualLocalPublicationStore} from './publication-store.mjs';
+import {openLocalPublicationStore as openActualLocalPublicationStore,
+  prepareLocalPublicationStoreOwnership, closePreparedLocalPublicationStoreOwnership}
+  from './publication-store.mjs';
 import {preparePrivatePublicationHolding} from
   '../host-common/private-publication-holding.mjs';
 import {definition as captureCustodyRunFixture} from
@@ -156,6 +158,113 @@ async function fixture(t, options = {}, control = contractControl) {
     configuration,
     store,
   };
+}
+
+test('fresh Store coverage shares its original native schema commit', async t => {
+  const exec = DatabaseSync.prototype.exec;
+  let commits = 0;
+  t.mock.method(DatabaseSync.prototype, 'exec', function(sql) {
+    const result = Reflect.apply(exec, this, [sql]);
+    if (sql === 'COMMIT') commits++;
+    return result;
+  });
+  const {directory, configuration, store} = await fixture(t);
+  assert.equal(commits, 1, 'empty coverage belongs to the actual schema creation transaction');
+  const database = new DatabaseSync(join(directory, 'delivery-attempts.sqlite3'), {readOnly: true});
+  try {
+    for (const table of ['coverage', 'physical_object_usage', 'publication_recovery',
+      'metadata_deletion_fence_coverage']) {
+      assert.equal(database.prepare(`SELECT complete FROM ${table} WHERE id=1`).get().complete, 1);
+    }
+    assert.equal(database.prepare('SELECT dirty FROM result_deletion_recovery WHERE id=1').get().dirty, 0);
+  } finally { database.close(); }
+  assert.deepEqual(JSON.parse(await readFile(join(directory, 'delivery-attempts-index.json'), 'utf8')),
+    {version: 1, phase: 'ready'});
+  await store.close();
+  commits = 0;
+  const reopened = await openLocalPublicationStore(configuration, contractControl);
+  assert.equal(commits, 0, 'unchanged reopening neither recreates coverage nor commits a migration');
+  await reopened.close();
+});
+
+test('fresh Store coverage uses the same actual prepared owner creation', async t => {
+  const directory = await mkdtemp(join(tmpdir(), 'actql-prepared-empty-store-'));
+  let store, original;
+  t.after(async () => {
+    if (store !== undefined && !store.status().closed) await store.close();
+    if (original !== undefined) assert.equal((await closePreparedLocalPublicationStoreOwnership(original)).pending, false);
+    await removeFixtureDirectory(directory);
+  });
+  const configuration = {directory, storeAuthorityCid: cids.authority,
+    capacityBytes: 1024 * 1024, maxObjectBytes: 64 * 1024,
+    maxObjects: 100, maxContractNodes: limits.maxNodes, maxContractDepth: limits.maxDepth};
+  original = await prepareLocalPublicationStoreOwnership(directory,
+    {maxWireBytes: 64 * 1024, maxDirectoryEntries: 100});
+  const owner = await readFile(join(directory, 'owner', 'owner.json'));
+  let commits = 0;
+  const exec = DatabaseSync.prototype.exec;
+  t.mock.method(DatabaseSync.prototype, 'exec', function(sql) {
+    const result = Reflect.apply(exec, this, [sql]);
+    if (sql === 'COMMIT') commits++;
+    return result;
+  });
+  store = await openLocalPublicationStore(configuration, contractControl,
+    undefined, undefined, original);
+  assert.equal(commits, 1);
+  assert.deepEqual(await readFile(join(directory, 'owner', 'owner.json')), owner);
+  assert.equal((await closePreparedLocalPublicationStoreOwnership(original)).pending, true);
+  await store.close();
+  assert.equal((await closePreparedLocalPublicationStoreOwnership(original)).pending, false);
+});
+
+for (const afterCommit of [false, true]) {
+  test(`fresh Store schema keeps its ${afterCommit ? 'committed' : 'rolled-back'} initialization Unknown`, async t => {
+    const directory = await mkdtemp(join(tmpdir(), 'actql-store-initialization-unknown-'));
+    t.after(() => removeFixtureDirectory(directory));
+    const configuration = {directory, storeAuthorityCid: cids.authority,
+      capacityBytes: 1024 * 1024, maxObjectBytes: 64 * 1024,
+      maxObjects: 100, maxContractNodes: limits.maxNodes, maxContractDepth: limits.maxDepth};
+    const exec = DatabaseSync.prototype.exec;
+    const originalFailure = Object.assign(new Error('initial schema COMMIT reply unavailable'), {code: 'EIO'});
+    let schema = false, lost = false, creations = 0;
+    t.mock.method(DatabaseSync.prototype, 'exec', function(sql) {
+      if (sql.startsWith('CREATE TABLE coverage (')) {schema = true; creations++;}
+      if (schema && !lost && sql === 'COMMIT') {
+        lost = true;
+        if (afterCommit) Reflect.apply(exec, this, [sql]);
+        throw originalFailure;
+      }
+      return Reflect.apply(exec, this, [sql]);
+    });
+    let unknown;
+    await assert.rejects(openLocalPublicationStore(configuration, contractControl), error => {
+      unknown = error;
+      return error.code === 'DeliveryAttemptIndexCommitOutcomeUnknown' &&
+        error.outcome === 'unknown' && error.cause === originalFailure;
+    });
+    assert.equal(lost, true);
+    assert.equal(creations, 1);
+    assert.deepEqual(JSON.parse(await readFile(join(directory, 'delivery-attempts-index.json'), 'utf8')),
+      {version: 1, phase: 'building'});
+    await assert.rejects(stat(join(directory, 'owner')), code('ENOENT'));
+    const database = new DatabaseSync(join(directory, 'delivery-attempts.sqlite3'), {readOnly: true});
+    try {
+      const names = database.prepare("SELECT name FROM sqlite_schema WHERE type='table'").all();
+      assert.equal(names.some(row => row.name === 'coverage'), afterCommit,
+        'the native transition is either wholly committed or absent');
+      if (afterCommit) {
+        for (const table of ['coverage', 'physical_object_usage', 'publication_recovery',
+          'metadata_deletion_fence_coverage']) {
+          assert.equal(database.prepare(`SELECT complete FROM ${table} WHERE id=1`).get().complete, 1);
+        }
+      }
+    } finally {database.close();}
+    const reopened = await openLocalPublicationStore(configuration, contractControl);
+    assert.equal(creations, afterCommit ? 1 : 2,
+      'an already committed schema is never inserted again; a rolled-back schema keeps legacy adoption');
+    assert.equal(unknown.outcome, 'unknown', 'later format completion never rewrites the original failure');
+    await reopened.close();
+  });
 }
 
 async function legacyInventoryFixture(directory, publicIndexCid) {
@@ -2197,6 +2306,57 @@ test('uncommitted private evidence retains a recoverable prepared owner',
     assert.equal(reopened.status().storedBytes, 0);
   });
 
+test('clean Store opening defers immutable clock file observations to selected use', async t => {
+  const {store, directory, configuration} = await fixture(t);
+  const floor = '2026-09-18T01:00:00.000Z';
+  const clocks = [cids.scope, ...Array.from({length: 8}, (_, n) => digest('unrelated-clock-' + n))];
+  for (const cid of clocks) await store.observeTrustedClock(cid, floor);
+  await store.close();
+  const clockDirectory = join(directory, 'clocks');
+  const original = fsPromises.lstat, observed = [];
+  let reopened, opening = true;
+  t.mock.method(fsPromises, 'lstat', async function(path, ...args) {
+    if (opening && typeof path === 'string' && path.startsWith(clockDirectory + sep)) observed.push(path);
+    return Reflect.apply(original, this, [path, ...args]);
+  });
+  syncBuiltinESMExports();
+  try {
+    reopened = await openLocalPublicationStore(configuration, contractControl);
+    opening = false;
+    assert.equal(observed.length, 0, 'opening does not stat unrelated immutable clock records');
+    assert.deepEqual(await reopened.readClockObservation(cids.scope), {clockContractCid:cids.scope, observedAt:floor});
+    await assert.rejects(reopened.observeTrustedClock(cids.scope, '2026-09-18T00:59:59.999Z'), code('PublicationClockUncertain'));
+  } finally {
+    opening = false;
+    if (reopened !== undefined) await reopened.close();
+    t.mock.restoreAll(); syncBuiltinESMExports();
+  }
+});
+
+for (const type of ['directory', 'symlink']) {
+test(`selected clock admission refuses a deferred ${type} before sampling`, async t => {
+  const {store, directory, configuration} = await fixture(t);
+  const floor = '2026-09-18T01:00:00.000Z';
+  await store.observeTrustedClock(cids.scope, floor);
+  await store.close();
+  const path = join(directory, 'clocks', cids.scope.slice(7) + '.json');
+  await unlink(path);
+  if (type === 'directory') await mkdir(path);
+  else {
+    const target = join(directory, 'foreign-clock-target');
+    await writeFile(target, JSON.stringify({clockContractCid:cids.scope, observedAt:floor}));
+    await fsPromises.symlink(target, path);
+  }
+  const reopened = await openLocalPublicationStore(configuration, contractControl);
+  try {
+    await assert.rejects(reopened.readClockObservation(cids.scope), code('InvalidPublicationStoreObject'));
+    let samples = 0;
+    await assert.rejects(reopened.sampleTrustedClock(cids.scope, () => {samples++; return floor;}), code('InvalidPublicationStoreObject'));
+    assert.equal(samples, 0, 'the original unavailable floor is not a fresh clock');
+  } finally {await reopened.close();}
+});
+}
+
 test('trusted clock high-water mark survives restart and rejects rollback',
   async t => {
     const {store, configuration} = await fixture(t);
@@ -4048,6 +4208,51 @@ test('publication records are append-only and sequence creation is CAS',
     assert.equal(latest.sequence, 1);
     assert.ok(['committing', 'cancelled'].includes(latest.state));
   });
+
+test('native publication preflight selects its exact supplied body keys in bounded blocks', async t => {
+  let armed = false, commits = 0;
+  const reads = [], prepare = DatabaseSync.prototype.prepare, exec = DatabaseSync.prototype.exec;
+  t.mock.method(DatabaseSync.prototype, 'prepare', function(sql) {
+    const statement = Reflect.apply(prepare, this, [sql]);
+    if (/^SELECT \* FROM publication_contracts WHERE semantic_cid(?:=| IN )/u.test(sql)) {
+      for (const method of ['get', 'all']) {
+        const original = statement[method];
+        t.mock.method(statement, method, function(...args) {
+          const result = Reflect.apply(original, this, args);
+          if (armed) reads.push({args, rows: method === 'all' ? result : result === undefined ? [] : [result]});
+          return result;
+        });
+      }
+    }
+    return statement;
+  });
+  t.mock.method(DatabaseSync.prototype, 'exec', function(sql) {
+    const result = Reflect.apply(exec, this, [sql]);
+    if (armed && sql === 'COMMIT') commits++;
+    return result;
+  });
+  const {store} = await fixture(t);
+  const original = n => contractControl.admit('run_invocation', wire(seal('run_invocation', {
+    version: 'actql-run-invocation/0.1', invocation_template_cid: cids.template,
+    observation_set_cid: digest('preflight-original-' + n),
+  })), limits);
+  const selected = Array.from({length: 8}, (_, n) => original(n));
+  const unrelated = Array.from({length: 24}, (_, n) => original(n + 100));
+  await store.putOriginalPublicationContracts([...selected.slice(0, 2), ...unrelated]);
+  const before = store.status();
+  armed = true;
+  const stored = await store.putOriginalPublicationContracts(selected);
+  armed = false;
+  assert.deepEqual(stored.map(value => value.created), [false, false, true, true, true, true, true, true]);
+  assert.equal(store.status().objectCount, before.objectCount + 6);
+  assert.equal(store.status().reservedObjects, 0);
+  assert.equal(commits, 1);
+  const keys = new Set(selected.map(value => value.identity));
+  assert(reads.every(read => read.rows.every(row => keys.has(row.semantic_cid))), 'unrelated history is not acquired');
+  assert.equal(reads.length, 2, 'one bounded quota preflight and the original actual mutation selection');
+  assert(reads.every(read => read.args.length === 8));
+  for (const value of selected) assert.equal((await store.readPublicationContract(value.identity, value.name)).wire, value.wire);
+});
 
 test('publication setup commits its immutable bodies and initial attempt in one native transaction', async t => {
   const exec = DatabaseSync.prototype.exec;

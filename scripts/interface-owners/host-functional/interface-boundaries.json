@@ -19360,7 +19360,7 @@
     {
       "module": "adapters/host-node/client-request-journal.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "7d75c6f3107cc279d72c8fc031e7bf8d1dd48fe90d387b20b539ce4477221a10",
+      "sha256": "5c3fce09b0873a0204dc5712fd42d1f9fa3d1c6ccc3aba716d13e3a936b313b3",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
@@ -21247,6 +21247,11 @@
           "async": false
         },
         {
+          "name": "openClientRequestJournal/syncFormatDirectory/syncFormatDirectory",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "openClientRequestJournal/transact/transact",
           "parameters": [
             "operation",
@@ -21687,7 +21692,8 @@
             "validateSourceInventory/validPhysicalBinding/validPhysicalBinding/validPhysicalBinding#4",
             "validateSourceInventory/validPhysicalBinding/validPhysicalBinding/validPhysicalBinding#5",
             "openClientRequestJournal/admitIntentOriginal/admitIntentOriginal",
-            "openClientRequestJournal/journal/init:prepareSubmittedIntent/init:prepareSubmittedIntent"
+            "openClientRequestJournal/journal/init:prepareSubmittedIntent/init:prepareSubmittedIntent",
+            "openClientRequestJournal/syncFormatDirectory/syncFormatDirectory"
           ],
           "exports": [
             "openClientRequestJournal",
@@ -21698,6 +21704,10 @@
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
                 "anchor": "export function validateSourceInventory(wire) {"
+              },
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "## Fresh Journal initialization durability"
               },
               {
                 "path": "docs/design/oss-host-authorization.md",
