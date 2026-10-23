@@ -3382,6 +3382,7 @@ async function openOriginalLocalPublicationStore(
       if (pending.failed) fail('PublicationStoreCleanupPending');
     }
     const entries = [], results = [], reservations = [];
+    let selection;
     let reservationBytes = 0;
     try {
       for (const original of admitted) {
@@ -3403,9 +3404,9 @@ async function openOriginalLocalPublicationStore(
       // Files retain their original representation. Select only the remaining
       // native keys together for quota preflight; mutation still owns its
       // actual selected-row conflict check and durable transaction.
-      const selected = new Map((entries.length === 0 ? [] :
-        deliveryIndex.publicationContracts(entries.map(entry => entry.semantic_cid)))
-        .map(entry => [entry.semantic_cid, entry]));
+      selection = entries.length === 0 ? undefined :
+        deliveryIndex.publicationContracts(entries.map(entry => entry.semantic_cid));
+      const selected = new Map((selection ?? []).map(entry => [entry.semantic_cid, entry]));
       for (const entry of entries) {
         const existing = selected.get(entry.semantic_cid);
         if (existing !== undefined && (existing.name !== entry.name || existing.wire !== entry.wire)) {
@@ -3431,7 +3432,7 @@ async function openOriginalLocalPublicationStore(
     const writer = {failed:false,cleanup:undefined};
     let pending = true, flight, failure, progressCreated;
     const finish = () => {
-      const usage = deliveryIndex.putPublicationContracts(originalEntries,allowance,progress);
+      const usage = deliveryIndex.putPublicationContracts(originalEntries,allowance,progress,selection);
       progressCreated = usage.progressCreated;
       accountNativePublication(usage);
       for (const reservation of reservations) reservation.release();
@@ -6759,13 +6760,16 @@ async function openOriginalLocalPublicationStore(
     semanticCid,
     excludedPublicIndexEntryCid,
   ) => {
-    for (const original of deliveryIndex.nativePublicationInventories()) {
-      if (original.public_index_cid === excludedPublicIndexEntryCid) continue;
+    for (const original of deliveryIndex.nativePublicationReferenceOwners(
+      'contract', semanticCid, excludedPublicIndexEntryCid)) {
       const inventory = publicationRecoveryValue(original);
+      if (!inventory.contract_objects.some(object => object.semantic_cid === semanticCid)) {
+        fail('InvalidPublicationMetadataInventoryStore');
+      }
       const keyHash = indexKey({namespaceId:inventory.namespace_id,
         authorityScopeCid:inventory.authority_scope_cid,runDefinitionCid:inventory.run_definition_cid});
       if (await readMetadataDeletion(keyHash) !== undefined) continue;
-      if (inventory.contract_objects.some(object => object.semantic_cid === semanticCid)) return true;
+      return true;
     }
     for (const name of await readdir(metadataInventoriesDirectory)) {
       if (!/^[0-9a-f]{64}\.json$/u.test(name)) {
@@ -6790,9 +6794,12 @@ async function openOriginalLocalPublicationStore(
   const metadataHoldingHasOtherOwner = async (
     holdingCid, excludedPublicIndexEntryCid,
   ) => {
-    for (const original of deliveryIndex.nativePublicationInventories()) {
-      if (original.public_index_cid === excludedPublicIndexEntryCid) continue;
-      if (publicationRecoveryValue(original).physical_holding_cids.includes(holdingCid)) return true;
+    for (const original of deliveryIndex.nativePublicationReferenceOwners(
+      'holding', holdingCid, excludedPublicIndexEntryCid)) {
+      if (!publicationRecoveryValue(original).physical_holding_cids.includes(holdingCid)) {
+        fail('InvalidPublicationMetadataInventoryStore');
+      }
+      return true;
     }
     for (const name of await readdir(metadataInventoriesDirectory)) {
       if (!/^[0-9a-f]{64}\.json$/u.test(name)) {
