@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {mkdtemp, readFile, rm} from 'node:fs/promises';
+import {readFileSync} from 'node:fs';
+import {parse} from 'acorn';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import test from 'node:test';
@@ -724,11 +726,63 @@ for (const partial of [false, true]) {
 }
 
 
-test('typed pre-admission refusal is retained without entering the Run owner', async t => {
-  let admissions = 0;
-  const f = await fixture(t, {admit() {admissions++;
-    throw Object.assign(new Error('actual checked preparation unsupported'), {code: 'ClientProgramUnsupported'});
-  }});
+// These are actual Host callback/holder bodies with explicit pre-Resource
+// ports. The Journal and its immutable outcomes below use real SQLite/Common;
+// this fixture does not claim a new Common/ordinary Host execution.
+function pairedAdmissionFixture() {
+  const source = readFileSync(new URL('./embedded-local.mjs', import.meta.url), 'utf8');
+  const ast = parse(source, {ecmaVersion: 'latest', sourceType: 'module'}), declarations = new Map();
+  let holder;
+  function visit(node) {
+    if (node === null || typeof node !== 'object') return;
+    if (node.type === 'Property' && node.method &&
+        node.key.name === 'isOriginalManagedComputePreparationRefusal') {assert.equal(holder, undefined); holder = node;}
+    if (node.type === 'VariableDeclaration' && node.declarations.length === 1 &&
+        ['admissionFailures', 'holderRefusal', 'admitPreparedSubmission'].includes(node.declarations[0].id.name)) {
+      const name = node.declarations[0].id.name; assert.equal(declarations.has(name), false); declarations.set(name, node);
+    }
+    for (const child of Object.values(node)) {
+      if (Array.isArray(child)) for (const value of child) visit(value);
+      else if (child && typeof child === 'object') visit(child);
+    }
+  }
+  visit(ast); assert(holder); assert.equal(declarations.size, 3);
+  const text = node => source.slice(node.start, node.end), record = {computeRuns: new Map()};
+  const runtime = {clientProgramSerializationOccurrences: () => []}, prepared = {}, requested = {};
+  const originalInstallation = {initialControl: {}}, originals = {installation: originalInstallation};
+  const error = Object.assign(new Error('original pure preparation Unsupported'), {code: 'ClientProgramUnsupported'});
+  let current = true, requestReads = 0, projections = 0;
+  const assertCurrent = () => {assert.equal(current, true, 'Original installation current');};
+  const project = new Function('record', 'moon', 'originalInstallation', 'originals',
+    'computeManaged', 'sourceManaged', 'assertInitialControlHostPreparation',
+    'assertManagedComputeInstallationCurrent', 'assertSourceManagedInstallationCurrent',
+    `return ({${text(holder)}}).isOriginalManagedComputePreparationRefusal;`)(
+    record, runtime, originalInstallation, originals, {}, undefined, assertCurrent, assertCurrent, assertCurrent);
+  const preparation = {
+    admitResultPublicationRun(value) {assert.equal(value, prepared);},
+    prepareManagedComputeRun(moon, value, request) {
+      assert.equal(moon, runtime); assert.equal(value, prepared); assert.equal(request, requested);
+      record.computeRuns.set(prepared, {runtime, prepared, request, failure: error, closed: false,
+        preAdmissionRefusal: Object.freeze({error, prepared, request, control: originalInstallation.initialControl})});
+      throw error;
+    },
+    isOriginalManagedComputePreparationRefusal(...args) {
+      assert.equal(this, preparation); projections++; return Reflect.apply(project, preparation, args);
+    },
+  };
+  const callback = new Function('preparation', 'moon', 'requestOf', 'inferSelections',
+    ['admissionFailures', 'holderRefusal', 'admitPreparedSubmission'].map(name => text(declarations.get(name))).join('\n') +
+      '\nreturn admitPreparedSubmission;')(preparation, runtime, candidate => {
+    requestReads++; assert.equal(candidate.preparedProgram, prepared);
+    return {requested, acquisitionCount: 0, effectful: false};
+  }, new WeakMap());
+  return {callback, error, prepared, requested, record, originalInstallation,
+    get requestReads() {return requestReads;}, get projections() {return projections;}, stop() {current = false;}};
+}
+
+test('paired pre-admission original refusal is retained without entering the Run owner', async t => {
+  const p = pairedAdmissionFixture();
+  const f = await fixture(t, {prepare: () => p.prepared, admit: p.callback});
   const original = await f.service.submitIntent(f.body());
   assert.equal(original.kind, 'not_accepted');
   assert.deepEqual(original.problem, {code: 'ClientProgramUnsupported', classification: 'implementation_limit'});
@@ -737,7 +791,8 @@ test('typed pre-admission refusal is retained without entering the Run owner', a
   assertReferenceOnly(await f.service.lookupSubmission({principalId, connection, submissionRef: f.ref}), original);
   assert.deepEqual(await f.service.submitIntent(f.body()), original);
   assert.deepEqual(f.counts, {prepare: 1, submit: 0});
-  assert.equal(admissions, 1);
+  assert.equal(p.requestReads, 1, 'One original requestOf, not repeated lowering');
+  assert.equal(p.projections, 1);
 });
 
 test('unclassified pre-admission interruption is not certified as a refusal', async t => {
@@ -749,11 +804,15 @@ test('unclassified pre-admission interruption is not certified as a refusal', as
   assert.deepEqual(f.counts, {prepare: 1, submit: 0});
 });
 
-test('pre-admission refusal rechecks current authority before recording its outcome', async t => {
+test('paired pre-admission refusal rechecks current authority before recording its outcome', async t => {
   let f;
-  f = await fixture(t, {admit() {f.authorize(false);
-    throw Object.assign(new Error('actual checked preparation unsupported'), {code: 'ClientProgramUnsupported'});
-  }});
+  const p = pairedAdmissionFixture();
+  const admit = candidate => p.callback(candidate);
+  admit.isOriginalPreparationRefusal = function(error, candidate) {
+    assert.equal(this, admit); const original = Reflect.apply(p.callback.isOriginalPreparationRefusal, p.callback, [error, candidate]);
+    f.authorize(false); return original;
+  };
+  f = await fixture(t, {prepare: () => p.prepared, admit});
   await assert.rejects(f.service.submitIntent(f.body()), {code: 'ClientRequestLookupDenied'});
   assert.equal(f.journal.lookupSubmittedIntent(f.ref, fields, moon), undefined);
   assert.deepEqual(f.counts, {prepare: 1, submit: 0});
@@ -789,3 +848,48 @@ for (const duty of ['code only', 'pending cleanup', 'cleanup handle']) {
     assert.deepEqual(f.counts, {prepare: 1, submit: 0});
   });
 }
+
+for (const backing of ['accessor', 'inherited', 'foreign receiver', 'copied candidate', 'Promise']) {
+  test(`paired pre-admission ${backing} projection cannot certify refusal`, async t => {
+    const p = pairedAdmissionFixture(), admit = candidate => p.callback(candidate);
+    let getters = 0;
+    const original = p.callback.isOriginalPreparationRefusal;
+    if (backing === 'accessor') Object.defineProperty(admit, 'isOriginalPreparationRefusal', {get() {getters++; return original;}});
+    else if (backing === 'inherited') Object.setPrototypeOf(admit, {isOriginalPreparationRefusal: original});
+    else if (backing === 'foreign receiver') admit.isOriginalPreparationRefusal = original;
+    else admit.isOriginalPreparationRefusal = function(error, candidate) {
+      assert.equal(this, admit);
+      return backing === 'copied candidate'
+        ? Reflect.apply(original, p.callback, [error, {...candidate}])
+        : Promise.resolve(Reflect.apply(original, p.callback, [error, candidate]));
+    };
+    const f = await fixture(t, {prepare: () => p.prepared, admit});
+    await assert.rejects(f.service.submitIntent(f.body()), error => error === p.error);
+    assert.equal(getters, 0); assert.equal(f.journal.lookupSubmittedIntent(f.ref, fields, moon), undefined);
+    assert.deepEqual(f.counts, {prepare: 1, submit: 0}); assert.equal(p.requestReads, 1);
+  });
+}
+
+test('paired pre-admission captures the original projection instead of a later replacement', async t => {
+  const p = pairedAdmissionFixture(), admit = candidate => p.callback(candidate);
+  admit.isOriginalPreparationRefusal = function(error, candidate) {
+    assert.equal(this, admit); return Reflect.apply(p.callback.isOriginalPreparationRefusal, p.callback, [error, candidate]);
+  };
+  const f = await fixture(t, {prepare: () => p.prepared, admit});
+  admit.isOriginalPreparationRefusal = () => assert.fail('Later method replacement');
+  const outcome = await f.service.submitIntent(f.body()); assert.equal(outcome.kind, 'not_accepted');
+  assert.equal(p.requestReads, 1); assert.equal(p.projections, 1);
+});
+
+test('paired pre-admission consumer keeps cleanup duty unknown even for a malformed positive projection', async t => {
+  for (const duty of [{cleanupPending: true}, {cleanupHandle: Object.freeze({status: () => ({pending: true})})}]) {
+    const error = Object.assign(new Error('original duty remains pending'), {code: 'ClientProgramUnsupported'}, duty);
+    const admit = () => {throw error;};
+    // An intentionally malformed explicit port must not erase its duty.
+    admit.isOriginalPreparationRefusal = () => true;
+    const f = await fixture(t, {admit});
+    await assert.rejects(f.service.submitIntent(f.body()), cause => cause === error);
+    assert.equal(f.journal.lookupSubmittedIntent(f.ref, fields, moon), undefined);
+    assert.deepEqual(f.counts, {prepare: 1, submit: 0});
+  }
+});
