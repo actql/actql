@@ -19360,7 +19360,7 @@
     {
       "module": "adapters/host-node/client-request-journal.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "5c3fce09b0873a0204dc5712fd42d1f9fa3d1c6ccc3aba716d13e3a936b313b3",
+      "sha256": "e45d80d7e7dcb926779de27308918c7fe1685ae7db1b11edf8f4ed31ec095e8e",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
@@ -23101,6 +23101,10 @@
               {
                 "path": "adapters/host-node/client-original-plan-control.test.mjs",
                 "anchor": "restored map checks original Plan Program and self CID without another compilation"
+              },
+              {
+                "path": "adapters/host-node/client-run-state-revision.test.mjs",
+                "anchor": "accepted original Run definition is returned without a second raw admission"
               }
             ]
           }
