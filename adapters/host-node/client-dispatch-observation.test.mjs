@@ -5,6 +5,12 @@ import {compileFunction} from 'node:vm';
 import {parse} from 'acorn';
 import {diagnosticObserver} from '../host-common/diagnostic-observer.mjs';
 import {createHostObservationConnection, installHostObservation} from '../host-common/observation.mjs';
+import {fileURLToPath} from 'node:url';
+
+const commonRuntimePath=process.env.ACTQL_TEST_PROJECT_COMMON_RUNTIME ??
+  fileURLToPath(new URL(
+    '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js',
+    import.meta.url));
 
 // Execute the original declarations with explicit ports. No runtime, Model
 // permission, Store commit or physical capacity is issued by these fixtures.
@@ -25,9 +31,8 @@ const observation = retained => ({emit() {}, retainOperation(promise) {retained.
 // fresh Journal/Store. Account/current entry is an explicit component port;
 // it makes no public submission or statement about a prior stopped Run.
 async function actualScalarFailureStop(t,managed,interleaveObservation=false){
-  assert(process.env.ACTQL_TEST_PROJECT_COMMON_RUNTIME,'Select the qualified original Common');
   const {pathToFileURL}=await import('node:url');
-  const moon=await import(pathToFileURL(process.env.ACTQL_TEST_PROJECT_COMMON_RUNTIME));
+  const moon=await import(pathToFileURL(commonRuntimePath));
   const {mkdtemp,readFile,mkdir}=await import('node:fs/promises');
   const {tmpdir}=await import('node:os');
   const {join}=await import('node:path');
@@ -99,7 +104,7 @@ async function actualScalarFailureStop(t,managed,interleaveObservation=false){
       // Import the SAME installed CJS resource namespace captured by this
       // Common module, never the source checkout's independent WeakMap.
       const {default:resources}=await import(new URL('../../../../../adapters/host-node/ordinary-node-resource-runtime.cjs',
-        pathToFileURL(process.env.ACTQL_TEST_PROJECT_COMMON_RUNTIME)));
+        pathToFileURL(commonRuntimePath)));
       const sequences=checked(moon.clientProgramPrepareInstalledManagedSourceFree(
         preparedProgram,registry,values,fragment,ordered));
       const limits=moon.clientProgramPreparedInstalledManagedSourceFreeRequirements(sequences);
@@ -148,7 +153,7 @@ test('actual installed failed Compute observes stop across public observation pu
 // claim an authenticated Journal, physical stop or publication COMMIT.
 async function stopInspectionFixture(change,{observationOnly=false}={}){
   const {pathToFileURL}=await import('node:url');
-  const moon=await import(pathToFileURL(process.env.ACTQL_TEST_PROJECT_COMMON_RUNTIME));
+  const moon=await import(pathToFileURL(commonRuntimePath));
   const {runtimeCore}=await import('../host-common/runtime-core.mjs');
   const {observeNodeRestoredModelStop}=await import('./client-dispatch-owner.mjs');
   const originalControl=runtimeCore(moon).publicationControl;
