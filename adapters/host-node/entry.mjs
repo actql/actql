@@ -96,6 +96,15 @@ export class CapturedRunPublicationError extends Error {
   }
 }
 
+// Preserve the exact failed execution and its cleanup owner without replacing
+// the first typed cause with the publication guard's StrategyNotComplete.
+export class CapturedRunExecutionError extends CapturedRunPublicationError {
+  constructor(execution) {
+    super(execution.failure, execution);
+    this.message = this.code = 'CapturedRunExecutionFailed';
+  }
+}
+
 // Execute and publish one ordinary checked Effect-free Program. Immutable
 // publication inputs and current Store capacity are admitted before any
 // Compute starts. The returned owner keeps internal completion and publication
@@ -130,6 +139,9 @@ async function runPublishedCapturedStrategyTarget({
     // Transfer cleanup responsibility before publication can fail. The
     // installed supervisor must not depend on an exception surviving wrappers.
     retainExecution?.(execution);
+    if (execution.status === 'host-tasks-failed') {
+      throw new CapturedRunExecutionError(execution);
+    }
     const result = await execution.publishEffectFreeRun(
       publication.store,
       execution.publicationPreflight.plan,
@@ -144,6 +156,7 @@ async function runPublishedCapturedStrategyTarget({
       cleanup: () => execution.cleanup(),
     });
   } catch (error) {
+    if (error instanceof CapturedRunExecutionError && error.execution === execution) throw error;
     throw new CapturedRunPublicationError(error, execution);
   }
 }
