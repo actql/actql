@@ -1173,8 +1173,9 @@ test(`native reference adoption keeps its ${afterCommit ? 'committed' : 'rolled-
 }
 
 function nativeIndexOriginal(label = '1') {
-  const cid = value => 'sha256:' + value.repeat(64);
-  const key = {metadata_key:label.repeat(64),namespace_id:'original namespace',
+  const digits = value => value.length === 64 ? value : value.repeat(64);
+  const cid = value => 'sha256:' + digits(value);
+  const key = {metadata_key:digits(label),namespace_id:'original namespace',
     authority_scope_cid:cid('a'),run_cid:cid(label)};
   const wire = JSON.stringify({index:label});
   const body = {semantic_cid:cid(label),name:'public_index_entry',wire,byte_count:Buffer.byteLength(wire)};
@@ -1325,6 +1326,74 @@ test('native Index format adoption leaves legacy inventory originals untouched a
   index.close();commits=0;index=await openDeliveryAttemptIndex(path,options);
   assert.equal(commits,0);assert.equal(historyReads,0);
 });
+
+test('native Index material lookup pages only the selected material owners', async t => {
+  const directory = await mkdtemp(join(tmpdir(),'actql-native-material-pages-'));
+  let index,armed=false;
+  const reads=[],prepare=DatabaseSync.prototype.prepare;
+  t.mock.method(DatabaseSync.prototype,'prepare',function(sql){
+    const statement=Reflect.apply(prepare,this,[sql]),all=statement.all;
+    if(sql.includes('FROM native_publication_materials m'))t.mock.method(statement,'all',function(...args){
+      const rows=Reflect.apply(all,this,args);if(armed)reads.push({args,rows});return rows;
+    });
+    return statement;
+  });
+  t.after(async()=>{armed=false;index?.close();await rm(directory,{recursive:true});});
+  index=await openDeliveryAttemptIndex(join(directory,'index.sqlite3'),
+    {create:true,initializeEmpty:true,maxEntries:72,maxWireBytes:4096});
+  const selected=[];
+  for(let n=1;n<=69;n++){
+    let original=nativeIndexOriginal(n.toString(16).padStart(64,'0'));
+    if(n>65)original={...original,bindings:[{...original.bindings[0],material_cid:'sha256:'+'e'.repeat(64)}]};
+    commitNativeIndexOriginal(index,original);if(n<=65)selected.push(original.body.semantic_cid);
+  }
+  armed=true;
+  const first=index.nativePublicationMaterialReferences('sha256:'+'d'.repeat(64));
+  const last=first.at(-1);
+  const second=index.nativePublicationMaterialReferences('sha256:'+'d'.repeat(64),last.public_index_cid,last.result_definition_cid);
+  assert.deepEqual([first.length,second.length],[64,1]);
+  assert.deepEqual([...first,...second].map(row=>row.public_index_cid),selected);
+  assert.deepEqual(reads.map(read=>read.rows.length),[64,1]);
+  assert(reads.every(read=>read.args[0]==='sha256:'+'d'.repeat(64)));
+  assert(first.every(Object.isFrozen)&&Object.isFrozen(first));
+  const count=reads.length;
+  assert.throws(()=>index.nativePublicationMaterialReferences('sha256:'+'d'.repeat(64),last.public_index_cid),
+    {code:'InvalidDeliveryAttemptIndex'});
+  assert.equal(reads.length,count,'invalid partial cursor performs no native read');
+});
+
+for(const afterCommit of [false,true]) {
+test(`native Index schema adoption retains its ${afterCommit?'committed':'rolled-back'} Unknown`,async t=>{
+  const directory=await mkdtemp(join(tmpdir(),'actql-native-index-adoption-unknown-'));
+  let index,armed=false,lost=false;
+  const exec=DatabaseSync.prototype.exec;
+  t.mock.method(DatabaseSync.prototype,'exec',function(sql){
+    if(armed&&!lost&&sql==='COMMIT'){
+      lost=true;if(afterCommit)Reflect.apply(exec,this,[sql]);
+      throw Object.assign(new Error('native Index adoption reply lost'),{code:'EIO'});
+    }
+    return Reflect.apply(exec,this,[sql]);
+  });
+  t.after(async()=>{armed=false;index?.close();await rm(directory,{recursive:true});});
+  const path=join(directory,'index.sqlite3'),options={create:false,maxEntries:8,maxWireBytes:4096};
+  index=await openDeliveryAttemptIndex(path,{...options,create:true,initializeEmpty:true});
+  const legacy=referenceInventory('1','a','b');index.stageNativePublicationInventory(legacy);index.close();
+  const old=new DatabaseSync(path);try{removeNativeIndexSchema(old);old.exec('UPDATE coverage SET version=12');}finally{old.close();}
+  armed=true;let primary;
+  await assert.rejects(openDeliveryAttemptIndex(path,options),error=>{primary=error;return error.outcome==='unknown';});
+  assert(lost);
+  const actual=new DatabaseSync(path,{readOnly:true});
+  try{
+    assert.equal(actual.prepare('SELECT version FROM coverage').get().version,afterCommit?13:12);
+    assert.equal(actual.prepare("SELECT count(*) AS n FROM sqlite_schema WHERE name IN ('native_publication_indexes','native_publication_materials')").get().n,afterCommit?2:0);
+    assert.equal(actual.prepare('SELECT inventory_wire FROM native_publication_inventories').get().inventory_wire,legacy.inventory_wire);
+  }finally{actual.close();}
+  index=await openDeliveryAttemptIndex(path,options);
+  assert.equal(primary.outcome,'unknown','later successful admission does not relabel the original error');
+  assert.deepEqual(index.nativePublicationInventory(legacy.public_index_cid),legacy);
+  assert.equal(index.nativePublicationIndex('1'.repeat(64)),undefined);
+});
+}
 
 test('native publication inventory and pending lookup share one commit without a shadow body',async t=>{
   const directory=await mkdtemp(join(tmpdir(),'actql-native-inventory-'));
