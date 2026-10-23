@@ -6715,7 +6715,7 @@
     {
       "module": "adapters/connectors/github/site/github-issue-graphql-read.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "a4913aebdd07b453ff202be77b2f59ee2d41332bcc50458c17eaa5e980fd5c0e",
+      "sha256": "f81bd39d001332388516262c4c7061a8c4d2eb6b899fbfbe86fe78db3561d2b4",
       "role": "physical-io",
       "owner": "Stable-node GraphQL Issue pagination; provider MoonBit fixes query, variables, projection and refusal",
       "exports": [
@@ -6811,7 +6811,9 @@
         },
         {
           "name": "readGitHubRowsByNode/checkPrefix/checkPrefix",
-          "parameters": [],
+          "parameters": [
+            "admitted"
+          ],
           "async": false
         },
         {
