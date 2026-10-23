@@ -1244,9 +1244,11 @@ async function openOriginalLocalPublicationStore(
     await mkdir(directory, {recursive: true, mode: 0o700});
   }
 
+  let createdStore = false;
   try {
     await writeExclusive(storeContractPath, storeContractBytes);
     await syncDirectory(root);
+    createdStore = true;
   } catch (error) {
     if (error?.cleanupHandle !== undefined) {
       throw await retainStoreOpeningFailure(error, undefined, configuration.privateEvidenceKey);
@@ -1422,8 +1424,9 @@ async function openOriginalLocalPublicationStore(
       removedClockStaging = true;
       continue;
     }
-    if (!/^[0-9a-f]{64}\.json$/u.test(name) ||
-        !(await lstat(path)).isFile()) {
+    // The selected clock reader owns its actual file/type/checksum admission.
+    // Opening retains only name admission and legacy staging cleanup here.
+    if (!/^[0-9a-f]{64}\.json$/u.test(name)) {
       fail('InvalidPublicationClockObservation');
     }
   }
@@ -3394,16 +3397,29 @@ async function openOriginalLocalPublicationStore(
         } catch (error) { if (error?.code !== 'ENOENT') throw error; }
         const entry = Object.freeze({semantic_cid:contract.identity,name:contract.name,
           wire:contract.wire,byte_count:Buffer.byteLength(contract.wire,'utf8')});
-        const existing = deliveryIndex.publicationContract(entry.semantic_cid);
+        entries.push(entry);
+        results.push(Object.freeze({...original, semanticCid:contract.identity, storage:'sqlite'}));
+      }
+      // Files retain their original representation. Select only the remaining
+      // native keys together for quota preflight; mutation still owns its
+      // actual selected-row conflict check and durable transaction.
+      const selected = new Map((entries.length === 0 ? [] :
+        deliveryIndex.publicationContracts(entries.map(entry => entry.semantic_cid)))
+        .map(entry => [entry.semantic_cid, entry]));
+      for (const entry of entries) {
+        const existing = selected.get(entry.semantic_cid);
         if (existing !== undefined && (existing.name !== entry.name || existing.wire !== entry.wire)) {
           fail('PublicationSemanticIdentityConflict');
         }
-        entries.push(entry);
         if (existing === undefined) {
           reservations.push(reserveObjectCapacity(entry.byte_count));
           reservationBytes += entry.byte_count;
         }
-        results.push(Object.freeze({...original, semanticCid:contract.identity, storage:'sqlite', created:existing === undefined}));
+      }
+      for (let index = 0; index < results.length; index++) {
+        const result = results[index];
+        if (result.storage === 'sqlite') results[index] = Object.freeze({...result,
+          created:!selected.has(result.semanticCid)});
       }
     } catch (error) {
       for (const reservation of reservations) reservation.release();
@@ -4512,6 +4528,7 @@ async function openOriginalLocalPublicationStore(
     deliveryIndex = await openDeliveryAttemptIndex(deliveryIndexPath,{
       create: coverage.phase === 'building', maxEntries: configuration.maxObjects,
       maxWireBytes: configuration.maxObjectBytes,
+      initializeEmpty: createdStore,
     });
     const migratePhysical=deliveryIndex.physicalObjectUsage().complete===0;
     const recoverPhysical=deliveryIndex.physicalObjectRecoveryRequired();

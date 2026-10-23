@@ -6,6 +6,28 @@ import {join} from 'node:path';
 import {DatabaseSync} from 'node:sqlite';
 import {openDeliveryAttemptIndex} from './delivery-attempt-index.mjs';
 
+test('empty schema initialization never replaces an existing coverage original', async t => {
+  const directory = await mkdtemp(join(tmpdir(), 'actql-empty-index-initialization-'));
+  let index;
+  t.after(async () => {index?.close(); await rm(directory, {recursive: true});});
+  const path = join(directory, 'index.sqlite3');
+  const options = {create: true, maxEntries: 4, maxWireBytes: 4096};
+  index = await openDeliveryAttemptIndex(path, options);
+  assert.equal(index.needsMigration(), true);
+  index.close();
+  const before = new DatabaseSync(path, {readOnly: true});
+  let coverage;
+  try {coverage = {...before.prepare('SELECT * FROM coverage WHERE id=1').get()};}
+  finally {before.close();}
+  await assert.rejects(openDeliveryAttemptIndex(path, {...options, initializeEmpty: true}),
+    {code: 'DeliveryAttemptIndexUnavailable'});
+  const after = new DatabaseSync(path, {readOnly: true});
+  try {assert.deepEqual({...after.prepare('SELECT * FROM coverage WHERE id=1').get()}, coverage);}
+  finally {after.close();}
+  index = await openDeliveryAttemptIndex(path, {...options, create: false});
+  assert.equal(index.needsMigration(), true, 'a supplied empty flag cannot reset incomplete existing coverage');
+});
+
 test('publication statements are acquired on use after unchanged schema admission', async t => {
   const directory = await mkdtemp(join(tmpdir(), 'actql-publication-statements-'));
   let index;
@@ -103,6 +125,44 @@ function publicationBlockWork(t) {
   return {arm() {armed = true;}, disarm() {armed = false;},
     snapshot() {return {reads, writes, commits};}};
 }
+
+test('publication quota selection bounds exact keys across blocks and refuses invalid input before reading', async t => {
+  const directory = await mkdtemp(join(tmpdir(), 'actql-publication-quota-selection-'));
+  let index;
+  const work = publicationBlockWork(t);
+  t.after(async () => {work.disarm(); index?.close(); await rm(directory, {recursive: true});});
+  index = await openDeliveryAttemptIndex(join(directory, 'index.sqlite3'),
+    {create: true, maxEntries: 96, maxWireBytes: 4096});
+  index.migrate([]);
+  const entry = n => ({semantic_cid: 'sha256:' + n.toString(16).padStart(64, '0'),
+    name: 'invocation', wire: '{}', byte_count: 2});
+  const selected = Array.from({length: 65}, (_, n) => entry(n + 1));
+  const unrelated = Array.from({length: 8}, (_, n) => entry(n + 100));
+  const installed = [...selected.slice(0, 63), ...unrelated];
+  index.putPublicationContracts(installed, {objects: installed.length, bytes: installed.length * 2});
+  const before = index.publicationUsage();
+  work.arm();
+  const rows = index.publicationContracts(selected.map(row => row.semantic_cid));
+  work.disarm();
+  assert.equal(rows.length, 63);
+  assert(Object.isFrozen(rows) && rows.every(Object.isFrozen));
+  assert.deepEqual(new Set(rows.map(row => row.semantic_cid)), new Set(selected.slice(0, 63).map(row => row.semantic_cid)));
+  assert.deepEqual(work.snapshot().reads.map(read => read.args.length), [64, 1]);
+  assert.equal(work.snapshot().reads.flatMap(read => read.rows).length, 63);
+  assert.equal(work.snapshot().commits, 0);
+  assert.deepEqual(index.publicationUsage(), before);
+  assert.deepEqual(index.publicationContracts([selected[0].semantic_cid, selected[0].semantic_cid]), [selected[0]]);
+  assert.deepEqual(index.publicationContracts([]), []);
+  const readCount = work.snapshot().reads.length;
+  work.arm();
+  for (const invalid of [null, [undefined], Array(1), ['foreign'], Array(97).fill(selected[0].semantic_cid)]) {
+    assert.throws(() => index.publicationContracts(invalid), {code: 'InvalidDeliveryAttemptIndex'});
+  }
+  work.disarm();
+  assert.equal(work.snapshot().reads.length, readCount);
+  index.close();
+  assert.throws(() => index.publicationContracts([]), {code: 'DeliveryAttemptIndexClosed'});
+});
 
 test('native publication block selects only supplied keys and groups its insertion calls', async t => {
   const directory = await mkdtemp(join(tmpdir(), 'actql-publication-block-'));

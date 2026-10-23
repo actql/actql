@@ -73,7 +73,10 @@ const completionTable = `CREATE TABLE completions (
   ack_revision INTEGER NOT NULL CHECK(ack_revision>=1 AND ack_revision<=9007199254740991)
 ) WITHOUT ROWID`;
 
-export async function openDeliveryAttemptIndex(path, {create, maxEntries, maxWireBytes}) {
+export async function openDeliveryAttemptIndex(path, {
+  create, maxEntries, maxWireBytes, initializeEmpty = false,
+}) {
+  if (typeof initializeEmpty !== 'boolean') fail('DeliveryAttemptIndexUnavailable');
   const database = new DatabaseSync(path, {__proto__: null, open: false,
     readOnly: false, enableForeignKeyConstraints: true, allowExtension: false});
   let closeOriginal, isOpenOriginal, execOriginal, prepareOriginal, transactionState;
@@ -184,11 +187,15 @@ export async function openDeliveryAttemptIndex(path, {create, maxEntries, maxWir
     'DeliveryAttemptIndex');
     const initialize = create && prepare(
       "SELECT name FROM sqlite_schema WHERE type='table' LIMIT 1").get() === undefined;
+    // Only the Store's actual first format creation selects empty coverage.
+    // Existing or interrupted formats keep their original migration protocol.
+    if (initializeEmpty && !initialize) fail('DeliveryAttemptIndexUnavailable');
+    const initialComplete = initializeEmpty ? 1 : 0;
     if (initialize) transaction.run(() => {
       exec(`CREATE TABLE coverage (
         id INTEGER PRIMARY KEY CHECK(id=1), version INTEGER NOT NULL,
         complete INTEGER NOT NULL CHECK(complete IN (0,1)), entries INTEGER NOT NULL);
-        INSERT INTO coverage VALUES(1,11,0,0);
+        INSERT INTO coverage VALUES(1,11,${initialComplete},0);
         CREATE TABLE attempts (
           logical_key TEXT PRIMARY KEY, attempt_cid TEXT NOT NULL UNIQUE,
           grant_cid TEXT NOT NULL, run_cid TEXT NOT NULL,
@@ -210,11 +217,11 @@ export async function openDeliveryAttemptIndex(path, {create, maxEntries, maxWir
         ${metadataFenceTable}; ${metadataFenceCoverageTable};
         ${physicalObjectsTable}; ${physicalUsageTable}; ${physicalPreparationsTable};
         ${resultRecoveryTable}; INSERT INTO result_deletion_recovery VALUES(1,0,1);
-        INSERT INTO physical_object_usage VALUES(1,0,0,0,1);
+        INSERT INTO physical_object_usage VALUES(1,${initialComplete},0,0,1);
         CREATE INDEX metadata_deletion_runs ON metadata_deletion_fences(run_cid);
-        INSERT INTO metadata_deletion_fence_coverage VALUES(1,0,1);
+        INSERT INTO metadata_deletion_fence_coverage VALUES(1,${initialComplete},1);
         INSERT INTO native_publication_inventory_usage VALUES(1,0,1);
-        INSERT INTO publication_recovery VALUES(1,0,0,1);
+        INSERT INTO publication_recovery VALUES(1,${initialComplete},0,1);
         INSERT INTO publication_usage VALUES(1,0,0,1);`);
     });
     const state = prepare('SELECT version,complete,entries FROM coverage WHERE id=1');
@@ -1242,6 +1249,14 @@ export async function openDeliveryAttemptIndex(path, {create, maxEntries, maxWir
       },
       publicationUsage() { requireComplete(); return usage(); },
       publicationContract(semanticCid) { requireComplete(); return publicationCopy(publication.get(semanticCid)); },
+      publicationContracts(semanticCids) {
+        requireComplete();
+        if (!Array.isArray(semanticCids) || semanticCids.length > maxEntries) fail('InvalidDeliveryAttemptIndex');
+        const supplied = Array.from({length:semanticCids.length}, (_, index) => semanticCids[index]);
+        if (!supplied.every(cid)) fail('InvalidDeliveryAttemptIndex');
+        const keys = Array.from(new Set(supplied), semantic_cid => ({semantic_cid}));
+        return Object.freeze([...selectedPublicationRows(keys).values()]);
+      },
       putPublicationContracts(entries, allowance, progress) { return publicationMutation('put',entries,allowance,progress); },
       publicationAttempt(attemptCid) {requireComplete();const row=publicationAttempt.get(attemptCid);
         return row===undefined?undefined:Object.freeze({...row});},
