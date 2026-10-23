@@ -6,6 +6,28 @@ import {join} from 'node:path';
 import {DatabaseSync} from 'node:sqlite';
 import {openDeliveryAttemptIndex} from './delivery-attempt-index.mjs';
 
+test('empty schema initialization never replaces an existing coverage original', async t => {
+  const directory = await mkdtemp(join(tmpdir(), 'actql-empty-index-initialization-'));
+  let index;
+  t.after(async () => {index?.close(); await rm(directory, {recursive: true});});
+  const path = join(directory, 'index.sqlite3');
+  const options = {create: true, maxEntries: 4, maxWireBytes: 4096};
+  index = await openDeliveryAttemptIndex(path, options);
+  assert.equal(index.needsMigration(), true);
+  index.close();
+  const before = new DatabaseSync(path, {readOnly: true});
+  let coverage;
+  try {coverage = {...before.prepare('SELECT * FROM coverage WHERE id=1').get()};}
+  finally {before.close();}
+  await assert.rejects(openDeliveryAttemptIndex(path, {...options, initializeEmpty: true}),
+    {code: 'DeliveryAttemptIndexUnavailable'});
+  const after = new DatabaseSync(path, {readOnly: true});
+  try {assert.deepEqual({...after.prepare('SELECT * FROM coverage WHERE id=1').get()}, coverage);}
+  finally {after.close();}
+  index = await openDeliveryAttemptIndex(path, {...options, create: false});
+  assert.equal(index.needsMigration(), true, 'a supplied empty flag cannot reset incomplete existing coverage');
+});
+
 test('publication statements are acquired on use after unchanged schema admission', async t => {
   const directory = await mkdtemp(join(tmpdir(), 'actql-publication-statements-'));
   let index;
