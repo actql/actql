@@ -46,6 +46,24 @@ checks; a new public operation observes current Deny independently. Unavailable
 authority denies access. Unpublished, publication-unknown, and unauthorized
 Results do not expose a description through this operation.
 
+The same-owner Manifest issuer retains the exact immutable canonical Artifact
+children already admitted by the publication owner. It measures the original
+complete body under the existing bounds, admits only the small root/key skeleton,
+and inserts those children without serializing and reparsing their subtrees.
+Registered shape, complete identity and relationship checks remain; known child
+identity uses only that same private canonical value and its measured limits.
+Generic admitted Result-name spellings retain their original key normalization
+and diagnostic order. Manifest wire and CID do not change.
+
+Subsequent Root checks still bind the Run, Invocation, complete Definition and
+Artifact inventories, names and references. When a nested value is the exact
+same immutable admitted Artifact value and fits the current bounds, that
+relationship needs no second canonical stream comparison. A separately admitted
+Manifest, missing usage, changed child or tighter bound keeps the original full
+comparison and refusal path. String admission is unchanged. These are private
+representation facts, not current authorization, a claim, or a durability ACK;
+physical readers, lifetime and publication cleanup retain their own duties.
+
 The physical Store returns retained immutable metadata without opening or
 rehashing a payload generation. Existing Manifest read grants authorize and
 account for the metadata response. Existing retention owners validate metadata
