@@ -2961,11 +2961,12 @@ async function openInstalledHost(originalInstallation, preparation) {
     return localCheckpointAnswer(summary, decision, signal);
   };
   const openEffectTargetReads = async (facts, {signal, resume, activeResume, journalPort,
-    allowDefer = true} = {}) => {
+    allowDefer = true,
+    observeCancellation = journal.observeRunCancellation(facts.ref, moon, control)} = {}) => {
     const selected = installedEffect === undefined ? effectInstallation : selectedInstalledEffect(facts);
     const assertCurrent = () => {
       facts.assertUpdateSelectionCurrent?.();
-      if (journal.lookupRunDefinition(facts.ref, moon, control)?.cancellationRequested !== false) {
+      if (observeCancellation()?.cancellationRequested !== false) {
         throw Object.assign(new Error('ClientRunCancellationRequested'),
           {code: 'ClientRunCancellationRequested'});
       }
@@ -2992,13 +2993,15 @@ async function openInstalledHost(originalInstallation, preparation) {
   };
   const executeEffectComputation = (facts, sourceResume, targetResume, modelResume) => {
     const activeResume = sourceResume ?? targetResume ?? modelResume;
+    // This original continuation shares only immutable row admission. Every
+    // probe still selects current storage; target and resume gates stay live.
+    const observeCancellation = journal.observeRunCancellation(facts.ref, moon, control);
     let assertOriginalUpdateSelectionCurrent;
     if (facts.updateTargetSelections !== undefined) {
       const original = facts.assertUpdateSelectionCurrent;
-      const ref = facts.ref;
       assertOriginalUpdateSelectionCurrent = () => {
         original();
-        if (journal.lookupRunDefinition(ref, moon, control)?.cancellationRequested !== false) {
+        if (observeCancellation()?.cancellationRequested !== false) {
           throw clientOperationError('ClientRunCancellationRequested');
         }
       };
@@ -3033,7 +3036,8 @@ async function openInstalledHost(originalInstallation, preparation) {
           try {
             targetReads = await openEffectTargetReads(facts, {signal,
               resume: targetResume, activeResume, allowDefer: sourceResume === undefined,
-              journalPort: modelResume === undefined ? undefined : nextJournal});
+              journalPort: modelResume === undefined ? undefined : nextJournal,
+              observeCancellation});
           } catch (error) { observePreEffectFailure(); throw error; }
           return effectInstallation.execute(
           Object.freeze({...facts, signal, retainExecution, targetReads, observation,
@@ -3072,7 +3076,6 @@ async function openInstalledHost(originalInstallation, preparation) {
                     preparedEffect: facts.prepared, sourceProfile,
                     registry, values, fragment, ordered,
                     queryTimePreparation: facts.queryTimePreparation, requestIdentity: facts.identity});
-                  const observeSourceRun = journal.observeRunCancellation(facts.ref, moon, control);
                   const sourceContinuation = acquiredEffectContinuation({
                     checkpoints: (selectedSources.length === 0 ||
                       selectedSources.every(({adapter}) => typeof adapter.retainedCapture === 'function'))
@@ -3088,7 +3091,7 @@ async function openInstalledHost(originalInstallation, preparation) {
                       restore: {view: retainedModel.view,
                         continuation: retainedModel.token.snapshot.sourceContinuation},
                     }),
-                    currentRun: () => observeSourceRun()
+                    currentRun: () => observeCancellation()
                       ?.cancellationRequested === false});
                   if (retainedModel !== undefined &&
                       moon.clientProgramEffectAcquisitionCount(facts.prepared) > 0 &&
