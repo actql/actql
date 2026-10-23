@@ -269,14 +269,14 @@ test('Local loops retain the asynchronous timer fallback outside immediate-capab
 function publicationLifetimeLoops(publishRun) {
   const text = readFileSync(new URL('./run-publication.mjs', import.meta.url), 'utf8');
   const names = new Set(['RunPublicationError', 'member', 'fail', 'cleanupState',
-    'uncertainFailure', 'publishEffectFreeRun', 'capturedComputationLifetime']);
+    'uncertainFailure', 'publishEffectFreeRun', 'capturedComputationLifetime', 'lookupOriginalCommit']);
   const declarations = parse(text, {ecmaVersion: 'latest', sourceType: 'module'}).body
     .map(node => node.type === 'ExportNamedDeclaration' ? node.declaration : node)
     .filter(node => node && (node.id && names.has(node.id.name) ||
       node.type === 'VariableDeclaration' && node.declarations.some(item => names.has(item.id.name))))
     .map(node => text.slice(node.start, node.end)).join('\n');
   return new Function('publishRun', declarations +
-    '\nreturn {publishEffectFreeRun, uncertainFailure, member};')(publishRun);
+    '\nreturn {publishEffectFreeRun, uncertainFailure, member, lookupOriginalCommit};')(publishRun);
 }
 
 test('publication caller forwards its original Index to the existing Store commit', async () => {
@@ -370,6 +370,97 @@ function publicationCommitCallerFixture({committed = true, differentIndex = fals
     now: () => 'original-time', signal: undefined};
   return {options, index, selected, attempt, reads, events, committing, acknowledge};
 }
+
+test('publication original commit lookup retains captured cleanup methods and receiver', async () => {
+  const {lookupOriginalCommit} = publicationLifetimeLoops();
+  let pending = true, retries = 0, release, entered;
+  const ready = new Promise(resolve => {entered = resolve;});
+  const gate = new Promise(resolve => {release = resolve;});
+  const cleanup = {
+    status() {assert.strictEqual(this, cleanup); return {pending};},
+    async retry() {assert.strictEqual(this, cleanup); retries++; entered(); await gate; pending = false;},
+  };
+  const primary = Object.assign(new Error('original'), {code: 'PublicationMetadataCommitOutcomeUnknown',
+    outcome: 'unknown', cleanupPending: true, cleanupHandle: cleanup});
+  const expected = {}, flight = lookupOriginalCommit(primary, async () => {
+    assert.equal(pending, false); return expected;
+  });
+  await ready;
+  cleanup.status = cleanup.retry = () => assert.fail('replacement cleanup method');
+  release(); assert.strictEqual(await flight, expected); assert.equal(retries, 1);
+});
+
+test('publication original commit lookup keeps unresolved storage failure and actual lookup errors', async () => {
+  const {lookupOriginalCommit} = publicationLifetimeLoops();
+  for (const mode of ['throw', 'pending', 'confirmed']) {
+    let pending = true, lookups = 0, retries = 0;
+    const primary = Object.assign(new Error('original'), {code: 'PublicationMetadataCommitOutcomeUnknown',
+      outcome: 'unknown', cleanupPending: true, cleanupHandle: {
+        status: () => ({pending}), async retry() {
+          retries++;
+          if (mode === 'throw') throw new Error('original confirmation still unknown');
+          if (mode === 'confirmed') pending = false;
+        },
+      }});
+    const changed = new Error('actual selected commit differs');
+    await assert.rejects(lookupOriginalCommit(primary, async () => {
+      lookups++; throw changed;
+    }), error => error === (mode === 'confirmed' ? changed : primary));
+    assert.equal(retries, 1); assert.equal(lookups, mode === 'confirmed' ? 1 : 0);
+  }
+});
+
+test('publication original commit lookup leaves generic and legacy failures on the full lookup path', async () => {
+  const {lookupOriginalCommit} = publicationLifetimeLoops();
+  for (const properties of [{code: 'EIO', outcome: 'unknown'},
+    {code: 'PublicationMetadataCommitOutcomeUnknown'}, {}]) {
+    const primary = Object.assign(new Error('original'), properties, {cleanupPending: true});
+    Object.defineProperty(primary, 'cleanupHandle', {get() {assert.fail('unrelated cleanup inspected');}});
+    const actual = {}, value = await lookupOriginalCommit(primary, async () => actual);
+    assert.strictEqual(value, actual);
+  }
+});
+
+test('publication original commit caller confirms once before real reconciliation and validation', async () => {
+  const f = publicationCommitCallerFixture(), {store, control, evidence} = f.options;
+  const request = control.issuePublicationRequest(), originalAttempt = f.attempt;
+  const index = Object.freeze({...f.index, wire: JSON.stringify({...JSON.parse(f.index.wire),
+    publication_request_cid: request.identity})});
+  let commits = 0, retries = 0, pending = true, validations = 0;
+  const cleanup = {
+    status: () => ({pending}),
+    async retry() {assert.strictEqual(this, cleanup); retries++; pending = false;},
+  };
+  const primary = Object.assign(new Error('original native Index uncertainty'), {
+    code: 'PublicationMetadataCommitOutcomeUnknown', outcome: 'unknown',
+    cleanupPending: true, cleanupHandle: cleanup,
+  });
+  control.issuePublicIndexEntry = () => index;
+  control.publicationCommitFailureAction = (attempted, failed, found) => {
+    if (!attempted) return 'reconcile_commit';
+    assert.equal(failed, false); assert.equal(found, true); return 'adopt_committed_index';
+  };
+  store.commitIndex = async (_wire, _inventory, _evidence, original) => {
+    assert.strictEqual(original, index); commits++; throw primary;
+  };
+  store.confirmCommittedIndex = async () => {
+    if (!commits) return undefined;
+    assert.equal(pending, false, 'lookup follows the SAME original storage confirmation');
+    return {public_index_entry_cid: index.identity};
+  };
+  store.readPublicationContract = async (identity, name) => {
+    const original = {public_index_entry: index, publication_request: request,
+      publication_attempt: originalAttempt}[name];
+    assert.equal(identity, original.identity); return original;
+  };
+  store.validateCommittedEvidence = async (actual, original) => {
+    assert.strictEqual(actual, index); assert.strictEqual(original, evidence); validations++; return true;
+  };
+  const publication = await publishEffectFreeRun(f.options);
+  assert.equal(publication.state, 'succeeded'); assert.strictEqual(publication.index, index);
+  assert.equal(commits, 1); assert.equal(retries, 1); assert.equal(validations, 1);
+  assert.deepEqual(f.events, ['retire']);
+});
 
 test('publication caller retains only its newly acknowledged original Index', async () => {
   const f = publicationCommitCallerFixture();

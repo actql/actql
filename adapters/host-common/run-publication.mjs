@@ -528,14 +528,17 @@ async function lookupOriginalCommit(primary, lookup) {
     const cleanup = member(primary, 'cleanupHandle');
     const retry = member(cleanup, 'retry'), status = member(cleanup, 'status');
     if (typeof retry === 'function' && typeof status === 'function') {
+      let pending = true;
       try {
         if (member(Reflect.apply(status, cleanup, []), 'pending') === true) {
           await Reflect.apply(retry, cleanup, []);
         }
+        pending = member(Reflect.apply(status, cleanup, []), 'pending') !== false;
       } catch {
         // Retain the primary and the same pending owner. Only the actual
         // lookup and existing complete commit validation may resolve it.
       }
+      if (pending) throw primary;
     }
   }
   return lookup();
