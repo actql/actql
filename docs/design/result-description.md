@@ -453,3 +453,12 @@ actual canonical result is retained after that admission. The complete Context
 identity is still computed by the original bounded canonical hash traversal.
 Failure and cancellation discard only construction references and continuations,
 not the caller's snapshots, readers, physical holdings or cleanup duties.
+
+The Captured Run issuer also retains the original admitted Receipt as an
+immutable child. The computation validator may establish that child's complete
+wire correspondence from exact object identity and the Receipt's original
+final-encoder byte, node and depth measurements. A restored or different child,
+missing measurements or tighter limits uses the full bounded wire comparison.
+All preceding relation checks, the complete Context identity hash, Result rows
+and remaining evidence checks still run. This correspondence supplies no
+permission, current observation, durability or physical cleanup acknowledgement.
