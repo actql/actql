@@ -29861,7 +29861,7 @@
     {
       "module": "adapters/host-node/client-dispatch-owner.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "7c9caceb64af4847a34f1924817a5e76c052580805310f60f43885f6ba1ea2c4",
+      "sha256": "874a3f9f41f24a692fdca2375a4d8b3d18ea67e9649d1eb3333b484a1864a244",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
