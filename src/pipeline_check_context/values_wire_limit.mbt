@@ -93,29 +93,33 @@ fn create_values_wire_limit_metered(
     reserve_values_metadata(meter, limits, out => {
       emit_values_wire_limit(bound, subject, Some(values_metadata_cid), out)
     })
-    let hash = @encode.hashing_writer(
-      limits.max_bytes,
-      limits.max_nodes,
-      limits.max_depth,
-    )
-    emit_values_wire_limit(bound, subject, None, hash)
-    let cid = "sha256:" + @encode.finish_hash(hash)
-    let out = @encode.writer(
-      limits.max_bytes,
-      limits.max_nodes,
-      limits.max_depth,
-    )
-    emit_values_wire_limit(bound, subject, Some(cid), out)
     let limit = match
-      @wire.admit_limit(
-        @wire_utf8.encode(@encode.finish(out)),
-        cid,
+      @wire.create_limit(
         claims,
+        [0],
+        @derivation.Bytes,
+        subject,
+        @wire.EngineAtomic,
         limits,
       ) {
-      Ok(v) => v
-      Err(e) => return Err(Admission(e))
+      Ok(value) => value
+      Err(@wire.BudgetExceeded) => return Err(Encoding(@encode.OutputLimit))
+      Err(issue) => return Err(Admission(issue))
     }
+    if @derivation.minimum_value(@wire.limit_minimum(limit)) !=
+      bound.bytes.to_int64() ||
+      @derivation.minimum_guard_binding(@wire.limit_minimum(limit)) !=
+      @derivation.Absent {
+      return Err(Admission(@wire.InvalidWitness))
+    }
+    // The same single original candidate and minimum have been checked above.
+    // Enforce the full output extent without reparsing the emitted witness.
+    let _ = @wire.measure_limit(
+      limit,
+      limits.max_bytes,
+      limits.max_nodes,
+      limits.max_depth,
+    )
     Ok({ bound, policy, limit, })
   } catch {
     error => Err(Encoding(error))

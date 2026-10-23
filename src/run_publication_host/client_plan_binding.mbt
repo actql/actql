@@ -57,6 +57,26 @@ pub fn emit_prepared_client_publication_binding(
   max_nodes : Int,
   max_depth : Int,
 ) -> Result[String, ClientPublicationBindingIssue] {
+  emit_client_publication_binding_material(
+    value, unit, index, scope, max_wire_bytes, max_nodes, max_depth,
+  ).map(material => material.0)
+}
+
+///|
+// The original bounded emitter also retains its checked field projection.
+// This is not admission of caller text. Saved bodies still use the parser.
+fn emit_client_publication_binding_material(
+  value : PreparedClientProgram,
+  unit : Int,
+  index : Int,
+  scope : ClientPublicationLimitScope,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  (String, ClientPublicationBindingFields?),
+  ClientPublicationBindingIssue,
+] {
   let program = @strategy.graph_program(value.graph)
   guard @checked.unit_publication_at(program, unit, index) is Some(publication) &&
     @checked.unit_definition_cid(program, unit) is Some(unit_definition_cid) else {
@@ -115,5 +135,21 @@ pub fn emit_prepared_client_publication_binding(
     _ => return Err(Encoding)
   }
   let body = @encode.finish(writer) catch { _ => return Err(Encoding) }
-  Ok(body)
+  // Preserve the saved reader's exact safe-integer domain. A wider Int64 can
+  // be rendered as a Number, but cannot supply admitted binding fields.
+  let fields : ClientPublicationBindingFields? = @scalar.read_safe_integer(
+    effective_max.to_double(),
+  ).map(decoded_max => {
+    binding_cid,
+    effective_max: decoded_max,
+    resolved_limit_cid,
+    subject_ref: subject,
+    kind: "result_publication",
+    measure,
+    result_name,
+    unit_definition_cid,
+    unit: measure,
+    version: "actql-execution-limit-binding/0.1",
+  })
+  Ok((body, fields))
 }

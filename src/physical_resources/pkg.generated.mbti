@@ -72,6 +72,18 @@ pub fn charge_transfer(Ledger, Reservation, Int64) -> Result[Unit, LedgerIssue]
 
 pub fn[P, C] check_backed_execution_delegation_current(BackedExecutionRegion[P, C], P, C, BackedExecutionDelegation[P, C]) -> Result[Unit, BackedExecutionIssue]
 
+pub fn check_imported_original_child_ledger(ImportedChildLedger, Ledger) -> Result[Unit, ImportedChildLedgerIssue]
+
+pub fn[P] check_node_local_content_run_preparation(NodeManagedRunAdmission[P], P) -> Result[Unit, ImportedChildLedgerIssue]
+
+pub fn[P] check_node_local_mock_model_run_preparation(NodeManagedRunAdmission[P], P) -> Result[Unit, ImportedChildLedgerIssue]
+
+pub fn[P] check_node_managed_run_admission(NodeManagedRunAdmission[P], Ledger) -> Result[Unit, ImportedChildLedgerIssue]
+
+pub fn[P] check_node_managed_run_preparation(NodeManagedRunAdmission[P], P) -> Result[Unit, ImportedChildLedgerIssue]
+
+pub fn[P] check_node_source_compute_run_preparation(NodeManagedRunAdmission[P], P) -> Result[Unit, ImportedChildLedgerIssue]
+
 pub fn check_original_current_state_document_configuration(OriginalCurrentStateDocument, LedgerLimits, QuantityAmounts?) -> Result[Unit, OriginalStateDocumentIssue]
 
 pub fn check_original_resources_mutable(Ledger) -> Result[Unit, LedgerIssue]
@@ -85,6 +97,8 @@ pub fn claim_model_io_access(ModelIoAccess, Ledger, Reservation, Int, Int) -> Re
 pub fn[T] claim_model_io_admission(ModelIoAdmission[T], T, OriginalLedgerIdentity, Reservation, Int, Int) -> Result[ModelIoTicket[T], ModelIoAdmissionIssue]
 
 pub fn[T] claim_model_io_for_owned_ledger(ModelIoAdmission[T], T, Ledger, Reservation, Int, Int) -> Result[ModelIoTicket[T], ModelIoAdmissionIssue]
+
+pub fn[P] cleanup_node_managed_run_admission(NodeManagedRunAdmission[P]) -> Result[Unit, ImportedChildLedgerIssue]
 
 pub fn[P, C] close_backed_execution_region(BackedExecutionRegion[P, C], P) -> Result[Bool, BackedExecutionIssue]
 
@@ -226,6 +240,14 @@ pub fn[P, C, R] prepare_backed_original_child_ledger(BackedExecutionLiveProjecti
 
 pub fn prepare_imported_child_ledger(Int64) -> Result[ImportedChildLedger, ImportedChildLedgerIssue]
 
+pub fn[P] prepare_node_local_content_run_admission(OriginalNodeManagedRunReference, P) -> Result[NodeManagedRunAdmission[P], ImportedChildLedgerIssue]
+
+pub fn[P] prepare_node_local_mock_model_run_admission(OriginalNodeManagedRunReference, P) -> Result[NodeManagedRunAdmission[P], ImportedChildLedgerIssue]
+
+pub fn[P] prepare_node_managed_run_admission(OriginalNodeManagedRunReference, P) -> Result[NodeManagedRunAdmission[P], ImportedChildLedgerIssue]
+
+pub fn prepare_node_original_source_child(OriginalNodeSourceReference) -> Result[ImportedChildLedger, ImportedChildLedgerIssue]
+
 pub fn[T] prepare_original_state_write(OriginalLedgerIdentity, T, @encode_core.Writer, Int64, Int64, binding_work? : Int) -> Result[(FundedReadClaim[T], OriginalStateWrite[T]), OriginalStateWriteIssue]
 
 pub fn quantity_configuration_matches(Ledger, QuantityAmounts?) -> Bool
@@ -246,9 +268,13 @@ pub fn report_execution_delegation(Ledger, ExecutionDelegation, LedgerUsage) -> 
 
 pub fn report_imported_child_ledger(ImportedChildLedger) -> Result[Unit, ImportedChildLedgerIssue]
 
+pub fn[P] report_node_managed_run_admission(NodeManagedRunAdmission[P]) -> Result[Unit, ImportedChildLedgerIssue]
+
 pub fn[P, C] require_backed_execution_read_use_current(BackedExecutionRegion[P, C], P, C, BackedExecutionDelegation[P, C], BackedExecutionReadUse[P, C]) -> Result[Unit, BackedExecutionIssue]
 
 pub fn require_imported_child_vm_capacity(ImportedChildLedger, Ledger, SharedCapacity) -> Result[Unit, ImportedChildLedgerIssue]
+
+pub fn reservation_capacity_amounts(Ledger, Reservation) -> Result[(Int64, Int64), LedgerIssue]
 
 pub fn reservation_open(Reservation) -> Bool
 
@@ -263,6 +289,8 @@ pub fn[P, C] reserve_backed_execution_delegation(BackedExecutionRegion[P, C], P,
 pub fn reserve_capacity(Ledger, Int64, Int64) -> Result[CapacityReservation, LedgerIssue]
 
 pub fn reserve_execution_delegation(Ledger, LedgerLimits, Int64, Int64) -> Result[ExecutionDelegation, LedgerIssue]
+
+pub fn[P] reserve_node_managed_run_read_bootstrap(NodeManagedRunAdmission[P], P, Ledger, Int64, Int64) -> Result[CapacityReservation, ImportedChildLedgerIssue]
 
 pub fn reserve_shared_capacity(Ledger, Int64) -> Result[SharedCapacity, LedgerIssue]
 
@@ -328,6 +356,8 @@ pub fn shared_capacity_usage(SharedCapacity) -> SharedCapacityUsage
 
 pub fn start_imported_child_ledger(ImportedChildLedger) -> Result[Unit, ImportedChildLedgerIssue]
 
+pub fn[P] start_node_managed_run_admission(NodeManagedRunAdmission[P]) -> Result[Ledger, ImportedChildLedgerIssue]
+
 pub fn[T] start_original_current_state_comparison(OriginalResourcePark[T], T, OriginalCurrentStateDocument, Int) -> Result[OriginalCurrentStateComparison[T], OriginalStateComparisonIssue]
 
 pub fn start_original_current_state_document_read(@decode_core.Cursor, Int, Int, Int, Int, @decode_core.Limits) -> Result[OriginalCurrentStateDocumentRead, OriginalStateDocumentIssue]
@@ -351,6 +381,8 @@ pub fn[T] stop_funded_read(FundedReadClaim[T]) -> Result[Unit, OriginalReadIssue
 pub fn[T] stop_funded_read_consumer(FundedReadConsumer[T]) -> Result[Unit, OriginalReadIssue]
 
 pub fn stop_imported_child_ledger(ImportedChildLedger) -> Result[Unit, ImportedChildLedgerIssue]
+
+pub fn[P] stop_node_managed_run_admission(NodeManagedRunAdmission[P]) -> Result[Unit, ImportedChildLedgerIssue]
 
 pub fn take_imported_child_ledger(ImportedChildLedger) -> Result[(Ledger, SharedCapacity, SharedCapacity), ImportedChildLedgerIssue]
 
@@ -583,6 +615,10 @@ pub struct ModelIoTicket[T] {
   mut active : Bool
 }
 
+pub struct NodeManagedRunAdmission[P] {
+  // private fields
+}
+
 type OriginalCurrentStateComparison[T]
 
 type OriginalCurrentStateDocument
@@ -623,6 +659,10 @@ type OriginalCurrentStateWrite[T]
 type OriginalLedgerDescriptor[T]
 
 type OriginalLedgerIdentity
+
+type OriginalNodeManagedRunReference
+
+type OriginalNodeSourceReference
 
 pub(all) enum OriginalReadIssue {
   InvalidBootstrap

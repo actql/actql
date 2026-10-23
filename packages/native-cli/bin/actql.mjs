@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // npm starts this small launcher. Every protocol operation runs in Native.
 import {createRequire} from 'node:module';
-import {readFileSync, lstatSync, realpathSync} from 'node:fs';
+import {readFileSync, lstatSync, realpathSync, writeSync} from 'node:fs';
 import {createHash} from 'node:crypto';
 import {dirname, join, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
@@ -14,6 +14,26 @@ export function platformKey({platform, arch, glibc}) {
   if (platform === 'darwin' && arch === 'arm64') return 'darwin-arm64';
   if (platform === 'linux' && arch === 'x64' && typeof glibc === 'string' && /^\d+\.\d+(?:\.\d+)?$/u.test(glibc)) return 'linux-x64-gnu';
   throw Object.assign(Error(`Unsupported platform: ${platform}/${arch}; Linux requires identifiable glibc. No alternative binary is used.`), {exitCode: 64});
+}
+
+export function macOSProductVersion(query = spawnSync) {
+  // Ask the kernel for the actual ProductVersion, not a Darwin-version
+  // approximation. Retain sw_vers for systems where that query is unavailable.
+  for (const [command, args] of [
+    ['/usr/sbin/sysctl', ['-n', 'kern.osproductversion']],
+    ['/usr/bin/sw_vers', ['-productVersion']],
+  ]) {
+    // Compatibility spelling must not make a supported OS look too old.
+    // This affects only the metadata query, not the Native child's environment.
+    const result = query(command, args, {encoding: 'utf8', maxBuffer: 1024, timeout: 1000,
+      env: {...process.env, SYSTEM_VERSION_COMPAT: '0'}});
+    if (result.error || result.status !== 0 || result.signal) continue;
+    const version = typeof result.stdout === 'string' ? result.stdout.trim() : undefined;
+    // The existing ABI admission parses this fact once. A successful malformed
+    // reply is refused there, rather than replaced with another service's value.
+    return typeof version === 'string' && version.length <= 47 ? version : undefined;
+  }
+  return undefined;
 }
 
 export function admitInstalledBinary({key, expected, metadata, binary, glibc, macOS}) {
@@ -43,6 +63,7 @@ export function admitInstalledBinary({key, expected, metadata, binary, glibc, ma
 }
 
 export function launch(args) {
+  const timingStart = process.env.ACTQL_NATIVE_TIMINGS === '1' ? process.hrtime.bigint() : null;
   const initialization = projectInitArguments(args);
   if (initialization?.help) {
     console.log('Usage: actql init [--template churn-risk-mock] [<directory>]');
@@ -63,7 +84,7 @@ export function launch(args) {
     throw Object.assign(Error('Native executable is missing, non-regular or not executable.'), {exitCode: 65});
   }
   const metadata = JSON.parse(readFileSync(join(installed, 'artifact.json'), 'utf8'));
-  const macOS = process.platform === 'darwin' ? spawnSync('/usr/bin/sw_vers', ['-productVersion'], {encoding: 'utf8'}).stdout?.trim() : undefined;
+  const macOS = process.platform === 'darwin' ? macOSProductVersion() : undefined;
   admitInstalledBinary({key, expected, metadata,
     binary: readFileSync(executable), glibc, macOS});
   const environment = {...process.env};
@@ -84,7 +105,22 @@ export function launch(args) {
     const project = scaffoldProject(initialization.directory, initialization.template);
     selectedArguments = projectInitialAdoptionArguments(project);
   }
+  const childStart = timingStart === null ? null : process.hrtime.bigint();
   const child = spawnSync(executable, selectedArguments, {stdio: 'inherit', env: selectedEnvironment});
+  if (timingStart !== null) {
+    // Observational only: missing diagnostics cannot change the Native result
+    // or acknowledge child cleanup. Imports and OS process creation precede
+    // this entry; the external consumer measures those separately.
+    try {
+      const finish = process.hrtime.bigint();
+      writeSync(2, 'ACTQL_NATIVE_LAUNCHER_TIMINGS ' + JSON.stringify({
+        units: 'nanoseconds',
+        preparation: Number(childStart - timingStart),
+        child: Number(finish - childStart),
+        total: Number(finish - timingStart),
+      }) + '\n');
+    } catch {}
+  }
   if (child.error) throw Object.assign(Error(`Native start failed: ${child.error.code}. Reinstall the fixed package cohort and verify the supported platform.`), {exitCode: 69});
   return child.status ?? 128 + (constants.signals[child.signal] ?? 1);
 }

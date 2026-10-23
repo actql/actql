@@ -37,9 +37,8 @@ export function selectAcquiredEffectSources({moon, preparedEffect, sourceProfile
 // Mixed installed Sources contribute their own opaque checked capture budgets.
 // No row-backed capacity can be passed to a nominal DuckDB configuration API.
 export function prepareInstalledAcquiredEffectLedger({moon, preparedEffect, sources,
-  registry, values, fragment, ordered}) {
-  if (!Array.isArray(sources) || sources.length !== 2 ||
-      typeof moon?.clientProgramPrepareMultiCapturedEffectInstalledLedger !== 'function') {
+  registry, values, fragment, ordered, requestIdentity}) {
+  if (!Array.isArray(sources) || sources.length !== 2) {
     throw new TypeError('InstalledMultiSourceCapacityUnavailable');
   }
   const capacities = sources.map(({adapter, preparedSource, occurrence}, index) => {
@@ -57,6 +56,24 @@ export function prepareInstalledAcquiredEffectLedger({moon, preparedEffect, sour
     }
     return capacity;
   });
+  const managedRun = capacities[0].managedRun;
+  if (capacities.some(value => value.managedRun !== undefined)) {
+    if (managedRun === undefined || capacities.some(value => value.managedRun !== managedRun) ||
+        requestIdentity === undefined ||
+        typeof moon?.clientProgramInstalledEffectManagedRunPrepareLedger !== 'function') {
+      throw new TypeError('InstalledEffectOriginalRunUnavailable');
+    }
+    // Both Source originals and the generated DAG borrow the same already
+    // admitted Effect Run. A missing/foreign original cannot fall back to the
+    // legacy scalar constructor, even when the reported byte limits match.
+    return checked(moon.clientProgramInstalledEffectManagedRunPrepareLedger(
+      managedRun, preparedEffect, requestIdentity,
+      capacities.map(value => value.capacity), capacities.map(value => value.transferBytes),
+      capacities.map(value => value.executionBytes), registry, values, fragment, ordered));
+  }
+  if (typeof moon?.clientProgramPrepareMultiCapturedEffectInstalledLedger !== 'function') {
+    throw new TypeError('InstalledMultiSourceCapacityUnavailable');
+  }
   const ledger = moon.clientProgramPrepareMultiCapturedEffectInstalledLedger(
     preparedEffect, capacities.map(value => value.capacity),
     capacities.map(value => value.transferBytes),

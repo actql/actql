@@ -1192,12 +1192,16 @@ export async function recoverCompletedEffectfulComputation(options) {
     effectSourceHoldings: Object.freeze(sourceHoldings),
   }));
   return Object.freeze({execution: null, storedResults, computation,
-    preview, invocation, connectorRecovery: Object.freeze(connectorRecovery)});
+    preview, invocation, connectorRecovery: Object.freeze(connectorRecovery),
+    // These are the exact already admitted and Store-confirmed member handles,
+    // not identities from which a caller can recreate Compute or byte custody.
+    effectSources: Object.freeze(sourceHoldings)});
 }
 
-// Recognize only the existing owner's exact post-publication cleanup error.
-// A provider's pending flag is not evidence that publication completed, and
-// another computation's cleanup cannot change this Run's completion path.
+// Recognize this owner's exact publication or post-publication cleanup failure.
+// The publication caller has already received the completed Effect receipt;
+// its failure must not be replaced by another interrupted-apply completion.
+// This is not evidence that publication committed or its cleanup was ACKed.
 export function isCompletedEffectfulPublicationCleanupFailure({
   execution, store, storedResults, control, computation, preview,
 }, error) {
@@ -1208,9 +1212,11 @@ export function isCompletedEffectfulPublicationCleanupFailure({
     issued.storedResults === storedResults && issued.control === control &&
     issued.preview === preview && owner.execution === execution &&
     owner.store === store && owner.control === control &&
-    owner.capturePublished === true && owner.retainCapture === false &&
-    owner.releaseComplete === false && owner.cleanupFailure !== undefined &&
-    owner.cleanupFailure === error;
+    owner.releaseComplete === false &&
+    (owner.publicationFailure !== undefined &&
+      owner.publicationFailure.error === error ||
+      owner.capturePublished === true && owner.retainCapture === false &&
+      owner.cleanupFailure !== undefined && owner.cleanupFailure === error);
 }
 
 // Derive the only final-chain inventory from the same completed Compute and
@@ -1359,12 +1365,22 @@ export async function publishCompletedEffectfulRun(options) {
     privateOwner = preparePrivatePublicationHolding(store, binding);
     privateEffectfulHoldings.set(computation, privateOwner);
   }
-  completedResultOwners.get(storedResults).privateEffectOwner = privateOwner;
-  await privateOwner.commit();
-  const publication = await publishEffectfulRun({
-    store, control, ...inventory, ledger, issuedSet,
-    request, attempt, limits: contractLimits, now, signal,
-  });
+  const resultOwner = completedResultOwners.get(storedResults);
+  resultOwner.privateEffectOwner = privateOwner;
+  resultOwner.publicationFailure = undefined;
+  let publication;
+  try {
+    await privateOwner.commit();
+    publication = await publishEffectfulRun({
+      store, control, ...inventory, ledger, issuedSet,
+      request, attempt, limits: contractLimits, now, signal,
+    });
+  } catch (error) {
+    // Preserve the exact original, including any same-Store cleanup receiver,
+    // before an outer caller can attempt interrupted Effect completion.
+    resultOwner.publicationFailure = Object.freeze({error});
+    throw error;
+  }
   if (publication.state === 'succeeded') {
     completedResultOwners.get(storedResults).capturePublished = true;
   }
@@ -1397,6 +1413,8 @@ export async function publishCompletedEffectFreeRun(options) {
     signal,
   } = options;
   const exported = [];
+  const retireCaptured = member(control, 'retireCapturedComputation');
+  let capturedRun, publicationEntered = false;
   try {
     await exportCompletedRunResultSet({
       execution, store, control, runDefinition, invocation, results,
@@ -1421,7 +1439,7 @@ export async function publishCompletedEffectFreeRun(options) {
       normalizationJournal,
       ...receiptEvidence,
     }, contractLimits);
-    const capturedRun = await control.issueEffectFreeCapturedRun({
+    capturedRun = await control.issueEffectFreeCapturedRun({
       runDefinition,
       invocation,
       definitions,
@@ -1460,6 +1478,8 @@ export async function publishCompletedEffectFreeRun(options) {
       capturedRun,
     });
     signal?.throwIfAborted();
+    // The publication entry owns every terminal/Unknown path from here.
+    publicationEntered = true;
     const publication = await publishEffectFreeRun({
       store,
       control,
@@ -1479,6 +1499,15 @@ export async function publishCompletedEffectFreeRun(options) {
       results: Object.freeze(exported),
     });
   } catch (error) {
+    if (!publicationEntered && capturedRun !== undefined && typeof retireCaptured === 'function') {
+      try {Reflect.apply(retireCaptured, control, [capturedRun]);}
+      catch (cleanup) {
+        const failure = new CompletedRunPublicationError('CompletedRunCaptureRetirementFailed', error);
+        failure.primaryFailure = error;
+        failure.cleanupError = cleanup;
+        error = failure;
+      }
+    }
     await releasePreparedResults(exported, error, control);
   }
 }

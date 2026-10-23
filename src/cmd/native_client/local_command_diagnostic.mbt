@@ -15,6 +15,8 @@ priv enum LocalCommandDiagnosticKind {
   InputRequired
   PreparationFailed
   ReadOnlyEffect
+  RunObservationFailed
+  JournalMaintenanceFailed
 }
 
 ///|
@@ -131,7 +133,8 @@ fn[T] local_stop_native_preparation(
 ///|
 fn local_command_primary_diagnostic(message : String) -> (String, String) {
   match command_preparation_diagnostic.val {
-    Unspecified => ("ACTQL_E_COMMAND_FAILED", message)
+    Unspecified | RunObservationFailed | JournalMaintenanceFailed =>
+      ("ACTQL_E_COMMAND_FAILED", message)
     ParameterInvalid =>
       (
         "ACTQL_E_PARAMETER_INVALID", "A supplied parameter does not match its declared type or constraints.",

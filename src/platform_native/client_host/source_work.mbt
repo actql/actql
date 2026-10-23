@@ -54,7 +54,9 @@ pub fn open_native_client_local_source_work(
     return Err(AuthorizationDenied)
   }
   match
-    validate_native_client_run_binding(request, prepared, compiled, definition) {
+    journal.validate_prepared_run_binding(
+      request, prepared, compiled, definition,
+    ) {
     Err(issue) => return Err(Journal(issue))
     Ok(_) => ()
   }

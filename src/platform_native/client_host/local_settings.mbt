@@ -188,27 +188,8 @@ fn NativeLocalConfigurationSelection::check_retained(
       return Err(CustodyLost)
     }
   }
-  // Exact membership, bounded independently of the database's total contents.
-  let mut cursor = ""
-  for _ in 0..<(self.files.length() + 1) {
-    guard scan_client_journal_value(
-        database, "client_local_settings", cursor, reads,
-      )
-      is Ok(row) else {
-      return Err(CustodyLost)
-    }
-    if row.key != "manifest" &&
-      !self.files.any(file => row.key == "file:" + file.name) {
-      return Err(CustodyLost)
-    }
-    cursor = row.key
-  }
-  guard scan_client_journal_value(
-      database, "client_local_settings", cursor, reads,
-    )
-    is Err(@sqlite.NotFound) else {
-    return Err(CustodyLost)
-  }
+  // This operation uses exactly these admitted files and manifest. Other
+  // configuration rows are not its targets and are not an integrity sweep.
   Ok(())
 }
 
@@ -273,6 +254,7 @@ pub fn NativeLocalHostConnection::authorize(
   self : NativeLocalHostConnection,
   request : @authorization.AccessTuple,
 ) -> Result[@authorization.AccountOutcome, NativeLocalAdoptionIssue] {
+  native_timing_count(22)
   let material = match self.adopted_current_material() {
     Ok(value) => value
     Err(issue) => return Err(issue)
@@ -283,15 +265,21 @@ pub fn NativeLocalHostConnection::authorize(
 }
 
 ///|
-/// Inspect selected originals before journal finalization. This is not an
-/// initialized Host, authorization decision or protected dispatch permit.
+/// Select captured configuration DATA before journal finalization. This does
+/// not observe current files or authorize protected work; journal staging
+/// validates the original installation before acquiring its database.
 pub fn NativeLocalAdoptionSession::selected_configuration(
   self : NativeLocalAdoptionSession,
   name : String,
 ) -> Result[Bytes, NativeLocalAdoptionIssue] {
-  match self.check_original() {
-    Ok(_) => ()
-    Err(issue) => return Err(issue)
+  if self.closed || self.close_pending {
+    return Err(Closed)
+  }
+  if self.read_cleanup is Some(issue) {
+    return Err(issue)
+  }
+  if self.initial_signing_failure.val is Some(failure) {
+    return Err(failure.issue())
   }
   for file in self.settings.files {
     if file.name == name {

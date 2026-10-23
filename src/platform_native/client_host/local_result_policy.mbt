@@ -30,6 +30,7 @@ fn NativeLocalHostConnection::resolve_result_policy_original_with_operations(
   facts : @result_access.NativeResultReadFacts,
   operations? : NativeClientJournalOperationAccess? = None,
   capture? : NativeLocalJournalCapture? = None,
+  committed_result? : @publication_store.NativeCommittedResult? = None,
 ) -> Result[
   @publication.CapturedEffectDependencyBody,
   NativeClientRunJournalIssue,
@@ -80,22 +81,25 @@ fn NativeLocalHostConnection::resolve_result_policy_original_with_operations(
   if record.publication_binding != Some(binding) {
     return Err(ForeignRun)
   }
-  let resolved = match
-    store.resolve_committed_result(
-      facts.request.namespace_id,
-      authority.scope,
-      definition_cid,
-      facts.request.result_name,
-      65536,
-      8192,
-      64,
-    ) {
-    Ok(Some(value)) => value
-    Ok(None) =>
-      return Err(
-        PublicationObservation(@publication_store.DeliveryAttemptUnresolved),
-      )
-    Err(issue) => return Err(PublicationObservation(issue))
+  let resolved = match committed_result {
+    Some(value) => value
+    None =>
+      match
+        local_committed_result_observation(
+          store,
+          facts.request.namespace_id,
+          authority.scope,
+          definition_cid,
+          facts.request.result_name,
+          capture~,
+        ) {
+        Ok(Some(value)) => value
+        Ok(None) =>
+          return Err(
+            PublicationObservation(@publication_store.DeliveryAttemptUnresolved),
+          )
+        Err(issue) => return Err(issue)
+      }
   }
   if !authority.current_for(self.journal, request) {
     return Err(AuthorizationDenied)

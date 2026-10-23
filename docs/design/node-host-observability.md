@@ -32,6 +32,68 @@ Discrete verified facts use correlated log records, including Model attempt
 receipts. They do not create instant spans or duplicate Span Events. Only a
 measured finite segment or task produces a duration span. Logical
 work/accounting is not inferred from these clocks.
+The selected `resources` measurement copies only the fixed six limits and ten
+usage counters returned by the same nominal managed Run Ledger. Decimal strings
+preserve the full integer range. The original Run and captured public-operation
+context correlate that observation after actual row consumption. An unavailable
+or retired reader and queue loss remain explicit; they do not become zero usage.
+These logical counters exclude durable Store history, shared Host holdings and
+JavaScript heap/RSS, and supply neither capacity nor a physical cleanup receipt.
+Diagnostic-level `rows` observations copy only the selected request-Journal
+reader's fixed owner, selection, kind, returned-row and unrelated-row counts.
+The existing ingress context accumulates these scalars into one terminal record,
+without a durable observation transaction per native read. Before acceptance,
+it may retain bounded request-key and actual returned-row identity scalars under
+the existing operation record limit. Only that same operation's successful
+Journal acceptance can join matching authority/request keys to the original
+Run. Actual returned identities are compared with that Run; an empty uniqueness
+probe can join only its exact accepted Run CID. No additional read is performed.
+Unknown unrelated-row classification and missing bindings stay absent when no
+matching acceptance exists; an eventual or foreign Run is not a substitute.
+Pending scalars retire with the existing context, and overflow makes coverage
+unavailable. Contextless or late hooks never manufacture a new operation frame.
+When accepted work outlives its ingress response, the installed dispatch and
+continuation Owners retain that same optional context against their original
+work Promises, including existing settlement callbacks. The physical-start
+barrier is not the work-completion boundary. A retained observation neither
+delays acceptance nor supplies a physical release ACK; failed resource cleanup
+remains with the original Owner even after its work Promise settles.
+An installed consumer may retain that same bounded context for its original
+Promise or Result iterator continuation. Promise retention is idempotent for
+the same original in that context, never awaits or replaces submission, and
+releases on either settlement. Iterator steps and the original delivery cleanup
+run under that captured context; the terminal row aggregate waits for those
+original continuations. A failed cleanup retains its existing context until the
+same close-only retry confirms. No successful usage is emitted for partial or
+failed consumption. The existing segment and record limits still bound optional
+retention, and disabled row observations acquire no continuation.
+This lifetime is copied observation metadata, not Run authority or a physical
+cleanup acknowledgement. Observation shutdown detaches it and records unavailable
+unfinished coverage; it neither settles the retained work nor discharges its
+original resource Owner. Contextless startup or sweep work cannot borrow it.
+Their `selected-returned` coverage does not count database rows visited, hidden
+aggregate work, other readers, parses or cache hits. A missing hook or lost record
+is unavailable coverage, never an observed zero or a completeness certificate.
+No row body, query, key or authentication material enters this projection.
+The request Journal hooks its actual prepared `client_requests` gets, including
+the two targeted reconciliation projections. Full-ref/full-row reads compare
+the selected namespace, authority scope and Run identity. Request-key, CID-only
+and partial-row reads retain their actual returned count but do not invent a
+complete unrelated-Run classification. A failed native get emits no empty-row
+fact. Startup aggregates, other Journal tables and Store/Checkpoint readers are
+outside this selected-reader coverage.
+
+Run ID correlation reuses only a positively resolved immutable identifier under
+the complete namespace, authority-scope and Run-definition tuple in that same
+operation and installation. The bounded holder contains copied identity values,
+not permission, currentness, a prepared Run or a durable observation cache.
+Missing and failed lookups are not positive facts; a new operation resolves its
+own original. Excluded or already limited records do not perform this lookup.
+The ending segment keeps the selected Run binding. Any real Journal read needed
+to resolve its metadata is counted before the final row aggregate closes; the
+aggregate emits with that private resolved fact rather than querying itself.
+Retirement drops these identity aliases without acknowledging physical cleanup.
+
 Measured Source/Model attempts use standard CLIENT span kind. Finite interval
 boundaries do not duplicate lifecycle logs or spend the discrete-log allowance
 merely because a caller polls status.
@@ -44,6 +106,16 @@ publication. Elapsed time does not fill unknown billable duration or usage.
 The common projection copies fixed fields into a bounded queue and delivers
 after `setImmediate`. The Host does not import an OTel SDK. SDK/HTTP propagation
 is a syntax-checked transport header outside canonical requests and authority.
+Delivery remains an application callback even on that later turn: it can overlap
+another active public operation. The existing installed projection retains an
+immutable callback-state identity, changed at callback entry and settlement,
+with an active flag until the actual delivery Promise settles. Synchronous
+application context callbacks also advance that identity. The same Host's Result
+authorization consumes this captured projection to observe current Account
+bytes after application reentry, or before a protected boundary while delivery
+remains active. Unchanged Account bytes retain their original typed evaluation;
+pure internal helpers, trusted reads and awaits do not advance callback state.
+This state grants no permission and supplies no delivery or resource-close ACK.
 The optional package uses private SDK providers and official protobuf serializers
 with an explicitly bounded HTTP sender. Application-owned providers remain
 application-owned and have the weaker contribution-only guarantee.

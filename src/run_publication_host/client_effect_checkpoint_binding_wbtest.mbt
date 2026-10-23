@@ -55,6 +55,42 @@ fn checkpoint_binding_fixture() -> (
 }
 
 ///|
+test "Effect Checkpoint retained metadata reads the admitted original" {
+  let (allowed, definition, body) = checkpoint_binding_fixture()
+  let limits : @checkpoint.WireLimits = {
+    max_wire_bytes: 65536,
+    max_nodes: 4096,
+    max_depth: 64,
+  }
+  let sealed = @checkpoint.seal_checkpoint(body, limits).unwrap()
+  let original = admit_client_effect_review_checkpoint_binding(
+    allowed,
+    definition,
+    sealed.wire,
+    limits,
+  ).unwrap()
+  let expected = [
+    sealed.checkpoint_cid,
+    sealed.wire,
+    "original-run",
+    client_effect_compilation_unit_id(allowed.compilation),
+    @publication.publication_contract_identity(definition),
+    "sha256:" + "2".repeat(64),
+    "sha256:" + "3".repeat(64),
+    "sha256:" + "1".repeat(64),
+  ]
+  assert_eq(
+    client_effect_review_checkpoint_binding_fields(original).unwrap(),
+    expected,
+  )
+  assert_eq(
+    client_effect_review_checkpoint_binding_fields(original).unwrap(),
+    expected,
+  )
+  assert_eq(original.wire, sealed.wire)
+}
+
+///|
 test "Effect Checkpoint binding validates original Run unit and sealed metadata" {
   let (allowed, definition, body) = checkpoint_binding_fixture()
   let limits : @checkpoint.WireLimits = {

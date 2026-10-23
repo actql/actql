@@ -6,11 +6,54 @@ struct NativeClientRunJournal {
   database : @sqlite.Database
   max_records : Int
   mut fenced : Bool
+  // Same actual Database format; only acknowledged maintenance advances it.
+  mut append_schema : Int
+  mut observed_evidence_schema : Int?
   // Physical transaction ownership only; this is not a Run control revision.
+  mut operation_active : Bool
   mut transaction_active : Bool
+  // Fully admitted selected target of the closed public command. Internal
+  // trusted reads consume it until a relevant mutation/failure or command end.
+  mut operation_record : NativeClientRunRecord?
+  // Same selected Submission and Run relationship for this closed command.
+  // Relevant row mutation, failure and operation end retire the typed pair.
+  mut operation_submission : (
+    NativeClientSubmittedIntentRecord,
+    NativeClientRunRecord?,
+  )?
+  mut admitted_record : (
+    String,
+    Bytes,
+    Int64,
+    RunRecordPolicyValidation,
+    NativeClientRunRecord,
+  )?
+  // Immutable header/compiler DATA for this operation, not a retained row or
+  // authority. New revisions still admit the outer row and changed metadata.
+  mut operation_run_identity : (
+    String,
+    @host.ClientRequestIdentity,
+    @publication.PublicationContract,
+    NativeClientStoredRunObservation?,
+  )?
+  // Pure immutable compilation correspondence, not row custody or permission.
+  // Own row revisions do not change it; operation failure/end retires it.
+  mut operation_prepared_binding : (
+    @host.PreparedClientProgram,
+    @host.ClientCompiledRun,
+    String,
+    String,
+    String,
+  )?
+  admitted_publications : Array[
+    (String, Array[@publication.CapturedEffectDependencyBody]),
+  ]
   // Read-only lookup may join this journal's own publication fence. Mutating
   // nested operations still fail instead of acquiring another transaction.
   mut publication_read_locked : Bool
+  mut admitted_adoption : @host.ClientLocalAdoptionCurrentObservation[
+    @sqlite.Database,
+  ]?
 }
 
 ///|
@@ -38,6 +81,7 @@ pub(all) enum NativeClientRunJournalIssue {
   CancellationIdentity(@host.ClientCancellationIdentityIssue)
   CancellationOperation(@host.ClientCancellationOperationIssue)
   PublicationObservation(@publication_store.NativePublicationStoreIssue)
+  RunIdIndexIncomplete
 }
 
 ///|
@@ -52,6 +96,7 @@ struct NativeClientRunRecord {
   effect_material_originals : String?
   local_run_policy_originals : String?
   run_observation_originals : String?
+  observation_original : NativeClientStoredRunObservation?
   revision : Int64
   checkpoint : NativeClientCheckpointRecord?
 }
@@ -81,6 +126,7 @@ pub fn native_client_run_record_revision(
 fn run_record_body(
   record : NativeClientRunRecord,
 ) -> Result[Bytes, NativeClientRunJournalIssue] {
+  native_timing_count(45)
   let checkpoint = match record.checkpoint {
     Some(value) =>
       match checkpoint_record_body(value) {
@@ -139,9 +185,23 @@ priv enum RunPolicyRequestComparison {
 fn read_run_record_in_mode(
   row : @sqlite.NativeJournalValue,
   mode : RunRecordPolicyValidation,
+  journal? : NativeClientRunJournal? = None,
+  identity? : (@host.ClientRequestIdentity, @publication.PublicationContract)? = None,
+  observation? : NativeClientStoredRunObservation? = None,
 ) -> Result[NativeClientRunRecord, NativeClientRunJournalIssue] {
+  native_timing_count(25)
+  let decoded = match identity {
+    None =>
+      @host.decode_client_run_journal_row_with_observation_originals(row.body)
+    Some((request, definition)) =>
+      @host.decode_client_run_journal_row_with_retained_identity(
+        row.body,
+        request,
+        definition,
+      )
+  }
   let (decoded, local_run_policy_originals, run_observation_originals) = match
-    @host.decode_client_run_journal_row_with_observation_originals(row.body) {
+    decoded {
     Ok(value) => value
     Err(_) => return Err(CustodyLost)
   }
@@ -159,9 +219,14 @@ fn read_run_record_in_mode(
   }
   match mode {
     ValidatePublication =>
-      if decoded.publication_policy_originals is Some(wire) &&
-        read_run_policy_originals(wire) is Err(_) {
-        return Err(CustodyLost)
+      if decoded.publication_policy_originals is Some(wire) {
+        let policies = match journal {
+          None => read_run_policy_originals(wire)
+          Some(original) => original.publication_originals(wire)
+        }
+        if policies is Err(_) {
+          return Err(CustodyLost)
+        }
       }
     DeferPublicationWire => ()
   }
@@ -177,6 +242,21 @@ fn read_run_record_in_mode(
         Err(_) => return Err(CustodyLost)
       }
   }
+  let observation_original = match run_observation_originals {
+    None => None
+    Some(wire) => {
+      let program = Some(@host.client_request_program_cid(request))
+      match observation {
+        Some(original) if original.matches(wire, definition, program) =>
+          Some(original)
+        _ =>
+          match read_native_stored_run_observation(wire, definition, program) {
+            Ok(original) => Some(original)
+            Err(_) => return Err(CustodyLost)
+          }
+      }
+    }
+  }
   let record : NativeClientRunRecord = {
     request,
     definition,
@@ -188,6 +268,7 @@ fn read_run_record_in_mode(
     effect_material_originals: decoded.effect_material_originals,
     local_run_policy_originals,
     run_observation_originals,
+    observation_original,
     revision: row.revision,
     checkpoint,
   }
@@ -201,25 +282,19 @@ fn read_run_record_in_mode(
     }) {
     return Err(CustodyLost)
   }
-  if run_observation_originals is Some(wire) &&
-    read_native_run_observation_originals(
-      wire,
-      definition,
-      program_cid=Some(@host.client_request_program_cid(request)),
-    )
-    is Err(_) {
-    return Err(CustodyLost)
-  }
-  match run_record_body(record) {
-    Ok(body) if body == row.body => Ok(record)
-    _ => Err(CustodyLost)
-  }
+  // The Common decoder already compared its complete canonical outer body
+  // with this exact row. Every field above is copied from that admitted row;
+  // the Native Checkpoint reader independently checked its nested wire too.
+  // No callback or mutation intervenes, so reconstructing the same outer
+  // JSON here adds no validation. Native Policy/Effect/observation checks above
+  // remain distinct and mandatory.
+  Ok(record)
 }
 
 ///|
 /// Only the eventual fresh-format bootstrap may call this initializer. It is
 /// private so a caller cannot repair missing custody in an adopted journal.
-fn initialize_native_client_run_journal(
+fn initialize_native_client_run_journal_rows(
   database : @sqlite.Database,
   bootstrap? : NativeClientJournalBootstrapAccess? = None,
 ) -> Result[Unit, NativeClientRunJournalIssue] {
@@ -261,7 +336,8 @@ fn initialize_native_client_run_journal(
   }
   for
     table in [
-      "client_checkpoint_id_index", "client_effect_response_meta", "client_effect_response_bytes",
+      "client_checkpoint_id_index", "client_run_id_index", "client_run_id_index_coverage",
+      "client_run_reference_index", "client_effect_response_meta", "client_effect_response_bytes",
       "client_effect_row_receipt", "client_cancellations", "client_cancel_custody",
       "client_cancel_originals",
     ] {
@@ -324,6 +400,10 @@ fn run_journal_custody(
   database : @sqlite.Database,
   max_records : Int,
   reads? : NativeClientJournalReadAccess? = None,
+  observe? : ((String, NativeClientRunRecord) -> Result[
+    Unit,
+    NativeClientRunJournalIssue,
+  ])? = None,
 ) -> Result[(Int, Int64), NativeClientRunJournalIssue] {
   @host.inspect_client_run_journal_inventory(
     max_records,
@@ -344,6 +424,12 @@ fn run_journal_custody(
         Ok(_) => ()
         Err(issue) => return Err(issue)
       }
+      if observe is Some(visit) {
+        match visit(row.key, record) {
+          Ok(_) => ()
+          Err(issue) => return Err(issue)
+        }
+      }
       Ok({
         request: record.request,
         definition: record.definition,
@@ -353,6 +439,32 @@ fn run_journal_custody(
     () => cancellation_custody(database, max_records, reads~).map(_ => ()),
     CustodyLost,
   )
+}
+
+///|
+// Ordinary operations authenticate only their selected rows. This monotonic
+// issuance anchor bounds append capacity without enumerating unrelated Runs.
+// Its revision advances once with each issued record in the same transaction.
+fn client_journal_issuance_anchor(
+  database : @sqlite.Database,
+  table_name : String,
+  max_records : Int,
+  reads? : NativeClientJournalReadAccess? = None,
+) -> Result[(Int, Int64), NativeClientRunJournalIssue] {
+  let row = match
+    read_client_journal_value(database, table_name, "issued", reads) {
+    Ok(value) => value
+    Err(@sqlite.NotFound) => return Err(CustodyLost)
+    Err(issue) => return Err(Physical(issue))
+  }
+  let count = match @host.client_journal_issuance_count(row.body, max_records) {
+    Ok(value) => value
+    Err(_) => return Err(CustodyLost)
+  }
+  if row.revision != count.to_int64() {
+    return Err(CustodyLost)
+  }
+  Ok((count, row.revision))
 }
 
 ///|
@@ -375,14 +487,36 @@ fn open_native_client_run_journal_with_reads(
   if max_records < 1 || max_records > 1024 {
     return Err(CapacityExceeded)
   }
-  match run_journal_custody(database, max_records, reads~) {
+  let append_schema = match
+    client_journal_run_definition_schema(database, reads) {
+    Ok(value) if value == 0 || value == 1 => value
+    Ok(_) => return Err(CustodyLost)
+    Err(issue) => return Err(Physical(issue))
+  }
+  match
+    client_journal_issuance_anchor(
+      database,
+      "client_run_custody",
+      max_records,
+      reads~,
+    ) {
     Ok(_) =>
       Ok({
         database,
         max_records,
+        append_schema,
+        observed_evidence_schema: None,
         fenced: false,
         publication_read_locked: false,
         transaction_active: false,
+        operation_active: false,
+        admitted_publications: [],
+        operation_record: None,
+        operation_submission: None,
+        admitted_record: None,
+        operation_run_identity: None,
+        operation_prepared_binding: None,
+        admitted_adoption: None,
       })
     Err(issue) => Err(issue)
   }
@@ -402,6 +536,8 @@ fn[T] NativeClientRunJournal::transaction_with_reads(
   work : () -> Result[T, NativeClientRunJournalIssue],
   reads? : NativeClientJournalReadAccess? = None,
 ) -> Result[T, NativeClientRunJournalIssue] {
+  native_timing_begin(7)
+  defer native_timing_end(7)
   if self.fenced || client_journal_transaction_fenced(self.database, reads) {
     return Err(Fenced)
   }
@@ -413,13 +549,21 @@ fn[T] NativeClientRunJournal::transaction_with_reads(
     Ok(_) => ()
     Err(issue) => return Err(Physical(issue))
   }
-  self.transaction_active = true
-  let result = match
-    run_journal_custody(self.database, self.max_records, reads~) {
-    Ok(_) => work()
-    Err(issue) => Err(issue)
+  if !self.operation_active {
+    self.admitted_publications.clear()
+    self.invalidate_operation_record()
+    self.admitted_adoption = None
   }
+  self.transaction_active = true
+  // The selected operation owns its target admission and local mutation
+  // checks. A transaction is not a request to audit unrelated history.
+  let result = work()
   self.transaction_active = false
+  if !self.operation_active {
+    self.admitted_publications.clear()
+    self.invalidate_operation_record()
+    self.admitted_adoption = None
+  }
   match result {
     Ok(value) =>
       match
@@ -430,12 +574,16 @@ fn[T] NativeClientRunJournal::transaction_with_reads(
         ) {
         Ok(_) => Ok(value)
         Err(_) => {
+          self.invalidate_operation_record()
           self.fenced = true
           fence_client_journal_transactions(self.database, reads)
           Err(TransactionUnknown)
         }
       }
-    Err(issue) =>
+    Err(issue) => {
+      // A failed mutation/observation cannot leave a typed target describing
+      // uncommitted state available after its rollback or lost return.
+      self.invalidate_operation_record()
       match
         client_journal_transaction_operation(
           self.database,
@@ -449,7 +597,96 @@ fn[T] NativeClientRunJournal::transaction_with_reads(
           Err(TransactionUnknown)
         }
       }
+    }
   }
+}
+
+///|
+fn NativeClientRunJournal::invalidate_operation_record(
+  self : NativeClientRunJournal,
+) -> Unit {
+  self.invalidate_operation_run()
+  self.invalidate_operation_submission()
+  self.observed_evidence_schema = None
+  self.operation_prepared_binding = None
+}
+
+///|
+// A deferred Policy lookup may already have observed this exact row. Full
+// admission can consume those immutable bytes instead of selecting them again.
+// The same mutation/failure/end invalidation clears this existing row slot.
+fn NativeClientRunJournal::operation_row(
+  self : NativeClientRunJournal,
+  key : String,
+) -> @sqlite.NativeJournalValue? {
+  if self.operation_active &&
+    self.admitted_record is Some((original, body, revision, _, _)) &&
+    original == key {
+    Some({ body, revision, })
+  } else {
+    None
+  }
+}
+
+///|
+// Reuse the admitted row in the unchanged operation or SQLite snapshot. A
+// newly observed row must match its exact revision and bytes before reuse.
+// Relevant mutation, failure and operation/transaction end invalidate the
+// slot; a retained value supplies no physical cleanup acknowledgement.
+fn NativeClientRunJournal::admit_retained_record(
+  self : NativeClientRunJournal,
+  key : String,
+  row : @sqlite.NativeJournalValue,
+  mode? : RunRecordPolicyValidation = ValidatePublication,
+) -> Result[NativeClientRunRecord, NativeClientRunJournalIssue] {
+  if (self.transaction_active || self.operation_active) &&
+    self.admitted_record
+    is Some((original_key, body, revision, admitted_mode, record)) &&
+    original_key == key &&
+    body == row.body &&
+    revision == row.revision {
+    if admitted_mode is DeferPublicationWire && mode is ValidatePublication {
+      if record.publication_policy_originals is Some(wire) {
+        match self.publication_originals(wire) {
+          Ok(_) => ()
+          Err(_) => return Err(CustodyLost)
+        }
+      }
+      self.admitted_record = Some(
+        (key, body, revision, ValidatePublication, record),
+      )
+    }
+    native_timing_count(36)
+    return Ok(record)
+  }
+  let (identity, observation) = if self.transaction_active ||
+    self.operation_active {
+    match self.operation_run_identity {
+      Some((original, request, definition, observation)) if original == key =>
+        (Some((request, definition)), observation)
+      _ => (None, None)
+    }
+  } else {
+    (None, None)
+  }
+  let record = match
+    read_run_record_in_mode(
+      row,
+      mode,
+      journal=Some(self),
+      identity~,
+      observation~,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  if self.transaction_active || self.operation_active {
+    self.admitted_record = Some((key, row.body, row.revision, mode, record))
+    self.operation_run_identity = Some(
+      (key, record.request, record.definition, record.observation_original),
+    )
+  }
+  Ok(record)
 }
 
 ///|
@@ -458,23 +695,74 @@ fn NativeClientRunJournal::retained(
   requested : @host.ClientRequestIdentity,
   reads? : NativeClientJournalReadAccess? = None,
 ) -> Result[NativeClientRunRecord?, NativeClientRunJournalIssue] {
-  let row = match
-    read_client_journal_value(
-      self.database,
-      "client_runs",
-      @host.client_request_scope_cid(requested),
-      reads,
-    ) {
-    Ok(value) => value
-    Err(@sqlite.NotFound) => return Ok(None)
-    Err(issue) => return Err(Physical(issue))
+  self.retained_with_issuance(requested, reads~).map(value => value.0)
+}
+
+///|
+// A target miss and the following append share this actual issuance row in
+// the caller's transaction. The coordinate never outlives this synchronous
+// call and does not replace the final capacity check or original CAS.
+fn NativeClientRunJournal::retained_with_issuance(
+  self : NativeClientRunJournal,
+  requested : @host.ClientRequestIdentity,
+  reads? : NativeClientJournalReadAccess? = None,
+) -> Result[
+  (NativeClientRunRecord?, (Int, Int64)?),
+  NativeClientRunJournalIssue,
+] {
+  if reads is Some(access) && !physical_equal(access.database, self.database) {
+    return Err(Physical(@sqlite.Collision))
   }
-  let retained = match read_run_record(row) {
+  if self.fenced || client_journal_transaction_fenced(self.database, reads) {
+    return Err(Fenced)
+  }
+  if self.operation_active &&
+    self.operation_record is Some(original) &&
+    @host.client_request_scope_cid(requested) ==
+    @host.client_request_scope_cid(original.request) {
+    return match
+      @host.client_request_identity_relation(requested, original.request) {
+      SameRequest => Ok((Some(original), None))
+      ChangedIntent => Err(ChangedIntent)
+      DifferentRequest => Err(CustodyLost)
+    }
+  }
+  let issuance = match
+    client_journal_issuance_anchor(
+      self.database,
+      "client_run_custody",
+      self.max_records,
+      reads~,
+    ) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
+  let key = @host.client_request_scope_cid(requested)
+  let row = match self.operation_row(key) {
+    Some(value) => value
+    None =>
+      match
+        read_client_journal_value(self.database, "client_runs", key, reads) {
+        Ok(value) => value
+        Err(@sqlite.NotFound) => return Ok((None, Some(issuance)))
+        Err(issue) => return Err(Physical(issue))
+      }
+  }
+  let retained = match self.admit_retained_record(key, row) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  match confirm_effect_ledger_custody(self.database, retained, reads~) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
   match @host.client_request_identity_relation(requested, retained.request) {
-    SameRequest => Ok(Some(retained))
+    SameRequest => {
+      if self.operation_active {
+        self.operation_record = Some(retained)
+      }
+      Ok((Some(retained), Some(issuance)))
+    }
     ChangedIntent => Err(ChangedIntent)
     DifferentRequest => Err(CustodyLost)
   }
@@ -483,8 +771,8 @@ fn NativeClientRunJournal::retained(
 ///|
 // No Record/Checkpoint/definition escapes this boundary. Hold only the original
 // wire and a deferred identity refusal before the work's full Policy admission.
-// Policy validation must precede identity refusal, including a row changed by
-// the second current callback after the initial normal custody scan.
+// Policy admission precedes identity refusal. Relevant application reentry or
+// target mutation invalidates operation facts before a new row is selected.
 fn extract_run_policy_wire(
   row : @sqlite.NativeJournalValue,
   requested : @host.ClientRequestIdentity,
@@ -493,6 +781,14 @@ fn extract_run_policy_wire(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
+  extract_admitted_run_policy_wire(record, requested)
+}
+
+///|
+fn extract_admitted_run_policy_wire(
+  record : NativeClientRunRecord,
+  requested : @host.ClientRequestIdentity,
+) -> Result[(String?, RunPolicyRequestComparison), NativeClientRunJournalIssue] {
   let comparison = match
     @host.client_request_identity_relation(requested, record.request) {
     SameRequest => OriginalRequest
@@ -503,25 +799,46 @@ fn extract_run_policy_wire(
 }
 
 ///|
-// Re-read the selected row inside the existing transaction; no Host cache.
-// Only lookup work consumes this private raw-wire extraction.
+// Select the original row or reuse its existing operation fact in the same
+// transaction. Only lookup work consumes this private raw-wire extraction.
 fn NativeClientRunJournal::retained_policy_wire(
   self : NativeClientRunJournal,
   requested : @host.ClientRequestIdentity,
   reads? : NativeClientJournalReadAccess? = None,
 ) -> Result[(String?, RunPolicyRequestComparison), NativeClientRunJournalIssue] {
-  let row = match
-    read_client_journal_value(
-      self.database,
-      "client_runs",
+  if reads is Some(access) && !physical_equal(access.database, self.database) {
+    return Err(Physical(@sqlite.Collision))
+  }
+  if self.fenced || client_journal_transaction_fenced(self.database, reads) {
+    return Err(Fenced)
+  }
+  if self.operation_active &&
+    self.operation_record is Some(original) &&
+    @host.client_request_scope_cid(requested) ==
+    @host.client_request_scope_cid(original.request) {
+    return extract_admitted_run_policy_wire(original, requested)
+  }
+  let key = @host.client_request_scope_cid(requested)
+  let row = match self.operation_row(key) {
+    Some(value) => value
+    None =>
+      match
+        read_client_journal_value(self.database, "client_runs", key, reads) {
+        Ok(value) => value
+        Err(@sqlite.NotFound) => return Err(CustodyLost)
+        Err(issue) => return Err(Physical(issue))
+      }
+  }
+  let record = match
+    self.admit_retained_record(
       @host.client_request_scope_cid(requested),
-      reads,
+      row,
+      mode=DeferPublicationWire,
     ) {
     Ok(value) => value
-    Err(@sqlite.NotFound) => return Err(CustodyLost)
-    Err(issue) => return Err(Physical(issue))
+    Err(issue) => return Err(issue)
   }
-  extract_run_policy_wire(row, requested)
+  extract_admitted_run_policy_wire(record, requested)
 }
 
 ///|
@@ -543,7 +860,9 @@ fn NativeClientRunJournal::lookup_with_reads(
   if !current_authorization {
     return Err(AuthorizationDenied)
   }
-  if self.publication_read_locked {
+  // This closed operation already owns its original Read and selected facts.
+  // A pure lookup must not manufacture another SQLite transaction/frame.
+  if self.publication_read_locked || self.operation_active {
     return self
       .retained(requested, reads~)
       .map(record => {
@@ -584,7 +903,7 @@ pub fn NativeClientRunJournal::bind_run(
     return Err(AuthorizationDenied)
   }
   match
-    validate_native_client_run_binding(request, prepared, compiled, definition) {
+    self.validate_prepared_run_binding(request, prepared, compiled, definition) {
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
@@ -600,11 +919,55 @@ fn validate_native_client_run_binding(
   compiled : @host.ClientCompiledRun,
   definition : @publication.PublicationContract,
 ) -> Result[Unit, NativeClientRunJournalIssue] {
+  native_timing_begin(21)
+  defer native_timing_end(21)
   match
     @host.validate_client_run_binding(request, prepared, compiled, definition) {
     Ok(_) => Ok(())
     Err(ChangedIntent) => Err(ChangedIntent)
     Err(ForeignRun) => Err(ForeignRun)
+  }
+}
+
+///|
+// Only the unchanged pure join is retained. Callers still observe current
+// authorization, actual rows and durable claims at their existing boundaries.
+fn NativeClientRunJournal::validate_prepared_run_binding(
+  self : NativeClientRunJournal,
+  request : @host.ClientRequestIdentity,
+  prepared : @host.PreparedClientProgram,
+  compiled : @host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+) -> Result[Unit, NativeClientRunJournalIssue] {
+  if self.fenced {
+    self.operation_prepared_binding = None
+    return Err(Fenced)
+  }
+  let program = @host.client_request_program_cid(request)
+  let parameters = @host.client_request_parameters_cid(request)
+  let definition_cid = @publication.publication_contract_identity(definition)
+  if self.operation_active &&
+    self.operation_prepared_binding
+    is Some((owner, run, cid, program_cid, parameters_cid)) &&
+    physical_equal(owner, prepared) &&
+    physical_equal(run, compiled) &&
+    cid == definition_cid &&
+    program_cid == program &&
+    parameters_cid == parameters {
+    return Ok(())
+  }
+  self.operation_prepared_binding = None
+  match
+    validate_native_client_run_binding(request, prepared, compiled, definition) {
+    Err(issue) => Err(issue)
+    Ok(_) => {
+      if self.operation_active {
+        self.operation_prepared_binding = Some(
+          (prepared, compiled, definition_cid, program, parameters),
+        )
+      }
+      Ok(())
+    }
   }
 }
 
@@ -616,46 +979,37 @@ fn NativeClientRunJournal::bind_run_locked(
   request : @host.ClientRequestIdentity,
   definition : @publication.PublicationContract,
   run_observation_originals? : String? = None,
+  observation_original? : NativeClientStoredRunObservation? = None,
   operations? : NativeClientJournalOperationAccess? = None,
 ) -> Result[NativeClientRunRecord, NativeClientRunJournalIssue] {
+  if observation_original is Some(original) &&
+    !(run_observation_originals is Some(wire) &&
+    original.matches(
+      wire,
+      definition,
+      Some(@host.client_request_program_cid(request)),
+    )) {
+    return Err(ForeignRun)
+  }
   let reads = operations.map(value => value.reads)
-  match self.retained(request, reads~) {
+  let issuance = match self.retained_with_issuance(request, reads~) {
     Err(issue) => return Err(issue)
-    Ok(Some(retained)) => {
+    Ok((Some(retained), _)) => {
       if @publication.publication_contract_identity(definition) !=
         @publication.publication_contract_identity(retained.definition) {
         return Err(ForeignRun)
       }
       return Ok(retained)
     }
-    Ok(None) => ()
+    Ok((None, Some(original))) => original
+    Ok((None, None)) => return Err(CustodyLost)
   }
-  let (count, revision) = match
-    run_journal_custody(self.database, self.max_records, reads~) {
-    Ok(value) => value
-    Err(issue) => return Err(issue)
+  if self.append_schema != 1 {
+    return Err(CustodyLost)
   }
+  let (count, revision) = issuance
   if count == self.max_records {
     return Err(CapacityExceeded)
-  }
-  let mut cursor = ""
-  while true {
-    let row = match
-      scan_client_journal_value(self.database, "client_runs", cursor, reads) {
-      Ok(value) => value
-      Err(@sqlite.NotFound) => break
-      Err(issue) => return Err(Physical(issue))
-    }
-    let other = match
-      read_run_record({ body: row.body, revision: row.revision, }) {
-      Ok(value) => value
-      Err(issue) => return Err(issue)
-    }
-    if @publication.publication_contract_identity(other.definition) ==
-      @publication.publication_contract_identity(definition) {
-      return Err(ForeignRun)
-    }
-    cursor = row.key
   }
   let record : NativeClientRunRecord = {
     request,
@@ -668,6 +1022,7 @@ fn NativeClientRunJournal::bind_run_locked(
     effect_material_originals: None,
     local_run_policy_originals: None,
     run_observation_originals,
+    observation_original,
     revision: 0L,
     checkpoint: None,
   }
@@ -694,11 +1049,68 @@ fn NativeClientRunJournal::bind_run_locked(
           operations,
         ) {
         Ok(value) => value
+        Err(@sqlite.Collision) =>
+          return Err(
+            self.classify_run_definition_collision(request, definition, reads~),
+          )
         Err(issue) => return Err(Physical(issue))
       }
     Err(issue) => return Err(Physical(issue))
   }
+  if self.transaction_active || self.operation_active {
+    self.operation_run_identity = Some(
+      (
+        @host.client_request_scope_cid(request),
+        request,
+        definition,
+        observation_original,
+      ),
+    )
+  }
   Ok({ ..record, revision, })
+}
+
+///|
+// The ordinary successful insert has already enforced uniqueness and needs no
+// second lookup. Only its typed Collision selects the exact indexed candidate
+// to preserve the original logical ForeignRun refusal. No history is scanned,
+// no admission is retried and the surrounding transaction still rolls back.
+fn NativeClientRunJournal::classify_run_definition_collision(
+  self : NativeClientRunJournal,
+  request : @host.ClientRequestIdentity,
+  definition : @publication.PublicationContract,
+  reads? : NativeClientJournalReadAccess? = None,
+) -> NativeClientRunJournalIssue {
+  if !self.transaction_active || self.append_schema != 1 {
+    return CustodyLost
+  }
+  let definition_cid = @publication.publication_contract_identity(definition)
+  let key = match
+    client_journal_run_definition_key(self.database, definition_cid, reads) {
+    Ok(Some(value)) => value
+    Ok(None) => return Physical(@sqlite.Collision)
+    Err(issue) => return Physical(issue)
+  }
+  let row = match
+    read_client_journal_value(self.database, "client_runs", key, reads) {
+    Ok(value) => value
+    Err(@sqlite.NotFound) => return CustodyLost
+    Err(issue) => return Physical(issue)
+  }
+  let original = match self.admit_retained_record(key, row) {
+    Ok(value) => value
+    Err(issue) => return issue
+  }
+  if @host.client_request_scope_cid(original.request) != key ||
+    @publication.publication_contract_identity(original.definition) !=
+    definition_cid ||
+    @host.client_request_scope_cid(request) == key {
+    return CustodyLost
+  }
+  match confirm_effect_ledger_custody(self.database, original, reads~) {
+    Ok(_) => ForeignRun
+    Err(issue) => issue
+  }
 }
 
 ///|
@@ -715,6 +1127,7 @@ fn NativeClientRunJournal::save_with_operations(
   record : NativeClientRunRecord,
   operations? : NativeClientJournalOperationAccess? = None,
 ) -> Result[NativeClientRunRecord, NativeClientRunJournalIssue] {
+  native_timing_count(20)
   if !self.transaction_active {
     return Err(CustodyLost)
   }
@@ -727,7 +1140,11 @@ fn NativeClientRunJournal::save_with_operations(
       reads,
     ) {
     Ok(current) if current.revision == record.revision =>
-      match read_run_record(current) {
+      match
+        self.admit_retained_record(
+          @host.client_request_scope_cid(record.request),
+          current,
+        ) {
         Ok(value) => value
         Err(issue) => return Err(issue)
       }
@@ -742,6 +1159,7 @@ fn NativeClientRunJournal::save_with_operations(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
+  self.invalidate_operation_run()
   let revision = match
     compare_exchange_client_journal_value(
       self.database,
@@ -754,8 +1172,70 @@ fn NativeClientRunJournal::save_with_operations(
     Ok(value) => value
     Err(issue) => return Err(Physical(issue))
   }
-  let next = { ..record, revision, }
-  self.save_checkpoint_id_index(before, next, operations~).map(_ => next)
+  // An unrelated field's CAS spends its own row admission, not the unchanged
+  // compiler metadata. Use only the actual pre-CAS reader's typed originals;
+  // a copied candidate field cannot supply this retention.
+  let observation_original = before.observation_original.filter(original => {
+    record.run_observation_originals is Some(wire) &&
+    original.matches(
+      wire,
+      record.definition,
+      Some(@host.client_request_program_cid(record.request)),
+    )
+  })
+  let next = { ..record, revision, observation_original, }
+  match self.save_checkpoint_id_index(before, next, operations~) {
+    Err(issue) => Err(issue)
+    Ok(_) => {
+      // These opaque identities already belong to the emitted record. Keep
+      // them separately from row admission: changed metadata still needs its
+      // reader, while equal headers need no second parse or CID validation.
+      self.operation_run_identity = Some(
+        (
+          @host.client_request_scope_cid(next.request),
+          next.request,
+          next.definition,
+          next.observation_original,
+        ),
+      )
+      // A control-only CAS without a Checkpoint changes flags and revision,
+      // not its admitted Run or Policy originals. Retain that typed result with
+      // the bytes just written; foreign metadata still takes full admission.
+      // Rollback, lost COMMIT and operation end clear this same existing slot.
+      if run_record_originals_unchanged(before, next) {
+        self.admitted_record = Some(
+          (
+            @host.client_request_scope_cid(next.request),
+            body,
+            revision,
+            ValidatePublication,
+            next,
+          ),
+        )
+      }
+      Ok(next)
+    }
+  }
+}
+
+///|
+// This is a reuse selection for an already admitted record, not admission of
+// changed metadata. Identity checks on opaque originals avoid decoding their
+// unchanged wire. The existing reader remains responsible for every fallback.
+fn run_record_originals_unchanged(
+  before : NativeClientRunRecord,
+  after : NativeClientRunRecord,
+) -> Bool {
+  physical_equal(before.request, after.request) &&
+  physical_equal(before.definition, after.definition) &&
+  before.publication_binding == after.publication_binding &&
+  before.publication_policy_originals == after.publication_policy_originals &&
+  before.effect_material_originals == after.effect_material_originals &&
+  before.local_run_policy_originals == after.local_run_policy_originals &&
+  before.run_observation_originals == after.run_observation_originals &&
+  before.checkpoint is None &&
+  after.checkpoint is None &&
+  (!after.physical_start_claimed || after.dispatch_reserved)
 }
 
 ///|
@@ -875,4 +1355,26 @@ fn NativeClientRunJournal::claim_physical_start_with_operations(
     },
     reads~,
   )
+}
+
+///|
+fn NativeClientRunJournal::invalidate_operation_submission(
+  self : NativeClientRunJournal,
+) -> Unit {
+  self.operation_submission = None
+}
+
+///|
+// A Run mutation changes the retained relationship, not the already admitted
+// Submission row. Reuse its immutable intent/reference and observe only the
+// new Run before returning the pair again.
+fn NativeClientRunJournal::invalidate_operation_run(
+  self : NativeClientRunJournal,
+) -> Unit {
+  self.operation_record = None
+  self.admitted_record = None
+  self.operation_run_identity = None
+  if self.operation_submission is Some((original, _)) {
+    self.operation_submission = Some((original, None))
+  }
 }

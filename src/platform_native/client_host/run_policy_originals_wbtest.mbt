@@ -9,6 +9,7 @@ fn policy_host_fixture(
   existing? : Bool = false,
   files? : Array[String] = [],
   account_body? : Bytes = policy_account_original,
+  legacy_evidence? : Bool = false,
 ) -> NativeLocalHostConnection {
   let path = @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_ROOT").unwrap()
   let account = name + ".account.json"
@@ -18,7 +19,7 @@ fn policy_host_fixture(
     writer.append(account_body).unwrap()
     writer.seal(account).unwrap() |> ignore
   }
-  begin_native_local_host_adoption(
+  let session = begin_native_local_host_adoption(
     path,
     name + ".host",
     path,
@@ -27,14 +28,63 @@ fn policy_host_fixture(
     epoch_test_crypto(),
     existing_only=existing,
     configuration_files=files,
-  )
-  .unwrap()
-  .open_journal(
-    local_journal_test_library(),
-    epoch_test_crypto(),
+  ).unwrap()
+  if !legacy_evidence {
+    return session
+      .open_journal(
+        local_journal_test_library(),
+        epoch_test_crypto(),
+        100.0,
+        8,
+        8388608L,
+      )
+      .unwrap()
+  }
+  // Construct a new prior-format installation through the original bootstrap
+  // transaction, omitting only the later evidence index. No old state is used.
+  if existing {
+    abort("legacy fixture requires a fresh installation")
+  }
+  let crypto = epoch_test_crypto()
+  let (ownership, adoption) = session.prepare_journal_file(crypto).unwrap()
+  if !session.prepare_journal_marker(ownership, adoption).unwrap() {
+    abort("fresh legacy marker lost")
+  }
+  let database = local_journal_test_library()
+    .initialize_owned_database(
+      session.state_path + "/client.sqlite3",
+      ownership,
+      131072L,
+    )
+    .unwrap()
+  let calls : Array[String] = []
+  let bootstrap = journal_test_bootstrap_access(database, calls)
+  let legacy : NativeClientJournalBootstrapAccess = {
+    ..bootstrap,
+    install_read_evidence_schema: _ => Ok(()),
+  }
+  initialize_native_local_client_custody(
+    database,
+    crypto,
+    adoption,
+    settings=Some(session.settings),
+    bootstrap=Some(legacy),
+  ).unwrap()
+  if database.client_read_evidence_schema().unwrap() != 0 {
+    abort("legacy index unexpectedly installed")
+  }
+  session
+  .bind_journal(
+    database,
+    crypto,
+    ownership,
+    adoption,
+    false,
     100.0,
     8,
-    8388608L,
+    [],
+    None,
+    None,
   )
   .unwrap()
 }

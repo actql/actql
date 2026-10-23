@@ -113,6 +113,29 @@ diagnostic uses `node scripts/local-checks.mjs run core --target <target>
 This is not an everyday local check. Manual integration CI retains the full
 supported-target matrix.
 
+The Native CLI release declaration selects `-O2` for its generated command C.
+Qualify an artifact using its actual compiler commands; support objects may
+have independently selected flags. `scripts/native-cli-artifact.mjs` accepts
+an explicit finite `--compile-seconds` budget without changing that profile.
+
+For an opt-in command measurement, set `ACTQL_NATIVE_TIMINGS=1`. The launcher
+and Native foundation emit bounded, best-effort timing diagnostics on stderr;
+successful payloads and receipts on stdout retain their existing format.
+These diagnostics are not a stable wire protocol or a cleanup acknowledgment.
+They describe selected preparation, execution, Journal, publication, Result
+and cleanup boundaries, with selected hash, parse, current, authorization and
+SQLite call counts. Counts are invocation attempts at the annotated Native
+callsites, rather than a complete census of internal library operations.
+
+Compare an uninstrumented correctness run with a separate instrumented fresh
+Run from the same package. Measure separate-process saved Result reads using
+their original Run identity. Keep launcher preparation, Native argument
+startup, external elapsed time and unassigned time distinct. Nested inclusive
+phases cannot be summed as disjoint wall time; parallel, overflow, unmatched
+or incomplete diagnostic records cannot establish a complete partition.
+Timings do not change authorization, Run state, delivery status or pending
+physical cleanup.
+
 `node scripts/check-moonbit-api.mjs` invokes `moon info` on all three targets
 and checks tracked interfaces. Preserve this cross-target gate in CI; run it
 locally only for an explicit public-interface or target diagnosis.
@@ -535,11 +558,18 @@ The original preparation Owner issues its inventory-backed journal before the
 material projection; actual completions and unsupported profiles refuse rather
 than falling back to a fabricated empty journal.
 
+For an initial live Run, `bindPreparedEffectRunMaterials(allowed, definition,
+issued, request)` binds those exact nominal originals through the same Common
+material Owner without re-preparation or compilation. It retains the original
+prepared/compiled handles and accepts no replacement inputs or serialized proof.
+Cold restoration continues through `admitEffectRunMaterials`.
+
 `restoreEffectRunNormalization` accepts only the exact object returned by
-`admitEffectRunMaterials`. It reuses saved original journal bytes through the
-material Owner without journal issuance. Copying its visible fields does not
+`admitEffectRunMaterials` or `bindPreparedEffectRunMaterials`. It reuses saved
+original journal bytes through the material Owner without journal issuance. Copying its visible fields does not
 recreate that custody. Initial execution-material admission still reconstructs
-execution ownership once; the normalization inverse does not repeat it.
+execution ownership once on cold restoration; the normalization inverse does not
+repeat it.
 Neither a journal nor a material content digest supplies current authority,
 Provider permission, approval or physical cleanup evidence.
 

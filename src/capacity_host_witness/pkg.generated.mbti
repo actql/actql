@@ -34,6 +34,8 @@ pub fn extend_source_dependencies(HostSources, Array[HostSources], Array[@capaci
 
 pub fn law_id(Witness) -> String
 
+pub fn measure(Witness, Int, Int, Int) -> (Int, Int, Int) raise @encode_core.EncodeFailure
+
 pub fn resolved_limit_at(ResolvedLimitExtension, Int) -> @capacity_witness.LimitClaim?
 
 pub fn resolved_limit_count(ResolvedLimitExtension) -> Int
@@ -65,6 +67,8 @@ pub fn source_origin_claims(HostSources) -> @capacity_witness.ProgramClaims
 pub fn source_usage(HostSources) -> (Int, Int)
 
 pub fn unit(Witness) -> @capacity_derivation.BoundUnit
+
+pub fn wire_witness(Witness) -> @capacity_witness.WireWitness
 
 // Errors
 

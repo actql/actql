@@ -1,6 +1,8 @@
 // The existing installed Host owns execution and durable data. This registry
 // only leases its in-process connection and retains its physical close retry.
 import {connectInProcess} from '../../packages/sdk/host-port.mjs';
+import {captureSourcePreparation, sourcePreparationPort} from
+  '../../packages/sdk/internal/private-source-preparation.mjs';
 import {createInstalledHostShutdown, retainInstalledHostRuntimeFailure,
   retainInstalledHostInitializationFailure, originalInitialControlClose}
   from './installed-host-cleanup.mjs';
@@ -8,18 +10,35 @@ import {createInstalledHostShutdown, retainInstalledHostRuntimeFailure,
 export function installedHostShutdown(host) {
   const retireRuntime = host.retireModelRuntime;
   const initialControl = host.initialControl;
+  const prepareShutdown = host.prepareShutdown;
+  const closePublicationStore = host.closePublicationStore;
+  const closeRequestJournal = host.closeRequestJournal;
+  const closePublicationOwnership = host.closePublicationOwnership;
   const shutdown = createInstalledHostShutdown({
-    stop: () => {
+    stop: prepareShutdown === undefined ? () => {
       host.stopModelRuntime?.();
-      return host.checkpoints?.stop();
+      return (host.runAcceptance ?? host.checkpoints)?.stop();
+    } : async () => {
+      host.stopModelRuntime?.();
+      // The same Host's deferred constructor may already hold a physical
+      // child. Observe that original to terminal before enumerating shutdown
+      // duties; never replace it or turn its Promise into an ACK.
+      await Reflect.apply(prepareShutdown,host,[]);
+      return (host.runAcceptance ?? host.checkpoints)?.stop();
     },
-    drain: () => host.dispatchOwner.drain(),
-    retire: () => host.retireTerminalEffects(),
-    checkpoint: () => host.checkpoints?.close(),
-    journal: () => host.journal.close(),
+    drain: () => prepareShutdown === undefined
+      ? host.dispatchOwner.drain() : host.dispatchOwner?.drain(),
+    retire: () => prepareShutdown === undefined
+      ? host.retireTerminalEffects() : host.retireTerminalEffects?.(),
+    checkpoint: () => (host.runAcceptance ?? host.checkpoints)?.close(),
+    journal: closeRequestJournal === undefined ? () => host.journal.close() :
+      () => Reflect.apply(closeRequestJournal, host, []),
     source: () => host.sourceProfile?.close(),
     effect: () => host.installedEffect?.close(),
-    store: () => host.store.close(),
+    store: closePublicationStore === undefined ? () => host.store.close() :
+      () => Reflect.apply(closePublicationStore,host,[]),
+    ...(closePublicationOwnership === undefined ? {} : {publicationOwnership:
+      () => Reflect.apply(closePublicationOwnership, host, [])}),
     ...(host.diagnostic === undefined ? {} :
       {diagnostic: () => host.diagnostic.close()}),
     ...(host.observation === undefined ? {} :
@@ -59,8 +78,20 @@ export function createEmbeddedHostRegistry(sameInstallation) {
       profiles.delete(entry.originalHost);
     }
     entry.preparationRetired = true;
+    entry.mockPreparation = undefined;
+    entry.hostJournalPreparation = undefined;
     entry.originalHost = entry.originalInstallation = entry.generation = undefined;
   };
+  function originalSourceRequest(host, installation, generation, request) {
+    const entry = preparationFor(host, installation, generation);
+    if (entry.closing || entry.failure !== undefined ||
+        request === null || typeof request !== 'object') preparationChanged();
+    for (const original of entry.handling.values()) {
+      if (original !== undefined && (original.request === request ||
+          original.aliases.includes(request))) return original.request;
+    }
+    preparationChanged();
+  }
   return Object.freeze({
   // A candidate belongs to this SAME registry, before Project discovery. It
   // has no root lease or physical Host yet and issues no capacity/permission.
@@ -73,11 +104,72 @@ export function createEmbeddedHostRegistry(sameInstallation) {
     }
     profiles.set(host, {originalHost: host, originalInstallation: installation,
       generation, preparing: true, leases: 0, accepting: 0, closing: false,
-      handling: new Set()});
+      handling: new Map()});
   },
   assertPreparation(host, installation, generation) {
     const entry = preparationFor(host, installation, generation);
     if (entry.closing || entry.failure !== undefined) preparationChanged();
+  },
+  // The actual Host retains this one original before its first root/Journal
+  // operation. This association is not a native facility, issuer or grant.
+  retainHostJournalPreparation(host, installation, generation, view) {
+    const entry = preparationFor(host, installation, generation);
+    if (entry.closing || entry.failure !== undefined ||
+        entry.hostJournalPreparation !== undefined || view === null ||
+        typeof view !== 'object' || !Object.isFrozen(view)) preparationChanged();
+    entry.hostJournalPreparation = view;
+  },
+  hostJournalPreparation(host, installation, generation) {
+    const entry = preparationFor(host, installation, generation);
+    if (entry.closing || entry.failure !== undefined ||
+        entry.hostJournalPreparation === undefined) preparationChanged();
+    return entry.hostJournalPreparation;
+  },
+  // Retain only this original Host's prepared mock view. This existing
+  // registry association is not the Source supplier or a DATA admission.
+  retainMockPreparation(host, installation, generation, view) {
+    const entry = preparationFor(host, installation, generation);
+    if (entry.closing || entry.failure !== undefined || entry.mockPreparation !== undefined ||
+        view === null || typeof view !== 'object') preparationChanged();
+    entry.mockPreparation = view;
+  },
+  mockPreparation(host, installation, generation, allowMissing = false) {
+    const entry = preparationFor(host, installation, generation);
+    if (entry.closing || entry.failure !== undefined ||
+        entry.mockPreparation === undefined && !allowMissing) preparationChanged();
+    return entry.mockPreparation;
+  },
+  retainedMockPreparation(host, installation, generation) {
+    // Cleanup may outlive new-operation currentness. Keep the exact registry
+    // pair while closing; this projection cannot admit another preparation.
+    return preparationFor(host, installation, generation).mockPreparation;
+  },
+  // Identity-only projection from this registry's actual pending calls. The
+  // Source operational supplier covers the additional request reference and
+  // Map backing before installing its consumer. This is not an issuer, grant,
+  // request parser or evidence that the call's physical work has stopped.
+  originalSourceRequest,
+  assertSourceRequest(host, installation, generation, request) {
+    originalSourceRequest(host, installation, generation, request);
+  },
+  bindSourceRequest(host, installation, generation, parent, derived) {
+    const originalRequest = originalSourceRequest(host, installation, generation, parent);
+    if (derived === null || typeof derived !== 'object') preparationChanged();
+    const entry = preparationFor(host, installation, generation);
+    let selected;
+    for (const original of entry.handling.values()) {
+      if (original === undefined) continue;
+      if (original.request === originalRequest) selected = original;
+      else if (original.request === derived || original.aliases.includes(derived)) preparationChanged();
+    }
+    if (derived === originalRequest || selected.aliases.includes(derived)) return;
+    // Selected private operational retention only. This does not change the
+    // public packet grammar, issue capacity or prove any clone's backing.
+    if (selected.aliases.length === 16) {
+      throw Object.assign(new Error('SourceManagedPreparationUnavailable'),
+        {code: 'SourceManagedPreparationUnavailable'});
+    }
+    selected.aliases.push(derived);
   },
   retirePreparation(host, installation, generation) {
     const entry = preparationFor(host, installation, generation);
@@ -108,7 +200,7 @@ export function createEmbeddedHostRegistry(sameInstallation) {
       } else throw entry.failure;
     }
     if (entry === undefined) {
-      entry = prepared ?? {leases: 0, accepting: 0, closing: false, handling: new Set()};
+      entry = prepared ?? {leases: 0, accepting: 0, closing: false, handling: new Map()};
       entry.identity = identity;
       entry.preparing = false;
       const opened = entry;
@@ -181,6 +273,7 @@ export function createEmbeddedHostRegistry(sameInstallation) {
     const opened = entry;
     let sealed = false, released = false, finished = false, flight;
     const handling = new Set();
+    const sourceProducers = new Map();
     function seal() {
       if (sealed) return;
       sealed = true;
@@ -197,9 +290,21 @@ export function createEmbeddedHostRegistry(sameInstallation) {
       flight = Promise.resolve().then(async () => {
         if (finished) return;
         await Promise.allSettled([...handling]);
+        // A producer can finish after the SDK's cleanup iteration started.
+        // Await that original attempt, but never treat its rejection as alias
+        // retirement. The SDK retains its same retry; the next close can drain
+        // it without resnapshotting, dispatching or replacing the receipt.
+        if (sourceProducers.size !== 0) {
+          throw Object.assign(new Error('InstalledSourceProducerCleanupPending'),
+            {code: 'InstalledSourceProducerCleanupPending'});
+        }
         if (opened.leases !== 0) { finished = true; return; }
         const host = await opened.host;
-        await Promise.allSettled([...opened.handling]);
+        await Promise.allSettled([...opened.handling.keys()]);
+        if ((opened.sourceProducerPending ?? 0) !== 0) {
+          throw Object.assign(new Error('InstalledSourceProducerCleanupPending'),
+            {code: 'InstalledSourceProducerCleanupPending'});
+        }
         try {
           await opened.shutdown.close();
           if (!opened.finalized) {
@@ -233,10 +338,79 @@ export function createEmbeddedHostRegistry(sameInstallation) {
     }
     try {
     const originalPort = host.port, answer = originalPort.answerCheckpoint;
+    const sourcePreparation = captureSourcePreparation(originalPort);
     if (answer !== undefined && typeof answer !== 'function') {
       throw new TypeError('InvalidLocalCheckpointAnswerPort');
     }
+    const retainSourceProducer = receipt => {
+      if (sourceProducers.has(receipt)) {
+        throw Object.assign(new Error('InstalledSourceProducerAlreadyPending'),
+          {code: 'InstalledSourceProducerAlreadyPending'});
+      }
+      let settled;
+      const pending = new Promise(resolve => {settled = resolve;});
+      sourceProducers.set(receipt, {pending, settled});
+      opened.sourceProducerPending = (opened.sourceProducerPending ?? 0) + 1;
+      handling.add(pending);
+      opened.handling.set(pending, undefined);
+      return receipt;
+    };
     const port = Object.freeze({
+      ...(sourcePreparation === undefined ? {} : {[sourcePreparationPort]: Object.freeze({
+        beforeSourceSnapshot(kind, input, options) {
+          if (sealed || opened.closing) throw closing();
+          return retainSourceProducer(sourcePreparation.beforeSourceSnapshot(kind, input, options));
+        },
+        beforeSourceQuery(format, text, parameters, options) {
+          if (sealed || opened.closing) throw closing();
+          // Query admission enters the SAME producer/lease lifetime. No
+          // second snapshot, receipt, pending owner or physical ACK is made.
+          return retainSourceProducer(sourcePreparation.beforeSourceQuery(format, text, parameters, options));
+        },
+        beforeResultRead(schemaOrOptions, options) {
+          if (sealed || opened.closing) throw closing();
+          return sourcePreparation.beforeResultRead(schemaOrOptions, options);
+        },
+        assertResultReadCurrent() {
+          if (sealed || opened.closing) throw closing();
+          return sourcePreparation.assertResultReadCurrent();
+        },
+        bindSourceSnapshot(receipt, body) {
+          if (sealed || opened.closing) throw closing();
+          return sourcePreparation.bindSourceSnapshot(receipt, body);
+        },
+        bindSourceRequest(receipt, body, request) {
+          if (sealed || opened.closing) throw closing();
+          return sourcePreparation.bindSourceRequest(receipt, body, request);
+        },
+        intentCid(receipt, body) {
+          if (sealed || opened.closing) throw closing();
+          if (!sourceProducers.has(receipt)) {
+            throw Object.assign(new Error('ForeignInstalledSourceProducer'),
+              {code: 'ForeignInstalledSourceProducer'});
+          }
+          return sourcePreparation.intentCid(receipt, body);
+        },
+        finishSourceProducer(receipt, terminal) {
+          const producer = sourceProducers.get(receipt);
+          if (producer === undefined) {
+            throw Object.assign(new Error('ForeignInstalledSourceProducer'),
+              {code: 'ForeignInstalledSourceProducer'});
+          }
+          try {
+            // Retirement stays legal after sealing. This same original Owner
+            // cuts only producer aliases; it grants no physical cleanup ACK.
+            const result = sourcePreparation.finishSourceProducer(receipt, terminal);
+            sourceProducers.delete(receipt);
+            opened.sourceProducerPending--;
+            return result;
+          } finally {
+            producer.settled();
+            handling.delete(producer.pending);
+            opened.handling.delete(producer.pending);
+          }
+        },
+      })}),
       ...(answer === undefined ? {} : {
         answerCheckpoint: (summary, decision, signal) => {
             if (sealed || opened.closing) return Promise.reject(closing());
@@ -247,7 +421,7 @@ export function createEmbeddedHostRegistry(sameInstallation) {
             // The same lease/Host handling sets own signing as well as reads.
             // Close must not forget a pending original key/use operation.
             handling.add(pending);
-            opened.handling.add(pending);
+            opened.handling.set(pending, undefined);
             pending.finally(() => {
               handling.delete(pending);
               opened.handling.delete(pending);
@@ -259,7 +433,10 @@ export function createEmbeddedHostRegistry(sameInstallation) {
         if (sealed || opened.closing) return Promise.reject(closing());
         const pending = Promise.resolve().then(() => host.port.perform(operation, request, signal));
         handling.add(pending);
-        opened.handling.add(pending);
+        // Same pending operation, not a second request index or cache. The
+        // supplier may retain an admitted original after this Promise retires;
+        // deleting this association is neither a holding nor physical ACK.
+        opened.handling.set(pending, {request, aliases: []});
         pending.finally(() => {
           handling.delete(pending);
           opened.handling.delete(pending);

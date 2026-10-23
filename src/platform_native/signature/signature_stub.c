@@ -9,6 +9,10 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+#if defined(__APPLE__) && defined(__aarch64__)
+#include <sys/random.h>
+#include "owned_entropy.h"
+#endif
 
 typedef struct actql_original_crypto_component actql_original_crypto_component;
 static bool actql_crypto_original_thread(actql_original_crypto_component *);
@@ -433,11 +437,26 @@ moonbit_bytes_t actql_native_signature_random_bytes(
   actql_native_signature_library *library, int32_t length
 ) {
   ACTQL_SIGNATURE_SCOPE(library, moonbit_make_bytes_raw(0));
+  if (!actql_signature_library_available(library) ||
+      length < 1 || length > 4096) {
+    return moonbit_make_bytes_raw(0);
+  }
+#if defined(__APPLE__) && defined(__aarch64__)
+  if (library->component != NULL) {
+    /* The selected owned Library uses the supported OS CSPRNG directly.
+     * Its original scope remains entered; failure never falls back to RAND. */
+    moonbit_bytes_t result = moonbit_make_bytes_raw(length);
+    if (!actql_signature_fill_owned_entropy(result, (size_t)length, getentropy)) {
+      moonbit_decref(result);
+      return moonbit_make_bytes_raw(0);
+    }
+    return result;
+  }
+#endif
+  /* Legacy dynamic Libraries and other platforms keep their selected RAND. */
   typedef int (*random_fn)(unsigned char *, int);
   random_fn random = NULL;
-  if (!actql_signature_library_available(library) ||
-      length < 1 || length > 4096 ||
-      !actql_load_symbol(library, (void **)&random, "RAND_bytes")) {
+  if (!actql_load_symbol(library, (void **)&random, "RAND_bytes")) {
     return moonbit_make_bytes_raw(0);
   }
   moonbit_bytes_t result = moonbit_make_bytes_raw(length);

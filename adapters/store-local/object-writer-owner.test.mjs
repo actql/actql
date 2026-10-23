@@ -7,6 +7,24 @@ const digest = value => `sha256:${createHash('sha256')
   .update(value).digest('hex')}`;
 const failure = code => Object.assign(new Error(code), {code});
 
+test('a fresh successful seal retires its redundant staging alias without another directory ACK',async()=>{
+  const {writer,counts}=fixture();
+  await writer.append('data');
+  assert.deepEqual(await writer.seal(digest('data')),{cid:digest('data'),bytes:4,created:true});
+  assert.equal(writer.status().reservationHeld,false);
+  assert.deepEqual(counts(),{releases:1,closeCalls:1,unlinkCalls:1,syncCalls:1,linked:1});
+});
+
+test('failed alias unlink after a real final-name ACK keeps the same reservation and cleanup',async()=>{
+  const {writer,counts,failUnlink}=fixture();
+  await writer.append('data');failUnlink();
+  await assert.rejects(writer.seal(digest('data')),{code:'UNLINK_FAILED'});
+  assert.equal(writer.status().cleanupPending,true);assert.equal(writer.status().reservationHeld,true);
+  assert.deepEqual(counts(),{releases:0,closeCalls:1,unlinkCalls:1,syncCalls:1,linked:1});
+  assert.equal(await writer.cancel(),true);assert.equal(await writer.cancel(),false);
+  assert.deepEqual(counts(),{releases:1,closeCalls:1,unlinkCalls:2,syncCalls:2,linked:1});
+});
+
 function fixture(maxBytes = 4) {
   let held = true;
   let releases = 0;

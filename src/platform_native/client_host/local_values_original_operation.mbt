@@ -55,6 +55,9 @@ fn[T] NativeLocalValuesOriginalAccess::in_original_read(
     NativeClientValuesWorkIssue,
   ],
 ) -> Result[T, NativeClientValuesWorkIssue] {
+  guard self.operation.receiver.domain is StoreBusinessDomain(execution) else {
+    return Err(self.retain(OriginalOperation(None, StoreOperationUnavailable)))
+  }
   guard self.operation.bridge is Some(bridge) &&
     self.operation.receiver.ready &&
     !self.operation.receiver.closed &&
@@ -85,9 +88,7 @@ fn[T] NativeLocalValuesOriginalAccess::in_original_read(
     }
     if !same_flight ||
       !(original.active_phase is Some(@arena.HostRead)) ||
-      !(original.host.observe_domain_retained_execution_scope(
-        self.operation.receiver.execution,
-      )
+      !(original.host.observe_domain_retained_execution_scope(execution)
       is Ok(@bootstrap.BackedReadUnentered)) {
       return Err(
         self.retain(OriginalOperation(None, StoreOperationUnavailable)),
@@ -184,6 +185,96 @@ fn[T] NativeLocalValuesOriginalAccess::in_original_read(
 }
 
 ///|
+// Poll only the same already-claimed synchronous Compute occurrence. Full
+// Account/Run checks remain at the surrounding dispatch and callback-return
+// boundaries. No SQL, configuration validation, entry, leave or ACK occurs.
+fn NativeLocalValuesOriginalAccess::poll_execution_original(
+  self : NativeLocalValuesOriginalAccess,
+  start : NativeClientWorkFirstStart,
+) -> Bool {
+  if self.primary is Some(_) {
+    return false
+  }
+  if !physical_equal(start.journal, self.host.journal) ||
+    @host.client_request_identity_relation(start.request, self.request) !=
+    @host.SameRequest {
+    self.retain(Journal(ForeignRun)) |> ignore
+    return false
+  }
+  if self.host.journal.fenced ||
+    self.host.closed ||
+    self.host.database_closed ||
+    self.host.session_closed ||
+    self.operation.receiver.primary is Some(_) ||
+    !self.operation.receiver.ready ||
+    self.operation.receiver.closing ||
+    self.operation.receiver.closed {
+    self.retain(AuthorizationDenied) |> ignore
+    return false
+  }
+  let receiver = self.operation.receiver
+  guard receiver.domain is StoreBusinessDomain(execution) &&
+    self.operation.bridge is Some(bridge) else {
+    self.retain(OriginalOperation(None, StoreOperationUnavailable)) |> ignore
+    return false
+  }
+  let (host, original) = match receiver.originals(receiver.library, false) {
+    Ok(value) => value
+    Err(issue) => {
+      self.retain(OriginalOperation(None, issue)) |> ignore
+      return false
+    }
+  }
+  if !physical_equal(host, self.host) ||
+    original.active_phase is Some(_) ||
+    original.store_operation is Some(_) ||
+    receiver.phase != StoreRouteIdle {
+    self.retain(OriginalOperation(None, StoreOperationForeignOriginal))
+    |> ignore
+    return false
+  }
+  match bridge.pending_scope() {
+    Ok(false) => ()
+    Ok(true) => {
+      self.retain(OriginalOperation(None, StoreOperationUnavailable)) |> ignore
+      return false
+    }
+    Err(issue) => {
+      self.retain(OriginalOperation(None, self.routing_issue(issue))) |> ignore
+      return false
+    }
+  }
+  match
+    original.host.observe_local_host_consuming_read_scope(
+      original.pair,
+      original.read,
+    ) {
+    Ok(@arena.ReadUnentered) => ()
+    Ok(_) => {
+      self.retain(OriginalOperation(None, StoreOperationUnavailable)) |> ignore
+      return false
+    }
+    Err(issue) => {
+      self.retain(OriginalOperation(None, StoreOperationResources(issue)))
+      |> ignore
+      return false
+    }
+  }
+  match original.host.observe_domain_retained_execution_scope(execution) {
+    Ok(@bootstrap.BackedReadEntered) => true
+    Ok(_) => {
+      self.retain(OriginalOperation(None, StoreOperationUnavailable)) |> ignore
+      false
+    }
+    Err(issue) => {
+      self.retain(OriginalOperation(None, StoreOperationExecution(issue)))
+      |> ignore
+      false
+    }
+  }
+}
+
+///|
 fn NativeLocalValuesOriginalAccess::current(
   self : NativeLocalValuesOriginalAccess,
 ) -> Bool {
@@ -275,8 +366,16 @@ pub fn NativeLocalHostConnection::open_original_values_work(
   ordered_body : String?,
   finalization_quantum : Int,
   max_finalization_rounds : Int,
+  requirements? : @local.ClientLocalSourceFreeRequirements? = None,
 ) -> Result[NativeClientValuesWork, NativeClientValuesWorkFailure] {
   let receiver = operation.receiver
+  guard receiver.domain is StoreBusinessDomain(execution) else {
+    return Err(
+      local_values_work_failure(
+        OriginalOperation(None, StoreOperationUnavailable),
+      ),
+    )
+  }
   if !receiver.ready || receiver.closing || receiver.closed {
     return Err(
       local_values_work_failure(
@@ -290,7 +389,7 @@ pub fn NativeLocalHostConnection::open_original_values_work(
     Ok(value) => value
   }
   if !physical_equal(self, host) ||
-    !(original.host.observe_domain_retained_execution_scope(receiver.execution)
+    !(original.host.observe_domain_retained_execution_scope(execution)
     is Ok(@bootstrap.BackedReadEntered)) {
     return Err(
       local_values_work_failure(
@@ -299,7 +398,7 @@ pub fn NativeLocalHostConnection::open_original_values_work(
     )
   }
   let ledger = match
-    original.host.borrow_domain_retained_execution_ledger(receiver.execution) {
+    original.host.borrow_domain_retained_execution_ledger(execution) {
     Err(issue) =>
       return Err(
         local_values_work_failure(
@@ -331,6 +430,7 @@ pub fn NativeLocalHostConnection::open_original_values_work(
     () => access.current(),
     ledger=Some(ledger),
     original_access=Some(access),
+    requirements~,
   )
   match result {
     Ok(work) => Ok(work)
@@ -351,17 +451,18 @@ fn values_original_cleanup_entered(
     None => true
     Some(value) => {
       let receiver = value.operation.receiver
+      guard receiver.domain is StoreBusinessDomain(execution) else {
+        return false
+      }
       guard receiver.original is Some(original) else { return false }
       let entered = match
-        original.host.observe_domain_retained_execution_scope(
-          receiver.execution,
-        ) {
+        original.host.observe_domain_retained_execution_scope(execution) {
         Ok(scope) => Ok(scope)
         // Cleanup has a separate original/current port once normal current is
         // retired. Neither an observation failure nor Unentered is a close ACK.
         Err(_) =>
           original.host.observe_domain_retained_execution_cleanup_scope(
-            receiver.execution,
+            execution,
           )
       }
       entered is Ok(@bootstrap.BackedReadEntered)

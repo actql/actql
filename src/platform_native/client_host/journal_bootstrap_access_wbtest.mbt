@@ -24,6 +24,14 @@ fn journal_test_bootstrap_access(
   }
   {
     reads,
+    install_read_evidence_schema: max_rows => {
+      calls.push("install read evidence schema")
+      database.install_client_read_evidence_schema(max_rows)
+    },
+    install_run_definition_schema: max_rows => {
+      calls.push("install run definition schema")
+      database.install_client_run_definition_schema(max_rows)
+    },
     insert: (table_name, key, body) => {
       calls.push("insert:" + table_name + ":" + key)
       if fail_adoption && table_name == "client_local_adoption" {

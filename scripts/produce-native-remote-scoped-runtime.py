@@ -49,7 +49,7 @@ def selected_entry(entry: str) -> str:
 def moon_build_arguments(moon_home: Path, emission: Path, entry: str) -> list[str]:
     selected_entry(entry)
     # The existing Remote recipe strips; the ordinary Local artifact recipe
-    # does not. Its native_client package remains the source of its O0 flags.
+    # does not. Its native_client package remains the source of its selected flags.
     return [str(moon_home / 'bin/moon'), 'build', '--target', 'native', '--release',
             *(['--strip'] if entry == ENTRY else []),
             '--target-dir', str(emission), '-j', '1', entry]
@@ -361,6 +361,7 @@ def build(source: str, moon_home: Path, clang: Path, sdk: Path,
         receipt['commands_completed'] = len(commands)
         executable = emission / 'native/release/build' / entry_package / (Path(entry_package).name + '.exe')
         receipt['executable'] = original(executable)
+        receipt['generated_c'] = original(executable.with_suffix('.c'))
     for item in inputs:
         if original(Path(str(item['path']))) != item:
             raise ValueError('Original build input changed during preparation')

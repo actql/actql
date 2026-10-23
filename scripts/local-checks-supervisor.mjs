@@ -156,7 +156,7 @@ function capture(data) {
 function groupMembers() {
   try {
   const result = spawnSync('ps', ['-A', '-o', 'pid=', '-o', 'pgid=', '-o', 'stat='],
-    {encoding: 'utf8', timeout: 2000, maxBuffer: 4 * 1024 * 1024});
+    {encoding: 'utf8', timeout: 10000, maxBuffer: 4 * 1024 * 1024});
   if (result.status !== 0 || result.error || result.stderr) throw new Error('Cannot inspect owned process group with ps');
   const rows = result.stdout.trim().split('\n').filter(Boolean).map(line => {
     const match = /^\s*(\d+)\s+(\d+)\s+(\S+)\s*$/u.exec(line);

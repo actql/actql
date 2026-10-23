@@ -71,28 +71,17 @@ fn NativeLocalHostConnection::lookup_submitted_run_plan_by_id_with_operations(
         let plan = match run.run_observation_originals {
           None => None
           Some(wire) => {
-            let fields = match
-              native_run_observation_fields(wire, [
-                "authorization", "plan", "prepared",
-              ]) {
-              Ok(value) => value
-              Err(issue) => return Err(issue)
+            guard run.observation_original is Some(original) &&
+              original.matches(
+                wire,
+                run.definition,
+                Some(@host.client_request_program_cid(run.request)),
+              ) else {
+              return Err(CustodyLost)
             }
-            match epoch_text(fields, "plan") {
-              None => None
-              Some(wire) => {
-                let original = match
-                  read_native_run_plan_original(
-                    wire,
-                    run.definition,
-                    Some(@host.client_request_program_cid(run.request)),
-                  ) {
-                  Ok(value) => value
-                  Err(issue) => return Err(issue)
-                }
-                Some(original.view)
-              }
-            }
+            // The actual retained row already admitted this exact plan.
+            // Returning its immutable view does not create another frame.
+            original.plan.map(value => value.view)
           }
         }
         if !current() {

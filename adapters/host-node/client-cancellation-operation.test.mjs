@@ -389,6 +389,11 @@ test('additive cancellation custody preserves the prior journal marker and Run o
   // Construct the actually supported prior layout, before this additive
   // feature exists. No operation has been recorded or removed in this fixture.
   const db = new DatabaseSync(join(f.path, 'client-requests.sqlite3'));
+  for(const table of ['client_request_row_usage','client_cancellation_row_usage']) {
+    for(const suffix of ['insert','delete']) db.exec(`DROP TRIGGER ${table}_${suffix}`);
+    db.exec(`DROP TABLE ${table}`);
+  }
+  db.exec('PRAGMA user_version=1');
   db.exec('DROP TABLE client_cancellation_operations; DROP TABLE client_cancellation_custody');
   db.close();
   await rm(join(f.path, 'cancellation-operations-format.json'));

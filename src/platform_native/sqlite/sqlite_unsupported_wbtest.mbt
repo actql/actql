@@ -52,6 +52,17 @@ test "non-native metadata supplies neither original reservation nor database tot
     database.read_capacity("original", "one") is Err(UnsupportedTarget),
   )
   assert_true(database.database_usage() is Err(UnsupportedTarget))
+  assert_true(
+    database.client_run_definition_key("original") is Err(UnsupportedTarget),
+  )
+  assert_true(database.client_read_evidence_schema() is Err(UnsupportedTarget))
+  assert_true(
+    database.install_client_read_evidence_schema(1L) is Err(UnsupportedTarget),
+  )
+  assert_true(
+    database.client_read_evidence_usage("original", 64L, 65536L)
+    is Err(UnsupportedTarget),
+  )
 }
 
 ///|

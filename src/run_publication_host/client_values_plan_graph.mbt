@@ -37,6 +37,22 @@ pub fn issue_prepared_client_values_plan_graph(
   max_nodes : Int,
   max_depth : Int,
 ) -> Result[ClientValuesPlanGraph, ClientValuesPlanGraphIssue] {
+  issue_prepared_client_values_plan_graph_parts(
+    value, sequence_limits, max_wire_bytes, max_nodes, max_depth,
+  ).map(parts => parts.0)
+}
+
+///|
+fn issue_prepared_client_values_plan_graph_parts(
+  value : PreparedClientProgram,
+  sequence_limits : @lower.SequenceLimits,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  (ClientValuesPlanGraph, ClientValuesFragmentNode, ClientValuesAoAParts),
+  ClientValuesPlanGraphIssue,
+] {
   if max_wire_bytes <= 0 || max_nodes <= 0 || max_depth <= 0 {
     return Err(InvalidLimits)
   }
@@ -46,11 +62,17 @@ pub fn issue_prepared_client_values_plan_graph(
     @strategy.graph_task_input_count(graph, 0) != Some(0) {
     return Err(UnsupportedGraph)
   }
-  let fragment = match
-    issue_prepared_client_values_fragment(
-      value, 0, sequence_limits, max_wire_bytes, max_nodes, max_depth,
+  let (fragment, aoa) = match
+    issue_client_values_fragment_parts_graph(
+      graph,
+      0,
+      sequence_limits,
+      max_wire_bytes,
+      max_nodes,
+      max_depth,
+      preparation=Some(value),
     ) {
-    Ok(fragment) => fragment
+    Ok(parts) => parts
     Err(issue) => return Err(Fragment(issue))
   }
   guard parse_plan_identity_value(
@@ -114,7 +136,7 @@ pub fn issue_prepared_client_values_plan_graph(
     }
     @encode.end_array(writer)
     @encode.end_object(writer)
-    Ok({ wire: @encode.finish(writer), transformations, })
+    Ok(({ wire: @encode.finish(writer), transformations, }, fragment, aoa))
   } catch {
     _ => Err(Encoding)
   }

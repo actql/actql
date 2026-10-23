@@ -33,6 +33,37 @@ pub fn start_effect_free_run_evidence_check(
 }
 
 ///|
+/// Borrow completed immutable computation facts only from this same capture.
+/// Foreign, restored, changed or unsupported tighter inputs use the full check.
+pub fn start_effect_free_run_evidence_check_retained(
+  original : CapturedRunIssuancePreparation,
+  run_definition : PublicationContract,
+  invocation : PublicationContract,
+  definitions : Array[PublicationContract],
+  artifacts : Array[PublicationContract],
+  manifest : PublicationContract,
+  receipt : PublicationContract,
+  captured_run : PublicationContract,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  max_workspace : Int,
+) -> ComputationEvidenceCheck {
+  let preparation = start_effect_free_run_evidence_check(
+    run_definition, invocation, definitions, artifacts, manifest, receipt, captured_run,
+    max_wire_bytes, max_nodes, max_depth, max_workspace,
+  )
+  if max_workspace > preparation.live &&
+    original.matches_computation(preparation.inputs.unwrap()) {
+    preparation.retained_capture = Some(original)
+    preparation.live += 1
+    preparation.peak = Int::max(preparation.peak, preparation.live)
+    preparation.phase = Done
+  }
+  preparation
+}
+
+///|
 priv struct PublicationCommitInputs {
   computation : ComputationEvidenceInputs
   derivations : Array[PublicationContract]
@@ -61,6 +92,7 @@ priv enum PublicationCommitPhase {
 /// index. Store custody remains with the existing publication commit owner.
 struct PublicationCommitPreparation {
   mut inputs : PublicationCommitInputs?
+  mut retained_capture : CapturedRunIssuancePreparation?
   max_workspace : Int
   mut phase : PublicationCommitPhase
   mut live : Int
@@ -115,6 +147,7 @@ pub fn start_effect_free_publication_commit_check(
       attempt,
       index_entry,
     }),
+    retained_capture: None,
     max_workspace,
     phase: BeginResultEvidence,
     live: 12,
@@ -122,6 +155,44 @@ pub fn start_effect_free_publication_commit_check(
     closed: false,
     view: None,
   }
+}
+
+///|
+/// Reuse only the captured computation fact. Result dependencies, bindings and
+/// each new request/attempt/Index remain with their original commit validators.
+pub fn start_effect_free_publication_commit_check_retained(
+  original : CapturedRunIssuancePreparation,
+  run_definition : PublicationContract,
+  invocation : PublicationContract,
+  definitions : Array[PublicationContract],
+  artifacts : Array[PublicationContract],
+  derivations : Array[PublicationContract],
+  orderings : Array[PublicationContract],
+  retentions : Array[PublicationContract],
+  bindings : Array[PublicationContract],
+  manifest : PublicationContract,
+  receipt : PublicationContract,
+  captured_run : PublicationContract,
+  request : PublicationContract,
+  attempt : PublicationContract,
+  index_entry : PublicationContract,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  max_workspace : Int,
+) -> PublicationCommitPreparation {
+  let preparation = start_effect_free_publication_commit_check(
+    run_definition, invocation, definitions, artifacts, derivations, orderings, retentions,
+    bindings, manifest, receipt, captured_run, request, attempt, index_entry, max_wire_bytes,
+    max_nodes, max_depth, max_workspace,
+  )
+  if max_workspace > preparation.live &&
+    original.matches_computation(preparation.inputs.unwrap().computation) {
+    preparation.retained_capture = Some(original)
+    preparation.live += 1
+    preparation.peak = Int::max(preparation.peak, preparation.live)
+  }
+  preparation
 }
 
 ///|
@@ -263,12 +334,17 @@ fn PublicationCommitPreparation::advance_bindings(
       )
       if done {
         child.cancel()
-        preparation.phase = Computation(
-          start_computation_evidence_check(
-            chain,
-            preparation.max_workspace - preparation.live,
-          ),
-        )
+        if preparation.retained_capture is Some(original) &&
+          original.matches_computation(chain) {
+          preparation.phase = BeginReferences
+        } else {
+          preparation.phase = Computation(
+            start_computation_evidence_check(
+              chain,
+              preparation.max_workspace - preparation.live,
+            ),
+          )
+        }
       }
     }
   }
@@ -304,6 +380,10 @@ pub fn PublicationCommitPreparation::advance(
   if preparation.closed || preparation.view is Some(_) || quantum < 1 {
     return Err(CommitEncoding)
   }
+  if preparation.retained_capture is Some(original) && original.closed {
+    preparation.cancel()
+    return Err(CommitEncoding)
+  }
   let mut used = 0
   while used < quantum && !(preparation.phase is Done) {
     match preparation.step() {
@@ -323,7 +403,8 @@ pub fn PublicationCommitPreparation::finish(
 ) -> Result[Unit, PublicationCommitIssue] {
   if preparation.closed ||
     preparation.view is Some(_) ||
-    !(preparation.phase is Done) {
+    !(preparation.phase is Done) ||
+    (preparation.retained_capture is Some(original) && original.closed) {
     return Err(CommitEncoding)
   }
   preparation.cancel()
@@ -355,6 +436,7 @@ pub fn PublicationCommitPreparation::cancel(
     return
   }
   preparation.inputs = None
+  preparation.retained_capture = None
   preparation.phase = Done
   preparation.live = 0
   preparation.closed = true

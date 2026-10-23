@@ -357,11 +357,7 @@ fn NativeLocalRunPolicyBinding::restore_read_original(
     @publication.publication_contract_identity(record.definition) else {
     return Err(CustodyLost)
   }
-  let ref_record = match
-    @host.admit_client_submission_reference_record(reference.wire) {
-    Ok(value) => value
-    Err(_) => return Err(CustodyLost)
-  }
+  let ref_record = reference.original
   let original = match
     @host.admit_client_local_run_policy_original(
       @utf8.encode(wire),
@@ -490,11 +486,7 @@ fn NativeLocalRunPolicyBinding::prepare_submission_policy_with_operations(
           @publication.publication_contract_identity(run.definition) else {
           return Err(CustodyLost)
         }
-        let ref_record = match
-          @host.admit_client_submission_reference_record(reference.wire) {
-          Ok(value) => value
-          Err(_) => return Err(CustodyLost)
-        }
+        let ref_record = reference.original
         let saved = match
           @host.admit_client_local_run_policy_original(
             @utf8.encode(wire),
@@ -595,15 +587,13 @@ fn NativeLocalRunPolicyBinding::accept_submitted_run_with_operations(
     return Err(UnsupportedPreparation)
   }
   match
-    validate_native_client_run_binding(request, prepared, compiled, definition) {
+    self.host.journal.validate_prepared_run_binding(
+      request, prepared, compiled, definition,
+    ) {
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
-  let ref_record = match
-    @host.admit_client_submission_reference_record(reference.wire) {
-    Ok(value) => value
-    Err(_) => return Err(InvalidSubmission)
-  }
+  let ref_record = reference.original
   if @host.admit_client_local_run_policy_original(
       @host.client_local_run_policy_original_body(original),
       self.profile,
@@ -678,11 +668,7 @@ fn NativeLocalRunPolicyBinding::issued_policy_original(
   retention : @publication.PublicationContract,
   issued_at : String,
 ) -> Result[@host.ClientLocalRunPolicyOriginal, NativeClientRunJournalIssue] {
-  let ref_record = match
-    @host.admit_client_submission_reference_record(reference.wire) {
-    Ok(value) => value
-    Err(_) => return Err(InvalidSubmission)
-  }
+  let ref_record = reference.original
   match
     @host.bind_client_local_run_policy_original(
       self.profile,
@@ -756,11 +742,7 @@ fn NativeLocalRunPolicyBinding::lookup_submitted_run_policy_with_operations(
         admission.run_definition_cid else {
         return Err(CustodyLost)
       }
-      let ref_record = match
-        @host.admit_client_submission_reference_record(reference.wire) {
-        Ok(value) => value
-        Err(_) => return Err(CustodyLost)
-      }
+      let ref_record = reference.original
       let original = match
         @host.admit_client_local_run_policy_original(
           @utf8.encode(wire),

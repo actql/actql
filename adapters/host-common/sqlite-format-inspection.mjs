@@ -7,6 +7,13 @@ import {closeSync, constants, existsSync, fstatSync, lstatSync, mkdtempSync,
 import {tmpdir} from 'node:os';
 import {basename, dirname, join, relative, isAbsolute, sep} from 'node:path';
 import {throwSqliteInitializationFailure} from './sqlite-transaction.mjs';
+import {snapshotSqliteSchemaReadLimits, snapshotSqliteSchemaSqlSupport, inspectBoundedSqliteSchema}
+  from './sqlite-schema-resource-bounds.mjs';
+
+const originalRealpath = realpathSync;
+const originalNativeRealpath = Object.getOwnPropertyDescriptor(originalRealpath, 'native')?.value;
+const nativePathOptions = Object.freeze({__proto__: null, encoding: 'utf8'});
+const nativePathApply = Reflect.apply;
 
 const sameFile = (left, right) => ['dev', 'ino', 'size', 'mtimeNs', 'ctimeNs']
   .every(key => left[key] === right[key]);
@@ -80,11 +87,25 @@ export function inspectSqliteSnapshot(databasePath, inspect, {
   validateSource = () => true,
   maxSourceBytes = Number.MAX_SAFE_INTEGER,
   unavailableCode = 'SqliteSnapshotInspectionUnavailable',
+  schemaReadLimits,
+  schemaSqlSupport,
+  assertCurrent,
+  temporaryDirectory,
 } = {}) {
   if (!Number.isSafeInteger(maxSourceBytes) || maxSourceBytes < 1 ||
-      typeof unavailableCode !== 'string' || unavailableCode.length === 0) {
+      typeof unavailableCode !== 'string' || unavailableCode.length === 0 ||
+      assertCurrent !== undefined && typeof assertCurrent !== 'function' ||
+      temporaryDirectory !== undefined && (typeof temporaryDirectory !== 'string' ||
+        temporaryDirectory.length === 0 || temporaryDirectory.length > 4096 ||
+        !isAbsolute(temporaryDirectory) || temporaryDirectory.includes('\0'))) {
     throw Object.assign(new Error('InvalidSqliteSnapshotInspectionConfiguration'),
       {code: 'InvalidSqliteSnapshotInspectionConfiguration'});
+  }
+  schemaReadLimits = snapshotSqliteSchemaReadLimits(schemaReadLimits);
+  schemaSqlSupport = snapshotSqliteSchemaSqlSupport(schemaSqlSupport, schemaReadLimits);
+  assertCurrent?.();
+  if (assertCurrent !== undefined && typeof originalNativeRealpath !== 'function') {
+    throw new TypeError('SqliteInspectionNativePathUnavailable');
   }
   const fail = cause => {
     throw Object.assign(new Error(code, {cause}), {code, path: databasePath});
@@ -95,12 +116,36 @@ export function inspectSqliteSnapshot(databasePath, inspect, {
   let isolated;
   let database;
   let databaseClose;
+  let databaseIsOpen;
+  const captureDatabaseCleanup = () => {
+    databaseClose ??= database.close;
+    databaseIsOpen ??= Object.getOwnPropertyDescriptor(database, 'isOpen')?.get;
+    if (typeof databaseClose !== 'function' || typeof databaseIsOpen !== 'function') {
+      throw new TypeError('SqliteInspectionDatabaseCloseUnavailable');
+    }
+  };
   let result;
   const complete = new Error('SqliteSnapshotInspectionComplete');
   let primaryFailure = complete;
   const closeFile = original => {
-    if (Reflect.apply(original.close, undefined, [original.fd]) !== undefined) {
-      throw new TypeError('SqliteInspectionFileCleanupPending');
+    if (original.closeObserved === true) return;
+    if (original.closeAttempted === true) {
+      // A numeric FD may already have been consumed/reused when close throws.
+      // Retry observes the same Unknown, never another close of that number.
+      if (original.closeFailed === true) throw original.closeFailure;
+      throw original.closeUnknown;
+    }
+    original.closeUnknown = new TypeError('SqliteInspectionFileCloseUnknown');
+    original.closeAttempted = true;
+    try {
+      if (Reflect.apply(original.close, undefined, [original.fd]) !== undefined) {
+        throw original.closeUnknown;
+      }
+      original.closeObserved = true;
+    } catch (cause) {
+      original.closeFailed = true;
+      original.closeFailure = cause;
+      throw cause;
     }
   };
   const cleanup = {
@@ -108,12 +153,14 @@ export function inspectSqliteSnapshot(databasePath, inspect, {
       if (database !== undefined) {
         // Capture once before handing the database to the inspector. Retry
         // only that original close; a later replacement is not an ACK.
-        databaseClose ??= database.close;
-        if (typeof databaseClose !== 'function' ||
-            Reflect.apply(databaseClose, database, []) !== undefined) {
+        captureDatabaseCleanup();
+        const opened = Reflect.apply(databaseIsOpen, database, []);
+        if (typeof opened !== 'boolean' ||
+            opened && (Reflect.apply(databaseClose, database, []) !== undefined ||
+              Reflect.apply(databaseIsOpen, database, []) !== false)) {
           throw new TypeError('SqliteInspectionDatabaseCleanupPending');
         }
-        database = databaseClose = undefined;
+        database = databaseClose = databaseIsOpen = undefined;
       }
       while (sources.length !== 0) {
         closeFile(sources.at(-1));
@@ -150,19 +197,29 @@ export function inspectSqliteSnapshot(databasePath, inspect, {
         throw Object.assign(new Error(unavailableCode), {code: unavailableCode});
       }
     }
-    const scratch = realpathSync(tmpdir());
-    const sourceDirectory = realpathSync(dirname(databasePath));
+    // The selected original avoids the JS symlink walk's growing managed
+    // path history. Native path/allocator/stack coverage is still required.
+    // A selected Root retains this original before native image acquisition.
+    // Do not reacquire ambient TMPDIR after that selection. The path itself
+    // is neither a filesystem supplier nor an operational admission.
+    const scratchOriginal = temporaryDirectory === undefined ? tmpdir() : temporaryDirectory;
+    const scratch = assertCurrent === undefined ? realpathSync(scratchOriginal) :
+      nativePathApply(originalNativeRealpath, originalRealpath, [scratchOriginal, nativePathOptions]);
+    const sourceDirectory = assertCurrent === undefined ? realpathSync(dirname(databasePath)) :
+      nativePathApply(originalNativeRealpath, originalRealpath, [dirname(databasePath), nativePathOptions]);
     const withinSource = relative(sourceDirectory, scratch);
     if (withinSource === '' ||
         (withinSource !== '..' && !withinSource.startsWith(`..${sep}`) &&
           !isAbsolute(withinSource))) fail();
     isolated = mkdtempSync(join(scratch, 'actql-journal-format-'));
+    // One original backing serves both DB and WAL copying. Falling out of a
+    // loop iteration is not a physical release of a previous Buffer backing.
+    const chunk = Buffer.allocUnsafe(64 * 1024);
     for (const source of sources) {
       const output = openSync(join(isolated, basename(source.path)), 'wx', 0o600);
       const originalOutput = {fd: output, close: closeSync};
       outputs.push(originalOutput);
       try {
-        const chunk = Buffer.allocUnsafe(64 * 1024);
         let offset = 0;
         while (offset < Number(source.identity.size)) {
           const count = readSync(source.fd, chunk, 0,
@@ -182,11 +239,69 @@ export function inspectSqliteSnapshot(databasePath, inspect, {
         outputs.pop();
       }
     }
+    if (schemaReadLimits !== undefined) {
+      // The same isolated-copy Owner retains these original read FDs before
+      // the schema walk. They coexist with the pinned source FDs, and close
+      // before native SQLite construction; failure stays under cleanup below.
+      const copies = [];
+      for (const source of sources) {
+        const fd = openSync(join(isolated, basename(source.path)), constants.O_RDONLY |
+          (constants.O_NOFOLLOW ?? 0));
+        outputs.push({fd, close: closeSync});
+        copies.push({fd, bytes: Number(source.identity.size)});
+      }
+      inspectBoundedSqliteSchema(copies[0], copies[1], schemaReadLimits, maxSourceBytes, schemaSqlSupport);
+      while (outputs.length !== 0) {
+        closeFile(outputs.at(-1));
+        outputs.pop();
+      }
+    }
+    assertCurrent?.();
+    // Keep the selected constructor's internal options closed: native Get
+    // otherwise consults inherited callbacks before its wrapper is returned.
     database = new DatabaseSync(join(isolated, basename(databasePath)),
-      {open: true, readOnly: true});
-    databaseClose = database.close;
-    if (typeof databaseClose !== 'function') {
-      throw new TypeError('SqliteInspectionDatabaseCloseUnavailable');
+      assertCurrent === undefined ? {open: false, readOnly: true} :
+        {__proto__: null, open: false, readOnly: true});
+    // The original wrapper and cleanup are retained before native open can
+    // acquire a connection and then fail. GC is not its close acknowledgement.
+    captureDatabaseCleanup();
+    // The selected own-DDL facility keeps temporary Btrees in this same
+    // connection's memory domain, including during cold schema inspection.
+    // Capture operations before open can invoke native/current callbacks.
+    const databasePrepare = schemaSqlSupport === undefined ? undefined : database.prepare;
+    const databaseExec = schemaSqlSupport === undefined ? undefined : database.exec;
+    if (schemaSqlSupport !== undefined &&
+        (typeof databasePrepare !== 'function' || typeof databaseExec !== 'function')) {
+      throw new TypeError('SqliteInspectionTemporaryUnavailable');
+    }
+    assertCurrent?.();
+    const databaseOpen = database.open;
+    if (typeof databaseOpen !== 'function' ||
+        Reflect.apply(databaseOpen, database, []) !== undefined ||
+        Reflect.apply(databaseIsOpen, database, []) !== true) {
+      throw new TypeError('SqliteInspectionDatabaseOpenUnavailable');
+    }
+    assertCurrent?.();
+    if (schemaSqlSupport !== undefined) {
+      const supportedStatement = Reflect.apply(databasePrepare, database,
+        ["SELECT sqlite_compileoption_used('TEMP_STORE=1') AS supported"]);
+      const supportedGet = supportedStatement.get;
+      if (typeof supportedGet !== 'function' ||
+          Reflect.apply(supportedGet, supportedStatement, [])?.supported !== 1) {
+        throw Object.assign(new Error('SqliteInspectionTemporaryUnavailable'),
+          {code: 'SqliteInspectionTemporaryUnavailable'});
+      }
+      assertCurrent?.();
+      Reflect.apply(databaseExec, database, ['PRAGMA temp_store = MEMORY']);
+      assertCurrent?.();
+      const effectiveStatement = Reflect.apply(databasePrepare, database, ['PRAGMA temp_store']);
+      const effectiveGet = effectiveStatement.get;
+      if (typeof effectiveGet !== 'function' ||
+          Reflect.apply(effectiveGet, effectiveStatement, [])?.temp_store !== 2) {
+        throw Object.assign(new Error('SqliteInspectionTemporaryUnavailable'),
+          {code: 'SqliteInspectionTemporaryUnavailable'});
+      }
+      assertCurrent?.();
     }
     result = inspect(database);
     if (existsSync(`${databasePath}-journal`) ||

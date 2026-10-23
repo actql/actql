@@ -64,6 +64,41 @@ pub fn NativeLocalJournalCapture::lookup_submitted_run_state_by_id_in_original_r
 }
 
 ///|
+/// Read saved state for this already authenticated original without resolving
+/// its Run ID again. State is read afresh under current RunRead and the same
+/// original Database operations; the selection is neither permission nor a
+/// substitute for the saved-state custody, epoch, revision and return checks.
+pub fn NativeLocalJournalCapture::lookup_submitted_run_state_for_original_in_original_read(
+  self : NativeLocalJournalCapture,
+  principal : String,
+  connection : String,
+  original : NativeClientOriginalRunSelection,
+  now : Double,
+) -> Result[
+  Result[NativeClientSavedRunState, NativeClientSavedRunStateIssue],
+  NativeLocalAdoptionIssue,
+] {
+  self.with_current_adoption_material_in_original_read((
+    host,
+    _material,
+    operations,
+  ) => {
+    Ok(
+      host.lookup_submitted_run_state_with_operations(
+        self.crypto,
+        principal,
+        connection,
+        original.reference,
+        original.request,
+        now,
+        operations=Some(operations),
+        capture=Some(self),
+      ),
+    )
+  })
+}
+
+///|
 /// Observe committed names from the same original Store. Store custody and
 /// Run binding are compared by their original Owners; SQL metadata, a scope
 /// CID and these names grant no payload read or delivery permission.

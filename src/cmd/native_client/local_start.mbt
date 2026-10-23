@@ -35,6 +35,7 @@ fn local_run_operation_allowed(
   operation : String,
   capture? : @local_host.NativeLocalJournalCapture? = None,
 ) -> Bool {
+  native_timing_count(19)
   if capture is Some(original) {
     return original.authority_scope_cid_in_original_read(
         settings.principal,
@@ -157,6 +158,8 @@ fn local_publication_field(
 fn local_generation_cid(
   crypto : @local_crypto.Library,
 ) -> String raise ClientStop {
+  native_timing_begin(23)
+  defer native_timing_end(23)
   let nonce = crypto
     .random_bytes(32)
     .unwrap_or_else(() => stop("LocalGenerationUnavailable"))
@@ -306,19 +309,21 @@ fn local_submission_start(
     let run_file = settings.run_file.unwrap_or_else(() => {
       stop("LocalRunInstallationRequired")
     })
-    let run = local_run_installation(
-      @utf8.decode(
-        local_host_result(
-          match business {
-            None => host.selected_configuration(run_file)
-            Some(original) =>
-              original.capture.selected_configuration_in_original_read(run_file)
+    let run = match business {
+      Some(original) =>
+        original.configuration.run_installation(
+          run_file,
+          local_host_result(
+            original.capture.selected_configuration_in_original_read(run_file),
+          ),
+        )
+      None =>
+        local_run_installation(
+          @utf8.decode(local_host_result(host.selected_configuration(run_file))) catch {
+            _ => stop("InvalidLocalRunInstallation")
           },
-        ),
-      ) catch {
-        _ => stop("InvalidLocalRunInstallation")
-      },
-    )
+        )
+    }
     let preparation = match business {
       None => local_prepare_submitted_run_program(intent, environment)
       Some(original) => original.preparation
@@ -394,11 +399,20 @@ fn local_submission_start(
     }
     // The current installed profile must genuinely have zero semantic
     // completions. No test-side lowering or fabricated empty journal is used.
-    @run_host.issue_prepared_client_local_normalization(prepared).unwrap_or_else(() => {
-        stop("LocalOriginalNormalizationNotInstalled")
-      },
-    )
-    |> ignore
+    match business {
+      None =>
+        @run_host.issue_prepared_client_local_normalization(prepared).unwrap_or_else(() => {
+            stop("LocalOriginalNormalizationNotInstalled")
+          },
+        )
+        |> ignore
+      Some(original) =>
+        // Business preparation already admitted normalization on this exact
+        // checked owner before acquiring execution or a durable attempt.
+        if !physical_equal(original.prepared, prepared) {
+          stop("LocalBusinessOriginalUnavailable")
+        }
+    }
     let request = @run_host.prepare_source_free_client_request_identity(
       prepared,
       scope,
@@ -452,52 +466,57 @@ fn local_submission_start(
       local_input_cursor(@publication.publication_contract_json(run.retention)),
     ).unwrap_or_else(() => stop("InvalidLocalResultRetentionPolicy"))
     let until = run_text(retention, "available_until")
-    let manifests = @run_host.admit_client_compilation_manifests(
-      @compiler_environment.compiler_grammar_manifest_wire(),
-      @compiler_environment.compiler_barrier_contract_manifest_wire(),
-      10000,
-      1000,
-      20,
-    ).unwrap_or_else(() => stop("LocalCompilerManifestUnavailable"))
-    let compilation = @run_host.issue_prepared_client_task_compilation(
-      prepared,
-      manifests,
-      @run_host.client_standard_values_sequence_limits(),
-      1000,
-      1000,
-      65536,
-      8192,
-      64,
-    ).unwrap_or_else(() => stop("LocalCompilationNotReady"))
-    let configuration_cid = local_host_result(
-      match business {
-        None => host.configuration()
-        Some(original) => original.capture.configuration_in_original_read()
-      },
-    ).configuration_cid()
-    let compiled = @run_host.issue_client_task_compiled_run(
-      prepared, compilation, scope, configuration_cid, until,
-    ).unwrap_or_else(() => stop("LocalCompiledRunNotReady"))
-    let compiled = if source_free {
-      let values = run.source_free.unwrap()
-      @run_host.with_client_source_free_result_policy(
-        compiled,
-        values.result_policy_cid,
-        values.result_policy_wire,
+    let compilation = {
+      let manifests = @run_host.admit_client_compilation_manifests(
+        @compiler_environment.compiler_grammar_manifest_wire(),
+        @compiler_environment.compiler_barrier_contract_manifest_wire(),
+        10000,
+        1000,
+        20,
+      ).unwrap_or_else(() => stop("LocalCompilerManifestUnavailable"))
+      @run_host.issue_prepared_client_task_compilation(
+        prepared,
+        manifests,
+        @run_host.client_standard_values_sequence_limits(),
+        1000,
+        1000,
         65536,
         8192,
         64,
-      ).unwrap_or_else(() => stop("LocalValuesResultPolicyNotAdmitted"))
-    } else {
-      compiled
+      ).unwrap_or_else(() => stop("LocalCompilationNotReady"))
     }
-    let definition = @run_host.issue_client_compiled_run_definition(
-      compiled,
-      run.namespace_id,
-      @local_host.native_client_submission_request_id(reference),
-      now,
-      until,
-    ).unwrap_or_else(() => stop("LocalRunDefinitionNotReady"))
+    let (compiled, definition) = {
+      let configuration_cid = local_host_result(
+        match business {
+          None => host.configuration()
+          Some(original) => original.capture.configuration_in_original_read()
+        },
+      ).configuration_cid()
+      let compiled = @run_host.issue_client_task_compiled_run(
+        prepared, compilation, scope, configuration_cid, until,
+      ).unwrap_or_else(() => stop("LocalCompiledRunNotReady"))
+      let compiled = if source_free {
+        let values = run.source_free.unwrap()
+        @run_host.with_client_source_free_result_policy(
+          compiled,
+          values.result_policy_cid,
+          values.result_policy_wire,
+          65536,
+          8192,
+          64,
+        ).unwrap_or_else(() => stop("LocalValuesResultPolicyNotAdmitted"))
+      } else {
+        compiled
+      }
+      let definition = @run_host.issue_client_compiled_run_definition(
+        compiled,
+        run.namespace_id,
+        @local_host.native_client_submission_request_id(reference),
+        now,
+        until,
+      ).unwrap_or_else(() => stop("LocalRunDefinitionNotReady"))
+      (compiled, definition)
+    }
     let accepted : Result[
       @local_host.NativeClientSubmittedIntentRecord,
       @local_host.NativeClientRunJournalIssue,
@@ -631,7 +650,7 @@ fn local_submission_start(
           _ => stop("InvalidLocalReadPolicyOriginal")
         },
       )
-      if read.enabled() {
+      if read.enabled() && !source_free {
         local_retain_values_policy_originals(
           host,
           settings,

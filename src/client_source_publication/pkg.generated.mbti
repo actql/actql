@@ -13,11 +13,27 @@ import {
 // Values
 pub fn bind_published_query_context(@program_check.CheckEnvironment, String, String?) -> Result[@query_program.Context, PublicationIssue]
 
+pub fn bind_published_query_parts(@program_check.CheckEnvironment, String, String?) -> Result[(@query_program.Context, Array[@query_program.TableWriteBinding], @query_program.UpdateTargetPublication?, @query_program.StoreTargetPublication?, @query_program.CommandTargetPublication?), PublicationIssue]
+
+pub fn bind_published_query_parts_with_catalog(@program_check.CheckEnvironment, String, String?) -> Result[(@query_program.Context, Array[@query_program.TableWriteBinding], @query_program.UpdateTargetPublication?, @query_program.StoreTargetPublication?, @query_program.CommandTargetPublication?, @program_check.PreparedSourceCatalog), PublicationIssue]
+
 pub fn[T] enter_installation_preparation_read(InstallationPreparationRead[T], T) -> Result[Unit, @physical_resources.OriginalReadIssue]
 
 pub fn[T] installation_preparation_read_current(InstallationPreparationRead[T], T) -> Bool
 
+pub fn lower_prepared_published_query(PreparedPublishedQueryEnvironment, @program_check.CheckEnvironment, String, @source_frontend.Format, String?, public_primary? : Bool) -> Result[(@source_frontend.Lowered, @program_check.PreparedSourceCatalog), PreparedPublicationIssue]
+
 pub fn[T] prepare_installation_preparation_read(@client_host_buffers.OriginalWorkspaceRead[T], T, @client_host_buffers.WorkspaceLoan, Int64, Int64) -> Result[InstallationPreparationRead[T], @physical_resources.OriginalReadIssue]
+
+pub fn prepare_published_query_environment(@program_check.CheckEnvironment, String) -> Result[PreparedPublishedQueryEnvironment, PublicationIssue]
+
+pub fn prepared_published_effect_parts(PreparedPublishedQueryEnvironment, @program_check.CheckEnvironment) -> Result[(@query_program.UpdateTargetPublication?, @query_program.StoreTargetPublication?, @query_program.CommandTargetPublication?, @program_check.PreparedSourceCatalog), PreparedPublicationIssue]
+
+pub fn prepared_published_query_catalog(PreparedPublishedQueryEnvironment, @program_check.CheckEnvironment) -> Result[@program_check.PreparedSourceCatalog, PreparedPublicationIssue]
+
+pub fn prepared_published_query_environment_matches(PreparedPublishedQueryEnvironment, @program_check.CheckEnvironment) -> Bool
+
+pub fn prepared_published_query_environment_publication_matches(PreparedPublishedQueryEnvironment, @program_check.CheckEnvironment, String) -> Bool
 
 pub fn published_command_targets(@program_check.CheckEnvironment, String) -> Result[@query_program.CommandTargetPublication?, PublicationIssue]
 
@@ -35,6 +51,16 @@ pub fn[T] retire_installation_preparation_read(InstallationPreparationRead[T], T
 
 // Types and methods
 pub struct InstallationPreparationRead[T] {
+  // private fields
+}
+
+pub(all) enum PreparedPublicationIssue {
+  Publication(PublicationIssue)
+  ForeignEnvironment
+  Frontend(@source_frontend.Issue)
+}
+
+pub struct PreparedPublishedQueryEnvironment {
   // private fields
 }
 

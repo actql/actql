@@ -227,6 +227,8 @@ fn local_project_read_from(
 fn local_project_read(
   matches : @argparse.Matches,
 ) -> Result[LocalProjectConfiguration?, @files.NativeBoundedTextFailure] raise ClientStop {
+  native_timing_begin(11)
+  defer native_timing_end(11)
   // Explicit Remote/legacy choices never probe project files. A default-mode
   // candidate remains unchanged until a complete metadata read has succeeded.
   if !local_project_requires_read(matches) {

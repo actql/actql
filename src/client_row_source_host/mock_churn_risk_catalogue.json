@@ -1,0 +1,51 @@
+[
+  {
+    "connection": "salesforce",
+    "connectorId": "salesforce",
+    "registration": "mock_salesforce",
+    "revision": "mock_salesforce/0.1",
+    "queryAliases": [
+      {
+        "name": "salesforce.accounts",
+        "resource": "Account"
+      }
+    ],
+    "updateAliases": [
+      {
+        "name": "salesforce.Account",
+        "resource": "Account"
+      }
+    ],
+    "views": [
+      {
+        "resource": "Account",
+        "resource_kind": "record",
+        "schema_wire": "{\"Churn_Risk__c\":{\"nullable\":false,\"type\":\"string\"},\"Risk_Reason__c\":{\"nullable\":true,\"type\":\"string\"},\"description\":{\"nullable\":false,\"type\":\"string\"},\"id\":{\"nullable\":false,\"type\":\"string\"},\"name\":{\"nullable\":false,\"type\":\"string\"}}",
+        "schema_cid": "sha256:2bb86ad0dae4e6ab1cde7bb339f74cd3959dc572f6ad54f6da5487765709307d",
+        "facts_wire": "{\"relation_keys\":{\"candidate_keys\":[[\"id\"]]}}"
+      }
+    ]
+  },
+  {
+    "connection": "snowflake",
+    "connectorId": "snowflake",
+    "registration": "mock_snowflake",
+    "revision": "mock_snowflake/0.1",
+    "queryAliases": [
+      {
+        "name": "snowflake.usage_30d",
+        "resource": "usage_30d"
+      }
+    ],
+    "updateAliases": [],
+    "views": [
+      {
+        "resource": "usage_30d",
+        "resource_kind": "table",
+        "schema_wire": "{\"account_id\":{\"nullable\":false,\"type\":\"string\"},\"active_users\":{\"nullable\":false,\"type\":\"int64\"},\"trend\":{\"nullable\":false,\"type\":\"string\"}}",
+        "schema_cid": "sha256:fd038c1aa8fe013d4838819a6011e18aee81a04a179f1994a548ff292dfae424",
+        "facts_wire": "{\"relation_keys\":{\"candidate_keys\":[[\"account_id\"]]}}"
+      }
+    ]
+  }
+]

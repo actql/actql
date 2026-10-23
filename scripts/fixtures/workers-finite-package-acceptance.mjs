@@ -12,7 +12,7 @@ const outputLimits = {
 
 // Reused by the isolated installed-tarball consumer. Only serialized original
 // materials enter this factory; fixture handles cannot cross the link unit.
-export async function exerciseWorkersFinitePackage(createRuntime, input) {
+export async function exerciseWorkersFinitePackage(createRuntime, input, maxBatchBytes = 32) {
   const {host, core, createAuthorizationGate} = createRuntime(17, input.configuration);
   assert.equal(host.core, core);
   const authorization = createAuthorizationGate({configuration: JSON.stringify({
@@ -29,7 +29,7 @@ export async function exerciseWorkersFinitePackage(createRuntime, input) {
     const setup = host.open(original.preparation,
       {...original, ledger: host.createLedger()}, authorization);
     return await host.withExecution(setup, authorization, async () => {
-      const exported = await core.outputExportControl.beginResult(setup, 0, outputLimits);
+      const exported = await core.outputExportControl.beginResult(setup, 0, {...outputLimits, maxBatchBytes});
       try {
         let wire = '';
         while (true) {

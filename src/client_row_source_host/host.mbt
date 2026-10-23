@@ -598,11 +598,34 @@ pub fn begin_row_run(
   max_capture_rows : Int,
   reference_issuer? : @admitted.ReferenceIssuer? = None,
 ) -> Result[Unit, RowHostIssue] {
+  begin_row_run_with_page_limits(
+    run,
+    {
+      max_bytes: max_page_bytes,
+      max_nodes: 400000,
+      max_depth: 32,
+      max_rows: max_page_rows,
+    },
+    max_capture_rows,
+    reference_issuer~,
+  )
+}
+
+///|
+/// Narrow the standard page envelope for this same original RowRun. The
+/// installed Host must bind these DATA limits to its actual Source original;
+/// neither the limits nor this admission supplies capacity or permission.
+pub fn begin_row_run_with_page_limits(
+  run : RowRun,
+  page_limits : RowPageLimits,
+  max_capture_rows : Int,
+  reference_issuer? : @admitted.ReferenceIssuer? = None,
+) -> Result[Unit, RowHostIssue] {
   if run.closed {
     return Err(InvalidState)
   }
   if run.physical is Some(physical) &&
-    max_page_bytes.to_int64() > physical.execution_scratch {
+    page_limits.max_bytes.to_int64() > physical.execution_scratch {
     return Err(Physical(InvalidCharge))
   }
   let attempt = run.attempt
@@ -611,15 +634,14 @@ pub fn begin_row_run(
     run.configuration is DirectConfiguration(configuration) else {
     return Err(InvalidState)
   }
+  if page_limits.max_nodes > 400000 || page_limits.max_depth > 32 {
+    abort_row_attempt(attempt)
+    return Err(Source(InvalidPage))
+  }
   match
     begin_row_source_read(
       preparation,
-      {
-        max_bytes: max_page_bytes,
-        max_nodes: 400000,
-        max_depth: 32,
-        max_rows: max_page_rows,
-      },
+      page_limits,
       max_capture_rows,
       {
         max_nodes: 100000,

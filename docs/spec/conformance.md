@@ -27,6 +27,7 @@ This document owns claims, profile-dependencies, corpora, evidence, release-comb
 - [Conformance profiles](#conformance-profiles)
 - [Conformance and versioning](#conformance-and-versioning)
 - [Product boundary acceptance](#product-decision-acceptance)
+- [Ordinary operation performance](#ordinary-operation-performance)
 - [Conformance claims](#conformance-claims)
 - [Module closure workloads](#module-workloads)
 - [Conformance tests and reports](#conformance-tests)
@@ -34,6 +35,82 @@ This document owns claims, profile-dependencies, corpora, evidence, release-comb
 - [Versioning](#versioning)
 - [Artifact and companion contract index (normative)](#contract-index)
 <!-- page-contents:end -->
+
+<a id="ordinary-operation-performance"></a>
+
+### Ordinary operation performance
+
+<!-- requirement-block: ordinary-performance.same-cohort -->
+Release acceptance MUST measure completed public operations through the same
+fixed ordinary distribution cohort, including required materialization,
+persistence and cleanup, with raw wall/CPU samples and relevant authorization,
+row-validation, configuration, Journal transfer, commit and poll counts.
+Reports separate engine/query cost, required authorization and durable Run/Result
+work, and cold startup, while retaining the complete public end-to-end total.
+These additional duties are not a blanket latency exemption.
+Internal Core timing, a private shortcut, compiler optimization alone or an
+increased timeout establishes no ordinary performance result.
+
+<!-- requirement-block: ordinary-performance.latency-targets -->
+The ordinary cohort MUST demonstrate SQLite-comparable public completion for
+supported local simple operations using a measured local baseline and a fixed
+ratio-plus-additive-noise/essential-overhead comparison profile, calibrated
+before final candidate qualification. Comparable cases match machine and
+runtime/binding family, input data, indexes, Parameters, row count and output
+materialization, prepared versus one-shot use, warm versus cold state,
+concurrency/load, and stated transaction/durability settings. An actual local
+SQLite binding is the initial comparator; already available local Turso/libSQL
+can be additional evidence without adding a dependency or remote service.
+The profile aims for the same latency class and low constant-factor overhead;
+it is not an arbitrary replacement ceiling fitted to a slow candidate. An absent
+baseline, unfixed profile or unmatched condition is incomplete, not a pass.
+Pure engine and indexed-read diagnostics invent no durable writes. Public Run
+and Result delivery comparison includes only the independently required durable
+transitions named by their existing semantic Owner, measured in a bounded
+SQLite control and fixed before candidate acceptance. A raw engine baseline or
+unmatched minimum transaction is diagnostic evidence, not an unconditional SDK
+latency promise or permission to exempt the public operation's remaining work.
+Unchanged plain status receives no invented commit allowance.
+Median, nearest-rank p95, ratio and absolute delta retain the public total;
+fast inner-engine timing alone does not qualify a slow public operation.
+New-process existing-state open/operation/close at 2000 ms and fresh Host
+initialization with a small query and close at 5000 ms remain provisional cold
+guardrails, separately reported rather than folded into warm SQL comparison.
+The initial Mock machine-workflow target is 5000 ms excluding human approval
+wait and actual external model/network time, without substituting a different
+execution or authority path.
+
+<!-- requirement-block: ordinary-performance.samples-and-coverage -->
+Final latency evidence MUST retain at least 100 warm and 30 cold-process
+uninstrumented samples, their individual values, median, nearest-rank p95 and
+maximum, with explicit first-use initialization and unsupported coverage.
+Focused diagnosis can use fewer samples without claiming final acceptance.
+An initial small measured comparator calibrates the fixed profile without
+replaying a slow candidate distribution; final qualification retains the
+controlled distributions and exact baseline/profile/cohort correspondence.
+Cold process does not imply a cold OS page cache, and instrumentation and
+changes in Project, Store or Run history are separate measurement conditions.
+
+<!-- requirement-block: ordinary-performance.structural-regression -->
+The same cohort MUST demonstrate zero unrelated Run/Effect payload reads per
+target public operation and one necessary heavy validation per unchanged
+subject, permission tuple, row revision or configuration fact in that operation;
+pure work needing no heavy validation performs zero. Getter, helper, trusted
+Store read, FFI exchange or await entries cannot reset that ceiling by creating
+another internal frame. Distinct permissions, including Run read and named
+Result read, remain separate, with relevant change, uncontrolled callback/reentry
+and real protected external dispatch observations identified explicitly.
+Counters distinguish full Account evaluation, admission, parse, decode, MAC,
+hash, scope digest and configuration inventory from function entries and cache
+hits before asserting a heavy-work count; aggregate entry counts do not prove
+full-validation counts. Required row/tuple coverage, bounded chunk transfer and
+no unchanged-status logical revision or unnecessary durable write remain.
+History sizes 1, 10, 100 and 1000 exercise the same target within existing
+supported bounds; an unsupported size remains incomplete coverage, not a reason
+to increase admitted limits or omit a failing result.
+Boundary regressions retain current Deny, changed approval/target, callback
+reentry, foreign material, tampered target, claim/CAS, Unknown/non-resend,
+cancellation and real resource lifetime behavior.
 
 <a id="conformance-profiles"></a>
 

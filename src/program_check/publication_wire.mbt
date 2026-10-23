@@ -1,21 +1,30 @@
 ///|
+// Private to one artifact construction. This retains the already-checked
+// metadata, not an execution grant or a physical publication acknowledgement.
+priv struct PreparedPublicationRowBody {
+  host : @host.Witness
+  candidates : Array[(String, @wire.WireWitness?)]
+  subject : String
+  maximum : Int64
+}
+
+///|
 fn publication_result_subject(definition_cid : String, name : String) -> String {
   let escaped = name.replace(old="~", new="~0").replace(old="/", new="~1")
   "unit:" + definition_cid + "#/results/" + escaped + "/rows"
 }
 
 ///|
-// Canonical metadata only, not a publication receipt or backend binding.
+// Prepare the original candidate membership, ordering and subject once.
 // The Unit owns both its definition identity and the selected Result limit.
-fn emit_publication_row_body(
+fn prepare_publication_row_body(
   unit : BuiltUnit,
   index : Int,
   host : @host.Witness,
-  writer : @encode.Writer,
   budget : IdentityBudget,
-  cid? : String? = None,
   proofs? : Array[ReidentifiedStep]? = None,
-) -> Unit raise UnitBuildFailure {
+  on_body_preparation? : (() -> Unit)? = None,
+) -> PreparedPublicationRowBody raise UnitBuildFailure {
   guard unit.publication_rows.get(index) is Some(selected) else {
     raise ForeignOwner
   }
@@ -24,6 +33,9 @@ fn emit_publication_row_body(
       @context.publication_row_limit_host(selected),
     ) {
     raise ForeignOwner
+  }
+  if on_body_preparation is Some(observe) {
+    observe()
   }
   let publication = @context.publication_row_limit_result(selected)
   let count = @context.publication_row_limit_program_count(selected)
@@ -61,7 +73,24 @@ fn emit_publication_row_body(
   // JSON Pointer escaping makes arbitrary authored Result names unambiguous.
   // No process-local stage/step index is part of this protected subject.
   let subject = publication_result_subject(unit.definition_cid, name)
-  identity_charge(budget, candidates.length())
+  {
+    host,
+    candidates,
+    subject,
+    maximum: @context.publication_row_limit_maximum(selected),
+  }
+}
+
+///|
+// Serialization passes consume the same private immutable preparation. They
+// still meter each actual traversal and use their own bounded Writer.
+fn emit_prepared_publication_row_body(
+  body : PreparedPublicationRowBody,
+  writer : @encode.Writer,
+  budget : IdentityBudget,
+  cid? : String? = None,
+) -> Unit raise UnitBuildFailure {
+  identity_charge(budget, body.candidates.length())
   try {
     @encode.begin_object(writer)
     @encode.key(writer, "author_guard_binding")
@@ -71,22 +100,19 @@ fn emit_publication_row_body(
     @encode.key(writer, "candidates")
     @encode.begin_array(writer)
     let mut previous = ""
-    for (cid, witness) in candidates {
+    for (cid, witness) in body.candidates {
       if cid == previous {
         continue
       }
       previous = cid
       match witness {
-        None => @host.emit(host, writer)
+        None => @host.emit(body.host, writer)
         Some(value) => @wire.emit(value, writer)
       }
     }
     @encode.end_array(writer)
     @encode.key(writer, "effective_max")
-    @encode.number_value(
-      writer,
-      @context.publication_row_limit_maximum(selected).to_double(),
-    )
+    @encode.number_value(writer, body.maximum.to_double())
     @encode.key(writer, "enforcement")
     @encode.string_value(writer, "engine_atomic")
     if cid is Some(value) {
@@ -94,7 +120,7 @@ fn emit_publication_row_body(
       @encode.string_value(writer, value)
     }
     @encode.key(writer, "subject_ref")
-    @encode.string_value(writer, subject)
+    @encode.string_value(writer, body.subject)
     @encode.key(writer, "unit")
     @encode.string_value(writer, "rows")
     @encode.key(writer, "version")

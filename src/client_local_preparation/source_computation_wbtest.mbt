@@ -42,6 +42,63 @@ fn source_computation_failure(
 }
 
 ///|
+test "new public source recipe retains authored identity without changing historical preparation" {
+  let env = environment()
+  let intent = source_computation_intent("SELECT 1 AS n")
+  let publication = source_computation_publication(env)
+  let old = prepare_local_source_computation(intent, env, publication).unwrap()
+  let public = prepare_local_source_computation(
+    intent,
+    env,
+    publication,
+    public_primary=true,
+  ).unwrap()
+  let publication_environment = @publication.prepare_published_query_environment(
+    env, publication,
+  ).unwrap()
+  let reused = prepare_local_source_computation(
+    intent,
+    env,
+    publication,
+    public_primary=true,
+    publication_environment=Some(publication_environment),
+  ).unwrap()
+  guard local_source_computation_preparation(old) is Pure(answer) else {
+    fail("historical pure preparation")
+  }
+  guard local_source_computation_preparation(public) is Pure(main) else {
+    fail("new public pure preparation")
+  }
+  guard local_source_computation_preparation(reused) is Pure(reused_main) else {
+    fail("retained publication public pure preparation")
+  }
+  assert_eq(@host.prepared_client_result_name(answer, 0), Some("answer"))
+  assert_eq(@host.prepared_client_result_name(main, 0), Some("main"))
+  assert_eq(@host.prepared_client_result_name(reused_main, 0), Some("main"))
+  assert_eq(
+    @host.prepared_client_program_semantics_cid(reused_main),
+    @host.prepared_client_program_semantics_cid(main),
+  )
+  assert_eq(
+    local_source_computation_originals(public),
+    local_source_computation_originals(old),
+  )
+  let scope = "sha256:" + "a".repeat(64)
+  let old_request = local_source_computation_request(old, scope, "same-source").unwrap()
+  let public_request = local_source_computation_request(
+    public, scope, "same-source",
+  ).unwrap()
+  assert_eq(
+    @host.client_request_input_cid(old_request),
+    @host.client_request_input_cid(public_request),
+  )
+  assert_true(
+    @host.client_request_program_cid(old_request) !=
+    @host.client_request_program_cid(public_request),
+  )
+}
+
+///|
 test "public SQL and AQL keep the original intent and one parsed preparation" {
   let env = environment()
   for
@@ -116,5 +173,73 @@ test "source declarations and parameters come from the same admitted envelope" {
   assert_eq(
     local_source_computation_originals(original).0,
     @host.client_submitted_intent_wire(intent),
+  )
+}
+
+///|
+test "prepared publication keeps new Source values and refuses a different original binding" {
+  let env = environment()
+  let publication = source_computation_publication(env)
+  let prepared = @publication.prepare_published_query_environment(
+    env, publication,
+  ).unwrap()
+  let value_cids : Array[String] = []
+  for number in [3, 4] {
+    let wire = "{\"kind\":\"aql\",\"input\":{\"text\":\"SELECT @n AS n\",\"format\":\"sql\",\"parameterDeclarations\":{\"n\":{\"type\":\"number\"}}},\"parameters\":{\"n\":" +
+      number.to_string() +
+      "}}"
+    let intent = @host.prepare_client_submitted_intent(wire, 65536, 8192, 64).unwrap()
+    let ordinary = prepare_local_source_computation(intent, env, publication).unwrap()
+    let reused = prepare_local_source_computation(
+      intent,
+      env,
+      publication,
+      publication_environment=Some(prepared),
+    ).unwrap()
+    assert_eq(
+      local_source_computation_originals(reused),
+      local_source_computation_originals(ordinary),
+    )
+    assert_eq(
+      local_source_computation_material(reused).1,
+      Some("{\"n\":" + number.to_string() + "}"),
+    )
+    guard local_source_computation_preparation(reused) is Pure(selected) else {
+      fail("Expected Pure")
+    }
+    guard local_source_computation_preparation(ordinary) is Pure(original) else {
+      fail("Expected Pure")
+    }
+    let identity = @host.prepared_client_identity(selected)
+    assert_eq(identity, @host.prepared_client_identity(original))
+    value_cids.push(identity.parameter_values_cid)
+    assert_true(
+      prepare_local_source_computation(
+        intent,
+        environment(),
+        publication,
+        publication_environment=Some(prepared),
+      )
+      is Err(Publication(_)),
+    )
+    assert_true(
+      prepare_local_source_computation(
+        intent,
+        env,
+        " " + publication,
+        publication_environment=Some(prepared),
+      )
+      is Err(Publication(_)),
+    )
+  }
+  assert_true(value_cids[0] != value_cids[1])
+  assert_true(
+    prepare_local_source_computation(
+      source_computation_intent("not valid SQL"),
+      env,
+      publication,
+      publication_environment=Some(prepared),
+    )
+    is Err(Frontend(_)),
   )
 }

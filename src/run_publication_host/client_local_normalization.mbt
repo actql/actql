@@ -5,6 +5,7 @@ pub(all) enum ClientLocalNormalizationIssue {
   ForeignCatalog
   SubstitutedJournal
   Evidence(@publication.RunEvidenceValueIssue)
+  CommonInventory(@checked.LocalCommonNormalizationIssue)
 }
 
 ///|
@@ -12,6 +13,7 @@ pub(all) enum ClientLocalNormalizationIssue {
 /// The normative journal preimage has no additional Program binding fields;
 /// this opaque projection and the original materials chain own those links.
 priv enum ClientLocalNormalizationInventory {
+  Common(@checked.LocalCommonNormalizationInventory)
   CompletionFree(@checked.LocalCompletionFreeInventory)
   SortCompletion(@checked.LocalSortNormalizationInventory)
 }
@@ -105,6 +107,7 @@ fn local_normalization_catalog_cid(
   inventory : ClientLocalNormalizationInventory,
 ) -> String {
   match inventory {
+    Common(_) => local_common_normalization_catalog_cid()
     CompletionFree(value) => local_completion_free_catalog_cid(value)
     SortCompletion(value) =>
       if @checked.local_sort_normalization_inventory_uses_unary_timestamp(value) {
@@ -149,6 +152,8 @@ fn local_normalization_inventory_matches(
   owner : @checked.CheckedProgram,
 ) -> Bool {
   match inventory {
+    Common(value) =>
+      @checked.local_common_normalization_inventory_matches(value, owner)
     CompletionFree(value) =>
       @checked.local_completion_free_inventory_matches(value, owner)
     SortCompletion(value) =>
@@ -201,7 +206,7 @@ fn local_sort_normalization_journal_body(
 ///|
 /// Issue only from the inventory retained by the original checked preparation.
 /// No parse, compile, Source acquisition or physical Effect operation occurs.
-pub fn issue_prepared_client_local_normalization(
+fn issue_prepared_client_legacy_local_normalization(
   owner : PreparedClientProgram,
 ) -> Result[ClientLocalNormalization, ClientLocalNormalizationIssue] {
   if owner.local_normalization is Some(original) {
@@ -224,6 +229,7 @@ pub fn issue_prepared_client_local_normalization(
   }
   let catalog_cid = local_normalization_catalog_cid(inventory)
   let wire = match inventory {
+    Common(_) => return Err(ForeignPreparation)
     CompletionFree(_) =>
       "{\"entries\":[],\"rule_catalog_cid\":\"" +
       catalog_cid +
@@ -251,6 +257,111 @@ pub fn issue_prepared_client_local_normalization(
 }
 
 ///|
+fn local_common_normalization_catalog_cid() -> String {
+  "sha256:f93d91b468d850cbc63a8c8350578af8431a2256eb2b1ef3f60586fdc640561d"
+}
+
+///|
+fn local_common_normalization_journal_body(
+  inventory : @checked.LocalCommonNormalizationInventory,
+  max_wire_bytes : Int,
+) -> Result[String, ClientLocalNormalizationIssue] {
+  try {
+    let writer = @encode.writer(max_wire_bytes, 32, 8)
+    @encode.begin_object(writer)
+    @encode.key(writer, "entries")
+    @encode.begin_array(writer)
+    for index in 0..<@checked.local_common_normalization_entry_count(inventory) {
+      guard @checked.local_common_normalization_entry_at(inventory, index)
+        is Some((path, rule, authored, canonical)) else {
+        return Err(ForeignPreparation)
+      }
+      @encode.begin_object(writer)
+      @encode.key(writer, "authored")
+      @encode.string_value(writer, authored)
+      @encode.key(writer, "canonical")
+      @encode.string_value(writer, canonical)
+      @encode.key(writer, "path")
+      @encode.string_value(writer, path)
+      @encode.key(writer, "rule")
+      @encode.string_value(writer, rule)
+      @encode.end_object(writer)
+    }
+    @encode.end_array(writer)
+    @encode.key(writer, "rule_catalog_cid")
+    @encode.string_value(writer, local_common_normalization_catalog_cid())
+    @encode.key(writer, "version")
+    @encode.string_value(writer, "actql-normalization-journal/0.1")
+    @encode.end_object(writer)
+    Ok(@encode.finish(writer))
+  } catch {
+    _ =>
+      if max_wire_bytes < 1024 {
+        Err(CommonInventory(BudgetExceeded))
+      } else {
+        Err(Evidence(@publication.RunEvidenceEncoding))
+      }
+  }
+}
+
+///|
+/// Fresh preparations use one bounded original-occurrence inventory. Cached
+/// originals, including legacy recipes, keep their exact prior catalogue/wire.
+/// Actual lowering, backend, numeric, Run-time and resource requirements remain
+/// mandatory with their existing owners; normalization is not their discharge.
+pub fn issue_prepared_client_local_normalization(
+  owner : PreparedClientProgram,
+) -> Result[ClientLocalNormalization, ClientLocalNormalizationIssue] {
+  if owner.local_normalization is Some(original) {
+    match prepared_client_local_normalization_evidence(owner, original) {
+      Ok(_) => return Ok(original)
+      Err(issue) => return Err(issue)
+    }
+  }
+  let inventory = match
+    @checked.local_program_common_normalization_inventory(
+      @strategy.graph_program(owner.graph),
+      10000,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(CommonInventory(issue))
+  }
+  // Reserve the encoding/writer/hash share before doing that work, rather than
+  // constructing an over-budget journal and discovering exhaustion afterward.
+  let emission_bytes = (
+      10000 - @checked.local_common_normalization_inventory_work(inventory)
+    ) /
+    4
+  let max_wire_bytes = if emission_bytes < 1024 { emission_bytes } else { 1024 }
+  let wire = match
+    local_common_normalization_journal_body(inventory, max_wire_bytes) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  // Account for bounded UTF8 encoding, journal writing and hashing under the
+  // same audit ceiling, before caching or issuing any evidence.
+  let bytes = @utf8.encode(wire).length()
+  if bytes >
+    (10000 - @checked.local_common_normalization_inventory_work(inventory)) / 4 {
+    return Err(CommonInventory(BudgetExceeded))
+  }
+  let evidence = match
+    @publication.seal_run_evidence_value(
+      "normalization_journal", wire, 1024, 32, 8,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Evidence(issue))
+  }
+  let issued : ClientLocalNormalization = {
+    preparation: owner,
+    audit: Common(inventory),
+    evidence,
+  }
+  owner.local_normalization = Some(issued)
+  Ok(issued)
+}
+
+///|
 /// A copied or foreign preparation cannot take another original journal.
 /// Definition, semantics and check-environment identity are inherited from
 /// this exact preparation owner, rather than inferred from equal source bytes.
@@ -271,9 +382,10 @@ pub fn prepared_client_local_normalization_evidence(
 }
 
 ///|
-/// Re-admit saved bytes against the original projection without issuing a new
-/// journal or repeating preparation. Cross-process materials restoration is a
-/// separate connection; an arbitrary journal alone is not an inventory proof.
+/// Match saved bytes against the original admitted projection. Equal bytes
+/// reuse its typed evidence without parsing, writing or hashing it again.
+/// Cross-process materials restoration is a separate connection; an arbitrary
+/// journal alone is not an inventory proof or current execution authority.
 pub fn restore_prepared_client_local_normalization(
   owner : PreparedClientProgram,
   original : ClientLocalNormalization,
@@ -291,13 +403,7 @@ pub fn restore_prepared_client_local_normalization(
   if wire != @publication.run_evidence_value_json(expected) {
     return Err(SubstitutedJournal)
   }
-  match
-    @publication.admit_run_evidence_value(
-      "normalization_journal", wire, 1024, 32, 8,
-    ) {
-    Ok(value) => Ok(value)
-    Err(issue) => Err(Evidence(issue))
-  }
+  Ok(expected)
 }
 
 ///|

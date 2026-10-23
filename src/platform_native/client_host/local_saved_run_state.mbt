@@ -58,26 +58,28 @@ fn NativeClientRunJournal::saved_run_state_locked(
   (NativeClientSubmittedIntentRecord, NativeClientRunRecord),
   NativeClientRunJournalIssue,
 ] {
-  match self.submitted_intent_custody(reads~) {
+  match
+    client_journal_issuance_anchor(
+      self.database,
+      "client_submitted_intent_custody",
+      self.max_records,
+      reads~,
+    ) {
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
-  let original = match self.retained_submission(reference, reads~) {
+  let (original, selected_run) = match
+    self.retained_submission_with_run(reference, reads~) {
     Ok(Some(value)) => value
     Ok(None) => return Err(CustodyLost)
     Err(issue) => return Err(issue)
   }
-  guard original.run_admission is Some(admission) else {
+  guard original.run_admission is Some(admission) && selected_run is Some(run) else {
     return Err(CustodyLost)
   }
   if @host.client_request_identity_relation(admission.request, request) !=
     @host.SameRequest {
     return Err(ChangedIntent)
-  }
-  let run = match self.retained(request, reads~) {
-    Ok(Some(value)) => value
-    Ok(None) => return Err(CustodyLost)
-    Err(issue) => return Err(issue)
   }
   if @publication.publication_contract_identity(run.definition) !=
     admission.run_definition_cid {
@@ -191,7 +193,8 @@ fn NativeClientRunJournal::retain_observed_run_state(
       }
       match original.run_state_original {
         Some(prior) if prior == wire => ()
-        _ =>
+        _ => {
+          self.invalidate_operation_submission()
           match
             compare_exchange_client_journal_value(
               self.database,
@@ -204,6 +207,7 @@ fn NativeClientRunJournal::retain_observed_run_state(
             Ok(_) => ()
             Err(issue) => return Err(Physical(issue))
           }
+        }
       }
       // A metadata CAS never calls save(run), changes accepted revision, or
       // creates a second control CAS. Current is checked before commit as well.
@@ -367,26 +371,7 @@ fn NativeLocalHostConnection::lookup_submitted_run_state_with_operations(
       }
       let read : Result[NativeClientSavedRunState?, NativeClientRunJournalIssue] = match
         self.journal.saved_run_state_locked(reference, request, reads~) {
-        Ok((original, run)) =>
-          match (original.run_state_original, original.run_state_observation) {
-            (Some(wire), Some((revision, Some(key)))) =>
-              @host.restore_client_run_state_original(run.definition, wire)
-              .map_err(_ => NativeClientRunJournalIssue::CustodyLost)
-              .bind(value => {
-                let observation = match
-                  native_saved_state_observation(run, value, revision) {
-                  Ok(result) => result
-                  Err(issue) => return Err(issue)
-                }
-                if observation.key() != key ||
-                  observation.wire(revision).to_option() !=
-                  Some(value.state_wire()) {
-                  return Err(CustodyLost)
-                }
-                Ok(Some({ original: value, control_revision: run.revision, }))
-              })
-            _ => Ok(None)
-          }
+        Ok((original, run)) => restore_native_saved_run_state(original, run)
         Err(issue) => Err(issue)
       }
       if !authority.current_for(self.journal, request) {

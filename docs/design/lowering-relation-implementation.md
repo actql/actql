@@ -744,6 +744,32 @@ successfully after the audit text update. No product source or contract changed
 during those checks. This regression evidence does not establish missing
 registry support, input-claim verification or ordered-derive conformance.
 
+## Full lowering retained by the prepared Program
+
+An Effect-free `PreparedClientProgram` retains at most one successful full
+`PreparedSequence` for each task in its original checked graph. Pure Values
+compilation, full task emission and Local runtime preparation consume that
+same immutable lowering when all sequence limits match, including every
+expression limit. The retained sequence still identifies the original bound
+owner, Parameter values, expression closure and text/time policy. Equal
+Program CIDs or SQL and types cannot substitute for that preparation.
+
+A changed limit runs the existing bounded lowerer. Success replaces the prior
+entry for that task; failure returns its original issue and does not borrow a
+less restrictive sequence. A row-limit view starts with an empty inventory,
+including when its numeric limit is equal. Prefix, Infer, serialization and
+completed-producer constructors remain separate; Effectful graph-only callers
+keep their original preparation path.
+
+The inventory shares the existing prepared Program lifetime and contains only
+a task coordinate, the complete limits and the original typed sequence per
+checked task. Its task count is bounded by the checked graph and its contents
+by the existing sequence row, cell, binding, name and expression budgets. It
+does not duplicate wire inventories or retain Run, attempt, grant or Result
+state. Runtime contracts, expression contexts, query-time binding, execution
+budgets, current permission and physical resources remain separately admitted.
+Retiring this managed preparation is not a physical release acknowledgement.
+
 ## Internal sequence component driver
 
 The package-private `evaluate_sequence_components` now drives capture, conversion,
@@ -1110,6 +1136,15 @@ Temporary representations have their own bounded preparation paths; this
 accounting is not a process-heap ceiling. Material preparation is atomic and
 does not itself supply the enclosing contract admission or execution permit.
 
+The Values compiler emits each admitted output contract once through the
+existing bounded buffered hash writer. That traversal produces both the exact
+canonical text and SHA-256 input. The provisional text is drained only into
+local preparation, and no text/CID pair escapes until the same writer confirms
+complete structure and its original byte, node and depth limits. The retained
+buffer is bounded by that existing complete output-wire ceiling. This changes
+neither the output-contract preimage nor the enclosing fragment identity, and
+introduces no persistent cache, permission or physical acknowledgement.
+
 The generated candidate closes the map/filter fragment envelope with request,
 graph, roots, limits, checked output schema and expression-contract identity.
 Its execution-contract body is hash-checked against the selected registry's
@@ -1121,8 +1156,8 @@ evaluations; admitting open schemas or profile nodes requires their retained
 evidence rather than silently inheriting these projections. The candidate is
 still separate from sealed admission, backend obligations and Program permission.
 
-Generated-fragment checking rebuilds request material and the complete candidate
-from its retained checked request. It compares both the canonical stored body
+The private candidate-integrity regression fixture rebuilds request material and
+the complete candidate from its retained checked request. It compares both the canonical stored body
 and the material used by the emitter with the rebuilt body, in addition to the
 claimed CID and selected contracts. A correctly hashed unrelated graph or root
 cannot replace part of that request. Successful checking retains regenerated
@@ -1130,6 +1165,15 @@ material rather than preparation arrays owned by the caller. This typed check
 does not admit arbitrary saved JSON, reparse author source, or discharge runtime
 input/key/order/value-limit obligations. The execution boundary must still
 enforce those obligations before using the retained checked kernel.
+
+The public typed-request constructor generates that same complete material and
+candidate once under its original demand and physical bounds. It retains those
+completed private facts synchronously, without accepting a candidate, graph,
+application callback or digest from its caller. Selected contract correspondence,
+ordered evidence, backend capability and logical/runtime ceilings still apply.
+The full separate-candidate regression checker keeps its regeneration and
+altered-material refusals; no arbitrary-candidate execution entry is exposed.
+There is no cross-operation cache or discount to execution work.
 
 The shared row evaluator accepts logical accounting for snapshot maps and
 filters as well as ordered bindings. Map results remain leased until the
@@ -1140,7 +1184,7 @@ roots without publishing a partial table. This internal accounting hook does
 not yet choose request/Host limits or establish input evidence on its own.
 
 An immutable fragment runtime context binds explicitly supplied enforcement
-limits to the regenerated fragment and its exact checked kernel. Row and value
+limits to the generated checked fragment and its exact kernel. Row and value
 ceilings cannot exceed that fragment's request; tighter supplied bounds remain
 explicit. Live/work and physical encoder limits are supplied separately, not
 inferred from static capacity facts. Fresh counters are created for each

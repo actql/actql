@@ -179,6 +179,118 @@ than treating SDK object checks as that boundary. An OS quota or worker limit
 must be described by its actual coverage and failure behavior; ordinary
 embedding does not promise a universal whole-process memory ceiling.
 
+<a id="ordinary-operation-validation"></a>
+
+### Ordinary operation validation
+
+<!-- requirement-block: ordinary-operation.retained-validation-scope -->
+An ordinary Host MUST perform each necessary heavy validation once for the same
+public operation and unchanged subject, permission, resource, Run, target and
+relevant state, and retain the admitted immutable facts for its internal uses.
+Pure work requiring no such validation performs none. Retained facts preserve
+their original Host, Store, snapshot, row revision, validator, principal, policy
+and relevant key generation correspondence. Existing operation, capture and
+reader state supply this reuse; there is no persistent or global Allow cache.
+Content identity is not authority, and this rule creates no additional Owner,
+permission mechanism or execution profile.
+
+<!-- requirement-block: ordinary-operation.revalidation-boundaries -->
+The existing Owner MUST observe current authority for each new public operation
+and reobserve affected facts when relevant policy, key, target or state changes,
+uncontrolled application callback or reentry, or an actual protected external
+dispatch requires it. Internal getters, pure helpers, trusted DB/Store metadata
+reads, FFI phase exchanges and awaits alone do not create new validation frames
+or require another heavy observation. Cheap closed, identity, range, deadline,
+cancellation and lifetime checks retain their existing duties without invoking
+the whole authorization or validation chain.
+An unrelated mutation does not itself invalidate every retained fact; a helper
+or wrapper name does not establish a new trust boundary.
+A database read snapshot fixes its visible database revision, not external
+configuration files or subsequent commits from another connection.
+
+<!-- requirement-block: ordinary-operation.authorization-tuples -->
+The Host MUST choose the actual required authorization point once for each
+distinct permission and unchanged principal/connection/action/resource/scope/
+policy-revision tuple in a public operation. A protected external dispatch or relevant change
+requires only its affected authority observation, not unconditional before/after
+evaluation at every internal phase. Different permissions remain separate,
+including Source read, Run publication, Run read, named Result read and Effect
+application. Every new public operation observes current Deny; an earlier Allow,
+repeated snapshot reads or a content CID cannot override Deny, expired authority
+or changed approval target.
+
+<!-- requirement-block: ordinary-operation.targeted-durable-reads -->
+An ordinary single-Run status, Result or saved Explain read MUST validate the
+target and its necessary dependency closure without reading or authenticating
+unrelated Run or Effect payloads.
+Global integrity inspection and necessary recovery are separate operations,
+not mandatory work at every transaction or ordinary process open.
+Corruption in an unrelated historical Run is detected when that material is
+used or inspected, rather than requiring its detection before another Run's
+ordinary read; applicable rollback/epoch anchors and active claim checks remain.
+
+<!-- requirement-block: ordinary-operation.immutable-row-validation -->
+The existing durable-data Owner MUST perform required admission once for the
+same original bytes, row revision and validation context in a public operation,
+retaining the resulting typed value through its unchanged internal uses without
+duplicate admission, parse, decode, canonical write, MAC, signature, hash or
+scope-digest work. Internal phase changes or cache eviction do not justify
+repeating that heavy work; retain the needed bounded facts for the operation.
+Missing required proof cannot create authority or turn a failure into NotFound
+or resend permission.
+Foreign, changed and unknown-generation material does not inherit that result.
+
+<!-- requirement-block: ordinary-operation.configuration-boundary -->
+The Host MUST perform a necessary configuration inventory once at its applicable
+open, public-operation or actual reload boundary and retain that bounded
+observation through unchanged internal reads, getters and rows. Pure work
+requiring no configuration validation performs no inventory. An internal
+transaction, Store read or await is not itself a reload or new public operation.
+If relevant external changes are possible, the next applicable boundary observes them;
+inode, modification time and length alone are not content authority.
+
+<!-- requirement-block: ordinary-operation.normalization-original -->
+Local preparation MUST retain its bounded original checked-occurrence audit
+and issued normalization evidence for subsequent uses of that same immutable
+preparation, preserving actual occurrence-specific Sort and projection entries
+and all unresolved execution, numeric, resource and authorization requirements.
+An exact journal match against retained admitted evidence reuses that typed
+evidence rather than parsing or sealing it again.
+An equal foreign preparation or a newly reconstructed preparation cannot borrow
+that original proof, and reading saved Result or Explain material does not
+issue a new normalization identity for the saved Run.
+
+<!-- requirement-block: ordinary-operation.status-no-change -->
+A status observation with unchanged state and equivalent availability facts
+MUST preserve the logical revision and avoid an unnecessary durable write.
+Unknown availability remains unknown; metadata reuse creates no physical ACK
+or confirmed payload presence and does not replace required Result validation.
+
+<!-- requirement-block: ordinary-operation.durable-linearization -->
+The Host MUST retain actual claim, compare-and-swap, uniqueness, quota and
+durability checks at their mutation or dispatch linearization points, including
+current approval/target correspondence and Unknown/non-resend behavior after
+an uncertain commit or external send.
+Removing duplicate internal validation does not disable synchronization or
+hold a write lock across a long external network wait.
+
+<!-- requirement-block: ordinary-operation.bounded-transfer -->
+Normal Journal bulk transfer MUST use bounded chunks with original ticket,
+memory range, generation, currentness and lifetime checks at applicable
+transfer boundaries, rather than one host call per payload byte. A trusted FFI
+phase exchange reuses the retained typed facts; its cheap ticket, range and
+lifetime checks do not repeat the whole Host, Account or Run validation chain.
+Incomplete, cancelled or released transfers do not establish completed bytes
+or physical cleanup, and deterministic work limits remain distinct from a
+Host deadline or cancellation signal.
+
+<!-- requirement-block: ordinary-operation.temporary-accounting -->
+The existing resource Owner MUST distinguish bounded in-memory Host/Run/batch
+workspace accounting from reservations requiring crash-durable quota or claim
+state, retaining real allocation failures, concurrent limits and actual release
+duties without a durable transaction for every internal copy.
+Neither a counter nor reference retirement supplies a physical release ACK.
+
 <a id="initial-local-mock-authorization"></a>
 
 ### Initial Local Mock authorization
@@ -1911,6 +2023,62 @@ bypassed by Host policy, a callback or a previously materialized bootstrap.
 All ordinary credential, egress, resource, currentness and approval checks
 remain required. An unreadable, invalid or revoked configuration is refused,
 not treated as absence or a request to restore the bootstrap profile.
+
+The [Common standard Local materializer](../../src/execution_authorization/local_standard_profile.mbt)
+retains the explicit `actql-local-standard` version `0.1` profile body CID
+`sha256:8c28b41c2fc824e43c77de4726337661b651287d2ac627770dc106e972afd60e`.
+The initializer supplies its actual principal, control connection, configured
+connections, registered Task/provider pairs and any actual request/signing
+subjects. Configured-connection reads cover that connection's resource domain;
+registered INFER subjects remain exact Task/provider pairs. The Local Result
+Owner still binds its actual Result name and same original Run, separately from
+the Account tuple. Every Effect is delegated, not permitted. Profile DATA and
+configuration materialization neither establish installation nor record
+adoption; the existing initialization intent and durable Account adoption must
+complete before use. Authored configuration replaces this profile in full.
+
+<!-- requirement-block: policy-routing.mock-result-original-binding policy-routing.mock-request-protection-target -->
+For trusted explicit initial Local Mock selection, the limited shared profile is
+`actql-local-mock` version `0.1`, with original body CID
+`sha256:0423a05cccb8d7329cc130247130f2081bb8f54e42ae579e99166da30c21de52`.
+Its [Common body and materializer](../../src/execution_authorization/local_mock_profile.mbt)
+instantiate only finite principal/connection/resource/operation tuples for the
+same selected Project and actual Mock installation: selected Source reads,
+exact Mock Task inference/answer retention, original Local request/control,
+and purpose-confined signing. The actual Local control connection retains
+`run` operations `cancel`, `publish`, `read`, `resolve` and `submit`.
+The supported defaults use the exact `result/main` resource for new public
+read-only Source and `result/answer` for the historical or explicitly selected
+answer recipe, each with `read`, independently of `run/read` and Source reads. Each use MUST
+retain the actual same-Run preparation or committed Result, installation and
+current authority. This finite default scope does not authorize another Named
+Result, an alias, a caller-supplied name list or a live backend. A selected
+UPDATE recipe additionally materializes only its exact `result/updates` read
+tuple. That read does not approve the Effect or create a Result; the actual
+same-Run Result and current authority remain required. The prior two-default
+profile body CID
+`sha256:8d3a8a44d338852bdef34d4547dc8a9c22d91e9831dac20ee42f144de8793e01`
+and its saved configuration remain exact historical originals, without this
+additional grant. Reopen never materializes a newer profile over saved state.
+The selected UPDATE uses `delegate`, never
+automatic approval. The original Host request-protection `write` tuple is
+distinct from a Source or Effect target and MUST NOT name either in its place.
+Profile bytes, aliases and equal CIDs do not establish a Mock backend or current
+authority. Merely discovered configuration or Program text is not trusted
+selection consent. Existing initialization intent, exclusive creation,
+confirmation and durable adoption precede protected use; current operator
+configuration remains authoritative, and missing adopted state is not regrant
+or rekey permission. Missing signer blocks signing/approval, not independently
+permitted read/inference. Saved Runs retain their originals.
+
+<!-- requirement-block: policy-routing.mock-profile-original-recovery -->
+The answer-only profile body CID
+`sha256:5d1edcd4312874f4621a96fa5d6a73b4015952cab8db0f6950a1622dcf0ab36f`
+and the earlier predecessor profile body CID
+`sha256:fe8f88f3465a18456678bf9bf32943dcc4e4a8654b6d449f0c6af174fffd7e3a`
+and its issued configurations remain exact historical originals. Recognizing
+that identity on reopen MUST NOT expand its grants, rewrite its adoption or
+regenerate missing keys/configuration; an authorized migration is separate.
 
 <!-- requirement-block: policy-routing.a-technical-decision-failure-must-not-dispatch-or-record-a-rejection -->
 Initial denial and later denial are distinct. A denial or technical decision

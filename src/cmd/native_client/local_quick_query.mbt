@@ -173,13 +173,14 @@ fn LocalCommandPreparationOriginal::execute_original_quick_query(
   self : LocalCommandPreparationOriginal,
   host : @local_host.NativeLocalHostConnection,
   capture : @local_host.NativeLocalJournalCapture,
-  settings : LocalHostSettings,
-  configuration_name : String,
+  configuration : LocalCommandConfiguration,
   runtime : LocalPackagedRuntime,
   input_root : String,
   operation : String,
   child : @argparse.Matches,
 ) -> String raise ClientStop {
+  let settings = configuration.settings
+  let configuration_name = configuration.configuration_name
   let presentation = local_quick_query_format(child)
   // Bound the complete destination before business preparation or Submission.
   // It is presentation DATA, never a new Run field or File permission.
@@ -203,7 +204,7 @@ fn LocalCommandPreparationOriginal::execute_original_quick_query(
   // relabelled as a table. The selected receiver owns the checked rows.
   let format = if presentation == "table" { "json" } else { presentation }
   let publication = self.prepare_business_submission(
-    host, capture, configuration_name, runtime, input_root, operation, child,
+    host, capture, configuration, runtime, input_root, operation, child,
   )
   let physical = self.host.unwrap_or_else(() => {
     stop("LocalBusinessOriginalUnavailable")
@@ -244,6 +245,7 @@ fn LocalCommandPreparationOriginal::execute_original_quick_query(
       sqlite,
       result,
       publication=Some(publication),
+      configuration=Some(configuration),
     )
     local_public_result(
       host,

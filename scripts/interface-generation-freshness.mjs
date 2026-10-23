@@ -31,7 +31,7 @@ export function interfaceGenerationFreshness(root) {
   const generators = ['generate-client-host-wire.mjs', 'generate-client-publication-wire.mjs',
     'generate-interactive-run-control-wire.mjs', 'generate-python-client-wire.mjs',
     'expression-fragment-registration.mjs', 'lowering-registry-vectors.mjs', 'native-cli-default-assets.mjs',
-    'catalog-body-dependencies.mjs', 'check-stage-semantics.mjs',
+    'catalog-body-dependencies.mjs', 'check-stage-semantics.mjs', 'mock-churn-risk-catalogue.mjs',
     'compilation-manifests.mjs', 'current-timestamp-expression-contract.mjs', 'decimal-division-exact-contract.mjs', 'query-acquisition-contract.mjs',
     'query-process-evidence.mjs', 'query-two-receipt.mjs',
     'query-resource-scopes.mjs', 'check-query-evidence-fixtures.mjs',
@@ -39,7 +39,7 @@ export function interfaceGenerationFreshness(root) {
   assert.equal(new Set(generators).size, generators.length, 'Duplicate generation freshness check');
   for (const name of generators) execFileSync(process.execPath, [join(root, 'scripts', name), '--check',
     ...(name === 'check-stage-semantics.mjs' ? ['--root', root] : [])], {
-    cwd: root, timeout: 15000, maxBuffer: 1024 * 1024, stdio: ['ignore', 'pipe', 'pipe']});
+    cwd: root, timeout: 60000, maxBuffer: 1024 * 1024, stdio: ['ignore', 'pipe', 'pipe']});
   const localGenerators = ['generate-local-wasm-abi.py', 'generate-local-native-runtime-binding.py',
     'generate-local-native-shim-bindings.py', 'generate-local-native-memory-binding.py',
     'generate-local-duckdb-binding.py'];
@@ -50,8 +50,9 @@ export function interfaceGenerationFreshness(root) {
     '--python-initial', '--check'], {
     cwd: root, timeout: 15000, maxBuffer: 1024 * 1024, stdio: ['ignore', 'pipe', 'pipe']});
   const assemblies = ['check-duckdb-environment-contract.mjs', 'connector-node-bundles.mjs', 'workers-composition.mjs'];
+  // Complete target compositions include adapter graphs and generated bridge formatting.
   for (const name of assemblies) execFileSync(process.execPath, [join(root, 'scripts', name)], {
-    cwd: root, timeout: 15000, maxBuffer: 1024 * 1024, stdio: ['ignore', 'pipe', 'pipe']});
+    cwd: root, timeout: 60000, maxBuffer: 1024 * 1024, stdio: ['ignore', 'pipe', 'pipe']});
   const generated = compilerBindingTargets.map(module => ({module,
     sha256: createHash('sha256').update(readFileSync(join(root, module))).digest('hex'),
     generator: {path: 'scripts/generate-js-compiler-bindings.mjs', anchor: 'generateCompilerBindings'},

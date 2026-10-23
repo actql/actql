@@ -3,6 +3,7 @@ priv enum PublicationSealPhase {
   Parse(@source.JsonParse)
   Decode(@decode.Admission)
   Canonical(@json.CursorAdmission)
+  Issued
   Shape(ProtocolValidationCursor, Bool)
   Hash(@json.CanonicalEmit)
   Encode(@json.CanonicalEmit)
@@ -67,6 +68,55 @@ fn start_publication_seal_preparation(
     max_workspace,
     phase: Parse(parser),
     value: None,
+    writer: None,
+    identity: None,
+    contract: None,
+    live: 8,
+    peak: 8,
+    closed: false,
+  })
+}
+
+///|
+/// Same-owner handoff from an emitter that has just measured this immutable
+/// issued value. External text still enters through parse/decode/admission.
+fn start_issued_publication_seal_preparation(
+  name : String,
+  value : @json.CanonicalValue,
+  usage : (Int, Int, Int),
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  max_workspace : Int,
+) -> Result[PublicationSealPreparation, PublicationContractIssue] {
+  guard contract_spec(name) is Some(spec) else { return Err(UnknownContract) }
+  if max_wire_bytes < 1 || max_nodes < 2 || max_depth < 1 {
+    return Err(InvalidLimits)
+  }
+  if name != "captured_run" && name != "result_delivery_receipt" {
+    return Err(UnknownContract)
+  }
+  if max_workspace < 8 {
+    return Err(Encoding)
+  }
+  let (bytes, nodes, depth) = usage
+  // Reserve the identity node exactly as the external preimage parser does.
+  if bytes < 1 ||
+    bytes > max_wire_bytes ||
+    nodes < 1 ||
+    nodes > max_nodes - 1 ||
+    depth < 0 ||
+    depth > max_depth {
+    return Err(InvalidWire)
+  }
+  Ok({
+    spec,
+    max_wire_bytes,
+    max_nodes,
+    max_depth,
+    max_workspace,
+    phase: Issued,
+    value: Some(value),
     writer: None,
     identity: None,
     contract: None,
@@ -153,6 +203,7 @@ fn PublicationSealPreparation::step(
   self : PublicationSealPreparation,
 ) -> Result[Unit, PublicationContractIssue] {
   match self.phase {
+    Issued => self.shape(false)
     Parse(parser) =>
       match @source.advance_json_parse(parser, 1) {
         Ok(@source.JsonParseContinue(..)) => Ok(())
@@ -251,7 +302,7 @@ fn PublicationSealPreparation::step(
           self.identity = Some(identity)
           self.shape(true)
         } else {
-          let wire = @encode.finish(writer)
+          let (wire, bytes, nodes, depth) = @encode.finish_text_usage(writer)
           self.writer = None
           self.contract = Some({
             name: self.spec.name,
@@ -259,6 +310,7 @@ fn PublicationSealPreparation::step(
             identity: self.identity.unwrap(),
             wire,
             value: self.value.unwrap(),
+            wire_usage: Some((bytes, nodes, depth)),
           })
           self.value = None
           self.phase = Done
@@ -319,7 +371,7 @@ fn PublicationSealPreparation::cancel(
     Canonical(admission) => @json.cancel_cursor_admission(admission)
     Shape(cursor, _) => cursor.cancel()
     Hash(cursor) | Encode(cursor) => @json.cancel_emit(cursor)
-    Done => ()
+    Issued | Done => ()
   }
   if self.writer is Some(writer) {
     @encode.cancel_writer(writer)

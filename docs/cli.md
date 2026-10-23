@@ -222,6 +222,13 @@ that needs you: `waiting_checkpoint`, `needs_reconciliation` or a final state.
 either. A request that policy held before the Run started shows as `held`
 with its Checkpoint, and `approve` resolves it the same way.
 
+For a saved Local Run, Result availability is a current observation of that
+Run's original Store and retention policy, separate from its immutable outcome.
+An unconfirmed Store query remains `unknown`; availability grants no payload
+read or delivery permission. A logical availability change advances the existing
+saved observation revision without starting the Run again. Pending physical
+cleanup remains a command failure rather than an availability acknowledgement.
+
 **`approve`** and **`reject`** answer a Checkpoint — one inside a Run, or
 one that held a request before the Run started. The answer is bound to the
 exact preview the Checkpoint holds. When `signers` are configured, it is
@@ -391,3 +398,22 @@ come before or after the Program path.
   unknown outcomes.
 - [Configuration reference](reference/configuration.md): every file the CLI
   reads.
+
+### Local Journal compatibility maintenance
+
+After upgrading an older Local installation, run
+`actql --mode local adopt --migrate-journal --json` once before admitting a new
+Run. The command requires the installation's current Run-read permission and
+uses its existing Account, Journal, key and exclusion. It preserves original
+Runs and Results while installing bounded append quota metadata and the native
+definition uniqueness constraint atomically. It also indexes the admitted
+original Run IDs for saved reads; it does not restrict IDs to CLI defaults. It does not initialize signing, renew grants, issue an
+epoch or execute a Program. Existing project and Local configuration selection
+still apply.
+
+Ordinary open and read do not scan history to perform this migration. Repeating
+the explicit command on an already migrated installation checks its local
+metadata; deleted or inconsistent adopted metadata is refused. An uncertain
+COMMIT remains Unknown on its original handle and must be reconciled before
+continuing. A successful command retains the existing adoption metadata reply;
+it is not a Run receipt.

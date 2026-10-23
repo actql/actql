@@ -11,7 +11,7 @@ metadata preserves the prior encoding when absent and the existing per-record
 intake bounds; an overflow refuses rather than omitting required new evidence.
 
 `explain --run` selects the authenticated original Run through current RunRead
-and the same bounded Journal scan and physical operation route as status. It
+and the same targeted Journal lookup and physical operation route as status. It
 rechecks the compiled Plan, Program and logical-map identities and current
 authority before returning the exact saved view. It never reads a replacement
 Program or parameters, replans, initializes a missing installation or starts a
@@ -265,12 +265,78 @@ manifest is bounded to 8 KiB and is included in the initialization intent.
 
 Finalization stores this manifest and the selected original bytes in the
 existing SQLite transaction with Submission epoch custody and final adoption.
-Reopening checks exact membership and original bytes, source generations and
-managed-root custody before returning configuration or authorization material.
+Reopening checks the selected manifest and original bytes, source generations
+and managed-root custody before returning configuration or authorization material.
 Missing stored originals are not copied back from a currently available source,
 and a byte-identical replacement file cannot assume its predecessor's identity.
 These configuration records confer no execution permission; the existing
 execution-account Owner evaluates each current access tuple.
+
+Selecting bytes from an open adoption Session projects the captured original
+DATA; it does not reread every selected file or authorize a dispatch. Closed or
+failed physical custody still refuses selection. Protected staging observes the
+source installation once on entry and retains the copy's exact body, generation
+and creation custody. Trusted copy I/O does not repeat that source admission.
+Journal opening consumes this observation through its closed Read/SQLite steps,
+while retaining the actual opened database target, selected stored originals,
+adoption/epoch anchors and each physical return or partial-failure duty.
+The same-pair command read may perform its first Journal open inside that entry
+and consume the actual opening observation. A read entry on an already-open
+capture observes current state afresh; no persistent opening success skips it.
+Inactive Store routing metadata may precede opening, but cannot activate without
+the acquired original Host/pair/Library. If opening leaves a pending flight,
+that original return precedes retirement of the inactive routing metadata.
+
+### Operation-scoped Journal reads
+
+Ordinary open uses the existing-only SQLite entrance and fixed adoption,
+epoch and issuance anchors. It does not copy the database or enumerate all
+retained Runs, Effects or submissions. Explicit integrity inspection and bounded
+compatibility indexing remain separate operations. Existing-only open refuses
+missing schema or custody; it cannot initialize, repair or regenerate keys.
+
+A selected read admits its own canonical Run and nested originals, target
+Effect witness, original Submission and epoch. Unrelated historical corruption
+is diagnosed by integrity inspection instead of invalidating every ordinary
+read. Mutations retain the original transaction, local CAS/claim and sticky
+COMMIT-Unknown behavior. Account decisions remain action/resource-specific;
+immutable admitted facts do not replace current authority or physical cleanup.
+
+A subordinate scope/Run-ID locator commits in the same transaction as fresh
+admission. Arbitrary Run IDs remain valid and duplicate IDs remain ambiguous.
+Lookup verifies the indexed original identity and epoch. Without a locator,
+the ordinary CLI's Run-ID/Submission-ID equality is only a candidate until the
+retained original proves it. Other legacy IDs require explicit bounded indexing
+through the adopted Host's `index_saved_run_ids`, with current RunRead before,
+inside and after the transaction. Until coverage of the exact issuance snapshot
+is established, a missing locator returns `RunIdIndexIncomplete`, not absence.
+Later admissions invalidate that absence coverage. Indexing authenticates the
+existing originals and changes only subordinate locators; missing or inconsistent
+history never permits a new execution or resend.
+
+The captured Read path retains validated immutable facts for the same public
+operation while its original pair, thread, entered Read and failure latches
+remain current. A trusted metadata read, transaction, phase exchange or pure
+getter does not create another authorization frame. Each distinct unchanged
+permission tuple is evaluated once; pure DATA work performs no authorization.
+Actual relevant target/policy/key changes, uncontrolled application reentry and
+the next public operation require the corresponding fresh observations. A real
+lifetime failure consumes the relevant observation instead of allowing a later
+cheap check to revive it. Close retires all operation facts. Uncaptured public
+entries retain their required entry checks. A publisher predicate consumes the
+same scope, Account, selected configuration and Run facts without rebuilding
+them between trusted reads.
+
+Source-free Compute separates cheap original-lifetime polling from authority
+validation at task dispatch, transfer and finalization entry/return. Existing
+callers keep their original guard by default. Native polling observes its actual
+entered business domain and unentered preparation Read; it neither queries the
+Journal nor enters a scope or acknowledges cleanup. Durable first-start checks,
+next-task denial and current checks before publication remain independent.
+
+An unchanged availability observation returns its retained state and revision
+without another serialization or durable update. A changed logical observation
+still commits with the existing revision/CAS owner and current Store binding.
 
 ### Initial signing-key material
 
@@ -658,6 +724,22 @@ A missing use record, claimed use, unknown outcome or terminal-record failure
 does not establish that a request was unsent or can be sent again.
 
 ## Public execution and restoration
+
+The Native Journal's Run-definition uniqueness extension uses a physical
+partial UNIQUE index on `actql_records` for the `client_runs` namespace. Its
+key is the canonical Run-definition CID inside the stored definition string.
+Removing a locator record cannot remove this constraint. Exact index SQL is
+the format discriminator; absent and unsupported definitions remain distinct.
+Typed row admission and original HMAC/current checks remain necessary: SQLite
+NULL uniqueness does not validate a missing or malformed CID.
+
+The SQLite adapter installs this index only inside the caller's active
+transaction. The authorized bootstrap or explicit migration owns validation,
+usage metadata and final commit. A streaming prepass stops after the supplied
+row-work ceiling plus one, before DDL; this ceiling is not a byte-demand or
+capacity proof. Index creation uses the same Library and heap and may fail
+without committing, replacing the Database or granting fresh usage. Ordinary
+reads need not repeat this format inspection within the same Database lifetime.
 
 The preparation identity uses the separately adopted closed
 `actql-local-preparation-fence/0.1` body: original Client intent/scope, checked
@@ -1271,6 +1353,30 @@ successful compilation do not establish normal funding or final image, workspace
 and Result acceptance.
 
 
+#### In-process domain registration
+
+The private in-process domain preparation reserves the same complete rounded
+extent before acquisition. Its original physical record is domain-only: generic
+span checks, protection, sealing, lending and views reject it. Only a full,
+exclusive, same-process domain loan and its original view can consume that
+storage. The fixed records remain in the existing control lifetime. FD transport
+and older generic allocation paths retain their existing behavior.
+
+This registration path clears the derived child control prefix, rather than
+eagerly clearing all unused child capacity. Uninitialized capacity is never an
+exportable generic buffer. Domain acquisition consumes those same prepared
+controls once; an initialized or closed original cannot be reset into a fresh
+domain. Each actual child allocation still clears its complete page-rounded
+payload before exposure, including after reuse of old parent storage. This does
+not reduce logical claims, resize a holding or infer OS zero supply.
+
+The initial memset observation counts the actual cleared prefix within the
+parent extent; the complete extent remains occupied until its own retirement.
+Live child allocations and views keep the original parent busy. Partial failures,
+domain close, view close, loan return and parent retirement retain their separate
+duties and acknowledgements. A smaller initialized prefix is not a capacity
+return, a cleanup acknowledgement or a prediction of ordinary latency.
+
 #### Physical occupancy observation
 
 The same provider may expose a read-only census of the current original
@@ -1287,6 +1393,14 @@ charges or grants. Pending payload is not read after uncertain protection.
 Fixed census counters themselves live in the same charged control records.
 The original provider lock makes a census coherent with allocation/retirement;
 foreign, unbound and inherited-process scopes cannot inspect it as current.
+
+The installed Host projects capacity, page size, control, occupied and peak
+bytes through its same nominal domain and already-entered physical lease. The
+fixed output and returned scalar DATA use the caller's existing allowance; no
+scope is entered to collect them. This observation is distinct from cumulative
+allocation/zeroing work and from the retained Read cleanup census. Leaving a
+scope, collecting zero live bytes or observing a historical peak cannot retire
+the domain, its view, original Library or descriptor.
 
 A phase census and its peak establish only this physical domain's observation.
 They do not fund separate stacks, loader/VM domains, unrelated allocations,
@@ -1603,6 +1717,16 @@ extent, implicit growth or configuration of shared system/Python OpenSSL is allo
 The recipe binds source, headers, static archive, license and actual deployment
 requirements; a linker flag cannot lower the ABI of a precompiled archive.
 
+The allocator keeps an exact-live-start bitmap and preceding-block links inside
+that same finite extent. Bitmap storage and aligned headers reduce the available
+payload; they do not enlarge the selected heap. Pointer lookup checks integer
+range, alignment and the original live bit before reading a header. Interior,
+foreign and retired addresses therefore cannot cause speculative header reads.
+Free clears the original live bit, cleanses its complete aligned payload and
+coalesces only its two adjacent free blocks. Allocation retains bounded first-fit
+selection and realloc retains simultaneous old/new storage. Internal free and
+metadata reuse acknowledge neither the outer extent nor any parent resource.
+
 The existing Signature Owner retains one original component receiver independently
 of the outer and inner Library borrows. Its bind out-slot is set only by the
 original component CAS winner, before any fallible context/extent initialization.
@@ -1617,6 +1741,15 @@ hasher functions remain behind that typed entry. A separate close flight covers
 OpenSSL callbacks, extent retirement and context release; the allocator lock is
 not held across those callbacks. Cleanup may allocate only inside the same
 original extent, including its simultaneous retirement overlap.
+
+On the selected Darwin arm64 owned-component path, `Library.random_bytes`
+uses the supported OS `getentropy` CSPRNG through requests of at most 256 bytes.
+The existing Library/entered-Read checks and 1–4096 byte output bound remain;
+no new generator or capacity original is issued. A failed request clears the
+complete partial output and returns failure without an OpenSSL fallback.
+Legacy dynamic Libraries and other platforms retain their selected `RAND_bytes`
+path. Hashing, HMAC, signing, key generation and all component/Library cleanup
+remain bound to their original selected component.
 
 Each Library retires its own hashers and diagnostic buffers before acknowledging
 its borrow. Closing a Library neither unloads the component nor acknowledges the
@@ -2063,6 +2196,13 @@ library search path. The Native executable retains the existing closed provider
 export set; actual component binding still checks one original provider, Read
 context and physical heap before initialization.
 
+The Native, Python bundle and selected process producers take the component's
+optimization flag from the staged source recipe. The release recipe requires
+`-O2`; its identity and the retained compiler commands distinguish these builds
+from earlier unoptimized components. Optimization does not change the pinned
+SQLite source, private imports, heap geometry or cleanup contract. A component
+must still match its actual provider and supported target before use.
+
 This assembly mode produces an image only. It cannot satisfy the separate
 Python bundle's provider receipt, relocation, physical or final installation
 checks. Those existing stronger checks remain required on their original route.
@@ -2089,14 +2229,19 @@ version, parser errors and unselected compatibility calls do not acquire the
 command Host, Journal, Root or Read.
 
 The selected static-check/explicit-initialization candidate has a 208 MiB
-original file-backed Host,
-with distinct 128 MiB Read and 64 MiB SQLite child mappings. The actual parent's
+original anonymous Host mapping,
+with distinct 128 MiB Read and 64 MiB SQLite child views. The actual parent's
 control layout must fit alongside both children before acquisition. The Read
 occupied-page ceiling is 96 MiB; the SQLite-domain ceiling is 48 MiB and contains
 its 32 MiB SQLite heap. Crypto's 2 MiB heap is contained in the Read facility.
 These are capacities, not additive demand estimates or guarantees that every
 bounded input fits. Child mappings/loans share their original parent backing;
 neither their aliases nor embedded heaps issue independent capacity credit.
+The command's in-process domains borrow actual extents of that same mapping;
+they do not acquire another anonymous mapping or an unlinked regular file.
+These original loans are not exportable or reconstructible from a serialized
+extent reference. Generic FD-backed sharing retains its original file identity,
+shared mappings and independent descriptor custody.
 
 Both domain ceilings are installed on their original leases before their first
 context allocation. The physical SQLite Owner derives its necessary total from
@@ -2130,7 +2275,7 @@ the same actual Read/SQLite phase exchange.
 The selected command copies at most one 1,048,576-code-unit metadata reply into
 its initial managed facility only after the original Read has left. The original
 Read body and the control copy coexist until their actual cleanup. Only after
-Journal, Libraries/component, contexts/domains, Host, backing descriptor and
+Journal, Libraries/component, contexts/domains, Host mapping and
 Lock cleanup acknowledge does main encode/write/flush that copy. Cleanup failure
 retains the original carrier and emits no staged success. The managed output
 text and UTF-8 encoding remain bounded, but libc's output
@@ -2317,3 +2462,122 @@ loan. Leaving an already entered scope and returning the stopped original loan
 remain cleanup operations through their existing Native Owner; neither needs
 to revive normal initial currentness. Those acknowledgements remain distinct
 from Host close, default restoration and process-lived allocator retirement.
+
+
+### Same-process domains in an anonymous parent mapping
+
+The installed Native Host can prepare a private in-process domain inside its
+existing anonymous backing as an exclusive writer. The same original allocation and Core delegation
+retain the physical range. A local view points into that allocation; creating
+or closing it does not create or unmap another mapping, issue capacity, or
+acknowledge parent retirement. Domain control storage remains inside the
+original delegated payload. Loan and view records remain ordinary Host control
+values outside that payload.
+
+This path requires the same address-bound loan, original process, current Host
+and child identity. It cannot project FD transport, reconstruct a view from
+scalars, or lend the domain across fork. The regular FD-backed mapping and
+process transport paths retain their existing contracts. A failed local domain
+preparation stays on its original partial carrier, without switching backends.
+
+Live child allocations or scopes keep domain close pending. Domain retirement
+precedes local-view retirement; that acknowledgement only releases the view's
+use of the original loan. The separate loan return then permits parent extent
+retirement, and only the original parent close unmaps its backing. Copied,
+foreign, spent and closed carriers retain the existing refusal and idempotent
+cleanup rules. No local-view close is represented as an OS unmap acknowledgement.
+
+### Local Journal append metadata
+
+A fresh submitted intent uses the existing Journal's retained-intent byte
+usage and issuance coordinate in its original transaction. The same transaction
+advances the usage CAS and issuance CAS and inserts the intent. Retained
+requests still select their original row before any append decision; expiry,
+changed intent, query failure and COMMIT uncertainty keep their existing
+meaning. The cumulative canonical-intent byte cap and record cap are unchanged.
+
+Fresh Run binding reads its issuance coordinate and inserts the actual Run
+under the existing SQLite UNIQUE definition constraint. The actual schema
+format is observed once when the original Database is opened. Typed target
+identity and definition admission remain required; an index entry or SQL NULL
+is not authority. Run insertion, issuance CAS and definition replacement keep
+their existing transaction and rollback/Unknown rules. Ordinary open and
+append do not inventory unrelated Runs or Effects.
+
+Older Journals without this schema and retained-byte usage metadata refuse
+fresh insertion rather than interpreting missing metadata as absence or resend
+permission. The explicit `adopt --migrate-journal` command authenticates a
+bounded original inventory under current RunRead and installs the constraint
+and usage in the same captured Read/SQL transaction. The existing inspection
+byte bound also caps the schema installation's row work conservatively: each
+stored row occupies at least one byte. This work cap is not capacity, fit or
+permission evidence. Already admitted Runs are reused for Submission checks and scope-local saved
+Run-ID/reference locators. The same maintenance route completes legacy
+arbitrary-ID coverage; missing coverage on an ordinary lookup remains
+migration-required, never false absence or resend permission.
+
+The actual UNIQUE-index schema distinguishes the legacy format from usage
+metadata deleted after adoption. An indexed installation with missing or
+inconsistent usage refuses instead of rebuilding it. Repeated maintenance on
+a complete installation reads only its local metadata. The cached format
+changes only after its original COMMIT ACK; uncertainty remains fenced. This
+route does not run on ordinary open/read, repair originals, renew an epoch,
+rekey or authorize execution. Unindexed Common callers retain their existing
+inventory route until their physical usage port commits its additional CAS
+in the original transaction.
+
+
+Selected read-evidence usage is grouped by the existing request identity
+Owner's exact serialized request wire. The physical SQLite format uses a partial
+expression index over the immutable four-string evidence packets. It rejects
+malformed packet shapes, duplicate or extra fields, and nonzero revisions on
+later writes; it does not authenticate request strings or grant access.
+The existing coordinator admits the exact index format once at the relevant
+operation boundary, before using the same original Database/Library and active
+caller transaction. Internal usage queries consume that fact without another
+schema admission or unrelated history scan. Missing indexes refuse rather than
+falling back to a scan. A foreign named format refuses the entry check.
+
+The usage port returns only bounded entry and body-byte totals for that exact
+request, including the same connection's uncommitted rows. It stops at the
+sixty-fifth selected row or the supplied byte bound, copies no row body, and
+starts or completes no transaction. These are used amounts, not the separately
+retained per-Run capacity reservation, available credit, semantic admission or
+a COMMIT acknowledgement. The caller retains the original reservation,
+insertion, issued-counter CAS, rollback and sticky Unknown responsibilities.
+Fresh setup or explicit maintenance installs the index inside its original
+transaction after a complete finite table-work prepass. No ordinary read
+performs DDL, migration, repair or a global evidence audit.
+
+## Retained Store DATA lifetime
+
+Within the existing validated command capture, immutable committed Result DATA
+can be reused without resolving the same Store rows again. The caller retains
+the exact Store, namespace, scope, Run definition and Result name, and invalidates
+the selection on relevant mutation, failure, external reentry or operation end.
+This is not a retained authorization decision across public operations.
+
+`Store::retained_data_current` observes only the original Store/Database/Library
+lifetime and idle routing state. Closed or retiring Stores, pending returns,
+failed or cleanup-only routes, foreign process/thread use and unavailable
+Database/Library handles refuse. A live payload reader keeps its own duty and
+does not by itself invalidate immutable DATA. The query performs no SQL, scope
+transition, callback, permission evaluation, capacity return or cleanup ACK.
+The existing Host/capture still supplies current authority and actual physical
+pair/Read lifetime; this observation cannot substitute for those boundaries.
+
+### Run-definition collision lookup
+
+After a physical insert reports a constraint collision, the existing Journal
+may query `Database::client_run_definition_key` in that same transaction. The
+fixed equality lookup uses the already admitted definition index and copies at
+most one bounded record key. A second row, missing index, physical failure or
+failed statement retirement refuses; there is no namespace scan or fallback.
+The normal successful insertion path performs no added lookup.
+
+The key supplies no Run identity or authority. The Journal must read and admit
+the exact target record before classifying a duplicate definition. A confirmed
+miss preserves the original generic collision; unrelated constraints are not
+silently relabeled. This query neither owns a transaction nor acknowledges a
+commit, retry or cleanup. Input and returned key use the existing 512-byte
+physical name bound; the original CID and Run Owners retain semantic admission.

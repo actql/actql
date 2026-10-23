@@ -17,6 +17,44 @@ on:
         description: Run the registered performance matrix at this revision
         type: boolean
         default: false
+      performance_priority_node_mode:
+        description: Priority Node samples; final is for a plausible fixed candidate
+        type: choice
+        options: [diagnostic, final]
+        default: diagnostic
+      performance_priority_python_mode:
+        description: Priority Python samples; final is for a plausible fixed candidate
+        type: choice
+        options: [diagnostic, final]
+        default: diagnostic
+      performance_package_run_id:
+        description: Completed same-source normal CI run supplying existing Client tarballs
+        type: string
+        default: ''
+      performance_package_artifact_id:
+        description: Exact existing Client package artifact for the performance check
+        type: string
+        default: ''
+      performance_native_package_run_id:
+        description: Exact normal native package run id
+        type: string
+        default: ''
+      performance_native_package_artifact_id:
+        description: Exact normal native package artifact id
+        type: string
+        default: ''
+      performance_python_package_run_id:
+        description: Exact normal python package run id
+        type: string
+        default: ''
+      performance_python_package_artifact_id:
+        description: Exact normal python package artifact id
+        type: string
+        default: ''
+      performance_process_package_jobs:
+        description: JSON object naming the exact native and python normal package jobs
+        type: string
+        default: '{}'
       native_macos:
         description: Also run the macOS native job (billed at ten times Linux)
         type: boolean
@@ -64,6 +102,20 @@ jobs:
   performance-matrix:
     if: ${{ vars.ACTQL_MAIN_CI_ENABLED == 'true' && github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && (github.event_name == 'workflow_dispatch' && inputs.performance_matrix && !inputs.packed_query_evidence_probe) }}
     uses: ./.github/workflows/performance-matrix.yml
+    permissions:
+      contents: read
+      actions: read
+    with:
+      priority-node-mode: ${{ inputs.performance_priority_node_mode }}
+      priority-python-mode: ${{ inputs.performance_priority_python_mode }}
+      package-run-id: ${{ inputs.performance_package_run_id }}
+      package-artifact-id: ${{ inputs.performance_package_artifact_id }}
+      native-package-run-id: ${{ inputs.performance_native_package_run_id }}
+      native-package-artifact-id: ${{ inputs.performance_native_package_artifact_id }}
+      native-package-producer-job: ${{ fromJSON(inputs.performance_process_package_jobs || '{}').native || '' }}
+      python-package-run-id: ${{ inputs.performance_python_package_run_id }}
+      python-package-artifact-id: ${{ inputs.performance_python_package_artifact_id }}
+      python-package-producer-job: ${{ fromJSON(inputs.performance_process_package_jobs || '{}').python || '' }}
   # Admission checks complete before any normal runtime/proof runner starts.
   # Actual retained history is checked before installing the build toolchain.
   preflight:
@@ -84,6 +136,8 @@ jobs:
         run: node proofs/relation-pipeline/history.mjs --write
       - name: Reject inconsistent operation support and acceptance evidence before fan-out
         run: node --test scripts/pure-operation-inventory.test.mjs
+      - name: Check Native diagnostic counter assignments before fan-out
+        run: python3 scripts/test_native_timings.py CommandCounterMap
       - run: npm ci
       - name: Test pipeline artifact and aggregate contracts
         run: node --test proofs/relation-pipeline/ci-artifacts.test.mjs
@@ -170,6 +224,15 @@ jobs:
         run: node --test scripts/ci-focused-tests.test.mjs
       - name: Test conservative CI target selection
         run: node --test scripts/ci-targets.test.mjs scripts/ci-main-base.test.mjs
+      - name: Test ordinary operation performance assessment
+        if: ${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}
+        run: node --test scripts/operation-performance.test.mjs scripts/benchmark-node-operations.test.mjs scripts/operation-performance-policy.test.mjs scripts/operation-performance-native-control.test.mjs scripts/benchmark-node-process-operations.test.mjs scripts/benchmark-node-sqlite.test.mjs scripts/benchmark-node-boundaries.test.mjs scripts/node-operation-fs-trace.test.mjs scripts/operation-performance-priority-transition.test.mjs scripts/operation-performance-transition-ci.test.mjs
+      - name: Test ordinary process collector protocols
+        if: ${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}
+        run: python3 -I -B scripts/benchmark-ordinary-processes.test.py
+      - name: Test ordinary artifact reuse and controlled performance gate
+        if: ${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}
+        run: node --test scripts/ordinary-operation-packages.test.mjs
       - name: Test Client CI partition and aggregate requirements
         if: ${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}
         run: node --test scripts/client-ci.test.mjs
@@ -238,7 +301,7 @@ jobs:
       - name: Check common core
         run: moon check --target "${{ matrix.target }}" --deny-warn
       - name: Check independent fixed Run materials identity
-        run: node --test scripts/client-values-run-materials-vector.test.mjs
+        run: node --test scripts/client-values-run-materials-vector.test.mjs scripts/client-publication-values-identity.test.mjs scripts/client-values-compilation-work.test.mjs scripts/client-source-publication-work.test.mjs
       # Measured on these 2-vCPU runners: the default left native test
       # execution on about one CPU; one job per CPU shortened execution on
       # every target with no change in memory. Building is unaffected.
@@ -715,7 +778,7 @@ jobs:
       - name: Test retired metadata cleanup owner
         run: node --test adapters/store-local/metadata-deletion-owner.test.mjs
       - name: Test publication commit custody owner
-        run: node --test adapters/store-local/publication-commit-owner.test.mjs
+        run: node --test adapters/store-local/publication-commit-owner.test.mjs adapters/store-local/delivery-attempt-index.test.mjs adapters/store-local/semantic-publication-commit.test.mjs adapters/store-local/prepared-custody-atomic-record.test.mjs adapters/store-local/prepared-custody-pending-admission.test.mjs
       - name: Test portable publication control with the durable Store
         run: npm run check:publication-runtime
       - name: Test retained experiment fixtures and timing assessment
@@ -725,15 +788,19 @@ jobs:
       - name: Test durable Remote Site dispatch admission
         run: npm run check:remote-site-runtime
       - name: Test non-destructive SQLite format inspection
-        run: node --test adapters/host-common/sqlite-format-inspection.test.mjs
+        run: node --test adapters/host-common/sqlite-format-inspection.test.mjs adapters/host-node/ordinary-host-journal.test.mjs
+      - name: Test bounded Journal preparation and execution
+        run: node --test adapters/host-node/client-request-journal-sql-bounds.test.mjs adapters/host-node/client-request-journal-execution-bounds.test.mjs adapters/host-node/client-request-journal-wal-bounds.test.mjs
       - name: Test durable Checkpoint journal and resumed dispatch admission
         run: npm run check:checkpoint-runtime
+      - name: Test operation authorization and unchanged Run observations
+        run: node --test adapters/host-node/authorization-account-current.test.mjs adapters/host-node/local-account-current.test.mjs adapters/host-node/client-run-state-revision.test.mjs adapters/host-node/client-run-observation-reuse.test.mjs adapters/host-common/run-state-clock-order.test.mjs adapters/host-node/client-run-stop-observation.test.mjs adapters/host-node/embedded-managed-compute-projection.test.mjs adapters/host-node/embedded-managed-compute-lifecycle.test.mjs adapters/host-node/embedded-source-environment-scope.test.mjs adapters/host-node/client-original-submitted-intent.test.mjs adapters/host-common/observation.test.mjs adapters/host-node/in-process-result-observation.test.mjs
       - name: Test native retained task file ownership
         run: npm run check:native-retained-task-file
       - name: Test portable Remote Transfer owner package
         run: npm run check:transfer-core
       - name: Test portable Run Host compilation package
-        run: npm run check:run-host-core
+        run: npm run check:run-host-core && node --test adapters/host-node/local-result-authorization.test.mjs
       - name: Build runtime packages without prebuilt bundles
         run: node scripts/test-runtime-package-build.mjs
       - name: Test packed Local runtime assets

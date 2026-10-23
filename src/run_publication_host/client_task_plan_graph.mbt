@@ -39,6 +39,7 @@ fn client_task_edge_input(
 pub struct ClientTaskPlanGraph {
   wire : String
   transformations : Array[ClientResultTransformation]
+  priv standard_progress_keys : Array[String]?
 }
 
 ///|
@@ -139,6 +140,28 @@ pub fn issue_prepared_client_multi_infer_task_plan_graph(
     [],
     infers=components,
   )
+}
+
+///|
+// These are the original fragment issuer's limits, not execution authority.
+// Only an equal sequence profile and no looser encoding bounds can supply the
+// existing progress profile without regenerating the same immutable nodes.
+fn client_task_graph_standard_progress_limits(
+  sequence : @lower.SequenceLimits,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Bool {
+  let standard = client_standard_values_sequence_limits()
+  sequence.max_steps == standard.max_steps &&
+  sequence.max_rows == standard.max_rows &&
+  sequence.max_cells == standard.max_cells &&
+  sequence.max_bindings == standard.max_bindings &&
+  sequence.max_name_bytes == standard.max_name_bytes &&
+  sequence.expressions == standard.expressions &&
+  max_wire_bytes <= 1000000 &&
+  max_nodes <= 100000 &&
+  max_depth <= 100
 }
 
 ///|
@@ -321,21 +344,46 @@ fn issue_client_task_plan_graph(
         }
       _ => None
     }
-    let producer = match content_result {
-      Some(content) => content.output
-      None => fragment
+    let infer_result = match by_task.get(task) {
+      Some(component) => {
+        guard client_infer_occurrence_matches_plan(
+            component.occurrence,
+            component,
+          ) &&
+          client_infer_result_producer(
+            component.occurrence,
+            result,
+            component.result_producers,
+          )
+          is Some(producer) else {
+          return Err(Root(Root(RequiresResultTransformation)))
+        }
+        Some((component.occurrence, producer))
+      }
+      None => None
+    }
+    let (producer_node, producer_port, producer_contract) = match infer_result {
+      Some((_, (_, node, port, contract))) => (node, port, contract)
+      None => {
+        let producer = match content_result {
+          Some(content) => content.output
+          None => fragment
+        }
+        (producer.node_id, producer.output_port, producer.output_contract_cid)
+      }
     }
     let parts = match
       issue_client_result_plan_parts(
         value,
         result,
-        producer.node_id,
-        producer.output_port,
-        producer.output_contract_cid,
+        producer_node,
+        producer_port,
+        producer_contract,
         max_wire_bytes,
         max_nodes,
         max_depth,
         serialization_output=content_result.map(content => content.barrier),
+        infer_output=infer_result.map(value => (value.0, value.1.0)),
       ) {
       Ok(parts) => parts
       Err(issue) => return Err(Root(issue))
@@ -458,7 +506,20 @@ fn issue_client_task_plan_graph(
     }
     @encode.end_array(writer)
     @encode.end_object(writer)
-    Ok({ wire: @encode.finish(writer), transformations, })
+    let standard_progress_keys = if components.is_empty() &&
+      serialization is None &&
+      client_task_graph_standard_progress_limits(
+        sequence_limits, max_wire_bytes, max_nodes, max_depth,
+      ) {
+      Some(fragments.map(fragment => fragment.node_id))
+    } else {
+      None
+    }
+    Ok({
+      wire: @encode.finish(writer),
+      transformations,
+      standard_progress_keys,
+    })
   } catch {
     _ => Err(Encoding)
   }

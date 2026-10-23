@@ -13,7 +13,7 @@ const tinyResources = {memoryBytes: 16 * 1024 * 1024, diskBytes: 1024 * 1024, cp
 const guard = new URL('./local-checks-guard.mjs', import.meta.url).href;
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 // Normal cancellation must allow a process exit, pipe EOF and the supervisor's
-// bounded (up to 2s) ps inspection. This is fixture-only, not a production change.
+// bounded ps inspection. This is fixture-only, not a production change.
 const cancellationGraceSeconds = 3;
 // These ordering tests need time to start both Node processes and observe their
 // readiness/exit records. Timeout still fires through the real production timer.
@@ -1281,6 +1281,20 @@ test('cancelled before acquisition starts nothing and does not signal other proc
   assert.equal(await runLocalCheck({root: f.root}, {signal: abort.signal}), 130);
   assert.deepEqual(readdirSync(f.home), []);
   assert.deepEqual(readdirSync(f.root), []);
+});
+
+test('delayed valid ps snapshots still confirm completion and release owned locks', async t => {
+  const f = fixture(t), bin = join(f.directory, 'bin'); mkdirSync(bin);
+  const ps = join(bin, 'ps');
+  writeFileSync(ps, '#!/bin/sh\n/bin/sleep 2.3\nexec /bin/ps "$@"\n');
+  chmodSync(ps, 0o755);
+  const result = await start(f, {}, {PATH: bin + ':' + process.env.PATH}).done;
+  assert.equal(result.code, 0, result.stderr);
+  const record = summary(attempts(f)[0]);
+  assert.equal(record.complete, true);
+  assert.equal(record.outputComplete, true);
+  assert.equal(record.locksReleased, true);
+  assert.deepEqual(locks(f), []);
 });
 
 test('ps failure after execution retains locks and cannot certify completion', async t => {

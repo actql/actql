@@ -17,8 +17,15 @@ pub fn PublicationCommitPreparation::finish_view(
     preparation.view is Some(_) ||
     preparation.inputs is None ||
     !(preparation.phase is Done) ||
-    preparation.live >= preparation.max_workspace {
+    preparation.live >= preparation.max_workspace ||
+    (preparation.retained_capture is Some(original) && original.closed) {
     return Err(CommitEncoding)
+  }
+  // The new fully checked commit view retains its own original inputs. It no
+  // longer needs to borrow the earlier capture's computation-fact holder.
+  if preparation.retained_capture is Some(_) {
+    preparation.retained_capture = None
+    preparation.live -= 1
   }
   let view = { owner: Some(preparation), released: false, observed: None, }
   preparation.view = Some(view)

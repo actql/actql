@@ -122,7 +122,7 @@ test('attempt lookup distinguishes absent evidence from a Store failure',
 
 for (const answer of ['found', 'absent']) {
   for (const revocation of ['deny', 'unavailable']) {
-    test(`attempt lookup withholds ${answer} after ${revocation} during Store await`,
+    test(`attempt lookup observes ${revocation} on the next public operation after trusted ${answer} lookup`,
       async () => {
         let release, started, allowed = true;
         const entered = new Promise(resolve => { started = resolve; });
@@ -151,11 +151,16 @@ for (const answer of ['found', 'absent']) {
         submitted.attemptId = 'other';
         allowed = false;
         release();
-        await assert.rejects(pending, {code: 'ResultAccessDenied'});
-        assert.equal(authorized.length, 2);
+        assert.deepEqual(await pending, answer === 'found' ? receipt : {kind: 'not_found'});
+        assert.equal(authorized.length, 1,
+          'the trusted Store await consumes the already admitted permission');
         assert.strictEqual(authorized[0], lookedUp);
-        assert.strictEqual(authorized[1], lookedUp);
         assert.deepEqual(lookedUp, request());
+        await assert.rejects(inspectAuthorizedDeliveryAttempt(installed, request()),
+          {code: 'ResultAccessDenied'});
+        assert.equal(authorized.length, 2);
+        assert.notStrictEqual(authorized[1], lookedUp,
+          'a new public operation has its own current observation');
       });
   }
 }

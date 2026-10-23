@@ -11,7 +11,11 @@ struct ClientEffectIssuedNormalizationMaterials {
   original : ClientEffectNormalization
   compilation : ClientEffectCompilation
   run_cid : String
+  prepared_cid : String
+  authorization_cid : String
+  request : ClientRequestIdentity?
   wire : String
+  mut materials_cid : String?
   normalization_profile : ClientEffectNormalizationInventory?
 }
 
@@ -45,7 +49,13 @@ pub fn issue_prepared_client_effect_normalization_materials(
     original,
     compilation: allowed.compilation,
     run_cid,
+    prepared_cid: @publication.run_evidence_value_identity(allowed.prepared),
+    authorization_cid: @publication.run_evidence_value_identity(
+      allowed.authorization,
+    ),
+    request,
     wire,
+    materials_cid: None,
     normalization_profile: allowed.compilation.normalization_profile,
   })
 }
@@ -55,6 +65,22 @@ pub fn client_effect_issued_normalization_materials_wire(
   issued : ClientEffectIssuedNormalizationMaterials,
 ) -> String {
   issued.wire
+}
+
+///|
+/// The immutable wire has one derived digest in its original nominal Owner.
+/// Wire-only consumers do not request or compute it.
+fn original_effect_materials_cid(
+  issued : ClientEffectIssuedNormalizationMaterials,
+) -> String {
+  match issued.materials_cid {
+    Some(value) => value
+    None => {
+      let value = "sha256:" + @sha.hex(@utf8.encode(issued.wire))
+      issued.materials_cid = Some(value)
+      value
+    }
+  }
 }
 
 ///|
@@ -85,44 +111,49 @@ struct ClientEffectNormalizationMaterialCustody {
   issued : ClientEffectIssuedNormalizationMaterials?
   compilation : ClientEffectCompilation
   run_cid : String
+  prepared_cid : String
+  authorization_cid : String
   request : ClientRequestIdentity?
   journal_wire : String
+  journal : @publication.RunEvidenceValue
+  inventory : ClientEffectNormalizationInventory
   materials_cid : String
 }
 
 ///|
-/// Restore only saved journal bytes through the original admitted material
-/// Owner. This operation does not prepare, compile, issue a journal, refresh
-/// lifetime/authority, acquire Source input or perform Provider I/O.
+/// Project the journal retained by the original admitted material Owner.
+/// Saved bytes were checked at admission. This operation does not prepare,
+/// compile, issue a journal, refresh lifetime/authority, acquire Source input
+/// or perform Provider I/O.
 pub fn restore_client_effect_run_normalization(
   materials : ClientEffectRunMaterials,
 ) -> Result[@publication.RunEvidenceValue, ClientEffectNormalizationIssue] {
   let prepared = materials.prepared
   if !physical_equal(materials.compilation.owner, prepared) ||
-    !physical_equal(materials.compilation, materials.allowed.compilation) ||
-    bind_client_effect_compiled_run(
-      prepared,
-      materials.allowed,
-      materials.run_definition,
-    )
-    is Err(_) {
+    !physical_equal(materials.compilation, materials.allowed.compilation) {
     return Err(ForeignMaterials)
   }
   guard materials.normalization is Some(custody) else {
     return Err(MissingOriginalJournal)
   }
+  // Issuance or saved-material admission already bound this immutable tuple.
+  // These local identity checks do not rebuild its checked Effect DAG.
   guard prepared.normalization_custody is Some(original) &&
     physical_equal(custody, original) &&
     physical_equal(custody.compilation, materials.compilation) &&
     custody.run_cid ==
     @publication.publication_contract_identity(materials.run_definition) &&
+    custody.prepared_cid ==
+    @publication.run_evidence_value_identity(materials.allowed.prepared) &&
+    custody.authorization_cid ==
+    @publication.run_evidence_value_identity(materials.allowed.authorization) &&
     custody.request == materials.request else {
     return Err(ForeignMaterials)
   }
   match custody.issued {
     Some(issued) =>
       if !original_effect_materials_match(issued, issued.wire, custody.run_cid) ||
-        custody.materials_cid != "sha256:" + @sha.hex(@utf8.encode(issued.wire)) ||
+        custody.materials_cid != original_effect_materials_cid(issued) ||
         custody.journal_wire !=
         @publication.run_evidence_value_json(issued.original.journal) {
         return Err(UnverifiedOriginalMaterials)
@@ -152,23 +183,21 @@ pub fn restore_client_effect_run_normalization(
       }
       // Existing nominal create material custody on the legacy Template is
       // retained. It does not authorize update or unverified wire restoration.
-      match checked_client_effect_normalization_inventory(prepared) {
-        Ok(MappedCreate(inventory)) => MappedCreate(inventory)
-        Ok(_) => return Err(ForeignCatalog)
-        Err(issue) => return Err(issue)
+      if !(custody.inventory is MappedCreate(_)) {
+        return Err(ForeignCatalog)
       }
+      if !client_effect_normalization_inventory_matches(
+          custody.inventory,
+          prepared,
+        ) {
+        return Err(ForeignPreparation)
+      }
+      custody.inventory
     }
   }
-  let journal = match
-    @publication.admit_run_evidence_value(
-      "normalization_journal",
-      custody.journal_wire,
-      1024,
-      32,
-      8,
-    ) {
-    Ok(value) => value
-    Err(issue) => return Err(Evidence(issue))
+  let journal = custody.journal
+  if custody.journal_wire != @publication.run_evidence_value_json(journal) {
+    return Err(SubstitutedJournal)
   }
   // Independently frozen catalog/journal preimages are published alongside
   // the issuer. Never construct a replacement journal during restoration.

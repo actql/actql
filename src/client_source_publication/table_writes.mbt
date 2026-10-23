@@ -18,6 +18,15 @@ fn table_write_publication(
   publication : String,
 ) -> Array[@query_program.TableWriteBinding] raise PublicationStop {
   let root = source_publication_cursor(publication)
+  table_write_publication_from_root(environment, root)
+}
+
+///|
+fn table_write_publication_from_root(
+  environment : @program_check.CheckEnvironment,
+  root : @decode.Cursor,
+  admission? : PublicationEnvironmentAdmission? = None,
+) -> Array[@query_program.TableWriteBinding] raise PublicationStop {
   if source_publication_text(root, "environmentCid") !=
     @program_check.checking_environment_cid(environment) {
     raise PublicationStop(Publication)
@@ -38,11 +47,20 @@ fn table_write_publication(
   if entries.is_empty() {
     return []
   }
-  let mappings = @check_environment.check_mapping_contract_shapes(
-    @program_check.checking_environment_wire(environment),
-    { max_bytes: 1048576, max_nodes: 16384, max_depth: 32, max_members: 32768, },
-    1000000,
-  ).unwrap_or_else(() => raise PublicationStop(Publication))
+  let mappings = match admission {
+    Some(admission) => publication_admission_mappings(admission)
+    None =>
+      @check_environment.check_mapping_contract_shapes(
+        @program_check.checking_environment_wire(environment),
+        {
+          max_bytes: 1048576,
+          max_nodes: 16384,
+          max_depth: 32,
+          max_members: 32768,
+        },
+        1000000,
+      ).unwrap_or_else(() => raise PublicationStop(Publication))
+  }
   let bindings : Array[@query_program.TableWriteBinding] = []
   for entry in entries {
     let entry_object = @decode.closed_object(entry, [

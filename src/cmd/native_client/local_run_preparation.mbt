@@ -6,6 +6,8 @@ fn local_prepare_submitted_run_program(
   intent : @run_host.ClientSubmittedIntent,
   environment : @checked.CheckEnvironment,
 ) -> @local_host.NativeClientSubmittedPreparation raise ClientStop {
+  native_timing_begin(2)
+  defer native_timing_end(2)
   let catalog = @checked.prepare_source_catalog(environment, {
     max_work: @run_host.client_standard_program_preparation_limits().checking.compilation.work,
     max_bytes: 65536,

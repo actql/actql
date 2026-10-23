@@ -42,6 +42,7 @@ pub fn inspect_client_remote_effect_task_progress(
       authority,
       @publication.publication_contract_identity(definition),
       client_effect_compilation_result_names(allowed.compilation),
+      allowed.compilation.compiled.standard_progress_keys,
       durable,
     ) {
     Ok(value) => value

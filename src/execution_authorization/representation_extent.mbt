@@ -18,6 +18,8 @@ pub(all) struct AccountConfigurationRepresentationExtent {
   fixed_backing_slots : Int64
   strings : Int64
   text_utf16_units : Int64
+  original_byte_buffers : Int64
+  original_bytes : Int64
 } derive(Eq, Debug)
 
 ///|
@@ -86,5 +88,14 @@ pub fn AdmittedAccountConfiguration::representation_extent(
     fixed_backing_slots,
     strings,
     text_utf16_units,
+    original_byte_buffers: if self.original_wire is Some(_) {
+      1L
+    } else {
+      0L
+    },
+    original_bytes: match self.original_wire {
+      Some(bytes) => bytes.length().to_int64()
+      None => 0L
+    },
   }
 }

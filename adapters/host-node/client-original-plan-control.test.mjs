@@ -11,7 +11,7 @@ const limits = {maxWireBytes: 65536, maxNodes: 4096, maxDepth: 64};
 const ok = _0 => ({$tag: 1, _0});
 function fixture(changes = {}) {
   const owner = {}, compilation = {}, value = {};
-  const counts = {compiles: 0, projects: 0, bindings: 0};
+  const counts = {compiles: 0, projects: 0, bindings: 0, planAdmissions: 0, mapAdmissions: 0};
   const plan = {name: 'compiled_plan', identity: JSON.parse(planOriginal.planViewWire).compiled_plan_cid,
     wire: planOriginal.compiledPlanWire};
   const prepared = {name: 'prepared_invocation', identity: 'prepared-id', wire: evidence.prepared};
@@ -38,8 +38,12 @@ function fixture(changes = {}) {
     strategyRunEvidenceName: token => token.name,
     strategyRunEvidenceIdentity: token => token.identity,
     strategyRunEvidenceJson: token => token.wire,
-    strategyPublicationAdmit: (name, wire) => ok({name, wire, identity: JSON.parse(wire)[name + '_cid']}),
+    strategyPublicationAdmit(name, wire) {
+      if (name === 'compiled_plan') counts.planAdmissions++;
+      return ok({name, wire, identity: JSON.parse(wire)[name + '_cid']});
+    },
     strategyRunEvidenceAdmit(name, wire) {
+      if (name === 'logical_map') counts.mapAdmissions++;
       const body = JSON.parse(wire), {self_cid, ...preimage} = body;
       const expected = `sha256:${createHash('sha256').update(canonicalText(preimage)).digest('hex')}`;
       return expected !== self_cid ? {$tag: 0, _0: 'independent CID mismatch'} :
@@ -57,6 +61,20 @@ function fixture(changes = {}) {
   return {control, compiled, run, owner, moon, counts};
 }
 
+test('compiler-issued plan capture does not admit its own output as stored input', () => {
+  const f = fixture();
+  const selected = f.control.captureOriginalClientRunPlan(f.compiled, f.owner, f.run, limits);
+  assert.deepEqual(f.control.originalRunPlanAdmissionEvidence(selected, f.run,
+    request.programDefinitionCid, evidence), planOriginal);
+  assert.deepEqual({plan: f.counts.planAdmissions, map: f.counts.mapAdmissions,
+    bindings: f.counts.bindings}, {plan: 0, map: 0, bindings: 0});
+  assert.equal(f.counts.compiles, 1);
+  assert.equal(f.counts.projects, 1);
+  f.control.readStoredRunPlanOriginal(planOriginal, f.run, request.programDefinitionCid, limits);
+  assert.deepEqual({plan: f.counts.planAdmissions, map: f.counts.mapAdmissions,
+    bindings: f.counts.bindings}, {plan: 1, map: 1, bindings: 1});
+});
+
 test('original map selection retains the actual compiler owner and performs no recompile on read', () => {
   const f = fixture();
   const selected = f.control.captureOriginalClientRunPlan(f.compiled, f.owner, f.run, limits);
@@ -64,7 +82,7 @@ test('original map selection retains the actual compiler owner and performs no r
   const original = f.control.originalRunPlanAdmissionEvidence(selected, f.run, request.programDefinitionCid, evidence);
   assert.deepEqual(original, planOriginal); assert.equal(Object.isFrozen(original), true);
   assert.equal(f.control.readStoredRunPlanOriginal(original, f.run, request.programDefinitionCid, limits), planOriginal.planViewWire);
-  assert.equal(f.counts.compiles, 1); assert.equal(f.counts.projects, 1); assert.equal(f.counts.bindings, 2);
+  assert.equal(f.counts.compiles, 1); assert.equal(f.counts.projects, 1); assert.equal(f.counts.bindings, 1);
 });
 
 test('copied selections and foreign original Run or preparation are refused', () => {
@@ -107,4 +125,19 @@ test('invalid bounds or missing installed projection never fall back to compilat
     absent.owner, absent.run, limits), {code: 'ClientOperationUnavailable'});
   assert.equal(f.counts.compiles, 1); assert.equal(f.counts.projects, 0);
   assert.equal(absent.counts.compiles, 1);
+});
+
+test('compiler-original capture preserves independent stored wire byte ceilings', () => {
+  const plan = fixture({clientProgramCompiledRunPlan: () => ({name: 'compiled_plan',
+    identity: JSON.parse(planOriginal.planViewWire).compiled_plan_cid,
+    wire: 'x'.repeat(limits.maxWireBytes + 1)})});
+  const view = fixture({clientProgramCompiledRunStaticPlanView: () =>
+    ok('x'.repeat(limits.maxWireBytes + 1))});
+  for (const f of [plan, view]) {
+    assert.throws(() => f.control.captureOriginalClientRunPlan(f.compiled,
+      f.owner, f.run, limits), TypeError);
+    assert.equal(f.counts.planAdmissions, 0);
+    assert.equal(f.counts.mapAdmissions, 0);
+    assert.equal(f.counts.bindings, 0);
+  }
 });

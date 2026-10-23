@@ -125,6 +125,7 @@ fn open_native_client_local_values_work(
   current : () -> Bool,
   ledger? : @resources.Ledger? = None,
   original_access? : NativeLocalValuesOriginalAccess? = None,
+  requirements? : @local.ClientLocalSourceFreeRequirements? = None,
 ) -> Result[NativeClientValuesWork, NativeClientValuesWorkFailure] {
   if !current() {
     return Err(
@@ -139,7 +140,9 @@ fn open_native_client_local_values_work(
     return Err(local_values_work_failure(UnsupportedProfile))
   }
   match
-    validate_native_client_run_binding(request, prepared, compiled, definition) {
+    journal.validate_prepared_run_binding(
+      request, prepared, compiled, definition,
+    ) {
     Ok(_) => ()
     Err(issue) => return Err(local_values_work_failure(Journal(issue)))
   }
@@ -177,7 +180,13 @@ fn open_native_client_local_values_work(
   let selected = match ledger {
     Some(original) =>
       @local.open_source_free_local_retained_host_on_ledger(
-        prepared, original, registry_body, values_body, fragment_body, ordered_body,
+        prepared,
+        original,
+        registry_body,
+        values_body,
+        fragment_body,
+        ordered_body,
+        requirements~,
       )
     None =>
       @local.open_source_free_local_retained_host(
@@ -230,6 +239,9 @@ fn open_native_client_local_values_work(
         )
         is Ok(_)
       },
+      require_live=original_access.map(access => {
+        () => access.poll_execution_original(start)
+      }),
     ) {
     Ok(value) => value
     Err(failure) =>
@@ -346,7 +358,7 @@ fn NativeClientValuesWork::require_current(
   self : NativeClientValuesWork,
 ) -> Result[Unit, NativeClientValuesWorkIssue] {
   match
-    validate_native_client_run_binding(
+    self.start.journal.validate_prepared_run_binding(
       self.start.request,
       self.prepared,
       self.compiled,

@@ -251,6 +251,34 @@ test "Selected command preparation reports the original failure boundary without
 }
 
 ///|
+test "Original command failure survives a failed Read return without publishing a reply" {
+  let returned = CommandAdoption(@local_host.OriginalResourceScopePending)
+  let issue = command_preparation_read_return_issue(
+    Some(Err("OriginalBusinessFailure")),
+    returned,
+  )
+  let refused : Result[Unit, LocalCommandPreparationIssue] = Err(issue)
+  let message = try {
+    ignore(command_preparation_result(refused, stage=Some("command-read")))
+    "unexpected success"
+  } catch {
+    ClientStop(message) => message
+  }
+  assert_eq(message, "OriginalBusinessFailure")
+  assert_true(
+    command_preparation_read_return_issue(
+      Some(Ok("unconfirmed reply")),
+      returned,
+    )
+    is CommandAdoption(@local_host.OriginalResourceScopePending),
+  )
+  assert_true(
+    command_preparation_read_return_issue(None, returned)
+    is CommandAdoption(@local_host.OriginalResourceScopePending),
+  )
+}
+
+///|
 test "Selected command preparation missing compiled layouts refuses before backing" {
   let failure = try {
     ignore(

@@ -7,6 +7,7 @@ declare const taskCompilationBrand: unique symbol;
 declare const effectPreparationBrand: unique symbol;
 declare const effectCompilationBrand: unique symbol;
 declare const effectAllowedBrand: unique symbol;
+declare const effectCheckpointBindingBrand: unique symbol;
 declare const issuedEffectMaterialsBrand: unique symbol;
 declare const requestBrand: unique symbol;
 declare const admissionBrand: unique symbol;
@@ -100,6 +101,8 @@ export type PreparedSourceProgram =
   Readonly<{kind: 'effect_free'; prepared: PreparedProgram; originalIntent: SubmittedIntent}> |
   Readonly<{kind: 'effect'; prepared: PreparedEffectProgram; originalIntent: SubmittedIntent}>;
 export interface SourceProgramOriginals {
+  /** Absent on historical originals; restore never upgrades their primary. */
+  readonly primaryResultRecipe?: 'public-main';
   readonly intentWire: string;
   readonly intentCid: string;
   readonly environmentCid: string;
@@ -137,11 +140,22 @@ export function effectResultSchema(prepared: PreparedEffectProgram,
     cid: string; wire: string; fields: readonly string[]}>;
 /** Metadata binding to the original checked Effect Run/unit/window only.
  * Does not confirm Native custody, current authority, waiting or approval. */
+export interface EffectReviewCheckpointBinding {
+    readonly [effectCheckpointBindingBrand]: true;
+    readonly checkpointCid: string; readonly checkpointWire: string;
+    readonly runId: string; readonly unitId: string;
+    readonly runDefinitionCid: string; readonly previewCid: string;
+    readonly reviewProjectionCid: string; readonly continuationCid: string;
+}
 export function effectReviewCheckpointBinding(allowed: AllowedEffectRun,
-  definition: RunDefinition, checkpointWire: string): Readonly<{
-    checkpointCid: string; checkpointWire: string; runId: string; unitId: string;
-    runDefinitionCid: string; previewCid: string; reviewProjectionCid: string;
-    continuationCid: string}>;
+  definition: RunDefinition, checkpointWire: string): EffectReviewCheckpointBinding;
+/** Same admitted original only; no wire admission, persistence or current grant. */
+export function effectReviewCheckpointBindingFacts(binding: EffectReviewCheckpointBinding,
+  allowed: AllowedEffectRun, definition: RunDefinition): EffectReviewCheckpointBinding;
+/** Same nominal binding and actual stored wire, not a persistence/current grant. */
+export function effectReviewCheckpointWaitingState(binding: EffectReviewCheckpointBinding,
+  allowed: AllowedEffectRun, definition: RunDefinition, storedWire: string,
+  updatedAt: string, declaredResults: readonly string[]): string;
 /** Project only the members of the original checked unit/Checkpoint. */
 export function effectReviewCheckpointMembers(allowed: AllowedEffectRun,
   definition: RunDefinition, checkpointWire: string): readonly string[];
@@ -176,11 +190,15 @@ export function issuePreparedEffectRunMaterials(allowed: AllowedEffectRun,
 export type RestoredEffectRun = Readonly<{prepared: PreparedEffectProgram;
   compilation: EffectCompilation; allowed: AllowedEffectRun;
   definition: RunDefinition; request?: RequestIdentity}>;
+/** Bind the exact process-local issuer/Run/request originals without preparing
+ * or compiling again. Current authorization and durable custody are separate. */
+export function bindPreparedEffectRunMaterials(allowed: AllowedEffectRun,
+  definition: RunDefinition, issued: IssuedEffectRunMaterials,
+  request: RequestIdentity): RestoredEffectRun;
 /** definitionCid and expectedRequest must come from trusted original durable
  * context, independently of candidate wire. This is not current authorization. */
 export function admitEffectRunMaterials(wire: string, definitionCid: string,
-  profiles: Readonly<{textTime?: boolean; veca?: boolean; rela?: boolean;
-    sga?: boolean; tea?: boolean; calendar?: boolean; textRank?: boolean}>,
+  profiles: ProfileSelection,
   original?: IssuedEffectRunMaterials, expectedRequest?: RequestIdentity,
   sourcePrepared?: PreparedEffectProgram): RestoredEffectRun;
 /** Requires the exact admitted material object; does not grant approval. */
@@ -268,6 +286,20 @@ export interface DurableResultRowFrames {
   readonly [durableRowFramesBrand]: true;
 }
 
+declare const issuedDeliveryAttemptBrand: unique symbol;
+export interface IssuedDeliveryAttemptOriginal {
+  readonly [issuedDeliveryAttemptBrand]: true;
+}
+export interface IssuedDeliveryAttemptFacts {
+  readonly index: IndexView;
+  readonly manifest: ManifestView;
+  readonly grant: GrantView;
+  readonly attempt: AttemptView;
+  readonly request: Readonly<{resultName: string; format: string;
+    attemptId: string; requestedAt: string}>;
+  readonly limits: PublicationLimits;
+}
+
 export interface ResultDeliveryControl {
   describeCommittedResult(index: IndexView, manifest: ManifestView,
     resultName: string, bindings: readonly DeliveryContractView<string>[],
@@ -287,6 +319,11 @@ export interface ResultDeliveryControl {
     bytes: number): boolean;
   admit<Kind extends string>(name: Kind, wire: string,
     limits: PublicationLimits): DeliveryContractView<Kind>;
+  /** Reuse an original publication from this module without wire admission. */
+  fromPublication<Kind extends string>(original: PublicationContract<Kind>):
+    DeliveryContractView<Kind>;
+  fromPublication<Kind extends string>(original: PublicationContract,
+    expectedName: Kind): DeliveryContractView<Kind>;
   beginResultAccessProgress(): ResultAccessProgress;
   resultAccessProgressAction(progress: ResultAccessProgress):
     'authorize_request' | 'resolve_committed_result' |
@@ -329,6 +366,12 @@ export interface ResultDeliveryControl {
     attempt: Readonly<{resultName: string; format: string;
       attemptId: string; requestedAt: string}>,
     limits: PublicationLimits): AttemptView;
+  /** Capture this issuer's exact immutable inputs; no authority or durable ACK. */
+  captureIssuedDeliveryAttempt(attempt: AttemptView, index: IndexView,
+    manifest: ManifestView, grant: GrantView, limits: PublicationLimits):
+    IssuedDeliveryAttemptOriginal | undefined;
+  readIssuedDeliveryAttempt(original: IssuedDeliveryAttemptOriginal):
+    IssuedDeliveryAttemptFacts;
   deliveryResultDefinitionCid(manifest: ManifestView,
     attempt: AttemptView): string;
   issueResultDeliveryReceipt(index: IndexView,
@@ -443,13 +486,17 @@ export interface ProfileSelection {
   readonly tea?: boolean;
   readonly calendar?: boolean;
   readonly textRank?: boolean;
+  /** Exact installed numeric reduction profile; omission enables none. */
+  readonly numericProfileCid?: string;
 }
 
-/** Validate the closed profile selection contract and normalize omitted values
- * to false. Returns a detached frozen value suitable for retained Run input;
+/** Validate the closed profile selection contract and normalize omitted booleans
+ * to false; an omitted numeric profile remains unavailable. Returns a detached
+ * frozen value suitable for retained Run input;
  * it does not admit a Check Environment or grant execution authority. */
 export function admitProfileSelection(profiles: unknown):
-  Readonly<Required<ProfileSelection>>;
+  Readonly<Required<Omit<ProfileSelection, 'numericProfileCid'>> &
+    Pick<ProfileSelection, 'numericProfileCid'>>;
 
 export interface PrivateCompilationWires {
   readonly executablePlan: string;

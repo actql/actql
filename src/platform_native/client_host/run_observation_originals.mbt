@@ -76,11 +76,45 @@ fn native_run_observation_fields(
 }
 
 ///|
+// Immutable metadata from the existing bounded row reader. These exact
+// originals supply no current permission, execution or physical lifetime.
+priv struct NativeClientStoredRunObservation {
+  wire : String
+  definition_cid : String
+  program_cid : String?
+  observation : @host.ClientRunObservationOriginals
+  plan : NativeClientRunPlanOriginal?
+}
+
+///|
+fn NativeClientStoredRunObservation::matches(
+  self : NativeClientStoredRunObservation,
+  wire : String,
+  definition : @publication.PublicationContract,
+  program_cid : String?,
+) -> Bool {
+  self.wire == wire &&
+  self.definition_cid == @publication.publication_contract_identity(definition) &&
+  self.program_cid == program_cid
+}
+
+///|
 fn read_native_run_observation_originals(
   wire : String,
   definition : @publication.PublicationContract,
   program_cid? : String? = None,
 ) -> Result[@host.ClientRunObservationOriginals, NativeClientRunJournalIssue] {
+  read_native_stored_run_observation(wire, definition, program_cid).map(value => {
+    value.observation
+  })
+}
+
+///|
+fn read_native_stored_run_observation(
+  wire : String,
+  definition : @publication.PublicationContract,
+  program_cid : String?,
+) -> Result[NativeClientStoredRunObservation, NativeClientRunJournalIssue] {
   let fields = match
     native_run_observation_fields(wire, ["authorization", "plan", "prepared"]) {
     Ok(value) => value
@@ -113,5 +147,11 @@ fn read_native_run_observation_originals(
     canonical == wire else {
     return Err(CustodyLost)
   }
-  Ok(original)
+  Ok({
+    wire,
+    definition_cid: @publication.publication_contract_identity(definition),
+    program_cid,
+    observation: original,
+    plan,
+  })
 }

@@ -117,7 +117,7 @@ export async function describeAuthorizedResult(service, input, signal) {
   signal?.throwIfAborted();
   const authorize = async facts => {
     let allowed;
-    try { allowed = await authority.authorizeResultDescription(facts); }
+    try { allowed = await authority.authorizeResultDescription(facts, request); }
     catch { fail('ResultAccessDenied'); }
     if (allowed !== true) fail('ResultAccessDenied');
     signal?.throwIfAborted();
@@ -125,10 +125,9 @@ export async function describeAuthorizedResult(service, input, signal) {
   await authorize(Object.freeze({...request, stage: 'request'}));
   let entry, index, manifest, retention, evidence;
   try {
-    entry = await store.confirmCommittedIndex(request.indexKey);
-    if (entry === undefined) fail('ResultAccessDenied');
-    index = await store.readPublicationContract(
-      entry.public_index_entry_cid, 'public_index_entry');
+    const selected = await readSelectedPublication(installed, request.indexKey);
+    if (selected === undefined) fail('ResultAccessDenied');
+    ({entry, index} = selected);
     manifest = await store.readPublicationContract(
       entry.result_manifest_cid, 'result_manifest');
     const definitionCid = control.resultReadDefinitionCid(
@@ -136,8 +135,9 @@ export async function describeAuthorizedResult(service, input, signal) {
     retention = await store.readPublicationContract(
       control.resultReadRetentionPolicyCid(manifest, request.resultName),
       'result_retention_policy');
-    evidence = await store.readCommittedResultDescriptionEvidence(
-      request.indexKey, definitionCid);
+    evidence = installed.readCommittedPublication === undefined
+      ? await store.readCommittedResultDescriptionEvidence(request.indexKey, definitionCid)
+      : await store.readCommittedResultDescriptionEvidence(request.indexKey, definitionCid, selected);
   } catch (error) {
     if (error?.code === 'PublicationLookupDenied') fail('ResultAccessDenied');
     if (['PublicationObjectMissing', 'PublicationContractMissing']
@@ -148,16 +148,16 @@ export async function describeAuthorizedResult(service, input, signal) {
   }
   const effectiveRetention = evidence.retained?.extension ?? retention;
   const clockCid = control.resultRetentionClockContractCid(retention);
+  let checkedAt = await sampleTrustedClock(installed, clockCid);
   const checkRetained = async () => {
-    const acceptedAt = await sampleTrustedClock(installed, clockCid);
-    // A durable write may settle after metadata or grant expiry. Keep the
-    // accepted lower bound while checking the time after physical IO too.
-    const at = typeof store.sampleTrustedClock === 'function'
-      ? observedAt(installed.now) : acceptedAt;
-    if (typeof store.sampleTrustedClock === 'function' &&
-        !control.trustedClockNotBefore(acceptedAt, at)) {
+    // Trusted internal reads/awaits consume this operation's one accepted
+    // durable floor. Expiry and rollback remain cheap local time checks.
+    const at = observedAt(installed.now);
+    if (typeof control.trustedClockNotBefore === 'function' &&
+        !control.trustedClockNotBefore(checkedAt, at)) {
       fail('InvalidResultAccessClock');
     }
+    checkedAt = at;
     // Validate the stored extension's exact base binding using its owner.
     if (evidence.retained !== undefined) {
       control.resultReadExtendedAvailability(manifest, request.resultName,
@@ -170,7 +170,7 @@ export async function describeAuthorizedResult(service, input, signal) {
   const at = await checkRetained();
   const facts = Object.freeze({...request, index, manifest,
     retention: effectiveRetention, observedAt: at});
-  const admission = await authority.admitResultDescription(facts);
+  const admission = await authority.admitResultDescription(facts, request);
   validateAdmission(admission);
   // Metadata consumes the existing Manifest grant, not a payload delivery.
   const grant = control.issueManifestReadGrant(index, manifest, {
@@ -266,9 +266,14 @@ function validateServiceConfiguration(configuration) {
 
 export function installResultAccessService(configuration) {
   validateServiceConfiguration(configuration);
+  const readCommittedPublication = configuration.store.readCommittedPublication;
+  if (readCommittedPublication !== undefined && typeof readCommittedPublication !== 'function') {
+    fail('InvalidResultAccessService');
+  }
   const service = Object.freeze({});
   services.set(service, Object.freeze({
     store: configuration.store,
+    readCommittedPublication,
     control: configuration.control,
     authority: authorities.get(configuration.authority),
     now: configuration.now,
@@ -277,6 +282,25 @@ export function installResultAccessService(configuration) {
     frameLimits: Object.freeze({...configuration.frameLimits}),
   }));
   return service;
+}
+
+async function readSelectedPublication(installed, indexKey) {
+  if (installed.readCommittedPublication === undefined) {
+    const entry = await installed.store.confirmCommittedIndex(indexKey);
+    if (entry === undefined) return undefined;
+    const index = await installed.store.readPublicationContract(
+      entry.public_index_entry_cid, 'public_index_entry');
+    return {entry, index};
+  }
+  // This same Store read owns the selected Index's nominal admission. It is
+  // not a permission or a successful-read cache across public operations.
+  const selected = await Reflect.apply(installed.readCommittedPublication, installed.store, [indexKey]);
+  if (selected === undefined) return undefined;
+  if (!exactKeys(selected, ['entry', 'index']) || selected.entry === null ||
+      typeof selected.entry !== 'object' || selected.index === null || typeof selected.index !== 'object') {
+    fail('InvalidCommittedPublicationState');
+  }
+  return selected;
 }
 
 export async function inspectAuthorizedDeliveryAttempt(service, input) {
@@ -299,15 +323,10 @@ export async function inspectAuthorizedDeliveryAttempt(service, input) {
     fail('ResultAttemptLookupUnavailable');
   }
   let allowed;
-  try { allowed = await authorize(request); }
+  try { allowed = await authorize(request, request); }
   catch { fail('ResultAccessDenied'); }
   if (allowed !== true) fail('ResultAccessDenied');
   const found = await installed.store.lookupDeliveryAttempt(request);
-  // Store acquisition can outlive the original authorization decision.
-  // Recheck this same request before disclosing either metadata or absence.
-  try { allowed = await authorize(request); }
-  catch { fail('ResultAccessDenied'); }
-  if (allowed !== true) fail('ResultAccessDenied');
   if (found === undefined) return Object.freeze({kind: 'not_found'});
   const reply = Object.freeze({kind: 'found',
     attempt: found.attempt, record: found.record ?? null,
@@ -420,7 +439,7 @@ export async function deliverAuthorizedResult(
         resultName: request.resultName,
         format: request.format,
         attemptId: request.attemptId,
-      }));
+      }), request);
   } catch {
     installed.control.recordResultAccessRequestAuthorization(progress, false);
     fail('ResultAccessDenied');
@@ -437,14 +456,12 @@ export async function deliverAuthorizedResult(
   let retention;
   let retained;
   try {
-    entry = await installed.store.confirmCommittedIndex(indexKey);
-    if (entry === undefined) {
+    const selected = await readSelectedPublication(installed, indexKey);
+    if (selected === undefined) {
       installed.control.recordResultAccessResolution(progress, false);
       fail('ResultAccessDenied');
     }
-    index = await installed.store.readPublicationContract(
-      entry.public_index_entry_cid, 'public_index_entry',
-    );
+    ({entry, index} = selected);
     manifest = await installed.store.readPublicationContract(
       entry.result_manifest_cid, 'result_manifest',
     );
@@ -458,9 +475,9 @@ export async function deliverAuthorizedResult(
     const resultDefinitionCid = installed.control.resultReadDefinitionCid(
       manifest, request.resultName,
     );
-    retained = await installed.store.readCommittedResultRetentionExtension(
-      indexKey, resultDefinitionCid,
-    );
+    retained = installed.readCommittedPublication === undefined
+      ? await installed.store.readCommittedResultRetentionExtension(indexKey, resultDefinitionCid)
+      : await installed.store.readCommittedResultRetentionExtension(indexKey, resultDefinitionCid, selected);
   } catch (error) {
     if (installed.control.resultAccessProgressAction(progress) ===
         'resolve_committed_result') {
@@ -510,7 +527,7 @@ export async function deliverAuthorizedResult(
   requireAction('admit_read');
   let admission;
   try {
-    admission = await installed.authority.admitResultRead(requestFacts);
+    admission = await installed.authority.admitResultRead(requestFacts, request);
     validateAdmission(admission);
   } catch (error) {
     installed.control.recordResultAccessReadAdmission(progress, false);
@@ -543,9 +560,15 @@ export async function deliverAuthorizedResult(
   }
   installed.control.recordResultAccessGrant(progress, true);
   requireAction('start_delivery');
+  let checkedAt = admittedAt;
   const authorize = async facts => {
-    const at = await sampleTrustedClock(installed,
-      clockContractCid, facts.observedAt);
+    const at = observedAt(installed.now);
+    if (typeof installed.control.trustedClockNotBefore === 'function' &&
+        (!installed.control.trustedClockNotBefore(checkedAt, at) ||
+         !installed.control.trustedClockNotBefore(facts.observedAt, at))) {
+      fail('InvalidResultAccessClock');
+    }
+    checkedAt = at;
     if (availability(at) !== 'available') {
       return false;
     }
@@ -556,17 +579,17 @@ export async function deliverAuthorizedResult(
         authorizationContextCid: admission.authorizationContextCid,
         egressAdmissionCid: admission.egressAdmissionCid,
         delivery: Object.freeze({...facts, observedAt: at}),
-      }),
+      }), request,
     );
     if (allowed !== true) return false;
-    const authorizedAt = await sampleTrustedClock(installed, clockContractCid);
+    // Callback/dispatch time may cross expiry, but an internal stage does
+    // not create another operation or require another durable clock write.
     const usableAt = observedAt(installed.now);
-    // Persistence can cross expiry. Retain the post-I/O expiry check, while
-    // refusing a fresh clock sample below the accepted durable observation.
-    if (typeof installed.store.sampleTrustedClock === 'function' &&
-        !installed.control.trustedClockNotBefore(authorizedAt, usableAt)) {
+    if (typeof installed.control.trustedClockNotBefore === 'function' &&
+        !installed.control.trustedClockNotBefore(checkedAt, usableAt)) {
       fail('InvalidResultAccessClock');
     }
+    checkedAt = usableAt;
     return availability(usableAt) === 'available' &&
       installed.control.resultReadGrantValidAt(grant, usableAt);
   };
@@ -585,5 +608,7 @@ export async function deliverAuthorizedResult(
     createDigest: installed.createDigest,
     authorize,
     signal,
-  });
+  }, Object.isFrozen(index) && Object.isFrozen(manifest)
+    ? Object.freeze({store: installed.store, control: installed.control,
+      index, manifest}) : undefined);
 }

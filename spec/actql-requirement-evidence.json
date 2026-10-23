@@ -9738,6 +9738,28 @@
       }
     },
     {
+      "requirement_id": "actql.language/normalization-journal.common-local-original-audit",
+      "statement_sha256": "b08c173763db7ba3308d4272c895452633f74f6c67365f61690bdac4b8bebed0",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "normalization-journal",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/normalization-journal.common-local-catalog-law",
+      "statement_sha256": "2d17f5a89b3a52a0ac818de0a490e73b9fac666353b0bdeb30f88280092f0a39",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "normalization-journal",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.language/normalization-journal.two-implementations-claiming-the-same-normalization-rule-catalog-and-check-evidence",
       "statement_sha256": "56bd0e40997dbe8d45c673dba7a69f3f9d3533e454e518802ffd169c20b49332",
       "status": "pending",
@@ -10900,6 +10922,127 @@
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
       "source": {
         "anchor": "initial-node-control-preparation",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.execution/ordinary-operation.retained-validation-scope",
+      "statement_sha256": "f992dab468f02b906962e6c677f161b8b7631d1a7575ec770b57f40fa48f2a68",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "ordinary-operation-validation",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.execution/ordinary-operation.revalidation-boundaries",
+      "statement_sha256": "2cda498af22dde052327de857701001d1f54460e4307810f16e8781012553acb",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "ordinary-operation-validation",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.execution/ordinary-operation.authorization-tuples",
+      "statement_sha256": "4252692ec1693f0e5f72ad5aea99a7d9d7f13eb5fade5eca1f31f99a9f819aad",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "ordinary-operation-validation",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.execution/ordinary-operation.targeted-durable-reads",
+      "statement_sha256": "18769b095106aa7b4b8dca02060d5dc50a460660f2344430c5acc5ebbd80fab4",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "ordinary-operation-validation",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.execution/ordinary-operation.immutable-row-validation",
+      "statement_sha256": "a098a7ff91b94b957d9337716b035a33528432be104841a155c6c521d4bdbad3",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "ordinary-operation-validation",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.execution/ordinary-operation.configuration-boundary",
+      "statement_sha256": "f6884c8f66dca79b59deb1fe80ff251b7c1d299b2c0eeba3b81d548f157f10ed",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "ordinary-operation-validation",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.execution/ordinary-operation.normalization-original",
+      "statement_sha256": "441628f40afc887f61130bb12b9ac49499db287d453db0e4801d6bb5ee222d2c",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "ordinary-operation-validation",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.execution/ordinary-operation.status-no-change",
+      "statement_sha256": "05ea9d3d564e6b124396c8cbe141c2c91f2b2d2d4a6e0a09834fbb618a077763",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "ordinary-operation-validation",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.execution/ordinary-operation.durable-linearization",
+      "statement_sha256": "7613a476ec04ad8e77e59587d417cded92f18b759c666087f97d6a2623706e72",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "ordinary-operation-validation",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.execution/ordinary-operation.bounded-transfer",
+      "statement_sha256": "0c7da17d47a84ce209bd2968d33dc5dbfb55a5a37fcc74dce7f082eb2fe20277",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "ordinary-operation-validation",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.execution/ordinary-operation.temporary-accounting",
+      "statement_sha256": "387160c4ccb2c3dc9623ae715fe336fafd1cc1a7b06a9c2d6dfc1c2344e262d6",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "ordinary-operation-validation",
         "kind": "prose"
       }
     },
@@ -12728,6 +12871,39 @@
         "anchor": "policy-routing",
         "kind": "prose"
       }
+    },
+    {
+      "requirement_id": "actql.execution/policy-routing.mock-result-original-binding",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "policy-routing",
+        "kind": "prose"
+      },
+      "statement_sha256": "de559ee86b6ba914c772223102873684f28b3fd0a442a067d041f3ec4e18fc6c"
+    },
+    {
+      "requirement_id": "actql.execution/policy-routing.mock-request-protection-target",
+      "statement_sha256": "2df31f172fbc08961f4120f04fdc82bfcbe1b20bea32722e198dc573c743fd5f",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "policy-routing",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.execution/policy-routing.mock-profile-original-recovery",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "policy-routing",
+        "kind": "prose"
+      },
+      "statement_sha256": "3be8b95ed2b936730a71210deb768a53308b99b486dc5d427fda70cc2f73bb16"
     },
     {
       "requirement_id": "actql.execution/policy-routing.a-technical-decision-failure-must-not-dispatch-or-record-a-rejection",
@@ -15349,7 +15525,29 @@
     },
     {
       "requirement_id": "actql.protocol.contracts/file-sources.listing-resolution-and-metadata",
-      "statement_sha256": "0b1b1f28c5b5195c53982a3108b0840863b74111cbd956466adcd4cf48c20c57",
+      "statement_sha256": "524330fbadfb863977810870749867d652579ba7e751f205453fd711a34012e2",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "file-sources",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/file-sources.declared-metadata-schema",
+      "statement_sha256": "580e6c2c684519fa6a8c8a95683a80a9dab4ff7a8922385706ba2099e7c96b86",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "file-sources",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/file-sources.full-schema-correspondence",
+      "statement_sha256": "d52331e9572f25e4a4fe2567feb5609024c5a74d92dc19375b703b365bd95b64",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
@@ -16483,6 +16681,61 @@
     {
       "requirement_id": "actql.protocol.contracts/compilation-identities.effect-target-selection-recovery",
       "statement_sha256": "81b7191fc69d283dac86fecb2c0c4661fdd5b33fd4d272b41c1c30f153463d66",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "compilation-identities",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/compilation-identities.source-free-content-policy-original",
+      "statement_sha256": "6ceacee243fd527cb6ed7540f7238992386b5b58b1ccf582bacb66cda21bcdf6",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "compilation-identities",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/compilation-identities.source-free-content-policy-purpose",
+      "statement_sha256": "229c6c2b4f4a4b14c334e9ad1d617022033002a003ade70af2fde6d72b3172cf",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "compilation-identities",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/compilation-identities.source-free-content-policy-correspondence",
+      "statement_sha256": "c9975e1ff6ec8b52cbc46f53897eb8e4d236e5f2f0ad28fd2cd7819076c7e1c6",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "compilation-identities",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/compilation-identities.source-free-content-policy-refusal",
+      "statement_sha256": "109d38076f8b3a5c2a98e653795d1941024ad2ae2c9a5d97823d14bee0ee13a5",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "compilation-identities",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/compilation-identities.source-free-content-policy-absence",
+      "statement_sha256": "0af2678722c82a21548dd44975c2995d982543f62b513720b35b36005e5463f6",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
@@ -20019,6 +20272,50 @@
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
       "source": {
         "anchor": "machine-contracts",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.conformance/ordinary-performance.same-cohort",
+      "statement_sha256": "f9ab74c7417447d73b8276bf179eeeef6b9c7eaddb8adc2f51ba114555c41fb1",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "ordinary-operation-performance",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.conformance/ordinary-performance.latency-targets",
+      "statement_sha256": "aa6e17e04e7a75e0016c52bdf3734bb819871d5692aa40bf777c6587e8a2f48d",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "ordinary-operation-performance",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.conformance/ordinary-performance.samples-and-coverage",
+      "statement_sha256": "72a4aaac9d03c4b86f63ea1bee90a6afba66b052d4a49645b4bd302dbf5fe02a",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "ordinary-operation-performance",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.conformance/ordinary-performance.structural-regression",
+      "statement_sha256": "d3c2bcf22f4977fac6bb87d43d432d8750ec10c29596ef3c60d00f9dc0e98342",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "ordinary-operation-performance",
         "kind": "prose"
       }
     },

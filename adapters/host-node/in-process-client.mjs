@@ -13,13 +13,16 @@ import {clientWorkspaceMatches, validCheckpointPage, validCheckpointReview, vali
   validSubmissionAttempt, validNamedSubmissionAttempt, validSubmissionLookup} from
   '../../packages/client-wire/index.mjs';
 import {validWireEffectfulStaticPlanViewShape, validWirePlanViewShape, validWireRunViewShape, validWireRunPlanViewShape} from '../../packages/client-wire/index.mjs';
-import {inspectAuthorizedRunState} from
-  '../host-common/run-state-access.mjs';
+import {observeClientRunState} from './client-run-state.mjs';
 import {inspectAuthorizedDeliveryAttempt, describeAuthorizedResult} from './result-access.mjs';
 import {authorizedLocalResultFrames} from './in-process-result.mjs';
 import {publicClientErrorCode, publicClientErrorStatus} from './client-http.mjs';
 
 const localErrors = new WeakSet();
+// Only packets captured here before deferred service construction carry this
+// original operation's immutable shape facts into the activated ingress.
+// Authentication and authorization are never retained in this association.
+const deferredRequests = new WeakMap();
 const publicError = (code, status) => {
   const error = new ClientError(code, {status});
   delete error.stack;
@@ -33,50 +36,116 @@ const fail = code => {
 const publicFailure = error => localErrors.has(error) ? error
   : publicError(publicClientErrorCode(error), publicClientErrorStatus(error));
 
-function publicResultRows(response) {
+function publicResultRows(response, observeConsumed, observeOperation) {
   // Keep a failed delivery record's exact retry owner off public errors. The
   // SDK may release this response only after that owner confirms settlement.
   let cleanupFailure;
+  let original = observeOperation, resume, retire;
+  try {resume = original?.run; retire = original?.release;}
+  catch { /* An optional observation cannot replace the Result response. */ }
+  const inContext = work => {
+    if (typeof resume !== 'function') return work();
+    let called = false, value, failure, threw = false;
+    const once = () => {
+      if (called) {if (threw) throw failure; return value;}
+      called = true;
+      try {value = work(); return value;}
+      catch (error) {threw = true; failure = error; throw error;}
+    };
+    try {Reflect.apply(resume, original, [once]);}
+    catch { /* Preserve the original work's own value or error below. */ }
+    return once();
+  };
+  const releaseObservation = () => {
+    const held = original, release = retire;
+    original = resume = retire = undefined;
+    try {if (typeof release === 'function') Reflect.apply(release, held, []);}
+    catch { /* Observation release is not the delivery owner's cleanup ACK. */ }
+  };
+  const contextualFrames = frames => ({[Symbol.asyncIterator]() {
+    const iterator = inContext(() => frames[Symbol.asyncIterator]());
+    const next = inContext(() => iterator.next);
+    const method = name => {
+      const operation = inContext(() => iterator[name]);
+      return typeof operation === 'function'
+        ? (...args) => inContext(() => Reflect.apply(operation, iterator, args)) : operation;
+    };
+    return {next(...args) {return inContext(() => Reflect.apply(next, iterator, args));},
+      get return() {return method('return');}, get throw() {return method('throw');},
+      [Symbol.asyncIterator]() {return this;}};
+  }});
   return Object.freeze({kind: 'rows', frames: Object.freeze({
     async *[Symbol.asyncIterator]() {
-      try { yield* response.frames; }
+      let consumed = false;
+      try { yield* (original === undefined ? response.frames : contextualFrames(response.frames)); consumed = true; }
       catch (error) {
         if (error?.cleanupPending === true) cleanupFailure = error;
         throw publicFailure(error);
       }
+      finally {
+        if (consumed) try {observeConsumed?.();}
+        catch { /* Optional observation cannot replace rows or their real cleanup. */ }
+        if (cleanupFailure === undefined) releaseObservation();
+      }
     },
   }), async close() {
-    if (cleanupFailure === undefined) return;
+    if (cleanupFailure === undefined) {releaseObservation(); return;}
     const handle = cleanupFailure.cleanupHandle;
     try {
       if (typeof handle?.retry !== 'function' ||
           typeof handle?.status !== 'function') throw cleanupFailure;
-      if (handle.status().pending !== false) await handle.retry();
-      if (handle.status().pending !== false) throw cleanupFailure;
+      if (inContext(() => handle.status()).pending !== false) await inContext(() => handle.retry());
+      if (inContext(() => handle.status()).pending !== false) throw cleanupFailure;
       cleanupFailure = undefined;
+      releaseObservation();
     } catch { throw publicError('ResultReadCleanupUnknown', 500); }
   }});
 }
 
 export function createNodeInProcessClientHost({
   authenticate, authorizeConnection, workspaceForPrincipal, negotiate, prepareSubmit, submit, submitIntent, submitNamedIntent, lookupSubmission,
-  attach, lookupRequest, stateService, resultService, observeRun, observeOwners, wait,
+  bindOwnedRequest,
+  attach, lookupRequest, stateService, runStateObservation, resultService, observeRun, observeOwners, wait,
   cancel, lookupCancellation, cancelRequest, reconcile, checkpoints, checkpointReview, resolve,
   resources, inspectResource, peekResource, check, plan, inspectRun, runPlan, maxRowBytes, observe,
+  performInstalledRequest,
+  captureResultObservation,
+  captureResultOperation,
 }) {
   if (typeof authenticate !== 'function' ||
       typeof authorizeConnection !== 'function' ||
       typeof negotiate !== 'function' ||
+      performInstalledRequest !== undefined && typeof performInstalledRequest !== 'function' ||
+      bindOwnedRequest !== undefined && typeof bindOwnedRequest !== 'function' ||
+      captureResultObservation !== undefined && typeof captureResultObservation !== 'function' ||
+      captureResultOperation !== undefined && typeof captureResultOperation !== 'function' ||
       !Number.isSafeInteger(maxRowBytes) || maxRowBytes < 1) {
     throw new TypeError('InvalidInProcessClientHostInstallation');
   }
   return Object.freeze({async perform(operation, body, signal) {
     try {
+      const tracksSource = bindOwnedRequest !== undefined &&
+        ['submit', 'submit-intent', 'submit-named-intent', 'restart-intent'].includes(operation);
+      const own = (parent, derived) => {
+        if (tracksSource && bindOwnedRequest(parent, derived) !== undefined) {
+          fail('SourceManagedPreparationUnavailable');
+        }
+        return derived;
+      };
       // Local rows use the existing JSONL request shape for wire admission.
-      const prepared = prepareClientHostRequest(operation,
-        operation === 'read' ? {...body, format: 'jsonl'} : body);
+      const captured = deferredRequests.get(body);
+      const retainSnapshot = performInstalledRequest !== undefined && operation !== 'connect';
+      const prepared = captured?.operation === operation ? captured.prepared
+        : prepareClientHostRequest(operation,
+          operation === 'read' ? {...body, format: 'jsonl'} : body, retainSnapshot);
       if (prepared === undefined) fail('InvalidClientRequest');
-      body = prepared.body;
+      if (retainSnapshot) {
+        deferredRequests.set(prepared.body, Object.freeze({operation, prepared}));
+      }
+      // A deferred constructor retains the wire Owner's one immutable capture.
+      // The activated ingress consumes those same shape facts, but still
+      // performs its own current authentication and connection authorization.
+      body = own(body, prepared.body);
       const {connection} = prepared;
       let principalId;
       try { principalId = await authenticate(); }
@@ -113,15 +182,22 @@ export function createNodeInProcessClientHost({
         if (operation === 'check') return await projectClientCheckUnavailable(check);
         fail('ClientConnectionDenied');
       }
+      if (performInstalledRequest !== undefined && operation !== 'connect') {
+        // Validation and current connection authorization precede optional
+        // service construction. Keep this admitted immutable snapshot and its
+        // original Source lineage across the wait; never reread a mutable
+        // caller packet or replace the prepared Program/permission.
+        return await performInstalledRequest(operation,body,signal);
+      }
       const invoke = async (handler, preparedProgram) => {
         if (typeof handler !== 'function') fail('ClientOperationUnavailable');
-        return handler(Object.freeze({principalId, connection,
+        return handler(own(body, Object.freeze({principalId, connection,
           ...Object.fromEntries(Object.entries(body).filter(([key]) =>
             key !== 'connection')),
           ...(signal === undefined || ['submit', 'submit-intent', 'submit-named-intent', 'restart-intent'].includes(operation)
             ? {} : {signal}),
           ...(preparedProgram === undefined ? {} : {preparedProgram}),
-        }));
+        })));
       };
       if (operation === 'connect') {
         const profile = await invoke(negotiate);
@@ -170,7 +246,7 @@ export function createNodeInProcessClientHost({
       }
       if (operation === 'status' || operation === 'wait') {
         const state = operation === 'status' && observeRun === undefined
-          ? await inspectAuthorizedRunState(stateService, {
+          ? await observeClientRunState(runStateObservation, stateService, {
             indexKey: ref, principalId, purpose: 'inspect',
           }) : await invoke(operation === 'status' ? observeRun : wait);
         if (!validRunState(state)) fail('InvalidClientHostRunState');
@@ -290,10 +366,15 @@ export function createNodeInProcessClientHost({
         return found;
       }
       if (operation === 'read') {
+        let consumed, observation;
+        try {consumed = captureResultObservation?.(ref);}
+        catch { /* An unavailable observation is not a Result permission or failure. */ }
+        try {observation = captureResultOperation?.();}
+        catch { /* Keep the same Result request even if observation is unavailable. */ }
         return publicResultRows(authorizedLocalResultFrames(resultService, {
           indexKey: ref, principalId, purpose: 'download',
           resultName: body.resultName, attemptId: body.attemptId,
-        }, signal, {maxRowBytes}));
+        }, signal, {maxRowBytes}), consumed, observation);
       }
       fail('UnknownClientOperation');
     } catch (error) {

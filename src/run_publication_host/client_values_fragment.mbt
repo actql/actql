@@ -1,4 +1,22 @@
 ///|
+fn client_values_fragment_output_contract(
+  row : @contract.Contract,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  emit? : (@contract.Contract, @encode.Writer) -> Unit raise @encode.EncodeFailure = @contract.emit_checked,
+) -> (String, String) raise @encode.EncodeFailure {
+  let writer = @encode.buffered_hashing_writer(
+    max_wire_bytes, max_nodes, max_depth, max_wire_bytes,
+  )
+  emit(row, writer)
+  // Text remains provisional until the same writer confirms completion.
+  let wire = @encode.drain_hash_output(writer)
+  let cid = "sha256:" + @encode.finish_hash(writer)
+  (wire, cid)
+}
+
+///|
 /// One owner-issued AoA Fragment node for a checked source-free Values task.
 /// Its output contract is the complete task row type before Result projection.
 pub struct ClientValuesFragmentNode {
@@ -77,6 +95,7 @@ pub fn issue_prepared_client_values_fragment(
     max_wire_bytes,
     max_nodes,
     max_depth,
+    preparation=Some(value),
   )
 }
 
@@ -109,13 +128,45 @@ fn issue_client_values_fragment_graph(
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  preparation? : PreparedClientProgram? = None,
 ) -> Result[ClientValuesFragmentNode, ClientValuesFragmentIssue] {
+  issue_client_values_fragment_parts_graph(
+    graph,
+    task,
+    sequence_limits,
+    max_wire_bytes,
+    max_nodes,
+    max_depth,
+    preparation~,
+  ).map(parts => parts.0)
+}
+
+///|
+// Compiler-local immutable parts; serialized bytes never replace this original.
+fn issue_client_values_fragment_parts_graph(
+  graph : @strategy.CheckedDAG,
+  task : Int,
+  sequence_limits : @lower.SequenceLimits,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  preparation? : PreparedClientProgram? = None,
+) -> Result[
+  (ClientValuesFragmentNode, ClientValuesAoAParts),
+  ClientValuesFragmentIssue,
+] {
   if max_wire_bytes <= 0 || max_nodes <= 0 || max_depth <= 0 {
     return Err(InvalidLimits)
   }
   let aoa = match
-    issue_client_values_aoa_identity_graph(
-      graph, task, sequence_limits, max_wire_bytes, max_nodes, max_depth,
+    issue_client_values_aoa_parts_graph(
+      graph,
+      task,
+      sequence_limits,
+      max_wire_bytes,
+      max_nodes,
+      max_depth,
+      preparation~,
     ) {
     Ok(value) => value
     Err(issue) => return Err(AoA(issue))
@@ -129,14 +180,8 @@ fn issue_client_values_fragment_graph(
     return Err(MissingCheckedOutput)
   }
   let node_id = @lower.node_id(node)
-  guard parse_plan_identity_value(
-      client_values_aoa_identity_wire(aoa),
-      max_wire_bytes,
-      max_nodes,
-      max_depth,
-    )
-    is Some(pipeline) &&
-    @canonical.object_field(pipeline, "output")
+  let pipeline = aoa.body
+  guard @canonical.object_field(pipeline, "output")
     is Some(@canonical.String(output)) &&
     output == node_id else {
     return Err(OutputMismatch)
@@ -145,14 +190,9 @@ fn issue_client_values_fragment_graph(
     return Err(UnrepresentableOutput)
   }
   try {
-    let output_hash = @encode.hashing_writer(
-      max_wire_bytes, max_nodes, max_depth,
+    let (output_contract_wire, output_contract_cid) = client_values_fragment_output_contract(
+      row, max_wire_bytes, max_nodes, max_depth,
     )
-    let output_text = @encode.writer(max_wire_bytes, max_nodes, max_depth)
-    @contract.emit_checked(row, output_hash)
-    @contract.emit_checked(row, output_text)
-    let output_contract_cid = "sha256:" + @encode.finish_hash(output_hash)
-    let output_contract_wire = @encode.finish(output_text)
     let writer = @encode.writer(max_wire_bytes, max_nodes, max_depth)
     @encode.begin_object(writer)
     @encode.key(writer, "input_contracts")
@@ -161,7 +201,7 @@ fn issue_client_values_fragment_graph(
     @encode.key(writer, "kind")
     @encode.string_value(writer, "aoa_fragment")
     @encode.key(writer, "logical_cid")
-    @encode.string_value(writer, client_values_aoa_identity_cid(aoa))
+    @encode.string_value(writer, client_values_aoa_identity_cid(aoa.identity))
     @encode.key(writer, "node_id")
     @encode.string_value(writer, node_id)
     @encode.key(writer, "output_contracts")
@@ -173,13 +213,18 @@ fn issue_client_values_fragment_graph(
     @canonical.emit_value(pipeline, writer)
     @encode.end_object(writer)
     let wire = @encode.finish(writer)
-    Ok({
-      wire,
-      node_id,
-      logical_cid: client_values_aoa_identity_cid(aoa),
-      output_contract_wire,
-      output_contract_cid,
-    })
+    Ok(
+      (
+        {
+          wire,
+          node_id,
+          logical_cid: client_values_aoa_identity_cid(aoa.identity),
+          output_contract_wire,
+          output_contract_cid,
+        },
+        aoa,
+      ),
+    )
   } catch {
     _ => Err(Encoding)
   }

@@ -442,3 +442,20 @@ not supply either explicit acknowledgement. A lost unfinished context leaves
 its retained parent Library cleanup pending even if a finalizer frees native
 memory; only the original explicit context operation can acknowledge it. Existing loading selection,
 credential authority and numerical resource admission are unchanged.
+
+
+### Streaming digest of an original file Reader
+
+The selected Darwin filesystem adapter can hash a fresh original Reader with
+its system SHA256 implementation before the private Crypto component loads.
+The typed entrance returns 32 digest bytes after bounded 16 KiB reads of that
+same descriptor. It leaves the original Reader open at EOF: opened-file
+identity inspection and the existing `finish` acknowledgement remain separate
+caller duties. It neither reopens a path nor issues permission, storage identity
+or cleanup credit. Errors preserve the same Reader for original cleanup.
+
+Other platforms refuse this optional primitive as `UnsupportedTarget` before
+any read or Reader mutation. A caller may explicitly retain its existing
+portable digest path only for that disposition, using the same fresh Reader;
+physical read, currentness and digest errors never select a fallback. A Reader
+that was already consumed cannot start this digest operation.

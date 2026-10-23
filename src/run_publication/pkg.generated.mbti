@@ -736,6 +736,8 @@ pub fn publication_commit_failure_action_code(PublicationCommitFailureAction) ->
 
 pub fn publication_commit_preparation_fixture_phase(PublicationCommitPreparation) -> String
 
+pub fn publication_contract_check_limits(PublicationContract, Int, Int, Int) -> Result[Unit, PublicationContractIssue]
+
 pub fn publication_contract_effect_target_selections_cid(PublicationContract) -> String?
 
 pub fn publication_contract_identity(PublicationContract) -> String
@@ -747,6 +749,8 @@ pub fn publication_contract_json(PublicationContract) -> String
 pub fn publication_contract_name(PublicationContract) -> String
 
 pub fn publication_contract_representation_extent(PublicationContract, Int, Int, Int) -> Result[PublicationRepresentationExtent, PublicationContractIssue]
+
+pub fn publication_contract_run_definition_scope(PublicationContract) -> String?
 
 pub fn publication_evidence_workspace(Int) -> Int
 
@@ -785,6 +789,8 @@ pub fn read_model_capture_bundle(String, String, Int, Int, Int) -> Result[ModelC
 pub fn read_model_original_resource_document(String, Int, Int, Int) -> Result[ModelOriginalResourceDocument, PublicationContractIssue]
 
 pub fn[E] read_stored_effect_free_publication(String, String, String, (String, String) -> Result[Bytes?, E], () -> Result[Unit, E], Int, Int, Int, Int, Int, Int) -> Result[PublicationCommitPreparation?, StoredPublicationReadIssue[E]]
+
+pub fn readmit_captured_generated_content_observation(PublicationContract, PublicationContract, RunEvidenceValue, String, String, String, Int, StoredGeneratedContentReference, @value_admission.CheckedValue) -> Result[BoundContentGeneration, RunEvidenceValueIssue]
 
 pub fn readmit_generated_content_observation(RunEvidenceValue, String, String, String, String, RunEvidenceValue, RunEvidenceValue, RunEvidenceValue, StoredGeneratedContentReference, @value_admission.CheckedValue) -> Result[BoundContentGeneration, RunEvidenceValueIssue]
 
@@ -940,7 +946,11 @@ pub fn start_effect_free_captured_run(PublicationContract, PublicationContract, 
 
 pub fn start_effect_free_publication_commit_check(PublicationContract, PublicationContract, Array[PublicationContract], Array[PublicationContract], Array[PublicationContract], Array[PublicationContract], Array[PublicationContract], Array[PublicationContract], PublicationContract, PublicationContract, PublicationContract, PublicationContract, PublicationContract, PublicationContract, Int, Int, Int, Int) -> PublicationCommitPreparation
 
+pub fn start_effect_free_publication_commit_check_retained(CapturedRunIssuancePreparation, PublicationContract, PublicationContract, Array[PublicationContract], Array[PublicationContract], Array[PublicationContract], Array[PublicationContract], Array[PublicationContract], Array[PublicationContract], PublicationContract, PublicationContract, PublicationContract, PublicationContract, PublicationContract, PublicationContract, Int, Int, Int, Int) -> PublicationCommitPreparation
+
 pub fn start_effect_free_run_evidence_check(PublicationContract, PublicationContract, Array[PublicationContract], Array[PublicationContract], PublicationContract, PublicationContract, PublicationContract, Int, Int, Int, Int) -> ComputationEvidenceCheck
+
+pub fn start_effect_free_run_evidence_check_retained(CapturedRunIssuancePreparation, PublicationContract, PublicationContract, Array[PublicationContract], Array[PublicationContract], PublicationContract, PublicationContract, PublicationContract, Int, Int, Int, Int) -> ComputationEvidenceCheck
 
 pub fn start_effectful_captured_run(PublicationContract, PublicationContract, Array[PublicationContract], Array[PublicationContract], PublicationContract, PublicationContract, Array[CapturedResultSnapshot], Array[CapturedEffectSourceArtifact], Array[CapturedLocalEffectSourceEvidence], Array[PendingSourceStateAdvance], RunEvidenceValue, Array[RunEvidenceValue], EffectPreviewIdentity, Array[(String, String)], Int, Int, Int, Int, dependency_inventory? : CapturedEffectDependencyInventory?, content_generations? : Array[BoundContentGeneration]) -> CapturedRunIssuancePreparation
 
@@ -1106,6 +1116,7 @@ type CapturedRunIssuancePreparation
 pub fn CapturedRunIssuancePreparation::advance(Self, Int) -> Result[(Bool, Int), CapturedRunIssuanceIssue]
 pub fn CapturedRunIssuancePreparation::cancel(Self) -> Unit
 pub fn CapturedRunIssuancePreparation::finish(Self) -> Result[PublicationContract, CapturedRunIssuanceIssue]
+pub fn CapturedRunIssuancePreparation::finish_retained(Self) -> Result[PublicationContract, CapturedRunIssuanceIssue]
 
 type CheckedPublicationInventory
 

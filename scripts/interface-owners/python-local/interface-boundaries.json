@@ -29,7 +29,7 @@
     },
     {
       "module": "packages/python-sdk/src/actql_sdk/_local_native_memory_abi.py",
-      "sha256": "5f8f934754a761a74b8c38865c01f6ec2e62baee85fa3113e0e44bfff41dc20a",
+      "sha256": "61d86b6af8e93ac7f24c3b7957ee8968b1682019843796dedc99d4d89737e7f0",
       "generator": {
         "path": "scripts/generate-local-native-memory-binding.py",
         "anchor": "def outputs("
@@ -143,10 +143,11 @@
     {
       "module": "packages/native-cli/bin/actql.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "be0175dbabdea73fa30ac5ce38f8cf552da0d97ee8f0e48b850b563ed9d36dd6",
+      "sha256": "277ab3dc0da7dd47102be52d0d1bd42a796ad087ba5c3e0aef2ec871a364b5af",
       "exports": [
         "admitInstalledBinary",
         "launch",
+        "macOSProductVersion",
         "platformKey"
       ],
       "operations": [
@@ -195,6 +196,13 @@
           "name": "launch",
           "parameters": [
             "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "macOSProductVersion",
+          "parameters": [
+            "query"
           ],
           "async": false
         },
@@ -772,13 +780,112 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "macOSProductVersion"
+          ],
+          "exports": [
+            "macOSProductVersion"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/native-cli/bin/actql.mjs",
+                "anchor": "export function macOSProductVersion"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/native-cli/bin/actql.mjs",
+                "anchor": "['/usr/sbin/sysctl', ['-n', 'kern.osproductversion']]"
+              },
+              {
+                "path": "packages/native-cli/bin/actql.mjs",
+                "anchor": "return typeof version === 'string'"
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/native-cli/bin/actql.mjs",
+                "anchor": "actual ProductVersion"
+              },
+              {
+                "path": "packages/native-cli/bin/actql.mjs",
+                "anchor": "SYSTEM_VERSION_COMPAT: '0'"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "packages/native-cli/bin/actql.mjs",
+                "anchor": "const result = query(command, args"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "packages/native-cli/bin/actql.mjs",
+                "anchor": "for (const [command, args] of ["
+              },
+              {
+                "path": "packages/native-cli/bin/actql.mjs",
+                "anchor": "spawnSync(executable, selectedArguments"
+              }
+            ],
+            "failure": [
+              {
+                "path": "packages/native-cli/bin/actql.mjs",
+                "anchor": "if (result.error || result.status !== 0 || result.signal)"
+              },
+              {
+                "path": "packages/native-cli/bin/actql.mjs",
+                "anchor": "return undefined"
+              }
+            ],
+            "cancellation": {
+              "notApplicable": "This synchronous OS metadata query does not issue, cancel, resume or retire a Run. Query timeout or process exit is not an application resource retirement acknowledgement."
+            },
+            "resources": [
+              {
+                "path": "packages/native-cli/bin/actql.mjs",
+                "anchor": "maxBuffer: 1024, timeout: 1000"
+              },
+              {
+                "path": "packages/native-cli/bin/actql.mjs",
+                "anchor": "version.length <= 47"
+              }
+            ],
+            "extension": [
+              {
+                "path": "packages/native-cli/bin/actql.mjs",
+                "anchor": "['/usr/bin/sw_vers', ['-productVersion']]"
+              },
+              {
+                "path": "packages/native-cli/bin/actql.mjs",
+                "anchor": "const required = parse(metadata.abi.minimumMacOS), actual = parse(macOS)"
+              }
+            ],
+            "verification": [
+              {
+                "path": "scripts/native-cli-release.test.mjs",
+                "anchor": "macOS version uses one bounded kernel query when available"
+              },
+              {
+                "path": "scripts/native-cli-release.test.mjs",
+                "anchor": "macOS version never replaces a valid unsupported version or admits missing replies"
+              },
+              {
+                "path": "scripts/native-cli-release.test.mjs",
+                "anchor": "macOS version agrees with the existing OS service and ignores compatibility spelling"
+              }
+            ]
+          }
         }
       ]
     },
     {
       "module": "packages/native-cli/lib/local-runtime.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "a087cc001925cb412fa95a39cc007884e11008bc7c05c19787a0768b0b86e673",
+      "sha256": "0f9b52ee72e883a635bd7dddf41300649aac6682a911c927ac8f87f553947553",
       "exports": [
         "LOCAL_RUNTIME_MAX_BYTES",
         "admitInstalledLocalRuntime",
@@ -883,6 +990,15 @@
           "name": "localRuntimeHash/localRuntimeHash",
           "parameters": [
             "bytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "readInstalledLocalRuntimeManifest",
+          "parameters": [
+            "root",
+            "expected",
+            "metadata"
           ],
           "async": false
         },
@@ -1944,7 +2060,8 @@
         },
         {
           "operations": [
-            "installedLocalRuntimeEnvironment"
+            "installedLocalRuntimeEnvironment",
+            "readInstalledLocalRuntimeManifest"
           ],
           "exports": [
             "installedLocalRuntimeEnvironment"
@@ -35556,7 +35673,7 @@
           ]
         }
       ],
-      "sha256": "5f8f934754a761a74b8c38865c01f6ec2e62baee85fa3113e0e44bfff41dc20a",
+      "sha256": "61d86b6af8e93ac7f24c3b7957ee8968b1682019843796dedc99d4d89737e7f0",
       "role": "generated-binding",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [

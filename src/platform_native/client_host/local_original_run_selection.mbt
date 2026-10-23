@@ -77,6 +77,7 @@ fn NativeLocalHostConnection::select_original_run_id(
           return Err(AuthorizationDenied)
         }
         let selected = self.journal.select_saved_state_run_id_locked(
+          self.epoch,
           scope,
           run_id,
           reads~,
@@ -89,7 +90,7 @@ fn NativeLocalHostConnection::select_original_run_id(
       reads~,
     ) {
     Ok(Some(value)) => value
-    Ok(None) => return Err(Unavailable)
+    Ok(None) | Err(RunIdIndexIncomplete) => return Err(Unavailable)
     Err(issue) => return Err(Journal(issue))
   }
   let (reference, request, definition) = selected
@@ -100,7 +101,7 @@ fn NativeLocalHostConnection::select_original_run_id(
 /// Read one retained original Run selected by ID through this real adopted
 /// Host's current RunRead. Callers still need their own current operation and
 /// Result policy admission. No caller reference, state wire or current project
-/// file repairs a missing original. The scan validates every retained row.
+/// file repairs a missing original. The locator validates its exact retained original.
 pub fn NativeLocalHostConnection::lookup_submitted_run_original_by_id(
   self : NativeLocalHostConnection,
   crypto : @crypto.Library,

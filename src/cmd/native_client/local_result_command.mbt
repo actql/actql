@@ -71,6 +71,8 @@ fn local_public_result(
   prepared? : LocalCommandResultOriginal? = None,
   material_table? : Bool = false,
 ) -> String raise ClientStop {
+  native_timing_begin(6)
+  defer native_timing_end(6)
   let directory = @env.current_dir().unwrap_or_else(() => {
     stop("ProjectConfigurationDirectoryUnavailable")
   })

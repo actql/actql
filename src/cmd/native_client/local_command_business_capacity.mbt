@@ -1,0 +1,134 @@
+///|
+// Allocate only after bounded checked preparation, before the first durable
+// Submission or Run action. The declared Host maximum is not initialized
+// execution capacity. Every partial acquisition remains on this same carrier.
+fn LocalCommandPreparationOriginal::prepare_business_capacity(
+  self : LocalCommandPreparationOriginal,
+  capture : @local_host.NativeLocalJournalCapture,
+  requirements : @local_values.ClientLocalSourceFreeRequirements,
+) -> Result[Unit, LocalCommandPreparationIssue] {
+  guard self.host is Some(host) &&
+    self.journal is Some(journal) &&
+    physical_equal(journal, capture) &&
+    self.journal_read_open &&
+    self.business is Some(business) &&
+    business.profile.kind == SourceFreeCompute &&
+    business.selected_profile is None &&
+    business.domain is None &&
+    business.execution is None &&
+    business.operation is None &&
+    self.backing_scope is None &&
+    !self.closing &&
+    !self.closed &&
+    self.primary is None else {
+    return Err(CommandUnavailable)
+  }
+  let maximum = business.profile.limits
+  let supported = requirements.maximum_limits()
+  if supported.planning_work > maximum.planning_work ||
+    supported.attempts > maximum.attempts ||
+    supported.holdings > maximum.holdings ||
+    supported.transfer_bytes > maximum.transfer_bytes ||
+    supported.retained_bytes > maximum.retained_bytes ||
+    supported.execution_bytes > maximum.execution_bytes {
+    return Err(CommandUnavailable)
+  }
+  let selected = local_command_selected_business_limits(
+    maximum,
+    requirements.simultaneous_limits(),
+  )
+  if selected.retained_bytes > 9223372036854775807L - selected.execution_bytes {
+    return Err(CommandUnavailable)
+  }
+  let payload = selected.retained_bytes + selected.execution_bytes
+  guard local_command_domain_bytes(payload) is Some(bytes) &&
+    bytes <= business.profile.domain_bytes else {
+    return Err(CommandUnavailable)
+  }
+  // Retain the exact selection before any physical attempt; a failed attempt
+  // cannot choose a different capacity or obtain another provisioning credit.
+  business.selected_profile = Some({
+    kind: SourceFreeCompute,
+    domain_bytes: bytes,
+    payload_facility_bytes: payload,
+    limits: selected,
+  })
+  native_timing_amount(53, maximum.retained_bytes)
+  native_timing_amount(54, maximum.execution_bytes)
+  native_timing_amount(55, selected.retained_bytes)
+  native_timing_amount(56, selected.execution_bytes)
+  native_timing_amount(57, bytes)
+  match capture.suspend_original_read_for_preparation() {
+    Err(issue) => return Err(CommandAdoption(issue))
+    Ok(_) => ()
+  }
+  let acquired = try {
+    let scope = command_preparation_value(
+      host.borrow_backing().map_err(issue => CommandHost(issue)),
+    )
+    self.backing_scope = Some(scope)
+    command_preparation_value(
+      host
+      .enter_backing_borrow_scope(scope)
+      .map_err(issue => CommandHost(issue)),
+    )
+    self.backing_entered = true
+    let before = self.observe_extent_work(host, scope)
+    let acquired = self.prepare_business_domain(host, scope)
+    record_command_extent_work(
+      before,
+      self.observe_extent_work(host, scope),
+      46,
+    )
+    command_preparation_value(acquired)
+    Ok(())
+  } catch {
+    LocalCommandPreparationStop(issue) => Err(issue)
+  }
+  // This only returns our original backing borrow; it never retries domain or
+  // execution construction. Keep the acquisition error primary if cleanup or
+  // restoring the original Read also fails.
+  let returned = self.finish_business_backing_scope(host)
+  let prepared = match (acquired, returned) {
+    (Ok(_), Ok(_)) =>
+      try {
+        command_preparation_value(self.prepare_business_execution(host))
+        command_preparation_value(self.prepare_business_operation())
+        Ok(())
+      } catch {
+        LocalCommandPreparationStop(issue) => Err(issue)
+      }
+    (Err(issue), _) | (_, Err(issue)) => Err(issue)
+  }
+  let resumed = capture
+    .resume_original_read_after_preparation()
+    .map_err(issue => CommandAdoption(issue))
+  match prepared {
+    Err(issue) => {
+      self.retain_primary(issue)
+      Err(issue)
+    }
+    Ok(_) => resumed
+  }
+}
+
+///|
+fn LocalCommandPreparationOriginal::finish_business_backing_scope(
+  self : LocalCommandPreparationOriginal,
+  host : @initial_arena.InstalledArenaHost,
+) -> Result[Unit, LocalCommandPreparationIssue] {
+  guard self.backing_scope is Some(scope) else { return Ok(()) }
+  if self.backing_entered {
+    match host.leave_backing_borrow_scope(scope) {
+      Err(issue) => return Err(CommandHost(issue))
+      Ok(_) => self.backing_entered = false
+    }
+  }
+  match host.return_backing_borrow(scope) {
+    Err(issue) => Err(CommandHost(issue))
+    Ok(_) => {
+      self.backing_scope = None
+      Ok(())
+    }
+  }
+}

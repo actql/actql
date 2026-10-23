@@ -18,6 +18,10 @@ pub const DELEGATION_REJECTED_CODE : String = "ACTQL_E_DELEGATION_REJECTED"
 
 pub const DELEGATION_UNAVAILABLE_CODE : String = "ACTQL_E_DELEGATION_UNAVAILABLE"
 
+pub const LOCAL_MOCK_PROFILE_ID : String = "actql-local-mock"
+
+pub const LOCAL_MOCK_PROFILE_VERSION : String = "0.1"
+
 pub const MAX_CONFIG_INPUT_BYTES : Int = 1048576
 
 pub const MAX_ENTRIES : Int = 1024
@@ -68,6 +72,22 @@ pub fn evaluate_account(AdmittedAccountConfiguration, AccessTuple) -> AccountOut
 
 pub fn evaluate_account_state(AccountConfigurationState, AccessTuple) -> AccountOutcome
 
+pub fn is_known_local_mock_profile(BootstrapProfile) -> Bool
+
+pub fn local_mock_account_configuration(LocalMockAccountSubjects) -> Result[String, LocalMockProfileIssue]
+
+pub fn local_mock_profile_body() -> String
+
+pub fn local_mock_profile_identity() -> BootstrapProfile
+
+pub fn local_mock_profile_predecessor_body() -> String
+
+pub fn local_standard_account_configuration(LocalStandardAccountSubjects) -> Result[String, LocalStandardProfileIssue]
+
+pub fn local_standard_profile_body() -> String
+
+pub fn local_standard_profile_identity() -> BootstrapProfile
+
 pub fn prepare_decision_request(DelegatedMatch, configuration_cid~ : String, boundary~ : DecisionBoundary, subject_cid~ : String, context_cid~ : String, answering_authorities~ : Array[String], required_claims? : Array[String]) -> Result[DecisionRequest, RequestIssue]
 
 pub fn runtime_action_error_code(RuntimeAction) -> String?
@@ -96,6 +116,8 @@ pub(all) struct AccountConfigurationRepresentationExtent {
   fixed_backing_slots : Int64
   strings : Int64
   text_utf16_units : Int64
+  original_byte_buffers : Int64
+  original_bytes : Int64
 } derive(Eq, @debug.Debug)
 
 pub(all) enum AccountConfigurationState {
@@ -115,6 +137,7 @@ pub fn AdmittedAccountConfiguration::bootstrap_profile(Self) -> BootstrapProfile
 pub fn AdmittedAccountConfiguration::configuration_cid(Self) -> String
 pub fn AdmittedAccountConfiguration::entry_count(Self) -> Int
 pub fn AdmittedAccountConfiguration::representation_extent(Self) -> AccountConfigurationRepresentationExtent
+pub fn AdmittedAccountConfiguration::retains_original_bytes(Self, Bytes) -> Bool
 
 pub(all) struct AnswerBinding {
   subject : DecisionSubject
@@ -259,6 +282,37 @@ pub(all) enum HostAnswer {
   Reject(AnswerBinding)
   Defer(DecisionSubject)
   Failure(DecisionFailureReason)
+} derive(Eq, @debug.Debug)
+
+pub(all) struct LocalMockAccountSubjects {
+  account_id : String
+  principal : String
+  control_connection : String
+  sources : Array[(String, String)]
+  model_tasks : Array[String]
+  request_target : (String, String)?
+  update_target : (String, String)?
+  signing_key_resource : String?
+}
+
+pub(all) enum LocalMockProfileIssue {
+  InvalidSubjects
+  Configuration(ConfigurationIssue)
+} derive(Eq, @debug.Debug)
+
+pub(all) struct LocalStandardAccountSubjects {
+  account_id : String
+  principal : String
+  control_connection : String
+  configured_connections : Array[String]
+  model_tasks : Array[(String, String)]
+  request_target : (String, String)?
+  signing_key_resource : String?
+}
+
+pub(all) enum LocalStandardProfileIssue {
+  InvalidSubjects
+  Configuration(ConfigurationIssue)
 } derive(Eq, @debug.Debug)
 
 pub(all) struct OutcomeConflict {

@@ -22,6 +22,7 @@ function fixture({authorize = async () => true, admit,
   retained = () => true, committed = () => true,
   grantValid = () => true, sampleClock, observeClock,
   now = () => '2026-09-30T00:00:00.000Z',
+  selectedPublication,
   api = {installResultAccessAuthority, installResultAccessService}} = {}) {
   const calls = [];
   const index = {public_index_entry_cid: cid('2'), result_manifest_cid: cid('3')};
@@ -34,11 +35,22 @@ function fixture({authorize = async () => true, admit,
       calls.push(['clock']); return observeClock?.(...args);
     },
     async readCommittedResultRetentionExtension() {},
-    async readCommittedResultDescriptionEvidence() {
-      calls.push(['metadata']); return {bindings: [], definition: {}, schemaWire: '{}'};
+    async readCommittedResultDescriptionEvidence(_key, _definition, original) {
+      calls.push(['metadata', original]); return {bindings: [], definition: {}, schemaWire: '{}'};
     },
     async consumeManifestReadGrant() { calls.push(['consume']); },
   };
+  if (selectedPublication !== undefined) {
+    store.readCommittedPublication = selectedPublication === null ? null : async function () {
+      assert.strictEqual(this, store);
+      const observed = ['selected', index];
+      calls.push(observed);
+      const selected = typeof selectedPublication === 'function' ? selectedPublication() :
+        Object.freeze({entry: Object.freeze({...index}), index: Object.freeze({})});
+      observed.push(selected);
+      return selected;
+    };
+  }
   if (sampleClock !== undefined) store.sampleTrustedClock = sampleClock;
   const methods = ['issueResultReadGrant', 'resultReadAvailability',
     'resultReadExtendedAvailability', 'resultReadGrantValidAt',
@@ -66,11 +78,49 @@ function fixture({authorize = async () => true, admit,
     authorizeResultDescription: authorize,
     admitResultDescription: admit ?? (async () => admission),
   });
-  return {calls, service: api.installResultAccessService({store, control, authority,
+  return {calls, store, service: api.installResultAccessService({store, control, authority,
     now, createDigest() {},
     limits: {maxWireBytes: 1048576, maxNodes: 10000, maxDepth: 64},
     frameLimits: {maxRowBytes: 1024, maxDepth: 64, maxFrameBytes: 4096}})};
 }
+
+test('description resolution consumes its selected publication without an Index reread', async () => {
+  const {service, calls, store} = fixture({selectedPublication: true});
+  store.readCommittedPublication = () => assert.fail('Use the captured original');
+  assert.deepEqual(await describeAuthorizedResult(service, request()), {ref: key, ...projected});
+  assert.equal(calls.filter(([kind]) => kind === 'selected').length, 1);
+  assert.equal(calls.filter(([kind]) => kind === 'contract').length, 2);
+  assert.equal(calls.filter(([kind]) => kind === 'index').length, 1,
+    'Final response head confirmation remains');
+  assert.strictEqual(calls.find(([kind]) => kind === 'metadata')[1],
+    calls.find(([kind]) => kind === 'selected')[2], 'Metadata consumes the identical Store original');
+  assert.deepEqual(await describeAuthorizedResult(service, request()), {ref: key, ...projected});
+  assert.equal(calls.filter(([kind]) => kind === 'selected').length, 2);
+  const selections = calls.filter(([kind]) => kind === 'selected').map(item => item[2]);
+  const metadata = calls.filter(([kind]) => kind === 'metadata').map(item => item[1]);
+  assert.notStrictEqual(selections[0], selections[1]);
+  assert.strictEqual(metadata[1], selections[1]);
+});
+
+test('selected description preserves denial, invalid input, physical failure and final confirmation', async () => {
+  const denied = fixture({selectedPublication: true, authorize: () => false});
+  await assert.rejects(describeAuthorizedResult(denied.service, request()), {code: 'ResultAccessDenied'});
+  assert.deepEqual(denied.calls, []);
+  for (const [read, code] of [
+    [() => undefined, 'ResultAccessDenied'],
+    [() => null, 'InvalidCommittedPublicationState'],
+    [() => ({entry: null, index: {}}), 'InvalidCommittedPublicationState'],
+    [() => { throw Object.assign(new Error('read failed'), {code: 'EIO'}); }, 'EIO'],
+  ]) {
+    const input = fixture({selectedPublication: read});
+    await assert.rejects(describeAuthorizedResult(input.service, request()), {code});
+    assert.deepEqual(input.calls.map(([kind]) => kind), ['selected']);
+  }
+  const changed = fixture({selectedPublication: true, committed: () => false});
+  await assert.rejects(describeAuthorizedResult(changed.service, request()), {code: 'ResultDescriptionUnavailable'});
+  assert.equal(changed.calls.filter(([kind]) => kind === 'consume').length, 1);
+  assert.throws(() => fixture({selectedPublication: null}), {code: 'InvalidResultAccessService'});
+});
 
 test('description denial occurs before Store I/O and hides publication', async () => {
   for (const authorize of [async () => false,
@@ -213,20 +263,24 @@ for (const [name, api] of [['source', {describeAuthorizedResult,
     }
   });
 
-  test(`${name}: grant expiry after sampled metadata persistence denies response`, async () => {
-    for (const boundary of [2, 3]) {
+  test(`${name}: grant expiry during metadata consumption denies response without resampling`, async () => {
+    for (const boundary of ['read', 'response']) {
       let wall = instant(0), samples = 0;
       const input = fixture({api, now: () => wall,
         grantValid: (_grant, at) => at <= instant(0),
+        authorize(facts) {
+          if (facts.stage === boundary) wall = instant(1);
+          return true;
+        },
         sampleClock(_cid, now) {
-          const at = now();
-          if (++samples === boundary) wall = instant(1);
-          return at;
+          samples++;
+          return now();
         }});
       await assert.rejects(api.describeAuthorizedResult(input.service, request()),
         {code: 'ResultAccessDenied'});
       assert.equal(input.calls.filter(([kind]) => kind === 'consume').length,
-        boundary === 2 ? 0 : 1);
+        boundary === 'read' ? 0 : 1);
+      assert.equal(samples, 1);
     }
   });
 

@@ -8,6 +8,7 @@ import {installedSourcePublicationFacts} from './installed-source.mjs';
 // These associations add no registry, persistent record or execution authority.
 const namespaces = new WeakMap();
 const observations = new WeakMap();
+const publicationOriginals = new WeakMap();
 const unresolved = () => Object.freeze({state: 'unresolved'});
 const digest = value => `sha256:${createHash('sha256')
   .update(JSON.stringify(value)).digest('hex')}`;
@@ -140,7 +141,7 @@ export function splitSourceAliasProfile(profile) {
 }
 
 export function sourceAliasPublication(moon, environment, aliases = [], tableWrites = [],
-  {namespace, selectorNamespace, installedSources = [], updateTargets = []} = {}) {
+  {namespace, selectorNamespace, installedSources = [], updateTargets = [], storeTargets = []} = {}) {
   // Own even manually assembled metadata before validating or retaining it.
   aliases = splitSourceAliasProfile({queryAliases: aliases}).queryAliases;
   if (!Array.isArray(tableWrites) || tableWrites.length > 1024 ||
@@ -163,18 +164,36 @@ export function sourceAliasPublication(moon, environment, aliases = [], tableWri
     }
     return Object.freeze({...entry});
   }));
+  if (!Array.isArray(storeTargets) || storeTargets.length > 1024 ||
+      Buffer.byteLength(JSON.stringify(storeTargets)) > 1024 * 1024) {
+    throw new TypeError('InvalidPublicStoreTargetPublication');
+  }
+  storeTargets = Object.freeze(storeTargets.map(entry => {
+    if (entry === null || typeof entry !== 'object' || Array.isArray(entry) ||
+        Object.keys(entry).sort().join('\0') !== 'installationBindingCid\0installationOwnerCid\0name\0targetRef' ||
+        typeof entry.name !== 'string' || entry.name.length === 0 ||
+        entry.name.length > 1024 || !entry.name.isWellFormed() ||
+        typeof entry.targetRef !== 'string' || entry.targetRef.length === 0 ||
+        entry.targetRef.length > 4096 || !entry.targetRef.isWellFormed() ||
+        !cid(entry.installationBindingCid) || !cid(entry.installationOwnerCid)) {
+      throw new TypeError('InvalidPublicStoreTargetPublication');
+    }
+    return Object.freeze({...entry});
+  }));
   const publication = Object.freeze({
     environmentCid: moon.clientProgramCheckingEnvironmentCid(environment),
     aliases, ...(updateTargets.length === 0 ? {} : {updateTargets}),
+    ...(storeTargets.length === 0 ? {} : {storeTargets}),
     ...(tableWrites.length === 0 ? {} : {
       tableWrites: Object.freeze(tableWrites.map(binding => Object.freeze({
         ...binding, expectedTable: binding.expectedTable === null ? null :
           Object.freeze({...binding.expectedTable}),
       }))),
     })});
-  if (typeof moon.clientProgramSourcePublicationValid !== 'function' ||
-      !moon.clientProgramSourcePublicationValid(environment,
-        JSON.stringify(publication))) {
+  const wire = JSON.stringify(publication);
+  const preparedEnvironment = typeof moon.clientProgramPreparePublicSourceEnvironment !== 'function'
+    ? undefined : moon.clientProgramPreparePublicSourceEnvironment(environment, wire);
+  if (preparedEnvironment === undefined) {
     throw new TypeError('InvalidPublicSourcePublication');
   }
   const queryAlias = namespace === undefined ? undefined :
@@ -184,7 +203,26 @@ export function sourceAliasPublication(moon, environment, aliases = [], tableWri
   if (queryAlias !== undefined || sourceSelector !== undefined) {
     namespaces.set(publication, Object.freeze({queryAlias, sourceSelector}));
   }
+  publicationOriginals.set(publication, {moon, environment,
+    original: Object.freeze({wire, preparedEnvironment})});
   return publication;
+}
+
+// Only the owned declaration in its original runtime/Environment carries this
+// pure preparation. Equal fields or a copied publication do not recover it.
+export function sourceAliasPublicationOriginal(moon, environment, publication) {
+  const retained = publicationOriginals.get(publication);
+  return retained !== undefined && retained.moon === moon && retained.environment === environment
+    ? retained.original : undefined;
+}
+
+// Cut this declaration's association only. Other legitimate holders of the
+// pure Common value remain valid; this is not a physical release ACK.
+export function retireSourceAliasPublicationOriginal(moon, environment, publication) {
+  const retained = publicationOriginals.get(publication);
+  if (retained !== undefined && retained.moon === moon && retained.environment === environment) {
+    publicationOriginals.delete(publication);
+  }
 }
 
 // A current decision in its own short-lived scope: ordinary check/read grants

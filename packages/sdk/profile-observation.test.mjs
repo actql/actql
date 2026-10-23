@@ -49,7 +49,7 @@ test('connection: reused profile data cannot replace retained context or limits'
 });
 
 for (const fault of ['replacement', 'mutation']) {
-  test(`connection: profile verification refuses ${fault} of the captured scope`, async t => {
+  test(`connection: profile admission does not invoke a redundant ${fault} conversion`, async t => {
     const clone = globalThis.structuredClone;
     t.after(() => {globalThis.structuredClone = clone;});
     let conversions = 0;
@@ -62,11 +62,9 @@ for (const fault of ['replacement', 'mutation']) {
       }
       return copy;
     };
-    let failure;
-    try {const client = await connect(profile()); client.close();} catch (error) {failure = error;}
-    assert.equal(failure?.code, 'InvalidHostProfile', `[check-mutation:profile-copy-${fault}]`);
-    assert.equal(conversions, 1);
-    assert.equal(sdk.explainCheckFailure(failure), undefined);
+    const client = await connect(profile()); t.after(() => client.close());
+    assert.deepEqual(client.profile, profile());
+    assert.equal(conversions, 0);
   });
 }
 

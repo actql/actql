@@ -88,6 +88,26 @@ priv enum LocalCompletionFreeAudit {
 }
 
 ///|
+// Legacy recipe selection is evaluated only by its existing legacy readers.
+// Fresh common audits do not run a second feature-combination traversal.
+fn local_legacy_audit(owner : CheckedProgram) -> LocalCompletionFreeAudit {
+  if !owner.local_legacy_audit_prepared {
+    owner.local_completion_free_audit = if owner.has_effects {
+      ProfileNotInstalled
+    } else {
+      audit_local_completion_free_units(
+        owner.source,
+        owner.identity,
+        owner.units,
+        owner.requirements,
+      )
+    }
+    owner.local_legacy_audit_prepared = true
+  }
+  owner.local_completion_free_audit
+}
+
+///|
 /// A separate nominal inventory for the installed Effect-free Local profile.
 /// It retains the original checker owner; equal Program CIDs do not grant custody.
 struct LocalCompletionFreeInventory {
@@ -1110,7 +1130,7 @@ pub fn local_program_completion_free_inventory(
   if owner.has_effects {
     return Err(ProfileNotInstalled)
   }
-  match local_audit_base(owner.local_completion_free_audit) {
+  match local_audit_base(local_legacy_audit(owner)) {
     Complete(
       work,
       bound_parameters,
@@ -1191,13 +1211,11 @@ pub fn local_program_completion_free_inventory(
         groups,
         takes,
         sorts,
-        distincts: local_audit_uses_distinct(owner.local_completion_free_audit),
-        sets: local_audit_uses_set(owner.local_completion_free_audit),
-        dedupes: local_audit_uses_dedupe(owner.local_completion_free_audit),
-        assertions: local_audit_uses_assertions(
-          owner.local_completion_free_audit,
-        ),
-        joins: local_audit_uses_join(owner.local_completion_free_audit),
+        distincts: local_audit_uses_distinct(local_legacy_audit(owner)),
+        sets: local_audit_uses_set(local_legacy_audit(owner)),
+        dedupes: local_audit_uses_dedupe(local_legacy_audit(owner)),
+        assertions: local_audit_uses_assertions(local_legacy_audit(owner)),
+        joins: local_audit_uses_join(local_legacy_audit(owner)),
       })
     ProfileNotInstalled | ScalarCapabilitiesAudit(_, _, _) =>
       Err(ProfileNotInstalled)
@@ -1347,8 +1365,7 @@ pub fn local_completion_free_inventory_uses_join(
 pub fn local_completion_free_inventory_uses_decimal_sum(
   inventory : LocalCompletionFreeInventory,
 ) -> Bool {
-  inventory.owner.local_completion_free_audit
-  is ScalarCapabilitiesAudit(_, true, _)
+  local_legacy_audit(inventory.owner) is ScalarCapabilitiesAudit(_, true, _)
 }
 
 ///|
@@ -1356,6 +1373,5 @@ pub fn local_completion_free_inventory_uses_decimal_sum(
 pub fn local_completion_free_inventory_uses_unary_timestamp(
   inventory : LocalCompletionFreeInventory,
 ) -> Bool {
-  inventory.owner.local_completion_free_audit
-  is ScalarCapabilitiesAudit(_, _, true)
+  local_legacy_audit(inventory.owner) is ScalarCapabilitiesAudit(_, _, true)
 }

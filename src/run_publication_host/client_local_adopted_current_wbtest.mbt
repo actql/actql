@@ -31,11 +31,11 @@ test "adopted current material uses actual original custody and the existing sco
     calls.val += 1
     adopted_current_test_ok(adopted_current_test_observation(store))
   }).unwrap()
-  assert_eq(calls.val, 2)
+  assert_eq(calls.val, 1)
   let body = client_local_adopted_authority_scope_body(
     material, store, "operator", "local",
   ).unwrap()
-  assert_eq(calls.val, 4)
+  assert_eq(calls.val, 2)
   assert_eq(
     body,
     client_local_authority_scope_body(
@@ -94,7 +94,7 @@ test "original material rejects another Store before invoking its current port" 
     )
     is Err(ForeignStore),
   )
-  assert_eq(calls.val, 2)
+  assert_eq(calls.val, 1)
   assert_true(
     bind_client_local_adopted_host_material(store, () => {
       adopted_current_test_ok(adopted_current_test_observation(foreign))
@@ -159,26 +159,30 @@ test "current checks retain original material and reject changed account or adop
 }
 
 ///|
-test "current loss during scope evaluation does not return previously encoded bytes" {
+test "current loss at the next scope boundary does not return retained bytes" {
   let store = Ref(0)
   let calls = Ref(0)
   let material = bind_client_local_adopted_host_material(store, () => {
     calls.val += 1
     adopted_current_test_ok(
-      if calls.val == 4 {
+      if calls.val == 3 {
         CommitUnknown
       } else {
         adopted_current_test_observation(store)
       },
     )
   }).unwrap()
+  client_local_adopted_authority_scope_body(
+    material, store, "operator", "local",
+  ).unwrap()
+  |> ignore
   assert_true(
     client_local_adopted_authority_scope_body(
       material, store, "operator", "local",
     )
     is Err(CommitUnknown),
   )
-  assert_eq(calls.val, 4)
+  assert_eq(calls.val, 3)
 }
 
 ///|
@@ -208,12 +212,12 @@ test "scope and adoption do not replace the existing Account Allow or Deny" {
 }
 
 ///|
-test "current loss after Account evaluation refuses instead of keeping its earlier Allow" {
+test "current loss at the next Account boundary refuses an earlier Allow" {
   let store = Ref(0)
   let calls = Ref(0)
   let material = bind_client_local_adopted_host_material(store, () => {
     calls.val += 1
-    if calls.val == 4 {
+    if calls.val == 3 {
       Err("original fence expired")
     } else {
       Ok(adopted_current_test_observation(store))
@@ -226,7 +230,80 @@ test "current loss after Account evaluation refuses instead of keeping its earli
       resource: "run",
       operation: "publish",
     })
+    is Ok(@authorization.Allow(_)),
+  )
+  assert_true(
+    client_local_adopted_account_outcome(material, store, {
+      principal: "operator",
+      connection: "local-files",
+      resource: "run",
+      operation: "publish",
+    })
     is Err(Physical("original fence expired")),
+  )
+}
+
+///|
+test "scope retains one immutable projection but each new operation checks current" {
+  let store = Ref(0)
+  let calls = Ref(0)
+  let current = Ref(adopted_current_test_observation(store))
+  let material = bind_client_local_adopted_host_material(store, () => {
+    calls.val += 1
+    adopted_current_test_ok(current.val)
+  }).unwrap()
+  let first = client_local_adopted_authority_scope_body(
+    material, store, "operator", "local-files",
+  ).unwrap()
+  let again = client_local_adopted_authority_scope_body(
+    material, store, "operator", "local-files",
+  ).unwrap()
+  assert_eq(first, again)
+  assert_eq(calls.val, 3)
+  let other = client_local_adopted_authority_scope_body(
+    material, store, "other", "local-files",
+  ).unwrap()
+  assert_true(first != other)
+  assert_eq(calls.val, 4)
+  current.val = adopted_current_test_observation(store, key="foreign")
+  assert_true(
+    client_local_adopted_authority_scope_body(
+      material, store, "other", "local-files",
+    )
+    is Err(ChangedCurrent),
+  )
+  assert_eq(calls.val, 5)
+}
+
+///|
+// Model the mutable byte view available to a Host/FFI consumer. This private
+// test intrinsic is the inverse of FixedArray::unsafe_reinterpret_as_bytes;
+// it changes the returned buffer, not a copied array used only by the test.
+fn adopted_current_test_buffer_view(value : Bytes) -> FixedArray[Byte] = "%identity"
+
+///|
+test "returned scope buffer mutation cannot change the retained canonical projection" {
+  let store = Ref(0)
+  let material = bind_client_local_adopted_host_material(store, () => {
+    adopted_current_test_ok(adopted_current_test_observation(store))
+  }).unwrap()
+  let first = client_local_adopted_authority_scope_body(
+    material, store, "operator", "local-files",
+  ).unwrap()
+  let expected = Bytes::makei(first.length(), index => first[index])
+  let exposed = adopted_current_test_buffer_view(first)
+  exposed[0] = b'!'
+  assert_true(first != expected)
+  let again = client_local_adopted_authority_scope_body(
+    material, store, "operator", "local-files",
+  ).unwrap()
+  assert_eq(again, expected)
+  adopted_current_test_buffer_view(again)[0] = b'?'
+  assert_eq(
+    client_local_adopted_authority_scope_body(
+      material, store, "operator", "local-files",
+    ).unwrap(),
+    expected,
   )
 }
 

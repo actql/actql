@@ -9,9 +9,17 @@ pub fn check_parsed_with_evidence(
   supplied : @decode.Cursor?,
   evidence : Array[@context.StageCapacityInput],
   limits : CheckLimits,
+  source_catalog? : PreparedSourceCatalog? = None,
 ) -> CheckOutcome {
   checking_outcome(program, environment, () => {
-    construct_parsed(program, environment, supplied, evidence, limits)
+    construct_parsed(
+      program,
+      environment,
+      supplied,
+      evidence,
+      limits,
+      source_catalog~,
+    )
   })
 }
 
@@ -23,6 +31,7 @@ fn construct_parsed(
   evidence : Array[@context.StageCapacityInput],
   limits : CheckLimits,
   effect_headers? : @syntax.EffectHeaders? = None,
+  source_catalog? : PreparedSourceCatalog? = None,
 ) -> CheckedProgram raise LocalConstructionFailure {
   if !compile_limits_valid(limits.compilation) {
     raise InvalidLimits
@@ -30,6 +39,10 @@ fn construct_parsed(
   match @syntax.validate_reuse(program, limits.input) {
     Ok(_) => ()
     Err(issue) => raise Program(issue)
+  }
+  if source_catalog is Some(prepared) &&
+    !physical_equal(prepared.environment, environment) {
+    raise Environment(ForeignPreparedCatalog)
   }
   let limits = limits.compilation
   let inputs = match
@@ -57,5 +70,6 @@ fn construct_parsed(
     graph=environment.graph,
     model_tasks=environment.model_tasks,
     request_value_policies=environment.request_value_policies,
+    source_catalog~,
   )
 }

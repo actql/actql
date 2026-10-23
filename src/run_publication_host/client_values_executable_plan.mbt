@@ -34,6 +34,15 @@ pub struct ClientTaskExecutablePlan {
 }
 
 ///|
+// Same-construction immutable parts, not a cache, capability or new Owner.
+priv struct ClientValuesExecutablePlanParts {
+  owner : PreparedClientProgram
+  plan : ClientValuesExecutablePlan
+  template : @publication.RunEvidenceValue
+  fragment : ClientValuesFragmentNode
+}
+
+///|
 pub fn client_task_executable_plan_wire(
   value : ClientTaskExecutablePlan,
 ) -> String {
@@ -127,6 +136,23 @@ pub fn issue_prepared_client_values_executable_plan(
   max_nodes : Int,
   max_depth : Int,
 ) -> Result[ClientValuesExecutablePlan, ClientValuesExecutablePlanIssue] {
+  issue_prepared_client_values_executable_plan_parts(
+    value, manifests, sequence_limits, max_facts, max_witnesses, max_wire_bytes,
+    max_nodes, max_depth,
+  ).map(parts => parts.plan)
+}
+
+///|
+fn issue_prepared_client_values_executable_plan_parts(
+  value : PreparedClientProgram,
+  manifests : ClientCompilationManifests,
+  sequence_limits : @lower.SequenceLimits,
+  max_facts : Int,
+  max_witnesses : Int,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[ClientValuesExecutablePlanParts, ClientValuesExecutablePlanIssue] {
   if max_facts <= 0 ||
     max_witnesses <= 0 ||
     max_wire_bytes <= 0 ||
@@ -134,16 +160,23 @@ pub fn issue_prepared_client_values_executable_plan(
     max_depth <= 0 {
     return Err(InvalidLimits)
   }
-  let graph = match
-    issue_prepared_client_values_plan_graph(
+  let (graph, fragment, aoa) = match
+    issue_prepared_client_values_plan_graph_parts(
       value, sequence_limits, max_wire_bytes, max_nodes, max_depth,
     ) {
-    Ok(graph) => graph
+    Ok(parts) => parts
     Err(issue) => return Err(Graph(issue))
   }
+  let template = match
+    issue_source_free_client_bound_template_from_aoa(
+      value, manifests, aoa, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(template) => template
+    Err(issue) => return Err(Material(Template(issue)))
+  }
   let material = match
-    issue_prepared_client_values_execution_material(
-      value, manifests, sequence_limits, max_wire_bytes, max_nodes, max_depth,
+    issue_prepared_client_execution_material_with_template(
+      value, manifests, template, max_wire_bytes, max_nodes, max_depth,
     ) {
     Ok(material) => material
     Err(issue) => return Err(Material(issue))
@@ -152,13 +185,13 @@ pub fn issue_prepared_client_values_executable_plan(
     value,
     graph.wire,
     graph.transformations,
-    material.wire,
+    material,
     max_facts,
     max_witnesses,
     max_wire_bytes,
     max_nodes,
     max_depth,
-  )
+  ).map(plan => { owner: value, plan, template, fragment, })
 }
 
 ///|
@@ -235,7 +268,7 @@ fn issue_prepared_client_task_plan_parts(
     value,
     graph.wire,
     graph.transformations,
-    material.wire,
+    material,
     max_facts,
     max_witnesses,
     max_wire_bytes,
@@ -245,11 +278,92 @@ fn issue_prepared_client_task_plan_parts(
 }
 
 ///|
+// Only the already admitted children of this invocation are retained here.
+// This is emission material, not a checked Plan or execution authority.
+priv struct ClientExecutablePlanBody {
+  fact_values : Array[@canonical.CanonicalValue]
+  limit_values : Array[@canonical.CanonicalValue]
+  binding_values : Array[@canonical.CanonicalValue]
+  witness_values : Array[@canonical.CanonicalValue]
+  nodes : @canonical.CanonicalValue
+  edges : @canonical.CanonicalValue
+  roots : @canonical.CanonicalValue
+  material_value : @canonical.CanonicalValue
+  manifest_cid : String
+  required_profiles : Array[(String, String)]
+}
+
+///|
+// The same ordered encoding feeds the existing bounded hash and text writers.
+// The full wire includes its identity; its budget is not the preimage budget.
+fn emit_client_executable_plan_body(
+  writer : @encode.Writer,
+  parts : ClientExecutablePlanBody,
+  cid : String?,
+) -> Unit raise @encode.EncodeFailure {
+  @encode.begin_object(writer)
+  @encode.key(writer, "bound_witnesses")
+  client_plan_emit_array(writer, parts.witness_values)
+  @encode.key(writer, "data_edges")
+  @canonical.emit_value(parts.edges, writer)
+  if cid is Some(identity) {
+    @encode.key(writer, "executable_plan_cid")
+    @encode.string_value(writer, identity)
+  }
+  @encode.key(writer, "execution_material")
+  @canonical.emit_value(parts.material_value, writer)
+  @encode.key(writer, "limit_bindings")
+  client_plan_emit_array(writer, parts.binding_values)
+  @encode.key(writer, "nodes")
+  @canonical.emit_value(parts.nodes, writer)
+  @encode.key(writer, "plan_fact_manifest_cid")
+  @encode.string_value(writer, parts.manifest_cid)
+  @encode.key(writer, "plan_facts")
+  client_plan_emit_array(writer, parts.fact_values)
+  @encode.key(writer, "required_profiles")
+  @encode.begin_array(writer)
+  for (profile_id, contract_cid) in parts.required_profiles {
+    @encode.begin_object(writer)
+    @encode.key(writer, "contract_cid")
+    @encode.string_value(writer, contract_cid)
+    @encode.key(writer, "profile_id")
+    @encode.string_value(writer, profile_id)
+    @encode.end_object(writer)
+  }
+  @encode.end_array(writer)
+  @encode.key(writer, "resolved_limits")
+  client_plan_emit_array(writer, parts.limit_values)
+  @encode.key(writer, "root_refs")
+  @canonical.emit_value(parts.roots, writer)
+  @encode.key(writer, "source_state_requirements")
+  @encode.begin_array(writer)
+  @encode.end_array(writer)
+  @encode.key(writer, "version")
+  @encode.string_value(writer, "actql-executable-plan/0.1")
+  @encode.end_object(writer)
+}
+
+///|
+fn finish_client_executable_plan_body(
+  parts : ClientExecutablePlanBody,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> (String, String) raise @encode.EncodeFailure {
+  let hash = @encode.hashing_writer(max_wire_bytes, max_nodes, max_depth)
+  emit_client_executable_plan_body(hash, parts, None)
+  let cid = "sha256:" + @encode.finish_hash(hash)
+  let writer = @encode.writer(max_wire_bytes, max_nodes, max_depth)
+  emit_client_executable_plan_body(writer, parts, Some(cid))
+  (@encode.finish(writer), cid)
+}
+
+///|
 fn issue_prepared_client_executable_plan_with_parts(
   value : PreparedClientProgram,
   graph_wire : String,
   transformations : Array[ClientResultTransformation],
-  material_wire : String,
+  material : ClientExecutionMaterial,
   max_facts : Int,
   max_witnesses : Int,
   max_wire_bytes : Int,
@@ -303,80 +417,41 @@ fn issue_prepared_client_executable_plan_with_parts(
     @canonical.object_field(graph_value, "nodes") is Some(nodes) &&
     @canonical.object_field(graph_value, "data_edges") is Some(edges) &&
     @canonical.object_field(graph_value, "root_refs") is Some(roots) &&
-    parse_plan_identity_value(
-      material_wire, max_wire_bytes, max_nodes, max_depth,
+    client_execution_material_body(
+      material, value, max_wire_bytes, max_nodes, max_depth,
     )
     is Some(material_value) else {
     return Err(Encoding)
   }
-  let facts_writer = @encode.writer(max_wire_bytes, max_nodes, max_depth) catch {
-    _ => return Err(Encoding)
-  }
-  client_plan_emit_array(facts_writer, fact_values) catch {
-    _ => return Err(Encoding)
-  }
-  let facts_wire = @encode.finish(facts_writer) catch {
+  let encoded_facts = prepare_plan_fact_manifest_facts(
+    fact_values, max_wire_bytes, max_nodes, max_depth,
+  ) catch {
     _ => return Err(Encoding)
   }
   let manifest = match
-    encode_plan_fact_manifest_identity(
-      facts_wire, max_wire_bytes, max_nodes, max_depth,
+    finish_plan_fact_manifest_identity(
+      encoded_facts, max_wire_bytes, max_nodes, max_depth,
     ) {
     Ok(manifest) => manifest
     Err(issue) => return Err(FactManifest(issue))
   }
-  let writer = @encode.writer(max_wire_bytes, max_nodes, max_depth) catch {
-    _ => return Err(Encoding)
-  }
   try {
-    @encode.begin_object(writer)
-    @encode.key(writer, "bound_witnesses")
-    client_plan_emit_array(writer, witness_values)
-    @encode.key(writer, "data_edges")
-    @canonical.emit_value(edges, writer)
-    @encode.key(writer, "execution_material")
-    @canonical.emit_value(material_value, writer)
-    @encode.key(writer, "limit_bindings")
-    client_plan_emit_array(writer, binding_values)
-    @encode.key(writer, "nodes")
-    @canonical.emit_value(nodes, writer)
-    @encode.key(writer, "plan_fact_manifest_cid")
-    @encode.string_value(writer, manifest.cid)
-    @encode.key(writer, "plan_facts")
-    client_plan_emit_array(writer, fact_values)
-    @encode.key(writer, "required_profiles")
-    @encode.begin_array(writer)
-    for (profile_id, contract_cid) in required_profiles {
-      @encode.begin_object(writer)
-      @encode.key(writer, "contract_cid")
-      @encode.string_value(writer, contract_cid)
-      @encode.key(writer, "profile_id")
-      @encode.string_value(writer, profile_id)
-      @encode.end_object(writer)
-    }
-    @encode.end_array(writer)
-    @encode.key(writer, "resolved_limits")
-    client_plan_emit_array(writer, limit_values)
-    @encode.key(writer, "root_refs")
-    @canonical.emit_value(roots, writer)
-    @encode.key(writer, "source_state_requirements")
-    @encode.begin_array(writer)
-    @encode.end_array(writer)
-    @encode.key(writer, "version")
-    @encode.string_value(writer, "actql-executable-plan/0.1")
-    @encode.end_object(writer)
-    let raw = @encode.finish(writer)
-    guard parse_plan_identity_value(raw, max_wire_bytes, max_nodes, max_depth)
-      is Some(body) else {
-      return Err(Encoding)
-    }
-    let cid = @canonical.cid_value(body, max_wire_bytes, max_nodes, max_depth)
-    guard @canonical.object_with_string_field(body, "executable_plan_cid", cid)
-      is Some(complete) else {
-      return Err(Encoding)
-    }
-    let wire = @canonical.stringify_value(
-      complete, max_wire_bytes, max_nodes, max_depth,
+    let (wire, cid) = finish_client_executable_plan_body(
+      {
+        fact_values,
+        limit_values,
+        binding_values,
+        witness_values,
+        nodes,
+        edges,
+        roots,
+        material_value,
+        manifest_cid: manifest.cid,
+        required_profiles,
+      },
+      max_wire_bytes,
+      max_nodes,
+      max_depth,
     )
     Ok({
       wire,

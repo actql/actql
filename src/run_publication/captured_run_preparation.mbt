@@ -45,6 +45,7 @@ priv enum CapturedRunPreparationPhase {
 /// this preparation and never releases inputs or reruns Compute.
 struct CapturedRunIssuancePreparation {
   mut inputs : CapturedRunIssuanceInputs?
+  mut completed : ComputationEvidenceInputs?
   max_workspace : Int
   mut context : @json.CanonicalValue?
   mut writer : @encode.Writer?
@@ -69,6 +70,7 @@ fn start_captured_computation_preparation(
 ) -> CapturedRunIssuancePreparation {
   {
     inputs: Some(inputs),
+    completed: None,
     max_workspace,
     context: None,
     writer: None,
@@ -386,7 +388,7 @@ fn CapturedRunIssuancePreparation::step(
             self.live -= self.inventory_slots
             self.inventory_slots = 0
             try {
-              let writer = @encode.writer(
+              let writer = @encode.measuring_writer(
                 inputs.max_wire_bytes,
                 inputs.max_nodes,
                 inputs.max_depth,
@@ -405,13 +407,24 @@ fn CapturedRunIssuancePreparation::step(
       try {
         if index == 6 {
           @encode.end_object(writer)
-          let wire = @encode.finish(writer)
+          let usage = @encode.finish_measurement_usage(writer)
           self.writer = None
+          guard @json.object_with_replaced_fields(
+              captured_run_envelope_template,
+              [
+                ("effect_context", self.context.unwrap()),
+                ("receipt", inputs.receipt.value),
+              ],
+            )
+            is Some(value) else {
+            return Err(CaptureIssuanceEncoding)
+          }
           self.context = None
           let child = match
-            start_publication_seal_preparation(
+            start_issued_publication_seal_preparation(
               "captured_run",
-              wire,
+              value,
+              usage,
               inputs.max_wire_bytes,
               inputs.max_nodes,
               inputs.max_depth,
@@ -493,24 +506,27 @@ fn CapturedRunIssuancePreparation::step(
               Err(issue) => return Err(CaptureIssuanceContract(issue))
             }
             self.contract = Some(contract)
-            self.phase = Check(
-              start_computation_evidence_check(
-                {
-                  run_definition: inputs.run_definition,
-                  invocation: inputs.invocation,
-                  definitions: inputs.definitions,
-                  artifacts: inputs.artifacts,
-                  manifest: inputs.manifest,
-                  receipt: inputs.receipt,
-                  captured_run: contract,
-                  preview: inputs.preview,
-                  max_wire_bytes: inputs.max_wire_bytes,
-                  max_nodes: inputs.max_nodes,
-                  max_depth: inputs.max_depth,
-                },
-                self.max_workspace - self.live,
-              ),
+            let check = start_computation_evidence_check(
+              {
+                run_definition: inputs.run_definition,
+                invocation: inputs.invocation,
+                definitions: inputs.definitions,
+                artifacts: inputs.artifacts,
+                manifest: inputs.manifest,
+                receipt: inputs.receipt,
+                captured_run: contract,
+                preview: inputs.preview,
+                max_wire_bytes: inputs.max_wire_bytes,
+                max_nodes: inputs.max_nodes,
+                max_depth: inputs.max_depth,
+              },
+              self.max_workspace - self.live,
             )
+            // This same owner completed Root before constructing the capture.
+            // Its borrowed root contracts, inventories and bounds are unchanged;
+            // only the new capture still needs the remaining evidence checks.
+            check.phase = PreludeAfterRoot
+            self.phase = Check(check)
           }
         }
       }
@@ -533,11 +549,24 @@ fn CapturedRunIssuancePreparation::step(
 }
 
 ///|
+/// Fixed envelope members are admitted once. Each issuance replaces only the
+/// two original immutable children, not authority, Run or permission facts.
+let captured_run_envelope_template : @json.CanonicalValue = {
+  let parsed = @source.parse_json(
+    "{\"effect_context\":null,\"encryption_required\":true,\"receipt\":null,\"retention_class\":\"run-evidence\",\"sensitivity\":\"private\",\"version\":\"actql-captured-run/0.1\"}",
+    { max_input_bytes: 256, max_nodes: 7, max_depth: 1, },
+  ).unwrap()
+  @json.from_source(parsed, 7, 1, 256) catch {
+    _ => abort("Invalid captured Run envelope template")
+  }
+}
+
+///|
 pub fn CapturedRunIssuancePreparation::advance(
   self : CapturedRunIssuancePreparation,
   quantum : Int,
 ) -> Result[(Bool, Int), CapturedRunIssuanceIssue] {
-  if self.closed || quantum < 1 {
+  if self.closed || self.completed is Some(_) || quantum < 1 {
     return Err(CaptureIssuanceEncoding)
   }
   let mut used = 0
@@ -557,12 +586,108 @@ pub fn CapturedRunIssuancePreparation::advance(
 pub fn CapturedRunIssuancePreparation::finish(
   self : CapturedRunIssuancePreparation,
 ) -> Result[PublicationContract, CapturedRunIssuanceIssue] {
-  guard !self.closed && self.phase is Done && self.contract is Some(contract) else {
+  guard !self.closed &&
+    self.completed is None &&
+    self.phase is Done &&
+    self.contract is Some(contract) else {
     return Err(CaptureIssuanceEncoding)
   }
   self.contract = None
   self.cancel()
   Ok(contract)
+}
+
+///|
+/// Transfer the complete capture while retaining only its immutable effect-free
+/// computation facts in this same preparation. All borrowed inventories remain
+/// read-only until cancel. Cancellation retires aliases, not physical resources.
+pub fn CapturedRunIssuancePreparation::finish_retained(
+  self : CapturedRunIssuancePreparation,
+) -> Result[PublicationContract, CapturedRunIssuanceIssue] {
+  guard !self.closed &&
+    self.completed is None &&
+    self.phase is Done &&
+    self.inputs is Some(inputs) &&
+    self.contract is Some(contract) else {
+    return Err(CaptureIssuanceEncoding)
+  }
+  // Sixteen existing owner slots plus the descriptor and eleven fields:
+  // five contracts, two original inventory references, None-preview and three
+  // bounds. Count retained inventory members without copying their arrays.
+  let retained_slots = 28L +
+    inputs.definitions.length().to_int64() +
+    inputs.artifacts.length().to_int64()
+  if inputs.preview is Some(_) || retained_slots > self.max_workspace.to_int64() {
+    return self.finish()
+  }
+  self.completed = Some({
+    run_definition: inputs.run_definition,
+    invocation: inputs.invocation,
+    definitions: inputs.definitions,
+    artifacts: inputs.artifacts,
+    manifest: inputs.manifest,
+    receipt: inputs.receipt,
+    captured_run: contract,
+    preview: None,
+    max_wire_bytes: inputs.max_wire_bytes,
+    max_nodes: inputs.max_nodes,
+    max_depth: inputs.max_depth,
+  })
+  // Snapshot/Source/advance/Model/content owners are not part of this fact.
+  self.inputs = None
+  self.context = None
+  self.writer = None
+  self.snapshot_inventory = None
+  self.source_inventory = None
+  self.model_inventory = None
+  self.inventory_slots = 0
+  self.live = retained_slots.to_int()
+  self.peak = Int::max(self.peak, self.live)
+  Ok(contract)
+}
+
+///|
+fn captured_computation_inventory_matches(
+  original : Array[PublicationContract],
+  selected : Array[PublicationContract],
+) -> Bool {
+  if original.length() != selected.length() {
+    return false
+  }
+  for index = 0; index < original.length(); index = index + 1 {
+    if !physical_equal(original[index], selected[index]) {
+      return false
+    }
+  }
+  true
+}
+
+///|
+fn CapturedRunIssuancePreparation::matches_computation(
+  self : CapturedRunIssuancePreparation,
+  selected : ComputationEvidenceInputs,
+) -> Bool {
+  guard !self.closed &&
+    self.phase is Done &&
+    self.completed is Some(original) &&
+    self.contract is Some(captured) else {
+    return false
+  }
+  original.preview is None &&
+  selected.preview is None &&
+  physical_equal(original.run_definition, selected.run_definition) &&
+  physical_equal(original.invocation, selected.invocation) &&
+  physical_equal(original.manifest, selected.manifest) &&
+  physical_equal(original.receipt, selected.receipt) &&
+  physical_equal(captured, selected.captured_run) &&
+  selected.max_wire_bytes >= original.max_wire_bytes &&
+  selected.max_nodes >= original.max_nodes &&
+  selected.max_depth >= original.max_depth &&
+  captured_computation_inventory_matches(
+    original.definitions,
+    selected.definitions,
+  ) &&
+  captured_computation_inventory_matches(original.artifacts, selected.artifacts)
 }
 
 ///|
@@ -586,6 +711,7 @@ pub fn CapturedRunIssuancePreparation::cancel(
     @encode.cancel_writer(writer)
   }
   self.inputs = None
+  self.completed = None
   self.context = None
   self.writer = None
   self.contract = None
@@ -610,6 +736,9 @@ pub fn captured_run_preparation_fixture_phase(
 ) -> String {
   if preparation.closed {
     return "closed"
+  }
+  if preparation.completed is Some(_) {
+    return "retained"
   }
   match preparation.phase {
     Prepare => "prepare"

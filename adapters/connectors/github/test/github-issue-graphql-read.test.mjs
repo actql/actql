@@ -1,6 +1,8 @@
 // Independent original GitHub Issue boundary cases; expected rows stay local.
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import {createHash} from 'node:crypto';
+import {performance} from 'node:perf_hooks';
 import * as moon from '../../../../_build/js/release/build/connectors/github/host_node/host_node.js';
 import {callHttpsCredentialResource, withHttpsCredentialRunResponseOriginal} from '../../../site-node/https-credential-resource.mjs';
 import {issueReads} from './github-graphql.fixture.mjs';
@@ -42,6 +44,45 @@ test('pages are read from the published node ID until the last cursor', async t 
     assert.equal(entry.pathname, '/graphql');
     assert.equal(entry.headers['x-github-api-version'], '2026-03-10');
   }
+});
+
+test('page callbacks reuse the original prefix check across pure codec getters', async t => {
+  const context = await setup(t, world());
+  const bodies = new Set();
+  const prototype = Object.getPrototypeOf(createHash('sha256'));
+  const update = prototype.update;
+  let checks = 0, bytes = 0, pages = 0;
+  const hashes = t.mock.method(prototype, 'update', function (data, ...args) {
+    if (bodies.has(data)) { checks++; bytes += data.byteLength; }
+    return Reflect.apply(update, this, [data, ...args]);
+  });
+  const cpu = process.cpuUsage(), started = performance.now();
+  let result;
+  try {
+    result = await context.read({
+      callResource: async request => {
+        const response = await callHttpsCredentialResource(request);
+        bodies.add(response.body);
+        return response;
+      },
+      chargePage: body => Object.freeze({body}),
+      consumePage: () => { pages++; },
+    });
+  } finally { hashes.mock.restore(); }
+  const used = process.cpuUsage(cpu);
+  t.diagnostic(JSON.stringify({responsePrefixChecks: checks, hashedResponseBytes: bytes,
+    elapsedMs: performance.now() - started, cpuUserMs: used.user / 1000,
+    cpuSystemMs: used.system / 1000, physicalRequests: context.fixture.seen().length,
+    qualification: 'one actual Credential/SQLite/loopback TLS diagnostic; not an ordinary latency distribution'}));
+  assert.equal(result.complete, true);
+  assert.deepEqual(result.rows, [1, 2, 3, 4, 5].map(row));
+  assert.equal(context.fixture.seen().length, 3);
+  assert.equal(pages, 3);
+  // Count only hashes after the physical response returns to this driver;
+  // the Credential Owner already hashed its original receipt before that.
+  // Functional and mutation/refusal controls cover admission independently.
+  assert.ok(checks <= 21, `response prefix hashes exceed the callback-boundary budget: ${checks}`);
+  assert.ok(context.journal.recover().every(record => record.outcome === 'succeeded'));
 });
 
 test('a same-name repository B never changes the requested node', async t => {
@@ -436,6 +477,45 @@ test('copied and another read original responses cannot substitute for this requ
     assert.deepEqual(failure.acceptedPages, [], kind);
   }
 });
+
+for (const boundary of ['transport', 'accounting']) {
+  test(`queued exchange fulfillment mutation refuses before row disclosure: ${boundary}`, async t => {
+    const state = world();
+    state.repositories.get('R_A').issues = [{number: 7, title: 'original'}];
+    const context = await setup(t, state);
+    let original, offset, disclosed = 0;
+    const mutate = () => Buffer.from('modified').copy(original.body, offset);
+    const failure = await stopOf(context.read({
+      callResource: request => ({then(resolve, reject) {
+        callHttpsCredentialResource(request).then(response => {
+          original = response;
+          const at = response.body.indexOf(Buffer.from('"title":"original"'));
+          assert(at >= 0);
+          offset = at + Buffer.byteLength('"title":"');
+          resolve(response);
+          // Resolve first: the exchange continuation checks the original,
+          // then this queued callback runs before its caller resumes.
+          if (boundary === 'transport') queueMicrotask(mutate);
+        }).catch(reject);
+      }}),
+      ...(boundary !== 'accounting' ? {} : {chargePage: () => ({then(resolve) {
+        resolve(undefined);
+        queueMicrotask(mutate);
+      }})}),
+      consumePage: () => { disclosed++; },
+    }));
+    assert.equal(failure?.code, 'RemoteCredentialRunResponseChanged');
+    assert.equal(failure.stopped, true);
+    assert.equal(disclosed, 0, 'Do not disclose a row parsed from changed original bytes');
+    assert.deepEqual(failure.acceptedPages, []);
+    assert.equal(context.fixture.seen().length, 1);
+    assert.equal(context.journal.recover()[0].outcome, 'succeeded');
+    Buffer.from('original').copy(original.body, offset);
+    assert.throws(() => withHttpsCredentialRunResponseOriginal(original,
+      context.credential.control, context.journal, () => {}),
+    {code: 'RemoteCredentialRunResponseChanged'});
+  });
+}
 
 test('actual RowRun refuses copied foreign reused and observed-only tickets without releasing a row prefix', async t => {
   const first = await accountedIssueRows(() => true);

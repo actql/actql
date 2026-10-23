@@ -169,6 +169,46 @@ pub fn prepare_client_acquired_serialization_prefix(
   fragment_body : String?,
   ordered_body : String?,
 ) -> @execution.GeneratedSequence? {
+  if @publication_host.select_client_single_keyed_acquisition(prepared)
+    is Ok(Some(keyed)) {
+    // A split task ordinal is not the Direct acquisition coordinate. Retain
+    // the same checked JOIN-to-Serialize path and select only the prefix after
+    // its actual capture; no acquisition operation is executed a second time.
+    guard @publication_host.client_keyed_acquisition_reaches_serialization(
+        prepared, keyed, task, step,
+      ) &&
+      @publication_host.client_keyed_direct_acquisition_coordinates(keyed)
+      is Some((_, input, direct_task)) &&
+      @publication_host.prepare_client_query_acquisition(
+        prepared, direct_task, input,
+      )
+      is Ok(query) &&
+      @sourceviews.query_acquisition_capture(query) is @pipeline.Step(capture) &&
+      prepare_client_serialization_prefix_owned(
+        Pure(prepared),
+        task,
+        step,
+        registry_body,
+        values_body,
+        fragment_body,
+        ordered_body,
+      )
+      is Some(prefix) else {
+      return None
+    }
+    let count = @execution.generated_sequence_step_count(prefix)
+    guard count > 0 &&
+      @execution.generated_sequence_step_index_at(prefix, count - 1)
+      is Some(terminal) &&
+      terminal > capture else {
+      return None
+    }
+    return @execution.select_generated_sequence_range(
+      prefix,
+      capture + 1,
+      terminal,
+    )
+  }
   if task == 1 {
     // The checked Stage producer is bound at runtime by bind_captured_source;
     // this is preparation of its consumer, not replay of the Source task.
@@ -568,68 +608,23 @@ fn prepare_client_local_sequences_owned(
     @publication_host.ClientRequestIdentity,
   )? = None,
 ) -> Array[@execution.GeneratedSequence]? {
-  if registry_body.length() > 100000 || values_body.length() > 100000 {
+  guard client_local_sequence_contracts(
+      registry_body, values_body, fragment_body, ordered_body,
+    )
+    is Some(admitted) else {
     return None
   }
-  let registry_value = @identity.from_json(
-    @json.parse(registry_body),
-    10000,
-    100,
-    100000,
-  ) catch {
-    _ => return None
-  }
-  let values_value = @identity.from_json(
-    @json.parse(values_body),
-    10000,
-    100,
-    100000,
-  ) catch {
-    _ => return None
-  }
-  let contracts = match
-    @execution.admit_relation_registry(registry_value, values_value, {
-      max_body_bytes: 100000,
-      max_body_nodes: 10000,
-      max_body_depth: 100,
-    }) {
-    Ok(value) => value
-    Err(_) => return None
-  }
+  let contracts = admitted.contracts
+  let fragment_contract = admitted.fragment_contract
+  let ordered_contract = admitted.ordered_contract
+  // The Fragment consumes the same row domain admitted for this original
+  // task owner. A larger Values profile must not revert to the default 100
+  // after the first Values step; all other Fragment budgets stay independent.
+  let fragment_rows = client_local_owner_sequence_limits(prepared).max_rows.to_int64()
   let physical : @execution.RegistryLimits = {
     max_body_bytes: 100000,
     max_body_nodes: 10000,
     max_body_depth: 100,
-  }
-  let fragment_contract = match fragment_body {
-    None => None
-    Some(body) => {
-      if body.length() > 100000 {
-        return None
-      }
-      let value = @identity.from_json(@json.parse(body), 10000, 100, 100000) catch {
-        _ => return None
-      }
-      match @execution.admit_fragment_contract(contracts, value, physical) {
-        Ok(contract) => Some(contract)
-        Err(_) => return None
-      }
-    }
-  }
-  let ordered_contract = match ordered_body {
-    None => None
-    Some(body) => {
-      if body.length() > 100000 {
-        return None
-      }
-      let value = @identity.from_json(@json.parse(body), 10000, 100, 100000) catch {
-        _ => return None
-      }
-      match @execution.admit_ordered_contract(contracts, value, physical) {
-        Ok(contract) => Some(contract)
-        Err(_) => return None
-      }
-    }
   }
   let graph = match prepared {
     Pure(value) => @publication_host.prepared_client_graph(value)
@@ -670,8 +665,14 @@ fn prepare_client_local_sequences_owned(
   for task in 0..<count {
     let composed_boundary = composed_boundaries
       .filter(occurrence => {
-        @publication_host.client_infer_occurrence_coordinates(occurrence).0 ==
-        task
+        @strategy.graph_task_owner(graph, task)
+        .map(owner => {
+          physical_equal(
+            owner,
+            @publication_host.client_infer_occurrence_preparation(occurrence),
+          )
+        })
+        .unwrap_or(false)
       })
       .get(0)
       .map(@publication_host.client_infer_occurrence_coordinates)
@@ -719,6 +720,25 @@ fn prepare_client_local_sequences_owned(
         })
         is Ok(_)
     }
+    // Whole serialization-prefix preparation retains the original acquisition
+    // expression contexts even when the selected barrier has a later task
+    // ordinal. Its execution range still excludes the completed capture.
+    let acquiring = acquiring ||
+      (match (serialization_input, prepared) {
+        (Some((selected, barrier)), Pure(value)) if selected == task =>
+          match
+            @publication_host.select_client_single_keyed_acquisition(value) {
+            Ok(Some(keyed)) =>
+              @publication_host.client_keyed_acquisition_reaches_serialization(
+                value,
+                keyed,
+                task,
+                @lower.serialization_step(barrier),
+              )
+            _ => false
+          }
+        _ => false
+      })
     let sequence = match
       (match serialization_restore {
         Some((selected, producer, consumer)) if selected == task =>
@@ -754,7 +774,7 @@ fn prepare_client_local_sequences_owned(
                       )
                     _ =>
                       match composed_boundary {
-                        Some((infer_task, _, step)) if infer_task == task =>
+                        Some((_, _, step)) =>
                           @lower.prepare_sequence_with_infer_boundary(
                             owner,
                             step,
@@ -770,10 +790,24 @@ fn prepare_client_local_sequences_owned(
                                 client_local_owner_sequence_limits(prepared),
                               )
                             _ =>
-                              @lower.prepare_sequence(
-                                owner,
-                                client_local_owner_sequence_limits(prepared),
-                              )
+                              match prepared {
+                                Pure(value) =>
+                                  @publication_host.prepare_prepared_client_full_sequence(
+                                    value,
+                                    task,
+                                    client_local_owner_sequence_limits(prepared),
+                                  ).map_err(issue => {
+                                    match issue {
+                                      @publication_host.Sequence(issue) => issue
+                                      _ => @lower.SequenceLimit
+                                    }
+                                  })
+                                Effect(_) =>
+                                  @lower.prepare_sequence(
+                                    owner,
+                                    client_local_owner_sequence_limits(prepared),
+                                  )
+                              }
                           }
                       }
                   }
@@ -832,7 +866,7 @@ fn prepare_client_local_sequences_owned(
           // acquisition captures), while a compute stage keeps one
           // evaluation's bound so several tasks fit the Run's budget.
           let logical : @lower.FragmentRowLimits = {
-            max_input_rows: 100L,
+            max_input_rows: fragment_rows,
             max_value_bytes: 10000L,
             max_live_value_bytes: if acquiring {
               500000L
@@ -845,7 +879,7 @@ fn prepare_client_local_sequences_owned(
           let request = match
             @lower.prepare_fragment_request(
               fragment,
-              100L,
+              fragment_rows,
               10000L,
               row_limits=if ordered { Some(logical) } else { None },
             ) {
@@ -943,7 +977,9 @@ fn prepare_client_local_sequences_owned(
       guard @execution.select_generated_sequence_range(
           sequence,
           boundary + 1,
-          @execution.generated_sequence_step_count(sequence) - 1,
+          @strategy.graph_task_prefix_end(graph, task).unwrap_or(
+            @execution.generated_sequence_step_count(sequence) - 1,
+          ),
         )
         is Some(selected) else {
         return None

@@ -4,6 +4,7 @@ import {generateKeyPairSync, sign} from 'node:crypto';
 import test from 'node:test';
 import {connectInProcess, ClientError} from './index.mjs';
 import {canonicalJson, contentCid, signedAnswer} from './checkpoints.mjs';
+import {validCheckpointLookup} from '../client-wire/index.mjs';
 
 const cid = digit => `sha256:${digit.repeat(64)}`;
 const keys = generateKeyPairSync('ed25519');
@@ -37,6 +38,31 @@ async function fixture(t, {lookup = () => ({items: [original]}), resolve = commi
   const client = await connectInProcess({mode: 'local', owner: 'local'}, port);
   t.after(() => client.close());
   return {client, calls, port};
+}
+
+for (const [name, changes] of [
+  ['cost scope', {kind: 'cost_scope', phase: 'preflight',
+    subject: {kind: 'prepare_attempt', prepareAttemptId: 'prepare', requestId: 'request'}}],
+  ['data egress', {kind: 'data_egress', phase: 'preflight',
+    subject: {kind: 'prepare_attempt', prepareAttemptId: 'prepare', requestId: 'request'}}],
+  ['preflight Effect', {phase: 'preflight'}],
+]) {
+  test(`safe but unsupported ${name} metadata refuses before signing`, async t => {
+    const summary = {...original, ...changes};
+    assert.equal(validCheckpointLookup({items: [summary]}, summary.checkpointId), true,
+      'generic safe metadata is not the signing helper supported-profile law');
+    let signatures = 0;
+    const selected = {...signer, sign(bytes) {signatures++; return signer.sign(bytes);}};
+    const {client, calls} = await fixture(t, {lookup: () => ({items: [summary]})});
+    for (const [action, decision] of [['approve', 'approved'], ['reject', 'rejected']]) {
+      await assert.rejects(signedAnswer(summary, decision, selected, original.createdAt),
+        {message: 'UnsupportedCheckpointAnswer'});
+      await assert.rejects(client[action](summary.checkpointId, {signer: selected}),
+        {message: 'UnsupportedCheckpointAnswer'});
+    }
+    assert.equal(signatures, 0);
+    assert.deepEqual(calls.map(call => call.operation), ['connect', 'checkpoints', 'checkpoints']);
+  });
 }
 
 test('approve looks up one exact original ID and signs the same Summary and claims', async t => {
@@ -105,6 +131,55 @@ test('exact public Checkpoint lookup refuses mixed page selectors before I/O', a
     await assert.rejects(client.checkpoints(options), {code: 'InvalidCheckpointReference'});
   }
   assert.equal(calls.filter(call => call.operation === 'checkpoints').length, 1);
+});
+
+test('Checkpoint page captures each original response field before admission', async t => {
+  let reads = 0;
+  const summary = {...original};
+  Object.defineProperty(summary, 'checkpointId', {enumerable: true,
+    get() { return ++reads === 1 ? original.checkpointId : 'substituted-checkpoint'; }});
+  const page = {items: [summary]};
+  const {client, calls} = await fixture(t, {lookup: () => page});
+  const captured = await client.checkpoints({limit: 1});
+  assert.equal(captured.items[0].checkpointId, original.checkpointId);
+  assert.equal(reads, 1);
+  assert.equal(Object.isFrozen(captured), true);
+  assert.equal(Object.isFrozen(captured.items[0].subject), true);
+  assert.equal(Object.isFrozen(page), false);
+  page.items.length = 0;
+  assert.equal(captured.items.length, 1);
+  assert.deepEqual(calls.map(call => call.operation), ['connect', 'checkpoints']);
+});
+
+test('exact Checkpoint lookup captures once without copying the admitted response again', async t => {
+  let reads = 0, responseCopies = 0;
+  const clone = globalThis.structuredClone;
+  t.mock.method(globalThis, 'structuredClone', value => {
+    // Transport still owns its required outbound packet copy.
+    if (!Object.hasOwn(value, 'connection')) responseCopies++;
+    return clone(value);
+  });
+  const summary = {...original};
+  Object.defineProperty(summary, 'checkpointId', {enumerable: true,
+    get() {reads++; return original.checkpointId;}});
+  const {client, calls} = await fixture(t, {lookup: () => ({items: [summary]})});
+  const page = await client.checkpoints({checkpointId: original.checkpointId});
+  assert.deepEqual(page.items, [original]);
+  assert.equal(reads, 1);
+  assert.equal(responseCopies, 0);
+  assert.equal(Object.isFrozen(page.items[0].requirements), true);
+  assert.deepEqual(calls.map(call => call.operation), ['connect', 'checkpoints']);
+});
+
+test('Checkpoint response capture refuses unreadable data without retaining private errors', async t => {
+  const privateFailure = new Error('private response getter');
+  const {client, calls} = await fixture(t, {lookup: () => ({get items() {throw privateFailure;}})});
+  await assert.rejects(client.checkpoints(), error => {
+    assert.equal(error.code, 'InvalidHostCheckpointPage');
+    assert.equal(error.cause, undefined);
+    return true;
+  });
+  assert.deepEqual(calls.map(call => call.operation), ['connect', 'checkpoints']);
 });
 
 test('original signer values and receiver survive mutation during lookup', async t => {
@@ -257,6 +332,70 @@ test('a lost resolution reply preserves exact signed bytes without automatic re-
   assert.equal((await client.resolveCheckpoints(failure.signed)).results[0].status, 'duplicate');
   assert.deepEqual(calls.at(-1).body.items, first); assert.equal(signatures, 2);
   assert.equal(calls.filter(call => call.operation === 'checkpoints').length, 1);
+});
+
+test('Resolution reply captures original result fields before validation', async t => {
+  const item = await signedAnswer(original, 'approved', signer, '2026-10-18T00:01:00.000Z');
+  let reads = 0;
+  const result = {status: 'committed', decision: 'approved',
+    resolutionCid: JSON.parse(item.resolutionWire).resolution_cid};
+  Object.defineProperty(result, 'checkpointCid', {enumerable: true,
+    get() {return ++reads === 1 ? original.checkpointCid : cid('f');}});
+  const raw = {results: [result]};
+  const {client, calls} = await fixture(t, {resolve: () => raw});
+  const answer = await client.resolveCheckpoints([item]);
+  assert.equal(answer.results[0].checkpointCid, original.checkpointCid);
+  assert.equal(reads, 1);
+  assert.equal(Object.isFrozen(answer.results[0]), true);
+  assert.equal(Object.isFrozen(raw), false);
+  raw.results.length = 0;
+  assert.equal(answer.results.length, 1);
+  assert.deepEqual(answer.signed, [item]);
+  assert.deepEqual(calls.map(call => call.operation), ['connect', 'resolve']);
+});
+
+test('unreadable Resolution reply remains Unknown with the exact original signed bytes', async t => {
+  const item = await signedAnswer(original, 'approved', signer, '2026-10-18T00:01:00.000Z');
+  const privateFailure = new Error('private response getter');
+  const {client, calls} = await fixture(t, {resolve: () => ({get results() {throw privateFailure;}})});
+  await assert.rejects(client.resolveCheckpoints([item]), error => {
+    assert.equal(error.code, 'ResolutionUnknown');
+    assert.deepEqual(error.signed, [item]);
+    assert.equal(error.cause.code, 'InvalidHostResolveReply');
+    assert.equal(error.cause.cause, undefined);
+    return true;
+  });
+  assert.deepEqual(calls.map(call => call.operation), ['connect', 'resolve']);
+});
+
+test('a Resolution batch retains original items and signer across the first awaited signature', async t => {
+  let arrive, release, signatures = 0;
+  const arrived = new Promise(resolve => {arrive = resolve;});
+  const pending = new Promise(resolve => {release = resolve;});
+  const second = {...original, checkpointId: 'second-original', checkpointCid: cid('f')};
+  const items = [{checkpoint: {...original}, decision: 'approved'},
+    {checkpoint: second, decision: 'approved'}];
+  const selected = {...signer, async sign(bytes) {
+    assert.equal(this, selected);
+    if (++signatures === 1) {arrive(); await pending;}
+    return signer.sign(bytes);
+  }};
+  const {client, calls} = await fixture(t);
+  const flight = client.resolveCheckpoints(items, {signer: selected});
+  await arrived;
+  items[1].decision = 'rejected'; second.checkpointId = 'substituted';
+  selected.keyId = 'replacement'; selected.reviewerId = 'replacement';
+  selected.sign = () => assert.fail('replacement callback');
+  release();
+  const answer = await flight;
+  assert.equal(signatures, 4);
+  assert.deepEqual(answer.signed.map(item => {
+    const resolution = JSON.parse(item.resolutionWire);
+    return {id: resolution.checkpoint_id, decision: resolution.decision,
+      key: resolution.proof.key_id, actor: resolution.actor};
+  }), [original.checkpointId, 'second-original'].map(id =>
+    ({id, decision: 'approved', key: signer.keyId, actor: signer.reviewerId})));
+  assert.deepEqual(calls.map(call => call.operation), ['connect', 'resolve']);
 });
 
 test('abort during a pending signature observes settlement and makes no second signature or resolve', async t => {

@@ -44,7 +44,7 @@ fn local_values_publication_policy(
   if original != expected {
     return Err(Policy(CustodyLost))
   }
-  let bodies = match read_run_policy_originals(original) {
+  let bodies = match work.start.journal.publication_originals(original) {
     Ok(value) => value
     Err(issue) => return Err(Policy(issue))
   }

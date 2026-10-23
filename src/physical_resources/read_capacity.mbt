@@ -6,6 +6,26 @@ struct CapacityReservation {
 }
 
 ///|
+/// Read only this original reservation's currently reserved retention and
+/// execution. The owning consumer accounts its finite reservation set rather
+/// than subtracting unrelated usage from the shared Run Ledger. Closed means
+/// no remaining reservation, not release of separate holdings or physical
+/// backing. This observes no current callback and admits no new resource use.
+pub fn reservation_capacity_amounts(
+  ledger : Ledger,
+  reservation : Reservation,
+) -> Result[(Int64, Int64), LedgerIssue] {
+  if !physical_equal(ledger, reservation.owner) {
+    return Err(ForeignOwner)
+  }
+  if reservation.open {
+    Ok((reservation.retention, reservation.execution))
+  } else {
+    Ok((0L, 0L))
+  }
+}
+
+///|
 /// Admit read retention and scratch before materialization. This grants no
 /// transfer, attempt or token/cost/duration allowance and restores no unknown
 /// historical usage. The caller owns physical cleanup before settlement.

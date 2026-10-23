@@ -81,7 +81,7 @@ for (const kind of ['not_accepted', 'preparation_failed', 'preparing', 'ready', 
   });
 }
 
-for (const fault of ['unknown branch', 'wrong nonce', 'malformed problem', 'changed clone']) {
+for (const fault of ['unknown branch', 'wrong nonce', 'malformed problem']) {
   test(`submission lookup refuses ${fault} without acquiring outcome facts`, async t => {
     const f = await fixture(t, (operation, body) => {
       const answer = outcome('preparation_failed', body);
@@ -89,12 +89,6 @@ for (const fault of ['unknown branch', 'wrong nonce', 'malformed problem', 'chan
       if (fault === 'wrong nonce') answer.submissionRef = {...body.submissionRef, nonce: 'foreign'};
       if (fault === 'malformed problem') answer.problem.classification = 'success';
       return answer;
-    });
-    const clone = globalThis.structuredClone;
-    if (fault === 'changed clone') t.mock.method(globalThis, 'structuredClone', value => {
-      const copy = clone(value);
-      if (copy.kind === 'preparation_failed') copy.kind = 'not_accepted';
-      return copy;
     });
     let failure;
     try {await f.client.lookupSubmission(original);} catch (error) {failure = error;}

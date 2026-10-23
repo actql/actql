@@ -21,6 +21,106 @@ pub fn bind_published_query_context(
 }
 
 ///|
+/// Interpret one original publication for the ordinary Source lowerer. The
+/// returned installation metadata is not a capture, grant or currentness proof.
+pub fn bind_published_query_parts(
+  environment : @program_check.CheckEnvironment,
+  publication : String,
+  declarations : String?,
+) -> Result[
+  (
+    @query_program.Context,
+    Array[@query_program.TableWriteBinding],
+    @query_program.UpdateTargetPublication?,
+    @query_program.StoreTargetPublication?,
+    @query_program.CommandTargetPublication?,
+  ),
+  PublicationIssue,
+] {
+  bind_published_query_parts_with_reader(
+    environment, publication, declarations, source_publication_cursor,
+  ).map(parts => {
+    let (context, table, update, store, command, _) = parts
+    (context, table, update, store, command)
+  })
+}
+
+///|
+/// Retain the original Catalog interpretation for the subsequent checker.
+/// Its configured Environment and current compilation bounds still apply.
+pub fn bind_published_query_parts_with_catalog(
+  environment : @program_check.CheckEnvironment,
+  publication : String,
+  declarations : String?,
+) -> Result[
+  (
+    @query_program.Context,
+    Array[@query_program.TableWriteBinding],
+    @query_program.UpdateTargetPublication?,
+    @query_program.StoreTargetPublication?,
+    @query_program.CommandTargetPublication?,
+    @program_check.PreparedSourceCatalog,
+  ),
+  PublicationIssue,
+] {
+  bind_published_query_parts_with_reader(
+    environment, publication, declarations, source_publication_cursor,
+  )
+}
+
+///|
+// Keep the one original read at this boundary. The private reader parameter
+// permits a work counter around the actual parser without a public test port.
+fn bind_published_query_parts_with_reader(
+  environment : @program_check.CheckEnvironment,
+  publication : String,
+  declarations : String?,
+  read : (String) -> @decode.Cursor raise PublicationStop,
+  admission? : PublicationEnvironmentAdmission? = None,
+) -> Result[
+  (
+    @query_program.Context,
+    Array[@query_program.TableWriteBinding],
+    @query_program.UpdateTargetPublication?,
+    @query_program.StoreTargetPublication?,
+    @query_program.CommandTargetPublication?,
+    @program_check.PreparedSourceCatalog,
+  ),
+  PublicationIssue,
+] {
+  try {
+    let root = read(publication)
+    // Preserve the complete unused-section checks and their original order.
+    source_publication_closed(root)
+    let store = match
+      published_store_targets_from_root(environment, root, admission~) {
+      Ok(value) => value
+      Err(issue) => raise PublicationStop(issue)
+    }
+    let command = match
+      published_command_targets_from_root(environment, root, admission~) {
+      Ok(value) => value
+      Err(issue) => raise PublicationStop(issue)
+    }
+    let (context, catalog) = client_source_context_from_root(
+      environment,
+      root,
+      declarations,
+      admission~,
+    )
+    let table = table_write_publication_from_root(environment, root, admission~)
+    let update = match
+      published_update_targets_from_root(environment, root, admission~) {
+      Ok(value) => value
+      Err(_) => raise PublicationStop(Publication)
+    }
+    Ok((context, table, update, store, command, catalog))
+  } catch {
+    PublicationStop(issue) => Err(issue)
+  }
+}
+
+///|
 priv suberror PublicationStop {
   PublicationStop(PublicationIssue)
 }
@@ -127,21 +227,36 @@ fn client_source_context(
   declarations : String?,
 ) -> @query_program.Context raise PublicationStop {
   let root = source_publication_cursor(publication)
+  source_publication_closed(root)
+  match published_store_targets_from_root(environment, root) {
+    Ok(_) => ()
+    Err(issue) => raise PublicationStop(issue)
+  }
+  match published_command_targets_from_root(environment, root) {
+    Ok(_) => ()
+    Err(issue) => raise PublicationStop(issue)
+  }
+  client_source_context_from_root(environment, root, declarations).0
+}
+
+///|
+fn source_publication_closed(
+  root : @decode.Cursor,
+) -> Unit raise PublicationStop {
   @decode.closed_object(root, [
     "environmentCid", "aliases", "tableWrites", "updateTargets", "storeTargets",
     "commandTargets",
   ]).unwrap_or_else(() => raise PublicationStop(Publication))
   |> ignore
-  // Admit the complete selected STORE section even when this query does not
-  // consume it. A malformed relationship cannot hide behind another operation.
-  match published_store_targets(environment, publication) {
-    Ok(_) => ()
-    Err(issue) => raise PublicationStop(issue)
-  }
-  match published_command_targets(environment, publication) {
-    Ok(_) => ()
-    Err(issue) => raise PublicationStop(issue)
-  }
+}
+
+///|
+fn client_source_context_from_root(
+  environment : @program_check.CheckEnvironment,
+  root : @decode.Cursor,
+  declarations : String?,
+  admission? : PublicationEnvironmentAdmission? = None,
+) -> (@query_program.Context, @program_check.PreparedSourceCatalog) raise PublicationStop {
   let environment_cid = @program_check.checking_environment_cid(environment)
   if source_publication_text(root, "environmentCid") != environment_cid {
     raise PublicationStop(Publication)
@@ -166,18 +281,23 @@ fn client_source_context(
   )
   let published : Array[@source_frontend.PublishedAlias] = []
   let mut field_count = 0
-  let prepared_catalog = match
-    @program_check.prepare_source_catalog(environment, {
-      max_work: 10000000,
-      max_bytes: 1048576,
-      max_nodes: 65536,
-      max_depth: 64,
-    }) {
-    Ok(value) => value
-    Err(@program_check.EnvironmentFailure::BudgetExceeded) =>
-      raise PublicationStop(Limit)
-    Err(_) => raise PublicationStop(Publication)
+  let prepared_catalog = match admission {
+    Some(admission) => publication_admission_catalog(admission)
+    None =>
+      match
+        @program_check.prepare_source_catalog(environment, {
+          max_work: 10000000,
+          max_bytes: 1048576,
+          max_nodes: 65536,
+          max_depth: 64,
+        }) {
+        Ok(value) => value
+        Err(@program_check.EnvironmentFailure::BudgetExceeded) =>
+          raise PublicationStop(Limit)
+        Err(_) => raise PublicationStop(Publication)
+      }
   }
+
   let input_schemas = []
   let mut schema_work = 1000000
   for index, entry in aliases {
@@ -276,22 +396,7 @@ fn client_source_context(
       }),
     })
   }
-  let parameter_declarations = match declarations {
-    None => None
-    Some(body) => {
-      let cursor = source_publication_cursor(body) catch {
-        _ => raise PublicationStop(Declarations)
-      }
-      Some(
-        @parameter_binding.read_declarations(Some(cursor), {
-          max_parameters: 1024,
-          max_nodes: 8192,
-          max_depth: 64,
-          max_text_bytes: 65536,
-        }).unwrap_or_else(() => raise PublicationStop(Declarations)),
-      )
-    }
-  }
+  let parameter_declarations = client_source_declarations(declarations)
   match
     @source_frontend.bind_query_context(
       published,
@@ -306,7 +411,29 @@ fn client_source_context(
         environment,
       ),
     ) {
-    Ok(value) => value
+    Ok(value) => (value, prepared_catalog)
     Err(issue) => raise PublicationStop(Alias(issue))
+  }
+}
+
+///|
+fn client_source_declarations(
+  declarations : String?,
+) -> @parameter_binding.Declarations? raise PublicationStop {
+  match declarations {
+    None => None
+    Some(body) => {
+      let cursor = source_publication_cursor(body) catch {
+        _ => raise PublicationStop(Declarations)
+      }
+      Some(
+        @parameter_binding.read_declarations(Some(cursor), {
+          max_parameters: 1024,
+          max_nodes: 8192,
+          max_depth: 64,
+          max_text_bytes: 65536,
+        }).unwrap_or_else(() => raise PublicationStop(Declarations)),
+      )
+    }
   }
 }

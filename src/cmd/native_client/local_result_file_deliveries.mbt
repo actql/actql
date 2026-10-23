@@ -271,15 +271,15 @@ fn local_result_file_deliveries(
   command_result_delivery_failed.val = failure is Some(_)
   if delivery.json {
     let saved = local_result_host_value(
-      actual.capture.lookup_submitted_run_state_by_id_in_original_read(
+      actual.capture.lookup_submitted_run_state_for_original_in_original_read(
         settings.principal,
         settings.connection,
-        required(child, "run"),
+        actual.original,
         @env.now().to_double(),
       ),
       "saved Run after delivery",
     ).unwrap_or_else(() => stop("LocalOriginalRunStateUnavailable"))
-    let state = @json.parse(saved.state().wire()) catch {
+    let state = @json.parse(saved.wire()) catch {
       _ => stop("LocalOriginalRunStateUnavailable")
     }
     return encode_request_json(

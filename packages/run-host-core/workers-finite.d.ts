@@ -1,7 +1,24 @@
 /** Trusted finite installation limits, never Program or request JSON. */
 export interface WorkersFiniteConfiguration {
+  /** Optional installed expression capability. No budget is inferred when absent. */
+  readonly fragments?: {
+    readonly contract: string; readonly ordered?: string;
+    readonly limits: {
+      readonly roots: {readonly max_roots: number; readonly max_pointer_bytes: number;
+        readonly max_work: number};
+      readonly demands: {readonly max_roots: number; readonly max_nodes: number;
+        readonly max_work: number; readonly max_text_bytes: number; readonly max_links: number};
+      readonly physical: {readonly max_body_bytes: number; readonly max_body_nodes: number;
+        readonly max_body_depth: number};
+      readonly logical: {readonly max_input_rows: bigint; readonly max_value_bytes: bigint;
+        readonly max_live_value_bytes: bigint; readonly max_work: bigint};
+      readonly max_input_rows: bigint; readonly max_value_bytes: bigint;
+    };
+  };
   readonly environment: {
     readonly wire: string; readonly cid: string;
+    /** Exact installed reduction contract; omission enables no numeric profile. */
+    readonly numeric_profile_cid?: string;
     readonly expressions: {readonly text_time: boolean; readonly veca: boolean};
     readonly operations: {readonly rela: boolean; readonly sga: boolean;
       readonly tea: boolean; readonly calendar: boolean; readonly text_rank: boolean};

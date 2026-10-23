@@ -3,6 +3,50 @@
   "document_id": "actql.conformance",
   "requirements": [
     {
+      "requirement_id": "actql.conformance/ordinary-performance.same-cohort",
+      "statement_sha256": "f9ab74c7417447d73b8276bf179eeeef6b9c7eaddb8adc2f51ba114555c41fb1",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "ordinary-operation-performance",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.conformance/ordinary-performance.latency-targets",
+      "statement_sha256": "aa6e17e04e7a75e0016c52bdf3734bb819871d5692aa40bf777c6587e8a2f48d",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "ordinary-operation-performance",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.conformance/ordinary-performance.samples-and-coverage",
+      "statement_sha256": "72a4aaac9d03c4b86f63ea1bee90a6afba66b052d4a49645b4bd302dbf5fe02a",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "ordinary-operation-performance",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.conformance/ordinary-performance.structural-regression",
+      "statement_sha256": "d3c2bcf22f4977fac6bb87d43d432d8750ec10c29596ef3c60d00f9dc0e98342",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "ordinary-operation-performance",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.conformance/conformance-profiles.an-implementation-must-accept-every-valid-program-and-reject-every",
       "statement_sha256": "a866a9b1f8607c983bb4d0b1e39323fc183d2ce2cc7b4757fc0df29085b7f4be",
       "status": "pending",

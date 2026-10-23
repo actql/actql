@@ -350,23 +350,15 @@ fn parse_selected_query_script(
     Text | Sql => ()
     Json | Yaml => return Err(InvalidFormat)
   }
-  let query_form = match
-    @syntax.starts_query(document, syntax_limits().lexical, source_path~) {
-    Ok(value) => value
-    Err(issue) => return Err(QuerySyntax(issue))
-  }
-  if !query_form {
-    return Err(WrongQueryForm)
-  }
-  if format == Sql {
-    match @syntax.starts_sql(document, syntax_limits().lexical, source_path~) {
-      Ok(true) => ()
-      Ok(false) => return Err(WrongQueryForm)
-      Err(issue) => return Err(QuerySyntax(issue))
-    }
-  }
-  match @syntax.parse_query_script(document, syntax_limits(), source_path~) {
-    Ok(value) => Ok(value)
+  match
+    @syntax.parse_selected_query_script(
+      document,
+      syntax_limits(),
+      format == Sql,
+      source_path~,
+    ) {
+    Ok(Some(value)) => Ok(value)
+    Ok(None) => Err(WrongQueryForm)
     Err(issue) => Err(QuerySyntax(issue))
   }
 }
@@ -385,6 +377,7 @@ pub fn lower_with_source(
   update_targets? : @query.UpdateTargetPublication? = None,
   store_targets? : @query.StoreTargetPublication? = None,
   command_targets? : @query.CommandTargetPublication? = None,
+  public_primary? : Bool = false,
 ) -> Result[(Lowered, @builder.Source?), Issue] {
   match format {
     Json =>
@@ -427,6 +420,14 @@ pub fn lower_with_source(
         Err(issue) => return Err(issue)
       }
       guard context is Some(context) else { return Err(MissingQueryContext) }
+      // Only a new public read-only Source with no authored RESULT selects
+      // this configured primary. Structured Programs, explicit exports and
+      // operator-specific Effect output laws keep their existing identities.
+      let context = if public_primary && public_implicit_primary(parsed) {
+        { ..context, result_name: "main", }
+      } else {
+        context
+      }
       let (program, source, command_selection) = if @syntax.terminal_short_command_effect(
           parsed,
         )
@@ -485,6 +486,7 @@ pub fn lower(
   update_targets? : @query.UpdateTargetPublication? = None,
   store_targets? : @query.StoreTargetPublication? = None,
   command_targets? : @query.CommandTargetPublication? = None,
+  public_primary? : Bool = false,
 ) -> Result[Lowered, Issue] {
   lower_with_source(
     document,
@@ -495,6 +497,7 @@ pub fn lower(
     update_targets~,
     store_targets~,
     command_targets~,
+    public_primary~,
   )
   .map(pair => pair.0)
   .map_err(issue => {
@@ -503,4 +506,27 @@ pub fn lower(
       _ => issue
     }
   })
+}
+
+///|
+fn public_implicit_primary(query : @syntax.Query) -> Bool {
+  if @syntax.terminal_effect(query) is Some(_) ||
+    @syntax.terminal_table_effect(query) is Some(_) ||
+    @syntax.terminal_store_effect(query) is Some(_) ||
+    @syntax.terminal_insert_effect(query) is Some(_) ||
+    @syntax.terminal_short_command_effect(query) is Some(_) ||
+    @syntax.terminal_command_effect_count(query) > 0 {
+    return false
+  }
+  for index in 0..<@syntax.operation_count(query) {
+    if @syntax.operation_at(query, index) is Some(RetainResult(_)) {
+      return false
+    }
+  }
+  for index in 0..<@syntax.final_operation_count(query) {
+    if @syntax.final_operation_at(query, index) is Some(RetainResult(_)) {
+      return false
+    }
+  }
+  true
 }

@@ -339,3 +339,29 @@ pub fn object_with_string_field(
     _ => None
   }
 }
+
+///|
+/// Copy an admitted object, replacing only existing members in their original
+/// order. Children remain immutable; neither the root nor the supplied array is
+/// borrowed. Unknown, repeated or out-of-order replacement keys are refused.
+pub fn object_with_replaced_fields(
+  value : CanonicalValue,
+  replacements : Array[(String, CanonicalValue)],
+) -> CanonicalValue? {
+  guard value is Object(fields) else { return None }
+  let output : Array[(String, CanonicalValue)] = []
+  let mut next = 0
+  for entry in fields.values {
+    if next < replacements.length() && replacements[next].0 == entry.0 {
+      output.push((entry.0, replacements[next].1))
+      next += 1
+    } else {
+      output.push(entry)
+    }
+  }
+  if next != replacements.length() {
+    None
+  } else {
+    Some(Object({ values: output, }))
+  }
+}

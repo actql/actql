@@ -243,6 +243,24 @@ pub fn client_values_host_issued_effect_run_materials_wire(
 }
 
 ///|
+/// Bind the already-issued live originals without preparing or compiling again.
+/// Current Host authority, durable custody and Effect approval stay separate.
+#export_name("clientValuesHostBindPreparedEffectRunMaterials")
+pub fn client_values_host_bind_prepared_effect_run_materials(
+  allowed : @host.ClientEffectAllowedRun,
+  definition : @publication.PublicationContract,
+  issued : @host.ClientEffectIssuedNormalizationMaterials,
+  request : @host.ClientRequestIdentity,
+) -> Result[@host.ClientEffectRunMaterials, @host.ClientEffectRunMaterialsIssue] {
+  @host.bind_prepared_client_effect_original_materials(
+    allowed,
+    definition,
+    issued,
+    request=Some(request),
+  )
+}
+
+///|
 /// Restore through the actual admitted material Owner without journal issuance.
 #export_name("clientValuesHostRestoreEffectRunNormalization")
 pub fn client_values_host_restore_effect_run_normalization(
@@ -273,6 +291,7 @@ pub fn client_values_host_admit_effect_run_materials(
   original : @host.ClientEffectIssuedNormalizationMaterials?,
   expected_request : @host.ClientRequestIdentity?,
   source_preparation : @local.LocalSourceComputation?,
+  numeric_profile_cid : String?,
 ) -> Result[
   @host.ClientEffectRunMaterials,
   ClientValuesHostEffectRestorationIssue,
@@ -300,6 +319,7 @@ pub fn client_values_host_admit_effect_run_materials(
     original_materials=original,
     expected_request~,
     original_source=source_preparation,
+    numeric_profile_cid~,
   ).map_err(issue => Materials(issue))
 }
 

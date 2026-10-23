@@ -30,8 +30,8 @@ export function originalInitialControlClose(original) {
 }
 
 export async function retainInstalledHostInitializationFailure(cause,
-  {journal, store, checkpoints, dispatchOwner, sourceProfile,
-    installedEffect, observation, ownerViews, initialControl}) {
+  {journal, closeJournal, closeInitializationJournal, store, checkpoints, dispatchOwner, sourceProfile,
+    installedEffect, observation, ownerViews, initialControl, publicationOwnership}) {
   const closeInitialControl = initialControl === undefined ? undefined :
     originalInitialControlClose(initialControl);
   // Retain the original receiver and methods before the first cleanup await.
@@ -70,6 +70,7 @@ export async function retainInstalledHostInitializationFailure(cause,
   if (observation !== undefined) pending.add('observation');
   if (ownerViews !== undefined) pending.add('owner-views');
   if (initialControl !== undefined) pending.add('initial-control');
+  if (publicationOwnership !== undefined) pending.add('publication-ownership');
   const errors = [];
   let primaryFailure = cause;
   try { primaryFailure = cause?.primaryFailure ?? cause; }
@@ -124,6 +125,13 @@ export async function retainInstalledHostInitializationFailure(cause,
   }
   let flight;
   async function drain() {
+    // A failed actual Store opening can hold a physical cleanup child that
+    // waits for this SAME Journal. Its Host caller retains this captured
+    // original close only for that pre-service constructor failure. Do not
+    // gate it behind the dependent child or change unrelated initializers.
+    if (closeInitializationJournal !== undefined) {
+      await attempt('journal', closeInitializationJournal);
+    }
     await attempt('initialization', async () => {
       // Property access can itself fail. Keep it inside this original Owner's
       // attempt; only an unobserved method may be captured on a later retry.
@@ -153,8 +161,9 @@ export async function retainInstalledHostInitializationFailure(cause,
         if (!pending.has('checkpoints')) {
           // Neither physical owner needs the other after dispatch has settled.
           // A journal close failure must not prevent the Store close attempt.
-          await attempt('journal', () => journal.close());
+          await attempt('journal', closeJournal ?? (() => journal.close()));
           await attempt('store', () => store.close());
+          await attempt('publication-ownership', () => publicationOwnership.close());
           await attempt('observation', () => observation.close());
           await attempt('owner-views', () => ownerViews.close());
           // The initial control holding can contain every preparation/child
@@ -264,12 +273,13 @@ export function retainInstalledHostRuntimeFailure(cause, retire) {
 // another adapter or the Store must not be skipped or closed twice.
 export function createInstalledHostShutdown({stop, drain, retire, checkpoint,
   journal, source, effect, store, diagnostic, observation, ownerViews,
-  initialControl, finalize}) {
+  initialControl, finalize, publicationOwnership}) {
   const closeInitialControl = initialControl === undefined ? undefined :
     originalInitialControlClose(initialControl);
   const completed = new Set();
   const pending = Object.freeze(['stop', 'drain', 'retire', 'checkpoint',
     'journal', 'source', 'effect', 'store',
+    ...(publicationOwnership === undefined ? [] : ['publicationOwnership']),
     ...(diagnostic === undefined ? [] : ['diagnostic']),
     ...(observation === undefined ? [] : ['observation']),
     ...(ownerViews === undefined ? [] : ['ownerViews']),
@@ -297,6 +307,7 @@ export function createInstalledHostShutdown({stop, drain, retire, checkpoint,
     const failures = [];
     for (const [name, action] of [['journal', journal],
       ['source', source], ['effect', effect], ['store', store],
+      ...(publicationOwnership === undefined ? [] : [['publicationOwnership', publicationOwnership]]),
       ...(ownerViews === undefined ? [] : [['ownerViews',ownerViews]])]) {
       try {
         await attempt(name, action);

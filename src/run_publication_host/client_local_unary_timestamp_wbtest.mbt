@@ -12,7 +12,7 @@ test "public unary Timestamp preparation retains its original audit and executes
     @publication.run_evidence_value_json(
       prepared_client_local_normalization_evidence(original, issued).unwrap(),
     ),
-    local_unary_timestamp_journal,
+    common_local_empty_journal,
   )
   assert_true(
     physical_equal(
@@ -47,7 +47,7 @@ test "public unary Timestamp preparation retains its original audit and executes
     restore_prepared_client_local_normalization(
       original,
       issued,
-      local_unary_timestamp_journal,
+      common_local_empty_journal,
       local_decimal_sum_catalog_cid(),
     )
     is Err(ForeignCatalog),
@@ -84,7 +84,7 @@ test "unary Timestamp keeps equal Default and Supplied values as distinct origin
       @publication.run_evidence_value_json(
         prepared_client_local_normalization_evidence(defaulted, original).unwrap(),
       ),
-      local_unary_timestamp_journal,
+      common_local_empty_journal,
     )
     assert_true(
       prepared_client_local_normalization_evidence(supplied, original)
@@ -97,7 +97,57 @@ test "unary Timestamp keeps equal Default and Supplied values as distinct origin
           supplied, supplied_original,
         ).unwrap(),
       ),
-      local_unary_timestamp_journal,
+      common_local_empty_journal,
+    )
+  }
+}
+
+///|
+test "legacy unary Timestamp journal keeps its exact original catalog and wire" {
+  let original = local_explicit_cast_original(
+    text="SELECT TRY_TIMESTAMP('2000-02-29T00:00:00.123456789Z') AS value",
+  )
+  let legacy = issue_prepared_client_legacy_local_normalization(original).unwrap()
+  let evidence = prepared_client_local_normalization_evidence(original, legacy).unwrap()
+  assert_eq(
+    @publication.run_evidence_value_json(evidence),
+    local_unary_timestamp_journal,
+  )
+  assert_true(
+    physical_equal(
+      legacy,
+      issue_prepared_client_local_normalization(original).unwrap(),
+    ),
+  )
+  let restored = restore_prepared_client_local_normalization(
+    original,
+    legacy,
+    local_unary_timestamp_journal,
+    local_unary_timestamp_catalog_cid(),
+  ).unwrap()
+  assert_true(physical_equal(restored, evidence))
+}
+
+///|
+test "literal unary SQL and Pipe handoffs prepare through the current public frontend" {
+  for
+    (format, text) in [
+      (
+        @source_frontend.Sql,
+        "SELECT TRY_TIMESTAMP('2000-02-29T00:00:00.123456789Z') AS value",
+      ),
+      (
+        @source_frontend.Text,
+        "WITH seed AS (SELECT '2000-02-29T00:00:00.123456789Z' AS stamp) FROM seed |> SELECT TRY_TIMESTAMP(stamp) AS value",
+      ),
+    ] {
+    let prepared = local_explicit_cast_original(text~, format~)
+    let original = issue_prepared_client_local_normalization(prepared).unwrap()
+    assert_eq(
+      @publication.run_evidence_value_json(
+        prepared_client_local_normalization_evidence(prepared, original).unwrap(),
+      ),
+      common_local_empty_journal,
     )
   }
 }

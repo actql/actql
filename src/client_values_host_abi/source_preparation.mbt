@@ -10,6 +10,23 @@ pub fn client_values_host_prepare_source_program(
 }
 
 ///|
+/// New public preparation selects the configured primary before Program
+/// construction. The historical entry remains available for saved originals.
+#export_name("clientValuesHostPreparePublicSourceProgram")
+pub fn client_values_host_prepare_public_source_program(
+  intent : @host.ClientSubmittedIntent,
+  environment : @checked.CheckEnvironment,
+  publication : String,
+) -> Result[@local.LocalSourceComputation, @local.LocalSourceComputationIssue] {
+  @local.prepare_local_source_computation(
+    intent,
+    environment,
+    publication,
+    public_primary=true,
+  )
+}
+
+///|
 #export_name("clientValuesHostSourceProgramKind")
 pub fn client_values_host_source_program_kind(
   value : @local.LocalSourceComputation,

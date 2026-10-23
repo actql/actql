@@ -5,10 +5,13 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {DatabaseSync} from 'node:sqlite';
 import test from 'node:test';
-import * as moon from '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {canonicalJson} from '../../packages/sdk/host-port.mjs';
 import {openClientRequestJournal} from './client-request-journal.mjs';
+
+const moon = await import(process.env.ACTQL_TEST_COMMON_RUNTIME ?? new URL(
+  '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js',
+  import.meta.url).href);
 
 const cid = digit => `sha256:${digit.repeat(64)}`;
 const hash = value => `sha256:${createHash('sha256').update(canonicalJson(value)).digest('hex')}`;
@@ -64,8 +67,14 @@ async function fixture(t, {selected = true, readOnly = false, link = true} = {})
     } finally {database.close();}
   };
   return {path, reference, intent, request, identity, accepted, readRow, mutate,
+    update(sql, ...parameters) {
+      const database = new DatabaseSync(join(path, 'client-requests.sqlite3'));
+      try {return database.prepare(sql).run(...parameters);}
+      finally {database.close();}
+    },
     get journal() {return journal;},
-    read: () => journal.originalSubmittedIntent(identity, fields, moon, publication),
+    read: (requestControl = moon, publicationControl = publication) =>
+      journal.originalSubmittedIntent(identity, fields, requestControl, publicationControl),
     reopen() {journal.close(); journal = openClientRequestJournal(path);}};
 }
 
@@ -88,6 +97,115 @@ test('original submitted content is bound in the same Run acceptance and survive
   assert.equal(restored.referenceWire, original.referenceWire);
   restored.assertCurrent();
   assert.deepEqual(f.readRow(), row);
+});
+
+test('one original submitted-content handle admits each unchanged row once', async t => {
+  const f = await fixture(t);
+  const counts = {identity: 0, intent: 0, definition: 0};
+  const requestControl = {...moon,
+    clientRequestAdmitRecord(...args) {
+      counts.identity++;
+      return Reflect.apply(moon.clientRequestAdmitRecord, moon, args);
+    },
+    clientSubmittedIntent(...args) {
+      counts.intent++;
+      return Reflect.apply(moon.clientSubmittedIntent, moon, args);
+    },
+  };
+  const publicationControl = {...publication, admit(name, ...args) {
+    if (name === 'run_definition') counts.definition++;
+    return Reflect.apply(publication.admit, publication, [name, ...args]);
+  }};
+  const original = f.read(requestControl, publicationControl);
+  assert.deepEqual(counts, {identity: 1, intent: 1, definition: 1});
+  original.assertCurrent();
+  original.assertCurrent();
+  f.update('UPDATE client_submission_epoch_authority SET observed_at=observed_at+1');
+  original.assertCurrent();
+  assert.deepEqual(counts, {identity: 1, intent: 1, definition: 1},
+    'same selected scalar rows reuse the actual admitted originals, not another decode/hash');
+  f.read(requestControl, publicationControl).assertCurrent();
+  assert.deepEqual(counts, {identity: 2, intent: 2, definition: 2},
+    'a distinct original operation has its own initial admission');
+  f.mutate(value => {value.authorization = 'changed-valid-authorization-wire';});
+  original.assertCurrent();
+  assert.deepEqual(counts, {identity: 2, intent: 2, definition: 3},
+    'a changed Run row revalidates its Run facts without decoding the unchanged intent');
+  assert.deepEqual(Object.keys(f.journal.lookupSubmittedIntent(f.reference, fields, moon)).sort(),
+    ['intentCid', 'intentWire', 'outcome', 'phase', 'requestId', 'revision', 'submissionRef'],
+    'public submission records do not expose the private admitted intent or row snapshots');
+});
+
+for (const entry of ['resolveDefinition', 'admitOrLookupDefinition']) {
+  test(`${entry} admits one exact request once before returning its saved Run`, async t => {
+    const f = await fixture(t);
+    let admissions = 0, issuances = 0;
+    const requestControl = {...moon, clientRequestAdmitRecord(...args) {
+      admissions++;
+      return Reflect.apply(moon.clientRequestAdmitRecord, moon, args);
+    }};
+    const resolve = original => f.journal[entry](original, {
+      namespaceId: fields.namespaceId, lookupExpiresAt: '2099-01-01T00:00:00.000Z',
+      issueDefinition() {issuances++; throw new Error('SavedRunMustNotBeReissued');},
+    }, requestControl, publication);
+    const before = f.readRow();
+    const retained = await resolve(f.identity);
+    assert.deepEqual(retained.ref, f.accepted.ref);
+    assert.equal(admissions, 1, 'one exact request has one Common admission, not repeated stored copies');
+    assert.equal(issuances, 0);
+    await resolve(f.identity);
+    assert.equal(admissions, 2, 'a new public resolution has its own admission');
+    const foreign = f.request(cid('b'));
+    admissions = 0;
+    await assert.rejects(async () => resolve(foreign), {code: 'ClientRequestIntentConflict'});
+    assert.equal(admissions, 2, 'distinct requested and saved identities are each admitted once');
+    assert.equal(issuances, 0);
+    assert.deepEqual(f.readRow(), before, 'resolution and conflict never mutate or reissue the saved Run');
+  });
+}
+
+test('admit-or-lookup refuses an incomplete request control before issuer callback', async t => {
+  const f = await fixture(t);
+  let issuances = 0;
+  const incomplete = {...moon, clientRequestRelation: undefined};
+  await assert.rejects(f.journal.admitOrLookupDefinition(f.identity, {
+    namespaceId: 'another-owner', lookupExpiresAt: '2099-01-01T00:00:00.000Z',
+    issueDefinition() {issuances++; throw new Error('InvalidControlMustNotReachIssuer');},
+  }, incomplete, publication), {code: 'InvalidClientRequestLookup'});
+  assert.equal(issuances, 0);
+});
+
+for (const [label, sql, expected] of [
+  ['intent wire', "UPDATE client_submitted_intents SET intent_wire='{}'", 'ClientSubmittedIntentCorrupt'],
+  ['epoch key', "UPDATE client_submission_epoch_authority SET authentication_key='" + '1'.repeat(64) + "'", 'ClientSubmittedIntentCorrupt'],
+  ['Run custody', 'UPDATE client_submission_custody SET issued_count=issued_count+1', 'ClientRequestSubmissionCustodyLost'],
+  ['intent custody', 'UPDATE client_submitted_intent_custody SET issued_count=issued_count+1', 'ClientSubmittedIntentCustodyLost'],
+  ['restart custody', 'UPDATE client_submission_restart_custody SET issued_count=issued_count+1', 'ClientSubmissionRestartCustodyLost'],
+]) {
+  test(`original submitted-content reuse still observes changed ${label}`, async t => {
+    const f = await fixture(t), original = f.read();
+    original.assertCurrent();
+    f.update(sql);
+    assert.throws(() => original.assertCurrent(), {code: expected});
+    assert.throws(() => f.read(), {code: expected});
+    assert.equal(moon.clientSubmittedIntentRequestsCommitStop(original.intent), true);
+  });
+}
+
+test('failed original-content observation discards its retained decoded facts', async t => {
+  const f = await fixture(t);
+  let admissions = 0;
+  const requestControl = {...moon, clientSubmittedIntent(...args) {
+    admissions++;
+    return Reflect.apply(moon.clientSubmittedIntent, moon, args);
+  }};
+  const original = f.read(requestControl);
+  assert.equal(admissions, 1);
+  f.mutate(value => {value.submittedIntentCid = cid('f');});
+  assert.throws(() => original.assertCurrent(), {code: 'ClientRequestSubmittedIntentMismatch'});
+  f.mutate(value => {value.submittedIntentCid = moon.clientSubmittedIntentCid(f.intent);});
+  original.assertCurrent();
+  assert.equal(admissions, 2, 'after a failed observation the restored bytes require new admission');
 });
 
 for (const [label, selected, expected] of [

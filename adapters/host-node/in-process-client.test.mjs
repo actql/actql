@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import './deferred-ingress-original-snapshot.test.mjs';
 import {createServer} from 'node:http';
 import {generateKeyPairSync, sign} from 'node:crypto';
 import {connect, explainReadFailure} from '../../packages/sdk/index.mjs';

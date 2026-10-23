@@ -253,19 +253,62 @@ fn local_runtime_read_member(
     }
   }
   runtime.reader = Some(reader)
-  let hasher = @sha.hasher()
-  let retained : Array[Byte] = []
-  let mut done = false
+  native_timing_count(16)
+  // Large members need only their digest. The optional system primitive keeps
+  // this Reader open at EOF; only an untouched unsupported Reader uses the
+  // portable path. Actual read failures retain the original cleanup carrier.
+  let streamed_digest = if collect {
+    None
+  } else {
+    match reader.sha256() {
+      Ok(digest) => Some(epoch_hex(digest))
+      Err(UnsupportedTarget) => None
+      Err(issue) => local_runtime_stop(Physical(issue))
+    }
+  }
+  let hasher = match streamed_digest {
+    Some(_) => None
+    None => Some(@sha.hasher())
+  }
+  // Reader.next returns owned immutable Bytes, independently of its C scratch.
+  // Keep a complete metadata chunk directly. Short reads use one destination
+  // bounded by the admitted size, rather than growing a byte-at-a-time Array.
+  let mut retained : Bytes? = if collect && bytes == 0L {
+    Some(b"")
+  } else {
+    None
+  }
+  let mut partial : FixedArray[Byte]? = None
+  let mut copied = 0
+  let mut done = streamed_digest is Some(_)
   while !done {
     let chunk = reader.next(65536).map_err(issue => Physical(issue))
       |> local_runtime_result
-    @sha.update(hasher, chunk.bytes) catch {
-      _ => local_runtime_stop(Limit)
-    }
-    if collect {
-      for byte in chunk.bytes {
-        retained.push(byte)
+    if !chunk.bytes.is_empty() {
+      // Attribute the digest transform separately from Reader and component
+      // preparation. Empty EOF chunks add no digest work.
+      native_timing_begin(31)
+      defer native_timing_end(31)
+      @sha.update(hasher.unwrap(), chunk.bytes) catch {
+        _ => local_runtime_stop(Limit)
       }
+    }
+    if collect && !chunk.bytes.is_empty() {
+      let length = chunk.bytes.length()
+      if length > bytes.to_int() - copied {
+        local_runtime_stop(Limit)
+      }
+      if copied == 0 && length == bytes.to_int() {
+        retained = Some(chunk.bytes)
+      } else {
+        let body = partial.unwrap_or_else(() => {
+          let body : FixedArray[Byte] = FixedArray::make(bytes.to_int(), 0)
+          partial = Some(body)
+          body
+        })
+        body.blit_from_bytes(copied, chunk.bytes, 0, length)
+      }
+      copied += length
     }
     done = chunk.eof
   }
@@ -275,7 +318,16 @@ fn local_runtime_read_member(
   |> local_runtime_result
   reader.finish().map_err(issue => Physical(issue)) |> local_runtime_result
   runtime.reader = None
-  let digest = @sha.finish_hex(hasher) catch { _ => local_runtime_stop(Limit) }
+  let digest = match streamed_digest {
+    Some(digest) => digest
+    None => {
+      native_timing_begin(31)
+      defer native_timing_end(31)
+      @sha.finish_hex(hasher.unwrap()) catch {
+        _ => local_runtime_stop(Limit)
+      }
+    }
+  }
   if digest != hash {
     local_runtime_stop(Changed)
   }
@@ -283,7 +335,15 @@ fn local_runtime_read_member(
   |> local_runtime_result
   runtime.witnesses.push(original)
   if collect {
-    @utf8.decode(Bytes::from_array(retained)) catch {
+    if copied.to_int64() != bytes {
+      local_runtime_stop(Changed)
+    }
+    let body = retained.unwrap_or_else(() => {
+      Bytes::from_array(
+        partial.unwrap_or_else(() => local_runtime_stop(Changed)),
+      )
+    })
+    @utf8.decode(body) catch {
       _ => local_runtime_stop(InvalidManifest)
     }
   } else {
@@ -557,10 +617,22 @@ pub fn NativeLocalPackagedRuntime::check_current(
   self : NativeLocalPackagedRuntime,
 ) -> Result[Unit, NativeLocalPackagedRuntimeIssue] {
   match local_runtime_read_begin(self) {
-    Err(issue) => return Err(issue)
+    Err(issue) => {
+      self.ready = false
+      return Err(issue)
+    }
     Ok(_) => ()
   }
-  local_runtime_read_finish(self, self.local_runtime_check_originals())
+  let result = local_runtime_read_finish(
+    self,
+    self.local_runtime_check_originals(),
+  )
+  if result is Err(_) {
+    // A failed actual observation spends this admitted snapshot. Restoring a
+    // cheap lifetime alone cannot revive its metadata; close keeps all duties.
+    self.ready = false
+  }
+  result
 }
 
 ///|
@@ -568,8 +640,8 @@ pub fn NativeLocalPackagedRuntime::check_current(
 /// No Root, manifest, child, claim or byte allowance is recreated. The original
 /// available Read may have observed the selected SQLite path before its one
 /// consuming claim; every Runtime alias remains in that original inventory.
-/// This exchange is one-shot and retains the pair even if the following whole
-/// current check fails. Missing/foreign originals never select legacy reads.
+/// This exchange is one-shot and retains the pair even if its lifetime check
+/// fails. Missing/foreign originals never select legacy reads.
 pub fn NativeLocalPackagedRuntime::bind_original_host_resources(
   self : NativeLocalPackagedRuntime,
   resources : @arena.InstalledArenaLocalHostResources,
@@ -591,36 +663,27 @@ pub fn NativeLocalPackagedRuntime::bind_original_host_resources(
     Ok(_) => ()
   }
   self.original_resources = Some(resources)
-  self.check_current()
+  // Joining the same acquired Read to its consuming pair changes no package
+  // file. The command keeps the observed immutable package and actual lifetime;
+  // the separate unscoped constructor retains its explicit current check.
+  if self.command_preparation {
+    self.local_runtime_require_live()
+  } else {
+    self.check_current()
+  }
 }
 
 ///|
 fn NativeLocalPackagedRuntime::local_runtime_check_originals(
   self : NativeLocalPackagedRuntime,
 ) -> Result[Unit, NativeLocalPackagedRuntimeIssue] {
-  if !self.ready ||
-    self.closed ||
-    self.reader is Some(_) ||
-    self.reader_open_failure is Some(_) ||
-    self.root_open_failure is Some(_) {
-    return Err(Changed)
+  match self.local_runtime_require_live() {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
   }
-  if self.original_read is Some((host, original)) {
-    let current = match self.original_resources {
-      Some(resources) =>
-        host
-        .require_local_host_consuming_read_current(resources, original)
-        .map_err(issue => OriginalHostResources(issue))
-      None =>
-        host
-        .require_domain_original_read_current(original)
-        .map_err(issue => OriginalRead(issue))
-    }
-    match current {
-      Err(issue) => return Err(issue)
-      Ok(_) => ()
-    }
-  }
+  // Count actual full package-witness passes after the cheap lifetime gate,
+  // separately from metadata accesses and individual filesystem operations.
+  native_timing_count(59)
   if self.original_resources is Some(_) {
     for root in self.roots {
       match root.require_current_original_read() {
@@ -665,6 +728,41 @@ fn NativeLocalPackagedRuntime::local_runtime_check_originals(
 }
 
 ///|
+// The already admitted immutable metadata keeps the same actual Read/Library
+// lifetime. Pure getters do not walk package witnesses or rehash its members.
+fn NativeLocalPackagedRuntime::local_runtime_require_live(
+  self : NativeLocalPackagedRuntime,
+) -> Result[Unit, NativeLocalPackagedRuntimeIssue] {
+  if !self.ready ||
+    self.closed ||
+    self.reader is Some(_) ||
+    self.reader_open_failure is Some(_) ||
+    self.root_open_failure is Some(_) {
+    return Err(Changed)
+  }
+  if self.original_read is Some((host, original)) {
+    let current = match self.original_resources {
+      Some(resources) =>
+        host
+        .require_local_host_consuming_read_current(resources, original)
+        .map_err(issue => OriginalHostResources(issue))
+      None =>
+        host
+        .require_domain_original_read_current(original)
+        .map_err(issue => OriginalRead(issue))
+    }
+    match current {
+      Err(issue) => {
+        self.ready = false
+        return Err(issue)
+      }
+      Ok(_) => ()
+    }
+  }
+  Ok(())
+}
+
+///|
 pub fn NativeLocalPackagedRuntime::manifest(
   self : NativeLocalPackagedRuntime,
 ) -> Result[@host.ClientNativeLocalRuntime, NativeLocalPackagedRuntimeIssue] {
@@ -673,7 +771,7 @@ pub fn NativeLocalPackagedRuntime::manifest(
     Ok(_) => ()
   }
   let result = self
-    .local_runtime_check_originals()
+    .local_runtime_require_live()
     .bind(_ => {
       match self.manifest {
         Some(value) => Ok(value)
@@ -692,7 +790,7 @@ pub fn NativeLocalPackagedRuntime::assets(
     Ok(_) => ()
   }
   let result = self
-    .local_runtime_check_originals()
+    .local_runtime_require_live()
     .bind(_ => {
       match self.assets {
         Some(value) => Ok(value)
@@ -710,9 +808,12 @@ pub fn NativeLocalPackagedRuntime::library_paths(
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
-  let result = self
-    .local_runtime_check_originals()
-    .map(_ => (self.sqlite, self.crypto))
+  let current = if self.command_preparation {
+    self.local_runtime_require_live()
+  } else {
+    self.local_runtime_check_originals()
+  }
+  let result = current.map(_ => (self.sqlite, self.crypto))
   local_runtime_read_finish(self, result)
 }
 
@@ -812,7 +913,12 @@ pub fn NativeLocalPackagedRuntime::command_library_members(
   ),
   NativeLocalPackagedRuntimeIssue,
 ] {
-  match self.check_current() {
+  let current = if self.command_preparation {
+    self.local_runtime_require_live()
+  } else {
+    self.check_current()
+  }
+  match current {
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }

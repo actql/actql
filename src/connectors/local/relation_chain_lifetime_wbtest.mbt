@@ -268,6 +268,104 @@ fn chain_lifetime_append_body() -> String {
 }
 
 ///|
+test "bounded chains execute and charge an unconsumed checked branch" {
+  let (sequence, read, source) = chain_lifetime_fixture(
+    "[{\"from\":\"source\",\"select\":[\"id\"],\"as\":\"seed\"},{\"from\":\"seed\",\"select\":[\"id\"],\"as\":\"unused\"},{\"from\":\"seed\",\"select\":[\"id\"]}]",
+  )
+  let limits = chain_lifetime_limits()
+  let measure = chain_lifetime_measurement()
+  let provider = selected_relation_provider(limits, measure)
+  assert_true(managed_provider_accepts(provider, sequence))
+  let capacity = managed_provider_capacity(provider, sequence).unwrap()
+  let count = @execution.generated_sequence_step_count(sequence)
+  assert_eq(count, 3)
+  let mut retained = 0L
+  let mut peak = 0L
+  for step in 0..<count {
+    let selected = @execution.select_generated_sequence_step(sequence, step).unwrap()
+    let child = @execution.generated_sequence_capacity(
+      selected, limits, measure,
+    ).unwrap()
+    retained += child.retained_bytes
+    peak = Int64::max(peak, child.execution_bytes)
+  }
+  let base = @execution.generated_sequence_capacity(sequence, limits, measure).unwrap()
+  assert_eq(
+    capacity.execution_bytes,
+    Int64::max(
+      base.execution_bytes,
+      retained + peak + count.to_int64() * 256L + 512L,
+    ),
+  )
+  let (active, state) = chain_lifetime_start(sequence, read)
+  let cleanups = Array::make(count, 0)
+  let mut watched = -1
+  let mut output = None
+  let mut work = 0L
+  for _ in 0..<100000 {
+    if output is Some(_) {
+      break
+    }
+    if !state.pending && watched != state.position {
+      chain_lifetime_watch_child(state, cleanups)
+      watched = state.position
+    }
+    match advance_managed_provider(active, 1).unwrap() {
+      Continue(work=delta, ..) => work += delta
+      Complete(result, work=delta, ..) => {
+        work += delta
+        output = Some(result)
+      }
+      _ => fail("the original branch chain must complete")
+    }
+  }
+  assert_eq(state.position, 2)
+  assert_true(state.completed[1] is Some(_))
+  assert_eq(@execution.completed_row_count(output.unwrap()), 3)
+  assert_eq(cleanups, [1, 1, 0])
+  assert_true(cleanup_managed_provider(active).unwrap())
+  assert_eq(cleanups, [1, 1, 1])
+  assert_true(state.completed.is_empty())
+  assert_eq(managed_provider_cumulative_work(active), Ok(work))
+  assert_true(@execution.producer_read_available(read))
+  assert_true(@execution.completed_output_available(source))
+}
+
+///|
+test "an unconsumed checked branch still fails before the terminal step" {
+  let (sequence, read, source) = chain_lifetime_fixture(
+    "[{\"from\":\"source\",\"select\":[\"id\"],\"as\":\"seed\"},{\"from\":\"seed\",\"assert_rows\":{\"unique_by\":[\"id\"]},\"as\":\"unused\"},{\"from\":\"seed\",\"select\":[\"id\"]}]",
+  )
+  let provider = selected_relation_provider(
+    chain_lifetime_limits(),
+    chain_lifetime_measurement(),
+  )
+  assert_true(managed_provider_accepts(provider, sequence))
+  assert_true(managed_provider_capacity(provider, sequence) is Some(_))
+  let (active, state) = chain_lifetime_start(sequence, read)
+  let mut failed = false
+  for _ in 0..<100000 {
+    if failed {
+      break
+    }
+    match advance_managed_provider(active, 1).unwrap() {
+      Continue(..) => ()
+      Failed(_, ..) => failed = true
+      _ => fail("the unconsumed duplicate assertion must not be skipped")
+    }
+  }
+  assert_true(failed)
+  assert_eq(state.position, 1)
+  assert_true(state.completed[1] is None)
+  assert_true(state.completed[2] is None)
+  assert_true(managed_provider_stopped(active))
+  assert_true(cleanup_managed_provider(active).unwrap())
+  assert_true(state.completed.is_empty())
+  assert_true(@execution.producer_read_available(read))
+  assert_true(@execution.completed_output_available(source))
+}
+
+///|
 test "built-in chains reclaim each intermediate execution and preserve exact outputs" {
   for
     (body, expected_rows) in [

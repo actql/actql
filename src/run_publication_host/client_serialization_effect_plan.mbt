@@ -30,15 +30,29 @@ fn issue_client_serialization_effect_plan(
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  source_free_policy? : @publication.CapturedEffectDependencyBody? = None,
 ) -> Result[ClientSerializationPlanGraph?, ClientSerializationEffectPlanIssue] {
   let occurrences = prepared_client_serialization_occurrences(owner)
   if occurrences.is_empty() {
+    if source_free_policy is Some(_) {
+      return Err(UnsupportedGraph)
+    }
     return Ok(None)
   }
   guard occurrences.length() == 1 &&
-    @strategy.graph_program_has_effects(owner.graph) &&
-    @strategy.graph_task_count(owner.graph) >= 2 &&
-    @strategy.graph_captured_prefix(owner.graph) == 1 else {
+    @strategy.graph_program_has_effects(owner.graph) else {
+    return Err(UnsupportedGraph)
+  }
+  let source_free = @strategy.graph_source_free_inputs_complete(owner.graph)
+  if source_free {
+    if source_free_policy is None {
+      return Err(UnsupportedGraph)
+    }
+  } else if source_free_policy is Some(_) ||
+    @strategy.graph_task_count(owner.graph) < 2 ||
+    @strategy.graph_captured_prefix(owner.graph) != 1 {
+    // Do not replace the acquired closure with an explicit unknown policy.
+    // Keep the historical unsupported-shape refusal before capacity reads.
     return Err(UnsupportedGraph)
   }
   let (task, step) = occurrences[0]
@@ -66,6 +80,40 @@ fn issue_client_serialization_effect_plan(
       return Err(InvalidCeiling(field))
     }
     bounds.push(value.to_int())
+  }
+  if source_free {
+    // The original Host policy is selected before compilation and retained in
+    // this same Plan. Values do not acquire a synthetic Source policy/receipt.
+    guard source_free_policy is Some(original) else {
+      return Err(UnsupportedGraph)
+    }
+    let policy = match
+      admit_source_free_result_policy_body(
+        @publication.captured_effect_dependency_body_cid(original),
+        @publication.captured_effect_dependency_body_json(original),
+        max_wire_bytes,
+        max_nodes,
+        max_depth,
+      ) {
+      Ok(value) => value
+      Err(issue) => return Err(Generation(Policy(issue)))
+    }
+    return issue_client_serialization_plan_graph_with_policy(
+        owner,
+        task,
+        step,
+        policy,
+        bounds[0],
+        bounds[1],
+        max_nodes,
+        sequence_limits,
+        max_wire_bytes,
+        max_nodes,
+        max_depth,
+        include_results=false,
+      )
+      .map(value => Some(value))
+      .map_err(issue => Generation(issue))
   }
   let serialization = match
     issue_acquired_client_serialization_plan_graph(
@@ -98,13 +146,19 @@ fn issue_client_serialization_effect_component(
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  source_free_policy? : @publication.CapturedEffectDependencyBody? = None,
 ) -> Result[
   ClientSerializationTaskComponent?,
   ClientSerializationEffectPlanIssue,
 ] {
   let serialization = match
     issue_client_serialization_effect_plan(
-      owner, sequence_limits, max_wire_bytes, max_nodes, max_depth,
+      owner,
+      sequence_limits,
+      max_wire_bytes,
+      max_nodes,
+      max_depth,
+      source_free_policy~,
     ) {
     Ok(Some(value)) => value
     Ok(None) => return Ok(None)
@@ -294,7 +348,11 @@ fn issue_client_serialization_effect_component(
         serialization,
         input: serialization.input,
         output,
-        graph: { wire: @encode.finish(writer), transformations: [], },
+        graph: {
+          wire: @encode.finish(writer),
+          transformations: [],
+          standard_progress_keys: None,
+        },
         external_ports,
       }),
     )

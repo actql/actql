@@ -24,3 +24,44 @@ import y from "@actql/client-wire";`);
   const ordinary = "import './local.mjs'; const url = 'connector://crm/records';";
   assert.equal(rewriteLocalNodePackageImports(ordinary, 'adapter.mjs'), ordinary);
 });
+
+test('Source preparation delivery retains the same private SDK module in the installed Host', () => {
+  const path = 'adapters/host-node/embedded-local-lifecycle.mjs';
+  const source = readFileSync(path, 'utf8');
+  const copied = rewriteLocalNodePackageImports(source, path);
+  assert.ok(copied.includes("'@actql/sdk/_internal/source-preparation'"));
+  assert.doesNotMatch(copied, /(?:\.\.\/)+packages\//u);
+  const manifest = JSON.parse(readFileSync('packages/sdk/package.json', 'utf8'));
+  assert.equal(manifest.exports['./_internal/source-preparation'],
+    './internal/private-source-preparation.mjs');
+});
+
+test('ordinary Host native filesystem fallbacks retain only the exact package-local assets', () => {
+  const path = 'adapters/host-node/embedded-local.mjs';
+  const source = readFileSync(path, 'utf8');
+  const copied = rewriteLocalNodePackageImports(source, path);
+  assert.equal((source.match(/\.\.\/\.\.\/packages\/local-node\/_build\/native\//gu) ?? []).length, 4);
+  const expected = source
+    .replaceAll("'../../packages/client-wire/index.mjs'", "'@actql/client-wire'")
+    .replaceAll("'../../packages/sdk/host-port.mjs'", "'@actql/sdk/host-port'")
+    .replaceAll("'../../packages/sdk/internal/private-source-preparation.mjs'", "'@actql/sdk/_internal/source-preparation'")
+    .replaceAll('../../packages/local-node/_build/native/', '../../_build/native/');
+  assert.equal(copied, expected);
+  assert.doesNotMatch(copied, /(?:\.\.\/)+packages\//u);
+  for (const arch of ['arm64', 'x64']) {
+    for (const prefix of ['../../', '../../../../']) {
+      const asset = `_build/native/directory-darwin-${arch}.node`;
+      const original = `const file = new URL('${prefix}packages/local-node/${asset}', import.meta.url);\n` +
+        `const binding = require("${prefix}packages/local-node/${asset}");`;
+      assert.equal(rewriteLocalNodePackageImports(original, path),
+        `const file = new URL('${prefix}${asset}', import.meta.url);\n` +
+        `const binding = require("${prefix}${asset}");`);
+    }
+  }
+  for (const asset of ['directory-darwin-foreign.node', 'directory-darwin-arm64.node.js',
+    '../native/directory-darwin-arm64.node', 'directory-original.json']) {
+    assert.throws(() => rewriteLocalNodePackageImports(
+      `require('../../packages/local-node/_build/native/${asset}');`, path),
+    /UnpackagedLocalNodeImport/u);
+  }
+});

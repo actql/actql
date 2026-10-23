@@ -13,6 +13,51 @@ const all = ['js', 'wasm', 'native'];
 const workflow = parse(readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8'));
 const {jobs} = workflow;
 
+test('preflight checks Native counter assignments before the build toolchain', () => {
+  const steps = jobs.preflight.steps;
+  const index = steps.findIndex(row =>
+    row.name === 'Check Native diagnostic counter assignments before fan-out');
+  assert.ok(index >= 0);
+  assert.equal(steps[index].run, 'python3 scripts/test_native_timings.py CommandCounterMap');
+  assert.ok(index < steps.findIndex(row => row.name === 'Install pinned MoonBit'));
+  assert.ok(jobs.native.needs.includes('preflight'));
+});
+
+test('normal lint executes behavioral operation performance assessment tests', () => {
+  const step = jobs.lint.steps.find(row =>
+    row.name === 'Test ordinary operation performance assessment');
+  assert.ok(step);
+  assert.equal(step.run, 'node --test scripts/operation-performance.test.mjs scripts/benchmark-node-operations.test.mjs scripts/operation-performance-policy.test.mjs scripts/operation-performance-native-control.test.mjs scripts/benchmark-node-process-operations.test.mjs scripts/benchmark-node-sqlite.test.mjs scripts/benchmark-node-boundaries.test.mjs scripts/node-operation-fs-trace.test.mjs scripts/operation-performance-priority-transition.test.mjs scripts/operation-performance-transition-ci.test.mjs');
+  assert.equal(step.if, "${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}");
+  // These tests validate raw samples, frame counts, faults and incomplete
+  // evidence. Running them is not an ordinary-package performance result.
+  assert.ok(jobs.host.steps.some(row => row.run === 'npm run check:checkpoint-runtime'));
+  const observed = jobs.host.steps.find(row =>
+    row.name === 'Test operation authorization and unchanged Run observations');
+  assert.equal(observed.run, 'node --test adapters/host-node/authorization-account-current.test.mjs adapters/host-node/local-account-current.test.mjs adapters/host-node/client-run-state-revision.test.mjs adapters/host-node/client-run-observation-reuse.test.mjs adapters/host-common/run-state-clock-order.test.mjs adapters/host-node/client-run-stop-observation.test.mjs adapters/host-node/embedded-managed-compute-projection.test.mjs adapters/host-node/embedded-managed-compute-lifecycle.test.mjs adapters/host-node/embedded-source-environment-scope.test.mjs adapters/host-node/client-original-submitted-intent.test.mjs adapters/host-common/observation.test.mjs adapters/host-node/in-process-result-observation.test.mjs');
+  assert.ok(jobs.host.steps.indexOf(observed) > jobs.host.steps.findIndex(row =>
+    row.run === 'npm run check:retained-boundary'));
+});
+
+test('normal lint executes ordinary process collector protocol tests', () => {
+  const step = jobs.lint.steps.find(row =>
+    row.name === 'Test ordinary process collector protocols');
+  assert.ok(step);
+  assert.equal(step.run, 'python3 -I -B scripts/benchmark-ordinary-processes.test.py');
+  assert.equal(step.if, "${{ !startsWith(needs.select-targets.outputs.profile, 'draft') }}");
+  assert.equal(step['continue-on-error'], undefined);
+  // Process fixtures exercise the collector and package fence, not product speed.
+});
+
+test('normal Host CI executes bounded Journal preparation and cursor regressions', () => {
+  const step = jobs.host.steps.find(row =>
+    row.name === 'Test bounded Journal preparation and execution');
+  assert.ok(step);
+  assert.equal(step.run, 'node --test adapters/host-node/client-request-journal-sql-bounds.test.mjs adapters/host-node/client-request-journal-execution-bounds.test.mjs adapters/host-node/client-request-journal-wal-bounds.test.mjs');
+  assert.ok(jobs.host.steps.indexOf(step) > jobs.host.steps.findIndex(row =>
+    row.run === 'npm run check:retained-boundary'));
+});
+
 test('manual integration keeps full core and explicit macOS opt-in', () => {
   assert.deepEqual(selectTargets(['README.md'], {event: 'push'}).targets, all);
   assert.equal(selectTargets(['README.md'], {event: 'push'}).macos, true);
@@ -783,7 +828,7 @@ test('Draft cheap command inventory excludes compiler API generation and compoun
   const preflight = commands('preflight');
   assert.deepEqual(preflight.filter(command => !command.includes('setup-moonbit')), [
     'node proofs/relation-pipeline/history.mjs --write', 'node --test scripts/pure-operation-inventory.test.mjs',
-    'npm ci', 'node --test proofs/relation-pipeline/ci-artifacts.test.mjs', 'npm run check:contract-versions',
+    'python3 scripts/test_native_timings.py CommandCounterMap', 'npm ci', 'node --test proofs/relation-pipeline/ci-artifacts.test.mjs', 'npm run check:contract-versions',
     'npm run check:metadata', 'moon fmt --check', 'git diff --exit-code', 'node scripts/ci-preflight.mjs']);
   assert.deepEqual(commands('lint'), ['npm ci', 'npm run check:client-types',
     'node --test scripts/ci-preflight.test.mjs', 'node --test scripts/ci-focused-tests.test.mjs',

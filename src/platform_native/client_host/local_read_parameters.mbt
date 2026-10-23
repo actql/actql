@@ -14,10 +14,6 @@ pub(all) struct NativeLocalReadDisclosureParameters {
 pub fn NativeLocalReadPolicyBinding::disclosure_parameters(
   self : NativeLocalReadPolicyBinding,
 ) -> Result[NativeLocalReadDisclosureParameters, NativeLocalReadBindingIssue] {
-  match self.require_current() {
-    Ok(_) => ()
-    Err(issue) => return Err(issue)
-  }
   if !self.selection.enabled {
     return Err(Disabled)
   }
@@ -25,8 +21,5 @@ pub fn NativeLocalReadPolicyBinding::disclosure_parameters(
     purpose: self.selection.purpose,
     max_output_bytes: self.selection.max_bytes,
   }
-  match self.require_current() {
-    Ok(_) => Ok(parameters)
-    Err(issue) => Err(issue)
-  }
+  Ok(parameters)
 }

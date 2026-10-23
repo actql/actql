@@ -17,13 +17,7 @@ fn publication_host(
     Ok(v) => v
     Err(e) => raise PublicationHost(e)
   }
-  let writer = @encode.measuring_writer(bytes, nodes, budget.depth) catch {
-    e => raise Encoding(e)
-  }
-  @host.emit(host, writer) catch {
-    e => raise Encoding(e)
-  }
-  let (size, length, _) = @encode.finish_measurement_usage(writer) catch {
+  let (size, length, _) = @host.measure(host, bytes, nodes, budget.depth) catch {
     e => raise Encoding(e)
   }
   identity_charge(budget, size)
@@ -112,6 +106,7 @@ fn prepare_publication_row_artifact(
   host : @host.Witness,
   budget : IdentityBudget,
   proofs? : Array[ReidentifiedStep]? = None,
+  on_body_preparation? : (() -> Unit)? = None,
 ) -> @wire.LimitClaim raise UnitBuildFailure {
   let remaining = IdentityBudget::{ ..budget, }
   guard unit.publication_rows.get(index) is Some(selected) else {
@@ -123,20 +118,7 @@ fn prepare_publication_row_artifact(
     ) {
     raise ForeignOwner
   }
-  let host_bytes = publication_metadata(
-    w => @host.emit(host, w) catch { e => raise Encoding(e) },
-    remaining,
-  )
-  identity_charge(remaining, host_bytes.length())
-  let host_wire = match
-    @wire.admit(host_bytes, @host.cid(host), {
-      max_bytes: host_bytes.length(),
-      max_nodes: host_bytes.length(),
-      max_depth: remaining.depth,
-    }) {
-    Ok(v) => v
-    Err(e) => raise PublicationWire(e)
-  }
+  let host_wire = publication_host_wire(host, remaining)
   let proofs = match proofs {
     Some(v) => v
     None => publication_proofs([unit], selected, remaining)
@@ -193,43 +175,136 @@ fn prepare_publication_row_artifact(
   if input_limits.is_empty() {
     identity_charge(remaining, @wire.claim_reference_count(claims))
   }
-  let hash = identity_writer(remaining)
-  emit_publication_row_body(
+  let body = prepare_publication_row_body(
     unit,
     index,
     host,
-    hash,
     remaining,
     proofs=Some(proofs),
+    on_body_preparation~,
   )
-  let cid = identity_finish(remaining, hash)
-  let bytes = publication_metadata(
-    w => {
-      emit_publication_row_body(
-        unit,
-        index,
-        host,
-        w,
-        remaining,
-        cid=Some(cid),
-        proofs=Some(proofs),
-      )
-    },
-    remaining,
-  )
-  identity_charge(remaining, bytes.length())
-  let result = match
-    @wire.admit_limit(bytes, cid, claims, {
-      max_bytes: bytes.length(),
-      max_nodes: bytes.length(),
-      max_depth: remaining.depth,
-      max_candidates: witnesses.length(),
-    }) {
-    Ok(v) => v
-    Err(e) => raise PublicationWire(e)
-  }
+  let result = publication_row_limit_claim(body, claims, remaining)
   budget.work = remaining.work
   budget.bytes = remaining.bytes
   budget.nodes = remaining.nodes
   result
+}
+
+///|
+// Preserve the original metadata and admission work debits. The complete
+// immutable wire extent is checked against this enclosing budget, while its
+// original typed claim is reused without text, UTF8 or JSON reconstruction.
+fn publication_host_wire(
+  host : @host.Witness,
+  budget : IdentityBudget,
+) -> @wire.WireWitness raise UnitBuildFailure {
+  let (bytes, nodes, _) = @host.measure(
+    host,
+    Int::min(budget.bytes, budget.work / 2),
+    budget.nodes,
+    budget.depth,
+  ) catch {
+    e => raise Encoding(e)
+  }
+  identity_charge(budget, bytes)
+  identity_charge(budget, nodes)
+  identity_charge(budget, bytes)
+  identity_charge(budget, nodes)
+  identity_charge(budget, bytes)
+  budget.bytes -= bytes
+  budget.nodes -= nodes
+  identity_charge(budget, bytes)
+  @host.wire_witness(host)
+}
+
+///|
+// The body and arithmetic collection were prepared from the same original
+// publication. Construct the canonical claim directly; do not parse and hash
+// our own serialized output again. Keep the original logical encoding debits.
+fn publication_row_limit_claim(
+  body : PreparedPublicationRowBody,
+  claims : @wire.ArithmeticClaims,
+  budget : IdentityBudget,
+) -> @wire.LimitClaim raise UnitBuildFailure {
+  let indices : Array[Int] = []
+  let mut previous = ""
+  for (cid, _) in body.candidates {
+    if cid == previous {
+      continue
+    }
+    previous = cid
+    guard @wire.claim_index(claims, cid) is Some(index) else {
+      raise PublicationWire(@wire.InvalidWitness)
+    }
+    indices.push(index)
+  }
+  typed_publication_limit_claim(
+    claims,
+    indices,
+    @derivation.Rows,
+    body.subject,
+    body.maximum,
+    body.candidates.length(),
+    budget,
+  )
+}
+
+///|
+// A row projection meters its original candidate traversals; the Host-only
+// byte projection has no such separate traversal debit. Both retain the same
+// bounded canonical preimage/full-wire and admission work accounting.
+fn typed_publication_limit_claim(
+  claims : @wire.ArithmeticClaims,
+  indices : Array[Int],
+  unit : @derivation.BoundUnit,
+  subject : String,
+  maximum : Int64,
+  traversal_work : Int,
+  budget : IdentityBudget,
+) -> @wire.LimitClaim raise UnitBuildFailure {
+  // The old hash writer is bounded before the emitter's candidate charge.
+  let hash_bytes = Int::min(budget.bytes, budget.work)
+  let hash_nodes = Int::min(budget.nodes, budget.work)
+  identity_charge(budget, traversal_work)
+  let claim = match
+    @wire.create_limit(claims, indices, unit, subject, @wire.EngineAtomic, {
+      max_bytes: hash_bytes,
+      max_nodes: hash_nodes,
+      max_depth: budget.depth,
+      max_candidates: @wire.claim_count(claims),
+    }) {
+    Ok(value) => value
+    Err(BudgetExceeded) => raise Encoding(@encode.OutputLimit)
+    Err(issue) => raise PublicationWire(issue)
+  }
+  if @derivation.minimum_value(@wire.limit_minimum(claim)) != maximum ||
+    @derivation.minimum_guard_binding(@wire.limit_minimum(claim)) != Absent {
+    raise PublicationWire(@wire.InvalidWitness)
+  }
+  let (preimage_bytes, preimage_nodes) = @wire.limit_creation_usage(claim).unwrap()
+  identity_charge(budget, preimage_bytes)
+  identity_charge(budget, preimage_nodes)
+  budget.bytes -= preimage_bytes
+  budget.nodes -= preimage_nodes
+  let max_bytes = Int::min(budget.bytes, budget.work / 2)
+  let max_nodes = Int::min(budget.nodes, budget.work / 2)
+  identity_charge(budget, traversal_work)
+  let (bytes, nodes, _) = @wire.measure_limit(
+    claim,
+    max_bytes,
+    max_nodes,
+    budget.depth,
+  ) catch {
+    e => raise Encoding(e)
+  }
+  identity_charge(budget, bytes)
+  identity_charge(budget, nodes)
+  identity_charge(budget, bytes)
+  identity_charge(budget, nodes)
+  identity_charge(budget, bytes)
+  identity_charge(budget, traversal_work)
+  budget.bytes -= bytes
+  budget.nodes -= nodes
+  identity_charge(budget, bytes)
+  claim
 }

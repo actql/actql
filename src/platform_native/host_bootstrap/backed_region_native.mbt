@@ -12,6 +12,16 @@ extern "C" fn lend_region_ffi(
 ) -> PhysicalRegionLoan = "actql_bootstrap_lend_region"
 
 ///|
+#borrow(backing, extent)
+extern "C" fn lend_region_in_process_ffi(
+  backing : Backing,
+  extent : Extent,
+  offset : Int64,
+  length : Int64,
+  writable : Bool,
+) -> PhysicalRegionLoan = "actql_bootstrap_lend_region_in_process"
+
+///|
 #borrow(loan)
 extern "C" fn region_status_ffi(loan : PhysicalRegionLoan) -> Int = "actql_bootstrap_region_status"
 
@@ -92,6 +102,32 @@ pub fn[T, C] NativeHostBootstrap::issue_backed_region(
 /// the same C provider additionally checks actual page alignment and FD backing.
 /// Any failure after reservation retains this original loan for explicit cleanup.
 pub fn[T, C] NativeHostBootstrap::lend_backed_region(
+  self : NativeHostBootstrap[T], original : T,
+  region : NativeBackedExecutionRegion[T, C], scope : NativeBootstrapBorrow[T],
+  child : C, extent : @resources.BackedExecutionExtent,
+  access : @resources.BackedExecutionAccess, limits : @resources.LedgerLimits,
+  overhead_retained : Int64, overhead_execution : Int64,
+) -> Result[NativeBackedExecutionAcquisition[T, C], NativeBackedExecutionIssue] {
+  self.lend_region_original(original, region, scope, child, extent, access, limits,
+    overhead_retained, overhead_execution, false)
+}
+
+///|
+/// Same original anonymous mapping and quota. The local loan cannot be exported
+/// or mapped in another process; its child and view ACKs precede parent return.
+pub fn[T, C] NativeHostBootstrap::lend_backed_region_in_process(
+  self : NativeHostBootstrap[T], original : T,
+  region : NativeBackedExecutionRegion[T, C], scope : NativeBootstrapBorrow[T],
+  child : C, extent : @resources.BackedExecutionExtent,
+  access : @resources.BackedExecutionAccess, limits : @resources.LedgerLimits,
+  overhead_retained : Int64, overhead_execution : Int64,
+) -> Result[NativeBackedExecutionAcquisition[T, C], NativeBackedExecutionIssue] {
+  self.lend_region_original(original, region, scope, child, extent, access, limits,
+    overhead_retained, overhead_execution, true)
+}
+
+///|
+fn[T, C] NativeHostBootstrap::lend_region_original(
   self : NativeHostBootstrap[T],
   original : T,
   region : NativeBackedExecutionRegion[T, C],
@@ -102,6 +138,7 @@ pub fn[T, C] NativeHostBootstrap::lend_backed_region(
   limits : @resources.LedgerLimits,
   overhead_retained : Int64,
   overhead_execution : Int64,
+  in_process : Bool,
 ) -> Result[NativeBackedExecutionAcquisition[T, C], NativeBackedExecutionIssue] {
   match self.require_borrow_current(original, scope) {
     Err(issue) => return Err(Bootstrap(issue))
@@ -121,7 +158,8 @@ pub fn[T, C] NativeHostBootstrap::lend_backed_region(
     Err(issue) => return Err(Accounting(issue))
     Ok(value) => value
   }
-  let physical = lend_region_ffi(
+  let lend = if in_process { lend_region_in_process_ffi } else { lend_region_ffi }
+  let physical = lend(
     self.backing, region.allocation.extent, extent.offset, extent.length,
     access == @resources.ExclusiveWrite,
   )

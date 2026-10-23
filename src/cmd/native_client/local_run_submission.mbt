@@ -45,6 +45,8 @@ fn local_select_run_submission(
   public_run : Bool,
   business? : LocalCommandBusinessPreparation? = None,
 ) -> LocalRunSubmission raise ClientStop {
+  native_timing_begin(22)
+  defer native_timing_end(22)
   match
     (
       optional(child, "submission-ref-file"),

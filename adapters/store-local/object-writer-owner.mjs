@@ -50,7 +50,7 @@ class ObjectWriterOwner {
     return result;
   }
 
-  async cleanupTemporary() {
+  async cleanupTemporary(finalNameAcknowledged = false) {
     if (this.handle) {
       // Native FileHandle success is undefined; explicit false keeps this
       // SAME FD/reservation owned and forbids unlink or capacity retirement.
@@ -61,12 +61,19 @@ class ObjectWriterOwner {
     }
     try { await this.operations.unlink(this.temporary); }
     catch (error) { if (error?.code !== 'ENOENT') throw error; }
-    await this.operations.syncDirectory(this.operations.stagingDirectory);
+    // A fresh successful seal already retains this SAME allocation at its
+    // synced final name and full Store charge. The private staging alias is
+    // not a second durable object or publication. A resurrected crash alias
+    // is removed by existing exclusive opening recovery. Failed/cancelled or
+    // duplicate allocations retain their original staging retirement ACK.
+    if (!finalNameAcknowledged) {
+      await this.operations.syncDirectory(this.operations.stagingDirectory);
+    }
   }
 
-  async cleanupAndRelease() {
+  async cleanupAndRelease(finalNameAcknowledged = false) {
     try {
-      await this.cleanupTemporary();
+      await this.cleanupTemporary(finalNameAcknowledged);
       this.cleanupPending = false;
       this.reservation.release();
     } catch (error) {
@@ -158,16 +165,22 @@ class ObjectWriterOwner {
         if (this.operations.isReclaiming(cid)) {
           this.operations.fail('PublicationObjectReclamationPending');
         }
-        if (this.trackCustody) {
+        if (this.trackCustody || this.operations.protectInstallation === true) {
           this.custody = await this.operations.registerCustody(
             cid, this.bytes, state,
           );
         }
         const finalPath = this.operations.objectPath(cid);
+        if (this.operations.protectInstallation === true) {
+          // Retain the possible allocation charge before an uncertain link
+          // reply. Cleanup owns it until absence or the same generation's
+          // unlink is physically acknowledged.
+          this.operations.accountInstalled(this.bytes, this.custody, cid, state);
+        }
         try {
           await this.operations.link(this.temporary, finalPath);
           installed = true;
-          this.operations.accountInstalled(this.bytes, this.custody);
+          this.operations.accountInstalled(this.bytes, this.custody, cid, state);
           await this.operations.syncDirectory(this.operations.objectsDirectory);
         } catch (error) {
           if (error?.code !== 'EEXIST') throw error;
@@ -175,6 +188,12 @@ class ObjectWriterOwner {
           if (existing.bytes !== this.bytes) {
             this.operations.fail('PublicationObjectIdentityMismatch');
           }
+          this.operations.discardInstallation?.(cid, this.bytes, state, this.custody);
+        }
+        await this.operations.confirmInstalled?.(cid, this.bytes, state, this.custody, installed);
+        if (!this.trackCustody && this.custody !== undefined) {
+          await this.operations.finishUntrackedCustody(this.custody);
+          this.custody = undefined;
         }
         result = this.custody === undefined
           ? Object.freeze({cid, bytes: this.bytes, created: installed})
@@ -199,7 +218,7 @@ class ObjectWriterOwner {
         }
         throw primaryFailure;
       }
-      await this.cleanupAndRelease();
+      await this.cleanupAndRelease(installed);
       this.custody = undefined;
       return result;
     });

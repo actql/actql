@@ -1791,7 +1791,7 @@
               },
               {
                 "path": "adapters/host-node/client-submission.mjs",
-                "anchor": "const outcome = retained.inserted ? await submitIntent(bound) : await lookupSubmission({"
+                "anchor": "const outcome = retained.inserted ? await submitIntent(bound) : await lookupSubmission(lookup);"
               }
             ],
             "failure": [

@@ -3,6 +3,7 @@
 
 #include "moonbit.h"
 #include "private_file_projection.h"
+#include "native_timings.inc"
 
 #include <errno.h>
 #include <dirent.h>
@@ -18,6 +19,7 @@
 #include <unistd.h>
 
 #ifdef __APPLE__
+#include <CommonCrypto/CommonDigest.h>
 #include <sys/acl.h>
 #include <sys/attr.h>
 #include <sys/mount.h>
@@ -2507,6 +2509,53 @@ int32_t actql_native_filesystem_reader_next(
   reader->chunk_length = (int32_t)count;
   reader->offset += (int64_t)count;
   return 0;
+}
+
+/* Consume only this fresh original Reader. Its descriptor remains open at EOF
+ * so the typed caller can inspect the opened generation before finish/close.
+ * The selected system digest does not load the private Crypto component. */
+MOONBIT_FFI_EXPORT int32_t actql_native_filesystem_reader_sha256(
+  actql_native_filesystem_reader *reader,
+  moonbit_bytes_t digest
+) {
+#ifndef __APPLE__
+  (void)reader;
+  (void)digest;
+  return 4; /* Unsupported before any Reader mutation or physical read. */
+#else
+  if (reader == NULL || !reader->ready || reader->fd < 0 ||
+      reader->close_result != 0 || reader->finished) return 2;
+  if (reader->offset != 0 || reader->chunk != NULL || reader->eof ||
+      digest == NULL || Moonbit_array_length(digest) != CC_SHA256_DIGEST_LENGTH) {
+    actql_replace_bounded_error(&reader->error, reader->diagnostic_ceiling,
+      "digest requires a fresh original reader and 32-byte output");
+    return -1;
+  }
+  CC_SHA256_CTX context;
+  if (CC_SHA256_Init(&context) != 1) {
+    actql_replace_bounded_error(&reader->error, reader->diagnostic_ceiling,
+      "initialize reader digest failed");
+    return -1;
+  }
+  for (;;) {
+    int32_t status = actql_native_filesystem_reader_next(reader, 16384);
+    if (status != 0) return status;
+    if (reader->eof) break;
+    if (CC_SHA256_Update(&context, reader->chunk,
+                        (CC_LONG)reader->chunk_length) != 1) {
+      actql_replace_bounded_error(&reader->error, reader->diagnostic_ceiling,
+        "update reader digest failed");
+      return -1;
+    }
+  }
+  if (reader->offset != reader->size) return 3;
+  if (CC_SHA256_Final(digest, &context) != 1) {
+    actql_replace_bounded_error(&reader->error, reader->diagnostic_ceiling,
+      "finish reader digest failed");
+    return -1;
+  }
+  return 0;
+#endif
 }
 
 moonbit_bytes_t actql_native_filesystem_reader_chunk(

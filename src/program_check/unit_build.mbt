@@ -177,20 +177,25 @@ fn build_units(
     raise ForeignOwner
   }
   let stages = @context.program_identity_stage_count(identity)
-  let (identity_work, _, _) = @context.program_identity_usage(identity)
-  let expression_limit = identity_work +
-    Int::min(b.work, 2147483647 - identity_work)
-  let expressions = match
-    @context.close_program_expressions(identity, expression_limit, b.work) {
-    Ok(v) => v
-    Err(e) => raise Expressions(e)
-  }
-  // The source prefix was charged by preparation. This pass adds only its
-  // exhaustive obligation accounting, and retains the original owner.
-  identity_charge(
-    b,
-    @context.expression_closure_work(expressions) - identity_work,
+  let expressions = @context.operation_requirements_expressions(
+    @context.operation_resolution_requirements(
+      @context.operation_closure_index(
+        @context.stage_requirement_operations(requirements),
+      ),
+    ),
   )
+  if !physical_equal(
+      @context.expression_closure_identity(expressions),
+      identity,
+    ) {
+    raise ForeignOwner
+  }
+  // Operation resolution already closed and charged these exact obligations.
+  // Retain that owner; only the constant-time join is work in this phase.
+  if b.work <= 0 {
+    raise Expressions(@context.ExpressionClosureIssue::BudgetExceeded)
+  }
+  identity_charge(b, 1)
   identity_charge(b, stages)
   let by_stage : Array[Array[Int]] = Array::makei(stages, _ => [])
   identity_charge(b, stages)

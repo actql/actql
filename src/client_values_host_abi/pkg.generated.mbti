@@ -2,6 +2,7 @@
 package "actql/actql/client_values_host_abi"
 
 import {
+  "actql/actql/checkpoint_runtime",
   "actql/actql/decode_core",
   "actql/actql/host_observation",
   "actql/actql/logical_request_scope",
@@ -18,7 +19,9 @@ pub fn client_values_host_admit_captured_result_snapshot(@run_publication.Public
 
 pub fn client_values_host_admit_completed_source_observation(String, String, String, String, String, String, Int, Int, Int) -> Result[String, @run_publication.SourceInputObservationIssue]
 
-pub fn client_values_host_admit_effect_run_materials(String, String, Bool, Bool, Bool, Bool, Bool, Bool, Bool, @run_publication_host.ClientEffectIssuedNormalizationMaterials?, @run_publication_host.ClientRequestIdentity?, @run_publication_host.ClientSourcePreparation?) -> Result[@run_publication_host.ClientEffectRunMaterials, ClientValuesHostEffectRestorationIssue]
+pub fn client_values_host_admit_effect_checkpoint_binding(@run_publication_host.ClientEffectAllowedRun, @run_publication.PublicationContract, String) -> Result[@checkpoint_runtime.SealedCheckpoint, @run_publication_host.ClientEffectCheckpointBindingIssue]
+
+pub fn client_values_host_admit_effect_run_materials(String, String, Bool, Bool, Bool, Bool, Bool, Bool, Bool, @run_publication_host.ClientEffectIssuedNormalizationMaterials?, @run_publication_host.ClientRequestIdentity?, @run_publication_host.ClientSourcePreparation?, String?) -> Result[@run_publication_host.ClientEffectRunMaterials, ClientValuesHostEffectRestorationIssue]
 
 pub fn client_values_host_admit_publication_contract(String, String, Int, Int, Int) -> Result[@run_publication.PublicationContract, @run_publication.PublicationContractIssue]
 
@@ -65,6 +68,8 @@ pub fn client_values_host_begin_result_access_progress() -> @run_publication.Res
 pub fn client_values_host_begin_result_delivery(@run_publication.ResultDeliverySerializer) -> String raise ClientValuesHostDeliveryIssue
 
 pub fn client_values_host_begin_result_material_holds(String, String) -> @run_publication.ResultMaterialHolds raise ClientValuesHostDeliveryIssue
+
+pub fn client_values_host_bind_prepared_effect_run_materials(@run_publication_host.ClientEffectAllowedRun, @run_publication.PublicationContract, @run_publication_host.ClientEffectIssuedNormalizationMaterials, @run_publication_host.ClientRequestIdentity) -> Result[@run_publication_host.ClientEffectRunMaterials, @run_publication_host.ClientEffectRunMaterialsIssue]
 
 pub fn client_values_host_cancel_durable_result_row_frames(@run_publication.DurableResultRowFrames) -> Unit
 
@@ -114,7 +119,11 @@ pub fn client_values_host_dispatch_wire(@remote_site_protocol.DispatchRequest) -
 
 pub fn client_values_host_effect_checkpoint_binding(@run_publication_host.ClientEffectAllowedRun, @run_publication.PublicationContract, String) -> Result[Array[String], @run_publication_host.ClientEffectCheckpointBindingIssue]
 
+pub fn client_values_host_effect_checkpoint_binding_fields(@checkpoint_runtime.SealedCheckpoint) -> Result[Array[String], @run_publication_host.ClientEffectCheckpointBindingIssue]
+
 pub fn client_values_host_effect_checkpoint_members(@run_publication_host.ClientEffectAllowedRun, @run_publication.PublicationContract, String) -> Result[Array[String], @run_publication_host.ClientEffectCheckpointMembersIssue]
+
+pub fn client_values_host_effect_checkpoint_waiting_state(@checkpoint_runtime.SealedCheckpoint, String, String, Array[String]) -> Result[String, @run_publication_host.ClientEffectCheckpointWaitingIssue]
 
 pub fn client_values_host_effect_compiled_plan_wire(@run_publication_host.ClientEffectCompilation) -> String
 
@@ -156,7 +165,7 @@ pub fn client_values_host_effect_task_run_work(@run_publication_host.ClientRemot
 
 pub fn client_values_host_effect_template_wire(@run_publication_host.ClientEffectCompilation) -> String
 
-pub fn client_values_host_environment(String, String, Bool, Bool, Bool, Bool, Bool, Bool, Bool) -> @program_check.CheckEnvironment?
+pub fn client_values_host_environment(String, String, Bool, Bool, Bool, Bool, Bool, Bool, Bool, String?) -> @program_check.CheckEnvironment?
 
 pub fn client_values_host_existing_delivery_attempt_action(@run_publication.PublicationContract?) -> Int
 
@@ -291,6 +300,8 @@ pub fn client_values_host_prepare_physical_start(@run_publication_host.ClientReq
 pub fn client_values_host_prepare_pre_start_failure(@run_publication_host.ClientRequestIdentity, @run_publication_host.ClientRequestIdentity, @run_publication.PublicationContract, String, Bool, Bool, Bool, Bool) -> Result[Bool, @run_publication_host.ClientRunStartIssue]
 
 pub fn client_values_host_prepare_program(String, String, @program_check.CheckEnvironment, String?) -> Result[ClientValuesHostProgramPreparation, ClientValuesHostProgramPreparationIssue]
+
+pub fn client_values_host_prepare_public_source_program(@run_publication_host.ClientSubmittedIntent, @program_check.CheckEnvironment, String) -> Result[@run_publication_host.ClientSourcePreparation, @run_publication_host.ClientSourcePreparationIssue]
 
 pub fn client_values_host_prepare_remote_task_physical_start(@run_publication_host.ClientRemoteTaskProgress, String, String, @run_publication_host.ClientRequestIdentity, @run_publication_host.ClientRequestIdentity, String, Bool, Bool, Bool, Bool, Bool) -> Result[Bool, Unit]
 

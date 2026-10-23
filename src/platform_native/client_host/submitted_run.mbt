@@ -40,14 +40,16 @@ fn NativeClientRunJournal::validate_submitted_run_admission(
   self : NativeClientRunJournal,
   record : NativeClientSubmittedIntentRecord,
   reads? : NativeClientJournalReadAccess? = None,
+  runs? : Map[String, NativeClientRunRecord]? = None,
 ) -> Result[Unit, NativeClientRunJournalIssue] {
   guard record.run_admission is Some(admission) else { return Ok(()) }
-  let reference = match
-    @host.admit_client_submission_reference_record(record.reference.wire) {
-    Ok(value) => value
-    Err(_) => return Err(CustodyLost)
+  let reference = record.reference.original
+  let retained = match runs {
+    None => self.retained(admission.request, reads~)
+    Some(originals) =>
+      Ok(originals.get(@host.client_request_scope_cid(admission.request)))
   }
-  match self.retained(admission.request, reads~) {
+  match retained {
     Ok(Some(run)) => {
       if record.run_state_observation is Some(_) &&
         run.run_observation_originals is None {
@@ -152,7 +154,7 @@ fn NativeClientRunJournal::accept_submitted_run_with_operations(
     return Err(UnsupportedPreparation)
   }
   match
-    validate_native_client_run_binding(request, prepared, compiled, definition) {
+    self.validate_prepared_run_binding(request, prepared, compiled, definition) {
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
@@ -309,7 +311,7 @@ fn NativeClientRunJournal::accept_original_submitted_run(
     ) {
     return Err(ForeignRun)
   }
-  let observation_wire = match run_observation_originals {
+  let stored_observation = match run_observation_originals {
     None => None
     Some(value) =>
       match
@@ -317,20 +319,20 @@ fn NativeClientRunJournal::accept_original_submitted_run(
           value,
           plan=run_plan_original.map(ticket => ticket.original),
         ) {
-        Ok(wire) => {
-          if read_native_run_observation_originals(
+        Ok(wire) =>
+          match
+            read_native_stored_run_observation(
               wire,
               definition,
-              program_cid=Some(@host.client_request_program_cid(request)),
-            )
-            is Err(_) {
-            return Err(ForeignRun)
+              Some(@host.client_request_program_cid(request)),
+            ) {
+            Ok(original) => Some(original)
+            Err(_) => return Err(ForeignRun)
           }
-          Some(wire)
-        }
         Err(issue) => return Err(issue)
       }
   }
+  let observation_wire = stored_observation.map(original => original.wire)
   let local_run_policy_originals = match local_run_policy_original {
     None => None
     Some(original) => {
@@ -364,7 +366,13 @@ fn NativeClientRunJournal::accept_original_submitted_run(
         Ok(_) => ()
         Err(issue) => return Err(issue)
       }
-      match self.submitted_intent_custody(reads~) {
+      match
+        client_journal_issuance_anchor(
+          self.database,
+          "client_submitted_intent_custody",
+          self.max_records,
+          reads~,
+        ) {
         Ok(_) => ()
         Err(issue) => return Err(issue)
       }
@@ -428,6 +436,11 @@ fn NativeClientRunJournal::accept_original_submitted_run(
           operations~,
           run_observation_originals=if original.run_admission is None {
             observation_wire
+          } else {
+            None
+          },
+          observation_original=if original.run_admission is None {
+            stored_observation
           } else {
             None
           },
@@ -547,6 +560,21 @@ fn NativeClientRunJournal::accept_original_submitted_run(
       if current_fence is Some(current) && !current() {
         return Err(AuthorizationDenied)
       }
+      match self.index_run_id_locked(authority, reference, run, operations~) {
+        Ok(_) => ()
+        Err(issue) => return Err(issue)
+      }
+      match
+        self.index_saved_run_reference_locked(
+          authority,
+          reference,
+          run,
+          operations~,
+        ) {
+        Ok(_) => ()
+        Err(issue) => return Err(issue)
+      }
+      self.invalidate_operation_submission()
       compare_exchange_client_journal_value(
         self.database,
         "client_submitted_intents",

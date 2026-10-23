@@ -382,42 +382,46 @@ fn local_admitted_result_stream(
       )
     Some(_) => None
   }
-  let prior = match captured_selection {
-    Some(original) =>
-      binding
-      .lookup_submitted_result_delivery_in_original_read(
-        original,
-        service,
-        request,
-        local_utc_now(),
-        @env.now().to_double(),
-      )
-      .unwrap_or_else(() => {
-        stop("LocalReadHistoryUnknown attempt-id=" + attempt_id)
-      })
-    None => {
-      guard legacy_originals is Some((journal, epoch)) else {
-        stop("LocalReadOriginalCustodyUnavailable")
+  let prior = {
+    native_timing_begin(24)
+    defer native_timing_end(24)
+    match captured_selection {
+      Some(original) =>
+        binding
+        .lookup_submitted_result_delivery_in_original_read(
+          original,
+          service,
+          request,
+          local_utc_now(),
+          @env.now().to_double(),
+        )
+        .unwrap_or_else(() => {
+          stop("LocalReadHistoryUnknown attempt-id=" + attempt_id)
+        })
+      None => {
+        guard legacy_originals is Some((journal, epoch)) else {
+          stop("LocalReadOriginalCustodyUnavailable")
+        }
+        journal
+        .lookup_submitted_result_delivery(
+          epoch,
+          selected.submission,
+          scope,
+          current,
+          @env.now().to_double(),
+          service,
+          {
+            namespace_id: selected.namespace_id,
+            principal_id: settings.principal,
+            purpose,
+            result_name,
+            attempt_id,
+          },
+        )
+        .unwrap_or_else(() => {
+          stop("LocalReadHistoryUnknown attempt-id=" + attempt_id)
+        })
       }
-      journal
-      .lookup_submitted_result_delivery(
-        epoch,
-        selected.submission,
-        scope,
-        current,
-        @env.now().to_double(),
-        service,
-        {
-          namespace_id: selected.namespace_id,
-          principal_id: settings.principal,
-          purpose,
-          result_name,
-          attempt_id,
-        },
-      )
-      .unwrap_or_else(() => {
-        stop("LocalReadHistoryUnknown attempt-id=" + attempt_id)
-      })
     }
   }
   if prior is Some(_) {
@@ -453,64 +457,69 @@ fn local_admitted_result_stream(
       Err(issue) => stop(local_read_issue(issue) + " attempt-id=" + attempt_id)
     }
   }
-  let session = match captured_selection {
-    Some(original) => {
-      match
-        binding.resolve_submitted_result_in_original_read(
-          original,
-          service,
-          request,
-          local_utc_now(),
+  let session = {
+    native_timing_begin(25)
+    defer native_timing_end(25)
+    match captured_selection {
+      Some(original) => {
+        match
+          binding.resolve_submitted_result_in_original_read(
+            original,
+            service,
+            request,
+            local_utc_now(),
+            @env.now().to_double(),
+          ) {
+          Ok(_) => ()
+          Err(issue) =>
+            stop(local_read_issue(issue) + " attempt-id=" + attempt_id)
+        }
+        // The actual session is acquired outside the Journal callback and
+        // retained immediately below, before sink construction or polling.
+        @local_result.open_native_result_access(service, request).unwrap_or_else(() => {
+            if refusal.val is Some(issue) {
+              stop(local_read_issue(issue) + " attempt-id=" + attempt_id)
+            }
+            stop(
+              "LocalReadStartUnknown attempt-id=" +
+              attempt_id +
+              " lookup=delivery-attempt",
+            )
+          },
+        )
+      }
+      None => {
+        guard legacy_originals is Some((journal, epoch)) else {
+          stop("LocalReadOriginalCustodyUnavailable")
+        }
+        journal
+        .open_submitted_result(
+          epoch,
+          selected.submission,
+          scope,
+          current,
           @env.now().to_double(),
-        ) {
-        Ok(_) => ()
-        Err(issue) =>
-          stop(local_read_issue(issue) + " attempt-id=" + attempt_id)
-      }
-      // The actual session is acquired outside the Journal callback and
-      // retained immediately below, before sink construction or polling.
-      @local_result.open_native_result_access(service, request).unwrap_or_else(() => {
-        if refusal.val is Some(issue) {
-          stop(local_read_issue(issue) + " attempt-id=" + attempt_id)
-        }
-        stop(
-          "LocalReadStartUnknown attempt-id=" +
-          attempt_id +
-          " lookup=delivery-attempt",
+          service,
+          {
+            namespace_id: selected.namespace_id,
+            principal_id: settings.principal,
+            purpose,
+            result_name,
+            format,
+            attempt_id,
+          },
         )
-      })
-    }
-    None => {
-      guard legacy_originals is Some((journal, epoch)) else {
-        stop("LocalReadOriginalCustodyUnavailable")
+        .unwrap_or_else(() => {
+          if refusal.val is Some(issue) {
+            stop(local_read_issue(issue) + " attempt-id=" + attempt_id)
+          }
+          stop(
+            "LocalReadStartUnknown attempt-id=" +
+            attempt_id +
+            " lookup=delivery-attempt",
+          )
+        })
       }
-      journal
-      .open_submitted_result(
-        epoch,
-        selected.submission,
-        scope,
-        current,
-        @env.now().to_double(),
-        service,
-        {
-          namespace_id: selected.namespace_id,
-          principal_id: settings.principal,
-          purpose,
-          result_name,
-          format,
-          attempt_id,
-        },
-      )
-      .unwrap_or_else(() => {
-        if refusal.val is Some(issue) {
-          stop(local_read_issue(issue) + " attempt-id=" + attempt_id)
-        }
-        stop(
-          "LocalReadStartUnknown attempt-id=" +
-          attempt_id +
-          " lookup=delivery-attempt",
-        )
-      })
     }
   }
   // Retain the acquired session before sink construction or another callback.
@@ -561,6 +570,8 @@ fn local_admitted_result_stream(
   if retained is Some(original) {
     original.result_sink = Some(sink)
   }
+  native_timing_begin(26)
+  defer native_timing_end(26)
   let mut result : String? = None
   while true {
     match sink.poll() {

@@ -1,5 +1,5 @@
 {
-  "source": "66e1fd343e9ac9e945f57be3064a4a8212cd1c6f",
+  "source": "1b87ca139a399e91773ebdb99dc658fcabe6b07a",
   "qualification": "Existing functional Owner reference index; representation is independently checked. The original source/syntax-input metadata records the initial reference supply, not a new runtime qualification. Explicit bounded HTTP byte-body extensions retain the same existing owners; their source-qualified tests and simultaneous holding inventory are separate from reference coverage and normal funding.",
   "inputs": [
     {
@@ -87,7 +87,10 @@
             ]
           }
         }
-      ]
+      ],
+      "imports": [],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/host-common/diagnostic-observer.mjs",
@@ -235,13 +238,17 @@
             ]
           }
         }
-      ]
+      ],
+      "imports": [],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/host-common/observation.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "5a16f8a087da52def2779a7fbcfbc399fee713a7ab6c0366f325bb677d1f18fd",
+      "sha256": "cfd1bc566e11ad55fd3d4306ff16e1ab3c26aeed97f8c373c5340357a40a933c",
       "exports": [
+        "captureManagedRunObservation",
         "createHostObservationConnection",
         "installHostObservation",
         "isHostObservationProjection",
@@ -253,6 +260,53 @@
         "validObservationContext"
       ],
       "operations": [
+        {
+          "name": "<anonymous>",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "<anonymous>#2",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "<anonymous>#3",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "accumulateSelectedRows",
+          "parameters": [
+            "context",
+            "detail",
+            "pendingLimit"
+          ],
+          "async": false
+        },
+        {
+          "name": "bindSelectedRequestRows",
+          "parameters": [
+            "detail",
+            "binding"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureManagedRunObservation",
+          "parameters": [
+            "projection",
+            "ref",
+            "readUsage"
+          ],
+          "async": false
+        },
         {
           "name": "cid/cid",
           "parameters": [
@@ -344,6 +398,23 @@
           "async": false
         },
         {
+          "name": "installHostObservation/captureCurrentOperation/captureCurrentOperation",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installHostObservation/captureCurrentOperation/captureCurrentOperation/init:release/init:release",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installHostObservation/captureCurrentOperation/captureCurrentOperation/init:run/init:run",
+          "parameters": [
+            "work"
+          ],
+          "async": false
+        },
+        {
           "name": "installHostObservation/closeStorage/closeStorage",
           "parameters": [],
           "async": false
@@ -373,6 +444,53 @@
           "async": false
         },
         {
+          "name": "installHostObservation/enterApplicationCallback/enterApplicationCallback",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installHostObservation/enterApplicationCallback/enterApplicationCallback/enterApplicationCallback",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installHostObservation/finishContext/finishContext",
+          "parameters": [
+            "context"
+          ],
+          "async": false
+        },
+        {
+          "name": "installHostObservation/finishContext/finishContext/finishContext",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installHostObservation/flushSelectedRows/flushSelectedRows",
+          "parameters": [
+            "context"
+          ],
+          "async": false
+        },
+        {
+          "name": "installHostObservation/projection/init:captureManagedRun/init:captureManagedRun",
+          "parameters": [
+            "ref",
+            "readUsage"
+          ],
+          "async": false
+        },
+        {
+          "name": "installHostObservation/projection/init:captureManagedRun/init:captureManagedRun/init:captureManagedRun",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installHostObservation/projection/init:captureManagedRun/init:captureManagedRun/init:captureManagedRun/init:captureManagedRun",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "installHostObservation/projection/init:close/init:close",
           "parameters": [],
           "async": true
@@ -394,9 +512,7 @@
         },
         {
           "name": "installHostObservation/projection/projection",
-          "parameters": [
-            "operation"
-          ],
+          "parameters": [],
           "async": false
         },
         {
@@ -406,6 +522,18 @@
         },
         {
           "name": "installHostObservation/projection/projection#3",
+          "parameters": [
+            "operation"
+          ],
+          "async": false
+        },
+        {
+          "name": "installHostObservation/projection/projection#4",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installHostObservation/projection/projection#5",
           "parameters": [],
           "async": false
         },
@@ -427,6 +555,22 @@
         {
           "name": "installHostObservation/pump/pump/pump/pump#2",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installHostObservation/resolveRunIdentity/resolveRunIdentity",
+          "parameters": [
+            "context",
+            "ref",
+            "terminal"
+          ],
+          "async": false
+        },
+        {
+          "name": "installHostObservation/retainOperation/retainOperation",
+          "parameters": [
+            "promise"
+          ],
           "async": false
         },
         {
@@ -452,6 +596,37 @@
           "async": false
         },
         {
+          "name": "managedRunResources",
+          "parameters": [
+            "values"
+          ],
+          "async": false
+        },
+        {
+          "name": "managedRunResources/fields/fields",
+          "parameters": [
+            "names",
+            "offset",
+            "kind"
+          ],
+          "async": false
+        },
+        {
+          "name": "managedRunResources/fields/fields/fields",
+          "parameters": [
+            "name",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "managedRunResources/managedRunResources",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
           "name": "observationTraceParent",
           "parameters": [
             "headers"
@@ -471,6 +646,20 @@
           "name": "recordEvents/recordEvents",
           "parameters": [
             "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "resourceAttribute/resourceAttribute",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "resourceAttribute/resourceAttribute/resourceAttribute",
+          "parameters": [
+            "letter"
           ],
           "async": false
         },
@@ -542,12 +731,15 @@
             "installHostObservation/drop/drop",
             "installHostObservation/emit/emit",
             "installHostObservation/emit/emit/emit",
+            "installHostObservation/enterApplicationCallback/enterApplicationCallback",
+            "installHostObservation/enterApplicationCallback/enterApplicationCallback/enterApplicationCallback",
             "installHostObservation/projection/init:close/init:close",
             "installHostObservation/projection/init:close/init:close/init:close",
             "installHostObservation/projection/init:diagnostic/init:diagnostic",
             "installHostObservation/projection/projection",
             "installHostObservation/projection/projection#2",
             "installHostObservation/projection/projection#3",
+            "installHostObservation/projection/projection#5",
             "installHostObservation/pump/pump",
             "installHostObservation/pump/pump/pump",
             "installHostObservation/pump/pump/pump/pump",
@@ -581,6 +773,10 @@
               {
                 "path": "docs/development/durable-owner-interface.md",
                 "anchor": "| Responsibility |"
+              },
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "Delivery remains an application callback even on that later turn:"
               }
             ],
             "inputsOutputs": [
@@ -635,11 +831,499 @@
               {
                 "path": "docs/development/durable-owner-interface.md",
                 "anchor": "| Verification |"
+              },
+              {
+                "path": "adapters/host-common/observation.test.mjs",
+                "anchor": "application callback state changes at actual delivery entry and thrown settlement only"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "<anonymous>",
+            "<anonymous>#2",
+            "captureManagedRunObservation",
+            "installHostObservation/projection/init:captureManagedRun/init:captureManagedRun",
+            "installHostObservation/projection/init:captureManagedRun/init:captureManagedRun/init:captureManagedRun",
+            "installHostObservation/projection/init:captureManagedRun/init:captureManagedRun/init:captureManagedRun/init:captureManagedRun",
+            "installHostObservation/projection/projection#4",
+            "managedRunResources",
+            "managedRunResources/fields/fields",
+            "managedRunResources/fields/fields/fields",
+            "managedRunResources/managedRunResources",
+            "resourceAttribute/resourceAttribute",
+            "resourceAttribute/resourceAttribute/resourceAttribute"
+          ],
+          "exports": [
+            "captureManagedRunObservation"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The selected `resources` measurement copies only the fixed six limits and ten"
+              },
+              {
+                "path": "adapters/host-common/observation.mjs",
+                "anchor": "export function captureManagedRunObservation(projection, ref, readUsage) {"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The selected `resources` measurement copies only the fixed six limits and ten"
+              },
+              {
+                "path": "src/client_local_host/installed_managed_run.mbt",
+                "anchor": "pub fn installed_managed_run_usage("
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The selected `resources` measurement copies only the fixed six limits and ten"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "bindManagedComputeRunObservation(prepared, ref) {"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The selected `resources` measurement copies only the fixed six limits and ten"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "for (const key of Object.keys(record)) record[key] = undefined;"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The selected `resources` measurement copies only the fixed six limits and ten"
+              },
+              {
+                "path": "adapters/host-node/in-process-client.mjs",
+                "anchor": "try { yield* (original === undefined ? response.frames : contextualFrames(response.frames)); consumed = true; }"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The selected `resources` measurement copies only the fixed six limits and ten"
+              },
+              {
+                "path": "adapters/host-common/observation.mjs",
+                "anchor": "catch {drop('resourceUnavailable'); return;}"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The selected `resources` measurement copies only the fixed six limits and ten"
+              },
+              {
+                "path": "adapters/host-node/in-process-result-observation.test.mjs",
+                "anchor": "test('partial or failed rows never fabricate quiescent usage and observation errors preserve rows'"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The selected `resources` measurement copies only the fixed six limits and ten"
+              },
+              {
+                "path": "adapters/host-common/observation.mjs",
+                "anchor": "const snapshot = Object.freeze({'actql.resource.scope': 'managed-run-ledger',"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The selected `resources` measurement copies only the fixed six limits and ten"
+              },
+              {
+                "path": "src/client_local_host/installed_managed_run.mbt",
+                "anchor": "/// values, not a measurement of process memory or physical cleanup."
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-common/observation.test.mjs",
+                "anchor": "test('managed usage retains one original reader and operation correlation across row consumption'"
+              },
+              {
+                "path": "adapters/host-node/embedded-managed-compute-lifecycle.test.mjs",
+                "anchor": "test('managed usage reader selects only the same admitted Run and releases its installation alias'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "<anonymous>#3",
+            "accumulateSelectedRows",
+            "installHostObservation/flushSelectedRows/flushSelectedRows",
+            "bindSelectedRequestRows"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "Diagnostic-level `rows` observations copy only the selected request-Journal"
+              },
+              {
+                "path": "adapters/host-common/observation.mjs",
+                "anchor": "function accumulateSelectedRows(context, detail, pendingLimit = 0) {"
+              },
+              {
+                "path": "adapters/host-common/observation.mjs",
+                "anchor": "function bindSelectedRequestRows(detail, binding) {"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "Diagnostic-level `rows` observations copy only the selected request-Journal"
+              },
+              {
+                "path": "adapters/host-common/observation.mjs",
+                "anchor": "const {ref, rowOwner, selection, rowKind, returnedRows, unrelatedRows, coverage} = detail;"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "Diagnostic-level `rows` observations copy only the selected request-Journal"
+              },
+              {
+                "path": "adapters/host-common/observation.mjs",
+                "anchor": "const ref = event === 'selected_rows_observed' ? facts.ref : facts.ref ?? context?.ref;"
+              },
+              {
+                "path": "adapters/host-common/observation.mjs",
+                "anchor": "request.requestId === binding.requestId) {"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "Diagnostic-level `rows` observations copy only the selected request-Journal"
+              },
+              {
+                "path": "adapters/host-common/observation.mjs",
+                "anchor": "context.selectedRowsClosed = true; context.selectedRows = undefined;"
+              },
+              {
+                "path": "adapters/host-common/observation.mjs",
+                "anchor": "context.pendingRequestRows = context.selectedRequestBinding = undefined;"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "Diagnostic-level `rows` observations copy only the selected request-Journal"
+              },
+              {
+                "path": "adapters/host-common/observation.mjs",
+                "anchor": "// One bounded record for this existing ingress, not another durable"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "Diagnostic-level `rows` observations copy only the selected request-Journal"
+              },
+              {
+                "path": "adapters/host-common/observation.mjs",
+                "anchor": "if (!captured) drop('rowsUnavailable');"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "Diagnostic-level `rows` observations copy only the selected request-Journal"
+              },
+              {
+                "path": "adapters/host-common/observation.mjs",
+                "anchor": "context.selectedRowsClosed = true;"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "Diagnostic-level `rows` observations copy only the selected request-Journal"
+              },
+              {
+                "path": "adapters/host-common/observation.mjs",
+                "anchor": "const attributes = Object.freeze({'actql.rows.owner': rows.rowOwner,"
+              },
+              {
+                "path": "adapters/host-common/observation.mjs",
+                "anchor": "if (pending.length >= pendingLimit) {context.selectedRowsUnavailable = true; return false;}"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "Diagnostic-level `rows` observations copy only the selected request-Journal"
+              },
+              {
+                "path": "adapters/host-common/observation.mjs",
+                "anchor": "rowKind !== 'run' || coverage !== 'selected-returned' ||"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-common/observation.test.mjs",
+                "anchor": "test('selected row diagnostics copy only actual reader scalars and the original operation context'"
+              },
+              {
+                "path": "adapters/host-common/observation.test.mjs",
+                "anchor": "test('selected row diagnostics keep unknown classification and pre-Run binding absent in a mixed aggregate'"
+              },
+              {
+                "path": "adapters/host-common/observation.test.mjs",
+                "anchor": "test('selected row diagnostics refuse contextless or late facts instead of creating another operation frame'"
+              },
+              {
+                "path": "adapters/host-node/client-submission-operation.test.mjs",
+                "anchor": "test('request-key selected rows bind only through the same accepted original Run'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "installHostObservation/captureCurrentOperation/captureCurrentOperation",
+            "installHostObservation/captureCurrentOperation/captureCurrentOperation/init:release/init:release",
+            "installHostObservation/captureCurrentOperation/captureCurrentOperation/init:run/init:run",
+            "installHostObservation/finishContext/finishContext",
+            "installHostObservation/finishContext/finishContext/finishContext",
+            "installHostObservation/retainOperation/retainOperation"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "An installed consumer may retain that same bounded context for its original"
+              },
+              {
+                "path": "adapters/host-common/observation.mjs",
+                "anchor": "const captureCurrentOperation = () => {"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "An installed consumer may retain that same bounded context for its original"
+              },
+              {
+                "path": "adapters/host-common/observation.mjs",
+                "anchor": "const retainOperation = promise => {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "An installed consumer may retain that same bounded context for its original"
+              },
+              {
+                "path": "adapters/host-common/observation.mjs",
+                "anchor": "if (context?.owner !== contextOwner || context.finished) return undefined;"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "An installed consumer may retain that same bounded context for its original"
+              },
+              {
+                "path": "adapters/host-common/observation.mjs",
+                "anchor": "const held = original; original = undefined;"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "An installed consumer may retain that same bounded context for its original"
+              },
+              {
+                "path": "adapters/host-common/observation.mjs",
+                "anchor": "Promise.prototype.then.call(promise, captured.release, captured.release);"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "An installed consumer may retain that same bounded context for its original"
+              },
+              {
+                "path": "adapters/host-common/observation.mjs",
+                "anchor": "} catch {captured.release(); drop('rowsUnavailable');}"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "An installed consumer may retain that same bounded context for its original"
+              },
+              {
+                "path": "adapters/host-common/observation.mjs",
+                "anchor": "context.finished = true; context.selectedRowsClosed = true;"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "An installed consumer may retain that same bounded context for its original"
+              },
+              {
+                "path": "adapters/host-common/observation.mjs",
+                "anchor": "if (context.children >= config.selected.requestRecords) {drop('limited'); return undefined;}"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "An installed consumer may retain that same bounded context for its original"
+              },
+              {
+                "path": "adapters/host-common/observation.mjs",
+                "anchor": "if (closed || !observeRows) return undefined;"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-common/observation.test.mjs",
+                "anchor": "test('retained original work settles without delaying ingress or creating a second observation context'"
+              },
+              {
+                "path": "adapters/host-common/observation.test.mjs",
+                "anchor": "test('observation close detaches its bounded metadata without settling original unfinished work'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "installHostObservation/resolveRunIdentity/resolveRunIdentity"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "Run ID correlation reuses only a positively resolved immutable identifier under"
+              },
+              {
+                "path": "adapters/host-common/observation.mjs",
+                "anchor": "const resolveRunIdentity = (context, ref, terminal = false) => {"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "Run ID correlation reuses only a positively resolved immutable identifier under"
+              },
+              {
+                "path": "adapters/host-common/observation.mjs",
+                "anchor": "const id = runId?.(ref);"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "the complete namespace, authority-scope and Run-definition tuple in that same"
+              },
+              {
+                "path": "adapters/host-common/observation.mjs",
+                "anchor": "const key = JSON.stringify([ref.namespaceId, ref.authorityScopeCid, ref.runDefinitionCid]);"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "operation and installation. The bounded holder contains copied identity values,"
+              },
+              {
+                "path": "adapters/host-common/observation.mjs",
+                "anchor": "const original = context?.owner === contextOwner ? context : undefined;"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "to resolve its metadata is counted before the final row aggregate closes; the"
+              },
+              {
+                "path": "adapters/host-common/observation.mjs",
+                "anchor": "id = resolveRunIdentity(context, rows.ref, true);"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "Missing and failed lookups are not positive facts; a new operation resolves its"
+              },
+              {
+                "path": "adapters/host-common/observation.mjs",
+                "anchor": "if (typeof id !== 'string' || id.length > 128) return undefined;"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "Retirement drops these identity aliases without acknowledging physical cleanup."
+              },
+              {
+                "path": "adapters/host-common/observation.mjs",
+                "anchor": "context.runIdentities = undefined;"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "operation and installation. The bounded holder contains copied identity values,"
+              },
+              {
+                "path": "adapters/host-common/observation.mjs",
+                "anchor": "Math.min(config.selected.requestRecords, config.selected.segmentRecords)) throw runIdentityLimit;"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "not permission, currentness, a prepared Run or a durable observation cache."
+              },
+              {
+                "path": "adapters/host-common/observation.test.mjs",
+                "anchor": "test('foreign Run identity projections do not borrow the current installation context'"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-common/observation.test.mjs",
+                "anchor": "test('Run identity lookup contributes its actual row before the final selected-row record closes'"
+              },
+              {
+                "path": "adapters/host-common/observation.test.mjs",
+                "anchor": "test('positive Run identity is reused only inside the same original operation and exact Run tuple'"
               }
             ]
           }
         }
-      ]
+      ],
+      "imports": [
+        "node:async_hooks",
+        "node:crypto"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/host-common/owned-invocation-context.mjs",
@@ -943,7 +1627,7 @@
     {
       "module": "adapters/host-common/sqlite-transaction.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "5c672cb06df0724c92dceb2958fc48b2a2cc06f11749bc987636f8d74800d7d0",
+      "sha256": "5a0adaff85c7bfb7685e62978a1fd6537f6bfd917c1b60799d81f20a489a1ddb",
       "exports": [
         "createSqliteTransaction",
         "throwSqliteInitializationFailure"
@@ -998,6 +1682,11 @@
           "async": false
         },
         {
+          "name": "throwSqliteInitializationFailure/close/close",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "throwSqliteInitializationFailure/retry/retry",
           "parameters": [],
           "async": false
@@ -1021,6 +1710,7 @@
             "createSqliteTransaction/inspect/inspect",
             "createSqliteTransaction/run/run",
             "throwSqliteInitializationFailure",
+            "throwSqliteInitializationFailure/close/close",
             "throwSqliteInitializationFailure/retry/retry",
             "throwSqliteInitializationFailure/status/status"
           ],
@@ -1045,36 +1735,60 @@
               {
                 "path": "docs/development/durable-owner-interface.md",
                 "anchor": "| Identity |"
+              },
+              {
+                "path": "adapters/host-common/sqlite-transaction.mjs",
+                "anchor": "originalClose = selected;"
               }
             ],
             "ownership": [
               {
                 "path": "docs/development/durable-owner-interface.md",
                 "anchor": "| Ownership |"
+              },
+              {
+                "path": "adapters/host-common/sqlite-transaction.mjs",
+                "anchor": "const observation = Reflect.apply(originalClose, database, []);"
               }
             ],
             "synchronization": [
               {
                 "path": "docs/development/durable-owner-interface.md",
                 "anchor": "| Synchronization |"
+              },
+              {
+                "path": "adapters/host-common/sqlite-transaction.mjs",
+                "anchor": "if (closing) return status();"
               }
             ],
             "failure": [
               {
                 "path": "docs/development/durable-owner-interface.md",
                 "anchor": "| Failure |"
+              },
+              {
+                "path": "adapters/host-common/sqlite-transaction.mjs",
+                "anchor": "errors: Object.freeze(first === latest ? [first] : [first, latest])"
               }
             ],
             "cancellation": [
               {
                 "path": "docs/development/durable-owner-interface.md",
                 "anchor": "| Cancellation |"
+              },
+              {
+                "path": "adapters/host-common/sqlite-transaction.mjs",
+                "anchor": "if (observation !== undefined) {"
               }
             ],
             "resources": [
               {
                 "path": "docs/development/durable-owner-interface.md",
                 "anchor": "| Resources |"
+              },
+              {
+                "path": "adapters/host-common/sqlite-transaction.mjs",
+                "anchor": "const first = Object.freeze({owner, error: closeFailure});"
               }
             ],
             "extension": [
@@ -1087,11 +1801,22 @@
               {
                 "path": "docs/development/durable-owner-interface.md",
                 "anchor": "| Verification |"
+              },
+              {
+                "path": "adapters/host-common/sqlite-initialization-custody.test.mjs",
+                "anchor": "initialization cleanup retries only the captured original close receiver"
+              },
+              {
+                "path": "adapters/host-common/sqlite-initialization-custody.test.mjs",
+                "anchor": "synchronous cleanup reentry only observes the existing close flight"
               }
             ]
           }
         }
-      ]
+      ],
+      "imports": [],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/host-common/task-observation.mjs",
@@ -1193,12 +1918,15 @@
             ]
           }
         }
-      ]
+      ],
+      "imports": [],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/host-node/infer-capture-custody.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "b55747fa9a33570a52fade73235ff07ae4e056b98be0560ab476acf425bf3308",
+      "sha256": "e9cb2e7f3bd058bee417585a8e89a05da96dea3d24a6143030768e34680ffa14",
       "role": "physical-io",
       "owner": "Existing Model execution authority and Node Store/publication custody; F functional contract with A generated representation projection",
       "exports": [
@@ -1312,6 +2040,11 @@
             "phase"
           ],
           "async": true
+        },
+        {
+          "name": "openNodeInferCaptureCustody/init:completedCallCount/init:completedCallCount",
+          "parameters": [],
+          "async": false
         },
         {
           "name": "openNodeInferCaptureCustody/init:configureModelJournal/init:configureModelJournal",
@@ -1916,8 +2649,88 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "openNodeInferCaptureCustody/init:completedCallCount/init:completedCallCount"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Ordinary Host composition"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "anchor": "completedCallCount() {return capture !== undefined && !publicationCleaned && !reclaimed ? count : undefined;},"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "anchor": "capture = operation.acquireCapture();"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "anchor": "captureOutput ??= operation.acquireOutput();"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "anchor": "if (capture !== undefined) return true;"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "anchor": "throw new Error('InstalledInferCaptureInventoryUnavailable');"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "anchor": "const cleanupPublicationOwned = async () => {"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Ordinary Host composition"
+              },
+              {
+                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "anchor": "operation.reserveOriginalPublicationCapacity?.();"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/infer-capture-custody.mjs",
+                "anchor": "// This immutable original is available only after the existing Store"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/infer-capture-custody-retirement.test.mjs",
+                "anchor": "test('completed capture count does not imply persistence and retires with its own custody'"
+              }
+            ]
+          }
         }
-      ]
+      ],
+      "imports": [
+        "../host-common/compiler-binding.generated.mjs",
+        "../host-common/private-publication-holding.mjs",
+        "../host-common/runtime-result.mjs",
+        "node:timers/promises"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/host-node/infer-entry-persistence.mjs",
@@ -2104,7 +2917,10 @@
             ]
           }
         }
-      ]
+      ],
+      "imports": [],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/host-node/infer-physical-observation.mjs",
@@ -2206,7 +3022,10 @@
             ]
           }
         }
-      ]
+      ],
+      "imports": [],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/host-node/infer-raw-capture.mjs",
@@ -3978,7 +4797,13 @@
             ]
           }
         }
-      ]
+      ],
+      "imports": [
+        "../host-common/authorization-gate.mjs",
+        "./remote-site-client.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/host-node/sqlite-coordinator-journal.mjs",
@@ -4474,6 +5299,7 @@
             "inspectCoordinatorFormat",
             "inspectCoordinatorFormat/inspectCoordinatorFormat",
             "inspectCoordinatorFormat/inspectCoordinatorFormat#2",
+            "inspectCoordinatorFormat/inspectEntries/inspectEntries",
             "openSqliteCoordinatorDispatchJournal",
             "openSqliteCoordinatorDispatchJournal/advanceOutput/advanceOutput",
             "openSqliteCoordinatorDispatchJournal/advanceOutput/advanceOutput/advanceOutput",
@@ -4528,8 +5354,7 @@
             "openSqliteCoordinatorDispatchJournal/sameState/sameState/sameState",
             "syncDirectory",
             "tableDefinitions/tableDefinitions",
-            "text/text",
-            "inspectCoordinatorFormat/inspectEntries/inspectEntries"
+            "text/text"
           ],
           "exports": [
             "openSqliteCoordinatorDispatchJournal"
@@ -5178,6 +6003,8 @@
             "checkAuthenticationSelection/checkAuthenticationSelection",
             "closeHttpsCredentialBinding",
             "count/count",
+            "credentialBindingCurrent",
+            "credentialBindingCurrent/credentialBindingCurrent",
             "exactRequestTarget",
             "exchangeHttpsCredentialAuthentication",
             "exchangeHttpsCredentialAuthentication/exchangeHttpsCredentialAuthentication",
@@ -5185,8 +6012,6 @@
             "exchangeHttpsCredentialAuthentication/exchangeHttpsCredentialAuthentication#3",
             "exchangeHttpsCredentialAuthentication/expires/expires",
             "fail/fail",
-            "credentialBindingCurrent",
-            "credentialBindingCurrent/credentialBindingCurrent",
             "openHttpsCredentialBinding",
             "openHttpsCredentialBinding/openHttpsCredentialBinding",
             "openHttpsCredentialBinding/original/original",
@@ -5203,9 +6028,9 @@
             "receive/receive/finish/finish",
             "receive/receive/finish/finish/finish",
             "receive/receive/receive",
-            "receive/receive/receive/receive",
             "receive/receive/receive#2",
             "receive/receive/receive#3",
+            "receive/receive/receive/receive",
             "receive/receive/release/release",
             "receive/receive/request/request",
             "receive/receive/request/request/request",
@@ -6443,8 +7268,8 @@
             "openSqliteDispatchJournal/install/install/install#2",
             "openSqliteDispatchJournal/integer/integer",
             "openSqliteDispatchJournal/openSqliteDispatchJournal",
-            "openSqliteDispatchJournal/openSqliteDispatchJournal/metadata/metadata",
             "openSqliteDispatchJournal/openSqliteDispatchJournal#2",
+            "openSqliteDispatchJournal/openSqliteDispatchJournal/metadata/metadata",
             "openSqliteDispatchJournal/parseProjection/parseProjection",
             "openSqliteDispatchJournal/parseProjection/parseProjection/parseBit/parseBit",
             "openSqliteDispatchJournal/parseProjection/parseProjection/parseInteger/parseInteger",
@@ -6529,7 +7354,15 @@
             ]
           }
         }
-      ]
+      ],
+      "imports": [
+        "../host-common/remote-dispatch-wire.mjs",
+        "node:fs",
+        "node:path",
+        "node:sqlite"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/site-node/sqlite-transfer-journal.mjs",
@@ -6851,7 +7684,15 @@
             ]
           }
         }
-      ]
+      ],
+      "imports": [
+        "../host-common/sqlite-transaction.mjs",
+        "node:fs",
+        "node:path",
+        "node:sqlite"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     }
   ]
 }

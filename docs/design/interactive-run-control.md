@@ -20,6 +20,76 @@ unchanged legacy Run state and its observed control revision. Missing pending
 flags remain omitted/unknown; unsupported pause, Sample and cost capabilities
 are separate facts. No logical map is reconstructed from physical tasks.
 
+Run status and cancellation metadata do not consume the saved logical map.
+The request journal retains its bounded original strings alongside the
+admitted Run and current control flags without re-admitting that unused map.
+The compiler's nominal initial selection already checks its Plan, Program and
+Run binding before acceptance; the journal still checks the original ticket,
+shape, limits and exact duplicate bytes. The actual authorized stored-plan
+reader admits and checks the map when returning it. This preserves semantic
+verification at use without repeating it at every unrelated metadata lookup,
+and adds no permission cache, replacement map or revision.
+
+A Local status observation retains its journal's nominal admitted Run frame
+through Store observation. Its existing control probe can start from that same
+frame, selected namespace/scope/Run key and original control instances. Each
+probe still reads the complete current row; exact scalar equality reuses only
+the admitted revision/cancellation facts. A changed row is admitted again,
+including payload changes without a revision increment. Copied or foreign
+frames cannot seed the probe. Missing rows and failed reads clear its retained
+facts, and closed journals refuse. These managed references end with the
+observation; they retain no current Account decision or physical cleanup ACK.
+
+The final state publisher still compares the complete original row after
+projection and performs the existing transactional CAS for a changed state.
+Control changes and publication conflicts retry with a fresh admitted frame.
+An internal post-Store probe therefore does not repeat admission of identical
+Run bytes, while a new public observation acquires its own current original.
+
+The ordinary Local observer selects committed publication through the existing
+authorized state service, not a preliminary Index probe followed by the same
+probe inside that service. The Store can return its selected entry together
+with the nominal Index admitted from that same physical read. State projection
+consumes that original rather than rereading and readmitting the identical body.
+These immutable metadata facts live within this observation; a new operation
+acquires its own bytes, digest/link checks and original close duties. They are
+not Account decisions, payload availability, a durable ACK or a cross-operation
+successful-read cache. Result retention and physical payload checks remain
+separate selected duties.
+
+Authorized absence selects the existing unpublished branch. Denial, malformed
+selected originals and physical failures do not become absence or trigger a
+fallback read. The strict committed-state entry still refuses a missing Index.
+Stores without the optional combined read keep their original selected reads;
+an explicitly invalid combined port refuses. Final Journal row comparison,
+current authorization and transactional observation CAS remain unchanged.
+
+Within one authorized Run observation, each distinct Result clock contract
+accepts one durable floor through the existing Store clock sampler. Sampling
+occurs inside that owner after its original durable-bound read, not before
+queued I/O. Later Results sharing that contract reuse the accepted floor and
+check their own observation time for rollback and retention expiry without
+another durable clock update. Their observation timestamps do not claim a
+new persisted floor. Distinct clock contracts and new public operations retain
+independent sampling. A failed sampling outcome remains Unknown for that
+contract throughout this observation; another Result does not retry the
+mutating operation. The private clock facts never enter authority callbacks.
+Stores with only the explicit-observation API retain that protocol; an invalid
+sampler or missing comparison predicate refuses service installation. Current
+authorization, final state comparison/CAS and real payload/FD cleanup remain
+unchanged.
+
+Physical-stop observation uses the same journal-owned frame across publication
+inspection. An unchanged complete row reuses its original request identity and
+Run Definition admission; revision equality alone is insufficient. The final
+physical-close transaction compares that complete original row before its
+guarded update. A changed row refuses the stale stop observation, while a real
+COMMIT failure retains the existing Unknown outcome. Copied, foreign-journal,
+foreign-control and wrong-key frames refuse. Cleanup and physical-stop receipts
+remain separate prerequisites, and an already recorded stop needs no repeated
+publication inspection. These facts live only within the existing operation;
+they do not cache Account decisions, issue a cleanup ACK or replay execution.
+
 This limited profile refuses Inspect when an older record lacks original policy
 evidence, or when a resuming state lacks the required continuation/fence origin
 observation. The underlying original Run and legacy status API remain usable.
@@ -161,3 +231,34 @@ are not replaced with guessed values, synthetic Checkpoints or ordered edges.
 The same finite member/work and complete read/emit bounds apply. Host current
 readonly authorization and public installed acceptance remain independent
 requirements; a Core projection or schema registration alone installs no support.
+
+## Compiler-original plan capture
+
+Initial plan capture consumes the same nominal compiled Run, checked Program
+and admitted Run Definition. The portable compiler projection has already
+closed the logical map against that Plan and Program under its projection
+bounds. The adapter retains those immutable original strings with the existing
+wire-size ceilings; it does not immediately run the independent stored-input
+reader over its own output. An authorized durable plan read still admits the
+selected stored Plan and map and checks their identities before disclosure.
+Capture is neither a permission cache nor a replacement for that read boundary.
+
+## Compiled Run definition binding lifetime
+
+The existing compiled Run holder retains one completed Values or task binding.
+Reuse requires the exact original checked Program, compilation, template, Plan,
+prepared and authorization evidence, admission and nominal Run Definition.
+Serialized equality or a matching CID cannot substitute for those tokens. A
+restored or changed input runs the original complete binding check before any
+new facts are retained. A failed check preserves the last successful binding;
+a different successful Definition replaces that single slot. The slot retains
+the typed binding and original references without decoded wire copies or a
+reference back to the compiled holder.
+
+This is immutable compilation and definition data. It does not retain current
+permission, a clock observation, Preview approval, request or attempt state,
+Index admission, physical resource availability or a commit decision. The
+existing Effect binding path remains complete. Invocation emission and static
+Plan projection still apply their own limits, and stored Plan/map reads keep
+their independent admission. Releasing the compiled holder releases its retained
+binding references without issuing a physical acknowledgement.

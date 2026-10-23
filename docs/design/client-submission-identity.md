@@ -12,6 +12,20 @@ submission identity. The Host authenticates the body's provenance and retains
 the validation material and expiry watermark in the existing request journal.
 An unverified ticket must not be passed to execution as an authenticated fact.
 
+## Fresh Journal initialization durability
+
+A new request Journal is not exposed until all original SQLite initialization
+transactions and marker-file writes, file syncs and closes have completed,
+followed by one actual sync of their common containing directory. These names
+belong to the same unpublished initialization, not separate business commits.
+An existing database's additive format adoption retains its immediate per-marker
+directory acknowledgement. Unchanged reopening does not repeat initialization
+writes or issue another epoch key. A failed final directory acknowledgement
+returns no Journal and follows the same captured native-connection cleanup;
+neither cleanup nor visible files stand for that failed acknowledgement. The
+original typed format, key, current authorization and business transaction
+checks remain independent.
+
 ## Identity domains
 
 The `actql-submission-epoch/0.1` canonical body has exactly these fields, in
@@ -44,6 +58,23 @@ identity must not be presented as a Run-definition CID before a Run exists.
 
 ## Admission and custody
 
+The Common input preparation can consume the admitted intent together with its
+same immutable canonical value and bounded decoder view. An already canonical
+input reuses its original parsed source; differently spelled input retains the
+canonical-wire parse used for diagnostic coordinates. These facts stay within
+the immediate preparation, without extending the intent's stored fields or
+creating a cross-operation cache. Program, declaration and value checking,
+current authorization and durable request admission remain separate.
+
+Journal acceptance captures bounded admission evidence as owned DATA and checks
+the actual serialized payload. An intent CID added by the same Journal retains
+its identity and final byte-bound checks. Selected saved evidence can reuse the
+captured facts only for identical complete wire, or wire with only that checked
+CID added; changed bytes take full admission. The captured value and decoded
+Model binding stay within this acceptance. A new stored observation admits its
+current evidence independently. These facts supply no epoch authentication,
+Run issuance, Source permission or Effect permission.
+
 The Node journal issues tickets with a configured positive lifetime no greater
 than seven days. It retains one authentication key and a monotonic observed-time
 watermark in the same journal, rather than an unbounded per-epoch list. Tickets
@@ -58,11 +89,28 @@ authorize issuance. Nor may a lost replay record under an unexpired identity
 be interpreted as unused: the existing submission-custody fence still applies.
 
 For an epoch-bound admission, the original binding is authenticated before
-Run-definition issuance and checked again inside atomic acceptance after any
-await. Expiry at that second boundary commits only the watermark, not a Run or
+Run-definition issuance. One public operation retains its deeply frozen epoch,
+Common handle and authenticated key binding through its internal continuations;
+an internal await or trusted Journal read does not repeat that authentication.
+Atomic acceptance still checks the same current key, authority scope, retained
+intent and interval. A changed key must authenticate again, and a new public
+operation acquires its own facts rather than inheriting the previous operation.
+One durable clock floor covers unchanged internal observations. Crossing an
+interval boundary records the new monotonic observation before returning it;
+the actual retained row, not a pending memo, establishes durable acceptance.
+Expiry at that boundary commits only the watermark, not a Run or
 an issuance-count advance. A retained matching acceptance may still be
 identified after epoch expiry without issuing another Run. Changed intent
 remains a conflict under the existing common identity relation.
+
+Run resolution admits its supplied logical-request identity once. If all seven
+stored identity fields exactly match that admitted original, the same entry
+uses it for the common relation rather than admitting identical bytes again.
+A distinct saved identity is independently admitted before the existing
+conflict decision. The admit-or-lookup entry uses the same private resolution
+step before issuance; a retained Run never calls its issuer. Atomic acceptance
+after an issuer callback retains its original validation and race handling.
+No identity or permission is cached across resolution calls.
 
 Expiry is an admission restriction, not proof of nonexecution. Missing,
 expired or inaccessible outcome evidence must preserve the unresolved original
@@ -110,7 +158,8 @@ not execute.
 
 ## Scoped durable request names
 
-The public Python `request_id` convenience denotes a scoped durable name for
+The public Python `request_id` and Node SDK requestId-only conveniences denote
+a scoped durable name for
 one original submitted operation, not a nonce to reuse under each connection's
 new epoch. The existing request Journal resolves or binds the authenticated
 workspace/actor/name key before preparation or I/O. Its authority scope and
@@ -132,6 +181,25 @@ and intent identity. This authentication is neither a canonical public CID nor
 a bearer permit. The key and original Common-admitted epoch/intent remain
 necessary. Equal-looking data from a different Journal cannot issue a reference.
 Old explicit epoch nonces are not searched, inferred, or retroactively named.
+
+The SDK retains the exact candidate reference in its captured submitted input;
+that input is not a durable binding certificate. Its named invocation envelope
+is validated against the original name, intent, attempt and current authority
+scope before an observed older reference can be used. An explicit
+`submissionRef` with an optional matching `requestId` remains the old nonce
+assertion and unchanged explicit submission packet. Transport loss retains
+Unknown; neither an error code nor an unavailable named supplier selects a
+legacy operation, automatic restart or new preparation.
+
+An existing same-Run submitted-content handle retains its admitted request,
+Run and intent facts. Its current check still reads the selected Journal rows,
+epoch key and restart linkage under the same transaction and checks issuance
+custody. Identical scalar rows reuse those immutable facts instead of repeating
+decode, hash or reference serialization. A changed row or key re-enters the
+existing validation, and a failed observation discards the retained facts.
+The decoded intent remains private to that handle; public submission records
+retain their wire shape. A new handle performs its own admission. None of this
+supplies current Account authority, a resume/physical-start claim or an ACK.
 
 Names have finite admission capacity under the existing Journal limit. There
 is no automatic eviction: formal pre-Run intent retirement leaves its named

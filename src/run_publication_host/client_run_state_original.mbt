@@ -2,8 +2,18 @@
 /// Private saved metadata, not execution authority, current availability,
 /// control revision or a new versioned RunState. Preserve exact original bytes.
 struct ClientRunStateOriginal {
+  manifest : @publication.PublicationContract
   state_wire : String
   wire : String
+}
+
+///|
+/// The same validated immutable Manifest DATA retained by this original.
+/// It supplies no Store fact, current availability or read authorization.
+pub fn ClientRunStateOriginal::original_manifest(
+  self : ClientRunStateOriginal,
+) -> @publication.PublicationContract {
+  self.manifest
 }
 
 ///|
@@ -56,7 +66,7 @@ fn encode_client_run_state_original(
     @encode.key(writer, "state")
     @encode.string_value(writer, state_wire)
     @encode.end_object(writer)
-    Ok({ state_wire, wire: @encode.finish(writer), })
+    Ok({ manifest, state_wire, wire: @encode.finish(writer), })
   } catch {
     _ => Err(CustodyLost)
   }

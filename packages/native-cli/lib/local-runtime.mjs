@@ -143,7 +143,7 @@ export function admitLocalRuntimePlatform(manifest, {macOS, glibc}) {
   }
 }
 
-export function admitInstalledLocalRuntime({root, expected, metadata}) {
+function readInstalledLocalRuntimeManifest({root, expected, metadata}) {
   try {
     const directory = lstatSync(root);
     assert(directory.isDirectory() && !directory.isSymbolicLink());
@@ -164,7 +164,15 @@ export function admitInstalledLocalRuntime({root, expected, metadata}) {
       assert(named.isFile() && !named.isSymbolicLink() && named.dev === opened.dev && named.ino === opened.ino);
     } finally { closeSync(descriptor); }
     assert.equal(bytes.length, metadata.bytes); assert.equal(localRuntimeHash(bytes), metadata.sha256);
-    const manifest = validateLocalRuntimeManifest(JSON.parse(bytes.toString('utf8')), expected);
+    return validateLocalRuntimeManifest(JSON.parse(bytes.toString('utf8')), expected);
+  } catch {
+    throw Object.assign(Error('Native Local runtime identity or dependency mismatch; reinstall the fixed package cohort.'), {exitCode: 65});
+  }
+}
+
+export function admitInstalledLocalRuntime({root, expected, metadata}) {
+  try {
+    const manifest = readInstalledLocalRuntimeManifest({root, expected, metadata});
     for (const item of manifest.libraries) {
       admitLocalLibraryBytes(readLocalRuntimeMember(root, item, LOCAL_RUNTIME_MAX_BYTES), expected.platform);
     }
@@ -179,10 +187,11 @@ export function admitInstalledLocalRuntime({root, expected, metadata}) {
   }
 }
 
-// Launcher metadata is not permission. Native rechecks exact physical members
-// and binds the manifest to the existing explicit adoption originals.
+// The launcher selects bounded installation metadata and the required OS ABI.
+// Native verifies each physical member before loading it and retains its actual
+// file lifetime. Selection is neither physical admission nor permission.
 export function installedLocalRuntimeEnvironment({root, expected, metadata, platformFacts, environment}) {
-  const manifest = admitInstalledLocalRuntime({root, expected, metadata});
+  const manifest = readInstalledLocalRuntimeManifest({root, expected, metadata});
   admitLocalRuntimePlatform(manifest, platformFacts);
   const result = {...environment};
   result.ACTQL_NATIVE_LOCAL_RUNTIME = JSON.stringify({

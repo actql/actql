@@ -52,11 +52,16 @@ priv struct ComputationPreludePreparation {
 fn start_computation_prelude(
   inputs : ComputationEvidenceInputs,
   max_workspace : Int,
+  after_root? : Bool = false,
 ) -> ComputationPreludePreparation {
   {
     inputs: Some(inputs),
     max_workspace,
-    phase: Begin,
+    phase: if after_root {
+      Receipt
+    } else {
+      Begin
+    },
     prepared: None,
     authorization: None,
     manifest_results: None,

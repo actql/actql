@@ -46,6 +46,7 @@ pub fn prepare_native_client_submitted_program(
   NativeClientSubmittedPreparation,
   NativeClientSubmittedPreparationIssue,
 ] {
+  native_timing_count(17)
   let source = match
     @source.parse_json_bytes_preserving(
       @utf8.encode(@host.client_submitted_intent_wire(intent)),
