@@ -12,6 +12,20 @@ submission identity. The Host authenticates the body's provenance and retains
 the validation material and expiry watermark in the existing request journal.
 An unverified ticket must not be passed to execution as an authenticated fact.
 
+## Fresh Journal initialization durability
+
+A new request Journal is not exposed until all original SQLite initialization
+transactions and marker-file writes, file syncs and closes have completed,
+followed by one actual sync of their common containing directory. These names
+belong to the same unpublished initialization, not separate business commits.
+An existing database's additive format adoption retains its immediate per-marker
+directory acknowledgement. Unchanged reopening does not repeat initialization
+writes or issue another epoch key. A failed final directory acknowledgement
+returns no Journal and follows the same captured native-connection cleanup;
+neither cleanup nor visible files stand for that failed acknowledgement. The
+original typed format, key, current authorization and business transaction
+checks remain independent.
+
 ## Identity domains
 
 The `actql-submission-epoch/0.1` canonical body has exactly these fields, in
@@ -51,6 +65,15 @@ canonical-wire parse used for diagnostic coordinates. These facts stay within
 the immediate preparation, without extending the intent's stored fields or
 creating a cross-operation cache. Program, declaration and value checking,
 current authorization and durable request admission remain separate.
+
+Journal acceptance captures bounded admission evidence as owned DATA and checks
+the actual serialized payload. An intent CID added by the same Journal retains
+its identity and final byte-bound checks. Selected saved evidence can reuse the
+captured facts only for identical complete wire, or wire with only that checked
+CID added; changed bytes take full admission. The captured value and decoded
+Model binding stay within this acceptance. A new stored observation admits its
+current evidence independently. These facts supply no epoch authentication,
+Run issuance, Source permission or Effect permission.
 
 The Node journal issues tickets with a configured positive lifetime no greater
 than seven days. It retains one authentication key and a monotonic observed-time

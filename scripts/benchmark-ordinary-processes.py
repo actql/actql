@@ -196,6 +196,39 @@ def native_sample(consumer, output, operation, state, original, index):
                 commands=records, cleanup=dict(closed=True, scope='Actual command processes exited; no arena/GC/remote ACK inferred'))
 
 
+def python_failure(error):
+    """Retain bounded scalar failure facts, never SDK holders or payload objects."""
+    import inspect
+
+    pending, indices, chain = [error], {id(error): 0}, []
+    truncated = False
+    for current in pending:
+        # Read stored exception data without invoking custom properties/formatters.
+        args = BaseException.args.__get__(current, type(current))
+        message = args[0][:2048] if args and type(args[0]) is str else '<non-string exception arguments>'
+        row = dict(name=type(current).__name__[:2048], message=message[:2048])
+        for name in ('code', 'rows_yielded', 'cleanup_pending', 'attempt_id'):
+            value = inspect.getattr_static(current, name, None)
+            if type(value) in (str, int, bool) or value is None:
+                row[name] = value[:2048] if type(value) is str else value
+        causes = {}
+        for name in ('original_error', 'cleanup_error', 'validation_error', '__cause__', '__context__'):
+            value = (BaseException.__dict__[name].__get__(current, type(current))
+                     if name in ('__cause__', '__context__') else inspect.getattr_static(current, name, None))
+            if not isinstance(value, BaseException):
+                continue
+            if id(value) not in indices:
+                if len(pending) == 8:
+                    truncated = True
+                    continue
+                indices[id(value)] = len(pending)
+                pending.append(value)
+            causes[name] = indices[id(value)]
+        row['causes'] = causes
+        chain.append(row)
+    return {**chain[0], 'errorChain': chain, 'errorChainTruncated': truncated}
+
+
 def python_sample(config):
     """Only public installed SDK methods; private config belongs to this harness."""
     assert Path(sys.prefix).resolve() == Path(config['venv']).resolve(), 'Wrong installed Python interpreter'
@@ -239,7 +272,7 @@ def python_sample(config):
                 expected = {'status': 'succeeded'} if operation == 'warm-status' else EXPECTED
                 assert value == expected
             except BaseException as error:
-                failure = dict(name=type(error).__name__, message=str(error))
+                failure = python_failure(error)
             end = time.perf_counter_ns()
             after = resource.getrusage(resource.RUSAGE_SELF)
             row = dict(iteration=iteration, pid=os.getpid(), wallNs=end-start,
@@ -256,14 +289,14 @@ def python_sample(config):
                 result['stoppedEarly'] = True
                 break
     except BaseException as error:
-        result['failure'] = dict(name=type(error).__name__, message=str(error))
+        result['failure'] = python_failure(error)
     finally:
         if client:
             try:
                 client.close()
                 result['cleanup']['closed'] = True
             except BaseException as error:
-                result['cleanup']['failure'] = dict(name=type(error).__name__, message=str(error))
+                result['cleanup']['failure'] = python_failure(error)
         write(Path(config['resultPath']), result)
     return 0 if not result.get('failure') and result['cleanup']['closed'] and all(r['verified'] for r in rows) else 1
 
@@ -303,7 +336,7 @@ def python_priority_sample(config):
             row.update(completed=True, verified=True)
         except BaseException as error:
             row.update(completed=False, verified=False,
-                       error=dict(name=type(error).__name__, message=str(error)))
+                       error=python_failure(error))
             raise
         finally:
             after = resource.getrusage(resource.RUSAGE_SELF)
@@ -383,7 +416,7 @@ def python_priority_sample(config):
             if series['stoppedEarly']:
                 break
     except BaseException as error:
-        result['firstFailure'] = dict(operation=active, name=type(error).__name__, message=str(error))
+        result['firstFailure'] = dict(operation=active, **python_failure(error))
         if result['latency']:
             result['latency'][-1].update(stoppedEarly=True, stopReason='public functional failure')
     finally:
@@ -394,7 +427,7 @@ def python_priority_sample(config):
                 client.close()
                 result['cleanup']['closed'] = True
             except BaseException as error:
-                result['cleanup']['failure'] = dict(name=type(error).__name__, message=str(error))
+                result['cleanup']['failure'] = python_failure(error)
             result['cleanup']['wallNs'] = time.perf_counter_ns()-start
         result['savedOriginals'] = [{k:original[k] for k in ['runRef','resultRef','expected']} for original in originals]
         write(Path(config['resultPath']), result)

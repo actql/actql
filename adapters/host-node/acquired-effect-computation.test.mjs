@@ -52,6 +52,49 @@ test('source-free composed Model admission retains custody without opening an in
   assert.equal(custody.cleanupPending(), false);
 });
 
+test('rejected original preparation retain settles only the newly captured cleanup owner', async () => {
+  const failure = new Error('ForeignInstalledModelPreparation');
+  let custody, retains = 0, retirements = 0, prepares = 0, reads = 0, closes = 0;
+  const preparation = Object.freeze({retain() {retains++; throw failure;},
+    retire() {retirements++; assert.fail('A rejected borrow cannot retire another holder');}});
+  await assert.rejects(openAcquiredEffectComputation({
+    acquired: {prepared: {}}, originalPreparation: preparation,
+    retainComputationOwner(owner) {custody = owner;},
+    sourceProfile: {prepare() {prepares++;}, open() {reads++;}},
+    sourceContinuation: {close() {closes++;}},
+  }), error => error === failure);
+  assert.equal(retains, 1);
+  assert.equal(custody.cleanupPending(), true);
+  assert.equal(await custody.cleanup(), false, 'settlement is not an original close');
+  await custody.close();
+  assert.equal(await custody.cleanup(), true);
+  assert.equal(custody.cleanupPending(), false);
+  assert.equal(await custody.cleanup(), true);
+  assert.deepEqual({retirements, prepares, reads, closes}, {retirements:0, prepares:0, reads:0, closes:1});
+});
+
+test('successful original preparation retain keeps its same retirement until acknowledgement', async () => {
+  const failure = new Error('OriginalSourcePreparationUnavailable');
+  let custody, retains = 0, retirements = 0, prepares = 0, reads = 0, closes = 0;
+  const preparation = Object.freeze({retain() {assert.equal(this, preparation); retains++;},
+    async retire() {assert.equal(this, preparation); return ++retirements > 1;}});
+  await assert.rejects(openAcquiredEffectComputation({
+    acquired: {prepared: {}}, originalPreparation: preparation,
+    retainComputationOwner(owner) {custody = owner;},
+    sourceProfile: {prepare() {prepares++; throw failure;}, open() {reads++;}},
+    sourceContinuation: {accessFor: access => access, close() {closes++;}},
+  }), error => error === failure);
+  assert.equal(retains, 1);
+  await custody.close();
+  assert.equal(await custody.cleanup(), false);
+  assert.equal(custody.cleanupPending(), true);
+  assert.equal(closes, 0, 'the pending original retains the continuation');
+  assert.equal(await custody.cleanup(), true);
+  assert.equal(custody.cleanupPending(), false);
+  assert.equal(await custody.cleanup(), true);
+  assert.deepEqual({retirements, prepares, reads, closes}, {retirements:2, prepares:1, reads:0, closes:1});
+});
+
 test('acquisition end handoff rejects an unissued or conflicting statement',
   () => {
     const handoff = acquisitionEndHandoff();

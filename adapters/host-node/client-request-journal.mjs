@@ -854,12 +854,14 @@ function assertKeyedInventoryRequest(wire, fields) {
   }
 }
 
-function admissionEvidenceShape(value, updateOriginalControl) {
+const admissionEvidenceFields = Object.freeze(['authorization', 'prepared',
+  'sourceInventory', 'resultPolicyOriginal', 'modelOriginalRunWire',
+  'valuesHostPolicyOriginal', 'logicalPlanOriginal', 'updateTargetRunOriginal',
+  'submittedIntentCid', 'effectOriginalRunWire', 'inferRunOriginal']);
+
+function admissionEvidenceShape(value, updateOriginalControl, captured) {
   if (value === null || typeof value !== 'object' || Array.isArray(value)) return false;
-  if (Object.keys(value).some(key => !['authorization', 'prepared',
-    'sourceInventory', 'resultPolicyOriginal', 'modelOriginalRunWire',
-    'valuesHostPolicyOriginal', 'logicalPlanOriginal', 'updateTargetRunOriginal',
-    'submittedIntentCid', 'effectOriginalRunWire', 'inferRunOriginal'].includes(key)) ||
+  if (Object.keys(value).some(key => !admissionEvidenceFields.includes(key)) ||
       !Object.hasOwn(value, 'prepared') || !Object.hasOwn(value, 'authorization') ||
       typeof value.prepared !== 'string' || typeof value.authorization !== 'string') return false;
   if (value.submittedIntentCid !== undefined && !cid(value.submittedIntentCid)) return false;
@@ -925,6 +927,7 @@ function admissionEvidenceShape(value, updateOriginalControl) {
         canonicalValueJson(original) !== value.modelOriginalRunWire ||
         original.preparedInvocationWire !== value.prepared ||
         original.runAuthorizationWire !== value.authorization) return false;
+    if (captured !== undefined) captured.modelRunDefinitionWire = original.runDefinitionWire;
   }
   return true;
 }
@@ -943,19 +946,37 @@ function assertSourceInventory(retained, proposed) {
 // admission remains with the common MoonBit owner before any physical start.
 function evidenceJson(value, maxBytes, updateOriginalControl) {
   if (value === undefined) return null;
-  if (!admissionEvidenceShape(value, updateOriginalControl)) fail('InvalidClientRunAdmissionEvidence');
-  const wire = JSON.stringify(value);
-  if (Buffer.byteLength(wire) > maxBytes) {
+  // Capture mutable input once, then admit the exact bytes that can be stored.
+  if (value === null || typeof value !== 'object' || Array.isArray(value) ||
+      Object.keys(value).some(key => !admissionEvidenceFields.includes(key)) ||
+      !Object.hasOwn(value, 'prepared') || !Object.hasOwn(value, 'authorization')) {
     fail('InvalidClientRunAdmissionEvidence');
   }
-  return wire;
+  const wire = JSON.stringify(value);
+  if (typeof wire !== 'string' || Buffer.byteLength(wire) > maxBytes) {
+    fail('InvalidClientRunAdmissionEvidence');
+  }
+  const captured = {wire, value: JSON.parse(wire)};
+  if (!admissionEvidenceShape(captured.value, updateOriginalControl, captured)) {
+    fail('InvalidClientRunAdmissionEvidence');
+  }
+  freezeAdmissionEvidence(captured.value);
+  return Object.freeze(captured);
 }
 
-function retainedEvidence(row, updateOriginalControl) {
+function retainedEvidence(row, updateOriginalControl, original) {
   if (row.run_admission_evidence_json === null) return undefined;
+  if (original != null && row.run_admission_evidence_json === original.wire) return original.value;
   let value;
   try { value = JSON.parse(row.run_admission_evidence_json); }
   catch (cause) { fail('ClientRequestJournalCorrupt', cause); }
+  // This acceptance already admitted every unchanged material. A saved intent
+  // CID is the only permitted addition, and it still receives its own check.
+  if (original != null && original.value.submittedIntentCid === undefined &&
+      cid(value?.submittedIntentCid) && JSON.stringify({...original.value,
+        submittedIntentCid: value.submittedIntentCid}) === row.run_admission_evidence_json) {
+    return freezeAdmissionEvidence(value);
+  }
   try {
     if (!admissionEvidenceShape(value, updateOriginalControl)) fail('ClientRequestJournalCorrupt');
     assertKeyedInventoryRequest(value.sourceInventory, {
@@ -1694,6 +1715,9 @@ export function openClientRequestJournal(directory, {
   const path = join(root, 'client-requests.sqlite3');
   const existed = existsSync(path);
   if (current !== existed) fail('UnknownClientRequestJournalFormat');
+  // A fresh initialization is unpublished until its final directory ACK.
+  // Existing-database format upgrades keep their original immediate ACKs.
+  const syncFormatDirectory = () => {if (existed) syncDirectory(root);};
   primaryCurrent?.();
   // Native option lookup includes inherited properties. The selected facility
   // must not acquire arbitrary callbacks or configurations from that prototype.
@@ -1817,7 +1841,7 @@ export function openClientRequestJournal(directory, {
       ) STRICT;
     `);
     if (!existed) {
-      syncDirectory(root);
+      syncFormatDirectory();
       const marker = openSync(join(root, 'journal-format.json'), 'wx', 0o600);
       try {
         writeFileSync(marker, journalMarker);
@@ -1825,7 +1849,7 @@ export function openClientRequestJournal(directory, {
       } finally {
         closeSync(marker);
       }
-      syncDirectory(root);
+      syncFormatDirectory();
     }
     if (!existsSync(join(root, submissionMarkerName))) {
       // Adopt only the retained original rows of an admitted prior format.
@@ -1841,7 +1865,7 @@ export function openClientRequestJournal(directory, {
       const marker = openSync(join(root, submissionMarkerName), 'wx', 0o600);
       try { writeFileSync(marker, submissionMarker); fsyncSync(marker); }
       finally { closeSync(marker); }
-      syncDirectory(root);
+      syncFormatDirectory();
     }
     if (!existsSync(join(root, epochMarkerName))) {
       // One retained authentication key and monotonic expiry watermark suffice
@@ -1858,7 +1882,7 @@ export function openClientRequestJournal(directory, {
       const marker = openSync(join(root, epochMarkerName), 'wx', 0o600);
       try {writeFileSync(marker, epochMarker); fsyncSync(marker);}
       finally {closeSync(marker);}
-      syncDirectory(root);
+      syncFormatDirectory();
     }
     if (!existsSync(join(root, intentMarkerName))) {
       transaction.run(() => database.exec(`
@@ -1883,7 +1907,7 @@ export function openClientRequestJournal(directory, {
       const marker = openSync(join(root, intentMarkerName), 'wx', 0o600);
       try {writeFileSync(marker, intentMarker); fsyncSync(marker);}
       finally {closeSync(marker);}
-      syncDirectory(root);
+      syncFormatDirectory();
     }
     if (!existsSync(join(root, retirementMarkerName))) {
       // Adoption records zero formal retirements; it never resets issuance
@@ -1898,7 +1922,7 @@ export function openClientRequestJournal(directory, {
       const marker = openSync(join(root, retirementMarkerName), 'wx', 0o600);
       try {writeFileSync(marker, retirementMarker); fsyncSync(marker);}
       finally {closeSync(marker);}
-      syncDirectory(root);
+      syncFormatDirectory();
     }
     if (!existsSync(join(root, restartMarkerName))) {
       transaction.run(() => database.exec(`
@@ -1916,7 +1940,7 @@ export function openClientRequestJournal(directory, {
       const marker = openSync(join(root, restartMarkerName), 'wx', 0o600);
       try {writeFileSync(marker, restartMarker); fsyncSync(marker);}
       finally {closeSync(marker);}
-      syncDirectory(root);
+      syncFormatDirectory();
     }
     if (!existsSync(join(root, cancellationMarkerName))) {
       transaction.run(() => database.exec(`
@@ -1941,7 +1965,7 @@ export function openClientRequestJournal(directory, {
       const marker = openSync(join(root, cancellationMarkerName), 'wx', 0o600);
       try { writeFileSync(marker, cancellationMarker); fsyncSync(marker); }
       finally { closeSync(marker); }
-      syncDirectory(root);
+      syncFormatDirectory();
     }
     if (!existsSync(join(root, nameMarkerName))) {
       // Old nonces are not names. This empty additive index never adopts or
@@ -1954,7 +1978,7 @@ export function openClientRequestJournal(directory, {
       const marker = openSync(join(root, nameMarkerName), 'wx', 0o600);
       try {writeFileSync(marker, nameMarker); fsyncSync(marker);}
       finally {closeSync(marker);}
-      syncDirectory(root);
+      syncFormatDirectory();
     }
     if (database.prepare('PRAGMA user_version').get().user_version < 2) {
       adoptSubmissionUsageStorage(database,transaction,existsSync(join(root,usageMarkerName)));
@@ -2667,18 +2691,20 @@ export function openClientRequestJournal(directory, {
         Date.parse(lookupExpiresAt) <= Date.now()) {
       fail('InvalidClientRequestAdmission');
     }
-    const admissionEvidence = evidenceJson(runAdmissionEvidence,
+    const capturedAdmissionEvidence = evidenceJson(runAdmissionEvidence,
       maxRunDefinitionWireBytes, updateOriginalControl);
-    assertKeyedInventoryRequest(runAdmissionEvidence?.sourceInventory, fields);
-    if (runAdmissionEvidence?.valuesHostPolicyOriginal !== undefined &&
+    const admissionEvidence = capturedAdmissionEvidence?.wire ?? null;
+    const admittedEvidence = capturedAdmissionEvidence?.value;
+    assertKeyedInventoryRequest(admittedEvidence?.sourceInventory, fields);
+    if (admittedEvidence?.valuesHostPolicyOriginal !== undefined &&
         (typeof runDefinitionWire !== 'string' ||
          JSON.parse(runDefinitionWire).authorization_context_cid !==
            valuesExecutionContextCid(fields.authorityScopeCid,
-             runAdmissionEvidence.valuesHostPolicyOriginal))) {
+             admittedEvidence.valuesHostPolicyOriginal))) {
       fail('InvalidClientRunAdmissionEvidence');
     }
-    if (runAdmissionEvidence?.modelOriginalRunWire !== undefined &&
-        JSON.parse(runAdmissionEvidence.modelOriginalRunWire).runDefinitionWire !== runDefinitionWire) {
+    if (admittedEvidence?.modelOriginalRunWire !== undefined &&
+        capturedAdmissionEvidence.modelRunDefinitionWire !== runDefinitionWire) {
       fail('InvalidClientRunAdmissionEvidence');
     }
     // Retain observed expiry even if another admission fact later conflicts
@@ -2713,28 +2739,28 @@ export function openClientRequestJournal(directory, {
             existing.result_names_json !== JSON.stringify(resultNames)) {
           fail('ClientRequestResultInventoryMismatch');
         }
+        const existingEvidence = retainedEvidence(existing, updateOriginalControl, capturedAdmissionEvidence);
         assertSourceInventory({physicalStartReserved: existing.physical_start_reserved === 1,
-          runAdmissionEvidence: retainedEvidence(existing, updateOriginalControl)},
-          admissionEvidence === null ? undefined : JSON.parse(admissionEvidence).sourceInventory);
-        const proposedPlan = runAdmissionEvidence?.logicalPlanOriginal;
+          runAdmissionEvidence: existingEvidence}, admittedEvidence?.sourceInventory);
+        const proposedPlan = admittedEvidence?.logicalPlanOriginal;
         if (proposedPlan !== undefined) {
-          const originalPlan = retainedEvidence(existing, updateOriginalControl)?.logicalPlanOriginal;
+          const originalPlan = existingEvidence?.logicalPlanOriginal;
           if (originalPlan === undefined) fail('ClientRequestPlanEvidenceMissing');
           if (originalPlan.compiledPlanWire !== proposedPlan.compiledPlanWire ||
               originalPlan.planViewWire !== proposedPlan.planViewWire) {
             fail('ClientRequestPlanEvidenceMismatch');
           }
         }
-        const proposedInfer = runAdmissionEvidence?.inferRunOriginal;
+        const proposedInfer = admittedEvidence?.inferRunOriginal;
         if (proposedInfer !== undefined) {
-          const original = retainedEvidence(existing, updateOriginalControl)?.inferRunOriginal;
+          const original = existingEvidence?.inferRunOriginal;
           if (original === undefined) fail('ClientRequestInferEvidenceMissing');
           if (canonicalValueJson(original) !== canonicalValueJson(proposedInfer)) {
             fail('ClientRequestInferEvidenceMismatch');
           }
         }
         return Object.freeze({inserted: false, ...admission(existing),
-          runAdmissionEvidence: retainedEvidence(existing, updateOriginalControl),
+          runAdmissionEvidence: existingEvidence,
           ...(runDefinitionWire === undefined ? {} :
             {runDefinitionWire: existing.run_definition_wire}),
           resultNames: retainedResultNames(existing)});
@@ -2756,16 +2782,18 @@ export function openClientRequestJournal(directory, {
       // content with a new Run. Equal caller CIDs or later configuration are
       // not a way to attach a restriction to an already issued Run.
       let originalAdmissionEvidence = admissionEvidence;
-      const admittedEvidence = admissionEvidence === null ? undefined : JSON.parse(admissionEvidence);
       if (submission?.intentCid !== undefined && admittedEvidence !== undefined) {
         const original = retainedIntent(intentSelect.get(fields.requestId), control, submission.epoch);
         if (admittedEvidence.submittedIntentCid !== undefined &&
             admittedEvidence.submittedIntentCid !== original.intentCid) {
           fail('ClientRequestSubmittedIntentMismatch');
         }
-        originalAdmissionEvidence = evidenceJson({...admittedEvidence,
-          submittedIntentCid: original.intentCid},
-        maxRunDefinitionWireBytes, updateOriginalControl);
+        if (!cid(original.intentCid)) fail('InvalidClientRunAdmissionEvidence');
+        originalAdmissionEvidence = JSON.stringify({...admittedEvidence,
+          submittedIntentCid: original.intentCid});
+        if (Buffer.byteLength(originalAdmissionEvidence) > maxRunDefinitionWireBytes) {
+          fail('InvalidClientRunAdmissionEvidence');
+        }
       } else if (admittedEvidence?.submittedIntentCid !== undefined) {
         fail('ClientRequestSubmittedIntentMismatch');
       }
@@ -3179,6 +3207,7 @@ export function openClientRequestJournal(directory, {
     // Reattachment never reissues this identity.
     acceptDefinition(identity, {namespaceId, runDefinition, resultNames, runAdmissionEvidence, originalPlan, originalInferRun,
       revision = 0, lookupExpiresAt, submission}, requestControl, publicationControl) {
+      ensureOpen();
       const definition = checkedRunDefinition(runDefinition,
         publicationControl, maxRunDefinitionWireBytes);
       // Only the existing compiler control can issue the first original. A
@@ -3244,7 +3273,10 @@ export function openClientRequestJournal(directory, {
         lookupExpiresAt: accepted.lookupExpiresAt,
         resultNames: accepted.resultNames,
         runAdmissionEvidence: accepted.runAdmissionEvidence,
-        runDefinition: retainedRunDefinition({
+        // The acknowledged winner may be this operation's already admitted
+        // original. A different selected body still follows full admission.
+        runDefinition: accepted.ref.runDefinitionCid === definition.identity &&
+          accepted.runDefinitionWire === definition.wire ? definition : retainedRunDefinition({
           run_definition_cid: accepted.ref.runDefinitionCid,
           run_definition_wire: accepted.runDefinitionWire,
         }, publicationControl, maxRunDefinitionWireBytes),
@@ -3974,6 +4006,7 @@ export function openClientRequestJournal(directory, {
   applyOriginal(originalJournalCustodySet, originalJournalCustodies, [deliveredJournal, () =>
     Object.freeze({journalClosed: closed, databaseClosed,
       observationAttempted: observationStorageAttempted, observationDatabaseClosed})]);
+  if (!existed) syncDirectory(root);
   return deliveredJournal;
   } catch (error) {
     throwSqliteInitializationFailure(initializationCleanup, error, 'client-request-journal');

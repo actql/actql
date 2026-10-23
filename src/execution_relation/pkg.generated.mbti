@@ -906,6 +906,8 @@ pub fn managed_output_value_schema(ManagedOutputValueReceipt) -> @relation_schem
 
 pub fn managed_output_value_usage(ManagedOutputValueReceipt) -> ValueUsage
 
+pub fn managed_output_values_reclamation_steps(ManagedOutputValues) -> Int64
+
 pub fn managed_output_values_schema(ManagedOutputValues) -> @relation_schema.Schema
 
 pub fn managed_output_values_scratch_released(ManagedOutputValues) -> Bool
