@@ -58,6 +58,14 @@ identity must not be presented as a Run-definition CID before a Run exists.
 
 ## Admission and custody
 
+The Common input preparation can consume the admitted intent together with its
+same immutable canonical value and bounded decoder view. An already canonical
+input reuses its original parsed source; differently spelled input retains the
+canonical-wire parse used for diagnostic coordinates. These facts stay within
+the immediate preparation, without extending the intent's stored fields or
+creating a cross-operation cache. Program, declaration and value checking,
+current authorization and durable request admission remain separate.
+
 The Node journal issues tickets with a configured positive lifetime no greater
 than seven days. It retains one authentication key and a monotonic observed-time
 watermark in the same journal, rather than an unbounded per-epoch list. Tickets
