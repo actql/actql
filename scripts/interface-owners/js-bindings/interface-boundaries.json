@@ -37944,7 +37944,7 @@
     {
       "module": "adapters/host-node/embedded-local.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "839df9ff8a5ab34ac35758009a4ce467ec81a246cc7af49a5174a7d2fcef4564",
+      "sha256": "2777f120cc82fcc24aa44386d3131de614ec4388873a03fd6e79903b8e0bf941",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -38233,6 +38233,15 @@
             "runtime",
             "baseEnvironmentWire",
             "authorizationFor"
+          ],
+          "async": false
+        },
+        {
+          "name": "connectEmbeddedLocal/preparation/init:isOriginalManagedComputePreparationRefusal/init:isOriginalManagedComputePreparationRefusal",
+          "parameters": [
+            "error",
+            "prepared",
+            "request"
           ],
           "async": false
         },
@@ -38694,6 +38703,26 @@
         {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/admitEffectDefinition/admitEffectDefinition",
           "parameters": [
+            "submission"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/admitPreparedSubmission/admitPreparedSubmission",
+          "parameters": [
+            "submission"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/admitPreparedSubmission/admitPreparedSubmission/admitPreparedSubmission",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/admitPreparedSubmission/init:isOriginalPreparationRefusal/init:isOriginalPreparationRefusal",
+          "parameters": [
+            "error",
             "submission"
           ],
           "async": false
@@ -39292,7 +39321,8 @@
             "resume",
             "activeResume",
             "journalPort",
-            "allowDefer"
+            "allowDefer",
+            "observeCancellation"
           ],
           "async": true
         },
@@ -39754,18 +39784,6 @@
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/submissionService/submissionService",
           "parameters": [
             "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/submissionService/submissionService/submissionService",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/submissionService/submissionService#2",
-          "parameters": [
-            "submission"
           ],
           "async": false
         },
@@ -40679,7 +40697,7 @@
             "responsibility": [
               {
                 "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "import {runtimeField, runtimeIsOk, runtimeIsOkRequired, runtimeOptionalField, runtimeTag} from '../host-common/compiler-binding.generated.mjs';"
+                "anchor": "import {runtimeField, runtimeIsError, runtimeIsOk, runtimeIsOkRequired, runtimeOptionalField, runtimeTag} from '../host-common/compiler-binding.generated.mjs';"
               },
               {
                 "path": "docs/development/js-compiler-bindings.md",
@@ -40697,7 +40715,7 @@
             "inputsOutputs": [
               {
                 "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "import {runtimeField, runtimeIsOk, runtimeIsOkRequired, runtimeOptionalField, runtimeTag} from '../host-common/compiler-binding.generated.mjs';"
+                "anchor": "import {runtimeField, runtimeIsError, runtimeIsOk, runtimeIsOkRequired, runtimeOptionalField, runtimeTag} from '../host-common/compiler-binding.generated.mjs';"
               },
               {
                 "path": "docs/development/js-compiler-bindings.md",
@@ -40719,7 +40737,7 @@
             "identity": [
               {
                 "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "import {runtimeField, runtimeIsOk, runtimeIsOkRequired, runtimeOptionalField, runtimeTag} from '../host-common/compiler-binding.generated.mjs';"
+                "anchor": "import {runtimeField, runtimeIsError, runtimeIsOk, runtimeIsOkRequired, runtimeOptionalField, runtimeTag} from '../host-common/compiler-binding.generated.mjs';"
               },
               {
                 "path": "docs/development/js-compiler-bindings.md",
@@ -40741,7 +40759,7 @@
             "ownership": [
               {
                 "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "import {runtimeField, runtimeIsOk, runtimeIsOkRequired, runtimeOptionalField, runtimeTag} from '../host-common/compiler-binding.generated.mjs';"
+                "anchor": "import {runtimeField, runtimeIsError, runtimeIsOk, runtimeIsOkRequired, runtimeOptionalField, runtimeTag} from '../host-common/compiler-binding.generated.mjs';"
               },
               {
                 "path": "docs/development/js-compiler-bindings.md",
@@ -40763,7 +40781,7 @@
             "synchronization": [
               {
                 "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "import {runtimeField, runtimeIsOk, runtimeIsOkRequired, runtimeOptionalField, runtimeTag} from '../host-common/compiler-binding.generated.mjs';"
+                "anchor": "import {runtimeField, runtimeIsError, runtimeIsOk, runtimeIsOkRequired, runtimeOptionalField, runtimeTag} from '../host-common/compiler-binding.generated.mjs';"
               },
               {
                 "path": "docs/development/js-compiler-bindings.md",
@@ -40785,7 +40803,7 @@
             "failure": [
               {
                 "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "import {runtimeField, runtimeIsOk, runtimeIsOkRequired, runtimeOptionalField, runtimeTag} from '../host-common/compiler-binding.generated.mjs';"
+                "anchor": "import {runtimeField, runtimeIsError, runtimeIsOk, runtimeIsOkRequired, runtimeOptionalField, runtimeTag} from '../host-common/compiler-binding.generated.mjs';"
               },
               {
                 "path": "docs/development/js-compiler-bindings.md",
@@ -40807,7 +40825,7 @@
             "cancellation": [
               {
                 "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "import {runtimeField, runtimeIsOk, runtimeIsOkRequired, runtimeOptionalField, runtimeTag} from '../host-common/compiler-binding.generated.mjs';"
+                "anchor": "import {runtimeField, runtimeIsError, runtimeIsOk, runtimeIsOkRequired, runtimeOptionalField, runtimeTag} from '../host-common/compiler-binding.generated.mjs';"
               },
               {
                 "path": "docs/development/js-compiler-bindings.md",
@@ -40825,7 +40843,7 @@
             "resources": [
               {
                 "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "import {runtimeField, runtimeIsOk, runtimeIsOkRequired, runtimeOptionalField, runtimeTag} from '../host-common/compiler-binding.generated.mjs';"
+                "anchor": "import {runtimeField, runtimeIsError, runtimeIsOk, runtimeIsOkRequired, runtimeOptionalField, runtimeTag} from '../host-common/compiler-binding.generated.mjs';"
               },
               {
                 "path": "docs/development/js-compiler-bindings.md",
@@ -40847,7 +40865,7 @@
             "extension": [
               {
                 "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "import {runtimeField, runtimeIsOk, runtimeIsOkRequired, runtimeOptionalField, runtimeTag} from '../host-common/compiler-binding.generated.mjs';"
+                "anchor": "import {runtimeField, runtimeIsError, runtimeIsOk, runtimeIsOkRequired, runtimeOptionalField, runtimeTag} from '../host-common/compiler-binding.generated.mjs';"
               },
               {
                 "path": "docs/development/js-compiler-bindings.md",
@@ -40869,7 +40887,7 @@
             "verification": [
               {
                 "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "import {runtimeField, runtimeIsOk, runtimeIsOkRequired, runtimeOptionalField, runtimeTag} from '../host-common/compiler-binding.generated.mjs';"
+                "anchor": "import {runtimeField, runtimeIsError, runtimeIsOk, runtimeIsOkRequired, runtimeOptionalField, runtimeTag} from '../host-common/compiler-binding.generated.mjs';"
               },
               {
                 "path": "docs/development/js-compiler-bindings.md",
@@ -42660,6 +42678,10 @@
               {
                 "path": "docs/design/interactive-run-control.md",
                 "anchor": "A Local status observation retains its journal's nominal admitted Run frame"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "One original Effect computation retains one existing Journal cancellation"
               }
             ],
             "inputsOutputs": [
@@ -42780,6 +42802,10 @@
               {
                 "path": "adapters/host-node/client-request-journal.mjs",
                 "anchor": "original.row.run_definition_cid!==selected?.runDefinitionCid)"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const observeCancellation = journal.observeRunCancellation(facts.ref, moon, control);"
               }
             ],
             "ownership": [
@@ -43246,6 +43272,18 @@
               {
                 "path": "adapters/host-node/embedded-local-operation-observation.test.mjs",
                 "anchor": "initial Effect observation retains settlement after early acceptance"
+              },
+              {
+                "path": "adapters/host-node/embedded-local-operation-observation.test.mjs",
+                "anchor": "Effect cancellation probes share one original observer through target and Source work"
+              },
+              {
+                "path": "adapters/host-node/embedded-local-operation-observation.test.mjs",
+                "anchor": "Effect cancellation probes retain changed missing and failed current observations"
+              },
+              {
+                "path": "adapters/host-node/embedded-local-operation-observation.test.mjs",
+                "anchor": "Effect cancellation probes retain pending child lifetime and independent target observers"
               }
             ]
           }
@@ -45415,6 +45453,7 @@
         },
         {
           "operations": [
+            "connectEmbeddedLocal/preparation/init:isOriginalManagedComputePreparationRefusal/init:isOriginalManagedComputePreparationRefusal",
             "connectEmbeddedLocal/preparation/init:prepareManagedCompute/init:prepareManagedCompute",
             "connectEmbeddedLocal/preparation/init:prepareManagedCompute/init:prepareManagedCompute/init:prepareManagedCompute",
             "connectEmbeddedLocal/preparation/init:prepareManagedComputeRun/init:prepareManagedComputeRun",
@@ -45444,6 +45483,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "The installation's immutable AoA projection has a different lifetime from a"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "The same Run holder can retain a pure preparation refusal before Resource"
               }
             ],
             "inputsOutputs": [
@@ -45484,6 +45527,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "if (retained.initialControl !== installation.initialControl) {"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "run.preAdmissionRefusal = Object.freeze({error, prepared: checkedPrepared,"
               }
             ],
             "ownership": [
@@ -45497,11 +45544,15 @@
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "run.preparedSequences ??= checked(moon.clientProgramPrepareInstalledManagedSourceFree("
+                "anchor": "run.preparedSequences = checked(result);"
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "installation.managedRunContracts = contracts;"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "run.preAdmissionRefusal = undefined;"
               }
             ],
             "synchronization": [
@@ -45542,6 +45593,10 @@
               {
                 "path": "adapters/host-node/embedded-managed-compute-projection.test.mjs",
                 "anchor": "Failed construction cannot publish partial contract strings"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "if (runtimeIsError(result) && moon.clientProgramInstalledManagedRunIssueIsUnsupported("
               }
             ],
             "cancellation": [
@@ -45638,6 +45693,22 @@
               {
                 "path": "src/client_local_host/installed_managed_run_wbtest.mbt",
                 "anchor": "test \"managed Run usage projection returns independent exact Int64 snapshots\""
+              },
+              {
+                "path": "adapters/host-node/embedded-managed-compute-projection.test.mjs",
+                "anchor": "test('only the original pure preparation Unsupported is a typed refusal', () => {"
+              },
+              {
+                "path": "adapters/host-node/client-pre-admission-refusal.test.mjs",
+                "anchor": "capacity refusal retains its original submission through reopen"
+              },
+              {
+                "path": "adapters/host-node/embedded-managed-compute-lifecycle.test.mjs",
+                "anchor": "pure preparation refusal belongs only to its original pre-Resource Run holder"
+              },
+              {
+                "path": "adapters/host-node/embedded-managed-compute-projection.test.mjs",
+                "anchor": "Unsupported after Resource or a retained failure never issues a new pure refusal"
               }
             ]
           }
@@ -45650,7 +45721,8 @@
             "connectEmbeddedLocal/preparation/init:openResultPublicationStore/init:openResultPublicationStore",
             "connectEmbeddedLocal/preparation/init:prepareResultPublication/init:prepareResultPublication",
             "connectEmbeddedLocal/preparation/init:prepareResultPublication/init:prepareResultPublication/init:prepareResultPublication",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/submissionService/submissionService#2",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/admitPreparedSubmission/admitPreparedSubmission",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/admitPreparedSubmission/init:isOriginalPreparationRefusal/init:isOriginalPreparationRefusal",
             "readHostResultPublicationPreparation",
             "readHostResultPublicationRunRequirements"
           ],
@@ -45665,12 +45737,20 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "The ordinary selected Node Host has a separate finite Local Result/publication"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const admissionFailures = new WeakMap();"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "prepareResultPublication() {"
+              },
+              {
+                "path": "adapters/host-node/client-submission.mjs",
+                "anchor": "const admissionCandidate = admitPreparedSubmission === undefined ? undefined :"
               }
             ],
             "identity": [
@@ -45681,6 +45761,10 @@
               {
                 "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
                 "anchor": "selected.storeAuthorityCid !== field(entry.subject, 'storeAuthorityCid')"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "if (this !== admitPreparedSubmission) return false;"
               }
             ],
             "ownership": [
@@ -45691,6 +45775,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "same duty before its returned view observes it, that view receives the retained"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "admissionFailures.delete(submission);"
               }
             ],
             "synchronization": [
@@ -45701,6 +45789,10 @@
               {
                 "path": "adapters/host-node/embedded-local.mjs",
                 "anchor": "resultPublicationFlight = Promise.resolve().then(async () => {"
+              },
+              {
+                "path": "adapters/host-node/client-submission.mjs",
+                "anchor": "Reflect.apply(originalPreparationRefusal, admitPreparedSubmission,"
               }
             ],
             "failure": [
@@ -45711,6 +45803,10 @@
               {
                 "path": "adapters/host-node/host-journal-ordinary-prefix.test.mjs",
                 "anchor": "Result failed actual Store construction keeps original cleanup until the same Journal closes"
+              },
+              {
+                "path": "adapters/host-node/client-submission.mjs",
+                "anchor": "error?.cleanupPending === true || error?.cleanupHandle !== undefined) throw error;"
               }
             ],
             "cancellation": [
@@ -45721,6 +45817,10 @@
               {
                 "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
                 "anchor": "entry.closedObservation = resultStatus(entry);"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "run.preAdmissionRefusal = undefined;"
               }
             ],
             "resources": [
@@ -45731,6 +45831,10 @@
               {
                 "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
                 "anchor": "entry.storeOperations++;"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "run.original !== undefined || run.admission !== undefined || run.value !== undefined ||"
               }
             ],
             "extension": [
@@ -45741,6 +45845,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "legacy private Evidence key; a later key-dependent operation keeps its original"
+              },
+              {
+                "path": "adapters/host-node/client-submission.mjs",
+                "anchor": "const originalPreparationRefusal = refusalProperty !== undefined &&"
               }
             ],
             "verification": [
@@ -45759,6 +45867,10 @@
               {
                 "path": "adapters/host-node/local-file-effect-submission-original.test.mjs",
                 "anchor": "test('winning ordinary Local definition selects the same actual installation without a Mock Scope'"
+              },
+              {
+                "path": "adapters/host-node/client-submission.test.mjs",
+                "anchor": "test('paired pre-admission original refusal is retained without entering the Run owner', async t => {"
               }
             ]
           }
@@ -45939,7 +46051,7 @@
         {
           "operations": [
             "connectEmbeddedLocal/preparation/init:modelPublicationCapacity/init:modelPublicationCapacity",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/submissionService/submissionService/submissionService",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/admitPreparedSubmission/admitPreparedSubmission/admitPreparedSubmission",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/submit/submit/submit#3"
           ],
           "exports": [],
@@ -46380,6 +46492,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "An ordinary Project Local Source retains its exact connection declaration and"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "// Both Mock and configured Sources follow the checked capture inventory,"
               }
             ],
             "inputsOutputs": [
@@ -46450,6 +46566,14 @@
               {
                 "path": "adapters/host-node/embedded-managed-compute-lifecycle.test.mjs",
                 "anchor": "test('single Source dispatcher keeps the original managed parent and singleton capacity arrays'"
+              },
+              {
+                "path": "adapters/host-node/client-mock-source-occurrences.test.mjs",
+                "anchor": "test('one Mock Salesforce occurrence retains its original submission', async () => {"
+              },
+              {
+                "path": "adapters/host-node/client-mock-source-occurrences.test.mjs",
+                "anchor": "test('Mock JOIN occurrences follow checked order, not installed catalogue order', async () => {"
               }
             ]
           }
@@ -47205,6 +47329,7 @@
         }
       ],
       "imports": [
+        "../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js",
         "../../_build/native/directory-darwin-arm64.node",
         "../../_build/native/directory-darwin-x64.node",
         "../../packages/client-wire/index.mjs",
@@ -47307,9 +47432,7 @@
         "node:url"
       ],
       "compilerFields": [],
-      "unresolvedSyntax": [
-        "runtime-dependent module dependency requires original owner/artifact mapping"
-      ],
+      "unresolvedSyntax": [],
       "referenceQualification": "Existing Host/Source/Resource and compiler-binding responsibilities only. Declaration coverage and explicit-port tests do not issue capacity, authority, cleanup ACK or installed acceptance."
     },
     {

@@ -108,11 +108,12 @@ async function readGitHubRowsByNode({moon, repository,
     repository: Object.freeze({...repository}), limits: owned,
     chargePage, consumeObservation, consumePage, operations, moon};
   let prefixFailure;
-  const checkPrefix = () => {
+  const checkPrefix = admitted => {
     if (prefixFailure !== undefined) throw prefixFailure;
     try {
       signal?.throwIfAborted();
       for (const entry of prefix.responses) {
+        if (entry === admitted) continue;
         withHttpsCredentialRunResponseOriginal(entry.response, control, journal, facts => {
           if (facts !== entry.facts) fail('GitHubResponseOriginalChanged');
         });
@@ -193,7 +194,6 @@ async function readGitHubRowsByNode({moon, repository,
     let response;
     let charge;
     try {
-      checkPrefix();
       const authorization = await authorizationFor(requests);
       checkPrefix();
       signal?.throwIfAborted();
@@ -225,9 +225,12 @@ async function readGitHubRowsByNode({moon, repository,
       });
       entry.facts = facts;
       Object.freeze(entry);
-      checkPrefix();
-      charge = await chargePage?.(response.body);
-      checkPrefix();
+      if (chargePage !== undefined) {
+        // Before accounting, validate earlier responses that could have
+        // changed during the physical call. The new body was just admitted.
+        checkPrefix(entry);
+        charge = await chargePage(response.body);
+      }
     } catch (cause) {
       stopped(cause?.code ?? 'GitHubReadInterrupted', {cause});
     }
@@ -254,8 +257,11 @@ async function readGitHubRowsByNode({moon, repository,
           const next = JSON.parse(decoded(Reflect.apply(operations.next, moon, [original, owned.perPage])));
           if (next.body === null) { pending = false; break; }
           const {response, charge} = await exchange(next.body);
+          // Fulfillment can run external microtasks before this continuation.
+          // Check here, before any codec or consumer can observe changed bytes.
+          try { checkPrefix(); }
+          catch (cause) { stopped(cause?.code ?? 'GitHubReadInterrupted', {cause}); }
           decoded(Reflect.apply(operations.accept, moon, [original, response.body]));
-          checkPrefix();
           const current = JSON.parse(decoded(Reflect.apply(operations.finish, moon, [original]))).page;
           if (current === null) {
             if (consumeObservation !== undefined) {
@@ -296,6 +302,8 @@ async function readGitHubRowsByNode({moon, repository,
       if (request.refused) stopped('InvalidGitHubReadRequest',
         {refusal: request.refused});
       const {response, charge} = await exchange(request.body);
+      try { checkPrefix(); }
+      catch (cause) { stopped(cause?.code ?? 'GitHubReadInterrupted', {cause}); }
       const original = decoded(Reflect.apply(operations.begin, moon, [response.body,
         owned.maxBytes, owned.maxNodes, owned.maxDepth, owned.perPage,
         owned.maxPages - requests + 1, repository.nodeId, repository.databaseId, repository.nameWithOwner]));
@@ -317,7 +325,6 @@ async function readGitHubRowsByNode({moon, repository,
           // the last actual ticket accompanies the completed logical page.
           if (consumeObservation !== undefined) {
             try {
-              checkPrefix();
               await consumeObservation(rowCharge);
               checkPrefix();
             }
@@ -327,10 +334,11 @@ async function readGitHubRowsByNode({moon, repository,
           }
           rowCharge = undefined;
           const child = await exchange(next.body);
+          try { checkPrefix(); }
+          catch (cause) { stopped(cause?.code ?? 'GitHubReadInterrupted', {cause}); }
           rowCharge = child.charge;
           decoded(Reflect.apply(operations.accept, moon, [original, child.response.body]));
         }
-        checkPrefix();
         current = JSON.parse(decoded(Reflect.apply(operations.finish, moon, [original])));
       } finally {
         // Codec alias retirement does not acknowledge a transport, RowRun or
@@ -343,7 +351,7 @@ async function readGitHubRowsByNode({moon, repository,
       if (consumePage !== undefined) {
         try {
           // Finish/close only retire the selected codec's DATA aliases. The
-          // preceding prefix check still governs this synchronous callback entry.
+          // preceding exchange or consumer check governs this callback entry.
           await consumePage(current.rows, page, Object.freeze({charge: rowCharge}));
           checkPrefix();
         }

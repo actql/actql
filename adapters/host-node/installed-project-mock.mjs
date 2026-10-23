@@ -170,7 +170,7 @@ export async function installPreparedProjectMockSources({moon, mockPreparation,
     // Retain every acquired original before the next fallible operation. A
     // failed start is sticky; another caller cannot replace the original Run.
     record = {prepared, request, original: undefined, admission: undefined,
-      value: undefined, reads: [undefined, undefined], model, effectful, failure: undefined};
+      value: undefined, reads: [], model, effectful, failure: undefined};
     if (records.size === 4096) fail('InstalledMockRunLimit');
     records.set(prepared, record);
     try {
@@ -315,7 +315,9 @@ export async function installPreparedProjectMockSources({moon, mockPreparation,
     record.retired = true;
   }
   async function closeSource(index) {
-    for (const record of records.values()) await closeRead(record.reads[index]);
+    for (const record of records.values()) {
+      for (const read of record.reads) if (read?.source === index) await closeRead(read);
+    }
   }
   async function closeRead(read) {
     if (read === undefined || read.closed) return;
@@ -391,26 +393,31 @@ export async function installPreparedProjectMockSources({moon, mockPreparation,
         originalPageLimits: {maxNodes: 4096, maxDepth: 32},
         prepareSourceRead({checkedOwner, effectful, declaration: selected, occurrence}) {
           const run = sameRun(checkedOwner);
-          if (effectful !== run.effectful || selected !== declaration || occurrence.stage !== index ||
-              occurrence.input !== 0 || run.reads[index] !== undefined) fail('InstalledSourcePreparationMismatch');
+          const count = effectful ? moon.clientProgramEffectAcquisitionCount(checkedOwner)
+            : moon.clientProgramAcquisitionCount(checkedOwner);
+          const slot = occurrence.stage;
+          if (effectful !== run.effectful || selected !== declaration ||
+              !Number.isSafeInteger(slot) || slot < 0 || slot >= count ||
+              occurrence.input !== 0 || run.reads[slot] !== undefined) fail('InstalledSourcePreparationMismatch');
           const raw = sourceManaged.prepareRead(checkedOwner, declaration, run.original);
-          const read = {raw, close: undefined, bytes: undefined, value: undefined, closed: false};
-          run.reads[index] = read;
+          const read = {raw, source: index, close: undefined, bytes: undefined, value: undefined, closed: false};
+          run.reads[slot] = read;
           read.close = Object.getOwnPropertyDescriptor(raw, 'close')?.value;
           read.bytes = Object.getOwnPropertyDescriptor(raw, 'readOriginalBytes')?.value;
           if (typeof read.close !== 'function' || typeof read.bytes !== 'function') {
             fail('InstalledMockSourceUnavailable');
           }
           sourceManaged.assertCurrent();
-          read.value = checked(moon.clientProgramInstalledManagedRunSourceRead(run.value, index));
-          originalReads.set(read.value, run);
+          read.value = checked(moon.clientProgramInstalledManagedRunSourceRead(run.value, slot));
+          originalReads.set(read.value, {run, read});
           return read.value;
         },
         async readPages({rowRun, chargePage, verifyRead, signal}) {
           const held = originalReads.get(rowRun.originalRead);
           if (held === undefined) fail('InstalledSourcePreparationMismatch');
-          const run = sameRun(held.prepared), read = run.reads[index];
-          if (read?.value !== rowRun.originalRead || read.closed) fail('InstalledSourcePreparationMismatch');
+          const run = sameRun(held.run.prepared), read = held.read;
+          if (run !== held.run || read.source !== index ||
+              read.value !== rowRun.originalRead || read.closed) fail('InstalledSourcePreparationMismatch');
           signal?.throwIfAborted();
           await verifyRead();
           signal?.throwIfAborted();

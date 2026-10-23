@@ -666,6 +666,22 @@ bodies; foreign or changed originals refuse without regenerating a replacement.
 The scalar quote returns a bounded copy, and the sequence aliases retire with
 the same Run after its actual children finish.
 
+The same Run holder can retain a pure preparation refusal before Resource
+admission. It binds the actual typed `Unsupported` result's error to its exact
+prepared Program, original request and installed control. The private projection
+checks that same failed holder, its current installation and the absence of a
+Resource original, admission, begun Run or pending cleanup. An equal error code,
+copied failure, different request or retired holder cannot issue this projection.
+Later Resource or begin failures keep their original Unknown and cleanup path.
+The original successful retirement also clears this managed refusal reference.
+
+This projection describes the preparation boundary, not a Journal ACK. The
+submission owner still retains its same callback candidate and applies current
+authorization, disclosure and actual durable outcome rules. A lost Journal reply
+remains Unknown; a visible row, error string or client Boolean cannot certify
+nonacceptance. No second lowering or serialization is needed to classify the
+original preparation result.
+
 The installation's immutable AoA projection has a different lifetime from a
 Run. The existing private Host installation bag retains only the Values,
 expression-fragment and ordered-derive contract strings after the first
@@ -1440,3 +1456,36 @@ behaviour, bounds and canonical bytes. Compiler-local reuse neither carries
 authorization into another operation nor turns equal serialized identities into
 the same checked original. The compiled Run still belongs to its original
 prepared Program and retains its existing preparation, fact and encoding limits.
+
+### Original pre-admission refusal consumption
+
+The installed finite-candidate callback retains its exact candidate and the
+original requested identity from its one request projection. Only its own
+captured data method may read the existing same-call managed preparation
+refusal, using the callback's original receiver. The read removes that
+operation's forwarding alias before consulting the current Host holder.
+
+The submission adapter requires synchronous `true` from that paired method.
+An absent, inherited, accessor, foreign or asynchronous projection does not
+certify refusal. A retained cleanup duty remains uncertain even if a malformed
+port reports success. The original pre-Resource `Unsupported` may enter the
+existing Journal refusal path; an exception code alone cannot do so. Anonymous
+and named intents retain their existing `not_accepted` and
+`preparation_failed` outcomes, current authorization and disclosure checks.
+The original preparation-error path and uncertain Journal/dispatch outcomes
+remain separate. This does not create a second evaluator, permission or ACK.
+
+### Effect cancellation observation lifetime
+
+One original Effect computation retains one existing Journal cancellation
+observer through its target reads and acquired Source continuation. Each probe
+still physically selects the complete current row. Only an exactly unchanged
+row reuses immutable Run admission; changed, missing or failed reads keep the
+existing admission and refusal rules. Revision equality alone is insufficient.
+An independent restored target-read continuation obtains its own observer.
+
+The original target-selection checks run before the cancellation probe, and
+resume/current gates retain their original positions. This holder retains no
+Account decision, dispatch permission or acknowledgement. Pending children keep
+their original callbacks through cleanup; no unconditional completion finally
+invalidates the same continuation. Journal closure still refuses later probes.

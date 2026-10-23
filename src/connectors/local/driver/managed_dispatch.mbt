@@ -237,6 +237,7 @@ pub struct LocalManagedDispatchOperations[T] {
   storage_bytes : Int64
   close : () -> Unit
   cleanup_refresh : () -> Bool
+  cleanup_progress : () -> Int64
 }
 
 ///|
@@ -748,6 +749,7 @@ pub fn[T] start_local_managed_dispatch(
   let finalization_payload : Ref[T?] = Ref(None)
   let finalization_available : Ref[(() -> Bool)?] = Ref(None)
   let finalization_values : Ref[@execution.ManagedOutputValues?] = Ref(None)
+  let finalization_reclamation_steps = Ref(0L)
   let finalization_receipt : Ref[@execution.ManagedOutputValueReceipt?] = Ref(
     None,
   )
@@ -856,6 +858,9 @@ pub fn[T] start_local_managed_dispatch(
     // transferred to material; disposing this buffer does not revoke it.
     if finalization_values.val is Some(values) {
       @execution.dispose_managed_output_values_scratch(values)
+      finalization_reclamation_steps.val = @execution.managed_output_values_reclamation_steps(
+        values,
+      )
       if !@execution.managed_output_values_scratch_released(values) {
         return
       }
@@ -2632,6 +2637,7 @@ pub fn[T] start_local_managed_dispatch(
         false,
       )
     },
+    cleanup_progress: fn() { finalization_reclamation_steps.val },
   }
   Ok({
     ..operations,

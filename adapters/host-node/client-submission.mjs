@@ -48,6 +48,14 @@ export function installNodeClientSubmission({journal, moon, authorizedScope,
   }
   const flights = new Map();
   const ownedSnapshots = new WeakSet();
+  // The installed callback and its own original projection are one port.
+  // A public-looking code, inherited method or later property replacement is
+  // not the Host's retained same-call preparation refusal.
+  const refusalProperty = admitPreparedSubmission === undefined ? undefined :
+    Object.getOwnPropertyDescriptor(admitPreparedSubmission, 'isOriginalPreparationRefusal');
+  const originalPreparationRefusal = refusalProperty !== undefined &&
+      Object.hasOwn(refusalProperty, 'value') && typeof refusalProperty.value === 'function'
+    ? refusalProperty.value : undefined;
   const authorize = async value => scopeFields(await authorizedScope(value));
   const own = (parent, derived) => {
     if (bindOwnedRequest !== undefined && bindOwnedRequest(parent, derived) !== undefined) {
@@ -280,20 +288,15 @@ export function installNodeClientSubmission({journal, moon, authorizedScope,
       // starts another preparation merely to wait for its response.
       return storedOutcome(journal.lookupSubmittedIntent(value.submissionRef, fields, moon));
     }
-    let preparedProgram;
-    try {
-      preparedProgram = await prepareOwned(value, requestId);
-      assertOriginalPreparation(preparedProgram, input, value);
-    }
-    catch (error) {
-      if (!isClientSubmitRejection(error?.code)) throw error;
+    const retainPreparationRefusal = async (error, issuedCode) => {
+      if (!isClientSubmitRejection(issuedCode ?? error?.code)) throw error;
       const kind = retained === undefined ? 'not_accepted' : 'preparation_failed';
       const current = await authorize(value);
       // A protected resolution failure may coexist with an independently
       // invalid supplied value. Ask the same installed public checker before
       // storing a reason; do not let private resolution order choose its code.
-      const code = prepareSubmit.sourceCheckFailure?.(error) === true
-        ? 'ClientProgramInvalidInput' : error.code;
+      const code = issuedCode ?? (prepareSubmit.sourceCheckFailure?.(error) === true
+        ? 'ClientProgramInvalidInput' : error.code);
       const candidate = {kind, submissionRef: value.submissionRef, intentCid: value.intentCid,
         problem: {code, classification: classification(code)}};
       const projected = await discloseOutcome(value, candidate, current,
@@ -307,14 +310,33 @@ export function installNodeClientSubmission({journal, moon, authorizedScope,
         : journal.completeSubmittedIntent(value.submissionRef, outcome,
           {...current, connection: value.connection, expectedRevision: retained.revision}, moon);
       return await discloseOutcome(value, storedOutcome(result), current, result);
+    };
+    let preparedProgram;
+    try {
+      preparedProgram = await prepareOwned(value, requestId);
+      assertOriginalPreparation(preparedProgram, input, value);
     }
+    catch (error) {return await retainPreparationRefusal(error);}
     const current = await authorize(value);
     // The actual selected Host validates its same finite business candidate
     // before this first durable business admission. This callback cannot
     // issue the service or replace authorization; unselected callers retain
     // their original path, and Promise/Bool is not synchronous acceptance.
-    if (admitPreparedSubmission !== undefined && admitPreparedSubmission(
-      own(value, {...value, requestId, preparedProgram})) !== undefined) fail('ClientPreparedSubmissionUnavailable');
+    const admissionCandidate = admitPreparedSubmission === undefined ? undefined :
+      Object.freeze(own(value, {...value, requestId, preparedProgram}));
+    try {
+      if (admitPreparedSubmission !== undefined && admitPreparedSubmission(
+        admissionCandidate) !== undefined) fail('ClientPreparedSubmissionUnavailable');
+    } catch (error) {
+      if (originalPreparationRefusal === undefined ||
+          Reflect.apply(originalPreparationRefusal, admitPreparedSubmission,
+            [error, admissionCandidate]) !== true ||
+          error?.cleanupPending === true || error?.cleanupHandle !== undefined) throw error;
+      // The installed holder recognizes only its original pure Unsupported,
+      // before any Resource/start duty. Do not re-read a mutable error code to
+      // replace that issued fact; the old preparation catch remains unchanged.
+      return await retainPreparationRefusal(error, 'ClientProgramUnsupported');
+    }
     retained = attempt === undefined
       ? journal.recordSubmittedIntent(value.submissionRef, input, restartFields(current), moon)
       : attempt.record(value.submissionRef, input, restartFields(current));
