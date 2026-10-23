@@ -462,7 +462,7 @@ This localization does not remove payload quota or other recovery history work.
 
 Ordinary opening admits clock entry names and reclaims interrupted legacy
 staging files with their real directory acknowledgement, but does not stat
-each immutable clock file. The selected clock reader still opens the exact
+each stored clock file. The selected clock reader still opens the exact
 original with its existing file/type, extent, content/checksum and floor
 checks before sampling or accepting an observation. An unavailable selected
 floor is not fresh initialization. Name enumeration for legacy staging remains
