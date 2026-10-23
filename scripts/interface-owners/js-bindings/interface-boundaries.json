@@ -46488,6 +46488,10 @@
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "An ordinary Project Local Source retains its exact connection declaration and"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "// Both Mock and configured Sources follow the checked capture inventory,"
               }
             ],
             "inputsOutputs": [
@@ -46558,6 +46562,14 @@
               {
                 "path": "adapters/host-node/embedded-managed-compute-lifecycle.test.mjs",
                 "anchor": "test('single Source dispatcher keeps the original managed parent and singleton capacity arrays'"
+              },
+              {
+                "path": "adapters/host-node/client-mock-source-occurrences.test.mjs",
+                "anchor": "test('one Mock Salesforce occurrence retains its original submission', async () => {"
+              },
+              {
+                "path": "adapters/host-node/client-mock-source-occurrences.test.mjs",
+                "anchor": "test('Mock JOIN occurrences follow checked order, not installed catalogue order', async () => {"
               }
             ]
           }
@@ -47313,6 +47325,7 @@
         }
       ],
       "imports": [
+        "../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js",
         "../../_build/native/directory-darwin-arm64.node",
         "../../_build/native/directory-darwin-x64.node",
         "../../packages/client-wire/index.mjs",
@@ -47415,9 +47428,7 @@
         "node:url"
       ],
       "compilerFields": [],
-      "unresolvedSyntax": [
-        "runtime-dependent module dependency requires original owner/artifact mapping"
-      ],
+      "unresolvedSyntax": [],
       "referenceQualification": "Existing Host/Source/Resource and compiler-binding responsibilities only. Declaration coverage and explicit-port tests do not issue capacity, authority, cleanup ACK or installed acceptance."
     },
     {

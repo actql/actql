@@ -47031,6 +47031,10 @@
               {
                 "path": "adapters/host-node/installed-project-mock.mjs",
                 "anchor": "if (record === undefined || record.value === undefined) fail('NodeManagedRunAdmissionUnavailable');"
+              },
+              {
+                "path": "adapters/host-node/installed-project-mock.mjs",
+                "anchor": "if (run !== held.run || read.source !== index ||"
               }
             ],
             "ownership": [
@@ -47089,6 +47093,10 @@
               {
                 "path": "adapters/host-node/mock-source-factory-custody.test.mjs",
                 "anchor": "test('same managed Run original is retained before post-factory current refusal and typed start stays zero',()=>{"
+              },
+              {
+                "path": "adapters/host-node/mock-source-factory-custody.test.mjs",
+                "anchor": "test('repeated Source slots hold distinct children and close only their original Source',async()=>{"
               }
             ]
           }
