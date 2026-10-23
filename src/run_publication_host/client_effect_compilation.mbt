@@ -643,6 +643,7 @@ fn client_effect_allowed_component_run(
     authorization: value.authorization,
     admission: value.admission,
     source_free_result_policy,
+    definition_binding: None,
   }
 }
 
