@@ -46909,7 +46909,7 @@
             "ownership": [
               {
                 "path": "adapters/host-node/installed-project-mock.mjs",
-                "anchor": "run.reads[index] = read;"
+                "anchor": "run.reads[slot] = read;"
               },
               {
                 "path": "adapters/host-node/installed-project-mock.mjs",
