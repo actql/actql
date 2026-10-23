@@ -1242,6 +1242,14 @@ export async function openDeliveryAttemptIndex(path, {create, maxEntries, maxWir
       },
       publicationUsage() { requireComplete(); return usage(); },
       publicationContract(semanticCid) { requireComplete(); return publicationCopy(publication.get(semanticCid)); },
+      publicationContracts(semanticCids) {
+        requireComplete();
+        if (!Array.isArray(semanticCids) || semanticCids.length > maxEntries) fail('InvalidDeliveryAttemptIndex');
+        const supplied = Array.from({length:semanticCids.length}, (_, index) => semanticCids[index]);
+        if (!supplied.every(cid)) fail('InvalidDeliveryAttemptIndex');
+        const keys = Array.from(new Set(supplied), semantic_cid => ({semantic_cid}));
+        return Object.freeze([...selectedPublicationRows(keys).values()]);
+      },
       putPublicationContracts(entries, allowance, progress) { return publicationMutation('put',entries,allowance,progress); },
       publicationAttempt(attemptCid) {requireComplete();const row=publicationAttempt.get(attemptCid);
         return row===undefined?undefined:Object.freeze({...row});},

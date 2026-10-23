@@ -460,6 +460,14 @@ separate; it is not a per-history acknowledgement or a minimum barrier allowance
 This localization does not remove payload quota or other recovery history work.
 ### Trusted clock write observation
 
+Ordinary opening admits clock entry names and reclaims interrupted legacy
+staging files with their real directory acknowledgement, but does not stat
+each stored clock file. The selected clock reader still opens the exact
+original with its existing file/type, extent, content/checksum and floor
+checks before sampling or accepting an observation. An unavailable selected
+floor is not fresh initialization. Name enumeration for legacy staging remains
+bounded opening work; this is not a history-independent clock directory.
+
 A warm fixed-length clock update consumes its already typed observation after
 the same original file completes write, sync and close. Post-sync FD state and
 post-close path state must agree in device, inode, size, modification and change
@@ -585,6 +593,16 @@ a lost reply retains the exact ordered original group and confirms it through
 the existing same-database write/COMMIT. It never creates another attempt,
 refunds capacity, resends work or treats visible rows as a durability ACK.
 Unrelated metadata rows are not acquired by this selected-key lookup.
+
+Quota preflight uses the same bounded selected-key reader, rather than one
+native lookup per supplied body. Independently adopted file originals are
+verified first and keep their file representation and charge. Only the
+remaining native keys enter preflight, which retains bounded immutable row
+copies for this operation, reserves capacity only for missing bodies, and
+releases partial reservations on any refusal. The actual mutation still owns
+its selected-row conflict check, quota delta and durable transaction; a
+preflight observation cannot acknowledge a write or a lost COMMIT. Empty
+native selections perform no native read. No unrelated history is acquired.
 
 ### Connection-owned publication statements
 
