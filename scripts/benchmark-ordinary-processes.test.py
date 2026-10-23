@@ -43,6 +43,37 @@ elif args[0]=='result':
 else:raise AssertionError(args)
 '''
 
+NATIVE_OPERATIONS = r'''#!/usr/bin/env python3
+import hashlib,json,os,re,sys,time
+from pathlib import Path
+FAIL_QUERY=None
+SLOW_QUERY=None
+REUSE_RUN=False
+FAIL_RESULT=False
+ALTER_RESULT=False
+args=sys.argv[1:];cwd=Path.cwd()
+def event(kind,value=None):
+ with(cwd/'events').open('a')as f:f.write(json.dumps({'kind':kind,'value':value,'pid':os.getpid()})+'\n')
+if args[0]=='init':(cwd/args[1]).mkdir()
+elif args[0]=='run':
+ assert '--format'not in args and '--receipt'not in args
+ value=int(re.fullmatch(r'SELECT ([0-9]+) AS id;\n',(cwd/args[1]).read_text())[1])
+ event('run',value);run='synthetic-run-'+str(0 if REUSE_RUN else value)
+ if value==FAIL_QUERY:
+  print(json.dumps({'run':{'run_id':run,'status':'needs_reconciliation'},'delivery_status':'unknown'}));sys.exit(0)
+ if value==SLOW_QUERY:time.sleep(1.01)
+ file=cwd/args[args.index('--output')+1];file.write_text(json.dumps({'id':value},separators=(',',':'))+'\n')
+ values=json.loads((cwd/'values.json').read_text())if(cwd/'values.json').exists()else{}
+ values[run]=value;(cwd/'values.json').write_text(json.dumps(values))
+ print(json.dumps({'run':{'run_id':run,'status':'succeeded'},'delivery_status':'delivered','deliveries':[{'run_id':run,'status':'delivered','request':{'path':str(file),'format':'jsonl','result':'answer','result_cid':'sha256:'+hashlib.sha256(str(value).encode()).hexdigest()}}]}))
+elif args[0]=='result':
+ value=json.loads((cwd/'values.json').read_text())[args[1]];event('result',value)
+ if FAIL_RESULT:print('Synthetic Unknown; no resend',file=sys.stderr);sys.exit(1)
+ if ALTER_RESULT:Path(__file__).write_text(Path(__file__).read_text()+'\n# modified fixture payload\n')
+ print(json.dumps({'id':value}))
+else:raise AssertionError(args)
+'''
+
 PYTHON = '''import json,os
 from pathlib import Path
 from types import SimpleNamespace
@@ -110,7 +141,7 @@ class CollectorTests(unittest.TestCase):
         self.root = Path(self.temp.name)
         self.addCleanup(self.temp.cleanup)
 
-    def native(self, fail_result=False):
+    def native(self, fail_result=False, operations=False, fail_query=None, reuse_run=False, alter_result=False, slow_query=None):
         root = self.root
         consumer = root/'installed-native'
         packages = root/'packages'
@@ -119,6 +150,8 @@ class CollectorTests(unittest.TestCase):
         manifest = dict(version='actql-native-cli-release/0.1', sourceSha=SOURCE,
                         platforms={platform_key:{}}, packages=[])
         code = NATIVE.replace("if (cwd.parent/'fail-result').exists():", 'if True:') if fail_result else NATIVE
+        if operations:
+            code=NATIVE_OPERATIONS.replace('FAIL_QUERY=None','FAIL_QUERY='+repr(fail_query)).replace('SLOW_QUERY=None','SLOW_QUERY='+repr(slow_query)).replace('REUSE_RUN=False','REUSE_RUN='+repr(reuse_run)).replace('FAIL_RESULT=False','FAIL_RESULT='+repr(fail_result)).replace('ALTER_RESULT=False','ALTER_RESULT='+repr(alter_result))
         for name, members in [('actql', {'bin/actql.mjs':code.encode()}),
                               ('@actql/cli-'+platform_key, {'bin/actql-native-client':b'synthetic artifact only'})]:
             filename = name.replace('@','').replace('/','-')+'.tgz'
@@ -427,6 +460,88 @@ class CollectorTests(unittest.TestCase):
                     extra=['--selection','priority-transition'])
             finally:self.root=original_root
         self.assertNotEqual(result.returncode,0);self.assertIsNone(report)
+
+
+    def test_native_operations_variation_originals_and_actual_children(self):
+        result,report,output=self.collect('native',self.native(operations=True),'cold-existing',
+            extra=['--selection','native-operations'])
+        # Ordinary operation is deliberately incompatible; no command ran.
+        self.assertNotEqual(result.returncode,0);self.assertIsNone(report)
+        fixture=self.native_operations_fixture_in_subdirectory()
+        result,report,output=self.collect_native_operations(fixture,self.root/'native-measured')
+        self.assertEqual(result.returncode,0,result.stderr)
+        self.assertEqual([r['operation']for r in report['latency']],['cold-new-run','cold-result'])
+        events=[json.loads(x)for x in(output/'new-state/events').read_text().splitlines()]
+        self.assertEqual([(r['kind'],r['value'])for r in events],[('run',0),('run',1),('run',2),('run',3),('result',1),('result',2),('result',3)])
+        self.assertEqual(len({r['pid']for r in events}),7)
+        rows=[r for series in report['latency']for r in series['samples']]
+        self.assertEqual(len({r['publicOperationId']for r in rows}),6)
+        self.assertEqual(len({r['runRefSha256']for r in rows[:3]}),3)
+        self.assertEqual([r['runRefSha256']for r in rows[:3]],[r['runRefSha256']for r in rows[3:]])
+        self.assertTrue(all(r['wallNs']>=r['childWallNs']>0 for r in rows))
+        self.assertTrue(report['cleanup']['closed']);self.assertTrue(report['installedPayloadsUnchanged'])
+        self.assertTrue(all(r['completed']for r in report['functional']['rows']))
+        self.assertIsNone(report['structuralCounters']);self.assertIsNone(report['population'])
+        self.assertFalse(report['fullPerformanceAccepted'])
+        assessor=Path(__file__).with_name('operation-performance.mjs')
+        assessed=subprocess.run(['node',str(assessor),'--native-operations',str(output/'measurements.json')],capture_output=True,text=True)
+        self.assertEqual(assessed.returncode,1,assessed.stderr)
+        verdict=json.loads(assessed.stdout)
+        self.assertEqual(verdict['status'],'incomplete');self.assertFalse(verdict['fullPerformanceAccepted'])
+        self.assertIsNone(verdict['checks']['cold-new-run']['summary']['p95Ms'])
+
+    def native_operations_fixture_in_subdirectory(self,**options):
+        original=self.root;self.root=original/'native-fixture';self.root.mkdir()
+        try:return self.native(operations=True,**options)
+        finally:self.root=original
+
+    def collect_native_operations(self,fixture,output=None):
+        manifest,consumer,_=fixture;output=output or self.root/'native-output'
+        result=subprocess.run([sys.executable,'-I','-B',str(SCRIPT),'--adapter','native',
+            '--manifest',str(manifest),'--consumer',str(consumer),'--source',SOURCE,
+            '--output',str(output),'--selection','native-operations'],capture_output=True,text=True)
+        path=output/'measurements.json'
+        return result,json.loads(path.read_text())if path.exists()else None,output
+
+    def test_native_operations_unknown_retains_original_response_and_stops(self):
+        result,report,output=self.collect_native_operations(self.native(operations=True,fail_query=2))
+        self.assertEqual(result.returncode,1,result.stderr)
+        self.assertEqual(report['publicCallAttempts'],{'init':1,'run':3,'result':0})
+        rows=report['latency'][0]['samples'];self.assertEqual(len(rows),2)
+        self.assertFalse(rows[-1]['verified']);self.assertEqual(rows[-1]['publicRunId'],'synthetic-run-2')
+        self.assertEqual(rows[-1]['publicResponse']['run']['status'],'needs_reconciliation')
+        self.assertGreater(rows[-1]['wallNs'],0);self.assertTrue(report['cleanup']['closed'])
+        self.assertFalse(report['functional']['rows'][0]['completed'])
+        events=[json.loads(x)for x in(output/'new-state/events').read_text().splitlines()]
+        self.assertEqual([r['value']for r in events],[0,1,2])
+
+    def test_native_operations_saved_failure_never_submits_again(self):
+        result,report,_=self.collect_native_operations(self.native(operations=True,fail_result=True))
+        self.assertEqual(result.returncode,1,result.stderr)
+        self.assertEqual(report['publicCallAttempts'],{'init':1,'run':4,'result':1})
+        self.assertFalse(report['latency'][1]['samples'][0]['verified'])
+        self.assertEqual(len(report['latency'][1]['samples']),1)
+        self.assertTrue(report['cleanup']['closed'])
+
+    def test_native_operations_reused_run_or_changed_package_cannot_qualify(self):
+        for name,options in [('run',{'reuse_run':True}),('package',{'alter_result':True})]:
+            with self.subTest(name=name),tempfile.TemporaryDirectory()as directory:
+                original=self.root;self.root=Path(directory)
+                try:result,report,_=self.collect_native_operations(self.native(operations=True,**options))
+                finally:self.root=original
+                self.assertEqual(result.returncode,1,result.stderr)
+                self.assertTrue(all(not row['completed']and 'actualSha256'not in row for row in report['functional']['rows']))
+                if name=='package':self.assertTrue(report['packageFailure'])
+                else:self.assertIn('reused',report['firstFailure']['message'])
+
+    def test_native_operations_slow_prefix_has_no_complete_population(self):
+        result,report,_=self.collect_native_operations(self.native(operations=True,slow_query=1))
+        self.assertEqual(result.returncode,0,result.stderr)
+        self.assertEqual(report['publicCallAttempts'],{'init':1,'run':2,'result':0})
+        self.assertEqual(len(report['latency'][0]['samples']),1)
+        self.assertTrue(report['latency'][0]['stoppedEarly'])
+        self.assertFalse(report['functional']['rows'][0]['completed'])
+        self.assertNotIn('actualSha256',report['functional']['rows'][0])
 
 
 if __name__=='__main__':

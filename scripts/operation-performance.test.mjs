@@ -1,11 +1,12 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {execFileSync} from 'node:child_process';
+import {createHash} from 'node:crypto';
 import {mkdtempSync, writeFileSync, rmSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {operationTargets, latencySummary, assessLatency as rawAssessLatency, calibrateSqliteComparisonProfile, calibratedLatencyTarget, assessStructure, assessHistory,
-  assessChunks, assessBoundaries, boundaryExpectations, collectOperationSamples, assessPerformanceEvidence} from './operation-performance.mjs';
+  assessChunks, assessBoundaries, boundaryExpectations, collectOperationSamples, assessPerformanceEvidence, assessNativeOperations} from './operation-performance.mjs';
 
 import {syntheticSQLiteBaseline} from './fixtures/operation-performance-comparison.mjs';
 const baseline = syntheticSQLiteBaseline();
@@ -389,4 +390,96 @@ test('exported criteria are immutable and inherited object properties are not op
   assert.throws(() => { operationTargets['warm-select'].comparison = 'fixed-200ms'; });
   assert.throws(() => { boundaryExpectations['commit-unknown'].outcome = 'succeeded'; });
   assert.throws(() => assessLatency({...series(), operation: 'toString'}), /Unknown public operation/u);
+});
+
+
+const nativeHash = value => createHash('sha256').update(JSON.stringify(value)).digest('hex');
+function nativeReport(count = 100, ms = 80) {
+  const mode = count === 100 ? 'final' : 'diagnostic';
+  const environment = {platform: 'synthetic-native-process'};
+  const protocol = {selection: 'native-operations', mode, samplesPerOperation: count,
+    firstQuery: {text: 'SELECT 0 AS id', expected: [{id: 0}]},
+    queries: Array.from({length: count}, (_, index) => ({text: `SELECT ${index + 1} AS id`, expected: [{id: index + 1}]}))};
+  const binding = {cohortSha256: cohort, environmentSha256: nativeHash(environment), historyProtocolSha256: nativeHash(protocol)};
+  const report = {sourceSha: 'a'.repeat(40), ...binding, selection: 'native-operations', executionPath: 'native-cli',
+    mode, environment, historyProtocol: protocol, initialization: {pid: 1, code: 0, wallNs: 1000000},
+    cleanup: {closed: true}, packageFailure: null, installedPayloadsUnchanged: true,
+    publicCallAttempts: {init: 1, run: count + 1, result: count}, latency: [], functional: {...binding, rows: []}};
+  report.firstQuery = {pid: 2, publicOperationId: 'first', stateId: 'same-project', publicRunId: 'run-0',
+    completed: true, verified: true, command: {pid: 2, code: 0, wallNs: 1000000},
+    wallNs: 2000000, childWallNs: 1000000, querySha256: nativeHash('SELECT 0 AS id'), expectedSha256: nativeHash([{id: 0}]), actualSha256: nativeHash([{id: 0}])};
+  const fresh = Array.from({length: count}, (_, index) => {
+    const id = index + 1, runId = `run-${id}`, selected = {runId, resultName: 'answer', resultCid: `result-${id}`};
+    return {...binding, iteration: index, publicOperationId: `new-${id}`, stateId: 'same-project', pid: index + 3,
+      publicRunId: runId, runRefSha256: nativeHash({runId}), resultRefSha256: nativeHash(selected),
+      querySha256: nativeHash(`SELECT ${id} AS id`), expectedSha256: nativeHash([{id}]), actualSha256: nativeHash([{id}]),
+      completed: true, verified: true, wallNs: ms * 1e6, childWallNs: (ms - 1) * 1e6,
+      cpuUserUs: 1000, cpuSystemUs: 200, cpuScope: 'synthetic child', command: {pid: index + 3, code: 0, wallNs: (ms - 1) * 1e6},
+      publicResponse: {run: {run_id: runId, status: 'succeeded'}, delivery_status: 'delivered',
+        deliveries: [{run_id: runId, status: 'delivered', request: {result: 'answer', result_cid: selected.resultCid}}]}};
+  });
+  const originals = fresh.slice(0, 3);
+  for (const operation of ['cold-new-run', 'cold-result']) {
+    const values = operation === 'cold-new-run' ? fresh : Array.from({length: count}, (_, index) => {
+      const original = originals[index % originals.length], pid = count + index + 3;
+      return {...binding, iteration: index, publicOperationId: `saved-${index}`, stateId: 'same-project', pid,
+        ...Object.fromEntries(['publicRunId', 'runRefSha256', 'resultRefSha256', 'expectedSha256', 'actualSha256'].map(key => [key, original[key]])),
+        completed: true, verified: true, wallNs: ms * 1e6, childWallNs: (ms - 1) * 1e6,
+        cpuUserUs: 1000, cpuSystemUs: 200, cpuScope: 'synthetic child',
+        command: {pid, code: 0, wallNs: (ms - 1) * 1e6, args: ['result', original.publicRunId, '--result', 'answer', '--format', 'jsonl']}};
+    });
+    const workload = operation === 'cold-new-run' ? {kind: 'new-durable-run-result-file-rows',
+      fixtures: protocol.queries.map(row => ({querySha256: nativeHash(row.text), expectedSha256: nativeHash(row.expected)}))}
+      : {kind: 'saved-original-result-rows', originals: originals.map(row => Object.fromEntries(
+        ['runRefSha256', 'resultRefSha256', 'expectedSha256'].map(key => [key, row[key]])))};
+    const fixtureSha256 = nativeHash(workload);
+    for (const row of values) row.fixtureSha256 = fixtureSha256;
+    report.latency.push({...binding, operation, mode, fixtureSha256, publicWorkload: workload,
+      samples: values, profiled: false, load: 'isolated', stoppedEarly: false});
+    report.functional.rows.push({operation, fixtureSha256, completed: true,
+      expectedSha256: nativeHash(values.map(row => row.expectedSha256)), actualSha256: nativeHash(values.map(row => row.actualSha256))});
+  }
+  return report;
+}
+
+test('Native public process gate keeps its targets and full acceptance separate', () => {
+  const passed = assessNativeOperations(nativeReport());
+  assert.equal(passed.status, 'passed'); assert.equal(passed.target.medianMs, 100); assert.equal(passed.target.p95Ms, 200);
+  assert.equal(passed.fullPerformanceAccepted, false); assert.equal(passed.releaseAccepted, false);
+  assert(passed.unverified.includes('matched SQLite public-operation comparator'));
+  const short = assessNativeOperations(nativeReport(3));
+  assert.equal(short.status, 'incomplete'); assert.equal(short.checks['cold-new-run'].summary.p95Ms, null);
+  const slow = assessNativeOperations(nativeReport(100, 250));
+  assert.equal(slow.status, 'failed'); assert(slow.failures.some(row => row.includes('median latency')));
+});
+
+test('Native public process gate rejects mixed identities and replaced saved targets', () => {
+  for (const mutate of [report => { report.latency[0].samples[0].cohortSha256 = 'f'.repeat(64); },
+    report => { report.latency[1].samples[0].publicRunId = 'another-run'; },
+    report => { report.latency[0].samples[0].querySha256 = 'f'.repeat(64); },
+    report => { delete report.firstQuery.command; },
+    report => { report.latency[1].samples[0].command.wallNs = 1; }]) {
+    const report = nativeReport(); mutate(report); assert.throws(() => assessNativeOperations(report));
+  }
+  const reused = nativeReport(); reused.latency[1].samples[0].pid = reused.firstQuery.pid;
+  reused.latency[1].samples[0].command.pid = reused.firstQuery.pid;
+  assert.equal(assessNativeOperations(reused).status, 'failed');
+  const state = nativeReport(); state.latency[1].samples[0].stateId = 'another-project';
+  assert.equal(assessNativeOperations(state).status, 'failed');
+});
+
+test('Native public process gate retains failed or missing original provenance and work', () => {
+  const packageFailure = nativeReport(); packageFailure.packageFailure = 'actual changed payload';
+  assert.equal(assessNativeOperations(packageFailure).status, 'failed');
+  const missing = nativeReport(); delete missing.installedPayloadsUnchanged;
+  assert.equal(assessNativeOperations(missing).status, 'incomplete');
+  const missingInit = nativeReport(); delete missingInit.initialization.pid;
+  assert.equal(assessNativeOperations(missingInit).status, 'incomplete');
+  const unknown = nativeReport(); unknown.firstFailure = {message: 'original Unknown'};
+  unknown.latency = unknown.latency.slice(0, 1);
+  unknown.latency[0].samples = unknown.latency[0].samples.slice(0, 1);
+  Object.assign(unknown.latency[0].samples[0], {completed: false, verified: false});
+  unknown.publicCallAttempts = {init: 1, run: 2, result: 0};
+  unknown.functional.rows = [{...unknown.functional.rows[0], completed: false}];
+  assert.equal(assessNativeOperations(unknown).status, 'failed');
 });

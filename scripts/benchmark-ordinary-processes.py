@@ -464,7 +464,142 @@ def collect_python_priority(args):
     return 1 if report.get('firstFailure') or report['packageFailure'] or not report['cleanup']['closed'] else 0
 
 
+
+def collect_native_operations(args):
+    """Separate CLI processes; a durable Run with file rows is not a warm SDK call."""
+    assert args.adapter == 'native' and args.operation is None, 'Native operation selection requires Native CLI without an ordinary operation'
+    output, consumer = Path(args.output).resolve(), Path(args.consumer).absolute()
+    manifest_path = Path(args.manifest).resolve()
+    _, cohort, before = verify_packages('native', manifest_path, consumer, args.source)
+    assert not output.exists(), 'Use distinct new benchmark state; no old Run replay'
+    output.mkdir(mode=0o700, parents=True)
+    count = 100 if args.mode == 'final' else 3
+    protocol = dict(selection='native-operations', mode=args.mode, samplesPerOperation=count,
+        firstQuery={'text':'SELECT 0 AS id','expected':[{'id':0}]},
+        queries=[{'text':f'SELECT {n} AS id','expected':[{'id':n}]} for n in range(1,count+1)],
+        order=['init-separate','first-query-separate','cold-new-run','cold-result'],
+        entry='ordinary init, then one actual CLI child per Program Run/file rows or saved Result',
+        savedOriginals='first three measured successful Runs, read cyclically without resubmission',
+        timing='startup through child exit, response and materialized-row oracle; child duration also retained',
+        diagnosticStopMs=1000, close='actual CLI process exit, no SDK Host.close or native-arena ACK inferred')
+    environment = dict(platform=sys.platform, architecture=platform.machine(), osRelease=platform.release(),
+        controllerPython=platform.python_version(), controllerExecutableSha256=digest(Path(sys.executable).read_bytes()))
+    binding = dict(cohortSha256=cohort, environmentSha256=digest(wire(environment)),
+                   historyProtocolSha256=digest(wire(protocol)))
+    state, executable = output/'new-state', consumer/'bin/actql.mjs'
+    report = dict(sourceSha=args.source, **binding, executionPath='native-cli', selection='native-operations',
+        mode=args.mode, environment=environment, historyProtocol=protocol, latency=[],
+        functional={**binding,'rows':[]}, cleanup=dict(closed=False), installedPayloadsUnchanged=False,
+        packageFailure=None, commands=[], savedOriginals=[], publicCallAttempts=dict(init=0,run=0,result=0),
+        structuralCounters=None, population=None, fullPerformanceAccepted=False,
+        qualification='Native process latency/functional selection only; no retained-Host warm, matched comparator, history, safety or release acceptance.')
+    originals, runs = [], set()
+    active = 'init'
+
+    def measured(row, action):
+        start = time.perf_counter_ns()
+        try:
+            action(row)
+            row.update(completed=True,verified=True)
+        except BaseException as error:
+            row.update(completed=False,verified=False,error=dict(name=type(error).__name__,message=str(error)))
+            raise
+        finally:
+            row['wallNs'] = time.perf_counter_ns()-start
+            record = row.get('command')
+            if record:
+                row.update(pid=record['pid'],childWallNs=record['wallNs'],cpuUserUs=record['cpuUserUs'],
+                    cpuSystemUs=record['cpuSystemUs'],cpuScope=record['cpuScope'])
+
+    def invoke(row, arguments, name):
+        record = command(executable,arguments,state,output,name)
+        row['command'] = record;report['commands'].append(record)
+        assert record['code'] == 0, 'Original public command failed; do not retry or resubmit'
+        return record
+
+    def new_query(fixture, row, name):
+        query, destination = state/(name+'.aql'), state/(name+'.jsonl')
+        row.update(querySha256=digest(wire(fixture['text'])),expectedSha256=digest(wire(fixture['expected'])))
+        report['publicCallAttempts']['run'] += 1
+        record = invoke(row,['run',query.name,'--output',destination.name,'--json'],name)
+        response = json.loads(record['stdout']);row['publicResponse'] = response
+        row['publicRunId'] = response['run']['run_id']
+        assert response['run']['status'] == 'succeeded' and response['delivery_status'] == 'delivered', 'Original admitted Run/delivery did not succeed'
+        assert isinstance(row['publicRunId'],str) and row['publicRunId'] and row['publicRunId'] not in runs, 'New SQL reused an original Run'
+        runs.add(row['publicRunId'])
+        deliveries = response['deliveries'];assert len(deliveries)==1
+        delivery = deliveries[0];assert delivery['run_id']==row['publicRunId'] and delivery['status']=='delivered'
+        request = delivery['request'];assert request['path']==str(destination) and request['format']=='jsonl'
+        selected = dict(runId=row['publicRunId'],resultName=request['result'],resultCid=request['result_cid'])
+        assert all(isinstance(value,str) and value for value in selected.values())
+        row.update(runRefSha256=digest(wire(dict(runId=row['publicRunId']))),resultRefSha256=digest(wire(selected)))
+        assert stat.S_ISREG(destination.lstat().st_mode) and destination.stat().st_size<=4*1024*1024
+        value = [json.loads(line)for line in destination.read_text().splitlines()]
+        row['actualSha256'] = digest(wire(value));assert value==fixture['expected'], 'Independent materialized-row oracle differs'
+        return dict(**selected,runRefSha256=row['runRefSha256'],resultRefSha256=row['resultRefSha256'],
+                    expected=fixture['expected'],expectedSha256=row['expectedSha256'])
+
+    try:
+        report['publicCallAttempts']['init'] += 1
+        initial = command(executable,['init',state.name],output,output,'init')
+        report['initialization'] = initial;report['commands'].append(initial)
+        assert initial['code']==0,'Ordinary init failed'
+        active = 'first-query-separate'
+        report['firstQuery'] = dict(publicOperationId=str(uuid.uuid4()),stateId=str(state))
+        (state/'first.aql').write_text(protocol['firstQuery']['text']+';\n')
+        measured(report['firstQuery'],lambda row:new_query(protocol['firstQuery'],row,'first'))
+        for operation in ['cold-new-run','cold-result']:
+            active = operation;fresh = operation=='cold-new-run'
+            workload = (dict(kind='new-durable-run-result-file-rows',fixtures=[dict(querySha256=digest(wire(f['text'])),expectedSha256=digest(wire(f['expected'])))for f in protocol['queries']])
+                if fresh else dict(kind='saved-original-result-rows',originals=[{k:r[k]for k in ['runRefSha256','resultRefSha256','expectedSha256']}for r in originals]))
+            series = dict(**binding,operation=operation,mode=args.mode,profiled=False,load=args.load,
+                publicWorkload=workload,fixtureSha256=digest(wire(workload)),samples=[],stoppedEarly=False)
+            report['latency'].append(series)
+            for iteration in range(count):
+                row = dict(**binding,fixtureSha256=series['fixtureSha256'],iteration=iteration,
+                           publicOperationId=str(uuid.uuid4()),stateId=str(state))
+                series['samples'].append(row)
+                if fresh:(state/f'new-{iteration}.aql').write_text(protocol['queries'][iteration]['text']+';\n')
+                def execute(row):
+                    if fresh:
+                        original = new_query(protocol['queries'][iteration],row,f'new-{iteration}')
+                        if len(originals)<3:originals.append(original)
+                    else:
+                        original=originals[iteration%len(originals)]
+                        row.update({k:original[k]for k in ['runRefSha256','resultRefSha256','expectedSha256']})
+                        row['publicRunId']=original['runId'];report['publicCallAttempts']['result']+=1
+                        record=invoke(row,['result',original['runId'],'--result',original['resultName'],'--format','jsonl'],f'result-{iteration}')
+                        value=[json.loads(line)for line in record['stdout'].splitlines()]
+                        row['actualSha256']=digest(wire(value));assert value==original['expected'],'Saved original rows differ'
+                measured(row,execute)
+                if row['wallNs']>=protocol['diagnosticStopMs']*1_000_000:
+                    series.update(stoppedEarly=True,stopReason='obvious slow sample; no acceptance distribution')
+                    report['stoppedAt']=operation;break
+            if series['stoppedEarly']:break
+    except BaseException as error:
+        report['firstFailure']=dict(operation=active,name=type(error).__name__,message=str(error))
+        if report['latency']:report['latency'][-1]['stoppedEarly']=True
+    finally:
+        report['cleanup']=dict(closed=all(r['code']is not None for r in report['commands']),
+            scope='Actual synchronous CLI children exited; no SDK close or arena ACK inferred')
+        try:
+            assert verify_packages('native',manifest_path,consumer,args.source)[2]==before
+            report['installedPayloadsUnchanged']=True
+        except BaseException as error:report['packageFailure']=str(error)
+        report['savedOriginals']=originals
+        for series in report['latency']:
+            rows=series['samples'];complete=(len(rows)==count and all(r['verified']for r in rows)and
+                not report.get('firstFailure')and report['packageFailure']is None and report['cleanup']['closed'])
+            report['functional']['rows'].append(dict(operation=series['operation'],fixtureSha256=series['fixtureSha256'],completed=complete,
+                expectedSha256=digest(wire([r.get('expectedSha256')for r in rows])),
+                **({'actualSha256':digest(wire([r.get('actualSha256')for r in rows]))}if complete else {})))
+        write(output/'measurements.json',report)
+    return 1 if report.get('firstFailure')or report['packageFailure']or not report['cleanup']['closed']else 0
+
+
 def collect(args):
+    if args.selection == 'native-operations':
+        return collect_native_operations(args)
     if args.selection == 'priority-transition':
         return collect_python_priority(args)
     output = Path(args.output).resolve()
@@ -607,14 +742,14 @@ def main():
     parser.add_argument('--output')
     parser.add_argument('--operation', choices=OPERATIONS)
     parser.add_argument('--mode', choices=('diagnostic','final'), default='diagnostic')
-    parser.add_argument('--selection', choices=('ordinary','priority-transition'), default='ordinary')
+    parser.add_argument('--selection', choices=('ordinary','priority-transition','native-operations'), default='ordinary')
     parser.add_argument('--load', choices=('isolated','concurrent'), default='concurrent')
     args = parser.parse_args()
     if args.sample:
         config = json.loads(Path(args.sample).read_text())
         return python_priority_sample(config) if config.get('selection') == 'priority-transition' else python_sample(config)
     assert all(getattr(args,k) for k in ('adapter','manifest','consumer','source','output'))
-    assert args.selection == 'priority-transition' or args.operation
+    assert args.selection in ('priority-transition','native-operations') or args.operation
     assert len(args.source)==40 and all(c in '0123456789abcdef' for c in args.source)
     assert args.adapter != 'python' or args.venv
     return collect(args)
