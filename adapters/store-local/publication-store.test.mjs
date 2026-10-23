@@ -8511,6 +8511,69 @@ test(`metadata deletion ${phase} Unknown retains the actual Store cleanup origin
 });
 }
 
+test('native shared holding selection reads only owners of that holding', async t => {
+  const setup = await fixture(t), {store, directory, configuration} = setup;
+  const publish = async label => {
+    const invocationValue = invocation(), request = publicationRequest(resultDefinition(), digest(label));
+    const attempt = publicationAttempt(request, label), prepared = await prepareCommit(store, request, attempt, invocationValue);
+    const entry = indexEntry(request, attempt, invocationValue, {durable_result_binding_cids: [prepared.binding.identity]});
+    await store.commitIndex(wire(entry), prepared.required, prepared.evidence);
+    return {request, entry};
+  };
+  const first = await publish('indexed first holding owner');
+  const second = await publish('indexed second holding owner');
+  const unrelated = await publish('unrelated holding inventory');
+  const payload = await preparePhysical(store, Buffer.from('indexed shared physical bytes'));
+  const holding = physicalHolding(digest('indexed shared physical holding'), digest('indexed shared manifest'),
+    [{cid: payload.cid, byte_count: payload.bytes}], 'effect-source');
+  await store.commitPhysicalHolding(holding, [payload.prepared]);
+  // Existing explicit contract-control fixture: two native inventory owners
+  // of one real holding. This does not fabricate a Source/Model issuer.
+  const database = new DatabaseSync(join(directory, 'delivery-attempts.sqlite3'));
+  try {
+    database.exec('PRAGMA synchronous=FULL; PRAGMA fullfsync=ON; BEGIN IMMEDIATE');
+    for (const owner of [first, second]) {
+      const row = database.prepare('SELECT inventory_wire FROM native_publication_inventories WHERE public_index_cid=?')
+        .get(owner.entry.public_index_entry_cid);
+      const inventory = JSON.parse(row.inventory_wire);
+      inventory.physical_holding_cids = [holding.holding_cid];
+      database.prepare('UPDATE native_publication_inventories SET inventory_wire=? WHERE public_index_cid=?')
+        .run(JSON.stringify(inventory), owner.entry.public_index_entry_cid);
+    }
+    database.exec('COMMIT');
+  } finally {database.close();}
+  await store.close();
+  let armed = false, fullInventoryReads = 0;
+  const holdingOwners = [], prepare = DatabaseSync.prototype.prepare;
+  t.mock.method(DatabaseSync.prototype, 'prepare', function(sql) {
+    const statement = Reflect.apply(prepare, this, [sql]), all = statement.all;
+    t.mock.method(statement, 'all', function(...args) {
+      const rows = Reflect.apply(all, this, args);
+      if (armed && sql === 'SELECT * FROM native_publication_inventories ORDER BY public_index_cid LIMIT ?') {
+        fullInventoryReads += rows.length;
+      }
+      if (armed && args[0] === 'holding' && args[1] === holding.holding_cid) {
+        holdingOwners.push(...rows.map(row => row.public_index_cid));
+      }
+      return rows;
+    });
+    return statement;
+  });
+  const reopened = await openLocalPublicationStore(configuration, contractControl);
+  const path = join(directory, 'objects', payload.cid.slice(7)), original = await stat(path);
+  armed = true;
+  const retired = await reopened.retireCommittedPublicationMetadata(indexKeyFor(first.request), '2027-01-01T00:00:00.000Z');
+  armed = false;
+  assert.equal(retired.cleanup.status().pending, false);
+  assert.deepEqual(await reopened.inspectPhysicalHolding(holding.holding_cid), holding);
+  const retained = await stat(path);
+  assert.equal(retained.dev, original.dev); assert.equal(retained.ino, original.ino);
+  assert.equal(fullInventoryReads, 0, 'selected retirement does not read native inventory history');
+  assert.deepEqual(holdingOwners, [second.entry.public_index_entry_cid]);
+  assert(!holdingOwners.includes(unrelated.entry.public_index_entry_cid));
+  await reopened.close();
+});
+
 test('native publication inventories retain one shared physical holding until its final original ACK',async t=>{
   const setup=await fixture(t),{store,directory,configuration}=setup;
   const publish=async label=>{
