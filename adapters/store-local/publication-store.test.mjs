@@ -28,7 +28,9 @@ import {DatabaseSync} from 'node:sqlite';
 import {openDeliveryAttemptIndex} from './delivery-attempt-index.mjs';
 import {canonicalCid, createPublicationContractControlFixture} from
   '../host-common/publication-contract-control.fixture.mjs';
-import {openLocalPublicationStore as openActualLocalPublicationStore} from './publication-store.mjs';
+import {openLocalPublicationStore as openActualLocalPublicationStore,
+  prepareLocalPublicationStoreOwnership, closePreparedLocalPublicationStoreOwnership}
+  from './publication-store.mjs';
 import {preparePrivatePublicationHolding} from
   '../host-common/private-publication-holding.mjs';
 import {definition as captureCustodyRunFixture} from
@@ -183,6 +185,36 @@ test('fresh Store coverage shares its original native schema commit', async t =>
   const reopened = await openLocalPublicationStore(configuration, contractControl);
   assert.equal(commits, 0, 'unchanged reopening neither recreates coverage nor commits a migration');
   await reopened.close();
+});
+
+test('fresh Store coverage uses the same actual prepared owner creation', async t => {
+  const directory = await mkdtemp(join(tmpdir(), 'actql-prepared-empty-store-'));
+  let store, original;
+  t.after(async () => {
+    if (store !== undefined && !store.status().closed) await store.close();
+    if (original !== undefined) assert.equal((await closePreparedLocalPublicationStoreOwnership(original)).pending, false);
+    await removeFixtureDirectory(directory);
+  });
+  const configuration = {directory, storeAuthorityCid: cids.authority,
+    capacityBytes: 1024 * 1024, maxObjectBytes: 64 * 1024,
+    maxObjects: 100, maxContractNodes: limits.maxNodes, maxContractDepth: limits.maxDepth};
+  original = await prepareLocalPublicationStoreOwnership(directory,
+    {maxWireBytes: 64 * 1024, maxDirectoryEntries: 100});
+  const owner = await readFile(join(directory, 'owner', 'owner.json'));
+  let commits = 0;
+  const exec = DatabaseSync.prototype.exec;
+  t.mock.method(DatabaseSync.prototype, 'exec', function(sql) {
+    const result = Reflect.apply(exec, this, [sql]);
+    if (sql === 'COMMIT') commits++;
+    return result;
+  });
+  store = await openLocalPublicationStore(configuration, contractControl,
+    undefined, undefined, original);
+  assert.equal(commits, 1);
+  assert.deepEqual(await readFile(join(directory, 'owner', 'owner.json')), owner);
+  assert.equal((await closePreparedLocalPublicationStoreOwnership(original)).pending, true);
+  await store.close();
+  assert.equal((await closePreparedLocalPublicationStoreOwnership(original)).pending, false);
 });
 
 for (const afterCommit of [false, true]) {

@@ -674,6 +674,18 @@ lookup validates the selected original attempt, its referenced grant and the
 index correspondence; unrelated history is neither read nor re-admitted.
 
 A durable building/ready marker distinguishes migration from ready coverage.
+Only successful first Store-format creation, including its real root directory
+acknowledgement, selects initially empty coverage. The original native schema
+transaction creates complete empty delivery, physical-quota, publication-recovery
+and metadata-retirement coverage together. It retains WAL/FULL/fullfsync and
+the separate building/ready marker acknowledgements. A prepared owner supplies
+its same held exclusion; it does not turn a cold owner-only directory into a
+fresh format. Existing or interrupted Store formats keep their bounded migration
+protocol, and an empty-initialization request cannot replace an existing native
+schema. A failed initial COMMIT remains Unknown whether its complete transition
+was committed or rolled back; later format completion does not rewrite that
+original failure or replay any Run.
+
 The bounded legacy migration reads each original attempt and referenced grant,
 refuses ambiguous keys or excess uses, and commits complete coverage once.
 Its attempt and grant readers explicitly acquire their original legacy files;
