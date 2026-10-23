@@ -1694,6 +1694,9 @@ export function openClientRequestJournal(directory, {
   const path = join(root, 'client-requests.sqlite3');
   const existed = existsSync(path);
   if (current !== existed) fail('UnknownClientRequestJournalFormat');
+  // A fresh initialization is unpublished until its final directory ACK.
+  // Existing-database format upgrades keep their original immediate ACKs.
+  const syncFormatDirectory = () => {if (existed) syncDirectory(root);};
   primaryCurrent?.();
   // Native option lookup includes inherited properties. The selected facility
   // must not acquire arbitrary callbacks or configurations from that prototype.
@@ -1817,7 +1820,7 @@ export function openClientRequestJournal(directory, {
       ) STRICT;
     `);
     if (!existed) {
-      syncDirectory(root);
+      syncFormatDirectory();
       const marker = openSync(join(root, 'journal-format.json'), 'wx', 0o600);
       try {
         writeFileSync(marker, journalMarker);
@@ -1825,7 +1828,7 @@ export function openClientRequestJournal(directory, {
       } finally {
         closeSync(marker);
       }
-      syncDirectory(root);
+      syncFormatDirectory();
     }
     if (!existsSync(join(root, submissionMarkerName))) {
       // Adopt only the retained original rows of an admitted prior format.
@@ -1841,7 +1844,7 @@ export function openClientRequestJournal(directory, {
       const marker = openSync(join(root, submissionMarkerName), 'wx', 0o600);
       try { writeFileSync(marker, submissionMarker); fsyncSync(marker); }
       finally { closeSync(marker); }
-      syncDirectory(root);
+      syncFormatDirectory();
     }
     if (!existsSync(join(root, epochMarkerName))) {
       // One retained authentication key and monotonic expiry watermark suffice
@@ -1858,7 +1861,7 @@ export function openClientRequestJournal(directory, {
       const marker = openSync(join(root, epochMarkerName), 'wx', 0o600);
       try {writeFileSync(marker, epochMarker); fsyncSync(marker);}
       finally {closeSync(marker);}
-      syncDirectory(root);
+      syncFormatDirectory();
     }
     if (!existsSync(join(root, intentMarkerName))) {
       transaction.run(() => database.exec(`
@@ -1883,7 +1886,7 @@ export function openClientRequestJournal(directory, {
       const marker = openSync(join(root, intentMarkerName), 'wx', 0o600);
       try {writeFileSync(marker, intentMarker); fsyncSync(marker);}
       finally {closeSync(marker);}
-      syncDirectory(root);
+      syncFormatDirectory();
     }
     if (!existsSync(join(root, retirementMarkerName))) {
       // Adoption records zero formal retirements; it never resets issuance
@@ -1898,7 +1901,7 @@ export function openClientRequestJournal(directory, {
       const marker = openSync(join(root, retirementMarkerName), 'wx', 0o600);
       try {writeFileSync(marker, retirementMarker); fsyncSync(marker);}
       finally {closeSync(marker);}
-      syncDirectory(root);
+      syncFormatDirectory();
     }
     if (!existsSync(join(root, restartMarkerName))) {
       transaction.run(() => database.exec(`
@@ -1916,7 +1919,7 @@ export function openClientRequestJournal(directory, {
       const marker = openSync(join(root, restartMarkerName), 'wx', 0o600);
       try {writeFileSync(marker, restartMarker); fsyncSync(marker);}
       finally {closeSync(marker);}
-      syncDirectory(root);
+      syncFormatDirectory();
     }
     if (!existsSync(join(root, cancellationMarkerName))) {
       transaction.run(() => database.exec(`
@@ -1941,7 +1944,7 @@ export function openClientRequestJournal(directory, {
       const marker = openSync(join(root, cancellationMarkerName), 'wx', 0o600);
       try { writeFileSync(marker, cancellationMarker); fsyncSync(marker); }
       finally { closeSync(marker); }
-      syncDirectory(root);
+      syncFormatDirectory();
     }
     if (!existsSync(join(root, nameMarkerName))) {
       // Old nonces are not names. This empty additive index never adopts or
@@ -1954,7 +1957,7 @@ export function openClientRequestJournal(directory, {
       const marker = openSync(join(root, nameMarkerName), 'wx', 0o600);
       try {writeFileSync(marker, nameMarker); fsyncSync(marker);}
       finally {closeSync(marker);}
-      syncDirectory(root);
+      syncFormatDirectory();
     }
     if (database.prepare('PRAGMA user_version').get().user_version < 2) {
       adoptSubmissionUsageStorage(database,transaction,existsSync(join(root,usageMarkerName)));
@@ -3974,6 +3977,7 @@ export function openClientRequestJournal(directory, {
   applyOriginal(originalJournalCustodySet, originalJournalCustodies, [deliveredJournal, () =>
     Object.freeze({journalClosed: closed, databaseClosed,
       observationAttempted: observationStorageAttempted, observationDatabaseClosed})]);
+  if (!existed) syncDirectory(root);
   return deliveredJournal;
   } catch (error) {
     throwSqliteInitializationFailure(initializationCleanup, error, 'client-request-journal');

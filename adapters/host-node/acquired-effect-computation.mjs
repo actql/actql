@@ -59,6 +59,7 @@ export async function openAcquiredEffectComputation({moon, owner, acquired,
   let pending = true;
   let settled = false;
   let closed = false;
+  let originalPreparationRetained = false;
   const originalCurrent = () => {
     signal?.throwIfAborted();
     if (closed) throw Object.assign(new Error('ClientRunCancellationRequested'),
@@ -151,7 +152,10 @@ export async function openAcquiredEffectComputation({moon, owner, acquired,
         await captures[0].close();
         captures.shift();
       }
-      if (originalPreparation !== undefined && await originalPreparation.retire() !== true) return false;
+      if (originalPreparationRetained) {
+        if (await originalPreparation.retire() !== true) return false;
+        originalPreparationRetained = false;
+      }
       if (checkedHost !== undefined &&
           !moon.clientProgramRefreshAcquiredEffectCleanup(checkedHost)) {
         observeUsage('effect_computation_cleanup_pending');
@@ -170,8 +174,11 @@ export async function openAcquiredEffectComputation({moon, owner, acquired,
   // Even preparation can fail. The dispatch owner receives custody before
   // the first asynchronous boundary or provider operation.
   retainComputationOwner(custody);
-  if (originalPreparation !== undefined) originalPreparation.retain();
   try {
+    if (originalPreparation !== undefined) {
+      originalPreparation.retain();
+      originalPreparationRetained = true;
+    }
     current();
     if (acquired.queryTimePreparation !== undefined) {
       if (typeof moon.clientProgramOpenLocalEffectHostAtQueryTime !== 'function' ||

@@ -73,7 +73,10 @@ const completionTable = `CREATE TABLE completions (
   ack_revision INTEGER NOT NULL CHECK(ack_revision>=1 AND ack_revision<=9007199254740991)
 ) WITHOUT ROWID`;
 
-export async function openDeliveryAttemptIndex(path, {create, maxEntries, maxWireBytes}) {
+export async function openDeliveryAttemptIndex(path, {
+  create, maxEntries, maxWireBytes, initializeEmpty = false,
+}) {
+  if (typeof initializeEmpty !== 'boolean') fail('DeliveryAttemptIndexUnavailable');
   const database = new DatabaseSync(path, {__proto__: null, open: false,
     readOnly: false, enableForeignKeyConstraints: true, allowExtension: false});
   let closeOriginal, isOpenOriginal, execOriginal, prepareOriginal, transactionState;
@@ -86,6 +89,17 @@ export async function openDeliveryAttemptIndex(path, {create, maxEntries, maxWir
     return Object.freeze({get: (...args) => Reflect.apply(get,original,args),
       run: (...args) => Reflect.apply(run,original,args),
       all: (...args) => Reflect.apply(all,original,args)});
+  };
+  const deferredStatements = [];
+  const prepareOnUse = sql => {
+    let statement;
+    const selected = () => {
+      if (closed) fail('DeliveryAttemptIndexClosed');
+      return statement ??= prepare(sql);
+    };
+    deferredStatements.push(() => {statement = undefined;});
+    return Object.freeze({get: (...args) => selected().get(...args),
+      run: (...args) => selected().run(...args), all: (...args) => selected().all(...args)});
   };
   const captureClose = () => {
     closeOriginal ??= database.close;
@@ -173,11 +187,15 @@ export async function openDeliveryAttemptIndex(path, {create, maxEntries, maxWir
     'DeliveryAttemptIndex');
     const initialize = create && prepare(
       "SELECT name FROM sqlite_schema WHERE type='table' LIMIT 1").get() === undefined;
+    // Only the Store's actual first format creation selects empty coverage.
+    // Existing or interrupted formats keep their original migration protocol.
+    if (initializeEmpty && !initialize) fail('DeliveryAttemptIndexUnavailable');
+    const initialComplete = initializeEmpty ? 1 : 0;
     if (initialize) transaction.run(() => {
       exec(`CREATE TABLE coverage (
         id INTEGER PRIMARY KEY CHECK(id=1), version INTEGER NOT NULL,
         complete INTEGER NOT NULL CHECK(complete IN (0,1)), entries INTEGER NOT NULL);
-        INSERT INTO coverage VALUES(1,11,0,0);
+        INSERT INTO coverage VALUES(1,11,${initialComplete},0);
         CREATE TABLE attempts (
           logical_key TEXT PRIMARY KEY, attempt_cid TEXT NOT NULL UNIQUE,
           grant_cid TEXT NOT NULL, run_cid TEXT NOT NULL,
@@ -199,11 +217,11 @@ export async function openDeliveryAttemptIndex(path, {create, maxEntries, maxWir
         ${metadataFenceTable}; ${metadataFenceCoverageTable};
         ${physicalObjectsTable}; ${physicalUsageTable}; ${physicalPreparationsTable};
         ${resultRecoveryTable}; INSERT INTO result_deletion_recovery VALUES(1,0,1);
-        INSERT INTO physical_object_usage VALUES(1,0,0,0,1);
+        INSERT INTO physical_object_usage VALUES(1,${initialComplete},0,0,1);
         CREATE INDEX metadata_deletion_runs ON metadata_deletion_fences(run_cid);
-        INSERT INTO metadata_deletion_fence_coverage VALUES(1,0,1);
+        INSERT INTO metadata_deletion_fence_coverage VALUES(1,${initialComplete},1);
         INSERT INTO native_publication_inventory_usage VALUES(1,0,1);
-        INSERT INTO publication_recovery VALUES(1,0,0,1);
+        INSERT INTO publication_recovery VALUES(1,${initialComplete},0,1);
         INSERT INTO publication_usage VALUES(1,0,0,1);`);
     });
     const state = prepare('SELECT version,complete,entries FROM coverage WHERE id=1');
@@ -375,22 +393,24 @@ export async function openDeliveryAttemptIndex(path, {create, maxEntries, maxWir
       UNION ALL SELECT 'delivery_record',initial_wire FROM initial_records WHERE initial_cid=?
       UNION ALL SELECT 'delivery_record',record_wire FROM completions WHERE record_cid=?
       UNION ALL SELECT 'result_delivery_receipt',receipt_wire FROM completions WHERE receipt_cid=? LIMIT 1`);
-    const publication = prepare('SELECT * FROM publication_contracts WHERE semantic_cid=?');
-    const publicationAttempt = prepare('SELECT * FROM publication_attempts WHERE attempt_cid=?');
-    const insertPublicationAttempt = prepare('INSERT INTO publication_attempts VALUES(?,?)');
-    const removePublicationAttempts = prepare('DELETE FROM publication_attempts WHERE run_cid=?');
-    const publicationProgress = prepare(`SELECT * FROM publication_records WHERE attempt_cid=? ORDER BY sequence DESC LIMIT 1`);
-    const publicationProgressCount = prepare('SELECT count(*) AS count FROM publication_records WHERE attempt_cid=?');
-    const insertPublicationRecord = prepare('INSERT INTO publication_records VALUES(?,?,?)');
-    const publicationRunAttempts = prepare('SELECT * FROM publication_attempts WHERE run_cid=? LIMIT ?');
-    const publicationAttemptRecords = prepare('SELECT * FROM publication_records WHERE attempt_cid=? ORDER BY sequence LIMIT ?');
+    // These tables have already passed exact schema admission above. Their
+    // optional readers/writers belong to this connection, not every open.
+    const publication = prepareOnUse('SELECT * FROM publication_contracts WHERE semantic_cid=?');
+    const publicationAttempt = prepareOnUse('SELECT * FROM publication_attempts WHERE attempt_cid=?');
+    const insertPublicationAttempt = prepareOnUse('INSERT INTO publication_attempts VALUES(?,?)');
+    const removePublicationAttempts = prepareOnUse('DELETE FROM publication_attempts WHERE run_cid=?');
+    const publicationProgress = prepareOnUse(`SELECT * FROM publication_records WHERE attempt_cid=? ORDER BY sequence DESC LIMIT 1`);
+    const publicationProgressCount = prepareOnUse('SELECT count(*) AS count FROM publication_records WHERE attempt_cid=?');
+    const insertPublicationRecord = prepareOnUse('INSERT INTO publication_records VALUES(?,?,?)');
+    const publicationRunAttempts = prepareOnUse('SELECT * FROM publication_attempts WHERE run_cid=? LIMIT ?');
+    const publicationAttemptRecords = prepareOnUse('SELECT * FROM publication_records WHERE attempt_cid=? ORDER BY sequence LIMIT ?');
     const publicationUsage = prepare('SELECT objects,bytes,ack_revision FROM publication_usage WHERE id=1');
-    const insertPublication = prepare('INSERT INTO publication_contracts VALUES(?,?,?,?)');
+    const insertPublication = prepareOnUse('INSERT INTO publication_contracts VALUES(?,?,?,?)');
     // Bound each native handoff, not the admitted publication's total size.
     // Prepare only arities actually used by this database lifetime.
     const publicationBlockSize = 64;
     const publicationSelections = new Map(), publicationInsertions = new Map();
-    const removePublication = prepare('DELETE FROM publication_contracts WHERE semantic_cid=?');
+    const removePublication = prepareOnUse('DELETE FROM publication_contracts WHERE semantic_cid=?');
     const updatePublicationUsage = prepare(`UPDATE publication_usage SET objects=objects+?,bytes=bytes+?,
       ack_revision=ack_revision+1 WHERE id=1`);
     const completion = prepare('SELECT * FROM completions WHERE attempt_cid=?');
@@ -831,6 +851,8 @@ export async function openDeliveryAttemptIndex(path, {create, maxEntries, maxWir
     retirePublicationFinishReferences = () => {
       retainedPublicationFinishes.clear(); pendingResultSeal = undefined;
       publicationSelections.clear(); publicationInsertions.clear();
+      for (const retire of deferredStatements) retire();
+      deferredStatements.length = 0;
     };
     const inventoryUsage = () => {
       const row=nativeInventoryUsage.get();
@@ -1227,6 +1249,14 @@ export async function openDeliveryAttemptIndex(path, {create, maxEntries, maxWir
       },
       publicationUsage() { requireComplete(); return usage(); },
       publicationContract(semanticCid) { requireComplete(); return publicationCopy(publication.get(semanticCid)); },
+      publicationContracts(semanticCids) {
+        requireComplete();
+        if (!Array.isArray(semanticCids) || semanticCids.length > maxEntries) fail('InvalidDeliveryAttemptIndex');
+        const supplied = Array.from({length:semanticCids.length}, (_, index) => semanticCids[index]);
+        if (!supplied.every(cid)) fail('InvalidDeliveryAttemptIndex');
+        const keys = Array.from(new Set(supplied), semantic_cid => ({semantic_cid}));
+        return Object.freeze([...selectedPublicationRows(keys).values()]);
+      },
       putPublicationContracts(entries, allowance, progress) { return publicationMutation('put',entries,allowance,progress); },
       publicationAttempt(attemptCid) {requireComplete();const row=publicationAttempt.get(attemptCid);
         return row===undefined?undefined:Object.freeze({...row});},

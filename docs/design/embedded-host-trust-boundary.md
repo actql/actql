@@ -242,6 +242,15 @@ captured Sources and the original read/Scope settle before parent retirement.
 The existing Host releases its remaining reference links only after its child
 cleanup, not on Promise completion or an unrelated Store/Journal ACK.
 
+An acquired Effect captures its cleanup owner before retaining an existing
+Model preparation. A refused retain settles that construction path, but does
+not authorize retiring a preparation borrowed by another holder. Only a
+successfully returned retain installs this owner's retirement duty. The same
+original retirement must acknowledge completion before its continuation is
+released; refusal or failure keeps that duty pending for the same retry. This
+managed-borrow observation is neither a physical stop nor a storage ACK, and
+does not change an unknown acquisition or dispatch outcome.
+
 Resources include the retained preparation, compilation, definition, request,
 private method/receiver and limit references beside their actual Source,
 Model, Result and file children and bounded workspaces. Limits retain their
