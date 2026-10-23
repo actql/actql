@@ -479,6 +479,16 @@ class CollectorTests(unittest.TestCase):
         self.assertEqual(len({r['runRefSha256']for r in rows[:3]}),3)
         self.assertEqual([r['runRefSha256']for r in rows[:3]],[r['runRefSha256']for r in rows[3:]])
         self.assertTrue(all(r['wallNs']>=r['childWallNs']>0 for r in rows))
+        first=report['firstQuery'];self.assertEqual(first['publicRunId'],first['publicResponse']['run']['run_id'])
+        for index,row in enumerate([first]+rows[:3]):
+            name='first'if index==0 else f'new-{index-1}'
+            query=(output/'new-state'/(name+'.aql')).resolve()
+            self.assertEqual(row['command']['cwd'],row['stateId'])
+            self.assertEqual(row['command']['args'],['run',name+'.aql','--output',name+'.jsonl','--json'])
+            self.assertEqual(row['queryPath'],str(query))
+            self.assertEqual(row['queryFileSha256'],sha(query.read_bytes()))
+            self.assertEqual(row['outputPath'],row['publicResponse']['deliveries'][0]['request']['path'])
+            self.assertEqual(json.loads(row['command']['stdout']),row['publicResponse'])
         self.assertTrue(report['cleanup']['closed']);self.assertTrue(report['installedPayloadsUnchanged'])
         self.assertTrue(all(r['completed']for r in report['functional']['rows']))
         self.assertIsNone(report['structuralCounters']);self.assertIsNone(report['population'])

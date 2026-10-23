@@ -1083,6 +1083,27 @@ export function assessNativeOperations(report) {
     !integer(report.initialization.wallNs) || report.initialization.wallNs <= 0) {
     missing.push('separate successful ordinary initialization with actual child');
   }
+  const returnedRun = (row, fixture, name) => {
+    requireValue(typeof row.stateId === 'string' && row.stateId &&
+      row.queryPath === `${row.stateId}/${name}.aql` && row.outputPath === `${row.stateId}/${name}.jsonl` &&
+      row.queryFileSha256 === createHash('sha256').update(fixture.text + ';\n').digest('hex') &&
+      row.querySha256 === evidenceHash(fixture.text) && row.expectedSha256 === evidenceHash(fixture.expected) &&
+      row.actualSha256 === row.expectedSha256, 'Actual Native query/output identity differs');
+    requireValue(row.command?.cwd === row.stateId && evidenceHash(row.command.args) === evidenceHash(
+      ['run', `${name}.aql`, '--output', `${name}.jsonl`, '--json']), 'Actual Native NEW command differs');
+    const response = row.publicResponse, delivery = response?.deliveries?.[0], request = delivery?.request;
+    requireValue(typeof row.command.stdout === 'string' && evidenceHash(JSON.parse(row.command.stdout)) === evidenceHash(response),
+      'Native returned response differs from actual command output');
+    requireValue(typeof row.publicRunId === 'string' && row.publicRunId && response?.run?.run_id === row.publicRunId &&
+      response.run.status === 'succeeded' && response.delivery_status === 'delivered' && response.deliveries.length === 1 &&
+      delivery.status === 'delivered' && delivery.run_id === row.publicRunId && request?.path === row.outputPath &&
+      request.format === 'jsonl' && typeof request.result === 'string' && request.result &&
+      typeof request.result_cid === 'string' && request.result_cid, 'Original Native Run/Result delivery correspondence required');
+    requireValue(row.runRefSha256 === evidenceHash({runId: row.publicRunId}) &&
+      row.resultRefSha256 === evidenceHash({runId: row.publicRunId, resultName: request.result, resultCid: request.result_cid}),
+    'Native returned reference differs');
+    return request.result;
+  };
   const first = report.firstQuery;
   if (first?.verified === false) failures.push('separate first query failed');
   else if (first?.completed !== true || first.verified !== true ||
@@ -1094,6 +1115,7 @@ export function assessNativeOperations(report) {
       integer(first.childWallNs) && first.childWallNs > 0 && first.command.wallNs === first.childWallNs &&
       integer(first.wallNs) && first.wallNs >= first.childWallNs &&
       first.querySha256 === evidenceHash(protocol.firstQuery.text), 'Actual separate first Native child/query required');
+    returnedRun(first, protocol.firstQuery, 'first');
   }
   const series = new Map();
   for (const value of report.latency ?? []) {
@@ -1132,19 +1154,11 @@ export function assessNativeOperations(report) {
     for (const [index, row] of fresh.samples.entries()) {
       if (row.verified !== true) continue;
       const expected = protocol.queries[index];
-      requireValue(expected && row.querySha256 === evidenceHash(expected.text) && row.expectedSha256 === evidenceHash(expected.expected) &&
-        row.actualSha256 === row.expectedSha256, 'Native query or materialized rows differ');
-      requireValue(typeof row.publicRunId === 'string' && row.publicRunId && !runIds.has(row.publicRunId), 'Native new Run identity reused');
+      requireValue(expected, 'Native query population exceeded');
+      const resultName = returnedRun(row, expected, `new-${index}`);
+      requireValue(!runIds.has(row.publicRunId), 'Native new Run identity reused');
       runIds.add(row.publicRunId);
-      const response = row.publicResponse, delivery = response?.deliveries?.[0], request = delivery?.request;
-      requireValue(response?.run?.run_id === row.publicRunId && response.run.status === 'succeeded' &&
-        response.delivery_status === 'delivered' && response.deliveries.length === 1 && delivery.status === 'delivered' &&
-        delivery.run_id === row.publicRunId && typeof request?.result === 'string' && typeof request.result_cid === 'string',
-      'Original Native Run/Result delivery correspondence required');
-      requireValue(row.runRefSha256 === evidenceHash({runId: row.publicRunId}) &&
-        row.resultRefSha256 === evidenceHash({runId: row.publicRunId, resultName: request.result, resultCid: request.result_cid}),
-      'Native returned reference differs');
-      if (originals.length < 3) originals.push({...row, resultName: request.result});
+      if (originals.length < 3) originals.push({...row, resultName});
     }
   }
   if (saved) {
@@ -1155,7 +1169,7 @@ export function assessNativeOperations(report) {
       if (row.verified !== true) continue;
       const original = originals[index % originals.length];
       requireValue(['runRefSha256', 'resultRefSha256', 'expectedSha256', 'publicRunId'].every(key => row[key] === original[key]) &&
-        row.actualSha256 === row.expectedSha256 && evidenceHash(row.command?.args) === evidenceHash(
+        row.actualSha256 === row.expectedSha256 && row.command?.cwd === row.stateId && evidenceHash(row.command.args) === evidenceHash(
           ['result', original.publicRunId, '--result', original.resultName, '--format', 'jsonl']), 'Saved Native target or rows differ');
     }
   }
