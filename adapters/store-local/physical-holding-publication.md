@@ -567,6 +567,25 @@ object identities or ACKs for SQLite rows. Retirement needs no temporary shadow
 files or spare object-file quota merely to remove native metadata. Existing
 deletion intent, idempotent Unknown recovery and actual native close remain.
 
+## Native publication metadata blocks
+
+The Store's existing native publication mutation selects only its complete
+supplied metadata keys and admits each selected row. It transfers those keys
+and new immutable bodies to SQLite in blocks of at most 64 rows, rather than
+one native call per body. Larger admitted publications use further blocks
+inside the same existing transaction; this block size does not alter total
+entry, wire or quota limits. SQL statements are prepared lazily for actual
+block arities and their managed references retire after acknowledged database
+close.
+
+All identity conflicts, exact progress/predecessor checks and quota deltas
+remain under the same Store Owner. A later block failure rolls back the earlier
+inserts. Only the real FULL/fullfsync COMMIT acknowledges the complete mutation;
+a lost reply retains the exact ordered original group and confirms it through
+the existing same-database write/COMMIT. It never creates another attempt,
+refunds capacity, resends work or treats visible rows as a durability ACK.
+Unrelated metadata rows are not acquired by this selected-key lookup.
+
 ## Joint delivery completion
 
 After the sink finishes and the existing receipt authorization succeeds, the

@@ -386,6 +386,10 @@ export async function openDeliveryAttemptIndex(path, {create, maxEntries, maxWir
     const publicationAttemptRecords = prepare('SELECT * FROM publication_records WHERE attempt_cid=? ORDER BY sequence LIMIT ?');
     const publicationUsage = prepare('SELECT objects,bytes,ack_revision FROM publication_usage WHERE id=1');
     const insertPublication = prepare('INSERT INTO publication_contracts VALUES(?,?,?,?)');
+    // Bound each native handoff, not the admitted publication's total size.
+    // Prepare only arities actually used by this database lifetime.
+    const publicationBlockSize = 64;
+    const publicationSelections = new Map(), publicationInsertions = new Map();
     const removePublication = prepare('DELETE FROM publication_contracts WHERE semantic_cid=?');
     const updatePublicationUsage = prepare(`UPDATE publication_usage SET objects=objects+?,bytes=bytes+?,
       ack_revision=ack_revision+1 WHERE id=1`);
@@ -738,6 +742,45 @@ export async function openDeliveryAttemptIndex(path, {create, maxEntries, maxWir
     };
     const samePublication = (left,right) => left !== undefined && right !== undefined &&
       ['semantic_cid','name','wire','byte_count'].every(key => left[key] === right[key]);
+    const selectedPublicationRows = originals => {
+      const selected = new Map();
+      for (let start = 0; start < originals.length; start += publicationBlockSize) {
+        const block = originals.slice(start, start + publicationBlockSize);
+        let rows;
+        if (block.length === 1) {
+          const row = publication.get(block[0].semantic_cid);
+          rows = row === undefined ? [] : [row];
+        } else {
+          let statement = publicationSelections.get(block.length);
+          if (statement === undefined) {
+            statement = prepare(`SELECT * FROM publication_contracts WHERE semantic_cid IN (${block.map(() => '?').join(',')})`);
+            publicationSelections.set(block.length, statement);
+          }
+          rows = statement.all(...block.map(entry => entry.semantic_cid));
+        }
+        for (const row of rows) {
+          const original = publicationCopy(row);
+          selected.set(original.semantic_cid, original);
+        }
+      }
+      return selected;
+    };
+    const insertPublicationRows = entries => {
+      for (let start = 0; start < entries.length; start += publicationBlockSize) {
+        const block = entries.slice(start, start + publicationBlockSize);
+        if (block.length === 1) {
+          const entry = block[0];
+          insertPublication.run(entry.semantic_cid, entry.name, entry.wire, entry.byte_count);
+        } else {
+          let statement = publicationInsertions.get(block.length);
+          if (statement === undefined) {
+            statement = prepare(`INSERT INTO publication_contracts VALUES${block.map(() => '(?,?,?,?)').join(',')}`);
+            publicationInsertions.set(block.length, statement);
+          }
+          statement.run(...block.flatMap(entry => [entry.semantic_cid, entry.name, entry.wire, entry.byte_count]));
+        }
+      }
+    };
     const recoveryState = () => {
       const row=publicationRecovery.get();
       if (!row || ![0,1].includes(row.complete) ||
@@ -785,7 +828,10 @@ export async function openDeliveryAttemptIndex(path, {create, maxEntries, maxWir
         throw error;
       }
     };
-    retirePublicationFinishReferences = () => {retainedPublicationFinishes.clear(); pendingResultSeal = undefined;};
+    retirePublicationFinishReferences = () => {
+      retainedPublicationFinishes.clear(); pendingResultSeal = undefined;
+      publicationSelections.clear(); publicationInsertions.clear();
+    };
     const inventoryUsage = () => {
       const row=nativeInventoryUsage.get();
       if (!row || !Number.isSafeInteger(row.entries) || row.entries<0 || row.entries>maxEntries ||
@@ -932,7 +978,10 @@ export async function openDeliveryAttemptIndex(path, {create, maxEntries, maxWir
       for (const entry of originals) {
         if (entry === undefined || keys.has(entry.semantic_cid)) fail('InvalidDeliveryAttemptIndex');
         keys.add(entry.semantic_cid);
-        const current = publicationCopy(publication.get(entry.semantic_cid));
+      }
+      const selected = selectedPublicationRows(originals);
+      for (const entry of originals) {
+        const current = selected.get(entry.semantic_cid);
         if (current !== undefined && !samePublication(current,entry)) fail('PublicationSemanticIdentityConflict');
         if (kind === 'put' && current === undefined) { additions.push(entry); bytes += entry.byte_count; }
         if (kind === 'remove' && current !== undefined) { removals.push(entry); bytes -= entry.byte_count; }
@@ -983,7 +1032,7 @@ export async function openDeliveryAttemptIndex(path, {create, maxEntries, maxWir
                 if (!installed) insertPublicationRecord.run(progress.attemptCid,progress.sequence,progress.recordCid);
               }
             }
-            for (const entry of additions) insertPublication.run(entry.semantic_cid,entry.name,entry.wire,entry.byte_count);
+            insertPublicationRows(additions);
             for (const entry of removals) removePublication.run(entry.semantic_cid);
             // A real same-database write confirms a lost COMMIT, even when
             // the original transaction already installed/removed every row.
