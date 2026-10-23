@@ -904,6 +904,6 @@ test('paired named refusal preserves its accepted intent without inventing a Run
   f.restart();
   assertReferenceOnly(await f.service.lookupSubmission({principalId, connection, submissionRef: f.ref}), first.outcome);
   const replay = await f.service.submitNamedAttempt({...value, attemptRef: {operation: 'submit', attemptId: 'original-name-observation'}});
-  assert.deepEqual(replay.outcome, first.outcome);
+  assertReferenceOnly(replay.outcome, first.outcome);
   assert.deepEqual(f.counts, {prepare: 1, submit: 0}); assert.equal(p.requestReads, 1); assert.equal(p.projections, 1);
 });
