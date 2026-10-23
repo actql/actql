@@ -42,10 +42,16 @@ JavaScript heap/RSS, and supply neither capacity nor a physical cleanup receipt.
 Diagnostic-level `rows` observations copy only the selected request-Journal
 reader's fixed owner, selection, kind, returned-row and unrelated-row counts.
 The existing ingress context accumulates these scalars into one terminal record,
-without a durable observation transaction per native read. Unknown unrelated-row
-classification and missing Run bindings stay absent; a later admitted Run cannot
-retroactively supply them. Contextless or late hooks remain unavailable rather
-than manufacturing a new operation frame.
+without a durable observation transaction per native read. Before acceptance,
+it may retain bounded request-key and actual returned-row identity scalars under
+the existing operation record limit. Only that same operation's successful
+Journal acceptance can join matching authority/request keys to the original
+Run. Actual returned identities are compared with that Run; an empty uniqueness
+probe can join only its exact accepted Run CID. No additional read is performed.
+Unknown unrelated-row classification and missing bindings stay absent when no
+matching acceptance exists; an eventual or foreign Run is not a substitute.
+Pending scalars retire with the existing context, and overflow makes coverage
+unavailable. Contextless or late hooks never manufacture a new operation frame.
 When accepted work outlives its ingress response, the installed dispatch and
 continuation Owners retain that same optional context against their original
 work Promises, including existing settlement callbacks. The physical-start

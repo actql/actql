@@ -6015,7 +6015,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "3b96803d3387ebba743ff646f343c0eabc89f5cd1e1ea4bdd28be97ad0c2d0e9",
+      "sha256": "cd99d2eca9873509940486fda6be654287ccae7690b8f31d53b8dc18e9239c3c",
       "exports": [
         "PublicationStoreError",
         "assertOriginalLocalPublicationStoreFacilityCurrent",
@@ -6740,7 +6740,8 @@
           "name": "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/readOriginal/readOriginal",
           "parameters": [
             "cid",
-            "includeNative"
+            "includeNative",
+            "retained"
           ],
           "async": false
         },
@@ -7732,33 +7733,41 @@
         {
           "name": "openOriginalLocalPublicationStore/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence",
           "parameters": [
-            "name"
+            "cid",
+            "includeNative"
           ],
           "async": false
         },
         {
           "name": "openOriginalLocalPublicationStore/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence#2",
           "parameters": [
-            "wire"
+            "name"
           ],
           "async": false
         },
         {
           "name": "openOriginalLocalPublicationStore/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence#3",
           "parameters": [
-            "key"
+            "wire"
           ],
           "async": false
         },
         {
           "name": "openOriginalLocalPublicationStore/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence#4",
           "parameters": [
-            "object"
+            "key"
           ],
           "async": false
         },
         {
           "name": "openOriginalLocalPublicationStore/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence#5",
+          "parameters": [
+            "object"
+          ],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence#6",
           "parameters": [
             "contract"
           ],
@@ -8991,7 +9000,8 @@
           "parameters": [
             "cid",
             "includeNative",
-            "retainGeneration"
+            "retainGeneration",
+            "retained"
           ],
           "async": true
         },
@@ -9565,6 +9575,14 @@
             "readOriginal"
           ],
           "async": true
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/verifyCommitEvidence/verifyCommitEvidence/verifyCommitEvidence",
+          "parameters": [
+            "cid",
+            "includeNative"
+          ],
+          "async": false
         },
         {
           "name": "openOriginalLocalPublicationStore/verifyDurableResultBinding/verifyDurableResultBinding",
@@ -10473,6 +10491,7 @@
             "openOriginalLocalPublicationStore/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence#3",
             "openOriginalLocalPublicationStore/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence#4",
             "openOriginalLocalPublicationStore/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence#5",
+            "openOriginalLocalPublicationStore/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence#6",
             "openOriginalLocalPublicationStore/inspectEffectfulStoredEvidence/inspectEffectfulStoredEvidence/memberReceipts/memberReceipts",
             "openOriginalLocalPublicationStore/inspectPhysicalHolding/inspectPhysicalHolding",
             "openOriginalLocalPublicationStore/inspectPhysicalHoldingForRetirement/inspectPhysicalHoldingForRetirement",
@@ -10692,6 +10711,7 @@
             "openOriginalLocalPublicationStore/validateCommittedEvidence/validateCommittedEvidence/validateCommittedEvidence",
             "openOriginalLocalPublicationStore/validateModelRawBinding/validateModelRawBinding",
             "openOriginalLocalPublicationStore/verifyCommitEvidence/verifyCommitEvidence",
+            "openOriginalLocalPublicationStore/verifyCommitEvidence/verifyCommitEvidence/verifyCommitEvidence",
             "openOriginalLocalPublicationStore/verifyDurableResultBinding/verifyDurableResultBinding",
             "openOriginalLocalPublicationStore/verifyDurableResultBinding/verifyDurableResultBinding/verifyDurableResultBinding",
             "openOriginalLocalPublicationStore/verifyModelRawBytes/verifyModelRawBytes",
@@ -10923,6 +10943,14 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "## Original Index admission within publication"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "## Selected native evidence originals"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "Independent verification adapts its default reader to the two supported CID"
               }
             ],
             "inputsOutputs": [
@@ -10940,7 +10968,7 @@
               },
               {
                 "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "const readOriginal = (cid, includeNative = cid !== admitted.identity) => {"
+                "anchor": "const readOriginal = (cid, includeNative = cid !== admitted.identity, retained) => {"
               },
               {
                 "path": "adapters/store-local/publication-store.mjs",
@@ -11070,7 +11098,7 @@
               },
               {
                 "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "const readOriginal = (cid, includeNative = cid !== admitted.identity) => {"
+                "anchor": "const readOriginal = (cid, includeNative = cid !== admitted.identity, retained) => {"
               },
               {
                 "path": "adapters/store-local/publication-store.mjs",
@@ -12193,6 +12221,18 @@
               {
                 "path": "adapters/store-local/publication-store.test.mjs",
                 "anchor": "independent Effect inspection ignores caller supplied private Index observations"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "publication commit reuses the exact issued original for its selected native row"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "publication native original reuse retains copied and omitted-control admission"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "independent publication reader defaults never interpret a contract as generation retention"
               }
             ]
           }

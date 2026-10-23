@@ -2093,6 +2093,11 @@ export function openClientRequestJournal(directory, {
           observationProjection.diagnostic('selected_rows_observed', {
             ref, rowOwner: 'request-journal', selection, rowKind: 'run',
             returnedRows: row === undefined ? 0 : 1,
+            ...(selection === 'request' ? {requestSelection: {
+              authorityScopeCid: parameters[0], requestId: parameters[1]},
+            ...(row === undefined ? {} : {selectedRowRef: {namespaceId: row.namespace_id,
+              authorityScopeCid: row.authority_scope_cid, runDefinitionCid: row.run_definition_cid}})} :
+              !completeRef ? {runSelectionCid: parameters[0]} : {}),
             // Partial projections and pre-Run request keys cannot classify a
             // complete returned Run identity. Absence here means unknown.
             unrelatedRows: !completeRow ? undefined : row === undefined ? 0 :
