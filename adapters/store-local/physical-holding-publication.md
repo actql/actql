@@ -292,7 +292,7 @@ use. It still confirms the real directory acknowledgement and original custody
 outcome, including before metadata has been fully staged or during retirement.
 This is not a durable ACK or permission cache. Pending deletion, prepared custody,
 and quota accounting retain their original responsibilities. Payload accounting
-and shared-reference discovery still walk history; indexed publication recovery
+and legacy file shared-reference discovery still walk history; indexed publication recovery
 does not establish history-independent Store startup or replace an explicit
 integrity inspection.
 
@@ -362,8 +362,39 @@ file inventories remain files and use the same selected-use checks. They are
 not copied into a second representation during ordinary open. Retirement binds
 the same complete durable deletion marker before removing the native original
 and its pending lookup together. Same-original Unknown confirmation is retained.
-Shared contract and holding cleanup checks both representations before reclaim;
-this does not eliminate the remaining shared-reference history work.
+Shared contract and holding cleanup checks both representations before reclaim.
+
+### Indexed native metadata references
+
+The existing Store database indexes native inventory owners by reference kind,
+exact contract or physical-holding CID, and original public Index CID. Selection
+excludes only the retiring original owner. Each returned inventory is admitted
+at selected use and must actually contain the requested CID; the existing Run,
+deletion-fence and physical-link checks remain. An unrelated native inventory
+is neither loaded nor parsed for this ownership question. A selected physical
+holding remains until its last real owner retires and actual unlink and directory
+acknowledgement complete; an absent owner lookup is not a physical cleanup ACK.
+
+Insertion and inventory-wire update triggers derive these references from the
+same bounded native body inside its existing transaction. Foreign-key cascading
+removal deletes its references in the original retirement transaction. Body,
+pending lookup, usage and references therefore share actual FULL/fullfsync
+COMMIT, rollback and original Unknown confirmation. No additional per-publication
+transaction, authority, capacity allowance or refund is introduced. The selected
+statement belongs to the same connection and is acquired only on use; real
+native close precedes retirement of its managed statement reference.
+
+One bounded private-format transition reads prior native inventory originals,
+checks count and wire bounds, and installs reference rows, triggers and version
+coverage atomically. Later ordinary opens admit that schema without reading
+native inventory history. Missing adopted tables, index or triggers refuse;
+they never silently rebuild coverage. A lost adoption reply remains Unknown even
+when a later open observes the completed transition. The retained inventory and
+pending original are not reissued, replaced or treated as dispatch permission.
+
+Prior file inventories keep their selected admission and legacy ownership walk.
+That legacy path and other accounting work remain separate costs; this index
+does not establish fully history-independent Store startup or public latency.
 
 ### Indexed Run metadata retirement
 
@@ -391,7 +422,7 @@ An additive format transition reads prior full and compact marker files once,
 in bounded native batches. Durable coverage is completed before redundant compact
 files are removed. Interrupted migration resumes the same tuples idempotently;
 missing adopted tables or incomplete coverage never mean not-found. Subsequent
-opens recover pending physical markers only. Other quota and shared-reference
+opens recover pending physical markers only. Other quota and legacy shared-reference
 history work remains separate; this is not fully history-independent startup.
 
 ## Same-owner cleanup and inventory
@@ -603,6 +634,25 @@ releases partial reservations on any refusal. The actual mutation still owns
 its selected-row conflict check, quota delta and durable transaction; a
 preflight observation cannot acknowledge a write or a lost COMMIT. Empty
 native selections perform no native read. No unrelated history is acquired.
+
+The same operation forwards that original frozen row array privately to its
+immediate native mutation. Only this connection's private association recognizes
+the complete ordered selection; its original row map is not caller-supplied.
+The association is consumed once, including a no-op. Copied or foreign arrays,
+different keys, an actual intervening native mutation or a failed write attempt
+keep the full selected-row read. A new public Store operation acquires its own
+preflight. Ordinary pure work and internal awaits are not new validation frames.
+The Store exposes no port accepting this private observation from public callers.
+
+Mutation still compares each admitted input with the retained selected original,
+enforces quota and progress/predecessor CAS, and performs the same actual
+FULL/fullfsync transaction. A lost reply never reuses the spent preflight: the
+same original retry reacquires current rows and requires a real confirmation
+write/COMMIT. The observation holds bounded immutable strings and row scalars,
+not Account permission, physical backing, a transaction outcome or cleanup ACK.
+The real native close clears the connection's remaining managed associations.
+This removes a repeated body selection; it does not remove a durable transition
+or establish a public latency improvement.
 
 ### Connection-owned publication statements
 
