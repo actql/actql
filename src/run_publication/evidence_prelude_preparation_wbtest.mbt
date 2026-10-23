@@ -217,7 +217,11 @@ test "publication root traverses long names and exact Artifact wires without inv
   let inputs = {
     ..issued,
     manifest: admit_publication_contract(
-      "result_manifest", issued.manifest.wire, 65536, 4096, 32,
+      "result_manifest",
+      issued.manifest.wire,
+      65536,
+      4096,
+      32,
     ).unwrap(),
   }
   let original = inputs.manifest.wire

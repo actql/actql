@@ -897,7 +897,8 @@ fn validate_nested_identities(
         physical_equal(original.value, artifact) &&
         publication_contract_check_limits(
           original, max_wire_bytes, max_nodes, max_depth,
-        ) is Ok(_)
+        )
+        is Ok(_)
       }) {
       continue
     }
@@ -1193,7 +1194,11 @@ fn seal_publication_material(
   }
   match
     validate_nested_identities(
-      spec, complete, max_wire_bytes, max_nodes, max_depth,
+      spec,
+      complete,
+      max_wire_bytes,
+      max_nodes,
+      max_depth,
       known_artifacts~,
     ) {
     Ok(_) => ()

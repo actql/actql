@@ -249,9 +249,12 @@ fn PublicationRootPreparation::step(
         Some(0) => {
           if physical_equal(nested, inputs.artifacts[artifact].value) &&
             publication_contract_check_limits(
-              inputs.artifacts[artifact], inputs.max_wire_bytes, inputs.max_nodes,
+              inputs.artifacts[artifact],
+              inputs.max_wire_bytes,
+              inputs.max_nodes,
               inputs.max_depth,
-            ) is Ok(_) {
+            )
+            is Ok(_) {
             self.phase = Definition(definition + 1)
             return Ok(())
           }

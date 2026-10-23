@@ -129,7 +129,10 @@ pub fn issue_result_manifest(
     _ => return Err(ManifestIssuanceEncoding)
   }
   emit_result_manifest_body(
-    run_definition.identity, invocation.identity, entries, skeleton,
+    run_definition.identity,
+    invocation.identity,
+    entries,
+    skeleton,
     placeholders=true,
   ) catch {
     _ => return Err(ManifestIssuanceEncoding)
@@ -137,7 +140,8 @@ pub fn issue_result_manifest(
   let wire = @encode.finish(skeleton) catch {
     _ => return Err(ManifestIssuanceEncoding)
   }
-  let root = match parse_contract_wire(wire, max_wire_bytes, max_nodes - 1, max_depth) {
+  let root = match
+    parse_contract_wire(wire, max_wire_bytes, max_nodes - 1, max_depth) {
     Ok(value) => value
     Err(issue) => return Err(ManifestIssuanceContract(issue))
   }
@@ -159,19 +163,25 @@ pub fn issue_result_manifest(
         replacements[i] = (name, value)
       }
       replacements.sort_by((a, b) => @canonical.compare_utf16(a.0, b.0))
-      guard @json.object_with_replaced_fields(results, replacements) is Some(value) else {
+      guard @json.object_with_replaced_fields(results, replacements)
+        is Some(value) else {
         return Err(ManifestIssuanceContract(InvalidObject))
       }
       value
     }
   }
-  guard @json.object_with_replaced_fields(root, [("results", results)]) is Some(body) else {
+  guard @json.object_with_replaced_fields(root, [("results", results)])
+    is Some(body) else {
     return Err(ManifestIssuanceContract(InvalidObject))
   }
   let manifest = match
     seal_publication_material(
-      contract_spec("result_manifest").unwrap(), body, max_wire_bytes, max_nodes,
-      max_depth, entries.map(entry => entry.artifact),
+      contract_spec("result_manifest").unwrap(),
+      body,
+      max_wire_bytes,
+      max_nodes,
+      max_depth,
+      entries.map(entry => entry.artifact),
     ) {
     Ok(value) => value
     Err(issue) => return Err(ManifestIssuanceContract(issue))
