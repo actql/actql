@@ -257,6 +257,31 @@ pub fn validate_local_saved_submitted_rows(
   submission_revision : Int64,
   submission_body : Bytes,
 ) -> Result[Unit, LocalSubmittedRunRowsIssue] {
+  local_saved_submitted_row_originals(
+    value, plan, preparation, run_key, run_revision, run_body, submission_key, submission_revision,
+    submission_body,
+  ).map(_ => ())
+}
+
+///|
+fn local_saved_submitted_row_originals(
+  value : LocalSubmittedRunRows,
+  plan : LocalRunPlan,
+  preparation : @input.LocalSubmittedPreparation,
+  run_key : String,
+  run_revision : Int64,
+  run_body : Bytes,
+  submission_key : String,
+  submission_revision : Int64,
+  submission_body : Bytes,
+  decode_run? : (Bytes) -> Result[
+    (@host.ClientRunJournalEncoding, String?, String?),
+    @host.ClientJournalDecodingIssue,
+  ] = @host.decode_client_run_journal_row_with_observation_originals,
+) -> Result[
+  (@host.ClientRunJournalEncoding, String?, String?),
+  LocalSubmittedRunRowsIssue,
+] {
   if !physical_equal(value.plan, plan) ||
     !physical_equal(value.preparation, preparation) {
     return Err(ForeignPreparation)
@@ -268,8 +293,7 @@ pub fn validate_local_saved_submitted_rows(
     submission_revision < 0L {
     return Err(CustodyLost)
   }
-  let (run, saved_policy, saved_observation) = match
-    @host.decode_client_run_journal_row_with_observation_originals(run_body) {
+  let (run, saved_policy, saved_observation) = match decode_run(run_body) {
     Ok(value) => value
     Err(_) => return Err(CustodyLost)
   }
@@ -307,7 +331,7 @@ pub fn validate_local_saved_submitted_rows(
       run.definition,
       run_revision,
     ) {
-    Ok(_) => Ok(())
+    Ok(_) => Ok((run, saved_policy, saved_observation))
     Err(_) => Err(CustodyLost)
   }
 }
