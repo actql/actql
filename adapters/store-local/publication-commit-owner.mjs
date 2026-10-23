@@ -3,6 +3,25 @@
 // capacity owners; this owner neither accounts capacity nor changes the wire.
 const custodyFailure = (primary, custody, reconciliation, makeFailure) => {
   if (custody.status().pending !== true) return primary;
+  const child = primary?.cleanupHandle;
+  const childStatus = child?.status, childRetry = child?.retry;
+  let cleanup = custody;
+  if (child !== undefined && child !== custody) {
+    let flight;
+    const status = () => Object.freeze({pending: typeof childStatus !== 'function' ||
+      Reflect.apply(childStatus,child,[]).pending !== false || custody.status().pending});
+    cleanup = Object.freeze({status,retry() {
+      if (flight !== undefined) return flight;
+      flight = Promise.resolve().then(async () => {
+        if (typeof childStatus !== 'function' || typeof childRetry !== 'function') throw primary;
+        if (Reflect.apply(childStatus,child,[]).pending !== false) await Reflect.apply(childRetry,child,[]);
+        if (Reflect.apply(childStatus,child,[]).pending !== false) throw primary;
+        if (custody.status().pending) await custody.retry();
+        return status();
+      }).finally(() => {flight = undefined;});
+      return flight;
+    }});
+  }
   const code = typeof primary?.code === 'string'
     ? primary.code : 'PublicationCommitUnknown';
   const failure = makeFailure(code, primary);
@@ -12,7 +31,7 @@ const custodyFailure = (primary, custody, reconciliation, makeFailure) => {
   failure.cleanupErrors = Object.freeze(
     reconciliation === undefined ? [] : [reconciliation],
   );
-  failure.cleanupHandle = custody;
+  failure.cleanupHandle = cleanup;
   return failure;
 };
 
@@ -38,7 +57,8 @@ export function createPublicationCommitOwner({entry, admitted, key}, operations)
       }
 
       await operations.stage();
-      custody = operations.beginCustody();
+      try {custody = operations.beginCustody();}
+      catch (error) {operations.cancelStage?.(); throw error;}
       try {
         await operations.install(() => { installed = true; });
         await operations.adopt();
