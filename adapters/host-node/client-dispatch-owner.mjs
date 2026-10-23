@@ -998,10 +998,16 @@ export function installNodeClientDispatchOwner({moon, control, journal,
       await settleCleanup(entry);
       await finishRun(entry);
     }).catch(async cause => {
-      diagnostic('dispatch_failed', {ref: accepted.ref,
-        code: cause?.code ?? cause?.message ?? 'ClientDispatchFailed',
-        issueTag: runtimeTag(cause?.cause), nestedIssueTag: runtimeTag(runtimeOptionalField(cause?.cause, 0))});
       entry.primaryFailure = cause;
+      try {
+        const primaryFailure = cause instanceof CapturedRunPublicationError
+          ? cause.primaryFailure : cause;
+        diagnostic('dispatch_failed', {ref: accepted.ref,
+          code: cause?.code ?? cause?.message ?? 'ClientDispatchFailed',
+          primaryCode: primaryFailure?.code,
+          issueTag: runtimeTag(primaryFailure?.cause),
+          nestedIssueTag: runtimeTag(runtimeOptionalField(primaryFailure?.cause, 0))});
+      } catch { /* Optional diagnostics cannot interrupt cleanup. */ }
       const failedExecution = cause instanceof CapturedRunPublicationError
         ? cause.execution : undefined;
       if (cause?.cleanupPending === true) {

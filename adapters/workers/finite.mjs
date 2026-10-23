@@ -9,13 +9,21 @@ const integer = value => Number.isInteger(value) && value >= 0 && value <= 21474
 const quantity = value => typeof value === 'bigint' && value >= 0n && value <= 9223372036854775807n;
 const text = value => typeof value === 'string' && value.length > 0;
 const boolean = value => typeof value === 'boolean';
+const optionalShapes = new WeakSet();
+const optional = shape => {optionalShapes.add(shape); return shape;};
+const numericProfile = optional(value => typeof value === 'string' && /^sha256:[0-9a-f]{64}$/u.test(value));
 
 // Private ABI projection of the existing Owner's records. All fields are
-// mandatory; no physical capacity, known estimate or capability is inferred.
+// mandatory except selected capabilities; no physical capacity, known estimate
+// or capability is inferred from an omitted selection.
 function snapshot(value, shape) {
   if (value === null || typeof value !== 'object' || Array.isArray(value) ||
-      Object.keys(value).sort().join() !== Object.keys(shape).sort().join()) invalid();
-  return Object.freeze(Object.fromEntries(Object.entries(shape).map(([key, type]) => {
+      Object.keys(value).some(key => !Object.hasOwn(shape, key)) ||
+      Object.entries(shape).some(([key, type]) =>
+        !optionalShapes.has(type) && !Object.hasOwn(value, key))) invalid();
+  return Object.freeze(Object.fromEntries(Object.entries(shape)
+    .filter(([key, type]) => !optionalShapes.has(type) || Object.hasOwn(value, key))
+    .map(([key, type]) => {
     const item = value[key];
     if (typeof type === 'function') {
       if (!type(item)) invalid();
@@ -25,8 +33,21 @@ function snapshot(value, shape) {
   })));
 }
 const values = {max_nodes: integer, max_text_bytes: integer, max_depth: integer, max_work: integer};
+const fragmentShape = {
+  contract: text, ordered: optional(value => text(value)),
+  limits: {
+    roots: {max_roots: integer, max_pointer_bytes: integer, max_work: integer},
+    demands: {max_roots: integer, max_nodes: integer, max_work: integer,
+      max_text_bytes: integer, max_links: integer},
+    physical: {max_body_bytes: integer, max_body_nodes: integer, max_body_depth: integer},
+    logical: {max_input_rows: quantity, max_value_bytes: quantity,
+      max_live_value_bytes: quantity, max_work: quantity},
+    max_input_rows: quantity, max_value_bytes: quantity,
+  },
+};
 const configurationShape = {
-  environment: {wire: text, cid: text,
+  fragments: optional(fragmentShape),
+  environment: {wire: text, cid: text, numeric_profile_cid: numericProfile,
     expressions: {text_time: boolean, veca: boolean},
     operations: {rela: boolean, sga: boolean, tea: boolean, calendar: boolean, text_rank: boolean}},
   contracts: {registry: text, values: text, grammar: text, barriers: text},
@@ -70,9 +91,15 @@ export function bindWorkersFiniteHost(runtime, configuration) {
   if (requiredExports.some(name => typeof moon[name] !== 'function')) invalid();
   const selected = snapshot(configuration, configurationShape);
   const environment = checked(moon.workersFiniteEnvironment(selected.environment.wire,
-    selected.environment.cid, selected.environment.expressions, selected.environment.operations));
+    selected.environment.cid, selected.environment.expressions, selected.environment.operations,
+    selected.environment.numeric_profile_cid));
   const contracts = checked(moon.workersFiniteContracts(selected.contracts.registry, selected.contracts.values));
   const manifests = checked(moon.workersFiniteManifests(selected.contracts.grammar, selected.contracts.barriers));
+  if (selected.fragments !== undefined &&
+      typeof moon.workersFiniteFragmentContracts !== 'function') invalid();
+  const fragments = selected.fragments === undefined ? undefined :
+    checked(moon.workersFiniteFragmentContracts(contracts, selected.fragments.contract,
+      selected.fragments.ordered, selected.fragments.limits.physical));
   const capacity = Object.freeze({...selected.capacity, common_fragment: undefined});
   const core = runtimeCore(moon);
   const preparations = new WeakSet();
@@ -98,7 +125,7 @@ export function bindWorkersFiniteHost(runtime, configuration) {
       const value = checked(moon.workersFiniteAdmitMaterials(body,
         expectedRunDefinitionCid, selected.environment.expressions,
         selected.environment.operations, manifests, selected.sequence,
-        selected.max_work, selected.max_entries));
+        selected.max_work, selected.max_entries, selected.environment.numeric_profile_cid));
       return Object.freeze({preparation: retainPreparation(runtimeField(value, 0), runtimeField(value, 1)),
         admission: runtimeField(value, 2), definition: runtimeField(value, 3)});
     },
@@ -132,7 +159,10 @@ export function bindWorkersFiniteHost(runtime, configuration) {
       const setup = checked(moon.workersFiniteOpen(preparation.program, preparation.compilation,
         admission, definition, contracts, selected.sequence, selected.execution,
         selected.measurement, capacity, ledger, selected.search,
-        selected.milliseconds, selected.max_work, selected.max_entries));
+        selected.milliseconds, selected.max_work, selected.max_entries,
+        fragments === undefined ? undefined : runtimeField(fragments, 0),
+        fragments === undefined ? undefined : runtimeField(fragments, 1),
+        selected.fragments?.limits));
       setups.set(setup, authorization);
       return setup;
     },

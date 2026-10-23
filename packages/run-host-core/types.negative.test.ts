@@ -1,4 +1,5 @@
 import './effect-run.typecheck.mjs';
+import './numeric-profile.typecheck.mjs';
 import './program-preparation.typecheck.mjs';
 import type {DeliveryContractView, PublicationContract,
   PublicationRequestContract, PublicationAttemptContract,

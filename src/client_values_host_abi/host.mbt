@@ -14,12 +14,14 @@ pub fn client_values_host_environment(
   tea : Bool,
   calendar : Bool,
   text_rank : Bool,
+  numeric_profile_cid : String?,
 ) -> @checked.CheckEnvironment? {
   @host.admit_client_check_environment(
     body,
     evidence_bundle_cid,
     { text_time, veca, },
     { rela, sga, tea, calendar, text_rank, },
+    numeric_profile_cid~,
   )
 }
 

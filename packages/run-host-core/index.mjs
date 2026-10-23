@@ -104,9 +104,19 @@ export function prepareResultMaterialHoldsStep(value, operation, identity) {
 
 function checkedProfileSelection(profiles, error) {
   if (profiles === null || typeof profiles !== 'object' ||
-      Array.isArray(profiles) || Object.entries(profiles).some(([key, value]) =>
-        !profileKeys.has(key) || typeof value !== 'boolean')) {
+      Array.isArray(profiles)) {
     throw new TypeError(error);
+  }
+  let numericProfileCid;
+  for (const [key, value] of Object.entries(profiles)) {
+    if (key === 'numericProfileCid') {
+      if (typeof value !== 'string' || !/^sha256:[0-9a-f]{64}$/u.test(value)) {
+        throw new TypeError(error);
+      }
+      numericProfileCid = value;
+    } else if (!profileKeys.has(key) || typeof value !== 'boolean') {
+      throw new TypeError(error);
+    }
   }
   return Object.freeze({
     textTime: profiles.textTime === true,
@@ -116,6 +126,7 @@ function checkedProfileSelection(profiles, error) {
     tea: profiles.tea === true,
     calendar: profiles.calendar === true,
     textRank: profiles.textRank === true,
+    ...(numericProfileCid === undefined ? {} : {numericProfileCid}),
   });
 }
 
@@ -131,7 +142,7 @@ export function admitEnvironment(body, evidenceBundleCid, profiles) {
   const selected = checkedProfileSelection(profiles, 'InvalidRunHostEnvironment');
   const value = owner.clientValuesHostEnvironment(body, evidenceBundleCid,
     selected.textTime, selected.veca, selected.rela, selected.sga,
-    selected.tea, selected.calendar, selected.textRank);
+    selected.tea, selected.calendar, selected.textRank, selected.numericProfileCid);
   if (value === undefined) {
     throw Object.assign(new Error('RunHostEnvironmentRejected'),
       {code: 'RunHostEnvironmentRejected'});
@@ -497,7 +508,7 @@ export function admitEffectRunMaterials(wire, definitionCid, profiles, original,
     selected.tea, selected.calendar, selected.textRank,
     original === undefined ? undefined : requireHandle(issuedEffectMaterials, original),
     expectedRequest === undefined ? undefined : requireHandle(requests, expectedRequest),
-    source?.value), 'RunHostEffectRestorationRejected');
+    source?.value, selected.numericProfileCid), 'RunHostEffectRestorationRejected');
   const prepared = handle(effectPreparations, owner.clientValuesHostRestoredEffectPrepared(restored), 'prepared-effect-program');
   if (source !== undefined) sourcePreparations.set(prepared, source);
   const originalRequest = owner.clientValuesHostRestoredEffectRequest(restored);

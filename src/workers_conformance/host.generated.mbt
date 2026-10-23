@@ -1152,6 +1152,17 @@ pub fn strategy_captured_run_finish(
 }
 
 ///|
+#export_name("strategyCapturedRunFinishRetained")
+pub fn strategy_captured_run_finish_retained(
+  preparation : @publication.CapturedRunIssuancePreparation,
+) -> @publication.PublicationContract raise NodeHostFailure {
+  match preparation.finish_retained() {
+    Ok(contract) => contract
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
 #export_name("strategyCapturedRunCancel")
 pub fn strategy_captured_run_cancel(
   preparation : @publication.CapturedRunIssuancePreparation,
@@ -1833,6 +1844,28 @@ pub fn strategy_begin_effect_free_chain_check(
 }
 
 ///|
+#export_name("strategyBeginEffectFreeChainCheckRetained")
+pub fn strategy_begin_effect_free_chain_check_retained(
+  original : @publication.CapturedRunIssuancePreparation,
+  run_definition : @publication.PublicationContract,
+  invocation : @publication.PublicationContract,
+  definitions : Array[@publication.PublicationContract],
+  artifacts : Array[@publication.PublicationContract],
+  manifest : @publication.PublicationContract,
+  receipt : @publication.PublicationContract,
+  captured_run : @publication.PublicationContract,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  max_workspace : Int,
+) -> @publication.ComputationEvidenceCheck {
+  @publication.start_effect_free_run_evidence_check_retained(
+    original, run_definition, invocation, definitions, artifacts, manifest, receipt,
+    captured_run, max_wire_bytes, max_nodes, max_depth, max_workspace,
+  )
+}
+
+///|
 #export_name("strategyEffectFreeChainCheckAdvance")
 pub fn strategy_effect_free_chain_check_advance(
   preparation : @publication.ComputationEvidenceCheck,
@@ -2023,6 +2056,36 @@ pub fn strategy_begin_effect_free_commit_check(
     run_definition, invocation, definitions, artifacts, derivations, orderings, retentions,
     durable_bindings, manifest, receipt, captured_run, request, attempt, index_entry,
     max_wire_bytes, max_nodes, max_depth, max_workspace,
+  )
+}
+
+///|
+#export_name("strategyBeginEffectFreeCommitCheckRetained")
+pub fn strategy_begin_effect_free_commit_check_retained(
+  original : @publication.CapturedRunIssuancePreparation,
+  run_definition : @publication.PublicationContract,
+  invocation : @publication.PublicationContract,
+  definitions : Array[@publication.PublicationContract],
+  artifacts : Array[@publication.PublicationContract],
+  derivations : Array[@publication.PublicationContract],
+  orderings : Array[@publication.PublicationContract],
+  retentions : Array[@publication.PublicationContract],
+  durable_bindings : Array[@publication.PublicationContract],
+  manifest : @publication.PublicationContract,
+  receipt : @publication.PublicationContract,
+  captured_run : @publication.PublicationContract,
+  request : @publication.PublicationContract,
+  attempt : @publication.PublicationContract,
+  index_entry : @publication.PublicationContract,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  max_workspace : Int,
+) -> @publication.PublicationCommitPreparation {
+  @publication.start_effect_free_publication_commit_check_retained(
+    original, run_definition, invocation, definitions, artifacts, derivations, orderings,
+    retentions, durable_bindings, manifest, receipt, captured_run, request, attempt,
+    index_entry, max_wire_bytes, max_nodes, max_depth, max_workspace,
   )
 }
 
@@ -11204,6 +11267,17 @@ pub fn async_strategy_captured_run_finish(
 }
 
 ///|
+#export_name("asyncStrategyCapturedRunFinishRetained")
+pub fn async_strategy_captured_run_finish_retained(
+  preparation : @publication.CapturedRunIssuancePreparation,
+) -> @publication.PublicationContract raise AsyncHostFailure {
+  match preparation.finish_retained() {
+    Ok(contract) => contract
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
 #export_name("asyncStrategyCapturedRunCancel")
 pub fn async_strategy_captured_run_cancel(
   preparation : @publication.CapturedRunIssuancePreparation,
@@ -11885,6 +11959,28 @@ pub fn async_strategy_begin_effect_free_chain_check(
 }
 
 ///|
+#export_name("asyncStrategyBeginEffectFreeChainCheckRetained")
+pub fn async_strategy_begin_effect_free_chain_check_retained(
+  original : @publication.CapturedRunIssuancePreparation,
+  run_definition : @publication.PublicationContract,
+  invocation : @publication.PublicationContract,
+  definitions : Array[@publication.PublicationContract],
+  artifacts : Array[@publication.PublicationContract],
+  manifest : @publication.PublicationContract,
+  receipt : @publication.PublicationContract,
+  captured_run : @publication.PublicationContract,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  max_workspace : Int,
+) -> @publication.ComputationEvidenceCheck {
+  @publication.start_effect_free_run_evidence_check_retained(
+    original, run_definition, invocation, definitions, artifacts, manifest, receipt,
+    captured_run, max_wire_bytes, max_nodes, max_depth, max_workspace,
+  )
+}
+
+///|
 #export_name("asyncStrategyEffectFreeChainCheckAdvance")
 pub fn async_strategy_effect_free_chain_check_advance(
   preparation : @publication.ComputationEvidenceCheck,
@@ -12075,6 +12171,36 @@ pub fn async_strategy_begin_effect_free_commit_check(
     run_definition, invocation, definitions, artifacts, derivations, orderings, retentions,
     durable_bindings, manifest, receipt, captured_run, request, attempt, index_entry,
     max_wire_bytes, max_nodes, max_depth, max_workspace,
+  )
+}
+
+///|
+#export_name("asyncStrategyBeginEffectFreeCommitCheckRetained")
+pub fn async_strategy_begin_effect_free_commit_check_retained(
+  original : @publication.CapturedRunIssuancePreparation,
+  run_definition : @publication.PublicationContract,
+  invocation : @publication.PublicationContract,
+  definitions : Array[@publication.PublicationContract],
+  artifacts : Array[@publication.PublicationContract],
+  derivations : Array[@publication.PublicationContract],
+  orderings : Array[@publication.PublicationContract],
+  retentions : Array[@publication.PublicationContract],
+  durable_bindings : Array[@publication.PublicationContract],
+  manifest : @publication.PublicationContract,
+  receipt : @publication.PublicationContract,
+  captured_run : @publication.PublicationContract,
+  request : @publication.PublicationContract,
+  attempt : @publication.PublicationContract,
+  index_entry : @publication.PublicationContract,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  max_workspace : Int,
+) -> @publication.PublicationCommitPreparation {
+  @publication.start_effect_free_publication_commit_check_retained(
+    original, run_definition, invocation, definitions, artifacts, derivations, orderings,
+    retentions, durable_bindings, manifest, receipt, captured_run, request, attempt,
+    index_entry, max_wire_bytes, max_nodes, max_depth, max_workspace,
   )
 }
 
@@ -20125,6 +20251,9 @@ pub(all) suberror WorkersFiniteFailure {
   Binding(@publication_host.ClientValuesRunBindingIssue)
   Sequence(@publication_host.ClientTaskSequenceIssue)
   Registry(@execution.RegistryIssue)
+  FragmentContract(@execution.FragmentContractIssue)
+  OrderedContract(@execution.OrderedContractIssue)
+  Fragments(@execution.SequenceFragmentIssue)
   Ledger(@resources.LedgerIssue)
   Run(@strategy.RunIssue)
   Local(@local_driver.LocalDispatchIssue)
@@ -20139,10 +20268,15 @@ pub fn workers_finite_environment(
   cid : String,
   expressions : @context.ExpressionProfiles,
   operations : @context.PureOperationProfiles,
+  numeric_profile_cid : String?,
 ) -> @program_check.CheckEnvironment raise WorkersFiniteFailure {
   match
     @publication_host.admit_client_check_environment(
-      wire, cid, expressions, operations,
+      wire,
+      cid,
+      expressions,
+      operations,
+      numeric_profile_cid~,
     ) {
     Some(value) => value
     None => raise InvalidInstallation
@@ -20182,6 +20316,41 @@ pub fn workers_finite_contracts(
     Ok(value) => value
     Err(issue) => raise Registry(issue)
   }
+}
+
+///|
+/// Explicit installed expression contracts; a body/CID is admitted by the
+/// common Owner before any expression context or physical task can be opened.
+#export_name("workersFiniteFragmentContracts")
+pub fn workers_finite_fragment_contracts(
+  contracts : @execution.RegisteredRelationContracts,
+  fragment : String,
+  ordered : String?,
+  physical : @execution.RegistryLimits,
+) -> (@execution.FragmentContract, @execution.RegisteredOrderedContract?) raise WorkersFiniteFailure {
+  let fragment = match
+    @execution.admit_fragment_contract(
+      contracts,
+      workers_finite_contract_body(fragment),
+      physical,
+    ) {
+    Ok(value) => value
+    Err(issue) => raise FragmentContract(issue)
+  }
+  let ordered = match ordered {
+    None => None
+    Some(body) =>
+      match
+        @execution.admit_ordered_contract(
+          contracts,
+          workers_finite_contract_body(body),
+          physical,
+        ) {
+        Ok(value) => Some(value)
+        Err(issue) => raise OrderedContract(issue)
+      }
+  }
+  (fragment, ordered)
 }
 
 ///|
@@ -20268,6 +20437,7 @@ pub fn workers_finite_admit_materials(
   sequence : @lower.SequenceLimits,
   max_work : Int,
   max_entries : Int,
+  numeric_profile_cid : String?,
 ) -> (
   @publication_host.PreparedClientProgram,
   @publication_host.ClientValuesCompilation,
@@ -20290,6 +20460,7 @@ pub fn workers_finite_admit_materials(
         max_evidence_nodes: 10000,
         max_evidence_depth: 100,
       },
+      numeric_profile_cid~,
     ) {
     Ok(value) => value
     Err(issue) => raise Materials(issue)
@@ -20353,6 +20524,9 @@ pub fn workers_finite_open(
   milliseconds : Int64,
   max_work : Int,
   max_entries : Int,
+  fragment : @execution.FragmentContract?,
+  ordered : @execution.RegisteredOrderedContract?,
+  fragment_limits : @execution.SequenceFragmentLimits?,
 ) -> @builtin.ConfiguredComputeHost[@strategy.RunIssue] raise WorkersFiniteFailure {
   workers_finite_profile(prepared)
   if milliseconds < 0L || max_work <= 0 || max_entries <= 0 {
@@ -20365,15 +20539,36 @@ pub fn workers_finite_open(
     Ok(_) => ()
     Err(issue) => raise Binding(issue)
   }
+  let graph = @publication_host.prepared_client_graph(prepared)
+  guard @strategy.graph_task_owner(graph, 0) is Some(owner) else {
+    raise UnsupportedProfile
+  }
+  let lowered = match @lower.prepare_sequence(owner, sequence_limits) {
+    Ok(value) => value
+    Err(issue) =>
+      raise Sequence(@publication_host.ClientTaskSequenceIssue::Sequence(issue))
+  }
+  let contexts = match fragment_limits {
+    None => []
+    Some(limits) =>
+      match
+        @execution.prepare_sequence_runtime_fragments(
+          lowered, fragment, ordered, limits,
+        ) {
+        Ok(value) => value
+        Err(issue) => raise Fragments(issue)
+      }
+  }
   let sequence = match
     @publication_host.prepare_client_task_sequence(
       prepared,
       0,
       contracts,
-      [],
+      contexts,
       sequence_limits,
       max_work,
       max_entries,
+      prepared_sequence=Some(lowered),
     ) {
     Ok(value) => value
     Err(issue) => raise Sequence(issue)

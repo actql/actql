@@ -21,6 +21,55 @@ const installNodeClientDispatchOwner = compileFunction(
   () => assert.fail('No fixture Relation execution'));
 const observation = retained => ({emit() {}, retainOperation(promise) {retained.push(promise);}});
 
+const entrySource = readFileSync(new URL('./entry.mjs', import.meta.url), 'utf8');
+const entryAst = parse(entrySource, {ecmaVersion: 'latest', sourceType: 'module'});
+const publicationErrorClass = entryAst.body.map(node => node.declaration ?? node)
+  .find(node => node.type === 'ClassDeclaration' && node.id?.name === 'CapturedRunPublicationError');
+const OriginalPublicationError = compileFunction(
+  entrySource.slice(publicationErrorClass.start, publicationErrorClass.end) +
+    '\nreturn CapturedRunPublicationError;', [])();
+function dispatchFailureCallback(node) {
+  if (node?.type === 'CallExpression' && node.callee?.property?.name === 'catch') {
+    const callback = node.arguments[0];
+    if (callback?.type === 'ArrowFunctionExpression' &&
+        source.slice(callback.start, callback.end).includes("diagnostic('dispatch_failed'")) return callback;
+  }
+  if (node === null || typeof node !== 'object') return undefined;
+  for (const value of Object.values(node)) {
+    for (const child of Array.isArray(value) ? value : [value]) {
+      const found = dispatchFailureCallback(child);
+      if (found !== undefined) return found;
+    }
+  }
+}
+const failureCallback = dispatchFailureCallback(ast);
+assert.ok(failureCallback, 'The original dispatch failure callback must be selected');
+
+for (const property of ['code', 'cause']) {
+  test(`dispatch failure retains cleanup when diagnostic ${property} access throws`, async () => {
+    const primary = new Error('OriginalComputeFailure');
+    Object.defineProperty(primary, property, {get() {throw new Error('DiagnosticReadFailed');}});
+    const execution = {};
+    const failure = new OriginalPublicationError(primary, execution);
+    const entry = {reserved: false, physicalStarted: true};
+    let cleaned = 0, finished = 0;
+    const handle = compileFunction(`return (${source.slice(failureCallback.start, failureCallback.end)});`,
+      ['diagnostic', 'accepted', 'runtimeTag', 'runtimeOptionalField', 'entry',
+        'CapturedRunPublicationError', 'settleCleanup', 'finishRun'])(
+      () => {}, {ref: {}}, () => undefined, () => undefined, entry,
+      OriginalPublicationError, async actual => {
+        assert.equal(actual.primaryFailure, failure);
+        assert.equal(actual.cleanupOwner, execution);
+        assert.equal(actual.stopObservationPending, true);
+        cleaned++;
+      }, async () => {finished++;});
+    await handle(failure);
+    assert.equal(cleaned, 1);
+    assert.equal(finished, 1);
+    assert.equal(entry.primaryFailure, failure);
+  });
+}
+
 test('dispatch observation retains the original operation beyond its start barrier', async () => {
   let finish, committed = false;
   const pending = new Promise(resolve => {finish = resolve;});
