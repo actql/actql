@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import test from 'node:test';
 import {parse} from 'acorn';
+import {publishEffectFreeRun} from './run-publication.mjs';
 
 // Execute the two actual private loops with explicit Common ports. These
 // counters establish scheduling and cleanup, not installed Host acceptance.
@@ -303,6 +304,96 @@ test('publication caller forwards its original Index to the existing Store commi
   const call = new Function('store','index','inventory','evidence','commitEvidence',
     'return ' + text.slice(calls[0].start,calls[0].end));
   assert.strictEqual(await call(store,original,inventory,evidence,value=>value), result);
+});
+
+function publicationCommitCallerFixture({committed = true, differentIndex = false} = {}) {
+  // Exercise the complete actual caller with explicit semantic/Store ports.
+  // These ports do not establish a Common verdict or physical durability ACK.
+  const cid = digit => 'sha256:' + digit.repeat(64);
+  const contract = (name, digit, body = {}) => Object.freeze({name,
+    identityField: name + '_cid', identity: cid(digit),
+    wire: JSON.stringify({...body, [name + '_cid']: cid(digit)})});
+  const original = contract('run_definition', '1');
+  const request = contract('publication_request', '2');
+  const attempt = contract('publication_attempt', '3');
+  const index = contract('public_index_entry', '4', {publication_attempt_cid: attempt.identity});
+  const selected = differentIndex
+    ? contract('public_index_entry', '5', {publication_attempt_cid: attempt.identity}) : index;
+  const record = contract('publication_record', '6');
+  const setup = ['check_existing_commit', 'check_initial_active', 'persist_contracts', 'enter_attempt_progress'];
+  const progress = ['issue_index', 'commit_index'];
+  const reads = [], events = [];
+  let acknowledge;
+  const ack = new Promise(resolve => {acknowledge = resolve;});
+  let entered;
+  const committing = new Promise(resolve => {entered = resolve;});
+  const control = {
+    issuePublicationRequest: () => request, issuePublicationAttempt: () => attempt,
+    issuePublicIndexEntry: () => index, issuePublicationRecord: () => assert.fail('No append needed in this fixture'),
+    publicationSetupAction: () => setup.shift(), publicationAttemptAction: () => progress.shift(),
+    publicationCancellationAction: () => assert.fail('No cancellation'),
+    committedPublicationFinalizationAction: () => 'finished',
+    supersededPublicationFinalizationAction: () => assert.fail('Same original attempt'),
+    publicationCommitFailureAction: () => assert.fail('No commit failure in success fixture'),
+    publicationUnknownRetryAction: () => assert.fail('No retry'),
+    effectFreeChainValid: () => true, effectFreeCommitValid: () => true,
+    admit: () => assert.fail('No caller-side re-admission'),
+    retireCapturedComputation(value) {assert.strictEqual(value, original);events.push('retire');},
+  };
+  const store = {
+    putPublicationContract: async () => {}, putOriginalPublicationContracts: async () => {},
+    createAttempt: async () => {}, latestRecordContract: async () => record,
+    appendRecord: async () => assert.fail('No append needed'),
+    inspectCommittedIndex: async () => undefined, confirmCommittedIndex: async () => undefined,
+    validateCommittedEvidence: async () => assert.fail('No existing commit'),
+    retireUncommittedPublication: async () => assert.fail('Same original attempt'),
+    async commitIndex(wire, _inventory, _evidence, originalIndex) {
+      assert.equal(wire, index.wire);assert.strictEqual(originalIndex, index);
+      events.push('commit');entered();await ack;events.push('ack');
+      return {entry: JSON.parse(selected.wire), committed, idempotent: !committed};
+    },
+    async readPublicationContract(identity, name) {
+      reads.push({identity, name});
+      if (name === 'public_index_entry') {assert.equal(identity, selected.identity);return selected;}
+      assert.equal(name, 'publication_attempt');assert.equal(identity, attempt.identity);return attempt;
+    },
+  };
+  const evidence = {runDefinition: original, invocation: original,
+    definitions: [original], artifacts: [original], derivations: [], orderings: [],
+    retentions: [], durableBindings: [original], manifest: original, receipt: original, capturedRun: original};
+  const options = {store, control, evidence,
+    request: {namespaceId: 'namespace', authorityScopeCid: cid('7'),
+      publicationPolicyCid: cid('8'), publicationTargetCid: cid('9'), requestedAt: 'original-time'},
+    attempt: {attemptId: 'original-attempt', fenceCid: cid('a'),
+      externalIdempotencyKey: undefined, startedAt: 'original-time'},
+    limits: {maxWireBytes: 65536, maxNodes: 4096, maxDepth: 64},
+    now: () => 'original-time', signal: undefined};
+  return {options, index, selected, attempt, reads, events, committing, acknowledge};
+}
+
+test('publication caller retains only its newly acknowledged original Index', async () => {
+  const f = publicationCommitCallerFixture();
+  const operation = publishEffectFreeRun(f.options);
+  await f.committing;
+  assert.deepEqual(f.events, ['commit']);assert.deepEqual(f.reads, []);
+  f.acknowledge();
+  const result = await operation;
+  assert.strictEqual(result.index, f.index);
+  assert.equal(result.state, 'succeeded');assert.equal(result.committed, true);
+  assert.deepEqual(f.reads, [{identity: f.attempt.identity, name: 'publication_attempt'}],
+    'successful own-Index ACK does not require another same-input Index reader');
+  assert.deepEqual(f.events, ['commit', 'ack', 'retire']);
+});
+
+test('publication caller still reads an idempotent or different committed Index', async () => {
+  for (const settings of [{committed: false}, {differentIndex: true}]) {
+    const f = publicationCommitCallerFixture(settings);
+    const operation = publishEffectFreeRun(f.options);await f.committing;f.acknowledge();
+    const result = await operation;
+    assert.strictEqual(result.index, f.selected);
+    assert.deepEqual(f.reads, [{identity: f.selected.identity, name: 'public_index_entry'},
+      {identity: f.attempt.identity, name: 'publication_attempt'}]);
+  }
 });
 
 test('publication computation lifetime captures the original retirement and waits for terminal success', async () => {

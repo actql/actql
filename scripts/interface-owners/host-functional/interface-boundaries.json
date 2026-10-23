@@ -8250,7 +8250,7 @@
     {
       "module": "adapters/host-common/run-publication.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "9d13f290dbfb2ed6ded5b2a2a59c4780b5951f6f6eef114d6fcff69962c33b28",
+      "sha256": "0ea8707e7b64dd1ee34484140d8d223b6114b3f9a6419dcfffe3cbe9747e5e36",
       "role": "physical-io",
       "owner": "Existing Run Publication/Artifact Owners and physical Store sequencing",
       "exports": [
@@ -8764,6 +8764,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "The publication caller passes its original immutable Index wrapper alongside"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "After a new Store commit acknowledges the exact issued Index identity, the"
               }
             ],
             "inputsOutputs": [
@@ -9082,6 +9086,14 @@
               {
                 "path": "adapters/host-common/publication-yield.test.mjs",
                 "anchor": "publication caller forwards its original Index to the existing Store commit"
+              },
+              {
+                "path": "adapters/host-common/publication-yield.test.mjs",
+                "anchor": "publication caller retains only its newly acknowledged original Index"
+              },
+              {
+                "path": "adapters/host-common/publication-yield.test.mjs",
+                "anchor": "publication caller still reads an idempotent or different committed Index"
               }
             ]
           }

@@ -3544,11 +3544,18 @@ async function openOriginalLocalPublicationStore(
   const nativeDeliveryContract = (cid, name, retained) =>
     admitNativeContract(deliveryIndex?.contract(cid), cid, name, retained);
 
-  const readSemanticOriginal = async function readSemanticBytes(cid, includeNative = true, retainGeneration = false) {
+  const readSemanticOriginal = async function readSemanticBytes(cid, includeNative = true, retainGeneration = false, retained) {
     const path = contractPath(cid);
     active();
     const nativeRecord = includeNative ? deliveryIndex?.contract(cid) : undefined;
-    const native = admitNativeContract(nativeRecord,cid);
+    // A commit may already hold this same immutable issued contract. Compare
+    // the actual selected row before asking its original control to reuse it;
+    // changed rows and unknown/copy/legacy originals keep full admission.
+    const native = nativeRecord !== undefined && retained?.identity === cid &&
+      retained.name === nativeRecord.name && retained.wire === nativeRecord.wire
+      ? admitOriginalContract(nativeRecord.name, nativeRecord.wire, retained)
+      : admitNativeContract(nativeRecord,cid);
+    if (native !== undefined && native.identity !== cid) fail('InvalidDeliveryAttemptIndex');
     if (native !== undefined) return Object.freeze({bytes: Buffer.from(native.wire,'utf8'), native,
       publication: nativeRecord.publication === true});
     // This is the original read duty in the same Store lifetime. Keep its
@@ -5456,7 +5463,7 @@ async function openOriginalLocalPublicationStore(
     entry,
     suppliedEvidence,
     required,
-    readOriginal = readSemanticOriginal,
+    readOriginal = (cid, includeNative) => readSemanticOriginal(cid, includeNative),
   ) => {
     if (!exactKeys(suppliedEvidence, [
       'runDefinition',
@@ -5504,7 +5511,7 @@ async function openOriginalLocalPublicationStore(
         fail('InvalidPublicationCommitEvidence');
       }
       const persisted = (await readOriginal(contract.identity,
-        nativeContractRead(contract.name))).bytes;
+        nativeContractRead(contract.name), contract)).bytes;
       if (!persisted.equals(Buffer.from(contract.wire, 'utf8'))) {
         fail('PublicationCommitEvidenceMismatch');
       }
@@ -5592,7 +5599,8 @@ async function openOriginalLocalPublicationStore(
   // chain; the Store confirms its public bodies and private physical holdings.
   // A caller cannot use this result as an apply or commit permit.
   const inspectEffectfulStoredEvidence = async ({index, chain, preview,
-    receipts, privateBinding, effectSources}, readOriginal = readSemanticOriginal, retainedIndex) => {
+    receipts, privateBinding, effectSources},
+    readOriginal = (cid, includeNative) => readSemanticOriginal(cid, includeNative), retainedIndex) => {
     active();
     if (typeof contractControl.effectfulCommitValid !== 'function' ||
         typeof contractControl.effectPrivateEvidenceBinding !== 'function' ||
@@ -5649,7 +5657,7 @@ async function openOriginalLocalPublicationStore(
         'name', 'identityField', 'identity', 'wire',
       ]) || !cidPattern.test(contract.identity) ||
           !(await readOriginal(contract.identity,
-            nativeContractRead(contract.name))).bytes.equals(
+            nativeContractRead(contract.name), contract)).bytes.equals(
             Buffer.from(contract.wire, 'utf8'))) {
         fail('EffectfulCommitEvidenceMismatch');
       }
@@ -5844,9 +5852,9 @@ async function openOriginalLocalPublicationStore(
     // Share successful acquisition/close facts across the pure evidence and
     // metadata-inventory phases; a new operation acquires new originals.
     const semanticOriginals = new Map();
-    const readOriginal = (cid, includeNative = cid !== admitted.identity) => {
+    const readOriginal = (cid, includeNative = cid !== admitted.identity, retained) => {
       if (!semanticOriginals.has(cid)) {
-        semanticOriginals.set(cid, readSemanticOriginal(cid, includeNative));
+        semanticOriginals.set(cid, readSemanticOriginal(cid, includeNative, false, retained));
       }
       return semanticOriginals.get(cid);
     };
