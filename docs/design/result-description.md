@@ -413,3 +413,14 @@ remain separate. Caller-borrowed inventories, copied contracts and changed
 observations retain the complete validator. This ownership provenance contains
 no permission or physical-current fact; the Host still authenticates and fences
 the actual selected rows and retains their loans through response cleanup.
+
+## Ordered-row frame backing
+
+The existing frame Owner admits the total encoded-byte bound and per-row bound
+separately. Its private row buffer initializes only the smaller of those two
+bounds: every input chunk passes the total-byte guard before any row byte is
+written. The configured per-row guard, accepted wire, error precedence and
+chunk/depth/row-count checks remain unchanged. In particular, a small payload
+cannot turn an invalid configured limit into a valid one. These initialized
+slots are managed parser backing, not a physical memory reservation or cleanup
+acknowledgement.
