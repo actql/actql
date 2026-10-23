@@ -8453,6 +8453,32 @@ test(`native Index Store retains both storage and payload custody after ${afterC
 });
 }
 
+test('native Index rechecks the original publication record inside its commit', async t => {
+  const {store,directory} = await fixture(t), invoked = invocation();
+  const request = publicationRequest(resultDefinition(),digest('native Index changed publication record'));
+  const attempt = publicationAttempt(request), prepared = await prepareCommit(store,request,attempt,invoked,cids.policy,false,true);
+  const entry = indexEntry(request,attempt,invoked,{durable_result_binding_cids:[prepared.binding.identity]});
+  const changed = publicationRecord(attempt,2,'publication_unknown',prepared.committing);
+  const target = join(directory,'contracts',entry.public_index_entry_cid.slice(7)+'.json');
+  const lstatOriginal = fsPromises.lstat;
+  let changedOnce = false;
+  t.mock.method(fsPromises,'lstat',async function(path,...args){
+    if (!changedOnce && String(path) === target) {
+      changedOnce = true;
+      await store.appendRecord(wire(changed),{uncommittedConfirmed:false});
+    }
+    return Reflect.apply(lstatOriginal,this,[path,...args]);
+  });
+  syncBuiltinESMExports();t.after(()=>{t.mock.restoreAll();syncBuiltinESMExports();});
+  await assert.rejects(store.commitIndex(wire(entry),prepared.required,prepared.evidence),code('PublicationRecordConflict'));
+  assert(changedOnce);
+  assert.equal(await store.inspectCommittedIndex(indexKeyFor(request)),undefined);
+  assert.equal((await store.latestRecord(attempt.publication_attempt_cid)).publication_record_cid,changed.publication_record_cid);
+  assert.equal(store.status().reservedObjects,0);
+  assert.equal(await prepared.prepared.release(),true);
+  await store.close();
+});
+
 test('concurrent native Index confirmation retains one original lost-reply writer', async t => {
   const exec = DatabaseSync.prototype.exec;
   let armed = false, lost = false;

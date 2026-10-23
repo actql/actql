@@ -6075,6 +6075,7 @@ async function openOriginalLocalPublicationStore(
           // ACK. Its bytes and capacity stay owned until the real transaction.
           nativeIndexPreparation = {key:Object.freeze({metadata_key:keyHash,namespace_id:entry.namespace_id,
             authority_scope_cid:entry.authority_scope_cid,run_cid:entry.run_definition_cid}),body,original,bindings,
+            progress:Object.freeze({attemptCid:entry.publication_attempt_cid,recordCid:previous.identity}),
             reservation:reserveObjectCapacity(bytes.byteLength)};
           inventoryOriginal = original;
           return;
@@ -6112,7 +6113,7 @@ async function openOriginalLocalPublicationStore(
           catch (error) {original.reservation.release(); throw error;}
           writeNativeIndexOriginal(deliveryIndex.commitNativePublicationIndex,
             [original.key,original.body,original.original,original.bindings,
-              Object.freeze({objects:1,bytes:original.body.byte_count})], result => {
+              Object.freeze({objects:1,bytes:original.body.byte_count}),original.progress], result => {
               accountNativePublication(result.usage);
               if (result.created) markInstalled();
               durablyConfirmedIndexes.set(keyHash,entry.public_index_entry_cid);

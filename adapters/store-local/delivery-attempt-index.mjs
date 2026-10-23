@@ -1073,18 +1073,23 @@ export async function openDeliveryAttemptIndex(path, {
       .every(key => a[key] === b[key]);
     const sameNativeMaterials = (a,b) => a.length === b.length && a.every((value,i) =>
       ['binding_cid','material_cid','result_definition_cid'].every(key => value[key] === b[i][key]));
-    const commitNativeIndex = (suppliedKey,suppliedBody,suppliedInventory,suppliedBindings,allowance) => {
+    const commitNativeIndex = (suppliedKey,suppliedBody,suppliedInventory,suppliedBindings,allowance,progress) => {
       const key = nativeIndexKey(suppliedKey), body = publicationCopy(suppliedBody);
       const inventory = recoveryOriginal(suppliedInventory);
       if (body?.name !== 'public_index_entry' || body.semantic_cid !== inventory.public_index_cid ||
-          !Array.isArray(suppliedBindings) || suppliedBindings.length > maxEntries) fail('InvalidDeliveryAttemptIndex');
+          !Array.isArray(suppliedBindings) || suppliedBindings.length > maxEntries ||
+          !progress || Object.keys(progress).sort().join(',') !== 'attemptCid,recordCid' ||
+          !cid(progress.attemptCid) || !cid(progress.recordCid)) fail('InvalidDeliveryAttemptIndex');
+      progress = Object.freeze({...progress});
       const bindings = Object.freeze(suppliedBindings.map(nativeMaterialCopy)
         .sort((a,b) => a.result_definition_cid.localeCompare(b.result_definition_cid)));
       if (new Set(bindings.map(value => value.result_definition_cid)).size !== bindings.length) fail('InvalidDeliveryAttemptIndex');
       const retry = uncertain && uncertainNativeIndex?.kind === 'commit' &&
         sameNativeIndexKey(uncertainNativeIndex.key,key) && samePublication(uncertainNativeIndex.body,body) &&
         sameRecoveryOriginal(uncertainNativeIndex.inventory,inventory) &&
-        sameNativeMaterials(uncertainNativeIndex.bindings,bindings);
+        sameNativeMaterials(uncertainNativeIndex.bindings,bindings) &&
+        uncertainNativeIndex.progress.attemptCid === progress.attemptCid &&
+        uncertainNativeIndex.progress.recordCid === progress.recordCid;
       if (retry) {
         if (closed || closing || mutating || !complete) fail('DeliveryAttemptIndexCleanupPending');
         transaction.assertUsable();
@@ -1116,6 +1121,8 @@ export async function openDeliveryAttemptIndex(path, {
       try {
         run(() => {
           if (runMetadataFence.get(key.run_cid) !== undefined) fail('PublicationMetadataDeleted');
+          if (publicationAttempt.get(progress.attemptCid)?.run_cid !== key.run_cid) fail('PublicationAttemptMismatch');
+          if (publicationProgress.get(progress.attemptCid)?.record_cid !== progress.recordCid) fail('PublicationRecordConflict');
           if (existingBody === undefined) insertPublication.run(body.semantic_cid,body.name,body.wire,body.byte_count);
           if (native === undefined) insertNativeInventory.run(inventory.public_index_cid,inventory.inventory_wire);
           if (existing === undefined) {
@@ -1134,7 +1141,7 @@ export async function openDeliveryAttemptIndex(path, {
         });
         if (retry) {uncertain = false; uncertainNativeIndex = undefined;}
       } catch (error) {
-        if (error?.outcome === 'unknown') uncertainNativeIndex = Object.freeze({kind:'commit',key,body,inventory,bindings,created});
+        if (error?.outcome === 'unknown') uncertainNativeIndex = Object.freeze({kind:'commit',key,body,inventory,bindings,created,progress});
         throw error;
       }
       return Object.freeze({created,usage:usage()});

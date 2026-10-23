@@ -1184,11 +1184,22 @@ function nativeIndexOriginal(label = '1') {
   })};
   const bindings = [{result_definition_cid:cid('b'),binding_cid:cid('c'),material_cid:cid('d')}];
   const allowance = {objects:1,bytes:body.byte_count};
-  return {key,body,inventory,bindings,allowance};
+  const progress = {attemptCid:'sha256:e'+digits(label).slice(1),recordCid:'sha256:9'+digits(label).slice(1)};
+  return {key,body,inventory,bindings,allowance,progress};
+}
+
+function prepareNativeIndexOriginal(index, original) {
+  const first = 'sha256:f'+original.key.metadata_key.slice(1);
+  index.putPublicationContracts([
+    {semantic_cid:original.progress.attemptCid,name:'publication_attempt',wire:'{}',byte_count:2},
+    {semantic_cid:first,name:'publication_record',wire:'{}',byte_count:2},
+    {semantic_cid:original.progress.recordCid,name:'publication_record',wire:'{}',byte_count:2},
+  ],{objects:3,bytes:6},{kind:'initial-attempt',attemptCid:original.progress.attemptCid,runCid:original.key.run_cid,
+    records:[{sequence:0,recordCid:first,previousCid:null},{sequence:1,recordCid:original.progress.recordCid,previousCid:first}]});
 }
 
 const commitNativeIndexOriginal = (index, original) => index.commitNativePublicationIndex(
-  original.key,original.body,original.inventory,original.bindings,original.allowance);
+  original.key,original.body,original.inventory,original.bindings,original.allowance,original.progress);
 
 test('native Index commits its complete key body inventory and payload owners atomically', async t => {
   const directory = await mkdtemp(join(tmpdir(), 'actql-native-index-atomic-'));
@@ -1201,6 +1212,8 @@ test('native Index commits its complete key body inventory and payload owners at
   const path = join(directory,'index.sqlite3'),options = {create:false,maxEntries:8,maxWireBytes:4096};
   index = await openDeliveryAttemptIndex(path,{...options,create:true,initializeEmpty:true});
   const original = nativeIndexOriginal();
+  prepareNativeIndexOriginal(index,original);
+  const before = index.publicationUsage();
   armed = true;
   assert.equal(commitNativeIndexOriginal(index,original).created,true);
   assert.equal(commits,1);
@@ -1219,8 +1232,8 @@ test('native Index commits its complete key body inventory and payload owners at
     {code:'PublicationCommitConflict'});
   assert.throws(() => commitNativeIndexOriginal(index,{...original,key:{...original.key,namespace_id:'foreign'}}),
     {code:'PublicationCommitConflict'});
-  assert.equal(index.publicationUsage().objects,1);
-  assert.equal(index.publicationUsage().bytes,original.body.byte_count);
+  assert.equal(index.publicationUsage().objects,before.objects+1);
+  assert.equal(index.publicationUsage().bytes,before.bytes+original.body.byte_count);
   armed = false; index.close();
   index = await openDeliveryAttemptIndex(path,options);
   assert.deepEqual(index.nativePublicationIndex(original.key.metadata_key),selected);
@@ -1234,7 +1247,7 @@ test('native Index commits its complete key body inventory and payload owners at
   assert.deepEqual(index.publicationContract(original.body.semantic_cid),original.body,'physical metadata reclamation remains separate');
   assert.throws(() => commitNativeIndexOriginal(index,original),{code:'PublicationMetadataDeleted'});
   index.removePublicationContract(original.body);
-  assert.equal(index.publicationUsage().objects,0);
+  assert.equal(index.publicationUsage().objects,before.objects);
 });
 
 test('native Index quota and duplicate binding refusal install no partial owner', async t => {
@@ -1244,6 +1257,8 @@ test('native Index quota and duplicate binding refusal install no partial owner'
   index = await openDeliveryAttemptIndex(join(directory,'index.sqlite3'),
     {create:true,initializeEmpty:true,maxEntries:8,maxWireBytes:4096});
   const original = nativeIndexOriginal();
+  prepareNativeIndexOriginal(index,original);
+  const before = index.publicationUsage();
   assert.throws(() => commitNativeIndexOriginal(index,{...original,allowance:{objects:0,bytes:0}}),{code:'PublicationStoreCapacity'});
   assert.throws(() => commitNativeIndexOriginal(index,{...original,bindings:[original.bindings[0],original.bindings[0]]}),
     {code:'InvalidDeliveryAttemptIndex'});
@@ -1251,7 +1266,7 @@ test('native Index quota and duplicate binding refusal install no partial owner'
   assert.equal(index.publicationContract(original.body.semantic_cid),undefined);
   assert.deepEqual(index.pendingPublications(),[]);
   assert.deepEqual(index.nativePublicationMaterialReferences(original.bindings[0].material_cid),[]);
-  assert.equal(index.publicationUsage().objects,0);
+  assert.equal(index.publicationUsage().objects,before.objects);
 });
 
 for (const phase of ['commit','confirm']) for (const afterCommit of [false,true]) {
@@ -1270,6 +1285,8 @@ test(`native Index ${phase} retains its ${afterCommit ? 'committed' : 'rolled-ba
   index = await openDeliveryAttemptIndex(join(directory,'index.sqlite3'),
     {create:true,initializeEmpty:true,maxEntries:8,maxWireBytes:4096});
   const original = nativeIndexOriginal();
+  prepareNativeIndexOriginal(index,original);
+  const before = index.publicationUsage();
   if (phase === 'confirm') commitNativeIndexOriginal(index,original);
   const selected = phase === 'confirm' ? index.nativePublicationIndex(original.key.metadata_key) : undefined;
   const mutate = () => phase === 'commit' ? commitNativeIndexOriginal(index,original) : index.confirmNativePublicationIndex(selected);
@@ -1280,7 +1297,7 @@ test(`native Index ${phase} retains its ${afterCommit ? 'committed' : 'rolled-ba
   const confirmed = mutate();
   if (phase === 'commit') assert.equal(confirmed.created,true,'the SAME initial publication is retained through confirmation');
   assert.deepEqual(index.nativePublicationIndex(original.key.metadata_key).body,original.body);
-  assert.equal(index.publicationUsage().objects,1);
+  assert.equal(index.publicationUsage().objects,before.objects+1);
   assert.deepEqual(index.pendingPublications(),[original.inventory]);
 });
 }
@@ -1291,7 +1308,8 @@ test(`native Index refuses adopted ${missing} loss`, async t => {
   t.after(() => rm(directory,{recursive:true}));
   const path = join(directory,'index.sqlite3'),options = {create:false,maxEntries:8,maxWireBytes:4096};
   const index = await openDeliveryAttemptIndex(path,{...options,create:true,initializeEmpty:true});
-  commitNativeIndexOriginal(index,nativeIndexOriginal()); index.close();
+  const original=nativeIndexOriginal();prepareNativeIndexOriginal(index,original);
+  commitNativeIndexOriginal(index,original); index.close();
   const db = new DatabaseSync(path);
   try {db.exec('DROP TABLE '+missing);} finally {db.close();}
   await assert.rejects(openDeliveryAttemptIndex(path,options),{code:'DeliveryAttemptIndexUnavailable'});
@@ -1340,11 +1358,12 @@ test('native Index material lookup pages only the selected material owners', asy
   });
   t.after(async()=>{armed=false;index?.close();await rm(directory,{recursive:true});});
   index=await openDeliveryAttemptIndex(join(directory,'index.sqlite3'),
-    {create:true,initializeEmpty:true,maxEntries:72,maxWireBytes:4096});
+    {create:true,initializeEmpty:true,maxEntries:300,maxWireBytes:4096});
   const selected=[];
   for(let n=1;n<=69;n++){
     let original=nativeIndexOriginal(n.toString(16).padStart(64,'0'));
     if(n>65)original={...original,bindings:[{...original.bindings[0],material_cid:'sha256:'+'e'.repeat(64)}]};
+    prepareNativeIndexOriginal(index,original);
     commitNativeIndexOriginal(index,original);if(n<=65)selected.push(original.body.semantic_cid);
   }
   armed=true;
