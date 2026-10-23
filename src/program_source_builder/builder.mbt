@@ -133,17 +133,24 @@ fn normalized(
   text : String,
   remaining : Int,
   identifier? : Bool = true,
+  admit? : (String, Int) -> Result[Int, @scalar.Utf8AdmissionIssue] = @scalar.admit_utf8_length,
 ) -> (String, Int) raise Failure {
   let allowance = builder.limits.tree.max_string_bytes.min(remaining)
   // Bound normalization input as well as its retained output.
-  match
-    @scalar.admit_utf8_length(
-      text,
-      builder.limits.source.max_input_bytes.max(allowance),
-    ) {
+  let admitted_size = match
+    admit(text, builder.limits.source.max_input_bytes.max(allowance)) {
     Err(@scalar.MalformedUtf16(_)) => raise Failure(InvalidScalar)
     Err(_) => raise Failure(StringLimit)
-    Ok(_) => ()
+    Ok(size) => size
+  }
+  // Raw values retain the same immutable text. The completed admission already
+  // owns its exact byte length; the narrower bound needs only that fact. Keep
+  // the original first scan so malformed-input versus input-limit order stays.
+  if !identifier {
+    if admitted_size > allowance {
+      raise Failure(StringLimit)
+    }
+    return (text, admitted_size)
   }
   let text = if identifier {
     match @canonical.normalize_nfc_lf(text) {
@@ -153,7 +160,7 @@ fn normalized(
   } else {
     text
   }
-  match @scalar.admit_utf8_length(text, allowance) {
+  match admit(text, allowance) {
     Ok(size) => (text, size)
     Err(_) => raise Failure(StringLimit)
   }
