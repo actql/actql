@@ -1,4 +1,22 @@
 ///|
+fn client_values_fragment_output_contract(
+  row : @contract.Contract,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  emit? : (@contract.Contract, @encode.Writer) -> Unit raise @encode.EncodeFailure = @contract.emit_checked,
+) -> (String, String) raise @encode.EncodeFailure {
+  let writer = @encode.buffered_hashing_writer(
+    max_wire_bytes, max_nodes, max_depth, max_wire_bytes,
+  )
+  emit(row, writer)
+  // Text remains provisional until the same writer confirms completion.
+  let wire = @encode.drain_hash_output(writer)
+  let cid = "sha256:" + @encode.finish_hash(writer)
+  (wire, cid)
+}
+
+///|
 /// One owner-issued AoA Fragment node for a checked source-free Values task.
 /// Its output contract is the complete task row type before Result projection.
 pub struct ClientValuesFragmentNode {
@@ -172,14 +190,9 @@ fn issue_client_values_fragment_parts_graph(
     return Err(UnrepresentableOutput)
   }
   try {
-    let output_hash = @encode.hashing_writer(
-      max_wire_bytes, max_nodes, max_depth,
+    let (output_contract_wire, output_contract_cid) = client_values_fragment_output_contract(
+      row, max_wire_bytes, max_nodes, max_depth,
     )
-    let output_text = @encode.writer(max_wire_bytes, max_nodes, max_depth)
-    @contract.emit_checked(row, output_hash)
-    @contract.emit_checked(row, output_text)
-    let output_contract_cid = "sha256:" + @encode.finish_hash(output_hash)
-    let output_contract_wire = @encode.finish(output_text)
     let writer = @encode.writer(max_wire_bytes, max_nodes, max_depth)
     @encode.begin_object(writer)
     @encode.key(writer, "input_contracts")

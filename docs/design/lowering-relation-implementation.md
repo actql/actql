@@ -1136,6 +1136,15 @@ Temporary representations have their own bounded preparation paths; this
 accounting is not a process-heap ceiling. Material preparation is atomic and
 does not itself supply the enclosing contract admission or execution permit.
 
+The Values compiler emits each admitted output contract once through the
+existing bounded buffered hash writer. That traversal produces both the exact
+canonical text and SHA-256 input. The provisional text is drained only into
+local preparation, and no text/CID pair escapes until the same writer confirms
+complete structure and its original byte, node and depth limits. The retained
+buffer is bounded by that existing complete output-wire ceiling. This changes
+neither the output-contract preimage nor the enclosing fragment identity, and
+introduces no persistent cache, permission or physical acknowledgement.
+
 The generated candidate closes the map/filter fragment envelope with request,
 graph, roots, limits, checked output schema and expression-contract identity.
 Its execution-contract body is hash-checked against the selected registry's
