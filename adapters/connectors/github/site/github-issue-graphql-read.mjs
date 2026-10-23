@@ -225,12 +225,11 @@ async function readGitHubRowsByNode({moon, repository,
       });
       entry.facts = facts;
       Object.freeze(entry);
-      // The new response was just admitted. Only earlier responses can have
-      // changed during this physical call; do not hash the new body twice.
-      checkPrefix(entry);
       if (chargePage !== undefined) {
+        // Before accounting, validate earlier responses that could have
+        // changed during the physical call. The new body was just admitted.
+        checkPrefix(entry);
         charge = await chargePage(response.body);
-        checkPrefix();
       }
     } catch (cause) {
       stopped(cause?.code ?? 'GitHubReadInterrupted', {cause});
@@ -258,6 +257,10 @@ async function readGitHubRowsByNode({moon, repository,
           const next = JSON.parse(decoded(Reflect.apply(operations.next, moon, [original, owned.perPage])));
           if (next.body === null) { pending = false; break; }
           const {response, charge} = await exchange(next.body);
+          // Fulfillment can run external microtasks before this continuation.
+          // Check here, before any codec or consumer can observe changed bytes.
+          try { checkPrefix(); }
+          catch (cause) { stopped(cause?.code ?? 'GitHubReadInterrupted', {cause}); }
           decoded(Reflect.apply(operations.accept, moon, [original, response.body]));
           const current = JSON.parse(decoded(Reflect.apply(operations.finish, moon, [original]))).page;
           if (current === null) {
@@ -299,6 +302,8 @@ async function readGitHubRowsByNode({moon, repository,
       if (request.refused) stopped('InvalidGitHubReadRequest',
         {refusal: request.refused});
       const {response, charge} = await exchange(request.body);
+      try { checkPrefix(); }
+      catch (cause) { stopped(cause?.code ?? 'GitHubReadInterrupted', {cause}); }
       const original = decoded(Reflect.apply(operations.begin, moon, [response.body,
         owned.maxBytes, owned.maxNodes, owned.maxDepth, owned.perPage,
         owned.maxPages - requests + 1, repository.nodeId, repository.databaseId, repository.nameWithOwner]));
@@ -329,6 +334,8 @@ async function readGitHubRowsByNode({moon, repository,
           }
           rowCharge = undefined;
           const child = await exchange(next.body);
+          try { checkPrefix(); }
+          catch (cause) { stopped(cause?.code ?? 'GitHubReadInterrupted', {cause}); }
           rowCharge = child.charge;
           decoded(Reflect.apply(operations.accept, moon, [original, child.response.body]));
         }

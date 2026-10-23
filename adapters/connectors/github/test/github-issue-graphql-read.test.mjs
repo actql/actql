@@ -478,6 +478,45 @@ test('copied and another read original responses cannot substitute for this requ
   }
 });
 
+for (const boundary of ['transport', 'accounting']) {
+  test(`queued exchange fulfillment mutation refuses before row disclosure: ${boundary}`, async t => {
+    const state = world();
+    state.repositories.get('R_A').issues = [{number: 7, title: 'original'}];
+    const context = await setup(t, state);
+    let original, offset, disclosed = 0;
+    const mutate = () => Buffer.from('modified').copy(original.body, offset);
+    const failure = await stopOf(context.read({
+      callResource: request => ({then(resolve, reject) {
+        callHttpsCredentialResource(request).then(response => {
+          original = response;
+          const at = response.body.indexOf(Buffer.from('"title":"original"'));
+          assert(at >= 0);
+          offset = at + Buffer.byteLength('"title":"');
+          resolve(response);
+          // Resolve first: the exchange continuation checks the original,
+          // then this queued callback runs before its caller resumes.
+          if (boundary === 'transport') queueMicrotask(mutate);
+        }).catch(reject);
+      }}),
+      ...(boundary !== 'accounting' ? {} : {chargePage: () => ({then(resolve) {
+        resolve(undefined);
+        queueMicrotask(mutate);
+      }})}),
+      consumePage: () => { disclosed++; },
+    }));
+    assert.equal(failure?.code, 'RemoteCredentialRunResponseChanged');
+    assert.equal(failure.stopped, true);
+    assert.equal(disclosed, 0, 'Do not disclose a row parsed from changed original bytes');
+    assert.deepEqual(failure.acceptedPages, []);
+    assert.equal(context.fixture.seen().length, 1);
+    assert.equal(context.journal.recover()[0].outcome, 'succeeded');
+    Buffer.from('original').copy(original.body, offset);
+    assert.throws(() => withHttpsCredentialRunResponseOriginal(original,
+      context.credential.control, context.journal, () => {}),
+    {code: 'RemoteCredentialRunResponseChanged'});
+  });
+}
+
 test('actual RowRun refuses copied foreign reused and observed-only tickets without releasing a row prefix', async t => {
   const first = await accountedIssueRows(() => true);
   const foreign = await accountedIssueRows(() => true);
