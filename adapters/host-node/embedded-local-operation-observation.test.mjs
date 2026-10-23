@@ -77,3 +77,133 @@ test('Result operation capture forwards the same installed optional holder on de
   assert.equal(read(), holder);
   assert.equal(calls, 1);
 });
+
+// Execute the original Effect caller and target-read closure with explicit
+// Journal/current/child ports. Actual SQLite row admission is tested by the
+// Journal owner; this fixture grants no permission or physical acknowledgement.
+const effectFunctions = new Map();
+function collectEffectFunctions(node) {
+  if (node === null || typeof node !== 'object') return;
+  if (node.type === 'VariableDeclarator' &&
+      ['executeEffectComputation', 'openEffectTargetReads'].includes(node.id.name)) {
+    assert.equal(effectFunctions.has(node.id.name), false);
+    effectFunctions.set(node.id.name, source.slice(node.init.start, node.init.end));
+  }
+  for (const child of Object.values(node)) {
+    if (Array.isArray(child)) child.forEach(collectEffectFunctions);
+    else if (child && typeof child === 'object') collectEffectFunctions(child);
+  }
+}
+collectEffectFunctions(ast);
+assert.equal(effectFunctions.size, 2);
+
+function effectCancellationFixture() {
+  const ref = Object.freeze({namespaceId: 'namespace', authorityScopeCid: 'scope', runDefinitionCid: 'run'});
+  const prepared = {}, work = deferred(), entered = deferred();
+  const counts = {legacyLookups: 0, observers: 0, probes: 0, target: 0, resume: 0};
+  let row = Object.freeze({revision: 1, cancellationRequested: false});
+  let targetCurrent, sourceCurrent, originalCurrent;
+  const read = () => {counts.probes++; if (row instanceof Error) throw row; return row;};
+  const moon = {
+    clientProgramEffectSerializationOccurrences: () => [{}],
+    clientProgramEffectAcquisitionCount: () => 0,
+    clientProgramEffectCompilationUnitId: () => 'unit',
+    clientProgramEffectCompilationResultNames: () => ['updates'],
+  };
+  const control = {runDefinitionRunId: () => 'original-run'};
+  const journal = {
+    lookupRunDefinition(actual, requestControl, publicationControl) {
+      assert.strictEqual(actual, ref); assert.strictEqual(requestControl, moon);
+      assert.strictEqual(publicationControl, control); counts.legacyLookups++; return read();
+    },
+    observeRunCancellation(actual, requestControl, publicationControl) {
+      assert.strictEqual(actual, ref); assert.strictEqual(requestControl, moon);
+      assert.strictEqual(publicationControl, control); counts.observers++; return read;
+    },
+  };
+  const selection = Object.freeze({targetReadInventory: () => []});
+  const ports = {moon, control, journal, installedEffect: undefined,
+    selectedInstalledEffect: () => selection, principalId: 'actor',
+    checkpoints: {}, effectSubmissions: new WeakMap(), inferSelections: new WeakMap(),
+    effectTargetReadContinuation(options) {targetCurrent = options.assertCurrent; return {assertCurrent: targetCurrent};},
+    effectInstallation: {targetReadInventory: selection.targetReadInventory, async execute(facts) {
+      facts.assertUpdateSelectionCurrent();
+      targetCurrent();
+      await Promise.resolve();
+      facts.assertUpdateSelectionCurrent();
+      return facts.openComputation({retainComputationOwner() {}});
+    }},
+    dispatchOwner: {track(actual, options) {
+      assert.strictEqual(actual, ref);
+      return Promise.resolve().then(() => options.run({signal: new AbortController().signal,
+        retainExecution() {}, beginPhysicalWork() {}, observePreEffectFailure() {}}));
+    }},
+    selectAcquiredEffectSources: () => [], sourceProfile: {}, registry: {}, values: {}, fragment: {}, ordered: {},
+    acquiredEffectContinuation(options) {sourceCurrent = options.currentRun; return {};},
+    async openAcquiredEffectComputation(options) {
+      originalCurrent = options.assertUpdateSelectionCurrent;
+      originalCurrent(); options.assertContinuationCurrent();
+      entered.resolve(); return work.promise;
+    },
+    earlyMockEffectPlans: new WeakMap(), localSnapshotConfiguration: {},
+    withLocalExecutionPauseHandler() {}, store: {}, storeAuthorityCid: 'store',
+    authorityScopeCid: 'scope', now: () => 'original-time', runContent() {}, authorization: undefined,
+    observation: undefined, modelController: undefined, diagnostic() {},
+    clientOperationError: code => Object.assign(new Error(code), {code}),
+  };
+  const install = name => compileFunction(`return ${effectFunctions.get(name)};`, Object.keys(ports))(...Object.values(ports));
+  ports.openEffectTargetReads = install('openEffectTargetReads');
+  const execute = install('executeEffectComputation');
+  const facts = Object.freeze({ref, prepared, runDefinition: {}, compilation: {}, preparedExecution: {},
+    updateTargetSelections: {}, assertUpdateSelectionCurrent() {counts.target++;}});
+  const resume = Object.freeze({active: false, assertCurrent() {counts.resume++;}});
+  return {counts, facts, entered: entered.promise, execute: () => execute(facts, resume),
+    setRow: value => {row = value;}, target: () => targetCurrent(),
+    source: () => sourceCurrent(), original: () => originalCurrent(),
+    independentTarget: () => ports.openEffectTargetReads(facts, {activeResume: resume}),
+    finish: () => work.resolve({status: 'waiting_checkpoint'})};
+}
+
+test('Effect cancellation probes share one original observer through target and Source work', async () => {
+  const f = effectCancellationFixture(), execution = f.execute();
+  try {
+    await f.entered;
+    assert.equal(f.source(), true); f.target(); f.original();
+    assert.equal(f.counts.legacyLookups, 0, 'Cancellation does not readmit the full Run at each internal check');
+    assert.equal(f.counts.observers, 1, 'The same continuation owns one Journal observer');
+    assert(f.counts.probes > 5, 'Actual cancellation probes still occur at current boundaries');
+    assert(f.counts.target > 5); assert(f.counts.resume > 2);
+  } finally {f.finish(); await execution;}
+});
+
+test('Effect cancellation probes retain changed missing and failed current observations', async () => {
+  const f = effectCancellationFixture(), execution = f.execute();
+  try {
+    await f.entered;
+    for (const row of [Object.freeze({revision: 1, cancellationRequested: true}), undefined]) {
+      f.setRow(row); assert.equal(f.source(), false);
+      assert.throws(f.target, {code: 'ClientRunCancellationRequested'});
+      assert.throws(f.original, {code: 'ClientRunCancellationRequested'});
+    }
+    const original = Object.assign(new Error('OriginalJournalReadFailed'), {code: 'OriginalJournalReadFailed'});
+    f.setRow(original); assert.throws(f.source, error => error === original);
+    assert.throws(f.target, error => error === original);
+    f.setRow(Object.freeze({revision: 2, cancellationRequested: false}));
+    assert.equal(f.source(), true); f.target();
+    assert.equal(f.counts.observers, 1);
+  } finally {f.finish(); await execution;}
+});
+
+test('Effect cancellation probes retain pending child lifetime and independent target observers', async () => {
+  const f = effectCancellationFixture(), execution = f.execute();
+  try {
+    await f.entered;
+    f.original(); assert.equal(f.source(), true);
+    await f.independentTarget();
+    assert.equal(f.counts.observers, 2, 'An independent target continuation has its own Journal lifetime');
+    f.setRow(Object.freeze({revision: 2, cancellationRequested: true}));
+    assert.equal(f.source(), false);
+    assert.throws(f.target, {code: 'ClientRunCancellationRequested'});
+    assert.throws(f.original, {code: 'ClientRunCancellationRequested'});
+  } finally {f.finish(); await execution;}
+});
