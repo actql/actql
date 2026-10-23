@@ -82,7 +82,7 @@ test('successful original preparation retain keeps its same retirement until ack
     acquired: {prepared: {}}, originalPreparation: preparation,
     retainComputationOwner(owner) {custody = owner;},
     sourceProfile: {prepare() {prepares++; throw failure;}, open() {reads++;}},
-    sourceContinuation: {close() {closes++;}},
+    sourceContinuation: {accessFor: access => access, close() {closes++;}},
   }), error => error === failure);
   assert.equal(retains, 1);
   await custody.close();
