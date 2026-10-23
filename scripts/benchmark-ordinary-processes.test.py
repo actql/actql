@@ -171,7 +171,7 @@ class CollectorTests(unittest.TestCase):
         return path, consumer, None
 
     def python(self, fail_close=False, alter_on_close=False, priority=False, fail_query=None,
-               repeat_reference=False, slow_query=None):
+               repeat_reference=False, slow_query=None, failure_chain=False):
         root=self.root
         environment=root/'venv'
         venv.EnvBuilder(with_pip=False, symlinks=True).create(environment)
@@ -184,6 +184,24 @@ class CollectorTests(unittest.TestCase):
         code = PRIORITY_PYTHON if priority else PYTHON
         if fail_query is not None:
             code = code.replace('FAIL_QUERY=None', f'FAIL_QUERY={fail_query}')
+        if failure_chain:
+            code += """
+def chain_failure():
+ error=RuntimeError('Synthetic uncertain read')
+ error.code='ClientTransportUnknown'
+ error.rows_yielded=0
+ error.cleanup_pending=True
+ error.attempt_id='synthetic-attempt'
+ error.original_error=ValueError('Synthetic retained allocation')
+ error.original_error.code='LocalFileError'
+ error.cleanup_error=RuntimeError('Synthetic pending transport')
+ error.__cause__=LookupError('Synthetic cause')
+ error.__context__=ArithmeticError('Synthetic context')
+ error.validation_error=ValueError('Synthetic validation')
+ return error
+"""
+            code = code.replace("raise RuntimeError('Synthetic Unknown; no resend')", 'raise chain_failure()')
+            code = code.replace("event('result');return", "event('result');raise chain_failure();return")
         if slow_query is not None:
             code = code.replace('SLOW_QUERY=None', f'SLOW_QUERY={slow_query}')
         if repeat_reference:
@@ -407,6 +425,60 @@ class CollectorTests(unittest.TestCase):
         events=[json.loads(x) for x in (output/'new-state/events').read_text().splitlines()]
         self.assertEqual([row['value'] for row in events if row['event']=='failed-submit'],[2])
         self.assertEqual([row['value'] for row in events if row['event']=='submit'],[0,1])
+
+    def test_python_failure_chain_is_bounded_and_does_not_call_properties(self):
+        import importlib.util
+        spec=importlib.util.spec_from_file_location('collector_failure',SCRIPT)
+        module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+        class StoredFailure(Exception):
+            @property
+            def cleanup_error(self):raise AssertionError('Must not invoke an SDK property')
+            def __str__(self):raise AssertionError('Must not invoke an exception formatter')
+        original=StoredFailure('x'*4096)
+        current=original
+        for index in range(10):
+            current.original_error=ValueError(str(index));current=current.original_error
+        original.validation_error=original
+        report=module.python_failure(original)
+        self.assertEqual(len(report['errorChain']),8)
+        self.assertTrue(report['errorChainTruncated'])
+        self.assertEqual(len(report['message']),2048)
+        self.assertEqual(report['causes']['validation_error'],0)
+        self.assertNotIn('cleanup_error',report['causes'])
+        self.assertIsNone(report['code'])
+        json.dumps(report)
+
+    def test_python_failure_causes_survive_both_process_collectors(self):
+        for priority in (False, True):
+            with self.subTest(priority=priority), tempfile.TemporaryDirectory() as directory:
+                original_root=self.root;self.root=Path(directory)
+                try:
+                    fixture=self.python(priority=priority, fail_query=2 if priority else None,
+                                        failure_chain=True, fail_close=True)
+                    result,report,output=self.collect('python',fixture,
+                        'warm-select' if priority else 'warm-result',
+                        extra=['--selection','priority-transition'] if priority else [])
+                finally:self.root=original_root
+                self.assertEqual(result.returncode,1,result.stderr)
+                failure=report['latency'][0]['samples'][-1]['error']
+                self.assertEqual(failure['code'],'ClientTransportUnknown')
+                self.assertEqual(failure['rows_yielded'],0)
+                self.assertTrue(failure['cleanup_pending'])
+                self.assertEqual(failure['attempt_id'],'synthetic-attempt')
+                chain=failure['errorChain'];links=chain[0]['causes']
+                self.assertEqual(chain[links['original_error']]['code'],'LocalFileError')
+                self.assertEqual(chain[links['cleanup_error']]['message'],'Synthetic pending transport')
+                self.assertEqual(chain[links['__cause__']]['name'],'LookupError')
+                self.assertEqual(chain[links['__context__']]['name'],'ArithmeticError')
+                self.assertEqual(chain[links['validation_error']]['message'],'Synthetic validation')
+                self.assertFalse(report['cleanup']['closed'])
+                cleanup=report['cleanup'] if priority else report['failedObservation']['cleanup']
+                self.assertEqual(cleanup['failure']['message'],'Synthetic cleanup pending')
+                self.assertTrue(all(not row['completed'] for row in report['functional']['rows']))
+                state=output/('new-state' if priority else 'existing-state')
+                events=[json.loads(line) for line in (state/'events').read_text().splitlines()]
+                self.assertEqual(sum(row['event']=='close' for row in events),1)
+                self.assertEqual(sum(row['event']=='submit' for row in events),2 if priority else 1)
 
     def test_python_priority_reused_run_refuses_instead_of_counting_a_new_run(self):
         result,report,_=self.collect('python',self.python(priority=True,repeat_reference=True),'warm-select',
