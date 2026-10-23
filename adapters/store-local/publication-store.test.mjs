@@ -158,6 +158,33 @@ async function fixture(t, options = {}, control = contractControl) {
   };
 }
 
+test('fresh Store coverage shares its original native schema commit', async t => {
+  const exec = DatabaseSync.prototype.exec;
+  let commits = 0;
+  t.mock.method(DatabaseSync.prototype, 'exec', function(sql) {
+    const result = Reflect.apply(exec, this, [sql]);
+    if (sql === 'COMMIT') commits++;
+    return result;
+  });
+  const {directory, configuration, store} = await fixture(t);
+  assert.equal(commits, 1, 'empty coverage belongs to the actual schema creation transaction');
+  const database = new DatabaseSync(join(directory, 'delivery-attempts.sqlite3'), {readOnly: true});
+  try {
+    for (const table of ['coverage', 'physical_object_usage', 'publication_recovery',
+      'metadata_deletion_fence_coverage']) {
+      assert.equal(database.prepare(`SELECT complete FROM ${table} WHERE id=1`).get().complete, 1);
+    }
+    assert.equal(database.prepare('SELECT dirty FROM result_deletion_recovery WHERE id=1').get().dirty, 0);
+  } finally { database.close(); }
+  assert.deepEqual(JSON.parse(await readFile(join(directory, 'delivery-attempts-index.json'), 'utf8')),
+    {version: 1, phase: 'ready'});
+  await store.close();
+  commits = 0;
+  const reopened = await openLocalPublicationStore(configuration, contractControl);
+  assert.equal(commits, 0, 'unchanged reopening neither recreates coverage nor commits a migration');
+  await reopened.close();
+});
+
 async function legacyInventoryFixture(directory, publicIndexCid) {
   // Compatibility-only fixture for the prior file representation. Transfer
   // this new disposable fixture's exact body before dropping its native copy;
