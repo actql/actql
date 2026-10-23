@@ -29937,10 +29937,11 @@
     {
       "module": "adapters/host-node/entry.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "d17465d41a33db750a24e7ba21d8ec513b70716d7551703ce412ca64899ce734",
+      "sha256": "7cfef09c2bcbd1265d2595bf6cc40aef28faf737caf98f4eeaee8d6f391aab3a",
       "role": "physical-io",
       "owner": "Existing installed Host lifecycle/Connector registration Owners; no caller-selected runtime",
       "exports": [
+        "CapturedRunExecutionError",
         "CapturedRunPublicationError",
         "completeCapturedEffectRun",
         "completeInterruptedEffectRun",
@@ -29954,6 +29955,13 @@
         "settleRefusedEffectRun"
       ],
       "operations": [
+        {
+          "name": "CapturedRunExecutionError/constructor:constructor/constructor:constructor",
+          "parameters": [
+            "execution"
+          ],
+          "async": false
+        },
         {
           "name": "CapturedRunPublicationError/constructor:constructor/constructor:constructor",
           "parameters": [
@@ -30126,6 +30134,7 @@
         {
           "operations": [
             "<module>",
+            "CapturedRunExecutionError/constructor:constructor/constructor:constructor",
             "CapturedRunPublicationError/constructor:constructor/constructor:constructor",
             "createNodeHostEntry",
             "createNodeHostEntry/createNodeHostEntry",
@@ -30148,6 +30157,7 @@
             "standard/standard"
           ],
           "exports": [
+            "CapturedRunExecutionError",
             "CapturedRunPublicationError",
             "completeCapturedEffectRun",
             "completeInterruptedEffectRun",
@@ -30215,6 +30225,10 @@
               {
                 "path": "docs/design/connector-layout.md",
                 "anchor": "# Connector ownership and repository layout"
+              },
+              {
+                "path": "adapters/host-node/client-values-fragment-capacity.test.mjs",
+                "anchor": "test('execution failure wrapper retains the exact first failure and cleanup handle'"
               }
             ],
             "synchronization": [
@@ -30243,6 +30257,10 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "adapters/host-node/client-values-fragment-capacity.test.mjs",
+                "anchor": "test('execution failure wrapper retains the exact first failure and cleanup handle'"
               }
             ],
             "cancellation": [
@@ -30299,6 +30317,10 @@
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "adapters/host-node/client-values-fragment-capacity.test.mjs",
+                "anchor": "test('execution failure wrapper retains the exact first failure and cleanup handle'"
               }
             ]
           }
@@ -30306,6 +30328,7 @@
       ],
       "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred.",
       "imports": [
+        "../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js",
         "../connectors-builtin/strategy.generated.mjs",
         "../host-common/authorization-gate.mjs",
         "../host-common/completion-observer.mjs",
@@ -30320,9 +30343,7 @@
         "./managed-identity-policy.mjs"
       ],
       "compilerFields": [],
-      "unresolvedSyntax": [
-        "runtime-dependent module dependency requires original owner/artifact mapping"
-      ]
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/host-node/generated-content-holding.mjs",

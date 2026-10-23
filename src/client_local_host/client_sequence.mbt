@@ -861,8 +861,12 @@ fn prepare_client_local_sequences_owned(
           // evaluates the whole capture at once (up to 500 KB, the most one
           // acquisition captures), while a compute stage keeps one
           // evaluation's bound so several tasks fit the Run's budget.
+          // Use the row ceiling already admitted by this owner. A configured
+          // source-free Values sequence must not regain the default ceiling
+          // when its checked expression is lowered to a fragment.
+          let max_rows = client_local_owner_sequence_limits(prepared).max_rows.to_int64()
           let logical : @lower.FragmentRowLimits = {
-            max_input_rows: 100L,
+            max_input_rows: max_rows,
             max_value_bytes: 10000L,
             max_live_value_bytes: if acquiring {
               500000L
@@ -875,7 +879,7 @@ fn prepare_client_local_sequences_owned(
           let request = match
             @lower.prepare_fragment_request(
               fragment,
-              100L,
+              max_rows,
               10000L,
               row_limits=if ordered { Some(logical) } else { None },
             ) {

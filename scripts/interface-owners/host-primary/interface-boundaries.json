@@ -1343,7 +1343,7 @@
     },
     {
       "module": "adapters/host-node/client-dispatch-owner.mjs",
-      "sha256": "319b360c10638cb4099e62dac0d40dd111608fc1c594557544e19ab6ee9b6707",
+      "sha256": "7c9caceb64af4847a34f1924817a5e76c052580805310f60f43885f6ba1ea2c4",
       "exports": [
         "cancelNodeRunContinuation",
         "confirmNodeRunCancellation",
@@ -2186,6 +2186,10 @@
               {
                 "path": "adapters/host-node/client-dispatch-observation.test.mjs",
                 "anchor": "test('tracked observation settlement cannot retire unresolved physical cleanup'"
+              },
+              {
+                "path": "adapters/host-node/client-values-fragment-capacity.test.mjs",
+                "anchor": "test('a demanded expression failure retains its original typed dispatch cause'"
               }
             ]
           }
