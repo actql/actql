@@ -43,7 +43,26 @@ attributeNames.push('actql.resource.scope',
   ...resourceUsageNames.map(name => `actql.resource.usage.${resourceAttribute(name)}`));
 attributeNames.push(...['owner', 'selection', 'kind', 'returned', 'unrelated', 'coverage']
   .map(name => `actql.rows.${name}`));
-function accumulateSelectedRows(context, detail) {
+function bindSelectedRequestRows(detail, binding) {
+  if (binding === undefined) return undefined;
+  const request = detail.requestSelection;
+  if (request !== undefined && request.authorityScopeCid === binding.ref.authorityScopeCid &&
+      request.requestId === binding.requestId) {
+    const selected = detail.selectedRowRef;
+    return {...detail, requestSelection: undefined, ref: binding.ref,
+      unrelatedRows: detail.returnedRows === 0 ? 0 : Number(
+        selected.namespaceId !== binding.ref.namespaceId ||
+        selected.authorityScopeCid !== binding.ref.authorityScopeCid ||
+        selected.runDefinitionCid !== binding.ref.runDefinitionCid)};
+  }
+  // A failed uniqueness probe never reaches acceptance. Only actual absence
+  // can join the later accepted original; a partial present row stays unknown.
+  if (detail.runSelectionCid === binding.ref.runDefinitionCid && detail.returnedRows === 0) {
+    return {...detail, runSelectionCid: undefined, ref: binding.ref, unrelatedRows: 0};
+  }
+  return undefined;
+}
+function accumulateSelectedRows(context, detail, pendingLimit = 0) {
   if (context === undefined || context.selectedRowsClosed || detail === null ||
       typeof detail !== 'object' || Array.isArray(detail)) return false;
   const {ref, rowOwner, selection, rowKind, returnedRows, unrelatedRows, coverage} = detail;
@@ -52,6 +71,28 @@ function accumulateSelectedRows(context, detail) {
       !Number.isSafeInteger(returnedRows) || returnedRows < 0 ||
       unrelatedRows !== undefined && (!Number.isSafeInteger(unrelatedRows) ||
         unrelatedRows < 0 || unrelatedRows > returnedRows)) return false;
+  if (pendingLimit > 0 && (detail.requestSelection !== undefined || detail.runSelectionCid !== undefined)) {
+    const request = detail.requestSelection, selected = detail.selectedRowRef;
+    if (returnedRows > 1 || request !== undefined && (selection !== 'request' ||
+        !cid(request.authorityScopeCid) || typeof request.requestId !== 'string' ||
+        request.requestId.length === 0 || request.requestId.length > 256 ||
+        returnedRows === 1 && (typeof selected?.namespaceId !== 'string' ||
+          !cid(selected.authorityScopeCid) || !cid(selected.runDefinitionCid))) ||
+        detail.runSelectionCid !== undefined && (selection !== 'run-definition' ||
+          !cid(detail.runSelectionCid))) return false;
+    const captured = {rowOwner, selection, rowKind, returnedRows, coverage,
+      ...(request === undefined ? {} : {requestSelection: {
+        authorityScopeCid: request.authorityScopeCid, requestId: request.requestId},
+      ...(returnedRows === 0 ? {} : {selectedRowRef: {namespaceId: selected.namespaceId,
+        authorityScopeCid: selected.authorityScopeCid, runDefinitionCid: selected.runDefinitionCid}})}),
+      ...(detail.runSelectionCid === undefined ? {} : {runSelectionCid: detail.runSelectionCid})};
+    const bound = bindSelectedRequestRows(captured, context.selectedRequestBinding);
+    if (bound !== undefined) return accumulateSelectedRows(context, bound);
+    const pending = context.pendingRequestRows ??= [];
+    if (pending.length >= pendingLimit) {context.selectedRowsUnavailable = true; return false;}
+    pending.push(captured);
+    return true;
+  }
   const previous = context.selectedRows;
   if (previous === undefined) {
     context.selectedRows = {ref, rowOwner, selection, rowKind, returnedRows, unrelatedRows, coverage};
@@ -413,7 +454,12 @@ export function installHostObservation(connection, {journal, runId} = {}) {
   };
   const flushSelectedRows = context => {
     if (context === undefined || context.selectedRowsClosed) return;
+    // A request with no matching successful acceptance remains unbound. Keep
+    // its real counts without borrowing an eventual or another operation's Run.
+    for (const pending of context.pendingRequestRows ?? []) accumulateSelectedRows(context, pending);
+    context.pendingRequestRows = context.selectedRequestBinding = undefined;
     const rows = context.selectedRows;
+    if (context.selectedRowsUnavailable && rows !== undefined) rows.unavailable = true;
     let id;
     try {
       if (rows !== undefined && !rows.unavailable && config.correlations.has('run')) {
@@ -487,6 +533,22 @@ export function installHostObservation(connection, {journal, runId} = {}) {
       const current = contexts.getStore();
       const context = current?.owner === contextOwner ? current : undefined;
       if (context) context.ref = result.ref;
+      if (observeRows && context && !context.finished && typeof requestId === 'string' &&
+          typeof result.ref.namespaceId === 'string' && cid(result.ref.authorityScopeCid) &&
+          cid(result.ref.runDefinitionCid)) {
+        // This hook follows the actual Journal acceptance transaction. It is
+        // only original correspondence, never a permission or row read ACK.
+        context.selectedRequestBinding = {requestId, ref: Object.freeze({
+          namespaceId: result.ref.namespaceId, authorityScopeCid: result.ref.authorityScopeCid,
+          runDefinitionCid: result.ref.runDefinitionCid})};
+        const pending = [];
+        for (const detail of context.pendingRequestRows ?? []) {
+          const bound = bindSelectedRequestRows(detail, context.selectedRequestBinding);
+          if (bound === undefined) pending.push(detail);
+          else accumulateSelectedRows(context, bound);
+        }
+        context.pendingRequestRows = pending;
+      }
       if (result.inserted && storage !== undefined) {
         storage.initialize({ref: result.ref, requestId,
           scope: config.scope, revision: config.revision,
@@ -574,7 +636,8 @@ export function installHostObservation(connection, {journal, runId} = {}) {
         let captured = false;
         try {
           const context = contexts.getStore();
-          if (context?.owner === contextOwner) captured = accumulateSelectedRows(context, detail);
+          if (context?.owner === contextOwner) captured = accumulateSelectedRows(context, detail,
+            Math.min(config.selected.requestRecords, config.selected.segmentRecords));
         }
         catch { /* Optional unreadable facts remain unavailable. */ }
         if (!captured) drop('rowsUnavailable');
@@ -607,7 +670,8 @@ export function installHostObservation(connection, {journal, runId} = {}) {
         // cleanup duty. An unfinished observation is unavailable, not zero.
         drop('rowsUnavailable');
         context.finished = true; context.selectedRowsClosed = true;
-        context.selectedRows = context.trace = context.ref = context.http = undefined;
+        context.selectedRows = context.pendingRequestRows = context.selectedRequestBinding =
+          context.trace = context.ref = context.http = undefined;
         context.retainedPromises = undefined;
         context.runIdentities = undefined;
       }
