@@ -1055,17 +1055,145 @@ export function assessPriorityTransition(input) {
     qualification: 'Assesses supplied ordinary evidence only. Passing does not establish SQLite equivalence, release readiness or full product completion.'});
 }
 
+
+// CLI startup is measured on both routes. These targets do not add Native
+// requirements to the retained-Host SDK gate or establish full acceptance.
+export const nativeOperationTarget = Object.freeze({samples: 100, medianMs: 100, p95Ms: 200});
+export function assessNativeOperations(report) {
+  requireValue(report?.selection === 'native-operations' && report.executionPath === 'native-cli' &&
+    /^[a-f0-9]{40}$/u.test(report.sourceSha), 'Ordinary Native operation report required');
+  const identities = ['cohortSha256', 'environmentSha256', 'historyProtocolSha256'];
+  requireValue(identities.every(key => digest(report[key])), 'Exact Native cohort/environment/protocol required');
+  const failures = [], missing = [], checks = {};
+  requireValue(evidenceHash(report.environment) === report.environmentSha256, 'Native environment differs from its identity');
+  const protocol = report.historyProtocol, count = report.mode === 'final' ? 100 : 3;
+  requireValue(['diagnostic', 'final'].includes(report.mode) && protocol?.selection === 'native-operations' &&
+    protocol.mode === report.mode && protocol.samplesPerOperation === count &&
+    evidenceHash(protocol) === report.historyProtocolSha256, 'Native protocol differs from its original identity');
+  requireValue(protocol.firstQuery?.text === 'SELECT 0 AS id' &&
+    evidenceHash(protocol.firstQuery.expected) === evidenceHash([{id: 0}]), 'Separate Native first query/oracle required');
+  requireValue(protocol.queries?.length === count && protocol.queries.every((row, index) =>
+    row.text === `SELECT ${index + 1} AS id` && evidenceHash(row.expected) === evidenceHash([{id: index + 1}])),
+  'Varied Native query/oracle protocol required');
+  if (report.firstFailure != null || report.packageFailure != null) failures.push('known original public/package failure');
+  if (report.installedPayloadsUnchanged !== true) missing.push('successful final installed-package correspondence');
+  if (report.cleanup?.closed === false) failures.push('original process cleanup failed');
+  else if (report.cleanup?.closed !== true) missing.push('actual original process completion');
+  if (report.initialization?.code !== 0 || !integer(report.initialization.pid) || report.initialization.pid <= 0 ||
+    !integer(report.initialization.wallNs) || report.initialization.wallNs <= 0) {
+    missing.push('separate successful ordinary initialization with actual child');
+  }
+  const first = report.firstQuery;
+  if (first?.verified === false) failures.push('separate first query failed');
+  else if (first?.completed !== true || first.verified !== true ||
+    first.expectedSha256 !== evidenceHash([{id: 0}]) || first.actualSha256 !== first.expectedSha256) {
+    missing.push('separate first query and materialized-row oracle');
+  }
+  if (first?.verified === true) {
+    requireValue(integer(first.pid) && first.pid > 0 && first.command?.pid === first.pid && first.command.code === 0 &&
+      integer(first.childWallNs) && first.childWallNs > 0 && first.command.wallNs === first.childWallNs &&
+      integer(first.wallNs) && first.wallNs >= first.childWallNs &&
+      first.querySha256 === evidenceHash(protocol.firstQuery.text), 'Actual separate first Native child/query required');
+  }
+  const series = new Map();
+  for (const value of report.latency ?? []) {
+    requireValue(['cold-new-run', 'cold-result'].includes(value.operation) && !series.has(value.operation), 'Unknown or duplicate Native route');
+    requireValue(identities.every(key => value[key] === report[key]) && value.mode === report.mode,
+      'Native route mixes original cohort/environment/protocol');
+    requireValue(value.fixtureSha256 === evidenceHash(value.publicWorkload), 'Native workload identity differs');
+    requireValue(value.samples.every(row => identities.every(key => row[key] === report[key])), 'Mixed Native sample identities');
+    checks[value.operation] = assessLatencyTarget(value, nativeOperationTarget);
+    failures.push(...checks[value.operation].failures.map(reason => `${value.operation}: ${reason}`));
+    missing.push(...checks[value.operation].missing.map(reason => `${value.operation}: ${reason}`));
+    series.set(value.operation, value);
+  }
+  const fresh = series.get('cold-new-run'), saved = series.get('cold-result');
+  for (const name of ['cold-new-run', 'cold-result']) if (!series.has(name)) missing.push(`${name}: actual raw population`);
+  const rows = [first, ...[...series.values()].flatMap(value => value.samples)].filter(Boolean);
+  const pids = [report.initialization?.pid, ...rows.map(row => row.pid)].filter(value => value !== undefined);
+  if (new Set(pids).size !== pids.length) failures.push('Native operations must use distinct actual child processes');
+  if (rows.some(row => row.stateId !== first?.stateId) || typeof first?.stateId !== 'string' || !first.stateId) {
+    failures.push('Native routes must retain the same actual project state');
+  }
+  const attempts = report.publicCallAttempts;
+  if (!attempts) missing.push('actual public command attempts');
+  else if (attempts.init !== 1 || attempts.run !== (first ? 1 : 0) + (fresh?.samples.length ?? 0) ||
+    attempts.result !== (saved?.samples.length ?? 0)) failures.push('Native command attempts differ from observed public operations');
+  const operationIds = rows.map(row => row.publicOperationId);
+  if (operationIds.some(value => typeof value !== 'string' || !value) || new Set(operationIds).size !== operationIds.length) {
+    failures.push('Native public-operation identity reused or missing');
+  }
+  const originals = [];
+  const runIds = new Set(first?.publicRunId ? [first.publicRunId] : []);
+  if (fresh) {
+    requireValue(fresh.publicWorkload.kind === 'new-durable-run-result-file-rows' &&
+      evidenceHash(fresh.publicWorkload.fixtures) === evidenceHash(protocol.queries.map(row => ({
+        querySha256: evidenceHash(row.text), expectedSha256: evidenceHash(row.expected)}))), 'Native query population differs');
+    for (const [index, row] of fresh.samples.entries()) {
+      if (row.verified !== true) continue;
+      const expected = protocol.queries[index];
+      requireValue(expected && row.querySha256 === evidenceHash(expected.text) && row.expectedSha256 === evidenceHash(expected.expected) &&
+        row.actualSha256 === row.expectedSha256, 'Native query or materialized rows differ');
+      requireValue(typeof row.publicRunId === 'string' && row.publicRunId && !runIds.has(row.publicRunId), 'Native new Run identity reused');
+      runIds.add(row.publicRunId);
+      const response = row.publicResponse, delivery = response?.deliveries?.[0], request = delivery?.request;
+      requireValue(response?.run?.run_id === row.publicRunId && response.run.status === 'succeeded' &&
+        response.delivery_status === 'delivered' && response.deliveries.length === 1 && delivery.status === 'delivered' &&
+        delivery.run_id === row.publicRunId && typeof request?.result === 'string' && typeof request.result_cid === 'string',
+      'Original Native Run/Result delivery correspondence required');
+      requireValue(row.runRefSha256 === evidenceHash({runId: row.publicRunId}) &&
+        row.resultRefSha256 === evidenceHash({runId: row.publicRunId, resultName: request.result, resultCid: request.result_cid}),
+      'Native returned reference differs');
+      if (originals.length < 3) originals.push({...row, resultName: request.result});
+    }
+  }
+  if (saved) {
+    requireValue(saved.publicWorkload.kind === 'saved-original-result-rows' && originals.length > 0 &&
+      evidenceHash(saved.publicWorkload.originals) === evidenceHash(originals.map(row => Object.fromEntries(
+        ['runRefSha256', 'resultRefSha256', 'expectedSha256'].map(key => [key, row[key]])))), 'Saved Native original population differs');
+    for (const [index, row] of saved.samples.entries()) {
+      if (row.verified !== true) continue;
+      const original = originals[index % originals.length];
+      requireValue(['runRefSha256', 'resultRefSha256', 'expectedSha256', 'publicRunId'].every(key => row[key] === original[key]) &&
+        row.actualSha256 === row.expectedSha256 && evidenceHash(row.command?.args) === evidenceHash(
+          ['result', original.publicRunId, '--result', original.resultName, '--format', 'jsonl']), 'Saved Native target or rows differ');
+    }
+  }
+  requireValue(identities.every(key => report.functional?.[key] === report[key]), 'Native functional evidence differs');
+  for (const [name, value] of series) {
+    const matches = report.functional.rows?.filter(row => row.operation === name) ?? [];
+    requireValue(matches.length === 1, 'Native functional population binding required');
+    const row = matches[0];
+    if (row.completed !== true) missing.push(`${name}: complete functional population`);
+    else requireValue(row.fixtureSha256 === value.fixtureSha256 &&
+      row.expectedSha256 === evidenceHash(value.samples.map(row => row.expectedSha256)) &&
+      row.actualSha256 === evidenceHash(value.samples.map(row => row.actualSha256)), 'Native functional oracle differs');
+    for (const sample of value.samples) {
+      if (sample.verified !== true) continue;
+      requireValue(sample.command?.pid === sample.pid && sample.command.code === 0 &&
+        integer(sample.childWallNs) && sample.childWallNs > 0 && sample.command.wallNs === sample.childWallNs && sample.wallNs >= sample.childWallNs,
+      'Actual Native child completion/boundary required');
+    }
+  }
+  return outcome(failures, missing, {purpose: 'native-cli-latency-functional-only', sourceSha: report.sourceSha,
+    cohortSha256: report.cohortSha256, target: nativeOperationTarget, checks, fullPerformanceAccepted: false,
+    releaseAccepted: false, unverified: ['matched SQLite public-operation comparator', 'same-candidate permission/Unknown/recovery safety',
+      'bounded history/temporary resource and structural evidence'],
+    qualification: 'A passing selected latency/functional gate is not full public performance, safety, SQLite equivalence or release acceptance.'});
+}
+
 async function main(args) {
   const {readFile, writeFile, stat} = await import('node:fs/promises');
   const calibration = args[0] === '--calibrate-sqlite';
   const priority = args[0] === '--priority-transition';
+  const native = args[0] === '--native-operations';
   requireValue(args.length >= 2 && args.length % 2 === 0 &&
-    ['--input', '--calibrate-sqlite', '--priority-transition'].includes(args[0]),
-    'Usage: --input REPORT [--native-sqlite-control CONTROL --native-sqlite-protocol PROTOCOL] | --priority-transition COMBINED_REPORT | --calibrate-sqlite BASELINE [--result-control CONTROL] [--output JSON]');
+    ['--input', '--calibrate-sqlite', '--priority-transition', '--native-operations'].includes(args[0]),
+    'Usage: --input REPORT [--native-sqlite-control CONTROL --native-sqlite-protocol PROTOCOL] | --native-operations REPORT | --priority-transition COMBINED_REPORT | --calibrate-sqlite BASELINE [--result-control CONTROL] [--output JSON]');
   const options = {};
   for (let index = 2; index < args.length; index += 2) {
     const key = args[index];
-    requireValue((key === '--output' || calibration && key === '--result-control' || !calibration && !priority &&
+    requireValue((key === '--output' || calibration && key === '--result-control' || !calibration && !priority && !native &&
       ['--native-sqlite-control', '--native-sqlite-protocol'].includes(key)) &&
       !Object.hasOwn(options, key), 'Unknown or duplicate assessment option');
     options[key] = args[index + 1];
@@ -1086,7 +1214,7 @@ async function main(args) {
   const resultControl = options['--result-control'] ? await boundedInput(options['--result-control']) : undefined;
   const result = calibration ? {baseline: input, ...(resultControl ? {resultControl} : {}),
     profile: calibrateSqliteComparisonProfile(input, resultControl)}
-    : priority ? assessPriorityTransition(input) : assessPerformanceEvidence(input);
+    : priority ? assessPriorityTransition(input) : native ? assessNativeOperations(input) : assessPerformanceEvidence(input);
   const body = JSON.stringify(result, null, 2) + '\n';
   if (options['--output']) await writeFile(options['--output'], body, {flag: 'wx'});
   process.stdout.write(body);
