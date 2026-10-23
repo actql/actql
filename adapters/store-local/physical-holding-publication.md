@@ -288,7 +288,7 @@ bytes never escape; the next public read acquires its own original and detects
 a changed or replacement alias. No permission, claim or physical ACK is cached.
 
 Internal index durability reconciliation remains separate from public selected
-use. It still confirms the real directory acknowledgement and original custody
+use. It still confirms the representation's real durability and original custody
 outcome, including before metadata has been fully staged or during retirement.
 This is not a durable ACK or permission cache. Pending deletion, prepared custody,
 and quota accounting retain their original responsibilities. Payload accounting
@@ -303,7 +303,7 @@ originals in its private recovery index. Before acquiring an inventory file,
 the Store stages its exact Index CID and bounded inventory wire in a real native
 transaction. An existing file representation retains its own write, close and
 directory acknowledgements. The pending row is removed only after the original Index
-directory acknowledgement and schema adoption. At that point the same Store may
+durability acknowledgement and schema adoption. At that point the same Store may
 retain the exact bounded completion original and include its removal in the next
 already-required transaction of this database. Retention is not a durable ACK:
 the original pending row remains until actual COMMIT, and an interrupted process
@@ -319,7 +319,7 @@ mutation or close retry, and actual native close releases their managed aliases
 without claiming an unrelated uncertain mutation succeeded.
 
 An older private database format permits one bounded inventory migration. The
-Store confirms each selected Index's actual directory durability, retains only
+Store confirms each selected Index's actual durability, retains only
 unfinished originals, and commits coverage with the pending rows atomically.
 Subsequent opens read pending rows rather than enumerating committed inventories
 or Indexes. Missing adopted tables, coverage or malformed selected originals
@@ -334,7 +334,8 @@ original to that marker before physical retirement and never reconstructs its
 already removed file. Failed transfer or physical cleanup retains the original
 retry duty; no quota refund, permission or cleanup success follows from a callback.
 
-Inventory staging precedes the public Index commit's payload-custody owner.
+For a file-backed Index, inventory staging precedes the public Index commit's
+payload-custody owner.
 If its native COMMIT reply is lost, the Store therefore retains that exact
 staging original in its existing pending-writer collection and returns its
 storage-only, single-flight finalizer with the original Unknown failure. The
@@ -350,8 +351,8 @@ Legacy file-backed staging retains the same protocol and separate file ACKs.
 New inventory bodies are durable originals in that same native staging
 transaction, not duplicate filesystem preparations. Completion removes only the
 pending lookup; the exact bounded inventory wire remains available to selected
-reads. The existing Index file and its actual directory acknowledgement still
-determine publication. Stage and completion remain distinct logical transitions;
+reads. A file-backed Index and its actual directory acknowledgement still
+determine that publication. Stage and completion remain distinct logical transitions;
 storing the body with its pending lookup removes the redundant inventory-file
 write/sync/close and directory sync, not those logical transitions or payload ACKs.
 
@@ -395,6 +396,69 @@ pending original are not reissued, replaced or treated as dispatch permission.
 Prior file inventories keep their selected admission and legacy ownership walk.
 That legacy path and other accounting work remain separate costs; this index
 does not establish fully history-independent Store startup or public latency.
+
+### Native Index publication
+
+A native publication attempt can commit its public Index through the same
+exclusively owned Store SQLite connection. The exact namespace, authority scope,
+Run and derived metadata key locate the original Index body. The complete
+logical tuple and immutable Index CID are unique under that actual transaction;
+the Index body, inventory, pending lookup, derived material references and quota
+delta become durable together. The transaction checks the original attempt/Run
+and the exact previously admitted committing-record CID before insertion, as
+well as the existing whole-Run retirement fence. A changed progress original
+refuses instead of publishing from a stale preparing or committing observation.
+This preserves the separate logical Index commit; it does not merge it with
+an execution claim, a delivery START/END, approval or protected dispatch.
+
+The Store first admits the actual incoming Index and validates its captured
+chain, bindings, schema, payload and existing holdings. Staging retains only a
+bounded intended inventory and an Index-body reservation, not an ACK or stored
+evidence. Payload custody is acquired before the real native COMMIT. New native
+Index bodies consume the same object/UTF-8-byte quota, without also creating an
+object file, semantic hard link or filesystem Index. Independently adopted file
+Indexes and file attempts retain their real write/link/directory protocol.
+
+A selected native read admits the actual stored Index body and binds all tuple
+fields and the CID before use. A conflicting file representation refuses.
+The existing last-confirmed-CID observation is installed only after a real
+native write/COMMIT ACK. Cold independent confirmation compares the complete
+selected original and performs an exact-revision native write, not an ACK from
+mere row visibility. Later reads still select their actual Index original and
+current Host permission remains independent. The existing file path keeps its
+real directory ACK and post-ACK selected read.
+
+Lost native replies retain the same captured method, receiver, key, body,
+inventory, bindings, progress and quota reservation in the existing writer
+collection. Concurrent acquisitions share that existing unresolved duty; they
+cannot replace it with another writer. Cleanup confirms storage first through
+the same original write/COMMIT, then resolves the original payload custody.
+Repeated lost confirmation replies keep the original supplied revision fixed
+for identity, while the same native holder tracks the before/after revision of
+its most recent actual write. Each retry accepts only that bounded pair and
+performs another real write/COMMIT; an unrelated revision jump still refuses.
+It neither resends an Effect nor issues another Run, receipt or approval.
+Failed custody construction returns only its unconsumed staging reservation.
+Native close, actual payload cleanup and the original publication/computation
+holder remain distinct duties; no successful `finally` or GC event issues ACK.
+
+Derived material rows select only native owners of the requested physical CID,
+in bounded pages. The Store checks each selected Index, exact binding and Result
+deletion marker before deciding whether the payload is still owned. Immutable
+binding facts are shared only within that one cleanup operation. A last-owner
+unlink retains its charge until the actual directory ACK, including same-original
+retry after an absent name. Retiring the native inventory removes its Index and
+material references in the original retirement transaction; the durable deletion
+marker still owns physical reclamation and contract quota release.
+
+Private format adoption creates these tables and coverage atomically. It does
+not scan or translate historical file Indexes or recreate a missing publication.
+Missing adopted schema refuses. A lost adoption reply remains Unknown even if
+a later open admits its completed transition. Subsequent opens use selected
+native rows and targeted pending recovery, not an all-Index integrity sweep.
+This representation changes no public wire, identity, permission or limit;
+other legacy ownership/history work remains separate and actual public latency
+requires matching ordinary-package evidence.
 
 ### Indexed Run metadata retirement
 
@@ -516,7 +580,7 @@ optimization introduces no new cold confirmation filesystem operations.
 A Result description selects its committed Index and exact Result Binding once.
 The description, binding inventory and retention-extension lookup consume those
 same admitted values; a private helper is not another authorization or semantic
-boundary. The Index's immutable semantic alias still receives its original
+boundary. A file-backed Index's immutable semantic alias still receives its original
 bounded FD, inode and digest checks, but byte-identical canonical wire reuses
 the Index admission. A different spelling follows ordinary contract admission.
 
@@ -528,7 +592,7 @@ actual payload digest/size and schema checks remain, including after a later
 operation observes changed physical bytes. Contract-control admission is separate
 from this direct Store DATA interpretation count.
 
-Cold commit confirmation retains the bounded Index bytes across the real
+Cold file-backed commit confirmation retains the bounded Index bytes across the real
 containing-directory ACK. It checks metadata retirement again and rereads the
 selected Index: identical bytes reuse that operation's admitted value, while
 changed bytes receive normal admission and identity comparison. This does not
@@ -787,7 +851,7 @@ capabilities. The separate public operation still observes current policy.
 
 The Store also retains new publication metadata groups in this same database,
 instead of separately synchronizing duplicate body files and aliases. Existing
-file originals, Index/schema and file-backed attempt/progress protocols remain
+file originals, file-backed Index/schema and attempt/progress protocols remain
 supported. The native group owns one real durable transaction, not a provisional
 per-body ACK. The existing Store's byte/object limits include native bodies and
 unresolved reservations beside actual file objects. A persisted usage singleton
