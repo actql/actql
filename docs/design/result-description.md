@@ -413,4 +413,3 @@ remain separate. Caller-borrowed inventories, copied contracts and changed
 observations retain the complete validator. This ownership provenance contains
 no permission or physical-current fact; the Host still authenticates and fences
 the actual selected rows and retains their loans through response cleanup.
-
