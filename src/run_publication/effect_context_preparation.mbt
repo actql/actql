@@ -233,8 +233,20 @@ fn EffectContextPreparation::step(
     Field(index) =>
       if index == 15 {
         @encode.end_object(writer)
-        let wire = @encode.finish(writer)
-        self.parse(wire, true)
+        let document = @encode.finish_document(writer)
+        guard @source.start_json_document_parse(
+            document,
+            {
+              max_input_bytes: self.max_wire_bytes,
+              max_nodes: self.max_nodes,
+              max_depth: self.max_depth,
+            },
+            data_keys=true,
+          )
+          is Ok(parser) else {
+          raise @encode.OutputLimit
+        }
+        self.phase = Parse(parser, true)
       } else {
         self.key(effect_context_field(index), SectionStart(index))
       }

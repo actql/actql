@@ -2,6 +2,7 @@
 package "actql/actql/source_value"
 
 import {
+  "actql/actql/encode_core",
   "actql/actql/source_span",
   "moonbitlang/core/debug",
 }
@@ -42,6 +43,8 @@ pub fn parse_yaml_bytes_preserving(Bytes, ParseLimits, source_path? : String) ->
 pub fn parse_yaml_measured(String, ParseLimits, source_path? : String) -> Result[ParsedSource, ParseError]
 
 pub fn representation_extent(Node, Int, Int, Int) -> Result[SourceRepresentationExtent, SourceRepresentationExtentIssue]
+
+pub fn start_json_document_parse(@encode_core.EncodedDocument, ParseLimits, source_path? : String, data_keys? : Bool) -> Result[JsonParse, ParseError]
 
 pub fn start_json_parse(String, ParseLimits, source_path? : String, data_keys? : Bool) -> Result[JsonParse, ParseError]
 
