@@ -432,7 +432,24 @@ UTF-8 byte count. Resumable source parsing may reuse that original Unicode
 preflight when the document fits the requested byte bound. It still runs the
 same grammar, key normalization, duplicate, node/depth, and cancellation path;
 a tighter byte bound or a raw text input retains the original incremental
-preflight. Effect-context preparation passes its own completed writer document
-through this boundary, then retains full decoded and canonical admission and
-full identity hashing. This does not carry authority, currentness, or cleanup
-acknowledgment and does not change the parser's work quantum.
+preflight. Callers that retain a completed writer document may use this
+boundary without carrying authority, currentness, or cleanup acknowledgment.
+The parser's work quantum remains unchanged; typed Effect Context construction
+below no longer needs an outer document parse.
+
+## Retained Effect Context material
+
+
+The Effect Context issuer constructs its complete canonical material within
+the existing canonical admission owner. Ordered keys, scalar text and each
+original immutable child pass through the same bounded measuring writer.
+Container backing arrays remain private until complete admission, then become
+the immutable result without an outer text parse or another decoded tree.
+Repeated child occurrences still count toward the complete byte, node and
+depth limits; retaining a child does not retain an Allow or physical fact.
+
+The dependency inventory remains a separately admitted wire envelope. Its
+actual canonical result is retained after that admission. The complete Context
+identity is still computed by the original bounded canonical hash traversal.
+Failure and cancellation discard only construction references and continuations,
+not the caller's snapshots, readers, physical holdings or cleanup duties.

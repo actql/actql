@@ -52,9 +52,13 @@ test "Effect context original phase work preserves independently assembled wire"
       }
     }
     assert_true(done)
-    // The completed writer already checked every emitted Unicode scalar.
-    // Grammar remains resumable; a second scalar preflight is redundant.
-    assert_true(counts[0] < 300)
+    // Actual complete material measurement retains canonical children; only
+    // the dependency envelope is parsed. The complete identity hash remains.
+    assert_eq(counts[0], 0)
+    assert_eq(counts[1], 0)
+    assert_eq(counts[2], 0)
+    assert_true(counts[3] > 0)
+    assert_true(counts[4] > 0)
     let peak = preparation.peak
     let value = preparation.finish().unwrap()
     assert_eq(@json.stringify_value(value, 10000, 1000, 16), expected)
