@@ -5770,7 +5770,7 @@
               },
               {
                 "path": "adapters/store-local/delivery-attempt-index.mjs",
-                "anchor": "putPublicationContracts(entries, allowance, progress) { return publicationMutation('put',entries,allowance,progress); },"
+                "anchor": "putPublicationContracts(entries, allowance, progress, selection) {"
               },
               {
                 "path": "adapters/store-local/delivery-attempt-index.mjs",
