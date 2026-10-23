@@ -6,7 +6,7 @@ import {createSqliteTransaction} from '../host-common/sqlite-transaction.mjs';
 
 const fail = (code, cause) => { throw Object.assign(new Error(code, {cause}), {code}); };
 const cid = value => typeof value === 'string' && /^sha256:[0-9a-f]{64}$/u.test(value);
-const version = 12;
+const version = 13;
 const resultRecoveryTable = `CREATE TABLE result_deletion_recovery (
   id INTEGER PRIMARY KEY CHECK(id=1), dirty INTEGER NOT NULL CHECK(dirty IN (0,1)),
   ack_revision INTEGER NOT NULL CHECK(ack_revision>=1 AND ack_revision<=9007199254740991)
@@ -74,6 +74,20 @@ const nativeReferenceUpdate = `CREATE TRIGGER native_publication_references_upda
     UNION SELECT new.public_index_cid,'holding',value
       FROM json_each(new.inventory_wire,'$.physical_holding_cids');
 END`;
+const nativeIndexTable = `CREATE TABLE native_publication_indexes (
+  metadata_key TEXT PRIMARY KEY, namespace_id TEXT NOT NULL,
+  authority_scope_cid TEXT NOT NULL, run_cid TEXT NOT NULL,
+  public_index_cid TEXT NOT NULL UNIQUE REFERENCES native_publication_inventories(public_index_cid) ON DELETE CASCADE,
+  ack_revision INTEGER NOT NULL CHECK(ack_revision>=1 AND ack_revision<=9007199254740991),
+  UNIQUE(namespace_id,authority_scope_cid,run_cid),
+  FOREIGN KEY(public_index_cid) REFERENCES publication_contracts(semantic_cid)
+) WITHOUT ROWID`;
+const nativeIndexMaterialsTable = `CREATE TABLE native_publication_materials (
+  public_index_cid TEXT NOT NULL REFERENCES native_publication_indexes(public_index_cid) ON DELETE CASCADE,
+  result_definition_cid TEXT NOT NULL, binding_cid TEXT NOT NULL, material_cid TEXT NOT NULL,
+  PRIMARY KEY(material_cid,public_index_cid,result_definition_cid),
+  UNIQUE(public_index_cid,result_definition_cid)
+) WITHOUT ROWID`;
 const publicationRecoveryTable = `CREATE TABLE publication_recovery (
   id INTEGER PRIMARY KEY CHECK(id=1), complete INTEGER NOT NULL CHECK(complete IN (0,1)),
   entries INTEGER NOT NULL CHECK(entries>=0),
@@ -240,6 +254,7 @@ export async function openDeliveryAttemptIndex(path, {
         ${publicationRecoveryTable}; ${pendingPublicationTable};
         ${nativeInventoryTable}; ${nativeInventoryUsageTable};
         ${nativeReferencesTable}; ${nativeReferenceOwnerIndex}; ${nativeReferenceInsert}; ${nativeReferenceUpdate};
+        ${nativeIndexTable}; ${nativeIndexMaterialsTable};
         ${metadataFenceTable}; ${metadataFenceCoverageTable};
         ${physicalObjectsTable}; ${physicalUsageTable}; ${physicalPreparationsTable};
         ${resultRecoveryTable}; INSERT INTO result_deletion_recovery VALUES(1,0,1);
@@ -252,7 +267,7 @@ export async function openDeliveryAttemptIndex(path, {
     });
     const state = prepare('SELECT version,complete,entries FROM coverage WHERE id=1');
     const selected = state.get();
-    if (![1,2,3,4,5,6,7,8,9,10,11,version].includes(selected?.version) || ![0,1].includes(selected.complete) ||
+    if (![1,2,3,4,5,6,7,8,9,10,11,12,version].includes(selected?.version) || ![0,1].includes(selected.complete) ||
         !Number.isSafeInteger(selected.entries) || selected.entries < 0 || selected.entries > maxEntries) {
       fail('DeliveryAttemptIndexUnavailable');
     }
@@ -392,6 +407,16 @@ export async function openDeliveryAttemptIndex(path, {
         fail('DeliveryAttemptIndexUnavailable');
       }
     }
+    // Existing file Indexes retain their representation. This additive
+    // transition creates no publication or historical reconstruction.
+    if (selected.version < 13) transaction.run(() => exec(`${nativeIndexTable}; ${nativeIndexMaterialsTable};
+      UPDATE coverage SET version=13 WHERE id=1;`));
+    for (const [name, sql] of [['native_publication_indexes',nativeIndexTable],
+      ['native_publication_materials',nativeIndexMaterialsTable]]) {
+      if (prepare("SELECT sql FROM sqlite_schema WHERE type='table' AND name=?").get(name)?.sql !== sql) {
+        fail('DeliveryAttemptIndexUnavailable');
+      }
+    }
     const resultRecoveryRow = prepare('SELECT dirty,ack_revision FROM result_deletion_recovery WHERE id=1');
     const readResultRecovery = () => {
       const row = resultRecoveryRow.get();
@@ -429,6 +454,20 @@ export async function openDeliveryAttemptIndex(path, {
         ON n.public_index_cid=r.public_index_cid
       WHERE r.kind=? AND r.reference_cid=? AND r.public_index_cid<>?
       ORDER BY r.public_index_cid LIMIT ?`);
+    const nativeIndexByKey = prepareOnUse(`SELECT i.*,c.name,c.wire,c.byte_count FROM native_publication_indexes i
+      JOIN publication_contracts c ON c.semantic_cid=i.public_index_cid WHERE i.metadata_key=?`);
+    const nativeIndexInsert = prepareOnUse('INSERT INTO native_publication_indexes VALUES(?,?,?,?,?,1)');
+    const nativeIndexAcknowledge = prepareOnUse(`UPDATE native_publication_indexes SET ack_revision=ack_revision+1
+      WHERE metadata_key=? AND public_index_cid=?`);
+    const nativeIndexConfirm = prepareOnUse(`UPDATE native_publication_indexes SET ack_revision=ack_revision+1
+      WHERE metadata_key=? AND public_index_cid=? AND ack_revision=?`);
+    const nativeMaterialInsert = prepareOnUse('INSERT INTO native_publication_materials VALUES(?,?,?,?)');
+    const nativeMaterialsByOwner = prepareOnUse(`SELECT result_definition_cid,binding_cid,material_cid
+      FROM native_publication_materials WHERE public_index_cid=? ORDER BY result_definition_cid LIMIT ?`);
+    const nativeMaterials = prepareOnUse(`SELECT m.*,i.metadata_key FROM native_publication_materials m
+      JOIN native_publication_indexes i USING(public_index_cid)
+      WHERE m.material_cid=? AND (m.public_index_cid,m.result_definition_cid)>(?,?)
+      ORDER BY m.public_index_cid,m.result_definition_cid LIMIT 64`);
     const insertNativeInventory = prepare('INSERT INTO native_publication_inventories VALUES(?,?)');
     const removeNativeInventory = prepare('DELETE FROM native_publication_inventories WHERE public_index_cid=?');
     const nativeInventoryUsage = prepare('SELECT entries,ack_revision FROM native_publication_inventory_usage WHERE id=1');
@@ -493,7 +532,8 @@ export async function openDeliveryAttemptIndex(path, {
     let uncertain = false, uncertainRemoval, uncertainCompletion, uncertainInitial, confirmedRecord,
       uncertainPublication, uncertainPublicationRecovery, uncertainMetadataFence, uncertainPhysical,
       uncertainPhysicalPreparation, uncertainResultRecovery,
-      uncertainPhysicalSeal = false, uncertainPublicationFinishSeal = false;
+      uncertainPhysicalSeal = false, uncertainPublicationFinishSeal = false,
+      uncertainNativeIndex;
     const retainedPublicationFinishes = new Map();
     let flushPublicationFinishes = () => [];
     let pendingResultSeal, flushResultSeal = () => undefined;
@@ -1003,6 +1043,141 @@ export async function openDeliveryAttemptIndex(path, {
       }
       return original;
     };
+    const nativeIndexKey = value => {
+      if (!value || Object.keys(value).sort().join(',') !==
+          'authority_scope_cid,metadata_key,namespace_id,run_cid' ||
+          typeof value.metadata_key !== 'string' || !/^[0-9a-f]{64}$/u.test(value.metadata_key) ||
+          typeof value.namespace_id !== 'string' || value.namespace_id.length === 0 ||
+          Buffer.byteLength(value.namespace_id,'utf8') > maxWireBytes ||
+          !cid(value.authority_scope_cid) || !cid(value.run_cid)) fail('InvalidDeliveryAttemptIndex');
+      return Object.freeze({...value});
+    };
+    const nativeIndexCopy = row => {
+      if (row === undefined) return undefined;
+      const key = nativeIndexKey({metadata_key:row.metadata_key,namespace_id:row.namespace_id,
+        authority_scope_cid:row.authority_scope_cid,run_cid:row.run_cid});
+      const body = publicationCopy({semantic_cid:row.public_index_cid,name:row.name,
+        wire:row.wire,byte_count:row.byte_count});
+      if (body.name !== 'public_index_entry' || !Number.isSafeInteger(row.ack_revision) ||
+          row.ack_revision < 1) fail('DeliveryAttemptIndexUnavailable');
+      return Object.freeze({...key, body, ack_revision:row.ack_revision});
+    };
+    const nativeMaterialCopy = value => {
+      if (!value || Object.keys(value).sort().join(',') !== 'binding_cid,material_cid,result_definition_cid' ||
+          !cid(value.binding_cid) || !cid(value.material_cid) || !cid(value.result_definition_cid)) {
+        fail('InvalidDeliveryAttemptIndex');
+      }
+      return Object.freeze({...value});
+    };
+    const sameNativeIndexKey = (a,b) => ['metadata_key','namespace_id','authority_scope_cid','run_cid']
+      .every(key => a[key] === b[key]);
+    const sameNativeMaterials = (a,b) => a.length === b.length && a.every((value,i) =>
+      ['binding_cid','material_cid','result_definition_cid'].every(key => value[key] === b[i][key]));
+    const commitNativeIndex = (suppliedKey,suppliedBody,suppliedInventory,suppliedBindings,allowance,progress) => {
+      const key = nativeIndexKey(suppliedKey), body = publicationCopy(suppliedBody);
+      const inventory = recoveryOriginal(suppliedInventory);
+      if (body?.name !== 'public_index_entry' || body.semantic_cid !== inventory.public_index_cid ||
+          !Array.isArray(suppliedBindings) || suppliedBindings.length > maxEntries ||
+          !progress || Object.keys(progress).sort().join(',') !== 'attemptCid,recordCid' ||
+          !cid(progress.attemptCid) || !cid(progress.recordCid)) fail('InvalidDeliveryAttemptIndex');
+      progress = Object.freeze({...progress});
+      const bindings = Object.freeze(suppliedBindings.map(nativeMaterialCopy)
+        .sort((a,b) => a.result_definition_cid.localeCompare(b.result_definition_cid)));
+      if (new Set(bindings.map(value => value.result_definition_cid)).size !== bindings.length) fail('InvalidDeliveryAttemptIndex');
+      const retry = uncertain && uncertainNativeIndex?.kind === 'commit' &&
+        sameNativeIndexKey(uncertainNativeIndex.key,key) && samePublication(uncertainNativeIndex.body,body) &&
+        sameRecoveryOriginal(uncertainNativeIndex.inventory,inventory) &&
+        sameNativeMaterials(uncertainNativeIndex.bindings,bindings) &&
+        uncertainNativeIndex.progress.attemptCid === progress.attemptCid &&
+        uncertainNativeIndex.progress.recordCid === progress.recordCid;
+      if (retry) {
+        if (closed || closing || mutating || !complete) fail('DeliveryAttemptIndexCleanupPending');
+        transaction.assertUsable();
+      } else requireComplete();
+      const recovery = recoveryState(), nativeUsage = inventoryUsage(), before = usage();
+      if (recovery.complete !== 1) fail('DeliveryAttemptIndexUnavailable');
+      fenceState();
+      const existing = nativeIndexCopy(nativeIndexByKey.get(key.metadata_key));
+      if (existing !== undefined && (!sameNativeIndexKey(existing,key) || !samePublication(existing.body,body))) {
+        fail('PublicationCommitConflict');
+      }
+      const existingBody = publicationCopy(publication.get(body.semantic_cid));
+      if (existingBody !== undefined && !samePublication(existingBody,body)) fail('PublicationSemanticIdentityConflict');
+      const native = nativeInventory.get(inventory.public_index_cid), pending = pendingPublication.get(inventory.public_index_cid);
+      for (const original of [native,pending]) if (original !== undefined &&
+          !sameRecoveryOriginal(recoveryOriginal(original),inventory)) fail('PublicationMetadataInventoryConflict');
+      if (existing !== undefined) {
+        const actual = nativeMaterialsByOwner.all(body.semantic_cid,maxEntries+1).map(nativeMaterialCopy);
+        if (native === undefined || !sameNativeMaterials(actual,bindings)) fail('PublicationMetadataInventoryConflict');
+        if (!retry) return Object.freeze({created:false,usage:before});
+      }
+      const created = retry ? uncertainNativeIndex.created : existing === undefined;
+      const objects = existingBody === undefined ? 1 : 0, bytes = objects ? body.byte_count : 0;
+      if (!allowance || !Number.isSafeInteger(allowance.objects) || allowance.objects < objects ||
+          !Number.isSafeInteger(allowance.bytes) || allowance.bytes < bytes) fail('PublicationStoreCapacity');
+      if (before.objects + objects > maxEntries || !Number.isSafeInteger(before.bytes + bytes) ||
+          native === undefined && nativeUsage.entries >= maxEntries ||
+          existing === undefined && pending === undefined && recovery.entries >= maxEntries) fail('DeliveryAttemptIndexLimit');
+      try {
+        run(() => {
+          if (runMetadataFence.get(key.run_cid) !== undefined) fail('PublicationMetadataDeleted');
+          if (publicationAttempt.get(progress.attemptCid)?.run_cid !== key.run_cid) fail('PublicationAttemptMismatch');
+          if (publicationProgress.get(progress.attemptCid)?.record_cid !== progress.recordCid) fail('PublicationRecordConflict');
+          if (existingBody === undefined) insertPublication.run(body.semantic_cid,body.name,body.wire,body.byte_count);
+          if (native === undefined) insertNativeInventory.run(inventory.public_index_cid,inventory.inventory_wire);
+          if (existing === undefined) {
+            if (pending === undefined) insertPendingPublication.run(inventory.public_index_cid,inventory.inventory_wire);
+            nativeIndexInsert.run(key.metadata_key,key.namespace_id,key.authority_scope_cid,key.run_cid,body.semantic_cid);
+            for (const binding of bindings) nativeMaterialInsert.run(body.semantic_cid,binding.result_definition_cid,
+              binding.binding_cid,binding.material_cid);
+          } else if (nativeIndexAcknowledge.run(key.metadata_key,body.semantic_cid).changes !== 1) {
+            fail('DeliveryAttemptIndexUnavailable');
+          }
+          if (updatePublicationUsage.run(objects,bytes).changes !== 1 ||
+              updateNativeInventoryUsage.run(native === undefined ? 1 : 0).changes !== 1 ||
+              updatePublicationRecovery.run(existing === undefined && pending === undefined ? 1 : 0).changes !== 1) {
+            fail('DeliveryAttemptIndexUnavailable');
+          }
+        });
+        if (retry) {uncertain = false; uncertainNativeIndex = undefined;}
+      } catch (error) {
+        if (error?.outcome === 'unknown') uncertainNativeIndex = Object.freeze({kind:'commit',key,body,inventory,bindings,created,progress});
+        throw error;
+      }
+      return Object.freeze({created,usage:usage()});
+    };
+    const confirmNativeIndex = supplied => {
+      const key = nativeIndexKey({metadata_key:supplied?.metadata_key,namespace_id:supplied?.namespace_id,
+        authority_scope_cid:supplied?.authority_scope_cid,run_cid:supplied?.run_cid});
+      const body = publicationCopy(supplied?.body), revision = supplied?.ack_revision;
+      if (body?.name !== 'public_index_entry' || !Number.isSafeInteger(revision) || revision < 1) {
+        fail('InvalidDeliveryAttemptIndex');
+      }
+      const retry = uncertain && uncertainNativeIndex?.kind === 'confirm' &&
+        sameNativeIndexKey(uncertainNativeIndex.key,key) && samePublication(uncertainNativeIndex.body,body) &&
+        uncertainNativeIndex.revision === revision;
+      if (retry) {
+        if (closed || closing || mutating || !complete) fail('DeliveryAttemptIndexCleanupPending');
+        transaction.assertUsable();
+      } else requireComplete();
+      const current = nativeIndexCopy(nativeIndexByKey.get(key.metadata_key));
+      if (current === undefined || !sameNativeIndexKey(current,key) || !samePublication(current.body,body) ||
+          current.ack_revision !== revision && !(retry && current.ack_revision === revision + 1)) {
+        fail('PublicationCommitConflict');
+      }
+      try {
+        run(() => {
+          if (nativeIndexConfirm.run(key.metadata_key,body.semantic_cid,current.ack_revision).changes !== 1) {
+            fail('PublicationCommitConflict');
+          }
+        });
+        if (retry) {uncertain = false; uncertainNativeIndex = undefined;}
+      } catch (error) {
+        if (error?.outcome === 'unknown') uncertainNativeIndex = Object.freeze({kind:'confirm',key,body,revision});
+        throw error;
+      }
+      return Object.freeze({...current,ack_revision:current.ack_revision+1});
+    };
     const progressCopy = value => {
       if (value === undefined) return undefined;
       if (value?.kind === 'initial-records' || value?.kind === 'initial-attempt') {
@@ -1211,6 +1386,23 @@ export async function openDeliveryAttemptIndex(path, {
         requireComplete();if(!cid(publicIndexCid))fail('InvalidDeliveryAttemptIndex');
         inventoryUsage();const row=nativeInventory.get(publicIndexCid);
         return row===undefined?undefined:recoveryOriginal(row);
+      },
+      nativePublicationIndex(metadataKey) {
+        requireComplete();
+        if (typeof metadataKey !== 'string' || !/^[0-9a-f]{64}$/u.test(metadataKey)) fail('InvalidDeliveryAttemptIndex');
+        return nativeIndexCopy(nativeIndexByKey.get(metadataKey));
+      },
+      commitNativePublicationIndex: commitNativeIndex,
+      confirmNativePublicationIndex: confirmNativeIndex,
+      nativePublicationMaterialReferences(materialCid, afterIndexCid, afterResultCid) {
+        requireComplete();
+        if (!cid(materialCid) || (afterIndexCid === undefined ? afterResultCid !== undefined :
+          !cid(afterIndexCid) || !cid(afterResultCid))) fail('InvalidDeliveryAttemptIndex');
+        return Object.freeze(nativeMaterials.all(materialCid,afterIndexCid ?? '',afterResultCid ?? '').map(row => {
+          if (!cid(row.public_index_cid) || !/^[0-9a-f]{64}$/u.test(row.metadata_key)) fail('DeliveryAttemptIndexUnavailable');
+          return Object.freeze({...nativeMaterialCopy({binding_cid:row.binding_cid,material_cid:row.material_cid,
+            result_definition_cid:row.result_definition_cid}),public_index_cid:row.public_index_cid,metadata_key:row.metadata_key});
+        }));
       },
       nativePublicationInventories() {
         requireComplete();const usage=inventoryUsage(),rows=nativeInventories.all(maxEntries+1);

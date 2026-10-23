@@ -121,3 +121,42 @@ test('failure before index installation never acquires prepared custody',
     ).commit(), error => error === primary);
     assert.deepEqual(calls, ['confirm']);
   });
+
+test('failed custody construction returns only its staged reservation', async () => {
+  const {entry,admitted,key,operations,calls} = fixture();
+  const primary = failure('CUSTODY_UNAVAILABLE');
+  let held = false;
+  operations.stage = async () => {calls.push('stage'); held = true;};
+  operations.beginCustody = () => {calls.push('custody'); throw primary;};
+  operations.cancelStage = () => {calls.push('cancel-stage'); held = false;};
+  await assert.rejects(createPublicationCommitOwner({entry,admitted,key},operations).commit(),error=>error===primary);
+  assert.equal(held,false);
+  assert.deepEqual(calls,['confirm','stage','custody','cancel-stage']);
+});
+
+test('original storage cleanup precedes payload retry using captured methods and receiver', async () => {
+  const {entry,admitted,key,operations} = fixture();
+  let storagePending = true, payloadPending = true, confirms = 0, release;
+  const ordered = [], wait = new Promise(resolve=>{release=resolve;});
+  const child = {
+    status() {assert.equal(this,child);return {pending:storagePending};},
+    async retry() {assert.equal(this,child);await wait;ordered.push('storage');storagePending=false;},
+  };
+  const primary = Object.assign(failure('NATIVE_REPLY_UNKNOWN'),{outcome:'unknown',cleanupHandle:child});
+  const custody = {status:()=>({pending:payloadPending}),async retry(){
+    assert.equal(storagePending,false);ordered.push('payload');payloadPending=false;
+  }};
+  operations.beginCustody = () => custody;
+  operations.install = async () => {throw primary;};
+  operations.confirm = async () => {if(confirms++===0)return undefined;throw failure('STILL_UNKNOWN');};
+  let retained;
+  await assert.rejects(createPublicationCommitOwner({entry,admitted,key},operations).commit(),error=>{
+    retained=error;return error.outcome==='unknown'&&error.primaryFailure===primary;
+  });
+  child.status = () => assert.fail('changed storage status was invoked');
+  child.retry = () => assert.fail('changed storage retry was invoked');
+  const first=retained.cleanupHandle.retry(),second=retained.cleanupHandle.retry();
+  assert.equal(first,second);assert.equal(retained.cleanupHandle.status().pending,true);
+  release();assert.equal((await first).pending,false);
+  assert.deepEqual(ordered,['storage','payload']);
+});
