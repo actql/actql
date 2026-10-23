@@ -1509,7 +1509,7 @@ pub fn strategy_superseded_publication_finalization_action(@run_publication.Publ
 
 pub fn strategy_trusted_clock_not_before(String?, String) -> Bool
 
-pub fn workers_finite_admit_materials(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, @run_publication_host.ClientCompilationManifests, @lowering_relation.SequenceLimits, Int, Int) -> (@run_publication_host.PreparedClientProgram, @run_publication_host.ClientValuesCompilation, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract) raise WorkersFiniteFailure
+pub fn workers_finite_admit_materials(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, @run_publication_host.ClientCompilationManifests, @lowering_relation.SequenceLimits, Int, Int, String?) -> (@run_publication_host.PreparedClientProgram, @run_publication_host.ClientValuesCompilation, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract) raise WorkersFiniteFailure
 
 pub fn workers_finite_compile(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientCompilationManifests, @lowering_relation.SequenceLimits, Int, Int) -> @run_publication_host.ClientValuesCompilation raise WorkersFiniteFailure
 
@@ -1517,13 +1517,15 @@ pub fn workers_finite_compiled_plan(@run_publication_host.ClientValuesCompilatio
 
 pub fn workers_finite_contracts(String, String) -> @execution_relation.RegisteredRelationContracts raise WorkersFiniteFailure
 
-pub fn workers_finite_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles) -> @program_check.CheckEnvironment raise WorkersFiniteFailure
+pub fn workers_finite_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, String?) -> @program_check.CheckEnvironment raise WorkersFiniteFailure
+
+pub fn workers_finite_fragment_contracts(@execution_relation.RegisteredRelationContracts, String, String?, @execution_relation.RegistryLimits) -> (@execution_relation.FragmentContract, @execution_relation.RegisteredOrderedContract?) raise WorkersFiniteFailure
 
 pub fn workers_finite_ledger(@physical_resources.LedgerLimits) -> @physical_resources.Ledger raise WorkersFiniteFailure
 
 pub fn workers_finite_manifests(String, String) -> @run_publication_host.ClientCompilationManifests raise WorkersFiniteFailure
 
-pub fn workers_finite_open(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientValuesCompilation, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, @execution_relation.RegisteredRelationContracts, @lowering_relation.SequenceLimits, @execution_relation.SequenceExecutionLimits, @execution_relation.FixedInputGuardMeasureLimits, @connector_sdk.FixedComputeCapacity, @physical_resources.Ledger, @physical_strategy.SearchLimits, Int64, Int, Int) -> @connectors_workers.ConfiguredComputeHost[@physical_strategy.RunIssue] raise WorkersFiniteFailure
+pub fn workers_finite_open(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientValuesCompilation, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, @execution_relation.RegisteredRelationContracts, @lowering_relation.SequenceLimits, @execution_relation.SequenceExecutionLimits, @execution_relation.FixedInputGuardMeasureLimits, @connector_sdk.FixedComputeCapacity, @physical_resources.Ledger, @physical_strategy.SearchLimits, Int64, Int, Int, @execution_relation.FragmentContract?, @execution_relation.RegisteredOrderedContract?, @execution_relation.SequenceFragmentLimits?) -> @connectors_workers.ConfiguredComputeHost[@physical_strategy.RunIssue] raise WorkersFiniteFailure
 
 pub fn workers_finite_prepare(String, @program_check.CheckEnvironment) -> @run_publication_host.PreparedClientProgram raise WorkersFiniteFailure
 
@@ -1566,6 +1568,9 @@ pub(all) suberror WorkersFiniteFailure {
   Binding(@run_publication_host.ClientValuesRunBindingIssue)
   Sequence(@run_publication_host.ClientTaskSequenceIssue)
   Registry(@execution_relation.RegistryIssue)
+  FragmentContract(@execution_relation.FragmentContractIssue)
+  OrderedContract(@execution_relation.OrderedContractIssue)
+  Fragments(@execution_relation.SequenceFragmentIssue)
   Ledger(@physical_resources.LedgerIssue)
   Run(@physical_strategy.RunIssue)
   Local(@driver.LocalDispatchIssue)

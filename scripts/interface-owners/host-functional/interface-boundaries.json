@@ -68333,7 +68333,7 @@
     {
       "module": "packages/run-host-core/index.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "df34679867f5147c93aa26769ca088b752d7fa4d783408687164511aa1998ea6",
+      "sha256": "e1527b65bb9b7a124bb9206ea0a1dc0cb0e416864e9577f749991c7f31136bf7",
       "role": "common-semantics",
       "owner": "Existing client_values_host_abi/Run Publication Owners; public same-process type projection",
       "exports": [
@@ -68579,7 +68579,7 @@
           "parameters": [
             "wire: string",
             "definitionCid: string",
-            "profiles: Readonly<{textTime?: boolean; veca?: boolean; rela?: boolean;\n    sga?: boolean; tea?: boolean; calendar?: boolean; textRank?: boolean}>",
+            "profiles: ProfileSelection",
             "original?: IssuedEffectRunMaterials",
             "expectedRequest?: RequestIdentity",
             "sourcePrepared?: PreparedEffectProgram"
@@ -68600,7 +68600,7 @@
           "parameters": [
             "profiles: unknown"
           ],
-          "result": "Readonly<Required<ProfileSelection>>"
+          "result": "Readonly<Required<Omit<ProfileSelection, 'numericProfileCid'>> &\n    Pick<ProfileSelection, 'numericProfileCid'>>"
         },
         {
           "name": "admitPublicationContract",
@@ -72878,7 +72878,7 @@
     {
       "module": "packages/run-host-core/workers-finite.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "c02f81ab3e7b707368f965133b34ada44b81f079ce1f028ae02d660ee5da0968",
+      "sha256": "407fbbc002226af2c260467c14f2387184bb32c9de7ae59c579a96c268f7cbc2",
       "role": "common-semantics",
       "owner": "Existing invocation-scoped common Host/finite Workers adapter",
       "exports": [

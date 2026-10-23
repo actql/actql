@@ -78981,7 +78981,7 @@
     {
       "module": "adapters/workers/finite.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "92e6cb34879d3a5641a080adf3161b03fc5dc48625a100dfc9f063562fe118ac",
+      "sha256": "dce72ee5465ad9556e2f2b84758eb0008e491acc0d60f24610f2befe91a52e1a",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -79067,6 +79067,13 @@
           "async": false
         },
         {
+          "name": "fragmentShape/fragmentShape",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
           "name": "integer/integer",
           "parameters": [
             "value"
@@ -79076,6 +79083,20 @@
         {
           "name": "invalid/invalid",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "numericProfile/numericProfile",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "optional/optional",
+          "parameters": [
+            "shape"
+          ],
           "async": false
         },
         {
@@ -79102,6 +79123,29 @@
         },
         {
           "name": "snapshot/snapshot",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "snapshot/snapshot#2",
+          "parameters": [
+            "key",
+            "type"
+          ],
+          "async": false
+        },
+        {
+          "name": "snapshot/snapshot#3",
+          "parameters": [
+            "key",
+            "type"
+          ],
+          "async": false
+        },
+        {
+          "name": "snapshot/snapshot#4",
           "parameters": [
             "key",
             "type"
@@ -79913,8 +79957,14 @@
         },
         {
           "operations": [
+            "fragmentShape/fragmentShape",
+            "numericProfile/numericProfile",
+            "optional/optional",
             "snapshot",
-            "snapshot/snapshot"
+            "snapshot/snapshot",
+            "snapshot/snapshot#2",
+            "snapshot/snapshot#3",
+            "snapshot/snapshot#4"
           ],
           "exports": [],
           "attributes": {
@@ -97910,7 +97960,7 @@
     {
       "module": "packages/run-host-core/index.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "187e9c9eac82b9c24509d123676963d76bf00d44db896e686f0d33ada3ac20dc",
+      "sha256": "4496ef333fdb6b9776932de08907a441dfb4676512ed62e88e07f48916649bb1",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -98449,14 +98499,6 @@
           "parameters": [
             "profiles",
             "error"
-          ],
-          "async": false
-        },
-        {
-          "name": "checkedProfileSelection/checkedProfileSelection",
-          "parameters": [
-            "key",
-            "value"
           ],
           "async": false
         },
@@ -104154,8 +104196,7 @@
         },
         {
           "operations": [
-            "checkedProfileSelection",
-            "checkedProfileSelection/checkedProfileSelection"
+            "checkedProfileSelection"
           ],
           "exports": [],
           "attributes": {

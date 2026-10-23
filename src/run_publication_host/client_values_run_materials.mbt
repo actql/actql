@@ -306,6 +306,7 @@ fn read_client_run_materials_body(
   materials : String,
   expressions : @context.ExpressionProfiles,
   operations : @context.PureOperationProfiles,
+  numeric_profile_cid? : String? = None,
 ) -> Result[ClientRunMaterialsBody, ClientValuesRunMaterialsIssue] {
   let parsed = match
     @source.parse_json_bytes(
@@ -383,7 +384,11 @@ fn read_client_run_materials_body(
     }
   }
   guard admit_client_check_environment(
-      environment_wire, environment_cid, expressions, operations,
+      environment_wire,
+      environment_cid,
+      expressions,
+      operations,
+      numeric_profile_cid~,
     )
     is Some(environment) else {
     return Err(MaterialsEnvironment)
@@ -473,9 +478,15 @@ fn read_client_run_materials_input(
   operations : @context.PureOperationProfiles,
   limits : ClientValuesRunMaterialsLimits,
   allow_infer? : Bool = false,
+  numeric_profile_cid? : String? = None,
 ) -> Result[ClientRunMaterialsInput, ClientValuesRunMaterialsIssue] {
   let body = match
-    read_client_run_materials_body(materials, expressions, operations) {
+    read_client_run_materials_body(
+      materials,
+      expressions,
+      operations,
+      numeric_profile_cid~,
+    ) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
@@ -532,9 +543,16 @@ pub fn admit_client_values_run_materials(
   operations : @context.PureOperationProfiles,
   manifests : ClientCompilationManifests,
   limits : ClientValuesRunMaterialsLimits,
+  numeric_profile_cid? : String? = None,
 ) -> Result[ClientValuesRunMaterials, ClientValuesRunMaterialsIssue] {
   let input = match
-    read_client_run_materials_input(materials, expressions, operations, limits) {
+    read_client_run_materials_input(
+      materials,
+      expressions,
+      operations,
+      limits,
+      numeric_profile_cid~,
+    ) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }

@@ -21,7 +21,7 @@ pub fn client_values_host_admit_completed_source_observation(String, String, Str
 
 pub fn client_values_host_admit_effect_checkpoint_binding(@run_publication_host.ClientEffectAllowedRun, @run_publication.PublicationContract, String) -> Result[@checkpoint_runtime.SealedCheckpoint, @run_publication_host.ClientEffectCheckpointBindingIssue]
 
-pub fn client_values_host_admit_effect_run_materials(String, String, Bool, Bool, Bool, Bool, Bool, Bool, Bool, @run_publication_host.ClientEffectIssuedNormalizationMaterials?, @run_publication_host.ClientRequestIdentity?, @run_publication_host.ClientSourcePreparation?) -> Result[@run_publication_host.ClientEffectRunMaterials, ClientValuesHostEffectRestorationIssue]
+pub fn client_values_host_admit_effect_run_materials(String, String, Bool, Bool, Bool, Bool, Bool, Bool, Bool, @run_publication_host.ClientEffectIssuedNormalizationMaterials?, @run_publication_host.ClientRequestIdentity?, @run_publication_host.ClientSourcePreparation?, String?) -> Result[@run_publication_host.ClientEffectRunMaterials, ClientValuesHostEffectRestorationIssue]
 
 pub fn client_values_host_admit_publication_contract(String, String, Int, Int, Int) -> Result[@run_publication.PublicationContract, @run_publication.PublicationContractIssue]
 
@@ -165,7 +165,7 @@ pub fn client_values_host_effect_task_run_work(@run_publication_host.ClientRemot
 
 pub fn client_values_host_effect_template_wire(@run_publication_host.ClientEffectCompilation) -> String
 
-pub fn client_values_host_environment(String, String, Bool, Bool, Bool, Bool, Bool, Bool, Bool) -> @program_check.CheckEnvironment?
+pub fn client_values_host_environment(String, String, Bool, Bool, Bool, Bool, Bool, Bool, Bool, String?) -> @program_check.CheckEnvironment?
 
 pub fn client_values_host_existing_delivery_attempt_action(@run_publication.PublicationContract?) -> Int
 

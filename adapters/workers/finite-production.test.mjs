@@ -5,6 +5,8 @@ import {buildFiniteRuntime} from './build.mjs';
 import {checkWorkersArtifact} from './artifact.mjs';
 import {createTestRuntime} from './runtime.mjs';
 import {finiteOriginalMaterials} from './finite-runtime-fixture.mjs';
+import {finiteExpressionConfiguration, finiteExpressionInput, finiteCountDocument,
+  finiteNumericProfileCid} from '../../packages/run-host-core/fixtures/finite-expression.mjs';
 
 const limits = {
   maxResultFields: 10, maxResultMappingWork: 10000, maxResultOrderWork: 10000,
@@ -80,4 +82,40 @@ test('production finite artifact admits original materials from a separate link 
     assert.deepEqual(await response.json(), node);
   } finally { await runtime.dispose(); }
   assert.ok(artifact.bytes > 0);
+});
+
+
+test('production finite artifact executes the explicitly selected numeric expression pipeline on workerd', async () => {
+  await buildFiniteRuntime();
+  const configuration = finiteExpressionConfiguration();
+  configuration.environment.numeric_profile_cid = finiteNumericProfileCid;
+  const document = JSON.parse(finiteCountDocument());
+  document.stages[0].steps[3].group.aggregates.total = {fn: 'sum', field: 'net'};
+  document.stages[0].results.rows.fields.push('total');
+  const input = finiteExpressionInput(JSON.stringify(document), configuration);
+  const root = new URL('../../', import.meta.url).pathname;
+  const selectedLimits = {...limits, maxBatchBytes: 128};
+  const wrapper = await build({stdin: {contents:
+    `import {createWorkersFiniteRuntime} from './_build/workers/finite-runtime.mjs';\n` +
+    `const consume = ${consumeOriginal.toString()};\n` +
+    `export default {async fetch(request) {\n` +
+    ` const input = JSON.parse(await request.text(), (_, value) => value && typeof value === 'object' && Object.keys(value).length === 1 && typeof value.bigint === 'string' ? BigInt(value.bigint) : value);\n` +
+    ` return Response.json(await consume(createWorkersFiniteRuntime, input, ${JSON.stringify(selectedLimits)}));\n` +
+    `}};`, resolveDir: root, sourcefile: 'production-expression.mjs'},
+    absWorkingDir: root, bundle: true, platform: 'browser', format: 'esm',
+    target: 'es2022', write: false, metafile: true});
+  const source = wrapper.outputFiles[0].text;
+  checkWorkersArtifact(wrapper.metafile, source,
+    ['_build/workers/finite-runtime.mjs', 'production-expression.mjs']);
+  const runtime = createTestRuntime(source);
+  try {
+    const response = await runtime.dispatchFetch('http://worker.test/', {method: 'POST',
+      body: JSON.stringify(input, (_, value) => typeof value === 'bigint' ? {bigint: String(value)} : value)});
+    assert.equal(response.status, 200, await response.clone().text());
+    const result = await response.json();
+    assert.deepEqual(result.rows, [{region: 'east', order_count: 2, total: 100},
+      {region: 'west', order_count: 1, total: 60}]);
+    assert.equal(result.measurement.rowCount, 2);
+    assert.equal(runtime.outboundAttempts, 0);
+  } finally { await runtime.dispose(); }
 });

@@ -15197,7 +15197,7 @@
     },
     {
       "module": "adapters/workers/finite.mjs",
-      "sha256": "92e6cb34879d3a5641a080adf3161b03fc5dc48625a100dfc9f063562fe118ac",
+      "sha256": "dce72ee5465ad9556e2f2b84758eb0008e491acc0d60f24610f2befe91a52e1a",
       "role": "physical-io",
       "exports": [
         "bindWorkersFiniteHost"
@@ -15282,6 +15282,13 @@
           "async": false
         },
         {
+          "name": "fragmentShape/fragmentShape",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
           "name": "integer/integer",
           "parameters": [
             "value"
@@ -15291,6 +15298,20 @@
         {
           "name": "invalid/invalid",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "numericProfile/numericProfile",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "optional/optional",
+          "parameters": [
+            "shape"
+          ],
           "async": false
         },
         {
@@ -15317,6 +15338,29 @@
         },
         {
           "name": "snapshot/snapshot",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "snapshot/snapshot#2",
+          "parameters": [
+            "key",
+            "type"
+          ],
+          "async": false
+        },
+        {
+          "name": "snapshot/snapshot#3",
+          "parameters": [
+            "key",
+            "type"
+          ],
+          "async": false
+        },
+        {
+          "name": "snapshot/snapshot#4",
           "parameters": [
             "key",
             "type"
@@ -15347,12 +15391,18 @@
             "bindWorkersFiniteHost/init:withExecution/init:withExecution",
             "bindWorkersFiniteHost/retainPreparation/retainPreparation",
             "boolean/boolean",
+            "fragmentShape/fragmentShape",
             "integer/integer",
             "invalid/invalid",
+            "numericProfile/numericProfile",
+            "optional/optional",
             "protectedGate",
             "quantity/quantity",
             "snapshot",
             "snapshot/snapshot",
+            "snapshot/snapshot#2",
+            "snapshot/snapshot#3",
+            "snapshot/snapshot#4",
             "text/text"
           ],
           "exports": [
@@ -15381,6 +15431,10 @@
               {
                 "path": "src/connectors_workers/pkg.generated.mbti",
                 "anchor": "pub fn[E] assemble_compute_contributions(@connector_sdk.CapabilityRegistry, Int, with_local? : (@driver.LocalDispatchModule, (@driver.LocalDispatchIssue) -> E, (@driver.LocalEstimateIssue) -> E)?) -> Result[@connector_sdk.CapabilityImplementations[@physical_host.ComputeContribution[Unit, E]], @connector_sdk.CapabilityInstallationIssue]"
+              },
+              {
+                "path": "packages/run-host-core/workers-finite.d.ts",
+                "anchor": "readonly fragments?: {"
               }
             ],
             "identity": [
@@ -15441,6 +15495,10 @@
               {
                 "path": "src/connectors_workers/pkg.generated.mbti",
                 "anchor": "pub fn[E] assemble_compute_contributions(@connector_sdk.CapabilityRegistry, Int, with_local? : (@driver.LocalDispatchModule, (@driver.LocalDispatchIssue) -> E, (@driver.LocalEstimateIssue) -> E)?) -> Result[@connector_sdk.CapabilityImplementations[@physical_host.ComputeContribution[Unit, E]], @connector_sdk.CapabilityInstallationIssue]"
+              },
+              {
+                "path": "src/execution_relation/sequence_runtime_fragments.mbt",
+                "anchor": "pub(all) struct SequenceFragmentLimits {"
               }
             ],
             "extension": [
@@ -15461,6 +15519,10 @@
               {
                 "path": "src/connectors_workers/pkg.generated.mbti",
                 "anchor": "pub fn[E] assemble_compute_contributions(@connector_sdk.CapabilityRegistry, Int, with_local? : (@driver.LocalDispatchModule, (@driver.LocalDispatchIssue) -> E, (@driver.LocalEstimateIssue) -> E)?) -> Result[@connector_sdk.CapabilityImplementations[@physical_host.ComputeContribution[Unit, E]], @connector_sdk.CapabilityInstallationIssue]"
+              },
+              {
+                "path": "packages/run-host-core/workers-finite-expression.test.mjs",
+                "anchor": "test('finite expression execution preserves explicit selected row and work ceilings', async () => {"
               }
             ]
           }
@@ -16903,7 +16965,7 @@
     },
     {
       "module": "packages/run-host-core/index.mjs",
-      "sha256": "187e9c9eac82b9c24509d123676963d76bf00d44db896e686f0d33ada3ac20dc",
+      "sha256": "4496ef333fdb6b9776932de08907a441dfb4676512ed62e88e07f48916649bb1",
       "role": "physical-io",
       "exports": [
         "admitCapturedResultSnapshot",
@@ -17441,14 +17503,6 @@
           "parameters": [
             "profiles",
             "error"
-          ],
-          "async": false
-        },
-        {
-          "name": "checkedProfileSelection/checkedProfileSelection",
-          "parameters": [
-            "key",
-            "value"
           ],
           "async": false
         },
@@ -20220,7 +20274,6 @@
             "checkRunBinding",
             "checked",
             "checkedProfileSelection",
-            "checkedProfileSelection/checkedProfileSelection",
             "compileEffect",
             "compileTasks",
             "compileValues",

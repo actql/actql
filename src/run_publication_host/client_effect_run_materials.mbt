@@ -187,9 +187,15 @@ pub fn admit_client_effect_run_materials(
   original_materials? : ClientEffectIssuedNormalizationMaterials? = None,
   expected_request? : ClientRequestIdentity? = None,
   original_source? : ClientSourcePreparation? = None,
+  numeric_profile_cid? : String? = None,
 ) -> Result[ClientEffectRunMaterials, ClientEffectRunMaterialsIssue] {
   let body = match
-    read_client_run_materials_body(materials, expressions, operations) {
+    read_client_run_materials_body(
+      materials,
+      expressions,
+      operations,
+      numeric_profile_cid~,
+    ) {
     Ok(value) => value
     Err(issue) => return Err(Input(issue))
   }

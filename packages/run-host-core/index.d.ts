@@ -198,8 +198,7 @@ export function bindPreparedEffectRunMaterials(allowed: AllowedEffectRun,
 /** definitionCid and expectedRequest must come from trusted original durable
  * context, independently of candidate wire. This is not current authorization. */
 export function admitEffectRunMaterials(wire: string, definitionCid: string,
-  profiles: Readonly<{textTime?: boolean; veca?: boolean; rela?: boolean;
-    sga?: boolean; tea?: boolean; calendar?: boolean; textRank?: boolean}>,
+  profiles: ProfileSelection,
   original?: IssuedEffectRunMaterials, expectedRequest?: RequestIdentity,
   sourcePrepared?: PreparedEffectProgram): RestoredEffectRun;
 /** Requires the exact admitted material object; does not grant approval. */
@@ -487,13 +486,17 @@ export interface ProfileSelection {
   readonly tea?: boolean;
   readonly calendar?: boolean;
   readonly textRank?: boolean;
+  /** Exact installed numeric reduction profile; omission enables none. */
+  readonly numericProfileCid?: string;
 }
 
-/** Validate the closed profile selection contract and normalize omitted values
- * to false. Returns a detached frozen value suitable for retained Run input;
+/** Validate the closed profile selection contract and normalize omitted booleans
+ * to false; an omitted numeric profile remains unavailable. Returns a detached
+ * frozen value suitable for retained Run input;
  * it does not admit a Check Environment or grant execution authority. */
 export function admitProfileSelection(profiles: unknown):
-  Readonly<Required<ProfileSelection>>;
+  Readonly<Required<Omit<ProfileSelection, 'numericProfileCid'>> &
+    Pick<ProfileSelection, 'numericProfileCid'>>;
 
 export interface PrivateCompilationWires {
   readonly executablePlan: string;
