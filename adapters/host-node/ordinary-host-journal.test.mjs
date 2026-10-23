@@ -59,6 +59,81 @@ test('fresh Journal initialization shares one actual directory ACK after every o
   finally {after.close();}
 });
 
+test('existing legacy Journal upgrades keep each original marker directory ACK', async t => {
+  const directory = await mkdtemp(join(tmpdir(), 'actql-journal-upgrade-sync-'));
+  const exec = DatabaseSync.prototype.exec, boundary = new Error('legacy schema fixture boundary');
+  let legacyDatabase, journal;
+  DatabaseSync.prototype.exec = function(sql) {
+    const result = Reflect.apply(exec, this, [sql]);
+    if (/CREATE TABLE IF NOT EXISTS client_requests/u.test(sql)) {legacyDatabase = this; throw boundary;}
+    return result;
+  };
+  try {assert.throws(() => openClientRequestJournal(directory), error => error === boundary);}
+  finally {DatabaseSync.prototype.exec = exec;}
+  assert.equal(legacyDatabase.isOpen, false);
+  // A complete base-format fixture, before any submission authority or
+  // additive feature ever existed; not a relabelled adopted Journal.
+  fs.writeFileSync(join(directory, 'journal-format.json'), JSON.stringify({
+    version: 'actql-client-request-journal/0.1', isolation: 'execution-namespace',
+  }), {mode: 0o600});
+  t.after(() => journal?.close());
+  const observed = initializationSyncs(directory, () => journal = openClientRequestJournal(directory));
+  assert.equal(observed.files.length, 7);
+  assert.equal(observed.directories.length, 7);
+  assert.deepEqual(observed.directories.map(value => value.files.length), [1, 2, 3, 4, 5, 6, 7]);
+});
+
+for (const failClose of [false, true]) {
+test(`failed fresh Journal directory ACK keeps original initialization cleanup with close ${failClose ? 'pending' : 'complete'}`, async t => {
+  const directory = await mkdtemp(join(tmpdir(), 'actql-journal-failed-sync-'));
+  const originalOpen = DatabaseSync.prototype.open, originalClose = DatabaseSync.prototype.close;
+  const primary = Object.assign(new Error('initial directory ACK failed'), {code: 'EIO'});
+  const cleanup = new Error('original initialization close pending');
+  let database, journal, failure, closes = 0, attempted = 0, authority;
+  DatabaseSync.prototype.open = function() {
+    const result = Reflect.apply(originalOpen, this, []); database = this; return result;
+  };
+  DatabaseSync.prototype.close = function() {
+    if (this === database && ++closes === 1 && failClose) throw cleanup;
+    return Reflect.apply(originalClose, this, []);
+  };
+  try {
+    assert.throws(() => initializationSyncs(directory,
+      () => journal = openClientRequestJournal(directory), ({files}) => {
+        attempted++;
+        assert.equal(files.length, 8, 'failure is at the final directory ACK, after actual file ACKs');
+        authority = database.prepare('SELECT * FROM client_submission_epoch_authority').get();
+        assert.equal(database.prepare('SELECT count(*) AS n FROM client_requests').get().n, 0);
+        throw primary;
+      }), error => {
+      failure = error;
+      if (!failClose) return error === primary;
+      return error.primaryFailure === primary && error.cleanupHandle.status().pending === true;
+    });
+    assert.equal(journal, undefined, 'no Journal is published without its directory ACK');
+    assert.equal(attempted, 1);
+    assert.equal(closes, 1);
+    assert.equal(database.isOpen, failClose);
+    if (failClose) {
+      assert.equal(failure.cleanupHandle.retry().pending, false);
+      assert.equal(failure.cleanupHandle.retry().pending, false);
+      assert.equal(closes, 2, 'same native connection closes exactly once successfully');
+    }
+    assert.equal(database.isOpen, false);
+  } finally {
+    DatabaseSync.prototype.open = originalOpen; DatabaseSync.prototype.close = originalClose;
+    if (database?.isOpen) Reflect.apply(originalClose, database, []);
+  }
+  journal = openClientRequestJournal(directory);
+  t.after(() => journal.close());
+  const observer = new DatabaseSync(join(directory, 'client-requests.sqlite3'), {readOnly: true});
+  try {
+    assert.deepEqual(observer.prepare('SELECT * FROM client_submission_epoch_authority').get(), authority);
+    assert.equal(observer.prepare('SELECT count(*) AS n FROM client_requests').get().n, 0);
+  } finally {observer.close();}
+});
+}
+
 async function selectedRowsFixture(t, openJournal = openClientRequestJournal) {
   const directory = await mkdtemp(join(tmpdir(), 'actql-journal-selected-rows-'));
   const journal = openJournal(directory);
