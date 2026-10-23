@@ -28,6 +28,15 @@ closes the writer, and using a finalizer for another sink is an error. The hash
 state is private to the writer, so a failed prefix cannot be finalized separately.
 This changes storage, not canonical ordering, preimage selection or byte budgets.
 
+`buffered_writer` retains only one explicitly bounded provisional fragment.
+`drain_buffered_output` returns that fragment without resetting cumulative byte,
+node or depth usage; `finish_buffered_usage` requires a complete, fully drained
+value and closes it without constructing a digest. Exact publication evidence
+`Pair` comparisons use this sink and still compare every emitted
+character, preserve bounded work and workspace, and continue validation after a
+mismatch so later bounds failures keep their order. Identity comparisons retain
+the hashing sink. Neither sink issues authority, currentness or physical ACKs.
+
 ## Scalar spelling
 
 Finite binary64 numbers use shortest round-tripping decimal digits, choosing

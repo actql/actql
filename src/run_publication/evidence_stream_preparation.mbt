@@ -118,8 +118,15 @@ fn EvidenceStreamPreparation::step(
             self.max_nodes,
             self.max_depth,
           )
+        Wire(expected) =>
+          @encode.comparing_writer(
+            expected,
+            self.max_wire_bytes,
+            self.max_nodes,
+            self.max_depth,
+          )
         _ =>
-          @encode.buffered_hashing_writer(
+          @encode.buffered_writer(
             self.max_wire_bytes,
             self.max_nodes,
             self.max_depth,
@@ -130,7 +137,7 @@ fn EvidenceStreamPreparation::step(
       self.left = Some(@json.start_emit(self.value.unwrap(), writer))
       if target is Pair(other) {
         self.reserve(1025)
-        let writer = @encode.buffered_hashing_writer(
+        let writer = @encode.buffered_writer(
           self.max_wire_bytes,
           self.max_nodes,
           self.max_depth,
@@ -149,18 +156,27 @@ fn EvidenceStreamPreparation::step(
         self.reserve(1)
         self.left_done = @json.advance_emit(cursor)
         self.live += @json.emit_pending_frames(cursor) - before - 1
-        if !(target is Identity(_)) {
-          self.left_text = @encode.drain_hash_output(self.left_writer.unwrap())
+        if target is Pair(_) {
+          self.left_text = @encode.drain_buffered_output(
+            self.left_writer.unwrap(),
+          )
           self.left_offset = 0
         }
         if self.left_done {
-          let (digest, _, _) = @encode.finish_hash_usage(
-            self.left_writer.unwrap(),
-          )
-          self.left_writer = None
           if target is Identity(expected) {
+            let (digest, _, _) = @encode.finish_hash_usage(
+              self.left_writer.unwrap(),
+            )
             self.phase = Done("sha256:" + digest == expected)
+          } else if target is Wire(_) {
+            let (equal, _, _, _) = @encode.finish_comparison_usage(
+              self.left_writer.unwrap(),
+            )
+            self.phase = Done(equal)
+          } else {
+            ignore(@encode.finish_buffered_usage(self.left_writer.unwrap()))
           }
+          self.left_writer = None
         }
         return
       }
@@ -172,10 +188,12 @@ fn EvidenceStreamPreparation::step(
         self.reserve(1)
         self.right_done = @json.advance_emit(cursor)
         self.live += @json.emit_pending_frames(cursor) - before - 1
-        self.right_text = @encode.drain_hash_output(self.right_writer.unwrap())
+        self.right_text = @encode.drain_buffered_output(
+          self.right_writer.unwrap(),
+        )
         self.right_offset = 0
         if self.right_done {
-          ignore(@encode.finish_hash_usage(self.right_writer.unwrap()))
+          ignore(@encode.finish_buffered_usage(self.right_writer.unwrap()))
           self.right_writer = None
         }
         return

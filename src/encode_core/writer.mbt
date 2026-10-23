@@ -24,6 +24,53 @@ priv enum OutputSink {
   MeasureOutput
   HashOutput(@sha256.Hasher)
   BufferedHashOutput(BufferedHash)
+  BufferedTextOutput(BufferedText)
+  CompareOutput(ComparedText)
+}
+
+///|
+priv struct ComparedText {
+  mut expected : String
+  mut offset : Int
+  mut equal : Bool
+}
+
+///|
+fn compare_unit(output : ComparedText, unit : Int) -> Unit {
+  if output.offset >= output.expected.length() ||
+    output.expected[output.offset].to_int() != unit {
+    output.equal = false
+  }
+  output.offset += 1
+}
+
+///|
+fn compare_range(
+  output : ComparedText,
+  text : String,
+  start : Int,
+  end : Int,
+) -> Unit {
+  for index in start..<end {
+    compare_unit(output, text[index].to_int())
+  }
+}
+
+///|
+/// Compare the complete encoded text without retaining provisional fragments.
+/// Mismatch does not short-circuit structural, Unicode or resource checks.
+pub fn comparing_writer(
+  expected : String,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Writer raise EncodeFailure {
+  create_writer(
+    max_bytes,
+    max_nodes,
+    max_depth,
+    CompareOutput({ expected, offset: 0, equal: true, }),
+  )
 }
 
 ///|
@@ -31,6 +78,14 @@ priv enum OutputSink {
 // Draining transfers bytes, not permission to publish a completed document.
 priv struct BufferedHash {
   hash : @sha256.Hasher
+  text : StringBuilder
+  limit : Int
+  mut bytes : Int
+}
+
+///|
+// Exact bounded comparison fragments need text and usage, not a digest.
+priv struct BufferedText {
   text : StringBuilder
   limit : Int
   mut bytes : Int
@@ -135,6 +190,61 @@ pub fn buffered_hashing_writer(
 }
 
 ///|
+/// Bounded provisional text with the same cumulative structural limits as the
+/// hashing sink. No digest is constructed or available from this writer.
+pub fn buffered_writer(
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  max_buffer_bytes : Int,
+) -> Writer raise EncodeFailure {
+  if max_buffer_bytes < 0 {
+    raise OutputLimit
+  }
+  create_writer(
+    max_bytes,
+    max_nodes,
+    max_depth,
+    BufferedTextOutput({
+      text: StringBuilder(),
+      limit: max_buffer_bytes,
+      bytes: 0,
+    }),
+  )
+}
+
+///|
+/// Drain only the current bounded text fragment, retaining aggregate limits.
+pub fn drain_buffered_output(w : Writer) -> String raise EncodeFailure {
+  active(w)
+  guard w.output is BufferedTextOutput(buffer) else {
+    fail(w, InvalidStructure)
+  }
+  let text = buffer.text.to_string()
+  buffer.text.reset()
+  buffer.bytes = 0
+  text
+}
+
+///|
+/// Complete a drained bounded text writer without manufacturing a digest.
+pub fn finish_buffered_usage(w : Writer) -> (Int, Int, Int) raise EncodeFailure {
+  active(w)
+  guard w.output is BufferedTextOutput(buffer) else {
+    fail(w, InvalidStructure)
+  }
+  if buffer.bytes != 0 {
+    fail(w, InvalidStructure)
+  }
+  finish_state(w)
+  (
+    w.max_bytes - w.remaining_bytes,
+    w.max_nodes - w.remaining_nodes,
+    w.peak_depth,
+  )
+}
+
+///|
 /// Provisional canonical UTF-8 text only. Concatenate in drain order; draining
 /// neither finalizes the document nor resets aggregate byte/node/depth limits.
 /// All pending text must be drained before finish_hash[_usage].
@@ -162,6 +272,11 @@ pub fn cancel_writer(w : Writer) -> Unit {
       buffer.text.reset()
       buffer.bytes = 0
     }
+    BufferedTextOutput(buffer) => {
+      buffer.text.reset()
+      buffer.bytes = 0
+    }
+    CompareOutput(output) => output.expected = ""
     MeasureOutput | HashOutput(_) => ()
   }
 }
@@ -169,6 +284,11 @@ pub fn cancel_writer(w : Writer) -> Unit {
 ///|
 fn reserve_buffer(w : Writer, bytes : Int) -> Unit raise EncodeFailure {
   if w.output is BufferedHashOutput(buffer) {
+    if bytes > buffer.limit - buffer.bytes {
+      fail(w, OutputLimit)
+    }
+    buffer.bytes += bytes
+  } else if w.output is BufferedTextOutput(buffer) {
     if bytes > buffer.limit - buffer.bytes {
       fail(w, OutputLimit)
     }
@@ -258,6 +378,8 @@ fn ascii(w : Writer, text : String) -> Unit raise EncodeFailure {
   match w.output {
     TextOutput(output) => output.write_string(text)
     MeasureOutput => ()
+    CompareOutput(output) => compare_range(output, text, 0, text.length())
+    BufferedTextOutput(buffer) => buffer.text.write_string(text)
     HashOutput(h) => hash_ascii_range(w, h, text, 0, text.length())
     BufferedHashOutput(buffer) => {
       hash_ascii_range(w, buffer.hash, text, 0, text.length())
@@ -285,6 +407,8 @@ fn quoted_contents(
       // allowance, preserving limit failure before a later invalid surrogate.
       let capacity = match w.output {
         BufferedHashOutput(buffer) =>
+          Int::min(w.remaining_bytes, buffer.limit - buffer.bytes)
+        BufferedTextOutput(buffer) =>
           Int::min(w.remaining_bytes, buffer.limit - buffer.bytes)
         _ => w.remaining_bytes
       }
@@ -352,6 +476,15 @@ fn quoted_contents(
         match w.output {
           TextOutput(output) => output.write_char(scalar.unsafe_to_char())
           MeasureOutput => ()
+          CompareOutput(output) =>
+            if scalar < 65536 {
+              compare_unit(output, scalar)
+            } else {
+              compare_unit(output, 0xd800 + ((scalar - 65536) >> 10))
+              compare_unit(output, 0xdc00 + ((scalar - 65536) & 1023))
+            }
+          BufferedTextOutput(buffer) =>
+            buffer.text.write_char(scalar.unsafe_to_char())
           HashOutput(h) => hash_scalar(w, h, scalar)
           BufferedHashOutput(buffer) => {
             hash_scalar(w, buffer.hash, scalar)
@@ -389,7 +522,9 @@ fn ascii_span(
   w.remaining_bytes -= size
   match w.output {
     MeasureOutput => ()
+    CompareOutput(output) => compare_range(output, text, start, end)
     TextOutput(output) => output.write_view(text[start:end])
+    BufferedTextOutput(buffer) => buffer.text.write_view(text[start:end])
     HashOutput(hash) => hash_ascii_range(w, hash, text, start, end)
     BufferedHashOutput(buffer) => {
       hash_ascii_range(w, buffer.hash, text, start, end)
@@ -847,6 +982,25 @@ pub fn finish_measurement_usage(
 }
 
 ///|
+/// Finalize only a complete comparison. Both byte/node/depth limits and all
+/// encoding checks have been applied even when an earlier unit mismatched.
+pub fn finish_comparison_usage(
+  w : Writer,
+) -> (Bool, Int, Int, Int) raise EncodeFailure {
+  active(w)
+  guard w.output is CompareOutput(output) else { fail(w, InvalidStructure) }
+  finish_state(w)
+  let equal = output.equal && output.offset == output.expected.length()
+  output.expected = ""
+  (
+    equal,
+    w.max_bytes - w.remaining_bytes,
+    w.max_nodes - w.remaining_nodes,
+    w.peak_depth,
+  )
+}
+
+///|
 /// Current successful output usage without closing the writer. A caller may
 /// compare snapshots around one complete value; an open container's prefix is
 /// included in both snapshots. No digest or provisional text is exposed.
@@ -898,7 +1052,8 @@ pub fn finish_hash_metrics(
       }
       buffer.hash
     }
-    TextOutput(_) | MeasureOutput => fail(w, InvalidStructure)
+    TextOutput(_) | MeasureOutput | BufferedTextOutput(_) | CompareOutput(_) =>
+      fail(w, InvalidStructure)
   }
   finish_state(w)
   let hex = @sha256.finish_hex(h) catch {
