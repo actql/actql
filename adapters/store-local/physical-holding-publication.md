@@ -586,6 +586,19 @@ the existing same-database write/COMMIT. It never creates another attempt,
 refunds capacity, resends work or treats visible rows as a durability ACK.
 Unrelated metadata rows are not acquired by this selected-key lookup.
 
+### Connection-owned publication statements
+
+Opening still admits the exact publication body, attempt and progress table
+definitions before exposing the connection. Their fixed read/write statements
+are acquired only when that connection first uses each statement; unused
+publication paths do not allocate native statements during opening. A selected
+statement is retained only by that connection and reused with new bound values,
+never with cached rows, permission or transaction outcomes. Failed acquisition
+does not install a statement and follows the existing transaction rollback or
+Unknown protocol. Only actual native close retires the retained statement
+references; a new connection starts with empty holders. Schema-loss refusal,
+selected row validation and every actual mutation/COMMIT remain unchanged.
+
 ## Joint delivery completion
 
 After the sink finishes and the existing receipt authorization succeeds, the

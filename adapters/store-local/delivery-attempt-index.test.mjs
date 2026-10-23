@@ -6,6 +6,75 @@ import {join} from 'node:path';
 import {DatabaseSync} from 'node:sqlite';
 import {openDeliveryAttemptIndex} from './delivery-attempt-index.mjs';
 
+test('publication statements are acquired on use after unchanged schema admission', async t => {
+  const directory = await mkdtemp(join(tmpdir(), 'actql-publication-statements-'));
+  let index;
+  const prepared = [], original = DatabaseSync.prototype.prepare;
+  t.mock.method(DatabaseSync.prototype, 'prepare', function(sql) {
+    if (/\b(?:FROM|INTO) publication_(?:contracts|attempts|records)\b/u.test(sql)) prepared.push(sql);
+    return Reflect.apply(original, this, [sql]);
+  });
+  t.after(async () => {index?.close(); await rm(directory, {recursive: true});});
+  const path = join(directory, 'index.sqlite3'), options = {create: false, maxEntries: 4, maxWireBytes: 4096};
+  index = await openDeliveryAttemptIndex(path, {...options, create: true});
+  index.migrate([]);
+  index.close(); prepared.length = 0;
+  index = await openDeliveryAttemptIndex(path, options);
+  assert.equal(prepared.length, 0, 'opening does not allocate unused publication statements');
+  const entry = {semantic_cid: 'sha256:' + 'a'.repeat(64), name: 'invocation', wire: '{}', byte_count: 2};
+  assert.equal(index.publicationContract(entry.semantic_cid), undefined);
+  assert.equal(index.publicationContract(entry.semantic_cid), undefined);
+  assert.equal(prepared.length, 1, 'same native statement is reused within this connection');
+  index.putPublicationContracts([entry], {objects: 1, bytes: 2});
+  assert.deepEqual(index.publicationContract(entry.semantic_cid), entry);
+  assert.equal(prepared.length, 2, 'only the selected read and insert were acquired');
+  index.removePublicationContract(entry);
+  assert.equal(index.publicationContract(entry.semantic_cid), undefined);
+  assert.equal(prepared.length, 3);
+  index.close();
+  assert.throws(() => index.publicationContract(entry.semantic_cid), {code: 'DeliveryAttemptIndexClosed'});
+  assert.equal(prepared.length, 3, 'a closed connection cannot allocate another statement');
+  prepared.length = 0;
+  index = await openDeliveryAttemptIndex(path, options);
+  assert.equal(prepared.length, 0, 'a new connection owns its own initially empty holders');
+  assert.equal(index.publicationContract(entry.semantic_cid), undefined);
+  assert.equal(prepared.length, 1);
+});
+
+test('publication statement acquisition failure rolls back before the same input can retry', async t => {
+  const directory = await mkdtemp(join(tmpdir(), 'actql-publication-statement-failure-'));
+  let index, armed = false, lost = false, rollbacks = 0, commits = 0;
+  const prepare = DatabaseSync.prototype.prepare, exec = DatabaseSync.prototype.exec;
+  const failure = Object.assign(new Error('publication statement acquisition failed'), {code: 'EIO'});
+  t.mock.method(DatabaseSync.prototype, 'prepare', function(sql) {
+    if (armed && !lost && sql === 'INSERT INTO publication_contracts VALUES(?,?,?,?)') {
+      lost = true; throw failure;
+    }
+    return Reflect.apply(prepare, this, [sql]);
+  });
+  t.mock.method(DatabaseSync.prototype, 'exec', function(sql) {
+    const result = Reflect.apply(exec, this, [sql]);
+    if (armed && sql === 'ROLLBACK') rollbacks++;
+    if (armed && sql === 'COMMIT') commits++;
+    return result;
+  });
+  t.after(async () => {armed = false; index?.close(); await rm(directory, {recursive: true});});
+  index = await openDeliveryAttemptIndex(join(directory, 'index.sqlite3'),
+    {create: true, maxEntries: 4, maxWireBytes: 4096});
+  index.migrate([]);
+  const entry = {semantic_cid: 'sha256:' + 'b'.repeat(64), name: 'invocation', wire: '{}', byte_count: 2};
+  const before = index.publicationUsage();
+  armed = true;
+  assert.throws(() => index.putPublicationContracts([entry], {objects: 1, bytes: 2}), error => error === failure);
+  assert.equal(lost, true);
+  assert.deepEqual({rollbacks, commits}, {rollbacks: 1, commits: 0});
+  assert.equal(index.publicationContract(entry.semantic_cid), undefined);
+  assert.deepEqual(index.publicationUsage(), before);
+  index.putPublicationContracts([entry], {objects: 1, bytes: 2});
+  assert.deepEqual(index.publicationContract(entry.semantic_cid), entry);
+  assert.deepEqual({rollbacks, commits}, {rollbacks: 1, commits: 1});
+});
+
 function publicationBlockWork(t) {
   let armed = false;
   const reads = [], writes = [];
