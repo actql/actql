@@ -518,6 +518,10 @@ function capturedComputationLifetime(control, capturedRun) {
   };
 }
 
+async function lookupOriginalCommit(primary, lookup) {
+  return lookup();
+}
+
 function uncertainFailure(
   primary, reconciliation, recordFailure, control, reconcile, retireComputation,
 ) {
@@ -811,7 +815,7 @@ async function publishRun(options, effectful, computationLifetime) {
       if (action === 'reconcile_commit') {
         reconciliationAttempted = true;
         try {
-          reconciled = await lookupCommit();
+          reconciled = await lookupOriginalCommit(primary, lookupCommit);
         } catch (error) {
           reconciliationFailed = true;
           reconciliationFailure = error;
@@ -830,7 +834,7 @@ async function publishRun(options, effectful, computationLifetime) {
       }
       if (action === 'return_unknown') {
         const reconcile = async upstream => {
-          const resolved = await lookupCommit();
+          const resolved = await lookupOriginalCommit(primary, lookupCommit);
           if (resolved === undefined) {
             if (typeof member(upstream, 'resolveConfirmed') === 'function') {
               upstream.resolveConfirmed(undefined);
