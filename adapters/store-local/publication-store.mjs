@@ -1820,7 +1820,14 @@ async function openOriginalLocalPublicationStore(
   };
 
   const writeNativeIndexOriginal = (method, args, acknowledge, reservation) => {
-    const index = deliveryIndex, writer = {failed:false,cleanup:undefined};
+    const metadataKey = args[0].metadata_key;
+    for (const retained of activePhysicalRecordWriters) {
+      if (retained.nativeIndexKey === metadataKey && retained.failed) {
+        reservation?.release();
+        throw retained.failure;
+      }
+    }
+    const index = deliveryIndex, writer = {failed:false,cleanup:undefined,nativeIndexKey:metadataKey};
     let pending = true, flight, failure;
     const status = () => Object.freeze({pending});
     const finish = () => {
@@ -1849,6 +1856,7 @@ async function openOriginalLocalPublicationStore(
       failure = new PublicationStoreError('PublicationMetadataCommitOutcomeUnknown',primary);
       failure.outcome = 'unknown'; failure.primaryFailure = primary;
       failure.cleanupPending = true; failure.cleanupHandle = writer.cleanup;
+      writer.failure = failure;
       throw failure;
     }
   };

@@ -8453,6 +8453,52 @@ test(`native Index Store retains both storage and payload custody after ${afterC
 });
 }
 
+test('concurrent native Index confirmation retains one original lost-reply writer', async t => {
+  const exec = DatabaseSync.prototype.exec;
+  let armed = false, lost = false;
+  t.mock.method(DatabaseSync.prototype,'exec',function(sql){
+    if (armed && !lost && sql === 'COMMIT') {
+      lost = true; Reflect.apply(exec,this,[sql]);
+      throw Object.assign(new Error('original native Index confirmation reply lost'),{code:'EIO'});
+    }
+    return Reflect.apply(exec,this,[sql]);
+  });
+  const {store,directory,configuration} = await fixture(t), invoked = invocation();
+  const request = publicationRequest(resultDefinition(),digest('concurrent native Index confirmation'));
+  const attempt = publicationAttempt(request), prepared = await prepareCommit(store,request,attempt,invoked,cids.policy,false,true);
+  const entry = indexEntry(request,attempt,invoked,{durable_result_binding_cids:[prepared.binding.identity]});
+  await store.commitIndex(wire(entry),prepared.required,prepared.evidence); await store.close();
+  const reopened = await openLocalPublicationStore(configuration,contractControl);
+  const lstatOriginal = fsPromises.lstat;
+  let entered = 0, release;
+  const both = new Promise(resolve => {release = resolve;});
+  t.mock.method(fsPromises,'lstat',async function(path,...args){
+    if (armed && String(path).startsWith(join(directory,'indexes')+sep)) {
+      if (++entered === 2) release();
+      await both;
+    }
+    return Reflect.apply(lstatOriginal,this,[path,...args]);
+  });
+  syncBuiltinESMExports();
+  t.after(async()=>{armed=false;t.mock.restoreAll();syncBuiltinESMExports();await reopened.close();});
+  armed = true;
+  const results = await Promise.allSettled([reopened.lookupCommittedIndex(indexKeyFor(request),()=>true),
+    reopened.lookupCommittedIndex(indexKeyFor(request),()=>true)]);
+  assert(lost); assert.equal(entered,2);
+  assert(results.every(result => result.status === 'rejected'));
+  assert.equal(results[0].reason,results[1].reason,'the second acquisition cannot replace the existing storage duty');
+  const cleanup = results[0].reason.cleanupHandle;
+  assert.equal(cleanup.status().pending,true);
+  assert.equal((await cleanup.retry()).pending,false);
+  armed = false;
+  assert.equal((await reopened.lookupCommittedIndex(indexKeyFor(request),()=>true)).public_index_entry_cid,entry.public_index_entry_cid);
+  await reopened.close();
+  const db = new DatabaseSync(join(directory,'delivery-attempts.sqlite3'),{readOnly:true});
+  try {assert.equal(db.prepare('SELECT ack_revision FROM native_publication_indexes').get().ack_revision,3);}
+  finally {db.close();}
+  await assert.rejects(stat(join(directory,'owner')),code('ENOENT'));
+});
+
 test('native Index shared Result payload keeps the same allocation until final real unlink ACK', async t => {
   const {store,directory,configuration} = await fixture(t);
   const publish = async label => {
