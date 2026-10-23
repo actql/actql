@@ -6,7 +6,7 @@ import {createSqliteTransaction} from '../host-common/sqlite-transaction.mjs';
 
 const fail = (code, cause) => { throw Object.assign(new Error(code, {cause}), {code}); };
 const cid = value => typeof value === 'string' && /^sha256:[0-9a-f]{64}$/u.test(value);
-const version = 11;
+const version = 12;
 const resultRecoveryTable = `CREATE TABLE result_deletion_recovery (
   id INTEGER PRIMARY KEY CHECK(id=1), dirty INTEGER NOT NULL CHECK(dirty IN (0,1)),
   ack_revision INTEGER NOT NULL CHECK(ack_revision>=1 AND ack_revision<=9007199254740991)
@@ -49,6 +49,31 @@ const nativeInventoryUsageTable = `CREATE TABLE native_publication_inventory_usa
   id INTEGER PRIMARY KEY CHECK(id=1), entries INTEGER NOT NULL CHECK(entries>=0),
   ack_revision INTEGER NOT NULL CHECK(ack_revision>=1 AND ack_revision<=9007199254740991)
 )`;
+const nativeReferencesTable = `CREATE TABLE native_publication_references (
+  public_index_cid TEXT NOT NULL REFERENCES native_publication_inventories(public_index_cid) ON DELETE CASCADE,
+  kind TEXT NOT NULL CHECK(kind IN ('contract','holding')),
+  reference_cid TEXT NOT NULL CHECK(length(reference_cid)=71 AND reference_cid GLOB 'sha256:*'
+    AND substr(reference_cid,8) NOT GLOB '*[^0-9a-f]*'),
+  PRIMARY KEY(kind,reference_cid,public_index_cid)
+) WITHOUT ROWID`;
+const nativeReferenceOwnerIndex = 'CREATE INDEX native_publication_reference_owners ON native_publication_references(public_index_cid)';
+const nativeReferenceInsert = `CREATE TRIGGER native_publication_references_insert
+  AFTER INSERT ON native_publication_inventories BEGIN
+  INSERT INTO native_publication_references
+    SELECT new.public_index_cid,'contract',json_extract(value,'$.semantic_cid')
+      FROM json_each(new.inventory_wire,'$.contract_objects')
+    UNION SELECT new.public_index_cid,'holding',value
+      FROM json_each(new.inventory_wire,'$.physical_holding_cids');
+END`;
+const nativeReferenceUpdate = `CREATE TRIGGER native_publication_references_update
+  AFTER UPDATE OF inventory_wire ON native_publication_inventories BEGIN
+  DELETE FROM native_publication_references WHERE public_index_cid=old.public_index_cid;
+  INSERT INTO native_publication_references
+    SELECT new.public_index_cid,'contract',json_extract(value,'$.semantic_cid')
+      FROM json_each(new.inventory_wire,'$.contract_objects')
+    UNION SELECT new.public_index_cid,'holding',value
+      FROM json_each(new.inventory_wire,'$.physical_holding_cids');
+END`;
 const publicationRecoveryTable = `CREATE TABLE publication_recovery (
   id INTEGER PRIMARY KEY CHECK(id=1), complete INTEGER NOT NULL CHECK(complete IN (0,1)),
   entries INTEGER NOT NULL CHECK(entries>=0),
@@ -195,7 +220,7 @@ export async function openDeliveryAttemptIndex(path, {
       exec(`CREATE TABLE coverage (
         id INTEGER PRIMARY KEY CHECK(id=1), version INTEGER NOT NULL,
         complete INTEGER NOT NULL CHECK(complete IN (0,1)), entries INTEGER NOT NULL);
-        INSERT INTO coverage VALUES(1,11,${initialComplete},0);
+        INSERT INTO coverage VALUES(1,${version},${initialComplete},0);
         CREATE TABLE attempts (
           logical_key TEXT PRIMARY KEY, attempt_cid TEXT NOT NULL UNIQUE,
           grant_cid TEXT NOT NULL, run_cid TEXT NOT NULL,
@@ -214,6 +239,7 @@ export async function openDeliveryAttemptIndex(path, {
         ${publicationAttemptsTable}; ${publicationRecordsTable}; ${publicationAttemptRunIndex};
         ${publicationRecoveryTable}; ${pendingPublicationTable};
         ${nativeInventoryTable}; ${nativeInventoryUsageTable};
+        ${nativeReferencesTable}; ${nativeReferenceOwnerIndex}; ${nativeReferenceInsert}; ${nativeReferenceUpdate};
         ${metadataFenceTable}; ${metadataFenceCoverageTable};
         ${physicalObjectsTable}; ${physicalUsageTable}; ${physicalPreparationsTable};
         ${resultRecoveryTable}; INSERT INTO result_deletion_recovery VALUES(1,0,1);
@@ -226,7 +252,7 @@ export async function openDeliveryAttemptIndex(path, {
     });
     const state = prepare('SELECT version,complete,entries FROM coverage WHERE id=1');
     const selected = state.get();
-    if (![1,2,3,4,5,6,7,8,9,10,version].includes(selected?.version) || ![0,1].includes(selected.complete) ||
+    if (![1,2,3,4,5,6,7,8,9,10,11,version].includes(selected?.version) || ![0,1].includes(selected.complete) ||
         !Number.isSafeInteger(selected.entries) || selected.entries < 0 || selected.entries > maxEntries) {
       fail('DeliveryAttemptIndexUnavailable');
     }
@@ -338,6 +364,34 @@ export async function openDeliveryAttemptIndex(path, {
       UPDATE coverage SET version=11 WHERE id=1;`));
     if (prepare("SELECT sql FROM sqlite_schema WHERE type='table' AND name='result_deletion_recovery'")
       .get()?.sql !== resultRecoveryTable) fail('DeliveryAttemptIndexUnavailable');
+    if (selected.version < 12) {
+      // One atomic private-format transition indexes the original native
+      // inventories once. Later opens never rebuild it from absent metadata.
+      const rows = prepare('SELECT public_index_cid,inventory_wire FROM native_publication_inventories LIMIT ?')
+        .all(maxEntries + 1);
+      const usage = prepare('SELECT entries FROM native_publication_inventory_usage WHERE id=1').get();
+      if (rows.length > maxEntries || rows.length !== usage?.entries || rows.some(row =>
+        !cid(row.public_index_cid) || typeof row.inventory_wire !== 'string' ||
+        Buffer.byteLength(row.inventory_wire, 'utf8') > maxWireBytes)) fail('DeliveryAttemptIndexUnavailable');
+      transaction.run(() => exec(`${nativeReferencesTable}; ${nativeReferenceOwnerIndex};
+        ${nativeReferenceInsert}; ${nativeReferenceUpdate};
+        INSERT INTO native_publication_references
+          SELECT n.public_index_cid,'contract',json_extract(c.value,'$.semantic_cid')
+            FROM native_publication_inventories n,json_each(n.inventory_wire,'$.contract_objects') c
+          UNION SELECT n.public_index_cid,'holding',h.value
+            FROM native_publication_inventories n,json_each(n.inventory_wire,'$.physical_holding_cids') h;
+        UPDATE coverage SET version=12 WHERE id=1;`));
+    }
+    for (const [type, name, sql] of [
+      ['table', 'native_publication_references', nativeReferencesTable],
+      ['index', 'native_publication_reference_owners', nativeReferenceOwnerIndex],
+      ['trigger', 'native_publication_references_insert', nativeReferenceInsert],
+      ['trigger', 'native_publication_references_update', nativeReferenceUpdate],
+    ]) {
+      if (prepare('SELECT sql FROM sqlite_schema WHERE type=? AND name=?').get(type, name)?.sql !== sql) {
+        fail('DeliveryAttemptIndexUnavailable');
+      }
+    }
     const resultRecoveryRow = prepare('SELECT dirty,ack_revision FROM result_deletion_recovery WHERE id=1');
     const readResultRecovery = () => {
       const row = resultRecoveryRow.get();
@@ -370,6 +424,11 @@ export async function openDeliveryAttemptIndex(path, {
     const acknowledgeMetadataFences = prepare('UPDATE metadata_deletion_fence_coverage SET ack_revision=ack_revision+1 WHERE id=1');
     const nativeInventory = prepare('SELECT * FROM native_publication_inventories WHERE public_index_cid=?');
     const nativeInventories = prepare('SELECT * FROM native_publication_inventories ORDER BY public_index_cid LIMIT ?');
+    const nativeReferenceOwners = prepareOnUse(`SELECT n.public_index_cid,n.inventory_wire
+      FROM native_publication_references r JOIN native_publication_inventories n
+        ON n.public_index_cid=r.public_index_cid
+      WHERE r.kind=? AND r.reference_cid=? AND r.public_index_cid<>?
+      ORDER BY r.public_index_cid LIMIT ?`);
     const insertNativeInventory = prepare('INSERT INTO native_publication_inventories VALUES(?,?)');
     const removeNativeInventory = prepare('DELETE FROM native_publication_inventories WHERE public_index_cid=?');
     const nativeInventoryUsage = prepare('SELECT entries,ack_revision FROM native_publication_inventory_usage WHERE id=1');
@@ -1147,6 +1206,15 @@ export async function openDeliveryAttemptIndex(path, {
       nativePublicationInventories() {
         requireComplete();const usage=inventoryUsage(),rows=nativeInventories.all(maxEntries+1);
         if(rows.length!==usage.entries)fail('DeliveryAttemptIndexUnavailable');
+        return Object.freeze(rows.map(recoveryOriginal));
+      },
+      nativePublicationReferenceOwners(kind, referenceCid, excludedPublicIndexCid) {
+        requireComplete();
+        if (!['contract', 'holding'].includes(kind) || !cid(referenceCid) ||
+          excludedPublicIndexCid !== undefined && !cid(excludedPublicIndexCid)) fail('InvalidDeliveryAttemptIndex');
+        inventoryUsage();
+        const rows = nativeReferenceOwners.all(kind, referenceCid, excludedPublicIndexCid ?? '', maxEntries + 1);
+        if (rows.length > maxEntries) fail('DeliveryAttemptIndexLimit');
         return Object.freeze(rows.map(recoveryOriginal));
       },
       needsPublicationRecoveryMigration() { requireComplete();return recoveryState().complete===0; },

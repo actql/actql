@@ -6759,13 +6759,16 @@ async function openOriginalLocalPublicationStore(
     semanticCid,
     excludedPublicIndexEntryCid,
   ) => {
-    for (const original of deliveryIndex.nativePublicationInventories()) {
-      if (original.public_index_cid === excludedPublicIndexEntryCid) continue;
+    for (const original of deliveryIndex.nativePublicationReferenceOwners(
+      'contract', semanticCid, excludedPublicIndexEntryCid)) {
       const inventory = publicationRecoveryValue(original);
+      if (!inventory.contract_objects.some(object => object.semantic_cid === semanticCid)) {
+        fail('InvalidPublicationMetadataInventoryStore');
+      }
       const keyHash = indexKey({namespaceId:inventory.namespace_id,
         authorityScopeCid:inventory.authority_scope_cid,runDefinitionCid:inventory.run_definition_cid});
       if (await readMetadataDeletion(keyHash) !== undefined) continue;
-      if (inventory.contract_objects.some(object => object.semantic_cid === semanticCid)) return true;
+      return true;
     }
     for (const name of await readdir(metadataInventoriesDirectory)) {
       if (!/^[0-9a-f]{64}\.json$/u.test(name)) {
@@ -6790,9 +6793,12 @@ async function openOriginalLocalPublicationStore(
   const metadataHoldingHasOtherOwner = async (
     holdingCid, excludedPublicIndexEntryCid,
   ) => {
-    for (const original of deliveryIndex.nativePublicationInventories()) {
-      if (original.public_index_cid === excludedPublicIndexEntryCid) continue;
-      if (publicationRecoveryValue(original).physical_holding_cids.includes(holdingCid)) return true;
+    for (const original of deliveryIndex.nativePublicationReferenceOwners(
+      'holding', holdingCid, excludedPublicIndexEntryCid)) {
+      if (!publicationRecoveryValue(original).physical_holding_cids.includes(holdingCid)) {
+        fail('InvalidPublicationMetadataInventoryStore');
+      }
+      return true;
     }
     for (const name of await readdir(metadataInventoriesDirectory)) {
       if (!/^[0-9a-f]{64}\.json$/u.test(name)) {
