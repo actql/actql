@@ -493,10 +493,12 @@ test('ordinary process jobs execute the tested collector contract and retain ass
   for (const adapter of ['native', 'python']) {
     const job = workflow.jobs[`ordinary-${adapter}`];
     assert.deepEqual(job.strategy.matrix.operation, adapter === 'native'
-      ? ['first-init', 'cold-existing'] : ['first-init', 'cold-existing', 'warm-select', 'warm-result', 'warm-status']);
+      ? ['first-init', 'cold-existing', 'native-operations'] : ['first-init', 'cold-existing', 'warm-select', 'warm-result', 'warm-status']);
     const collect = job.steps.find(step => step.run?.includes('scripts/benchmark-ordinary-processes.py'));
     const assess = job.steps.find(step => step.run?.includes('scripts/operation-performance.mjs --input'));
-    assert.equal(assess.if, 'always()'); assert.equal(assess['continue-on-error'], undefined);
+    assert.equal(collect.if, adapter === 'native' ? "matrix.operation != 'native-operations'" : undefined);
+    assert.equal(assess.if, adapter === 'native' ? "always() && matrix.operation != 'native-operations'" : 'always()');
+    assert.equal(assess['continue-on-error'], undefined);
     const env = {...process.env, PATH: `${bin}:${process.env.PATH}`, RUNNER_TEMP: root,
       GITHUB_SHA: sha, ARGV: join(root, `${adapter}.json`)};
     const body = collect.run.replaceAll('${{ matrix.operation }}', 'cold-existing')
@@ -516,13 +518,69 @@ test('ordinary process jobs execute the tested collector contract and retain ass
     assert.equal(JSON.parse(await readFile(env.ARGV, 'utf8'))[0], 'scripts/operation-performance.mjs');
   }
   const entry = parse(readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8'));
-  assert(Object.keys(entry.on.workflow_dispatch.inputs).length <= 10);
+  // GitHub.com workflow_dispatch supports 25 inputs, matching the priority lane's check.
+  // https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax#onworkflow_dispatchinputs
+  assert(Object.keys(entry.on.workflow_dispatch.inputs).length <= 25);
   for (const adapter of ['native', 'python']) {
     for (const key of ['run-id', 'artifact-id', 'producer-job']) {
       assert(workflow.on.workflow_call.inputs[`${adapter}-package-${key}`].required);
       assert(entry.jobs['performance-matrix'].with[`${adapter}-package-${key}`]);
     }
   }
+});
+
+test('Native operation artifact row selects its actual collector and refuses missing or failed evidence', async t => {
+  const workflow = parse(readFileSync(new URL('../.github/workflows/performance-matrix.yml', import.meta.url), 'utf8'));
+  const job = workflow.jobs['ordinary-native'];
+  const collectors = job.steps.filter(step => step.run?.includes('scripts/benchmark-ordinary-processes.py'));
+  const assessors = job.steps.filter(step => step.run?.includes('scripts/operation-performance.mjs --'));
+  for (const operation of job.strategy.matrix.operation) {
+    const selected = steps => steps.filter(step => runInNewContext(step.if ?? 'true', {
+      matrix: {operation}, always: () => true,
+    }, {timeout: 100}));
+    assert.equal(selected(collectors).length, 1);
+    assert.equal(selected(assessors).length, 1);
+    assert.equal(selected(collectors)[0].run.includes('--selection native-operations'), operation === 'native-operations');
+    assert.equal(selected(assessors)[0].run.includes('--native-operations'), operation === 'native-operations');
+    assert(selected(assessors)[0].if.startsWith('always()'));
+  }
+  const collect = collectors.find(step => step.run.includes('--selection native-operations'));
+  const assess = assessors.find(step => step.run.includes('--native-operations'));
+  assert.equal(collect['continue-on-error'], undefined);
+  assert.equal(assess['continue-on-error'], undefined);
+  const root = await mkdtemp(join(tmpdir(), 'actql-native-operation-command-'));
+  t.after(() => rm(root, {recursive: true, force: true}));
+  const bin = join(root, 'bin'); await mkdir(bin);
+  for (const executable of ['python3', 'node']) {
+    const path = join(bin, executable);
+    await writeFile(path, `#!${process.execPath}\nrequire('node:fs').writeFileSync(process.env.ARGV, JSON.stringify(process.argv.slice(2)));process.exit(Number(process.env.COMMAND_STATUS));\n`);
+    await chmod(path, 0o755);
+  }
+  const env = {...process.env, PATH: `${bin}:${process.env.PATH}`, RUNNER_TEMP: root,
+    GITHUB_SHA: sha, ARGV: join(root, 'args.json'), COMMAND_STATUS: '1'};
+  const run = step => spawnSync('bash', ['-eo', 'pipefail', '-c', step.run], {env, encoding: 'utf8', timeout: 5000});
+  const collected = run(collect); assert.equal(collected.status, 1, collected.stderr);
+  const args = JSON.parse(await readFile(env.ARGV, 'utf8'));
+  assert.deepEqual(args.slice(0, 5), ['-I', '-B', 'scripts/benchmark-ordinary-processes.py', '--adapter', 'native']);
+  const expected = {
+    '--manifest': join(root, 'ordinary-native/packages/release.json'),
+    '--consumer': join(root, 'ordinary-native/consumer/lib/node_modules/actql'),
+    '--source': sha, '--selection': 'native-operations', '--mode': 'final', '--load': 'isolated',
+    '--output': join(root, 'ordinary-native/measurement'),
+  };
+  for (const [flag, value] of Object.entries(expected)) assert.equal(args[args.indexOf(flag) + 1], value);
+  assert(!args.includes('--operation'));
+  const assessed = run(assess); assert.equal(assessed.status, 1, assessed.stderr);
+  assert.deepEqual(JSON.parse(await readFile(env.ARGV, 'utf8')), ['scripts/operation-performance.mjs',
+    '--native-operations', join(root, 'ordinary-native/measurement/measurements.json'),
+    '--output', join(root, 'ordinary-native/assessment.json')]);
+  // Execute the real assessor with absent raw measurements: missing evidence cannot pass the lane.
+  const missing = spawnSync(process.execPath, ['scripts/operation-performance.mjs',
+    '--native-operations', join(root, 'missing.json'), '--output', join(root, 'missing-assessment.json')], {
+    cwd: fileURLToPath(new URL('..', import.meta.url)), encoding: 'utf8', timeout: 5000,
+  });
+  assert.notEqual(missing.status, 0);
+  assert.match(missing.stderr, /ENOENT|missing/iu);
 });
 
 test('ordinary Python setup validates original wheels before offline binary-only installation', async t => {
