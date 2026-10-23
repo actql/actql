@@ -3750,12 +3750,16 @@ async function openInstalledHost(originalInstallation, preparation) {
   // still selects the Source request/Promise retention path downstream.
   const bindOwnedRequest = selectedRequestPreparation === undefined ? undefined :
     preparation.bindSourceRequest;
-  const submissionService = installNodeClientSubmission({journal, moon,
-    authorizedScope: value => hostConnection(value) ? authorizedScope(value) : undefined,
-    prepareSubmit, submit, lookupRequest: lookupHeld, checkSubmissionInput: check,
-    bindOwnedRequest,
-    admitPreparedSubmission: preparation === undefined ? undefined : submission => {
+  // The existing Host operation retains only a failed callback's original
+  // requested identity until its paired reader consumes that same candidate.
+  const admissionFailures = new WeakMap();
+  const holderRefusal = preparation === undefined ? undefined :
+    Object.getOwnPropertyDescriptor(preparation, 'isOriginalManagedComputePreparationRefusal')?.value;
+  const admitPreparedSubmission = preparation === undefined ? undefined : Object.freeze(Object.assign(
+    function(submission) {
       const {requested, acquisitionCount, keyedAcquisition, effectful} = requestOf(submission);
+      try {
+
       const selection = inferSelections.get(submission.preparedProgram);
       if (effectful) {
         if (mockEffectObservation === undefined) {
@@ -3823,7 +3827,25 @@ async function openInstalledHost(originalInstallation, preparation) {
       } else if (acquisitionCount === 0) {
         preparation.prepareManagedComputeRun(moon, submission.preparedProgram, requested);
       } else throw clientOperationError('NodeManagedRunAdmissionUnavailable');
-    }});
+      } catch (error) {
+        admissionFailures.set(submission, Object.freeze({error, requested,
+          prepared: submission.preparedProgram}));
+        throw error;
+      }
+    }, {isOriginalPreparationRefusal(error, submission) {
+      if (this !== admitPreparedSubmission) return false;
+      const original = admissionFailures.get(submission);
+      admissionFailures.delete(submission);
+      if (original === undefined || original.error !== error ||
+          original.prepared !== submission.preparedProgram || typeof holderRefusal !== 'function') return false;
+      return Reflect.apply(holderRefusal, preparation,
+        [error, original.prepared, original.requested]);
+    }}));
+  const submissionService = installNodeClientSubmission({journal, moon,
+    authorizedScope: value => hostConnection(value) ? authorizedScope(value) : undefined,
+    prepareSubmit, submit, lookupRequest: lookupHeld, checkSubmissionInput: check,
+    bindOwnedRequest,
+    admitPreparedSubmission});
   const checkpointOperations = checkpoints === undefined ? {} : {
     checkpoints: value => checkpoints.listCheckpoints({principalId: value.principalId,
       after: value.after, limit: value.limit,
