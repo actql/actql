@@ -264,6 +264,18 @@ fn infer(
       return primitive(t, @contract.NumberType, true, source)
     }
   }
+  if tag == "try_timestamp" && node.children.length() == 1 {
+    let child = nodes[node.children[0]]
+    let target = @contract.primitive(@contract.TimestampType, nullable=true)
+    if immediate_null(child) {
+      provide(t, child.inferred, typed(t, target, source), source)
+    }
+    let actual = operand(t, nodes, node, 0)
+    if !["string", "timestamp"].contains(type_name(actual)) {
+      fail(source, TypeMismatch("timestamp conversion input"))
+    }
+    return typed(t, target, source)
+  }
   if text_time(tag) {
     if tag == "regex_extract" || tag == "regex_replace" {
       regex_static_argument(tag, nodes[node.children[2]])

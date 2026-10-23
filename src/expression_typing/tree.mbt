@@ -113,10 +113,18 @@ fn flatten(
           "utf8_truncate" => ["value", "max_bytes"]
           "regex_extract" => ["value", "pattern", "capture"]
           "regex_replace" => ["value", "pattern", "replacement"]
-          "parse_timestamp"
-          | "try_timestamp"
-          | "format_timestamp"
-          | "regex_match" => ["value", "pattern"]
+          "try_timestamp" =>
+            if @decode.lookup(
+                decoded(@decode.open_object(body), body),
+                "pattern",
+              )
+              is Some(_) {
+              ["value", "pattern"]
+            } else {
+              ["value"]
+            }
+          "parse_timestamp" | "format_timestamp" | "regex_match" =>
+            ["value", "pattern"]
           _ => ["value"]
         }
         for name in names {

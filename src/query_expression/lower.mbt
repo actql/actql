@@ -278,6 +278,7 @@ fn scalar_call(
     "DATE_TRUNC" => ("DATE_TRUNC", "date_trunc", 2, 2)
     "TO_NUMBER" => ("TO_NUMBER", "to_number", 1, 1)
     "TRY_NUMBER" => ("TRY_NUMBER", "try_number", 1, 1)
+    "TRY_TIMESTAMP" => ("TRY_TIMESTAMP", "try_timestamp", 1, 2)
     "UTF8_TRUNCATE" => ("UTF8_TRUNCATE", "utf8_truncate", 2, 2)
     "TO_STRING" => ("TO_STRING", "to_string", 1, 1)
     "TO_BOOLEAN" => ("TO_BOOLEAN", "to_boolean", 1, 1)
@@ -787,6 +788,17 @@ fn append_resolved(
                     ("value", nodes[args[0]]),
                     ("max_bytes", nodes[args[1]]),
                   ]),
+                )
+              } else if name == "try_timestamp" {
+                lowering.form(
+                  "try_timestamp",
+                  lowering.object(
+                    if args.length() == 1 {
+                      [("value", nodes[args[0]])]
+                    } else {
+                      [("value", nodes[args[0]]), ("pattern", nodes[args[1]])]
+                    },
+                  ),
                 )
               } else if ["to_number", "to_string", "to_boolean", "to_timestamp"].contains(
                   name,

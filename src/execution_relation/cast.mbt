@@ -136,10 +136,22 @@ fn cast_expression_value(
   budget : ControlBudget,
   decimal_failure_null? : Bool = false,
   number_failure_null? : Bool = false,
+  timestamp_failure_null? : Bool = false,
 ) -> Result[Value, EvalIssue] {
   if decimal_failure_null &&
     !(@lower.expression_contract(expression).nullable &&
     @lower.expression_contract(expression).shape is @contract.Decimal(..)) {
+    return Err({ kind: Scalar(InvalidOperand), expression, })
+  }
+  if timestamp_failure_null &&
+    !(@lower.expression_contract(expression).nullable &&
+    @lower.expression_contract(expression).shape is @contract.Timestamp) {
+    return Err({ kind: Scalar(InvalidOperand), expression, })
+  }
+  if timestamp_failure_null &&
+    !(value is Null ||
+    value is Text(_) ||
+    value is Captured(@admitted.Timestamp(_))) {
     return Err({ kind: Scalar(InvalidOperand), expression, })
   }
   if number_failure_null {
@@ -216,7 +228,14 @@ fn cast_expression_value(
         Text(text) =>
           @admitted.checked_timestamp_value(
             text,
-            @lower.expression_contract(expression),
+            if timestamp_failure_null {
+              @contract.with_nullability(
+                @lower.expression_contract(expression),
+                false,
+              )
+            } else {
+              @lower.expression_contract(expression)
+            },
           ).map(fn(v) { capture(v.value) })
         _ => None
       }
@@ -266,7 +285,9 @@ fn cast_expression_value(
     Some(v) => Ok(v)
     // Only an invalid/unrepresentable conversion becomes NULL. Every earlier
     // child, logical, control or cancellation failure remains an original Err.
-    None if decimal_failure_null || number_failure_null => Ok(Null)
+    None if decimal_failure_null ||
+      number_failure_null ||
+      timestamp_failure_null => Ok(Null)
     None => Err({ kind: Scalar(InvalidOperand), expression, })
   }
 }

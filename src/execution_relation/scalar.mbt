@@ -73,6 +73,7 @@ pub fn unary(
     | Chr
     | Reverse
     | TryDecimal
+    | TryTimestamp
     | Quantize(_) => Err(InvalidOperand)
     Length =>
       match value {

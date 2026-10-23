@@ -1846,6 +1846,18 @@
     {
       "source": "try_number(n)",
       "type": "number?"
+    },
+    {
+      "source": "try_timestamp('1970-01-01T00:00:00.123456789Z')",
+      "type": "timestamp?"
+    },
+    {
+      "source": "try_timestamp(NULL)",
+      "type": "timestamp?"
+    },
+    {
+      "source": "try_timestamp(s)",
+      "type": "timestamp?"
     }
   ],
   "negative": [
@@ -4160,6 +4172,22 @@
     {
       "source": "decimal_divide(d,'8',3)",
       "issue": "TypeMismatch"
+    },
+    {
+      "source": "try_timestamp(1)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "try_timestamp(TRUE)",
+      "issue": "TypeMismatch"
+    },
+    {
+      "source": "try_timestamp(unknown_timestamp)",
+      "issue": "UnknownField"
+    },
+    {
+      "source": "try_timestamp($unknown_timestamp)",
+      "issue": "UnknownParameter"
     }
   ]
 }

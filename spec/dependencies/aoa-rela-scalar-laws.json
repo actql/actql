@@ -189,6 +189,13 @@
       "number": "Preserve the admitted Number value and canonical zero without formatting or parsing text. The result remains nullable Number. Ordinary scalar, Run, work, live-value, current and cancellation checks apply; no String parsing envelope or parsing workspace is issued for this branch.",
       "string": "Retain the existing canonical decimal grammar, full input consumption and nullable Number result. Only a non-null unparsable String becomes NULL. String profile admission, selected Host envelope, bounds and parsing workspace remain mandatory.",
       "demand": "Retain the authored try_number node and its original operand. Demand the child exactly once; child evaluation, control, cancellation, bounds, memory, engine and root-retirement failures propagate and never become NULL. NULL propagates after the original child succeeds."
+    },
+    "try_timestamp_unary": {
+      "signature": "The closed unary try_timestamp choice consumes an original String or admitted Timestamp and returns nullable Timestamp. Immediate NULL propagates. No Number, Signed64, Decimal, Boolean, Date, structured, Any or unresolved-domain promotion.",
+      "string": "Use the same canonical UTC Z/calendar admission as CAST/to_timestamp, retaining the existing 3..9 fractional precision and canonical spelling. Only malformed Timestamp spelling or calendar input returns NULL. No trimming, inferred timestamp pattern, offset normalization, Host Date, locale or clock.",
+      "identity": "Preserve the admitted Timestamp value without manufacturing String input, a pattern, a parser profile or a Host envelope. Retain the authored try_timestamp node and original operand in source, lowering, emission and re-admission.",
+      "demand": "Demand the original child exactly once under the same scalar/Run/current/work/value/root and workspace owners. Child, cancellation, bounds, allocation, engine and retirement failures propagate; they never become NULL. Surrounding lazy demand remains unchanged.",
+      "compatibility": "Unary has the closed body {value}; explicit patterned try_timestamp retains the distinct closed {value,pattern} body, prior bytes, pattern-first validation and all original profile/envelope duties. An explicit NULL or malformed pattern is never an omitted pattern. This does not widen operational clocks or issue authority."
     }
   },
   "predicate_scalar_boundary": {

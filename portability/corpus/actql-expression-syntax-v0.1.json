@@ -1801,6 +1801,42 @@
         ]
       },
       "parameters": []
+    },
+    {
+      "source": {
+        "try_timestamp": {
+          "value": {
+            "$param": "stamp"
+          }
+        }
+      },
+      "tree": {
+        "try_timestamp": {
+          "value": {
+            "$param": "stamp"
+          }
+        }
+      },
+      "parameters": [
+        "stamp"
+      ]
+    },
+    {
+      "source": {
+        "try_timestamp": {
+          "value": {
+            "literal": null
+          }
+        }
+      },
+      "tree": {
+        "try_timestamp": {
+          "value": {
+            "literal": null
+          }
+        }
+      },
+      "parameters": []
     }
   ],
   "negative": [
@@ -2470,6 +2506,17 @@
           "literal": 1
         }
       ]
+    },
+    {
+      "try_timestamp": {}
+    },
+    {
+      "try_timestamp": {
+        "value": {
+          "literal": null
+        },
+        "unexpected": false
+      }
     }
   ]
 }
