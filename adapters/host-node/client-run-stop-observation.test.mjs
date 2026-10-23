@@ -7,6 +7,7 @@ import {DatabaseSync} from 'node:sqlite';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {openClientRequestJournal} from './client-request-journal.mjs';
 import {observeNodeRestoredModelStop} from './client-dispatch-owner.mjs';
+import {issueInstalledUnpublishedRunState} from '../host-common/run-state-observation.mjs';
 const moon=await import(process.env.ACTQL_TEST_COMMON_RUNTIME??new URL(
   '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js',import.meta.url).href);
 const control=runtimeCore(moon).publicationControl;
@@ -45,6 +46,51 @@ async function fixture(t){
     facts:{ref,journal,moon:countedRequest,control:countedControl,cleanupConfirmed:true,
       physicalStopConfirmed:true,store:{async confirmCommittedIndex(){counts.store++;return {};}}}};
 }
+
+function publishRunning(f,frame){
+  const state=issueInstalledUnpublishedRunState(moon,{runId:'observed-run',observedAt:'2026-10-16T00:00:00.000Z',
+    resultNames:['answer'],dispatchReserved:true,preDispatchFailureConfirmed:false,cancelledBeforeStart:false,
+    observedTerminalOutcome:'none',executionUnknown:false});
+  return JSON.parse(f.journal.publishRunState(frame,state,f.requestControl,f.publicationControl));
+}
+
+test('stop state-only comparison accepts actual observation frames without promoting copies or foreign controls',async t=>{
+  const f=await fixture(t),before=f.journal.lookupRunDefinition(f.ref,f.requestControl,f.publicationControl);
+  const published=publishRunning(f,before);
+  assert.equal(published.revision,0,'Common keeps the first observation at its original zero counter');
+  const after=f.journal.lookupRunDefinition(f.ref,f.requestControl,f.publicationControl,before);
+  assert.notStrictEqual(before,after);assert.equal(before.revision,after.revision);
+  assert.equal(f.journal.canReinspectRunStopAfterStatePublication(before,after),true);
+  assert.equal(f.journal.canReinspectRunStopAfterStatePublication(before,before),false);
+  assert.equal(f.journal.canReinspectRunStopAfterStatePublication({...before},after),false);
+  assert.equal(f.journal.canReinspectRunStopAfterStatePublication(before,{...after}),false);
+  const other=openClientRequestJournal(f.path);f.journals.add(other);
+  const foreign=other.lookupRunDefinition(f.ref,f.requestControl,f.publicationControl);
+  assert.equal(f.journal.canReinspectRunStopAfterStatePublication(before,foreign),false);
+  const controls=f.journal.lookupRunDefinition(f.ref,{...f.requestControl},f.publicationControl);
+  assert.equal(f.journal.canReinspectRunStopAfterStatePublication(before,controls),false);
+});
+
+test('stop state-only comparison refuses an immutable same-revision change beside observation metadata',async t=>{
+  const f=await fixture(t),before=f.journal.lookupRunDefinition(f.ref,f.requestControl,f.publicationControl);
+  publishRunning(f,before);
+  const writer=new DatabaseSync(join(f.path,'client-requests.sqlite3'));
+  try{writer.prepare('UPDATE client_requests SET lookup_expires_at=?').run('2099-02-01T00:00:00.000Z');}
+  finally{writer.close();}
+  const after=f.journal.lookupRunDefinition(f.ref,f.requestControl,f.publicationControl,before);
+  assert.equal(after.revision,before.revision);
+  assert.equal(f.journal.canReinspectRunStopAfterStatePublication(before,after),false);
+});
+
+test('stop state-only comparison refuses a real cancellation control change',async t=>{
+  const f=await fixture(t),before=f.journal.lookupRunDefinition(f.ref,f.requestControl,f.publicationControl);
+  f.journal.requestCancellation(f.ref,{currentAuthorization:true,publicationCommitted:false},f.requestControl,f.publicationControl);
+  const changed=f.journal.lookupRunDefinition(f.ref,f.requestControl,f.publicationControl);
+  publishRunning(f,changed);
+  const after=f.journal.lookupRunDefinition(f.ref,f.requestControl,f.publicationControl);
+  assert.equal(after.cancellationRequested,true);assert(after.revision>before.revision);
+  assert.equal(f.journal.canReinspectRunStopAfterStatePublication(before,after),false);
+});
 
 test('physical stop observes one request identity and Run definition across the unchanged operation',async t=>{
   const f=await fixture(t);

@@ -90,6 +90,17 @@ remain separate prerequisites, and an already recorded stop needs no repeated
 publication inspection. These facts live only within the existing operation;
 they do not cache Account decisions, issue a cleanup ACK or replay execution.
 
+A public Run-state observation may update only its observation key/counter while
+the physical-stop owner awaits publication inspection. The same Journal can
+compare two of its admitted frames and recognize that narrow metadata-only
+change; every other selected column, control, key and admission receiver must
+remain exact. The first observation retains Common's zero counter. Only this
+comparison permits one immediate full reinspection through the original
+Journal, Store and Common decision. It never relaxes the final complete-row
+transaction check. Changed immutable/control facts, missing or foreign frames,
+and another overlapping change retain the original physical owner's pending
+observation; they issue no stop acknowledgement or terminal outcome.
+
 This limited profile refuses Inspect when an older record lacks original policy
 evidence, or when a resuming state lacks the required continuation/fence origin
 observation. The underlying original Run and legacy status API remain usable.
