@@ -19,6 +19,14 @@ durability acknowledgement. Selected physical evidence, current permission,
 claim/CAS, original Unknown confirmation and real cleanup remain independent.
 No cross-operation Index cache or additional publication authority is created.
 
+After a new Store commit acknowledges the exact issued Index identity, the
+same publication caller retains that original wrapper for finalization and its
+return value instead of reading the same contract again. This does not replace
+the actual Store commit, evidence validation, Index installation or cleanup.
+Idempotent commits, different winners and reconciliation still select their
+actual stored Index; an unsuccessful or pending commit cannot select this path.
+Attempt finalization and terminal/Unknown computation retirement stay separate.
+
 ## Selected native evidence originals
 
 The existing publication operation reader receives the same issued evidence
