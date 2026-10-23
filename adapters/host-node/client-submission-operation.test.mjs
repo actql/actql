@@ -95,7 +95,7 @@ async function fixture(t, {prepare, submit} = {}) {
 }
 
 test('request-key selected rows bind only through the same accepted original Run', async t => {
-  const f = await fixture(t), records = [];
+  const records = [];
   const publication = runtimeCore(moon).publicationControl;
   let returnedRows = 0;
   const nativeSelections = [];
@@ -103,15 +103,18 @@ test('request-key selected rows bind only through the same accepted original Run
   t.mock.method(StatementSync.prototype, 'get', function(...parameters) {
     const row = Reflect.apply(originalGet, this, parameters);
     const sql = this.sourceSQL.replace(/\s+/gu, ' ');
-    if (sql.includes('FROM client_requests WHERE authority_scope_cid = ? AND caller_request_id = ?') ||
+    if (!sql.startsWith('SELECT caller_request_id FROM') &&
+        (sql.includes('FROM client_requests WHERE authority_scope_cid = ? AND caller_request_id = ?') ||
         sql.includes('FROM client_requests WHERE namespace_id = ? AND authority_scope_cid = ? AND') ||
-        sql.includes('FROM client_requests WHERE run_definition_cid = ?')) {
+        sql.includes('FROM client_requests WHERE run_definition_cid = ?'))) {
       returnedRows += row === undefined ? 0 : 1;
-      nativeSelections.push({sql, returned: row === undefined ? 0 : 1,
-        caller: new Error().stack.split('\n').slice(2, 6).join('\n')});
+      nativeSelections.push({sql, returned: row === undefined ? 0 : 1});
     }
     return row;
   });
+  // Capture before Journal preparation: its selected statements deliberately
+  // retain their original get. Observation-budget reads use a separate reader.
+  const f = await fixture(t);
   const observer = installHostObservation(createHostObservationConnection({
     deliver: record => records.push(record), include: ['run'],
     events: {level: 'diagnostic'}, measurements: {include: ['rows']},
