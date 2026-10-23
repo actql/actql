@@ -8366,14 +8366,9 @@ test('publication capacity preflight observes limits without reserving',
   });
 
 test('native publication Index and inventory share their real commit without duplicate file metadata', async t => {
-  const {store, directory} = await fixture(t), invocationValue = invocation();
-  const request = publicationRequest(resultDefinition(), digest('native Index publication Run'));
-  const attempt = publicationAttempt(request, 'native Index publication');
-  const prepared = await prepareCommit(store, request, attempt, invocationValue, cids.policy, false, true);
-  const entry = indexEntry(request, attempt, invocationValue, {durable_result_binding_cids: [prepared.binding.identity]});
-  const tracked = new Set(['objects', 'contracts', 'indexes'].map(name => join(directory, name)));
+  const tracked = new Set();
   const syncs = [], open = fsPromises.open, exec = DatabaseSync.prototype.exec;
-  let commits = 0, armed = true;
+  let commits = 0, armed = false;
   t.mock.method(DatabaseSync.prototype, 'exec', function(sql) {
     const result = Reflect.apply(exec, this, [sql]);
     if (armed && sql === 'COMMIT') commits++;
@@ -8392,6 +8387,13 @@ test('native publication Index and inventory share their real commit without dup
   });
   syncBuiltinESMExports();
   t.after(() => {armed = false; t.mock.restoreAll(); syncBuiltinESMExports();});
+  const {store, directory} = await fixture(t), invocationValue = invocation();
+  const request = publicationRequest(resultDefinition(), digest('native Index publication Run'));
+  const attempt = publicationAttempt(request, 'native Index publication');
+  const prepared = await prepareCommit(store, request, attempt, invocationValue, cids.policy, false, true);
+  const entry = indexEntry(request, attempt, invocationValue, {durable_result_binding_cids: [prepared.binding.identity]});
+  for (const name of ['objects', 'contracts', 'indexes']) tracked.add(join(directory, name));
+  armed = true;
   const committed = await store.commitIndex(wire(entry), prepared.required, prepared.evidence);
   assert.equal(committed.committed, true);
   assert.equal(commits, 1, 'Index CAS, immutable body and inventory share the same actual durable transition');
