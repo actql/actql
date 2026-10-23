@@ -127,13 +127,73 @@ priv struct EmitObjectCursor {
 }
 
 ///|
+priv enum SyncEmitParent {
+  Elements(EmitArrayCursor)
+  Fields(EmitObjectCursor)
+}
+
+///|
 pub fn emit_value(
   value : CanonicalValue,
   output : @encode.Writer,
 ) -> Unit raise @encode.EncodeFailure {
-  let cursor = start_emit(value, output)
-  while !advance_emit(cursor) {
-    ()
+  // This caller completes synchronously: retain only open containers, not a
+  // resumable Visit/Rest pair for every child. Writer operations and their
+  // failure order stay identical to the incremental emitter above.
+  let parents : Array[SyncEmitParent] = []
+  let mut current = value
+  let mut visit = true
+  while true {
+    if visit {
+      match current {
+        Null => @encode.null_value(output)
+        Bool(value) => @encode.bool_value(output, value)
+        Number(value) => @encode.number_value(output, value)
+        String(value) =>
+          if value.length() <= 64 {
+            @encode.string_value(output, value)
+          } else {
+            let text = @encode.start_string_value(output, value)
+            while !@encode.advance_string_value(text) {
+              ()
+            }
+          }
+        Array(values) => {
+          @encode.begin_array(output)
+          parents.push(Elements({ values, index: 0, }))
+        }
+        Object(values) => {
+          @encode.begin_ordered_object(output)
+          parents.push(Fields({ values, index: 0, }))
+        }
+      }
+      visit = false
+    }
+    if parents.is_empty() {
+      break
+    }
+    match parents[parents.length() - 1] {
+      Elements(rest) =>
+        if rest.index < rest.values.values.length() {
+          current = rest.values.values[rest.index]
+          rest.index += 1
+          visit = true
+        } else {
+          @encode.end_array(output)
+          ignore(parents.pop())
+        }
+      Fields(rest) =>
+        if rest.index < rest.values.values.length() {
+          let (key, child) = rest.values.values[rest.index]
+          @encode.ordered_key(output, key)
+          rest.index += 1
+          current = child
+          visit = true
+        } else {
+          @encode.end_object(output)
+          ignore(parents.pop())
+        }
+    }
   }
 }
 
