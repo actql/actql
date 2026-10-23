@@ -97,3 +97,17 @@ the call. Callers must not mutate that input during emission.
 JS, Wasm and native run the same fixed vectors, exact/short byte-budget cases,
 structural misuse, closed-writer, measurement and embedding tests. These checks
 establish the tested encoding behavior, not full ActQL execution conformance.
+
+## Synchronous canonical emission
+
+`canonical_json.emit_value` completes within its existing call and retains only
+open-container cursors. It uses the same writer operations in the same order
+as resumable emission, including bounded long-string and ordered-key cursors.
+It does not construct a resumable visit/rest continuation for each child and
+does not recurse on input depth. Text, measurement and identity hashing still
+visit every value and enforce the complete writer limits and failure order.
+
+`start_emit`, `advance_emit` and `cancel_emit` retain their incremental protocol,
+pending-frame accounting and cancellation lifetime. A caller that yields or
+charges work per advance must continue using that protocol; the synchronous
+entry does not replace its work accounting or permit unfinished publication.
