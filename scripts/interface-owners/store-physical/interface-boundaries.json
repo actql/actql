@@ -4182,7 +4182,7 @@
     {
       "module": "adapters/store-local/delivery-attempt-index.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "650f1ace535fd130d4f5bc70a9d9650acc9e8e9906fa199c818abc65191a309a",
+      "sha256": "59f3bc7a44be35fe7c9f7a920137a8cc9c5abce6e41366491cb495cb69dbf57e",
       "exports": [
         "openDeliveryAttemptIndex"
       ],
@@ -4554,6 +4554,15 @@
           "name": "openDeliveryAttemptIndex/init:nativePublicationInventory/init:nativePublicationInventory",
           "parameters": [
             "publicIndexCid"
+          ],
+          "async": false
+        },
+        {
+          "name": "openDeliveryAttemptIndex/init:nativePublicationReferenceOwners/init:nativePublicationReferenceOwners",
+          "parameters": [
+            "kind",
+            "referenceCid",
+            "excludedPublicIndexCid"
           ],
           "async": false
         },
@@ -4971,7 +4980,9 @@
         },
         {
           "name": "openDeliveryAttemptIndex/openDeliveryAttemptIndex#14",
-          "parameters": [],
+          "parameters": [
+            "row"
+          ],
           "async": false
         },
         {
@@ -4995,7 +5006,17 @@
           "async": false
         },
         {
+          "name": "openDeliveryAttemptIndex/openDeliveryAttemptIndex#19",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "openDeliveryAttemptIndex/openDeliveryAttemptIndex#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openDeliveryAttemptIndex/openDeliveryAttemptIndex#20",
           "parameters": [],
           "async": false
         },
@@ -5508,6 +5529,7 @@
             "openDeliveryAttemptIndex/init:migratePublicationRecovery/init:migratePublicationRecovery/keys/keys",
             "openDeliveryAttemptIndex/init:nativePublicationInventories/init:nativePublicationInventories",
             "openDeliveryAttemptIndex/init:nativePublicationInventory/init:nativePublicationInventory",
+            "openDeliveryAttemptIndex/init:nativePublicationReferenceOwners/init:nativePublicationReferenceOwners",
             "openDeliveryAttemptIndex/init:needsMetadataDeletionFenceMigration/init:needsMetadataDeletionFenceMigration",
             "openDeliveryAttemptIndex/init:needsMigration/init:needsMigration",
             "openDeliveryAttemptIndex/init:needsPublicationRecoveryMigration/init:needsPublicationRecoveryMigration",
@@ -5575,7 +5597,9 @@
             "openDeliveryAttemptIndex/openDeliveryAttemptIndex#16",
             "openDeliveryAttemptIndex/openDeliveryAttemptIndex#17",
             "openDeliveryAttemptIndex/openDeliveryAttemptIndex#18",
+            "openDeliveryAttemptIndex/openDeliveryAttemptIndex#19",
             "openDeliveryAttemptIndex/openDeliveryAttemptIndex#2",
+            "openDeliveryAttemptIndex/openDeliveryAttemptIndex#20",
             "openDeliveryAttemptIndex/openDeliveryAttemptIndex#3",
             "openDeliveryAttemptIndex/openDeliveryAttemptIndex#4",
             "openDeliveryAttemptIndex/openDeliveryAttemptIndex#5",
@@ -5706,6 +5730,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "### Settled Result deletion recovery"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "### Indexed native metadata references"
               }
             ],
             "inputsOutputs": [
@@ -5732,6 +5760,10 @@
               {
                 "path": "adapters/store-local/delivery-attempt-index.mjs",
                 "anchor": "stageNativePublicationInventory(value) {"
+              },
+              {
+                "path": "adapters/store-local/delivery-attempt-index.mjs",
+                "anchor": "nativePublicationReferenceOwners(kind, referenceCid, excludedPublicIndexCid) {"
               },
               {
                 "path": "adapters/store-local/delivery-attempt-index.mjs",
@@ -6160,6 +6192,18 @@
               {
                 "path": "adapters/store-local/publication-store.test.mjs",
                 "anchor": "fresh Store schema keeps its ${afterCommit ? 'committed' : 'rolled-back'} initialization Unknown"
+              },
+              {
+                "path": "adapters/store-local/delivery-attempt-index.test.mjs",
+                "anchor": "native reference selection binds kind CID and excluded owner without unrelated inventory reads"
+              },
+              {
+                "path": "adapters/store-local/delivery-attempt-index.test.mjs",
+                "anchor": "native reference coverage upgrades version eleven once and later opens read no inventory history"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "native shared holding selection reads only owners of that holding"
               }
             ]
           }
@@ -6169,7 +6213,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "972cec6da4f8f934d1a5bcf9a4dc93714594bf6980157592a85e168e46ea1343",
+      "sha256": "e36ae00f7014d6fa22f7975726cc5a3f7d1cae695b80311d3107ca9989597aa8",
       "exports": [
         "PublicationStoreError",
         "assertOriginalLocalPublicationStoreFacilityCurrent",
@@ -11952,7 +11996,7 @@
               },
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
-                "anchor": "and shared-reference discovery still walk history; indexed publication recovery"
+                "anchor": "and legacy file shared-reference discovery still walk history; indexed publication recovery"
               },
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
