@@ -164,6 +164,99 @@ test('publication quota selection bounds exact keys across blocks and refuses in
   assert.throws(() => index.publicationContracts([]), {code: 'DeliveryAttemptIndexClosed'});
 });
 
+test('publication mutation consumes only its original unchanged preflight once', async t => {
+  const directory = await mkdtemp(join(tmpdir(), 'actql-publication-preflight-once-'));
+  let index;
+  const work = publicationBlockWork(t);
+  t.after(async () => {work.disarm(); index?.close(); await rm(directory, {recursive: true});});
+  index = await openDeliveryAttemptIndex(join(directory, 'index.sqlite3'),
+    {create: true, initializeEmpty: true, maxEntries: 4, maxWireBytes: 4096});
+  const entries = ['1', '2'].map(value => ({semantic_cid: 'sha256:' + value.repeat(64),
+    name: 'invocation', wire: '{}', byte_count: 2}));
+  work.arm();
+  const selected = index.publicationContracts(entries.map(entry => entry.semantic_cid));
+  index.putPublicationContracts(entries, {objects: 2, bytes: 4}, undefined, selected);
+  assert.equal(work.snapshot().reads.length, 1);
+  assert.equal(work.snapshot().commits, 1);
+  const next = index.publicationContracts(entries.map(entry => entry.semantic_cid));
+  assert(Object.isFrozen(next) && next.every(Object.isFrozen));
+  assert.throws(() => {next[0].wire = 'changed';}, TypeError);
+  index.putPublicationContracts(entries, {objects: 0, bytes: 0}, undefined, next);
+  assert.equal(work.snapshot().reads.length, 2, 'a new operation observes its own rows');
+  index.putPublicationContracts(entries, {objects: 0, bytes: 0}, undefined, next);
+  assert.equal(work.snapshot().reads.length, 3, 'even unchanged no-op selection is spent once');
+  assert.equal(work.snapshot().commits, 1, 'unchanged bodies do not manufacture another durable mutation');
+});
+
+test('publication preflight copies foreign keys and actual mutation keep full selection', async t => {
+  const directory = await mkdtemp(join(tmpdir(), 'actql-publication-preflight-boundaries-'));
+  let index, foreign;
+  const work = publicationBlockWork(t);
+  t.after(async () => {work.disarm(); index?.close(); foreign?.close(); await rm(directory, {recursive: true});});
+  const options = {create: true, initializeEmpty: true, maxEntries: 4, maxWireBytes: 4096};
+  index = await openDeliveryAttemptIndex(join(directory, 'index.sqlite3'), options);
+  foreign = await openDeliveryAttemptIndex(join(directory, 'foreign.sqlite3'), options);
+  const entry = {semantic_cid: 'sha256:' + '1'.repeat(64), name: 'invocation', wire: '{}', byte_count: 2};
+  const other = {...entry, semantic_cid: 'sha256:' + '2'.repeat(64)};
+  index.putPublicationContracts([entry], {objects: 1, bytes: 2});
+  for (const copied of [Object.freeze([]), [...index.publicationContracts([entry.semantic_cid])],
+    foreign.publicationContracts([entry.semantic_cid])]) {
+    work.arm(); const before = work.snapshot().reads.length;
+    index.putPublicationContracts([entry], {objects: 0, bytes: 0}, undefined, copied);
+    assert.equal(work.snapshot().reads.length, before + 1);
+    work.disarm();
+  }
+  const wrongKeys = index.publicationContracts([entry.semantic_cid]);
+  work.arm(); let before = work.snapshot().reads.length;
+  index.putPublicationContracts([other], {objects: 1, bytes: 2}, undefined, wrongKeys);
+  assert.equal(work.snapshot().reads.length, before + 1);
+  work.disarm();
+  const original = index.publicationContracts([entry.semantic_cid]);
+  index.removePublicationContract(entry);
+  const changed = {...entry, wire: '{"changed":1}', byte_count: 13};
+  index.putPublicationContracts([changed], {objects: 1, bytes: 13});
+  work.arm(); before = work.snapshot().reads.length;
+  assert.throws(() => index.putPublicationContracts([entry], {objects: 0, bytes: 0}, undefined, original),
+    {code: 'PublicationSemanticIdentityConflict'});
+  assert.equal(work.snapshot().reads.length, before + 1, 'actual native mutation invalidates the old observation');
+  work.disarm(); index.close();
+  assert.throws(() => index.putPublicationContracts([entry], {objects: 0, bytes: 0}, undefined, original),
+    {code: 'DeliveryAttemptIndexClosed'});
+});
+
+for (const afterCommit of [false, true]) {
+test(`publication preflight ${afterCommit ? 'committed' : 'rolled-back'} Unknown reacquires before original confirmation`, async t => {
+  const directory = await mkdtemp(join(tmpdir(), 'actql-publication-preflight-unknown-'));
+  let index, armed = false, lost = false;
+  const work = publicationBlockWork(t), exec = DatabaseSync.prototype.exec;
+  t.mock.method(DatabaseSync.prototype, 'exec', function(sql) {
+    if (armed && !lost && sql === 'COMMIT') {
+      lost = true; if (afterCommit) Reflect.apply(exec, this, [sql]);
+      throw Object.assign(new Error('lost original preflight mutation reply'), {code: 'EIO'});
+    }
+    return Reflect.apply(exec, this, [sql]);
+  });
+  t.after(async () => {armed = false; work.disarm(); index?.close(); await rm(directory, {recursive: true});});
+  index = await openDeliveryAttemptIndex(join(directory, 'index.sqlite3'),
+    {create: true, initializeEmpty: true, maxEntries: 4, maxWireBytes: 4096});
+  const entry = {semantic_cid: 'sha256:' + '1'.repeat(64), name: 'invocation', wire: '{}', byte_count: 2};
+  work.arm();
+  const selected = index.publicationContracts([entry.semantic_cid]);
+  armed = true;
+  assert.throws(() => index.putPublicationContracts([entry], {objects: 1, bytes: 2}, undefined, selected),
+    error => error.outcome === 'unknown');
+  assert(lost);
+  assert.equal(work.snapshot().reads.length, 1);
+  assert.throws(() => index.publicationContracts([entry.semantic_cid]), {code: 'DeliveryAttemptIndexCommitOutcomeUnknown'});
+  index.putPublicationContracts([entry], {objects: 1, bytes: 2}, undefined, selected);
+  assert.equal(work.snapshot().reads.length, 2, 'same-original retry selects actual current rows, not the spent observation');
+  assert.deepEqual(index.publicationContract(entry.semantic_cid), entry);
+  assert.equal(index.publicationUsage().objects, 1);
+  assert.equal(index.publicationUsage().bytes, 2);
+  assert.equal(work.snapshot().commits, afterCommit ? 2 : 1, 'only real successful COMMIT calls are counted');
+});
+}
+
 test('native publication block selects only supplied keys and groups its insertion calls', async t => {
   const directory = await mkdtemp(join(tmpdir(), 'actql-publication-block-'));
   let index;
