@@ -5,7 +5,8 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import test from 'node:test';
 import {DatabaseSync} from 'node:sqlite';
-import * as moon from '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
+const moon = await import(process.env.ACTQL_TEST_COMMON_RUNTIME ?? new URL(
+  '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js', import.meta.url));
 import {openClientRequestJournal} from './client-request-journal.mjs';
 import {installNodeClientSubmission} from './client-submission.mjs';
 import {createNodeInProcessClientHost} from './in-process-client.mjs';
@@ -776,3 +777,15 @@ test('response loss after Run admission retains the original without redispatch'
   assert.deepEqual(f.counts, {prepare: 1, submit: 1});
   assert.equal(admissions, 1);
 });
+
+for (const duty of ['code only', 'pending cleanup', 'cleanup handle']) {
+  test(`unissued pre-admission ${duty} error cannot certify a refusal`, async t => {
+    const error = Object.assign(new Error('borrowed callback failure'),
+      {code: 'ClientProgramUnsupported'}, duty === 'pending cleanup' ? {cleanupPending: true} :
+        duty === 'cleanup handle' ? {cleanupHandle: Object.freeze({status: () => ({pending: true})})} : {});
+    const f = await fixture(t, {admit() {throw error;}});
+    await assert.rejects(f.service.submitIntent(f.body()), cause => cause === error);
+    assert.equal(f.journal.lookupSubmittedIntent(f.ref, fields, moon), undefined);
+    assert.deepEqual(f.counts, {prepare: 1, submit: 0});
+  });
+}
