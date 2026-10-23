@@ -254,7 +254,7 @@
     {
       "module": "adapters/local-node/managed-output-custody.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "c7b9c981d1e7363a8c65b3febe8a50176a52b677c3b106fedfedb979f933e479",
+      "sha256": "ccea4d1f193ae58d588f63be824d435a119df6e63c7ac31bd9f827b89e1eaaf7",
       "exports": [
         "closeCompletedLocalManagedOutput"
       ],
@@ -267,6 +267,41 @@
             "progress"
           ],
           "async": false
+        },
+        {
+          "name": "retainProgressingCleanup",
+          "parameters": [
+            "failure",
+            "operations"
+          ],
+          "async": false
+        },
+        {
+          "name": "retainProgressingCleanup/retainProgressingCleanup",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "retainProgressingCleanup/retry/retry",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "retainProgressingCleanup/retry/retry/retry",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "retainProgressingCleanup/retry/retry/retry/retry",
+          "parameters": [
+            "resolve"
+          ],
+          "async": false
+        },
+        {
+          "name": "retainProgressingCleanup/retry/retry/retry#2",
+          "parameters": [],
+          "async": false
         }
       ],
       "role": "physical-io",
@@ -275,7 +310,13 @@
         {
           "operations": [
             "<module>",
-            "closeCompletedLocalManagedOutput"
+            "closeCompletedLocalManagedOutput",
+            "retainProgressingCleanup",
+            "retainProgressingCleanup/retainProgressingCleanup",
+            "retainProgressingCleanup/retry/retry",
+            "retainProgressingCleanup/retry/retry/retry",
+            "retainProgressingCleanup/retry/retry/retry/retry",
+            "retainProgressingCleanup/retry/retry/retry#2"
           ],
           "exports": [
             "closeCompletedLocalManagedOutput"
@@ -325,12 +366,20 @@
               {
                 "path": "docs/design/local-relation-storage.md",
                 "anchor": "publication remains atomic"
+              },
+              {
+                "path": "adapters/local-node/managed-output-custody.mjs",
+                "anchor": "current <= previous"
               }
             ],
             "failure": [
               {
                 "path": "adapters/store-local/managed-representations.test.mjs",
                 "anchor": "test("
+              },
+              {
+                "path": "adapters/local-node/managed-output-custody.test.mjs",
+                "anchor": "completed Local output stops automatic drain at a physical cleanup stall"
               }
             ],
             "cancellation": [
@@ -343,6 +392,10 @@
               {
                 "path": "docs/design/local-relation-storage.md",
                 "anchor": "backing storage until its final owner is gone"
+              },
+              {
+                "path": "src/execution_relation/managed_output_values.mbt",
+                "anchor": "managed_output_values_reclamation_steps"
               }
             ],
             "extension": [
@@ -363,6 +416,10 @@
               {
                 "path": "adapters/store-local/managed-memory-transfer.test.mjs",
                 "anchor": "test("
+              },
+              {
+                "path": "adapters/host-node/embedded-values-cleanup.test.mjs",
+                "anchor": "closes and reopens original Result"
               }
             ]
           }
