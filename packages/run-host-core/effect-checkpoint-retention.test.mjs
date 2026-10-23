@@ -9,7 +9,7 @@ import {parse} from 'acorn';
 const source = readFileSync(new URL('./index.mjs', import.meta.url), 'utf8');
 const ast = parse(source, {ecmaVersion: 'latest', sourceType: 'module'});
 const names = ['checked', 'requireHandle', 'effectReviewCheckpointBinding',
-  'effectReviewCheckpointBindingFacts'];
+  'effectReviewCheckpointBindingFacts', 'effectReviewCheckpointWaitingState', 'effectProjectionArray'];
 const bodies = names.map(name => {
   const declaration = ast.body.map(node => node.declaration ?? node)
     .find(node => node.type === 'FunctionDeclaration' && node.id.name === name);
@@ -20,11 +20,17 @@ const fixed = value => 'sha256:' + value.repeat(64);
 
 function fixture() {
   const counts = {admit: 0, fields: 0}, artifacts = [], retained = new WeakMap();
-  const allowedRuns = new WeakMap(), definitions = new WeakMap();
+  const allowedRuns = new WeakMap(), definitions = new WeakMap(), waitingCalls = [];
+  let waitingFailure;
   const fields = [fixed('a'), '{"original":"checkpoint"}', 'run', 'unit',
     fixed('b'), fixed('c'), fixed('d'), fixed('e')];
   let refusal = false, malformed = false;
   const owner = {
+    clientValuesHostEffectCheckpointWaitingState(original, storedWire, updatedAt, results) {
+      assert(artifacts.includes(original));
+      waitingCalls.push({original, storedWire, updatedAt, results});
+      return waitingFailure === undefined ? {$tag: 1, _0: 'original-waiting-wire'} : {$tag: 0, _0: waitingFailure};
+    },
     clientValuesHostAdmitEffectCheckpointBinding(allowed, definition, wire) {
       counts.admit++;
       assert.strictEqual(allowed, allowedValue);
@@ -45,10 +51,11 @@ function fixture() {
   allowedRuns.set(allowed, {value: allowedValue}); definitions.set(definition, definitionValue);
   const api = new Function('owner', 'effectAllowedRuns', 'definitions',
     'effectCheckpointBindings', 'runtimeIsOk', 'runtimeIsError', 'runtimeField',
-    bodies + '\nreturn {effectReviewCheckpointBinding, effectReviewCheckpointBindingFacts};')(
+    bodies + '\nreturn {effectReviewCheckpointBinding, effectReviewCheckpointBindingFacts, effectReviewCheckpointWaitingState};')(
     owner, allowedRuns, definitions, retained, value => value?.$tag === 1,
     value => value?.$tag === 0, (value, index) => value[`_${index}`]);
-  return {api, counts, artifacts, retained, allowed, definition, fields,
+  return {api, counts, artifacts, retained, allowed, definition, fields, waitingCalls,
+    rejectWaiting(issue) {waitingFailure = issue;},
     refuse() {refusal = true;}, malformed() {malformed = true;}};
 }
 
@@ -95,4 +102,59 @@ test('equal visible metadata keeps separate originals and admission failures sta
   const bad = fixture(); bad.malformed();
   assert.throws(() => bad.api.effectReviewCheckpointBinding(bad.allowed,
     bad.definition, bad.fields[1]), /InvalidRunHostCheckpointBinding/);
+});
+
+
+test('waiting projection forwards the same nominal original and one results snapshot', async () => {
+  const f = fixture();
+  const binding = f.api.effectReviewCheckpointBinding(f.allowed, f.definition, f.fields[1]);
+  let reads = 0;
+  const declared = [];
+  Object.defineProperty(declared, 0, {get() {reads++; return 'main';}});
+  for (const name of ['map', 'slice', 'some', Symbol.iterator]) {
+    Object.defineProperty(declared, name, {value() {throw new Error('caller-owned traversal');}});
+  }
+  await Promise.resolve();
+  assert.equal(f.api.effectReviewCheckpointWaitingState(binding, f.allowed,
+    f.definition, f.fields[1], '2026-10-09T03:00:00.000Z', declared), 'original-waiting-wire');
+  assert.deepEqual(f.counts, {admit: 1, fields: 1});
+  assert.equal(reads, 1); assert.equal(f.waitingCalls.length, 1);
+  const call = f.waitingCalls[0];
+  assert.strictEqual(call.original, f.artifacts[0]);
+  assert.equal(call.storedWire, f.fields[1]);
+  assert.equal(call.updatedAt, '2026-10-09T03:00:00.000Z');
+  assert.deepEqual(call.results, ['main']); assert.notStrictEqual(call.results, declared);
+});
+
+test('waiting projection keeps foreign-root and typed owner failures distinct', () => {
+  const f = fixture(), other = fixture();
+  const binding = f.api.effectReviewCheckpointBinding(f.allowed, f.definition, f.fields[1]);
+  for (const [value, allowed, definition] of [[{...binding}, f.allowed, f.definition],
+    [binding, other.allowed, f.definition], [binding, f.allowed, other.definition]]) {
+    assert.throws(() => f.api.effectReviewCheckpointWaitingState(value, allowed,
+      definition, f.fields[1], 'time', []), /ForeignRunHostCheckpointBinding/);
+  }
+  assert.equal(f.waitingCalls.length, 0);
+  const issue = Object.freeze({kind: 'Checkpoint', issue: 'PersistedWireMismatch'});
+  f.rejectWaiting(issue);
+  assert.throws(() => f.api.effectReviewCheckpointWaitingState(binding, f.allowed,
+    f.definition, f.fields[1] + ' ', 'time', []), error =>
+    error.code === 'RunHostEffectCheckpointWaitingRejected' && error.cause === issue);
+  assert.strictEqual(f.waitingCalls[0].original, f.artifacts[0]);
+  assert.deepEqual(f.counts, {admit: 1, fields: 1});
+});
+
+test('waiting projection bounds caller snapshots before Common emission', () => {
+  const f = fixture();
+  const binding = f.api.effectReviewCheckpointBinding(f.allowed, f.definition, f.fields[1]);
+  for (const results of [[42], Array(1), Array(65537), ['x'.repeat(1048577)]]) {
+    assert.throws(() => f.api.effectReviewCheckpointWaitingState(binding, f.allowed,
+      f.definition, f.fields[1], 'time', results), TypeError);
+  }
+  for (const [wire, time] of [[null, 'time'], [f.fields[1], null]]) {
+    assert.throws(() => f.api.effectReviewCheckpointWaitingState(binding, f.allowed,
+      f.definition, wire, time, []), TypeError);
+  }
+  assert.equal(f.waitingCalls.length, 0);
+  assert.deepEqual(f.counts, {admit: 1, fields: 1});
 });

@@ -152,6 +152,10 @@ export function effectReviewCheckpointBinding(allowed: AllowedEffectRun,
 /** Same admitted original only; no wire admission, persistence or current grant. */
 export function effectReviewCheckpointBindingFacts(binding: EffectReviewCheckpointBinding,
   allowed: AllowedEffectRun, definition: RunDefinition): EffectReviewCheckpointBinding;
+/** Same nominal binding and actual stored wire, not a persistence/current grant. */
+export function effectReviewCheckpointWaitingState(binding: EffectReviewCheckpointBinding,
+  allowed: AllowedEffectRun, definition: RunDefinition, storedWire: string,
+  updatedAt: string, declaredResults: readonly string[]): string;
 /** Project only the members of the original checked unit/Checkpoint. */
 export function effectReviewCheckpointMembers(allowed: AllowedEffectRun,
   definition: RunDefinition, checkpointWire: string): readonly string[];

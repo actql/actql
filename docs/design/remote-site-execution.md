@@ -1118,6 +1118,19 @@ the required stopping and outcome facts. Its advisory `resolve_checkpoint`
 action grants no review or resume authority; the current cancellation gate
 continues to refuse approval, resume and dispatch, including after restore.
 
+The same nominal association may supply the original to the existing persistence
+confirmation and waiting-state writer in the same Common module. The caller
+supplies the exact stored wire from its actual selected read; the original
+custody, revision and current/cancellation gate remain separate. This avoids
+wire readmission or moving an opaque object between independently loaded bridge
+modules. Full emitted waiting-state bounds and the existing advisory
+`resolve_checkpoint` identity remain unchanged.
+
+The transient native Array snapshot overlaps the writer's sorted Result names,
+availability fields and emitted wire under its existing full-wire limits. These
+managed values follow the restoration operation's existing accounting and
+lifetime; they do not acknowledge physical release or cache a current grant.
+
 ## Pre-Checkpoint Effect Run observation
 
 The existing Common Effect Run owner projects an unpublished candidate from

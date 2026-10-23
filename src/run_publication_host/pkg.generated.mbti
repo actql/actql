@@ -524,6 +524,8 @@ pub fn client_effect_review_checkpoint_members(ClientEffectAllowedRun, @run_publ
 
 pub fn client_effect_review_checkpoint_unit_definition_cid(ClientEffectAllowedRun, @run_publication.PublicationContract, @checkpoint_runtime.SealedCheckpoint) -> Result[String, ClientEffectCheckpointBindingIssue]
 
+pub fn client_effect_review_checkpoint_waiting_state(@checkpoint_runtime.SealedCheckpoint, String, String, Array[String], @checkpoint_runtime.WireLimits) -> Result[String, ClientEffectCheckpointWaitingIssue]
+
 pub fn client_effect_run_materials_request_for_dispatch(ClientEffectRunMaterials, @remote_site_protocol.DispatchRequest) -> Result[ClientRequestIdentity?, ClientRequestIdentityIssue]
 
 pub fn client_effect_run_query_time_matches(PreparedClientEffectRun, ClientQueryTimePreparation, ClientRequestIdentity) -> Bool
@@ -2354,6 +2356,11 @@ pub(all) enum ClientEffectCheckpointMembersIssue {
   InvalidLimits
   WorkLimit
   UnsupportedInventory
+}
+
+pub(all) enum ClientEffectCheckpointWaitingIssue {
+  Checkpoint(@checkpoint_runtime.CheckpointIssue)
+  RunState(@checkpoint_runtime.RunStateWireIssue)
 }
 
 type ClientEffectCommandContent
