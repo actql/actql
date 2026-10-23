@@ -191,7 +191,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operation: [first-init, cold-existing]
+        operation: [first-init, cold-existing, native-operations]
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
@@ -225,6 +225,7 @@ jobs:
       - name: Install only the original Native packages through their fixed registry
         run: node scripts/ordinary-operation-packages.mjs prepare-native "$RUNNER_TEMP/ordinary-native/packages" "$GITHUB_SHA" "$RUNNER_TEMP/ordinary-native/consumer"
       - name: Measure the supported completed public operation
+        if: matrix.operation != 'native-operations'
         run: |
           python3 -I -B scripts/benchmark-ordinary-processes.py \
             --adapter native --manifest "$RUNNER_TEMP/ordinary-native/packages/release.json" \
@@ -232,8 +233,19 @@ jobs:
             --source "$GITHUB_SHA" --operation '${{ matrix.operation }}' \
             --mode final --load isolated --output "$RUNNER_TEMP/ordinary-native/measurement"
       - name: Require the actual report assessment including missing coverage
-        if: always()
+        if: always() && matrix.operation != 'native-operations'
         run: node scripts/operation-performance.mjs --input "$RUNNER_TEMP/ordinary-native/measurement/measurements.json" --output "$RUNNER_TEMP/ordinary-native/assessment.json"
+      - name: Measure varied Native Run and original Result operations
+        if: matrix.operation == 'native-operations'
+        run: |
+          python3 -I -B scripts/benchmark-ordinary-processes.py \
+            --adapter native --manifest "$RUNNER_TEMP/ordinary-native/packages/release.json" \
+            --consumer "$RUNNER_TEMP/ordinary-native/consumer/lib/node_modules/actql" \
+            --source "$GITHUB_SHA" --selection native-operations \
+            --mode final --load isolated --output "$RUNNER_TEMP/ordinary-native/measurement"
+      - name: Require Native operation identity, completion and timing evidence
+        if: always() && matrix.operation == 'native-operations'
+        run: node scripts/operation-performance.mjs --native-operations "$RUNNER_TEMP/ordinary-native/measurement/measurements.json" --output "$RUNNER_TEMP/ordinary-native/assessment.json"
       - name: Retain raw samples and failed or incomplete assessment
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
