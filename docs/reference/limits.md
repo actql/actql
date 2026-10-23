@@ -26,7 +26,7 @@ every resolved limit with its source.
 
 | Quantity | Default | Set by |
 | --- | --- | --- |
-| Rows in a local `VALUES` Program | 100 (configurable up to 10,000) | Host installation (`valuesMaxRows`, an `installation` option where the SDK creates the Host) |
+| Rows admitted by a local Values lowering sequence | 100 across its Values roots | Host profile; `valuesMaxRows` configures only the source-free, single-task Values profile (up to 10,000), not every Program using `VALUES` |
 | Rows read from a source per Run | Connector contract | Connector |
 | Bytes read per Run and total work | Host capacity policy (512 MiB in the default Local profile) | Host |
 | Model calls per `INFER` | Row count, capped by `MAX ITEMS` when set; no call is made if the count would exceed the limit | Program and Connector |
@@ -35,6 +35,28 @@ every resolved limit with its source.
 | Effect items per Set | Connector contract | Connector |
 | Result read response | 1 MiB per read by default, 16 MiB maximum | Client option |
 | Query text | A fixed decoded size and token budget | Language law |
+
+### Local Values profiles and JOIN
+
+The ordinary Local profile can execute bounded source-free `VALUES` joins,
+including filter, derive, group and sort pipelines. Its finite preparation
+budget is shared by the Values roots of a lowered sequence: 90 order rows
+plus 10 customer rows fit the default 100-row budget; 100 plus 10 do not.
+Separate output guards and work, cell, value and byte ceilings still apply.
+
+`installation: {valuesMaxRows: 2000}` selects the configurable **single-task**
+Values profile. It is not a general increase to the ordinary multi-task
+profile's capacity. A single authored Stage can normalize into several tasks,
+as a two-root Values JOIN does; that Program is refused under this explicit
+profile even when each input contains only one row. Omit this option to use
+the ordinary profile within its existing limits, rather than using it as a
+blanket setting for a mixed workload. See the
+[Local Host profile](../../packages/local-node/README.md).
+
+`check()` can report `verified` and contextual `runnable: yes` for such a
+Program without admitting execution under the selected physical profile.
+Checking neither runs the JOIN nor grants additional capacity; execution
+admission can still refuse it. See [Checking](../design/check-sdk.md).
 
 ## Author guards
 
