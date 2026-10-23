@@ -1474,3 +1474,18 @@ and named intents retain their existing `not_accepted` and
 `preparation_failed` outcomes, current authorization and disclosure checks.
 The original preparation-error path and uncertain Journal/dispatch outcomes
 remain separate. This does not create a second evaluator, permission or ACK.
+
+### Effect cancellation observation lifetime
+
+One original Effect computation retains one existing Journal cancellation
+observer through its target reads and acquired Source continuation. Each probe
+still physically selects the complete current row. Only an exactly unchanged
+row reuses immutable Run admission; changed, missing or failed reads keep the
+existing admission and refusal rules. Revision equality alone is insufficient.
+An independent restored target-read continuation obtains its own observer.
+
+The original target-selection checks run before the cancellation probe, and
+resume/current gates retain their original positions. This holder retains no
+Account decision, dispatch permission or acknowledgement. Pending children keep
+their original callbacks through cleanup; no unconditional completion finally
+invalidates the same continuation. Journal closure still refuses later probes.
