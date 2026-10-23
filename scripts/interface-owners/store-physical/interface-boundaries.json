@@ -11575,7 +11575,7 @@
               },
               {
                 "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "const usage = deliveryIndex.putPublicationContracts(originalEntries,allowance,progress);"
+                "anchor": "const usage = deliveryIndex.putPublicationContracts(originalEntries,allowance,progress,selection);"
               },
               {
                 "path": "adapters/store-local/publication-store.mjs",
