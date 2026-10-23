@@ -62,6 +62,7 @@ pub(all) enum JoinRequirementIssue {
   BudgetExceeded
   ForeignOccurrence(Int)
   MissingEvidence(Int)
+  MissingStableIdentity(Int)
   MissingCapacity(Int)
   KeyEvidence(Int, @evidence.IssueKind)
 } derive(Eq, Debug)
@@ -227,7 +228,7 @@ pub fn link_program_join_requirements(
           CrossJoinIdentity({ site, step, side, input, key, }),
         )
       } else {
-        guard key is Some(key) else { return Err(MissingEvidence(i)) }
+        guard key is Some(key) else { return Err(MissingStableIdentity(i)) }
         states[i] = Execution(JoinIdentity({ site, step, side, input, key, }))
       }
     } else {

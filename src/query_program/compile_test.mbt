@@ -1281,10 +1281,13 @@ test "FULL Values join refuses to invent stable row identities" {
   let program = compile(query, set_context(), construction_limits()).unwrap()
   match
     @check.check_parsed(program, check_environment(), None, check_limits()) {
-    Rejected(error) =>
+    Rejected(error) => {
       assert_true(
-        @check.diagnostic_cause(error) is Closure(Joins(MissingEvidence(_))),
+        @check.diagnostic_cause(error)
+        is Closure(Joins(MissingStableIdentity(_))),
       )
+      assert_eq(@check.diagnostic_category(error), @check.InvalidInput)
+    }
     _ => fail("FULL Values inputs must retain the common identity refusal")
   }
 }
