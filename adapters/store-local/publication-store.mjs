@@ -1244,9 +1244,11 @@ async function openOriginalLocalPublicationStore(
     await mkdir(directory, {recursive: true, mode: 0o700});
   }
 
+  let createdStore = false;
   try {
     await writeExclusive(storeContractPath, storeContractBytes);
     await syncDirectory(root);
+    createdStore = true;
   } catch (error) {
     if (error?.cleanupHandle !== undefined) {
       throw await retainStoreOpeningFailure(error, undefined, configuration.privateEvidenceKey);
@@ -4526,6 +4528,7 @@ async function openOriginalLocalPublicationStore(
     deliveryIndex = await openDeliveryAttemptIndex(deliveryIndexPath,{
       create: coverage.phase === 'building', maxEntries: configuration.maxObjects,
       maxWireBytes: configuration.maxObjectBytes,
+      initializeEmpty: createdStore,
     });
     const migratePhysical=deliveryIndex.physicalObjectUsage().complete===0;
     const recoverPhysical=deliveryIndex.physicalObjectRecoveryRequired();
