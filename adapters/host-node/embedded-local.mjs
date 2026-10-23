@@ -457,8 +457,13 @@ export function readManagedComputeRunRequirements(originals, checkedPrepared) {
       // admission. Only its typed Unsupported variant proves a refusal; no
       // arbitrary Host exception or missing journal record does so.
       if (runtimeIsError(result) && moon.clientProgramInstalledManagedRunIssueIsUnsupported(
-        runtimeField(result, 0))) {
-        throw clientOperationError('ClientProgramUnsupported', runtimeField(result, 0));
+        runtimeField(result, 0)) && run.request !== undefined && run.failure === undefined &&
+          run.original === undefined &&
+          run.admission === undefined && run.value === undefined) {
+        const error = clientOperationError('ClientProgramUnsupported', runtimeField(result, 0));
+        run.preAdmissionRefusal = Object.freeze({error, prepared: checkedPrepared,
+          request: run.request, control: initialControl});
+        throw error;
       }
       run.preparedSequences = checked(result);
     }
@@ -4974,6 +4979,7 @@ export async function connectEmbeddedLocal(options, initialEntry) {
       if (run.value !== undefined) checked(Reflect.apply(run.retire, run.runtime, [run.value]));
       else if (run.admission !== undefined) checked(Reflect.apply(run.cleanup, run.runtime, [run.admission]));
       run.closed = true;
+      run.preAdmissionRefusal = undefined;
     }
     if (sourceManaged !== undefined) {
       const observation = await Reflect.apply(sourceManagedClose, sourceManaged, []);
@@ -5261,6 +5267,20 @@ export async function connectEmbeddedLocal(options, initialEntry) {
         checked(Reflect.apply(run.check, runtime, [run.value, prepared, request]));
         return run.value;
       } catch (error) {run.failure = error; throw error;}
+    },
+    isOriginalManagedComputePreparationRefusal(error, prepared, request) {
+      const run = record.computeRuns?.get(prepared), original = run?.preAdmissionRefusal;
+      if (original === undefined || request === undefined || original.error !== error || run.failure !== error ||
+          run.prepared !== prepared || original.prepared !== prepared || run.request !== request ||
+          original.request !== request || run.runtime !== moon || run.closed ||
+          run.original !== undefined || run.admission !== undefined || run.value !== undefined ||
+          original.control !== originalInstallation.initialControl ||
+          error.cleanupPending === true || error.cleanupHandle !== undefined) return false;
+      assertInitialControlHostPreparation(originals);
+      if (computeManaged !== undefined) assertManagedComputeInstallationCurrent(computeManaged, originals);
+      else if (sourceManaged !== undefined) assertSourceManagedInstallationCurrent(sourceManaged, originals);
+      else return false;
+      return true;
     },
     bindManagedComputeRunObservation(prepared, ref) {
       const run = record.computeRuns?.get(prepared);

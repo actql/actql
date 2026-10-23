@@ -185,7 +185,7 @@ test('malformed or overflowing requirement observations are refused', () => {
 });
 
 function preparedRunFixture() {
-  const f = fixture(), original = {}, run = {runtime: f.moon, prepared: f.prepared, closed: false};
+  const f = fixture(), original = {}, run = {runtime: f.moon, prepared: f.prepared, request: f.request, closed: false};
   f.originals.installation.computeRuns = new Map([[f.prepared, run]]);
   f.moon.clientProgramInstalledManagedRunIssueIsUnsupported = () => false;
   f.moon.clientProgramPrepareInstalledManagedSourceFree = (...args) => {
@@ -287,5 +287,19 @@ test('only the original pure preparation Unsupported is a typed refusal', () => 
       ? {code: 'ClientProgramUnsupported'} : error => error === originalFailure);
     assert.equal(f.run.preparedSequences, undefined);
     assert.equal(f.calls.length, 0, 'No scalar projection or Resource admission after a failed preparation');
+  }
+});
+
+test('Unsupported after Resource or a retained failure never issues a new pure refusal', () => {
+  for (const field of ['original', 'admission', 'value', 'failure']) {
+    const f = preparedRunFixture(), result = {}, issue = {}, failure = new Error('OriginalCoreFailure');
+    f.run[field] = {};
+    f.moon.clientProgramPrepareInstalledManagedSourceFree = () => result;
+    f.ports.runtimeIsError = value => {assert.strictEqual(value, result); return true;};
+    f.ports.runtimeField = value => {assert.strictEqual(value, result); return issue;};
+    f.moon.clientProgramInstalledManagedRunIssueIsUnsupported = value => {assert.strictEqual(value, issue); return true;};
+    f.ports.checked = value => {assert.strictEqual(value, result); throw failure;};
+    assert.throws(() => f.requirements()(f.originals, f.prepared), error => error === failure);
+    assert.equal(f.run.preAdmissionRefusal, undefined);
   }
 });
