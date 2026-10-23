@@ -5,9 +5,59 @@ import {mkdtemp} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {DatabaseSync} from 'node:sqlite';
+import fs from 'node:fs';
+import {syncBuiltinESMExports} from 'node:module';
 import {prepareHostJournalInstallation} from './node-host-journal-installation.mjs';
 import {openClientRequestJournal, observeOriginalClientRequestJournalCustody} from './client-request-journal.mjs';
 import {createHostObservationConnection, installHostObservation} from '../host-common/observation.mjs';
+
+function initializationSyncs(directory, action, beforeDirectorySync = () => {}) {
+  const original = {openSync: fs.openSync, closeSync: fs.closeSync, fsyncSync: fs.fsyncSync};
+  const paths = new Map(), files = [], directories = [];
+  fs.openSync = function(path, ...args) {
+    const fd = Reflect.apply(original.openSync, this, [path, ...args]);
+    paths.set(fd, path); return fd;
+  };
+  fs.closeSync = function(fd) {
+    const result = Reflect.apply(original.closeSync, this, [fd]);
+    paths.delete(fd); return result;
+  };
+  fs.fsyncSync = function(fd) {
+    const stat = fs.fstatSync(fd), root = fs.statSync(directory);
+    const isRoot = stat.isDirectory() && stat.dev === root.dev && stat.ino === root.ino;
+    if (isRoot) beforeDirectorySync({files: [...files], directories: [...directories]});
+    const result = Reflect.apply(original.fsyncSync, this, [fd]);
+    if (isRoot) directories.push({files: [...files]});
+    else if (typeof paths.get(fd) === 'string' && paths.get(fd).endsWith('-format.json')) files.push(paths.get(fd));
+    return result;
+  };
+  syncBuiltinESMExports();
+  try {return {result: action(), files, directories};}
+  finally {Object.assign(fs, original); syncBuiltinESMExports();}
+}
+
+test('fresh Journal initialization shares one actual directory ACK after every original marker file ACK', async t => {
+  const directory = await mkdtemp(join(tmpdir(), 'actql-journal-initial-sync-'));
+  let journal;
+  t.after(() => journal?.close());
+  const observed = initializationSyncs(directory, () => journal = openClientRequestJournal(directory));
+  assert.equal(observed.files.length, 8, 'all original marker files retain their real file fsync');
+  assert.equal(new Set(observed.files).size, 8);
+  assert.equal(observed.directories.length, 1, 'one real final directory ACK covers the fresh initialization');
+  assert.deepEqual(observed.directories[0].files, observed.files, 'all marker ACKs precede the directory ACK');
+  journal.close();
+  const db = new DatabaseSync(join(directory, 'client-requests.sqlite3'), {readOnly: true});
+  let authority;
+  try {authority = db.prepare('SELECT * FROM client_submission_epoch_authority').get();}
+  finally {db.close();}
+  const reopened = initializationSyncs(directory, () => journal = openClientRequestJournal(directory));
+  assert.equal(reopened.files.length, 0);
+  assert.equal(reopened.directories.length, 0, 'unchanged reopen does not repeat initialization ACKs');
+  journal.close();
+  const after = new DatabaseSync(join(directory, 'client-requests.sqlite3'), {readOnly: true});
+  try {assert.deepEqual(after.prepare('SELECT * FROM client_submission_epoch_authority').get(), authority);}
+  finally {after.close();}
+});
 
 async function selectedRowsFixture(t, openJournal = openClientRequestJournal) {
   const directory = await mkdtemp(join(tmpdir(), 'actql-journal-selected-rows-'));
