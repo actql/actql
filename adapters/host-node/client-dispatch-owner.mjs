@@ -80,24 +80,29 @@ export function recordNodeRunPhysicalStop({ref, journal, moon, control}, outcome
 
 async function observeNodeRunStop(facts, {failureObserved}) {
   if (facts.physicalStopConfirmed !== true || facts.cleanupConfirmed !== true) return;
-  const before=facts.journal.lookupRunDefinition(facts.ref,facts.moon,facts.control);
-  if(before?.physicalCloseConfirmed===true)return;
-  if(before===undefined)throw new Error('ClientRunStopObservationChanged');
-  const observation = await collectNodeRunStop(facts,before);
-  // The asynchronous publication inspection may overlap another confirmed
-  // observer. Preserve its immutable physical-stop record, including a
-  // nonterminal stop from an earlier phase of this same Run. The common
-  // continuation owner evaluates the terminal outcome separately.
-  const retained = observation.frame;
-  if (retained?.physicalCloseConfirmed === true) return;
-  if (observation.revisionUnchanged !== true) {
-    // Retain the same physical owner for a later inspection. A changed intent
-    // must not become an immutable nonterminal stop that suppresses its outcome.
-    throw new Error('ClientRunStopObservationChanged');
+  for(let inspection=0;inspection<2;inspection++){
+    const before=facts.journal.lookupRunDefinition(facts.ref,facts.moon,facts.control);
+    if(before?.physicalCloseConfirmed===true)return;
+    if(before===undefined)throw new Error('ClientRunStopObservationChanged');
+    const observation = await collectNodeRunStop(facts,before);
+    // Preserve another confirmed observer's immutable physical-stop record,
+    // including a nonterminal stop from an earlier phase of this same Run.
+    const retained = observation.frame;
+    if (retained?.physicalCloseConfirmed === true) return;
+    if (observation.revisionUnchanged !== true) {
+      // A real public observation may advance only its own metadata during
+      // the Store await. The Journal's nominal frame comparison must prove
+      // every immutable/control field unchanged before one full reinspection.
+      if(inspection===0&&facts.journal.canReinspectRunStopAfterStatePublication?.(before,retained)===true) continue;
+      throw new Error('ClientRunStopObservationChanged');
+    }
+    facts.journal.markPhysicalClose(facts.ref, observation.publicationCommitted ? null :
+      observation.cancelled ? 'cancelled' : failureObserved && retained?.cancellationRequested !== true ? 'failed' : null,
+    retained);
+    return;
   }
-  facts.journal.markPhysicalClose(facts.ref, observation.publicationCommitted ? null :
-    observation.cancelled ? 'cancelled' : failureObserved && retained?.cancellationRequested !== true ? 'failed' : null,
-  retained);
+  // Continued changes retain this same physical owner for later inspection.
+  throw new Error('ClientRunStopObservationChanged');
 }
 
 export function installNodeClientDispatchOwner({moon, control, journal,

@@ -3316,6 +3316,24 @@ export function openClientRequestJournal(directory, {
       if(original!==undefined && sameRunStateRow(row,original.row)) return originalFrame;
       return admitRunDefinitionRow(row, requestControl, publicationControl);
     },
+    // Only public observation metadata may explain this particular frame
+    // change. Both frames already belong to this Journal's full admission;
+    // every immutable/control column and selected key must remain exact.
+    canReinspectRunStopAfterStatePublication(beforeFrame, afterFrame) {
+      ensureOpen();
+      const before=runStateFrames.get(beforeFrame),after=runStateFrames.get(afterFrame);
+      if(before===undefined||after===undefined||beforeFrame===afterFrame||
+          before.requestControl!==after.requestControl||before.publicationControl!==after.publicationControl) return false;
+      const old=before.row,next=after.row;
+      return Number.isSafeInteger(old.state_revision)&&old.state_revision>=0&&
+        Number.isSafeInteger(next.state_revision)&&
+        (next.state_revision>old.state_revision||old.state_observation_key===null&&old.state_revision===0&&next.state_revision===0)&&
+        (old.state_observation_key===null||typeof old.state_observation_key==='string'&&old.state_observation_key.length>0)&&
+        typeof next.state_observation_key==='string'&&next.state_observation_key.length>0&&
+        next.state_observation_key!==old.state_observation_key&&
+        Object.keys(old).length===Object.keys(next).length&&
+        Object.keys(old).every(key=>key==='state_revision'||key==='state_observation_key'||old[key]===next[key]);
+    },
     // Private original-content projection for this journal's admitted Run.
     // It grants neither current authorization nor a physical/resume claim.
     // Historical unselected Runs remain readable without a new reference;

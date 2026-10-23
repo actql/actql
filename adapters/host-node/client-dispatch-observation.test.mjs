@@ -21,6 +21,184 @@ const installNodeClientDispatchOwner = compileFunction(
   () => assert.fail('No fixture Relation execution'));
 const observation = retained => ({emit() {}, retainOperation(promise) {retained.push(promise);}});
 
+// This distinct component uses the selected original Common namespace and real
+// fresh Journal/Store. Account/current entry is an explicit component port;
+// it makes no public submission or statement about a prior stopped Run.
+async function actualScalarFailureStop(t,managed,interleaveObservation=false){
+  assert(process.env.ACTQL_TEST_PROJECT_COMMON_RUNTIME,'Select the qualified original Common');
+  const {pathToFileURL}=await import('node:url');
+  const moon=await import(pathToFileURL(process.env.ACTQL_TEST_PROJECT_COMMON_RUNTIME));
+  const {mkdtemp,readFile,mkdir}=await import('node:fs/promises');
+  const {tmpdir}=await import('node:os');
+  const {join}=await import('node:path');
+  const {inspect}=await import('node:util');
+  const {runtimeCore}=await import('../host-common/runtime-core.mjs');
+  const {installNodeClientProgramPreparation}=await import('./client-program-preparation.mjs');
+  const {sourceFreeValuesPlan,sourceFreeValuesAdmissionEvidence}=await import('./local-values-plan.mjs');
+  const {createNodeHostEntry,CapturedRunExecutionError}=await import('./entry.mjs');
+  const {installStrategyContributions}=await import('../connectors-builtin/strategy.generated.mjs');
+  const {installNodeClientDispatchOwner:installActualDispatch}=await import('./client-dispatch-owner.mjs');
+  const {openClientRequestJournal}=await import('./client-request-journal.mjs');
+  const {openLocalPublicationStore}=await import('../store-local/publication-store.mjs');
+  const {installLocalSnapshotStore}=await import('../local-node/retained-store.mjs');
+  const {createLocalRetainedStore}=await import('../store-local/files.mjs');
+  const {checked}=await import('../host-common/runtime-result.mjs');
+  const {issueInstalledUnpublishedRunState}=await import('../host-common/run-state-observation.mjs');
+  const directory=await mkdtemp(join(tmpdir(),'actql-failed-compute-component-'));
+  t.diagnostic(`Fresh failure component retained at ${directory}`);
+  const environmentWire=(await readFile(new URL('../../spec/local-check-environment.json',import.meta.url),'utf8')).trimEnd();
+  const environment=moon.clientProgramCheckEnvironment(environmentWire,JSON.parse(environmentWire).evidence_bundle_cid,
+    false,false,true,false,false,false,false);
+  assert(environment);
+  const preparedProgram=installNodeClientProgramPreparation({moon,environment})({kind:'aql',
+    input:{text:'SELECT TRY_TIMESTAMP(CAST(1 / 0 AS STRING)) AS value',format:'sql'},parameters:null});
+  const control=runtimeCore(moon).publicationControl;
+  const authorityScopeCid='sha256:'+'a'.repeat(64),storeAuthorityCid='sha256:'+'7'.repeat(64),namespaceId='failed-compute-component';
+  const now=()=> '2026-10-23T00:00:00.000Z';
+  const request=moon.clientProgramRequestIdentity(preparedProgram,authorityScopeCid,
+    'original-failed-compute',moon.clientProgramSourceFreeInputIntentCid());
+  assert(request);
+  const plan=sourceFreeValuesPlan({moon,control,preparedProgram,authorityScopeCid,namespaceId,storeAuthorityCid,now});
+  const journal=openClientRequestJournal(join(directory,'requests'));
+  const accepted=journal.acceptDefinition(request,{namespaceId,runDefinition:plan.runDefinition,
+    runAdmissionEvidence:sourceFreeValuesAdmissionEvidence(plan),resultNames:['main'],
+    lookupExpiresAt:'2099-01-01T00:00:00.000Z'},moon,control);
+  const store=await openLocalPublicationStore({directory:join(directory,'publication'),storeAuthorityCid,
+    capacityBytes:512*1024*1024,maxObjectBytes:10000000,maxObjects:100,maxContractNodes:100000,maxContractDepth:64},control);
+  const snapshot=join(directory,'snapshots');
+  const local=installLocalSnapshotStore(async(_key,bytes,frame)=>{
+    await mkdir(snapshot,{recursive:true});
+    return createLocalRetainedStore({parentDirectory:snapshot,capacityBytes:bytes,maxFrameBytes:frame,maxEntries:1});
+  });
+  const registry=await readFile(new URL('../../spec/dependencies/aoa-pipeline-registry.json',import.meta.url),'utf8');
+  const aoa=JSON.parse(await readFile(new URL('../../spec/contracts/actql-aoa.json',import.meta.url),'utf8'));
+  const values=JSON.stringify(aoa.execution_contracts['REL.values']),fragment=JSON.stringify(aoa.execution_contracts['ACTQL.expression_fragment/0.1']),
+    ordered=JSON.stringify(aoa.execution_contracts['REL.derive.ordered']);
+  const entry=createNodeHostEntry(()=>Promise.resolve(moon),installStrategyContributions);
+  let failure,execution,dispatch,managedRun,managedAdmission;
+  let observations=0;
+  const selectedStore=interleaveObservation?Object.freeze({...store,async confirmCommittedIndex(ref){
+    const result=await store.confirmCommittedIndex(ref);
+    if(observations===0){
+      const before=journal.lookupRunDefinition(ref,moon,control);
+      assert.equal(before.physicalStartReserved,true);
+      const running=issueInstalledUnpublishedRunState(moon,{
+        runId:control.runDefinitionRunId(before.runDefinition),observedAt:now(),resultNames:['main'],
+        dispatchReserved:true,preDispatchFailureConfirmed:false,cancelledBeforeStart:false,
+        observedTerminalOutcome:'none',executionUnknown:false});
+      journal.publishRunState(before,running,moon,control);
+      const after=journal.lookupRunDefinition(ref,moon,control,before);
+      assert.notStrictEqual(after,before,'A real observation write changes its complete physical row');
+      assert.equal(after.revision,before.revision,'No control mutation is injected');
+      observations++;
+    }
+    return result;
+  }}):store;
+  try{
+    if(managed){
+      // Import the SAME installed CJS resource namespace captured by this
+      // Common module, never the source checkout's independent WeakMap.
+      const {default:resources}=await import(new URL('../../../../../adapters/host-node/ordinary-node-resource-runtime.cjs',
+        pathToFileURL(process.env.ACTQL_TEST_PROJECT_COMMON_RUNTIME)));
+      const sequences=checked(moon.clientProgramPrepareInstalledManagedSourceFree(
+        preparedProgram,registry,values,fragment,ordered));
+      const limits=moon.clientProgramPreparedInstalledManagedSourceFreeRequirements(sequences);
+      assert.equal(limits.length,6);
+      const requirements={planningWork:Number(limits[0]),attempts:Number(limits[1]),holdings:Number(limits[2]),
+        transferBytes:limits[3],retainedBytes:limits[4],executionBytes:limits[5]};
+      const original=resources.retainOrdinaryManagedRun(preparedProgram,requirements,()=>{},()=>false);
+      managedAdmission=checked(moon.clientProgramNodeManagedRunPrepare(original,preparedProgram));
+      managedRun=checked(moon.clientProgramInstalledManagedSourceFreeBegin(managedAdmission,
+        preparedProgram,request,sequences));
+    }
+    dispatch=installActualDispatch({moon,control,journal,store:selectedStore,namespaceId,authorityScopeCid,storeAuthorityCid,now,
+      registry,values,fragment,ordered,hostConnection:()=>true,
+      startRun:()=>journal.reserveDispatch(request,{namespaceId,currentAuthorization:true},moon,control),
+      planFor:()=>plan,computeConfigurations:{local},
+      async runPublished(...args){
+        const retain=args[5];args[5]=value=>{execution=value;retain(value);};
+        try{return await entry.runPublishedCapturedStrategy(...args);}
+        catch(error){failure=error;t.diagnostic(`Original dispatch failure: ${error.code}; typed cause ${inspect(error.primaryFailure?.cause,{depth:4})}`);throw error;}
+      }});
+    await dispatch.start({preparedProgram,principalId:'component',connection:{},requestId:'original-failed-compute'},
+      request,accepted,{plan,...(managedRun===undefined?{}:{managedRun})});
+    await dispatch.operation(accepted.ref);
+    assert(failure instanceof CapturedRunExecutionError,'The actual failed execution must retain its original wrapper');
+    assert.strictEqual(failure.execution,execution);
+    assert.equal(execution.status,'host-tasks-failed');
+    const frame=journal.lookupRunDefinition(accepted.ref,moon,control);
+    assert.equal(frame.physicalCloseConfirmed,true,'The actual retained execution must complete stop before terminal projection');
+    assert.equal(frame.observedTerminalOutcome,'failed');
+    assert.equal(await store.confirmCommittedIndex(accepted.ref),undefined);
+    assert.equal(observations,interleaveObservation?1:0);
+  }finally{
+    if(dispatch)await dispatch.drain();
+    if(managedRun!==undefined)checked(moon.clientProgramInstalledManagedRunRetire(managedRun));
+    else if(managedAdmission!==undefined)checked(moon.clientProgramNodeManagedRunCleanup(managedAdmission));
+    await store.close();journal.close();
+  }
+}
+
+test('actual demanded scalar failure retains its execution and records physical stop',t=>actualScalarFailureStop(t,false));
+test('actual installed managed scalar failure retains its execution and records physical stop',t=>actualScalarFailureStop(t,true));
+test('actual installed failed Compute observes stop across public observation publication',t=>actualScalarFailureStop(t,true,true));
+
+// Frame/Store ports below isolate inspection ordering. The cancellation
+// decision is still the selected actual Common predicate; these ports do not
+// claim an authenticated Journal, physical stop or publication COMMIT.
+async function stopInspectionFixture(change,{observationOnly=false}={}){
+  const {pathToFileURL}=await import('node:url');
+  const moon=await import(pathToFileURL(process.env.ACTQL_TEST_PROJECT_COMMON_RUNTIME));
+  const {runtimeCore}=await import('../host-common/runtime-core.mjs');
+  const {observeNodeRestoredModelStop}=await import('./client-dispatch-owner.mjs');
+  const originalControl=runtimeCore(moon).publicationControl;
+  const ref={runDefinitionCid:'explicit-stop-inspection'};
+  let frame=Object.freeze({revision:1,stateRevision:0,cancellationRequested:false,physicalCloseConfirmed:false,runDefinition:{}});
+  let inspections=0;
+  const marks=[];
+  const facts={ref,moon,cleanupConfirmed:true,physicalStopConfirmed:true,
+    control:{runDefinitionRunId:()=> 'explicit-stop-run',
+      runCancellationConfirmed:originalControl.runCancellationConfirmed},
+    journal:{lookupRunDefinition:()=>frame,lookupReconciliationState:()=>undefined,
+      ...(observationOnly?{canReinspectRunStopAfterStatePublication:(before,after)=>
+        before!==undefined&&after!==undefined&&before.revision===after.revision&&before.cancellationRequested===after.cancellationRequested&&
+        before.stateRevision<after.stateRevision}:{}),
+      markPhysicalClose(actual,outcome,selected){assert.strictEqual(actual,ref);assert.strictEqual(selected,frame);marks.push(outcome);}},
+    store:{async confirmCommittedIndex(){
+      inspections++;
+      const result=change({frame,inspection:inspections,setFrame(value){frame=value;}});
+      return result;
+    }},
+  };
+  return{observe:()=>observeNodeRestoredModelStop(facts),marks,inspections:()=>inspections};
+}
+
+test('stop reinspection retains changed cancellation instead of stale failure',async()=>{
+  const f=await stopInspectionFixture(({frame,inspection,setFrame})=>{
+    if(inspection===1)setFrame(Object.freeze({...frame,revision:2,cancellationRequested:true}));
+  });
+  await assert.rejects(f.observe(),{message:'ClientRunStopObservationChanged'});
+  assert.equal(f.inspections(),1);assert.deepEqual(f.marks,[]);
+});
+
+test('stop reinspection retains continuously changed originals after its finite bound',async()=>{
+  const f=await stopInspectionFixture(({frame,setFrame})=>setFrame(Object.freeze({...frame,stateRevision:frame.stateRevision+1})),
+    {observationOnly:true});
+  await assert.rejects(f.observe(),{message:'ClientRunStopObservationChanged'});
+  assert.equal(f.inspections(),2);assert.deepEqual(f.marks,[]);
+});
+
+test('stop reinspection cannot convert a missing original into a stop',async()=>{
+  const f=await stopInspectionFixture(({setFrame})=>setFrame(undefined));
+  await assert.rejects(f.observe(),{message:'ClientRunStopObservationChanged'});
+  assert.equal(f.inspections(),1);assert.deepEqual(f.marks,[]);
+});
+
+test('stop reinspection preserves a selected committed publication',async()=>{
+  const f=await stopInspectionFixture(()=>Object.freeze({explicitCommittedIndexPort:true}));
+  await f.observe();assert.equal(f.inspections(),1);assert.deepEqual(f.marks,[null]);
+});
+
 const entrySource = readFileSync(new URL('./entry.mjs', import.meta.url), 'utf8');
 const entryAst = parse(entrySource, {ecmaVersion: 'latest', sourceType: 'module'});
 const publicationErrorClass = entryAst.body.map(node => node.declaration ?? node)

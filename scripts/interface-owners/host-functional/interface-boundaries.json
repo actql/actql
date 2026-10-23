@@ -19389,7 +19389,7 @@
     {
       "module": "adapters/host-node/client-request-journal.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "b6a5707066e130566de7ebcaacf544b010aa4968925ba000a759e4618df8974b",
+      "sha256": "a752af98b87db5d14e6fd196784d4af4730e25f2c7949b96f5ae74e8a7204c4c",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
@@ -20453,6 +20453,21 @@
             "publicationControl"
           ],
           "async": true
+        },
+        {
+          "name": "openClientRequestJournal/journal/init:canReinspectRunStopAfterStatePublication/init:canReinspectRunStopAfterStatePublication",
+          "parameters": [
+            "beforeFrame",
+            "afterFrame"
+          ],
+          "async": false
+        },
+        {
+          "name": "openClientRequestJournal/journal/init:canReinspectRunStopAfterStatePublication/init:canReinspectRunStopAfterStatePublication/init:canReinspectRunStopAfterStatePublication",
+          "parameters": [
+            "key"
+          ],
+          "async": false
         },
         {
           "name": "openClientRequestJournal/journal/init:checkSubmissionAttempt/init:checkSubmissionAttempt",
@@ -21561,6 +21576,7 @@
             "checkedRunDefinition",
             "cid/cid",
             "evidenceJson",
+            "evidenceJson/evidenceJson",
             "fail/fail",
             "freezeAdmissionEvidence",
             "hexKey/hexKey",
@@ -21595,6 +21611,7 @@
             "openClientRequestJournal/acceptRecord/acceptRecord/acceptRecord",
             "openClientRequestJournal/acceptRecord/acceptRecord/outcome/outcome",
             "openClientRequestJournal/acceptRecord/acceptRecord/outcome/outcome#2",
+            "openClientRequestJournal/admitIntentOriginal/admitIntentOriginal",
             "openClientRequestJournal/admitRunDefinitionRow/admitRunDefinitionRow",
             "openClientRequestJournal/assertCancellationCustody/assertCancellationCustody",
             "openClientRequestJournal/assertIntentCustody/assertIntentCustody",
@@ -21616,6 +21633,8 @@
             "openClientRequestJournal/inspectEpoch/inspectEpoch",
             "openClientRequestJournal/journal/init:accept/init:accept",
             "openClientRequestJournal/journal/init:admitOrLookupDefinition/init:admitOrLookupDefinition",
+            "openClientRequestJournal/journal/init:canReinspectRunStopAfterStatePublication/init:canReinspectRunStopAfterStatePublication",
+            "openClientRequestJournal/journal/init:canReinspectRunStopAfterStatePublication/init:canReinspectRunStopAfterStatePublication/init:canReinspectRunStopAfterStatePublication",
             "openClientRequestJournal/journal/init:checkSubmissionAttempt/init:checkSubmissionAttempt",
             "openClientRequestJournal/journal/init:checkSubmissionAttempt/init:checkSubmissionAttempt/init:checkSubmissionAttempt",
             "openClientRequestJournal/journal/init:checkSubmittedIntent/init:checkSubmittedIntent",
@@ -21648,6 +21667,7 @@
             "openClientRequestJournal/journal/init:originalSubmittedIntent/init:originalSubmittedIntent/init:assertCurrent/init:assertCurrent",
             "openClientRequestJournal/journal/init:originalSubmittedIntent/init:originalSubmittedIntent/readOriginal/readOriginal",
             "openClientRequestJournal/journal/init:originalSubmittedIntent/init:originalSubmittedIntent/readOriginal/readOriginal/readOriginal",
+            "openClientRequestJournal/journal/init:prepareSubmittedIntent/init:prepareSubmittedIntent",
             "openClientRequestJournal/journal/init:publishRunState/init:publishRunState",
             "openClientRequestJournal/journal/init:publishRunState/init:publishRunState/currentRow/currentRow",
             "openClientRequestJournal/journal/init:publishRunState/init:publishRunState/currentRow/currentRow/currentRow",
@@ -21707,6 +21727,7 @@
             "openClientRequestJournal/selectedRequestStatement/selectedRequestStatement/init:get/init:get",
             "openClientRequestJournal/submissionAttempt/submissionAttempt",
             "openClientRequestJournal/submissionTransaction/submissionTransaction",
+            "openClientRequestJournal/syncFormatDirectory/syncFormatDirectory",
             "openClientRequestJournal/transact/transact",
             "openClientRequestJournal/validCancellationRef/validCancellationRef",
             "openClientRequestJournal/verifyEpoch/verifyEpoch",
@@ -21728,11 +21749,7 @@
             "validateSourceInventory/validPhysicalBinding/validPhysicalBinding/validPhysicalBinding#2",
             "validateSourceInventory/validPhysicalBinding/validPhysicalBinding/validPhysicalBinding#3",
             "validateSourceInventory/validPhysicalBinding/validPhysicalBinding/validPhysicalBinding#4",
-            "validateSourceInventory/validPhysicalBinding/validPhysicalBinding/validPhysicalBinding#5",
-            "openClientRequestJournal/admitIntentOriginal/admitIntentOriginal",
-            "openClientRequestJournal/journal/init:prepareSubmittedIntent/init:prepareSubmittedIntent",
-            "openClientRequestJournal/syncFormatDirectory/syncFormatDirectory",
-            "evidenceJson/evidenceJson"
+            "validateSourceInventory/validPhysicalBinding/validPhysicalBinding/validPhysicalBinding#5"
           ],
           "exports": [
             "openClientRequestJournal",
@@ -22509,6 +22526,14 @@
               {
                 "path": "adapters/host-node/installed-update-targets.test.mjs",
                 "anchor": "captured UPDATE intent binding retains its final wire limit and original CID check"
+              },
+              {
+                "path": "adapters/host-node/client-run-stop-observation.test.mjs",
+                "anchor": "test('stop state-only comparison accepts actual observation frames without promoting copies or foreign controls'"
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-observation.test.mjs",
+                "anchor": "test('actual installed failed Compute observes stop across public observation publication'"
               }
             ]
           }
