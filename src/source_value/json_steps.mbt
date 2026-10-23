@@ -46,6 +46,35 @@ pub fn start_json_parse(
 }
 
 ///|
+/// The immutable document comes only from a successfully completed writer.
+/// Reuse its Unicode and exact byte measurement, never a caller's text/count
+/// assertion. Grammar, key normalization, duplicates, node/depth limits and
+/// cancellation still use the original parser. Tighter byte bounds retain the
+/// original incremental preflight and its failure order.
+pub fn start_json_document_parse(
+  document : @encode.EncodedDocument,
+  limits : ParseLimits,
+  source_path? : String = "<memory>",
+  data_keys? : Bool = false,
+) -> Result[JsonParse, ParseError] {
+  match
+    start_json_parse(
+      @encode.document_text(document),
+      limits,
+      source_path~,
+      data_keys~,
+    ) {
+    Err(error) => Err(error)
+    Ok(cursor) => {
+      if @encode.document_bytes(document) <= limits.max_input_bytes {
+        cursor.preflight_done = true
+      }
+      Ok(cursor)
+    }
+  }
+}
+
+///|
 fn json_preflight_step(cursor : JsonParse) -> ParseError? {
   let parser = cursor.document.parser
   let source = parser.source

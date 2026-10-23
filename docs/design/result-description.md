@@ -424,3 +424,15 @@ chunk/depth/row-count checks remain unchanged. In particular, a small payload
 cannot turn an invalid configured limit into a valid one. These initialized
 slots are managed parser backing, not a physical memory reservation or cleanup
 acknowledgement.
+
+## Completed encoder document parsing
+
+A completed encoder document retains its immutable JSON text and exact emitted
+UTF-8 byte count. Resumable source parsing may reuse that original Unicode
+preflight when the document fits the requested byte bound. It still runs the
+same grammar, key normalization, duplicate, node/depth, and cancellation path;
+a tighter byte bound or a raw text input retains the original incremental
+preflight. Effect-context preparation passes its own completed writer document
+through this boundary, then retains full decoded and canonical admission and
+full identity hashing. This does not carry authority, currentness, or cleanup
+acknowledgment and does not change the parser's work quantum.
