@@ -196,28 +196,31 @@ fn[E] load_stored_effect_free_publication(
     Err(issue) => return Err(Read(issue))
     Ok(_) => ()
   }
-  Ok(
-    start_effect_free_publication_commit_check(
-      roots[0],
-      roots[1],
-      definitions,
-      artifacts,
-      derivations,
-      orderings,
-      retentions,
-      bindings,
-      manifest,
-      roots[5],
-      roots[6],
-      roots[3],
-      roots[4],
-      stored_index,
-      max_wire_bytes,
-      max_nodes,
-      max_depth,
-      max_workspace,
-    ),
+  let preparation = start_effect_free_publication_commit_check(
+    roots[0],
+    roots[1],
+    definitions,
+    artifacts,
+    derivations,
+    orderings,
+    retentions,
+    bindings,
+    manifest,
+    roots[5],
+    roots[6],
+    roots[3],
+    roots[4],
+    stored_index,
+    max_wire_bytes,
+    max_nodes,
+    max_depth,
+    max_workspace,
   )
+  // All six inventories were created here and never exposed as mutable arrays.
+  // The first complete validation is still required before a read view exists.
+  let inputs = preparation.inputs.unwrap()
+  preparation.inputs = Some({ ..inputs, origin: StoredInputs, })
+  Ok(preparation)
 }
 
 ///|

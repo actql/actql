@@ -64,7 +64,16 @@ pub fn start_effect_free_run_evidence_check_retained(
 }
 
 ///|
+/// Only the stored loader constructs inventories with no caller-owned mutable
+/// array aliases. This describes input ownership, never current Store authority.
+priv enum PublicationCommitInputOrigin {
+  BorrowedInputs
+  StoredInputs
+}
+
+///|
 priv struct PublicationCommitInputs {
+  origin : PublicationCommitInputOrigin
   computation : ComputationEvidenceInputs
   derivations : Array[PublicationContract]
   orderings : Array[PublicationContract]
@@ -77,6 +86,7 @@ priv struct PublicationCommitInputs {
 
 ///|
 priv enum PublicationCommitPhase {
+  OriginalStored
   BeginResultEvidence
   ResultEvidence(ResultEvidencePreparation)
   BeginBindings
@@ -126,6 +136,7 @@ pub fn start_effect_free_publication_commit_check(
 ) -> PublicationCommitPreparation {
   {
     inputs: Some({
+      origin: BorrowedInputs,
       computation: {
         run_definition,
         invocation,
@@ -205,6 +216,9 @@ fn PublicationCommitPreparation::step(
     return Err(CommitEncoding)
   }
   match preparation.phase {
+    // The parent completed every validator over these private inventories.
+    // Consume one bounded step; the original observed-child lifetime remains.
+    OriginalStored => preparation.phase = Done
     BeginResultEvidence => {
       let child = start_result_evidence_preparation(
         chain.definitions,
@@ -476,6 +490,7 @@ pub fn publication_commit_preparation_fixture_phase(
     return "closed"
   }
   match preparation.phase {
+    OriginalStored => "stored-original"
     BeginResultEvidence | ResultEvidence(_) => "result-evidence"
     BeginBindings | Bindings(_) => "bindings"
     Computation(child) => computation_evidence_check_fixture_phase(child)
