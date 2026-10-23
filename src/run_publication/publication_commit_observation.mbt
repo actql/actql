@@ -45,6 +45,17 @@ pub fn PublicationCommitPreparation::begin_observed_commit(
     chain.max_depth,
     remaining,
   )
+  // A stored read may observe the exact three immutable contracts it just
+  // completely validated. Its inventories are private to this same owner;
+  // general borrowed arrays, copied contracts and changed observations still
+  // take the complete validator above. This does not replace physical reads,
+  // current checks, the observed child or its separate cleanup duty.
+  if inputs.origin is StoredInputs &&
+    physical_equal(stored_request, inputs.request) &&
+    physical_equal(stored_attempt, inputs.attempt) &&
+    physical_equal(stored_index, inputs.index_entry) {
+    child.phase = OriginalStored
+  }
   view.observed = Some(child)
   preparation.peak = Int::max(preparation.peak, preparation.live + child.peak)
   Ok(())

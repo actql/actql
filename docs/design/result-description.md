@@ -401,3 +401,15 @@ If the original managed cancel fails, the Unknown keeps its retirement pending
 and retries only that same cancel after resolution, without another semantic
 reconciliation. A terminal failure and a retirement failure remain distinct
 causes; neither is converted into a physical cleanup acknowledgement.
+
+## Stored publication validation reuse
+
+The stored-publication loader creates its dependency inventories privately and
+fully validates their contracts, identities and relationships before exposing
+a read view. If observed-commit confirmation selects that view's exact original
+request, attempt and index, the same owner consumes the completed validation in
+one bounded step. The observed child, workspace admission and explicit release
+remain separate. Caller-borrowed inventories, copied contracts and changed
+observations retain the complete validator. This ownership provenance contains
+no permission or physical-current fact; the Host still authenticates and fences
+the actual selected rows and retains their loans through response cleanup.
