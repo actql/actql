@@ -519,6 +519,25 @@ function capturedComputationLifetime(control, capturedRun) {
 }
 
 async function lookupOriginalCommit(primary, lookup) {
+  // A native storage mutation can retain its original confirmation duty.
+  // Reconciliation cannot read through that pending writer before its own
+  // bounded cleanup runs. This is not another commit request or an ACK.
+  if (member(primary, 'code') === 'PublicationMetadataCommitOutcomeUnknown' &&
+      member(primary, 'outcome') === 'unknown' &&
+      member(primary, 'cleanupPending') === true) {
+    const cleanup = member(primary, 'cleanupHandle');
+    const retry = member(cleanup, 'retry'), status = member(cleanup, 'status');
+    if (typeof retry === 'function' && typeof status === 'function') {
+      try {
+        if (member(Reflect.apply(status, cleanup, []), 'pending') === true) {
+          await Reflect.apply(retry, cleanup, []);
+        }
+      } catch {
+        // Retain the primary and the same pending owner. Only the actual
+        // lookup and existing complete commit validation may resolve it.
+      }
+    }
+  }
   return lookup();
 }
 
