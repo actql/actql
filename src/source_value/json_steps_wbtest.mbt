@@ -40,6 +40,35 @@ fn resumable_parse(
 }
 
 ///|
+test "transition lookahead preserves child attachment delimiters and exact failures" {
+  let wire = "{\"a\":[{},true,null],\"b\":[] }"
+  let parsed = resumable_parse(wire, limits()).unwrap()
+  assert_eq(parsed.usage, { input_bytes: wire.length(), nodes: 6, depth: 3, })
+  guard parsed.node.value is Object(fields) else { fail("object") }
+  assert_eq(fields.map(f => f.key), ["a", "b"])
+  guard fields[0].value.value is Array(items) else { fail("array") }
+  guard items[0].value is Object(empty) else { fail("empty object") }
+  assert_true(empty.is_empty())
+  assert_true(items[1].value is Bool(true))
+  assert_true(items[2].value is Null)
+  guard fields[1].value.value is Array(empty) else { fail("empty array") }
+  assert_true(empty.is_empty())
+  for
+    (text, issue, offset) in [
+      ("{\"a\"1}", ExpectedColon, 4),
+      ("[0 1]", ExpectedArraySeparator, 3),
+      ("{\"a\":0 \"b\":1}", ExpectedObjectSeparator, 7),
+      ("[0,]", UnexpectedToken, 3),
+      ("{}x", TrailingContent, 2),
+    ] {
+    let error = resumable_parse(text, limits()).unwrap_err()
+    assert_eq(error.issue, issue)
+    guard error.location is Source(span) else { fail("source location") }
+    assert_eq(span.start_byte, offset)
+  }
+}
+
+///|
 test "resumable JSON preserves source order, spans, raw strings and usage" {
   let text = "{\"z\":[null,2],\"a\":{\"name\":\"raw\\r\\n\"}}"
   let parsed = resumable_parse(text, limits()).unwrap()

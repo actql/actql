@@ -34,10 +34,22 @@ pub fn start_utf8_admission(
 ///|
 pub fn Utf8Admission::advance(self : Utf8Admission) -> Utf8AdmissionPoll {
   guard self.text is Some(text) else { return Utf8AdmissionTerminal }
+  let length = text.length()
   for _ in 0..<64 {
-    if self.offset == text.length() {
+    if self.offset == length {
       self.text = None
       return Utf8AdmissionComplete(self.bytes)
+    }
+    // ASCII consumes one scalar and one byte without allocating an extent
+    // tuple and Result. Keep the same quantum and first-overflow boundary.
+    if text[self.offset].to_int() < 0x80 {
+      if self.bytes == self.limit {
+        self.cancel()
+        return Utf8AdmissionFailed(LimitExceeded)
+      }
+      self.offset += 1
+      self.bytes += 1L
+      continue
     }
     let (next, width) = match utf8_scalar_extent(text, self.offset) {
       Ok(extent) => extent
