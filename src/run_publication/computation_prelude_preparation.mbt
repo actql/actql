@@ -449,6 +449,19 @@ fn ComputationPreludePreparation::step(
         Ok(value) => value
         Err(issue) => return Err(issue)
       }
+      // The issuer can retain this exact immutable admitted Receipt child.
+      // Its final encoder measured the complete wire, not just the preimage.
+      // New objects and missing/tighter usage retain the full comparison below.
+      if physical_equal(value, inputs.receipt.value) &&
+        publication_contract_check_limits(
+          inputs.receipt,
+          inputs.max_wire_bytes,
+          inputs.max_nodes,
+          inputs.max_depth,
+        )
+        is Ok(_) {
+        return self.continue_after(Capture)
+      }
       return self.check(
         value,
         Wire(inputs.receipt.wire),
