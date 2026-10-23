@@ -185,6 +185,56 @@ test('fresh Store coverage shares its original native schema commit', async t =>
   await reopened.close();
 });
 
+for (const afterCommit of [false, true]) {
+  test(`fresh Store schema keeps its ${afterCommit ? 'committed' : 'rolled-back'} initialization Unknown`, async t => {
+    const directory = await mkdtemp(join(tmpdir(), 'actql-store-initialization-unknown-'));
+    t.after(() => removeFixtureDirectory(directory));
+    const configuration = {directory, storeAuthorityCid: cids.authority,
+      capacityBytes: 1024 * 1024, maxObjectBytes: 64 * 1024,
+      maxObjects: 100, maxContractNodes: limits.maxNodes, maxContractDepth: limits.maxDepth};
+    const exec = DatabaseSync.prototype.exec;
+    const originalFailure = Object.assign(new Error('initial schema COMMIT reply unavailable'), {code: 'EIO'});
+    let schema = false, lost = false, creations = 0;
+    t.mock.method(DatabaseSync.prototype, 'exec', function(sql) {
+      if (sql.startsWith('CREATE TABLE coverage (')) {schema = true; creations++;}
+      if (schema && !lost && sql === 'COMMIT') {
+        lost = true;
+        if (afterCommit) Reflect.apply(exec, this, [sql]);
+        throw originalFailure;
+      }
+      return Reflect.apply(exec, this, [sql]);
+    });
+    let unknown;
+    await assert.rejects(openLocalPublicationStore(configuration, contractControl), error => {
+      unknown = error;
+      return error.code === 'DeliveryAttemptIndexCommitOutcomeUnknown' &&
+        error.outcome === 'unknown' && error.cause === originalFailure;
+    });
+    assert.equal(lost, true);
+    assert.equal(creations, 1);
+    assert.deepEqual(JSON.parse(await readFile(join(directory, 'delivery-attempts-index.json'), 'utf8')),
+      {version: 1, phase: 'building'});
+    await assert.rejects(stat(join(directory, 'owner')), code('ENOENT'));
+    const database = new DatabaseSync(join(directory, 'delivery-attempts.sqlite3'), {readOnly: true});
+    try {
+      const names = database.prepare("SELECT name FROM sqlite_schema WHERE type='table'").all();
+      assert.equal(names.some(row => row.name === 'coverage'), afterCommit,
+        'the native transition is either wholly committed or absent');
+      if (afterCommit) {
+        for (const table of ['coverage', 'physical_object_usage', 'publication_recovery',
+          'metadata_deletion_fence_coverage']) {
+          assert.equal(database.prepare(`SELECT complete FROM ${table} WHERE id=1`).get().complete, 1);
+        }
+      }
+    } finally {database.close();}
+    const reopened = await openLocalPublicationStore(configuration, contractControl);
+    assert.equal(creations, afterCommit ? 1 : 2,
+      'an already committed schema is never inserted again; a rolled-back schema keeps legacy adoption');
+    assert.equal(unknown.outcome, 'unknown', 'later format completion never rewrites the original failure');
+    await reopened.close();
+  });
+}
+
 async function legacyInventoryFixture(directory, publicIndexCid) {
   // Compatibility-only fixture for the prior file representation. Transfer
   // this new disposable fixture's exact body before dropping its native copy;
