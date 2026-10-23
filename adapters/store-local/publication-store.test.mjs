@@ -8365,6 +8365,45 @@ test('publication capacity preflight observes limits without reserving',
     assert.deepEqual(store.status(), before);
   });
 
+test('native publication Index and inventory share their real commit without duplicate file metadata', async t => {
+  const {store, directory} = await fixture(t), invocationValue = invocation();
+  const request = publicationRequest(resultDefinition(), digest('native Index publication Run'));
+  const attempt = publicationAttempt(request, 'native Index publication');
+  const prepared = await prepareCommit(store, request, attempt, invocationValue, cids.policy, false, true);
+  const entry = indexEntry(request, attempt, invocationValue, {durable_result_binding_cids: [prepared.binding.identity]});
+  const tracked = new Set(['objects', 'contracts', 'indexes'].map(name => join(directory, name)));
+  const syncs = [], open = fsPromises.open, exec = DatabaseSync.prototype.exec;
+  let commits = 0, armed = true;
+  t.mock.method(DatabaseSync.prototype, 'exec', function(sql) {
+    const result = Reflect.apply(exec, this, [sql]);
+    if (armed && sql === 'COMMIT') commits++;
+    return result;
+  });
+  t.mock.method(fsPromises, 'open', async function(path, ...args) {
+    const handle = await Reflect.apply(open, this, [path, ...args]);
+    if (tracked.has(String(path))) {
+      const sync = handle.sync;
+      t.mock.method(handle, 'sync', function(...syncArgs) {
+        if (armed) syncs.push(String(path));
+        return Reflect.apply(sync, this, syncArgs);
+      });
+    }
+    return handle;
+  });
+  syncBuiltinESMExports();
+  t.after(() => {armed = false; t.mock.restoreAll(); syncBuiltinESMExports();});
+  const committed = await store.commitIndex(wire(entry), prepared.required, prepared.evidence);
+  assert.equal(committed.committed, true);
+  assert.equal(commits, 1, 'Index CAS, immutable body and inventory share the same actual durable transition');
+  assert.deepEqual(syncs, [], 'native Index does not also install filesystem body/Index aliases');
+  assert.deepEqual(await readdir(join(directory, 'indexes')), []);
+  assert.equal((await store.lookupCommittedIndex(indexKeyFor(request), () => true)).public_index_entry_cid,
+    entry.public_index_entry_cid);
+  assert.equal((await store.readSemanticBytes(entry.public_index_entry_cid)).toString(), wire(entry));
+  armed = false;
+  await store.close();
+});
+
 test('native publication inventory is the durable original without duplicate file ACKs',async t=>{
   const {store,directory}=await fixture(t),invocationValue=invocation();
   const request=publicationRequest(resultDefinition(),digest('native inventory Run'));
