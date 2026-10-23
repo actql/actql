@@ -59,8 +59,10 @@ drive.contents (notes)   ─┘             │                 │
 - **If it crashes halfway, it resumes safely.** The Run (one execution) never
   repeats completed work, and writes with an unknown outcome are never blindly
   resent.
-- **The engine is open source.** It is Apache 2.0: authentication, retries,
-  resuming, and the checks before a write are all code you can read here.
+- **Open source, and it starts on your machine.** Apache 2.0, so
+  authentication, retries, resuming, and the checks before a write are all
+  code you can read here. Like SQLite or DuckDB, it runs from the CLI or as a
+  library: no server to stand up, no account to create.
 
 ## 2. Get started
 
