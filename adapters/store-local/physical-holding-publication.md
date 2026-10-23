@@ -433,6 +433,10 @@ inventory, bindings, progress and quota reservation in the existing writer
 collection. Concurrent acquisitions share that existing unresolved duty; they
 cannot replace it with another writer. Cleanup confirms storage first through
 the same original write/COMMIT, then resolves the original payload custody.
+Repeated lost confirmation replies keep the original supplied revision fixed
+for identity, while the same native holder tracks the before/after revision of
+its most recent actual write. Each retry accepts only that bounded pair and
+performs another real write/COMMIT; an unrelated revision jump still refuses.
 It neither resends an Effect nor issues another Run, receipt or approval.
 Failed custody construction returns only its unconsumed staging reservation.
 Native close, actual payload cleanup and the original publication/computation

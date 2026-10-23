@@ -4225,7 +4225,7 @@
     {
       "module": "adapters/store-local/delivery-attempt-index.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "5064a429d428778fd7f87c35736f4a48c3da1668e45eaa7ef6941739162f6200",
+      "sha256": "80d3a51719cd942573512276b4e25b10c5d67ffac888a2aa1144f2aa9129029a",
       "exports": [
         "openDeliveryAttemptIndex"
       ],
@@ -6459,6 +6459,10 @@
               {
                 "path": "adapters/store-local/delivery-attempt-index.test.mjs",
                 "anchor": "native Index schema adoption retains its"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "native Index confirmation retains its same cleanup through two committed lost replies"
               }
             ]
           }
