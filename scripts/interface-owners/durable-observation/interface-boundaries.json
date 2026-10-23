@@ -246,7 +246,7 @@
     {
       "module": "adapters/host-common/observation.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "107de7d6a7bccde0cd268f921213170db974c697643acdecfd7a00085eb4c7d3",
+      "sha256": "cfd1bc566e11ad55fd3d4306ff16e1ab3c26aeed97f8c373c5340357a40a933c",
       "exports": [
         "captureManagedRunObservation",
         "createHostObservationConnection",
@@ -285,7 +285,16 @@
           "name": "accumulateSelectedRows",
           "parameters": [
             "context",
-            "detail"
+            "detail",
+            "pendingLimit"
+          ],
+          "async": false
+        },
+        {
+          "name": "bindSelectedRequestRows",
+          "parameters": [
+            "detail",
+            "binding"
           ],
           "async": false
         },
@@ -956,7 +965,8 @@
           "operations": [
             "<anonymous>#3",
             "accumulateSelectedRows",
-            "installHostObservation/flushSelectedRows/flushSelectedRows"
+            "installHostObservation/flushSelectedRows/flushSelectedRows",
+            "bindSelectedRequestRows"
           ],
           "exports": [],
           "attributes": {
@@ -967,7 +977,11 @@
               },
               {
                 "path": "adapters/host-common/observation.mjs",
-                "anchor": "function accumulateSelectedRows(context, detail) {"
+                "anchor": "function accumulateSelectedRows(context, detail, pendingLimit = 0) {"
+              },
+              {
+                "path": "adapters/host-common/observation.mjs",
+                "anchor": "function bindSelectedRequestRows(detail, binding) {"
               }
             ],
             "inputsOutputs": [
@@ -988,6 +1002,10 @@
               {
                 "path": "adapters/host-common/observation.mjs",
                 "anchor": "const ref = event === 'selected_rows_observed' ? facts.ref : facts.ref ?? context?.ref;"
+              },
+              {
+                "path": "adapters/host-common/observation.mjs",
+                "anchor": "request.requestId === binding.requestId) {"
               }
             ],
             "ownership": [
@@ -998,6 +1016,10 @@
               {
                 "path": "adapters/host-common/observation.mjs",
                 "anchor": "context.selectedRowsClosed = true; context.selectedRows = undefined;"
+              },
+              {
+                "path": "adapters/host-common/observation.mjs",
+                "anchor": "context.pendingRequestRows = context.selectedRequestBinding = undefined;"
               }
             ],
             "synchronization": [
@@ -1038,6 +1060,10 @@
               {
                 "path": "adapters/host-common/observation.mjs",
                 "anchor": "const attributes = Object.freeze({'actql.rows.owner': rows.rowOwner,"
+              },
+              {
+                "path": "adapters/host-common/observation.mjs",
+                "anchor": "if (pending.length >= pendingLimit) {context.selectedRowsUnavailable = true; return false;}"
               }
             ],
             "extension": [
@@ -1062,6 +1088,10 @@
               {
                 "path": "adapters/host-common/observation.test.mjs",
                 "anchor": "test('selected row diagnostics refuse contextless or late facts instead of creating another operation frame'"
+              },
+              {
+                "path": "adapters/host-node/client-submission-operation.test.mjs",
+                "anchor": "test('request-key selected rows bind only through the same accepted original Run'"
               }
             ]
           }

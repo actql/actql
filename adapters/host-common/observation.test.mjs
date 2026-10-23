@@ -12,6 +12,95 @@ const turn = () => new Promise(resolve => setImmediate(resolve));
 const selectedRows = (extra = {}) => ({ref, rowOwner: 'request-journal', selection: 'run-definition',
   rowKind: 'run', returnedRows: 1, unrelatedRows: 0, coverage: 'selected-returned', ...extra});
 
+const requestRows = (requestId = 'original-request', extra = {}) => selectedRows({
+  ref: undefined, selection: 'request', unrelatedRows: undefined,
+  requestSelection: {authorityScopeCid: ref.authorityScopeCid, requestId},
+  selectedRowRef: {...ref}, ...extra});
+
+test('request selection metadata is copied and resolved only by the matching accepted original', async () => {
+  const records = [];
+  const observer = installHostObservation(createHostObservationConnection({
+    deliver: record => records.push(record), include: ['run'],
+    measurements: {include: ['rows']}, events: {level: 'diagnostic'},
+  }), {runId: () => 'actual-original',
+    journal: {observationStorage: () => ({consume: () => ({accepted: true})})}});
+  await observer.run('submit', trace, () => {
+    const original = requestRows();
+    observer.diagnostic('selected_rows_observed', original);
+    original.requestSelection.requestId = 'changed-after-capture';
+    original.selectedRowRef.runDefinitionCid = `sha256:${'c'.repeat(64)}`;
+    observer.diagnostic('selected_rows_observed', selectedRows({ref: undefined,
+      returnedRows: 0, unrelatedRows: undefined, runSelectionCid: ref.runDefinitionCid}));
+    observer.accepted({ref, inserted: false}, 'original-request');
+    observer.diagnostic('selected_rows_observed', requestRows());
+  });
+  await observer.close();
+  const [rows] = records.filter(record => record.event === 'selected_rows_observed');
+  assert.equal(rows.attributes['actql.rows.returned'], 2);
+  assert.equal(rows.attributes['actql.rows.unrelated'], 0);
+  assert.equal(rows.attributes['actql.run.definition_cid'], ref.runDefinitionCid);
+  assert.equal(JSON.stringify(records).includes('original-request'), false);
+  assert.deepEqual(observer.status().loss, {});
+});
+
+for (const kind of ['missing', 'wrong-request', 'foreign-scope', 'previous-operation']) {
+  test('request selection keeps original binding unavailable for ' + kind, async () => {
+    const records = [];
+    const observer = installHostObservation(createHostObservationConnection({
+      deliver: record => records.push(record), include: ['run'],
+      measurements: {include: ['rows']}, events: {level: 'diagnostic'},
+    }), {runId: () => 'unrelated-original',
+      journal: {observationStorage: () => ({consume: () => ({accepted: true})})}});
+    if (kind === 'previous-operation') await observer.run('submit', trace,
+      () => observer.accepted({ref, inserted: false}, 'original-request'));
+    await observer.run('read', trace, () => {
+      observer.diagnostic('selected_rows_observed', requestRows());
+      if (kind === 'wrong-request') observer.accepted({ref, inserted: false}, 'other-request');
+      if (kind === 'foreign-scope') observer.accepted({ref: {...ref,
+        authorityScopeCid: `sha256:${'f'.repeat(64)}`}, inserted: false}, 'original-request');
+    });
+    await observer.close();
+    const rows = records.filter(record => record.event === 'selected_rows_observed');
+    assert.equal(rows.length, 1);
+    assert.equal(rows[0].attributes['actql.rows.returned'], 1);
+    assert.equal(Object.hasOwn(rows[0].attributes, 'actql.rows.unrelated'), false);
+    assert.equal(Object.hasOwn(rows[0].attributes, 'actql.run.definition_cid'), false);
+  });
+}
+
+test('an actually different selected row is classified unrelated instead of acquiring accepted identity', async () => {
+  const records = [];
+  const observer = installHostObservation(createHostObservationConnection({
+    deliver: record => records.push(record), include: ['run'],
+    measurements: {include: ['rows']}, events: {level: 'diagnostic'},
+  }), {runId: () => 'actual-original',
+    journal: {observationStorage: () => ({consume: () => ({accepted: true})})}});
+  await observer.run('submit', trace, () => {
+    observer.diagnostic('selected_rows_observed', requestRows('original-request', {
+      selectedRowRef: {...ref, runDefinitionCid: `sha256:${'c'.repeat(64)}`}}));
+    observer.accepted({ref, inserted: false}, 'original-request');
+  });
+  await observer.close();
+  const [rows] = records.filter(record => record.event === 'selected_rows_observed');
+  assert.equal(rows.attributes['actql.rows.returned'], 1);
+  assert.equal(rows.attributes['actql.rows.unrelated'], 1);
+});
+
+test('unresolved request selections are bounded by the existing operation record limit', async () => {
+  const records = [];
+  const observer = installHostObservation(createHostObservationConnection({
+    deliver: record => records.push(record), include: ['run'], limits: {requestRecords: 8},
+    measurements: {include: ['rows']}, events: {level: 'diagnostic'},
+  }), {journal: {observationStorage: () => ({consume: () => ({accepted: true})})}});
+  await observer.run('submit', trace, () => {
+    for (let index = 0; index < 9; index++) observer.diagnostic('selected_rows_observed', requestRows());
+    observer.accepted({ref, inserted: false}, 'original-request');
+  });
+  await observer.close();
+  assert.equal(records.filter(record => record.event === 'selected_rows_observed').length, 0);
+  assert.equal(observer.status().loss.rowsUnavailable, 1);
+});
+
 test('Run identity lookup contributes its actual row before the final selected-row record closes', async () => {
   const records = []; let lookups = 0, observer;
   observer = installHostObservation(createHostObservationConnection({

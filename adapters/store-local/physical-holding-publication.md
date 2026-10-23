@@ -19,6 +19,36 @@ durability acknowledgement. Selected physical evidence, current permission,
 claim/CAS, original Unknown confirmation and real cleanup remain independent.
 No cross-operation Index cache or additional publication authority is created.
 
+After a new Store commit acknowledges the exact issued Index identity, the
+same publication caller retains that original wrapper for finalization and its
+return value instead of reading the same contract again. This does not replace
+the actual Store commit, evidence validation, Index installation or cleanup.
+Idempotent commits, different winners and reconciliation still select their
+actual stored Index; an unsuccessful or pending commit cannot select this path.
+Attempt finalization and terminal/Unknown computation retirement stay separate.
+
+## Selected native evidence originals
+
+The existing publication operation reader receives the same issued evidence
+wrapper already held by its caller. A native read still selects the actual row
+by CID and compares its name, identity and complete wire before the existing
+contract control may recognize that original under the current limits. A
+changed row, unrecognized original or omitted control takes full admission;
+refusal or a malformed nominal response cannot become successful fallback.
+This only removes re-admission of equal immutable input, not the selected read.
+
+The existing commit-local original map owns that observation. A later public
+reader or commit reacquires and admits its own selected row; no Store-wide
+permission or disk-health cache is installed. Full admission cannot make a
+copied evidence wrapper nominal for the final chain Owner. Actual payload
+verification, physical FD cleanup, current checks, claim/CAS, durable mutation
+and same-original Unknown confirmation are unchanged.
+
+Independent verification adapts its default reader to the two supported CID
+and representation arguments. A private commit's optional contract hint never
+becomes the low-level reader's distinct generation-retention flag. Supplied
+operation readers retain their explicit original-forwarding contract.
+
 ## Original ownership retirement
 
 The existing Store ownership handle remembers successful owner-record unlink
