@@ -4,6 +4,7 @@ import {mkdtemp, rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {promisify} from 'node:util';
+import {fileURLToPath} from 'node:url';
 import test from 'node:test';
 import {open} from '../../packages/node/index.mjs';
 
@@ -62,3 +63,12 @@ for (const n of [100, 500, 1000]) for (const read of [false, true]) {
     }
   });
 }
+
+test('genuine pending Values read retains store exclusion across processes', async () => {
+  const fixture = new URL('./fixtures/values-cleanup-contention.fixture.mjs', import.meta.url);
+  const {stdout} = await exec(process.execPath,
+    ['--experimental-test-module-mocks', fileURLToPath(fixture)], {timeout: 30000});
+  const observed = stdout.split('\n').find(line => line.startsWith('{"pendingRead"'));
+  assert.deepEqual(JSON.parse(observed), {pendingRead: true, busy: true,
+    originalReleased: true, reopenedOriginalRows: 500, registrations: 1});
+});
