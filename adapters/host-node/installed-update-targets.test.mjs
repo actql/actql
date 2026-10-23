@@ -25,8 +25,9 @@ import {assertUpdateTargetSelectionCurrent, assertUpdateTargetSelectionMembersCu
   createUpdateTargetOriginalShapeControl, updateTargetSelectionsCid,
   originalUpdateTargetSelectionsCid} from './update-target-original-shape.mjs';
 
-const runtimeUrl = new URL('../../_build/js/release/build/' +
-  'connectors_builtin_node/connectors_builtin_node.js', import.meta.url);
+const runtimeUrl = process.env.ACTQL_TEST_COMMON_RUNTIME === undefined
+  ? new URL('../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js', import.meta.url)
+  : new URL(process.env.ACTQL_TEST_COMMON_RUNTIME, 'file:');
 const moon = await import(runtimeUrl.href);
 const baseWire = (await readFile(new URL('../../spec/local-check-environment.json',
   import.meta.url), 'utf8')).trimEnd();
@@ -180,6 +181,54 @@ function originalOwnerFixture(installed) {
   const originals = installUpdateTargetOriginals({moon, control, installedEffect: installed, limits});
   return {prepared, compilation, originals, control, limits};
 }
+
+test('original submitted intent binds UPDATE evidence after one shape admission', async t => {
+  const f = await fixture(t);
+  const installed = await loadInstalledEffect(await f.path([alias()]), f.options);
+  let journal;
+  try {
+    const owner = originalOwnerFixture(installed);
+    const originalShape = createUpdateTargetOriginalShapeControl(moon);
+    let shapes = 0;
+    journal = openClientRequestJournal(join(f.root, 'intent-evidence'), {
+      updateOriginalControl: Object.freeze({run(...args) {
+        shapes++;
+        return originalShape.run(...args);
+      }}),
+    });
+    const authorityScopeCid = cid('a'), fields = {authorityScopeCid, currentAuthorization: true};
+    const submissionRef = {epoch: journal.issueSubmissionEpoch(fields, moon), nonce: 'one-original-shape'};
+    const text = "SELECT 'id' AS id, 'Ada' AS name |> RESULT updates |> EFFECT UPDATE crm.Account FROM RESULT updates ID id SET (Name = name)";
+    const intent = moon.clientSubmittedIntent(JSON.stringify({kind: 'aql',
+      input: {text, format: 'aql-text'}, parameters: null}), 1048576, 65536, 64);
+    assert.ok(intent);
+    const recorded = journal.recordSubmittedIntent(submissionRef, intent, fields, moon);
+    const identity = moon.clientProgramEffectRequestIdentity(owner.prepared,
+      authorityScopeCid, recorded.requestId, moon.clientProgramSourceFreeInputIntentCid());
+    assert.ok(identity);
+    const allowed = checked(moon.clientProgramIssueAllowedEffectRun(owner.compilation,
+      cid('1'), cid('2'), '2099-01-01T00:00:00.000Z'));
+    const definition = checked(moon.clientProgramIssueEffectRunDefinition(allowed,
+      'intent-update', 'intent-update-run', '2026-10-16T00:00:00.000Z', '2099-01-01T00:00:00.000Z'));
+    const runDefinition = owner.control.admit('run_definition', moon.strategyPublicationContractJson(definition), owner.limits);
+    const original = owner.originals.captureRun({...owner, allowed, definition, identity});
+    const evidence = {
+      prepared: moon.strategyRunEvidenceJson(moon.clientProgramAllowedEffectRunPrepared(allowed)),
+      authorization: moon.strategyRunEvidenceJson(moon.clientProgramAllowedEffectRunAuthorization(allowed)),
+      updateTargetRunOriginal: original,
+    };
+    const accepted = journal.acceptDefinition(identity, {namespaceId: 'intent-update', runDefinition,
+      runAdmissionEvidence: evidence, lookupExpiresAt: '2099-01-01T00:00:00.000Z',
+      submission: {...submissionRef, currentAuthorization: true, intentCid: recorded.intentCid}}, moon, owner.control);
+    assert.equal(shapes, 1, 'Adding the checked intent CID does not re-admit unchanged UPDATE materials');
+    assert.deepEqual(accepted.runAdmissionEvidence, {...evidence, submittedIntentCid: recorded.intentCid});
+    const retained = journal.lookupRunDefinition(accepted.ref, moon, owner.control);
+    assert.equal(shapes, 2, 'A distinct stored observation still admits its actual evidence');
+    assert.deepEqual(retained.runAdmissionEvidence, accepted.runAdmissionEvidence);
+    assert.equal(f.counts.prepares, 0);
+    assert.equal(f.counts.credentials, 0);
+  } finally {journal?.close(); await installed.close();}
+});
 
 test('actual JSON UPDATE preparation retains the installed selection in its original Run', async t => {
   const f = await fixture(t);
