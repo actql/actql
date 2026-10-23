@@ -1875,6 +1875,18 @@ check: nested originals, complete same-Store inventories, current authority,
 authenticated epoch and physical COMMIT still require their existing Owners.
 The returned Unit is not an acknowledgement, start permit or public Run state.
 
+Within one synchronous publication-binding relationship check, the private
+submitted-row helper returns its first decoded Run encoding and original
+metadata after all existing relationship checks succeed. The public validator
+still returns only Unit. Publication binding consumes that same typed result
+for its cancellation, Checkpoint and Effect-original refusals instead of
+decoding the identical bytes again. No callback or physical operation occurs
+between those uses. Each later observation, changed row or CAS successor runs
+its own relationship check; no row/revision cache or new proof input is added.
+Current authorization, exact prior/successor comparisons and physical COMMIT
+remain with their existing owners.
+
+
 ## Original saved-journal physical port
 
 Private ABI 48 connects the original complete journal inspection to a trusted

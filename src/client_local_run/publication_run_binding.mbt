@@ -91,12 +91,16 @@ fn[Store, E] publication_binding_saved_rows(
   original : LocalRunPublicationBinding[Store, E],
   run : @host.ClientJournalPhysicalRow,
   submitted : @host.ClientJournalPhysicalRow,
+  decode_run? : (Bytes) -> Result[
+    (@host.ClientRunJournalEncoding, String?, String?),
+    @host.ClientJournalDecodingIssue,
+  ] = @host.decode_client_run_journal_row_with_observation_originals,
 ) -> Result[
   (@host.ClientRunJournalEncoding, String?, String?),
   LocalRunPublicationBindingIssue[E],
 ] {
-  match
-    validate_local_saved_submitted_rows(
+  let decoded = match
+    local_saved_submitted_row_originals(
       original.rows,
       original.plan,
       original.preparation,
@@ -106,14 +110,10 @@ fn[Store, E] publication_binding_saved_rows(
       submitted.key,
       submitted.revision,
       submitted.body,
+      decode_run~,
     ) {
-    Ok(_) => ()
-    Err(issue) => return Err(SavedRows(issue))
-  }
-  let decoded = match
-    @host.decode_client_run_journal_row_with_observation_originals(run.body) {
     Ok(value) => value
-    Err(_) => return Err(CustodyLost)
+    Err(issue) => return Err(SavedRows(issue))
   }
   let (encoding, _, _) = decoded
   if encoding.cancellation_requested ||
