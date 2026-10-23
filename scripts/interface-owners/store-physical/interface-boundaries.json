@@ -254,7 +254,7 @@
     {
       "module": "adapters/local-node/managed-output-custody.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "c7b9c981d1e7363a8c65b3febe8a50176a52b677c3b106fedfedb979f933e479",
+      "sha256": "ccea4d1f193ae58d588f63be824d435a119df6e63c7ac31bd9f827b89e1eaaf7",
       "exports": [
         "closeCompletedLocalManagedOutput"
       ],
@@ -267,6 +267,41 @@
             "progress"
           ],
           "async": false
+        },
+        {
+          "name": "retainProgressingCleanup",
+          "parameters": [
+            "failure",
+            "operations"
+          ],
+          "async": false
+        },
+        {
+          "name": "retainProgressingCleanup/retainProgressingCleanup",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "retainProgressingCleanup/retry/retry",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "retainProgressingCleanup/retry/retry/retry",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "retainProgressingCleanup/retry/retry/retry/retry",
+          "parameters": [
+            "resolve"
+          ],
+          "async": false
+        },
+        {
+          "name": "retainProgressingCleanup/retry/retry/retry#2",
+          "parameters": [],
+          "async": false
         }
       ],
       "role": "physical-io",
@@ -275,7 +310,13 @@
         {
           "operations": [
             "<module>",
-            "closeCompletedLocalManagedOutput"
+            "closeCompletedLocalManagedOutput",
+            "retainProgressingCleanup",
+            "retainProgressingCleanup/retainProgressingCleanup",
+            "retainProgressingCleanup/retry/retry",
+            "retainProgressingCleanup/retry/retry/retry",
+            "retainProgressingCleanup/retry/retry/retry/retry",
+            "retainProgressingCleanup/retry/retry/retry#2"
           ],
           "exports": [
             "closeCompletedLocalManagedOutput"
@@ -325,12 +366,20 @@
               {
                 "path": "docs/design/local-relation-storage.md",
                 "anchor": "publication remains atomic"
+              },
+              {
+                "path": "adapters/local-node/managed-output-custody.mjs",
+                "anchor": "current <= previous"
               }
             ],
             "failure": [
               {
                 "path": "adapters/store-local/managed-representations.test.mjs",
                 "anchor": "test("
+              },
+              {
+                "path": "adapters/local-node/managed-output-custody.test.mjs",
+                "anchor": "completed Local output stops automatic drain at a physical cleanup stall"
               }
             ],
             "cancellation": [
@@ -343,6 +392,10 @@
               {
                 "path": "docs/design/local-relation-storage.md",
                 "anchor": "backing storage until its final owner is gone"
+              },
+              {
+                "path": "src/execution_relation/managed_output_values.mbt",
+                "anchor": "managed_output_values_reclamation_steps"
               }
             ],
             "extension": [
@@ -363,6 +416,10 @@
               {
                 "path": "adapters/store-local/managed-memory-transfer.test.mjs",
                 "anchor": "test("
+              },
+              {
+                "path": "adapters/host-node/embedded-values-cleanup.test.mjs",
+                "anchor": "closes and reopens original Result"
               }
             ]
           }
@@ -4052,7 +4109,7 @@
     {
       "module": "adapters/store-local/publication-commit-owner.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "f4f706e288bd9450299def8dbfc3df0ecf40a46028ed359368bc6a704166144f",
+      "sha256": "2710bff73517e90a2c3dde4ff738d193a063feb5b7bd1ee11cdede72188be89c",
       "exports": [
         "createPublicationCommitOwner"
       ],
@@ -4093,6 +4150,26 @@
             "makeFailure"
           ],
           "async": false
+        },
+        {
+          "name": "custodyFailure/custodyFailure/init:retry/init:retry",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "custodyFailure/custodyFailure/init:retry/init:retry/init:retry",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "custodyFailure/custodyFailure/init:retry/init:retry/init:retry#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "custodyFailure/custodyFailure/status/status",
+          "parameters": [],
+          "async": false
         }
       ],
       "role": "physical-io",
@@ -4105,7 +4182,11 @@
             "createPublicationCommitOwner/init:commit/init:commit",
             "createPublicationCommitOwner/init:commit/init:commit/init:commit",
             "createPublicationCommitOwner/sameContent/sameContent",
-            "custodyFailure/custodyFailure"
+            "custodyFailure/custodyFailure",
+            "custodyFailure/custodyFailure/init:retry/init:retry",
+            "custodyFailure/custodyFailure/init:retry/init:retry/init:retry",
+            "custodyFailure/custodyFailure/init:retry/init:retry/init:retry#2",
+            "custodyFailure/custodyFailure/status/status"
           ],
           "exports": [
             "createPublicationCommitOwner"
@@ -4115,6 +4196,10 @@
               {
                 "path": "adapters/store-local/publication-commit-owner.mjs",
                 "anchor": "One public-index commit attempt"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "### Native Index publication"
               }
             ],
             "inputsOutputs": [
@@ -4137,6 +4222,10 @@
               {
                 "path": "adapters/store-local/publication-commit-owner.mjs",
                 "anchor": "custody = operations.beginCustody()"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "Cleanup confirms storage first through"
               }
             ],
             "synchronization": [
@@ -4173,16 +4262,27 @@
               {
                 "path": "adapters/store-local/publication-commit-owner.test.mjs",
                 "anchor": "test("
+              },
+              {
+                "path": "adapters/store-local/publication-commit-owner.test.mjs",
+                "anchor": "failed custody construction returns only its staged reservation"
+              },
+              {
+                "path": "adapters/store-local/publication-commit-owner.test.mjs",
+                "anchor": "original storage cleanup precedes payload retry using captured methods and receiver"
               }
             ]
           }
         }
-      ]
+      ],
+      "imports": [],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/store-local/delivery-attempt-index.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "650f1ace535fd130d4f5bc70a9d9650acc9e8e9906fa199c818abc65191a309a",
+      "sha256": "80d3a51719cd942573512276b4e25b10c5d67ffac888a2aa1144f2aa9129029a",
       "exports": [
         "openDeliveryAttemptIndex"
       ],
@@ -4251,6 +4351,38 @@
           "async": false
         },
         {
+          "name": "openDeliveryAttemptIndex/commitNativeIndex/commitNativeIndex",
+          "parameters": [
+            "suppliedKey",
+            "suppliedBody",
+            "suppliedInventory",
+            "suppliedBindings",
+            "allowance",
+            "progress"
+          ],
+          "async": false
+        },
+        {
+          "name": "openDeliveryAttemptIndex/commitNativeIndex/commitNativeIndex/bindings/bindings",
+          "parameters": [
+            "a",
+            "b"
+          ],
+          "async": false
+        },
+        {
+          "name": "openDeliveryAttemptIndex/commitNativeIndex/commitNativeIndex/commitNativeIndex",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "openDeliveryAttemptIndex/commitNativeIndex/commitNativeIndex/commitNativeIndex#2",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "openDeliveryAttemptIndex/completionCopy/completionCopy",
           "parameters": [
             "row"
@@ -4262,6 +4394,18 @@
           "parameters": [
             "wire"
           ],
+          "async": false
+        },
+        {
+          "name": "openDeliveryAttemptIndex/confirmNativeIndex/confirmNativeIndex",
+          "parameters": [
+            "supplied"
+          ],
+          "async": false
+        },
+        {
+          "name": "openDeliveryAttemptIndex/confirmNativeIndex/confirmNativeIndex/confirmNativeIndex",
+          "parameters": [],
           "async": false
         },
         {
@@ -4546,6 +4690,13 @@
           "async": false
         },
         {
+          "name": "openDeliveryAttemptIndex/init:nativePublicationIndex/init:nativePublicationIndex",
+          "parameters": [
+            "metadataKey"
+          ],
+          "async": false
+        },
+        {
           "name": "openDeliveryAttemptIndex/init:nativePublicationInventories/init:nativePublicationInventories",
           "parameters": [],
           "async": false
@@ -4554,6 +4705,31 @@
           "name": "openDeliveryAttemptIndex/init:nativePublicationInventory/init:nativePublicationInventory",
           "parameters": [
             "publicIndexCid"
+          ],
+          "async": false
+        },
+        {
+          "name": "openDeliveryAttemptIndex/init:nativePublicationMaterialReferences/init:nativePublicationMaterialReferences",
+          "parameters": [
+            "materialCid",
+            "afterIndexCid",
+            "afterResultCid"
+          ],
+          "async": false
+        },
+        {
+          "name": "openDeliveryAttemptIndex/init:nativePublicationMaterialReferences/init:nativePublicationMaterialReferences/init:nativePublicationMaterialReferences",
+          "parameters": [
+            "row"
+          ],
+          "async": false
+        },
+        {
+          "name": "openDeliveryAttemptIndex/init:nativePublicationReferenceOwners/init:nativePublicationReferenceOwners",
+          "parameters": [
+            "kind",
+            "referenceCid",
+            "excludedPublicIndexCid"
           ],
           "async": false
         },
@@ -4647,6 +4823,13 @@
           "async": false
         },
         {
+          "name": "openDeliveryAttemptIndex/init:publicationContracts/init:publicationContracts/init:publicationContracts",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
           "name": "openDeliveryAttemptIndex/init:publicationContracts/init:publicationContracts/keys/keys",
           "parameters": [
             "semantic_cid"
@@ -4685,7 +4868,8 @@
           "parameters": [
             "entries",
             "allowance",
-            "progress"
+            "progress",
+            "selection"
           ],
           "async": false
         },
@@ -4935,6 +5119,27 @@
           "async": false
         },
         {
+          "name": "openDeliveryAttemptIndex/nativeIndexCopy/nativeIndexCopy",
+          "parameters": [
+            "row"
+          ],
+          "async": false
+        },
+        {
+          "name": "openDeliveryAttemptIndex/nativeIndexKey/nativeIndexKey",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "openDeliveryAttemptIndex/nativeMaterialCopy/nativeMaterialCopy",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
           "name": "openDeliveryAttemptIndex/openDeliveryAttemptIndex",
           "parameters": [],
           "async": false
@@ -4971,7 +5176,9 @@
         },
         {
           "name": "openDeliveryAttemptIndex/openDeliveryAttemptIndex#14",
-          "parameters": [],
+          "parameters": [
+            "row"
+          ],
           "async": false
         },
         {
@@ -4995,7 +5202,22 @@
           "async": false
         },
         {
+          "name": "openDeliveryAttemptIndex/openDeliveryAttemptIndex#19",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "openDeliveryAttemptIndex/openDeliveryAttemptIndex#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openDeliveryAttemptIndex/openDeliveryAttemptIndex#20",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openDeliveryAttemptIndex/openDeliveryAttemptIndex#21",
           "parameters": [],
           "async": false
         },
@@ -5151,7 +5373,8 @@
             "kind",
             "entries",
             "allowance",
-            "suppliedProgress"
+            "suppliedProgress",
+            "selection"
           ],
           "async": false
         },
@@ -5215,6 +5438,14 @@
           "parameters": [
             "entry",
             "i"
+          ],
+          "async": false
+        },
+        {
+          "name": "openDeliveryAttemptIndex/publicationMutation/publicationMutation/selected/selected",
+          "parameters": [
+            "key",
+            "index"
           ],
           "async": false
         },
@@ -5304,6 +5535,44 @@
           "parameters": [
             "left",
             "right"
+          ],
+          "async": false
+        },
+        {
+          "name": "openDeliveryAttemptIndex/sameNativeIndexKey/sameNativeIndexKey",
+          "parameters": [
+            "a",
+            "b"
+          ],
+          "async": false
+        },
+        {
+          "name": "openDeliveryAttemptIndex/sameNativeIndexKey/sameNativeIndexKey/sameNativeIndexKey",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "openDeliveryAttemptIndex/sameNativeMaterials/sameNativeMaterials",
+          "parameters": [
+            "a",
+            "b"
+          ],
+          "async": false
+        },
+        {
+          "name": "openDeliveryAttemptIndex/sameNativeMaterials/sameNativeMaterials/sameNativeMaterials",
+          "parameters": [
+            "value",
+            "i"
+          ],
+          "async": false
+        },
+        {
+          "name": "openDeliveryAttemptIndex/sameNativeMaterials/sameNativeMaterials/sameNativeMaterials/sameNativeMaterials",
+          "parameters": [
+            "key"
           ],
           "async": false
         },
@@ -5461,8 +5730,14 @@
             "openDeliveryAttemptIndex/captureClose/captureClose",
             "openDeliveryAttemptIndex/checkFence/checkFence",
             "openDeliveryAttemptIndex/close/close",
+            "openDeliveryAttemptIndex/commitNativeIndex/commitNativeIndex",
+            "openDeliveryAttemptIndex/commitNativeIndex/commitNativeIndex/bindings/bindings",
+            "openDeliveryAttemptIndex/commitNativeIndex/commitNativeIndex/commitNativeIndex",
+            "openDeliveryAttemptIndex/commitNativeIndex/commitNativeIndex/commitNativeIndex#2",
             "openDeliveryAttemptIndex/completionCopy/completionCopy",
             "openDeliveryAttemptIndex/completionCopy/completionCopy/completionCopy",
+            "openDeliveryAttemptIndex/confirmNativeIndex/confirmNativeIndex",
+            "openDeliveryAttemptIndex/confirmNativeIndex/confirmNativeIndex/confirmNativeIndex",
             "openDeliveryAttemptIndex/copy/copy",
             "openDeliveryAttemptIndex/exec/exec",
             "openDeliveryAttemptIndex/fenceCopy/fenceCopy",
@@ -5506,8 +5781,12 @@
             "openDeliveryAttemptIndex/init:migratePublicationRecovery/init:migratePublicationRecovery",
             "openDeliveryAttemptIndex/init:migratePublicationRecovery/init:migratePublicationRecovery/init:migratePublicationRecovery",
             "openDeliveryAttemptIndex/init:migratePublicationRecovery/init:migratePublicationRecovery/keys/keys",
+            "openDeliveryAttemptIndex/init:nativePublicationIndex/init:nativePublicationIndex",
             "openDeliveryAttemptIndex/init:nativePublicationInventories/init:nativePublicationInventories",
             "openDeliveryAttemptIndex/init:nativePublicationInventory/init:nativePublicationInventory",
+            "openDeliveryAttemptIndex/init:nativePublicationMaterialReferences/init:nativePublicationMaterialReferences",
+            "openDeliveryAttemptIndex/init:nativePublicationMaterialReferences/init:nativePublicationMaterialReferences/init:nativePublicationMaterialReferences",
+            "openDeliveryAttemptIndex/init:nativePublicationReferenceOwners/init:nativePublicationReferenceOwners",
             "openDeliveryAttemptIndex/init:needsMetadataDeletionFenceMigration/init:needsMetadataDeletionFenceMigration",
             "openDeliveryAttemptIndex/init:needsMigration/init:needsMigration",
             "openDeliveryAttemptIndex/init:needsPublicationRecoveryMigration/init:needsPublicationRecoveryMigration",
@@ -5523,6 +5802,7 @@
             "openDeliveryAttemptIndex/init:publicationAttemptsForRun/init:publicationAttemptsForRun/init:publicationAttemptsForRun",
             "openDeliveryAttemptIndex/init:publicationContract/init:publicationContract",
             "openDeliveryAttemptIndex/init:publicationContracts/init:publicationContracts",
+            "openDeliveryAttemptIndex/init:publicationContracts/init:publicationContracts/init:publicationContracts",
             "openDeliveryAttemptIndex/init:publicationContracts/init:publicationContracts/keys/keys",
             "openDeliveryAttemptIndex/init:publicationContracts/init:publicationContracts/supplied/supplied",
             "openDeliveryAttemptIndex/init:publicationRecords/init:publicationRecords",
@@ -5565,6 +5845,9 @@
             "openDeliveryAttemptIndex/mutatePhysicalPreparation/mutatePhysicalPreparation/retry/retry",
             "openDeliveryAttemptIndex/mutatePublicationRecovery/mutatePublicationRecovery",
             "openDeliveryAttemptIndex/mutatePublicationRecovery/mutatePublicationRecovery/mutatePublicationRecovery",
+            "openDeliveryAttemptIndex/nativeIndexCopy/nativeIndexCopy",
+            "openDeliveryAttemptIndex/nativeIndexKey/nativeIndexKey",
+            "openDeliveryAttemptIndex/nativeMaterialCopy/nativeMaterialCopy",
             "openDeliveryAttemptIndex/openDeliveryAttemptIndex",
             "openDeliveryAttemptIndex/openDeliveryAttemptIndex#10",
             "openDeliveryAttemptIndex/openDeliveryAttemptIndex#11",
@@ -5575,7 +5858,10 @@
             "openDeliveryAttemptIndex/openDeliveryAttemptIndex#16",
             "openDeliveryAttemptIndex/openDeliveryAttemptIndex#17",
             "openDeliveryAttemptIndex/openDeliveryAttemptIndex#18",
+            "openDeliveryAttemptIndex/openDeliveryAttemptIndex#19",
             "openDeliveryAttemptIndex/openDeliveryAttemptIndex#2",
+            "openDeliveryAttemptIndex/openDeliveryAttemptIndex#20",
+            "openDeliveryAttemptIndex/openDeliveryAttemptIndex#21",
             "openDeliveryAttemptIndex/openDeliveryAttemptIndex#3",
             "openDeliveryAttemptIndex/openDeliveryAttemptIndex#4",
             "openDeliveryAttemptIndex/openDeliveryAttemptIndex#5",
@@ -5611,6 +5897,7 @@
             "openDeliveryAttemptIndex/publicationMutation/publicationMutation/publicationMutation/publicationMutation",
             "openDeliveryAttemptIndex/publicationMutation/publicationMutation/publicationMutation/publicationMutation#2",
             "openDeliveryAttemptIndex/publicationMutation/publicationMutation/retry/retry",
+            "openDeliveryAttemptIndex/publicationMutation/publicationMutation/selected/selected",
             "openDeliveryAttemptIndex/readResultRecovery/readResultRecovery",
             "openDeliveryAttemptIndex/recoveryOriginal/recoveryOriginal",
             "openDeliveryAttemptIndex/recoveryState/recoveryState",
@@ -5626,6 +5913,11 @@
             "openDeliveryAttemptIndex/sameCompletion/sameCompletion",
             "openDeliveryAttemptIndex/sameCompletion/sameCompletion/sameCompletion",
             "openDeliveryAttemptIndex/sameFence/sameFence",
+            "openDeliveryAttemptIndex/sameNativeIndexKey/sameNativeIndexKey",
+            "openDeliveryAttemptIndex/sameNativeIndexKey/sameNativeIndexKey/sameNativeIndexKey",
+            "openDeliveryAttemptIndex/sameNativeMaterials/sameNativeMaterials",
+            "openDeliveryAttemptIndex/sameNativeMaterials/sameNativeMaterials/sameNativeMaterials",
+            "openDeliveryAttemptIndex/sameNativeMaterials/sameNativeMaterials/sameNativeMaterials/sameNativeMaterials",
             "openDeliveryAttemptIndex/sameOptionalPhysical/sameOptionalPhysical",
             "openDeliveryAttemptIndex/samePhysical/samePhysical",
             "openDeliveryAttemptIndex/samePhysical/samePhysical/samePhysical",
@@ -5706,6 +5998,14 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "### Settled Result deletion recovery"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "### Indexed native metadata references"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "### Native Index publication"
               }
             ],
             "inputsOutputs": [
@@ -5723,7 +6023,7 @@
               },
               {
                 "path": "adapters/store-local/delivery-attempt-index.mjs",
-                "anchor": "putPublicationContracts(entries, allowance, progress) { return publicationMutation('put',entries,allowance,progress); },"
+                "anchor": "putPublicationContracts(entries, allowance, progress, selection) {"
               },
               {
                 "path": "adapters/store-local/delivery-attempt-index.mjs",
@@ -5732,6 +6032,10 @@
               {
                 "path": "adapters/store-local/delivery-attempt-index.mjs",
                 "anchor": "stageNativePublicationInventory(value) {"
+              },
+              {
+                "path": "adapters/store-local/delivery-attempt-index.mjs",
+                "anchor": "nativePublicationReferenceOwners(kind, referenceCid, excludedPublicIndexCid) {"
               },
               {
                 "path": "adapters/store-local/delivery-attempt-index.mjs",
@@ -5798,6 +6102,10 @@
               {
                 "path": "docs/design/result-description.md",
                 "anchor": "bodies, complete quota change and attempt locator in the same transaction."
+              },
+              {
+                "path": "adapters/store-local/delivery-attempt-index.mjs",
+                "anchor": "const key = nativeIndexKey(suppliedKey)"
               }
             ],
             "ownership": [
@@ -6160,6 +6468,58 @@
               {
                 "path": "adapters/store-local/publication-store.test.mjs",
                 "anchor": "fresh Store schema keeps its ${afterCommit ? 'committed' : 'rolled-back'} initialization Unknown"
+              },
+              {
+                "path": "adapters/store-local/delivery-attempt-index.test.mjs",
+                "anchor": "native reference selection binds kind CID and excluded owner without unrelated inventory reads"
+              },
+              {
+                "path": "adapters/store-local/delivery-attempt-index.test.mjs",
+                "anchor": "native reference coverage upgrades version eleven once and later opens read no inventory history"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "native shared holding selection reads only owners of that holding"
+              },
+              {
+                "path": "adapters/store-local/delivery-attempt-index.test.mjs",
+                "anchor": "publication mutation consumes only its original unchanged preflight once"
+              },
+              {
+                "path": "adapters/store-local/delivery-attempt-index.test.mjs",
+                "anchor": "publication preflight copies foreign keys and actual mutation keep full selection"
+              },
+              {
+                "path": "adapters/store-local/delivery-attempt-index.test.mjs",
+                "anchor": "native Index commits its complete key body inventory and payload owners atomically"
+              },
+              {
+                "path": "adapters/store-local/delivery-attempt-index.test.mjs",
+                "anchor": "native Index quota and duplicate binding refusal install no partial owner"
+              },
+              {
+                "path": "adapters/store-local/delivery-attempt-index.test.mjs",
+                "anchor": "native Index ${phase} retains its"
+              },
+              {
+                "path": "adapters/store-local/delivery-attempt-index.test.mjs",
+                "anchor": "native Index refuses adopted ${missing} loss"
+              },
+              {
+                "path": "adapters/store-local/delivery-attempt-index.test.mjs",
+                "anchor": "native Index format adoption leaves legacy inventory originals untouched and does not scan history"
+              },
+              {
+                "path": "adapters/store-local/delivery-attempt-index.test.mjs",
+                "anchor": "native Index material lookup pages only the selected material owners"
+              },
+              {
+                "path": "adapters/store-local/delivery-attempt-index.test.mjs",
+                "anchor": "native Index schema adoption retains its"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "native Index confirmation retains its same cleanup through two committed lost replies"
               }
             ]
           }
@@ -6169,7 +6529,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "972cec6da4f8f934d1a5bcf9a4dc93714594bf6980157592a85e168e46ea1343",
+      "sha256": "9a238db3c1d35033dbef9f0142bbf8d7d8932d248d9e55e63793f2a4a5523f93",
       "exports": [
         "PublicationStoreError",
         "assertOriginalLocalPublicationStoreFacilityCurrent",
@@ -6434,6 +6794,21 @@
             "cid",
             "name",
             "retained"
+          ],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/admitNativeIndexOriginal/admitNativeIndexOriginal",
+          "parameters": [
+            "native",
+            "expectedKey"
+          ],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/admitNativeIndexOriginal/admitNativeIndexOriginal/admitNativeIndexOriginal",
+          "parameters": [
+            "field"
           ],
           "async": false
         },
@@ -6838,6 +7213,11 @@
           "async": false
         },
         {
+          "name": "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/init:cancelStage/init:cancelStage",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/init:conflict/init:conflict",
           "parameters": [],
           "async": false
@@ -6848,6 +7228,13 @@
             "markInstalled"
           ],
           "async": true
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/init:install/init:install/init:install",
+          "parameters": [
+            "result"
+          ],
+          "async": false
         },
         {
           "name": "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/init:sameContent/init:sameContent",
@@ -6861,6 +7248,28 @@
           "name": "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/init:stage/init:stage",
           "parameters": [],
           "async": true
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/init:stage/init:stage/bindings/bindings",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/init:stage/init:stage/inventory/inventory",
+          "parameters": [
+            "a",
+            "b"
+          ],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/init:stage/init:stage/objects/objects",
+          "parameters": [
+            "cid"
+          ],
+          "async": false
         },
         {
           "name": "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/init:verifyExistingInventory/init:verifyExistingInventory",
@@ -6987,6 +7396,11 @@
             "key"
           ],
           "async": true
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/confirmCommittedIndexOriginal/confirmCommittedIndexOriginal/confirmCommittedIndexOriginal",
+          "parameters": [],
+          "async": false
         },
         {
           "name": "openOriginalLocalPublicationStore/confirmDeliveryRecord/confirmDeliveryRecord",
@@ -8106,6 +8520,13 @@
           "async": true
         },
         {
+          "name": "openOriginalLocalPublicationStore/materialHasLiveReference/materialHasLiveReference/bindingOriginal/bindingOriginal",
+          "parameters": [
+            "cid"
+          ],
+          "async": false
+        },
+        {
           "name": "openOriginalLocalPublicationStore/materialHasLiveReference/materialHasLiveReference/materialHasLiveReference",
           "parameters": [
             "object"
@@ -8612,19 +9033,19 @@
         {
           "name": "openOriginalLocalPublicationStore/putNativePublicationContracts/putNativePublicationContracts/putNativePublicationContracts",
           "parameters": [
+            "entry"
+          ],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/putNativePublicationContracts/putNativePublicationContracts/putNativePublicationContracts#2",
+          "parameters": [
             "result"
           ],
           "async": false
         },
         {
           "name": "openOriginalLocalPublicationStore/putNativePublicationContracts/putNativePublicationContracts/selected/selected",
-          "parameters": [
-            "entry"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/putNativePublicationContracts/putNativePublicationContracts/selected/selected#2",
           "parameters": [
             "entry"
           ],
@@ -9891,6 +10312,41 @@
           "async": false
         },
         {
+          "name": "openOriginalLocalPublicationStore/writeNativeIndexOriginal/writeNativeIndexOriginal",
+          "parameters": [
+            "method",
+            "args",
+            "acknowledge",
+            "reservation"
+          ],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/writeNativeIndexOriginal/writeNativeIndexOriginal/finish/finish",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/writeNativeIndexOriginal/writeNativeIndexOriginal/init:retry/init:retry",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/writeNativeIndexOriginal/writeNativeIndexOriginal/init:retry/init:retry/init:retry",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/writeNativeIndexOriginal/writeNativeIndexOriginal/init:retry/init:retry/init:retry#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/writeNativeIndexOriginal/writeNativeIndexOriginal/status/status",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "openOriginalLocalPublicationStore/writePhysicalHoldingRecord/writePhysicalHoldingRecord",
           "parameters": [
             "path",
@@ -10374,6 +10830,8 @@
         },
         {
           "operations": [
+            "openOriginalLocalPublicationStore/admitNativeIndexOriginal/admitNativeIndexOriginal",
+            "openOriginalLocalPublicationStore/admitNativeIndexOriginal/admitNativeIndexOriginal/admitNativeIndexOriginal",
             "openOriginalLocalPublicationStore/readCommittedIndexRaw/readCommittedIndexRaw",
             "openOriginalLocalPublicationStore/readSelectedResultRetentionExtension/readSelectedResultRetentionExtension"
           ],
@@ -10383,6 +10841,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "## Selected Result metadata read reuse"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "A selected native read admits the actual stored Index body and binds all tuple"
               }
             ],
             "inputsOutputs": [
@@ -10406,7 +10868,7 @@
             "synchronization": [
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
-                "anchor": "Cold commit confirmation retains the bounded Index bytes across the real"
+                "anchor": "Cold file-backed commit confirmation retains the bounded Index bytes across the real"
               }
             ],
             "failure": [
@@ -10424,7 +10886,7 @@
             "resources": [
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
-                "anchor": "The Index's immutable semantic alias still receives its original"
+                "anchor": "A file-backed Index's immutable semantic alias still receives its original"
               }
             ],
             "extension": [
@@ -10437,6 +10899,10 @@
               {
                 "path": "adapters/store-local/publication-store.test.mjs",
                 "anchor": "test('cold index confirmation reuses unchanged admission and checks post-ACK mutation',"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "native Index selected body corruption refuses without rebuilding unrelated publications"
               }
             ]
           }
@@ -10514,10 +10980,15 @@
             "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/commitIndexInternal#2",
             "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/init:adopt/init:adopt",
             "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/init:beginCustody/init:beginCustody",
+            "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/init:cancelStage/init:cancelStage",
             "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/init:conflict/init:conflict",
             "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/init:install/init:install",
+            "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/init:install/init:install/init:install",
             "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/init:sameContent/init:sameContent",
             "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/init:stage/init:stage",
+            "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/init:stage/init:stage/bindings/bindings",
+            "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/init:stage/init:stage/inventory/inventory",
+            "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/init:stage/init:stage/objects/objects",
             "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/init:verifyExistingInventory/init:verifyExistingInventory",
             "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/init:verifyExistingInventory/init:verifyExistingInventory/init:verifyExistingInventory",
             "openOriginalLocalPublicationStore/commitIndexInternal/commitIndexInternal/init:verifyExistingInventory/init:verifyExistingInventory/init:verifyExistingInventory/init:verifyExistingInventory",
@@ -10533,6 +11004,7 @@
             "openOriginalLocalPublicationStore/confirmCapturedContentHoldings/confirmCapturedContentHoldings",
             "openOriginalLocalPublicationStore/confirmCommittedIndex/confirmCommittedIndex",
             "openOriginalLocalPublicationStore/confirmCommittedIndexOriginal/confirmCommittedIndexOriginal",
+            "openOriginalLocalPublicationStore/confirmCommittedIndexOriginal/confirmCommittedIndexOriginal/confirmCommittedIndexOriginal",
             "openOriginalLocalPublicationStore/confirmDeliveryRecord/confirmDeliveryRecord",
             "openOriginalLocalPublicationStore/confirmModelRawCaptureOriginals/confirmModelRawCaptureOriginals",
             "openOriginalLocalPublicationStore/confirmModelRawCaptureOriginals/confirmModelRawCaptureOriginals/expected/expected",
@@ -10680,6 +11152,7 @@
             "openOriginalLocalPublicationStore/lookupDeliveryAttempt/lookupDeliveryAttempt",
             "openOriginalLocalPublicationStore/manifestReadGrantPath/manifestReadGrantPath",
             "openOriginalLocalPublicationStore/materialHasLiveReference/materialHasLiveReference",
+            "openOriginalLocalPublicationStore/materialHasLiveReference/materialHasLiveReference/bindingOriginal/bindingOriginal",
             "openOriginalLocalPublicationStore/materialHasLiveReference/materialHasLiveReference/materialHasLiveReference",
             "openOriginalLocalPublicationStore/metadataContractHasLiveReference/metadataContractHasLiveReference",
             "openOriginalLocalPublicationStore/metadataContractHasLiveReference/metadataContractHasLiveReference/metadataContractHasLiveReference",
@@ -10749,8 +11222,8 @@
             "openOriginalLocalPublicationStore/putNativePublicationContracts/putNativePublicationContracts/init:retry/init:retry/init:retry",
             "openOriginalLocalPublicationStore/putNativePublicationContracts/putNativePublicationContracts/init:retry/init:retry/init:retry#2",
             "openOriginalLocalPublicationStore/putNativePublicationContracts/putNativePublicationContracts/putNativePublicationContracts",
+            "openOriginalLocalPublicationStore/putNativePublicationContracts/putNativePublicationContracts/putNativePublicationContracts#2",
             "openOriginalLocalPublicationStore/putNativePublicationContracts/putNativePublicationContracts/selected/selected",
-            "openOriginalLocalPublicationStore/putNativePublicationContracts/putNativePublicationContracts/selected/selected#2",
             "openOriginalLocalPublicationStore/putNativePublicationContracts/putNativePublicationContracts/status/status",
             "openOriginalLocalPublicationStore/putOriginalPublicationContracts/putOriginalPublicationContracts",
             "openOriginalLocalPublicationStore/putPreparedResultSchema/putPreparedResultSchema",
@@ -10902,6 +11375,12 @@
             "openOriginalLocalPublicationStore/withCommittedResultRows/withCommittedResultRows/withCommittedResultRows/readRows/readRows/physical/physical",
             "openOriginalLocalPublicationStore/withSemanticCommit/withSemanticCommit",
             "openOriginalLocalPublicationStore/withSemanticCommit/withSemanticCommit/withSemanticCommit",
+            "openOriginalLocalPublicationStore/writeNativeIndexOriginal/writeNativeIndexOriginal",
+            "openOriginalLocalPublicationStore/writeNativeIndexOriginal/writeNativeIndexOriginal/finish/finish",
+            "openOriginalLocalPublicationStore/writeNativeIndexOriginal/writeNativeIndexOriginal/init:retry/init:retry",
+            "openOriginalLocalPublicationStore/writeNativeIndexOriginal/writeNativeIndexOriginal/init:retry/init:retry/init:retry",
+            "openOriginalLocalPublicationStore/writeNativeIndexOriginal/writeNativeIndexOriginal/init:retry/init:retry/init:retry#2",
+            "openOriginalLocalPublicationStore/writeNativeIndexOriginal/writeNativeIndexOriginal/status/status",
             "openOriginalLocalPublicationStore/writePhysicalHoldingRecord/writePhysicalHoldingRecord",
             "openOriginalLocalPublicationStore/writePhysicalHoldingRecord/writePhysicalHoldingRecord/cleanup/init:retry/init:retry",
             "openOriginalLocalPublicationStore/writePhysicalHoldingRecord/writePhysicalHoldingRecord/cleanup/init:retry/init:retry/init:retry",
@@ -11064,7 +11543,7 @@
               },
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
-                "anchor": "Inventory staging precedes the public Index commit's payload-custody owner."
+                "anchor": "For a file-backed Index, inventory staging precedes the public Index commit's"
               },
               {
                 "path": "docs/design/interactive-run-control.md",
@@ -11121,6 +11600,10 @@
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
                 "anchor": "Independent verification adapts its default reader to the two supported CID"
+              },
+              {
+                "path": "adapters/store-local/physical-holding-publication.md",
+                "anchor": "### Native Index publication"
               }
             ],
             "inputsOutputs": [
@@ -11138,7 +11621,7 @@
               },
               {
                 "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "const readOriginal = (cid, includeNative = cid !== admitted.identity, retained) => {"
+                "anchor": "const readOriginal = (cid, includeNative = true, retained) => {"
               },
               {
                 "path": "adapters/store-local/publication-store.mjs",
@@ -11268,7 +11751,7 @@
               },
               {
                 "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "const readOriginal = (cid, includeNative = cid !== admitted.identity, retained) => {"
+                "anchor": "const readOriginal = (cid, includeNative = true, retained) => {"
               },
               {
                 "path": "adapters/store-local/publication-store.mjs",
@@ -11504,7 +11987,7 @@
               },
               {
                 "path": "adapters/store-local/publication-store.mjs",
-                "anchor": "const usage = deliveryIndex.putPublicationContracts(originalEntries,allowance,progress);"
+                "anchor": "const usage = deliveryIndex.putPublicationContracts(originalEntries,allowance,progress,selection);"
               },
               {
                 "path": "adapters/store-local/publication-store.mjs",
@@ -11516,7 +11999,7 @@
               },
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
-                "anchor": "directory acknowledgement and schema adoption. At that point the same Store may"
+                "anchor": "durability acknowledgement and schema adoption. At that point the same Store may"
               },
               {
                 "path": "adapters/store-local/publication-store.mjs",
@@ -11524,7 +12007,7 @@
               },
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
-                "anchor": "The existing Index file and its actual directory acknowledgement still"
+                "anchor": "A file-backed Index and its actual directory acknowledgement still"
               },
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
@@ -11944,7 +12427,7 @@
               },
               {
                 "path": "docs/design/result-description.md",
-                "anchor": "links. Existing file originals remain files, and Index/schema and the existing"
+                "anchor": "links. Existing file originals, schemas and the existing"
               },
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
@@ -11952,7 +12435,7 @@
               },
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
-                "anchor": "and shared-reference discovery still walk history; indexed publication recovery"
+                "anchor": "and legacy file shared-reference discovery still walk history; indexed publication recovery"
               },
               {
                 "path": "adapters/store-local/physical-holding-publication.md",
@@ -12403,6 +12886,26 @@
               {
                 "path": "adapters/store-local/publication-store.test.mjs",
                 "anchor": "independent publication reader defaults never interpret a contract as generation retention"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "native publication Index and inventory share their real commit without duplicate file metadata"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "native Index Store retains both storage and payload custody after"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "native Index rechecks the original publication record inside its commit"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "concurrent native Index confirmation retains one original lost-reply writer"
+              },
+              {
+                "path": "adapters/store-local/publication-store.test.mjs",
+                "anchor": "native Index shared Result payload keeps the same allocation until final real unlink ACK"
               }
             ]
           }

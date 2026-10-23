@@ -93,11 +93,21 @@ unchanged.
 The same-original publication operation stores new immutable metadata bodies in
 the existing Store SQLite database, with one actual `FULL`/`fullfsync` transaction
 for the group. It does not also create per-body object files and semantic hard
-links. Existing file originals remain files, and Index/schema and the existing
+links. Existing file originals, schemas and the existing
 attempt/progress file protocols keep their original representation. A repeated
 raw write of an already native body uses that same native original, not a second
 physical copy. Public contract wires, identities and publication authorization
 are unchanged; the public Index retains its separate logical commit.
+
+For a native publication attempt, that separate Index commit can use the same
+Store database: its complete key/CID, immutable body, inventory, material owners
+and quota delta share one actual FULL/fullfsync transaction after payload
+custody is retained. The final transaction checks the original committing
+record and whole-Run fence. It does not also create filesystem Index aliases.
+Existing file-backed Indexes keep their actual file/directory ACK path.
+Selected reads admit the actual body and full tuple; cold native confirmation
+uses the same original write, never row visibility as an ACK. Unknown storage
+and payload cleanup retain their original duties without replaying execution.
 
 The database persists native body count and UTF-8 bytes in the same transaction
 as insertion/removal. These consume the same Store object and byte limits as
