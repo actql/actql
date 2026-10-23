@@ -4182,7 +4182,7 @@
     {
       "module": "adapters/store-local/delivery-attempt-index.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "59f3bc7a44be35fe7c9f7a920137a8cc9c5abce6e41366491cb495cb69dbf57e",
+      "sha256": "89c0a072bf468b98b5f7ad9c63ad07e535cc8114711004ba48c7b28db650c87f",
       "exports": [
         "openDeliveryAttemptIndex"
       ],
@@ -4656,6 +4656,13 @@
           "async": false
         },
         {
+          "name": "openDeliveryAttemptIndex/init:publicationContracts/init:publicationContracts/init:publicationContracts",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
           "name": "openDeliveryAttemptIndex/init:publicationContracts/init:publicationContracts/keys/keys",
           "parameters": [
             "semantic_cid"
@@ -4694,7 +4701,8 @@
           "parameters": [
             "entries",
             "allowance",
-            "progress"
+            "progress",
+            "selection"
           ],
           "async": false
         },
@@ -5172,7 +5180,8 @@
             "kind",
             "entries",
             "allowance",
-            "suppliedProgress"
+            "suppliedProgress",
+            "selection"
           ],
           "async": false
         },
@@ -5236,6 +5245,14 @@
           "parameters": [
             "entry",
             "i"
+          ],
+          "async": false
+        },
+        {
+          "name": "openDeliveryAttemptIndex/publicationMutation/publicationMutation/selected/selected",
+          "parameters": [
+            "key",
+            "index"
           ],
           "async": false
         },
@@ -5545,6 +5562,7 @@
             "openDeliveryAttemptIndex/init:publicationAttemptsForRun/init:publicationAttemptsForRun/init:publicationAttemptsForRun",
             "openDeliveryAttemptIndex/init:publicationContract/init:publicationContract",
             "openDeliveryAttemptIndex/init:publicationContracts/init:publicationContracts",
+            "openDeliveryAttemptIndex/init:publicationContracts/init:publicationContracts/init:publicationContracts",
             "openDeliveryAttemptIndex/init:publicationContracts/init:publicationContracts/keys/keys",
             "openDeliveryAttemptIndex/init:publicationContracts/init:publicationContracts/supplied/supplied",
             "openDeliveryAttemptIndex/init:publicationRecords/init:publicationRecords",
@@ -5635,6 +5653,7 @@
             "openDeliveryAttemptIndex/publicationMutation/publicationMutation/publicationMutation/publicationMutation",
             "openDeliveryAttemptIndex/publicationMutation/publicationMutation/publicationMutation/publicationMutation#2",
             "openDeliveryAttemptIndex/publicationMutation/publicationMutation/retry/retry",
+            "openDeliveryAttemptIndex/publicationMutation/publicationMutation/selected/selected",
             "openDeliveryAttemptIndex/readResultRecovery/readResultRecovery",
             "openDeliveryAttemptIndex/recoveryOriginal/recoveryOriginal",
             "openDeliveryAttemptIndex/recoveryState/recoveryState",
@@ -6204,6 +6223,14 @@
               {
                 "path": "adapters/store-local/publication-store.test.mjs",
                 "anchor": "native shared holding selection reads only owners of that holding"
+              },
+              {
+                "path": "adapters/store-local/delivery-attempt-index.test.mjs",
+                "anchor": "publication mutation consumes only its original unchanged preflight once"
+              },
+              {
+                "path": "adapters/store-local/delivery-attempt-index.test.mjs",
+                "anchor": "publication preflight copies foreign keys and actual mutation keep full selection"
               }
             ]
           }
@@ -6213,7 +6240,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "e36ae00f7014d6fa22f7975726cc5a3f7d1cae695b80311d3107ca9989597aa8",
+      "sha256": "fc16212e1e8e8d1d1234727e0d3801fddd3f61fb8d180983d1ad569c9186ad68",
       "exports": [
         "PublicationStoreError",
         "assertOriginalLocalPublicationStoreFacilityCurrent",
@@ -8656,19 +8683,19 @@
         {
           "name": "openOriginalLocalPublicationStore/putNativePublicationContracts/putNativePublicationContracts/putNativePublicationContracts",
           "parameters": [
+            "entry"
+          ],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/putNativePublicationContracts/putNativePublicationContracts/putNativePublicationContracts#2",
+          "parameters": [
             "result"
           ],
           "async": false
         },
         {
           "name": "openOriginalLocalPublicationStore/putNativePublicationContracts/putNativePublicationContracts/selected/selected",
-          "parameters": [
-            "entry"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/putNativePublicationContracts/putNativePublicationContracts/selected/selected#2",
           "parameters": [
             "entry"
           ],
@@ -10793,8 +10820,8 @@
             "openOriginalLocalPublicationStore/putNativePublicationContracts/putNativePublicationContracts/init:retry/init:retry/init:retry",
             "openOriginalLocalPublicationStore/putNativePublicationContracts/putNativePublicationContracts/init:retry/init:retry/init:retry#2",
             "openOriginalLocalPublicationStore/putNativePublicationContracts/putNativePublicationContracts/putNativePublicationContracts",
+            "openOriginalLocalPublicationStore/putNativePublicationContracts/putNativePublicationContracts/putNativePublicationContracts#2",
             "openOriginalLocalPublicationStore/putNativePublicationContracts/putNativePublicationContracts/selected/selected",
-            "openOriginalLocalPublicationStore/putNativePublicationContracts/putNativePublicationContracts/selected/selected#2",
             "openOriginalLocalPublicationStore/putNativePublicationContracts/putNativePublicationContracts/status/status",
             "openOriginalLocalPublicationStore/putOriginalPublicationContracts/putOriginalPublicationContracts",
             "openOriginalLocalPublicationStore/putPreparedResultSchema/putPreparedResultSchema",
