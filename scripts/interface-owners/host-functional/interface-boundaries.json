@@ -46441,7 +46441,7 @@
     },
     {
       "module": "adapters/host-node/installed-project-mock.mjs",
-      "sha256": "ba0fa201c8c61dc73da954a5a36f7972baf1870c49485131927bc7c666533652",
+      "sha256": "5ad1994e0048b12be343e7cf47d942b2b632859e5f499b5515dcd838ae3156b2",
       "exports": [
         "installPreparedProjectMockSources",
         "installedMockRequestRealization",
@@ -46894,12 +46894,16 @@
               {
                 "path": "adapters/host-node/installed-project-mock.mjs",
                 "anchor": "if (record === undefined || record.value === undefined) fail('NodeManagedRunAdmissionUnavailable');"
+              },
+              {
+                "path": "adapters/host-node/installed-project-mock.mjs",
+                "anchor": "if (run !== held.run || read.source !== index ||"
               }
             ],
             "ownership": [
               {
                 "path": "adapters/host-node/installed-project-mock.mjs",
-                "anchor": "run.reads[index] = read;"
+                "anchor": "run.reads[slot] = read;"
               },
               {
                 "path": "adapters/host-node/installed-project-mock.mjs",
@@ -46952,6 +46956,10 @@
               {
                 "path": "adapters/host-node/mock-source-factory-custody.test.mjs",
                 "anchor": "test('same managed Run original is retained before post-factory current refusal and typed start stays zero',()=>{"
+              },
+              {
+                "path": "adapters/host-node/mock-source-factory-custody.test.mjs",
+                "anchor": "test('repeated Source slots hold distinct children and close only their original Source',async()=>{"
               }
             ]
           }
